@@ -42,11 +42,11 @@ npm start
 
 ### Docker Deployment on Unraid
 
-#### Option 1: Using Docker Compose
+#### Option 1: Using Docker Compose (Recommended)
 
 1. Clone this repository on your Unraid server
 2. Navigate to the project directory
-3. Build and start the container:
+3. Build and start the containers:
 
 ```bash
 docker-compose up -d
@@ -54,26 +54,44 @@ docker-compose up -d
 
 4. Access the application at `http://your-unraid-ip:8080`
 
+This method automatically sets up:
+- The frontend web application
+- The backend API server
+- A persistent volume for data storage
+
 #### Option 2: Using Unraid Docker UI
 
 1. In the Unraid web UI, go to the Docker tab
-2. Click "Add Container"
-3. Fill in the following details:
-   - Repository: `localhost/kids-reading-manager:latest` (after building locally) or use a pre-built image
+2. You'll need to create two containers:
+   
+   **Frontend Container:**
+   - Repository: `localhost/kids-reading-manager:latest` (after building locally)
    - Network Type: Bridge
    - Port Mappings: `8080:80`
    - Name: kids-reading-manager
-4. Click "Apply"
+   
+   **API Server Container:**
+   - Repository: `localhost/kids-reading-manager-api:latest` (after building locally)
+   - Network Type: Bridge
+   - Port Mappings: `3001:3001`
+   - Name: kids-reading-manager-api
+   - Volumes: Add a path mapping for `/data` to a persistent location on your Unraid server
 
-#### Building the Docker Image
+3. Make sure both containers are on the same network
 
-If you want to build the Docker image locally:
+#### Building the Docker Images
+
+If you want to build the Docker images locally:
 
 ```bash
+# Build the frontend image
 docker build -t kids-reading-manager:latest .
+
+# Build the API server image
+docker build -f Dockerfile.server -t kids-reading-manager-api:latest .
 ```
 
-You can then push this to a registry or use it directly on your Unraid server.
+You can then push these to a registry or use them directly on your Unraid server.
 
 ## Usage
 
@@ -119,13 +137,20 @@ You can then push this to a registry or use it directly on your Unraid server.
 
 ## Data Storage
 
-All data is stored locally in your browser's localStorage. This means:
+The application uses a persistent storage solution that allows data to be shared between different browsers and devices:
 
-- Data persists between sessions on the same device
-- Data is not shared between devices
-- Clearing browser data will erase the app's data
+- Data is stored in a file on the server using Docker volumes
+- Data persists between sessions and across different devices
+- Data survives container restarts and updates
+- Regular backups are still recommended using the export functionality
 
-It's recommended to periodically export your data as a backup.
+### How It Works
+
+The application consists of two parts:
+1. A React frontend for the user interface
+2. An Express.js backend API for data storage
+
+When deployed with Docker, the data is stored in a persistent volume, making it accessible from any device that can connect to the server.
 
 ## Mobile Usage
 

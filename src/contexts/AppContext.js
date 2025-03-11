@@ -4,6 +4,9 @@ import { v4 as uuidv4 } from 'uuid';
 // Create context
 const AppContext = createContext();
 
+// API URL - will be proxied through nginx
+const API_URL = '/api';
+
 // Custom hook to use the app context
 export const useAppContext = () => useContext(AppContext);
 
@@ -12,34 +15,37 @@ export const AppProvider = ({ children }) => {
   const [students, setStudents] = useState([]);
   // State for loading status
   const [loading, setLoading] = useState(true);
+  // State for API errors
+  const [apiError, setApiError] = useState(null);
 
-  // Load data from localStorage on initial render
+  // Load data from API on initial render
   useEffect(() => {
-    const loadData = () => {
+    const fetchStudents = async () => {
       try {
-        const storedStudents = localStorage.getItem('reading-tracker-students');
-        if (storedStudents) {
-          setStudents(JSON.parse(storedStudents));
+        const response = await fetch(`${API_URL}/students`);
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
         }
+        const data = await response.json();
+        console.log('Loaded students from API:', data);
+        setStudents(data);
+        setApiError(null);
       } catch (error) {
-        console.error('Error loading data from localStorage:', error);
+        console.error('Error fetching students:', error);
+        setApiError(error.message);
       } finally {
         setLoading(false);
       }
     };
 
-    loadData();
+    fetchStudents();
   }, []);
 
-  // Save students to localStorage whenever they change
-  useEffect(() => {
-    if (!loading) {
-      localStorage.setItem('reading-tracker-students', JSON.stringify(students));
-    }
-  }, [students, loading]);
+  // We don't need to save students on every change anymore
+  // The API endpoints will handle that for individual operations
 
   // Add a new student
-  const addStudent = (name) => {
+  const addStudent = async (name) => {
     const newStudent = {
       id: uuidv4(),
       name,
@@ -47,28 +53,102 @@ export const AppProvider = ({ children }) => {
       readingSessions: []
     };
     
-    setStudents(prevStudents => [...prevStudents, newStudent]);
-    return newStudent;
+    try {
+      const response = await fetch(`${API_URL}/students`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newStudent),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      const savedStudent = await response.json();
+      setStudents(prevStudents => [...prevStudents, savedStudent]);
+      setApiError(null);
+      return savedStudent;
+    } catch (error) {
+      console.error('Error adding student:', error);
+      setApiError(error.message);
+      // Still update the UI optimistically
+      setStudents(prevStudents => [...prevStudents, newStudent]);
+      return newStudent;
+    }
   };
 
   // Update a student
-  const updateStudent = (id, updatedData) => {
-    setStudents(prevStudents => 
-      prevStudents.map(student => 
-        student.id === id ? { ...student, ...updatedData } : student
-      )
-    );
+  const updateStudent = async (id, updatedData) => {
+    try {
+      // Find the current student to merge with updates
+      const currentStudent = students.find(student => student.id === id);
+      if (!currentStudent) {
+        throw new Error('Student not found');
+      }
+      
+      const updatedStudent = { ...currentStudent, ...updatedData };
+      
+      const response = await fetch(`${API_URL}/students/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedStudent),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      // Update local state
+      setStudents(prevStudents =>
+        prevStudents.map(student =>
+          student.id === id ? updatedStudent : student
+        )
+      );
+      setApiError(null);
+    } catch (error) {
+      console.error('Error updating student:', error);
+      setApiError(error.message);
+      // Still update the UI optimistically
+      setStudents(prevStudents =>
+        prevStudents.map(student =>
+          student.id === id ? { ...student, ...updatedData } : student
+        )
+      );
+    }
   };
 
   // Delete a student
-  const deleteStudent = (id) => {
-    setStudents(prevStudents => 
-      prevStudents.filter(student => student.id !== id)
-    );
+  const deleteStudent = async (id) => {
+    try {
+      const response = await fetch(`${API_URL}/students/${id}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      // Update local state
+      setStudents(prevStudents =>
+        prevStudents.filter(student => student.id !== id)
+      );
+      setApiError(null);
+    } catch (error) {
+      console.error('Error deleting student:', error);
+      setApiError(error.message);
+      // Still update the UI optimistically
+      setStudents(prevStudents =>
+        prevStudents.filter(student => student.id !== id)
+      );
+    }
   };
 
   // Add a reading session for a student
-  const addReadingSession = (studentId, sessionData) => {
+  const addReadingSession = async (studentId, sessionData) => {
     const date = sessionData.date || new Date().toISOString().split('T')[0];
     const newSession = {
       id: uuidv4(),
@@ -77,18 +157,55 @@ export const AppProvider = ({ children }) => {
       notes: sessionData.notes || ''
     };
 
-    setStudents(prevStudents => 
-      prevStudents.map(student => {
-        if (student.id === studentId) {
-          return {
-            ...student,
-            lastReadDate: date,
-            readingSessions: [newSession, ...student.readingSessions]
-          };
-        }
-        return student;
-      })
-    );
+    try {
+      // Find the current student
+      const student = students.find(s => s.id === studentId);
+      if (!student) {
+        throw new Error('Student not found');
+      }
+      
+      // Create updated student with new session
+      const updatedStudent = {
+        ...student,
+        lastReadDate: date,
+        readingSessions: [newSession, ...student.readingSessions]
+      };
+      
+      // Update the student via API
+      const response = await fetch(`${API_URL}/students/${studentId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedStudent),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      // Update local state
+      setStudents(prevStudents =>
+        prevStudents.map(s => s.id === studentId ? updatedStudent : s)
+      );
+      setApiError(null);
+    } catch (error) {
+      console.error('Error adding reading session:', error);
+      setApiError(error.message);
+      // Still update the UI optimistically
+      setStudents(prevStudents =>
+        prevStudents.map(student => {
+          if (student.id === studentId) {
+            return {
+              ...student,
+              lastReadDate: date,
+              readingSessions: [newSession, ...student.readingSessions]
+            };
+          }
+          return student;
+        })
+      );
+    }
 
     return newSession;
   };
@@ -144,41 +261,74 @@ export const AppProvider = ({ children }) => {
   };
 
   // Export all data as JSON file
-  const exportToJson = () => {
-    // Create a JSON object with all student data
-    const data = {
-      students,
-      exportDate: new Date().toISOString(),
-      version: '1.0'
-    };
-    
-    // Convert to JSON string
-    const jsonString = JSON.stringify(data, null, 2);
-    
-    // Create download link
-    const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'reading-tracker-data.json');
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const exportToJson = async () => {
+    try {
+      // Get the latest data from the API
+      const response = await fetch(`${API_URL}/data`);
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      // Add export metadata
+      data.exportDate = new Date().toISOString();
+      data.version = '1.0';
+      
+      // Convert to JSON string
+      const jsonString = JSON.stringify(data, null, 2);
+      
+      // Create download link
+      const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'reading-tracker-data.json');
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      setApiError(null);
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      setApiError(error.message);
+      
+      // Fallback to using local state if API fails
+      const data = {
+        students,
+        exportDate: new Date().toISOString(),
+        version: '1.0'
+      };
+      
+      const jsonString = JSON.stringify(data, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'reading-tracker-data.json');
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   // Save data to a global file in the app folder
   const saveGlobalData = async () => {
     try {
+      // Get the latest data from the API
+      const response = await fetch(`${API_URL}/data`);
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      data.exportDate = new Date().toISOString();
+      data.version = '1.0';
+      
       // Check if the File System Access API is supported
       if ('showSaveFilePicker' in window) {
-        // Create a JSON object with all student data
-        const data = {
-          students,
-          exportDate: new Date().toISOString(),
-          version: '1.0'
-        };
-        
         // Convert to JSON string
         const jsonString = JSON.stringify(data, null, 2);
         
@@ -196,19 +346,7 @@ export const AppProvider = ({ children }) => {
         await writable.write(jsonString);
         await writable.close();
         
-        // Store the file handle in localStorage for future access
-        try {
-          // Request permission to use the file handle in the future
-          if ((await fileHandle.queryPermission({ mode: 'readwrite' })) === 'granted') {
-            localStorage.setItem('reading-tracker-global-file', JSON.stringify({
-              saved: true,
-              timestamp: new Date().toISOString()
-            }));
-          }
-        } catch (err) {
-          console.error('Error storing file handle:', err);
-        }
-        
+        setApiError(null);
         return { success: true };
       } else {
         // Fallback for browsers that don't support the File System Access API
@@ -221,6 +359,7 @@ export const AppProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Error saving global data:', error);
+      setApiError(error.message);
       return {
         success: false,
         error: error.message || 'Unknown error occurred while saving global data'
@@ -233,7 +372,7 @@ export const AppProvider = ({ children }) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         try {
           const data = JSON.parse(event.target.result);
           
@@ -243,9 +382,32 @@ export const AppProvider = ({ children }) => {
             return;
           }
           
-          // Update the students state
-          setStudents(data.students);
-          resolve(data.students.length);
+          // Send data to API
+          try {
+            const response = await fetch(`${API_URL}/data`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(data),
+            });
+            
+            if (!response.ok) {
+              throw new Error(`API error: ${response.status}`);
+            }
+            
+            // Update the students state
+            setStudents(data.students);
+            setApiError(null);
+            resolve(data.students.length);
+          } catch (apiError) {
+            console.error('Error sending data to API:', apiError);
+            setApiError(apiError.message);
+            
+            // Still update the local state
+            setStudents(data.students);
+            resolve(data.students.length);
+          }
         } catch (error) {
           reject(new Error(`Failed to parse JSON: ${error.message}`));
         }
@@ -288,20 +450,29 @@ export const AppProvider = ({ children }) => {
             };
           }
           
-          // Update the students state
-          setStudents(data.students);
-          
-          // Store the file handle in localStorage for future access
+          // Send data to API
           try {
-            // Request permission to use the file handle in the future
-            if ((await fileHandle.queryPermission({ mode: 'readwrite' })) === 'granted') {
-              localStorage.setItem('reading-tracker-global-file', JSON.stringify({
-                saved: true,
-                timestamp: new Date().toISOString()
-              }));
+            const response = await fetch(`${API_URL}/data`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(data),
+            });
+            
+            if (!response.ok) {
+              throw new Error(`API error: ${response.status}`);
             }
-          } catch (err) {
-            console.error('Error storing file handle:', err);
+            
+            // Update the students state
+            setStudents(data.students);
+            setApiError(null);
+          } catch (apiError) {
+            console.error('Error sending data to API:', apiError);
+            setApiError(apiError.message);
+            
+            // Still update the local state
+            setStudents(data.students);
           }
           
           return {
@@ -323,6 +494,7 @@ export const AppProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Error loading global data:', error);
+      setApiError(error.message);
       return {
         success: false,
         error: error.message || 'Unknown error occurred while loading global data'
@@ -331,7 +503,7 @@ export const AppProvider = ({ children }) => {
   };
 
   // Bulk import students
-  const bulkImportStudents = (names) => {
+  const bulkImportStudents = async (names) => {
     const newStudents = names.map(name => ({
       id: uuidv4(),
       name: name.trim(),
@@ -339,7 +511,31 @@ export const AppProvider = ({ children }) => {
       readingSessions: []
     }));
     
-    setStudents(prevStudents => [...prevStudents, ...newStudents]);
+    try {
+      // Send bulk students to API
+      const response = await fetch(`${API_URL}/students/bulk`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newStudents),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      // Update local state
+      setStudents(prevStudents => [...prevStudents, ...newStudents]);
+      setApiError(null);
+    } catch (error) {
+      console.error('Error bulk importing students:', error);
+      setApiError(error.message);
+      
+      // Still update the local state
+      setStudents(prevStudents => [...prevStudents, ...newStudents]);
+    }
+    
     return newStudents;
   };
 
@@ -347,6 +543,7 @@ export const AppProvider = ({ children }) => {
   const value = {
     students,
     loading,
+    apiError,
     addStudent,
     updateStudent,
     deleteStudent,
