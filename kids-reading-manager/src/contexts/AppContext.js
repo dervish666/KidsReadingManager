@@ -143,6 +143,61 @@ export const AppProvider = ({ children }) => {
     document.body.removeChild(link);
   };
 
+  // Export all data as JSON file
+  const exportToJson = () => {
+    // Create a JSON object with all student data
+    const data = {
+      students,
+      exportDate: new Date().toISOString(),
+      version: '1.0'
+    };
+    
+    // Convert to JSON string
+    const jsonString = JSON.stringify(data, null, 2);
+    
+    // Create download link
+    const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'reading-tracker-data.json');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Import data from JSON file
+  const importFromJson = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      
+      reader.onload = (event) => {
+        try {
+          const data = JSON.parse(event.target.result);
+          
+          // Validate the data structure
+          if (!data.students || !Array.isArray(data.students)) {
+            reject(new Error('Invalid data format: missing students array'));
+            return;
+          }
+          
+          // Update the students state
+          setStudents(data.students);
+          resolve(data.students.length);
+        } catch (error) {
+          reject(new Error(`Failed to parse JSON: ${error.message}`));
+        }
+      };
+      
+      reader.onerror = () => {
+        reject(new Error('Failed to read file'));
+      };
+      
+      reader.readAsText(file);
+    });
+  };
+
   // Bulk import students
   const bulkImportStudents = (names) => {
     const newStudents = names.map(name => ({
@@ -167,6 +222,8 @@ export const AppProvider = ({ children }) => {
     getStudentsByReadingPriority,
     getReadingStatus,
     exportToCsv,
+    exportToJson,
+    importFromJson,
     bulkImportStudents
   };
 
