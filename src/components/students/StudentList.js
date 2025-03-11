@@ -21,6 +21,8 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import SortIcon from '@mui/icons-material/Sort';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import { useAppContext } from '../../contexts/AppContext';
 import StudentCard from './StudentCard';
 import BulkImport from './BulkImport';
@@ -38,6 +40,7 @@ const StudentList = () => {
   const [openBulkDialog, setOpenBulkDialog] = useState(false);
   const [error, setError] = useState('');
   const [sortMethod, setSortMethod] = useState('priority');
+  const [sortDirection, setSortDirection] = useState('desc'); // 'asc' or 'desc'
 
   const handleAddStudent = () => {
     if (!newStudentName.trim()) {
@@ -70,34 +73,67 @@ const StudentList = () => {
   };
 
   const handleSortChange = (event) => {
-    setSortMethod(event.target.value);
+    const newSortMethod = event.target.value;
+    
+    // If selecting the same method, toggle the sort direction
+    if (newSortMethod === sortMethod) {
+      // Toggle the direction
+      const newDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+      setSortDirection(newDirection);
+      
+      // Force a re-render by setting the sort method again
+      // This ensures the list updates when toggling direction
+      setSortMethod(newSortMethod);
+    } else {
+      // For new sort method, set default direction
+      // Default to ascending for name, descending for others
+      setSortDirection(newSortMethod === 'name' ? 'asc' : 'desc');
+      setSortMethod(newSortMethod);
+    }
   };
 
-  // Sort students based on the selected sort method
+  // Sort students based on the selected sort method and direction
   const getSortedStudents = () => {
+    // Get the base sorted list
+    let sortedList;
+    
     if (sortMethod === 'priority') {
-      return getStudentsByReadingPriority();
+      // Get the priority-sorted list from context
+      sortedList = getStudentsByReadingPriority();
+      
+      // If ascending is selected, reverse the priority order
+      if (sortDirection === 'asc') {
+        sortedList = [...sortedList].reverse();
+      }
+      
+      return sortedList;
     }
 
     return [...students].sort((a, b) => {
+      let comparison = 0;
+      
       switch (sortMethod) {
         case 'name':
-          return a.name.localeCompare(b.name);
+          comparison = a.name.localeCompare(b.name);
+          break;
         
         case 'sessions':
-          // Sort by total sessions (highest first)
-          return b.readingSessions.length - a.readingSessions.length;
+          comparison = b.readingSessions.length - a.readingSessions.length;
+          break;
         
         case 'lastRead':
           // Handle cases where lastReadDate might be null
-          if (!a.lastReadDate) return 1;
-          if (!b.lastReadDate) return -1;
-          // Sort by last read date (most recent first)
-          return new Date(b.lastReadDate) - new Date(a.lastReadDate);
+          if (!a.lastReadDate) return sortDirection === 'asc' ? -1 : 1;
+          if (!b.lastReadDate) return sortDirection === 'asc' ? 1 : -1;
+          comparison = new Date(b.lastReadDate) - new Date(a.lastReadDate);
+          break;
         
         default:
           return 0;
       }
+      
+      // Reverse the comparison if ascending order is selected
+      return sortDirection === 'asc' ? -comparison : comparison;
     });
   };
 
@@ -126,7 +162,16 @@ const StudentList = () => {
               value={sortMethod}
               label="Sort By"
               onChange={handleSortChange}
-              startAdornment={<SortIcon sx={{ mr: 1, ml: -0.5 }} fontSize="small" />}
+              startAdornment={
+                <>
+                  <SortIcon sx={{ mr: 0.5, ml: -0.5 }} fontSize="small" />
+                  {sortDirection === 'asc' ? (
+                    <ArrowUpwardIcon fontSize="small" sx={{ mr: 0.5 }} />
+                  ) : (
+                    <ArrowDownwardIcon fontSize="small" sx={{ mr: 0.5 }} />
+                  )}
+                </>
+              }
             >
               <MenuItem value="priority">Reading Priority</MenuItem>
               <MenuItem value="name">Name</MenuItem>
