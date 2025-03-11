@@ -9,6 +9,12 @@ I'm implementing a sorting functionality for the Students page that will allow u
 This feature will enhance the usability of the application by giving users more control over how they view and organize student data.
 
 ## Recent Changes
+- Fixed Docker build warning related to keyword casing
+  - Updated Dockerfile to use consistent uppercase for Docker keywords
+  - Changed "as" to "AS" in multi-stage build definition
+  - Changed "--from" to "--FROM" in copy command
+  - This resolves the "FromAsCasing" warning during Docker builds
+
 - Implemented sorting functionality for the Students page
   - Added ability to sort by total sessions, name, or last read date
   - Added a dropdown menu with sorting options in the Students page header
