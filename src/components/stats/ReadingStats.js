@@ -34,7 +34,7 @@ import { useTheme } from '@mui/material/styles';
 
 const ReadingStats = () => {
   const theme = useTheme();
-  const { students, exportToCsv, getReadingStatus } = useAppContext();
+  const { students, exportToCsv, exportToJson, getReadingStatus } = useAppContext();
   const [timeRange, setTimeRange] = useState('all');
   const [currentTab, setCurrentTab] = useState(0);
   
@@ -47,7 +47,7 @@ const ReadingStats = () => {
   };
   
   const handleExport = () => {
-    exportToCsv();
+    exportToJson();
   };
   
   // Calculate statistics
@@ -329,37 +329,53 @@ const ReadingStats = () => {
         </Button>
       </Box>
       
-      {students.length === 0 ? (
-        <Paper sx={{ p: 3, textAlign: 'center' }}>
-          <Typography variant="body1">
-            No data available yet. Add students and record reading sessions to see statistics.
-          </Typography>
+      <Box>
+        <Paper sx={{ mb: 3 }}>
+          <Tabs
+            value={currentTab}
+            onChange={handleTabChange}
+            variant="fullWidth"
+            indicatorColor="primary"
+            textColor="primary"
+          >
+            <Tab icon={<AssessmentIcon />} label="Overview" />
+            <Tab icon={<CalendarTodayIcon />} label="Needs Attention" />
+            <Tab icon={<MenuBookIcon />} label="Reading Frequency" />
+            <Tab icon={<SettingsIcon />} label="Data Management" />
+          </Tabs>
         </Paper>
-      ) : (
-        <Box>
-          <Paper sx={{ mb: 3 }}>
-            <Tabs
-              value={currentTab}
-              onChange={handleTabChange}
-              variant="fullWidth"
-              indicatorColor="primary"
-              textColor="primary"
-            >
-              <Tab icon={<AssessmentIcon />} label="Overview" />
-              <Tab icon={<CalendarTodayIcon />} label="Needs Attention" />
-              <Tab icon={<MenuBookIcon />} label="Reading Frequency" />
-              <Tab icon={<SettingsIcon />} label="Data Management" />
-            </Tabs>
-          </Paper>
-          
-          <Box sx={{ p: 2 }}>
-            {currentTab === 0 && renderOverviewTab()}
-            {currentTab === 1 && renderNeedsAttentionTab()}
-            {currentTab === 2 && renderFrequencyTab()}
-            {currentTab === 3 && <DataManagement />}
-          </Box>
+        
+        <Box sx={{ p: 2 }}>
+          {currentTab === 0 && (
+            students.length === 0 ? (
+              <Paper sx={{ p: 3, textAlign: 'center' }}>
+                <Typography variant="body1">
+                  No data available yet. Add students and record reading sessions to see statistics.
+                </Typography>
+              </Paper>
+            ) : renderOverviewTab()
+          )}
+          {currentTab === 1 && (
+            students.length === 0 ? (
+              <Paper sx={{ p: 3, textAlign: 'center' }}>
+                <Typography variant="body1">
+                  No data available yet. Add students and record reading sessions to see statistics.
+                </Typography>
+              </Paper>
+            ) : renderNeedsAttentionTab()
+          )}
+          {currentTab === 2 && (
+            students.length === 0 ? (
+              <Paper sx={{ p: 3, textAlign: 'center' }}>
+                <Typography variant="body1">
+                  No data available yet. Add students and record reading sessions to see statistics.
+                </Typography>
+              </Paper>
+            ) : renderFrequencyTab()
+          )}
+          {currentTab === 3 && <DataManagement />}
         </Box>
-      )}
+      </Box>
     </Box>
   );
 };

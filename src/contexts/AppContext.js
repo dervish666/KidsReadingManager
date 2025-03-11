@@ -167,6 +167,67 @@ export const AppProvider = ({ children }) => {
     document.body.removeChild(link);
   };
 
+  // Save data to a global file in the app folder
+  const saveGlobalData = async () => {
+    try {
+      // Check if the File System Access API is supported
+      if ('showSaveFilePicker' in window) {
+        // Create a JSON object with all student data
+        const data = {
+          students,
+          exportDate: new Date().toISOString(),
+          version: '1.0'
+        };
+        
+        // Convert to JSON string
+        const jsonString = JSON.stringify(data, null, 2);
+        
+        // Use the File System Access API to save to a specific location
+        const options = {
+          suggestedName: 'reading-tracker-global-data.json',
+          types: [{
+            description: 'JSON Files',
+            accept: {'application/json': ['.json']},
+          }],
+        };
+        
+        const fileHandle = await window.showSaveFilePicker(options);
+        const writable = await fileHandle.createWritable();
+        await writable.write(jsonString);
+        await writable.close();
+        
+        // Store the file handle in localStorage for future access
+        try {
+          // Request permission to use the file handle in the future
+          if ((await fileHandle.queryPermission({ mode: 'readwrite' })) === 'granted') {
+            localStorage.setItem('reading-tracker-global-file', JSON.stringify({
+              saved: true,
+              timestamp: new Date().toISOString()
+            }));
+          }
+        } catch (err) {
+          console.error('Error storing file handle:', err);
+        }
+        
+        return { success: true };
+      } else {
+        // Fallback for browsers that don't support the File System Access API
+        exportToJson();
+        return {
+          success: true,
+          fallback: true,
+          message: 'Your browser does not support direct file system access. The data has been downloaded as a file instead.'
+        };
+      }
+    } catch (error) {
+      console.error('Error saving global data:', error);
+      return {
+        success: false,
+        error: error.message || 'Unknown error occurred while saving global data'
+      };
+    }
+  };
+
   // Import data from JSON file
   const importFromJson = (file) => {
     return new Promise((resolve, reject) => {
@@ -198,6 +259,77 @@ export const AppProvider = ({ children }) => {
     });
   };
 
+  // Load data from a global file in the app folder
+  const loadGlobalData = async () => {
+    try {
+      // Check if the File System Access API is supported
+      if ('showOpenFilePicker' in window) {
+        // Use the File System Access API to open a file
+        const options = {
+          types: [{
+            description: 'JSON Files',
+            accept: {'application/json': ['.json']},
+          }],
+          multiple: false
+        };
+        
+        const [fileHandle] = await window.showOpenFilePicker(options);
+        const file = await fileHandle.getFile();
+        const contents = await file.text();
+        
+        try {
+          const data = JSON.parse(contents);
+          
+          // Validate the data structure
+          if (!data.students || !Array.isArray(data.students)) {
+            return {
+              success: false,
+              error: 'Invalid data format: missing students array'
+            };
+          }
+          
+          // Update the students state
+          setStudents(data.students);
+          
+          // Store the file handle in localStorage for future access
+          try {
+            // Request permission to use the file handle in the future
+            if ((await fileHandle.queryPermission({ mode: 'readwrite' })) === 'granted') {
+              localStorage.setItem('reading-tracker-global-file', JSON.stringify({
+                saved: true,
+                timestamp: new Date().toISOString()
+              }));
+            }
+          } catch (err) {
+            console.error('Error storing file handle:', err);
+          }
+          
+          return {
+            success: true,
+            count: data.students.length
+          };
+        } catch (error) {
+          return {
+            success: false,
+            error: `Failed to parse JSON: ${error.message}`
+          };
+        }
+      } else {
+        // Fallback for browsers that don't support the File System Access API
+        return {
+          success: false,
+          error: 'Your browser does not support direct file system access. Please use the Import button to select a file manually.'
+        };
+      }
+    } catch (error) {
+      console.error('Error loading global data:', error);
+      return {
+        success: false,
+        error: error.message || 'Unknown error occurred while loading global data'
+      };
+    }
+  };
+
   // Bulk import students
   const bulkImportStudents = (names) => {
     const newStudents = names.map(name => ({
@@ -224,6 +356,8 @@ export const AppProvider = ({ children }) => {
     exportToCsv,
     exportToJson,
     importFromJson,
+    saveGlobalData,
+    loadGlobalData,
     bulkImportStudents
   };
 
