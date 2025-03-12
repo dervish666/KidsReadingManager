@@ -16,8 +16,7 @@ import {
   ToggleButtonGroup,
   ToggleButton,
   Card,
-  CardContent,
-  CardActions
+  CardContent
 } from '@mui/material';
 import { useAppContext } from '../../contexts/AppContext';
 import AssessmentSelector from './AssessmentSelector';

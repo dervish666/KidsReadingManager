@@ -5,11 +5,8 @@ import {
   Paper,
   Card,
   CardContent,
-  CardActions,
   Button,
-  IconButton,
   Chip,
-  Divider,
   Snackbar,
   Alert,
   CircularProgress,
@@ -21,12 +18,11 @@ import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { useAppContext } from '../../contexts/AppContext';
 import AssessmentSelector from './AssessmentSelector';
-import SessionNotes from './SessionNotes';
 import { useTheme } from '@mui/material/styles';
 
 const QuickEntry = () => {
   const theme = useTheme();
-  const { students, getStudentsByReadingPriority, getReadingStatus, addReadingSession } = useAppContext();
+  const { getStudentsByReadingPriority, getReadingStatus, addReadingSession } = useAppContext();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [assessment, setAssessment] = useState('independent');
   const [notes, setNotes] = useState('');
