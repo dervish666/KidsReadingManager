@@ -167,10 +167,21 @@ export const AppProvider = ({ children }) => {
       }
       
       // Create updated student with new session
+      // Add the new session to the beginning of the array
+      const updatedReadingSessions = [newSession, ...student.readingSessions];
+      
+      // Find the most recent date among all reading sessions
+      let mostRecentDate = date;
+      for (const session of updatedReadingSessions) {
+        if (session.date && new Date(session.date) > new Date(mostRecentDate)) {
+          mostRecentDate = session.date;
+        }
+      }
+      
       const updatedStudent = {
         ...student,
-        lastReadDate: date,
-        readingSessions: [newSession, ...student.readingSessions]
+        lastReadDate: mostRecentDate,
+        readingSessions: updatedReadingSessions
       };
       
       // Update the student via API
@@ -198,10 +209,21 @@ export const AppProvider = ({ children }) => {
       setStudents(prevStudents =>
         prevStudents.map(student => {
           if (student.id === studentId) {
+            // Add the new session to the beginning of the array
+            const updatedReadingSessions = [newSession, ...student.readingSessions];
+            
+            // Find the most recent date among all reading sessions
+            let mostRecentDate = date;
+            for (const session of updatedReadingSessions) {
+              if (session.date && new Date(session.date) > new Date(mostRecentDate)) {
+                mostRecentDate = session.date;
+              }
+            }
+            
             return {
               ...student,
-              lastReadDate: date,
-              readingSessions: [newSession, ...student.readingSessions]
+              lastReadDate: mostRecentDate,
+              readingSessions: updatedReadingSessions
             };
           }
           return student;

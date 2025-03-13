@@ -9,6 +9,13 @@ I'm implementing a sorting functionality for the Students page that will allow u
 This feature will enhance the usability of the application by giving users more control over how they view and organize student data.
 
 ## Recent Changes
+- Fixed issues with reading sessions display and date tracking
+  - Fixed UI to show a message when a student has more than 3 reading sessions
+  - Modified the SessionForm component to sort reading sessions by date (newest first)
+  - Fixed the lastReadDate calculation to always use the most recent session date
+  - Ensured proper date comparison when adding sessions with older dates
+  - Fixed missing IconButton import in QuickEntry component
+
 - Fixed Docker build warning related to keyword casing
   - Updated Dockerfile to use consistent uppercase for Docker keywords
   - Changed "as" to "AS" in multi-stage build definition
