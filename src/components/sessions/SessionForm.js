@@ -186,31 +186,42 @@ const SessionForm = () => {
               </Typography>
               
               {selectedStudent.readingSessions.length > 0 ? (
-                <Grid container spacing={2}>
-                  {selectedStudent.readingSessions.slice(0, 3).map((session) => (
-                    <Grid item xs={12} key={session.id}>
-                      <Card variant="outlined">
-                        <CardContent>
-                          <Typography variant="subtitle2" color="text.secondary">
-                            {new Date(session.date).toLocaleDateString('en-GB', {
-                              day: 'numeric',
-                              month: 'short',
-                              year: 'numeric'
-                            })}
-                          </Typography>
-                          <Typography variant="body2" sx={{ mt: 1 }}>
-                            Assessment: {session.assessment.charAt(0).toUpperCase() + session.assessment.slice(1)}
-                          </Typography>
-                          {session.notes && (
-                            <Typography variant="body2" sx={{ mt: 1 }}>
-                              Notes: {session.notes}
-                            </Typography>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  ))}
-                </Grid>
+                <>
+                  <Grid container spacing={2}>
+                    {[...selectedStudent.readingSessions]
+                      .sort((a, b) => new Date(b.date) - new Date(a.date)) // Sort by date, newest first
+                      .slice(0, 3)
+                      .map((session) => (
+                        <Grid item xs={12} key={session.id}>
+                          <Card variant="outlined">
+                            <CardContent>
+                              <Typography variant="subtitle2" color="text.secondary">
+                                {new Date(session.date).toLocaleDateString('en-GB', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric'
+                                })}
+                              </Typography>
+                              <Typography variant="body2" sx={{ mt: 1 }}>
+                                Assessment: {session.assessment.charAt(0).toUpperCase() + session.assessment.slice(1)}
+                              </Typography>
+                              {session.notes && (
+                                <Typography variant="body2" sx={{ mt: 1 }}>
+                                  Notes: {session.notes}
+                                </Typography>
+                              )}
+                            </CardContent>
+                          </Card>
+                        </Grid>
+                      ))
+                    }
+                  </Grid>
+                  {selectedStudent.readingSessions.length > 3 && (
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 2, fontStyle: 'italic' }}>
+                      Showing 3 most recent sessions of {selectedStudent.readingSessions.length} total sessions.
+                    </Typography>
+                  )}
+                </>
               ) : (
                 <Typography variant="body2" color="text.secondary">
                   No previous reading sessions recorded.
