@@ -102,6 +102,24 @@ const StudentCard = ({ student }) => {
     });
   };
 
+  // Calculate the most recent reading date from the sessions
+  const getMostRecentReadDate = () => {
+    if (!student.readingSessions || student.readingSessions.length === 0) {
+      return null;
+    }
+    
+    // Sort sessions by date (newest first)
+    const sortedSessions = [...student.readingSessions].sort((a, b) =>
+      new Date(b.date) - new Date(a.date)
+    );
+    
+    // Return the date of the most recent session
+    return sortedSessions[0].date;
+  };
+
+  // Get the most recent reading date
+  const mostRecentReadDate = getMostRecentReadDate();
+
   return (
     <>
       <Card 
@@ -148,7 +166,7 @@ const StudentCard = ({ student }) => {
           
           <Box sx={{ mt: 2 }}>
             <Typography variant="body2" color="text.secondary">
-              Last read: {formatDate(student.lastReadDate)}
+              Last read: {formatDate(mostRecentReadDate || student.lastReadDate)}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               Total sessions: {student.readingSessions.length}
