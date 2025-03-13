@@ -10,7 +10,6 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
-  Divider,
   Paper
 } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';

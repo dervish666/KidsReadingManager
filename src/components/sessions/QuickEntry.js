@@ -5,11 +5,8 @@ import {
   Paper,
   Card,
   CardContent,
-  CardActions,
   Button,
-  IconButton,
   Chip,
-  Divider,
   Snackbar,
   Alert,
   CircularProgress,
@@ -23,7 +20,6 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import TuneIcon from '@mui/icons-material/Tune';
 import { useAppContext } from '../../contexts/AppContext';
 import AssessmentSelector from './AssessmentSelector';
-import SessionNotes from './SessionNotes';
 import { useTheme } from '@mui/material/styles';
 
 const QuickEntry = () => {

@@ -6,12 +6,7 @@ import {
   Grid,
   Card,
   CardContent,
-  Divider,
   Button,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Tabs,
   Tab,
   List,
@@ -33,17 +28,10 @@ import DaysSinceReadingChart from './DaysSinceReadingChart';
 import ReadingTimelineChart from './ReadingTimelineChart';
 import DataManagement from '../DataManagement';
 import { useAppContext } from '../../contexts/AppContext';
-import { useTheme } from '@mui/material/styles';
 
 const ReadingStats = () => {
-  const theme = useTheme();
-  const { students, exportToCsv, exportToJson, getReadingStatus } = useAppContext();
-  const [timeRange, setTimeRange] = useState('all');
+  const { students, exportToJson, getReadingStatus } = useAppContext();
   const [currentTab, setCurrentTab] = useState(0);
-  
-  const handleTimeRangeChange = (event) => {
-    setTimeRange(event.target.value);
-  };
   
   const handleTabChange = (event, newValue) => {
     setCurrentTab(newValue);
