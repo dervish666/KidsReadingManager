@@ -27,11 +27,30 @@ const StudentPriorityCard = ({ student, priorityRank }) => {
     recentlyRead: theme.palette.status.recentlyRead
   };
   
+  // Get the most recent reading date from the sessions
+  const getMostRecentReadDate = () => {
+    if (!student.readingSessions || student.readingSessions.length === 0) {
+      return null;
+    }
+    
+    // Sort sessions by date (newest first)
+    const sortedSessions = [...student.readingSessions].sort((a, b) =>
+      new Date(b.date) - new Date(a.date)
+    );
+    
+    // Return the date of the most recent session
+    return sortedSessions[0].date;
+  };
+  
+  // Get the most recent reading date
+  const mostRecentReadDate = getMostRecentReadDate();
+  
   // Calculate days since last reading
   const getDaysSinceReading = () => {
-    if (!student.lastReadDate) return 'Never read';
+    const dateToUse = mostRecentReadDate || student.lastReadDate;
+    if (!dateToUse) return 'Never read';
     
-    const lastReadDate = new Date(student.lastReadDate);
+    const lastReadDate = new Date(dateToUse);
     const today = new Date();
     const diffTime = Math.abs(today - lastReadDate);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -77,13 +96,13 @@ const StudentPriorityCard = ({ student, priorityRank }) => {
           <Typography variant="body2" color="text.secondary">
             Last read:
           </Typography>
-          <Chip 
-            label={student.lastReadDate 
-              ? new Date(student.lastReadDate).toLocaleDateString('en-GB', {
+          <Chip
+            label={(mostRecentReadDate || student.lastReadDate)
+              ? new Date(mostRecentReadDate || student.lastReadDate).toLocaleDateString('en-GB', {
                   day: 'numeric',
                   month: 'short',
                   year: 'numeric'
-                }) 
+                })
               : 'Never'}
             size="small"
             color={status === 'notRead' ? 'error' : status === 'needsAttention' ? 'warning' : 'success'}
