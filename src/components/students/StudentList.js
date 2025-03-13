@@ -26,6 +26,7 @@ import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import { useAppContext } from '../../contexts/AppContext';
 import StudentCard from './StudentCard';
 import BulkImport from './BulkImport';
+import PrioritizedStudentsList from './PrioritizedStudentsList';
 
 const StudentList = () => {
   const {
@@ -194,9 +195,9 @@ const StudentList = () => {
           <Typography variant="body1" sx={{ mb: 2 }}>
             No students added yet. Add your first student to get started!
           </Typography>
-          <Button 
-            variant="contained" 
-            color="primary" 
+          <Button
+            variant="contained"
+            color="primary"
             onClick={handleOpenDialog}
             startIcon={<AddIcon />}
           >
@@ -204,13 +205,19 @@ const StudentList = () => {
           </Button>
         </Box>
       ) : (
-        <Grid container spacing={2}>
-          {sortedStudents.map(student => (
-            <Grid item xs={12} sm={6} md={4} key={student.id}>
-              <StudentCard student={student} />
-            </Grid>
-          ))}
-        </Grid>
+        <>
+          {/* Priority Reading List */}
+          <PrioritizedStudentsList />
+          
+          {/* All Students Grid */}
+          <Grid container spacing={2}>
+            {sortedStudents.map(student => (
+              <Grid item xs={12} sm={6} md={4} key={student.id}>
+                <StudentCard student={student} />
+              </Grid>
+            ))}
+          </Grid>
+        </>
       )}
 
       {/* Add Student Dialog */}

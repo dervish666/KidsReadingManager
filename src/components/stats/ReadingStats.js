@@ -27,7 +27,10 @@ import MenuBookIcon from '@mui/icons-material/MenuBook';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import SettingsIcon from '@mui/icons-material/Settings';
+import TimelineIcon from '@mui/icons-material/Timeline';
 import VisualIndicators from './VisualIndicators';
+import DaysSinceReadingChart from './DaysSinceReadingChart';
+import ReadingTimelineChart from './ReadingTimelineChart';
 import DataManagement from '../DataManagement';
 import { useAppContext } from '../../contexts/AppContext';
 import { useTheme } from '@mui/material/styles';
@@ -341,6 +344,7 @@ const ReadingStats = () => {
             <Tab icon={<AssessmentIcon />} label="Overview" />
             <Tab icon={<CalendarTodayIcon />} label="Needs Attention" />
             <Tab icon={<MenuBookIcon />} label="Reading Frequency" />
+            <Tab icon={<TimelineIcon />} label="Reading Timeline" />
             <Tab icon={<SettingsIcon />} label="Data Management" />
           </Tabs>
         </Paper>
@@ -373,7 +377,21 @@ const ReadingStats = () => {
               </Paper>
             ) : renderFrequencyTab()
           )}
-          {currentTab === 3 && <DataManagement />}
+          {currentTab === 3 && (
+            students.length === 0 ? (
+              <Paper sx={{ p: 3, textAlign: 'center' }}>
+                <Typography variant="body1">
+                  No data available yet. Add students and record reading sessions to see statistics.
+                </Typography>
+              </Paper>
+            ) : (
+              <Box>
+                <DaysSinceReadingChart />
+                <ReadingTimelineChart />
+              </Box>
+            )
+          )}
+          {currentTab === 4 && <DataManagement />}
         </Box>
       </Box>
     </Box>

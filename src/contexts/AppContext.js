@@ -17,6 +17,8 @@ export const AppProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   // State for API errors
   const [apiError, setApiError] = useState(null);
+  // State for preferred number of priority students to display
+  const [priorityStudentCount, setPriorityStudentCount] = useState(8);
 
   // Load data from API on initial render
   useEffect(() => {
@@ -220,6 +222,33 @@ export const AppProvider = ({ children }) => {
       // Otherwise sort by date (oldest first)
       return new Date(a.lastReadDate) - new Date(b.lastReadDate);
     });
+  };
+
+  // Get students prioritized by both last reading date and total sessions
+  const getPrioritizedStudents = (count = priorityStudentCount) => {
+    return [...students]
+      .sort((a, b) => {
+        // First priority: Students with no reading sessions
+        if (!a.lastReadDate && !b.lastReadDate) {
+          // If both have no sessions, sort by total sessions (ascending)
+          return a.readingSessions.length - b.readingSessions.length;
+        }
+        if (!a.lastReadDate) return -1;
+        if (!b.lastReadDate) return 1;
+        
+        // Second priority: Sort by date (oldest first)
+        const dateComparison = new Date(a.lastReadDate) - new Date(b.lastReadDate);
+        if (dateComparison !== 0) return dateComparison;
+        
+        // Third priority: If dates are equal, sort by total sessions (ascending)
+        return a.readingSessions.length - b.readingSessions.length;
+      })
+      .slice(0, count); // Return only the requested number of students
+  };
+
+  // Update the priority student count
+  const updatePriorityStudentCount = (count) => {
+    setPriorityStudentCount(count);
   };
 
   // Get reading status for a student
@@ -544,11 +573,14 @@ export const AppProvider = ({ children }) => {
     students,
     loading,
     apiError,
+    priorityStudentCount,
     addStudent,
     updateStudent,
     deleteStudent,
     addReadingSession,
     getStudentsByReadingPriority,
+    getPrioritizedStudents,
+    updatePriorityStudentCount,
     getReadingStatus,
     exportToCsv,
     exportToJson,

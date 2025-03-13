@@ -14,11 +14,13 @@ import {
   Alert,
   CircularProgress,
   SwipeableDrawer,
-  TextField
+  TextField,
+  Slider
 } from '@mui/material';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import TuneIcon from '@mui/icons-material/Tune';
 import { useAppContext } from '../../contexts/AppContext';
 import AssessmentSelector from './AssessmentSelector';
 import SessionNotes from './SessionNotes';
@@ -26,17 +28,27 @@ import { useTheme } from '@mui/material/styles';
 
 const QuickEntry = () => {
   const theme = useTheme();
-  const { students, getStudentsByReadingPriority, getReadingStatus, addReadingSession } = useAppContext();
+  const {
+    students,
+    getPrioritizedStudents,
+    getReadingStatus,
+    addReadingSession,
+    priorityStudentCount,
+    updatePriorityStudentCount
+  } = useAppContext();
+  
   const [currentIndex, setCurrentIndex] = useState(0);
   const [assessment, setAssessment] = useState('independent');
   const [notes, setNotes] = useState('');
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [notesDrawerOpen, setNotesDrawerOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [completedStudents, setCompletedStudents] = useState([]);
+  const [count, setCount] = useState(priorityStudentCount);
   
-  // Get students sorted by priority
-  const prioritizedStudents = getStudentsByReadingPriority();
+  // Get students sorted by priority using the enhanced algorithm
+  const prioritizedStudents = getPrioritizedStudents(count);
   
   // Reset current index if we have no students
   useEffect(() => {
@@ -104,6 +116,15 @@ const QuickEntry = () => {
     setNotesDrawerOpen(!notesDrawerOpen);
   };
   
+  const toggleSettingsDrawer = () => {
+    setSettingsOpen(!settingsOpen);
+  };
+  
+  const handleCountChange = (event, newValue) => {
+    setCount(newValue);
+    updatePriorityStudentCount(newValue);
+  };
+  
   const isCompleted = (studentId) => {
     return completedStudents.includes(studentId);
   };
@@ -144,7 +165,15 @@ const QuickEntry = () => {
             Student {currentIndex + 1} of {prioritizedStudents.length}
           </Typography>
           <Box sx={{ flexGrow: 1 }} />
-          <Chip 
+          <IconButton
+            size="small"
+            onClick={toggleSettingsDrawer}
+            sx={{ mr: 1 }}
+            color="primary"
+          >
+            <TuneIcon />
+          </IconButton>
+          <Chip
             label={`${completedStudents.length} Completed`}
             color="primary"
             size="small"
@@ -264,6 +293,55 @@ const QuickEntry = () => {
           <Button 
             variant="contained" 
             onClick={toggleNotesDrawer}
+            fullWidth
+          >
+            Done
+          </Button>
+        </Box>
+      </SwipeableDrawer>
+      
+      {/* Settings Drawer */}
+      <SwipeableDrawer
+        anchor="bottom"
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        onOpen={() => setSettingsOpen(true)}
+        disableSwipeToOpen={false}
+        swipeAreaWidth={30}
+      >
+        <Box sx={{ p: 2 }}>
+          <Typography variant="h6" gutterBottom>
+            Priority Settings
+          </Typography>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            Number of students to include: {count}
+          </Typography>
+          <Slider
+            value={count}
+            onChange={handleCountChange}
+            min={1}
+            max={15}
+            step={1}
+            marks={[
+              { value: 1, label: '1' },
+              { value: 8, label: '8' },
+              { value: 15, label: '15' }
+            ]}
+            valueLabelDisplay="auto"
+            sx={{ mb: 3 }}
+          />
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            Students are prioritized by:
+          </Typography>
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            1. Those who haven't been read with for the longest time
+          </Typography>
+          <Typography variant="body2" sx={{ mb: 3 }}>
+            2. Those who have been read with the least number of times
+          </Typography>
+          <Button
+            variant="contained"
+            onClick={toggleSettingsDrawer}
             fullWidth
           >
             Done
