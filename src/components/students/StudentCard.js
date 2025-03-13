@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { 
-  Card, 
-  CardContent, 
-  Typography, 
-  Box, 
-  IconButton, 
+import {
+  Card,
+  CardContent,
+  Typography,
+  Box,
+  IconButton,
   Menu,
   MenuItem,
   Dialog,
@@ -19,6 +19,7 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import { useAppContext } from '../../contexts/AppContext';
 import { useTheme } from '@mui/material/styles';
+import StudentSessions from '../sessions/StudentSessions';
 
 const StudentCard = ({ student }) => {
   const theme = useTheme();
@@ -28,6 +29,7 @@ const StudentCard = ({ student }) => {
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [openQuickReadDialog, setOpenQuickReadDialog] = useState(false);
+  const [openSessionsDialog, setOpenSessionsDialog] = useState(false);
   const [editName, setEditName] = useState(student.name);
   const [assessment, setAssessment] = useState('independent');
   const [notes, setNotes] = useState('');
@@ -120,20 +122,31 @@ const StudentCard = ({ student }) => {
   // Get the most recent reading date
   const mostRecentReadDate = getMostRecentReadDate();
 
+  // Handle card click to open sessions dialog
+  const handleCardClick = (event) => {
+    // Don't open sessions if clicking on the menu or quick read button
+    if (event.target.closest('button')) {
+      return;
+    }
+    setOpenSessionsDialog(true);
+  };
+
   return (
     <>
-      <Card 
-        sx={{ 
+      <Card
+        sx={{
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
           borderLeft: `4px solid ${statusColors[status]}`,
           transition: 'transform 0.2s',
+          cursor: 'pointer',
           '&:hover': {
             transform: 'translateY(-4px)',
             boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
           }
         }}
+        onClick={handleCardClick}
       >
         <CardContent sx={{ flexGrow: 1 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -201,6 +214,10 @@ const StudentCard = ({ student }) => {
       >
         <MenuItem onClick={handleEditClick}>Edit</MenuItem>
         <MenuItem onClick={handleQuickReadClick}>Quick Read</MenuItem>
+        <MenuItem onClick={() => {
+          setOpenSessionsDialog(true);
+          handleMenuClose();
+        }}>View All Sessions</MenuItem>
         <MenuItem onClick={handleDeleteClick} sx={{ color: 'error.main' }}>Delete</MenuItem>
       </Menu>
 
@@ -248,24 +265,24 @@ const StudentCard = ({ student }) => {
           
           <Typography variant="subtitle2" sx={{ mb: 1 }}>Assessment:</Typography>
           <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-            <Button 
-              variant={assessment === 'struggling' ? 'contained' : 'outlined'} 
+            <Button
+              variant={assessment === 'struggling' ? 'contained' : 'outlined'}
               color="error"
               onClick={() => setAssessment('struggling')}
               sx={{ flex: 1 }}
             >
               Struggling
             </Button>
-            <Button 
-              variant={assessment === 'needs-help' ? 'contained' : 'outlined'} 
+            <Button
+              variant={assessment === 'needs-help' ? 'contained' : 'outlined'}
               color="warning"
               onClick={() => setAssessment('needs-help')}
               sx={{ flex: 1 }}
             >
               Needs Help
             </Button>
-            <Button 
-              variant={assessment === 'independent' ? 'contained' : 'outlined'} 
+            <Button
+              variant={assessment === 'independent' ? 'contained' : 'outlined'}
               color="success"
               onClick={() => setAssessment('independent')}
               sx={{ flex: 1 }}
@@ -288,6 +305,13 @@ const StudentCard = ({ student }) => {
           <Button onClick={handleQuickReadSave} variant="contained" color="primary">Save</Button>
         </DialogActions>
       </Dialog>
+
+      {/* Student Sessions Dialog */}
+      <StudentSessions
+        open={openSessionsDialog}
+        onClose={() => setOpenSessionsDialog(false)}
+        student={student}
+      />
     </>
   );
 };

@@ -27,6 +27,7 @@ import VisualIndicators from './VisualIndicators';
 import DaysSinceReadingChart from './DaysSinceReadingChart';
 import ReadingTimelineChart from './ReadingTimelineChart';
 import DataManagement from '../DataManagement';
+import Settings from '../Settings';
 import { useAppContext } from '../../contexts/AppContext';
 
 const ReadingStats = () => {
@@ -334,6 +335,7 @@ const ReadingStats = () => {
             <Tab icon={<MenuBookIcon />} label="Reading Frequency" />
             <Tab icon={<TimelineIcon />} label="Reading Timeline" />
             <Tab icon={<SettingsIcon />} label="Data Management" />
+            <Tab icon={<SettingsIcon />} label="Settings" />
           </Tabs>
         </Paper>
         
@@ -380,6 +382,7 @@ const ReadingStats = () => {
             )
           )}
           {currentTab === 4 && <DataManagement />}
+          {currentTab === 5 && <Settings />}
         </Box>
       </Box>
     </Box>

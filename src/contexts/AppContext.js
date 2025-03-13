@@ -19,28 +19,49 @@ export const AppProvider = ({ children }) => {
   const [apiError, setApiError] = useState(null);
   // State for preferred number of priority students to display
   const [priorityStudentCount, setPriorityStudentCount] = useState(8);
+  // State for reading status durations (in days)
+  const [readingStatusSettings, setReadingStatusSettings] = useState({
+    recentlyReadDays: 7,
+    needsAttentionDays: 14
+  });
 
   // Load data from API on initial render
   useEffect(() => {
-    const fetchStudents = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch(`${API_URL}/students`);
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
+        // Fetch students
+        const studentsResponse = await fetch(`${API_URL}/students`);
+        if (!studentsResponse.ok) {
+          throw new Error(`API error: ${studentsResponse.status}`);
         }
-        const data = await response.json();
-        console.log('Loaded students from API:', data);
-        setStudents(data);
+        const studentsData = await studentsResponse.json();
+        console.log('Loaded students from API:', studentsData);
+        setStudents(studentsData);
+        
+        // Fetch settings
+        try {
+          const settingsResponse = await fetch(`${API_URL}/settings`);
+          if (settingsResponse.ok) {
+            const settingsData = await settingsResponse.json();
+            if (settingsData.readingStatusSettings) {
+              setReadingStatusSettings(settingsData.readingStatusSettings);
+            }
+          }
+        } catch (settingsError) {
+          console.error('Error fetching settings:', settingsError);
+          // Continue with default settings if there's an error
+        }
+        
         setApiError(null);
       } catch (error) {
-        console.error('Error fetching students:', error);
+        console.error('Error fetching data:', error);
         setApiError(error.message);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchStudents();
+    fetchData();
   }, []);
 
   // We don't need to save students on every change anymore
@@ -273,6 +294,33 @@ export const AppProvider = ({ children }) => {
     setPriorityStudentCount(count);
   };
 
+  // Update reading status settings
+  const updateReadingStatusSettings = async (newSettings) => {
+    try {
+      // Save settings to API
+      const response = await fetch(`${API_URL}/settings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ readingStatusSettings: newSettings }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      // Update local state
+      setReadingStatusSettings(newSettings);
+      setApiError(null);
+    } catch (error) {
+      console.error('Error updating settings:', error);
+      setApiError(error.message);
+      // Still update the UI optimistically
+      setReadingStatusSettings(newSettings);
+    }
+  };
+
   // Get reading status for a student
   const getReadingStatus = (student) => {
     if (!student.lastReadDate) return 'notRead';
@@ -282,8 +330,8 @@ export const AppProvider = ({ children }) => {
     const diffTime = Math.abs(today - lastReadDate);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
-    if (diffDays <= 7) return 'recentlyRead';
-    if (diffDays <= 14) return 'needsAttention';
+    if (diffDays <= readingStatusSettings.recentlyReadDays) return 'recentlyRead';
+    if (diffDays <= readingStatusSettings.needsAttentionDays) return 'needsAttention';
     return 'notRead';
   };
 
@@ -590,19 +638,177 @@ export const AppProvider = ({ children }) => {
     return newStudents;
   };
 
+  // Edit a reading session
+  const editReadingSession = async (studentId, sessionId, updatedSessionData) => {
+    try {
+      // Find the current student
+      const student = students.find(s => s.id === studentId);
+      if (!student) {
+        throw new Error('Student not found');
+      }
+      
+      // Find and update the session
+      const updatedReadingSessions = student.readingSessions.map(session =>
+        session.id === sessionId ? { ...session, ...updatedSessionData } : session
+      );
+      
+      // Find the most recent date among all reading sessions
+      let mostRecentDate = null;
+      for (const session of updatedReadingSessions) {
+        if (session.date && (!mostRecentDate || new Date(session.date) > new Date(mostRecentDate))) {
+          mostRecentDate = session.date;
+        }
+      }
+      
+      const updatedStudent = {
+        ...student,
+        lastReadDate: mostRecentDate,
+        readingSessions: updatedReadingSessions
+      };
+      
+      // Update the student via API
+      const response = await fetch(`${API_URL}/students/${studentId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedStudent),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      // Update local state
+      setStudents(prevStudents =>
+        prevStudents.map(s => s.id === studentId ? updatedStudent : s)
+      );
+      setApiError(null);
+    } catch (error) {
+      console.error('Error editing reading session:', error);
+      setApiError(error.message);
+      // Still update the UI optimistically
+      setStudents(prevStudents =>
+        prevStudents.map(student => {
+          if (student.id === studentId) {
+            const updatedReadingSessions = student.readingSessions.map(session =>
+              session.id === sessionId ? { ...session, ...updatedSessionData } : session
+            );
+            
+            // Find the most recent date among all reading sessions
+            let mostRecentDate = null;
+            for (const session of updatedReadingSessions) {
+              if (session.date && (!mostRecentDate || new Date(session.date) > new Date(mostRecentDate))) {
+                mostRecentDate = session.date;
+              }
+            }
+            
+            return {
+              ...student,
+              lastReadDate: mostRecentDate,
+              readingSessions: updatedReadingSessions
+            };
+          }
+          return student;
+        })
+      );
+    }
+  };
+
+  // Delete a reading session
+  const deleteReadingSession = async (studentId, sessionId) => {
+    try {
+      // Find the current student
+      const student = students.find(s => s.id === studentId);
+      if (!student) {
+        throw new Error('Student not found');
+      }
+      
+      // Remove the session
+      const updatedReadingSessions = student.readingSessions.filter(
+        session => session.id !== sessionId
+      );
+      
+      // Find the most recent date among all reading sessions
+      let mostRecentDate = null;
+      for (const session of updatedReadingSessions) {
+        if (session.date && (!mostRecentDate || new Date(session.date) > new Date(mostRecentDate))) {
+          mostRecentDate = session.date;
+        }
+      }
+      
+      const updatedStudent = {
+        ...student,
+        lastReadDate: mostRecentDate,
+        readingSessions: updatedReadingSessions
+      };
+      
+      // Update the student via API
+      const response = await fetch(`${API_URL}/students/${studentId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedStudent),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      // Update local state
+      setStudents(prevStudents =>
+        prevStudents.map(s => s.id === studentId ? updatedStudent : s)
+      );
+      setApiError(null);
+    } catch (error) {
+      console.error('Error deleting reading session:', error);
+      setApiError(error.message);
+      // Still update the UI optimistically
+      setStudents(prevStudents =>
+        prevStudents.map(student => {
+          if (student.id === studentId) {
+            const updatedReadingSessions = student.readingSessions.filter(
+              session => session.id !== sessionId
+            );
+            
+            // Find the most recent date among all reading sessions
+            let mostRecentDate = null;
+            for (const session of updatedReadingSessions) {
+              if (session.date && (!mostRecentDate || new Date(session.date) > new Date(mostRecentDate))) {
+                mostRecentDate = session.date;
+              }
+            }
+            
+            return {
+              ...student,
+              lastReadDate: mostRecentDate,
+              readingSessions: updatedReadingSessions
+            };
+          }
+          return student;
+        })
+      );
+    }
+  };
+
   // Context value
   const value = {
     students,
     loading,
     apiError,
     priorityStudentCount,
+    readingStatusSettings,
     addStudent,
     updateStudent,
     deleteStudent,
     addReadingSession,
+    editReadingSession,
+    deleteReadingSession,
     getStudentsByReadingPriority,
     getPrioritizedStudents,
     updatePriorityStudentCount,
+    updateReadingStatusSettings,
     getReadingStatus,
     exportToCsv,
     exportToJson,

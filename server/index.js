@@ -16,7 +16,15 @@ if (!fs.existsSync(dataDir)) {
 
 // Initialize data file if it doesn't exist
 if (!fs.existsSync(DATA_FILE)) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify({ students: [] }), 'utf8');
+  fs.writeFileSync(DATA_FILE, JSON.stringify({
+    students: [],
+    settings: {
+      readingStatusSettings: {
+        recentlyReadDays: 7,
+        needsAttentionDays: 14
+      }
+    }
+  }), 'utf8');
 }
 
 // Middleware
@@ -130,6 +138,43 @@ app.post('/api/data', (req, res) => {
     res.json({ message: 'Data imported successfully', count: newData.students.length });
   } else {
     res.status(500).json({ error: 'Failed to import data' });
+  }
+});
+
+// Settings endpoints
+app.get('/api/settings', (req, res) => {
+  const data = readData();
+  
+  // If settings don't exist yet, initialize with defaults
+  if (!data.settings) {
+    data.settings = {
+      readingStatusSettings: {
+        recentlyReadDays: 7,
+        needsAttentionDays: 14
+      }
+    };
+    writeData(data);
+  }
+  
+  res.json(data.settings);
+});
+
+app.post('/api/settings', (req, res) => {
+  const data = readData();
+  const newSettings = req.body;
+  
+  // Initialize settings object if it doesn't exist
+  if (!data.settings) {
+    data.settings = {};
+  }
+  
+  // Update settings with new values
+  data.settings = { ...data.settings, ...newSettings };
+  
+  if (writeData(data)) {
+    res.json(data.settings);
+  } else {
+    res.status(500).json({ error: 'Failed to save settings' });
   }
 });
 
