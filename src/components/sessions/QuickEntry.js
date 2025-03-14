@@ -26,7 +26,6 @@ import { useTheme } from '@mui/material/styles';
 const QuickEntry = () => {
   const theme = useTheme();
   const {
-    students,
     getPrioritizedStudents,
     getReadingStatus,
     addReadingSession,

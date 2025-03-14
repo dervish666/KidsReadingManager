@@ -7,8 +7,6 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Grid,
-  Chip,
   Tooltip
 } from '@mui/material';
 import { useAppContext } from '../../contexts/AppContext';
