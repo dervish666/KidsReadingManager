@@ -21,8 +21,8 @@ export const AppProvider = ({ children }) => {
   const [priorityStudentCount, setPriorityStudentCount] = useState(8);
   // State for reading status durations (in days)
   const [readingStatusSettings, setReadingStatusSettings] = useState({
-    recentlyReadDays: 7,
-    needsAttentionDays: 14
+    recentlyReadDays: 14,
+    needsAttentionDays: 21
   });
 
   // Load data from API on initial render
