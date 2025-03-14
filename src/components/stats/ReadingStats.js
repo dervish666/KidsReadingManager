@@ -26,6 +26,7 @@ import TimelineIcon from '@mui/icons-material/Timeline';
 import VisualIndicators from './VisualIndicators';
 import DaysSinceReadingChart from './DaysSinceReadingChart';
 import ReadingTimelineChart from './ReadingTimelineChart';
+import ReadingFrequencyChart from './ReadingFrequencyChart';
 import DataManagement from '../DataManagement';
 import Settings from '../Settings';
 import { useAppContext } from '../../contexts/AppContext';
@@ -274,8 +275,12 @@ const ReadingStats = () => {
     
     return (
       <Box>
+        {/* Bar Chart Visualization */}
+        <ReadingFrequencyChart />
+        
+        {/* List View */}
         <Typography variant="h6" gutterBottom>
-          Reading Frequency by Student
+          Reading Frequency Details
         </Typography>
         
         <List>
@@ -286,18 +291,18 @@ const ReadingStats = () => {
               </ListItemIcon>
               <ListItemText
                 primary={student.name}
-                secondary={`Last read: ${student.lastReadDate 
+                secondary={`Last read: ${student.lastReadDate
                   ? new Date(student.lastReadDate).toLocaleDateString('en-GB', {
                       day: 'numeric',
                       month: 'short',
                       year: 'numeric'
-                    }) 
+                    })
                   : 'Never'}`}
               />
-              <Chip 
-                label={`${student.readingSessions.length} sessions`} 
-                color={student.readingSessions.length === 0 ? "error" : "primary"} 
-                size="small" 
+              <Chip
+                label={`${student.readingSessions.length} sessions`}
+                color={student.readingSessions.length === 0 ? "error" : "primary"}
+                size="small"
               />
             </ListItem>
           ))}
