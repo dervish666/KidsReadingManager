@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -13,10 +13,11 @@ import {
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import RefreshIcon from '@mui/icons-material/Refresh'; // Corrected import
 import { useAppContext } from '../../contexts/AppContext';
 import { useTheme } from '@mui/material/styles';
 
-const StudentPriorityCard = ({ student, priorityRank }) => {
+const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
   const theme = useTheme();
   const { getReadingStatus } = useAppContext();
   
@@ -59,16 +60,21 @@ const StudentPriorityCard = ({ student, priorityRank }) => {
   };
   
   return (
-    <Card 
-      sx={{ 
+    <Card
+      onClick={onClick} // Add the onClick handler here
+      sx={{
         mb: 1,
         borderLeft: `4px solid ${statusColors[status]}`,
         position: 'relative',
-        overflow: 'visible'
+        overflow: 'visible',
+        cursor: 'pointer', // Add cursor pointer style
+        '&:hover': { // Optional: Add a hover effect
+          boxShadow: 3,
+        }
       }}
     >
-      <Box 
-        sx={{ 
+      <Box
+        sx={{
           position: 'absolute', 
           top: -10, 
           left: -10, 
@@ -133,12 +139,34 @@ const PrioritizedStudentsList = ({ defaultCount = 8 }) => {
   const [count, setCount] = useState(defaultCount);
   const { getPrioritizedStudents, updatePriorityStudentCount, priorityStudentCount } = useAppContext();
   
+  // Initialize state from sessionStorage
+  const [markedStudentIds, setMarkedStudentIds] = useState(() => {
+    const storedIds = sessionStorage.getItem('markedPriorityStudents');
+    return storedIds ? new Set(JSON.parse(storedIds)) : new Set();
+  });
+
+  // Effect to update sessionStorage when state changes
+  useEffect(() => {
+    sessionStorage.setItem('markedPriorityStudents', JSON.stringify(Array.from(markedStudentIds)));
+  }, [markedStudentIds]);
+
+  const handleStudentClick = useCallback((studentId) => {
+    setMarkedStudentIds(prevIds => new Set(prevIds).add(studentId));
+    // No need to explicitly save here, the useEffect above handles it
+  }, []);
+
+  const handleResetList = useCallback(() => {
+    sessionStorage.removeItem('markedPriorityStudents');
+    setMarkedStudentIds(new Set());
+  }, []);
+  
   // Use the current priority count from context, but initialize with the prop
-  React.useEffect(() => {
+  useEffect(() => {
     setCount(priorityStudentCount);
   }, [priorityStudentCount]);
   
-  const prioritizedStudents = getPrioritizedStudents(count);
+  const allPrioritizedStudents = getPrioritizedStudents(count);
+  const prioritizedStudents = allPrioritizedStudents.filter(student => !markedStudentIds.has(student.id));
   
   const handleCountChange = (event, newValue) => {
     setCount(newValue);
@@ -152,10 +180,13 @@ const PrioritizedStudentsList = ({ defaultCount = 8 }) => {
   return (
     <Paper sx={{ p: 2, mb: 3 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-        <Typography variant="h6">
+        <Typography variant="h6" sx={{ flexGrow: 1 }}> {/* Allow title to take up space */}
           Priority Reading List
         </Typography>
-        <IconButton onClick={toggleExpanded} size="small">
+        <IconButton onClick={handleResetList} size="small" title="Reset List"> {/* Reset Button */}
+          <RefreshIcon />
+        </IconButton>
+        <IconButton onClick={toggleExpanded} size="small" title={expanded ? 'Collapse' : 'Expand'}> {/* Expand/Collapse Button */}
           {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
         </IconButton>
       </Box>
@@ -183,7 +214,11 @@ const PrioritizedStudentsList = ({ defaultCount = 8 }) => {
         <Grid container spacing={2}>
           {prioritizedStudents.map((student, index) => (
             <Grid item xs={12} sm={6} md={4} key={student.id}>
-              <StudentPriorityCard student={student} priorityRank={index + 1} />
+              <StudentPriorityCard
+                student={student}
+                priorityRank={index + 1}
+                onClick={() => handleStudentClick(student.id)}
+              />
             </Grid>
           ))}
         </Grid>
