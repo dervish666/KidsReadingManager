@@ -137,7 +137,7 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
 const PrioritizedStudentsList = ({ defaultCount = 8 }) => {
   const [expanded, setExpanded] = useState(true);
   const [count, setCount] = useState(defaultCount);
-  const { getPrioritizedStudents, updatePriorityStudentCount, priorityStudentCount } = useAppContext();
+  const { prioritizedStudents: contextPrioritizedStudents, updatePriorityStudentCount, priorityStudentCount } = useAppContext();
   
   // Initialize state from sessionStorage
   const [markedStudentIds, setMarkedStudentIds] = useState(() => {
@@ -165,7 +165,9 @@ const PrioritizedStudentsList = ({ defaultCount = 8 }) => {
     setCount(priorityStudentCount);
   }, [priorityStudentCount]);
   
-  const allPrioritizedStudents = getPrioritizedStudents(count);
+  // Use the memoized prioritized students array from context
+  // Filter to use only the number specified by count
+  const allPrioritizedStudents = contextPrioritizedStudents.slice(0, count);
   const prioritizedStudents = allPrioritizedStudents.filter(student => !markedStudentIds.has(student.id));
   
   const handleCountChange = (event, newValue) => {
@@ -196,24 +198,27 @@ const PrioritizedStudentsList = ({ defaultCount = 8 }) => {
           <Typography variant="body2" color="text.secondary" gutterBottom>
             Number of students to display: {count}
           </Typography>
-          <Slider
-            value={count}
-            onChange={handleCountChange}
-            min={1}
-            max={15}
-            step={1}
-            marks={[
-              { value: 1, label: '1' },
-              { value: 8, label: '8' },
-              { value: 15, label: '15' }
-            ]}
-            valueLabelDisplay="auto"
-          />
+          <Box sx={{ px: 2, width: '100%' }}>
+            <Slider
+              value={count}
+              onChange={handleCountChange}
+              min={1}
+              max={15}
+              step={1}
+              marks={[
+                { value: 1, label: '1' },
+                { value: 8, label: '8' },
+                { value: 15, label: '15' }
+              ]}
+              valueLabelDisplay="auto"
+              sx={{ width: '100%' }}
+            />
+          </Box>
         </Box>
         
         <Grid container spacing={2}>
           {prioritizedStudents.map((student, index) => (
-            <Grid item xs={12} sm={6} md={4} key={student.id}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={student.id}>
               <StudentPriorityCard
                 student={student}
                 priorityRank={index + 1}

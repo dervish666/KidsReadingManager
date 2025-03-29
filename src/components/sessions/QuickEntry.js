@@ -26,7 +26,7 @@ import { useTheme } from '@mui/material/styles';
 const QuickEntry = () => {
   const theme = useTheme();
   const {
-    getPrioritizedStudents,
+    prioritizedStudents: contextPrioritizedStudents, // Use the memoized array
     getReadingStatus,
     addReadingSession,
     priorityStudentCount,
@@ -43,8 +43,9 @@ const QuickEntry = () => {
   const [completedStudents, setCompletedStudents] = useState([]);
   const [count, setCount] = useState(priorityStudentCount);
   
-  // Get students sorted by priority using the enhanced algorithm
-  const prioritizedStudents = getPrioritizedStudents(count);
+  // Use the memoized prioritized students array from context
+  // Filter to use only the number specified by count
+  const prioritizedStudents = contextPrioritizedStudents.slice(0, count);
   
   // Reset current index if we have no students
   useEffect(() => {
@@ -312,20 +313,22 @@ const QuickEntry = () => {
           <Typography variant="body2" color="text.secondary" gutterBottom>
             Number of students to include: {count}
           </Typography>
-          <Slider
-            value={count}
-            onChange={handleCountChange}
-            min={1}
-            max={15}
-            step={1}
-            marks={[
-              { value: 1, label: '1' },
-              { value: 8, label: '8' },
-              { value: 15, label: '15' }
-            ]}
-            valueLabelDisplay="auto"
-            sx={{ mb: 3 }}
-          />
+          <Box sx={{ px: 2, width: '100%' }}>
+            <Slider
+              value={count}
+              onChange={handleCountChange}
+              min={1}
+              max={15}
+              step={1}
+              marks={[
+                { value: 1, label: '1' },
+                { value: 8, label: '8' },
+                { value: 15, label: '15' }
+              ]}
+              valueLabelDisplay="auto"
+              sx={{ mb: 3, width: '100%' }}
+            />
+          </Box>
           <Typography variant="body2" color="text.secondary" gutterBottom>
             Students are prioritized by:
           </Typography>

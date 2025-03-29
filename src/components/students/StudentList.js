@@ -31,7 +31,7 @@ const StudentList = () => {
     students,
     loading,
     addStudent,
-    getStudentsByReadingPriority
+    studentsSortedByPriority // Changed from getStudentsByReadingPriority
   } = useAppContext();
   
   const [newStudentName, setNewStudentName] = useState('');
@@ -97,9 +97,9 @@ const StudentList = () => {
     let sortedList;
     
     if (sortMethod === 'priority') {
-      // Get the priority-sorted list from context
-      sortedList = getStudentsByReadingPriority();
-      
+      // Use the memoized priority-sorted list from context
+      sortedList = studentsSortedByPriority; // Use the array directly
+
       // If ascending is selected, reverse the priority order
       if (sortDirection === 'asc') {
         sortedList = [...sortedList].reverse();
@@ -210,7 +210,7 @@ const StudentList = () => {
           {/* All Students Grid */}
           <Grid container spacing={2}>
             {sortedStudents.map(student => (
-              <Grid item xs={12} sm={6} md={4} key={student.id}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={student.id}>
                 <StudentCard student={student} />
               </Grid>
             ))}

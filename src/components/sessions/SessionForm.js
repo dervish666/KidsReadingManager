@@ -115,7 +115,7 @@ const SessionForm = () => {
           
           <form onSubmit={handleSubmit}>
             <Grid container spacing={3}>
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <FormControl fullWidth>
                   <InputLabel id="student-select-label">Student</InputLabel>
                   <Select
@@ -134,37 +134,50 @@ const SessionForm = () => {
                 </FormControl>
               </Grid>
               
-              <Grid item xs={12}>
-                <TextField
-                  label="Date"
-                  type="date"
-                  value={date}
-                  onChange={handleDateChange}
-                  fullWidth
-                  InputLabelProps={{
-                    shrink: true,
-                  }}
-                />
+              <Grid size={12}>
+                <Box sx={{ mb: 2 }}>
+                  <TextField
+                    label="Date"
+                    type="date"
+                    value={date}
+                    onChange={handleDateChange}
+                    fullWidth
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    sx={{
+                      '& .MuiInputBase-root': {
+                        height: 56 // Ensure consistent height
+                      }
+                    }}
+                  />
+                </Box>
               </Grid>
               
-              <Grid item xs={12}>
-                <Typography variant="subtitle1" gutterBottom>
-                  Assessment:
-                </Typography>
-                <AssessmentSelector
-                  value={assessment}
-                  onChange={handleAssessmentChange}
-                />
+              <Grid size={12}>
+                <Box sx={{ mb: 1 }}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    Assessment:
+                  </Typography>
+                </Box>
+                <Box sx={{ width: '100%' }}>
+                  <AssessmentSelector
+                    value={assessment}
+                    onChange={handleAssessmentChange}
+                  />
+                </Box>
               </Grid>
               
-              <Grid item xs={12}>
-                <SessionNotes
-                  value={notes}
-                  onChange={handleNotesChange}
-                />
+              <Grid size={12}>
+                <Box sx={{ mt: 2 }}>
+                  <SessionNotes
+                    value={notes}
+                    onChange={handleNotesChange}
+                  />
+                </Box>
               </Grid>
               
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <Button
                   type="submit"
                   variant="contained"
@@ -192,7 +205,7 @@ const SessionForm = () => {
                       .sort((a, b) => new Date(b.date) - new Date(a.date)) // Sort by date, newest first
                       .slice(0, 3)
                       .map((session) => (
-                        <Grid item xs={12} key={session.id}>
+                        <Grid size={12} key={session.id}>
                           <Card variant="outlined">
                             <CardContent>
                               <Typography variant="subtitle2" color="text.secondary">

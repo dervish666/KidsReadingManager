@@ -150,7 +150,7 @@ const StudentSessions = ({ open, onClose, student }) => {
           {sortedSessions.length > 0 ? (
             <Grid container spacing={2}>
               {sortedSessions.map((session) => (
-                <Grid item xs={12} key={session.id}>
+                <Grid size={12} key={session.id}>
                   <Card variant="outlined">
                     <CardContent>
                       <Box display="flex" justifyContent="space-between" alignItems="flex-start">

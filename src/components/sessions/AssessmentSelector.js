@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Button, ButtonGroup, Tooltip } from '@mui/material';
+import { Box, Button, Tooltip, Stack } from '@mui/material';
 import SentimentVeryDissatisfiedIcon from '@mui/icons-material/SentimentVeryDissatisfied';
 import SentimentNeutralIcon from '@mui/icons-material/SentimentNeutral';
 import SentimentSatisfiedAltIcon from '@mui/icons-material/SentimentSatisfiedAlt';
@@ -10,18 +10,26 @@ const AssessmentSelector = ({ value, onChange }) => {
   };
 
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-      <ButtonGroup variant="outlined" size="large" fullWidth>
+    <Box sx={{ width: '100%' }}>
+      {/* Replace ButtonGroup with Stack for better layout control in MUI v7 */}
+      <Stack
+        direction="row"
+        spacing={0}
+        sx={{
+          width: '100%',
+          '& > *': { flex: 1 } // Make all children take equal space
+        }}
+      >
         <Tooltip title="Struggling - Needs a lot of help">
           <Button
             onClick={() => handleChange('struggling')}
             color="error"
             variant={value === 'struggling' ? 'contained' : 'outlined'}
             startIcon={<SentimentVeryDissatisfiedIcon />}
-            sx={{ 
+            sx={{
               py: 1.5,
               borderRadius: '8px 0 0 8px',
-              flex: 1
+              width: '100%'
             }}
           >
             Struggling
@@ -34,9 +42,10 @@ const AssessmentSelector = ({ value, onChange }) => {
             color="warning"
             variant={value === 'needs-help' ? 'contained' : 'outlined'}
             startIcon={<SentimentNeutralIcon />}
-            sx={{ 
+            sx={{
               py: 1.5,
-              flex: 1
+              borderRadius: 0,
+              width: '100%'
             }}
           >
             Needs Help
@@ -49,16 +58,16 @@ const AssessmentSelector = ({ value, onChange }) => {
             color="success"
             variant={value === 'independent' ? 'contained' : 'outlined'}
             startIcon={<SentimentSatisfiedAltIcon />}
-            sx={{ 
+            sx={{
               py: 1.5,
               borderRadius: '0 8px 8px 0',
-              flex: 1
+              width: '100%'
             }}
           >
             Independent
           </Button>
         </Tooltip>
-      </ButtonGroup>
+      </Stack>
     </Box>
   );
 };
