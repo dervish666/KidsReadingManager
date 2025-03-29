@@ -3,17 +3,19 @@
 ## Technologies Used
 
 ### Frontend
-- **React**: Core UI framework
-- **Material-UI (MUI)**: Component library for styling and UI elements
-- **Context API**: State management via AppContext
+- **React v19**: Core UI framework (updated from v18)
+- **Material-UI (MUI) v7**: Component library for styling and UI elements (updated from v5)
+- **Context API**: State management via AppContext with React.useMemo and React.useCallback optimizations
 
 ### Backend
 - **Express.js**: API server for data storage and retrieval
 - **Node.js**: Runtime environment
+- **body-parser v2**: Middleware for parsing HTTP request bodies (updated from v1)
 
 ### Data Storage
 - **PouchDB**: Local storage database
 - **CouchDB**: Remote storage database for data synchronization
+- **uuid v11**: For generating unique identifiers (updated from v9)
 
 ### Deployment
 - **Docker**: Containerization for deployment
@@ -38,3 +40,5 @@
 - Data integrity between local and remote storage
 - Persistent storage using Docker volumes
 - API endpoints for CRUD operations on student data
+- Performance optimizations for state management
+- Material UI v7 Grid API for responsive layouts

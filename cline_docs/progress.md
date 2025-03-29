@@ -11,21 +11,27 @@
   - Recording reading sessions with assessment levels
   - Quick entry mode for efficient data entry
   - Adding notes to reading sessions
+  - Editing and deleting existing sessions
+  - Viewing all sessions for a specific student
   
 - **Data Visualization**:
   - Visual indicators showing reading status
   - Student cards with last read date and total sessions
   - Prioritization of students who need reading
+  - Sorting students by different criteria (name, sessions, last read date)
   
 - **Data Management**:
   - Local storage persistence
   - API backend for data operations
   - Export/import functionality
+  - Configurable application settings
   
 - **UI/UX**:
   - Mobile-friendly interface
   - Touch-optimized controls
   - Responsive layout
+  - Modern UI with Material UI v7
+  - Optimized performance with React 19
 
 ## What's Left to Build
 - **Advanced Filtering**:
@@ -41,12 +47,13 @@
   - Role-based access control
 
 ## Progress Status
-- **Core Functionality**: 90% complete
-- **UI/UX**: 85% complete
-- **Data Management**: 90% complete
+- **Core Functionality**: 95% complete
+- **UI/UX**: 90% complete
+- **Data Management**: 95% complete
 - **Reporting**: 70% complete
-- **Overall Project**: 85% complete
+- **Overall Project**: 90% complete
 
 ## Current Focus
-- Implementing sorting functionality for the Students page
+- Ensuring compatibility with latest libraries (React 19, Material UI v7)
+- Optimizing application performance
 - Enhancing the user experience with more intuitive controls
