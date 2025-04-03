@@ -61,3 +61,4 @@
 ## Changelog
 
 - **2025-04-03**: Refactored data persistence to use a single Docker container with a host-mounted `./config` volume for `app_data.json`, removing the separate API server container. Simplified architecture and enabled easier data access/backup.
+- **2025-04-03**: Enhanced UI with a bookshelf-themed design, improved mobile responsiveness, and made the Stats page tabs scrollable. Added a warm color palette that complements the bookshelf background image.

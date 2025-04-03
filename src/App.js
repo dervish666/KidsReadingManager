@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Box, Container, Paper } from '@mui/material';
+import { Box, Container, Paper, CssBaseline, ThemeProvider } from '@mui/material';
+import theme from './styles/theme';
 import BottomNavigation from '@mui/material/BottomNavigation';
 import BottomNavigationAction from '@mui/material/BottomNavigationAction';
 import PeopleIcon from '@mui/icons-material/People';
@@ -29,13 +30,14 @@ function App() {
   };
 
   return (
-    <AppProvider>
-      <Box sx={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        minHeight: '100vh',
-        bgcolor: 'background.default'
-      }}>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <AppProvider>
+        <Box sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: '100vh',
+        }}>
         <Header />
         
         <Container component="main" sx={{ 
@@ -44,28 +46,34 @@ function App() {
           display: 'flex',
           flexDirection: 'column'
         }}>
-          <Paper 
-            elevation={0}
-            sx={{ 
-              flexGrow: 1, 
-              p: 2, 
+          <Paper
+            elevation={3}
+            sx={{
+              flexGrow: 1,
+              p: { xs: 2, sm: 3 },
               borderRadius: 2,
               overflow: 'auto',
-              mb: 8 // Add margin to bottom to avoid content being hidden by navigation
+              mb: 8, // Add margin to bottom to avoid content being hidden by navigation
+              backdropFilter: 'blur(10px)',
+              backgroundColor: 'background.paper',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
             }}
           >
             {renderTabContent()}
           </Paper>
         </Container>
         
-        <Paper 
-          sx={{ 
-            position: 'fixed', 
-            bottom: 0, 
-            left: 0, 
+        <Paper
+          sx={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
             right: 0,
-            zIndex: 1100
-          }} 
+            zIndex: 1100,
+            backdropFilter: 'blur(10px)',
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            borderTop: '1px solid rgba(0,0,0,0.1)'
+          }}
           elevation={3}
         >
           <BottomNavigation
@@ -80,8 +88,9 @@ function App() {
             <BottomNavigationAction label="Stats" icon={<BarChartIcon />} />
           </BottomNavigation>
         </Paper>
-      </Box>
-    </AppProvider>
+        </Box>
+      </AppProvider>
+    </ThemeProvider>
   );
 }
 

@@ -1,10 +1,18 @@
 import React from 'react';
-import { AppBar, Toolbar, Typography, IconButton } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
+import { AppBar, Toolbar, Typography, IconButton, Box } from '@mui/material';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
 
 const Header = () => {
   return (
-    <AppBar position="static" color="primary" elevation={0}>
+    <AppBar 
+      position="static" 
+      elevation={0}
+      sx={{
+        background: 'rgba(107, 77, 87, 0.9)',
+        backdropFilter: 'blur(10px)',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+      }}
+    >
       <Toolbar>
         <IconButton
           edge="start"
@@ -12,11 +20,22 @@ const Header = () => {
           aria-label="menu"
           sx={{ mr: 2 }}
         >
-          <MenuIcon />
+          <MenuBookIcon />
         </IconButton>
-        <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-          Kids Reading Manager
-        </Typography>
+        <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
+          <Typography 
+            variant="h6" 
+            component="div" 
+            sx={{ 
+              fontFamily: 'Merriweather, Georgia, serif',
+              fontWeight: 700,
+              letterSpacing: '0.5px',
+              textShadow: '1px 1px 2px rgba(0,0,0,0.2)'
+            }}
+          >
+            Kids Reading Manager
+          </Typography>
+        </Box>
       </Toolbar>
     </AppBar>
   );

@@ -327,13 +327,16 @@ const ReadingStats = () => {
       </Box>
       
       <Box>
-        <Paper sx={{ mb: 3 }}>
+        <Paper sx={{ mb: 3, overflow: 'hidden' }}>
           <Tabs
             value={currentTab}
             onChange={handleTabChange}
-            variant="fullWidth"
+            variant="scrollable"
+            scrollButtons="auto"
+            allowScrollButtonsMobile
             indicatorColor="primary"
             textColor="primary"
+            aria-label="Statistics tabs"
           >
             <Tab icon={<AssessmentIcon />} label="Overview" />
             <Tab icon={<CalendarTodayIcon />} label="Needs Attention" />
