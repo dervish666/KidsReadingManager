@@ -9,6 +9,11 @@ I've just completed a major dependency update and optimization of the applicatio
 These changes ensure the application is using the latest libraries and is optimized for performance.
 
 ## Recent Changes
+- Changed project license from MIT to Creative Commons Attribution-NonCommercial 4.0 (CC BY-NC 4.0)
+  - Updated LICENSE file with CC BY-NC 4.0 license text
+  - Added license field to package.json
+  - Updated README.md to reflect the new license terms
+  
 - Updated major dependencies to their latest versions
   - Updated Material UI from v5 to v7
   - Updated React from v18 to v19

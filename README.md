@@ -9,6 +9,9 @@ A mobile-friendly web application for tracking reading sessions with primary sch
 - Simple assessment system (struggling, needs help, independent)
 - Visual indicators showing which children haven't been read with recently
 - Statistics on reading frequency per child
+- Configurable reading status durations (days for "Recently Read" and "Needs Attention" statuses)
+- Session management (view, edit, delete reading sessions)
+- Sorting functionality (by name, last read date, or total sessions)
 - Local storage for data persistence
 - Clean, touch-friendly interface optimized for mobile use
 - Quick-entry mode for efficiently logging multiple children
@@ -42,11 +45,11 @@ npm start
 
 ### Docker Deployment on Unraid
 
-#### Option 1: Using Docker Compose (Recommended)
+#### Using Docker Compose (Recommended)
 
 1. Clone this repository on your Unraid server
 2. Navigate to the project directory
-3. Build and start the containers:
+3. Build and start the container:
 
 ```bash
 docker-compose up -d
@@ -55,43 +58,19 @@ docker-compose up -d
 4. Access the application at `http://your-unraid-ip:8080`
 
 This method automatically sets up:
-- The frontend web application
-- The backend API server
-- A persistent volume for data storage
+- The combined frontend/backend application
+- A persistent volume for data storage (`./config` directory)
 
-#### Option 2: Using Unraid Docker UI
+#### Building the Docker Image
 
-1. In the Unraid web UI, go to the Docker tab
-2. You'll need to create two containers:
-   
-   **Frontend Container:**
-   - Repository: `localhost/kids-reading-manager:latest` (after building locally)
-   - Network Type: Bridge
-   - Port Mappings: `8080:80`
-   - Name: kids-reading-manager
-   
-   **API Server Container:**
-   - Repository: `localhost/kids-reading-manager-api:latest` (after building locally)
-   - Network Type: Bridge
-   - Port Mappings: `3001:3001`
-   - Name: kids-reading-manager-api
-   - Volumes: Add a path mapping for `/data` to a persistent location on your Unraid server
-
-3. Make sure both containers are on the same network
-
-#### Building the Docker Images
-
-If you want to build the Docker images locally:
+If you want to build the Docker image locally:
 
 ```bash
-# Build the frontend image
+# Build the image
 docker build -t kids-reading-manager:latest .
-
-# Build the API server image
-docker build -f Dockerfile.server -t kids-reading-manager-api:latest .
 ```
 
-You can then push these to a registry or use them directly on your Unraid server.
+You can then push this to a registry or use it directly on your Unraid server.
 
 ## Usage
 
@@ -117,6 +96,21 @@ You can then push these to a registry or use them directly on your Unraid server
    - Add optional notes
    - Click "Save" to record and move to the next student
 
+### Managing Reading Sessions
+
+1. Click on a student card or select "View All Sessions" from the student card menu
+2. View all reading sessions for the selected student
+3. Edit session details (date, assessment, notes) by clicking the edit icon
+4. Delete sessions by clicking the delete icon
+5. Sessions are sorted by date with the newest first
+
+### Configuring Settings
+
+1. Navigate to the "Settings" tab
+2. Adjust the number of days for "Recently Read" and "Needs Attention" statuses
+3. Click "Save Settings" to apply changes
+4. Click "Reset to Defaults" to restore default values
+
 ### Viewing Statistics
 
 1. Navigate to the "Stats" tab
@@ -139,18 +133,19 @@ You can then push these to a registry or use them directly on your Unraid server
 
 The application uses a persistent storage solution that allows data to be shared between different browsers and devices:
 
-- Data is stored in a file on the server using Docker volumes
+- Data is stored in a JSON file in the `/config` directory on the host machine
 - Data persists between sessions and across different devices
 - Data survives container restarts and updates
 - Regular backups are still recommended using the export functionality
 
 ### How It Works
 
-The application consists of two parts:
-1. A React frontend for the user interface
-2. An Express.js backend API for data storage
+The application uses a single container architecture:
+1. A Node.js/Express server that provides both:
+   - API endpoints for data operations
+   - Static file serving for the React frontend
 
-When deployed with Docker, the data is stored in a persistent volume, making it accessible from any device that can connect to the server.
+When deployed with Docker, the data is stored in a host-mounted volume (`./config` directory), making it accessible from any device that can connect to the server and persisting across container restarts and updates.
 
 ## Mobile Usage
 
@@ -158,13 +153,14 @@ The app is designed to be mobile-friendly:
 - Large touch targets for easy interaction
 - Responsive layout that works well on phones and tablets
 - Quick entry mode optimized for efficient data entry during limited volunteer time
+- Material UI v7 components for modern, responsive design
 
-## CI/CD with GitHub Actions
+## Technologies Used
 
-This project includes GitHub Actions workflows for continuous integration and deployment:
-
-- Automated builds and tests on push to main branch
-- Docker image building for easy deployment
+- **Frontend**: React v19, Material UI v7, Context API with optimizations
+- **Backend**: Node.js, Express.js, body-parser v2
+- **Data Storage**: JSON file storage, uuid v11
+- **Deployment**: Docker, Docker Compose, Node.js
 
 ## Contributing
 
@@ -180,4 +176,14 @@ Please make sure your code passes all tests and follows the project's coding sty
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0) - see the LICENSE file for details.
+
+This means you are free to:
+- Share — copy and redistribute the material in any medium or format
+- Adapt — remix, transform, and build upon the material
+
+Under the following terms:
+- Attribution — You must give appropriate credit, provide a link to the license, and indicate if changes were made.
+- NonCommercial — You may not use the material for commercial purposes.
+
+For more information, visit: http://creativecommons.org/licenses/by-nc/4.0/

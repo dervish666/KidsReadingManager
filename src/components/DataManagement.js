@@ -14,8 +14,6 @@ import {
 } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import UploadIcon from '@mui/icons-material/Upload';
-import SaveIcon from '@mui/icons-material/Save';
-import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import { useAppContext } from '../contexts/AppContext';
 
 const DataManagement = () => {
