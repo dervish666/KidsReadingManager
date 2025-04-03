@@ -5,13 +5,19 @@ const fs = require('fs');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
-const DATA_FILE = process.env.DATA_FILE || path.join(__dirname, 'data', 'students.json');
+const PORT = process.env.PORT || 3000; // Use port 3000 for the combined server
+const DATA_FILE = '/config/app_data.json'; // Use host-mounted volume path
 
-// Ensure data directory exists
-const dataDir = path.dirname(DATA_FILE);
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+// Ensure config directory exists (Docker volume mount handles host side)
+const configDir = path.dirname(DATA_FILE); // Should be '/config'
+if (!fs.existsSync(configDir)) {
+  try {
+    fs.mkdirSync(configDir, { recursive: true });
+    console.log(`Created directory: ${configDir}`);
+  } catch (err) {
+    console.error(`Error creating directory ${configDir}:`, err);
+    // Depending on requirements, you might want to exit here if the dir is critical
+  }
 }
 
 // Initialize data file if it doesn't exist
@@ -28,8 +34,11 @@ if (!fs.existsSync(DATA_FILE)) {
 }
 
 // Middleware
-app.use(cors());
+// app.use(cors()); // CORS not needed when served from the same origin
 app.use(bodyParser.json());
+
+// Serve static files from the React build directory
+app.use(express.static(path.join(__dirname, '..', 'build')));
 
 // Helper function to read data
 const readData = () => {
@@ -178,8 +187,15 @@ app.post('/api/settings', (req, res) => {
   }
 });
 
+// Fallback for client-side routing (serves index.html for non-API routes)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'build', 'index.html'));
+});
+
+
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`Data file: ${DATA_FILE}`);
+  console.log(`Serving static files from: ${path.join(__dirname, '..', 'build')}`);
+  console.log(`Using data file: ${DATA_FILE}`);
 });

@@ -57,3 +57,7 @@
 - Ensuring compatibility with latest libraries (React 19, Material UI v7)
 - Optimizing application performance
 - Enhancing the user experience with more intuitive controls
+
+## Changelog
+
+- **2025-04-03**: Refactored data persistence to use a single Docker container with a host-mounted `./config` volume for `app_data.json`, removing the separate API server container. Simplified architecture and enabled easier data access/backup.
