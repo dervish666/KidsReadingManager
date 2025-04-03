@@ -19,7 +19,7 @@ import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import { useAppContext } from '../contexts/AppContext';
 
 const DataManagement = () => {
-  const { exportToJson, importFromJson, saveGlobalData, loadGlobalData } = useAppContext();
+  const { exportToJson, importFromJson, reloadDataFromServer } = useAppContext();
   const fileInputRef = useRef(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const [confirmDialog, setConfirmDialog] = useState({ open: false, file: null });
@@ -81,57 +81,28 @@ const DataManagement = () => {
     setConfirmDialog({ open: false, file: null });
   };
 
-  // Handler for saving global data
-  const handleSaveGlobalData = async () => {
+  // Handler for reloading data from server
+  const handleReloadData = async () => {
     try {
-      const result = await saveGlobalData();
+      const result = await reloadDataFromServer();
       
       if (result.success) {
         setSnackbar({
           open: true,
-          message: result.fallback
-            ? result.message
-            : 'Data saved to global location successfully',
+          message: 'Data reloaded successfully from server',
           severity: 'success'
         });
       } else {
         setSnackbar({
           open: true,
-          message: `Failed to save global data: ${result.error}`,
+          message: `Failed to reload data: ${result.error}`,
           severity: 'error'
         });
       }
     } catch (error) {
       setSnackbar({
         open: true,
-        message: `Error saving global data: ${error.message}`,
-        severity: 'error'
-      });
-    }
-  };
-
-  // Handler for loading global data
-  const handleLoadGlobalData = async () => {
-    try {
-      const result = await loadGlobalData();
-      
-      if (result.success) {
-        setSnackbar({
-          open: true,
-          message: `Successfully loaded data for ${result.count} students`,
-          severity: 'success'
-        });
-      } else {
-        setSnackbar({
-          open: true,
-          message: `Failed to load global data: ${result.error}`,
-          severity: 'error'
-        });
-      }
-    } catch (error) {
-      setSnackbar({
-        open: true,
-        message: `Error loading global data: ${error.message}`,
+        message: `Error reloading data: ${error.message}`,
         severity: 'error'
       });
     }
@@ -178,31 +149,50 @@ const DataManagement = () => {
         </Box>
       </Paper>
       
-      <Paper sx={{ p: 3 }}>
+      <Paper sx={{ p: 3, mb: 3 }}>
         <Typography variant="subtitle1" gutterBottom>
-          Global Data Storage
+          Server Data Management
         </Typography>
         <Typography variant="body2" color="text.secondary" paragraph>
-          Save data to a global location that can be accessed from any device. This allows you to maintain one source of data across multiple devices.
+          Reload data from the server to ensure you have the latest information, especially when accessing from multiple devices.
+        </Typography>
+        
+        <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleReloadData}
+          >
+            Reload Data from Server
+          </Button>
+        </Box>
+      </Paper>
+      
+      <Paper sx={{ p: 3 }}>
+        <Typography variant="subtitle1" gutterBottom>
+          Backup and Restore
+        </Typography>
+        <Typography variant="body2" color="text.secondary" paragraph>
+          Create backups of your data or restore from previously saved backups.
         </Typography>
         
         <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
           <Button
             variant="contained"
             color="secondary"
-            startIcon={<SaveIcon />}
-            onClick={handleSaveGlobalData}
+            startIcon={<DownloadIcon />}
+            onClick={handleExport}
           >
-            Save to Global Location
+            Download Backup (JSON)
           </Button>
           
           <Button
             variant="contained"
             color="secondary"
-            startIcon={<FolderOpenIcon />}
-            onClick={handleLoadGlobalData}
+            startIcon={<UploadIcon />}
+            onClick={handleImportClick}
           >
-            Load from Global Location
+            Upload Backup (JSON)
           </Button>
         </Box>
       </Paper>

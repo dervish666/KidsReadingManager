@@ -25,48 +25,49 @@ export const AppProvider = ({ children }) => {
     needsAttentionDays: 21
   });
 
+  // Function to fetch/reload data from the server
+  const reloadDataFromServer = useCallback(async () => {
+    setLoading(true);
+    setApiError(null); // Clear previous errors
+    console.log('Reloading data from server...');
+    try {
+      // Fetch students
+      const studentsResponse = await fetch(`${API_URL}/students`);
+      if (!studentsResponse.ok) {
+        throw new Error(`API error fetching students: ${studentsResponse.status}`);
+      }
+      const studentsData = await studentsResponse.json();
+      console.log('Loaded students from API:', studentsData);
+      setStudents(studentsData);
+
+      // Fetch settings
+      try {
+        const settingsResponse = await fetch(`${API_URL}/settings`);
+        if (settingsResponse.ok) {
+          const settingsData = await settingsResponse.json();
+          if (settingsData.readingStatusSettings) {
+            setReadingStatusSettings(settingsData.readingStatusSettings);
+          }
+        } else {
+           console.warn(`API error fetching settings: ${settingsResponse.status}`);
+        }
+      } catch (settingsError) {
+        console.error('Error fetching settings:', settingsError);
+      }
+      return { success: true }; // Indicate success
+    } catch (error) {
+      console.error('Error reloading data:', error);
+      setApiError(error.message);
+      return { success: false, error: error.message }; // Indicate failure
+    } finally {
+      setLoading(false);
+    }
+  }, []); // No dependencies needed as it fetches fresh data
+
   // Load data from API on initial render
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true); // Ensure loading is true at the start
-      try {
-        // Fetch students
-        const studentsResponse = await fetch(`${API_URL}/students`);
-        if (!studentsResponse.ok) {
-          throw new Error(`API error fetching students: ${studentsResponse.status}`);
-        }
-        const studentsData = await studentsResponse.json();
-        console.log('Loaded students from API:', studentsData);
-        setStudents(studentsData);
-
-        // Fetch settings
-        try {
-          const settingsResponse = await fetch(`${API_URL}/settings`);
-          if (settingsResponse.ok) {
-            const settingsData = await settingsResponse.json();
-            if (settingsData.readingStatusSettings) {
-              setReadingStatusSettings(settingsData.readingStatusSettings);
-            }
-          } else {
-             // Log non-OK response for settings, but don't throw error
-             console.warn(`API error fetching settings: ${settingsResponse.status}`);
-          }
-        } catch (settingsError) {
-          console.error('Error fetching settings:', settingsError);
-          // Continue with default settings if there's an error
-        }
-
-        setApiError(null);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        setApiError(error.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []); // Empty dependency array ensures this runs only once on mount
+    reloadDataFromServer();
+  }, [reloadDataFromServer]); // Dependency ensures it runs once on mount
 
   // --- Memoized Functions ---
 
@@ -455,108 +456,6 @@ export const AppProvider = ({ children }) => {
     });
   }, []); // No dependencies needed if API handles state persistence primarily
 
-  const saveGlobalData = useCallback(async () => {
-    let dataToExport;
-     try {
-        const response = await fetch(`${API_URL}/data`);
-        if (!response.ok) throw new Error(`API error: ${response.status}`);
-        dataToExport = await response.json();
-        setApiError(null);
-     } catch (error) {
-        console.error('Error fetching data for global save, falling back to local state:', error);
-        setApiError(error.message);
-        dataToExport = { students, settings: { readingStatusSettings } };
-     }
-
-     dataToExport.exportDate = new Date().toISOString();
-     dataToExport.version = '1.1';
-
-    try {
-      if ('showSaveFilePicker' in window) {
-        const jsonString = JSON.stringify(dataToExport, null, 2);
-        const options = {
-          suggestedName: 'reading-tracker-global-data.json',
-          types: [{ description: 'JSON Files', accept: {'application/json': ['.json']} }],
-        };
-        const fileHandle = await window.showSaveFilePicker(options);
-        const writable = await fileHandle.createWritable();
-        await writable.write(jsonString);
-        await writable.close();
-        return { success: true };
-      } else {
-        // Fallback for browsers that don't support the API
-        exportToJson(); // Reuse existing export logic
-        return { success: true, fallback: true, message: 'Direct file save not supported. Data downloaded instead.' };
-      }
-    } catch (error) {
-      // Handle user cancellation of save dialog gracefully
-      if (error.name === 'AbortError') {
-          console.log('User cancelled the save dialog.');
-          return { success: false, error: 'Save cancelled by user.' };
-      }
-      console.error('Error saving global data:', error);
-      setApiError(error.message);
-      return { success: false, error: error.message || 'Unknown error saving global data' };
-    }
-  }, [students, readingStatusSettings, exportToJson]); // Dependencies for fallback and exportToJson
-
-  const loadGlobalData = useCallback(async () => {
-    if (!('showOpenFilePicker' in window)) {
-      return { success: false, error: 'Direct file open not supported. Use Import button.' };
-    }
-    try {
-      const options = {
-        types: [{ description: 'JSON Files', accept: {'application/json': ['.json']} }],
-        multiple: false
-      };
-      const [fileHandle] = await window.showOpenFilePicker(options);
-      const file = await fileHandle.getFile();
-      const contents = await file.text();
-
-      try {
-        const data = JSON.parse(contents);
-        if (!data.students || !Array.isArray(data.students)) {
-          return { success: false, error: 'Invalid data format: missing students array' };
-        }
-
-        const importedSettings = data.settings?.readingStatusSettings;
-
-        // Optimistic update
-        setStudents(data.students);
-         if (importedSettings) {
-            setReadingStatusSettings(importedSettings);
-        }
-
-        // Send data to API
-        try {
-          const response = await fetch(`${API_URL}/data`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data),
-          });
-          if (!response.ok) throw new Error(`API error: ${response.status}`);
-          setApiError(null);
-        } catch (apiError) {
-          console.error('Error sending loaded global data to API:', apiError);
-          setApiError(apiError.message);
-          // Keep optimistic update
-        }
-        return { success: true, count: data.students.length };
-      } catch (error) {
-        return { success: false, error: `Failed to parse JSON: ${error.message}` };
-      }
-    } catch (error) {
-       // Handle user cancellation of open dialog gracefully
-       if (error.name === 'AbortError') {
-           console.log('User cancelled the open dialog.');
-           return { success: false, error: 'Open cancelled by user.' };
-       }
-      console.error('Error loading global data:', error);
-      setApiError(error.message);
-      return { success: false, error: error.message || 'Unknown error loading global data' };
-    }
-  }, []); // No dependencies needed if API handles state
-
   const bulkImportStudents = useCallback(async (names) => {
     const newStudents = names.map(name => ({
       id: uuidv4(),
@@ -629,6 +528,7 @@ export const AppProvider = ({ children }) => {
     readingStatusSettings,
     studentsSortedByPriority, // Provide memoized list
     prioritizedStudents,      // Provide memoized list
+    reloadDataFromServer,     // Add reload function
     addStudent,
     updateStudent,
     deleteStudent,
@@ -641,8 +541,7 @@ export const AppProvider = ({ children }) => {
     exportToCsv,
     exportToJson,
     importFromJson,
-    saveGlobalData,
-    loadGlobalData,
+    // Removed saveGlobalData and loadGlobalData
     bulkImportStudents
     // Removed getStudentsByReadingPriority and getPrioritizedStudents functions
     // as we now provide the memoized lists directly.
@@ -654,6 +553,7 @@ export const AppProvider = ({ children }) => {
     readingStatusSettings,
     studentsSortedByPriority, // Add memoized list to dependencies
     prioritizedStudents,      // Add memoized list to dependencies
+    reloadDataFromServer,     // Add dependency
     addStudent,
     updateStudent,
     deleteStudent,
@@ -666,8 +566,7 @@ export const AppProvider = ({ children }) => {
     exportToCsv,
     exportToJson,
     importFromJson,
-    saveGlobalData,
-    loadGlobalData,
+    // Removed saveGlobalData and loadGlobalData dependencies
     bulkImportStudents
   ]);
 
