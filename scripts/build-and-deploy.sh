@@ -28,6 +28,8 @@ if [ "$ENVIRONMENT" == "dev" ]; then
 fi
 
 # Step 1: Install dependencies
+echo -e "${YELLOW}Cleaning up previous dependencies...${NC}"
+rm -rf node_modules package-lock.json
 echo -e "${YELLOW}Installing dependencies...${NC}"
 npm install
 
