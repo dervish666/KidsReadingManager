@@ -2,6 +2,10 @@
 
 This project implements the Kids Reading Manager application using Cloudflare Workers and KV storage. It provides a serverless backend API and serves the React frontend from a single Worker, replacing the previous Express.js server.
 
+<a target="_blank" href="https://deploy.workers.cloudflare.com/?url=https%3A%2F%2Fgithub.com%2Fdervish666%2FKidsReadingManager">
+  <img src="https://deploy.workers.cloudflare.com/button" alt="Deploy to Cloudflare">
+</a>
+
 ## Project Structure
 
 ```
