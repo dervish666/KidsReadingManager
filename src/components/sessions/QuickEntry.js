@@ -13,7 +13,8 @@ import {
   SwipeableDrawer,
   TextField,
   Slider,
-  IconButton
+  IconButton,
+  Grid // Import Grid
 } from '@mui/material';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
@@ -178,12 +179,14 @@ const QuickEntry = () => {
           />
         </Box>
         
-        <Card 
-          sx={{ 
-            mb: 3,
-            borderLeft: `4px solid ${statusColors[status]}`,
-          }}
-        >
+        <Grid container spacing={3}> {/* Add Grid container */}
+          <Grid item xs={12} sx={{ mb: 3 }}> {/* Wrap Card in Grid item */}
+            <Card
+              sx={{
+                // mb: 3, // Margin now handled by Grid item
+                borderLeft: `4px solid ${statusColors[status]}`,
+              }}
+            >
           <CardContent>
             <Typography variant="h5" component="h2" gutterBottom>
               {currentStudent.name}
@@ -211,28 +214,34 @@ const QuickEntry = () => {
               </Typography>
             </Box>
           )}
-        </Card>
-        
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="subtitle1" gutterBottom>
+            </Card>
+          </Grid> {/* Close Card Grid item */}
+          
+          <Grid item xs={12} sx={{ mb: 3 }}> {/* Wrap Assessment Box in Grid item */}
+            {/* <Box sx={{ mb: 3 }}> */} {/* Remove Box wrapper, margin handled by Grid item */}
+            <Typography variant="subtitle1" gutterBottom>
             Assessment:
           </Typography>
           <AssessmentSelector
             value={assessment}
             onChange={handleAssessmentChange}
-          />
-        </Box>
+            />
+            {/* </Box> */}
+          </Grid> {/* Close Assessment Grid item */}
+          
+          <Grid item xs={12} sx={{ mb: 3 }}> {/* Wrap Notes Button in Grid item */}
+            <Button
+              variant="outlined"
+              fullWidth
+              onClick={toggleNotesDrawer}
+              // sx={{ mb: 3 }} // Margin handled by Grid item
+            >
+              {notes ? 'Edit Notes' : 'Add Notes'}
+            </Button>
+          </Grid> {/* Close Notes Button Grid item */}
         
-        <Button
-          variant="outlined"
-          fullWidth
-          onClick={toggleNotesDrawer}
-          sx={{ mb: 3 }}
-        >
-          {notes ? 'Edit Notes' : 'Add Notes'}
-        </Button>
-        
-        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+        <Grid item xs={12}> {/* Wrap Button Box in Grid item */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
           <Button
             variant="outlined"
             startIcon={<NavigateBeforeIcon />}
@@ -262,7 +271,9 @@ const QuickEntry = () => {
           >
             Next
           </Button>
-        </Box>
+          </Box>
+        </Grid> {/* Close Button Box Grid item */}
+      </Grid> {/* Close Grid container */}
       </Paper>
       
       <SwipeableDrawer

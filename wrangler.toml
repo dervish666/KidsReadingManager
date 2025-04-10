@@ -1,0 +1,36 @@
+name = "kids-reading-manager"
+main = "src/worker.js"
+compatibility_date = "2025-04-09"
+
+# KV Namespace for storing application data
+# IMPORTANT: Before deploying, you must create the KV namespace using Wrangler CLI:
+#   1. Create production namespace: wrangler kv:namespace create READING_MANAGER_KV
+#   2. Create preview namespace: wrangler kv:namespace create READING_MANAGER_KV --preview
+#   3. Copy the namespace IDs from the output and replace the placeholders below
+kv_namespaces = [
+  { binding = "READING_MANAGER_KV", id = "09297a22cb3b4abc96bf0a5d4c79b4e9", preview_id = "6b452436a7794d36810e929dde07debf" }
+]
+# Configuration for serving static assets (React frontend)
+[assets]
+directory = "./build"
+not_found_handling = "single-page-application"
+
+# Environment variables
+[vars]
+ENVIRONMENT = "production"
+
+# Development environment variables
+[env.dev]
+[env.dev.vars]
+ENVIRONMENT = "development"
+
+# Static assets configuration for serving the React frontend
+# [site] block removed (deprecated)
+# Bind to a custom domain or subdomain if needed
+# [routes]
+# pattern = "https://kids-reading-manager.example.com/*"
+# zone_name = "example.com"
+
+# Triggers
+[triggers]
+crons = []

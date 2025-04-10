@@ -1,35 +1,33 @@
 {
-  "name": "kids-reading-manager",
-  "version": "0.2.0",
-  "private": true,
-  "license": "CC-BY-NC-4.0",
-  "dependencies": {
-    "@emotion/react": "^11.11.0",
-    "@emotion/styled": "^11.11.0",
-    "@mui/icons-material": "^7.0.1",
-    "@mui/material": "^7.0.1",
-    "body-parser": "^2.2.0",
-    "cors": "^2.8.5",
-    "express": "^4.21.2",
-    "lowdb": "^7.0.1",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "react-scripts": "5.0.1",
-    "uuid": "^11.1.0"
-  },
+  "name": "kids-reading-manager-cloudflare",
+  "version": "1.0.1",
+  "description": "Cloudflare Workers implementation of Kids Reading Manager API",
+  "main": "src/index.js",
   "scripts": {
-    "start": "react-scripts start",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "vitest run",
+    "migrate": "node scripts/migration.js",
     "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "server": "node server/index.js",
-    "dev": "concurrently \"npm run start\" \"npm run server\""
+    "build:deploy": "./scripts/build-and-deploy.sh",
+    "build:deploy:dev": "./scripts/build-and-deploy.sh dev"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
+  "author": "",
+  "license": "CC BY-NC 4.0",
+  "dependencies": {
+    "hono": "^3.12.0",
+    "uuid": "^11.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@mui/material": "^5.14.0",
+    "@mui/icons-material": "^5.14.0",
+    "@emotion/react": "^11.11.0",
+    "@emotion/styled": "^11.11.0"
+  },
+  "devDependencies": {
+    "vitest": "^1.2.0",
+    "wrangler": "^4.9.1",
+    "react-scripts": "^5.0.1"
   },
   "browserslist": {
     "production": [
@@ -42,8 +40,5 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  },
-  "devDependencies": {
-    "concurrently": "^9.1.2"
   }
 }

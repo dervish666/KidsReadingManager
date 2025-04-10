@@ -10,7 +10,8 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
-  Paper
+  Paper,
+  Grid // Import Grid
 } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import UploadIcon from '@mui/icons-material/Upload';
@@ -108,16 +109,20 @@ const DataManagement = () => {
 
   return (
     <Box sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h6" gutterBottom>
-        Data Management
-      </Typography>
-      
-      <Paper sx={{ p: 3, mb: 3 }}>
+      <Grid container spacing={3}> {/* Add Grid container */}
+        <Grid item xs={12} sx={{ mb: 3 }}> {/* Wrap title in Grid item */}
+          <Typography variant="h6" gutterBottom>
+            Data Management
+          </Typography>
+        </Grid> {/* Close Grid item for title */}
+      {/* Remove extraneous Typography closing tag */}
+        <Grid item xs={12}> {/* Wrap first Paper in Grid item */}
+          <Paper sx={{ p: 3 }}> {/* Remove mb from Paper, handled by Grid spacing */}
         <Typography variant="subtitle1" gutterBottom>
-          Local Data Export/Import
+          Cloud Data Export/Import
         </Typography>
         <Typography variant="body2" color="text.secondary" paragraph>
-          Export data to a file that you can save anywhere on your device, or import data from a previously exported file.
+          Export data from the cloud to a file that you can save anywhere on your device, or import data from a previously exported file to the cloud.
         </Typography>
         
         <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
@@ -144,15 +149,17 @@ const DataManagement = () => {
             style={{ display: 'none' }}
             onChange={handleFileChange}
           />
-        </Box>
-      </Paper>
+          </Box>
+        </Paper>
+      </Grid>
       
-      <Paper sx={{ p: 3, mb: 3 }}>
+      <Grid item xs={12}> {/* Wrap second Paper in Grid item */}
+        <Paper sx={{ p: 3 }}> {/* Remove mb from Paper */}
         <Typography variant="subtitle1" gutterBottom>
-          Server Data Management
+          Cloud Data Management
         </Typography>
         <Typography variant="body2" color="text.secondary" paragraph>
-          Reload data from the server to ensure you have the latest information, especially when accessing from multiple devices.
+          Reload data from the Cloudflare Workers API to ensure you have the latest information, especially when accessing from multiple devices.
         </Typography>
         
         <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
@@ -163,15 +170,17 @@ const DataManagement = () => {
           >
             Reload Data from Server
           </Button>
-        </Box>
-      </Paper>
+          </Box>
+        </Paper>
+      </Grid>
       
-      <Paper sx={{ p: 3 }}>
+      <Grid item xs={12}> {/* Wrap third Paper in Grid item */}
+        <Paper sx={{ p: 3 }}>
         <Typography variant="subtitle1" gutterBottom>
-          Backup and Restore
+          Cloud Backup and Restore
         </Typography>
         <Typography variant="body2" color="text.secondary" paragraph>
-          Create backups of your data or restore from previously saved backups.
+          Create backups of your cloud data or restore from previously saved backups to the cloud.
         </Typography>
         
         <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
@@ -192,18 +201,19 @@ const DataManagement = () => {
           >
             Upload Backup (JSON)
           </Button>
-        </Box>
-      </Paper>
+          </Box>
+        </Paper>
+      </Grid> {/* Close Grid item for third Paper */}
 
-      {/* Snackbar for notifications */}
-      <Snackbar 
-        open={snackbar.open} 
-        autoHideDuration={6000} 
+      {/* Snackbar and Dialog remain outside the main layout Grid */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
         onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert 
-          onClose={handleCloseSnackbar} 
+        <Alert
+          onClose={handleCloseSnackbar}
           severity={snackbar.severity}
           sx={{ width: '100%' }}
         >
@@ -211,7 +221,6 @@ const DataManagement = () => {
         </Alert>
       </Snackbar>
 
-      {/* Confirmation Dialog */}
       <Dialog
         open={confirmDialog.open}
         onClose={handleCloseDialog}
@@ -230,7 +239,8 @@ const DataManagement = () => {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </Grid> {/* Close Grid container */}
+  </Box> /* Close main Box */
   );
 };
 

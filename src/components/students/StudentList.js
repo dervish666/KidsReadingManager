@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  Alert, // Added Alert
   Box,
   Typography,
   Button,
@@ -30,6 +31,7 @@ const StudentList = () => {
   const {
     students,
     loading,
+    apiError, // Added apiError
     addStudent,
     studentsSortedByPriority // Changed from getStudentsByReadingPriority
   } = useAppContext();
@@ -135,6 +137,12 @@ const StudentList = () => {
       return sortDirection === 'asc' ? -comparison : comparison;
     });
   };
+  // Handle API errors first
+  if (apiError) {
+    // Display error message if the API call failed
+    return <Alert severity="error">Error loading student data: {apiError}</Alert>;
+  }
+
 
   if (loading) {
     return (

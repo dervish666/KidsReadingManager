@@ -115,7 +115,7 @@ const SessionForm = () => {
           
           <form onSubmit={handleSubmit}>
             <Grid container spacing={3}>
-              <Grid size={12}>
+              <Grid item xs={12} sx={{ mb: 3 }}> {/* Use item prop, xs={12} and add margin bottom */}
                 <FormControl fullWidth>
                   <InputLabel id="student-select-label">Student</InputLabel>
                   <Select
@@ -134,50 +134,42 @@ const SessionForm = () => {
                 </FormControl>
               </Grid>
               
-              <Grid size={12}>
-                <Box sx={{ mb: 2 }}>
-                  <TextField
-                    label="Date"
-                    type="date"
-                    value={date}
-                    onChange={handleDateChange}
-                    fullWidth
-                    InputLabelProps={{
-                      shrink: true,
-                    }}
-                    sx={{
-                      '& .MuiInputBase-root': {
-                        height: 56 // Ensure consistent height
-                      }
-                    }}
-                  />
-                </Box>
+              <Grid item xs={12}> {/* Use item prop and xs={12}, remove Box wrapper */}
+                <TextField
+                  label="Date"
+                  type="date"
+                  value={date}
+                  onChange={handleDateChange}
+                  fullWidth
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                  sx={{
+                    '& .MuiInputBase-root': {
+                      height: 56 // Ensure consistent height
+                    }
+                  }}
+                />
               </Grid>
               
-              <Grid size={12}>
-                <Box sx={{ mb: 1 }}>
-                  <Typography variant="subtitle1" gutterBottom>
-                    Assessment:
-                  </Typography>
-                </Box>
-                <Box sx={{ width: '100%' }}>
-                  <AssessmentSelector
-                    value={assessment}
-                    onChange={handleAssessmentChange}
-                  />
-                </Box>
+              <Grid item xs={12} sx={{ mb: 3 }}> {/* Correct Grid item and add margin */}
+                <Typography variant="subtitle1" gutterBottom sx={{ mb: 1 }}> {/* Add margin bottom to title */}
+                  Assessment:
+                </Typography>
+                <AssessmentSelector
+                  value={assessment}
+                  onChange={handleAssessmentChange}
+                />
               </Grid>
               
-              <Grid size={12}>
-                <Box sx={{ mt: 2 }}>
-                  <SessionNotes
-                    value={notes}
-                    onChange={handleNotesChange}
-                  />
-                </Box>
+              <Grid item xs={12} sx={{ mb: 3 }}> {/* Correct Grid item and add margin */}
+                <SessionNotes
+                  value={notes}
+                  onChange={handleNotesChange}
+                />
               </Grid>
               
-              <Grid size={12}>
+              <Grid item xs={12}> {/* Correct Grid item */}
                 <Button
                   type="submit"
                   variant="contained"

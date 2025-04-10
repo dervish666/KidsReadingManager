@@ -10,7 +10,8 @@ import {
   Typography,
   Box,
   Chip,
-  Alert
+  Alert,
+  Grid // Import Grid
 } from '@mui/material';
 import { useAppContext } from '../../contexts/AppContext';
 
@@ -83,42 +84,53 @@ const BulkImport = ({ open, onClose }) => {
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>Bulk Import Students</DialogTitle>
       <DialogContent>
-        <DialogContentText>
-          Enter each student's name on a new line to add multiple students at once.
-        </DialogContentText>
-        
-        {error && (
-          <Alert severity="error" sx={{ mt: 2, mb: 2 }}>
-            {error}
-          </Alert>
-        )}
-        
-        <TextField
-          autoFocus
-          margin="dense"
-          label="Student Names"
-          multiline
-          rows={6}
-          fullWidth
-          value={namesText}
-          onChange={handleTextChange}
-          placeholder="John Smith&#10;Jane Doe&#10;Alex Johnson"
-          variant="outlined"
-          sx={{ mt: 2 }}
-        />
-        
-        {preview.length > 0 && (
-          <Box sx={{ mt: 3 }}>
-            <Typography variant="subtitle2" gutterBottom>
-              Preview ({preview.length} students):
-            </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {preview.map((name, index) => (
-                <Chip key={index} label={name} size="small" />
-              ))}
-            </Box>
-          </Box>
-        )}
+        {/* Wrap content in Grid container */}
+        <Grid container spacing={3} sx={{ pt: 1 }}> {/* Add some padding top */}
+          <Grid item xs={12}>
+            <DialogContentText>
+              Enter each student's name on a new line to add multiple students at once.
+            </DialogContentText>
+          </Grid>
+          
+          {error && (
+            <Grid item xs={12}> {/* Wrap Alert in Grid item */}
+              <Alert severity="error"> {/* Remove sx margins, rely on Grid spacing */}
+                {error}
+              </Alert>
+            </Grid>
+          )}
+          
+          <Grid item xs={12}> {/* Wrap TextField in Grid item */}
+            <TextField
+              autoFocus
+              // margin="dense" // Remove margin, rely on Grid spacing
+              label="Student Names"
+              multiline
+              rows={6}
+              fullWidth
+              value={namesText}
+              onChange={handleTextChange}
+              placeholder="John Smith&#10;Jane Doe&#10;Alex Johnson"
+              variant="outlined"
+              // sx={{ mt: 2 }} // Remove sx margin, rely on Grid spacing
+            />
+          </Grid>
+          
+          {preview.length > 0 && (
+            <Grid item xs={12}> {/* Wrap Preview Box in Grid item */}
+              <Box> {/* Remove sx margin, rely on Grid spacing */}
+                <Typography variant="subtitle2" gutterBottom>
+                  Preview ({preview.length} students):
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  {preview.map((name, index) => (
+                    <Chip key={index} label={name} size="small" />
+                  ))}
+                </Box>
+              </Box>
+            </Grid>
+          )}
+        </Grid>
       </DialogContent>
       <DialogActions>
         <Button onClick={handleClose}>Cancel</Button>

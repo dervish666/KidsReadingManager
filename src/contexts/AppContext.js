@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 // Create context
 const AppContext = createContext();
 
-// API URL - will be proxied through nginx
+// API URL - relative path since frontend and API are served from the same origin
 const API_URL = '/api';
 
 // Custom hook to use the app context

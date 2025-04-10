@@ -127,7 +127,7 @@ const Settings = () => {
           {/* Use outer Grid for overall layout */}
           <Grid container spacing={4}>
             {/* Section for Recently Read */}
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12}> {/* Ensure full width */}
               <Typography id="recently-read-days-slider" gutterBottom>
                 Recently Read (Green): 0-{settings.recentlyReadDays} days
               </Typography>
@@ -166,7 +166,7 @@ const Settings = () => {
             </Grid>
 
             {/* Section for Needs Attention */}
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12}> {/* Ensure full width */}
               <Typography id="needs-attention-days-slider" gutterBottom>
                 Needs Attention (Yellow): {settings.recentlyReadDays + 1}-{settings.needsAttentionDays} days
               </Typography>

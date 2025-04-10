@@ -63,7 +63,7 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
     <Card
       onClick={onClick} // Add the onClick handler here
       sx={{
-        mb: 1,
+        // mb: 1, // Removed bottom margin to rely on Grid spacing
         borderLeft: `4px solid ${statusColors[status]}`,
         position: 'relative',
         overflow: 'visible',
