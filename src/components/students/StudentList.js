@@ -212,11 +212,13 @@ const StudentList = () => {
         </Box>
       ) : (
         <>
-          {/* Priority Reading List */}
-          <PrioritizedStudentsList />
+          {/* Priority Reading List - Add bottom margin */}
+          <Box mb={4}> {/* Added Box wrapper with margin */}
+            <PrioritizedStudentsList />
+          </Box>
           
-          {/* All Students Grid */}
-          <Grid container spacing={2}>
+          {/* All Students Grid - Increase spacing */}
+          <Grid container spacing={3}> {/* Increased spacing to 3 */}
             {sortedStudents.map(student => (
               <Grid size={{ xs: 12, sm: 6, md: 4 }} key={student.id}>
                 <StudentCard student={student} />
