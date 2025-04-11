@@ -220,7 +220,8 @@ const StudentList = () => {
           {/* All Students Grid - Increase spacing */}
           <Grid container spacing={3}> {/* Increased spacing to 3 */}
             {sortedStudents.map(student => (
-              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={student.id}>
+              // Corrected Grid item props: use item + xs/sm/md directly
+              <Grid item xs={12} sm={6} md={4} key={student.id}>
                 <StudentCard student={student} />
               </Grid>
             ))}

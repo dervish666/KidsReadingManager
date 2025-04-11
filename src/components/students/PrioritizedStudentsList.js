@@ -218,7 +218,8 @@ const PrioritizedStudentsList = ({ defaultCount = 8 }) => {
         
         <Grid container spacing={2}>
           {prioritizedStudents.map((student, index) => (
-            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={student.id}>
+            // Corrected Grid item props: use item + xs/sm/md directly
+            <Grid item xs={12} sm={6} md={4} key={student.id}>
               <StudentPriorityCard
                 student={student}
                 priorityRank={index + 1}
