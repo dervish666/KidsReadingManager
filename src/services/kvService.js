@@ -56,7 +56,7 @@ export async function saveData(env, data) {
     const updatedData = {
       ...data,
       metadata: {
-        ...data.metadata || {},
+        ...(data.metadata || {}),
         lastUpdated: new Date().toISOString()
       }
     };
@@ -162,7 +162,7 @@ export async function getSettings(env) {
  */
 export async function updateSettings(env, settings) {
   const data = await getData(env);
-  data.settings = { ...data.settings || {}, ...settings };
+  data.settings = { ...(data.settings || {}), ...settings };
   await saveData(env, data);
   return data.settings;
 }

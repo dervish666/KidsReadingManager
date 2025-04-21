@@ -86,21 +86,21 @@ const BulkImport = ({ open, onClose }) => {
       <DialogContent>
         {/* Wrap content in Grid container */}
         <Grid container spacing={3} sx={{ pt: 1 }}> {/* Add some padding top */}
-          <Grid item xs={12}>
+          <Grid size={12}>
             <DialogContentText>
               Enter each student's name on a new line to add multiple students at once.
             </DialogContentText>
           </Grid>
           
           {error && (
-            <Grid item xs={12}> {/* Wrap Alert in Grid item */}
+            <Grid size={12}> {/* Wrap Alert in Grid item */}
               <Alert severity="error"> {/* Remove sx margins, rely on Grid spacing */}
                 {error}
               </Alert>
             </Grid>
           )}
           
-          <Grid item xs={12}> {/* Wrap TextField in Grid item */}
+          <Grid size={12}> {/* Wrap TextField in Grid item */}
             <TextField
               autoFocus
               // margin="dense" // Remove margin, rely on Grid spacing
@@ -117,7 +117,7 @@ const BulkImport = ({ open, onClose }) => {
           </Grid>
           
           {preview.length > 0 && (
-            <Grid item xs={12}> {/* Wrap Preview Box in Grid item */}
+            <Grid size={12}> {/* Wrap Preview Box in Grid item */}
               <Box> {/* Remove sx margin, rely on Grid spacing */}
                 <Typography variant="subtitle2" gutterBottom>
                   Preview ({preview.length} students):

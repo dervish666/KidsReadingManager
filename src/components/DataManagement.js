@@ -110,13 +110,13 @@ const DataManagement = () => {
   return (
     <Box sx={{ mt: 4, mb: 4 }}>
       <Grid container spacing={3}> {/* Add Grid container */}
-        <Grid item xs={12} sx={{ mb: 3 }}> {/* Wrap title in Grid item */}
+        <Grid sx={{ mb: 3 }} size={12}> {/* Wrap title in Grid item */}
           <Typography variant="h6" gutterBottom>
             Data Management
           </Typography>
         </Grid> {/* Close Grid item for title */}
       {/* Remove extraneous Typography closing tag */}
-        <Grid item xs={12}> {/* Wrap first Paper in Grid item */}
+        <Grid size={12}> {/* Wrap first Paper in Grid item */}
           <Paper sx={{ p: 3 }}> {/* Remove mb from Paper, handled by Grid spacing */}
         <Typography variant="subtitle1" gutterBottom>
           Cloud Data Export/Import
@@ -153,7 +153,7 @@ const DataManagement = () => {
         </Paper>
       </Grid>
       
-      <Grid item xs={12}> {/* Wrap second Paper in Grid item */}
+      <Grid size={12}> {/* Wrap second Paper in Grid item */}
         <Paper sx={{ p: 3 }}> {/* Remove mb from Paper */}
         <Typography variant="subtitle1" gutterBottom>
           Cloud Data Management
@@ -174,7 +174,7 @@ const DataManagement = () => {
         </Paper>
       </Grid>
       
-      <Grid item xs={12}> {/* Wrap third Paper in Grid item */}
+      <Grid size={12}> {/* Wrap third Paper in Grid item */}
         <Paper sx={{ p: 3 }}>
         <Typography variant="subtitle1" gutterBottom>
           Cloud Backup and Restore
@@ -240,7 +240,7 @@ const DataManagement = () => {
         </DialogActions>
       </Dialog>
     </Grid> {/* Close Grid container */}
-  </Box> /* Close main Box */
+    </Box> /* Close main Box */
   );
 };
 

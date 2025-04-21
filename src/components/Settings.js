@@ -114,7 +114,6 @@ const Settings = () => {
       <Typography variant="h6" gutterBottom>
         Application Settings
       </Typography>
-
       <Paper sx={{ p: 3, mb: 3 }}>
         <Typography variant="subtitle1" gutterBottom>
           Reading Status Durations
@@ -127,7 +126,7 @@ const Settings = () => {
           {/* Use outer Grid for overall layout */}
           <Grid container spacing={4}>
             {/* Section for Recently Read */}
-            <Grid item xs={12}> {/* Ensure full width */}
+            <Grid size={12}> {/* Ensure full width */}
               <Typography id="recently-read-days-slider" gutterBottom>
                 Recently Read (Green): 0-{settings.recentlyReadDays} days
               </Typography>
@@ -166,7 +165,7 @@ const Settings = () => {
             </Grid>
 
             {/* Section for Needs Attention */}
-            <Grid item xs={12}> {/* Ensure full width */}
+            <Grid size={12}> {/* Ensure full width */}
               <Typography id="needs-attention-days-slider" gutterBottom>
                 Needs Attention (Yellow): {settings.recentlyReadDays + 1}-{settings.needsAttentionDays} days
               </Typography>
@@ -233,7 +232,6 @@ const Settings = () => {
           </Button>
         </Box>
       </Paper>
-
       {/* Snackbar for notifications */}
       <Snackbar
         open={snackbar.open}

@@ -104,7 +104,6 @@ const SessionForm = () => {
           </ToggleButton>
         </ToggleButtonGroup>
       </Box>
-
       {mode === 'standard' ? (
         <Paper sx={{ p: 3 }}>
           {error && (
@@ -115,7 +114,7 @@ const SessionForm = () => {
           
           <form onSubmit={handleSubmit}>
             <Grid container spacing={3}>
-              <Grid item xs={12} sx={{ mb: 3 }}> {/* Use item prop, xs={12} and add margin bottom */}
+              <Grid sx={{ mb: 3 }} size={12}> {/* Use item prop, xs={12} and add margin bottom */}
                 <FormControl fullWidth>
                   <InputLabel id="student-select-label">Student</InputLabel>
                   <Select
@@ -134,7 +133,7 @@ const SessionForm = () => {
                 </FormControl>
               </Grid>
               
-              <Grid item xs={12}> {/* Use item prop and xs={12}, remove Box wrapper */}
+              <Grid size={12}> {/* Use item prop and xs={12}, remove Box wrapper */}
                 <TextField
                   label="Date"
                   type="date"
@@ -152,7 +151,7 @@ const SessionForm = () => {
                 />
               </Grid>
               
-              <Grid item xs={12} sx={{ mb: 3 }}> {/* Correct Grid item and add margin */}
+              <Grid sx={{ mb: 3 }} size={12}> {/* Correct Grid item and add margin */}
                 <Typography variant="subtitle1" gutterBottom sx={{ mb: 1 }}> {/* Add margin bottom to title */}
                   Assessment:
                 </Typography>
@@ -162,14 +161,14 @@ const SessionForm = () => {
                 />
               </Grid>
               
-              <Grid item xs={12} sx={{ mb: 3 }}> {/* Correct Grid item and add margin */}
+              <Grid sx={{ mb: 3 }} size={12}> {/* Correct Grid item and add margin */}
                 <SessionNotes
                   value={notes}
                   onChange={handleNotesChange}
                 />
               </Grid>
               
-              <Grid item xs={12}> {/* Correct Grid item */}
+              <Grid size={12}> {/* Correct Grid item */}
                 <Button
                   type="submit"
                   variant="contained"
@@ -238,7 +237,6 @@ const SessionForm = () => {
       ) : (
         <QuickEntry />
       )}
-      
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={3000}

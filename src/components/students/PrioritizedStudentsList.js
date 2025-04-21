@@ -192,7 +192,6 @@ const PrioritizedStudentsList = ({ defaultCount = 8 }) => {
           {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
         </IconButton>
       </Box>
-      
       <Collapse in={expanded}>
         <Box sx={{ mb: 3 }}>
           <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -219,13 +218,19 @@ const PrioritizedStudentsList = ({ defaultCount = 8 }) => {
         <Grid container spacing={2}>
           {prioritizedStudents.map((student, index) => (
             // Corrected Grid item props: use item + xs/sm/md directly
-            <Grid item xs={12} sm={6} md={4} key={student.id}>
+            (<Grid
+              key={student.id}
+              size={{
+                xs: 12,
+                sm: 6,
+                md: 4
+              }}>
               <StudentPriorityCard
                 student={student}
                 priorityRank={index + 1}
                 onClick={() => handleStudentClick(student.id)}
               />
-            </Grid>
+            </Grid>)
           ))}
         </Grid>
         

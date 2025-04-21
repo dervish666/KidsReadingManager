@@ -195,7 +195,6 @@ const StudentList = () => {
           </Button>
         </Box>
       </Box>
-
       {students.length === 0 ? (
         <Box sx={{ textAlign: 'center', my: 4 }}>
           <Typography variant="body1" sx={{ mb: 2 }}>
@@ -221,14 +220,19 @@ const StudentList = () => {
           <Grid container spacing={3}> {/* Increased spacing to 3 */}
             {sortedStudents.map(student => (
               // Corrected Grid item props: use item + xs/sm/md directly
-              <Grid item xs={12} sm={6} md={4} key={student.id}>
+              (<Grid
+                key={student.id}
+                size={{
+                  xs: 12,
+                  sm: 6,
+                  md: 4
+                }}>
                 <StudentCard student={student} />
-              </Grid>
+              </Grid>)
             ))}
           </Grid>
         </>
       )}
-
       {/* Add Student Dialog */}
       <Dialog open={openDialog} onClose={handleCloseDialog}>
         <DialogTitle>Add New Student</DialogTitle>
@@ -257,13 +261,11 @@ const StudentList = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
       {/* Bulk Import Dialog */}
       <BulkImport 
         open={openBulkDialog} 
         onClose={handleCloseBulkDialog} 
       />
-
       {/* Floating Action Button */}
       <Fab 
         color="primary" 

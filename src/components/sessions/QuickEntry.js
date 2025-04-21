@@ -180,7 +180,7 @@ const QuickEntry = () => {
         </Box>
         
         <Grid container spacing={3}> {/* Add Grid container */}
-          <Grid item xs={12} sx={{ mb: 3 }}> {/* Wrap Card in Grid item */}
+          <Grid sx={{ mb: 3 }} size={12}> {/* Wrap Card in Grid item */}
             <Card
               sx={{
                 // mb: 3, // Margin now handled by Grid item
@@ -217,7 +217,7 @@ const QuickEntry = () => {
             </Card>
           </Grid> {/* Close Card Grid item */}
           
-          <Grid item xs={12} sx={{ mb: 3 }}> {/* Wrap Assessment Box in Grid item */}
+          <Grid sx={{ mb: 3 }} size={12}> {/* Wrap Assessment Box in Grid item */}
             {/* <Box sx={{ mb: 3 }}> */} {/* Remove Box wrapper, margin handled by Grid item */}
             <Typography variant="subtitle1" gutterBottom>
             Assessment:
@@ -229,7 +229,7 @@ const QuickEntry = () => {
             {/* </Box> */}
           </Grid> {/* Close Assessment Grid item */}
           
-          <Grid item xs={12} sx={{ mb: 3 }}> {/* Wrap Notes Button in Grid item */}
+          <Grid sx={{ mb: 3 }} size={12}> {/* Wrap Notes Button in Grid item */}
             <Button
               variant="outlined"
               fullWidth
@@ -240,7 +240,7 @@ const QuickEntry = () => {
             </Button>
           </Grid> {/* Close Notes Button Grid item */}
         
-        <Grid item xs={12}> {/* Wrap Button Box in Grid item */}
+        <Grid size={12}> {/* Wrap Button Box in Grid item */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
           <Button
             variant="outlined"
@@ -275,7 +275,6 @@ const QuickEntry = () => {
         </Grid> {/* Close Button Box Grid item */}
       </Grid> {/* Close Grid container */}
       </Paper>
-      
       <SwipeableDrawer
         anchor="bottom"
         open={notesDrawerOpen}
@@ -307,7 +306,6 @@ const QuickEntry = () => {
           </Button>
         </Box>
       </SwipeableDrawer>
-      
       {/* Settings Drawer */}
       <SwipeableDrawer
         anchor="bottom"
@@ -358,7 +356,6 @@ const QuickEntry = () => {
           </Button>
         </Box>
       </SwipeableDrawer>
-      
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={2000}
