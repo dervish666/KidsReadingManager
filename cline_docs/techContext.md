@@ -11,6 +11,12 @@
 - **Express.js**: API server for data storage and retrieval
 - **Node.js**: Runtime environment
 - **body-parser v2**: Middleware for parsing HTTP request bodies (updated from v1)
+- **Hono v4.7.7**: Lightweight web framework for Cloudflare Workers
+- **Cloudflare Workers**: Serverless execution environment for API endpoints
+
+### Development Tools
+- **Wrangler v4.12.0**: CLI tool for developing and deploying Cloudflare Workers
+- **@rsbuild/core v1.3.9**: Build tool powered by Rspack for frontend assets
 
 ### Data Storage
 - **PouchDB**: Local storage database
