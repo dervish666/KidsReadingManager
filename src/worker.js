@@ -15,6 +15,7 @@ import { prettyJSON } from 'hono/pretty-json';
 import { studentsRouter } from './routes/students';
 import { settingsRouter } from './routes/settings';
 import { dataRouter } from './routes/data';
+import { classesRouter } from './routes/classes';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -32,6 +33,7 @@ app.use('/api/*', errorHandler());
 app.route('/api/students', studentsRouter);
 app.route('/api/settings', settingsRouter);
 app.route('/api/data', dataRouter);
+app.route('/api/classes', classesRouter);
 
 // API health check
 app.get('/api/health', (c) => {

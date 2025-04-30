@@ -8,6 +8,7 @@
 // Default data structure
 const DEFAULT_DATA = {
   students: [],
+  classes: [], // Added classes array
   settings: {
     readingStatusSettings: {
       recentlyReadDays: 7,
@@ -152,6 +153,88 @@ export async function addStudents(env, students) {
 export async function getSettings(env) {
   const data = await getData(env);
   return data.settings || DEFAULT_DATA.settings;
+}
+
+/**
+ * Get classes from KV
+ * @param {Object} env - Environment with KV binding
+ * @returns {Promise<Array>} - Array of classes
+ */
+export async function getClasses(env) {
+  const data = await getData(env);
+  return data.classes || [];
+}
+
+/**
+ * Get a class by ID
+ * @param {Object} env - Environment with KV binding
+ * @param {string} id - Class ID
+ * @returns {Promise<Object|null>} - Class object or null if not found
+ */
+export async function getClassById(env, id) {
+  const data = await getData(env);
+  return data.classes.find(cls => cls.id === id) || null;
+}
+
+/**
+ * Save a class (create or update)
+ * @param {Object} env - Environment with KV binding
+ * @param {Object} cls - Class object to save
+ * @returns {Promise<Object>} - Saved class
+ */
+export async function saveClass(env, cls) {
+  const data = await getData(env);
+  
+  // Initialize classes array if it doesn't exist
+  if (!data.classes) {
+    data.classes = [];
+  }
+  
+  const index = data.classes.findIndex(c => c.id === cls.id);
+  
+  if (index === -1) {
+    // Create new class
+    data.classes.push(cls);
+  } else {
+    // Update existing class
+    data.classes[index] = cls;
+  }
+  
+  await saveData(env, data);
+  return cls;
+}
+
+/**
+ * Delete a class by ID
+ * @param {Object} env - Environment with KV binding
+ * @param {string} id - Class ID to delete
+ * @returns {Promise<boolean>} - Success status
+ */
+export async function deleteClass(env, id) {
+  const data = await getData(env);
+  
+  // Initialize classes array if it doesn't exist
+  if (!data.classes) {
+    data.classes = [];
+    return false; // Class not found
+  }
+  
+  const initialLength = data.classes.length;
+  data.classes = data.classes.filter(cls => cls.id !== id);
+  
+  if (data.classes.length === initialLength) {
+    return false; // Class not found
+  }
+  
+  // Unassign students from the deleted class
+  if (data.students) {
+    data.students = data.students.map(student =>
+      student.classId === id ? { ...student, classId: null } : student
+    );
+  }
+  
+  await saveData(env, data);
+  return true;
 }
 
 /**
