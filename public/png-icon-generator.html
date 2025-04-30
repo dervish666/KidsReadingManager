@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PNG Icon Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            margin: 20px;
+        }
+        .instructions {
+            background-color: #f5f5f5;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        code {
+            background-color: #eee;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Book Icon PNG Generator</h1>
+        
+        <div>
+            <h2>Book Icon (192x192)</h2>
+            <canvas id="iconCanvas" width="192" height="192"></canvas>
+        </div>
+        
+        <div class="instructions">
+            <h2>Instructions to Save as PNG</h2>
+            <ol>
+                <li>Right-click on the canvas above</li>
+                <li>Select "Save Image As..."</li>
+                <li>Save it as <code>logo192.png</code> in the <code>public</code> directory of your project</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        // Draw the book icon on the canvas
+        const canvas = document.getElementById('iconCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Set background
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Scale the icon to fit the canvas
+        const scale = canvas.width / 24;
+        ctx.scale(scale, scale);
+        
+        // Draw the book icon
+        ctx.fillStyle = '#6b4d57';
+        ctx.beginPath();
+        // Book outline
+        ctx.moveTo(21, 4);
+        ctx.lineTo(3, 4);
+        ctx.bezierCurveTo(1.9, 4, 1, 4.9, 1, 6);
+        ctx.lineTo(1, 19);
+        ctx.bezierCurveTo(1, 20.1, 1.9, 21, 3, 21);
+        ctx.lineTo(21, 21);
+        ctx.bezierCurveTo(22.1, 21, 23, 20.1, 23, 19);
+        ctx.lineTo(23, 6);
+        ctx.bezierCurveTo(23, 4.9, 22.1, 4, 21, 4);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Left page
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(3, 6, 8, 13);
+        
+        // Right page
+        ctx.fillRect(11, 6, 10, 13);
+        
+        // Lines on right page
+        ctx.fillStyle = '#6b4d57';
+        ctx.fillRect(14, 9.5, 6, 1.5);
+        ctx.fillRect(14, 12, 6, 1.5);
+        ctx.fillRect(14, 14.5, 6, 1.5);
+    </script>
+</body>
+</html>

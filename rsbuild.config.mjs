@@ -21,6 +21,7 @@ export default defineConfig({
     // Ensure index.html is generated
     html: {
       template: './public/index.html',
+      title: 'Kids Reading Manager',
     },
     // Ensure assets are handled correctly
     assetPrefix: '/',
