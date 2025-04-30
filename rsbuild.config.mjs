@@ -21,10 +21,19 @@ export default defineConfig({
     // Ensure index.html is generated
     html: {
       template: './public/index.html',
-      title: 'Kids Reading Manager',
+      inject: true,
     },
     // Ensure assets are handled correctly
     assetPrefix: '/',
   },
-  // Add any other necessary configurations here
+  // Add direct control over the HTML plugin
+  tools: {
+    htmlPlugin: (config) => {
+      // Override the title with the one from the template
+      config.title = 'Kids Reading Manager';
+      // Ensure the template is used as-is
+      config.templateContent = undefined;
+      return config;
+    },
+  },
 });
