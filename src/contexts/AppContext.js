@@ -24,6 +24,8 @@ export const AppProvider = ({ children }) => {
     recentlyReadDays: 14,
     needsAttentionDays: 21
   });
+  // State for classes
+  const [classes, setClasses] = useState([]); // <-- ADDED
 
   // Function to fetch/reload data from the server
   const reloadDataFromServer = useCallback(async () => {
@@ -38,7 +40,29 @@ export const AppProvider = ({ children }) => {
       }
       const studentsData = await studentsResponse.json();
       console.log('Loaded students from API:', studentsData);
-      setStudents(studentsData);
+      // Ensure all students have a classId, default to null
+      const studentsWithClassId = studentsData.map(student => ({
+        ...student,
+        classId: student.classId !== undefined ? student.classId : null
+      }));
+      setStudents(studentsWithClassId);
+
+      // Fetch classes
+      try {
+        const classesResponse = await fetch(`${API_URL}/classes`); // <-- ADDED
+        if (classesResponse.ok) { // <-- ADDED
+          const classesData = await classesResponse.json(); // <-- ADDED
+          console.log('Loaded classes from API:', classesData); // <-- ADDED
+          setClasses(classesData); // <-- ADDED
+        } else { // <-- ADDED
+          console.warn(`API error fetching classes: ${classesResponse.status}`); // <-- ADDED
+          // Don't throw error, maybe classes endpoint doesn't exist yet
+          setClasses([]); // <-- ADDED: Reset classes if fetch fails
+        } // <-- ADDED
+      } catch (classesError) { // <-- ADDED
+        console.error('Error fetching classes:', classesError); // <-- ADDED
+        setClasses([]); // <-- ADDED: Reset classes on error
+      } // <-- ADDED
 
       // Fetch settings
       try {
@@ -71,12 +95,13 @@ export const AppProvider = ({ children }) => {
 
   // --- Memoized Functions ---
 
-  const addStudent = useCallback(async (name) => {
+  const addStudent = useCallback(async (name, classId = null) => { // Accept classId
     const newStudent = {
       id: uuidv4(),
       name,
       lastReadDate: null,
-      readingSessions: []
+      readingSessions: [],
+      classId: classId // Use the passed classId
     };
 
     // Optimistic UI update
@@ -311,6 +336,165 @@ export const AppProvider = ({ children }) => {
     }
   }, [students]); // Dependency: students (to find student and for revert)
 
+// --- Class Management Functions ---
+
+  const addClass = useCallback(async (classData) => {
+    const newClass = {
+      id: uuidv4(),
+      name: classData.name,
+      teacherName: classData.teacherName || '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Optimistic UI update
+    const previousClasses = classes;
+    setClasses(prevClasses => [...prevClasses, newClass]);
+
+    try {
+      const response = await fetch(`${API_URL}/classes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newClass),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error adding class: ${response.status}`);
+      }
+
+      const savedClass = await response.json();
+      // Update the added class with data from server (if different)
+      setClasses(prevClasses => prevClasses.map(c => c.id === newClass.id ? savedClass : c));
+      setApiError(null);
+      return savedClass;
+    } catch (error) {
+      console.error('Error adding class:', error);
+      setApiError(error.message);
+      // Revert optimistic update on error
+      setClasses(previousClasses);
+      return null; // Indicate failure
+    }
+  }, [classes]); // Dependency: classes (for revert)
+
+  const updateClass = useCallback(async (id, updatedData) => {
+    const currentClass = classes.find(c => c.id === id);
+    if (!currentClass) {
+      console.error('Update failed: Class not found');
+      setApiError('Update failed: Class not found');
+      return;
+    }
+    const updatedClass = {
+      ...currentClass,
+      ...updatedData,
+      updatedAt: new Date().toISOString(), // Ensure updatedAt is updated
+    };
+
+    // Optimistic UI update
+    const previousClasses = classes;
+    setClasses(prevClasses =>
+      prevClasses.map(c => (c.id === id ? updatedClass : c))
+    );
+
+    try {
+      const response = await fetch(`${API_URL}/classes/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedClass),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error updating class: ${response.status}`);
+      }
+      setApiError(null);
+    } catch (error) {
+      console.error('Error updating class:', error);
+      setApiError(error.message);
+      // Revert optimistic update
+      setClasses(previousClasses);
+    }
+  }, [classes]); // Dependency: classes (for revert)
+
+  const deleteClass = useCallback(async (id) => {
+     // Optimistic UI update
+     const previousClasses = classes;
+     const previousStudents = students; // Need to potentially update students too
+
+     setClasses(prevClasses => prevClasses.filter(c => c.id !== id));
+     // Unassign students from the deleted class
+     setStudents(prevStudents =>
+        prevStudents.map(student =>
+            student.classId === id ? { ...student, classId: null } : student
+        )
+     );
+
+
+    try {
+      const response = await fetch(`${API_URL}/classes/${id}`, { method: 'DELETE' });
+      if (!response.ok) {
+        // Special handling for 409 Conflict (e.g., class still has students on backend)
+        if (response.status === 409) {
+             const errorData = await response.json();
+             throw new Error(errorData.message || `API error: ${response.status} - Class might not be empty.`);
+        }
+        throw new Error(`API error deleting class: ${response.status}`);
+      }
+      setApiError(null);
+      // Note: Backend should handle unassigning students if necessary,
+      // but we also do it optimistically. If backend fails, we revert.
+    } catch (error) {
+      console.error('Error deleting class:', error);
+      setApiError(error.message);
+      // Revert optimistic update for both classes and students
+      setClasses(previousClasses);
+      setStudents(previousStudents);
+    }
+  }, [classes, students]); // Dependencies: classes, students (for revert)
+
+  const updateStudentClassId = useCallback(async (studentId, newClassId) => {
+    const student = students.find(s => s.id === studentId);
+    if (!student) {
+        console.error('Update class assignment failed: Student not found');
+        setApiError('Update class assignment failed: Student not found');
+        return;
+    }
+
+    // Ensure newClassId is null or a valid class ID
+    const targetClassId = newClassId === 'unassigned' || newClassId === '' ? null : newClassId;
+    if (targetClassId !== null && !classes.some(c => c.id === targetClassId)) {
+        console.error('Update class assignment failed: Target class not found');
+        setApiError('Update class assignment failed: Target class not found');
+        return;
+    }
+
+    const updatedStudent = { ...student, classId: targetClassId };
+
+    // Optimistic UI update
+    const previousStudents = students;
+    setStudents(prevStudents =>
+      prevStudents.map(s => (s.id === studentId ? updatedStudent : s))
+    );
+
+    try {
+      // We use the existing updateStudent endpoint, just changing the classId
+      const response = await fetch(`${API_URL}/students/${studentId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        // Send the whole updated student object
+        body: JSON.stringify(updatedStudent),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error updating student's class: ${response.status}`);
+      }
+      setApiError(null);
+    } catch (error) {
+      console.error("Error updating student's class:", error);
+      setApiError(error.message);
+      // Revert optimistic update
+      setStudents(previousStudents);
+    }
+  }, [students, classes]); // Dependencies: students, classes (for finding student and valid classes)
+
   const updatePriorityStudentCount = useCallback((count) => {
     setPriorityStudentCount(count);
   }, []); // No dependencies
@@ -389,7 +573,7 @@ export const AppProvider = ({ children }) => {
       console.error('Error exporting data from API, falling back to local state:', error);
       setApiError(error.message);
       // Fallback to using local state if API fails
-      dataToExport = { students, settings: { readingStatusSettings } }; // Include settings in fallback
+      dataToExport = { students, classes, settings: { readingStatusSettings } }; // <-- ADDED classes
     }
 
     // Add export metadata
@@ -407,7 +591,7 @@ export const AppProvider = ({ children }) => {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url); // Clean up object URL
-  }, [students, readingStatusSettings]); // Dependency: students, readingStatusSettings (for fallback)
+  }, [students, classes, readingStatusSettings]); // <-- ADDED classes dependency
 
   const importFromJson = useCallback((file) => {
     return new Promise((resolve, reject) => {
@@ -420,11 +604,20 @@ export const AppProvider = ({ children }) => {
             return;
           }
 
+          // Also import classes if available
+          const importedClasses = data.classes; // <-- ADDED
+          if (importedClasses && Array.isArray(importedClasses)) { // <-- ADDED
+            setClasses(importedClasses); // <-- ADDED
+          } else { // <-- ADDED
+            // If classes are missing or invalid in import, reset local state
+            setClasses([]); // <-- ADDED
+          } // <-- ADDED
+
           // Also import settings if available
           const importedSettings = data.settings?.readingStatusSettings;
 
           // Optimistic update (local state first)
-          setStudents(data.students);
+          setStudents(data.students); // Students already set above
           if (importedSettings) {
               setReadingStatusSettings(importedSettings);
           }
@@ -454,7 +647,7 @@ export const AppProvider = ({ children }) => {
       reader.onerror = () => reject(new Error('Failed to read file'));
       reader.readAsText(file);
     });
-  }, []); // No dependencies needed if API handles state persistence primarily
+  }, [classes]); // <-- ADDED classes dependency (needed for optimistic update/revert logic consistency)
 
   const bulkImportStudents = useCallback(async (names) => {
     const newStudents = names.map(name => ({
@@ -520,55 +713,36 @@ export const AppProvider = ({ children }) => {
 
   // --- Memoized Context Value ---
 
-  const contextValue = useMemo(() => ({
-    students,
-    loading,
-    apiError,
-    priorityStudentCount,
-    readingStatusSettings,
-    studentsSortedByPriority, // Provide memoized list
-    prioritizedStudents,      // Provide memoized list
-    reloadDataFromServer,     // Add reload function
-    addStudent,
-    updateStudent,
-    deleteStudent,
-    addReadingSession,
-    editReadingSession,
-    deleteReadingSession,
-    updatePriorityStudentCount,
-    updateReadingStatusSettings,
-    getReadingStatus,
-    exportToCsv,
-    exportToJson,
-    importFromJson,
-    // Removed saveGlobalData and loadGlobalData
-    bulkImportStudents
-    // Removed getStudentsByReadingPriority and getPrioritizedStudents functions
-    // as we now provide the memoized lists directly.
-  }), [
-    students,
-    loading,
-    apiError,
-    priorityStudentCount,
-    readingStatusSettings,
-    studentsSortedByPriority, // Add memoized list to dependencies
-    prioritizedStudents,      // Add memoized list to dependencies
-    reloadDataFromServer,     // Add dependency
-    addStudent,
-    updateStudent,
-    deleteStudent,
-    addReadingSession,
-    editReadingSession,
-    deleteReadingSession,
-    updatePriorityStudentCount,
-    updateReadingStatusSettings,
-    getReadingStatus,
-    exportToCsv,
-    exportToJson,
-    importFromJson,
-    // Removed saveGlobalData and loadGlobalData dependencies
-    bulkImportStudents
-  ]);
+  // Define context value incrementally for diagnostics
+  const contextValue = {};
+  contextValue.students = students;
+  contextValue.classes = classes;
+  contextValue.loading = loading;
+  contextValue.apiError = apiError;
+  contextValue.priorityStudentCount = priorityStudentCount;
+  contextValue.readingStatusSettings = readingStatusSettings;
+  contextValue.studentsSortedByPriority = studentsSortedByPriority;
+  contextValue.prioritizedStudents = prioritizedStudents;
+  contextValue.reloadDataFromServer = reloadDataFromServer;
+  contextValue.addStudent = addStudent;
+  contextValue.updateStudent = updateStudent;
+  contextValue.deleteStudent = deleteStudent;
+  contextValue.addReadingSession = addReadingSession;
+  contextValue.editReadingSession = editReadingSession;
+  contextValue.deleteReadingSession = deleteReadingSession;
+  contextValue.updatePriorityStudentCount = updatePriorityStudentCount;
+  contextValue.updateReadingStatusSettings = updateReadingStatusSettings;
+  contextValue.getReadingStatus = getReadingStatus;
+  contextValue.exportToCsv = exportToCsv;
+  contextValue.exportToJson = exportToJson;
+  contextValue.importFromJson = importFromJson;
+  contextValue.bulkImportStudents = bulkImportStudents;
+  // Class Management
+  contextValue.addClass = addClass;
+  contextValue.updateClass = updateClass;
+  contextValue.deleteClass = deleteClass;
+  contextValue.updateStudentClassId = updateStudentClassId;
+
 
   return (
     <AppContext.Provider value={contextValue}>

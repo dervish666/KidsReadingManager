@@ -23,17 +23,31 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CloseIcon from '@mui/icons-material/Close';
 import { useAppContext } from '../../contexts/AppContext';
+import { useEffect } from 'react'; // Import useEffect
 
 const StudentSessions = ({ open, onClose, student }) => {
-  const { editReadingSession, deleteReadingSession } = useAppContext();
+  const {
+    editReadingSession,
+    deleteReadingSession,
+    classes, // Get classes
+    updateStudentClassId // Get update function
+  } = useAppContext();
   const [editingSession, setEditingSession] = useState(null);
   const [deletingSession, setDeletingSession] = useState(null);
+  const [selectedClassId, setSelectedClassId] = useState(''); // State for class selection
   const [editDate, setEditDate] = useState('');
   const [editAssessment, setEditAssessment] = useState('');
   const [editNotes, setEditNotes] = useState('');
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
+
+  // Update selectedClassId when student changes or dialog opens
+  useEffect(() => {
+    if (student) {
+      setSelectedClassId(student.classId || 'unassigned');
+    }
+  }, [student, open]); // Re-run if student changes or dialog opens/closes
 
   // Format date for display
   const formatDate = (dateString) => {
@@ -123,6 +137,24 @@ const StudentSessions = ({ open, onClose, student }) => {
     setSnackbarOpen(false);
   };
 
+  // Handle class change
+  const handleClassChange = async (event) => {
+    const newClassId = event.target.value;
+    setSelectedClassId(newClassId); // Update local state immediately
+    try {
+      await updateStudentClassId(student.id, newClassId);
+      setSnackbarMessage('Student class updated successfully');
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+    } catch (error) {
+      setSnackbarMessage(`Error updating class: ${error.message}`);
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+      // Optionally revert local state if needed, though AppContext handles backend failure revert
+      // setSelectedClassId(student.classId || 'unassigned');
+    }
+  };
+
   // Sort sessions by date (newest first)
   const sortedSessions = student?.readingSessions
     ? [...student.readingSessions].sort((a, b) => new Date(b.date) - new Date(a.date))
@@ -136,11 +168,36 @@ const StudentSessions = ({ open, onClose, student }) => {
         fullWidth
         maxWidth="md"
       >
-        <DialogTitle>
+        <DialogTitle sx={{ m: 0, p: 2 }}> {/* Adjust padding */}
           <Box display="flex" justifyContent="space-between" alignItems="center">
-            <Typography variant="h6">
-              Reading Sessions for {student?.name}
-            </Typography>
+            {/* Left side: Name and Class Selector */}
+            <Box display="flex" alignItems="center" gap={2}>
+              <Typography variant="h6" component="div">
+                {student?.name}
+              </Typography>
+              {/* Class Selector */}
+              <FormControl size="small" sx={{ minWidth: 180 }}>
+                <InputLabel id="student-class-select-label">Class</InputLabel>
+                <Select
+                  labelId="student-class-select-label"
+                  id="student-class-select"
+                  value={selectedClassId}
+                  label="Class"
+                  onChange={handleClassChange}
+                  disabled={!student} // Disable if no student data
+                >
+                  <MenuItem value="unassigned">
+                    <em>Unassigned</em>
+                  </MenuItem>
+                  {classes.map((cls) => (
+                    <MenuItem key={cls.id} value={cls.id}>
+                      {cls.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+            {/* Right side: Close Button */}
             <IconButton edge="end" color="inherit" onClick={onClose} aria-label="close">
               <CloseIcon />
             </IconButton>

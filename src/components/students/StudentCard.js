@@ -19,11 +19,12 @@ import {
 // Removed MoreVertIcon and MenuBookIcon imports
 import { useAppContext } from '../../contexts/AppContext';
 import { useTheme } from '@mui/material/styles';
+import { useMemo } from 'react'; // Import useMemo
 import StudentSessions from '../sessions/StudentSessions';
 
 const StudentCard = ({ student }) => {
   const theme = useTheme();
-  const { getReadingStatus } = useAppContext(); // Removed unused actions
+  const { getReadingStatus, classes } = useAppContext(); // Get classes from context
   
   // Removed state for anchorEl, edit/delete/quick read dialogs, editName, assessment, notes
   const [openSessionsDialog, setOpenSessionsDialog] = useState(false);
@@ -144,6 +145,15 @@ const StudentCard = ({ student }) => {
     return `${diffDays} days ago`;
   };
 
+  // Memoize finding the class name to avoid recalculating on every render
+  const className = useMemo(() => {
+    if (!student.classId || !classes || classes.length === 0) {
+      return 'Unassigned';
+    }
+    const foundClass = classes.find(cls => cls.id === student.classId);
+    return foundClass ? foundClass.name : 'Unknown Class'; // Handle case where classId exists but class doesn't
+  }, [student.classId, classes]);
+
   return (
     <>
       <Card
@@ -191,6 +201,11 @@ const StudentCard = ({ student }) => {
           {/* Added Days Since Reading */}
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontStyle: 'italic' }}>
             {getDaysSinceReading()}
+          </Typography>
+
+          {/* Display Class Name */}
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Class: <Chip label={className} size="small" />
           </Typography>
           
         </CardContent>

@@ -14,6 +14,7 @@ import {
 import SaveIcon from '@mui/icons-material/Save';
 import RestoreIcon from '@mui/icons-material/Restore';
 import { useAppContext } from '../contexts/AppContext';
+import ClassManager from './classes/ClassManager'; // Import ClassManager
 
 const Settings = () => {
   const { readingStatusSettings, updateReadingStatusSettings } = useAppContext();
@@ -232,6 +233,10 @@ const Settings = () => {
           </Button>
         </Box>
       </Paper>
+
+      {/* Class Management Section */}
+      <ClassManager />
+
       {/* Snackbar for notifications */}
       <Snackbar
         open={snackbar.open}

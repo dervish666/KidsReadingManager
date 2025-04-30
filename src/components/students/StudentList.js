@@ -16,7 +16,8 @@ import {
   Select,
   MenuItem,
   FormControl,
-  InputLabel
+  InputLabel,
+  MenuItem // Ensure MenuItem is imported
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import SortIcon from '@mui/icons-material/Sort';
@@ -33,15 +34,18 @@ const StudentList = () => {
     loading,
     apiError, // Added apiError
     addStudent,
-    studentsSortedByPriority // Changed from getStudentsByReadingPriority
+    studentsSortedByPriority, // Changed from getStudentsByReadingPriority
+    classes // Get classes from context
   } = useAppContext();
   
   const [newStudentName, setNewStudentName] = useState('');
+  const [selectedClassId, setSelectedClassId] = useState(''); // State for selected class
   const [openDialog, setOpenDialog] = useState(false);
   const [openBulkDialog, setOpenBulkDialog] = useState(false);
   const [error, setError] = useState('');
   const [sortMethod, setSortMethod] = useState('priority');
   const [sortDirection, setSortDirection] = useState('desc'); // 'asc' or 'desc'
+  const [filterClassId, setFilterClassId] = useState('all'); // State for class filter ('all' or classId)
 
   const handleAddStudent = () => {
     if (!newStudentName.trim()) {
@@ -49,15 +53,21 @@ const StudentList = () => {
       return;
     }
     
-    addStudent(newStudentName.trim());
+    // Pass name and selected class ID (null if 'unassigned' or empty)
+    const classIdToSend = selectedClassId === 'unassigned' || selectedClassId === '' ? null : selectedClassId;
+    addStudent(newStudentName.trim(), classIdToSend);
+    
     setNewStudentName('');
+    setSelectedClassId(''); // Reset class selection
     setOpenDialog(false);
     setError('');
   };
 
   const handleOpenDialog = () => {
-    setOpenDialog(true);
+    setNewStudentName(''); // Clear name field on open
+    setSelectedClassId(''); // Clear class selection on open
     setError('');
+    setOpenDialog(true);
   };
 
   const handleCloseDialog = () => {
@@ -93,26 +103,50 @@ const StudentList = () => {
     }
   };
 
-  // Sort students based on the selected sort method and direction
-  const getSortedStudents = () => {
-    // Get the base sorted list
+  const handleFilterChange = (event) => {
+    setFilterClassId(event.target.value);
+  };
+
+  // Filter and sort students
+  const getFilteredAndSortedStudents = () => {
+    // 1. Filter by class
+    const filteredStudents = students.filter(student => {
+      if (filterClassId === 'all') {
+        return true; // Show all students
+      }
+      // Handle unassigned students if 'unassigned' is selected
+      if (filterClassId === 'unassigned') {
+        return !student.classId;
+      }
+      // Otherwise, match the classId
+      return student.classId === filterClassId;
+    });
+
+    // 2. Sort the filtered list
     let sortedList;
     
     if (sortMethod === 'priority') {
-      // Use the memoized priority-sorted list from context
-      sortedList = studentsSortedByPriority; // Use the array directly
+      // Need to re-calculate priority based on the *filtered* list
+      // This is a simplification; ideally, priority calculation considers all students.
+      // For now, we'll sort the filtered list by lastReadDate as a proxy.
+      // TODO: Revisit priority sorting with filtering if needed.
+      sortedList = [...filteredStudents].sort((a, b) => {
+         const dateA = a.lastReadDate ? new Date(a.lastReadDate) : new Date(0); // Treat null as very old
+         const dateB = b.lastReadDate ? new Date(b.lastReadDate) : new Date(0);
+         return dateA - dateB; // Oldest first (highest priority)
+      });
 
-      // If ascending is selected, reverse the priority order
+      // If descending priority (ascending date) is selected, reverse
       if (sortDirection === 'asc') {
         sortedList = [...sortedList].reverse();
       }
       
       return sortedList;
-    }
-
-    return [...students].sort((a, b) => {
-      let comparison = 0;
-      
+    } else {
+      // Sort the filtered list based on other criteria
+      sortedList = [...filteredStudents].sort((a, b) => {
+        let comparison = 0;
+        
       switch (sortMethod) {
         case 'name':
           comparison = a.name.localeCompare(b.name);
@@ -134,8 +168,11 @@ const StudentList = () => {
       }
       
       // Reverse the comparison if ascending order is selected
-      return sortDirection === 'asc' ? -comparison : comparison;
-    });
+        // Reverse the comparison if ascending order is selected
+        return sortDirection === 'asc' ? comparison : -comparison; // Adjusted logic for asc/desc
+      });
+    }
+    return sortedList;
   };
   // Handle API errors first
   if (apiError) {
@@ -152,16 +189,37 @@ const StudentList = () => {
     );
   }
 
-  const sortedStudents = getSortedStudents();
+  const filteredAndSortedStudents = getFilteredAndSortedStudents();
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
         <Typography variant="h5" component="h1">
-          Students ({students.length})
+          Students ({filteredAndSortedStudents.length}) {/* Show count of filtered students */}
         </Typography>
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <FormControl sx={{ minWidth: 150 }} size="small">
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}> {/* Allow controls to wrap */}
+          {/* Class Filter Dropdown */}
+          <FormControl sx={{ minWidth: 180 }} size="small">
+            <InputLabel id="filter-class-label">Filter by Class</InputLabel>
+            <Select
+              labelId="filter-class-label"
+              id="filter-class-select"
+              value={filterClassId}
+              label="Filter by Class"
+              onChange={handleFilterChange}
+            >
+              <MenuItem value="all">All Classes</MenuItem>
+              <MenuItem value="unassigned">Unassigned</MenuItem>
+              {classes.map((cls) => (
+                <MenuItem key={cls.id} value={cls.id}>
+                  {cls.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          {/* Sort Dropdown */}
+          <FormControl sx={{ minWidth: 180 }} size="small"> {/* Adjusted width */}
             <InputLabel id="sort-select-label">Sort By</InputLabel>
             <Select
               labelId="sort-select-label"
@@ -218,7 +276,7 @@ const StudentList = () => {
           
           {/* All Students Grid - Increase spacing */}
           <Grid container spacing={3}> {/* Increased spacing to 3 */}
-            {sortedStudents.map(student => (
+            {filteredAndSortedStudents.map(student => (
               // Corrected Grid item props: use item + xs/sm/md directly
               (<Grid
                 key={student.id}
@@ -251,6 +309,26 @@ const StudentList = () => {
             error={!!error}
             helperText={error}
           />
+          {/* Class Selection Dropdown */}
+          <FormControl fullWidth margin="dense" sx={{ mt: 2 }}>
+            <InputLabel id="add-student-class-label">Assign to Class (Optional)</InputLabel>
+            <Select
+              labelId="add-student-class-label"
+              id="add-student-class-select"
+              value={selectedClassId}
+              label="Assign to Class (Optional)"
+              onChange={(e) => setSelectedClassId(e.target.value)}
+            >
+              <MenuItem value="unassigned">
+                <em>Unassigned</em>
+              </MenuItem>
+              {classes.map((cls) => (
+                <MenuItem key={cls.id} value={cls.id}>
+                  {cls.name} ({cls.teacherName})
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog} color="primary">
