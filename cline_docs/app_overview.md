@@ -16,6 +16,7 @@ This application helps track reading sessions for students, providing insights i
 - Data import/export (JSON, CSV).
 - Configurable settings (reading status thresholds).
 - Class management (add, edit, delete classes; assign students).
+- Direct student deletion from Student Sessions modal with confirmation dialog.
 
 ## Data Storage
 - **File**: `/config/app_data.json` (within the container, mapped to host's `./config/app_data.json`)

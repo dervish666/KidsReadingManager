@@ -29,11 +29,13 @@ const StudentSessions = ({ open, onClose, student }) => {
   const {
     editReadingSession,
     deleteReadingSession,
+    deleteStudent,
     classes, // Get classes
     updateStudentClassId // Get update function
   } = useAppContext();
   const [editingSession, setEditingSession] = useState(null);
   const [deletingSession, setDeletingSession] = useState(null);
+  const [deletingStudent, setDeletingStudent] = useState(false);
   const [selectedClassId, setSelectedClassId] = useState(''); // State for class selection
   const [editDate, setEditDate] = useState('');
   const [editAssessment, setEditAssessment] = useState('');
@@ -132,6 +134,29 @@ const StudentSessions = ({ open, onClose, student }) => {
     }
   };
 
+  // Handle student delete click
+  const handleStudentDeleteClick = () => {
+    setDeletingStudent(true);
+  };
+
+  // Handle student delete confirm
+  const handleStudentDeleteConfirm = async () => {
+    try {
+      await deleteStudent(student.id);
+      
+      setSnackbarMessage('Student deleted successfully');
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+      setDeletingStudent(false);
+      onClose(); // Close the modal after successful deletion
+    } catch (error) {
+      setSnackbarMessage(`Error deleting student: ${error.message}`);
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+      setDeletingStudent(false);
+    }
+  };
+
   // Handle snackbar close
   const handleSnackbarClose = () => {
     setSnackbarOpen(false);
@@ -197,10 +222,21 @@ const StudentSessions = ({ open, onClose, student }) => {
                 </Select>
               </FormControl>
             </Box>
-            {/* Right side: Close Button */}
-            <IconButton edge="end" color="inherit" onClick={onClose} aria-label="close">
-              <CloseIcon />
-            </IconButton>
+            {/* Right side: Delete and Close Buttons */}
+            <Box display="flex" alignItems="center" gap={1}>
+              <IconButton
+                edge="end"
+                color="error"
+                onClick={handleStudentDeleteClick}
+                aria-label="delete student"
+                title="Delete Student"
+              >
+                <DeleteIcon />
+              </IconButton>
+              <IconButton edge="end" color="inherit" onClick={onClose} aria-label="close">
+                <CloseIcon />
+              </IconButton>
+            </Box>
           </Box>
         </DialogTitle>
         <DialogContent dividers>
@@ -324,6 +360,20 @@ const StudentSessions = ({ open, onClose, student }) => {
         <DialogActions>
           <Button onClick={() => setDeletingSession(null)}>Cancel</Button>
           <Button onClick={handleDeleteConfirm} color="error">Delete</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Student Dialog */}
+      <Dialog open={deletingStudent} onClose={() => setDeletingStudent(false)}>
+        <DialogTitle>Delete Student</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete {student?.name}? This will also delete all their reading sessions and this action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeletingStudent(false)}>Cancel</Button>
+          <Button onClick={handleStudentDeleteConfirm} color="error">Delete</Button>
         </DialogActions>
       </Dialog>
 
