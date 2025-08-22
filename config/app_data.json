@@ -1,1 +1,532 @@
-{"students":[],"classes":[],"settings":{"readingStatusSettings":{"recentlyReadDays":7,"needsAttentionDays":14}}}
+{
+  "students": [
+    {
+      "id": "6b070228-5199-4f49-a237-8ffba4ae5bc9",
+      "name": "Alice",
+      "lastReadDate": "2025-06-19",
+      "readingSessions": [
+        {
+          "id": "194f788c-4f95-40b8-999b-9d0a7fec6536",
+          "date": "2025-06-19",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "93fa9906-801c-4b6d-bcd5-d6b043c16cfb",
+          "date": "2025-05-15",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "5c621887-cdad-4c6e-a22a-602070600b32",
+          "date": "2025-04-03",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "b15fcd82-1a7a-4106-82b9-35848cd1386f",
+          "date": "2025-03-06",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "1c814ce3-c536-446c-a3e5-68532f347ab0",
+          "date": "2025-01-23",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "e675f0d0-22a7-48cf-ba2d-078d339acc6c",
+          "date": "2024-11-21",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "c2d0ad99-77a4-4fa5-93a8-12d32ce780b8",
+          "date": "2024-10-10",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "a59b0edb-97c5-4fcd-9883-ddf36e2118a2",
+          "date": "2024-09-19",
+          "assessment": "independent",
+          "notes": ""
+        }
+      ],
+      "classId": "f90eaa4f-d266-424c-82c3-bf800f7bce38"
+    },
+    {
+      "id": "e29649d9-5332-45cc-b8dc-2a3cd42df372",
+      "name": "Alfie",
+      "lastReadDate": "2025-07-03",
+      "readingSessions": [
+        {
+          "id": "b50bd71e-0ff5-4ba3-a87e-8b2225c7d573",
+          "date": "2025-07-03",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "889eb300-d041-409c-a1ce-40ca5800a5e3",
+          "date": "2025-05-22",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "f5878ae9-3d36-4be7-ac3d-7589b2da9150",
+          "date": "2025-04-25",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "fc9b9d86-36af-4aa8-b5ac-9a576e528ffa",
+          "date": "2025-02-27",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "5bb57525-dfec-4360-ad45-5173ee27f684",
+          "date": "2025-02-27",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "afaee9af-35d8-45ea-bbf2-58a69a698d7c",
+          "date": "2025-01-16",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "f8aa9f71-cf07-49fd-bc0b-5fbdbeae3040",
+          "date": "2024-11-28",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "455e0421-81a5-4fb1-8cb3-0ffdcb23bc4a",
+          "date": "2024-10-17",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "8191d4fb-4334-4334-ba9c-d9cd01cbb2c8",
+          "date": "2024-09-26",
+          "assessment": "independent",
+          "notes": ""
+        }
+      ],
+      "classId": "f90eaa4f-d266-424c-82c3-bf800f7bce38"
+    },
+    {
+      "id": "bdd8f087-ee90-4f52-8bb4-8804262bc0aa",
+      "name": "Abella",
+      "lastReadDate": "2025-07-17",
+      "readingSessions": [
+        {
+          "id": "464f269a-e0f3-486f-aede-21e7d731c9a5",
+          "date": "2025-07-17",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "09f4a41e-1193-4836-9e6f-bd0203123529",
+          "date": "2025-06-05",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "2f689443-06bf-4142-996a-218fbb1e96cc",
+          "date": "2025-05-01",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "3afa4713-e1c6-474e-856c-0930794d0c73",
+          "date": "2025-03-28",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "77de71e0-06be-45ef-9e05-b6c79a9cc707",
+          "date": "2024-10-10",
+          "assessment": "struggling",
+          "notes": ""
+        },
+        {
+          "id": "808cbde5-702c-4ed1-a017-883af7e1a761",
+          "date": "2025-02-13",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "780264d0-4707-4da6-8a6d-5b455e318ef6",
+          "date": "2025-01-16",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "c8748ef9-b8b8-423e-8cec-e089b9f9f322",
+          "date": "2024-11-28",
+          "assessment": "independent",
+          "notes": ""
+        }
+      ],
+      "classId": "f90eaa4f-d266-424c-82c3-bf800f7bce38"
+    },
+    {
+      "id": "337ad0d2-7f63-4f78-bca4-a951ce70ddae",
+      "name": "Ava",
+      "lastReadDate": "2025-07-17",
+      "readingSessions": [
+        {
+          "id": "7e2a7e34-59c9-4f60-97e4-898db3a8b829",
+          "date": "2025-07-17",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "4aa55030-0313-4c10-800d-3f81b1ce7faa",
+          "date": "2025-06-05",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "a031b5c8-d887-4040-b18b-297dacb0c6f0",
+          "date": "2025-04-25",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "bb48eb55-537a-4a9d-9d44-cfd2be57cffa",
+          "date": "2025-03-20",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "bb0621c4-1283-4ff9-bf3d-292e3a583ed2",
+          "date": "2025-02-06",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "54bbb9a2-2bd9-43b2-a99d-83a5753bb90e",
+          "date": "2025-01-09",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "91a4e5b5-ebe2-4823-af38-4d3638304c9c",
+          "date": "2024-10-24",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "e24ee01a-5e47-48fc-82b5-7bfd71127a74",
+          "date": "2024-10-03",
+          "assessment": "independent",
+          "notes": ""
+        }
+      ],
+      "classId": "f90eaa4f-d266-424c-82c3-bf800f7bce38"
+    },
+    {
+      "id": "8fdb5925-7adf-4be8-b1e3-fb957d25bd91",
+      "name": "Charise",
+      "lastReadDate": "2025-07-03",
+      "readingSessions": [
+        {
+          "id": "8f485cd8-9dc0-4ad0-b7f0-6899a6be811d",
+          "date": "2025-07-03",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "58955ba9-e50e-4e57-837a-984d466f07ef",
+          "date": "2025-05-01",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "3337755d-e8c1-4743-87a8-56fe34257489",
+          "date": "2025-03-20",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "e033da67-cce7-4276-8496-3d47662aaf62",
+          "date": "2025-02-13",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "f2be3a99-006d-427b-a4c9-1c604fbf3792",
+          "date": "2025-01-09",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "33e893dd-abc4-4f2e-9106-54950c0a30ae",
+          "date": "2024-10-24",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "7aa62f4a-0347-44eb-a0fd-fd90df636df2",
+          "date": "2024-10-03",
+          "assessment": "needs-help",
+          "notes": ""
+        },
+        {
+          "id": "0a6c5d36-f9b6-411c-8630-a99ca639a2c4",
+          "date": "2024-09-10",
+          "assessment": "needs-help",
+          "notes": ""
+        }
+      ],
+      "classId": "f90eaa4f-d266-424c-82c3-bf800f7bce38"
+    },
+    {
+      "id": "deb74d70-d0c2-4bdc-830d-b1481ae330da",
+      "name": "Dawson",
+      "lastReadDate": "2025-07-03",
+      "readingSessions": [
+        {
+          "id": "6ef5f8ef-d27a-41e9-876c-588037c32bf7",
+          "date": "2025-07-03",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "87f5f9c6-5de5-4684-8a17-dcecbe426296",
+          "date": "2025-05-22",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "0fba322e-8338-4deb-86c0-064e5ef1af67",
+          "date": "2025-04-25",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "dfb2e72a-6885-4a15-b95f-1db6ac529641",
+          "date": "2025-03-13",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "281ad47d-49a8-4bbf-b475-69407783aa30",
+          "date": "2025-01-23",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "5963339b-08f1-43fb-a497-a1955010eb01",
+          "date": "2024-11-28",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "6360067d-9c1f-4950-86be-8de6be2348a3",
+          "date": "2024-10-10",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "a69173de-c3b0-49c4-a178-b312e2312722",
+          "date": "2024-09-19",
+          "assessment": "independent",
+          "notes": ""
+        }
+      ],
+      "classId": "f90eaa4f-d266-424c-82c3-bf800f7bce38"
+    },
+    {
+      "id": "b3120b90-a0e7-470f-9b8c-0b3c3e28351c",
+      "name": "Edith",
+      "lastReadDate": "2025-07-10",
+      "readingSessions": [
+        {
+          "id": "04a2390c-74b6-44b3-850e-521b18ba4411",
+          "date": "2025-07-10",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "f1be1ba4-f838-4d6c-bc63-3fc2f5067cbd",
+          "date": "2025-06-05",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "a8e71b01-3930-40c3-bf0f-46fd5e29f670",
+          "date": "2025-05-01",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "46905478-74bd-4f9e-983d-ee3e65d808bd",
+          "date": "2025-03-20",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "81887bf2-7de3-4661-b0f4-800105b80bd6",
+          "date": "2025-02-06",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "45952ff1-97bd-421e-93bf-08f8ebb1fed5",
+          "date": "2025-01-09",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "49847814-0959-4dfa-96e8-5d83c2530b2f",
+          "date": "2024-11-14",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "58c8a6e3-e5ef-4230-a530-7765746c7a93",
+          "date": "2024-09-26",
+          "assessment": "independent",
+          "notes": ""
+        }
+      ],
+      "classId": "f90eaa4f-d266-424c-82c3-bf800f7bce38"
+    },
+    {
+      "id": "09f5de84-ab5a-4270-8777-5a0c0ddefb4f",
+      "name": "Ellis",
+      "lastReadDate": "2025-06-12",
+      "readingSessions": [
+        {
+          "id": "d5a9fec9-3ed5-44ce-8efa-437d6e5bba11",
+          "date": "2025-06-12",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "64b9d87e-fc03-4faf-a7ed-3e2108304b15",
+          "date": "2025-05-01",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "62b12661-6edb-45c5-a282-659d3e1e3c7b",
+          "date": "2025-03-20",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "9f4af7b0-c257-49cb-89ce-c49ed3f82dca",
+          "date": "2025-03-20",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "73106d3b-bdb5-423f-a741-cc94c3a12389",
+          "date": "2025-02-06",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "a7f59d48-3864-4b37-bb10-c9c23c9eae57",
+          "date": "2024-12-19",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "7b5fa5e8-c68c-44cf-8fec-96b073a4c67f",
+          "date": "2024-10-24",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "9763d174-b117-461b-82be-8aae01c6049c",
+          "date": "2024-10-03",
+          "assessment": "independent",
+          "notes": ""
+        }
+      ],
+      "classId": "f90eaa4f-d266-424c-82c3-bf800f7bce38"
+    },
+    {
+      "id": "5d6282a2-c45c-4782-9121-170694290fcd",
+      "name": "Emily",
+      "lastReadDate": "2025-07-03",
+      "readingSessions": [
+        {
+          "id": "560f4e11-e40c-4657-a3e6-eccf73f6026e",
+          "date": "2025-07-03",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "b6334828-065c-490b-a2fd-670db91d08e0",
+          "date": "2025-05-15",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "405eccc0-fb76-4f23-a918-6356dbf9fcd6",
+          "date": "2025-04-03",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "d31f79cb-6d45-4f8b-ae6a-70a3d4012a9e",
+          "date": "2025-02-27",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "1d41bfcc-1db5-4c8c-986c-4758d526e0a1",
+          "date": "2025-01-23",
+          "assessment": "independent",
+          "notes": ""
+        },
+        {
+          "id": "aa48b3d5-7099-41bf-be9a-cdfe536c9990",
+          "date": "2024-12-19",
+          "assessment": "needs-help",
+          "notes": ""
+        },
+        {
+          "id": "3f2e9252-a7d0-4ad7-abd1-c727a80be3bc",
+          "date": "2024-11-14",
+          "assessment": "independent",
+          "notes": ""
+        }
+      ],
+      "classId": "f90eaa4f-d266-424c-82c3-bf800f7bce38"
+    }
+  ],
+  "classes": [
+    {
+      "id": "f90eaa4f-d266-424c-82c3-bf800f7bce38",
+      "name": "Year 3",
+      "teacherName": "Mr Cox",
+      "disabled": false,
+      "createdAt": "2025-04-30T20:44:28.821Z",
+      "updatedAt": "2025-04-30T20:44:28.903Z"
+    },
+    {
+      "id": "4509591c-b318-43bc-bf21-68f86cbf548c",
+      "name": "Year 5",
+      "teacherName": "Miss Driscoll",
+      "disabled": false,
+      "createdAt": "2025-08-22T14:35:47.258Z",
+      "updatedAt": "2025-08-22T14:35:47.378Z"
+    }
+  ],
+  "settings": {
+    "readingStatusSettings": {
+      "recentlyReadDays": 14,
+      "needsAttentionDays": 30
+    }
+  }
+}
