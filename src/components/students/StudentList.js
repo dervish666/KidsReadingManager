@@ -193,13 +193,35 @@ const StudentList = () => {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
-        <Typography variant="h5" component="h1">
-          Students ({filteredAndSortedStudents.length}) {/* Show count of filtered students */}
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}> {/* Allow controls to wrap */}
+      <Box sx={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        mb: 3,
+        flexWrap: 'wrap',
+        gap: 2,
+        px: { xs: 0, sm: 1 }
+      }}>
+        <Box>
+          <Typography variant="h5" component="h1" sx={{ mb: { xs: 0.5, sm: 0 } }}>
+            Students
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {filteredAndSortedStudents.length} total
+          </Typography>
+        </Box>
+        <Box sx={{
+          display: 'flex',
+          gap: 1,
+          flexWrap: 'wrap',
+          width: { xs: '100%', sm: 'auto' },
+          justifyContent: { xs: 'stretch', sm: 'flex-end' }
+        }}> {/* Allow controls to wrap */}
           {/* Class Filter Dropdown */}
-          <FormControl sx={{ minWidth: 180 }} size="small">
+          <FormControl sx={{
+            minWidth: { xs: 140, sm: 180 },
+            flex: { xs: 1, sm: 'none' }
+          }} size="small">
             <InputLabel id="filter-class-label">Filter by Class</InputLabel>
             <Select
               labelId="filter-class-label"
@@ -219,7 +241,10 @@ const StudentList = () => {
           </FormControl>
 
           {/* Sort Dropdown */}
-          <FormControl sx={{ minWidth: 180 }} size="small"> {/* Adjusted width */}
+          <FormControl sx={{
+            minWidth: { xs: 140, sm: 180 },
+            flex: { xs: 1, sm: 'none' }
+          }} size="small">
             <InputLabel id="sort-select-label">Sort By</InputLabel>
             <Select
               labelId="sort-select-label"
@@ -228,15 +253,9 @@ const StudentList = () => {
               label="Sort By"
               onChange={handleSortChange}
               startAdornment={
-                <>
-                  <SortIcon sx={{ mr: 0.5, ml: -0.5 }} fontSize="small" />
-                  {sortDirection === 'asc' ? (
-                    <ArrowUpwardIcon fontSize="small" sx={{ mr: 0.5 }} />
-                  ) : (
-                    <ArrowDownwardIcon fontSize="small" sx={{ mr: 0.5 }} />
-                  )}
-                </>
+                <SortIcon sx={{ mr: 1, ml: -0.5 }} fontSize="small" />
               }
+              sx={{ pr: 4 }}
             >
               <MenuItem value="priority">Reading Priority</MenuItem>
               <MenuItem value="name">Name</MenuItem>
@@ -248,8 +267,14 @@ const StudentList = () => {
             variant="outlined"
             color="primary"
             onClick={handleOpenBulkDialog}
+            size="small"
+            sx={{
+              flex: { xs: 1, sm: 'none' },
+              minWidth: { xs: 'auto', sm: 120 }
+            }}
           >
-            Bulk Import
+            <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Bulk Import</Box>
+            <Box sx={{ display: { xs: 'inline', sm: 'none' } }}>Import</Box>
           </Button>
         </Box>
       </Box>
@@ -275,18 +300,11 @@ const StudentList = () => {
           </Box>
           
           {/* All Students Grid - Increase spacing */}
-          <Grid container spacing={3}> {/* Increased spacing to 3 */}
-            {filteredAndSortedStudents.map(student => (
-              // Corrected Grid item props: use item + xs/sm/md directly
-              (<Grid
-                key={student.id}
-                size={{
-                  xs: 12,
-                  sm: 6,
-                  md: 4
-                }}>
+          <Grid container spacing={3}>
+            {filteredAndSortedStudents.map((student) => (
+              <Grid item key={student.id} xs={12} sm={6} md={4}>
                 <StudentCard student={student} />
-              </Grid>)
+              </Grid>
             ))}
           </Grid>
         </>
@@ -345,13 +363,19 @@ const StudentList = () => {
         onClose={handleCloseBulkDialog} 
       />
       {/* Floating Action Button */}
-      <Fab 
-        color="primary" 
-        aria-label="add" 
-        sx={{ 
-          position: 'fixed', 
-          bottom: 80, 
-          right: 16 
+      <Fab
+        color="primary"
+        aria-label="add-student"
+        sx={{
+          position: 'fixed',
+          bottom: {
+            xs: 'calc(env(safe-area-inset-bottom) + 96px)',
+            sm: 80
+          },
+          right: { xs: 16, sm: 24 },
+          zIndex: 1200,
+          width: { xs: 56, sm: 64 },
+          height: { xs: 56, sm: 64 }
         }}
         onClick={handleOpenDialog}
       >

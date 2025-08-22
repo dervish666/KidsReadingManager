@@ -31,7 +31,7 @@ const ReadingFrequencyChart = () => {
   };
   
   return (
-    <Paper sx={{ p: 3, mb: 3 }}>
+    <Paper sx={{ p: 3, mb: 3, pb: 'calc(env(safe-area-inset-bottom) + 16px)' }}>
       <Typography variant="h6" gutterBottom>
         Reading Frequency by Student
       </Typography>
@@ -48,32 +48,34 @@ const ReadingFrequencyChart = () => {
             
             return (
               <Box key={student.id} sx={{ mb: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                  <Typography variant="body2" noWrap sx={{ maxWidth: '60%' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5, flexDirection: { xs: 'column', sm: 'row' }, gap: 1 }}>
+                  <Typography variant="body2" sx={{ maxWidth: { xs: '100%', sm: '60%' }, wordBreak: 'break-word' }}>
                     {student.name}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
                     {sessionCount} {sessionCount === 1 ? 'session' : 'sessions'}
                   </Typography>
                 </Box>
-                <Tooltip 
+                <Tooltip
                   title={`${student.name}: ${sessionCount} ${sessionCount === 1 ? 'session' : 'sessions'}`}
                   placement="top"
                 >
-                  <Box
-                    sx={{
-                      height: 20,
-                      width: barWidth,
-                      bgcolor: getBarColor(sessionCount),
-                      borderRadius: 1,
-                      transition: 'width 0.5s ease-in-out',
-                      minWidth: '3px', // Ensure very small values are still visible
-                      position: 'relative',
-                      '&:hover': {
-                        opacity: 0.9,
-                      }
-                    }}
-                  />
+                  <Box sx={{ mt: { xs: 1, sm: 0 } }}>
+                    <Box
+                      sx={{
+                        height: 20,
+                        width: barWidth,
+                        bgcolor: getBarColor(sessionCount),
+                        borderRadius: 1,
+                        transition: 'width 0.5s ease-in-out',
+                        minWidth: '3px', // Ensure very small values are still visible
+                        position: 'relative',
+                        '&:hover': {
+                          opacity: 0.9,
+                        }
+                      }}
+                    />
+                  </Box>
                 </Tooltip>
               </Box>
             );

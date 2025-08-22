@@ -61,7 +61,7 @@ const DaysSinceReadingChart = () => {
   };
   
   return (
-    <Paper sx={{ p: 3, mb: 3 }}>
+    <Paper sx={{ p: 3, mb: 3, pb: 'calc(env(safe-area-inset-bottom) + 16px)' }}>
       <Typography variant="h6" gutterBottom>
         Days Since Last Reading
       </Typography>
@@ -74,31 +74,33 @@ const DaysSinceReadingChart = () => {
         <Box sx={{ mt: 3 }}>
           {studentData.map(student => (
             <Box key={student.id} sx={{ mb: 2 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                <Typography variant="body2" noWrap sx={{ maxWidth: '60%' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5, flexDirection: { xs: 'column', sm: 'row' }, gap: 1 }}>
+                <Typography variant="body2" sx={{ maxWidth: { xs: '100%', sm: '60%' }, wordBreak: 'break-word' }}>
                   {student.name}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
                   {getDaysLabel(student.daysSinceReading)}
                 </Typography>
               </Box>
-              <Tooltip 
+              <Tooltip
                 title={`${student.name}: ${getDaysLabel(student.daysSinceReading)} | ${student.totalSessions} total sessions`}
                 placement="top"
               >
-                <LinearProgress
-                  variant="determinate"
-                  value={student.daysSinceReading !== null ? (student.daysSinceReading / maxDays) * 100 : 100}
-                  sx={{
-                    height: 10,
-                    borderRadius: 5,
-                    bgcolor: 'rgba(0, 0, 0, 0.1)',
-                    '& .MuiLinearProgress-bar': {
-                      bgcolor: getBarColor(student.daysSinceReading),
+                <Box sx={{ mt: { xs: 1, sm: 0 } }}>
+                  <LinearProgress
+                    variant="determinate"
+                    value={student.daysSinceReading !== null ? (student.daysSinceReading / maxDays) * 100 : 100}
+                    sx={{
+                      height: 10,
                       borderRadius: 5,
-                    },
-                  }}
-                />
+                      bgcolor: 'rgba(0, 0, 0, 0.1)',
+                      '& .MuiLinearProgress-bar': {
+                        bgcolor: getBarColor(student.daysSinceReading),
+                        borderRadius: 5,
+                      },
+                    }}
+                  />
+                </Box>
               </Tooltip>
             </Box>
           ))}

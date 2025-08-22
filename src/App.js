@@ -40,25 +40,30 @@ function App() {
         }}>
         <Header />
         
-        <Container component="main" sx={{ 
-          flexGrow: 1, 
-          py: 2,
-          display: 'flex',
-          flexDirection: 'column'
-        }}>
-          <Paper
-            elevation={3}
-            sx={{
-              flexGrow: 1,
-              p: { xs: 2, sm: 3 },
-              borderRadius: 2,
-              overflow: 'auto',
-              mb: 8, // Add margin to bottom to avoid content being hidden by navigation
-              backdropFilter: 'blur(10px)',
-              backgroundColor: 'background.paper',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
-            }}
-          >
+        <Container component="main" sx={{
+           flexGrow: 1,
+           py: { xs: 1, sm: 2 },
+           px: { xs: 1, sm: 2 },
+           display: 'flex',
+           flexDirection: 'column',
+           maxWidth: '100vw',
+           overflow: 'hidden'
+         }}>
+           <Paper
+             elevation={0}
+             sx={{
+               flexGrow: 1,
+               p: { xs: 2, sm: 3 },
+               borderRadius: { xs: 0, sm: 2 },
+               overflow: 'auto',
+               mb: { xs: 9, sm: 8 }, // Increased bottom margin for mobile navigation
+               backgroundColor: 'background.paper',
+               minHeight: 'calc(100vh - 120px)',
+               '@media (max-width: 600px)': {
+                 minHeight: 'calc(100vh - 140px)',
+               }
+             }}
+           >
             {renderTabContent()}
           </Paper>
         </Container>
@@ -70,9 +75,11 @@ function App() {
             left: 0,
             right: 0,
             zIndex: 1100,
-            backdropFilter: 'blur(10px)',
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
-            borderTop: '1px solid rgba(0,0,0,0.1)'
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            borderTop: '1px solid rgba(0, 0, 0, 0.08)',
+            '@media (max-width: 600px)': {
+              backgroundColor: '#ffffff',
+            }
           }}
           elevation={3}
         >

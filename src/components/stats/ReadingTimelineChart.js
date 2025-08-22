@@ -146,12 +146,12 @@ const ReadingTimelineChart = () => {
   const visibleDates = getVisibleDates();
   
   return (
-    <Paper sx={{ p: 3, mb: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+    <Paper sx={{ p: 3, mb: 3, pb: 'calc(env(safe-area-inset-bottom) + 16px)' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexDirection: { xs: 'column', sm: 'row' }, gap: { xs: 1, sm: 0 } }}>
         <Typography variant="h6">
           Reading Timeline
         </Typography>
-        <FormControl size="small" sx={{ minWidth: 120 }}>
+        <FormControl size="small" sx={{ minWidth: 120, width: { xs: '100%', sm: 'auto' } }}>
           <InputLabel id="time-range-label">Time Range</InputLabel>
           <Select
             labelId="time-range-label"
@@ -175,12 +175,12 @@ const ReadingTimelineChart = () => {
       ) : (
         <Box sx={{ overflowX: 'auto' }}>
           {/* Timeline header with dates */}
-          <Box sx={{ display: 'flex', mb: 2, pl: 15 }}>
+          <Box sx={{ display: 'flex', mb: 2, pl: { xs: 10, sm: 15 }, overflowX: 'auto' }}>
             {visibleDates.map((date, index) => (
-              <Box 
-                key={index} 
-                sx={{ 
-                  minWidth: 60, 
+              <Box
+                key={index}
+                sx={{
+                  minWidth: { xs: 48, sm: 60 },
                   textAlign: 'center',
                   borderRight: index < visibleDates.length - 1 ? '1px dashed #eee' : 'none'
                 }}
@@ -206,8 +206,8 @@ const ReadingTimelineChart = () => {
               }}
             >
               {/* Student name */}
-              <Box sx={{ width: 150, pr: 2, flexShrink: 0 }}>
-                <Typography variant="body2" noWrap>
+              <Box sx={{ width: { xs: 110, sm: 150 }, pr: 2, flexShrink: 0 }}>
+                <Typography variant="body2" sx={{ wordBreak: 'break-word' }}>
                   {student.name}
                 </Typography>
               </Box>
@@ -218,10 +218,10 @@ const ReadingTimelineChart = () => {
                   const session = hasSessionOnDate(student, date);
                   
                   return (
-                    <Box 
-                      key={index} 
-                      sx={{ 
-                        minWidth: 60, 
+                    <Box
+                      key={index}
+                      sx={{
+                        minWidth: { xs: 48, sm: 60 },
                         height: 30,
                         display: 'flex',
                         justifyContent: 'center',

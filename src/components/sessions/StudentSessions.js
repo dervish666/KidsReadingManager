@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -19,11 +19,12 @@ import {
   Snackbar,
   Alert
 } from '@mui/material';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CloseIcon from '@mui/icons-material/Close';
 import { useAppContext } from '../../contexts/AppContext';
-import { useEffect } from 'react'; // Import useEffect
 
 const StudentSessions = ({ open, onClose, student }) => {
   const {
@@ -33,6 +34,8 @@ const StudentSessions = ({ open, onClose, student }) => {
     classes, // Get classes
     updateStudentClassId // Get update function
   } = useAppContext();
+  const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const [editingSession, setEditingSession] = useState(null);
   const [deletingSession, setDeletingSession] = useState(null);
   const [deletingStudent, setDeletingStudent] = useState(false);
@@ -187,21 +190,22 @@ const StudentSessions = ({ open, onClose, student }) => {
 
   return (
     <>
-      <Dialog 
-        open={open} 
+      <Dialog
+        open={open}
         onClose={onClose}
         fullWidth
-        maxWidth="md"
+        fullScreen={fullScreen}
+        maxWidth={fullScreen ? 'xs' : 'md'}
       >
         <DialogTitle sx={{ m: 0, p: 2 }}> {/* Adjust padding */}
-          <Box display="flex" justifyContent="space-between" alignItems="center">
+          <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ flexDirection: { xs: 'column', sm: 'row' }, gap: { xs: 1, sm: 0 } }}>
             {/* Left side: Name and Class Selector */}
-            <Box display="flex" alignItems="center" gap={2}>
-              <Typography variant="h6" component="div">
+            <Box display="flex" alignItems="center" gap={2} sx={{ width: '100%', justifyContent: 'flex-start' }}>
+              <Typography variant="h6" component="div" sx={{ wordBreak: 'break-word' }}>
                 {student?.name}
               </Typography>
               {/* Class Selector */}
-              <FormControl size="small" sx={{ minWidth: 180 }}>
+              <FormControl size="small" sx={{ minWidth: 180, width: { xs: '100%', sm: 'auto' } }}>
                 <InputLabel id="student-class-select-label">Class</InputLabel>
                 <Select
                   labelId="student-class-select-label"
@@ -223,7 +227,7 @@ const StudentSessions = ({ open, onClose, student }) => {
               </FormControl>
             </Box>
             {/* Right side: Delete and Close Buttons */}
-            <Box display="flex" alignItems="center" gap={1}>
+            <Box display="flex" alignItems="center" gap={1} sx={{ mt: { xs: 1, sm: 0 } }}>
               <IconButton
                 edge="end"
                 color="error"
@@ -239,7 +243,7 @@ const StudentSessions = ({ open, onClose, student }) => {
             </Box>
           </Box>
         </DialogTitle>
-        <DialogContent dividers>
+        <DialogContent dividers sx={{ pb: 'calc(env(safe-area-inset-bottom) + 16px)' }}>
           {sortedSessions.length > 0 ? (
             <Grid container spacing={2}>
               {sortedSessions.map((session) => (
@@ -265,19 +269,21 @@ const StudentSessions = ({ open, onClose, student }) => {
                           )}
                         </Box>
                         <Box>
-                          <IconButton 
-                            size="small" 
-                            color="primary" 
+                          <IconButton
+                            size="medium"
+                            color="primary"
                             onClick={() => handleEditClick(session)}
                             aria-label="edit session"
+                            sx={{ p: 1 }}
                           >
                             <EditIcon />
                           </IconButton>
-                          <IconButton 
-                            size="small" 
-                            color="error" 
+                          <IconButton
+                            size="medium"
+                            color="error"
                             onClick={() => handleDeleteClick(session)}
                             aria-label="delete session"
+                            sx={{ p: 1 }}
                           >
                             <DeleteIcon />
                           </IconButton>
@@ -302,9 +308,9 @@ const StudentSessions = ({ open, onClose, student }) => {
       </Dialog>
 
       {/* Edit Session Dialog */}
-      <Dialog open={!!editingSession} onClose={() => setEditingSession(null)}>
+      <Dialog open={!!editingSession} onClose={() => setEditingSession(null)} fullWidth maxWidth="sm" fullScreen={fullScreen}>
         <DialogTitle>Edit Reading Session</DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ pb: 'calc(env(safe-area-inset-bottom) + 16px)' }}>
           <Box sx={{ pt: 1 }}>
             <TextField
               label="Date"
@@ -343,35 +349,35 @@ const StudentSessions = ({ open, onClose, student }) => {
             />
           </Box>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ px: 2, pb: 'calc(env(safe-area-inset-bottom) + 8px)' }}>
           <Button onClick={() => setEditingSession(null)}>Cancel</Button>
           <Button onClick={handleEditSave} variant="contained" color="primary">Save</Button>
         </DialogActions>
       </Dialog>
 
       {/* Delete Session Dialog */}
-      <Dialog open={!!deletingSession} onClose={() => setDeletingSession(null)}>
+      <Dialog open={!!deletingSession} onClose={() => setDeletingSession(null)} fullWidth maxWidth="sm" fullScreen={fullScreen}>
         <DialogTitle>Delete Reading Session</DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ pb: 'calc(env(safe-area-inset-bottom) + 16px)' }}>
           <Typography>
             Are you sure you want to delete this reading session from {formatDate(deletingSession?.date)}? This action cannot be undone.
           </Typography>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ px: 2, pb: 'calc(env(safe-area-inset-bottom) + 8px)' }}>
           <Button onClick={() => setDeletingSession(null)}>Cancel</Button>
           <Button onClick={handleDeleteConfirm} color="error">Delete</Button>
         </DialogActions>
       </Dialog>
 
       {/* Delete Student Dialog */}
-      <Dialog open={deletingStudent} onClose={() => setDeletingStudent(false)}>
+      <Dialog open={deletingStudent} onClose={() => setDeletingStudent(false)} fullWidth maxWidth="sm" fullScreen={fullScreen}>
         <DialogTitle>Delete Student</DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ pb: 'calc(env(safe-area-inset-bottom) + 16px)' }}>
           <Typography>
             Are you sure you want to delete {student?.name}? This will also delete all their reading sessions and this action cannot be undone.
           </Typography>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ px: 2, pb: 'calc(env(safe-area-inset-bottom) + 8px)' }}>
           <Button onClick={() => setDeletingStudent(false)}>Cancel</Button>
           <Button onClick={handleStudentDeleteConfirm} color="error">Delete</Button>
         </DialogActions>

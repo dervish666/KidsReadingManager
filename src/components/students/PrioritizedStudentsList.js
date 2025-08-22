@@ -217,20 +217,13 @@ const PrioritizedStudentsList = ({ defaultCount = 8 }) => {
         
         <Grid container spacing={2}>
           {prioritizedStudents.map((student, index) => (
-            // Corrected Grid item props: use item + xs/sm/md directly
-            (<Grid
-              key={student.id}
-              size={{
-                xs: 12,
-                sm: 6,
-                md: 4
-              }}>
+            <Grid item key={student.id} xs={12} sm={6} md={4}>
               <StudentPriorityCard
                 student={student}
                 priorityRank={index + 1}
                 onClick={() => handleStudentClick(student.id)}
               />
-            </Grid>)
+            </Grid>
           ))}
         </Grid>
         

@@ -26,9 +26,9 @@ const VisualIndicators = ({ data }) => {
   
   return (
     <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-        <Box sx={{ width: '100%', mr: 1 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, flexDirection: { xs: 'column', sm: 'row' }, gap: 1 }}>
+        <Box sx={{ width: '100%', mr: { xs: 0, sm: 1 } }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5, flexDirection: { xs: 'column', sm: 'row' }, gap: 1 }}>
             <Typography variant="body2" color="text.secondary">
               Needs Reading
             </Typography>
@@ -40,8 +40,9 @@ const VisualIndicators = ({ data }) => {
             <LinearProgress
               variant="determinate"
               value={notReadPercent}
+              aria-label={`Needs Reading: ${notReadPercent}%`}
               sx={{
-                height: 10,
+                height: { xs: 12, sm: 10 },
                 borderRadius: 5,
                 bgcolor: 'rgba(244, 67, 54, 0.1)',
                 '& .MuiLinearProgress-bar': {
@@ -54,9 +55,9 @@ const VisualIndicators = ({ data }) => {
         </Box>
       </Box>
       
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-        <Box sx={{ width: '100%', mr: 1 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, flexDirection: { xs: 'column', sm: 'row' }, gap: 1 }}>
+        <Box sx={{ width: '100%', mr: { xs: 0, sm: 1 } }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5, flexDirection: { xs: 'column', sm: 'row' }, gap: 1 }}>
             <Typography variant="body2" color="text.secondary">
               Read Recently
             </Typography>
@@ -68,8 +69,9 @@ const VisualIndicators = ({ data }) => {
             <LinearProgress
               variant="determinate"
               value={needsAttentionPercent}
+              aria-label={`Read Recently: ${needsAttentionPercent}%`}
               sx={{
-                height: 10,
+                height: { xs: 12, sm: 10 },
                 borderRadius: 5,
                 bgcolor: 'rgba(255, 152, 0, 0.1)',
                 '& .MuiLinearProgress-bar': {
@@ -82,9 +84,9 @@ const VisualIndicators = ({ data }) => {
         </Box>
       </Box>
       
-      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-        <Box sx={{ width: '100%', mr: 1 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center' , flexDirection: { xs: 'column', sm: 'row' }, gap: 1 }}>
+        <Box sx={{ width: '100%', mr: { xs: 0, sm: 1 } }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5, flexDirection: { xs: 'column', sm: 'row' }, gap: 1 }}>
             <Typography variant="body2" color="text.secondary">
               Up to Date
             </Typography>
@@ -96,8 +98,9 @@ const VisualIndicators = ({ data }) => {
             <LinearProgress
               variant="determinate"
               value={recentlyReadPercent}
+              aria-label={`Up to Date: ${recentlyReadPercent}%`}
               sx={{
-                height: 10,
+                height: { xs: 12, sm: 10 },
                 borderRadius: 5,
                 bgcolor: 'rgba(76, 175, 80, 0.1)',
                 '& .MuiLinearProgress-bar': {

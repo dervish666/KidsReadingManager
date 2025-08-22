@@ -94,7 +94,12 @@ const SessionForm = () => {
           exclusive
           onChange={handleModeChange}
           aria-label="session mode"
-          sx={{ mb: 3 }}
+          sx={{
+            mb: 3,
+            display: 'flex',
+            width: '100%',
+            '& .MuiToggleButton-root': { flex: 1, minWidth: 0 }
+          }}
         >
           <ToggleButton value="standard" aria-label="standard mode">
             Standard
@@ -105,7 +110,7 @@ const SessionForm = () => {
         </ToggleButtonGroup>
       </Box>
       {mode === 'standard' ? (
-        <Paper sx={{ p: 3 }}>
+        <Paper sx={{ p: 3, pb: 'calc(env(safe-area-inset-bottom) + 16px)' }}>
           {error && (
             <Alert severity="error" sx={{ mb: 3 }}>
               {error}
@@ -175,6 +180,7 @@ const SessionForm = () => {
                   color="primary"
                   fullWidth
                   size="large"
+                  sx={{ mb: { xs: 2, sm: 0 } }}
                 >
                   Save Reading Session
                 </Button>

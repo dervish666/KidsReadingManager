@@ -1,163 +1,223 @@
-import React, { useState } from 'react'; // Removed unused useContext import
-import { useAppContext } from '../../contexts/AppContext'; // Corrected import
+import React, { useState } from 'react';
+import {
+  Box,
+  Paper,
+  Typography,
+  Grid,
+  TextField,
+  Button,
+  List,
+  ListItem,
+  ListItemText,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions
+} from '@mui/material';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import SaveIcon from '@mui/icons-material/Save';
+import { useAppContext } from '../../contexts/AppContext';
 
-function ClassManager() {
-  const { classes, addClass, updateClass, deleteClass } = useAppContext(); // Use the hook
+const ClassManager = () => {
+  const { classes, addClass, updateClass, deleteClass } = useAppContext();
   const [newClassName, setNewClassName] = useState('');
   const [newTeacherName, setNewTeacherName] = useState('');
-  const [editingClass, setEditingClass] = useState(null); // { id, name, teacherName }
+  const [editingClass, setEditingClass] = useState(null);
   const [editClassName, setEditClassName] = useState('');
   const [editTeacherName, setEditTeacherName] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [error, setError] = useState('');
 
   const handleAddClass = (e) => {
     e.preventDefault();
-    if (newClassName.trim() && newTeacherName.trim()) {
-      addClass({ name: newClassName.trim(), teacherName: newTeacherName.trim() });
-      setNewClassName('');
-      setNewTeacherName('');
-    } else {
-      alert('Please enter both class name and teacher name.');
+    if (!newClassName.trim() || !newTeacherName.trim()) {
+      setError('Please enter both class name and teacher name.');
+      return;
     }
+    addClass({ name: newClassName.trim(), teacherName: newTeacherName.trim() });
+    setNewClassName('');
+    setNewTeacherName('');
+    setError('');
   };
 
   const handleEditClick = (cls) => {
     setEditingClass(cls);
-    setEditClassName(cls.name);
-    setEditTeacherName(cls.teacherName);
+    setEditClassName(cls.name || '');
+    setEditTeacherName(cls.teacherName || '');
+    setError('');
   };
 
   const handleUpdateClass = (e) => {
     e.preventDefault();
-    if (editingClass && editClassName.trim() && editTeacherName.trim()) {
-      updateClass(editingClass.id, { name: editClassName.trim(), teacherName: editTeacherName.trim() });
-      setEditingClass(null);
-      setEditClassName('');
-      setEditTeacherName('');
-    } else {
-      alert('Please enter both class name and teacher name.');
+    if (!editingClass) return;
+    if (!editClassName.trim() || !editTeacherName.trim()) {
+      setError('Please enter both class name and teacher name.');
+      return;
     }
+    updateClass(editingClass.id, { name: editClassName.trim(), teacherName: editTeacherName.trim() });
+    setEditingClass(null);
+    setEditClassName('');
+    setEditTeacherName('');
+    setError('');
   };
 
-  const handleDeleteClass = (classId) => {
-    if (window.confirm('Are you sure you want to delete this class? This will unassign all students from it.')) {
-      deleteClass(classId);
-    }
+  const handleDeleteClick = (cls) => {
+    setConfirmDelete(cls);
   };
 
+  const handleConfirmDelete = () => {
+    if (!confirmDelete) return;
+    deleteClass(confirmDelete.id);
+    setConfirmDelete(null);
+  };
+
+  const handleCancelDelete = () => setConfirmDelete(null);
   const handleCancelEdit = () => {
     setEditingClass(null);
     setEditClassName('');
     setEditTeacherName('');
+    setError('');
   };
 
   return (
-    <div className="class-manager">
-      <h2>Manage Classes</h2>
+    <Paper sx={{ p: 3, mt: 3 }}>
+      <Typography variant="h6" gutterBottom>
+        Manage Classes
+      </Typography>
 
-      {/* Add Class Form */}
-      <form onSubmit={handleAddClass} className="add-class-form">
-        <h3>Add New Class</h3>
-        <input
-          type="text"
-          placeholder="Class Name (e.g., Year 3 Robins)"
-          value={newClassName}
-          onChange={(e) => setNewClassName(e.target.value)}
-          required
-        />
-        <input
-          type="text"
-          placeholder="Teacher Name"
-          value={newTeacherName}
-          onChange={(e) => setNewTeacherName(e.target.value)}
-          required
-        />
-        <button type="submit">Add Class</button>
-      </form>
-
-      {/* Edit Class Form (Modal or Inline) */}
-      {editingClass && (
-        <div className="edit-class-form">
-          <h3>Edit Class: {editingClass.name}</h3>
-          <form onSubmit={handleUpdateClass}>
-            <input
-              type="text"
-              value={editClassName}
-              onChange={(e) => setEditClassName(e.target.value)}
-              required
+      <Box component="form" onSubmit={handleAddClass} sx={{ mt: 2 }}>
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} sm={5}>
+            <TextField
+              label="Class Name (e.g., Year 3 Robins)"
+              value={newClassName}
+              onChange={(e) => setNewClassName(e.target.value)}
+              fullWidth
+              size="small"
             />
-            <input
-              type="text"
-              value={editTeacherName}
-              onChange={(e) => setEditTeacherName(e.target.value)}
-              required
-            />
-            <button type="submit">Update Class</button>
-            <button type="button" onClick={handleCancelEdit}>Cancel</button>
-          </form>
-        </div>
-      )}
+          </Grid>
 
-      {/* Class List */}
-      <div className="class-list">
-        <h3>Existing Classes</h3>
+          <Grid item xs={12} sm={5}>
+            <TextField
+              label="Teacher Name"
+              value={newTeacherName}
+              onChange={(e) => setNewTeacherName(e.target.value)}
+              fullWidth
+              size="small"
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={2}>
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              fullWidth
+              startIcon={<SaveIcon />}
+            >
+              Add
+            </Button>
+          </Grid>
+
+          {error && (
+            <Grid item xs={12}>
+              <Typography color="error" variant="body2">
+                {error}
+              </Typography>
+            </Grid>
+          )}
+        </Grid>
+      </Box>
+
+      <Box sx={{ mt: 3 }}>
+        <Typography variant="subtitle1" gutterBottom>
+          Existing Classes
+        </Typography>
+
         {classes.length === 0 ? (
-          <p>No classes created yet.</p>
+          <Typography variant="body2">No classes created yet.</Typography>
         ) : (
-          <ul>
+          <List>
             {classes.map((cls) => (
-              <li key={cls.id}>
-                <span>{cls.name} ({cls.teacherName})</span>
-                <div>
-                  <button onClick={() => handleEditClick(cls)} disabled={!!editingClass}>Edit</button>
-                  <button onClick={() => handleDeleteClass(cls.id)} disabled={!!editingClass}>Delete</button>
-                </div>
-              </li>
+              <ListItem
+                key={cls.id}
+                divider
+                secondaryAction={
+                  <Box>
+                    <IconButton edge="end" aria-label="edit" onClick={() => handleEditClick(cls)}>
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton edge="end" aria-label="delete" color="error" onClick={() => handleDeleteClick(cls)}>
+                      <DeleteIcon />
+                    </IconButton>
+                  </Box>
+                }
+              >
+                <ListItemText
+                  primary={cls.name}
+                  secondary={cls.teacherName ? String(cls.teacherName) : ''}
+                />
+              </ListItem>
             ))}
-          </ul>
+          </List>
         )}
-      </div>
+      </Box>
 
-      {/* Basic Styling (Consider moving to CSS file) */}
-      <style jsx>{`
-        .class-manager {
-          padding: 20px;
-          border: 1px solid #ccc;
-          border-radius: 5px;
-          margin-top: 20px;
-        }
-        .add-class-form, .edit-class-form {
-          margin-bottom: 20px;
-          padding: 15px;
-          border: 1px solid #eee;
-          border-radius: 4px;
-        }
-        .add-class-form input, .edit-class-form input {
-          margin-right: 10px;
-          padding: 8px;
-        }
-        .class-list ul {
-          list-style: none;
-          padding: 0;
-        }
-        .class-list li {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 10px;
-          border-bottom: 1px solid #eee;
-        }
-        .class-list li:last-child {
-          border-bottom: none;
-        }
-        .class-list button {
-          margin-left: 10px;
-        }
-        .edit-class-form {
-          background-color: #f9f9f9;
-        }
-      `}</style>
-    </div>
+      {/* Edit Class Dialog */}
+      <Dialog open={!!editingClass} onClose={handleCancelEdit} fullWidth maxWidth="sm">
+        <DialogTitle>Edit Class</DialogTitle>
+        <DialogContent>
+          <Box component="form" onSubmit={handleUpdateClass} sx={{ mt: 1 }}>
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <TextField
+                  label="Class Name"
+                  value={editClassName}
+                  onChange={(e) => setEditClassName(e.target.value)}
+                  fullWidth
+                  size="small"
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  label="Teacher Name"
+                  value={editTeacherName}
+                  onChange={(e) => setEditTeacherName(e.target.value)}
+                  fullWidth
+                  size="small"
+                />
+              </Grid>
+            </Grid>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelEdit}>Cancel</Button>
+          <Button onClick={handleUpdateClass} variant="contained" color="primary">
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <Dialog open={!!confirmDelete} onClose={handleCancelDelete}>
+        <DialogTitle>Delete Class</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete the class "{confirmDelete?.name}"? This will unassign all students in this class.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelDelete}>Cancel</Button>
+          <Button onClick={handleConfirmDelete} color="error">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Paper>
   );
-}
+};
 
 export default ClassManager;

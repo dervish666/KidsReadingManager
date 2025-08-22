@@ -11,12 +11,16 @@ import {
   Box,
   Chip,
   Alert,
-  Grid // Import Grid
+  Grid
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import { useAppContext } from '../../contexts/AppContext';
 
 const BulkImport = ({ open, onClose }) => {
   const { bulkImportStudents, students } = useAppContext();
+  const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const [namesText, setNamesText] = useState('');
   const [error, setError] = useState('');
   const [preview, setPreview] = useState([]);
@@ -81,11 +85,11 @@ const BulkImport = ({ open, onClose }) => {
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={handleClose} fullScreen={fullScreen} maxWidth="sm" fullWidth>
       <DialogTitle>Bulk Import Students</DialogTitle>
       <DialogContent>
         {/* Wrap content in Grid container */}
-        <Grid container spacing={3} sx={{ pt: 1 }}> {/* Add some padding top */}
+        <Grid container spacing={3} sx={{ pt: 1, pb: 'calc(env(safe-area-inset-bottom) + 16px)' }}> {/* Add some padding top */}
           <Grid size={12}>
             <DialogContentText>
               Enter each student's name on a new line to add multiple students at once.
@@ -132,13 +136,16 @@ const BulkImport = ({ open, onClose }) => {
           )}
         </Grid>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose}>Cancel</Button>
-        <Button 
-          onClick={handleImport} 
-          variant="contained" 
+      <DialogActions sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' }, px: 2, pb: 'calc(env(safe-area-inset-bottom) + 8px)' }}>
+        <Button onClick={handleClose} fullWidth>
+          Cancel
+        </Button>
+        <Button
+          onClick={handleImport}
+          variant="contained"
           color="primary"
           disabled={preview.length === 0}
+          fullWidth
         >
           Import {preview.length > 0 ? `(${preview.length})` : ''}
         </Button>

@@ -1,12 +1,32 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-const cors = require('cors');
+let express, bodyParser, cors;
+try {
+  express = require('express');
+  bodyParser = require('body-parser');
+  cors = require('cors');
+} catch (err) {
+  // Log detailed diagnostics to help identify issues when require() fails
+  console.error('Error requiring server dependencies (express/body-parser/cors).');
+  console.error('Error stack:', err && err.stack ? err.stack : err);
+  console.error('Node version:', process.version);
+  console.error('Working directory:', process.cwd());
+  try {
+    const pkg = require('../package.json');
+    console.error('package.json dependencies:', pkg.dependencies);
+  } catch (pkgErr) {
+    console.error('Failed to read package.json:', pkgErr && pkgErr.stack ? pkgErr.stack : pkgErr);
+  }
+  console.error('Environment variables (first 50 keys):', Object.keys(process.env).slice(0,50));
+  // Exit with non-zero code so the caller sees a failure
+  process.exit(1);
+}
 const fs = require('fs');
 const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000; // Use port 3000 for the combined server
-const DATA_FILE = '/config/app_data.json'; // Use host-mounted volume path
+// For local development use a project-local config directory so we don't require root permissions.
+// In production (Docker) you can mount /config if desired.
+const DATA_FILE = path.join(__dirname, '..', 'config', 'app_data.json');
 
 // Ensure config directory exists (Docker volume mount handles host side)
 const configDir = path.dirname(DATA_FILE); // Should be '/config'

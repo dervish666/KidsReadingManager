@@ -115,7 +115,7 @@ const Settings = () => {
       <Typography variant="h6" gutterBottom>
         Application Settings
       </Typography>
-      <Paper sx={{ p: 3, mb: 3 }}>
+      <Paper sx={{ p: 3, mb: 3, pb: 'calc(env(safe-area-inset-bottom) + 16px)' }}>
         <Typography variant="subtitle1" gutterBottom>
           Reading Status Durations
         </Typography>
@@ -214,20 +214,24 @@ const Settings = () => {
 
         <Divider sx={{ my: 3 }} />
 
-        <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+        <Box sx={{ display: 'flex', gap: 2, mt: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
           <Button
             variant="contained"
             color="primary"
             startIcon={<SaveIcon />}
             onClick={handleSaveSettings}
+            fullWidth
+            sx={{ width: { xs: '100%', sm: 'auto' } }}
           >
             Save Settings
           </Button>
-
+  
           <Button
             variant="outlined"
             startIcon={<RestoreIcon />}
             onClick={handleResetSettings}
+            fullWidth
+            sx={{ width: { xs: '100%', sm: 'auto' } }}
           >
             Reset
           </Button>

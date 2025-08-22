@@ -1,333 +1,239 @@
-import React, { useState } from 'react';
-import {
-  Card,
-  CardContent,
-  Typography,
-  Box,
-  IconButton,
-  Menu,
-  MenuItem,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  TextField,
-  Button,
-  Chip // Added Chip
-} from '@mui/material';
-// Removed MoreVertIcon and MenuBookIcon imports
+import React, { useState, useMemo } from 'react';
+import { Card, CardActionArea, CardHeader, Avatar, CardContent, Typography, Box, Chip } from '@mui/material';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
 import { useAppContext } from '../../contexts/AppContext';
 import { useTheme } from '@mui/material/styles';
-import { useMemo } from 'react'; // Import useMemo
 import StudentSessions from '../sessions/StudentSessions';
 
 const StudentCard = ({ student }) => {
   const theme = useTheme();
-  const { getReadingStatus, classes } = useAppContext(); // Get classes from context
-  
-  // Removed state for anchorEl, edit/delete/quick read dialogs, editName, assessment, notes
+  const { getReadingStatus, classes } = useAppContext();
   const [openSessionsDialog, setOpenSessionsDialog] = useState(false);
-  
-  
-  
-  
-  
-  
-  
-  const status = getReadingStatus(student);
-  const statusColors = {
-    notRead: theme.palette.status.notRead,
-    needsAttention: theme.palette.status.needsAttention,
-    recentlyRead: theme.palette.status.recentlyRead
-  };
-  
-  // Removed statusText as it's no longer displayed
-  
-  
-  
-  
 
-  // Removed handlers for menu, edit, delete, quick read
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+  const status = getReadingStatus(student);
+  const statusColor = theme.palette.status?.[status] || theme.palette.primary.main;
+
+  const mostRecentReadDate = useMemo(() => {
+    if (!student?.readingSessions || student.readingSessions.length === 0) {
+      return student?.lastReadDate || null;
+    }
+    const sorted = [...student.readingSessions].sort((a, b) => new Date(b.date) - new Date(a.date));
+    return sorted[0].date;
+  }, [student]);
 
   const formatDate = (dateString) => {
     if (!dateString) return 'Never';
-    
     const date = new Date(dateString);
     return date.toLocaleDateString('en-GB', {
       day: 'numeric',
       month: 'short',
-      year: 'numeric'
+      year: 'numeric',
     });
   };
 
-  // Calculate the most recent reading date from the sessions
-  const getMostRecentReadDate = () => {
-    if (!student.readingSessions || student.readingSessions.length === 0) {
-      return null;
-    }
-    
-    // Sort sessions by date (newest first)
-    const sortedSessions = [...student.readingSessions].sort((a, b) =>
-      new Date(b.date) - new Date(a.date)
-    );
-    
-    // Return the date of the most recent session
-    return sortedSessions[0].date;
-  };
-
-  // Get the most recent reading date
-  const mostRecentReadDate = getMostRecentReadDate();
-
-  // Handle card click to open sessions dialog (simplified)
-  const handleCardClick = () => {
-    // Removed check for button clicks as buttons are gone
-    
-    
-    
-    setOpenSessionsDialog(true);
-  };
-
-  // Calculate days since last reading (copied from PriorityCard)
-  const getDaysSinceReading = () => {
-    const dateToUse = mostRecentReadDate || student.lastReadDate;
+  const daysSince = useMemo(() => {
+    const dateToUse = mostRecentReadDate || student?.lastReadDate;
     if (!dateToUse) return 'Never read';
-    
-    const lastReadDate = new Date(dateToUse);
-    const today = new Date();
-    const diffTime = Math.abs(today - lastReadDate);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    return `${diffDays} days ago`;
-  };
+    const diffTime = Math.max(0, new Date() - new Date(dateToUse));
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+  }, [mostRecentReadDate, student]);
 
-  // Memoize finding the class name to avoid recalculating on every render
   const className = useMemo(() => {
-    if (!student.classId || !classes || classes.length === 0) {
-      return 'Unassigned';
-    }
-    const foundClass = classes.find(cls => cls.id === student.classId);
-    return foundClass ? foundClass.name : 'Unknown Class'; // Handle case where classId exists but class doesn't
-  }, [student.classId, classes]);
+    if (!student?.classId || !classes || classes.length === 0) return 'Unassigned';
+    const found = classes.find((c) => c.id === student.classId);
+    return found ? found.name : 'Unknown';
+  }, [student?.classId, classes]);
 
   return (
     <>
       <Card
         sx={{
-          height: '100%', // Keep height 100% for grid consistency
+          height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          borderLeft: `4px solid ${statusColors[status]}`,
-          // Removed transition and hover effect
-          cursor: 'pointer'
+          position: 'relative',
+          overflow: 'hidden',
+          transition: 'all 0.2s ease-in-out',
+          '&:hover': {
+            transform: 'translateY(-4px)',
+            boxShadow: (theme) => theme.shadows[3],
+          },
+          '@media (max-width: 600px)': {
+            '&:hover': {
+              transform: 'translateY(-2px)',
+            }
+          }
         }}
-        onClick={handleCardClick}
       >
-        <CardContent sx={{ flexGrow: 1 }}>
-          {/* Removed top Box with menu icon */}
-          <Typography variant="h6" component="h2" gutterBottom>
-            {student.name}
-          </Typography>
-          
-          {/* Removed status text box */}
-          
-          {/* Updated Last Read and Total Sessions display */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-            <Typography variant="body2" color="text.secondary">
-              Last read:
-            </Typography>
-            <Chip
-              label={formatDate(mostRecentReadDate || student.lastReadDate)}
-              size="small"
-              color={status === 'notRead' ? 'error' : status === 'needsAttention' ? 'warning' : 'success'}
-            />
-          </Box>
-          
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="body2" color="text.secondary">
-              Total sessions:
-            </Typography>
-            <Chip
-              label={student.readingSessions.length}
-              size="small"
-              color={student.readingSessions.length === 0 ? 'default' : 'primary'} // Use default if 0
-            />
-          </Box>
-          
-          {/* Added Days Since Reading */}
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontStyle: 'italic' }}>
-            {getDaysSinceReading()}
-          </Typography>
+        <CardActionArea
+          onClick={() => setOpenSessionsDialog(true)}
+          sx={{
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'stretch',
+            textAlign: 'left',
+            p: 0,
+            '&:focus-visible': {
+              outline: '2px solid',
+              outlineColor: 'primary.main',
+              outlineOffset: '2px',
+            },
+            '@media (hover: none)': {
+              '&:hover': {
+                backgroundColor: 'transparent',
+              }
+            }
+          }}
+          aria-label={`View sessions for ${student.name}`}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setOpenSessionsDialog(true);
+            }
+          }}
+        >
+          <CardHeader
+            avatar={
+              <Avatar sx={{
+                bgcolor: 'primary.main',
+                width: { xs: 40, sm: 44 },
+                height: { xs: 40, sm: 44 }
+              }}>
+                <MenuBookIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />
+              </Avatar>
+            }
+            title={
+              <Typography
+                variant="h6"
+                component="div"
+                sx={{
+                  fontWeight: 600,
+                  fontSize: { xs: '1rem', sm: '1.125rem' },
+                  lineHeight: 1.2
+                }}
+              >
+                {student.name}
+              </Typography>
+            }
+            subheader={
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' }
+                }}
+              >
+                {className}
+              </Typography>
+            }
+            action={
+              <Box sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                mr: { xs: 1, sm: 2 }
+              }}>
+                <Box sx={{
+                  width: { xs: 8, sm: 10 },
+                  height: { xs: 8, sm: 10 },
+                  borderRadius: '50%',
+                  bgcolor: statusColor,
+                  boxShadow: 1
+                }} />
+              </Box>
+            }
+            sx={{
+              pb: 1,
+              '& .MuiCardHeader-content': {
+                minWidth: 0,
+                flex: 1
+              }
+            }}
+          />
 
-          {/* Display Class Name */}
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Class: <Chip label={className} size="small" />
-          </Typography>
-          
-        </CardContent>
-        
-        {/* Removed bottom action bar */}
-        
+          <CardContent sx={{
+            flexGrow: 1,
+            pt: 0,
+            pb: { xs: 2, sm: 3 },
+            '&:last-child': { pb: { xs: 2, sm: 3 } }
+          }}>
+            <Box sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: { xs: 1.5, sm: 2 }
+            }}>
+              <Box sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 1
+              }}>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                >
+                  Last read
+                </Typography>
+                <Chip
+                  label={formatDate(mostRecentReadDate || student.lastReadDate)}
+                  size="small"
+                  color={status === 'notRead' ? 'error' : status === 'needsAttention' ? 'warning' : 'success'}
+                  sx={{
+                    height: { xs: 24, sm: 28 },
+                    fontSize: { xs: '0.7rem', sm: '0.75rem' }
+                  }}
+                />
+              </Box>
+
+              <Box sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 1
+              }}>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                >
+                  Sessions
+                </Typography>
+                <Chip
+                  label={student.readingSessions.length}
+                  size="small"
+                  color={student.readingSessions.length === 0 ? 'default' : 'primary'}
+                  sx={{
+                    height: { xs: 24, sm: 28 },
+                    fontSize: { xs: '0.7rem', sm: '0.75rem' }
+                  }}
+                />
+              </Box>
+
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{
+                  fontStyle: 'italic',
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                  opacity: 0.8,
+                  alignSelf: 'flex-start'
+                }}
+              >
+                {daysSince}
+              </Typography>
+            </Box>
+          </CardContent>
+        </CardActionArea>
       </Card>
 
-      {/* Removed Menu */}
-      
-      {/* Removed Edit Dialog */}
-      
-      {/* Removed Delete Dialog */}
-      
-
-      {/* Removed Quick Read Dialog */}
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-
-      {/* Student Sessions Dialog */}
-      <StudentSessions
-        open={openSessionsDialog}
-        onClose={() => setOpenSessionsDialog(false)}
-        student={student}
-      />
+      <StudentSessions open={openSessionsDialog} onClose={() => setOpenSessionsDialog(false)} student={student} />
     </>
   );
 };

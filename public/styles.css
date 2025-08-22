@@ -1,53 +1,79 @@
 body {
-  margin: 0;
-  padding: 0;
-  font-family: 'Merriweather', 'Roboto', 'Helvetica Neue', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background-color: #f8f5f0;
+   margin: 0;
+   padding: 0;
+   font-family: 'Merriweather', 'Roboto', 'Helvetica Neue', sans-serif;
+   -webkit-font-smoothing: antialiased;
+   -moz-osx-font-smoothing: grayscale;
+   background: linear-gradient(135deg, #f8f5f0 0%, #f0ede8 100%);
+   min-height: 100vh;
 }
 
-/* Background image with overlay */
+/* Modern gradient background - lighter and more performant */
 body::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image: url('https://images.unsplash.com/photo-1507842217343-583bb7270b66?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2340&q=80');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  opacity: 0.8;
-  z-index: -1;
-}
-
-/* Add a subtle overlay to improve text readability */
-body::after {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(rgba(248, 245, 240, 0.3), rgba(248, 245, 240, 0.5));
-  z-index: -1;
+   content: '';
+   position: fixed;
+   top: 0;
+   left: 0;
+   width: 100%;
+   height: 100%;
+   background:
+     radial-gradient(circle at 20% 50%, rgba(107,77,87,0.05) 0%, transparent 50%),
+     radial-gradient(circle at 80% 20%, rgba(224,195,160,0.05) 0%, transparent 50%),
+     radial-gradient(circle at 40% 80%, rgba(46,125,50,0.03) 0%, transparent 50%);
+   z-index: -1;
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
 
-/* Improve scrolling on mobile */
+/* Modern scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(107, 77, 87, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 77, 87, 0.5);
+}
+
+/* Modern mobile optimizations */
 @media (max-width: 600px) {
+  /* Enhanced touch targets and spacing */
   .MuiTabs-scrollButtons {
     opacity: 0.8 !important;
+    min-width: 48px !important;
   }
-  
-  /* Make sure tabs are scrollable */
+
+  /* Improved tabs scrolling */
   .MuiTabs-flexContainer {
     display: flex !important;
     flex-wrap: nowrap !important;
   }
+
+  /* Enhanced safe area support */
+  body {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 8px);
+    padding-top: env(safe-area-inset-top);
+  }
+
+  /* Better mobile scrolling */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Modern focus styles for accessibility */
+*:focus-visible {
+  outline: 2px solid #6b4d57;
+  outline-offset: 2px;
+  border-radius: 4px;
 }

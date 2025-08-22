@@ -5,6 +5,8 @@
   "main": "src/index.js",
   "scripts": {
     "start": "rsbuild dev",
+    "start:server": "node server/index.js",
+    "start:prod": "npm run build && npm run start:server",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "migrate": "node scripts/migration.js",
@@ -19,7 +21,11 @@
     "@emotion/styled": "^11.11.0",
     "@mui/icons-material": "7.0.2",
     "@mui/material": "7.0.2",
+    "body-parser": "^2.2.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
     "hono": "^4.7.7",
+    "qr-scanner": "^1.4.2",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "uuid": "11.1.0"

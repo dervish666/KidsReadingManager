@@ -241,36 +241,41 @@ const QuickEntry = () => {
           </Grid> {/* Close Notes Button Grid item */}
         
         <Grid size={12}> {/* Wrap Button Box in Grid item */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Button
-            variant="outlined"
-            startIcon={<NavigateBeforeIcon />}
-            onClick={handlePrevious}
-            disabled={currentIndex === 0}
-            sx={{ flexBasis: '30%' }}
-          >
-            Previous
-          </Button>
-          
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleSave}
-            disabled={isCompleted(currentStudent.id)}
-            sx={{ flexBasis: '35%' }}
-          >
-            {isCompleted(currentStudent.id) ? 'Recorded' : 'Save'}
-          </Button>
-          
-          <Button
-            variant="outlined"
-            endIcon={<NavigateNextIcon />}
-            onClick={handleNext}
-            disabled={currentIndex === prioritizedStudents.length - 1}
-            sx={{ flexBasis: '30%' }}
-          >
-            Next
-          </Button>
+          <Box sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            flexDirection: { xs: 'column', sm: 'row' },
+            gap: 1
+          }}>
+            <Button
+              variant="outlined"
+              startIcon={<NavigateBeforeIcon />}
+              onClick={handlePrevious}
+              disabled={currentIndex === 0}
+              sx={{ flex: { sm: '0 0 30%', xs: '1 1 auto' }, width: { xs: '100%', sm: 'auto' } }}
+            >
+              Previous
+            </Button>
+            
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleSave}
+              disabled={isCompleted(currentStudent.id)}
+              sx={{ flex: { sm: '0 0 35%', xs: '1 1 auto' }, width: { xs: '100%', sm: 'auto' } }}
+            >
+              {isCompleted(currentStudent.id) ? 'Recorded' : 'Save'}
+            </Button>
+            
+            <Button
+              variant="outlined"
+              endIcon={<NavigateNextIcon />}
+              onClick={handleNext}
+              disabled={currentIndex === prioritizedStudents.length - 1}
+              sx={{ flex: { sm: '0 0 30%', xs: '1 1 auto' }, width: { xs: '100%', sm: 'auto' } }}
+            >
+              Next
+            </Button>
           </Box>
         </Grid> {/* Close Button Box Grid item */}
       </Grid> {/* Close Grid container */}
@@ -283,7 +288,7 @@ const QuickEntry = () => {
         disableSwipeToOpen={false}
         swipeAreaWidth={30}
       >
-        <Box sx={{ p: 2 }}>
+        <Box sx={{ p: 2, pb: 'calc(env(safe-area-inset-bottom) + 16px)' }}>
           <Typography variant="h6" gutterBottom>
             Notes for {currentStudent.name}
           </Typography>
@@ -297,8 +302,8 @@ const QuickEntry = () => {
             variant="outlined"
             sx={{ mb: 2 }}
           />
-          <Button 
-            variant="contained" 
+          <Button
+            variant="contained"
             onClick={toggleNotesDrawer}
             fullWidth
           >
@@ -315,7 +320,7 @@ const QuickEntry = () => {
         disableSwipeToOpen={false}
         swipeAreaWidth={30}
       >
-        <Box sx={{ p: 2 }}>
+        <Box sx={{ p: 2, pb: 'calc(env(safe-area-inset-bottom) + 16px)' }}>
           <Typography variant="h6" gutterBottom>
             Priority Settings
           </Typography>
