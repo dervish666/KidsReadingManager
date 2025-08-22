@@ -5,7 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## 1.4.0 - 2025-08-22
+
+### Added
+- **Version Display**: Added application version number to the top header bar on the right side
+  - Displays current version from package.json in the header ([`src/components/Header.js`](src/components/Header.js:1))
+  - Shows version in a subtle, non-intrusive manner with proper styling
+
+### Fixed
+- **Priority List Class Filtering**: Fixed dependency issue in prioritizedStudents calculation
+  - Added missing `classes` dependency to useMemo hook ([`src/contexts/AppContext.js`](src/contexts/AppContext.js:717))
+  - Ensures priority list updates when classes are disabled/enabled without requiring a page refresh
+  - Resolves issue where disabled class changes weren't immediately reflected in priority list
+
+### Version
+- Bumped package version to 1.4.0
+
+## 1.3.0 - 2025-08-22
 
 ### Added
 - **Class Disable/Enable Feature**: Added ability to disable classes for end-of-year scenarios

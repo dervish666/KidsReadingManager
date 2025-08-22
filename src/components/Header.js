@@ -1,6 +1,7 @@
 import React from 'react';
 import { AppBar, Toolbar, Typography, IconButton, Box } from '@mui/material';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
+import packageJson from '../../package.json';
 
 const Header = () => {
   return (
@@ -42,6 +43,18 @@ const Header = () => {
             Kids Reading Manager
           </Typography>
         </Box>
+        <Typography
+          variant="body2"
+          sx={{
+            fontFamily: (theme) => theme.typography.fontFamily,
+            fontWeight: 500,
+            opacity: 0.8,
+            fontSize: { xs: '0.75rem', sm: '0.875rem' },
+            mr: 2,
+          }}
+        >
+          v{packageJson.version}
+        </Typography>
       </Toolbar>
     </AppBar>
   );

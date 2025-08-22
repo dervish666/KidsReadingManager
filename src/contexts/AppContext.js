@@ -719,7 +719,7 @@ export const AppProvider = ({ children }) => {
         return a.readingSessions.length - b.readingSessions.length;
       })
       .slice(0, priorityStudentCount);
-  }, [students, priorityStudentCount]); // Dependencies: students, priorityStudentCount
+  }, [students, classes, priorityStudentCount]); // Dependencies: students, classes, priorityStudentCount
 
   // --- Memoized Context Value ---
 
