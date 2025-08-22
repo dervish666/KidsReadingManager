@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.4.2 - 2025-08-22
+
+### Added
+- **Recently Accessed Students Feature**: Added recently accessed students to the top of the student dropdown in the standard reading form
+  - Added state management for recently accessed students in AppContext ([`src/contexts/AppContext.js`](src/contexts/AppContext.js:29))
+  - Modified PrioritizedStudentsList to track clicked students in recent list ([`src/components/students/PrioritizedStudentsList.js`](src/components/students/PrioritizedStudentsList.js:153))
+  - Updated SessionForm dropdown to show recently accessed students at the top with star icons and "Recent" labels ([`src/components/sessions/SessionForm.js`](src/components/sessions/SessionForm.js:140))
+  - Students clicked in priority list now appear at the top of the standard form dropdown for quick access
+
+### Changed
+- Enhanced user workflow by providing quick access to recently handled students
+- Improved dropdown organization with visual distinction for recently accessed students
+
+### Version
+- Bumped package version to 1.4.2
+
 ## 1.4.1 - 2025-08-22
 
 ### Fixed

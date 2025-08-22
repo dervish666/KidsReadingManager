@@ -18,13 +18,14 @@ import {
   Card,
   CardContent
 } from '@mui/material';
+import StarIcon from '@mui/icons-material/Star';
 import { useAppContext } from '../../contexts/AppContext';
 import AssessmentSelector from './AssessmentSelector';
 import SessionNotes from './SessionNotes';
 import QuickEntry from './QuickEntry';
 
 const SessionForm = () => {
-  const { students, addReadingSession, classes } = useAppContext();
+  const { students, addReadingSession, classes, recentlyAccessedStudents } = useAppContext();
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [assessment, setAssessment] = useState('independent');
   const [notes, setNotes] = useState('');
@@ -88,6 +89,17 @@ const SessionForm = () => {
     return !student.classId || !disabledClassIds.includes(student.classId);
   });
 
+  // Separate recently accessed students for display at top of dropdown
+  const recentStudents = activeStudents.filter(student =>
+    recentlyAccessedStudents.includes(student.id)
+  );
+  const otherStudents = activeStudents.filter(student =>
+    !recentlyAccessedStudents.includes(student.id)
+  );
+
+  // Combine with recently accessed students at the top
+  const sortedStudents = [...recentStudents, ...otherStudents];
+
   const selectedStudent = students.find(s => s.id === selectedStudentId);
 
   return (
@@ -137,11 +149,39 @@ const SessionForm = () => {
                     label="Student"
                     onChange={handleStudentChange}
                   >
-                    {activeStudents.map((student) => (
-                      <MenuItem key={student.id} value={student.id}>
-                        {student.name}
-                      </MenuItem>
-                    ))}
+                    {sortedStudents.map((student) => {
+                      const isRecentlyAccessed = recentlyAccessedStudents.includes(student.id);
+                      return (
+                        <MenuItem key={student.id} value={student.id}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                            {isRecentlyAccessed && (
+                              <StarIcon
+                                sx={{
+                                  mr: 1,
+                                  color: 'warning.main',
+                                  fontSize: '1rem'
+                                }}
+                              />
+                            )}
+                            <Typography variant="inherit">
+                              {student.name}
+                            </Typography>
+                            {isRecentlyAccessed && (
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  ml: 'auto',
+                                  color: 'text.secondary',
+                                  fontStyle: 'italic'
+                                }}
+                              >
+                                Recent
+                              </Typography>
+                            )}
+                          </Box>
+                        </MenuItem>
+                      );
+                    })}
                   </Select>
                 </FormControl>
               </Grid>

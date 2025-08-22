@@ -26,6 +26,11 @@ export const AppProvider = ({ children }) => {
   });
   // State for classes
   const [classes, setClasses] = useState([]); // <-- ADDED
+  // State for recently accessed students (for quick access in dropdowns)
+  const [recentlyAccessedStudents, setRecentlyAccessedStudents] = useState(() => {
+    const stored = sessionStorage.getItem('recentlyAccessedStudents');
+    return stored ? JSON.parse(stored) : [];
+  });
 
   // Function to fetch/reload data from the server
   const reloadDataFromServer = useCallback(async () => {
@@ -498,6 +503,23 @@ export const AppProvider = ({ children }) => {
 
   const updatePriorityStudentCount = useCallback((count) => {
     setPriorityStudentCount(count);
+  }, []);
+
+  // Function to add a student to recently accessed list
+  const addRecentlyAccessedStudent = useCallback((studentId) => {
+    setRecentlyAccessedStudents(prev => {
+      const filtered = prev.filter(id => id !== studentId); // Remove if already exists
+      const updated = [studentId, ...filtered].slice(0, 5); // Keep only 5 most recent, add to front
+      sessionStorage.setItem('recentlyAccessedStudents', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
+  // Function to clear recently accessed students
+  const clearRecentlyAccessedStudents = useCallback(() => {
+    setRecentlyAccessedStudents([]);
+    sessionStorage.removeItem('recentlyAccessedStudents');
+  }, []);
   }, []); // No dependencies
 
   const updateReadingStatusSettings = useCallback(async (newSettings) => {
@@ -753,6 +775,10 @@ export const AppProvider = ({ children }) => {
   contextValue.updateClass = updateClass;
   contextValue.deleteClass = deleteClass;
   contextValue.updateStudentClassId = updateStudentClassId;
+  // Recently accessed students for quick access in dropdowns
+  contextValue.recentlyAccessedStudents = recentlyAccessedStudents;
+  contextValue.addRecentlyAccessedStudent = addRecentlyAccessedStudent;
+  contextValue.clearRecentlyAccessedStudents = clearRecentlyAccessedStudents;
 
 
   return (

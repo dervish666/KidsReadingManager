@@ -137,7 +137,7 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
 const PrioritizedStudentsList = ({ defaultCount = 8, filterClassId = 'all' }) => {
    const [expanded, setExpanded] = useState(true);
    const [count, setCount] = useState(defaultCount);
-   const { prioritizedStudents: contextPrioritizedStudents, updatePriorityStudentCount, priorityStudentCount, classes } = useAppContext();
+   const { prioritizedStudents: contextPrioritizedStudents, updatePriorityStudentCount, priorityStudentCount, classes, addRecentlyAccessedStudent } = useAppContext();
   
   // Initialize state from sessionStorage
   const [markedStudentIds, setMarkedStudentIds] = useState(() => {
@@ -152,8 +152,10 @@ const PrioritizedStudentsList = ({ defaultCount = 8, filterClassId = 'all' }) =>
 
   const handleStudentClick = useCallback((studentId) => {
     setMarkedStudentIds(prevIds => new Set(prevIds).add(studentId));
+    // Add to recently accessed students for quick access in dropdowns
+    addRecentlyAccessedStudent(studentId);
     // No need to explicitly save here, the useEffect above handles it
-  }, []);
+  }, [addRecentlyAccessedStudent]);
 
   const handleResetList = useCallback(() => {
     sessionStorage.removeItem('markedPriorityStudents');
