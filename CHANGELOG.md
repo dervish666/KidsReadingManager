@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.5.0 - 2025-08-22
+
+### Added
+- **JSON Editor Tab**: Added a new tab on the stats page for direct editing of app_data.json file
+  - Created new JsonEditor component with read/write functionality ([`src/components/stats/JsonEditor.js`](src/components/stats/JsonEditor.js:1))
+  - Added server endpoint for saving JSON data ([`server/index.js`](server/index.js:197))
+  - Integrated JSON editor as a new tab in the stats page navigation ([`src/components/stats/ReadingStats.js`](src/components/stats/ReadingStats.js:370))
+  - Implemented JSON validation with real-time feedback and syntax error highlighting
+  - Added confirmation dialog for save operations to prevent accidental data loss
+  - Includes reload functionality and automatic page refresh after successful saves
+
+### Fixed
+- **Analytics API Errors**: Fixed missing analytics endpoints that were causing 404 errors
+  - Added `/api/analytics/event` endpoint ([`server/index.js`](server/index.js:234))
+  - Added `/api/analytics/track/page_view` endpoint ([`server/index.js`](server/index.js:240))
+
+### Changed
+- Enhanced stats page with new JSON editor functionality for advanced data management
+- Improved server error handling and API robustness
+
+### Version
+- Bumped package version to 1.5.0
+
 ## 1.4.2 - 2025-08-22
 
 ### Added

@@ -186,11 +186,57 @@ app.get('/api/data', (req, res) => {
 // Replace all data (for import/export)
 app.post('/api/data', (req, res) => {
   const newData = req.body;
-  
+
   if (writeData(newData)) {
     res.json({ message: 'Data imported successfully', count: newData.students.length });
   } else {
     res.status(500).json({ error: 'Failed to import data' });
+  }
+});
+
+// Get JSON content (for JSON editor)
+app.get('/api/data/json', (req, res) => {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const DATA_FILE = path.join(__dirname, '..', 'config', 'app_data.json');
+
+    if (!fs.existsSync(DATA_FILE)) {
+      return res.status(404).json({ error: 'JSON file not found' });
+    }
+
+    const content = fs.readFileSync(DATA_FILE, 'utf8');
+    res.setHeader('Content-Type', 'application/json');
+    res.send(content);
+  } catch (error) {
+    console.error('Error reading JSON file:', error);
+    res.status(500).json({ error: 'Failed to read JSON file' });
+  }
+});
+
+// Save JSON content (for JSON editor)
+app.post('/api/data/save-json', (req, res) => {
+  try {
+    const { content } = req.body;
+
+    if (!content) {
+      return res.status(400).json({ error: 'No content provided' });
+    }
+
+    // Validate JSON
+    JSON.parse(content);
+
+    // Write to file
+    const fs = require('fs');
+    const path = require('path');
+    const DATA_FILE = path.join(__dirname, '..', 'config', 'app_data.json');
+
+    fs.writeFileSync(DATA_FILE, content, 'utf8');
+
+    res.json({ success: true, message: 'JSON saved successfully' });
+  } catch (error) {
+    console.error('Error saving JSON:', error);
+    res.status(400).json({ success: false, message: error.message });
   }
 });
 
@@ -229,6 +275,25 @@ app.post('/api/settings', (req, res) => {
   } else {
     res.status(500).json({ error: 'Failed to save settings' });
   }
+});
+
+// Analytics endpoints
+app.post('/api/analytics/event', (req, res) => {
+  // Log analytics event (you can extend this to store in database or send to external service)
+  const eventData = req.body;
+  console.log('Analytics event:', eventData);
+
+  // Return success response
+  res.json({ success: true, message: 'Event logged successfully' });
+});
+
+app.post('/api/analytics/track/page_view', (req, res) => {
+  // Log page view tracking
+  const pageViewData = req.body;
+  console.log('Page view tracked:', pageViewData);
+
+  // Return success response
+  res.json({ success: true, message: 'Page view tracked successfully' });
 });
 
 // Classes endpoints

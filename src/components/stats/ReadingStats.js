@@ -23,12 +23,14 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import SettingsIcon from '@mui/icons-material/Settings';
 import TimelineIcon from '@mui/icons-material/Timeline';
+import CodeIcon from '@mui/icons-material/Code';
 import VisualIndicators from './VisualIndicators';
 import DaysSinceReadingChart from './DaysSinceReadingChart';
 import ReadingTimelineChart from './ReadingTimelineChart';
 import ReadingFrequencyChart from './ReadingFrequencyChart';
 import DataManagement from '../DataManagement';
 import Settings from '../Settings';
+import JsonEditor from './JsonEditor';
 import { useAppContext } from '../../contexts/AppContext';
 
 const ReadingStats = () => {
@@ -370,6 +372,7 @@ const ReadingStats = () => {
             <Tab icon={<TimelineIcon />} label="Reading Timeline" />
             <Tab icon={<SettingsIcon />} label="Data Management" />
             <Tab icon={<SettingsIcon />} label="Settings" />
+            <Tab icon={<CodeIcon />} label="JSON Editor" />
           </Tabs>
         </Paper>
         
@@ -417,6 +420,7 @@ const ReadingStats = () => {
           )}
           {currentTab === 4 && <DataManagement />}
           {currentTab === 5 && <Settings />}
+          {currentTab === 6 && <JsonEditor />}
         </Box>
       </Box>
     </Box>

@@ -519,7 +519,6 @@ export const AppProvider = ({ children }) => {
   const clearRecentlyAccessedStudents = useCallback(() => {
     setRecentlyAccessedStudents([]);
     sessionStorage.removeItem('recentlyAccessedStudents');
-  }, []);
   }, []); // No dependencies
 
   const updateReadingStatusSettings = useCallback(async (newSettings) => {
