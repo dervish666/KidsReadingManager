@@ -134,10 +134,10 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
   );
 };
 
-const PrioritizedStudentsList = ({ defaultCount = 8 }) => {
-  const [expanded, setExpanded] = useState(true);
-  const [count, setCount] = useState(defaultCount);
-  const { prioritizedStudents: contextPrioritizedStudents, updatePriorityStudentCount, priorityStudentCount } = useAppContext();
+const PrioritizedStudentsList = ({ defaultCount = 8, filterClassId = 'all' }) => {
+   const [expanded, setExpanded] = useState(true);
+   const [count, setCount] = useState(defaultCount);
+   const { prioritizedStudents: contextPrioritizedStudents, updatePriorityStudentCount, priorityStudentCount, classes } = useAppContext();
   
   // Initialize state from sessionStorage
   const [markedStudentIds, setMarkedStudentIds] = useState(() => {
@@ -165,9 +165,30 @@ const PrioritizedStudentsList = ({ defaultCount = 8 }) => {
     setCount(priorityStudentCount);
   }, [priorityStudentCount]);
   
+  // Get IDs of disabled classes
+  const disabledClassIds = classes.filter(cls => cls.disabled).map(cls => cls.id);
+
+  // Filter prioritized students by class and exclude disabled classes
+  const filteredPrioritizedStudents = contextPrioritizedStudents.filter(student => {
+    // First, exclude students from disabled classes
+    if (student.classId && disabledClassIds.includes(student.classId)) {
+      return false;
+    }
+
+    if (filterClassId === 'all') {
+      return true; // Show all students (excluding disabled classes)
+    }
+    // Handle unassigned students if 'unassigned' is selected
+    if (filterClassId === 'unassigned') {
+      return !student.classId;
+    }
+    // Otherwise, match the classId
+    return student.classId === filterClassId;
+  });
+
   // Use the memoized prioritized students array from context
   // Filter to use only the number specified by count
-  const allPrioritizedStudents = contextPrioritizedStudents.slice(0, count);
+  const allPrioritizedStudents = filteredPrioritizedStudents.slice(0, count);
   const prioritizedStudents = allPrioritizedStudents.filter(student => !markedStudentIds.has(student.id));
   
   const handleCountChange = (event, newValue) => {

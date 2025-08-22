@@ -304,7 +304,7 @@ const StudentList = () => {
         <>
           {/* Priority Reading List - Add bottom margin */}
           <Box mb={4}> {/* Added Box wrapper with margin */}
-            <PrioritizedStudentsList />
+            <PrioritizedStudentsList filterClassId={filterClassId} />
           </Box>
           
           {/* All Students Grid - Increase spacing */}
