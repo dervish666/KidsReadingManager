@@ -65,10 +65,33 @@ app.use(express.static(path.join(__dirname, '..', 'build')));
 const readData = () => {
   try {
     const data = fs.readFileSync(DATA_FILE, 'utf8');
-    return JSON.parse(data);
+    const parsedData = JSON.parse(data);
+
+    // Ensure all required data structures exist
+    if (!parsedData.students) parsedData.students = [];
+    if (!parsedData.classes) parsedData.classes = [];
+    if (!parsedData.settings) {
+      parsedData.settings = {
+        readingStatusSettings: {
+          recentlyReadDays: 7,
+          needsAttentionDays: 14
+        }
+      };
+    }
+
+    return parsedData;
   } catch (error) {
     console.error('Error reading data file:', error);
-    return { students: [] };
+    return {
+      students: [],
+      classes: [],
+      settings: {
+        readingStatusSettings: {
+          recentlyReadDays: 7,
+          needsAttentionDays: 14
+        }
+      }
+    };
   }
 };
 
