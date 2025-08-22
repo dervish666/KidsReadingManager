@@ -7,19 +7,29 @@ import {
 } from '@mui/material';
 import { useAppContext } from '../../contexts/AppContext';
 import { useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 
 const ReadingFrequencyChart = () => {
   const theme = useTheme();
-  const { students } = useAppContext();
+  const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
+  const { students, classes } = useAppContext();
+
+  // Get IDs of disabled classes
+  const disabledClassIds = classes.filter(cls => cls.disabled).map(cls => cls.id);
+
+  // Filter out students from disabled classes
+  const activeStudents = students.filter(student => {
+    return !student.classId || !disabledClassIds.includes(student.classId);
+  });
   
   // Sort students by reading session count (most to least)
-  const sortedStudents = [...students].sort((a, b) => 
+  const sortedStudents = [...activeStudents].sort((a, b) =>
     b.readingSessions.length - a.readingSessions.length
   );
-  
+
   // Find the maximum number of sessions for scaling
   const maxSessions = Math.max(
-    ...students.map(s => s.readingSessions.length),
+    ...activeStudents.map(s => s.readingSessions.length),
     5 // Minimum scale (at least 5 sessions)
   );
   
@@ -36,7 +46,7 @@ const ReadingFrequencyChart = () => {
         Reading Frequency by Student
       </Typography>
       
-      {students.length === 0 ? (
+      {activeStudents.length === 0 ? (
         <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 3 }}>
           No student data available.
         </Typography>
@@ -44,10 +54,12 @@ const ReadingFrequencyChart = () => {
         <Box sx={{ mt: 3 }}>
           {sortedStudents.map(student => {
             const sessionCount = student.readingSessions.length;
-            const barWidth = `${Math.max((sessionCount / maxSessions) * 100, 3)}%`; // Minimum 3% width for visibility
+            const basePercent = Math.max((sessionCount / maxSessions) * 100, 3); // Base percent
+            const adjustedPercent = isSmall ? Math.max(basePercent, 6) : basePercent; // Larger min on small screens
+            const barWidth = `${Math.min(adjustedPercent, 100)}%`;
             
             return (
-              <Box key={student.id} sx={{ mb: 2 }}>
+              <Box key={student.id} sx={{ mb: 2, width: '100%' }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5, flexDirection: { xs: 'column', sm: 'row' }, gap: 1 }}>
                   <Typography variant="body2" sx={{ maxWidth: { xs: '100%', sm: '60%' }, wordBreak: 'break-word' }}>
                     {student.name}
@@ -63,12 +75,12 @@ const ReadingFrequencyChart = () => {
                   <Box sx={{ mt: { xs: 1, sm: 0 } }}>
                     <Box
                       sx={{
-                        height: 20,
+                        height: { xs: 18, sm: 20 },
                         width: barWidth,
                         bgcolor: getBarColor(sessionCount),
                         borderRadius: 1,
-                        transition: 'width 0.5s ease-in-out',
-                        minWidth: '3px', // Ensure very small values are still visible
+                        transition: 'width 0.4s ease-in-out',
+                        minWidth: '6px', // Ensure very small values are still visible on touch
                         position: 'relative',
                         '&:hover': {
                           opacity: 0.9,

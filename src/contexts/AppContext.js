@@ -343,6 +343,7 @@ export const AppProvider = ({ children }) => {
       id: uuidv4(),
       name: classData.name,
       teacherName: classData.teacherName || '',
+      disabled: classData.disabled || false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -699,7 +700,16 @@ export const AppProvider = ({ children }) => {
 
   const prioritizedStudents = useMemo(() => {
     console.log("Recalculating prioritizedStudents"); // Add log for debugging
-    return [...students]
+
+    // Get IDs of disabled classes
+    const disabledClassIds = classes.filter(cls => cls.disabled).map(cls => cls.id);
+
+    // Filter out students from disabled classes
+    const activeStudents = students.filter(student => {
+      return !student.classId || !disabledClassIds.includes(student.classId);
+    });
+
+    return [...activeStudents]
       .sort((a, b) => {
         if (!a.lastReadDate && !b.lastReadDate) return a.readingSessions.length - b.readingSessions.length;
         if (!a.lastReadDate) return -1;

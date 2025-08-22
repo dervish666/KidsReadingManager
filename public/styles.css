@@ -1,79 +1,160 @@
+/* Base body and background - lighter, neutral, mobile-first */
 body {
-   margin: 0;
-   padding: 0;
-   font-family: 'Merriweather', 'Roboto', 'Helvetica Neue', sans-serif;
-   -webkit-font-smoothing: antialiased;
-   -moz-osx-font-smoothing: grayscale;
-   background: linear-gradient(135deg, #f8f5f0 0%, #f0ede8 100%);
-   min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: linear-gradient(180deg, #fbfbfc 0%, #f5f6f8 100%);
+  color: #111827;
+  min-height: 100vh;
+  -webkit-font-variant-ligatures: none;
 }
 
-/* Modern gradient background - lighter and more performant */
+/* Subtle decorative layers (low opacity for performance) */
 body::before {
-   content: '';
-   position: fixed;
-   top: 0;
-   left: 0;
-   width: 100%;
-   height: 100%;
-   background:
-     radial-gradient(circle at 20% 50%, rgba(107,77,87,0.05) 0%, transparent 50%),
-     radial-gradient(circle at 80% 20%, rgba(224,195,160,0.05) 0%, transparent 50%),
-     radial-gradient(circle at 40% 80%, rgba(46,125,50,0.03) 0%, transparent 50%);
-   z-index: -1;
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(circle at 10% 20%, rgba(99,102,241,0.02), transparent 25%),
+    radial-gradient(circle at 90% 80%, rgba(245,158,11,0.02), transparent 25%);
+  z-index: -1;
+  pointer-events: none;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+/* Utility container to center content and provide responsive max width */
+.app-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+/* Lightweight card fallback for non-MUI elements */
+.card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+  border: 1px solid rgba(15,23,42,0.04);
+  padding: 12px;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms;
+}
+
+.btn:active { transform: translateY(1px); }
+
+.btn-primary {
+  background: linear-gradient(90deg, #6366f1 0%, #4f46e5 100%);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(79,70,229,0.12);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid rgba(15,23,42,0.08);
+  color: #0f172a;
+}
+
+/* Responsive grid helpers */
+.row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.col {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* Small card media (avatars/icons) */
+.card-media {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg,#eef2ff,#eef4ff);
+}
+
+/* Make overflowing content scroll nicely on touch devices */
+* {
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Modern scrollbar styling */
 ::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.05);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(107, 77, 87, 0.3);
-  border-radius: 4px;
+  background: rgba(15, 23, 42, 0.12);
+  border-radius: 6px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(107, 77, 87, 0.5);
+  background: rgba(15, 23, 42, 0.18);
 }
 
-/* Modern mobile optimizations */
+/* Mobile-specific adjustments */
 @media (max-width: 600px) {
-  /* Enhanced touch targets and spacing */
-  .MuiTabs-scrollButtons {
-    opacity: 0.8 !important;
-    min-width: 48px !important;
-  }
+  .app-container { padding: 12px; }
+  .card { border-radius: 10px; padding: 14px; }
+  .card-media { width: 44px; height: 44px; border-radius: 8px; }
+  .btn { padding: 12px 14px; border-radius: 10px; min-height: 44px; font-size: 1rem; }
 
-  /* Improved tabs scrolling */
-  .MuiTabs-flexContainer {
-    display: flex !important;
-    flex-wrap: nowrap !important;
-  }
+  /* Ensure bottom safe-area is respected on iOS */
+  body { padding-bottom: calc(env(safe-area-inset-bottom) + 8px); padding-top: env(safe-area-inset-top); }
 
-  /* Enhanced safe area support */
-  body {
-    padding-bottom: calc(env(safe-area-inset-bottom) + 8px);
-    padding-top: env(safe-area-inset-top);
-  }
-
-  /* Better mobile scrolling */
-  * {
-    -webkit-overflow-scrolling: touch;
-  }
+  /* Make toolbars and tab controls easier to tap */
+  .MuiTabs-scrollButtons { opacity: 0.95 !important; min-width: 48px !important; }
+  .MuiTabs-flexContainer { display: flex !important; flex-wrap: nowrap !important; }
 }
 
-/* Modern focus styles for accessibility */
+/* Accessibility: visible focus rings */
 *:focus-visible {
-  outline: 2px solid #6b4d57;
-  outline-offset: 2px;
-  border-radius: 4px;
+  outline: 3px solid rgba(99,102,241,0.22);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* Small helpers for truncation and ellipsis */
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Visually-hidden helper for screen readers */
+.sr-only {
+  position: absolute !important;
+  height: 1px; width: 1px;
+  overflow: hidden;
+  clip: rect(1px, 1px, 1px, 1px);
+  white-space: nowrap;
+}
+
+/* Ensure form elements and interactive controls have sufficient hit area */
+input, button, select, textarea {
+  touch-action: manipulation;
 }

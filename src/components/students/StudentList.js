@@ -109,10 +109,18 @@ const StudentList = () => {
 
   // Filter and sort students
   const getFilteredAndSortedStudents = () => {
-    // 1. Filter by class
+    // Get IDs of disabled classes
+    const disabledClassIds = classes.filter(cls => cls.disabled).map(cls => cls.id);
+
+    // 1. Filter by class and exclude disabled classes
     const filteredStudents = students.filter(student => {
+      // First, exclude students from disabled classes
+      if (student.classId && disabledClassIds.includes(student.classId)) {
+        return false;
+      }
+
       if (filterClassId === 'all') {
-        return true; // Show all students
+        return true; // Show all students (excluding disabled classes)
       }
       // Handle unassigned students if 'unassigned' is selected
       if (filterClassId === 'unassigned') {
@@ -219,8 +227,8 @@ const StudentList = () => {
         }}> {/* Allow controls to wrap */}
           {/* Class Filter Dropdown */}
           <FormControl sx={{
-            minWidth: { xs: 140, sm: 180 },
-            flex: { xs: 1, sm: 'none' }
+            minWidth: { xs: '100%', sm: 180 },
+            flex: { xs: '1 1 100%', sm: 'none' }
           }} size="small">
             <InputLabel id="filter-class-label">Filter by Class</InputLabel>
             <Select
@@ -232,7 +240,7 @@ const StudentList = () => {
             >
               <MenuItem value="all">All Classes</MenuItem>
               <MenuItem value="unassigned">Unassigned</MenuItem>
-              {classes.map((cls) => (
+              {classes.filter(cls => !cls.disabled).map((cls) => (
                 <MenuItem key={cls.id} value={cls.id}>
                   {cls.name}
                 </MenuItem>
@@ -242,8 +250,8 @@ const StudentList = () => {
 
           {/* Sort Dropdown */}
           <FormControl sx={{
-            minWidth: { xs: 140, sm: 180 },
-            flex: { xs: 1, sm: 'none' }
+            minWidth: { xs: '100%', sm: 180 },
+            flex: { xs: '1 1 100%', sm: 'none' }
           }} size="small">
             <InputLabel id="sort-select-label">Sort By</InputLabel>
             <Select
@@ -300,9 +308,9 @@ const StudentList = () => {
           </Box>
           
           {/* All Students Grid - Increase spacing */}
-          <Grid container spacing={3}>
+          <Grid container spacing={{ xs: 2, sm: 3 }}>
             {filteredAndSortedStudents.map((student) => (
-              <Grid item key={student.id} xs={12} sm={6} md={4}>
+              <Grid item key={student.id} xs={12} sm={6} md={3} lg={3}>
                 <StudentCard student={student} />
               </Grid>
             ))}
@@ -340,7 +348,7 @@ const StudentList = () => {
               <MenuItem value="unassigned">
                 <em>Unassigned</em>
               </MenuItem>
-              {classes.map((cls) => (
+              {classes.filter(cls => !cls.disabled).map((cls) => (
                 <MenuItem key={cls.id} value={cls.id}>
                   {cls.name} ({cls.teacherName})
                 </MenuItem>
@@ -369,13 +377,13 @@ const StudentList = () => {
         sx={{
           position: 'fixed',
           bottom: {
-            xs: 'calc(env(safe-area-inset-bottom) + 96px)',
+            xs: 'calc(env(safe-area-inset-bottom) + 110px)',
             sm: 80
           },
           right: { xs: 16, sm: 24 },
           zIndex: 1200,
-          width: { xs: 56, sm: 64 },
-          height: { xs: 56, sm: 64 }
+          width: { xs: 64, sm: 64 },
+          height: { xs: 64, sm: 64 }
         }}
         onClick={handleOpenDialog}
       >

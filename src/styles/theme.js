@@ -58,50 +58,51 @@ const theme = createTheme({
     h1: {
       fontFamily: 'Inter, system-ui, sans-serif',
       fontWeight: 700,
-      fontSize: '2.5rem',
-      lineHeight: 1.2,
+      fontSize: 'clamp(1.75rem, 4.5vw, 2.5rem)',
+      lineHeight: 1.15,
     },
     h2: {
       fontFamily: 'Inter, system-ui, sans-serif',
       fontWeight: 600,
-      fontSize: '2rem',
-      lineHeight: 1.3,
+      fontSize: 'clamp(1.25rem, 3.2vw, 2rem)',
+      lineHeight: 1.2,
     },
     h3: {
       fontFamily: 'Inter, system-ui, sans-serif',
       fontWeight: 600,
-      fontSize: '1.5rem',
-      lineHeight: 1.4,
+      fontSize: 'clamp(1.125rem, 2.2vw, 1.5rem)',
+      lineHeight: 1.3,
     },
     h4: {
       fontFamily: 'Inter, system-ui, sans-serif',
       fontWeight: 600,
-      fontSize: '1.25rem',
-      lineHeight: 1.4,
+      fontSize: '1.125rem',
+      lineHeight: 1.3,
     },
     h5: {
       fontFamily: 'Inter, system-ui, sans-serif',
       fontWeight: 500,
-      fontSize: '1.125rem',
-      lineHeight: 1.5,
+      fontSize: '1rem',
+      lineHeight: 1.4,
     },
     h6: {
       fontFamily: 'Inter, system-ui, sans-serif',
       fontWeight: 500,
-      fontSize: '1rem',
-      lineHeight: 1.5,
+      fontSize: '0.95rem',
+      lineHeight: 1.4,
     },
     body1: {
-      fontSize: '1rem',
+      fontSize: 'clamp(0.95rem, 1.6vw, 1rem)',
       lineHeight: 1.6,
     },
     body2: {
-      fontSize: '0.875rem',
+      fontSize: 'clamp(0.825rem, 1.2vw, 0.875rem)',
       lineHeight: 1.5,
     },
     button: {
       textTransform: 'none',
-      fontWeight: 500,
+      fontWeight: 600,
+      letterSpacing: '0.2px',
     },
   },
   components: {
@@ -130,26 +131,26 @@ const theme = createTheme({
         root: {
           borderRadius: 12,
           textTransform: 'none',
-          padding: '12px 20px',
+          padding: '10px 16px',
           fontWeight: 600,
           fontSize: '0.95rem',
-          transition: 'all 0.2s ease-in-out',
-          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+          transition: 'transform 140ms ease, box-shadow 140ms ease',
+          boxShadow: '0 6px 18px rgba(15,23,42,0.06)',
           '&:hover': {
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-            transform: 'translateY(-1px)',
+            boxShadow: '0 10px 24px rgba(15,23,42,0.08)',
+            transform: 'translateY(-2px)',
           },
           '@media (max-width:600px)': {
-            padding: '14px 20px',
+            padding: '14px 16px',
             fontSize: '1rem',
             minHeight: 48, // Better touch target
             borderRadius: 10,
           }
         },
         contained: {
-          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+          boxShadow: '0 6px 18px rgba(79,70,229,0.10)',
           '&:hover': {
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            boxShadow: '0 10px 24px rgba(79,70,229,0.12)',
           }
         },
       },

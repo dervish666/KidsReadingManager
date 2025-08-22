@@ -44,6 +44,7 @@ if (!fs.existsSync(configDir)) {
 if (!fs.existsSync(DATA_FILE)) {
   fs.writeFileSync(DATA_FILE, JSON.stringify({
     students: [],
+    classes: [],
     settings: {
       readingStatusSettings: {
         recentlyReadDays: 7,
@@ -191,19 +192,104 @@ app.get('/api/settings', (req, res) => {
 app.post('/api/settings', (req, res) => {
   const data = readData();
   const newSettings = req.body;
-  
+
   // Initialize settings object if it doesn't exist
   if (!data.settings) {
     data.settings = {};
   }
-  
+
   // Update settings with new values
   data.settings = { ...data.settings, ...newSettings };
-  
+
   if (writeData(data)) {
     res.json(data.settings);
   } else {
     res.status(500).json({ error: 'Failed to save settings' });
+  }
+});
+
+// Classes endpoints
+app.get('/api/classes', (req, res) => {
+  const data = readData();
+
+  // Initialize classes array if it doesn't exist
+  if (!data.classes) {
+    data.classes = [];
+    writeData(data);
+  }
+
+  res.json(data.classes);
+});
+
+app.post('/api/classes', (req, res) => {
+  const data = readData();
+  const newClass = req.body;
+
+  // Initialize classes array if it doesn't exist
+  if (!data.classes) {
+    data.classes = [];
+  }
+
+  // Add default disabled field if not provided
+  if (newClass.disabled === undefined) {
+    newClass.disabled = false;
+  }
+
+  data.classes.push(newClass);
+
+  if (writeData(data)) {
+    res.status(201).json(newClass);
+  } else {
+    res.status(500).json({ error: 'Failed to save class' });
+  }
+});
+
+app.put('/api/classes/:id', (req, res) => {
+  const data = readData();
+  const { id } = req.params;
+  const updatedClass = req.body;
+
+  // Initialize classes array if it doesn't exist
+  if (!data.classes) {
+    data.classes = [];
+  }
+
+  const index = data.classes.findIndex(cls => cls.id === id);
+
+  if (index === -1) {
+    return res.status(404).json({ error: 'Class not found' });
+  }
+
+  // Preserve the id and update other fields
+  data.classes[index] = { ...updatedClass, id };
+
+  if (writeData(data)) {
+    res.json(data.classes[index]);
+  } else {
+    res.status(500).json({ error: 'Failed to update class' });
+  }
+});
+
+app.delete('/api/classes/:id', (req, res) => {
+  const data = readData();
+  const { id } = req.params;
+
+  // Initialize classes array if it doesn't exist
+  if (!data.classes) {
+    data.classes = [];
+  }
+
+  const initialLength = data.classes.length;
+  data.classes = data.classes.filter(cls => cls.id !== id);
+
+  if (data.classes.length === initialLength) {
+    return res.status(404).json({ error: 'Class not found' });
+  }
+
+  if (writeData(data)) {
+    res.json({ message: 'Class deleted successfully' });
+  } else {
+    res.status(500).json({ error: 'Failed to delete class' });
   }
 });
 

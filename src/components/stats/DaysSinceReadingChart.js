@@ -6,16 +6,26 @@ import {
   Tooltip,
   LinearProgress
 } from '@mui/material';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import { useAppContext } from '../../contexts/AppContext';
 import { useTheme } from '@mui/material/styles';
 
 const DaysSinceReadingChart = () => {
   const theme = useTheme();
-  const { students } = useAppContext();
+  const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
+  const { students, classes } = useAppContext();
+
+  // Get IDs of disabled classes
+  const disabledClassIds = classes.filter(cls => cls.disabled).map(cls => cls.id);
+
+  // Filter out students from disabled classes
+  const activeStudents = students.filter(student => {
+    return !student.classId || !disabledClassIds.includes(student.classId);
+  });
   
   // Calculate days since last reading for each student
   const calculateDaysSinceReading = () => {
-    return students.map(student => {
+    return activeStudents.map(student => {
       const daysSinceReading = student.lastReadDate 
         ? Math.floor((new Date() - new Date(student.lastReadDate)) / (1000 * 60 * 60 * 24))
         : null;
@@ -91,12 +101,12 @@ const DaysSinceReadingChart = () => {
                     variant="determinate"
                     value={student.daysSinceReading !== null ? (student.daysSinceReading / maxDays) * 100 : 100}
                     sx={{
-                      height: 10,
-                      borderRadius: 5,
-                      bgcolor: 'rgba(0, 0, 0, 0.1)',
+                      height: { xs: 8, sm: 10 },
+                      borderRadius: 6,
+                      bgcolor: 'rgba(0, 0, 0, 0.06)',
                       '& .MuiLinearProgress-bar': {
                         bgcolor: getBarColor(student.daysSinceReading),
-                        borderRadius: 5,
+                        borderRadius: 6,
                       },
                     }}
                   />

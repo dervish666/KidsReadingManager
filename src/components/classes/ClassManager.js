@@ -14,11 +14,16 @@ import {
   DialogTitle,
   DialogContent,
   DialogContentText,
-  DialogActions
+  DialogActions,
+  Switch,
+  FormControlLabel,
+  Chip
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
+import BlockIcon from '@mui/icons-material/Block';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { useAppContext } from '../../contexts/AppContext';
 
 const ClassManager = () => {
@@ -75,6 +80,7 @@ const ClassManager = () => {
   };
 
   const handleCancelDelete = () => setConfirmDelete(null);
+
   const handleCancelEdit = () => {
     setEditingClass(null);
     setEditClassName('');
@@ -82,6 +88,13 @@ const ClassManager = () => {
     setError('');
   };
 
+  const handleToggleDisabled = async (cls) => {
+    try {
+      await updateClass(cls.id, { disabled: !cls.disabled });
+    } catch (error) {
+      console.error('Error toggling class disabled state:', error);
+    }
+  };
   return (
     <Paper sx={{ p: 3, mt: 3 }}>
       <Typography variant="h6" gutterBottom>
@@ -146,7 +159,19 @@ const ClassManager = () => {
                 key={cls.id}
                 divider
                 secondaryAction={
-                  <Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={!cls.disabled}
+                          onChange={() => handleToggleDisabled(cls)}
+                          size="small"
+                          color="primary"
+                        />
+                      }
+                      label={cls.disabled ? "Disabled" : "Active"}
+                      sx={{ mr: 1 }}
+                    />
                     <IconButton edge="end" aria-label="edit" onClick={() => handleEditClick(cls)}>
                       <EditIcon />
                     </IconButton>
@@ -157,7 +182,18 @@ const ClassManager = () => {
                 }
               >
                 <ListItemText
-                  primary={cls.name}
+                  primary={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      {cls.name}
+                      <Chip
+                        icon={cls.disabled ? <BlockIcon /> : <CheckCircleIcon />}
+                        label={cls.disabled ? "Disabled" : "Active"}
+                        color={cls.disabled ? "error" : "success"}
+                        size="small"
+                        variant="outlined"
+                      />
+                    </Box>
+                  }
                   secondary={cls.teacherName ? String(cls.teacherName) : ''}
                 />
               </ListItem>

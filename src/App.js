@@ -40,13 +40,12 @@ function App() {
         }}>
         <Header />
         
-        <Container component="main" sx={{
+        <Container component="main" className="app-container" sx={{
            flexGrow: 1,
            py: { xs: 1, sm: 2 },
-           px: { xs: 1, sm: 2 },
+           px: { xs: 0, sm: 2 },
            display: 'flex',
            flexDirection: 'column',
-           maxWidth: '100vw',
            overflow: 'hidden'
          }}>
            <Paper

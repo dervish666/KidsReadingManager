@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -7,14 +7,23 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Tooltip
+  Tooltip,
+  useMediaQuery
 } from '@mui/material';
 import { useAppContext } from '../../contexts/AppContext';
 import { useTheme } from '@mui/material/styles';
 
 const ReadingTimelineChart = () => {
   const theme = useTheme();
-  const { students } = useAppContext();
+  const { students, classes } = useAppContext();
+
+  // Get IDs of disabled classes
+  const disabledClassIds = classes.filter(cls => cls.disabled).map(cls => cls.id);
+
+  // Filter out students from disabled classes
+  const activeStudents = students.filter(student => {
+    return !student.classId || !disabledClassIds.includes(student.classId);
+  });
   const [timeRange, setTimeRange] = useState('30'); // Default to 30 days
   
   const handleTimeRangeChange = (event) => {
@@ -57,8 +66,8 @@ const ReadingTimelineChart = () => {
   // Get reading sessions within the date range
   const getReadingSessions = () => {
     const { startDate, endDate } = getDateRange();
-    
-    return students.map(student => {
+
+    return activeStudents.map(student => {
       // Filter sessions within the date range
       const sessionsInRange = student.readingSessions.filter(session => {
         const sessionDate = new Date(session.date);
@@ -115,19 +124,22 @@ const ReadingTimelineChart = () => {
   };
   
   // Determine how many dates to show based on screen size
+  const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
   const getVisibleDates = () => {
-    // For simplicity, we'll show a fixed number
-    // In a real app, this could be responsive based on screen width
-    const maxDates = timeRange === '7' ? 7 : 
-                     timeRange === '30' ? 10 : 
-                     timeRange === '90' ? 12 : 12;
+    // Choose max visible columns based on timeRange and screen size
+    const maxDates = (() => {
+      if (timeRange === '7') return isSmall ? 7 : 7;
+      if (timeRange === '30') return isSmall ? 6 : 10;
+      if (timeRange === '90') return isSmall ? 8 : 12;
+      return isSmall ? 10 : 14;
+    })();
     
     // If we have fewer dates than max, show all
     if (timelineDates.length <= maxDates) {
       return timelineDates;
     }
     
-    // Otherwise, sample dates evenly
+    // Otherwise, sample dates evenly to fit the available columns
     const step = Math.ceil(timelineDates.length / maxDates);
     const sampledDates = [];
     
@@ -135,9 +147,10 @@ const ReadingTimelineChart = () => {
       sampledDates.push(timelineDates[i]);
     }
     
-    // Always include the most recent date
-    if (sampledDates[sampledDates.length - 1] !== timelineDates[timelineDates.length - 1]) {
-      sampledDates.push(timelineDates[timelineDates.length - 1]);
+    // Ensure last (most recent) date is included
+    const lastDate = timelineDates[timelineDates.length - 1];
+    if (sampledDates[sampledDates.length - 1].toDateString() !== lastDate.toDateString()) {
+      sampledDates.push(lastDate);
     }
     
     return sampledDates;
@@ -175,12 +188,12 @@ const ReadingTimelineChart = () => {
       ) : (
         <Box sx={{ overflowX: 'auto' }}>
           {/* Timeline header with dates */}
-          <Box sx={{ display: 'flex', mb: 2, pl: { xs: 10, sm: 15 }, overflowX: 'auto' }}>
+          <Box sx={{ display: 'flex', mb: 2, pl: { xs: 6, sm: 12 }, overflowX: 'auto' }}>
             {visibleDates.map((date, index) => (
               <Box
                 key={index}
                 sx={{
-                  minWidth: { xs: 48, sm: 60 },
+                  minWidth: { xs: 44, sm: 56 },
                   textAlign: 'center',
                   borderRight: index < visibleDates.length - 1 ? '1px dashed #eee' : 'none'
                 }}
@@ -221,8 +234,8 @@ const ReadingTimelineChart = () => {
                     <Box
                       key={index}
                       sx={{
-                        minWidth: { xs: 48, sm: 60 },
-                        height: 30,
+                        minWidth: { xs: 44, sm: 56 },
+                        height: 28,
                         display: 'flex',
                         justifyContent: 'center',
                         alignItems: 'center',

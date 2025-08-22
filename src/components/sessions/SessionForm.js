@@ -24,7 +24,7 @@ import SessionNotes from './SessionNotes';
 import QuickEntry from './QuickEntry';
 
 const SessionForm = () => {
-  const { students, addReadingSession } = useAppContext();
+  const { students, addReadingSession, classes } = useAppContext();
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [assessment, setAssessment] = useState('independent');
   const [notes, setNotes] = useState('');
@@ -80,6 +80,14 @@ const SessionForm = () => {
     setSnackbarOpen(false);
   };
 
+  // Get IDs of disabled classes
+  const disabledClassIds = classes.filter(cls => cls.disabled).map(cls => cls.id);
+
+  // Filter out students from disabled classes
+  const activeStudents = students.filter(student => {
+    return !student.classId || !disabledClassIds.includes(student.classId);
+  });
+
   const selectedStudent = students.find(s => s.id === selectedStudentId);
 
   return (
@@ -129,7 +137,7 @@ const SessionForm = () => {
                     label="Student"
                     onChange={handleStudentChange}
                   >
-                    {students.map((student) => (
+                    {activeStudents.map((student) => (
                       <MenuItem key={student.id} value={student.id}>
                         {student.name}
                       </MenuItem>

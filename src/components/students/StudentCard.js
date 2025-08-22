@@ -54,7 +54,9 @@ const StudentCard = ({ student }) => {
           flexDirection: 'column',
           position: 'relative',
           overflow: 'hidden',
-          transition: 'all 0.2s ease-in-out',
+          transition: 'all 0.18s ease-in-out',
+          borderRadius: { xs: 12, sm: 16 },
+          p: { xs: 0.5, sm: 0 },
           '&:hover': {
             transform: 'translateY(-4px)',
             boxShadow: (theme) => theme.shadows[3],
@@ -74,11 +76,13 @@ const StudentCard = ({ student }) => {
             flexDirection: 'column',
             alignItems: 'stretch',
             textAlign: 'left',
-            p: 0,
+            p: { xs: 1, sm: 0 },
+            gap: 1,
+            cursor: 'pointer',
             '&:focus-visible': {
-              outline: '2px solid',
-              outlineColor: 'primary.main',
-              outlineOffset: '2px',
+              outline: '3px solid',
+              outlineColor: (theme) => theme.palette.primary.main,
+              outlineOffset: '3px',
             },
             '@media (hover: none)': {
               '&:hover': {
@@ -157,7 +161,7 @@ const StudentCard = ({ student }) => {
 
           <CardContent sx={{
             flexGrow: 1,
-            pt: 0,
+            pt: { xs: 0.5, sm: 0 },
             pb: { xs: 2, sm: 3 },
             '&:last-child': { pb: { xs: 2, sm: 3 } }
           }}>
