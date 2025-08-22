@@ -4,43 +4,43 @@ import { createTheme } from '@mui/material/styles';
 const theme = createTheme({
    palette: {
      primary: {
-       main: '#6366f1', // Modern indigo
-       light: '#818cf8',
-       dark: '#4f46e5',
+       main: '#0b3c49', // Midnight green
+       light: '#1a5a6a',
+       dark: '#062832',
      },
      secondary: {
-       main: '#f59e0b', // Warm amber
-       light: '#fbbf24',
-       dark: '#d97706',
+       main: '#d72483', // Mexican pink
+       light: '#e64ba3',
+       dark: '#a61d65',
      },
      background: {
-       default: '#fafafa', // Clean light gray
+       default: '#f8f6f4', // Light cream background
        paper: '#ffffff', // Pure white for better contrast
      },
      text: {
-       primary: '#1f2937', // Modern dark gray
-       secondary: '#6b7280', // Medium gray
+       primary: '#0b3c49', // Midnight green for text
+       secondary: '#41292c', // Van Dyke for secondary text
      },
      status: {
-       // Enhanced status colors with better contrast
-       notRead: '#ef4444', // Bright red
-       needsAttention: '#f97316', // Vibrant orange
-       recentlyRead: '#22c55e', // Bright green
+       // Enhanced status colors with new palette
+       notRead: '#fd3e81', // French rose for errors/not read
+       needsAttention: '#792359', // Byzantium for warnings/needs attention
+       recentlyRead: '#0b3c49', // Midnight green for success/read
      },
      success: {
-       main: '#10b981',
-       light: '#34d399',
-       dark: '#059669',
+       main: '#0b3c49', // Midnight green for success
+       light: '#1a5a6a',
+       dark: '#062832',
      },
      warning: {
-       main: '#f59e0b',
-       light: '#fbbf24',
-       dark: '#d97706',
+       main: '#792359', // Byzantium for warnings
+       light: '#8d3a6a',
+       dark: '#5f1c45',
      },
      error: {
-       main: '#ef4444',
-       light: '#f87171',
-       dark: '#dc2626',
+       main: '#fd3e81', // French rose for errors
+       light: '#ff6b9d',
+       dark: '#d72465',
      },
    },
   typography: {
