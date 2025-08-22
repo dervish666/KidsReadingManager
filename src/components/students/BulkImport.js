@@ -11,19 +11,24 @@ import {
   Box,
   Chip,
   Alert,
-  Grid
+  Grid,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useAppContext } from '../../contexts/AppContext';
 
 const BulkImport = ({ open, onClose }) => {
-  const { bulkImportStudents, students } = useAppContext();
-  const theme = useTheme();
-  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
-  const [namesText, setNamesText] = useState('');
-  const [error, setError] = useState('');
-  const [preview, setPreview] = useState([]);
+   const { bulkImportStudents, students, classes } = useAppContext();
+   const theme = useTheme();
+   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
+   const [namesText, setNamesText] = useState('');
+   const [error, setError] = useState('');
+   const [preview, setPreview] = useState([]);
+   const [selectedClassId, setSelectedClassId] = useState('');
 
   const handleTextChange = (e) => {
     const text = e.target.value;
@@ -71,9 +76,10 @@ const BulkImport = ({ open, onClose }) => {
       return;
     }
     
-    bulkImportStudents(names);
+    bulkImportStudents(names, selectedClassId || null);
     setNamesText('');
     setPreview([]);
+    setSelectedClassId('');
     onClose();
   };
 
@@ -81,12 +87,13 @@ const BulkImport = ({ open, onClose }) => {
     setNamesText('');
     setPreview([]);
     setError('');
+    setSelectedClassId('');
     onClose();
   };
 
   return (
     <Dialog open={open} onClose={handleClose} fullScreen={fullScreen} maxWidth="sm" fullWidth>
-      <DialogTitle>Bulk Import Students</DialogTitle>
+      <DialogTitle>Bulk Input Students</DialogTitle>
       <DialogContent>
         {/* Wrap content in Grid container */}
         <Grid container spacing={3} sx={{ pt: 1, pb: 'calc(env(safe-area-inset-bottom) + 16px)' }}> {/* Add some padding top */}
@@ -94,6 +101,26 @@ const BulkImport = ({ open, onClose }) => {
             <DialogContentText>
               Enter each student's name on a new line to add multiple students at once.
             </DialogContentText>
+          </Grid>
+
+          <Grid size={12}>
+            <FormControl fullWidth>
+              <InputLabel>Class (Optional)</InputLabel>
+              <Select
+                value={selectedClassId}
+                onChange={(e) => setSelectedClassId(e.target.value)}
+                label="Class (Optional)"
+              >
+                <MenuItem value="">
+                  <em>No class assigned</em>
+                </MenuItem>
+                {classes.map((cls) => (
+                  <MenuItem key={cls.id} value={cls.id}>
+                    {cls.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Grid>
           
           {error && (
@@ -147,7 +174,7 @@ const BulkImport = ({ open, onClose }) => {
           disabled={preview.length === 0}
           fullWidth
         >
-          Import {preview.length > 0 ? `(${preview.length})` : ''}
+          Input {preview.length > 0 ? `(${preview.length})` : ''}
         </Button>
       </DialogActions>
     </Dialog>

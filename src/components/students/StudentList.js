@@ -281,8 +281,8 @@ const StudentList = () => {
               minWidth: { xs: 'auto', sm: 120 }
             }}
           >
-            <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Bulk Import</Box>
-            <Box sx={{ display: { xs: 'inline', sm: 'none' } }}>Import</Box>
+            <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Bulk Input</Box>
+            <Box sx={{ display: { xs: 'inline', sm: 'none' } }}>Input</Box>
           </Button>
         </Box>
       </Box>

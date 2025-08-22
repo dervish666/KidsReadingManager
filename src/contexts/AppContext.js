@@ -650,12 +650,13 @@ export const AppProvider = ({ children }) => {
     });
   }, [classes]); // <-- ADDED classes dependency (needed for optimistic update/revert logic consistency)
 
-  const bulkImportStudents = useCallback(async (names) => {
+  const bulkImportStudents = useCallback(async (names, classId = null) => {
     const newStudents = names.map(name => ({
       id: uuidv4(),
       name: name.trim(),
       lastReadDate: null,
-      readingSessions: []
+      readingSessions: [],
+      classId: classId // Add classId to each student
     })).filter(s => s.name); // Filter out empty names
 
     if (newStudents.length === 0) return []; // Return early if no valid names
