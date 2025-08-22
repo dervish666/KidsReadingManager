@@ -510,9 +510,9 @@
       "id": "f90eaa4f-d266-424c-82c3-bf800f7bce38",
       "name": "Year 3",
       "teacherName": "Mr Cox",
-      "disabled": false,
+      "disabled": true,
       "createdAt": "2025-04-30T20:44:28.821Z",
-      "updatedAt": "2025-04-30T20:44:28.903Z"
+      "updatedAt": "2025-08-22T18:36:35.061Z"
     },
     {
       "id": "4509591c-b318-43bc-bf21-68f86cbf548c",
