@@ -9,6 +9,7 @@ body {
   color: #0b3c49;
   min-height: 100vh;
   -webkit-font-variant-ligatures: none;
+  font-variant-ligatures: none;
 }
 
 /* Subtle decorative layers (low opacity for performance) */
