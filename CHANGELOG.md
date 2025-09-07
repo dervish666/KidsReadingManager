@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.11.0 - 2025-09-07
+
+### Added
+- **New Persistence Layer Architecture**: Implemented flexible data persistence layer supporting both JSON file storage and Cloudflare KV storage
+  - Created modular data provider infrastructure in `src/data/` directory with abstraction layer for different storage backends
+  - Implemented `jsonProvider.js` for local development using JSON file storage with CRUD operations for books ([`src/data/jsonProvider.js`](src/data/jsonProvider.js:40))
+  - Implemented `kvProvider.js` for production Cloudflare Workers environment using KV namespace storage ([`src/data/kvProvider.js`](src/data/kvProvider.js:24))
+  - Created dynamic provider selection system in `data/index.js` based on `STORAGE_TYPE` environment variable ([`src/data/index.js`](src/data/index.js:18))
+  - Supports environment-based provider switching: `STORAGE_TYPE=json` for local development, `STORAGE_TYPE=kv` for production
+  - Updated books API routes to use new data provider abstraction layer ([`src/routes/books.js`](src/routes/books.js:16))
+
+### Enhanced
+- **Environment Configuration**: Enhanced environment variable management for seamless development/production switching
+  - Updated `wrangler.toml` with `STORAGE_TYPE = "kv"` for production deployments and `STORAGE_TYPE = "json"` for development environment
+  - Configured `.env` file with `STORAGE_TYPE=json` for local Node.js development environment
+  - Backward compatible with existing data files and patterns
+
+### Architecture
+- **Provider Pattern Implementation**: Introduced clean abstraction layer with unified interface across storage backends
+- **Environment-Driven Configuration**: Eliminated hardcoded storage mechanisms in favor of environment-based configuration
+- **Unified API Interface**: All storage providers implement same CRUD functions (`getAllBooks`, `getBookById`, `addBook`, `updateBook`, `deleteBook`)
+
+### Version
+- Bumped package version to 1.11.0
+
 ## 1.10.0 - 2025-09-07
 
 ### Added

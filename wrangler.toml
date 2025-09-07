@@ -18,12 +18,14 @@ not_found_handling = "single-page-application"
 # Environment variables
 [vars]
 ENVIRONMENT = "production"
+STORAGE_TYPE = "kv"
 ANTHROPIC_API_KEY = "dummy-key"
 
 # Development environment variables
 [env.dev]
 [env.dev.vars]
 ENVIRONMENT = "development"
+STORAGE_TYPE = "json"
 
 # Static assets configuration for serving the React frontend
 # [site] block removed (deprecated)

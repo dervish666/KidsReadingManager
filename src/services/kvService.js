@@ -251,6 +251,91 @@ export async function updateSettings(env, settings) {
 }
 
 /**
+ * Get books from KV
+ * @param {Object} env - Environment with KV binding
+ * @returns {Promise<Array>} - Array of books
+ */
+export async function getBooks(env) {
+  const data = await getData(env);
+  return data.books || [];
+}
+
+/**
+ * Get a book by ID
+ * @param {Object} env - Environment with KV binding
+ * @param {string} id - Book ID
+ * @returns {Promise<Object|null>} - Book object or null if not found
+ */
+export async function getBookById(env, id) {
+  const data = await getData(env);
+  return (data.books || []).find(book => book.id === id) || null;
+}
+
+/**
+ * Save a book (create or update)
+ * @param {Object} env - Environment with KV binding
+ * @param {Object} book - Book object to save
+ * @returns {Promise<Object>} - Saved book
+ */
+export async function saveBook(env, book) {
+  const data = await getData(env);
+
+  // Initialize books array if it doesn't exist
+  if (!data.books) {
+    data.books = [];
+  }
+
+  const index = data.books.findIndex(b => b.id === book.id);
+
+  if (index === -1) {
+    // Create new book
+    data.books.push(book);
+  } else {
+    // Update existing book
+    data.books[index] = book;
+  }
+
+  await saveData(env, data);
+  return book;
+}
+
+/**
+ * Delete a book by ID
+ * @param {Object} env - Environment with KV binding
+ * @param {string} id - Book ID to delete
+ * @returns {Promise<Object|null>} - Deleted book or null if not found
+ */
+export async function deleteBook(env, id) {
+  const data = await getData(env);
+
+  // Initialize books array if it doesn't exist
+  if (!data.books) {
+    data.books = [];
+  }
+
+  const bookToDelete = data.books.find(book => book.id === id);
+  const initialLength = data.books.length;
+  data.books = data.books.filter(book => book.id !== id);
+
+  if (data.books.length === initialLength) {
+    return null; // Book not found
+  }
+
+  await saveData(env, data);
+  return bookToDelete;
+}
+
+/**
+ * Get genres from KV
+ * @param {Object} env - Environment with KV binding
+ * @returns {Promise<Array>} - Array of genres
+ */
+export async function getGenres(env) {
+  const data = await getData(env);
+  return data.genres || [];
+}
+
+/**
  * Replace all application data
  * @param {Object} env - Environment with KV binding
  * @param {Object} newData - New data to replace existing data

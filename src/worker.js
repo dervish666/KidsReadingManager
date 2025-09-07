@@ -16,6 +16,7 @@ import { studentsRouter } from './routes/students';
 import { settingsRouter } from './routes/settings';
 import { dataRouter } from './routes/data';
 import { classesRouter } from './routes/classes';
+import { booksRouter } from './routes/books';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -34,6 +35,7 @@ app.route('/api/students', studentsRouter);
 app.route('/api/settings', settingsRouter);
 app.route('/api/data', dataRouter);
 app.route('/api/classes', classesRouter);
+app.route('/api/books', booksRouter);
 
 // API health check
 app.get('/api/health', (c) => {
