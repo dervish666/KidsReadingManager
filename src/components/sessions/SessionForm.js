@@ -16,16 +16,31 @@ import {
   ToggleButtonGroup,
   ToggleButton,
   Card,
-  CardContent
+  CardContent,
+  RadioGroup,
+  Radio,
+  FormControlLabel,
+  FormLabel
 } from '@mui/material';
 import StarIcon from '@mui/icons-material/Star';
 import { useAppContext } from '../../contexts/AppContext';
 import AssessmentSelector from './AssessmentSelector';
 import SessionNotes from './SessionNotes';
 import QuickEntry from './QuickEntry';
+import BookAutocomplete from './BookAutocomplete';
 
 const SessionForm = () => {
-  const { students, addReadingSession, classes, recentlyAccessedStudents } = useAppContext();
+  const { students, addReadingSession, classes, recentlyAccessedStudents, books } = useAppContext(); // <-- ADDED books
+
+  // Helper function to get book display info
+  const getBookInfo = (bookId) => {
+    if (!bookId) return null;
+    const book = books.find(b => b.id === bookId);
+    return book ? {
+      title: book.title,
+      author: book.author || 'Unknown Author'
+    } : { title: 'Unknown Book', author: '' };
+  };
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [assessment, setAssessment] = useState('independent');
   const [notes, setNotes] = useState('');
@@ -33,6 +48,13 @@ const SessionForm = () => {
   const [mode, setMode] = useState('standard');
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [error, setError] = useState('');
+  const [selectedBookId, setSelectedBookId] = useState(''); // <-- ADDED for book tracking
+  const [selectedLocation, setSelectedLocation] = useState('school'); // <-- ADDED for location tracking
+
+  const handleBookChange = (book) => {
+    const bookId = book ? book.id : '';
+    setSelectedBookId(bookId);
+  };
 
   const handleStudentChange = (event) => {
     setSelectedStudentId(event.target.value);
@@ -51,6 +73,11 @@ const SessionForm = () => {
     setDate(event.target.value);
   };
 
+
+  const handleLocationChange = (event) => { // <-- ADDED for location selection
+    setSelectedLocation(event.target.value);
+  };
+
   const handleModeChange = (event, newMode) => {
     if (newMode !== null) {
       setMode(newMode);
@@ -59,21 +86,25 @@ const SessionForm = () => {
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    
+
     if (!selectedStudentId) {
       setError('Please select a student');
       return;
     }
-    
+
     addReadingSession(selectedStudentId, {
       date,
       assessment,
-      notes
+      notes,
+      bookId: selectedBookId || null, // <-- ADDED for book tracking
+      location: selectedLocation || 'school' // <-- ADDED for location tracking
     });
-    
+
     // Reset form
     setNotes('');
     setAssessment('independent');
+    setSelectedBookId(''); // <-- Reset book selection to empty string for consistency
+    setSelectedLocation('school'); // <-- Reset location
     setSnackbarOpen(true);
   };
 
@@ -203,7 +234,29 @@ const SessionForm = () => {
                   }}
                 />
               </Grid>
-              
+
+              <Grid size={12} sx={{ mb: 3 }}> {/* Book selection with autocomplete */}
+                <BookAutocomplete
+                  value={books.find(book => book.id === selectedBookId) || null}
+                  onChange={handleBookChange}
+                />
+              </Grid>
+
+              <Grid size={12} sx={{ mb: 3 }}> {/* ADDED - Location selection */}
+                <FormControl component="fieldset">
+                  <FormLabel component="legend">Location</FormLabel>
+                  <RadioGroup
+                    aria-label="location"
+                    value={selectedLocation}
+                    onChange={handleLocationChange}
+                    row
+                  >
+                    <FormControlLabel value="school" control={<Radio />} label="School" />
+                    <FormControlLabel value="home" control={<Radio />} label="Home" />
+                  </RadioGroup>
+                </FormControl>
+              </Grid>
+
               <Grid sx={{ mb: 3 }} size={12}> {/* Correct Grid item and add margin */}
                 <Typography variant="subtitle1" gutterBottom sx={{ mb: 1 }}> {/* Add margin bottom to title */}
                   Assessment:
@@ -260,13 +313,38 @@ const SessionForm = () => {
                                   year: 'numeric'
                                 })}
                               </Typography>
-                              <Typography variant="body2" sx={{ mt: 1 }}>
-                                Assessment: {session.assessment.charAt(0).toUpperCase() + session.assessment.slice(1)}
+                              <Typography variant="body1" sx={{ mt: 1, fontWeight: 'medium' }}>
+                                {session.assessment.charAt(0).toUpperCase() + session.assessment.slice(1)}
                               </Typography>
-                              {session.notes && (
-                                <Typography variant="body2" sx={{ mt: 1 }}>
-                                  Notes: {session.notes}
+
+                              {/* Book Information */}
+                              {session.bookId ? (
+                                <Box sx={{ mt: 1 }}>
+                                  <Typography variant="body2" color="primary.main" sx={{ fontWeight: 'medium' }}>
+                                    "{getBookInfo(session.bookId)?.title}"
+                                  </Typography>
+                                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                                    by {getBookInfo(session.bookId)?.author}
+                                  </Typography>
+                                </Box>
+                              ) : (
+                                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                                  No book specified
                                 </Typography>
+                              )}
+
+                              {/* Location */}
+                              <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: '0.8rem' }}>
+                                Location: {session.location === 'school' ? '🏫 School' : session.location === 'home' ? '🏠 Home' : 'Not specified'}
+                              </Typography>
+
+                              {/* Notes */}
+                              {session.notes && (
+                                <Box sx={{ mt: 1, p: 1, bgcolor: 'action.hover', borderRadius: 1 }}>
+                                  <Typography variant="body2" color="text.secondary">
+                                    <strong>Notes:</strong> {session.notes}
+                                  </Typography>
+                                </Box>
                               )}
                             </CardContent>
                           </Card>

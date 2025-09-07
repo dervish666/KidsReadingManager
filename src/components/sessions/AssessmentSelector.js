@@ -20,7 +20,7 @@ const AssessmentSelector = ({ value, onChange }) => {
           '& > *': { flex: 1 } // Make all children take equal space
         }}
       >
-        <Tooltip title="Struggling - Needs a lot of help">
+        <Tooltip title="Needing Help - Requires additional support">
           <Button
             onClick={() => handleChange('struggling')}
             color="error"
@@ -32,11 +32,11 @@ const AssessmentSelector = ({ value, onChange }) => {
               width: '100%'
             }}
           >
-            Struggling
+            Needing Help
           </Button>
         </Tooltip>
-        
-        <Tooltip title="Needs some help">
+
+        <Tooltip title="Moderate Help - Benefits from some guidance">
           <Button
             onClick={() => handleChange('needs-help')}
             color="warning"
@@ -48,11 +48,11 @@ const AssessmentSelector = ({ value, onChange }) => {
               width: '100%'
             }}
           >
-            Needs Help
+            Moderate Help
           </Button>
         </Tooltip>
-        
-        <Tooltip title="Independent - Little help needed">
+
+        <Tooltip title="Independent - Strong, self-directed reader">
           <Button
             onClick={() => handleChange('independent')}
             color="success"

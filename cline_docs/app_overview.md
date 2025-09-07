@@ -1,78 +1,213 @@
 # Kids Reading Manager - Application Overview
 
 ## Purpose
-This application helps track reading sessions for students, providing insights into reading frequency and identifying students who may need more attention.
+This comprehensive application helps track reading sessions for students, manage reading preferences, and provide AI-powered book recommendations. It offers insights into reading frequency, identifies students who may need more attention, and personalizes the reading experience through intelligent book suggestions.
 
-## Architecture (as of 2025-04-03)
-- **Frontend**: React single-page application (built with Create React App).
-- **Backend/API**: Integrated Node.js/Express server within the main Docker container.
-- **Data Persistence**: Student and settings data are stored in a single JSON file (`app_data.json`) located in the `/config` directory within the container. This directory is intended to be mounted from the host machine's `./config` directory using Docker Compose for persistence.
-- **Deployment**: Single Docker container managed by `docker-compose.yml`. The container runs the Node.js server, which serves both the static React frontend files and the backend API endpoints.
+## Architecture (Current)
+- **Frontend**: React single-page application with Material-UI components
+- **Backend/API**: Node.js/Express server with enhanced endpoints
+- **Data Persistence**: JSON file storage (`app_data.json`) with expanded data structures
+- **AI Integration**: Anthropic Claude API for intelligent book recommendations
+- **Deployment**: Supports both Docker containers and Cloudflare Workers deployment
 
 ## Key Features
-- Student management (add, edit, delete, bulk import).
-- Reading session tracking (add, edit, delete sessions with dates, assessments, notes).
-- Data visualization (reading status, prioritization).
-- Data import/export (JSON, CSV).
-- Configurable settings (reading status thresholds).
-- Class management (add, edit, delete classes; assign students).
-- Direct student deletion from Student Sessions modal with confirmation dialog.
+
+### Core Reading Management
+- **Student Management**: Add, edit, delete, and bulk import students with enhanced profiles
+- **Reading Session Tracking**: Comprehensive session logging with:
+  - Book information and author details
+  - Reading assessments and progress notes
+  - School vs. home reading environment tracking
+  - Date and time tracking for detailed analytics
+- **Class Management**: Organize students into classes with teacher assignments
+- **Data Visualization**: Advanced charts and statistics for reading patterns
+
+### Enhanced Student Profiles
+- **Reading Preferences**: Capture detailed student preferences including:
+  - Favorite genres and topics
+  - Reading likes and dislikes (free-text input)
+  - Preferred reading formats (picture books, chapter books, etc.)
+  - Interest areas for targeted recommendations
+- **Reading Level Tracking**: Monitor and update student reading levels
+- **Progress Analytics**: Track reading frequency and identify improvement areas
+
+### AI-Powered Recommendations
+- **Personalized Book Suggestions**: AI-generated recommendations based on:
+  - Student's reading history and completed books
+  - Genre preferences and stated interests
+  - Age-appropriate content selection
+  - Reading level and developmental stage
+  - School year and class information
+- **Intelligent Filtering**: Excludes already-read books and considers dislikes
+- **Diverse Recommendations**: Balances student preferences with educational value
+
+### Book and Genre Management
+- **Book Database**: Maintain a comprehensive library of books with:
+  - Title, author, and publication information
+  - Genre classifications and reading levels
+  - Age range recommendations
+- **Genre System**: Flexible genre management for categorization
+- **Book Autocomplete**: Smart book entry with existing database integration
+
+### Data Management and Analytics
+- **Import/Export**: Enhanced JSON and CSV support with new data structures
+- **Settings Configuration**: Customizable reading status thresholds
+- **Analytics Tracking**: Monitor application usage and reading patterns
+- **JSON Editor**: Direct data editing capabilities for advanced users
 
 ## Data Storage
 - **File**: `/config/app_data.json` (within the container, mapped to host's `./config/app_data.json`)
-- **Format**: JSON, containing `settings` object, `students` array, and `classes` array.
+- **Format**: Enhanced JSON structure with expanded data models
 
-### Data Structures (`app_data.json`)
+### Enhanced Data Structures (`app_data.json`)
 
-The `app_data.json` file holds the application's state:
+The application now uses a comprehensive data model:
 
 ```json
 {
   "settings": {
-    // Application settings (e.g., reading status thresholds)
+    "readingStatusSettings": {
+      "recentlyReadDays": 7,
+      "needsAttentionDays": 14
+    }
   },
   "students": [
     {
-      "id": "student_UUID", // Unique identifier for the student
+      "id": "student_UUID",
       "name": "Student Name",
-      // ... other student-specific fields (e.g., reading history) ...
-      "classId": "class_UUID | null", // Reference to the 'id' in the 'classes' array, or null if unassigned
+      "classId": "class_UUID | null",
+      "readingLevel": "Level designation",
+      "lastReadDate": "ISO8601 Date",
+      "preferences": {
+        "favoriteGenreIds": ["genre_UUID_1", "genre_UUID_2"],
+        "likes": ["adventure stories", "animals", "magic"],
+        "dislikes": ["scary stories", "sad endings"],
+        "readingFormats": ["picture books", "chapter books"]
+      },
+      "readingSessions": [
+        {
+          "id": "session_UUID",
+          "date": "ISO8601 Date",
+          "bookId": "book_UUID",
+          "bookTitle": "Book Title",
+          "author": "Author Name",
+          "assessment": "Reading level assessment",
+          "notes": "Session notes",
+          "environment": "school | home"
+        }
+      ],
       "createdAt": "ISO8601 Timestamp",
       "updatedAt": "ISO8601 Timestamp"
     }
-    // ... more student objects
   ],
   "classes": [
     {
-      "id": "class_UUID", // Unique identifier for the class
-      "name": "Class Name", // e.g., "Year 3 Robins"
+      "id": "class_UUID",
+      "name": "Class Name",
       "teacherName": "Teacher's Name",
+      "disabled": false,
       "createdAt": "ISO8601 Timestamp",
       "updatedAt": "ISO8601 Timestamp"
     }
-    // ... more class objects
+  ],
+  "books": [
+    {
+      "id": "book_UUID",
+      "title": "Book Title",
+      "author": "Author Name",
+      "genreIds": ["genre_UUID_1", "genre_UUID_2"],
+      "readingLevel": "Level designation",
+      "ageRange": "Age range (e.g., 6-9)"
+    }
+  ],
+  "genres": [
+    {
+      "id": "genre_UUID",
+      "name": "Genre Name",
+      "description": "Genre description"
+    }
   ]
 }
 ```
 
-## Class Management UI Overview
+## User Interface Overview
 
-A new feature allows for grouping students into classes managed by teachers.
+### Navigation Structure
+The application uses a bottom navigation bar with four main sections:
+1. **Students** - Student management and profiles
+2. **Sessions** - Reading session entry and tracking
+3. **Stats** - Analytics and reading statistics
+4. **Recommendations** - AI-powered book recommendations
 
--   **Class Creation/Management**: A dedicated "Classes" page (accessible via main navigation or settings) will allow users to:
-    -   View a list of existing classes (Name, Teacher).
-    -   Add new classes (providing Name and Teacher Name).
-    -   Edit existing class details.
-    -   Delete classes (handling assigned students, e.g., by unassigning them).
--   **Student Assignment**:
-    -   The "Add Student" and "Edit Student" forms will include a dropdown selector to assign or change a student's class. This dropdown lists existing classes or an "Unassigned" option.
--   **Viewing Students by Class**:
-    -   The main "Student List" will be enhanced with options to filter or group students based on their assigned class.
-    -   Alternatively, clicking a class on the "Classes" page may display a filtered list of students belonging only to that class.
--   **`students`**: Array of student objects. Each student now includes a `classId` field to link them to a class.
--   **`classes`**: A new array containing class objects, each with a unique `id`, `name`, and `teacherName`.
+### Key User Workflows
+
+#### Setting Up Reading Preferences
+1. Navigate to the Students section
+2. Select a student and click "Edit Preferences"
+3. Configure:
+   - Favorite genres from available options
+   - Reading likes (free-text interests)
+   - Reading dislikes (content to avoid)
+   - Preferred reading formats
+
+#### Getting Book Recommendations
+1. Navigate to the Recommendations section
+2. Select a class (optional) to filter students
+3. Choose a specific student
+4. Review the student's reading history and preferences
+5. Click "Get Recommendations" for AI-powered suggestions
+6. View personalized book recommendations with:
+   - Book title and author
+   - Genre classification
+   - Age range suitability
+   - Specific recommendation reasoning
+
+#### Tracking Reading Sessions
+1. Navigate to the Sessions section
+2. Select student and reading environment (school/home)
+3. Enter book information (with autocomplete support)
+4. Add assessment level and notes
+5. Save session for progress tracking
+
+### Class Management
+- **Class Creation**: Add classes with teacher assignments
+- **Student Assignment**: Assign students to classes for organization
+- **Class-based Filtering**: Filter students and recommendations by class
+- **Teacher Management**: Track which teacher manages each class
+
+### Book and Genre Management
+- **Book Database**: Maintain library of available books
+- **Genre System**: Categorize books for better recommendations
+- **Autocomplete**: Smart book entry with existing database integration
+
+## API Integration
+
+### AI Recommendations
+The application integrates with Anthropic's Claude API to provide intelligent book recommendations:
+- Analyzes student reading history and preferences
+- Considers age-appropriate content
+- Balances educational value with student interests
+- Provides reasoning for each recommendation
+
+### Environment Variables Required
+- `ANTHROPIC_API_KEY`: Required for AI-powered recommendations
+
 ## Running the Application
-1.  Ensure Docker and Docker Compose are installed.
-2.  Create a `./config` directory in the project root on the host machine if it doesn't exist.
-3.  Run `docker-compose up -d` from the project root.
-4.  Access the application in a web browser, typically at `http://localhost:8080` (or as configured in `docker-compose.yml`).
+
+### Local Development
+1. Install dependencies: `npm install`
+2. Set up environment variables (`.env` file)
+3. Start the development server: `npm run start`
+4. Access at `http://localhost:3000`
+
+### Docker Deployment
+1. Ensure Docker and Docker Compose are installed
+2. Create a `./config` directory in the project root
+3. Run `docker-compose up -d` from the project root
+4. Access the application at `http://localhost:8080` (or as configured)
+
+### Cloudflare Workers Deployment
+1. Configure `wrangler.toml` with KV namespace
+2. Set up environment variables in Cloudflare dashboard
+3. Deploy using `wrangler deploy`
+4. Access via your Cloudflare Workers domain

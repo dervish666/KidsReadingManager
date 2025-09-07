@@ -18,6 +18,7 @@ not_found_handling = "single-page-application"
 # Environment variables
 [vars]
 ENVIRONMENT = "production"
+ANTHROPIC_API_KEY = "dummy-key"
 
 # Development environment variables
 [env.dev]

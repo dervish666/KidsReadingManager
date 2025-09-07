@@ -6,11 +6,13 @@ import BottomNavigationAction from '@mui/material/BottomNavigationAction';
 import PeopleIcon from '@mui/icons-material/People';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import BarChartIcon from '@mui/icons-material/BarChart';
+import StarIcon from '@mui/icons-material/Star';
 import Header from './components/Header';
 import { AppProvider } from './contexts/AppContext';
 import StudentList from './components/students/StudentList';
 import SessionForm from './components/sessions/SessionForm';
 import ReadingStats from './components/stats/ReadingStats';
+import BookRecommendations from './components/BookRecommendations';
 
 function App() {
   const [currentTab, setCurrentTab] = useState(0);
@@ -24,6 +26,8 @@ function App() {
         return <SessionForm />;
       case 2:
         return <ReadingStats />;
+      case 3:
+        return <BookRecommendations />;
       default:
         return <StudentList />;
     }
@@ -38,7 +42,7 @@ function App() {
           flexDirection: 'column',
           minHeight: '100vh',
         }}>
-        <Header />
+        <Header currentTab={currentTab} onTabChange={setCurrentTab} />
         
         <Container component="main" className="app-container" sx={{
            flexGrow: 1,
@@ -92,6 +96,7 @@ function App() {
             <BottomNavigationAction label="Students" icon={<PeopleIcon />} />
             <BottomNavigationAction label="Reading" icon={<MenuBookIcon />} />
             <BottomNavigationAction label="Stats" icon={<BarChartIcon />} />
+            <BottomNavigationAction label="Recommendations" icon={<StarIcon />} />
           </BottomNavigation>
         </Paper>
         </Box>

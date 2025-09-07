@@ -503,6 +503,38 @@
         }
       ],
       "classId": "f90eaa4f-d266-424c-82c3-bf800f7bce38"
+    },
+    {
+      "id": "bc030ad3-eddc-469f-af0d-0f58ba894393",
+      "name": "Bob",
+      "lastReadDate": "2025-09-07",
+      "readingSessions": [
+        {
+          "id": "97c5dd58-3b31-4f13-998e-0dd3574da947",
+          "date": "2025-09-07",
+          "assessment": "independent",
+          "notes": "",
+          "bookId": "c16db875-2e9f-4ddc-b7a3-a1da05b72be2",
+          "location": "school"
+        },
+        {
+          "id": "3cf6897b-c459-485c-a3db-ec534b6490b7",
+          "date": "2025-09-07",
+          "assessment": "independent",
+          "notes": "",
+          "bookId": "604e2a02-d373-471c-b6ae-426a6fb4a015",
+          "location": "school"
+        },
+        {
+          "id": "32150d5d-021f-43ba-ad5f-e9c0928c832b",
+          "date": "2025-09-07",
+          "assessment": "needs-help",
+          "notes": "",
+          "bookId": "aa6041e2-6276-4c68-b76e-4fab827f6baf",
+          "location": "school"
+        }
+      ],
+      "classId": "51e50f36-9710-482a-81ed-f7354dc1e3b8"
     }
   ],
   "classes": [
@@ -521,6 +553,14 @@
       "disabled": false,
       "createdAt": "2025-08-22T14:35:47.258Z",
       "updatedAt": "2025-08-22T14:35:47.378Z"
+    },
+    {
+      "id": "51e50f36-9710-482a-81ed-f7354dc1e3b8",
+      "name": "Year 4",
+      "teacherName": "Test",
+      "disabled": false,
+      "createdAt": "2025-09-07T15:41:40.018Z",
+      "updatedAt": "2025-09-07T15:41:40.018Z"
     }
   ],
   "settings": {
@@ -528,5 +568,29 @@
       "recentlyReadDays": 14,
       "needsAttentionDays": 30
     }
-  }
+  },
+  "books": [
+    {
+      "id": "604e2a02-d373-471c-b6ae-426a6fb4a015",
+      "title": "The cat in the hat",
+      "author": null,
+      "genreIds": [],
+      "ageRange": null
+    },
+    {
+      "id": "c16db875-2e9f-4ddc-b7a3-a1da05b72be2",
+      "title": "Winnie the witch",
+      "author": null,
+      "genreIds": [],
+      "ageRange": null
+    },
+    {
+      "id": "aa6041e2-6276-4c68-b76e-4fab827f6baf",
+      "title": "How I became a dog called midnight",
+      "author": null,
+      "genreIds": [],
+      "ageRange": null
+    }
+  ],
+  "genres": []
 }

@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 import { useAppContext } from '../../contexts/AppContext';
 import { useTheme } from '@mui/material/styles';
+import { formatAssessmentDisplay } from '../../utils/helpers';
 
 const ReadingTimelineChart = () => {
   const theme = useTheme();
@@ -251,7 +252,7 @@ const ReadingTimelineChart = () => {
                                 Date: {new Date(session.date).toLocaleDateString('en-GB')}
                               </Typography>
                               <Typography variant="body2">
-                                Assessment: {session.assessment.replace('-', ' ')}
+                                Assessment: {formatAssessmentDisplay(session.assessment)}
                               </Typography>
                               {session.notes && (
                                 <Typography variant="body2">
@@ -283,15 +284,15 @@ const ReadingTimelineChart = () => {
           <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3, flexWrap: 'wrap', gap: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: theme.palette.success.main, mr: 1 }} />
-              <Typography variant="caption">Independent</Typography>
+              <Typography variant="caption">{formatAssessmentDisplay('independent')}</Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: theme.palette.warning.main, mr: 1 }} />
-              <Typography variant="caption">Needs Help</Typography>
+              <Typography variant="caption">{formatAssessmentDisplay('needs_help')}</Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: theme.palette.error.main, mr: 1 }} />
-              <Typography variant="caption">Struggling</Typography>
+              <Typography variant="caption">{formatAssessmentDisplay('struggling')}</Typography>
             </Box>
           </Box>
         </Box>

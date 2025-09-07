@@ -1,6 +1,6 @@
 {
   "name": "kids-reading-manager-cloudflare",
-  "version": "1.5.0",
+  "version": "1.10.0",
   "description": "Cloudflare Workers implementation of Kids Reading Manager API",
   "main": "src/index.js",
   "scripts": {
@@ -17,12 +17,14 @@
   "author": "",
   "license": "CC BY-NC 4.0",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.61.0",
     "@emotion/react": "^11.11.0",
     "@emotion/styled": "^11.11.0",
     "@mui/icons-material": "7.0.2",
     "@mui/material": "7.0.2",
     "body-parser": "^2.2.0",
     "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
     "express": "^4.21.2",
     "hono": "^4.7.7",
     "qr-scanner": "^1.4.2",

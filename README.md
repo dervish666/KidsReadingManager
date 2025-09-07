@@ -1,8 +1,8 @@
 # Kids Reading Manager
 
-Welcome to the Kids Reading Manager! This simple web application helps parents, guardians, or educators track the reading progress of children. Keep a log of reading sessions, monitor frequency, and easily see who might need a bit more reading time.
+Welcome to the Kids Reading Manager! This comprehensive web application helps parents, guardians, or educators track the reading progress of children. Keep a log of reading sessions, monitor frequency, manage reading preferences, and get AI-powered book recommendations tailored to each student's interests and reading level.
 
-It's designed to be easy to use and deploy.
+The application now features enhanced tracking capabilities, personalized reading profiles, and intelligent book suggestions to encourage continued reading engagement.
 
 ## Easiest Way to Deploy: Cloudflare Workers
 
@@ -53,6 +53,33 @@ This project implements the Kids Reading Manager application using Cloudflare Wo
 └── README.md                 # This file
 ```
 
+## Key Features
+
+### Core Reading Tracking
+- **Student Management**: Add, edit, delete, and bulk import students
+- **Reading Session Tracking**: Log reading sessions with dates, assessments, and notes
+- **Class Management**: Organize students into classes with teacher assignments
+- **Data Visualization**: View reading statistics, frequency charts, and progress indicators
+
+### Enhanced Features
+- **School and Home Reading Tracking**: Separate tracking for different reading environments
+- **Reading Preferences Profile**: Capture student preferences including:
+  - Favorite genres and topics
+  - Reading likes and dislikes
+  - Preferred reading formats
+  - Interest areas for personalized recommendations
+- **AI-Powered Book Recommendations**: Get intelligent book suggestions based on:
+  - Student's reading history and preferences
+  - Age-appropriate content selection
+  - Genre preferences and interests
+  - Reading level and developmental stage
+- **Book and Genre Management**: Maintain a library of books and genres for better organization
+
+### Data Management
+- **Import/Export Capabilities**: JSON and CSV support for data portability
+- **Configurable Settings**: Customize reading status thresholds and application behavior
+- **Analytics Tracking**: Monitor application usage and reading patterns
+
 ## API Endpoints
 
 The backend API (served by the Cloudflare Worker) implements the following endpoints:
@@ -65,6 +92,28 @@ The backend API (served by the Cloudflare Worker) implements the following endpo
 - `DELETE /api/students/:id` - Delete a student
 - `POST /api/students/bulk` - Bulk import students
 
+### Classes
+
+- `GET /api/classes` - Get all classes
+- `POST /api/classes` - Add a new class
+- `PUT /api/classes/:id` - Update a class
+- `DELETE /api/classes/:id` - Delete a class
+
+### Books and Genres
+
+- `GET /api/books` - Get all books
+- `POST /api/books` - Add a new book
+- `PUT /api/books/:id` - Update a book
+- `DELETE /api/books/:id` - Delete a book
+- `GET /api/genres` - Get all genres
+- `POST /api/genres` - Add a new genre
+- `PUT /api/genres/:id` - Update a genre
+- `DELETE /api/genres/:id` - Delete a genre
+
+### AI-Powered Recommendations
+
+- `GET /api/books/recommendations?studentId={id}` - Get personalized book recommendations for a student
+
 ### Settings
 
 - `GET /api/settings` - Get application settings
@@ -74,12 +123,19 @@ The backend API (served by the Cloudflare Worker) implements the following endpo
 
 - `GET /api/data` - Get all data (for backup/export)
 - `POST /api/data` - Replace all data (for restore/import)
+- `GET /api/data/json` - Get raw JSON content
+- `POST /api/data/save-json` - Save JSON content directly
+
+### Analytics
+
+- `POST /api/analytics/event` - Log analytics events
+- `POST /api/analytics/track/page_view` - Track page views
 
 ## Data Model (Cloudflare KV)
 
-The application uses Cloudflare KV storage. Typically, the entire application state (students, sessions, settings) is stored as a single JSON object under a specific key (e.g., `app_data`) within a KV namespace.
+The application uses Cloudflare KV storage. The entire application state is stored as a single JSON object under a specific key (e.g., `app_data`) within a KV namespace.
 
-Example structure:
+Enhanced data structure:
 
 ```json
 {
@@ -87,17 +143,56 @@ Example structure:
     {
       "id": "uuid-1",
       "name": "Student Name",
+      "classId": "class-uuid-1",
       "lastReadDate": "2025-04-01",
+      "readingLevel": "Level 3",
+      "preferences": {
+        "favoriteGenreIds": ["genre-1", "genre-2"],
+        "likes": ["adventure stories", "animals"],
+        "dislikes": ["scary stories"],
+        "readingFormats": ["picture books", "chapter books"]
+      },
       "readingSessions": [
         {
           "id": "session-uuid-1",
           "date": "2025-04-01",
+          "bookId": "book-uuid-1",
+          "bookTitle": "Book Title",
+          "author": "Author Name",
           "assessment": "Level 3",
-          "notes": "Good progress"
+          "notes": "Good progress",
+          "environment": "school" // or "home"
         }
       ]
     }
     // ... more students
+  ],
+  "classes": [
+    {
+      "id": "class-uuid-1",
+      "name": "Year 3 Robins",
+      "teacherName": "Ms. Smith",
+      "disabled": false,
+      "createdAt": "2025-04-01T10:00:00Z",
+      "updatedAt": "2025-04-01T10:00:00Z"
+    }
+  ],
+  "books": [
+    {
+      "id": "book-uuid-1",
+      "title": "The Magic Tree House",
+      "author": "Mary Pope Osborne",
+      "genreIds": ["genre-1", "genre-2"],
+      "readingLevel": "Level 2-3",
+      "ageRange": "6-9"
+    }
+  ],
+  "genres": [
+    {
+      "id": "genre-uuid-1",
+      "name": "Adventure",
+      "description": "Exciting stories with action and exploration"
+    }
   ],
   "settings": {
     "readingStatusSettings": {
@@ -107,7 +202,7 @@ Example structure:
   },
   "metadata": {
     "lastUpdated": "2025-04-10T15:00:00Z",
-    "version": "1.1" // Example version
+    "version": "2.0"
   }
 }
 ```

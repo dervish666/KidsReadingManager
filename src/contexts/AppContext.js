@@ -26,6 +26,10 @@ export const AppProvider = ({ children }) => {
   });
   // State for classes
   const [classes, setClasses] = useState([]); // <-- ADDED
+  // State for books
+  const [books, setBooks] = useState([]); // <-- ADDED for book tracking
+  // State for genres
+  const [genres, setGenres] = useState([]); // <-- ADDED for genre management
   // State for recently accessed students (for quick access in dropdowns)
   const [recentlyAccessedStudents, setRecentlyAccessedStudents] = useState(() => {
     const stored = sessionStorage.getItem('recentlyAccessedStudents');
@@ -67,6 +71,40 @@ export const AppProvider = ({ children }) => {
       } catch (classesError) { // <-- ADDED
         console.error('Error fetching classes:', classesError); // <-- ADDED
         setClasses([]); // <-- ADDED: Reset classes on error
+      } // <-- ADDED
+
+      // Fetch books
+      try {
+        const booksResponse = await fetch(`${API_URL}/books`); // <-- ADDED
+        if (booksResponse.ok) { // <-- ADDED
+          const booksData = await booksResponse.json(); // <-- ADDED
+          console.log('Loaded books from API:', booksData); // <-- ADDED
+          setBooks(booksData); // <-- ADDED
+        } else { // <-- ADDED
+          console.warn(`API error fetching books: ${booksResponse.status}`); // <-- ADDED
+          // Don't throw error, maybe books endpoint doesn't exist yet
+          setBooks([]); // <-- ADDED: Reset books if fetch fails
+        } // <-- ADDED
+      } catch (booksError) { // <-- ADDED
+        console.error('Error fetching books:', booksError); // <-- ADDED
+        setBooks([]); // <-- ADDED: Reset books on error
+      } // <-- ADDED
+
+      // Fetch genres
+      try {
+        const genresResponse = await fetch(`${API_URL}/genres`); // <-- ADDED
+        if (genresResponse.ok) { // <-- ADDED
+          const genresData = await genresResponse.json(); // <-- ADDED
+          console.log('Loaded genres from API:', genresData); // <-- ADDED
+          setGenres(genresData); // <-- ADDED
+        } else { // <-- ADDED
+          console.warn(`API error fetching genres: ${genresResponse.status}`); // <-- ADDED
+          // Don't throw error, maybe genres endpoint doesn't exist yet
+          setGenres([]); // <-- ADDED: Reset genres if fetch fails
+        } // <-- ADDED
+      } catch (genresError) { // <-- ADDED
+        console.error('Error fetching genres:', genresError); // <-- ADDED
+        setGenres([]); // <-- ADDED: Reset genres on error
       } // <-- ADDED
 
       // Fetch settings
@@ -198,7 +236,9 @@ export const AppProvider = ({ children }) => {
       id: uuidv4(),
       date,
       assessment: sessionData.assessment,
-      notes: sessionData.notes || ''
+      notes: sessionData.notes || '',
+      bookId: sessionData.bookId || null, // <-- ADDED for book tracking
+      location: sessionData.location || 'school' // <-- ADDED for location tracking (default to school)
     };
 
     const student = students.find(s => s.id === studentId);
@@ -455,6 +495,116 @@ export const AppProvider = ({ children }) => {
       setStudents(previousStudents);
     }
   }, [classes, students]); // Dependencies: classes, students (for revert)
+
+  // --- Book Management Functions ---
+
+  const addGenre = useCallback(async (genreData) => {
+    const newGenre = {
+      id: uuidv4(),
+      name: genreData.name,
+      isPredefined: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Optimistic UI update
+    const previousGenres = genres;
+    setGenres(prevGenres => [...prevGenres, newGenre]);
+
+    try {
+      const response = await fetch(`${API_URL}/genres`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newGenre),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error adding genre: ${response.status}`);
+      }
+
+      const savedGenre = await response.json();
+      // Update the added genre with data from server
+      setGenres(prevGenres => prevGenres.map(g => g.id === newGenre.id ? savedGenre : g));
+      setApiError(null);
+      return savedGenre;
+    } catch (error) {
+      console.error('Error adding genre:', error);
+      setApiError(error.message);
+      // Revert optimistic update on error
+      setGenres(previousGenres);
+      return null; // Indicate failure
+    }
+  }, [genres]); // Dependency: genres (for revert)
+
+  const fetchGenres = useCallback(async () => {
+    try {
+      const genresResponse = await fetch(`${API_URL}/genres`);
+      if (genresResponse.ok) {
+        const genresData = await genresResponse.json();
+        setGenres(genresData);
+        return genresData;
+      } else {
+        console.warn(`API error fetching genres: ${genresResponse.status}`);
+        return [];
+      }
+    } catch (error) {
+      console.error('Error fetching genres:', error);
+      return [];
+    }
+  }, []); // No dependencies needed
+
+  const addBook = useCallback(async (title, author) => {
+    const newBook = {
+      id: uuidv4(),
+      title: title.trim(),
+      author: author ? author.trim() : null,
+      genreIds: [], // Empty array, can be updated later
+      ageRange: null
+    };
+
+    // Optimistic UI update
+    const previousBooks = books;
+    setBooks(prevBooks => [...prevBooks, newBook]);
+
+    try {
+      const response = await fetch(`${API_URL}/books`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newBook),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error adding book: ${response.status}`);
+      }
+
+      const savedBook = await response.json();
+      // Update the added book with data from server
+      setBooks(prevBooks => prevBooks.map(b => b.id === newBook.id ? savedBook : b));
+      setApiError(null);
+      return savedBook;
+    } catch (error) {
+      console.error('Error adding book:', error);
+      setApiError(error.message);
+      // Revert optimistic update on error
+      setBooks(previousBooks);
+      return null; // Indicate failure
+    }
+  }, [books]); // Dependency: books (for revert)
+
+  const findOrCreateBook = useCallback(async (title, author = null) => {
+    // First check if exact match exists (case insensitive)
+    const existingBook = books.find(book =>
+      book.title.toLowerCase() === title.trim().toLowerCase() &&
+      (!author || !book.author || book.author.toLowerCase() === author.trim().toLowerCase())
+    );
+
+    if (existingBook) {
+      return existingBook; // Return existing book
+    }
+
+    // If not found, create new book
+    return await addBook(title, author);
+  }, [books, addBook]);
 
   const updateStudentClassId = useCallback(async (studentId, newClassId) => {
     const student = students.find(s => s.id === studentId);
@@ -749,6 +899,8 @@ export const AppProvider = ({ children }) => {
   const contextValue = {};
   contextValue.students = students;
   contextValue.classes = classes;
+  contextValue.books = books; // <-- ADDED for book tracking
+  contextValue.genres = genres; // <-- ADDED for genre management
   contextValue.loading = loading;
   contextValue.apiError = apiError;
   contextValue.priorityStudentCount = priorityStudentCount;
@@ -774,6 +926,12 @@ export const AppProvider = ({ children }) => {
   contextValue.updateClass = updateClass;
   contextValue.deleteClass = deleteClass;
   contextValue.updateStudentClassId = updateStudentClassId;
+  // Book Management
+  contextValue.addBook = addBook;
+  contextValue.findOrCreateBook = findOrCreateBook;
+  // Genre Management
+  contextValue.fetchGenres = fetchGenres;
+  contextValue.addGenre = addGenre;
   // Recently accessed students for quick access in dropdowns
   contextValue.recentlyAccessedStudents = recentlyAccessedStudents;
   contextValue.addRecentlyAccessedStudent = addRecentlyAccessedStudent;

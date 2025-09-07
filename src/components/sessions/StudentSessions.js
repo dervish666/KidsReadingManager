@@ -11,11 +11,15 @@ import {
   TextField,
   FormControl,
   InputLabel,
+  FormLabel,
   Select,
   MenuItem,
   Card,
   CardContent,
   Grid,
+  RadioGroup,
+  Radio,
+  FormControlLabel,
   Snackbar,
   Alert
 } from '@mui/material';
@@ -25,6 +29,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CloseIcon from '@mui/icons-material/Close';
 import { useAppContext } from '../../contexts/AppContext';
+import BookAutocomplete from './BookAutocomplete';
 
 const StudentSessions = ({ open, onClose, student }) => {
   const {
@@ -32,8 +37,19 @@ const StudentSessions = ({ open, onClose, student }) => {
     deleteReadingSession,
     deleteStudent,
     classes, // Get classes
-    updateStudentClassId // Get update function
+    updateStudentClassId, // Get update function
+    books // Get books for display
   } = useAppContext();
+
+  // Helper function to get book display info
+  const getBookInfo = (bookId) => {
+    if (!bookId) return null;
+    const book = books.find(b => b.id === bookId);
+    return book ? {
+      title: book.title,
+      author: book.author || 'Unknown Author'
+    } : { title: 'Unknown Book', author: '' };
+  };
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const [editingSession, setEditingSession] = useState(null);
@@ -43,6 +59,8 @@ const StudentSessions = ({ open, onClose, student }) => {
   const [editDate, setEditDate] = useState('');
   const [editAssessment, setEditAssessment] = useState('');
   const [editNotes, setEditNotes] = useState('');
+  const [editBookId, setEditBookId] = useState(''); // State for editing book
+  const [editLocation, setEditLocation] = useState('school'); // State for editing location
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
@@ -69,9 +87,18 @@ const StudentSessions = ({ open, onClose, student }) => {
   // Format assessment for display
   const formatAssessment = (assessment) => {
     if (!assessment) return 'Not assessed';
-    
-    const formatted = assessment.replace('-', ' ');
-    return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+
+    switch (assessment) {
+      case 'struggling':
+        return 'Needing Help';
+      case 'needs-help':
+        return 'Moderate Help';
+      case 'independent':
+        return 'Independent';
+      default:
+        const formatted = assessment.replace('-', ' ');
+        return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+    }
   };
 
   // Get color for assessment
@@ -94,6 +121,8 @@ const StudentSessions = ({ open, onClose, student }) => {
     setEditDate(session.date);
     setEditAssessment(session.assessment);
     setEditNotes(session.notes || '');
+    setEditBookId(session.bookId || ''); // Set book for editing
+    setEditLocation(session.location || 'school'); // Set location for editing
   };
 
   // Handle delete button click
@@ -107,9 +136,11 @@ const StudentSessions = ({ open, onClose, student }) => {
       await editReadingSession(student.id, editingSession.id, {
         date: editDate,
         assessment: editAssessment,
-        notes: editNotes
+        notes: editNotes,
+        bookId: editBookId || null,
+        location: editLocation || 'school'
       });
-      
+
       setSnackbarMessage('Session updated successfully');
       setSnackbarSeverity('success');
       setSnackbarOpen(true);
@@ -119,6 +150,12 @@ const StudentSessions = ({ open, onClose, student }) => {
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
     }
+  };
+
+  // Handle book change in edit dialog
+  const handleEditBookChange = (book) => {
+    const bookId = book ? book.id : '';
+    setEditBookId(bookId);
   };
 
   // Handle delete confirm
@@ -251,41 +288,62 @@ const StudentSessions = ({ open, onClose, student }) => {
                   <Card variant="outlined">
                     <CardContent>
                       <Box display="flex" justifyContent="space-between" alignItems="flex-start">
-                        <Box>
-                          <Typography variant="subtitle1" gutterBottom>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                             {formatDate(session.date)}
                           </Typography>
-                          <Typography 
-                            variant="body1" 
-                            color={getAssessmentColor(session.assessment)}
-                            sx={{ fontWeight: 'medium', mb: 1 }}
-                          >
+                          <Typography variant="body1" sx={{ fontWeight: 'medium', mb: 1 }}>
                             {formatAssessment(session.assessment)}
                           </Typography>
-                          {session.notes && (
-                            <Typography variant="body2" color="text.secondary">
-                              {session.notes}
+
+                          {/* Book Information */}
+                          {session.bookId ? (
+                            <Box sx={{ mb: 1 }}>
+                              <Typography variant="body2" color="primary.main" sx={{ fontWeight: 'medium' }}>
+                                "{getBookInfo(session.bookId)?.title}"
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                                by {getBookInfo(session.bookId)?.author}
+                              </Typography>
+                            </Box>
+                          ) : (
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontSize: '0.8rem' }}>
+                              No book specified
                             </Typography>
                           )}
+
+                          {/* Location */}
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontSize: '0.8rem' }}>
+                            📍 {session.location === 'school' ? 'School' : session.location === 'home' ? 'Home' : 'Not specified'}
+                          </Typography>
+
+                          {/* Notes */}
+                          {session.notes && (
+                            <Box sx={{ p: 1, mt: 1, bgcolor: 'action.hover', borderRadius: 1 }}>
+                              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                                <strong>Notes:</strong> {session.notes}
+                              </Typography>
+                            </Box>
+                          )}
                         </Box>
-                        <Box>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', ml: 1 }}>
                           <IconButton
-                            size="medium"
+                            size="small"
                             color="primary"
                             onClick={() => handleEditClick(session)}
                             aria-label="edit session"
                             sx={{ p: 1 }}
                           >
-                            <EditIcon />
+                            <EditIcon fontSize="small" />
                           </IconButton>
                           <IconButton
-                            size="medium"
+                            size="small"
                             color="error"
                             onClick={() => handleDeleteClick(session)}
                             aria-label="delete session"
                             sx={{ p: 1 }}
                           >
-                            <DeleteIcon />
+                            <DeleteIcon fontSize="small" />
                           </IconButton>
                         </Box>
                       </Box>
@@ -308,7 +366,7 @@ const StudentSessions = ({ open, onClose, student }) => {
       </Dialog>
 
       {/* Edit Session Dialog */}
-      <Dialog open={!!editingSession} onClose={() => setEditingSession(null)} fullWidth maxWidth="sm" fullScreen={fullScreen}>
+      <Dialog open={!!editingSession} onClose={() => setEditingSession(null)} fullWidth maxWidth="md" fullScreen={fullScreen}>
         <DialogTitle>Edit Reading Session</DialogTitle>
         <DialogContent sx={{ pb: 'calc(env(safe-area-inset-bottom) + 16px)' }}>
           <Box sx={{ pt: 1 }}>
@@ -323,7 +381,29 @@ const StudentSessions = ({ open, onClose, student }) => {
                 shrink: true,
               }}
             />
-            
+
+            {/* Book Selection */}
+            <Box sx={{ mt: 2 }}>
+              <BookAutocomplete
+                value={books.find(book => book.id === editBookId) || null}
+                onChange={handleEditBookChange}
+              />
+            </Box>
+
+            {/* Location Selection */}
+            <FormControl component="fieldset" sx={{ mt: 2 }}>
+              <FormLabel component="legend">Location</FormLabel>
+              <RadioGroup
+                aria-label="edit-location"
+                value={editLocation}
+                onChange={(e) => setEditLocation(e.target.value)}
+                row
+              >
+                <FormControlLabel value="school" control={<Radio />} label="School" />
+                <FormControlLabel value="home" control={<Radio />} label="Home" />
+              </RadioGroup>
+            </FormControl>
+
             <FormControl fullWidth margin="normal">
               <InputLabel id="edit-assessment-label">Assessment</InputLabel>
               <Select
@@ -332,12 +412,12 @@ const StudentSessions = ({ open, onClose, student }) => {
                 label="Assessment"
                 onChange={(e) => setEditAssessment(e.target.value)}
               >
-                <MenuItem value="struggling">Struggling</MenuItem>
-                <MenuItem value="needs-help">Needs Help</MenuItem>
+                <MenuItem value="struggling">Needing Help</MenuItem>
+                <MenuItem value="needs-help">Moderate Help</MenuItem>
                 <MenuItem value="independent">Independent</MenuItem>
               </Select>
             </FormControl>
-            
+
             <TextField
               label="Notes"
               multiline

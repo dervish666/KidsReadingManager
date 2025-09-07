@@ -1,9 +1,10 @@
 import React from 'react';
-import { AppBar, Toolbar, Typography, IconButton, Box } from '@mui/material';
+import { AppBar, Toolbar, Typography, IconButton, Box, Button } from '@mui/material';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
+import StarIcon from '@mui/icons-material/Star';
 import packageJson from '../../package.json';
 
-const Header = () => {
+const Header = ({ currentTab, onTabChange }) => {
   return (
     <AppBar
       position="sticky"
@@ -38,10 +39,35 @@ const Header = () => {
               fontWeight: 600,
               letterSpacing: '0.25px',
               fontSize: { xs: '1rem', sm: '1.15rem' },
+              mr: { xs: 1, sm: 3 },
             }}
           >
             Kids Reading Manager
           </Typography>
+          
+          {/* Navigation Links - Hidden on mobile, shown on larger screens */}
+          <Box sx={{
+            display: { xs: 'none', md: 'flex' },
+            gap: 1,
+            ml: 'auto',
+            mr: 2
+          }}>
+            <Button
+              color="inherit"
+              startIcon={<StarIcon />}
+              onClick={() => onTabChange && onTabChange(3)}
+              sx={{
+                fontWeight: currentTab === 3 ? 600 : 400,
+                textDecoration: currentTab === 3 ? 'underline' : 'none',
+                textUnderlineOffset: '4px',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                },
+              }}
+            >
+              Recommendations
+            </Button>
+          </Box>
         </Box>
         <Typography
           variant="body2"

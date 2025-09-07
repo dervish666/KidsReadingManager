@@ -111,6 +111,24 @@ export function formatErrorResponse(message, status = 400) {
 }
 
 /**
+ * Format assessment display label from stored value
+ * @param {string} assessment - Assessment value ('struggling', 'needs_help', 'independent')
+ * @returns {string} - Formatted display label
+ */
+export function formatAssessmentDisplay(assessment) {
+  switch (assessment) {
+    case 'struggling':
+      return 'Needing Help';
+    case 'needs_help':
+      return 'Moderate Help';
+    case 'independent':
+      return 'Independent';
+    default:
+      return assessment;
+  }
+}
+
+/**
  * Format success response
  * @param {*} data - Response data
  * @param {string} message - Success message

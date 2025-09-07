@@ -116,41 +116,6 @@ const writeData = (data) => {
 };
 
 // Routes
-
-/**
- * @api {get} /api/students Get all students
- * @apiName GetStudents
- * @apiGroup Students
- * @apiDescription Retrieves all students with their reading sessions, preferences, and class assignments
- *
- * @apiSuccess {Object[]} students Array of student objects
- * @apiSuccess {String} students.id Unique student identifier
- * @apiSuccess {String} students.name Student's full name
- * @apiSuccess {String} students.classId ID of assigned class (null if unassigned)
- * @apiSuccess {String} students.readingLevel Current reading level assessment
- * @apiSuccess {Object} students.preferences Reading preferences object
- * @apiSuccess {String[]} students.preferences.favoriteGenreIds Array of preferred genre IDs
- * @apiSuccess {String[]} students.preferences.likes Array of reading interests
- * @apiSuccess {String[]} students.preferences.dislikes Array of content to avoid
- * @apiSuccess {Object[]} students.readingSessions Array of reading session records
- *
- * @apiSuccessExample {json} Success-Response:
- *     HTTP/1.1 200 OK
- *     [
- *       {
- *         "id": "student-123",
- *         "name": "Alice Johnson",
- *         "classId": "class-456",
- *         "readingLevel": "Level 3",
- *         "preferences": {
- *           "favoriteGenreIds": ["genre-1", "genre-2"],
- *           "likes": ["adventure", "animals"],
- *           "dislikes": ["scary stories"]
- *         },
- *         "readingSessions": [...]
- *       }
- *     ]
- */
 app.get('/api/students', (req, res) => {
   const data = readData();
   res.json(data.students);
@@ -340,29 +305,7 @@ app.post('/api/analytics/track/page_view', (req, res) => {
   res.json({ success: true, message: 'Page view tracked successfully' });
 });
 
-/**
- * @api {get} /api/classes Get all classes
- * @apiName GetClasses
- * @apiGroup Classes
- * @apiDescription Retrieves all class records with teacher assignments
- *
- * @apiSuccess {Object[]} classes Array of class objects
- * @apiSuccess {String} classes.id Unique class identifier
- * @apiSuccess {String} classes.name Class name (e.g., "Year 3 Robins")
- * @apiSuccess {String} classes.teacherName Assigned teacher's name
- * @apiSuccess {Boolean} classes.disabled Whether class is disabled
- *
- * @apiSuccessExample {json} Success-Response:
- *     HTTP/1.1 200 OK
- *     [
- *       {
- *         "id": "class-123",
- *         "name": "Year 3 Robins",
- *         "teacherName": "Ms. Smith",
- *         "disabled": false
- *       }
- *     ]
- */
+// Classes endpoints
 app.get('/api/classes', (req, res) => {
   const data = readData();
 
@@ -447,33 +390,7 @@ app.delete('/api/classes/:id', (req, res) => {
   }
 });
 
-/**
- * @api {get} /api/books Get all books
- * @apiName GetBooks
- * @apiGroup Books
- * @apiDescription Retrieves all books in the library database
- *
- * @apiSuccess {Object[]} books Array of book objects
- * @apiSuccess {String} books.id Unique book identifier
- * @apiSuccess {String} books.title Book title
- * @apiSuccess {String} books.author Author name
- * @apiSuccess {String[]} books.genreIds Array of associated genre IDs
- * @apiSuccess {String} books.readingLevel Recommended reading level
- * @apiSuccess {String} books.ageRange Recommended age range
- *
- * @apiSuccessExample {json} Success-Response:
- *     HTTP/1.1 200 OK
- *     [
- *       {
- *         "id": "book-123",
- *         "title": "The Magic Tree House",
- *         "author": "Mary Pope Osborne",
- *         "genreIds": ["genre-1", "genre-2"],
- *         "readingLevel": "Level 2-3",
- *         "ageRange": "6-9"
- *       }
- *     ]
- */
+// Books endpoints
 app.get('/api/books', (req, res) => {
   const data = readData();
 
@@ -552,27 +469,7 @@ app.delete('/api/books/:id', (req, res) => {
   }
 });
 
-/**
- * @api {get} /api/genres Get all genres
- * @apiName GetGenres
- * @apiGroup Genres
- * @apiDescription Retrieves all available reading genres for categorization
- *
- * @apiSuccess {Object[]} genres Array of genre objects
- * @apiSuccess {String} genres.id Unique genre identifier
- * @apiSuccess {String} genres.name Genre name
- * @apiSuccess {String} genres.description Genre description
- *
- * @apiSuccessExample {json} Success-Response:
- *     HTTP/1.1 200 OK
- *     [
- *       {
- *         "id": "genre-123",
- *         "name": "Adventure",
- *         "description": "Exciting stories with action and exploration"
- *       }
- *     ]
- */
+// Genres endpoints
 app.get('/api/genres', (req, res) => {
   const data = readData();
 
@@ -651,55 +548,7 @@ app.delete('/api/genres/:id', (req, res) => {
   }
 });
 
-/**
- * @api {get} /api/books/recommendations Get AI-powered book recommendations
- * @apiName GetBookRecommendations
- * @apiGroup Recommendations
- * @apiDescription Generates personalized book recommendations using AI based on student's reading history, preferences, and profile
- *
- * @apiParam {String} studentId Student ID for whom to generate recommendations
- *
- * @apiSuccess {Object[]} recommendations Array of recommended books
- * @apiSuccess {String} recommendations.title Book title
- * @apiSuccess {String} recommendations.author Author name
- * @apiSuccess {String} recommendations.genre Primary genre
- * @apiSuccess {String} recommendations.ageRange Recommended age range
- * @apiSuccess {String} recommendations.reason Specific reason for recommendation
- * @apiSuccess {String} studentName Name of the student
- * @apiSuccess {String} schoolYear Student's school year/class
- * @apiSuccess {String[]} preferredGenres Student's preferred genres
- * @apiSuccess {Number} booksRead Number of books student has read
- * @apiSuccess {Number} totalAvailable Total books available in library
- *
- * @apiError (400) {String} error studentId query parameter is required
- * @apiError (404) {String} error Student not found
- * @apiError (500) {String} error AI recommendation service temporarily unavailable
- *
- * @apiSuccessExample {json} Success-Response:
- *     HTTP/1.1 200 OK
- *     {
- *       "recommendations": [
- *         {
- *           "title": "Charlotte's Web",
- *           "author": "E.B. White",
- *           "genre": "Animal Fiction",
- *           "ageRange": "7-12",
- *           "reason": "Perfect for students who love animal stories and friendship themes"
- *         }
- *       ],
- *       "studentName": "Alice Johnson",
- *       "schoolYear": "Year 3 Robins",
- *       "preferredGenres": ["Adventure", "Animals"],
- *       "booksRead": 5,
- *       "totalAvailable": 150
- *     }
- *
- * @apiErrorExample {json} Error-Response:
- *     HTTP/1.1 400 Bad Request
- *     {
- *       "error": "studentId query parameter is required"
- *     }
- */
+// Enhanced AI-powered book recommendations endpoint
 app.get('/api/books/recommendations', async (req, res) => {
   try {
     const data = readData();
@@ -811,17 +660,8 @@ Recommendations should be 8-12 excellent books that stimulate the student's inte
     console.log('Generating AI recommendations for student:', student.name);
 
     // Initialize Anthropic client
-    // Support both Cloudflare Workers environment (env.ANTHROPIC_API_KEY)
-    // and local development (process.env.ANTHROPIC_API_KEY)
-    const anthropicApiKey = (typeof globalThis !== 'undefined' && globalThis.env && globalThis.env.ANTHROPIC_API_KEY) ||
-                           process.env.ANTHROPIC_API_KEY;
-
-    if (!anthropicApiKey) {
-      throw new Error('ANTHROPIC_API_KEY not found in environment variables');
-    }
-
     const anthropic = new Anthropic({
-      apiKey: anthropicApiKey,
+      apiKey: process.env.ANTHROPIC_API_KEY,
     });
 
     // Make API call to Claude

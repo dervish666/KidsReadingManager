@@ -5,6 +5,164 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.10.0 - 2025-09-07
+
+### Added
+- **Book Recommendations Frontend**: Implemented comprehensive user interface for AI-powered book recommendations
+  - Created BookRecommendations component with intuitive student selection workflow ([`src/components/BookRecommendations.js`](src/components/BookRecommendations.js:1))
+  - Added new "Recommendations" tab to bottom navigation with Star icon ([`src/App.js`](src/App.js:14,89,95))
+  - Integrated with existing `/api/books/recommendations?studentId=` endpoint for fetching AI-powered recommendations ([`src/components/BookRecommendations.js`](src/components/BookRecommendations.js:106))
+  - Features include:
+    - Class filtering to narrow down student selection
+    - Real-time display of student's reading history and book list
+    - Session statistics and last read date information
+    - One-click recommendation fetching with loading states
+    - Responsive card-based display of recommended books with metadata (title, author, genre, reading level)
+  - Integrated seamlessly with existing Material-UI design system and app architecture
+  - Added error handling and user feedback for API failures
+  - Supports both optional class filtering and direct student selection
+
+### Enhanced
+- **Navigation System**: Expanded app navigation to support new recommendations functionality
+  - Updated BottomNavigation to accommodate 4 tabs with proper responsive design
+  - Maintained consistent user experience across all navigation states
+
+### Version
+- Bumped package version to 1.10.0
+
+## 1.9.0 - 2025-09-07
+
+### Added
+- **AI-Powered Book Recommendations**: Implemented intelligent book recommendation system using Anthropic Claude AI
+  - Added `@anthropic-ai/sdk` and `dotenv` packages to package.json dependencies ([`package.json`](package.json:19,27))
+  - Created `.env` file with secure storage of `ANTHROPIC_API_KEY` environment variable ([`.env`](.env:1))
+  - Enhanced `/api/books/recommendations` endpoint with AI-driven recommendation logic using Claude Sonnet 4 ([`server/index.js`](server/index.js:21,549))
+  - Implemented comprehensive prompt engineering for Claude AI to act as a children's librarian expert
+  - Added intelligent student profile analysis including school year, reading preferences, favorite genres, likes, and dislikes
+  - Integrated with existing data model: books, genres, students, and classes
+  - Built robust error handling with fallback to basic recommendation algorithms if AI service is unavailable
+  - Returns personalized recommendations with reasons for each book suggestion
+  - Includes comprehensive metadata in API responses (student name, school year, preferred genres)
+
+### Enhanced
+- **Server Security and Architecture**: Improved backend security by implementing environment variable management
+  - Added `dotenv` configuration loading at server startup ([`server/index.js`](server/index.js:2))
+  - Secure API key management through environment variables instead of hardcoded values
+  - Enhanced error handling and fallback mechanisms for production reliability
+
+### Tech Stack
+- **AI Integration**: Added Anthropic Claude 4 AI model integration for intelligent content generation
+- **Environment Management**: Implemented proper environment variable handling for production deployments
+- **API Enhancement**: Significant improvement to existing book recommendations endpoint with AI capabilities
+
+### Version
+- Bumped package version to 1.9.0
+
+## 1.8.1 - 2025-09-07
+
+### Changed
+- **Assessment Labels Update**: Replaced negative assessment terminology with supportive language across charts and tooltips
+  - Changed "Struggling" to "Needing Help" ([`src/components/sessions/AssessmentSelector.js`](src/components/sessions/AssessmentSelector.js:66), [`src/components/sessions/AssessmentSelector.js`](src/components/sessions/AssessmentSelector.js:71))
+  - Changed "Needs Help" to "Moderate Help"
+  - "Independent" label remains unchanged for positive reinforcement
+  - Updated ReadingTimelineChart tooltips to use formatAssessmentDisplay function ([`src/components/stats/ReadingTimelineChart.js`](src/components/stats/ReadingTimelineChart.js:254))
+  - Updated ReadingTimelineChart legend to use new labeling system ([`src/components/stats/ReadingTimelineChart.js`](src/components/stats/ReadingTimelineChart.js:286))
+  - Added formatAssessmentDisplay utility function to helpers for consistent assessment display across components ([`src/utils/helpers.js`](src/utils/helpers.js:100))
+
+### Enhanced
+- **Consistent UI/UX**: All assessment displays now use supportive language to create a more positive educational environment
+- Improved code maintainability by centralizing assessment label formatting in utility function
+
+### Version
+- Bumped package version to 1.8.1
+
+## 1.8.0 - 2025-09-07
+
+### Added
+- **Reading Preferences Profile Frontend**: Implemented comprehensive reading preferences management system for students
+  - Created ReadingPreferences dialog component with intuitive interface for managing student preferences ([`src/components/students/ReadingPreferences.js`](src/components/students/ReadingPreferences.js:1))
+  - Added Psychology icon button to StudentCard header for quick access to preferences ([`src/components/students/StudentCard.js`](src/components/students/StudentCard.js:103))
+  - Integrated ReadingPreferences dialog into StudentCard component with full Material-UI design consistency ([`src/components/students/StudentCard.js`](src/components/students/StudentCard.js:249))
+  - Enhanced AppContext with genres state management and CRUD operations ([`src/contexts/AppContext.js`](src/contexts/AppContext.js:32,95,877))
+  - Added fetchGenres function for retrieving available genres from API ([`src/contexts/AppContext.js`](src/contexts/AppContext.js:553))
+  - Added addGenre function for creating new genres on-the-fly ([`src/contexts/AppContext.js`](src/contexts/AppContext.js:502))
+  - Integrated genres data fetching into reloadDataFromServer for automatic loading at app start ([`src/contexts/AppContext.js`](src/contexts/AppContext.js:95))
+  - Support for favorite genres with multi-select dropdown interface
+  - Interactive likes and dislikes sections with chip-based input system
+  - Real-time form validation and user feedback with snackbar notifications
+  - Data persistence through existing student PUT endpoint with preferences field support
+
+### Added
+- **Backend Genres Integration**: Leveraged existing genres API endpoints for comprehensive genre management
+  - Utilizes `/api/genres` GET endpoint for retrieving available genres ([`server/index.js`](server/index.js:470))
+  - Leverages `/api/genres` POST endpoint for creating new genres during preference setup ([`server/index.js`](server/index.js:481))
+  - Student preferences are automatically saved through existing `/api/students/:id` PUT endpoint ([`server/index.js`](server/index.js:134))
+  - Full integration with existing data model that includes `preferences.favoriteGenreIds`, `preferences.likes`, and `preferences.dislikes` fields ([`cline_docs/new_data_model.md`](cline_docs/new_data_model.md:73))
+
+### Changed
+- Enhanced StudentCard component to include reading preferences access point
+- Improved app context with comprehensive state management for genres and preferences
+- Streamlined user workflow by providing direct access to reading preferences from student cards
+
+### Enhanced
+- **Reading Session Display**: Added comprehensive book and location information to session tiles
+  - Session tiles now display book title and author when a book was specified ([`src/components/sessions/SessionForm.js`](src/components/sessions/SessionForm.js:295))
+  - Enhanced StudentSessions dialog with book information display ([`src/components/sessions/StudentSessions.js`](src/components/sessions/StudentSessions.js:251))
+  - Added location display (School/Home) in session tiles for better context ([`src/components/sessions/StudentSessions.js`](src/components/sessions/StudentSessions.js:270))
+  - Improved session edit dialog with full book selection and location editing support ([`src/components/sessions/StudentSessions.js`](src/components/sessions/StudentSessions.js:315))
+  - Enhanced notes formatting with dedicated highlighted notes section ([`src/components/sessions/StudentSessions.js`](src/components/sessions/StudentSessions.js:290))
+  - Added "📍" emoji indicators for location display for better visual distinction
+
+### Version
+- Bumped package version to 1.8.0
+
+## 1.7.0 - 2025-09-07
+
+### Added
+- **School and Home Reading Tracking Frontend**: Implemented user interface for tracking where and what reading sessions occur
+- **Enhanced Book Selection with Autocomplete**: Replaced basic dropdown with intelligent autocomplete system
+  - Created BookAutocomplete component with search and auto-creation capabilities ([`src/components/sessions/BookAutocomplete.js`](src/components/sessions/BookAutocomplete.js:1))
+  - Added book creation functionality to AppContext with findOrCreateBook function ([`src/contexts/AppContext.js`](src/contexts/AppContext.js:504))
+  - Users can type book titles and authors (using "@" separator) and press Enter to create new books automatically
+  - Smart search filters existing books based on user input
+  - Proper error handling and optimistic updates for book creation
+  - Added location selection with radio buttons for "School" and "Home" options with default to "School" ([`src/components/sessions/SessionForm.js`](src/components/sessions/SessionForm.js:224))
+  - Updated AppContext to include books state management and support for bookId and location in sessions ([`src/contexts/AppContext.js`](src/contexts/AppContext.js:30,770))
+  - Enhanced addReadingSession function to handle bookId and location fields ([`src/contexts/AppContext.js`](src/contexts/AppContext.js:196))
+  - Added form state management for book and location selections ([`src/components/sessions/SessionForm.js`](src/components/sessions/SessionForm.js:36))
+
+### Changed
+- Enhanced reading session form to capture comprehensive reading activity data
+- Improved user workflow by integrating book and location tracking directly into reading session logging
+
+### Version
+- Bumped package version to 1.7.0
+
+## 1.6.0 - 2025-09-07
+
+### Added
+- **Backend Data Model Updates**: Implemented enhanced data model to support school/home reading tracking, student preference profiles, and book recommendation system
+  - Added `books` and `genres` top-level arrays to application data structure ([`server/index.js`](server/index.js:44))
+  - Extended `students` with `preferences` object containing favorite genres, likes, and dislikes
+  - Extended `readingSessions` with `bookId` and `location` fields for tracking reading sessions
+  - Extended `classes` with `schoolYear` field
+  - Updated `readData` function to initialize new data structures for backward compatibility ([`server/index.js`](server/index.js:70))
+- **API Endpoints**: Created new REST API endpoints for books and genres management:
+  - `GET /api/books` - Retrieve all books ([`server/index.js`](server/index.js:383))
+  - `POST /api/books` - Create new book ([`server/index.js`](server/index.js:389))
+  - `PUT /api/books/:id` - Update book by ID ([`server/index.js`](server/index.js:402))
+  - `DELETE /api/books/:id` - Delete book by ID ([`server/index.js`](server/index.js:415))
+  - Similar endpoints for genres: `GET /api/genres`, `POST /api/genres`, `PUT /api/genres/:id`, `DELETE /api/genres/:id` ([`server/index.js`](server/index.js:428))
+- **Book Recommendations**: Added `GET /api/books/recommendations?studentId=` endpoint to recommend books based on student preferences and unread books ([`server/index.js`](server/index.js:475))
+
+### Changed
+- Updated data initialization to include new `books` and `genres` arrays ([`server/index.js`](server/index.js:44))
+- Enhanced data reading and writing functions for new data structure compatibility
+- Existing API endpoints now support new fields in request bodies
+
+### Version
+- Bumped package version to 1.6.0
+
 ## 1.5.0 - 2025-08-22
 
 ### Added

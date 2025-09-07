@@ -1,14 +1,28 @@
 import React, { useState, useMemo } from 'react';
-import { Card, CardActionArea, CardHeader, Avatar, CardContent, Typography, Box, Chip } from '@mui/material';
+import {
+  Card,
+  CardActionArea,
+  CardHeader,
+  Avatar,
+  CardContent,
+  Typography,
+  Box,
+  Chip,
+  IconButton,
+  Tooltip
+} from '@mui/material';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
+import PsychologyIcon from '@mui/icons-material/Psychology';
 import { useAppContext } from '../../contexts/AppContext';
 import { useTheme } from '@mui/material/styles';
 import StudentSessions from '../sessions/StudentSessions';
+import ReadingPreferences from './ReadingPreferences';
 
 const StudentCard = ({ student }) => {
   const theme = useTheme();
   const { getReadingStatus, classes } = useAppContext();
   const [openSessionsDialog, setOpenSessionsDialog] = useState(false);
+  const [openPreferencesDialog, setOpenPreferencesDialog] = useState(false);
 
   const status = getReadingStatus(student);
   const statusColor = theme.palette.status?.[status] || theme.palette.primary.main;
@@ -141,6 +155,18 @@ const StudentCard = ({ student }) => {
                 gap: 1,
                 mr: { xs: 1, sm: 2 }
               }}>
+                <Tooltip title="Reading Preferences">
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenPreferencesDialog(true);
+                    }}
+                    sx={{ padding: { xs: 0.5, sm: 1 } }}
+                  >
+                    <PsychologyIcon sx={{ fontSize: { xs: 16, sm: 18 }, color: 'primary.main' }} />
+                  </IconButton>
+                </Tooltip>
                 <Box sx={{
                   width: { xs: 8, sm: 10 },
                   height: { xs: 8, sm: 10 },
@@ -238,6 +264,7 @@ const StudentCard = ({ student }) => {
       </Card>
 
       <StudentSessions open={openSessionsDialog} onClose={() => setOpenSessionsDialog(false)} student={student} />
+      <ReadingPreferences open={openPreferencesDialog} onClose={() => setOpenPreferencesDialog(false)} student={student} />
     </>
   );
 };
