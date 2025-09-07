@@ -22,6 +22,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added error handling and user feedback for API failures
   - Supports both optional class filtering and direct student selection
 
+### Added
+- **Class Filtering in Reading Session Form**: Enhanced student selection workflow for better usability when managing large numbers of students
+  - Added optional class filtering dropdown above the student selector in SessionForm ([`src/components/sessions/SessionForm.js`](src/components/sessions/SessionForm.js:172))
+  - Includes teacher names in class dropdown options for easy identification
+  - Automatically clears student selection when changing class filter
+  - Displays "All Classes" option to show students from all classes
+  - Shows appropriate empty states when no students match the selected class
+  - Preserves recently accessed students behavior within filtered results
+  - Maintains existing sorting functionality (recent students at top)
+  - Only shows active (non-disabled) classes in the filter dropdown
+
 ### Enhanced
 - **Navigation System**: Expanded app navigation to support new recommendations functionality
   - Updated BottomNavigation to accommodate 4 tabs with proper responsive design

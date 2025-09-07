@@ -42,6 +42,7 @@ const SessionForm = () => {
     } : { title: 'Unknown Book', author: '' };
   };
   const [selectedStudentId, setSelectedStudentId] = useState('');
+  const [selectedClassId, setSelectedClassId] = useState(''); // Added for class filtering
   const [assessment, setAssessment] = useState('independent');
   const [notes, setNotes] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -59,6 +60,15 @@ const SessionForm = () => {
   const handleStudentChange = (event) => {
     setSelectedStudentId(event.target.value);
     setError('');
+  };
+
+  const handleClassChange = (event) => { // Added for class selection
+    const newClassId = event.target.value;
+    setSelectedClassId(newClassId);
+    // Reset student selection when class changes
+    if (selectedStudentId) {
+      setSelectedStudentId('');
+    }
   };
 
   const handleAssessmentChange = (newAssessment) => {
@@ -116,15 +126,23 @@ const SessionForm = () => {
   const disabledClassIds = classes.filter(cls => cls.disabled).map(cls => cls.id);
 
   // Filter out students from disabled classes
-  const activeStudents = students.filter(student => {
+  let filteredStudents = students.filter(student => {
     return !student.classId || !disabledClassIds.includes(student.classId);
   });
 
-  // Separate recently accessed students for display at top of dropdown
-  const recentStudents = activeStudents.filter(student =>
+  // Additional filtering by selected class
+  if (selectedClassId) {
+    filteredStudents = filteredStudents.filter(student => student.classId === selectedClassId);
+  }
+
+  // Get active classes for the dropdown (only non-disabled classes)
+  const activeClasses = classes.filter(cls => !cls.disabled);
+
+  // Separate recently accessed students within the filtered list
+  const recentStudents = filteredStudents.filter(student =>
     recentlyAccessedStudents.includes(student.id)
   );
-  const otherStudents = activeStudents.filter(student =>
+  const otherStudents = filteredStudents.filter(student =>
     !recentlyAccessedStudents.includes(student.id)
   );
 
@@ -170,7 +188,31 @@ const SessionForm = () => {
           
           <form onSubmit={handleSubmit}>
             <Grid container spacing={3}>
-              <Grid sx={{ mb: 3 }} size={12}> {/* Use item prop, xs={12} and add margin bottom */}
+              {/* Class Filter Dropdown */}
+              <Grid sx={{ mb: 2 }} size={12}>
+                <FormControl fullWidth>
+                  <InputLabel id="class-filter-label">Filter by Class (Optional)</InputLabel>
+                  <Select
+                    labelId="class-filter-label"
+                    id="class-filter"
+                    value={selectedClassId}
+                    label="Filter by Class (Optional)"
+                    onChange={handleClassChange}
+                  >
+                    <MenuItem value="">
+                      <em>All Classes</em>
+                    </MenuItem>
+                    {activeClasses.map((cls) => (
+                      <MenuItem key={cls.id} value={cls.id}>
+                        {cls.name} {cls.teacherName && `(${cls.teacherName})`}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              {/* Student Dropdown */}
+              <Grid sx={{ mb: 3 }} size={12}>
                 <FormControl fullWidth>
                   <InputLabel id="student-select-label">Student</InputLabel>
                   <Select
@@ -180,39 +222,47 @@ const SessionForm = () => {
                     label="Student"
                     onChange={handleStudentChange}
                   >
-                    {sortedStudents.map((student) => {
-                      const isRecentlyAccessed = recentlyAccessedStudents.includes(student.id);
-                      return (
-                        <MenuItem key={student.id} value={student.id}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                            {isRecentlyAccessed && (
-                              <StarIcon
-                                sx={{
-                                  mr: 1,
-                                  color: 'warning.main',
-                                  fontSize: '1rem'
-                                }}
-                              />
-                            )}
-                            <Typography variant="inherit">
-                              {student.name}
-                            </Typography>
-                            {isRecentlyAccessed && (
-                              <Typography
-                                variant="caption"
-                                sx={{
-                                  ml: 'auto',
-                                  color: 'text.secondary',
-                                  fontStyle: 'italic'
-                                }}
-                              >
-                                Recent
+                    {sortedStudents.length === 0 ? (
+                      <MenuItem disabled>
+                        <Typography variant="body2" color="text.secondary">
+                          {selectedClassId ? 'No students found in this class' : 'No active students available'}
+                        </Typography>
+                      </MenuItem>
+                    ) : (
+                      sortedStudents.map((student) => {
+                        const isRecentlyAccessed = recentlyAccessedStudents.includes(student.id);
+                        return (
+                          <MenuItem key={student.id} value={student.id}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                              {isRecentlyAccessed && (
+                                <StarIcon
+                                  sx={{
+                                    mr: 1,
+                                    color: 'warning.main',
+                                    fontSize: '1rem'
+                                  }}
+                                />
+                              )}
+                              <Typography variant="inherit">
+                                {student.name}
                               </Typography>
-                            )}
-                          </Box>
-                        </MenuItem>
-                      );
-                    })}
+                              {isRecentlyAccessed && (
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    ml: 'auto',
+                                    color: 'text.secondary',
+                                    fontStyle: 'italic'
+                                  }}
+                                >
+                                  Recent
+                                </Typography>
+                              )}
+                            </Box>
+                          </MenuItem>
+                        );
+                      })
+                    )}
                   </Select>
                 </FormControl>
               </Grid>
