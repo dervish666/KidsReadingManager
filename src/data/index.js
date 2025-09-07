@@ -15,8 +15,18 @@ import * as kvProvider from './kvProvider.js';
  * @returns {Object} Object with all provider functions (getAllBooks, getBookById, addBook, updateBook, deleteBook)
  */
 async function createProvider(env = null) {
+  console.log('🔧 createProvider called with env:', {
+    hasEnv: !!env,
+    hasKV: !!(env?.READING_MANAGER_KV),
+    processEnv: typeof process !== 'undefined' ? {
+      STORAGE_TYPE: process.env?.STORAGE_TYPE,
+      storage_type: process.env?.storage_type
+    } : 'process undefined'
+  });
+
   // Check for explicit STORAGE_TYPE environment variable first
-  const storageType = process.env.STORAGE_TYPE || process.env.storage_type;
+  const storageType = typeof process !== 'undefined' ? (process.env.STORAGE_TYPE || process.env.storage_type) : null;
+  console.log('🔧 Storage type from env vars:', storageType);
 
   if (storageType === 'kv') {
     console.log('Using KV storage (explicitly set via STORAGE_TYPE)');
