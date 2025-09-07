@@ -70,38 +70,22 @@ const getBookById = async (env, id) => {
  */
 const addBook = async (env, newBook) => {
   try {
-    console.log('📚 KV addBook called with:', {
-      hasEnv: !!env,
-      hasKV: !!(env?.READING_MANAGER_KV),
-      bookId: newBook?.id,
-      bookTitle: newBook?.title
-    });
-
     const kv = getKV(env);
-    console.log('📚 KV namespace result:', { hasKV: !!kv });
-    
     if (!kv) {
-      console.error('❌ KV namespace not available');
       throw new Error('KV namespace not available');
     }
 
-    console.log('📚 Getting existing books...');
     const books = await getAllBooks(env);
-    console.log('📚 Current books count:', books.length);
 
     // Add the new book to the array
     books.push(newBook);
-    console.log('📚 Added book, new count:', books.length);
 
     // Save updated books array
-    console.log('📚 Saving to KV...');
     await kv.put('books', JSON.stringify(books));
-    console.log('📚 Successfully saved to KV');
 
     return newBook;
   } catch (error) {
-    console.error('❌ Error adding book to KV:', error);
-    console.error('❌ Error stack:', error.stack);
+    console.error('Error adding book to KV:', error);
     throw new Error('Failed to save book');
   }
 };
