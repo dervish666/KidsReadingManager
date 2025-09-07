@@ -3,7 +3,7 @@
  * Conditionally exports the correct data provider functions based on environment
  */
 
-import kvProvider from './kvProvider.js';
+import * as kvProvider from './kvProvider.js';
 
 /**
  * Detects the appropriate storage mechanism and returns the corresponding provider functions

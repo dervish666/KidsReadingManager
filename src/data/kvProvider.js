@@ -157,7 +157,7 @@ const deleteBook = async (env, id) => {
   }
 };
 
-module.exports = {
+export {
   getAllBooks,
   getBookById,
   addBook,
