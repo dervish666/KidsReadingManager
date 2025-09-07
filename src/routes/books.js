@@ -14,7 +14,7 @@ const booksRouter = new Hono();
  * Get all books
  */
 booksRouter.get('/', async (c) => {
-  const provider = createProvider(c.env);
+  const provider = await createProvider(c.env);
   const books = await provider.getAllBooks();
   return c.json(books);
 });
@@ -41,7 +41,7 @@ booksRouter.post('/', async (c) => {
     description: bookData.description || null
   };
 
-  const provider = createProvider(c.env);
+  const provider = await createProvider(c.env);
   const savedBook = await provider.addBook(newBook);
   return c.json(savedBook, 201);
 });
@@ -60,7 +60,7 @@ booksRouter.put('/:id', async (c) => {
   }
 
   // Check if book exists
-  const provider = createProvider(c.env);
+  const provider = await createProvider(c.env);
   const existingBook = await provider.getBookById(id);
   if (!existingBook) {
     throw notFoundError(`Book with ID ${id} not found`);
@@ -78,7 +78,8 @@ booksRouter.put('/:id', async (c) => {
     id // Ensure ID doesn't change
   };
 
-  const savedBook = await provider.updateBook(id, updatedBook);
+  const updateProvider = await createProvider(c.env);
+  const savedBook = await updateProvider.updateBook(id, updatedBook);
   return c.json(savedBook);
 });
 
@@ -90,7 +91,7 @@ booksRouter.delete('/:id', async (c) => {
    const { id } = c.req.param();
 
    // Delete book
-   const provider = createProvider(c.env);
+   const provider = await createProvider(c.env);
    const deletedBook = await provider.deleteBook(id);
 
    if (!deletedBook) {

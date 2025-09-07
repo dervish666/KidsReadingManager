@@ -3,7 +3,6 @@
  * Conditionally exports the correct data provider functions based on environment
  */
 
-import jsonProvider from './jsonProvider.js';
 import kvProvider from './kvProvider.js';
 
 /**
@@ -15,7 +14,7 @@ import kvProvider from './kvProvider.js';
  * @param {Object|null} env - Worker environment (null for Node.js local development)
  * @returns {Object} Object with all provider functions (getAllBooks, getBookById, addBook, updateBook, deleteBook)
  */
-function createProvider(env = null) {
+async function createProvider(env = null) {
   // Check for explicit STORAGE_TYPE environment variable first
   const storageType = process.env.STORAGE_TYPE || process.env.storage_type;
 
@@ -26,7 +25,7 @@ function createProvider(env = null) {
 
   if (storageType === 'json') {
     console.log('Using JSON storage (explicitly set via STORAGE_TYPE)');
-    return createJSONProvider();
+    return await createJSONProvider();
   }
 
   // Auto-detect based on environment
@@ -37,30 +36,40 @@ function createProvider(env = null) {
 
   // Default to JSON for local development
   console.log('Using JSON storage (auto-detected local Node.js environment)');
-  return createJSONProvider();
+  return await createJSONProvider();
 }
 
 // Wrapper for JSON provider to make it async-compatible
-function createJSONProvider() {
+async function createJSONProvider() {
+  // Check if we're in a Node.js environment (not Cloudflare Workers)
+  if (typeof process === 'undefined' || !process.versions || !process.versions.node) {
+    throw new Error('JSON provider is only available in Node.js environments for local development');
+  }
+
+  // Dynamic import to avoid build errors in Cloudflare Workers
+  const jsonProvider = await import('./jsonProvider.js').catch(err => {
+    throw new Error(`Failed to load JSON provider: ${err.message}`);
+  });
+
   return {
     async getAllBooks() {
-      return jsonProvider.getAllBooks();
+      return jsonProvider.default.getAllBooks();
     },
 
     async getBookById(id) {
-      return jsonProvider.getBookById(id);
+      return jsonProvider.default.getBookById(id);
     },
 
     async addBook(book) {
-      return jsonProvider.addBook(book);
+      return jsonProvider.default.addBook(book);
     },
 
     async updateBook(id, book) {
-      return jsonProvider.updateBook(id, book);
+      return jsonProvider.default.updateBook(id, book);
     },
 
     async deleteBook(id) {
-      return jsonProvider.deleteBook(id);
+      return jsonProvider.default.deleteBook(id);
     }
   };
 }
@@ -78,7 +87,7 @@ function createKVProvider(env) {
 
 // Default export - for backwards compatibility, always uses JSON provider
 // This can be used when env is not available (like in tests or migrations)
-const defaultProvider = createJSONProvider();
+const defaultProvider = null;
 
 // For ES6 modules compatibility in Workers
 export default defaultProvider;
