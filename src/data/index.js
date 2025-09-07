@@ -3,8 +3,8 @@
  * Conditionally exports the correct data provider functions based on environment
  */
 
-const jsonProvider = require('./jsonProvider');
-const kvProvider = require('./kvProvider');
+import jsonProvider from './jsonProvider.js';
+import kvProvider from './kvProvider.js';
 
 /**
  * Detects the appropriate storage mechanism and returns the corresponding provider functions
@@ -82,5 +82,4 @@ const defaultProvider = createJSONProvider();
 
 // For ES6 modules compatibility in Workers
 export default defaultProvider;
-module.exports = defaultProvider;
 export { createProvider };
