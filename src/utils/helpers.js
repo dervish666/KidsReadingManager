@@ -2,14 +2,26 @@
  * Helper utilities for the application
  */
 
-import { v4 as uuidv4 } from 'uuid';
-
 /**
- * Generate a new UUID
- * @returns {string} - UUID
+ * Generate a UUID v4 using Web Crypto API (compatible with Cloudflare Workers)
+ * @returns {string} UUID string
  */
 export function generateId() {
-  return uuidv4();
+  // Use Web Crypto API which is available in Cloudflare Workers
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+
+  // Set version (4) and variant bits
+  bytes[6] = (bytes[6] & 0x0f) | 0x40; // Version 4
+  bytes[8] = (bytes[8] & 0x3f) | 0x80; // Variant 10
+
+  // Convert to UUID format
+  return [
+    bytes.slice(0, 4),  // time_low
+    bytes.slice(4, 6),  // time_mid
+    bytes.slice(6, 8),  // time_high_and_version
+    bytes.slice(8, 10), // clock_seq_high_and_reserved + clock_seq_low
+    bytes.slice(10, 16) // node
+  ].map(chunk => Array.from(chunk, byte => byte.toString(16).padStart(2, '0')).join('')).join('-');
 }
 
 /**
