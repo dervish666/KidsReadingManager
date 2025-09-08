@@ -38,3 +38,6 @@ STORAGE_TYPE = "json"
 # Triggers
 [triggers]
 crons = []
+
+[observability.logs]
+enabled = true
