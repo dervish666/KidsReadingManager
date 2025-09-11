@@ -342,10 +342,18 @@ const BookManager = () => {
 
       let successCount = 0;
       let errorCount = 0;
+      let duplicateCount = 0;
 
       for (const bookData of importedBooks) {
         try {
           if (bookData.title && bookData.title.trim()) {
+            // Check for duplicates before importing
+            if (isDuplicateBook(bookData, books)) {
+              console.log('Skipping duplicate book:', bookData.title);
+              duplicateCount++;
+              continue;
+            }
+
             await addBook(bookData.title.trim(), bookData.author || null);
             successCount++;
           }
@@ -359,7 +367,15 @@ const BookManager = () => {
 
       setConfirmImport({ open: false, file: null, data: null });
 
-      const message = `Import completed: ${successCount} books imported${errorCount > 0 ? `, ${errorCount} failed` : ''}`;
+      // Create detailed message including duplicate count
+      let message = `Import completed: ${successCount} books imported`;
+      if (duplicateCount > 0) {
+        message += `, ${duplicateCount} duplicates skipped`;
+      }
+      if (errorCount > 0) {
+        message += `, ${errorCount} failed`;
+      }
+
       setSnackbar({
         open: true,
         message,
@@ -492,6 +508,37 @@ const BookManager = () => {
 
   const getBooksWithoutAuthors = () => {
     return books.filter(book => !book.author || book.author.trim() === '');
+  };
+
+  // Duplicate detection helper function
+  const isDuplicateBook = (newBook, existingBooks) => {
+    const normalizeTitle = (title) => {
+      return title.toLowerCase().trim().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ');
+    };
+
+    const normalizeAuthor = (author) => {
+      if (!author) return '';
+      return author.toLowerCase().trim().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ');
+    };
+
+    const newTitle = normalizeTitle(newBook.title || '');
+    const newAuthor = normalizeAuthor(newBook.author || '');
+
+    return existingBooks.some(existingBook => {
+      const existingTitle = normalizeTitle(existingBook.title || '');
+      const existingAuthor = normalizeAuthor(existingBook.author || '');
+
+      // Check for exact title match
+      if (newTitle === existingTitle) {
+        // If both have authors, they must match
+        if (newAuthor && existingAuthor) {
+          return newAuthor === existingAuthor;
+        }
+        // If one has no author, consider it a duplicate (same title)
+        return true;
+      }
+      return false;
+    });
   };
 
   // Pagination helper functions
@@ -829,13 +876,62 @@ const BookManager = () => {
       </Dialog>
 
       {/* Import Confirmation */}
-      <Dialog open={confirmImport.open} onClose={handleCancelImport}>
+      <Dialog open={confirmImport.open} onClose={handleCancelImport} fullWidth maxWidth="sm">
         <DialogTitle>Confirm Import</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            Import {confirmImport.data?.length || 0} books from "{confirmImport.file?.name}"?
-            This will add the books to your existing collection.
-          </DialogContentText>
+          {(() => {
+            if (!confirmImport.data) return null;
+            
+            let importedBooks = [];
+            if (Array.isArray(confirmImport.data)) {
+              importedBooks = confirmImport.data;
+            } else if (confirmImport.data.books && Array.isArray(confirmImport.data.books)) {
+              importedBooks = confirmImport.data.books;
+            }
+
+            const validBooks = importedBooks.filter(book => book.title && book.title.trim());
+            const duplicates = validBooks.filter(book => isDuplicateBook(book, books));
+            const newBooks = validBooks.length - duplicates.length;
+
+            return (
+              <>
+                <DialogContentText sx={{ mb: 2 }}>
+                  Import {validBooks.length} books from "{confirmImport.file?.name}"?
+                </DialogContentText>
+                
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="body2" color="success.main">
+                    • {newBooks} new books will be imported
+                  </Typography>
+                  {duplicates.length > 0 && (
+                    <Typography variant="body2" color="warning.main">
+                      • {duplicates.length} duplicates will be skipped
+                    </Typography>
+                  )}
+                </Box>
+
+                {duplicates.length > 0 && (
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Duplicates to be skipped:
+                    </Typography>
+                    <Box sx={{ maxHeight: 200, overflow: 'auto', border: 1, borderColor: 'divider', borderRadius: 1, p: 1 }}>
+                      {duplicates.slice(0, 10).map((book, index) => (
+                        <Typography key={index} variant="body2" color="text.secondary">
+                          • {book.title}{book.author ? ` by ${book.author}` : ''}
+                        </Typography>
+                      ))}
+                      {duplicates.length > 10 && (
+                        <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                          ... and {duplicates.length - 10} more
+                        </Typography>
+                      )}
+                    </Box>
+                  </Box>
+                )}
+              </>
+            );
+          })()}
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCancelImport}>Cancel</Button>

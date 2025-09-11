@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.14.1 - 2025-09-11
+
+### Added
+- **Duplicate Detection for Book Import**: Enhanced import functionality to prevent duplicate books
+  - **Smart Duplicate Detection**: Automatically identifies duplicate books based on normalized title and author matching ([`src/components/books/BookManager.js`](src/components/books/BookManager.js:503))
+  - **Import Preview**: Enhanced confirmation dialog shows count of new books vs duplicates before importing
+  - **Duplicate List Display**: Shows up to 10 duplicate books that will be skipped, with overflow indicator
+  - **Detailed Import Feedback**: Post-import messages include counts for imported, skipped duplicates, and failed books
+  - **Title Normalization**: Removes punctuation and normalizes whitespace for accurate duplicate detection
+  - **Author Matching**: Considers both title and author when available for precise duplicate identification
+
+### Enhanced
+- **Book Import Dialog**: Significantly improved user experience with duplicate information
+  - **Pre-Import Analysis**: Shows breakdown of new books vs duplicates before confirming import
+  - **Visual Feedback**: Color-coded messages (green for new books, orange for duplicates)
+  - **Scrollable Duplicate List**: Displays duplicate books in a scrollable container for easy review
+  - **Smart Import Logic**: Automatically skips duplicates while importing only new books
+
 ## 1.14.0 - 2025-09-11
 
 ### Added
