@@ -179,6 +179,8 @@ The application uses a bottom navigation bar with five main sections:
 ### Book and Genre Management
 - **Book Database**: Maintain comprehensive library of available books with full CRUD operations
 - **Book Management Interface**: Dedicated page for adding, editing, updating, and deleting books
+- **Import/Export Books**: Support for JSON and CSV file formats for bulk operations
+- **Data Migration**: Easy transfer of book data between systems
 - **Genre System**: Categorize books for better recommendations
 - **Autocomplete**: Smart book entry with existing database integration
 - **Book Details**: Store title, author, reading level, and age range information

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Box,
   Paper,
@@ -16,11 +16,15 @@ import {
   DialogContentText,
   DialogActions,
   Chip,
+  Alert,
+  Snackbar,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
 import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
+import DownloadIcon from '@mui/icons-material/Download';
+import UploadIcon from '@mui/icons-material/Upload';
 import { useAppContext } from '../../contexts/AppContext';
 
 const BookManager = () => {
@@ -35,7 +39,10 @@ const BookManager = () => {
   const [editBookReadingLevel, setEditBookReadingLevel] = useState('');
   const [editBookAgeRange, setEditBookAgeRange] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [confirmImport, setConfirmImport] = useState({ open: false, file: null, data: null });
   const [error, setError] = useState('');
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+  const fileInputRef = useRef(null);
 
   const handleAddBook = async (e) => {
     e.preventDefault();
@@ -135,6 +142,228 @@ const BookManager = () => {
 
   const handleCancelDelete = () => setConfirmDelete(null);
 
+  // Export functions
+  const handleExportJSON = () => {
+    try {
+      const dataStr = JSON.stringify(books, null, 2);
+      const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+
+      const exportFileDefaultName = `books_export_${new Date().toISOString().split('T')[0]}.json`;
+
+      const linkElement = document.createElement('a');
+      linkElement.setAttribute('href', dataUri);
+      linkElement.setAttribute('download', exportFileDefaultName);
+      linkElement.click();
+
+      setSnackbar({
+        open: true,
+        message: 'Books exported successfully',
+        severity: 'success'
+      });
+    } catch (error) {
+      console.error('Export failed:', error);
+      setSnackbar({
+        open: true,
+        message: 'Export failed',
+        severity: 'error'
+      });
+    }
+  };
+
+  const handleExportCSV = () => {
+    try {
+      const headers = ['Title', 'Author', 'Reading Level', 'Age Range'];
+      const csvContent = [
+        headers.join(','),
+        ...books.map(book => [
+          `"${(book.title || '').replace(/"/g, '""')}"`,
+          `"${(book.author || '').replace(/"/g, '""')}"`,
+          `"${(book.readingLevel || '').replace(/"/g, '""')}"`,
+          `"${(book.ageRange || '').replace(/"/g, '""')}"`
+        ].join(','))
+      ].join('\n');
+
+      const dataUri = 'data:text/csv;charset=utf-8,'+ encodeURIComponent(csvContent);
+      const exportFileDefaultName = `books_export_${new Date().toISOString().split('T')[0]}.csv`;
+
+      const linkElement = document.createElement('a');
+      linkElement.setAttribute('href', dataUri);
+      linkElement.setAttribute('download', exportFileDefaultName);
+      linkElement.click();
+
+      setSnackbar({
+        open: true,
+        message: 'Books exported successfully',
+        severity: 'success'
+      });
+    } catch (error) {
+      console.error('Export failed:', error);
+      setSnackbar({
+        open: true,
+        message: 'Export failed',
+        severity: 'error'
+      });
+    }
+  };
+
+  // Import functions
+  const handleImportClick = () => {
+    fileInputRef.current.click();
+  };
+
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Reset the file input
+    event.target.value = null;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        let importedData;
+
+        if (file.name.endsWith('.csv')) {
+          importedData = parseCSV(e.target.result);
+        } else if (file.name.endsWith('.json')) {
+          importedData = JSON.parse(e.target.result);
+        } else {
+          throw new Error('Unsupported file format. Please use .json or .csv files.');
+        }
+
+        setConfirmImport({
+          open: true,
+          file,
+          data: importedData
+        });
+      } catch (error) {
+        console.error('File parsing failed:', error);
+        setSnackbar({
+          open: true,
+          message: `Import failed: ${error.message}`,
+          severity: 'error'
+        });
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const parseCSV = (csvText) => {
+    const lines = csvText.split('\n').filter(line => line.trim());
+    if (lines.length < 2) throw new Error('CSV file must have at least a header row and one data row');
+
+    const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+    const expectedHeaders = ['Title', 'Author', 'Reading Level', 'Age Range'];
+
+    // Check if headers match expected format
+    const headerMatches = expectedHeaders.every(expected =>
+      headers.some(header => header.toLowerCase() === expected.toLowerCase())
+    );
+
+    if (!headerMatches) {
+      throw new Error('CSV headers must include: Title, Author, Reading Level, Age Range');
+    }
+
+    const books = [];
+    for (let i = 1; i < lines.length; i++) {
+      const values = parseCSVLine(lines[i]);
+      if (values.length >= 4) {
+        books.push({
+          title: values[0]?.trim() || '',
+          author: values[1]?.trim() || null,
+          readingLevel: values[2]?.trim() || null,
+          ageRange: values[3]?.trim() || null
+        });
+      }
+    }
+
+    if (books.length === 0) throw new Error('No valid books found in CSV file');
+
+    return books;
+  };
+
+  const parseCSVLine = (line) => {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          current += '"';
+          i++; // skip next quote
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        result.push(current);
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+
+    result.push(current);
+    return result;
+  };
+
+  const handleImportConfirm = async () => {
+    const { data } = confirmImport;
+    let importedBooks = [];
+
+    try {
+      if (Array.isArray(data)) {
+        importedBooks = data;
+      } else if (data.books && Array.isArray(data.books)) {
+        importedBooks = data.books;
+      } else {
+        throw new Error('Invalid data format');
+      }
+
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const bookData of importedBooks) {
+        try {
+          if (bookData.title && bookData.title.trim()) {
+            await addBook(bookData.title.trim(), bookData.author || null);
+            successCount++;
+          }
+        } catch (error) {
+          console.error('Error importing book:', bookData, error);
+          errorCount++;
+        }
+      }
+
+      await reloadDataFromServer();
+
+      setConfirmImport({ open: false, file: null, data: null });
+
+      const message = `Import completed: ${successCount} books imported${errorCount > 0 ? `, ${errorCount} failed` : ''}`;
+      setSnackbar({
+        open: true,
+        message,
+        severity: errorCount > 0 ? 'warning' : 'success'
+      });
+    } catch (error) {
+      console.error('Import failed:', error);
+      setSnackbar({
+        open: true,
+        message: `Import failed: ${error.message}`,
+        severity: 'error'
+      });
+    }
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
+
+  const handleCancelImport = () => {
+    setConfirmImport({ open: false, file: null, data: null });
+  };
+
   const handleCancelEdit = () => {
     setEditingBook(null);
     setEditBookTitle('');
@@ -217,9 +446,54 @@ const BookManager = () => {
         </Grid>
       </Box>
 
+      {/* Import/Export Section */}
       <Box sx={{ mt: 3 }}>
         <Typography variant="subtitle1" gutterBottom>
-          Existing Books
+          Import/Export Books
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 3 }}>
+          <Button
+            variant="outlined"
+            startIcon={<DownloadIcon />}
+            onClick={handleExportJSON}
+            disabled={books.length === 0}
+          >
+            Export JSON
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<DownloadIcon />}
+            onClick={handleExportCSV}
+            disabled={books.length === 0}
+          >
+            Export CSV
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<UploadIcon />}
+            onClick={handleImportClick}
+          >
+            Import Books
+          </Button>
+          <input
+            type="file"
+            accept=".json,.csv"
+            ref={fileInputRef}
+            style={{ display: 'none' }}
+            onChange={handleFileChange}
+          />
+        </Box>
+      </Box>
+
+      {error && (
+        <Grid item xs={12}>
+          <Alert severity="error">{error}</Alert>
+        </Grid>
+      )}
+
+      <Box sx={{ mt: 3 }}>
+        <Typography variant="subtitle1" gutterBottom>
+          Existing Books ({books.length})
         </Typography>
 
         {books.length === 0 ? (
@@ -347,6 +621,39 @@ const BookManager = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Import Confirmation */}
+      <Dialog open={confirmImport.open} onClose={handleCancelImport}>
+        <DialogTitle>Confirm Import</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Import {confirmImport.data?.length || 0} books from "{confirmImport.file?.name}"?
+            This will add the books to your existing collection.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelImport}>Cancel</Button>
+          <Button onClick={handleImportConfirm} color="primary" variant="contained">
+            Import
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Paper>
   );
 };
