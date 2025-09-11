@@ -18,6 +18,13 @@ import {
   Chip,
   Alert,
   Snackbar,
+  LinearProgress,
+  CircularProgress,
+  Pagination,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -25,7 +32,9 @@ import SaveIcon from '@mui/icons-material/Save';
 import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
 import DownloadIcon from '@mui/icons-material/Download';
 import UploadIcon from '@mui/icons-material/Upload';
+import PersonSearchIcon from '@mui/icons-material/PersonSearch';
 import { useAppContext } from '../../contexts/AppContext';
+import { batchFindMissingAuthors } from '../../utils/openLibraryApi';
 
 const BookManager = () => {
   const { books, genres, addBook, reloadDataFromServer } = useAppContext();
@@ -43,6 +52,16 @@ const BookManager = () => {
   const [error, setError] = useState('');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const fileInputRef = useRef(null);
+  
+  // Author lookup state
+  const [isLookingUpAuthors, setIsLookingUpAuthors] = useState(false);
+  const [authorLookupProgress, setAuthorLookupProgress] = useState({ current: 0, total: 0, book: '' });
+  const [authorLookupResults, setAuthorLookupResults] = useState([]);
+  const [showAuthorResults, setShowAuthorResults] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [booksPerPage, setBooksPerPage] = useState(10);
 
   const handleAddBook = async (e) => {
     e.preventDefault();
@@ -373,6 +392,128 @@ const BookManager = () => {
     setError('');
   };
 
+  // Author lookup functions
+  const handleFillMissingAuthors = async () => {
+    const booksWithoutAuthors = books.filter(book => !book.author || book.author.trim() === '');
+    
+    if (booksWithoutAuthors.length === 0) {
+      setSnackbar({
+        open: true,
+        message: 'All books already have authors assigned!',
+        severity: 'info'
+      });
+      return;
+    }
+
+    setIsLookingUpAuthors(true);
+    setAuthorLookupProgress({ current: 0, total: booksWithoutAuthors.length, book: '' });
+    setAuthorLookupResults([]);
+
+    try {
+      const results = await batchFindMissingAuthors(booksWithoutAuthors, (progress) => {
+        setAuthorLookupProgress(progress);
+      });
+
+      setAuthorLookupResults(results);
+      setIsLookingUpAuthors(false);
+      setShowAuthorResults(true);
+
+      const successCount = results.filter(r => r.success).length;
+      const totalCount = results.length;
+
+      setSnackbar({
+        open: true,
+        message: `Author lookup completed: ${successCount}/${totalCount} authors found`,
+        severity: successCount > 0 ? 'success' : 'warning'
+      });
+    } catch (error) {
+      console.error('Error during author lookup:', error);
+      setIsLookingUpAuthors(false);
+      setSnackbar({
+        open: true,
+        message: `Author lookup failed: ${error.message}`,
+        severity: 'error'
+      });
+    }
+  };
+
+  const handleApplyAuthorUpdates = async () => {
+    const successfulResults = authorLookupResults.filter(r => r.success && r.foundAuthor);
+    
+    if (successfulResults.length === 0) {
+      setSnackbar({
+        open: true,
+        message: 'No authors to update',
+        severity: 'info'
+      });
+      return;
+    }
+
+    let updateCount = 0;
+    let errorCount = 0;
+
+    for (const result of successfulResults) {
+      try {
+        const response = await fetch(`/api/books/${result.book.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...result.book,
+            author: result.foundAuthor
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+
+        updateCount++;
+      } catch (error) {
+        console.error(`Error updating book "${result.book.title}":`, error);
+        errorCount++;
+      }
+    }
+
+    await reloadDataFromServer();
+    setShowAuthorResults(false);
+    setAuthorLookupResults([]);
+
+    setSnackbar({
+      open: true,
+      message: `Updated ${updateCount} books${errorCount > 0 ? `, ${errorCount} failed` : ''}`,
+      severity: errorCount > 0 ? 'warning' : 'success'
+    });
+  };
+
+  const handleCancelAuthorResults = () => {
+    setShowAuthorResults(false);
+    setAuthorLookupResults([]);
+  };
+
+  const getBooksWithoutAuthors = () => {
+    return books.filter(book => !book.author || book.author.trim() === '');
+  };
+
+  // Pagination helper functions
+  const getTotalPages = () => {
+    return Math.ceil(books.length / booksPerPage);
+  };
+
+  const getPaginatedBooks = () => {
+    const startIndex = (currentPage - 1) * booksPerPage;
+    const endIndex = startIndex + booksPerPage;
+    return books.slice(startIndex, endIndex);
+  };
+
+  const handlePageChange = (event, newPage) => {
+    setCurrentPage(newPage);
+  };
+
+  const handleBooksPerPageChange = (event) => {
+    setBooksPerPage(event.target.value);
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
+
   return (
     <Paper sx={{ p: 3, mt: 3 }}>
       <Typography variant="h6" gutterBottom>
@@ -475,6 +616,15 @@ const BookManager = () => {
           >
             Import Books
           </Button>
+          <Button
+            variant="outlined"
+            startIcon={isLookingUpAuthors ? <CircularProgress size={20} /> : <PersonSearchIcon />}
+            onClick={handleFillMissingAuthors}
+            disabled={isLookingUpAuthors || books.length === 0}
+            color="secondary"
+          >
+            {isLookingUpAuthors ? 'Finding Authors...' : `Fill Missing Authors (${getBooksWithoutAuthors().length})`}
+          </Button>
           <input
             type="file"
             accept=".json,.csv"
@@ -483,6 +633,23 @@ const BookManager = () => {
             onChange={handleFileChange}
           />
         </Box>
+
+        {/* Author Lookup Progress */}
+        {isLookingUpAuthors && (
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="body2" gutterBottom>
+              Looking up authors: {authorLookupProgress.current}/{authorLookupProgress.total}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Current: {authorLookupProgress.book}
+            </Typography>
+            <LinearProgress
+              variant="determinate"
+              value={(authorLookupProgress.current / authorLookupProgress.total) * 100}
+              sx={{ mb: 1 }}
+            />
+          </Box>
+        )}
       </Box>
 
       {error && (
@@ -492,62 +659,101 @@ const BookManager = () => {
       )}
 
       <Box sx={{ mt: 3 }}>
-        <Typography variant="subtitle1" gutterBottom>
-          Existing Books ({books.length})
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="subtitle1">
+            Existing Books ({books.length})
+          </Typography>
+          
+          {books.length > 0 && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <FormControl size="small" sx={{ minWidth: 120 }}>
+                <InputLabel>Books per page</InputLabel>
+                <Select
+                  value={booksPerPage}
+                  label="Books per page"
+                  onChange={handleBooksPerPageChange}
+                >
+                  <MenuItem value={5}>5</MenuItem>
+                  <MenuItem value={10}>10</MenuItem>
+                  <MenuItem value={20}>20</MenuItem>
+                  <MenuItem value={50}>50</MenuItem>
+                </Select>
+              </FormControl>
+              
+              <Typography variant="body2" color="text.secondary">
+                Showing {Math.min((currentPage - 1) * booksPerPage + 1, books.length)}-{Math.min(currentPage * booksPerPage, books.length)} of {books.length}
+              </Typography>
+            </Box>
+          )}
+        </Box>
 
         {books.length === 0 ? (
           <Typography variant="body2">No books created yet.</Typography>
         ) : (
-          <List>
-            {books.map((book) => (
-              <ListItem
-                key={book.id}
-                divider
-                secondaryAction={
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <IconButton edge="end" aria-label="edit" onClick={() => handleEditClick(book)}>
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton edge="end" aria-label="delete" color="error" onClick={() => handleDeleteClick(book)}>
-                      <DeleteIcon />
-                    </IconButton>
-                  </Box>
-                }
-              >
-                <ListItemText
-                  primary={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                      <Typography variant="subtitle2">{book.title}</Typography>
-                      {book.author && (
-                        <Chip
-                          label={`by ${book.author}`}
-                          size="small"
-                          variant="outlined"
-                        />
-                      )}
-                      {book.readingLevel && (
-                        <Chip
-                          label={`Level: ${book.readingLevel}`}
-                          size="small"
-                          color="primary"
-                          variant="outlined"
-                        />
-                      )}
-                      {book.ageRange && (
-                        <Chip
-                          label={`Age: ${book.ageRange}`}
-                          size="small"
-                          color="secondary"
-                          variant="outlined"
-                        />
-                      )}
+          <>
+            <List>
+              {getPaginatedBooks().map((book) => (
+                <ListItem
+                  key={book.id}
+                  divider
+                  secondaryAction={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <IconButton edge="end" aria-label="edit" onClick={() => handleEditClick(book)}>
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton edge="end" aria-label="delete" color="error" onClick={() => handleDeleteClick(book)}>
+                        <DeleteIcon />
+                      </IconButton>
                     </Box>
                   }
+                >
+                  <ListItemText
+                    primary={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                        <Typography variant="subtitle2">{book.title}</Typography>
+                        {book.author && (
+                          <Chip
+                            label={`by ${book.author}`}
+                            size="small"
+                            variant="outlined"
+                          />
+                        )}
+                        {book.readingLevel && (
+                          <Chip
+                            label={`Level: ${book.readingLevel}`}
+                            size="small"
+                            color="primary"
+                            variant="outlined"
+                          />
+                        )}
+                        {book.ageRange && (
+                          <Chip
+                            label={`Age: ${book.ageRange}`}
+                            size="small"
+                            color="secondary"
+                            variant="outlined"
+                          />
+                        )}
+                      </Box>
+                    }
+                  />
+                </ListItem>
+              ))}
+            </List>
+            
+            {getTotalPages() > 1 && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+                <Pagination
+                  count={getTotalPages()}
+                  page={currentPage}
+                  onChange={handlePageChange}
+                  color="primary"
+                  showFirstButton
+                  showLastButton
                 />
-              </ListItem>
-            ))}
-          </List>
+              </Box>
+            )}
+          </>
         )}
       </Box>
 
@@ -635,6 +841,58 @@ const BookManager = () => {
           <Button onClick={handleCancelImport}>Cancel</Button>
           <Button onClick={handleImportConfirm} color="primary" variant="contained">
             Import
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Author Lookup Results Dialog */}
+      <Dialog open={showAuthorResults} onClose={handleCancelAuthorResults} fullWidth maxWidth="md">
+        <DialogTitle>Author Lookup Results</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            Found authors for {authorLookupResults.filter(r => r.success).length} out of {authorLookupResults.length} books.
+            Click "Apply Updates" to save the found authors to your books.
+          </DialogContentText>
+          
+          <List>
+            {authorLookupResults.map((result, index) => (
+              <ListItem key={index} divider>
+                <ListItemText
+                  primary={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="subtitle2">{result.book.title}</Typography>
+                      {result.success ? (
+                        <Chip label="Found" color="success" size="small" />
+                      ) : (
+                        <Chip label="Not Found" color="error" size="small" />
+                      )}
+                    </Box>
+                  }
+                  secondary={
+                    result.success ? (
+                      <Typography variant="body2" color="text.secondary">
+                        Author: {result.foundAuthor}
+                      </Typography>
+                    ) : (
+                      <Typography variant="body2" color="error">
+                        {result.error || 'No matching author found'}
+                      </Typography>
+                    )
+                  }
+                />
+              </ListItem>
+            ))}
+          </List>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelAuthorResults}>Cancel</Button>
+          <Button
+            onClick={handleApplyAuthorUpdates}
+            variant="contained"
+            color="primary"
+            disabled={authorLookupResults.filter(r => r.success).length === 0}
+          >
+            Apply Updates ({authorLookupResults.filter(r => r.success).length})
           </Button>
         </DialogActions>
       </Dialog>

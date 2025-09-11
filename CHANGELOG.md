@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.14.0 - 2025-09-11
+
+### Added
+- **OpenLibrary API Integration**: Automatic author lookup functionality for books with missing authors
+  - **OpenLibrary Search API**: Integration with OpenLibrary.org API for book and author data ([`src/utils/openLibraryApi.js`](src/utils/openLibraryApi.js))
+  - **"Fill Missing Authors" Button**: One-click solution to find and fill missing author information ([`src/components/books/BookManager.js`](src/components/books/BookManager.js:594))
+  - **Batch Processing**: Efficiently processes multiple books with missing authors in sequence
+  - **Smart Title Matching**: Advanced algorithm to match book titles with OpenLibrary database using similarity scoring
+  - **Progress Tracking**: Real-time progress indicator showing current book being processed
+  - **Results Preview**: Dialog showing found authors before applying updates, allowing user review
+  - **API Rate Limiting**: Respectful 500ms delay between API calls to avoid overwhelming the service
+  - **Error Handling**: Comprehensive error handling with user-friendly feedback for API failures
+
+- **Books List Pagination**: Enhanced book management for large collections
+  - **Configurable Page Size**: Choose between 5, 10, 20, or 50 books per page ([`src/components/books/BookManager.js`](src/components/books/BookManager.js:675))
+  - **Navigation Controls**: First, previous, next, and last page buttons with Material-UI Pagination component
+  - **Item Count Display**: Shows current range (e.g., "Showing 1-10 of 45") for better user orientation
+  - **Responsive Design**: Pagination controls adapt to different screen sizes
+  - **State Persistence**: Maintains current page when adding, editing, or deleting books
+
+### Enhanced
+- **BookManager Component**: Significantly expanded functionality and user experience
+  - **OpenLibrary Integration**: Added author lookup capabilities with progress tracking and results management
+  - **Pagination System**: Complete pagination implementation for handling large book collections
+  - **Improved UI Layout**: Better organization of controls with pagination and items-per-page selector
+  - **Enhanced User Feedback**: Progress indicators, confirmation dialogs, and detailed status messages
+  - **Performance Optimization**: Only renders visible books, improving performance with large datasets
+
+### Technical Implementation
+- **OpenLibrary API Utility**: Comprehensive API integration with search, matching, and batch processing capabilities
+- **Title Similarity Algorithm**: Custom algorithm for matching book titles with fuzzy matching and word-based scoring
+- **Pagination Logic**: Efficient client-side pagination with configurable page sizes and navigation
+- **State Management**: Enhanced React state management for pagination, progress tracking, and results handling
+- **Error Boundaries**: Robust error handling for API failures and network issues
+
 ## 1.13.0 - 2025-09-11
 
 ### Added
