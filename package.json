@@ -1,11 +1,12 @@
 {
   "name": "kids-reading-manager-cloudflare",
-  "version": "1.11.0",
+  "version": "1.12.0",
   "description": "Cloudflare Workers implementation of Kids Reading Manager API",
   "main": "src/index.js",
   "scripts": {
     "start": "rsbuild dev",
     "start:server": "node server/index.js",
+    "start:dev": "npm run start:server & npm run start",
     "start:prod": "npm run build && npm run start:server",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",

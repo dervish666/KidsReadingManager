@@ -265,8 +265,8 @@ const ReadingTimelineChart = () => {
                           <Box 
                             sx={{ 
                               width: 20, 
-                              height: 20, 
-                              borderRadius: '50%', 
+                              height: 20,
+                              borderRadius: 1,
                               bgcolor: getAssessmentColor(session.assessment),
                               cursor: 'pointer'
                             }} 
@@ -283,15 +283,15 @@ const ReadingTimelineChart = () => {
           {/* Legend */}
           <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3, flexWrap: 'wrap', gap: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: theme.palette.success.main, mr: 1 }} />
+              <Box sx={{ width: 12, height: 12, borderRadius: 1, bgcolor: theme.palette.success.main, mr: 1 }} />
               <Typography variant="caption">{formatAssessmentDisplay('independent')}</Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: theme.palette.warning.main, mr: 1 }} />
+              <Box sx={{ width: 12, height: 12, borderRadius: 1, bgcolor: theme.palette.warning.main, mr: 1 }} />
               <Typography variant="caption">{formatAssessmentDisplay('needs_help')}</Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: theme.palette.error.main, mr: 1 }} />
+              <Box sx={{ width: 12, height: 12, borderRadius: 1, bgcolor: theme.palette.error.main, mr: 1 }} />
               <Typography variant="caption">{formatAssessmentDisplay('struggling')}</Typography>
             </Box>
           </Box>

@@ -95,15 +95,15 @@ const ReadingFrequencyChart = () => {
           
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: theme.palette.primary.main, mr: 1 }} />
+              <Box sx={{ width: 12, height: 12, borderRadius: 1, bgcolor: theme.palette.primary.main, mr: 1 }} />
               <Typography variant="caption">3+ sessions</Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: theme.palette.warning.main, mr: 1 }} />
+              <Box sx={{ width: 12, height: 12, borderRadius: 1, bgcolor: theme.palette.warning.main, mr: 1 }} />
               <Typography variant="caption">1-2 sessions</Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: theme.palette.error.main, mr: 1 }} />
+              <Box sx={{ width: 12, height: 12, borderRadius: 1, bgcolor: theme.palette.error.main, mr: 1 }} />
               <Typography variant="caption">No sessions</Typography>
             </Box>
           </Box>

@@ -159,3 +159,8 @@ body::before {
 input, button, select, textarea {
   touch-action: manipulation;
 }
+
+/* Force ALL avatars to be square (Material-UI override) */
+.MuiAvatar-root {
+  border-radius: 8px !important;
+}

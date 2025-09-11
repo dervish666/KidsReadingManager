@@ -246,6 +246,13 @@ const theme = createTheme({
           },
         },
       },
+      MuiAvatar: {
+        styleOverrides: {
+          root: {
+            borderRadius: 8, // Force all avatars to be rounded squares
+          },
+        },
+      },
     },
   },
   breakpoints: {

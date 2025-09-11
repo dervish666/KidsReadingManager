@@ -116,13 +116,19 @@ const StudentCard = ({ student }) => {
         >
           <CardHeader
             avatar={
-              <Avatar sx={{
+              <Box sx={{
                 bgcolor: 'primary.main',
+                color: 'white',
                 width: { xs: 40, sm: 44 },
-                height: { xs: 40, sm: 44 }
+                height: { xs: 40, sm: 44 },
+                borderRadius: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: 1
               }}>
                 <MenuBookIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />
-              </Avatar>
+              </Box>
             }
             title={
               <Typography
@@ -170,7 +176,7 @@ const StudentCard = ({ student }) => {
                 <Box sx={{
                   width: { xs: 8, sm: 10 },
                   height: { xs: 8, sm: 10 },
-                  borderRadius: '50%',
+                  borderRadius: 0,
                   bgcolor: statusColor,
                   boxShadow: 1
                 }} />

@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.12.0 - 2025-09-11
+
+### Added
+- **Book Management Page**: Implemented dedicated page for comprehensive book database management with full CRUD operations
+  - Created BookManager component with intuitive interface for managing the book library ([`src/components/books/BookManager.js`](src/components/books/BookManager.js:1))
+  - Added new "Books" tab to bottom navigation with LibraryBooks icon ([`src/App.js`](src/App.js:15,99))
+  - Features include:
+    - Add new books with title, author, reading level, and age range fields
+    - Edit existing books with inline form dialogs
+    - Delete books with confirmation dialogs
+    - Display books in organized list with metadata chips (author, reading level, age range)
+    - Real-time form validation and error handling
+    - Responsive design with Material-UI components
+  - Integrated with existing book API endpoints for seamless data management
+  - Maintains data consistency with existing BookAutocomplete and session tracking features
+
+### Enhanced
+- **Navigation System**: Expanded app navigation to support five main sections
+  - Updated BottomNavigation to accommodate 5 tabs with proper responsive design
+  - Maintained consistent user experience across all navigation states
+  - Added LibraryBooks icon for books management section
+
+### Documentation
+- Updated application overview to reflect new Books management section
+- Enhanced Book and Genre Management documentation with CRUD capabilities
+
+### Version
+- Bumped package version to 1.12.0
+
 ## 1.11.0 - 2025-09-07
 
 ### Added

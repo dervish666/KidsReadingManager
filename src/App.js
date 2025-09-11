@@ -7,12 +7,14 @@ import PeopleIcon from '@mui/icons-material/People';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import StarIcon from '@mui/icons-material/Star';
+import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
 import Header from './components/Header';
 import { AppProvider } from './contexts/AppContext';
 import StudentList from './components/students/StudentList';
 import SessionForm from './components/sessions/SessionForm';
 import ReadingStats from './components/stats/ReadingStats';
 import BookRecommendations from './components/BookRecommendations';
+import BookManager from './components/books/BookManager';
 
 function App() {
   const [currentTab, setCurrentTab] = useState(0);
@@ -28,6 +30,8 @@ function App() {
         return <ReadingStats />;
       case 3:
         return <BookRecommendations />;
+      case 4:
+        return <BookManager />;
       default:
         return <StudentList />;
     }
@@ -97,6 +101,7 @@ function App() {
             <BottomNavigationAction label="Reading" icon={<MenuBookIcon />} />
             <BottomNavigationAction label="Stats" icon={<BarChartIcon />} />
             <BottomNavigationAction label="Recommendations" icon={<StarIcon />} />
+            <BottomNavigationAction label="Books" icon={<LibraryBooksIcon />} />
           </BottomNavigation>
         </Paper>
         </Box>

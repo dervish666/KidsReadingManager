@@ -75,20 +75,21 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
     >
       <Box
         sx={{
-          position: 'absolute', 
-          top: -10, 
-          left: -10, 
+          position: 'absolute',
+          top: -8,
+          left: -8,
           bgcolor: theme.palette.primary.main,
           color: 'white',
-          width: 24,
-          height: 24,
-          borderRadius: '50%',
+          width: 28,
+          height: 28,
+          borderRadius: 0,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           fontWeight: 'bold',
-          fontSize: '0.8rem',
-          boxShadow: 1
+          fontSize: '0.875rem',
+          boxShadow: 2,
+          border: '2px solid white'
         }}
       >
         {priorityRank}

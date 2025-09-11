@@ -133,11 +133,12 @@ The application now uses a comprehensive data model:
 ## User Interface Overview
 
 ### Navigation Structure
-The application uses a bottom navigation bar with four main sections:
+The application uses a bottom navigation bar with five main sections:
 1. **Students** - Student management and profiles
-2. **Sessions** - Reading session entry and tracking
+2. **Reading** - Reading session entry and tracking
 3. **Stats** - Analytics and reading statistics
 4. **Recommendations** - AI-powered book recommendations
+5. **Books** - Book database management and CRUD operations
 
 ### Key User Workflows
 
@@ -176,9 +177,11 @@ The application uses a bottom navigation bar with four main sections:
 - **Teacher Management**: Track which teacher manages each class
 
 ### Book and Genre Management
-- **Book Database**: Maintain library of available books
+- **Book Database**: Maintain comprehensive library of available books with full CRUD operations
+- **Book Management Interface**: Dedicated page for adding, editing, updating, and deleting books
 - **Genre System**: Categorize books for better recommendations
 - **Autocomplete**: Smart book entry with existing database integration
+- **Book Details**: Store title, author, reading level, and age range information
 
 ## API Integration
 
