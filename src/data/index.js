@@ -70,6 +70,14 @@ async function createJSONProvider() {
 
     async deleteBook(id) {
       return jsonProvider.default.deleteBook(id);
+    },
+
+    async addBooksBatch(books) {
+      return jsonProvider.default.addBooksBatch(books);
+    },
+
+    async updateBooksBatch(bookUpdates) {
+      return jsonProvider.default.updateBooksBatch(bookUpdates);
     }
   };
 }
@@ -81,7 +89,9 @@ function createKVProvider(env) {
     getBookById: (...args) => kvProvider.getBookById(env || {}, ...args),
     addBook: (...args) => kvProvider.addBook(env || {}, ...args),
     updateBook: (...args) => kvProvider.updateBook(env || {}, ...args),
-    deleteBook: (...args) => kvProvider.deleteBook(env || {}, ...args)
+    deleteBook: (...args) => kvProvider.deleteBook(env || {}, ...args),
+    addBooksBatch: (...args) => kvProvider.addBooksBatch(env || {}, ...args),
+    updateBooksBatch: (...args) => kvProvider.updateBooksBatch(env || {}, ...args)
   };
 }
 

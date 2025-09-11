@@ -157,10 +157,106 @@ const deleteBook = async (env, id) => {
   }
 };
 
+/**
+ * Add multiple books in a single batch operation
+ * This is more efficient for bulk imports as it only requires 2 KV operations total
+ * @param {Object} env - Worker environment
+ * @param {Array} newBooks - Array of book objects to add
+ * @returns {Array} Array of added books
+ */
+const addBooksBatch = async (env, newBooks) => {
+  try {
+    const kv = getKV(env);
+    if (!kv) {
+      throw new Error('KV namespace not available');
+    }
+
+    if (!Array.isArray(newBooks) || newBooks.length === 0) {
+      return [];
+    }
+
+    // Get current books (1 KV operation)
+    const existingBooks = await getAllBooks(env);
+    
+    // Add all new books to the array
+    const updatedBooks = [...existingBooks, ...newBooks];
+    
+    // Save updated books array (1 KV operation)
+    await kv.put('books', JSON.stringify(updatedBooks));
+    
+    return newBooks;
+  } catch (error) {
+    console.error('Error adding books batch to KV:', error);
+    throw new Error('Failed to save books batch');
+  }
+};
+
+/**
+ * Update multiple books in a single batch operation
+ * More efficient for bulk updates as it only requires 2 KV operations total
+ * @param {Object} env - Worker environment
+ * @param {Array} bookUpdates - Array of {id, bookData} objects
+ * @returns {Array} Array of updated books
+ */
+const updateBooksBatch = async (env, bookUpdates) => {
+  try {
+    const kv = getKV(env);
+    if (!kv) {
+      throw new Error('KV namespace not available');
+    }
+
+    if (!Array.isArray(bookUpdates) || bookUpdates.length === 0) {
+      return [];
+    }
+
+    // Get current books (1 KV operation)
+    const books = await getAllBooks(env);
+    const updatedBooks = [];
+    
+    // Apply all updates
+    bookUpdates.forEach(({ id, bookData }) => {
+      const index = books.findIndex(book => book.id === id);
+      if (index !== -1) {
+        books[index] = { ...bookData, id };
+        updatedBooks.push(books[index]);
+      }
+    });
+    
+    // Save updated books array (1 KV operation)
+    await kv.put('books', JSON.stringify(books));
+    
+    return updatedBooks;
+  } catch (error) {
+    console.error('Error updating books batch in KV:', error);
+    throw new Error('Failed to update books batch');
+  }
+};
+
+/**
+ * Enhanced addBook that can handle both single and batch operations
+ * Automatically detects if we're in a batch context to optimize KV usage
+ * @param {Object} env - Worker environment
+ * @param {Object} newBook - Book object to add
+ * @param {Object} options - Options including batch context
+ * @returns {Object} Added book object
+ */
+const addBookOptimized = async (env, newBook, options = {}) => {
+  // If this is part of a batch operation, use the batch method
+  if (options.batch && Array.isArray(options.batch)) {
+    return addBooksBatch(env, options.batch);
+  }
+  
+  // Otherwise use the original single-book method
+  return addBook(env, newBook);
+};
+
 export {
   getAllBooks,
   getBookById,
   addBook,
   updateBook,
-  deleteBook
+  deleteBook,
+  addBooksBatch,
+  updateBooksBatch,
+  addBookOptimized
 };

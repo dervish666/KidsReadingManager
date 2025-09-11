@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.14.2 - 2025-09-11
+
+### Fixed
+- **Cloudflare KV Rate Limiting**: Resolved bulk import failures in Cloudflare Workers environment
+  - **Batch Operations**: Implemented efficient batch operations for KV storage to avoid 1000-operation-per-request limit ([`src/data/kvProvider.js`](src/data/kvProvider.js:160))
+  - **Bulk Import Endpoint**: Added `/api/books/bulk` endpoint for efficient mass book imports ([`src/routes/books.js`](src/routes/books.js:105))
+  - **KV Optimization**: Reduced KV operations from 2-per-book to 2-total for entire import batch
+  - **Synchronized Routes**: Added corresponding bulk endpoint to Express server for dual architecture support ([`server/index.js`](server/index.js:555))
+  - **Enhanced Import Logic**: Updated BookManager to use bulk endpoint instead of individual book imports ([`src/components/books/BookManager.js`](src/components/books/BookManager.js:355))
+
+### Technical Implementation
+- **KV Efficiency**: Batch operations reduce KV calls from O(n) to O(1) for bulk operations
+- **Rate Limit Compliance**: Ensures compliance with Cloudflare's 1000 KV operations per request limit
+- **Dual Provider Support**: Both JSON and KV providers now support batch operations for consistency
+- **Error Handling**: Enhanced error handling for bulk operations with detailed feedback
+
 ## 1.14.1 - 2025-09-11
 
 ### Added

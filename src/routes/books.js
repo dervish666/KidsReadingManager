@@ -101,6 +101,78 @@ booksRouter.delete('/:id', async (c) => {
    return c.json({ message: 'Book deleted successfully' });
 });
 
+/**
+ * POST /api/books/bulk
+ * Bulk import books with duplicate detection and KV optimization
+ */
+booksRouter.post('/bulk', async (c) => {
+  const booksData = await c.req.json();
+
+  // Validate input
+  if (!Array.isArray(booksData) || booksData.length === 0) {
+    throw badRequestError('Request must contain an array of books');
+  }
+
+  // Filter valid books and prepare them
+  const validBooks = booksData
+    .filter(book => book.title && book.title.trim())
+    .map(book => ({
+      id: crypto.randomUUID(),
+      title: book.title.trim(),
+      author: book.author || null,
+      genreIds: book.genreIds || [],
+      readingLevel: book.readingLevel || null,
+      ageRange: book.ageRange || null,
+      description: book.description || null
+    }));
+
+  if (validBooks.length === 0) {
+    throw badRequestError('No valid books found in request');
+  }
+
+  // Get existing books for duplicate detection
+  const provider = await createProvider(c.env);
+  const existingBooks = await provider.getAllBooks();
+
+  // Filter out duplicates
+  const isDuplicate = (newBook, existingBooks) => {
+    const normalizeTitle = (title) => title.toLowerCase().trim().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ');
+    const normalizeAuthor = (author) => author ? author.toLowerCase().trim().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ') : '';
+
+    const newTitle = normalizeTitle(newBook.title);
+    const newAuthor = normalizeAuthor(newBook.author);
+
+    return existingBooks.some(existing => {
+      const existingTitle = normalizeTitle(existing.title);
+      const existingAuthor = normalizeAuthor(existing.author);
+
+      if (newTitle === existingTitle) {
+        if (newAuthor && existingAuthor) {
+          return newAuthor === existingAuthor;
+        }
+        return true; // Same title, consider duplicate
+      }
+      return false;
+    });
+  };
+
+  const newBooks = validBooks.filter(book => !isDuplicate(book, existingBooks));
+  const duplicateCount = validBooks.length - newBooks.length;
+
+  // Use batch operation for efficiency (only 2 KV operations total)
+  let savedBooks = [];
+  if (newBooks.length > 0) {
+    savedBooks = await provider.addBooksBatch(newBooks);
+  }
+
+  return c.json({
+    imported: savedBooks.length,
+    duplicates: duplicateCount,
+    total: validBooks.length,
+    books: savedBooks
+  }, 201);
+});
+
 // Placeholder for book recommendations endpoint
 booksRouter.get('/recommendations', async (c) => {
   return c.json({ message: 'Book recommendations endpoint - to be implemented' });

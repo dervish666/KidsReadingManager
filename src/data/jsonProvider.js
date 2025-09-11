@@ -132,10 +132,69 @@ const deleteBook = (id) => {
   }
 };
 
+/**
+ * Add multiple books in a single batch operation
+ * @param {Array} newBooks - Array of book objects to add
+ * @returns {Array} Array of added books
+ */
+const addBooksBatch = (newBooks) => {
+  if (!Array.isArray(newBooks) || newBooks.length === 0) {
+    return [];
+  }
+
+  const data = readData();
+  if (!data.books) {
+    data.books = [];
+  }
+
+  // Add all new books to the array
+  data.books.push(...newBooks);
+  
+  if (writeData(data)) {
+    return newBooks;
+  } else {
+    throw new Error('Failed to save books batch');
+  }
+};
+
+/**
+ * Update multiple books in a single batch operation
+ * @param {Array} bookUpdates - Array of {id, bookData} objects
+ * @returns {Array} Array of updated books
+ */
+const updateBooksBatch = (bookUpdates) => {
+  if (!Array.isArray(bookUpdates) || bookUpdates.length === 0) {
+    return [];
+  }
+
+  const data = readData();
+  if (!data.books) {
+    data.books = [];
+  }
+
+  const updatedBooks = [];
+  
+  bookUpdates.forEach(({ id, bookData }) => {
+    const index = data.books.findIndex(book => book.id === id);
+    if (index !== -1) {
+      data.books[index] = { ...bookData, id };
+      updatedBooks.push(data.books[index]);
+    }
+  });
+  
+  if (writeData(data)) {
+    return updatedBooks;
+  } else {
+    throw new Error('Failed to update books batch');
+  }
+};
+
 module.exports = {
   getAllBooks,
   getBookById,
   addBook,
   updateBook,
-  deleteBook
+  deleteBook,
+  addBooksBatch,
+  updateBooksBatch
 };

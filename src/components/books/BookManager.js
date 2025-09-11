@@ -340,46 +340,39 @@ const BookManager = () => {
         throw new Error('Invalid data format');
       }
 
-      let successCount = 0;
-      let errorCount = 0;
-      let duplicateCount = 0;
+      // Filter valid books
+      const validBooks = importedBooks.filter(book => book.title && book.title.trim());
 
-      for (const bookData of importedBooks) {
-        try {
-          if (bookData.title && bookData.title.trim()) {
-            // Check for duplicates before importing
-            if (isDuplicateBook(bookData, books)) {
-              console.log('Skipping duplicate book:', bookData.title);
-              duplicateCount++;
-              continue;
-            }
-
-            await addBook(bookData.title.trim(), bookData.author || null);
-            successCount++;
-          }
-        } catch (error) {
-          console.error('Error importing book:', bookData, error);
-          errorCount++;
-        }
+      if (validBooks.length === 0) {
+        throw new Error('No valid books found in import data');
       }
 
-      await reloadDataFromServer();
+      // Use bulk import endpoint for efficiency (avoids KV rate limits)
+      const response = await fetch('/api/books/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(validBooks),
+      });
 
+      if (!response.ok) {
+        throw new Error(`Bulk import failed: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      
+      await reloadDataFromServer();
       setConfirmImport({ open: false, file: null, data: null });
 
-      // Create detailed message including duplicate count
-      let message = `Import completed: ${successCount} books imported`;
-      if (duplicateCount > 0) {
-        message += `, ${duplicateCount} duplicates skipped`;
-      }
-      if (errorCount > 0) {
-        message += `, ${errorCount} failed`;
+      // Create detailed message from bulk import result
+      let message = `Import completed: ${result.imported} books imported`;
+      if (result.duplicates > 0) {
+        message += `, ${result.duplicates} duplicates skipped`;
       }
 
       setSnackbar({
         open: true,
         message,
-        severity: errorCount > 0 ? 'warning' : 'success'
+        severity: 'success'
       });
     } catch (error) {
       console.error('Import failed:', error);

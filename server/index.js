@@ -552,6 +552,78 @@ app.delete('/api/books/:id', (req, res) => {
   }
 });
 
+// Bulk import endpoint for books
+app.post('/api/books/bulk', (req, res) => {
+  const data = readData();
+  const booksData = req.body;
+
+  // Validate input
+  if (!Array.isArray(booksData) || booksData.length === 0) {
+    return res.status(400).json({ error: 'Request must contain an array of books' });
+  }
+
+  // Initialize books array if it doesn't exist
+  if (!data.books) {
+    data.books = [];
+  }
+
+  // Filter valid books and prepare them
+  const validBooks = booksData
+    .filter(book => book.title && book.title.trim())
+    .map(book => ({
+      id: book.id || require('crypto').randomUUID(),
+      title: book.title.trim(),
+      author: book.author || null,
+      genreIds: book.genreIds || [],
+      readingLevel: book.readingLevel || null,
+      ageRange: book.ageRange || null,
+      description: book.description || null
+    }));
+
+  if (validBooks.length === 0) {
+    return res.status(400).json({ error: 'No valid books found in request' });
+  }
+
+  // Filter out duplicates
+  const isDuplicate = (newBook, existingBooks) => {
+    const normalizeTitle = (title) => title.toLowerCase().trim().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ');
+    const normalizeAuthor = (author) => author ? author.toLowerCase().trim().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ') : '';
+
+    const newTitle = normalizeTitle(newBook.title);
+    const newAuthor = normalizeAuthor(newBook.author);
+
+    return existingBooks.some(existing => {
+      const existingTitle = normalizeTitle(existing.title);
+      const existingAuthor = normalizeAuthor(existing.author);
+
+      if (newTitle === existingTitle) {
+        if (newAuthor && existingAuthor) {
+          return newAuthor === existingAuthor;
+        }
+        return true; // Same title, consider duplicate
+      }
+      return false;
+    });
+  };
+
+  const newBooks = validBooks.filter(book => !isDuplicate(book, data.books));
+  const duplicateCount = validBooks.length - newBooks.length;
+
+  // Add new books to the array (bulk operation)
+  data.books.push(...newBooks);
+
+  if (writeData(data)) {
+    res.status(201).json({
+      imported: newBooks.length,
+      duplicates: duplicateCount,
+      total: validBooks.length,
+      books: newBooks
+    });
+  } else {
+    res.status(500).json({ error: 'Failed to save books' });
+  }
+});
+
 /**
  * @api {get} /api/genres Get all genres
  * @apiName GetGenres
