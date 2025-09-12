@@ -6,7 +6,7 @@ import {
 } from '@mui/material';
 import { useAppContext } from '../../contexts/AppContext';
 
-const BookAutocomplete = ({ value, onChange, onBookCreated, label = "Book (Optional)", placeholder = "Select or type book title..." }) => {
+const BookAutocomplete = ({ value, onChange, onBookCreated, onBookCreationStart, label = "Book (Optional)", placeholder = "Select or type book title..." }) => {
   const { books, findOrCreateBook } = useAppContext();
   const [inputValue, setInputValue] = useState('');
   const [selectedBook, setSelectedBook] = useState(null);
@@ -37,25 +37,25 @@ const BookAutocomplete = ({ value, onChange, onBookCreated, label = "Book (Optio
   };
 
   // Handle selection from dropdown
-  const handleSelection = useCallback((event, newValue) => {
+  const handleSelection = useCallback(async (event, newValue) => {
     if (typeof newValue === 'string') {
       // User typed and pressed enter - parse and create/find book
       setIsCreating(true);
       const bookData = parseBookInput(newValue);
 
       if (bookData.title && bookData.title.length > 0) {
-        findOrCreateBook(bookData.title, bookData.author)
-          .then((book) => {
-            setSelectedBook(book);
-            onChange && onChange(book);
-            onBookCreated && onBookCreated(book);
-            setInputValue(`${book.title}${book.author ? ` by ${book.author}` : ''}`);
-            setIsCreating(false);
-          })
-          .catch((error) => {
-            console.error('Error creating/finding book:', error);
-            setIsCreating(false);
-          });
+        onBookCreationStart && onBookCreationStart(); // Notify parent that book creation started
+        try {
+          const book = await findOrCreateBook(bookData.title, bookData.author);
+          setSelectedBook(book);
+          onChange && onChange(book);
+          onBookCreated && onBookCreated(book);
+          setInputValue(`${book.title}${book.author ? ` by ${book.author}` : ''}`);
+          setIsCreating(false);
+        } catch (error) {
+          console.error('Error creating/finding book:', error);
+          setIsCreating(false);
+        }
       }
     } else if (newValue) {
       // User selected existing book
@@ -71,7 +71,7 @@ const BookAutocomplete = ({ value, onChange, onBookCreated, label = "Book (Optio
       onChange && onChange(null);
       setIsCreating(false);
     }
-  }, [findOrCreateBook, onChange, onBookCreated]);
+  }, [findOrCreateBook, onChange, onBookCreated, onBookCreationStart]);
 
   // Handle input change
   const handleInputChange = useCallback((event, newInputValue) => {

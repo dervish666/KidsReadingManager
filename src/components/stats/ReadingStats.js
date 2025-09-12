@@ -34,7 +34,7 @@ import JsonEditor from './JsonEditor';
 import { useAppContext } from '../../contexts/AppContext';
 
 const ReadingStats = () => {
-  const { students, exportToJson, getReadingStatus } = useAppContext();
+  const { students, classes, exportToJson, getReadingStatus } = useAppContext();
   const [currentTab, setCurrentTab] = useState(0);
   
   const handleTabChange = (event, newValue) => {
@@ -47,7 +47,14 @@ const ReadingStats = () => {
   
   // Calculate statistics
   const calculateStats = () => {
-    if (students.length === 0) {
+    // Filter out students from disabled classes
+    const activeStudents = students.filter(student => {
+      if (!student.classId) return true; // Include students not assigned to any class
+      const studentClass = classes.find(cls => cls.id === student.classId);
+      return !studentClass || !studentClass.disabled;
+    });
+
+    if (activeStudents.length === 0) {
       return {
         totalStudents: 0,
         totalSessions: 0,
@@ -80,30 +87,30 @@ const ReadingStats = () => {
     };
     
     // Count sessions and assessments
-    students.forEach(student => {
+    activeStudents.forEach(student => {
       const sessionCount = student.readingSessions.length;
       totalSessions += sessionCount;
-      
+
       if (sessionCount === 0) {
         studentsWithNoSessions++;
       }
-      
+
       // Count assessments
       student.readingSessions.forEach(session => {
         if (assessmentCounts.hasOwnProperty(session.assessment)) {
           assessmentCounts[session.assessment]++;
         }
       });
-      
+
       // Count reading status
       const status = getReadingStatus(student);
       statusCounts[status]++;
     });
-    
+
     return {
-      totalStudents: students.length,
+      totalStudents: activeStudents.length,
       totalSessions,
-      averageSessionsPerStudent: totalSessions / students.length,
+      averageSessionsPerStudent: activeStudents.length > 0 ? totalSessions / activeStudents.length : 0,
       studentsWithNoSessions,
       assessmentDistribution: assessmentCounts,
       statusDistribution: statusCounts
@@ -114,14 +121,24 @@ const ReadingStats = () => {
   
   // Get students sorted by session count (least to most)
   const getStudentsBySessionCount = () => {
-    return [...students].sort((a, b) => 
+    const activeStudents = students.filter(student => {
+      if (!student.classId) return true;
+      const studentClass = classes.find(cls => cls.id === student.classId);
+      return !studentClass || !studentClass.disabled;
+    });
+    return [...activeStudents].sort((a, b) =>
       a.readingSessions.length - b.readingSessions.length
     );
   };
   
   // Get students who haven't been read with recently
   const getNeedsAttentionStudents = () => {
-    return students.filter(student => getReadingStatus(student) === 'notRead');
+    const activeStudents = students.filter(student => {
+      if (!student.classId) return true;
+      const studentClass = classes.find(cls => cls.id === student.classId);
+      return !studentClass || !studentClass.disabled;
+    });
+    return activeStudents.filter(student => getReadingStatus(student) === 'notRead');
   };
   
   const renderOverviewTab = () => (

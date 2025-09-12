@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.14.3 - 2025-09-12
+
+### Fixed
+- **Stats Page Class Filtering**: Fixed issue where statistics included students from disabled classes
+  - Modified ReadingStats component to filter out students from disabled classes in all calculations ([`src/components/stats/ReadingStats.js`](src/components/stats/ReadingStats.js:37,49,116,123,258))
+  - Updated `calculateStats`, `getStudentsBySessionCount`, and `getNeedsAttentionStudents` functions to use active students only
+  - Students not assigned to any class are still included in statistics
+
 ## 1.14.2 - 2025-09-11
 
 ### Fixed

@@ -51,10 +51,16 @@ const SessionForm = () => {
   const [error, setError] = useState('');
   const [selectedBookId, setSelectedBookId] = useState(''); // <-- ADDED for book tracking
   const [selectedLocation, setSelectedLocation] = useState('school'); // <-- ADDED for location tracking
+  const [isCreatingBook, setIsCreatingBook] = useState(false); // <-- ADDED to track book creation state
 
   const handleBookChange = (book) => {
     const bookId = book ? book.id : '';
     setSelectedBookId(bookId);
+    setIsCreatingBook(false); // Reset book creation state when book selection completes
+  };
+
+  const handleBookCreationStart = () => {
+    setIsCreatingBook(true); // Set book creation state when book creation starts
   };
 
   const handleStudentChange = (event) => {
@@ -99,6 +105,11 @@ const SessionForm = () => {
 
     if (!selectedStudentId) {
       setError('Please select a student');
+      return;
+    }
+
+    if (isCreatingBook) {
+      setError('Please wait for book creation to complete');
       return;
     }
 
@@ -289,6 +300,7 @@ const SessionForm = () => {
                 <BookAutocomplete
                   value={books.find(book => book.id === selectedBookId) || null}
                   onChange={handleBookChange}
+                  onBookCreationStart={handleBookCreationStart}
                 />
               </Grid>
 

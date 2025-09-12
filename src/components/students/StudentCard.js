@@ -69,7 +69,7 @@ const StudentCard = ({ student }) => {
           position: 'relative',
           overflow: 'hidden',
           transition: 'all 0.18s ease-in-out',
-          borderRadius: { xs: 12, sm: 16 },
+          borderRadius: 0,
           p: { xs: 0.5, sm: 0 },
           '&:hover': {
             transform: 'translateY(-4px)',
