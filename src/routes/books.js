@@ -195,21 +195,34 @@ booksRouter.get('/recommendations', async (c) => {
 
     // Get student data from KV service
     const students = await getStudents(c.env);
+    console.log('Retrieved students:', students?.length || 0, 'total students');
+
     const student = students.find(s => s.id === studentId);
 
     if (!student) {
+      console.log('Student not found, available student IDs:', students.map(s => s.id));
       return c.json({ error: `Student with ID ${studentId} not found` }, 404);
     }
 
+    console.log('Found student:', student.name, 'with', student.readingSessions?.length || 0, 'reading sessions');
+
     // Get all books from KV service
     const allBooks = await getBooks(c.env);
+    console.log('Retrieved books:', allBooks?.length || 0, 'total books');
+    if (allBooks?.length > 0) {
+      console.log('First few books:', allBooks.slice(0, 3).map(b => `${b.title} by ${b.author}`));
+    }
 
     // Get books the student has already read
     const readBookIds = student.readingSessions?.map(session => session.bookId).filter(Boolean) || [];
+    console.log('Read book IDs:', readBookIds);
+
     const readBooks = allBooks.filter(book => readBookIds.includes(book.id));
+    console.log('Found read books:', readBooks.length, readBooks.map(b => b.title));
 
     // Filter out books the student has already read
     const unreadBooks = allBooks.filter(book => !readBookIds.includes(book.id));
+    console.log('Available unread books:', unreadBooks.length, unreadBooks.slice(0, 5).map(b => b.title));
 
     // Get Anthropic API key from environment
     const anthropicApiKey = c.env.ANTHROPIC_API_KEY;
@@ -273,7 +286,31 @@ booksRouter.get('/recommendations', async (c) => {
       ageRange: book.ageRange || '8-12'
     }));
 
-    const prompt = `You are an expert children's librarian with decades of experience in book recommendations for young readers.
+    let prompt;
+    if (studentProfile.booksRead.length === 0 && availableBooks.length === 0) {
+      // No books data available - provide general recommendations
+      prompt = `You are an expert children's librarian with decades of experience in book recommendations for young readers.
+
+STUDENT PROFILE:
+- Name: ${studentProfile.name}
+- Reading Level: ${studentProfile.readingLevel}
+- Favorite Genres: ${studentProfile.preferences.favoriteGenreIds?.join(', ') || 'Not specified'}
+- Likes: ${studentProfile.preferences.likes?.join(', ') || 'Not specified'}
+- Dislikes: ${studentProfile.preferences.dislikes?.join(', ') || 'Not specified'}
+
+TASK: Since there are no books currently in the library system, please recommend 3 excellent books that would be perfect for this student based on their profile and interests. For each recommendation, provide:
+
+1. **Title and Author**: Well-known, high-quality children's books
+2. **Genre**: Main genre category
+3. **Age Range**: Appropriate age range for the student's reading level
+4. **Reason**: A personalized explanation (2-3 sentences) of why this book would be a great choice for this specific student based on their profile and interests.
+
+Format your response as a valid JSON array with exactly 3 objects, each containing: title, author, genre, ageRange, and reason.
+
+Focus on age-appropriate, engaging books that match their reading level and interests.`;
+    } else {
+      // Normal case with books data
+      prompt = `You are an expert children's librarian with decades of experience in book recommendations for young readers.
 
 STUDENT PROFILE:
 - Name: ${studentProfile.name}
@@ -283,21 +320,26 @@ STUDENT PROFILE:
 - Dislikes: ${studentProfile.preferences.dislikes?.join(', ') || 'Not specified'}
 
 BOOKS ALREADY READ:
-${studentProfile.booksRead.map(book => `- ${book.title} by ${book.author} (${book.genre})`).join('\n')}
+${studentProfile.booksRead.length > 0 ?
+  studentProfile.booksRead.map(book => `- ${book.title} by ${book.author} (${book.genre})`).join('\n') :
+  'No books recorded yet'}
 
 AVAILABLE BOOKS TO RECOMMEND FROM:
-${availableBooks.map((book, index) => `${index + 1}. ${book.title} by ${book.author} (Genre: ${book.genre}, Age: ${book.ageRange}, Level: ${book.readingLevel})`).join('\n')}
+${availableBooks.length > 0 ?
+  availableBooks.map((book, index) => `${index + 1}. ${book.title} by ${book.author} (Genre: ${book.genre}, Age: ${book.ageRange}, Level: ${book.readingLevel})`).join('\n') :
+  'No books currently available in the library system'}
 
-TASK: Recommend exactly 3 books from the available list that would be perfect for this student. For each recommendation, provide:
+TASK: Recommend exactly 3 books that would be perfect for this student. For each recommendation, provide:
 
-1. **Title and Author**: Exact from the available list
+1. **Title and Author**: ${availableBooks.length > 0 ? 'From the available books list' : 'Well-known, high-quality children\'s books'}
 2. **Genre**: Main genre category
-3. **Age Range**: Appropriate age range
+3. **Age Range**: Appropriate age range for the student's reading level
 4. **Reason**: A personalized explanation (2-3 sentences) of why this book would be a great choice for this specific student based on their reading history, preferences, and interests.
 
 Format your response as a valid JSON array with exactly 3 objects, each containing: title, author, genre, ageRange, and reason.
 
-Ensure recommendations are age-appropriate and match the student's reading level and interests. Avoid books that are too similar to ones they've already read.`;
+Ensure recommendations are age-appropriate and match the student's reading level and interests.${availableBooks.length > 0 ? ' Avoid books that are too similar to ones they\'ve already read.' : ''}`;
+    }
 
     // Make API call to Claude
     const response = await anthropic.messages.create({

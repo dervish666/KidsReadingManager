@@ -9,6 +9,7 @@
 const DEFAULT_DATA = {
   students: [],
   classes: [], // Added classes array
+  books: [], // Added books array
   settings: {
     readingStatusSettings: {
       recentlyReadDays: 7,
