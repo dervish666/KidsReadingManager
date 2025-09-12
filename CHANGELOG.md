@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.15.0 - 2025-09-12
+
+### Fixed
+- **Book Recommendations Endpoint Implementation**: Implemented the previously placeholder `/api/books/recommendations` endpoint in Cloudflare Worker production environment
+  - **AI-Powered Recommendations**: Integrated Anthropic Claude API with comprehensive prompt engineering for children's librarian recommendations ([`src/routes/books.js`](src/routes/books.js:176))
+  - **Student Profile Analysis**: Leverages student reading history, preferences, favorite genres, likes/dislikes for personalized recommendations
+  - **Cloudflare Worker Compatibility**: Uses dynamic ESM imports and environment variable handling compatible with Workers runtime
+  - **Robust Error Handling**: Includes fallback recommendations when AI service is unavailable or API key is missing
+  - **Data Provider Integration**: Uses existing provider pattern for seamless JSON/KV storage abstraction ([`src/data/index.js`](src/data/index.js:18))
+  - **Production Deployment**: Successfully deployed to Cloudflare Workers with proper environment variable configuration
+  - **Dual Architecture Sync**: Maintains synchronization between Express server and Hono Worker routes as per project standards
+
+### Technical Implementation
+- **ESM Compatibility**: Implemented dynamic `import()` for Anthropic SDK to work in Cloudflare Workers environment
+- **Environment Detection**: Proper handling of `ANTHROPIC_API_KEY` from Cloudflare secrets vs local environment variables
+- **Fallback Strategy**: Graceful degradation to static recommendations when AI service is unavailable
+- **Prompt Engineering**: Advanced Claude prompts that analyze student profiles and generate age-appropriate recommendations
+- **Error Recovery**: Comprehensive error handling with multiple fallback levels for production reliability
+
 ## 1.14.3 - 2025-09-12
 
 ### Fixed
