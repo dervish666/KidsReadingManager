@@ -206,8 +206,9 @@ booksRouter.get('/recommendations', async (c) => {
 
     console.log('Found student:', student.name, 'with', student.readingSessions?.length || 0, 'reading sessions');
 
-    // Get all books from KV service
-    const allBooks = await getBooks(c.env);
+    // Get all books using data provider
+    const provider = await createProvider(c.env);
+    const allBooks = await provider.getAllBooks();
     console.log('Retrieved books:', allBooks?.length || 0, 'total books');
     if (allBooks?.length > 0) {
       console.log('First few books:', allBooks.slice(0, 3).map(b => `${b.title} by ${b.author}`));

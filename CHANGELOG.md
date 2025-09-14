@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.15.2 - 2025-09-14
+
+### Fixed
+- **Book Recommendations Data Provider Issue**: Fixed critical issue where book recommendations weren't working in KV storage mode due to incorrect data access pattern
+  - **Data Provider Consistency**: Updated recommendations endpoint to use proper data provider pattern instead of direct KV service calls ([`src/routes/books.js`](src/routes/books.js:210))
+  - **Storage Pattern Alignment**: Books are stored in separate KV key `'books'` via kvProvider, but recommendations was incorrectly using kvService which looks in main `app_data` structure
+  - **Production Fix**: Resolves "Retrieved books: 0 total books" error in Cloudflare Workers production environment
+  - **Architecture Compliance**: Ensures all book operations follow the established `createProvider(env)` pattern for dual architecture support
+
+### Technical Implementation
+- **Provider Pattern Enforcement**: Changed from `getBooks(c.env)` to `provider.getAllBooks()` for consistent data access
+- **KV Storage Optimization**: Leverages existing separate `'books'` KV key structure for efficient book retrieval
+- **Dual Architecture Support**: Maintains compatibility between JSON file storage (local) and KV storage (production)
+
 ## 1.15.1 - 2025-09-14
 
 ### Fixed
