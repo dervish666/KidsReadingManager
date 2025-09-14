@@ -344,7 +344,7 @@ Ensure recommendations are age-appropriate and match the student's reading level
 
     // Make API call to Claude
     const response = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-4-sonnet',
       max_tokens: 1000,
       temperature: 0.7,
       messages: [
@@ -364,7 +364,7 @@ Ensure recommendations are age-appropriate and match the student's reading level
       const jsonMatch = recommendationsText.match(/\[[\s\S]*\]/);
       const jsonText = jsonMatch ? jsonMatch[0] : recommendationsText;
       recommendations = JSON.parse(jsonText);
-
+      console.log('Raw AI response:', recommendationsText);
       // Validate the response format
       if (!Array.isArray(recommendations) || recommendations.length !== 3) {
         throw new Error('Invalid recommendations format');
