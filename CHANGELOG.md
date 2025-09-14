@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.16.0 - 2025-09-14
+
+### Added
+- **OpenLibrary API Integration for Recommendations**: Enhanced book recommendations with cover images and descriptions from OpenLibrary.org
+  - **OpenLibrary Book Details API**: Added functions to fetch book covers and descriptions from OpenLibrary ([`src/utils/openLibraryApi.js`](src/utils/openLibraryApi.js:170))
+  - **Covers Integration**: Automatically fetches and displays book cover images for recommended books ([`src/components/BookRecommendations.js`](src/components/BookRecommendations.js:330))
+  - **Descriptions Integration**: Fetches and displays book descriptions from OpenLibrary work records ([`src/components/BookRecommendations.js`](src/components/BookRecommendations.js:347))
+  - **Enhanced Recommendation Tiles**: Made tiles larger and more comprehensive with covers, descriptions, and additional metadata ([`src/components/BookRecommendations.js`](src/components/BookRecommendations.js:331))
+  - **Cover URL Construction**: Supports multiple cover sources (cover ID, IA identifier, OLID) with fallback handling
+  - **Responsive Design**: Two-column layout on larger screens, single column on mobile devices
+  - **Increased Recommendation Count**: Updated API to provide 4 recommendations instead of 3 for better variety
+  - **Rating Limiting**: Respectful API usage with 200ms delays between requests to avoid overwhelming the service
+
+### Enhanced
+- **Book Recommendations UI**: Significantly improved user experience with visual book covers and detailed descriptions
+  - **Card Media Integration**: Added Material-UI CardMedia for proper cover image display ([`src/components/BookRecommendations.js`](src/components/BookRecommendations.js:335))
+  - **Flexible Card Layout**: Cards now use full height with proper flex layout for descriptions ([`src/components/BookRecommendations.js`](src/components/BookRecommendations.js:333))
+  - **Additional Metadata**: Displays age range, reading level, and genre information in chips ([`src/components/BookRecommendations.js`](src/components/BookRecommendations.js:342))
+  - **Reason Display**: Shows personalized recommendation reasons below book descriptions ([`src/components/BookRecommendations.js`](src/components/BookRecommendations.js:349))
+
+### Technical Implementation
+- **OpenLibrary API Utility**: Extended existing OpenLibrary integration with cover and description fetching capabilities
+- **Async Enhancement Process**: Non-blocking enhancement of basic recommendations with OpenLibrary data ([`src/components/BookRecommendations.js`](src/components/BookRecommendations.js:102))
+- **Error Handling**: Graceful handling of missing covers or descriptions with fallback display ([`src/components/BookRecommendations.js`](src/components/BookRecommendations.js:336))
+- **Performance Optimization**: Efficient API calls with proper error recovery and user feedback ([`src/components/BookRecommendations.js`](src/components/BookRecommendations.js:307))
+
 ## 1.15.2 - 2025-09-14
 
 ### Fixed

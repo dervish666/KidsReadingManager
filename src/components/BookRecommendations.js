@@ -391,8 +391,8 @@ const BookRecommendations = () => {
           </Typography>
 
           <Grid container spacing={3}>
-            {enhancedRecommendations.map((book, index) => (
-              <Grid item xs={12} sm={6} md={6} lg={4} key={index}>
+            {enhancedRecommendations.slice(0, 4).map((book, index) => (
+              <Grid item xs={12} sm={6} key={index}>
                 <Card elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                   {book.coverUrl && (
                     <CardMedia

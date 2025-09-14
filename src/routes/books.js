@@ -299,14 +299,14 @@ STUDENT PROFILE:
 - Likes: ${studentProfile.preferences.likes?.join(', ') || 'Not specified'}
 - Dislikes: ${studentProfile.preferences.dislikes?.join(', ') || 'Not specified'}
 
-TASK: Since there are no books currently in the library system, please recommend 3 excellent books that would be perfect for this student based on their profile and interests. For each recommendation, provide:
+TASK: Since there are no books currently in the library system, please recommend 4 excellent books that would be perfect for this student based on their profile and interests. For each recommendation, provide:
 
 1. **Title and Author**: Well-known, high-quality children's books
 2. **Genre**: Main genre category
 3. **Age Range**: Appropriate age range for the student's reading level
 4. **Reason**: A personalized explanation (2-3 sentences) of why this book would be a great choice for this specific student based on their profile and interests.
 
-Format your response as a valid JSON array with exactly 3 objects, each containing: title, author, genre, ageRange, and reason.
+Format your response as a valid JSON array with exactly 4 objects, each containing: title, author, genre, ageRange, and reason.
 
 Focus on age-appropriate, engaging books that match their reading level and interests.`;
     } else {
@@ -330,14 +330,14 @@ ${availableBooks.length > 0 ?
   availableBooks.map((book, index) => `${index + 1}. ${book.title} by ${book.author} (Genre: ${book.genre}, Age: ${book.ageRange}, Level: ${book.readingLevel})`).join('\n') :
   'No books currently available in the library system'}
 
-TASK: Recommend exactly 3 books that would be perfect for this student. For each recommendation, provide:
+TASK: Recommend exactly 4 books that would be perfect for this student. For each recommendation, provide:
 
 1. **Title and Author**: ${availableBooks.length > 0 ? 'From the available books list' : 'Well-known, high-quality children\'s books'}
 2. **Genre**: Main genre category
 3. **Age Range**: Appropriate age range for the student's reading level
 4. **Reason**: A personalized explanation (2-3 sentences) of why this book would be a great choice for this specific student based on their reading history, preferences, and interests.
 
-Format your response as a valid JSON array with exactly 3 objects, each containing: title, author, genre, ageRange, and reason.
+Format your response as a valid JSON array with exactly 4 objects, each containing: title, author, genre, ageRange, and reason.
 
 Ensure recommendations are age-appropriate and match the student's reading level and interests.${availableBooks.length > 0 ? ' Avoid books that are too similar to ones they\'ve already read.' : ''}`;
     }
@@ -366,7 +366,7 @@ Ensure recommendations are age-appropriate and match the student's reading level
       recommendations = JSON.parse(jsonText);
       console.log('Raw AI response:', recommendationsText);
       // Validate the response format
-      if (!Array.isArray(recommendations) || recommendations.length !== 3) {
+      if (!Array.isArray(recommendations) || recommendations.length !== 4) {
         throw new Error('Invalid recommendations format');
       }
 
