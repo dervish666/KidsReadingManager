@@ -9,6 +9,7 @@ import {
   Button,
   Card,
   CardContent,
+  CardMedia,
   Grid,
   Chip,
   CircularProgress,
@@ -25,6 +26,7 @@ import BookIcon from '@mui/icons-material/Book';
 import SchoolIcon from '@mui/icons-material/School';
 import PersonIcon from '@mui/icons-material/Person';
 import RecommendationsIcon from '@mui/icons-material/Star';
+import { getBookDetails, getCoverUrl } from '../utils/openLibraryApi';
 
 const BookRecommendations = () => {
   const { students, classes, books, apiError } = useAppContext();
@@ -34,7 +36,9 @@ const BookRecommendations = () => {
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [booksRead, setBooksRead] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
+  const [enhancedRecommendations, setEnhancedRecommendations] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [enhancing, setEnhancing] = useState(false);
   const [error, setError] = useState(null);
 
   // Filter students by selected class
@@ -68,6 +72,7 @@ const BookRecommendations = () => {
     setSelectedStudentId(''); // Reset student selection
     setBooksRead([]);
     setRecommendations([]);
+    setEnhancedRecommendations([]);
     setError(null);
   };
 
@@ -94,7 +99,59 @@ const BookRecommendations = () => {
       setBooksRead([]);
     }
     setRecommendations([]);
+    setEnhancedRecommendations([]);
     setError(null);
+  };
+
+  const enhanceRecommendationsWithOpenLibrary = async (basicRecommendations) => {
+    if (!basicRecommendations || basicRecommendations.length === 0) {
+      return [];
+    }
+
+    setEnhancing(true);
+
+    try {
+      const enhancedBooks = await Promise.all(
+        basicRecommendations.map(async (book) => {
+          try {
+            // Add a small delay to be respectful to the API
+            await new Promise(resolve => setTimeout(resolve, 200));
+
+            const bookDetails = await getBookDetails(book.title, book.author);
+
+            return {
+              ...book,
+              coverUrl: bookDetails ? getCoverUrl(bookDetails) : null,
+              description: bookDetails ? bookDetails.description : null,
+              olid: bookDetails ? bookDetails.olid : null,
+              ia: bookDetails ? bookDetails.ia : null
+            };
+          } catch (error) {
+            console.warn(`Failed to enhance book "${book.title}":`, error);
+            return {
+              ...book,
+              coverUrl: null,
+              description: null,
+              olid: null,
+              ia: null
+            };
+          }
+        })
+      );
+
+      return enhancedBooks;
+    } catch (error) {
+      console.error('Error enhancing recommendations:', error);
+      return basicRecommendations.map(book => ({
+        ...book,
+        coverUrl: null,
+        description: null,
+        olid: null,
+        ia: null
+      }));
+    } finally {
+      setEnhancing(false);
+    }
   };
 
   const fetchRecommendations = async () => {
@@ -143,9 +200,15 @@ const BookRecommendations = () => {
           console.log('❌ Unknown recommendation format:', firstRecommendation);
           setRecommendations(data.recommendations);
         }
+
+        // Enhance recommendations with OpenLibrary data
+        console.log('Enhancing recommendations with OpenLibrary data...');
+        const enhanced = await enhanceRecommendationsWithOpenLibrary(data.recommendations);
+        setEnhancedRecommendations(enhanced);
       } else {
         console.log('❌ No recommendations returned');
         setRecommendations([]);
+        setEnhancedRecommendations([]);
       }
     } catch (err) {
       console.error('Error fetching recommendations:', err);
@@ -302,12 +365,12 @@ const BookRecommendations = () => {
           <Button
             variant="contained"
             onClick={fetchRecommendations}
-            disabled={loading}
+            disabled={loading || enhancing}
             size="large"
-            startIcon={loading ? <CircularProgress size={20} /> : <RecommendationsIcon />}
+            startIcon={(loading || enhancing) ? <CircularProgress size={20} /> : <RecommendationsIcon />}
             sx={{ minWidth: 200 }}
           >
-            {loading ? 'Getting Recommendations...' : 'Get Recommendations'}
+            {loading ? 'Getting Recommendations...' : enhancing ? 'Enhancing with Covers...' : 'Get Recommendations'}
           </Button>
         </Box>
       )}
@@ -320,29 +383,56 @@ const BookRecommendations = () => {
       )}
 
       {/* Recommendations display */}
-      {recommendations.length > 0 && (
+      {enhancedRecommendations.length > 0 && (
         <Paper sx={{ p: 3 }}>
           <Typography variant="h6" component="h2" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <RecommendationsIcon color="primary" />
             Recommended Books for {selectedStudent?.name}
           </Typography>
 
-          <Grid container spacing={2}>
-            {recommendations.map((book, index) => (
-              <Grid item xs={12} sm={6} md={4} key={index}>
-                <Card elevation={2}>
-                  <CardContent>
-                    <Typography variant="h6" component="h3" gutterBottom>
+          <Grid container spacing={3}>
+            {enhancedRecommendations.map((book, index) => (
+              <Grid item xs={12} sm={6} md={6} lg={4} key={index}>
+                <Card elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                  {book.coverUrl && (
+                    <CardMedia
+                      component="img"
+                      height="200"
+                      image={book.coverUrl}
+                      alt={`Cover of ${book.title}`}
+                      sx={{ objectFit: 'cover' }}
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                  )}
+                  <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                    <Typography variant="h6" component="h3" gutterBottom sx={{ fontSize: '1.1rem' }}>
                       {book.title}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" gutterBottom>
                       {book.author && `by ${book.author}`}
                     </Typography>
-                    {book.genre && (
-                      <Chip label={book.genre} size="small" color="secondary" sx={{ mb: 1 }} />
+                    <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+                      {book.genre && (
+                        <Chip label={book.genre} size="small" color="secondary" />
+                      )}
+                      {book.level && (
+                        <Chip label={`Level ${book.level}`} size="small" color="primary" />
+                      )}
+                      {book.ageRange && (
+                        <Chip label={book.ageRange} size="small" color="info" />
+                      )}
+                    </Stack>
+                    {book.description && (
+                      <Typography variant="body2" color="text.secondary" sx={{ flexGrow: 1, mb: 2 }}>
+                        {book.description}
+                      </Typography>
                     )}
-                    {book.level && (
-                      <Chip label={`Level ${book.level}`} size="small" color="primary" />
+                    {book.reason && (
+                      <Typography variant="body2" color="primary" sx={{ fontStyle: 'italic' }}>
+                        {book.reason}
+                      </Typography>
                     )}
                   </CardContent>
                 </Card>
@@ -353,7 +443,7 @@ const BookRecommendations = () => {
       )}
 
       {/* No recommendations yet */}
-      {recommendations.length === 0 && selectedStudentId && !loading && !error && (
+      {enhancedRecommendations.length === 0 && selectedStudentId && !loading && !enhancing && !error && (
         <Paper sx={{ p: 3 }}>
           <Typography variant="body1" color="text.secondary">
             Click "Get Recommendations" to see personalized book suggestions for this student.

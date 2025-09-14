@@ -6,6 +6,7 @@
 
 const OPENLIBRARY_BASE_URL = 'https://openlibrary.org';
 const SEARCH_API_URL = `${OPENLIBRARY_BASE_URL}/search.json`;
+const COVERS_BASE_URL = 'https://covers.openlibrary.org/b';
 
 /**
  * Search for books by title using OpenLibrary Search API
@@ -229,4 +230,118 @@ export async function batchFindMissingAuthors(books, onProgress = null) {
   }
 
   return results;
+}
+
+/**
+ * Get book details including cover ID and description from OpenLibrary
+ * @param {string} title - The book title to search for
+ * @param {string} author - The book's author (optional, improves matching)
+ * @returns {Promise<Object|null>} Book details or null if not found
+ */
+export async function getBookDetails(title, author = null) {
+  try {
+    const searchParams = new URLSearchParams({
+      title: title.trim(),
+      limit: '5'
+    });
+
+    if (author) {
+      searchParams.set('author', author.trim());
+    }
+
+    const response = await fetch(`${SEARCH_API_URL}?${searchParams}`, {
+      headers: {
+        'User-Agent': 'KidsReadingManager/1.0 (educational-app)'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenLibrary API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const docs = data.docs || [];
+
+    if (docs.length === 0) {
+      return null;
+    }
+
+    // Find the best match
+    const bestMatch = findBestTitleMatch(title, docs);
+
+    if (!bestMatch) {
+      return null;
+    }
+
+    // Get the work key for description
+    const workKey = bestMatch.key;
+    let description = null;
+
+    if (workKey && workKey.startsWith('/works/')) {
+      try {
+        const workResponse = await fetch(`${OPENLIBRARY_BASE_URL}${workKey}.json`, {
+          headers: {
+            'User-Agent': 'KidsReadingManager/1.0 (educational-app)'
+          }
+        });
+
+        if (workResponse.ok) {
+          const workData = await workResponse.json();
+          description = workData.description;
+
+          // Handle different description formats
+          if (typeof description === 'object' && description.value) {
+            description = description.value;
+          }
+
+          // Truncate long descriptions
+          if (description && description.length > 500) {
+            description = description.substring(0, 500) + '...';
+          }
+        }
+      } catch (error) {
+        console.warn('Error fetching work description:', error);
+      }
+    }
+
+    return {
+      coverId: bestMatch.cover_i,
+      coverUrl: bestMatch.cover_i ? `${COVERS_BASE_URL}/id/${bestMatch.cover_i}-M.jpg` : null,
+      description,
+      olid: bestMatch.key,
+      ia: bestMatch.ia ? bestMatch.ia[0] : null
+    };
+  } catch (error) {
+    console.error('Error getting book details:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get cover URL from book data
+ * @param {Object} bookData - Book data from OpenLibrary
+ * @returns {string|null} Cover URL or null
+ */
+export function getCoverUrl(bookData) {
+  if (!bookData) return null;
+
+  // Try different cover sources in order of preference
+  if (bookData.coverUrl) {
+    return bookData.coverUrl;
+  }
+
+  if (bookData.coverId) {
+    return `${COVERS_BASE_URL}/id/${bookData.coverId}-M.jpg`;
+  }
+
+  if (bookData.ia) {
+    return `${COVERS_BASE_URL}/ia/${bookData.ia}-M.jpg`;
+  }
+
+  if (bookData.olid) {
+    const olid = bookData.olid.replace('/works/', '').replace('/books/', '');
+    return `${COVERS_BASE_URL}/olid/${olid}-M.jpg`;
+  }
+
+  return null;
 }
