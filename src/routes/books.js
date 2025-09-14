@@ -344,7 +344,7 @@ Ensure recommendations are age-appropriate and match the student's reading level
 
     // Make API call to Claude
     const response = await anthropic.messages.create({
-      model: 'claude-4-sonnet',
+      model: 'claude-sonnet-4-20250514',
       max_tokens: 1000,
       temperature: 0.7,
       messages: [
