@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.15.1 - 2025-09-14
+
+### Fixed
+- **KV Storage Reading Sessions Display**: Fixed issue where books read by students weren't displaying in KV storage mode due to missing `bookId` field normalization
+  - **Data Normalization**: Added automatic `bookId` field normalization in `getStudents` function to ensure reading sessions have consistent structure ([`src/services/kvService.js`](src/services/kvService.js:79))
+  - **KV Compatibility**: Reading sessions now properly display books read regardless of whether `bookId` field was omitted during JSON serialization
+  - **Dual Architecture Support**: Maintains consistent behavior between JSON and KV storage modes for book recommendations and reading history display
+  - **Backward Compatibility**: Ensures existing KV data with missing fields is automatically normalized without requiring data migration
+
+### Technical Implementation
+- **Field Normalization**: Added automatic field population for reading sessions missing `bookId` property
+- **Storage Abstraction**: Enhanced KV service to handle data inconsistencies from JSON serialization quirks
+- **Production Reliability**: Fixes book recommendations functionality in Cloudflare Workers production environment
+
 ## 1.15.0 - 2025-09-12
 
 ### Fixed

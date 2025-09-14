@@ -78,7 +78,16 @@ export async function saveData(env, data) {
  */
 export async function getStudents(env) {
   const data = await getData(env);
-  return data.students || [];
+  const students = data.students || [];
+
+  // Normalize readingSessions to ensure bookId field exists
+  return students.map(student => ({
+    ...student,
+    readingSessions: (student.readingSessions || []).map(session => ({
+      ...session,
+      bookId: session.bookId !== undefined ? session.bookId : null
+    }))
+  }));
 }
 
 /**
