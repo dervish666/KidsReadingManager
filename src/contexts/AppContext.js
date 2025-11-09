@@ -28,6 +28,9 @@ export const AppProvider = ({ children }) => {
   const [classes, setClasses] = useState([]); // <-- ADDED
   // State for books
   const [books, setBooks] = useState([]); // <-- ADDED for book tracking
+
+  // --- Book Provider Setup ---
+  // We route all book mutations through the backend API to keep JSON/KV providers in sync.
   // State for genres
   const [genres, setGenres] = useState([]); // <-- ADDED for genre management
   // State for recently accessed students (for quick access in dropdowns)
@@ -230,7 +233,69 @@ export const AppProvider = ({ children }) => {
     }
   }, [students]); // Dependency: students (for revert)
 
-  const addReadingSession = useCallback(async (studentId, sessionData) => {
+ // --- Book Helpers ---
+
+ const updateBook = useCallback(async (id, updatedFields) => {
+   // Find current book
+   const existing = books.find(b => b.id === id);
+   if (!existing) {
+     console.warn('updateBook: Book not found for id', id);
+     return null;
+   }
+
+   const updatedBook = {
+     ...existing,
+     ...updatedFields
+   };
+
+   // Optimistic update
+   const previousBooks = books;
+   setBooks(prev =>
+     prev.map(b => (b.id === id ? updatedBook : b))
+   );
+
+   try {
+     const response = await fetch(`${API_URL}/books/${id}`, {
+       method: 'PUT',
+       headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify(updatedBook)
+     });
+
+     if (!response.ok) {
+       throw new Error(`API error: ${response.status}`);
+     }
+
+     const saved = await response.json().catch(() => null);
+     if (saved && saved.id) {
+       setBooks(prev =>
+         prev.map(b => (b.id === id ? saved : b))
+       );
+       return saved;
+     }
+
+     return updatedBook;
+   } catch (error) {
+     console.error('Error updating book:', error);
+     setApiError(error.message);
+     // Revert optimistic update
+     setBooks(previousBooks);
+     return null;
+   }
+ }, [books]);
+
+ /**
+  * Quick inline update for a single book field (e.g. author, readingLevel, ageRange)
+  * Used by the reading session page when user blurs an inline edit field.
+  */
+ const updateBookField = useCallback(
+   async (id, field, value) => {
+     if (!id || !field) return null;
+     return updateBook(id, { [field]: value || null });
+   },
+   [updateBook]
+ );
+
+ const addReadingSession = useCallback(async (studentId, sessionData) => {
     const date = sessionData.date || new Date().toISOString().split('T')[0];
     const newSession = {
       id: uuidv4(),
@@ -916,6 +981,7 @@ export const AppProvider = ({ children }) => {
   contextValue.deleteReadingSession = deleteReadingSession;
   contextValue.updatePriorityStudentCount = updatePriorityStudentCount;
   contextValue.updateReadingStatusSettings = updateReadingStatusSettings;
+  contextValue.updateBookField = updateBookField;
   contextValue.getReadingStatus = getReadingStatus;
   contextValue.exportToCsv = exportToCsv;
   contextValue.exportToJson = exportToJson;

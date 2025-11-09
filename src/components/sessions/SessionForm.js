@@ -333,7 +333,7 @@ const SessionForm = () => {
                   onBookCreationStart={handleBookCreationStart}
                 />
 
-                {/* Editable selected book details */}
+                {/* Editable selected book details with auto-save on blur */}
                 {selectedBookId && (
                   <Box sx={{ mt: 2, p: 2, borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
                     <Typography variant="subtitle2" gutterBottom>
@@ -345,6 +345,18 @@ const SessionForm = () => {
                           label="Author"
                           value={bookAuthor}
                           onChange={(e) => setBookAuthor(e.target.value)}
+                          onBlur={async (e) => {
+                            const current = books.find(b => b.id === selectedBookId);
+                            const newVal = e.target.value.trim();
+                            if (!current || newVal === (current.author || '')) return;
+                            // Auto-save via context helper
+                            // Note: useAppContext is already in scope; we extend it to expose updateBookField.
+                            // The context now provides updateBookField wired to backend.
+                            const { updateBookField } = require('../../contexts/AppContext');
+                            if (updateBookField) {
+                              await updateBookField(selectedBookId, 'author', newVal);
+                            }
+                          }}
                           fullWidth
                           size="small"
                         />
@@ -354,6 +366,15 @@ const SessionForm = () => {
                           label="Reading Level"
                           value={bookReadingLevel}
                           onChange={(e) => setBookReadingLevel(e.target.value)}
+                          onBlur={async (e) => {
+                            const current = books.find(b => b.id === selectedBookId);
+                            const newVal = e.target.value.trim();
+                            if (!current || newVal === (current.readingLevel || '')) return;
+                            const { updateBookField } = require('../../contexts/AppContext');
+                            if (updateBookField) {
+                              await updateBookField(selectedBookId, 'readingLevel', newVal);
+                            }
+                          }}
                           fullWidth
                           size="small"
                           placeholder="e.g. Blue, Level 4"
@@ -364,6 +385,15 @@ const SessionForm = () => {
                           label="Age Range"
                           value={bookAgeRange}
                           onChange={(e) => setBookAgeRange(e.target.value)}
+                          onBlur={async (e) => {
+                            const current = books.find(b => b.id === selectedBookId);
+                            const newVal = e.target.value.trim();
+                            if (!current || newVal === (current.ageRange || '')) return;
+                            const { updateBookField } = require('../../contexts/AppContext');
+                            if (updateBookField) {
+                              await updateBookField(selectedBookId, 'ageRange', newVal);
+                            }
+                          }}
                           fullWidth
                           size="small"
                           placeholder="e.g. 6-8"
@@ -371,7 +401,7 @@ const SessionForm = () => {
                       </Grid>
                     </Grid>
                     <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                      These details are shown for quick review and inline edits while logging the session.
+                      Changes are saved automatically when you click away from these fields.
                     </Typography>
                   </Box>
                 )}
