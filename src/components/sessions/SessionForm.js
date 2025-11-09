@@ -300,6 +300,7 @@ const SessionForm = () => {
                 <BookAutocomplete
                   value={books.find(book => book.id === selectedBookId) || null}
                   onChange={handleBookChange}
+                  onBookCreated={handleBookChange}
                   onBookCreationStart={handleBookCreationStart}
                 />
               </Grid>
