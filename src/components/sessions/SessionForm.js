@@ -36,10 +36,19 @@ const SessionForm = () => {
   const getBookInfo = (bookId) => {
     if (!bookId) return null;
     const book = books.find(b => b.id === bookId);
-    return book ? {
-      title: book.title,
-      author: book.author || 'Unknown Author'
-    } : { title: 'Unknown Book', author: '' };
+    return book
+      ? {
+          title: book.title,
+          author: book.author || '',
+          readingLevel: book.readingLevel || '',
+          ageRange: book.ageRange || ''
+        }
+      : {
+          title: '',
+          author: '',
+          readingLevel: '',
+          ageRange: ''
+        };
   };
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [selectedClassId, setSelectedClassId] = useState(''); // Added for class filtering
@@ -50,12 +59,26 @@ const SessionForm = () => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [error, setError] = useState('');
   const [selectedBookId, setSelectedBookId] = useState(''); // <-- ADDED for book tracking
+  const [bookAuthor, setBookAuthor] = useState('');
+  const [bookReadingLevel, setBookReadingLevel] = useState('');
+  const [bookAgeRange, setBookAgeRange] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('school'); // <-- ADDED for location tracking
   const [isCreatingBook, setIsCreatingBook] = useState(false); // <-- ADDED to track book creation state
 
   const handleBookChange = (book) => {
     const bookId = book ? book.id : '';
     setSelectedBookId(bookId);
+
+    if (book) {
+      setBookAuthor(book.author || '');
+      setBookReadingLevel(book.readingLevel || '');
+      setBookAgeRange(book.ageRange || '');
+    } else {
+      setBookAuthor('');
+      setBookReadingLevel('');
+      setBookAgeRange('');
+    }
+
     setIsCreatingBook(false); // Reset book creation state when book selection completes
   };
 
@@ -119,12 +142,17 @@ const SessionForm = () => {
       notes,
       bookId: selectedBookId || null, // <-- ADDED for book tracking
       location: selectedLocation || 'school' // <-- ADDED for location tracking
+      // Note: Book details (author/readingLevel/ageRange) are edited here for the selected book,
+      // but persisted via BookManager / book APIs, not directly as part of the session.
     });
 
     // Reset form
     setNotes('');
     setAssessment('independent');
     setSelectedBookId(''); // <-- Reset book selection to empty string for consistency
+    setBookAuthor('');
+    setBookReadingLevel('');
+    setBookAgeRange('');
     setSelectedLocation('school'); // <-- Reset location
     setSnackbarOpen(true);
   };
@@ -296,13 +324,57 @@ const SessionForm = () => {
                 />
               </Grid>
 
-              <Grid size={12} sx={{ mb: 3 }}> {/* Book selection with autocomplete */}
+              <Grid size={12} sx={{ mb: 3 }}>
+                {/* Book selection with autocomplete */}
                 <BookAutocomplete
                   value={books.find(book => book.id === selectedBookId) || null}
                   onChange={handleBookChange}
                   onBookCreated={handleBookChange}
                   onBookCreationStart={handleBookCreationStart}
                 />
+
+                {/* Editable selected book details */}
+                {selectedBookId && (
+                  <Box sx={{ mt: 2, p: 2, borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Selected Book Details
+                    </Typography>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={4}>
+                        <TextField
+                          label="Author"
+                          value={bookAuthor}
+                          onChange={(e) => setBookAuthor(e.target.value)}
+                          fullWidth
+                          size="small"
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={4}>
+                        <TextField
+                          label="Reading Level"
+                          value={bookReadingLevel}
+                          onChange={(e) => setBookReadingLevel(e.target.value)}
+                          fullWidth
+                          size="small"
+                          placeholder="e.g. Blue, Level 4"
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={4}>
+                        <TextField
+                          label="Age Range"
+                          value={bookAgeRange}
+                          onChange={(e) => setBookAgeRange(e.target.value)}
+                          fullWidth
+                          size="small"
+                          placeholder="e.g. 6-8"
+                        />
+                      </Grid>
+                    </Grid>
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                      These details are shown for quick review and inline edits while logging the session.
+                    </Typography>
+                  </Box>
+                )}
               </Grid>
 
               <Grid size={12} sx={{ mb: 3 }}> {/* ADDED - Location selection */}

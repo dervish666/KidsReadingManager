@@ -234,7 +234,7 @@ const BookAutocomplete = ({
               <div className="flex flex-col">
                 <span className="font-medium">{option.title}</span>
                 {option.author && (
-                  <span className="text-sm text-gray-500">by {option.author}</span>
+                  <span className="text-sm text-gray-500"> by {option.author}</span>
                 )}
               </div>
             </li>
