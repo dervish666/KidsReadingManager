@@ -6,6 +6,7 @@ const AppContext = createContext();
 
 // API URL - relative path since frontend and API are served from the same origin
 const API_URL = '/api';
+const AUTH_STORAGE_KEY = 'krm_auth_token';
 
 // Custom hook to use the app context
 export const useAppContext = () => useContext(AppContext);
@@ -17,6 +18,14 @@ export const AppProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   // State for API errors
   const [apiError, setApiError] = useState(null);
+  const [authToken, setAuthToken] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      return window.localStorage.getItem(AUTH_STORAGE_KEY) || null;
+    } catch {
+      return null;
+    }
+  });
   // State for preferred number of priority students to display
   const [priorityStudentCount, setPriorityStudentCount] = useState(8);
   // State for reading status durations (in days)
@@ -39,6 +48,86 @@ export const AppProvider = ({ children }) => {
     return stored ? JSON.parse(stored) : [];
   });
 
+  // Internal helper: fetch wrapper that adds auth header and handles 401
+  const fetchWithAuth = async (url, options = {}) => {
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(options.headers || {})
+    };
+ 
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+ 
+    const response = await fetch(url, {
+      ...options,
+      headers
+    });
+ 
+    if (response.status === 401) {
+      // Clear token and bubble up
+      try {
+        if (typeof window !== 'undefined') {
+          window.localStorage.removeItem(AUTH_STORAGE_KEY);
+        }
+      } catch {
+        // ignore
+      }
+      setAuthToken(null);
+      setApiError('Authentication required. Please log in.');
+      throw new Error('Unauthorized');
+    }
+ 
+    return response;
+  };
+ 
+  // Login and logout helpers
+  const login = async (password) => {
+    setApiError(null);
+ 
+    const response = await fetch(`${API_URL}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password })
+    });
+ 
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Invalid password');
+      }
+      throw new Error(`Login failed: ${response.status} ${response.statusText}`);
+    }
+ 
+    const data = await response.json();
+    const token = data.token;
+    if (!token) {
+      throw new Error('No token returned from server');
+    }
+ 
+    try {
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(AUTH_STORAGE_KEY, token);
+      }
+    } catch {
+      // ignore storage failures
+    }
+ 
+    setAuthToken(token);
+    setApiError(null);
+  };
+ 
+  const logout = () => {
+    try {
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem(AUTH_STORAGE_KEY);
+      }
+    } catch {
+      // ignore
+    }
+    setAuthToken(null);
+    setApiError(null);
+  };
+ 
   // Function to fetch/reload data from the server
   const reloadDataFromServer = useCallback(async () => {
     setLoading(true);
@@ -46,7 +135,7 @@ export const AppProvider = ({ children }) => {
     console.log('Reloading data from server...');
     try {
       // Fetch students
-      const studentsResponse = await fetch(`${API_URL}/students`);
+      const studentsResponse = await fetchWithAuth(`${API_URL}/students`);
       if (!studentsResponse.ok) {
         throw new Error(`API error fetching students: ${studentsResponse.status}`);
       }
@@ -61,7 +150,7 @@ export const AppProvider = ({ children }) => {
 
       // Fetch classes
       try {
-        const classesResponse = await fetch(`${API_URL}/classes`); // <-- ADDED
+        const classesResponse = await fetchWithAuth(`${API_URL}/classes`); // <-- ADDED
         if (classesResponse.ok) { // <-- ADDED
           const classesData = await classesResponse.json(); // <-- ADDED
           console.log('Loaded classes from API:', classesData); // <-- ADDED
@@ -78,7 +167,7 @@ export const AppProvider = ({ children }) => {
 
       // Fetch books
       try {
-        const booksResponse = await fetch(`${API_URL}/books`); // <-- ADDED
+        const booksResponse = await fetchWithAuth(`${API_URL}/books`); // <-- ADDED
         if (booksResponse.ok) { // <-- ADDED
           const booksData = await booksResponse.json(); // <-- ADDED
           console.log('Loaded books from API:', booksData); // <-- ADDED
@@ -95,7 +184,7 @@ export const AppProvider = ({ children }) => {
 
       // Fetch genres
       try {
-        const genresResponse = await fetch(`${API_URL}/genres`); // <-- ADDED
+        const genresResponse = await fetchWithAuth(`${API_URL}/genres`); // <-- ADDED
         if (genresResponse.ok) { // <-- ADDED
           const genresData = await genresResponse.json(); // <-- ADDED
           console.log('Loaded genres from API:', genresData); // <-- ADDED
@@ -112,7 +201,7 @@ export const AppProvider = ({ children }) => {
 
       // Fetch settings
       try {
-        const settingsResponse = await fetch(`${API_URL}/settings`);
+        const settingsResponse = await fetchWithAuth(`${API_URL}/settings`);
         if (settingsResponse.ok) {
           const settingsData = await settingsResponse.json();
           if (settingsData.readingStatusSettings) {
@@ -127,19 +216,28 @@ export const AppProvider = ({ children }) => {
       return { success: true }; // Indicate success
     } catch (error) {
       console.error('Error reloading data:', error);
-      setApiError(error.message);
+      if (error.message !== 'Unauthorized') {
+        setApiError(error.message);
+      }
       return { success: false, error: error.message }; // Indicate failure
     } finally {
       setLoading(false);
     }
-  }, []); // No dependencies needed as it fetches fresh data
+  }, [authToken]); // Depends on authToken for Authorization header
 
   // Load data from API on initial render
   useEffect(() => {
-    reloadDataFromServer();
-  }, [reloadDataFromServer]); // Dependency ensures it runs once on mount
+    if (authToken) {
+      // Only attempt to load if we have a token
+      reloadDataFromServer();
+    } else {
+      setLoading(false);
+    }
+  }, [authToken, reloadDataFromServer]); // Reload when token becomes available
 
-  // --- Memoized Functions ---
+  // --- Memoized Functions & Auth State ---
+
+  const isAuthenticated = !!authToken;
 
   const addStudent = useCallback(async (name, classId = null) => { // Accept classId
     const newStudent = {
@@ -155,9 +253,8 @@ export const AppProvider = ({ children }) => {
     setStudents(prevStudents => [...prevStudents, newStudent]);
 
     try {
-      const response = await fetch(`${API_URL}/students`, {
+      const response = await fetchWithAuth(`${API_URL}/students`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newStudent),
       });
 
@@ -196,9 +293,8 @@ export const AppProvider = ({ children }) => {
     );
 
     try {
-      const response = await fetch(`${API_URL}/students/${id}`, {
+      const response = await fetchWithAuth(`${API_URL}/students/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedStudent),
       });
 
@@ -220,7 +316,7 @@ export const AppProvider = ({ children }) => {
      setStudents(prevStudents => prevStudents.filter(student => student.id !== id));
 
     try {
-      const response = await fetch(`${API_URL}/students/${id}`, { method: 'DELETE' });
+      const response = await fetchWithAuth(`${API_URL}/students/${id}`, { method: 'DELETE' });
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);
       }

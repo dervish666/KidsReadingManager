@@ -18,8 +18,9 @@ import { dataRouter } from './routes/data';
 import { classesRouter } from './routes/classes';
 import { booksRouter } from './routes/books';
 
-// Import middleware
+ // Import middleware
 import { errorHandler } from './middleware/errorHandler';
+import { authMiddleware, handleLogin } from './middleware/auth';
 
 // Create Hono app for the API
 const app = new Hono();
@@ -28,6 +29,12 @@ const app = new Hono();
 app.use('/api/*', logger());
 app.use('/api/*', prettyJSON());
 app.use('/api/*', cors());
+
+// Authentication middleware for all /api/* routes
+// - /api/login and /api/health are exempted inside authMiddleware
+app.use('/api/*', authMiddleware());
+
+// Error handler (kept last in the chain)
 app.use('/api/*', errorHandler());
 
 // Mount API routes - all under /api path
@@ -37,7 +44,7 @@ app.route('/api/data', dataRouter);
 app.route('/api/classes', classesRouter);
 app.route('/api/books', booksRouter);
 
-// API health check
+// API health check (public)
 app.get('/api/health', (c) => {
   return c.json({
     status: 'ok',
@@ -46,6 +53,9 @@ app.get('/api/health', (c) => {
     environment: c.env.ENVIRONMENT || 'unknown'
   });
 });
+
+// Login endpoint (public, issues auth token for valid password)
+app.post('/api/login', (c) => handleLogin(c));
 
 // Error handler
 app.onError((err, c) => {
