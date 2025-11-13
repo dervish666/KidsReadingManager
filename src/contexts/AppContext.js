@@ -81,39 +81,69 @@ export const AppProvider = ({ children }) => {
     return response;
   };
  
-  // Login and logout helpers
+  // Login and logout helpers with diagnostics
   const login = async (password) => {
+    console.log('[Auth] login() called');
     setApiError(null);
- 
-    const response = await fetch(`${API_URL}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password })
-    });
- 
-    if (!response.ok) {
-      if (response.status === 401) {
-        throw new Error('Invalid password');
-      }
-      throw new Error(`Login failed: ${response.status} ${response.statusText}`);
-    }
- 
-    const data = await response.json();
-    const token = data.token;
-    if (!token) {
-      throw new Error('No token returned from server');
-    }
- 
+
     try {
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem(AUTH_STORAGE_KEY, token);
+      console.log('[Auth] Sending POST to /api/login');
+      const response = await fetch(`${API_URL}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+
+      console.log('[Auth] /api/login response status:', response.status);
+
+      if (!response.ok) {
+        let errorText = '';
+        try {
+          errorText = await response.text();
+        } catch (_) {
+          // ignore
+        }
+        console.error('[Auth] /api/login non-OK response body:', errorText);
+
+        if (response.status === 401) {
+          throw new Error('Invalid password');
+        }
+        throw new Error(`Login failed: ${response.status} ${response.statusText}`);
       }
-    } catch {
-      // ignore storage failures
+
+      let data;
+      try {
+        data = await response.json();
+      } catch (err) {
+        console.error('[Auth] Failed to parse /api/login JSON:', err);
+        throw new Error('Login failed: invalid JSON response');
+      }
+
+      console.log('[Auth] /api/login response JSON:', data);
+
+      const token = data && data.token;
+      if (!token) {
+        console.error('[Auth] No token field in /api/login response');
+        throw new Error('No token returned from server');
+      }
+
+      try {
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem(AUTH_STORAGE_KEY, token);
+          console.log('[Auth] Stored token in localStorage');
+        }
+      } catch (storageErr) {
+        console.warn('[Auth] Failed to store token in localStorage:', storageErr);
+      }
+
+      setAuthToken(token);
+      setApiError(null);
+      console.log('[Auth] login() success, authToken state updated');
+    } catch (err) {
+      console.error('[Auth] login() error:', err);
+      setApiError(err.message || 'Login failed');
+      throw err;
     }
- 
-    setAuthToken(token);
-    setApiError(null);
   };
  
   const logout = () => {
