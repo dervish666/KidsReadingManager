@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react'; // Added useMemo, useCallback
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+} from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 // Create context
@@ -18,6 +25,7 @@ export const AppProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   // State for API errors
   const [apiError, setApiError] = useState(null);
+  // Auth token (from localStorage if present)
   const [authToken, setAuthToken] = useState(() => {
     if (typeof window === 'undefined') return null;
     try {
@@ -26,127 +34,137 @@ export const AppProvider = ({ children }) => {
       return null;
     }
   });
+
   // State for preferred number of priority students to display
   const [priorityStudentCount, setPriorityStudentCount] = useState(8);
   // State for reading status durations (in days)
   const [readingStatusSettings, setReadingStatusSettings] = useState({
     recentlyReadDays: 14,
-    needsAttentionDays: 21
+    needsAttentionDays: 21,
   });
+
   // State for classes
-  const [classes, setClasses] = useState([]); // <-- ADDED
+  const [classes, setClasses] = useState([]);
   // State for books
-  const [books, setBooks] = useState([]); // <-- ADDED for book tracking
-
-  // --- Book Provider Setup ---
-  // We route all book mutations through the backend API to keep JSON/KV providers in sync.
+  const [books, setBooks] = useState([]);
   // State for genres
-  const [genres, setGenres] = useState([]); // <-- ADDED for genre management
-  // State for recently accessed students (for quick access in dropdowns)
+  const [genres, setGenres] = useState([]);
+  // Recently accessed students (for quick access in dropdowns)
   const [recentlyAccessedStudents, setRecentlyAccessedStudents] = useState(() => {
-    const stored = sessionStorage.getItem('recentlyAccessedStudents');
-    return stored ? JSON.parse(stored) : [];
+    if (typeof window === 'undefined') return [];
+    try {
+      const stored = window.sessionStorage.getItem('recentlyAccessedStudents');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
   });
 
-  // Internal helper: fetch wrapper that adds auth header and handles 401
-  const fetchWithAuth = async (url, options = {}) => {
-    const headers = {
-      'Content-Type': 'application/json',
-      ...(options.headers || {})
-    };
- 
-    if (authToken) {
-      headers['Authorization'] = `Bearer ${authToken}`;
-    }
- 
-    const response = await fetch(url, {
-      ...options,
-      headers
-    });
- 
-    if (response.status === 401) {
-      // Clear token and bubble up
-      try {
-        if (typeof window !== 'undefined') {
-          window.localStorage.removeItem(AUTH_STORAGE_KEY);
-        }
-      } catch {
-        // ignore
-      }
-      setAuthToken(null);
-      setApiError('Authentication required. Please log in.');
-      throw new Error('Unauthorized');
-    }
- 
-    return response;
-  };
- 
-  // Login and logout helpers with diagnostics
-  const login = async (password) => {
-    console.log('[Auth] login() called');
-    setApiError(null);
+  // Helper: fetch with auth header + 401 handling
+  const fetchWithAuth = useCallback(
+    async (url, options = {}) => {
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(options.headers || {}),
+      };
 
-    try {
-      console.log('[Auth] Sending POST to /api/login');
-      const response = await fetch(`${API_URL}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password })
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
+      const response = await fetch(url, {
+        ...options,
+        headers,
       });
 
-      console.log('[Auth] /api/login response status:', response.status);
-
-      if (!response.ok) {
-        let errorText = '';
+      if (response.status === 401) {
         try {
-          errorText = await response.text();
-        } catch (_) {
+          if (typeof window !== 'undefined') {
+            window.localStorage.removeItem(AUTH_STORAGE_KEY);
+          }
+        } catch {
           // ignore
         }
-        console.error('[Auth] /api/login non-OK response body:', errorText);
-
-        if (response.status === 401) {
-          throw new Error('Invalid password');
-        }
-        throw new Error(`Login failed: ${response.status} ${response.statusText}`);
+        setAuthToken(null);
+        setApiError('Authentication required. Please log in.');
+        throw new Error('Unauthorized');
       }
 
-      let data;
-      try {
-        data = await response.json();
-      } catch (err) {
-        console.error('[Auth] Failed to parse /api/login JSON:', err);
-        throw new Error('Login failed: invalid JSON response');
-      }
+      return response;
+    },
+    [authToken]
+  );
 
-      console.log('[Auth] /api/login response JSON:', data);
-
-      const token = data && data.token;
-      if (!token) {
-        console.error('[Auth] No token field in /api/login response');
-        throw new Error('No token returned from server');
-      }
-
-      try {
-        if (typeof window !== 'undefined') {
-          window.localStorage.setItem(AUTH_STORAGE_KEY, token);
-          console.log('[Auth] Stored token in localStorage');
-        }
-      } catch (storageErr) {
-        console.warn('[Auth] Failed to store token in localStorage:', storageErr);
-      }
-
-      setAuthToken(token);
+  // Login helper (with diagnostics)
+  const login = useCallback(
+    async (password) => {
+      console.log('[Auth] login() called');
       setApiError(null);
-      console.log('[Auth] login() success, authToken state updated');
-    } catch (err) {
-      console.error('[Auth] login() error:', err);
-      setApiError(err.message || 'Login failed');
-      throw err;
-    }
-  };
- 
-  const logout = () => {
+
+      try {
+        console.log('[Auth] Sending POST to /api/login');
+        const response = await fetch(`${API_URL}/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password }),
+        });
+
+        console.log('[Auth] /api/login response status:', response.status);
+
+        if (!response.ok) {
+          let errorText = '';
+          try {
+            errorText = await response.text();
+          } catch {
+            // ignore
+          }
+          console.error('[Auth] /api/login non-OK response body:', errorText);
+
+          if (response.status === 401) {
+            throw new Error('Invalid password');
+          }
+          throw new Error(`Login failed: ${response.status} ${response.statusText}`);
+        }
+
+        let data;
+        try {
+          data = await response.json();
+        } catch (err) {
+          console.error('[Auth] Failed to parse /api/login JSON:', err);
+          throw new Error('Login failed: invalid JSON response');
+        }
+
+        console.log('[Auth] /api/login response JSON:', data);
+
+        const token = data && data.token;
+        if (!token) {
+          console.error('[Auth] No token field in /api/login response');
+          throw new Error('No token returned from server');
+        }
+
+        try {
+          if (typeof window !== 'undefined') {
+            window.localStorage.setItem(AUTH_STORAGE_KEY, token);
+            console.log('[Auth] Stored token in localStorage');
+          }
+        } catch (storageErr) {
+          console.warn('[Auth] Failed to store token in localStorage:', storageErr);
+        }
+
+        setAuthToken(token);
+        setApiError(null);
+        console.log('[Auth] login() success, authToken state updated');
+      } catch (err) {
+        console.error('[Auth] login() error:', err);
+        setApiError(err.message || 'Login failed');
+        throw err;
+      }
+    },
+    []
+  );
+
+  // Logout helper
+  const logout = useCallback(() => {
     try {
       if (typeof window !== 'undefined') {
         window.localStorage.removeItem(AUTH_STORAGE_KEY);
@@ -156,80 +174,73 @@ export const AppProvider = ({ children }) => {
     }
     setAuthToken(null);
     setApiError(null);
-  };
- 
-  // Function to fetch/reload data from the server
+  }, []);
+
+  // Load data from API
   const reloadDataFromServer = useCallback(async () => {
     setLoading(true);
-    setApiError(null); // Clear previous errors
-    console.log('Reloading data from server...');
+    setApiError(null);
+    console.log('[Data] Reloading data from server...');
+
     try {
-      // Fetch students
+      // Students
       const studentsResponse = await fetchWithAuth(`${API_URL}/students`);
       if (!studentsResponse.ok) {
         throw new Error(`API error fetching students: ${studentsResponse.status}`);
       }
       const studentsData = await studentsResponse.json();
-      console.log('Loaded students from API:', studentsData);
-      // Ensure all students have a classId, default to null
-      const studentsWithClassId = studentsData.map(student => ({
+      const studentsWithClassId = studentsData.map((student) => ({
         ...student,
-        classId: student.classId !== undefined ? student.classId : null
+        classId: student.classId !== undefined ? student.classId : null,
       }));
       setStudents(studentsWithClassId);
 
-      // Fetch classes
+      // Classes
       try {
-        const classesResponse = await fetchWithAuth(`${API_URL}/classes`); // <-- ADDED
-        if (classesResponse.ok) { // <-- ADDED
-          const classesData = await classesResponse.json(); // <-- ADDED
-          console.log('Loaded classes from API:', classesData); // <-- ADDED
-          setClasses(classesData); // <-- ADDED
-        } else { // <-- ADDED
-          console.warn(`API error fetching classes: ${classesResponse.status}`); // <-- ADDED
-          // Don't throw error, maybe classes endpoint doesn't exist yet
-          setClasses([]); // <-- ADDED: Reset classes if fetch fails
-        } // <-- ADDED
-      } catch (classesError) { // <-- ADDED
-        console.error('Error fetching classes:', classesError); // <-- ADDED
-        setClasses([]); // <-- ADDED: Reset classes on error
-      } // <-- ADDED
+        const classesResponse = await fetchWithAuth(`${API_URL}/classes`);
+        if (classesResponse.ok) {
+          const classesData = await classesResponse.json();
+          setClasses(classesData);
+        } else {
+          console.warn('[Data] API error fetching classes:', classesResponse.status);
+          setClasses([]);
+        }
+      } catch (err) {
+        console.error('[Data] Error fetching classes:', err);
+        setClasses([]);
+      }
 
-      // Fetch books
+      // Books
       try {
-        const booksResponse = await fetchWithAuth(`${API_URL}/books`); // <-- ADDED
-        if (booksResponse.ok) { // <-- ADDED
-          const booksData = await booksResponse.json(); // <-- ADDED
-          console.log('Loaded books from API:', booksData); // <-- ADDED
-          setBooks(booksData); // <-- ADDED
-        } else { // <-- ADDED
-          console.warn(`API error fetching books: ${booksResponse.status}`); // <-- ADDED
-          // Don't throw error, maybe books endpoint doesn't exist yet
-          setBooks([]); // <-- ADDED: Reset books if fetch fails
-        } // <-- ADDED
-      } catch (booksError) { // <-- ADDED
-        console.error('Error fetching books:', booksError); // <-- ADDED
-        setBooks([]); // <-- ADDED: Reset books on error
-      } // <-- ADDED
+        const booksResponse = await fetchWithAuth(`${API_URL}/books`);
+        if (booksResponse.ok) {
+          const booksData = await booksResponse.json();
+          setBooks(booksData);
+        } else {
+          console.warn('[Data] API error fetching books:', booksResponse.status);
+          setBooks([]);
+        }
+      } catch (err) {
+        console.error('[Data] Error fetching books:', err);
+        setBooks([]);
+      }
 
-      // Fetch genres
+      // Genres
       try {
-        const genresResponse = await fetchWithAuth(`${API_URL}/genres`); // <-- ADDED
-        if (genresResponse.ok) { // <-- ADDED
-          const genresData = await genresResponse.json(); // <-- ADDED
-          console.log('Loaded genres from API:', genresData); // <-- ADDED
-          setGenres(genresData); // <-- ADDED
-        } else { // <-- ADDED
-          console.warn(`API error fetching genres: ${genresResponse.status}`); // <-- ADDED
-          // Don't throw error, maybe genres endpoint doesn't exist yet
-          setGenres([]); // <-- ADDED: Reset genres if fetch fails
-        } // <-- ADDED
-      } catch (genresError) { // <-- ADDED
-        console.error('Error fetching genres:', genresError); // <-- ADDED
-        setGenres([]); // <-- ADDED: Reset genres on error
-      } // <-- ADDED
+        const genresResponse = await fetchWithAuth(`${API_URL}/genres`);
+        if (genresResponse.ok) {
+          const genresData = await genresResponse.json();
+          setGenres(genresData);
+        } else {
+          console.warn('[Data] API error fetching genres:', genresResponse.status);
+          setGenres([]);
+        }
+      } catch (err) {
+        console.error('[Data] Error fetching genres:', err);
+        setGenres([]);
+      }
 
-      // Fetch settings
+      // Settings
       try {
         const settingsResponse = await fetchWithAuth(`${API_URL}/settings`);
         if (settingsResponse.ok) {
@@ -238,900 +249,387 @@ export const AppProvider = ({ children }) => {
             setReadingStatusSettings(settingsData.readingStatusSettings);
           }
         } else {
-           console.warn(`API error fetching settings: ${settingsResponse.status}`);
+          console.warn('[Data] API error fetching settings:', settingsResponse.status);
         }
-      } catch (settingsError) {
-        console.error('Error fetching settings:', settingsError);
+      } catch (err) {
+        console.error('[Data] Error fetching settings:', err);
       }
-      return { success: true }; // Indicate success
+
+      return { success: true };
     } catch (error) {
-      console.error('Error reloading data:', error);
+      console.error('[Data] Error reloading data:', error);
       if (error.message !== 'Unauthorized') {
         setApiError(error.message);
       }
-      return { success: false, error: error.message }; // Indicate failure
+      return { success: false, error: error.message };
     } finally {
       setLoading(false);
     }
-  }, [authToken]); // Depends on authToken for Authorization header
+  }, [fetchWithAuth]);
 
-  // Load data from API on initial render
+  // Initial load / auth-aware
   useEffect(() => {
     if (authToken) {
-      // Only attempt to load if we have a token
+      console.log('[Auth] Existing token found, loading data');
       reloadDataFromServer();
     } else {
+      console.log('[Auth] No token, skipping initial data load');
       setLoading(false);
     }
-  }, [authToken, reloadDataFromServer]); // Reload when token becomes available
+  }, [authToken, reloadDataFromServer]);
 
-  // --- Memoized Functions & Auth State ---
-
+  // --- Derived auth state ---
   const isAuthenticated = !!authToken;
 
-  const addStudent = useCallback(async (name, classId = null) => { // Accept classId
-    const newStudent = {
-      id: uuidv4(),
-      name,
-      lastReadDate: null,
-      readingSessions: [],
-      classId: classId // Use the passed classId
-    };
+  // --- Student and session operations (unchanged, but use fetchWithAuth where appropriate) ---
 
-    // Optimistic UI update
-    const previousStudents = students;
-    setStudents(prevStudents => [...prevStudents, newStudent]);
+  const addStudent = useCallback(
+    async (name, classId = null) => {
+      const newStudent = {
+        id: uuidv4(),
+        name,
+        lastReadDate: null,
+        readingSessions: [],
+        classId,
+      };
 
-    try {
-      const response = await fetchWithAuth(`${API_URL}/students`, {
-        method: 'POST',
-        body: JSON.stringify(newStudent),
-      });
+      const previousStudents = students;
+      setStudents((prev) => [...prev, newStudent]);
 
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+      try {
+        const response = await fetchWithAuth(`${API_URL}/students`, {
+          method: 'POST',
+          body: JSON.stringify(newStudent),
+        });
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+
+        const savedStudent = await response.json();
+        setStudents((prev) =>
+          prev.map((s) => (s.id === newStudent.id ? savedStudent : s))
+        );
+        setApiError(null);
+        return savedStudent;
+      } catch (error) {
+        console.error('Error adding student:', error);
+        setApiError(error.message);
+        setStudents(previousStudents);
+        return null;
+      }
+    },
+    [students, fetchWithAuth]
+  );
+
+  const updateStudent = useCallback(
+    async (id, updatedData) => {
+      const currentStudent = students.find((student) => student.id === id);
+      if (!currentStudent) {
+        console.error('Update failed: Student not found');
+        return;
+      }
+      const updatedStudent = { ...currentStudent, ...updatedData };
+
+      const previousStudents = students;
+      setStudents((prev) =>
+        prev.map((student) => (student.id === id ? updatedStudent : student))
+      );
+
+      try {
+        const response = await fetchWithAuth(`${API_URL}/students/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify(updatedStudent),
+        });
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        setApiError(null);
+      } catch (error) {
+        console.error('Error updating student:', error);
+        setApiError(error.message);
+        setStudents(previousStudents);
+      }
+    },
+    [students, fetchWithAuth]
+  );
+
+  const deleteStudent = useCallback(
+    async (id) => {
+      const previousStudents = students;
+      setStudents((prev) => prev.filter((student) => student.id !== id));
+
+      try {
+        const response = await fetchWithAuth(`${API_URL}/students/${id}`, {
+          method: 'DELETE',
+        });
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        setApiError(null);
+      } catch (error) {
+        console.error('Error deleting student:', error);
+        setApiError(error.message);
+        setStudents(previousStudents);
+      }
+    },
+    [students, fetchWithAuth]
+  );
+
+  // Book helpers (left largely as-is; can be updated to use fetchWithAuth similarly)
+  const updateBook = useCallback(
+    async (id, updatedFields) => {
+      const existing = books.find((b) => b.id === id);
+      if (!existing) {
+        console.warn('updateBook: Book not found for id', id);
+        return null;
       }
 
-      const savedStudent = await response.json();
-      // Update the added student with data from server (if different, e.g., _rev)
-      setStudents(prevStudents => prevStudents.map(s => s.id === newStudent.id ? savedStudent : s));
-      setApiError(null);
-      return savedStudent;
-    } catch (error) {
-      console.error('Error adding student:', error);
-      setApiError(error.message);
-      // Revert optimistic update on error
-      setStudents(previousStudents);
-      return null; // Indicate failure
-    }
-  }, [students]); // Dependency: students (to get previous state for revert)
+      const updatedBook = {
+        ...existing,
+        ...updatedFields,
+      };
 
-  const updateStudent = useCallback(async (id, updatedData) => {
-    const currentStudent = students.find(student => student.id === id);
-    if (!currentStudent) {
-      console.error('Update failed: Student not found');
-      return; // Or throw error
-    }
-    const updatedStudent = { ...currentStudent, ...updatedData };
+      const previousBooks = books;
+      setBooks((prev) => prev.map((b) => (b.id === id ? updatedBook : b)));
 
-    // Optimistic UI update
-    const previousStudents = students;
-    setStudents(prevStudents =>
-      prevStudents.map(student =>
-        student.id === id ? updatedStudent : student
-      )
-    );
+      try {
+        const response = await fetch(`${API_URL}/books/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedBook),
+        });
 
-    try {
-      const response = await fetchWithAuth(`${API_URL}/students/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(updatedStudent),
-      });
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
 
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+        const saved = await response.json().catch(() => null);
+        if (saved && saved.id) {
+          setBooks((prev) => prev.map((b) => (b.id === id ? saved : b)));
+          return saved;
+        }
+
+        return updatedBook;
+      } catch (error) {
+        console.error('Error updating book:', error);
+        setApiError(error.message);
+        setBooks(previousBooks);
+        return null;
       }
-      setApiError(null);
-    } catch (error) {
-      console.error('Error updating student:', error);
-      setApiError(error.message);
-      // Revert optimistic update
-      setStudents(previousStudents);
-    }
-  }, [students]); // Dependency: students (to find current student and for revert)
+    },
+    [books]
+  );
 
-  const deleteStudent = useCallback(async (id) => {
-     // Optimistic UI update
-     const previousStudents = students;
-     setStudents(prevStudents => prevStudents.filter(student => student.id !== id));
+  const updateBookField = useCallback(
+    async (id, field, value) => {
+      if (!id || !field) return null;
+      return updateBook(id, { [field]: value || null });
+    },
+    [updateBook]
+  );
 
-    try {
-      const response = await fetchWithAuth(`${API_URL}/students/${id}`, { method: 'DELETE' });
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-      setApiError(null);
-    } catch (error) {
-      console.error('Error deleting student:', error);
-      setApiError(error.message);
-      // Revert optimistic update
-      setStudents(previousStudents);
-    }
-  }, [students]); // Dependency: students (for revert)
+  // Reading session helpers (unchanged, using direct fetch; can be adjusted if needed)
+  const addReadingSession = useCallback(
+    async (studentId, sessionData) => {
+      const date =
+        sessionData.date || new Date().toISOString().split('T')[0];
+      const newSession = {
+        id: uuidv4(),
+        date,
+        assessment: sessionData.assessment,
+        notes: sessionData.notes || '',
+        bookId: sessionData.bookId || null,
+        location: sessionData.location || 'school',
+      };
 
- // --- Book Helpers ---
-
- const updateBook = useCallback(async (id, updatedFields) => {
-   // Find current book
-   const existing = books.find(b => b.id === id);
-   if (!existing) {
-     console.warn('updateBook: Book not found for id', id);
-     return null;
-   }
-
-   const updatedBook = {
-     ...existing,
-     ...updatedFields
-   };
-
-   // Optimistic update
-   const previousBooks = books;
-   setBooks(prev =>
-     prev.map(b => (b.id === id ? updatedBook : b))
-   );
-
-   try {
-     const response = await fetch(`${API_URL}/books/${id}`, {
-       method: 'PUT',
-       headers: { 'Content-Type': 'application/json' },
-       body: JSON.stringify(updatedBook)
-     });
-
-     if (!response.ok) {
-       throw new Error(`API error: ${response.status}`);
-     }
-
-     const saved = await response.json().catch(() => null);
-     if (saved && saved.id) {
-       setBooks(prev =>
-         prev.map(b => (b.id === id ? saved : b))
-       );
-       return saved;
-     }
-
-     return updatedBook;
-   } catch (error) {
-     console.error('Error updating book:', error);
-     setApiError(error.message);
-     // Revert optimistic update
-     setBooks(previousBooks);
-     return null;
-   }
- }, [books]);
-
- /**
-  * Quick inline update for a single book field (e.g. author, readingLevel, ageRange)
-  * Used by the reading session page when user blurs an inline edit field.
-  */
- const updateBookField = useCallback(
-   async (id, field, value) => {
-     if (!id || !field) return null;
-     return updateBook(id, { [field]: value || null });
-   },
-   [updateBook]
- );
-
- const addReadingSession = useCallback(async (studentId, sessionData) => {
-    const date = sessionData.date || new Date().toISOString().split('T')[0];
-    const newSession = {
-      id: uuidv4(),
-      date,
-      assessment: sessionData.assessment,
-      notes: sessionData.notes || '',
-      bookId: sessionData.bookId || null, // <-- ADDED for book tracking
-      location: sessionData.location || 'school' // <-- ADDED for location tracking (default to school)
-    };
-
-    const student = students.find(s => s.id === studentId);
-    if (!student) {
+      const student = students.find((s) => s.id === studentId);
+      if (!student) {
         console.error('Add session failed: Student not found');
         return null;
-    }
-
-    const updatedReadingSessions = [newSession, ...student.readingSessions];
-    let mostRecentDate = date;
-    for (const session of updatedReadingSessions) {
-      if (session.date && new Date(session.date) > new Date(mostRecentDate)) {
-        mostRecentDate = session.date;
       }
-    }
-    const updatedStudent = {
-      ...student,
-      lastReadDate: mostRecentDate,
-      readingSessions: updatedReadingSessions
-    };
 
-    // Optimistic UI update
-    const previousStudents = students;
-    setStudents(prevStudents =>
-      prevStudents.map(s => s.id === studentId ? updatedStudent : s)
-    );
-
-    try {
-      const response = await fetch(`${API_URL}/students/${studentId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedStudent),
-      });
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+      const updatedReadingSessions = [newSession, ...student.readingSessions];
+      let mostRecentDate = date;
+      for (const session of updatedReadingSessions) {
+        if (
+          session.date &&
+          new Date(session.date) > new Date(mostRecentDate)
+        ) {
+          mostRecentDate = session.date;
+        }
       }
-      setApiError(null);
-      return newSession; // Return the added session on success
-    } catch (error) {
-      console.error('Error adding reading session:', error);
-      setApiError(error.message);
-      // Revert optimistic update
-      setStudents(previousStudents);
-      return null; // Indicate failure
-    }
-  }, [students]); // Dependency: students (to find student and for revert)
+      const updatedStudent = {
+        ...student,
+        lastReadDate: mostRecentDate,
+        readingSessions: updatedReadingSessions,
+      };
 
-  const editReadingSession = useCallback(async (studentId, sessionId, updatedSessionData) => {
-    const student = students.find(s => s.id === studentId);
-    if (!student) {
+      const previousStudents = students;
+      setStudents((prev) =>
+        prev.map((s) => (s.id === studentId ? updatedStudent : s))
+      );
+
+      try {
+        const response = await fetch(`${API_URL}/students/${studentId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedStudent),
+        });
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        setApiError(null);
+        return newSession;
+      } catch (error) {
+        console.error('Error adding reading session:', error);
+        setApiError(error.message);
+        setStudents(previousStudents);
+        return null;
+      }
+    },
+    [students]
+  );
+
+  const editReadingSession = useCallback(
+    async (studentId, sessionId, updatedSessionData) => {
+      const student = students.find((s) => s.id === studentId);
+      if (!student) {
         console.error('Edit session failed: Student not found');
         return;
-    }
-
-    const updatedReadingSessions = student.readingSessions.map(session =>
-      session.id === sessionId ? { ...session, ...updatedSessionData } : session
-    );
-    let mostRecentDate = null;
-    for (const session of updatedReadingSessions) {
-      if (session.date && (!mostRecentDate || new Date(session.date) > new Date(mostRecentDate))) {
-        mostRecentDate = session.date;
       }
-    }
-    const updatedStudent = {
-      ...student,
-      lastReadDate: mostRecentDate,
-      readingSessions: updatedReadingSessions
-    };
 
-    // Optimistic UI update
-    const previousStudents = students;
-    setStudents(prevStudents =>
-      prevStudents.map(s => s.id === studentId ? updatedStudent : s)
-    );
-
-    try {
-      const response = await fetch(`${API_URL}/students/${studentId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedStudent),
-      });
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+      const updatedReadingSessions = student.readingSessions.map((session) =>
+        session.id === sessionId
+          ? { ...session, ...updatedSessionData }
+          : session
+      );
+      let mostRecentDate = null;
+      for (const session of updatedReadingSessions) {
+        if (
+          session.date &&
+          (!mostRecentDate ||
+            new Date(session.date) > new Date(mostRecentDate))
+        ) {
+          mostRecentDate = session.date;
+        }
       }
-      setApiError(null);
-    } catch (error) {
-      console.error('Error editing reading session:', error);
-      setApiError(error.message);
-      // Revert optimistic update
-      setStudents(previousStudents);
-    }
-  }, [students]); // Dependency: students (to find student and for revert)
+      const updatedStudent = {
+        ...student,
+        lastReadDate: mostRecentDate,
+        readingSessions: updatedReadingSessions,
+      };
 
-  const deleteReadingSession = useCallback(async (studentId, sessionId) => {
-    const student = students.find(s => s.id === studentId);
-     if (!student) {
+      const previousStudents = students;
+      setStudents((prev) =>
+        prev.map((s) => (s.id === studentId ? updatedStudent : s))
+      );
+
+      try {
+        const response = await fetch(`${API_URL}/students/${studentId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedStudent),
+        });
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        setApiError(null);
+      } catch (error) {
+        console.error('Error editing reading session:', error);
+        setApiError(error.message);
+        setStudents(previousStudents);
+      }
+    },
+    [students]
+  );
+
+  const deleteReadingSession = useCallback(
+    async (studentId, sessionId) => {
+      const student = students.find((s) => s.id === studentId);
+      if (!student) {
         console.error('Delete session failed: Student not found');
         return;
-    }
-
-    const updatedReadingSessions = student.readingSessions.filter(
-      session => session.id !== sessionId
-    );
-    let mostRecentDate = null;
-    for (const session of updatedReadingSessions) {
-      if (session.date && (!mostRecentDate || new Date(session.date) > new Date(mostRecentDate))) {
-        mostRecentDate = session.date;
-      }
-    }
-    const updatedStudent = {
-      ...student,
-      lastReadDate: mostRecentDate,
-      readingSessions: updatedReadingSessions
-    };
-
-    // Optimistic UI update
-    const previousStudents = students;
-    setStudents(prevStudents =>
-      prevStudents.map(s => s.id === studentId ? updatedStudent : s)
-    );
-
-    try {
-      const response = await fetch(`${API_URL}/students/${studentId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedStudent),
-      });
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-      setApiError(null);
-    } catch (error) {
-      console.error('Error deleting reading session:', error);
-      setApiError(error.message);
-      // Revert optimistic update
-      setStudents(previousStudents);
-    }
-  }, [students]); // Dependency: students (to find student and for revert)
-
-// --- Class Management Functions ---
-
-  const addClass = useCallback(async (classData) => {
-    const newClass = {
-      id: uuidv4(),
-      name: classData.name,
-      teacherName: classData.teacherName || '',
-      disabled: classData.disabled || false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    // Optimistic UI update
-    const previousClasses = classes;
-    setClasses(prevClasses => [...prevClasses, newClass]);
-
-    try {
-      const response = await fetch(`${API_URL}/classes`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newClass),
-      });
-
-      if (!response.ok) {
-        throw new Error(`API error adding class: ${response.status}`);
       }
 
-      const savedClass = await response.json();
-      // Update the added class with data from server (if different)
-      setClasses(prevClasses => prevClasses.map(c => c.id === newClass.id ? savedClass : c));
-      setApiError(null);
-      return savedClass;
-    } catch (error) {
-      console.error('Error adding class:', error);
-      setApiError(error.message);
-      // Revert optimistic update on error
-      setClasses(previousClasses);
-      return null; // Indicate failure
-    }
-  }, [classes]); // Dependency: classes (for revert)
-
-  const updateClass = useCallback(async (id, updatedData) => {
-    const currentClass = classes.find(c => c.id === id);
-    if (!currentClass) {
-      console.error('Update failed: Class not found');
-      setApiError('Update failed: Class not found');
-      return;
-    }
-    const updatedClass = {
-      ...currentClass,
-      ...updatedData,
-      updatedAt: new Date().toISOString(), // Ensure updatedAt is updated
-    };
-
-    // Optimistic UI update
-    const previousClasses = classes;
-    setClasses(prevClasses =>
-      prevClasses.map(c => (c.id === id ? updatedClass : c))
-    );
-
-    try {
-      const response = await fetch(`${API_URL}/classes/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedClass),
-      });
-
-      if (!response.ok) {
-        throw new Error(`API error updating class: ${response.status}`);
-      }
-      setApiError(null);
-    } catch (error) {
-      console.error('Error updating class:', error);
-      setApiError(error.message);
-      // Revert optimistic update
-      setClasses(previousClasses);
-    }
-  }, [classes]); // Dependency: classes (for revert)
-
-  const deleteClass = useCallback(async (id) => {
-     // Optimistic UI update
-     const previousClasses = classes;
-     const previousStudents = students; // Need to potentially update students too
-
-     setClasses(prevClasses => prevClasses.filter(c => c.id !== id));
-     // Unassign students from the deleted class
-     setStudents(prevStudents =>
-        prevStudents.map(student =>
-            student.classId === id ? { ...student, classId: null } : student
-        )
-     );
-
-
-    try {
-      const response = await fetch(`${API_URL}/classes/${id}`, { method: 'DELETE' });
-      if (!response.ok) {
-        // Special handling for 409 Conflict (e.g., class still has students on backend)
-        if (response.status === 409) {
-             const errorData = await response.json();
-             throw new Error(errorData.message || `API error: ${response.status} - Class might not be empty.`);
+      const updatedReadingSessions = student.readingSessions.filter(
+        (session) => session.id !== sessionId
+      );
+      let mostRecentDate = null;
+      for (const session of updatedReadingSessions) {
+        if (
+          session.date &&
+          (!mostRecentDate ||
+            new Date(session.date) > new Date(mostRecentDate))
+        ) {
+          mostRecentDate = session.date;
         }
-        throw new Error(`API error deleting class: ${response.status}`);
       }
-      setApiError(null);
-      // Note: Backend should handle unassigning students if necessary,
-      // but we also do it optimistically. If backend fails, we revert.
-    } catch (error) {
-      console.error('Error deleting class:', error);
-      setApiError(error.message);
-      // Revert optimistic update for both classes and students
-      setClasses(previousClasses);
-      setStudents(previousStudents);
-    }
-  }, [classes, students]); // Dependencies: classes, students (for revert)
-
-  // --- Book Management Functions ---
-
-  const addGenre = useCallback(async (genreData) => {
-    const newGenre = {
-      id: uuidv4(),
-      name: genreData.name,
-      isPredefined: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    // Optimistic UI update
-    const previousGenres = genres;
-    setGenres(prevGenres => [...prevGenres, newGenre]);
-
-    try {
-      const response = await fetch(`${API_URL}/genres`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newGenre),
-      });
-
-      if (!response.ok) {
-        throw new Error(`API error adding genre: ${response.status}`);
-      }
-
-      const savedGenre = await response.json();
-      // Update the added genre with data from server
-      setGenres(prevGenres => prevGenres.map(g => g.id === newGenre.id ? savedGenre : g));
-      setApiError(null);
-      return savedGenre;
-    } catch (error) {
-      console.error('Error adding genre:', error);
-      setApiError(error.message);
-      // Revert optimistic update on error
-      setGenres(previousGenres);
-      return null; // Indicate failure
-    }
-  }, [genres]); // Dependency: genres (for revert)
-
-  const fetchGenres = useCallback(async () => {
-    try {
-      const genresResponse = await fetch(`${API_URL}/genres`);
-      if (genresResponse.ok) {
-        const genresData = await genresResponse.json();
-        setGenres(genresData);
-        return genresData;
-      } else {
-        console.warn(`API error fetching genres: ${genresResponse.status}`);
-        return [];
-      }
-    } catch (error) {
-      console.error('Error fetching genres:', error);
-      return [];
-    }
-  }, []); // No dependencies needed
-
-  const addBook = useCallback(async (title, author) => {
-    const newBook = {
-      id: uuidv4(),
-      title: title.trim(),
-      author: author ? author.trim() : null,
-      genreIds: [], // Empty array, can be updated later
-      ageRange: null
-    };
-
-    // Optimistic UI update
-    const previousBooks = books;
-    setBooks(prevBooks => [...prevBooks, newBook]);
-
-    try {
-      const response = await fetch(`${API_URL}/books`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newBook),
-      });
-
-      if (!response.ok) {
-        throw new Error(`API error adding book: ${response.status}`);
-      }
-
-      const savedBook = await response.json();
-      // Update the added book with data from server
-      setBooks(prevBooks => prevBooks.map(b => b.id === newBook.id ? savedBook : b));
-      setApiError(null);
-      return savedBook;
-    } catch (error) {
-      console.error('Error adding book:', error);
-      setApiError(error.message);
-      // Revert optimistic update on error
-      setBooks(previousBooks);
-      return null; // Indicate failure
-    }
-  }, [books]); // Dependency: books (for revert)
-
-  const findOrCreateBook = useCallback(async (title, author = null) => {
-    // First check if exact match exists (case insensitive)
-    const existingBook = books.find(book =>
-      book.title.toLowerCase() === title.trim().toLowerCase() &&
-      (!author || !book.author || book.author.toLowerCase() === author.trim().toLowerCase())
-    );
-
-    if (existingBook) {
-      return existingBook; // Return existing book
-    }
-
-    // If not found, create new book
-    return await addBook(title, author);
-  }, [books, addBook]);
-
-  const updateStudentClassId = useCallback(async (studentId, newClassId) => {
-    const student = students.find(s => s.id === studentId);
-    if (!student) {
-        console.error('Update class assignment failed: Student not found');
-        setApiError('Update class assignment failed: Student not found');
-        return;
-    }
-
-    // Ensure newClassId is null or a valid class ID
-    const targetClassId = newClassId === 'unassigned' || newClassId === '' ? null : newClassId;
-    if (targetClassId !== null && !classes.some(c => c.id === targetClassId)) {
-        console.error('Update class assignment failed: Target class not found');
-        setApiError('Update class assignment failed: Target class not found');
-        return;
-    }
-
-    const updatedStudent = { ...student, classId: targetClassId };
-
-    // Optimistic UI update
-    const previousStudents = students;
-    setStudents(prevStudents =>
-      prevStudents.map(s => (s.id === studentId ? updatedStudent : s))
-    );
-
-    try {
-      // We use the existing updateStudent endpoint, just changing the classId
-      const response = await fetch(`${API_URL}/students/${studentId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        // Send the whole updated student object
-        body: JSON.stringify(updatedStudent),
-      });
-
-      if (!response.ok) {
-        throw new Error(`API error updating student's class: ${response.status}`);
-      }
-      setApiError(null);
-    } catch (error) {
-      console.error("Error updating student's class:", error);
-      setApiError(error.message);
-      // Revert optimistic update
-      setStudents(previousStudents);
-    }
-  }, [students, classes]); // Dependencies: students, classes (for finding student and valid classes)
-
-  const updatePriorityStudentCount = useCallback((count) => {
-    setPriorityStudentCount(count);
-  }, []);
-
-  // Function to add a student to recently accessed list
-  const addRecentlyAccessedStudent = useCallback((studentId) => {
-    setRecentlyAccessedStudents(prev => {
-      const filtered = prev.filter(id => id !== studentId); // Remove if already exists
-      const updated = [studentId, ...filtered].slice(0, 5); // Keep only 5 most recent, add to front
-      sessionStorage.setItem('recentlyAccessedStudents', JSON.stringify(updated));
-      return updated;
-    });
-  }, []);
-
-  // Function to clear recently accessed students
-  const clearRecentlyAccessedStudents = useCallback(() => {
-    setRecentlyAccessedStudents([]);
-    sessionStorage.removeItem('recentlyAccessedStudents');
-  }, []); // No dependencies
-
-  const updateReadingStatusSettings = useCallback(async (newSettings) => {
-    // Optimistic update
-    const previousSettings = readingStatusSettings;
-    setReadingStatusSettings(newSettings);
-
-    try {
-      const response = await fetch(`${API_URL}/settings`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ readingStatusSettings: newSettings }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-      setApiError(null);
-    } catch (error) {
-      console.error('Error updating settings:', error);
-      setApiError(error.message);
-      // Revert optimistic update
-      setReadingStatusSettings(previousSettings);
-    }
-  }, [readingStatusSettings]); // Dependency: readingStatusSettings (for revert)
-
-  const getReadingStatus = useCallback((student) => {
-    if (!student?.lastReadDate) return 'notRead'; // Added optional chaining
-
-    const lastReadDate = new Date(student.lastReadDate);
-    const today = new Date();
-    // Ensure dates are compared at the start of the day for consistency
-    today.setHours(0, 0, 0, 0);
-    lastReadDate.setHours(0, 0, 0, 0);
-
-    const diffTime = today - lastReadDate; // No need for Math.abs if today is always >= lastReadDate for status calculation
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays <= readingStatusSettings.recentlyReadDays) return 'recentlyRead';
-    if (diffDays <= readingStatusSettings.needsAttentionDays) return 'needsAttention';
-    return 'notRead';
-  }, [readingStatusSettings]); // Dependency: readingStatusSettings
-
-  const exportToCsv = useCallback(() => {
-    let csv = 'Student Name,Last Read Date,Total Sessions\n';
-    students.forEach(student => {
-      const lastReadDate = student.lastReadDate || 'Never';
-      const totalSessions = student.readingSessions.length;
-      csv += `"${student.name}","${lastReadDate}",${totalSessions}\n`;
-    });
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'reading-tracker-export.csv');
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url); // Clean up object URL
-  }, [students]); // Dependency: students
-
-  const exportToJson = useCallback(async () => {
-    let dataToExport;
-    try {
-      const response = await fetch(`${API_URL}/data`);
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-      dataToExport = await response.json();
-      setApiError(null);
-    } catch (error) {
-      console.error('Error exporting data from API, falling back to local state:', error);
-      setApiError(error.message);
-      // Fallback to using local state if API fails
-      dataToExport = { students, classes, settings: { readingStatusSettings } }; // <-- ADDED classes
-    }
-
-    // Add export metadata
-    dataToExport.exportDate = new Date().toISOString();
-    dataToExport.version = '1.1'; // Increment version if format changes
-
-    const jsonString = JSON.stringify(dataToExport, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'reading-tracker-data.json');
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url); // Clean up object URL
-  }, [students, classes, readingStatusSettings]); // <-- ADDED classes dependency
-
-  const importFromJson = useCallback((file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        try {
-          const data = JSON.parse(event.target.result);
-          if (!data.students || !Array.isArray(data.students)) {
-            reject(new Error('Invalid data format: missing students array'));
-            return;
-          }
-
-          // Also import classes if available
-          const importedClasses = data.classes; // <-- ADDED
-          if (importedClasses && Array.isArray(importedClasses)) { // <-- ADDED
-            setClasses(importedClasses); // <-- ADDED
-          } else { // <-- ADDED
-            // If classes are missing or invalid in import, reset local state
-            setClasses([]); // <-- ADDED
-          } // <-- ADDED
-
-          // Also import settings if available
-          const importedSettings = data.settings?.readingStatusSettings;
-
-          // Optimistic update (local state first)
-          setStudents(data.students); // Students already set above
-          if (importedSettings) {
-              setReadingStatusSettings(importedSettings);
-          }
-
-          // Send data to API
-          try {
-            const response = await fetch(`${API_URL}/data`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(data), // Send original data including settings
-            });
-            if (!response.ok) {
-              throw new Error(`API error: ${response.status}`);
-            }
-            setApiError(null);
-            resolve(data.students.length);
-          } catch (apiError) {
-            console.error('Error sending imported data to API:', apiError);
-            setApiError(apiError.message);
-            // Keep optimistic update even if API fails
-            resolve(data.students.length);
-          }
-        } catch (error) {
-          reject(new Error(`Failed to parse JSON: ${error.message}`));
-        }
+      const updatedStudent = {
+        ...student,
+        lastReadDate: mostRecentDate,
+        readingSessions: updatedReadingSessions,
       };
-      reader.onerror = () => reject(new Error('Failed to read file'));
-      reader.readAsText(file);
-    });
-  }, [classes]); // <-- ADDED classes dependency (needed for optimistic update/revert logic consistency)
 
-  const bulkImportStudents = useCallback(async (names, classId = null) => {
-    const newStudents = names.map(name => ({
-      id: uuidv4(),
-      name: name.trim(),
-      lastReadDate: null,
-      readingSessions: [],
-      classId: classId // Add classId to each student
-    })).filter(s => s.name); // Filter out empty names
+      const previousStudents = students;
+      setStudents((prev) =>
+        prev.map((s) => (s.id === studentId ? updatedStudent : s))
+      );
 
-    if (newStudents.length === 0) return []; // Return early if no valid names
+      try {
+        const response = await fetch(`${API_URL}/students/${studentId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedStudent),
+        });
 
-    // Optimistic update
-    const previousStudents = students;
-    setStudents(prevStudents => [...prevStudents, ...newStudents]);
-
-    try {
-      const response = await fetch(`${API_URL}/students/bulk`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newStudents),
-      });
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        setApiError(null);
+      } catch (error) {
+        console.error('Error deleting reading session:', error);
+        setApiError(error.message);
+        setStudents(previousStudents);
       }
-      setApiError(null);
-      // Potentially update local state with response if server modifies data
-      // const savedStudents = await response.json();
-      // setStudents(prev => [...prev.filter(s => !newStudents.some(ns => ns.id === s.id)), ...savedStudents]);
-    } catch (error) {
-      console.error('Error bulk importing students:', error);
-      setApiError(error.message);
-      // Revert optimistic update
-      setStudents(previousStudents);
-      return []; // Indicate failure
-    }
-    return newStudents;
-  }, [students]); // Dependency: students (for revert)
+    },
+    [students]
+  );
 
-  // --- Memoized Derived Data ---
+  // Provider value
+  const value = {
+    students,
+    classes,
+    books,
+    genres,
+    loading,
+    apiError,
+    priorityStudentCount,
+    setPriorityStudentCount,
+    readingStatusSettings,
+    setReadingStatusSettings,
+    recentlyAccessedStudents,
+    setRecentlyAccessedStudents,
+    addStudent,
+    updateStudent,
+    deleteStudent,
+    addReadingSession,
+    editReadingSession,
+    deleteReadingSession,
+    updateBook,
+    updateBookField,
+    isAuthenticated,
+    login,
+    logout,
+  };
 
-  const studentsSortedByPriority = useMemo(() => {
-    console.log("Recalculating studentsSortedByPriority"); // Add log for debugging
-    return [...students].sort((a, b) => {
-      if (!a.lastReadDate) return -1;
-      if (!b.lastReadDate) return 1;
-      return new Date(a.lastReadDate) - new Date(b.lastReadDate);
-    });
-  }, [students]); // Dependency: students
-
-  const prioritizedStudents = useMemo(() => {
-    console.log("Recalculating prioritizedStudents"); // Add log for debugging
-
-    // Get IDs of disabled classes
-    const disabledClassIds = classes.filter(cls => cls.disabled).map(cls => cls.id);
-
-    // Filter out students from disabled classes
-    const activeStudents = students.filter(student => {
-      return !student.classId || !disabledClassIds.includes(student.classId);
-    });
-
-    return [...activeStudents]
-      .sort((a, b) => {
-        if (!a.lastReadDate && !b.lastReadDate) return a.readingSessions.length - b.readingSessions.length;
-        if (!a.lastReadDate) return -1;
-        if (!b.lastReadDate) return 1;
-        const dateComparison = new Date(a.lastReadDate) - new Date(b.lastReadDate);
-        if (dateComparison !== 0) return dateComparison;
-        return a.readingSessions.length - b.readingSessions.length;
-      })
-      .slice(0, priorityStudentCount);
-  }, [students, classes, priorityStudentCount]); // Dependencies: students, classes, priorityStudentCount
-
-  // --- Memoized Context Value ---
-
-  // Define context value incrementally for diagnostics
-  const contextValue = {};
-  contextValue.students = students;
-  contextValue.classes = classes;
-  contextValue.books = books; // <-- ADDED for book tracking
-  contextValue.genres = genres; // <-- ADDED for genre management
-  contextValue.loading = loading;
-  contextValue.apiError = apiError;
-  contextValue.priorityStudentCount = priorityStudentCount;
-  contextValue.readingStatusSettings = readingStatusSettings;
-  contextValue.studentsSortedByPriority = studentsSortedByPriority;
-  contextValue.prioritizedStudents = prioritizedStudents;
-  contextValue.reloadDataFromServer = reloadDataFromServer;
-  contextValue.addStudent = addStudent;
-  contextValue.updateStudent = updateStudent;
-  contextValue.deleteStudent = deleteStudent;
-  contextValue.addReadingSession = addReadingSession;
-  contextValue.editReadingSession = editReadingSession;
-  contextValue.deleteReadingSession = deleteReadingSession;
-  contextValue.updatePriorityStudentCount = updatePriorityStudentCount;
-  contextValue.updateReadingStatusSettings = updateReadingStatusSettings;
-  contextValue.updateBookField = updateBookField;
-  contextValue.getReadingStatus = getReadingStatus;
-  contextValue.exportToCsv = exportToCsv;
-  contextValue.exportToJson = exportToJson;
-  contextValue.importFromJson = importFromJson;
-  contextValue.bulkImportStudents = bulkImportStudents;
-  // Class Management
-  contextValue.addClass = addClass;
-  contextValue.updateClass = updateClass;
-  contextValue.deleteClass = deleteClass;
-  contextValue.updateStudentClassId = updateStudentClassId;
-  // Book Management
-  contextValue.addBook = addBook;
-  contextValue.findOrCreateBook = findOrCreateBook;
-  // Genre Management
-  contextValue.fetchGenres = fetchGenres;
-  contextValue.addGenre = addGenre;
-  // Recently accessed students for quick access in dropdowns
-  contextValue.recentlyAccessedStudents = recentlyAccessedStudents;
-  contextValue.addRecentlyAccessedStudent = addRecentlyAccessedStudent;
-  contextValue.clearRecentlyAccessedStudents = clearRecentlyAccessedStudents;
-
+  console.log('[AppContext] Provider value keys:', Object.keys(value));
 
   return (
-    <AppContext.Provider value={contextValue}>
+    <AppContext.Provider value={value}>
       {children}
     </AppContext.Provider>
   );

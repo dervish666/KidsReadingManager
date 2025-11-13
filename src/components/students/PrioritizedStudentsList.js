@@ -138,7 +138,17 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
 const PrioritizedStudentsList = ({ defaultCount = 8, filterClassId = 'all' }) => {
    const [expanded, setExpanded] = useState(true);
    const [count, setCount] = useState(defaultCount);
-   const { prioritizedStudents: contextPrioritizedStudents, updatePriorityStudentCount, priorityStudentCount, classes, addRecentlyAccessedStudent } = useAppContext();
+   // Pull from context; if fields are missing, fall back to safe defaults
+   const ctx = useAppContext();
+   const {
+     prioritizedStudents: contextPrioritizedStudents,
+     updatePriorityStudentCount,
+     priorityStudentCount,
+     classes,
+     addRecentlyAccessedStudent
+   } = ctx || {};
+ 
+   console.log('[PrioritizedStudentsList] context keys:', ctx ? Object.keys(ctx) : 'NO CONTEXT');
   
   // Initialize state from sessionStorage
   const [markedStudentIds, setMarkedStudentIds] = useState(() => {
@@ -168,11 +178,17 @@ const PrioritizedStudentsList = ({ defaultCount = 8, filterClassId = 'all' }) =>
     setCount(priorityStudentCount);
   }, [priorityStudentCount]);
   
+  // Safeguard against undefined context fields during initialization
+  const safeClasses = Array.isArray(classes) ? classes : [];
+  const safeContextPrioritizedStudents = Array.isArray(contextPrioritizedStudents)
+    ? contextPrioritizedStudents
+    : [];
+
   // Get IDs of disabled classes
-  const disabledClassIds = classes.filter(cls => cls.disabled).map(cls => cls.id);
+  const disabledClassIds = safeClasses.filter(cls => cls.disabled).map(cls => cls.id);
 
   // Filter prioritized students by class and exclude disabled classes
-  const filteredPrioritizedStudents = contextPrioritizedStudents.filter(student => {
+  const filteredPrioritizedStudents = safeContextPrioritizedStudents.filter(student => {
     // First, exclude students from disabled classes
     if (student.classId && disabledClassIds.includes(student.classId)) {
       return false;
@@ -196,7 +212,11 @@ const PrioritizedStudentsList = ({ defaultCount = 8, filterClassId = 'all' }) =>
   
   const handleCountChange = (event, newValue) => {
     setCount(newValue);
-    updatePriorityStudentCount(newValue);
+    if (typeof updatePriorityStudentCount === 'function') {
+      updatePriorityStudentCount(newValue);
+    } else {
+      console.warn('[PrioritizedStudentsList] updatePriorityStudentCount is not a function');
+    }
   };
   
   const toggleExpanded = () => {

@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 
 const Login = () => {
-  const { login, apiError } = useAppContext();
+  const context = useAppContext();
+  console.log('[Login] useAppContext() value:', context);
+  const { login, apiError } = context;
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [localError, setLocalError] = useState(null);
@@ -11,14 +13,27 @@ const Login = () => {
     event.preventDefault();
     setLocalError(null);
 
-    if (!password) return;
+    if (!password) {
+      console.warn('[Login] Submit blocked: empty password');
+      return;
+    }
+
+    if (typeof login !== 'function') {
+      console.error('[Login] login is not a function. Context value:', { login });
+      setLocalError('Internal error: login function not available');
+      return;
+    }
+
+    console.log('[Login] Submitting login with password length:', password.length);
 
     setSubmitting(true);
     try {
       await login(password);
+      console.log('[Login] login() resolved successfully');
       setPassword('');
     } catch (error) {
-      setLocalError(error.message || 'Login failed');
+      console.error('[Login] login() threw:', error);
+      setLocalError(error && error.message ? error.message : 'Login failed');
     } finally {
       setSubmitting(false);
     }
