@@ -322,6 +322,127 @@ export const AppProvider = ({ children }) => {
     [students, fetchWithAuth]
   );
 
+  const bulkImportStudents = useCallback(
+    async (names, classId = null) => {
+      if (!Array.isArray(names) || names.length === 0) {
+        console.error('Bulk import failed: No names provided');
+        return [];
+      }
+
+      // Normalize classId - convert empty string to null
+      const normalizedClassId = classId && classId.trim() !== '' ? classId : null;
+
+      console.log('Bulk importing students:', { names, classId: normalizedClassId });
+
+      const newStudents = names.map((name) => ({
+        id: uuidv4(),
+        name: name.trim(),
+        classId: normalizedClassId,
+        lastReadDate: null,
+        readingSessions: [],
+        likes: [],
+        dislikes: [],
+      }));
+
+      console.log('Created student objects:', newStudents);
+
+      const previousStudents = students;
+      setStudents((prev) => [...prev, ...newStudents]);
+
+      try {
+        // Send all students in a single batch request
+        const promises = newStudents.map((student) =>
+          fetchWithAuth(`${API_URL}/students`, {
+            method: 'POST',
+            body: JSON.stringify(student),
+          })
+        );
+
+        const responses = await Promise.all(promises);
+        
+        // Check if all responses are ok
+        const allOk = responses.every((r) => r.ok);
+        if (!allOk) {
+          const failedResponses = responses.filter((r) => !r.ok);
+          console.error('Some students failed to save:', failedResponses);
+          throw new Error('Some students failed to save');
+        }
+
+        const savedStudents = await Promise.all(
+          responses.map((r) => r.json().catch(() => null))
+        );
+
+        console.log('Saved students from server:', savedStudents);
+
+        // Update with saved students (with any server-side modifications)
+        const validSavedStudents = savedStudents.filter((s) => s && s.id);
+        if (validSavedStudents.length > 0) {
+          setStudents((prev) => {
+            const updated = [...prev];
+            validSavedStudents.forEach((saved) => {
+              const index = updated.findIndex((s) => s.id === saved.id);
+              if (index !== -1) {
+                updated[index] = saved;
+              }
+            });
+            return updated;
+          });
+        }
+
+        setApiError(null);
+        console.log('Bulk import completed successfully:', validSavedStudents.length, 'students');
+        return validSavedStudents;
+      } catch (error) {
+        console.error('Error bulk importing students:', error);
+        setApiError(error.message);
+        setStudents(previousStudents);
+        return [];
+      }
+    },
+    [students, fetchWithAuth]
+  );
+
+  const updateStudentClassId = useCallback(
+    async (studentId, classId) => {
+      const student = students.find((s) => s.id === studentId);
+      if (!student) {
+        console.error('Update class failed: Student not found');
+        return;
+      }
+
+      // Normalize classId - convert 'unassigned' string to null
+      const normalizedClassId = classId === 'unassigned' || classId === '' ? null : classId;
+
+      const updatedStudent = {
+        ...student,
+        classId: normalizedClassId,
+      };
+
+      const previousStudents = students;
+      setStudents((prev) =>
+        prev.map((s) => (s.id === studentId ? updatedStudent : s))
+      );
+
+      try {
+        const response = await fetchWithAuth(`${API_URL}/students/${studentId}`, {
+          method: 'PUT',
+          body: JSON.stringify(updatedStudent),
+        });
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        setApiError(null);
+      } catch (error) {
+        console.error('Error updating student class:', error);
+        setApiError(error.message);
+        setStudents(previousStudents);
+        throw error; // Re-throw so the component can handle it
+      }
+    },
+    [students, fetchWithAuth]
+  );
+
   const updateStudent = useCallback(
     async (id, updatedData) => {
       const currentStudent = students.find((student) => student.id === id);
@@ -377,7 +498,7 @@ export const AppProvider = ({ children }) => {
     [students, fetchWithAuth]
   );
 
-  // Book helpers (left largely as-is; can be updated to use fetchWithAuth similarly)
+  // Book helpers
   const updateBook = useCallback(
     async (id, updatedFields) => {
       const existing = books.find((b) => b.id === id);
@@ -395,7 +516,7 @@ export const AppProvider = ({ children }) => {
       setBooks((prev) => prev.map((b) => (b.id === id ? updatedBook : b)));
 
       try {
-        const response = await fetch(`${API_URL}/books/${id}`, {
+        const response = await fetchWithAuth(`${API_URL}/books/${id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updatedBook),
@@ -419,7 +540,7 @@ export const AppProvider = ({ children }) => {
         return null;
       }
     },
-    [books]
+    [books, fetchWithAuth]
   );
 
   const updateBookField = useCallback(
@@ -430,7 +551,7 @@ export const AppProvider = ({ children }) => {
     [updateBook]
   );
 
-  // Reading session helpers (unchanged, using direct fetch; can be adjusted if needed)
+  // Reading session helpers
   const addReadingSession = useCallback(
     async (studentId, sessionData) => {
       const date =
@@ -472,7 +593,7 @@ export const AppProvider = ({ children }) => {
       );
 
       try {
-        const response = await fetch(`${API_URL}/students/${studentId}`, {
+        const response = await fetchWithAuth(`${API_URL}/students/${studentId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updatedStudent),
@@ -490,7 +611,7 @@ export const AppProvider = ({ children }) => {
         return null;
       }
     },
-    [students]
+    [students, fetchWithAuth]
   );
 
   const editReadingSession = useCallback(
@@ -528,7 +649,7 @@ export const AppProvider = ({ children }) => {
       );
 
       try {
-        const response = await fetch(`${API_URL}/students/${studentId}`, {
+        const response = await fetchWithAuth(`${API_URL}/students/${studentId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updatedStudent),
@@ -544,7 +665,7 @@ export const AppProvider = ({ children }) => {
         setStudents(previousStudents);
       }
     },
-    [students]
+    [students, fetchWithAuth]
   );
 
   const deleteReadingSession = useCallback(
@@ -580,7 +701,7 @@ export const AppProvider = ({ children }) => {
       );
 
       try {
-        const response = await fetch(`${API_URL}/students/${studentId}`, {
+        const response = await fetchWithAuth(`${API_URL}/students/${studentId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updatedStudent),
@@ -596,8 +717,102 @@ export const AppProvider = ({ children }) => {
         setStudents(previousStudents);
       }
     },
-    [students]
+    [students, fetchWithAuth]
   );
+
+  // Genre management
+  const addGenre = useCallback(
+    async (genreData) => {
+      const newGenre = {
+        id: uuidv4(),
+        name: genreData.name,
+        isPredefined: false,
+      };
+
+      // Optimistic update
+      const previousGenres = genres;
+      setGenres((prev) => [...prev, newGenre]);
+
+      try {
+        const response = await fetchWithAuth(`${API_URL}/genres`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newGenre),
+        });
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+
+        const savedGenre = await response.json();
+        setGenres((prev) => prev.map((g) => (g.id === newGenre.id ? savedGenre : g)));
+        setApiError(null);
+        return savedGenre;
+      } catch (error) {
+        console.error('Error adding genre:', error);
+        setApiError(error.message);
+        setGenres(previousGenres);
+        return null;
+      }
+    },
+    [genres, fetchWithAuth]
+  );
+
+  // Helper: Get reading status for a student
+  const getReadingStatus = useCallback(
+    (student) => {
+      if (!student || !student.lastReadDate) {
+        return 'never';
+      }
+
+      const daysSinceLastRead = Math.floor(
+        (new Date() - new Date(student.lastReadDate)) / (1000 * 60 * 60 * 24)
+      );
+
+      if (daysSinceLastRead <= readingStatusSettings.recentlyReadDays) {
+        return 'recent';
+      } else if (daysSinceLastRead <= readingStatusSettings.needsAttentionDays) {
+        return 'attention';
+      } else {
+        return 'overdue';
+      }
+    },
+    [readingStatusSettings]
+  );
+
+  // Helper: Add student to recently accessed list
+  const addRecentlyAccessedStudent = useCallback((studentId) => {
+    setRecentlyAccessedStudents((prev) => {
+      const updated = [studentId, ...prev.filter((id) => id !== studentId)].slice(0, 20);
+      
+      // Persist to sessionStorage
+      if (typeof window !== 'undefined') {
+        try {
+          window.sessionStorage.setItem('recentlyAccessedStudents', JSON.stringify(updated));
+        } catch (err) {
+          console.warn('Failed to save recently accessed students:', err);
+        }
+      }
+      
+      return updated;
+    });
+  }, []);
+
+  // Helper: Update priority student count
+  const updatePriorityStudentCount = useCallback((count) => {
+    setPriorityStudentCount(count);
+  }, []);
+
+  // Computed: Prioritized students (sorted by days since last read, descending)
+  const prioritizedStudents = useMemo(() => {
+    if (!Array.isArray(students)) return [];
+    
+    return [...students].sort((a, b) => {
+      const aDate = a.lastReadDate ? new Date(a.lastReadDate) : new Date(0);
+      const bDate = b.lastReadDate ? new Date(b.lastReadDate) : new Date(0);
+      return aDate - bDate; // Oldest first (most in need of attention)
+    });
+  }, [students]);
 
   // Provider value
   const value = {
@@ -614,16 +829,24 @@ export const AppProvider = ({ children }) => {
     recentlyAccessedStudents,
     setRecentlyAccessedStudents,
     addStudent,
+    bulkImportStudents,
     updateStudent,
+    updateStudentClassId,
     deleteStudent,
     addReadingSession,
     editReadingSession,
     deleteReadingSession,
     updateBook,
     updateBookField,
+    addGenre,
     isAuthenticated,
     login,
     logout,
+    // Helper functions
+    getReadingStatus,
+    addRecentlyAccessedStudent,
+    updatePriorityStudentCount,
+    prioritizedStudents,
   };
 
   console.log('[AppContext] Provider value keys:', Object.keys(value));

@@ -8,20 +8,16 @@ import {
   Typography,
   Box,
   IconButton,
-  Grid,
   TextField,
   Alert,
   Snackbar,
   Chip,
   FormControl,
-  InputLabel,
   Select,
   MenuItem,
   Checkbox,
   ListItemText,
   Input,
-  Fab,
-  Tooltip
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -34,6 +30,7 @@ import {
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
 import { useAppContext } from '../../contexts/AppContext';
+import BookAutocomplete from '../sessions/BookAutocomplete';
 
 const ReadingPreferences = ({ open, onClose, student }) => {
   const theme = useTheme();
@@ -41,7 +38,6 @@ const ReadingPreferences = ({ open, onClose, student }) => {
 
   const {
     genres,
-    fetchGenres,
     updateStudent,
     addGenre,
   } = useAppContext();
@@ -50,8 +46,6 @@ const ReadingPreferences = ({ open, onClose, student }) => {
   const [selectedGenres, setSelectedGenres] = useState([]);
   const [likes, setLikes] = useState([]);
   const [dislikes, setDislikes] = useState([]);
-  const [newLike, setNewLike] = useState('');
-  const [newDislike, setNewDislike] = useState('');
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
@@ -71,12 +65,14 @@ const ReadingPreferences = ({ open, onClose, student }) => {
     }
   }, [student, open]);
 
-  // Fetch genres when dialog opens
+  // Reset state when dialog closes
   useEffect(() => {
-    if (open) {
-      fetchGenres();
+    if (!open) {
+      setSelectedGenres([]);
+      setLikes([]);
+      setDislikes([]);
     }
-  }, [open, fetchGenres]);
+  }, [open]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -113,8 +109,6 @@ const ReadingPreferences = ({ open, onClose, student }) => {
       setLikes(preferences.likes || []);
       setDislikes(preferences.dislikes || []);
     }
-    setNewLike('');
-    setNewDislike('');
     onClose();
   };
 
@@ -122,17 +116,21 @@ const ReadingPreferences = ({ open, onClose, student }) => {
     setSelectedGenres(event.target.value);
   };
 
-  const handleAddLike = () => {
-    if (newLike.trim() && !likes.includes(newLike.trim())) {
-      setLikes([...likes, newLike.trim()]);
-      setNewLike('');
+  const handleAddLike = (book) => {
+    if (book && book.title) {
+      const bookTitle = book.title;
+      if (!likes.includes(bookTitle)) {
+        setLikes([...likes, bookTitle]);
+      }
     }
   };
 
-  const handleAddDislike = () => {
-    if (newDislike.trim() && !dislikes.includes(newDislike.trim())) {
-      setDislikes([...dislikes, newDislike.trim()]);
-      setNewDislike('');
+  const handleAddDislike = (book) => {
+    if (book && book.title) {
+      const bookTitle = book.title;
+      if (!dislikes.includes(bookTitle)) {
+        setDislikes([...dislikes, bookTitle]);
+      }
     }
   };
 
@@ -162,7 +160,7 @@ const ReadingPreferences = ({ open, onClose, student }) => {
     }
   };
 
-  const filteredGenres = genres.filter(genre => !genre.isPredefined);
+  const filteredGenres = Array.isArray(genres) ? genres : [];
 
   return (
     <>
@@ -176,7 +174,7 @@ const ReadingPreferences = ({ open, onClose, student }) => {
         <DialogTitle sx={{ m: 0, p: 2 }}>
           <Box display="flex" justifyContent="space-between" alignItems="center">
             <Typography variant="h6">
-              {student?.name} - Reading Preferences
+              {student?.name || 'Student'} - Reading Preferences
             </Typography>
             <IconButton onClick={handleClose} size="large">
               <CloseIcon />
@@ -185,37 +183,47 @@ const ReadingPreferences = ({ open, onClose, student }) => {
         </DialogTitle>
 
         <DialogContent dividers sx={{ pb: 'calc(env(safe-area-inset-bottom) + 16px)' }}>
+          {!student ? (
+            <Typography>Loading...</Typography>
+          ) : (
+          <>
           {/* Favorite Genres */}
           <Box sx={{ mb: 4 }}>
             <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
               <FavoriteIcon sx={{ mr: 1 }} />
               Favorite Genres
             </Typography>
-            <FormControl fullWidth>
-              <Select
-                multiple
-                value={selectedGenres}
-                onChange={handleGenreChange}
-                input={<Input />}
-                renderValue={(selected) => (
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {selected.map((genreId) => {
-                      const genre = genres.find(g => g.id === genreId);
-                      return genre ? (
-                        <Chip key={genreId} label={genre.name} size="small" />
-                      ) : null;
-                    })}
-                  </Box>
-                )}
-              >
-                {filteredGenres.map((genre) => (
-                  <MenuItem key={genre.id} value={genre.id}>
-                    <Checkbox checked={selectedGenres.indexOf(genre.id) > -1} />
-                    <ListItemText primary={genre.name} />
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            {filteredGenres.length === 0 ? (
+              <Alert severity="info" sx={{ mb: 2 }}>
+                No genres available. Click "Add New Genre" to create one.
+              </Alert>
+            ) : (
+              <FormControl fullWidth>
+                <Select
+                  multiple
+                  value={selectedGenres}
+                  onChange={handleGenreChange}
+                  input={<Input />}
+                  renderValue={(selected) => (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {selected.map((genreId) => {
+                        const genre = genres.find(g => g.id === genreId);
+                        return genre ? (
+                          <Chip key={genreId} label={genre.name} size="small" />
+                        ) : null;
+                      })}
+                    </Box>
+                  )}
+                >
+                  {filteredGenres.map((genre) => (
+                    <MenuItem key={genre.id} value={genre.id}>
+                      <Checkbox checked={selectedGenres.indexOf(genre.id) > -1} />
+                      <ListItemText primary={genre.name} />
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
             <Box sx={{ mt: 1 }}>
               <Button
                 size="small"
@@ -235,13 +243,11 @@ const ReadingPreferences = ({ open, onClose, student }) => {
               Likes
             </Typography>
             <Box sx={{ mb: 2 }}>
-              <TextField
-                value={newLike}
-                onChange={(e) => setNewLike(e.target.value)}
-                placeholder="Add something they enjoy..."
-                onKeyPress={(e) => e.key === 'Enter' && handleAddLike()}
-                fullWidth
-                size="small"
+              <BookAutocomplete
+                value={null}
+                onChange={handleAddLike}
+                label="Add a book they enjoy"
+                placeholder="Type to search for books..."
               />
             </Box>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
@@ -264,13 +270,11 @@ const ReadingPreferences = ({ open, onClose, student }) => {
               Dislikes
             </Typography>
             <Box sx={{ mb: 2 }}>
-              <TextField
-                value={newDislike}
-                onChange={(e) => setNewDislike(e.target.value)}
-                placeholder="Add something they avoid..."
-                onKeyPress={(e) => e.key === 'Enter' && handleAddDislike()}
-                fullWidth
-                size="small"
+              <BookAutocomplete
+                value={null}
+                onChange={handleAddDislike}
+                label="Add a book they avoid"
+                placeholder="Type to search for books..."
               />
             </Box>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
@@ -285,6 +289,8 @@ const ReadingPreferences = ({ open, onClose, student }) => {
               ))}
             </Box>
           </Box>
+          </>
+          )}
         </DialogContent>
 
         <DialogActions sx={{ px: 2, pb: 'calc(env(safe-area-inset-bottom) + 8px)' }}>
@@ -303,6 +309,7 @@ const ReadingPreferences = ({ open, onClose, student }) => {
         <DialogContent>
           <TextField
             autoFocus
+            margin="dense"
             label="Genre Name"
             value={newGenreName}
             onChange={(e) => setNewGenreName(e.target.value)}

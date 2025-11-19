@@ -25,6 +25,8 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  FormControlLabel,
+  Checkbox,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -37,7 +39,7 @@ import { useAppContext } from '../../contexts/AppContext';
 import { batchFindMissingAuthors } from '../../utils/openLibraryApi';
 
 const BookManager = () => {
-  const { books, genres, addBook, reloadDataFromServer } = useAppContext();
+  const { books, genres, addBook, reloadDataFromServer, fetchWithAuth } = useAppContext();
   const [newBookTitle, setNewBookTitle] = useState('');
   const [newBookAuthor, setNewBookAuthor] = useState('');
   const [newBookReadingLevel, setNewBookReadingLevel] = useState('');
@@ -58,6 +60,7 @@ const BookManager = () => {
   const [authorLookupProgress, setAuthorLookupProgress] = useState({ current: 0, total: 0, book: '' });
   const [authorLookupResults, setAuthorLookupResults] = useState([]);
   const [showAuthorResults, setShowAuthorResults] = useState(false);
+  const [includeUnknownAuthors, setIncludeUnknownAuthors] = useState(true);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -110,7 +113,8 @@ const BookManager = () => {
     }
 
     try {
-      const response = await fetch(`/api/books/${editingBook.id}`, {
+      // Use authenticated helper for consistency with protected API
+      const response = await fetchWithAuth(`/api/books/${editingBook.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -403,8 +407,15 @@ const BookManager = () => {
 
   // Author lookup functions
   const handleFillMissingAuthors = async () => {
-    const booksWithoutAuthors = books.filter(book => !book.author || book.author.trim() === '');
-    
+    // Determine which books need lookup based on toggle
+    const booksNeedingLookup = books.filter(book => {
+      const author = (book.author || '').trim().toLowerCase();
+      if (!author) return true;
+      if (includeUnknownAuthors && author === 'unknown') return true;
+      return false;
+    });
+
+    const booksWithoutAuthors = booksNeedingLookup;
     if (booksWithoutAuthors.length === 0) {
       setSnackbar({
         open: true,
@@ -447,9 +458,9 @@ const BookManager = () => {
   };
 
   const handleApplyAuthorUpdates = async () => {
-    const successfulResults = authorLookupResults.filter(r => r.success && r.foundAuthor);
-    
-    if (successfulResults.length === 0) {
+    // Allow both auto-suggested and manually edited authors:
+    // We trust whatever is currently in authorLookupResults as the chosen value.
+    if (!authorLookupResults || authorLookupResults.length === 0) {
       setSnackbar({
         open: true,
         message: 'No authors to update',
@@ -461,14 +472,22 @@ const BookManager = () => {
     let updateCount = 0;
     let errorCount = 0;
 
-    for (const result of successfulResults) {
+    for (const result of authorLookupResults) {
+      const chosenAuthor = (result.chosenAuthor ?? result.foundAuthor ?? '').trim();
+
+      // Skip if nothing selected or entered for this book
+      if (!chosenAuthor) {
+        continue;
+      }
+
       try {
-        const response = await fetch(`/api/books/${result.book.id}`, {
+        // Use authenticated helper to include credentials/headers consistently
+        const response = await fetchWithAuth(`/api/books/${result.book.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             ...result.book,
-            author: result.foundAuthor
+            author: chosenAuthor
           }),
         });
 
@@ -500,7 +519,12 @@ const BookManager = () => {
   };
 
   const getBooksWithoutAuthors = () => {
-    return books.filter(book => !book.author || book.author.trim() === '');
+    // Used for the "Fill Missing Authors" count button.
+    // Includes truly empty authors and explicit "Unknown" markers.
+    return books.filter(book => {
+      const author = (book.author || '').trim().toLowerCase();
+      return !author || author === 'unknown';
+    });
   };
 
   // Duplicate detection helper function
@@ -656,15 +680,29 @@ const BookManager = () => {
           >
             Import Books
           </Button>
-          <Button
-            variant="outlined"
-            startIcon={isLookingUpAuthors ? <CircularProgress size={20} /> : <PersonSearchIcon />}
-            onClick={handleFillMissingAuthors}
-            disabled={isLookingUpAuthors || books.length === 0}
-            color="secondary"
-          >
-            {isLookingUpAuthors ? 'Finding Authors...' : `Fill Missing Authors (${getBooksWithoutAuthors().length})`}
-          </Button>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  size="small"
+                  checked={includeUnknownAuthors}
+                  onChange={(e) => setIncludeUnknownAuthors(e.target.checked)}
+                />
+              }
+              label="Include 'Unknown' authors"
+            />
+            <Button
+              variant="outlined"
+              startIcon={isLookingUpAuthors ? <CircularProgress size={20} /> : <PersonSearchIcon />}
+              onClick={handleFillMissingAuthors}
+              disabled={isLookingUpAuthors || books.length === 0}
+              color="secondary"
+            >
+              {isLookingUpAuthors
+                ? 'Finding Authors...'
+                : `Fill Missing Authors (${getBooksWithoutAuthors().length})`}
+            </Button>
+          </Box>
           <input
             type="file"
             accept=".json,.csv"
@@ -945,32 +983,149 @@ const BookManager = () => {
           
           <List>
             {authorLookupResults.map((result, index) => (
-              <ListItem key={index} divider>
-                <ListItemText
-                  primary={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="subtitle2">{result.book.title}</Typography>
-                      {result.success ? (
-                        <Chip label="Found" color="success" size="small" />
-                      ) : (
-                        <Chip label="Not Found" color="error" size="small" />
-                      )}
-                    </Box>
-                  }
-                  secondary={
-                    result.success ? (
-                      <Typography variant="body2" color="text.secondary">
-                        Author: {result.foundAuthor}
-                      </Typography>
-                    ) : (
-                      <Typography variant="body2" color="error">
-                        {result.error || 'No matching author found'}
-                      </Typography>
-                    )
-                  }
-                />
-              </ListItem>
-            ))}
+                          <ListItem key={index} divider alignItems="flex-start">
+                            <ListItemText
+                              primary={
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                                  <Typography variant="subtitle2">{result.book.title}</Typography>
+                                  {result.success ? (
+                                    <Chip label="Suggestions found" color="success" size="small" />
+                                  ) : (
+                                    <Chip label="No suggestions" color="error" size="small" />
+                                  )}
+                                </Box>
+                              }
+                              secondary={
+                                <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                  {Array.isArray(result.candidates) && result.candidates.length > 0 ? (
+                                    <>
+                                      <Typography variant="body2" color="text.secondary">
+                                        Select an author or enter manually:
+                                      </Typography>
+                                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                                        {result.candidates.map((candidate, cIndex) => (
+                                          <Box
+                                            key={cIndex}
+                                            sx={{
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              gap: 1
+                                            }}
+                                          >
+                                            {candidate.coverUrl && (
+                                              <img
+                                                src={candidate.coverUrl}
+                                                alt={candidate.sourceTitle || result.book.title}
+                                                style={{
+                                                  width: 56,
+                                                  height: 84,
+                                                  objectFit: 'cover',
+                                                  borderRadius: 4,
+                                                  boxShadow: '0 1px 4px rgba(0,0,0,0.35)'
+                                                }}
+                                              />
+                                            )}
+                                            <Chip
+                                              label={`${candidate.name}${
+                                                candidate.sourceTitle ? ` (${candidate.sourceTitle})` : ''
+                                              }`}
+                                              variant={
+                                                (result.chosenAuthor || result.foundAuthor) === candidate.name
+                                                  ? 'filled'
+                                                  : 'outlined'
+                                              }
+                                              color={
+                                                (result.chosenAuthor || result.foundAuthor) === candidate.name
+                                                  ? 'primary'
+                                                  : 'default'
+                                              }
+                                              size="small"
+                                              onClick={() => {
+                                                setAuthorLookupResults(prev =>
+                                                  prev.map((r, i) =>
+                                                    i === index
+                                                      ? { ...r, chosenAuthor: candidate.name }
+                                                      : r
+                                                  )
+                                                );
+                                              }}
+                                            />
+                                          </Box>
+                                        ))}
+                                      </Box>
+                                    </>
+                                  ) : result.success && result.foundAuthor ? (
+                                    <Typography variant="body2" color="text.secondary">
+                                      Suggested author: {result.foundAuthor}
+                                    </Typography>
+                                  ) : (
+                                    <Typography variant="body2" color="error">
+                                      {result.error || 'No matching author candidates found'}
+                                    </Typography>
+                                  )}
+            
+                                  {/* Manual override input */}
+                                  <Box sx={{ mt: 1, maxWidth: 360, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                    <Typography variant="caption" color="text.secondary">
+                                      Or type an author name, or choose "Unknown":
+                                    </Typography>
+                                    <input
+                                      type="text"
+                                      value={result.chosenAuthor ?? result.foundAuthor ?? result.book.author ?? ''}
+                                      onChange={(e) => {
+                                        const value = e.target.value;
+                                        setAuthorLookupResults(prev =>
+                                          prev.map((r, i) =>
+                                            i === index
+                                              ? { ...r, chosenAuthor: value }
+                                              : r
+                                          )
+                                        );
+                                      }}
+                                      style={{
+                                        width: '100%',
+                                        padding: '6px 8px',
+                                        fontSize: '0.8125rem',
+                                        borderRadius: 4,
+                                        border: '1px solid rgba(0,0,0,0.23)'
+                                      }}
+                                    />
+                                    <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
+                                      <Chip
+                                        label="Set as Unknown"
+                                        variant={(result.chosenAuthor || '').trim().toLowerCase() === 'unknown' ? 'filled' : 'outlined'}
+                                        size="small"
+                                        onClick={() => {
+                                          setAuthorLookupResults(prev =>
+                                            prev.map((r, i) =>
+                                              i === index
+                                                ? { ...r, chosenAuthor: 'Unknown' }
+                                                : r
+                                            )
+                                          );
+                                        }}
+                                      />
+                                      <Chip
+                                        label="Clear selection"
+                                        variant={!(result.chosenAuthor || '').trim() ? 'filled' : 'outlined'}
+                                        size="small"
+                                        onClick={() => {
+                                          setAuthorLookupResults(prev =>
+                                            prev.map((r, i) =>
+                                              i === index
+                                                ? { ...r, chosenAuthor: '' }
+                                                : r
+                                            )
+                                          );
+                                        }}
+                                      />
+                                    </Box>
+                                  </Box>
+                                </Box>
+                              }
+                            />
+                          </ListItem>
+                        ))}
           </List>
         </DialogContent>
         <DialogActions>

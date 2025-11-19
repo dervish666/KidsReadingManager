@@ -346,6 +346,68 @@ export async function getGenres(env) {
 }
 
 /**
+ * Get a genre by ID from KV
+ * @param {Object} env - Environment with KV binding
+ * @param {string} id - Genre ID
+ * @returns {Promise<Object|null>} - Genre object or null if not found
+ */
+export async function getGenreById(env, id) {
+  const genres = await getGenres(env);
+  return genres.find(genre => genre.id === id) || null;
+}
+
+/**
+ * Save a genre to KV
+ * @param {Object} env - Environment with KV binding
+ * @param {Object} genre - Genre object to save
+ * @returns {Promise<Object>} - Saved genre
+ */
+export async function saveGenre(env, genre) {
+  const data = await getData(env);
+  
+  if (!data.genres) {
+    data.genres = [];
+  }
+  
+  const existingIndex = data.genres.findIndex(g => g.id === genre.id);
+  
+  if (existingIndex >= 0) {
+    // Update existing genre
+    data.genres[existingIndex] = genre;
+  } else {
+    // Add new genre
+    data.genres.push(genre);
+  }
+  
+  await saveData(env, data);
+  return genre;
+}
+
+/**
+ * Delete a genre from KV
+ * @param {Object} env - Environment with KV binding
+ * @param {string} id - Genre ID to delete
+ * @returns {Promise<boolean>} - True if deleted, false if not found
+ */
+export async function deleteGenre(env, id) {
+  const data = await getData(env);
+  
+  if (!data.genres) {
+    return false;
+  }
+  
+  const initialLength = data.genres.length;
+  data.genres = data.genres.filter(genre => genre.id !== id);
+  
+  if (data.genres.length === initialLength) {
+    return false;
+  }
+  
+  await saveData(env, data);
+  return true;
+}
+
+/**
  * Replace all application data
  * @param {Object} env - Environment with KV binding
  * @param {Object} newData - New data to replace existing data

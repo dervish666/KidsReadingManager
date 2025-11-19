@@ -17,6 +17,7 @@ import { settingsRouter } from './routes/settings';
 import { dataRouter } from './routes/data';
 import { classesRouter } from './routes/classes';
 import { booksRouter } from './routes/books';
+import { genresRouter } from './routes/genres';
 
  // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -43,6 +44,7 @@ app.route('/api/settings', settingsRouter);
 app.route('/api/data', dataRouter);
 app.route('/api/classes', classesRouter);
 app.route('/api/books', booksRouter);
+app.route('/api/genres', genresRouter);
 
 // API health check (public)
 app.get('/api/health', (c) => {

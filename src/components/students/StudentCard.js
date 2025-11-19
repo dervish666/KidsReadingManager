@@ -164,7 +164,9 @@ const StudentCard = ({ student }) => {
                 <Tooltip title="Reading Preferences">
                   <IconButton
                     size="small"
+                    type="button"
                     onClick={(e) => {
+                      e.preventDefault();
                       e.stopPropagation();
                       setOpenPreferencesDialog(true);
                     }}

@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import {
-  Alert, // Added Alert
+  Alert,
   Box,
   Typography,
   Button,
-  Grid,
   TextField,
   Dialog,
   DialogActions,
@@ -16,15 +15,12 @@ import {
   Select,
   MenuItem,
   FormControl,
-  InputLabel,
-  MenuItem // Ensure MenuItem is imported
+  InputLabel
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import SortIcon from '@mui/icons-material/Sort';
-import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
-import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import { useAppContext } from '../../contexts/AppContext';
-import StudentCard from './StudentCard';
+import StudentTable from './StudentTable';
 import BulkImport from './BulkImport';
 import PrioritizedStudentsList from './PrioritizedStudentsList';
 
@@ -307,14 +303,8 @@ const StudentList = () => {
             <PrioritizedStudentsList filterClassId={filterClassId} />
           </Box>
           
-          {/* All Students Grid - Increase spacing */}
-          <Grid container spacing={{ xs: 2, sm: 3 }}>
-            {filteredAndSortedStudents.map((student) => (
-              <Grid item key={student.id} xs={12} sm={6} md={3} lg={3}>
-                <StudentCard student={student} />
-              </Grid>
-            ))}
-          </Grid>
+          {/* All Students Table */}
+          <StudentTable students={filteredAndSortedStudents} />
         </>
       )}
       {/* Add Student Dialog */}
