@@ -61,11 +61,6 @@ booksRouter.put('/:id', async (c) => {
   const { id } = c.req.param();
   const bookData = await c.req.json();
 
-  // Basic validation - only title is required
-  if (!bookData.title) {
-    throw badRequestError('Book must have a title');
-  }
-
   // Check if book exists
   const provider = await createProvider(c.env);
   const existingBook = await provider.getBookById(id);
@@ -73,17 +68,22 @@ booksRouter.put('/:id', async (c) => {
     throw notFoundError(`Book with ID ${id} not found`);
   }
 
-  // Update book
+  // Update book with safe merge
   const updatedBook = {
     ...existingBook,
-    title: bookData.title,
-    author: bookData.author,
-    genreIds: bookData.genreIds || existingBook.genreIds || [],
-    readingLevel: bookData.readingLevel,
-    ageRange: bookData.ageRange,
-    description: bookData.description,
+    title: bookData.title !== undefined ? bookData.title : existingBook.title,
+    author: bookData.author !== undefined ? bookData.author : existingBook.author,
+    genreIds: bookData.genreIds !== undefined ? bookData.genreIds : existingBook.genreIds,
+    readingLevel: bookData.readingLevel !== undefined ? bookData.readingLevel : existingBook.readingLevel,
+    ageRange: bookData.ageRange !== undefined ? bookData.ageRange : existingBook.ageRange,
+    description: bookData.description !== undefined ? bookData.description : existingBook.description,
     id // Ensure ID doesn't change
   };
+
+  // Validate title if it was changed/provided
+  if (!updatedBook.title) {
+    throw badRequestError('Book must have a title');
+  }
 
   const updateProvider = await createProvider(c.env);
   const savedBook = await updateProvider.updateBook(id, updatedBook);

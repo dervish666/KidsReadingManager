@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.19.5 - 2025-11-22
+
+### Fixed
+- **Book Update Reliability**: Fixed issue where updating book authors would fail or overwrite existing data
+  - **Safe Merge Logic**: Implemented safe merge strategy in `PUT /api/books/:id` endpoints for both Express (local) and Hono (Worker) backends
+  - **ID Generation**: Added automatic UUID generation for new books in local development environment to match production behavior
+  - **Data Integrity**: Ensures partial updates (like just changing an author) do not accidentally clear other fields like title or genre
+
 ## 1.16.0 - 2025-09-14
 
 ### Added

@@ -494,6 +494,17 @@ app.post('/api/books', (req, res) => {
     data.books = [];
   }
 
+  // Ensure ID exists
+  if (!newBook.id) {
+    try {
+      const crypto = require('crypto');
+      newBook.id = crypto.randomUUID();
+    } catch (e) {
+      // Fallback for older Node versions or if crypto fails
+      newBook.id = Date.now().toString(36) + Math.random().toString(36).substr(2);
+    }
+  }
+
   data.books.push(newBook);
 
   if (writeData(data)) {
