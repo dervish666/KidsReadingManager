@@ -520,7 +520,12 @@ app.put('/api/books/:id', (req, res) => {
   }
 
   // Preserve the id and update other fields
-  data.books[index] = { ...updatedBook, id };
+  // Ensure we don't lose existing fields if not provided in update
+  data.books[index] = {
+    ...data.books[index],
+    ...updatedBook,
+    id // Ensure ID cannot be changed
+  };
 
   if (writeData(data)) {
     res.json(data.books[index]);
