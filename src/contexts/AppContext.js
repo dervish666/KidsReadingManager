@@ -842,6 +842,8 @@ export const AppProvider = ({ children }) => {
     isAuthenticated,
     login,
     logout,
+    fetchWithAuth,
+    reloadDataFromServer,
     // Helper functions
     getReadingStatus,
     addRecentlyAccessedStudent,

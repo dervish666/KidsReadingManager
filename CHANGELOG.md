@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Safe Merge Logic**: Implemented safe merge strategy in `PUT /api/books/:id` endpoints for both Express (local) and Hono (Worker) backends
   - **ID Generation**: Added automatic UUID generation for new books in local development environment to match production behavior
   - **Data Integrity**: Ensures partial updates (like just changing an author) do not accidentally clear other fields like title or genre
+- **Frontend Stability**: Fixed `TypeError` when applying author updates by exposing `fetchWithAuth` and `reloadDataFromServer` in AppContext
 
 ## 1.16.0 - 2025-09-14
 
