@@ -1,6 +1,7 @@
 # Git
 .git
 .gitignore
+.dev.vars
 
 # Node.js
 node_modules

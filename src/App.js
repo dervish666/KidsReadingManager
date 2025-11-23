@@ -48,6 +48,12 @@ function AppContent() {
         display: 'flex',
         flexDirection: 'column',
         minHeight: '100vh',
+        background: 'linear-gradient(135deg, #DFE6E9 0%, #F5F6FA 100%)',
+        backgroundImage: `
+          radial-gradient(circle at 10% 20%, rgba(108, 92, 231, 0.05) 0%, transparent 20%),
+          radial-gradient(circle at 90% 80%, rgba(0, 206, 201, 0.05) 0%, transparent 20%),
+          linear-gradient(135deg, #DFE6E9 0%, #F5F6FA 100%)
+        `,
       }}
     >
       <Header currentTab={currentTab} onTabChange={setCurrentTab} />
@@ -57,8 +63,8 @@ function AppContent() {
         className="app-container"
         sx={{
           flexGrow: 1,
-          py: { xs: 1, sm: 2 },
-          px: { xs: 0, sm: 2 },
+          py: { xs: 2, sm: 3 },
+          px: { xs: 1, sm: 3 },
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -68,14 +74,17 @@ function AppContent() {
           elevation={0}
           sx={{
             flexGrow: 1,
-            p: { xs: 2, sm: 3 },
-            borderRadius: { xs: 0, sm: 2 },
+            p: { xs: 2, sm: 4 },
+            borderRadius: { xs: 2, sm: 3 },
             overflow: 'auto',
-            mb: { xs: 9, sm: 8 },
-            backgroundColor: 'background.paper',
-            minHeight: 'calc(100vh - 120px)',
+            mb: { xs: 10, sm: 9 },
+            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+            backdropFilter: 'blur(10px)',
+            minHeight: 'calc(100vh - 140px)',
+            border: '1px solid rgba(255, 255, 255, 0.3)',
             '@media (max-width: 600px)': {
-              minHeight: 'calc(100vh - 140px)',
+              minHeight: 'calc(100vh - 160px)',
+              p: 2,
             },
           }}
         >
@@ -90,13 +99,12 @@ function AppContent() {
           left: 0,
           right: 0,
           zIndex: 1100,
-          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-          borderTop: '1px solid rgba(0, 0, 0, 0.08)',
-          '@media (max-width: 600px)': {
-            backgroundColor: '#ffffff',
-          },
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(20px)',
+          borderTop: '1px solid rgba(255, 255, 255, 0.5)',
+          boxShadow: '0 -5px 20px rgba(0,0,0,0.05)',
         }}
-        elevation={3}
+        elevation={0}
       >
         <BottomNavigation
           value={currentTab}

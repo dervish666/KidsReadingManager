@@ -218,7 +218,13 @@ const SessionForm = () => {
         </ToggleButtonGroup>
       </Box>
       {mode === 'standard' ? (
-        <Paper sx={{ p: 3, pb: 'calc(env(safe-area-inset-bottom) + 16px)' }}>
+        <Paper sx={{
+          p: 3,
+          pb: 'calc(env(safe-area-inset-bottom) + 16px)',
+          background: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: 3
+        }}>
           {error && (
             <Alert severity="error" sx={{ mb: 3 }}>
               {error}
