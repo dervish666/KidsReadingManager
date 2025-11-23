@@ -240,13 +240,12 @@ const BookRecommendations = () => {
 
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
-            <FormControl fullWidth sx={{ minWidth: '100%' }}>
+            <FormControl fullWidth>
               <InputLabel>Class (Optional)</InputLabel>
               <Select
                 value={selectedClassId}
                 onChange={handleClassChange}
                 label="Class (Optional)"
-                sx={{ minWidth: '100%' }}
               >
                 <MenuItem value="">
                   <em>All Classes</em>
@@ -261,14 +260,13 @@ const BookRecommendations = () => {
           </Grid>
 
           <Grid item xs={12} md={6}>
-            <FormControl fullWidth sx={{ minWidth: '100%' }}>
+            <FormControl fullWidth>
               <InputLabel>Student</InputLabel>
               <Select
                 value={selectedStudentId}
                 onChange={handleStudentChange}
                 label="Student"
                 disabled={filteredStudents.length === 0}
-                sx={{ minWidth: '100%' }}
               >
                 <MenuItem value="">
                   <em>Select a student</em>

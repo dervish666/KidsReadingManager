@@ -247,9 +247,9 @@ const StudentTable = ({ students }) => {
                         <MenuBookIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />
                       </Box>
                       <Box sx={{ minWidth: 0 }}>
-                        <Typography 
-                          variant="body1" 
-                          sx={{ 
+                        <Typography
+                          variant="body1"
+                          sx={{
                             fontWeight: 600,
                             fontSize: { xs: '0.95rem', sm: '1rem' },
                             overflow: 'hidden',
@@ -257,7 +257,7 @@ const StudentTable = ({ students }) => {
                             whiteSpace: 'nowrap'
                           }}
                         >
-                          {student.name}
+                          {student.name} ({student.readingSessions.length})
                         </Typography>
                         <Typography 
                           variant="body2" 

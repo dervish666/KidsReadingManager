@@ -8,6 +8,7 @@ import MenuBookIcon from '@mui/icons-material/MenuBook';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import StarIcon from '@mui/icons-material/Star';
 import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
+import SettingsIcon from '@mui/icons-material/Settings';
 import Header from './components/Header';
 import { AppProvider, useAppContext } from './contexts/AppContext';
 import Login from './components/Login';
@@ -16,6 +17,7 @@ import SessionForm from './components/sessions/SessionForm';
 import ReadingStats from './components/stats/ReadingStats';
 import BookRecommendations from './components/BookRecommendations';
 import BookManager from './components/books/BookManager';
+import SettingsPage from './components/SettingsPage';
 
 function AppContent() {
   const { isAuthenticated } = useAppContext();
@@ -37,6 +39,8 @@ function AppContent() {
         return <BookRecommendations />;
       case 4:
         return <BookManager />;
+      case 5:
+        return <SettingsPage />;
       default:
         return <StudentList />;
     }
@@ -118,6 +122,7 @@ function AppContent() {
           <BottomNavigationAction label="Stats" icon={<BarChartIcon />} />
           <BottomNavigationAction label="Recommendations" icon={<StarIcon />} />
           <BottomNavigationAction label="Books" icon={<LibraryBooksIcon />} />
+          <BottomNavigationAction label="Settings" icon={<SettingsIcon />} />
         </BottomNavigation>
       </Paper>
     </Box>

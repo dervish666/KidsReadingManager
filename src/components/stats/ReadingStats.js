@@ -21,16 +21,11 @@ import PersonIcon from '@mui/icons-material/Person';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import AssessmentIcon from '@mui/icons-material/Assessment';
-import SettingsIcon from '@mui/icons-material/Settings';
 import TimelineIcon from '@mui/icons-material/Timeline';
-import CodeIcon from '@mui/icons-material/Code';
 import VisualIndicators from './VisualIndicators';
 import DaysSinceReadingChart from './DaysSinceReadingChart';
 import ReadingTimelineChart from './ReadingTimelineChart';
 import ReadingFrequencyChart from './ReadingFrequencyChart';
-import DataManagement from '../DataManagement';
-import Settings from '../Settings';
-import JsonEditor from './JsonEditor';
 import { useAppContext } from '../../contexts/AppContext';
 
 const ReadingStats = () => {
@@ -387,9 +382,6 @@ const ReadingStats = () => {
             <Tab icon={<CalendarTodayIcon />} label="Needs Attention" />
             <Tab icon={<MenuBookIcon />} label="Reading Frequency" />
             <Tab icon={<TimelineIcon />} label="Reading Timeline" />
-            <Tab icon={<SettingsIcon />} label="Data Management" />
-            <Tab icon={<SettingsIcon />} label="Settings" />
-            <Tab icon={<CodeIcon />} label="JSON Editor" />
           </Tabs>
         </Paper>
         
@@ -435,9 +427,6 @@ const ReadingStats = () => {
               </Box>
             )
           )}
-          {currentTab === 4 && <DataManagement />}
-          {currentTab === 5 && <Settings />}
-          {currentTab === 6 && <JsonEditor />}
         </Box>
       </Box>
     </Box>

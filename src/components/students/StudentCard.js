@@ -140,7 +140,7 @@ const StudentCard = ({ student }) => {
                   lineHeight: 1.2
                 }}
               >
-                {student.name}
+                {student.name} ({student.readingSessions.length})
               </Typography>
             }
             subheader={

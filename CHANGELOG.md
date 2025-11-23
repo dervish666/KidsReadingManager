@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.20.0 - 2025-11-23
+
+### Changed
+- **Navigation Structure**: Restructured application navigation for better usability
+  - **Dedicated Settings Page**: Moved Settings and Data Management to a new top-level "Settings" page
+  - **Stats Page Cleanup**: Removed administrative tools (Settings, Data Management) from the Stats page to focus purely on analytics
+  - **Navigation Bar**: Added a new "Settings" tab to the bottom navigation bar
+
+### Removed
+- **JSON Editor**: Removed the deprecated and non-functional JSON Editor component
+
+## 1.19.6 - 2025-11-23
+
+### Fixed
+- **Book Recommendations UI**: Fixed dropdown styling issue where selectors appeared collapsed before interaction
+  - Removed restrictive `minWidth: '100%'` styling that caused layout issues
+  - Relied on `fullWidth` property for proper responsive sizing
+- **Student List Display**: Enhanced student name display to include session count
+  - Added session count in parentheses next to student names in both list and card views
+  - Provides immediate visibility of reading progress without needing to check separate columns
+
 ## 1.19.5 - 2025-11-22
 
 ### Fixed
