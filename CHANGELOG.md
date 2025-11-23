@@ -1,11 +1,6 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-## [1.21.0] - 2025-11-23
+## [0.21.0] - 2025-11-23
 
 ### Added
 - **Multi-Provider AI Support**: Added support for Anthropic (Claude), OpenAI (GPT), and Google (Gemini) for book recommendations.
@@ -18,14 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Environment Variables**: `ANTHROPIC_API_KEY` is now optional and serves as a backward-compatible fallback if no provider is configured in the UI.
 - **Documentation**: Updated `AGENTS.md` and `app_overview.md` to reflect the new AI configuration options.
 
-## [1.20.1] - 2025-11-23
+## [0.20.1] - 2025-11-23
 
 ### Fixed
 - **Cloudflare Worker Deployment**: Fixed `wrangler.toml` configuration to correctly map the `READING_MANAGER_KV` binding.
 - **Environment Detection**: Improved detection of Cloudflare Worker environment to prevent "KV namespace not bound" errors.
 - **Build Process**: Updated build scripts to ensure proper environment variable handling during deployment.
 
-## [1.20.0] - 2025-11-23
+## [0.20.0] - 2025-11-23
 
 ### Added
 - **Cloudflare Workers Support**: Full support for deploying the API to Cloudflare Workers.
@@ -38,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **API Routes**: Migrated API routes to support both Express and Hono adapters.
 - **UUID Generation**: Switched to `crypto.getRandomValues` for compatibility with Edge environments.
 
-## [1.19.0] - 2025-11-22
+## [0.19.0] - 2025-11-22
 
 ### Added
 - **AI-Powered Recommendations**: Integrated Anthropic Claude API for personalized book recommendations.
@@ -48,13 +43,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Student Profile**: Enhanced student data model to include detailed reading preferences and history for AI context.
 
-## [1.18.0] - 2025-11-21
+## [0.18.0] - 2025-11-21
 
 ### Added
 - **Reading Stats**: Comprehensive statistics dashboard for reading progress.
 - **Visualizations**: Charts for reading frequency, books read over time, and genre distribution.
 
-## [1.0.0] - 2025-11-20
+## [0.0.1] - 2025-11-20
 
 ### Added
 - **Initial Release**: Initial release of Kids Reading Manager.
