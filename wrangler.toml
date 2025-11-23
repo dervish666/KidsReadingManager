@@ -20,7 +20,6 @@ not_found_handling = "single-page-application"
 [vars]
 ENVIRONMENT = "production"
 STORAGE_TYPE = "kv"
-ANTHROPIC_API_KEY = "dummy-key"
 
 # Development environment variables
 [env.dev]

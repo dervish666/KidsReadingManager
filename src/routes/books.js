@@ -199,35 +199,22 @@ booksRouter.get('/recommendations', async (c) => {
 
     // Get student data from KV service
     const students = await getStudents(c.env);
-    console.log('Retrieved students:', students?.length || 0, 'total students');
-
     const student = students.find(s => s.id === studentId);
 
     if (!student) {
-      console.log('Student not found, available student IDs:', students.map(s => s.id));
       return c.json({ error: `Student with ID ${studentId} not found` }, 404);
     }
-
-    console.log('Found student:', student.name, 'with', student.readingSessions?.length || 0, 'reading sessions');
 
     // Get all books using data provider
     const provider = await createProvider(c.env);
     const allBooks = await provider.getAllBooks();
-    console.log('Retrieved books:', allBooks?.length || 0, 'total books');
-    if (allBooks?.length > 0) {
-      console.log('First few books:', allBooks.slice(0, 3).map(b => `${b.title} by ${b.author}`));
-    }
 
     // Get books the student has already read
     const readBookIds = student.readingSessions?.map(session => session.bookId).filter(Boolean) || [];
-    console.log('Read book IDs:', readBookIds);
-
     const readBooks = allBooks.filter(book => readBookIds.includes(book.id));
-    console.log('Found read books:', readBooks.length, readBooks.map(b => b.title));
 
     // Filter out books the student has already read
     const unreadBooks = allBooks.filter(book => !readBookIds.includes(book.id));
-    console.log('Available unread books:', unreadBooks.length, unreadBooks.slice(0, 5).map(b => b.title));
 
     // Get settings to check for AI configuration
     const settings = await getSettings(c.env);
@@ -238,17 +225,7 @@ booksRouter.get('/recommendations', async (c) => {
       aiConfig.apiKey = aiConfig.keys[aiConfig.provider];
     }
 
-    // Fallback to environment variable if no settings configured (backward compatibility)
-    if (!aiConfig.apiKey && c.env.ANTHROPIC_API_KEY) {
-      // Only use fallback if no provider is selected or if selected provider is anthropic
-      if (!aiConfig.provider || aiConfig.provider === 'anthropic') {
-        aiConfig.provider = 'anthropic';
-        aiConfig.apiKey = c.env.ANTHROPIC_API_KEY;
-      }
-    }
-
     if (!aiConfig.apiKey) {
-      console.error('No AI API key found in settings or environment variables');
       // Return fallback recommendations
       const fallbackRecommendations = [
         {
@@ -306,7 +283,6 @@ booksRouter.get('/recommendations', async (c) => {
         config: aiConfig
       });
 
-      console.log(`Successfully generated ${recommendations.length} AI recommendations for student ${studentId} using ${aiConfig.provider}`);
       return c.json({ recommendations });
 
     } catch (aiError) {

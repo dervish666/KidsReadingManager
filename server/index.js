@@ -909,17 +909,11 @@ Recommendations should be 8-12 excellent books that stimulate the student's inte
       apiKey = aiConfig.keys[aiConfig.provider];
     }
 
-    // Fallback to environment variable if no settings configured (backward compatibility)
-    if (!apiKey && process.env.ANTHROPIC_API_KEY) {
-      aiConfig.provider = 'anthropic';
-      apiKey = process.env.ANTHROPIC_API_KEY;
-    }
-
     // Ensure the resolved key is passed to the service
     aiConfig.apiKey = apiKey;
 
     if (!apiKey) {
-      console.error('No AI API key found in settings or environment variables');
+      console.error('No AI API key found in settings');
       // Return fallback recommendations
       const fallbackRecommendations = [
         {

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.23.0] - 2025-11-23
+
+### Changed
+- **Security**: Removed hardcoded `ANTHROPIC_API_KEY` from `wrangler.toml` and backend code.
+- **Configuration**: Enforced API key configuration via the Settings page for all AI providers.
+- **Error Handling**: Improved fallback mechanism to gracefully handle missing API keys without triggering 401 errors.
+
 ## [0.22.0] - 2025-11-23
 
 ### Fixed
