@@ -814,6 +814,76 @@ export const AppProvider = ({ children }) => {
     });
   }, [students]);
 
+  // Data Export/Import
+  const exportToJson = useCallback(async () => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/data`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch data for export: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      // Create a blob and trigger download
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `reading-manager-backup-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      return true;
+    } catch (error) {
+      console.error('Export failed:', error);
+      setApiError(error.message);
+      throw error;
+    }
+  }, [fetchWithAuth]);
+
+  const importFromJson = useCallback(async (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      
+      reader.onload = async (e) => {
+        try {
+          const content = e.target.result;
+          const data = JSON.parse(content);
+          
+          const response = await fetchWithAuth(`${API_URL}/data`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `Import failed: ${response.status}`);
+          }
+          
+          const result = await response.json();
+          
+          // Reload data to reflect changes
+          await reloadDataFromServer();
+          
+          resolve(result.count || 0);
+        } catch (error) {
+          console.error('Import failed:', error);
+          setApiError(error.message);
+          reject(error);
+        }
+      };
+      
+      reader.onerror = () => {
+        reject(new Error('Failed to read file'));
+      };
+      
+      reader.readAsText(file);
+    });
+  }, [fetchWithAuth, reloadDataFromServer]);
+
   // Provider value
   const value = {
     students,
@@ -844,6 +914,8 @@ export const AppProvider = ({ children }) => {
     logout,
     fetchWithAuth,
     reloadDataFromServer,
+    exportToJson,
+    importFromJson,
     // Helper functions
     getReadingStatus,
     addRecentlyAccessedStudent,

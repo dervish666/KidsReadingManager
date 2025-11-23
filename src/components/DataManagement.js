@@ -109,101 +109,72 @@ const DataManagement = () => {
 
   return (
     <Box sx={{ mt: 4, mb: 4 }}>
-      <Grid container spacing={3}> {/* Add Grid container */}
-        <Grid sx={{ mb: 3 }} size={12}> {/* Wrap title in Grid item */}
+      <Grid container spacing={3}>
+        <Grid size={12}>
           <Typography variant="h6" gutterBottom>
             Data Management
           </Typography>
-        </Grid> {/* Close Grid item for title */}
-      {/* Remove extraneous Typography closing tag */}
-        <Grid size={12}> {/* Wrap first Paper in Grid item */}
-          <Paper sx={{ p: 3 }}> {/* Remove mb from Paper, handled by Grid spacing */}
-        <Typography variant="subtitle1" gutterBottom>
-          Cloud Data Export/Import
-        </Typography>
-        <Typography variant="body2" color="text.secondary" paragraph>
-          Export data from the cloud to a file that you can save anywhere on your device, or import data from a previously exported file to the cloud.
-        </Typography>
+        </Grid>
+
+        <Grid size={12}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="subtitle1" gutterBottom>
+              Data Backup & Restore
+            </Typography>
+            <Typography variant="body2" color="text.secondary" paragraph>
+              Export your data to a JSON file for backup purposes, or restore data from a previously exported file.
+              This includes all students, classes, books, genres, and reading sessions.
+            </Typography>
+            
+            <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+              <Button
+                variant="contained"
+                startIcon={<DownloadIcon />}
+                onClick={handleExport}
+              >
+                Export Data
+              </Button>
+              
+              <Button
+                variant="contained"
+                startIcon={<UploadIcon />}
+                onClick={handleImportClick}
+              >
+                Import Data
+              </Button>
+              
+              <input
+                type="file"
+                accept=".json"
+                ref={fileInputRef}
+                style={{ display: 'none' }}
+                onChange={handleFileChange}
+              />
+            </Box>
+          </Paper>
+        </Grid>
         
-        <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
-          <Button
-            variant="contained"
-            startIcon={<DownloadIcon />}
-            onClick={handleExport}
-          >
-            Export Data
-          </Button>
-          
-          <Button
-            variant="contained"
-            startIcon={<UploadIcon />}
-            onClick={handleImportClick}
-          >
-            Import Data
-          </Button>
-          
-          <input
-            type="file"
-            accept=".json"
-            ref={fileInputRef}
-            style={{ display: 'none' }}
-            onChange={handleFileChange}
-          />
-          </Box>
-        </Paper>
-      </Grid>
-      
-      <Grid size={12}> {/* Wrap second Paper in Grid item */}
-        <Paper sx={{ p: 3 }}> {/* Remove mb from Paper */}
-        <Typography variant="subtitle1" gutterBottom>
-          Cloud Data Management
-        </Typography>
-        <Typography variant="body2" color="text.secondary" paragraph>
-          Reload data from the Cloudflare Workers API to ensure you have the latest information, especially when accessing from multiple devices.
-        </Typography>
-        
-        <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleReloadData}
-          >
-            Reload Data from Server
-          </Button>
-          </Box>
-        </Paper>
-      </Grid>
-      
-      <Grid size={12}> {/* Wrap third Paper in Grid item */}
-        <Paper sx={{ p: 3 }}>
-        <Typography variant="subtitle1" gutterBottom>
-          Cloud Backup and Restore
-        </Typography>
-        <Typography variant="body2" color="text.secondary" paragraph>
-          Create backups of your cloud data or restore from previously saved backups to the cloud.
-        </Typography>
-        
-        <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
-          <Button
-            variant="contained"
-            color="secondary"
-            startIcon={<DownloadIcon />}
-            onClick={handleExport}
-          >
-            Download Backup (JSON)
-          </Button>
-          
-          <Button
-            variant="contained"
-            color="secondary"
-            startIcon={<UploadIcon />}
-            onClick={handleImportClick}
-          >
-            Upload Backup (JSON)
-          </Button>
-          </Box>
-        </Paper>
-      </Grid> {/* Close Grid item for third Paper */}
+        <Grid size={12}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="subtitle1" gutterBottom>
+              Server Synchronization
+            </Typography>
+            <Typography variant="body2" color="text.secondary" paragraph>
+              Force a reload of data from the server. This is useful if you've made changes on another device
+              and they aren't showing up here yet.
+            </Typography>
+            
+            <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+              <Button
+                variant="outlined"
+                color="primary"
+                onClick={handleReloadData}
+              >
+                Reload Data from Server
+              </Button>
+            </Box>
+          </Paper>
+        </Grid>
 
       {/* Snackbar and Dialog remain outside the main layout Grid */}
       <Snackbar
