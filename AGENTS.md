@@ -30,5 +30,5 @@ This file provides guidance to agents when working with code in this repository.
 ## Environment-Specific Gotchas
 - `wrangler.toml` requires KV namespace creation before first deploy
 - Docker serves on port 8080 (maps to internal 3000)
-- `ANTHROPIC_API_KEY` required for book recommendations
+- AI configuration (Provider/API Key) can be set via Settings UI or `ANTHROPIC_API_KEY` env var (fallback)
 - Worker environment detection: `env.READING_MANAGER_KV` presence

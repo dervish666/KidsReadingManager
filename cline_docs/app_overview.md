@@ -7,7 +7,7 @@ This comprehensive application helps track reading sessions for students, manage
 - **Frontend**: React single-page application with Material-UI components
 - **Backend/API**: Node.js/Express server with enhanced endpoints
 - **Data Persistence**: JSON file storage (`app_data.json`) with expanded data structures
-- **AI Integration**: Anthropic Claude API for intelligent book recommendations
+- **AI Integration**: Multi-provider support (Anthropic, OpenAI, Gemini) for intelligent book recommendations
 - **Deployment**: Supports both Docker containers and Cloudflare Workers deployment
 
 ## Key Features
@@ -32,6 +32,7 @@ This comprehensive application helps track reading sessions for students, manage
 - **Progress Analytics**: Track reading frequency and identify improvement areas
 
 ### AI-Powered Recommendations
+- **Multi-Provider Support**: Configure Anthropic (Claude), OpenAI (GPT), or Google (Gemini)
 - **Personalized Book Suggestions**: AI-generated recommendations based on:
   - Student's reading history and completed books
   - Genre preferences and stated interests
@@ -188,14 +189,15 @@ The application uses a bottom navigation bar with five main sections:
 ## API Integration
 
 ### AI Recommendations
-The application integrates with Anthropic's Claude API to provide intelligent book recommendations:
+The application integrates with multiple AI providers (Anthropic, OpenAI, Gemini) to provide intelligent book recommendations:
+- Configurable via Settings UI (Provider, API Key, Model)
 - Analyzes student reading history and preferences
 - Considers age-appropriate content
 - Balances educational value with student interests
 - Provides reasoning for each recommendation
 
 ### Environment Variables Required
-- `ANTHROPIC_API_KEY`: Required for AI-powered recommendations
+- `ANTHROPIC_API_KEY`: Optional fallback for AI-powered recommendations (if not configured in UI)
 
 ## Running the Application
 

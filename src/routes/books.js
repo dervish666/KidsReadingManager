@@ -7,8 +7,12 @@ import { createProvider } from '../data/index.js';
 import {
   getStudents,
   getClasses,
-  getBooks
+  getBooks,
+  getSettings
 } from '../services/kvService.js';
+
+// Import AI service
+import { generateRecommendations } from '../services/aiService.js';
 
 // Import utilities
 import { notFoundError, badRequestError } from '../middleware/errorHandler';
@@ -225,11 +229,18 @@ booksRouter.get('/recommendations', async (c) => {
     const unreadBooks = allBooks.filter(book => !readBookIds.includes(book.id));
     console.log('Available unread books:', unreadBooks.length, unreadBooks.slice(0, 5).map(b => b.title));
 
-    // Get Anthropic API key from environment
-    const anthropicApiKey = c.env.ANTHROPIC_API_KEY;
+    // Get settings to check for AI configuration
+    const settings = await getSettings(c.env);
+    const aiConfig = settings?.ai || {};
+    
+    // Fallback to environment variable if no settings configured (backward compatibility)
+    if (!aiConfig.apiKey && c.env.ANTHROPIC_API_KEY) {
+      aiConfig.provider = 'anthropic';
+      aiConfig.apiKey = c.env.ANTHROPIC_API_KEY;
+    }
 
-    if (!anthropicApiKey) {
-      console.error('ANTHROPIC_API_KEY not found in environment variables');
+    if (!aiConfig.apiKey) {
+      console.error('No AI API key found in settings or environment variables');
       // Return fallback recommendations
       const fallbackRecommendations = [
         {
@@ -258,15 +269,7 @@ booksRouter.get('/recommendations', async (c) => {
       return c.json({ recommendations: fallbackRecommendations });
     }
 
-    // Import Anthropic SDK dynamically (ESM compatibility)
-    const { Anthropic } = await import('@anthropic-ai/sdk');
-
-    // Initialize Anthropic client
-    const anthropic = new Anthropic({
-      apiKey: anthropicApiKey,
-    });
-
-    // Build prompt for Claude
+    // Prepare data for AI service
     const studentProfile = {
       name: student.name,
       readingLevel: student.readingLevel || 'intermediate',
@@ -287,103 +290,21 @@ booksRouter.get('/recommendations', async (c) => {
       ageRange: book.ageRange || '8-12'
     }));
 
-    let prompt;
-    if (studentProfile.booksRead.length === 0 && availableBooks.length === 0) {
-      // No books data available - provide general recommendations
-      prompt = `You are an expert children's librarian with decades of experience in book recommendations for young readers.
-
-STUDENT PROFILE:
-- Name: ${studentProfile.name}
-- Reading Level: ${studentProfile.readingLevel}
-- Favorite Genres: ${studentProfile.preferences.favoriteGenreIds?.join(', ') || 'Not specified'}
-- Likes: ${studentProfile.preferences.likes?.join(', ') || 'Not specified'}
-- Dislikes: ${studentProfile.preferences.dislikes?.join(', ') || 'Not specified'}
-
-TASK: Since there are no books currently in the library system, please recommend 4 excellent books that would be perfect for this student based on their profile and interests. For each recommendation, provide:
-
-1. **Title and Author**: Well-known, high-quality children's books
-2. **Genre**: Main genre category
-3. **Age Range**: Appropriate age range for the student's reading level
-4. **Reason**: A personalized explanation (2-3 sentences) of why this book would be a great choice for this specific student based on their profile and interests.
-
-Format your response as a valid JSON array with exactly 4 objects, each containing: title, author, genre, ageRange, and reason.
-
-Focus on age-appropriate, engaging books that match their reading level and interests.`;
-    } else {
-      // Normal case with books data
-      prompt = `You are an expert children's librarian with decades of experience in book recommendations for young readers.
-
-STUDENT PROFILE:
-- Name: ${studentProfile.name}
-- Reading Level: ${studentProfile.readingLevel}
-- Favorite Genres: ${studentProfile.preferences.favoriteGenreIds?.join(', ') || 'Not specified'}
-- Likes: ${studentProfile.preferences.likes?.join(', ') || 'Not specified'}
-- Dislikes: ${studentProfile.preferences.dislikes?.join(', ') || 'Not specified'}
-
-BOOKS ALREADY READ:
-${studentProfile.booksRead.length > 0 ?
-  studentProfile.booksRead.map(book => `- ${book.title} by ${book.author} (${book.genre})`).join('\n') :
-  'No books recorded yet'}
-
-AVAILABLE BOOKS TO RECOMMEND FROM:
-${availableBooks.length > 0 ?
-  availableBooks.map((book, index) => `${index + 1}. ${book.title} by ${book.author} (Genre: ${book.genre}, Age: ${book.ageRange}, Level: ${book.readingLevel})`).join('\n') :
-  'No books currently available in the library system'}
-
-TASK: Recommend exactly 4 books that would be perfect for this student. For each recommendation, provide:
-
-1. **Title and Author**: ${availableBooks.length > 0 ? 'From the available books list' : 'Well-known, high-quality children\'s books'}
-2. **Genre**: Main genre category
-3. **Age Range**: Appropriate age range for the student's reading level
-4. **Reason**: A personalized explanation (2-3 sentences) of why this book would be a great choice for this specific student based on their reading history, preferences, and interests.
-
-Format your response as a valid JSON array with exactly 4 objects, each containing: title, author, genre, ageRange, and reason.
-
-Ensure recommendations are age-appropriate and match the student's reading level and interests.${availableBooks.length > 0 ? ' Avoid books that are too similar to ones they\'ve already read.' : ''}`;
-    }
-
-    // Make API call to Claude
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
-      temperature: 0.7,
-      messages: [
-        {
-          role: 'user',
-          content: prompt
-        }
-      ]
-    });
-
-    const recommendationsText = response.content[0].text;
-
-    // Parse the JSON response
-    let recommendations;
+    // Generate recommendations using AI service
     try {
-      // Extract JSON from the response (Claude might include extra text)
-      const jsonMatch = recommendationsText.match(/\[[\s\S]*\]/);
-      const jsonText = jsonMatch ? jsonMatch[0] : recommendationsText;
-      recommendations = JSON.parse(jsonText);
-      console.log('Raw AI response:', recommendationsText);
-      // Validate the response format
-      if (!Array.isArray(recommendations) || recommendations.length !== 4) {
-        throw new Error('Invalid recommendations format');
-      }
+      const recommendations = await generateRecommendations({
+        studentProfile,
+        availableBooks,
+        config: aiConfig
+      });
 
-      // Ensure each recommendation has required fields
-      recommendations = recommendations.map(rec => ({
-        title: rec.title || 'Unknown Title',
-        author: rec.author || 'Unknown Author',
-        genre: rec.genre || 'Fiction',
-        ageRange: rec.ageRange || '8-12',
-        reason: rec.reason || 'Recommended based on reading preferences'
-      }));
+      console.log(`Successfully generated ${recommendations.length} AI recommendations for student ${studentId} using ${aiConfig.provider}`);
+      return c.json({ recommendations });
 
-    } catch (parseError) {
-      console.error('Failed to parse Claude response:', parseError);
-      console.error('Raw response:', recommendationsText);
-
-      // Return fallback recommendations
+    } catch (aiError) {
+      console.error('AI service error:', aiError);
+      
+      // Return fallback recommendations on error
       const emergencyRecommendations = [
         {
           title: "Wonder",
@@ -410,10 +331,6 @@ Ensure recommendations are age-appropriate and match the student's reading level
 
       return c.json({ recommendations: emergencyRecommendations });
     }
-
-    console.log(`Successfully generated ${recommendations.length} AI recommendations for student ${studentId}`);
-
-    return c.json({ recommendations });
 
   } catch (error) {
     console.error('Error generating recommendations:', error);

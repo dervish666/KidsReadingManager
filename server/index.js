@@ -898,43 +898,96 @@ Recommendations should be 8-12 excellent books that stimulate the student's inte
 
     console.log('Generating AI recommendations for student:', student.name);
 
-    // Initialize Anthropic client
-    // Support both Cloudflare Workers environment (env.ANTHROPIC_API_KEY)
-    // and local development (process.env.ANTHROPIC_API_KEY)
-    const anthropicApiKey = (typeof globalThis !== 'undefined' && globalThis.env && globalThis.env.ANTHROPIC_API_KEY) ||
-                           process.env.ANTHROPIC_API_KEY;
-
-    if (!anthropicApiKey) {
-      throw new Error('ANTHROPIC_API_KEY not found in environment variables');
+    // Get settings to check for AI configuration
+    const settings = data.settings || {};
+    const aiConfig = settings.ai || {};
+    
+    // Fallback to environment variable if no settings configured (backward compatibility)
+    if (!aiConfig.apiKey && process.env.ANTHROPIC_API_KEY) {
+      aiConfig.provider = 'anthropic';
+      aiConfig.apiKey = process.env.ANTHROPIC_API_KEY;
     }
 
-    const anthropic = new Anthropic({
-      apiKey: anthropicApiKey,
-    });
-
-    // Make API call to Claude
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 3000,
-      messages: [
+    if (!aiConfig.apiKey) {
+      console.error('No AI API key found in settings or environment variables');
+      // Return fallback recommendations
+      const fallbackRecommendations = [
         {
-          role: 'user',
-          content: prompt
+          title: "Charlotte's Web",
+          author: "E.B. White",
+          genre: "Animal Fiction",
+          ageRange: "7-12",
+          reason: "A timeless classic about friendship and adventure"
+        },
+        {
+          title: "The BFG",
+          author: "Roald Dahl",
+          genre: "Fantasy",
+          ageRange: "7-11",
+          reason: "Imaginative story that sparks creativity and humor"
+        },
+        {
+          title: "Hatchet",
+          author: "Gary Paulsen",
+          genre: "Survival Adventure",
+          ageRange: "9-14",
+          reason: "Thrilling outdoor adventure promoting resilience"
+        },
+        {
+          title: "Wonder",
+          author: "R.J. Palacio",
+          genre: "Realistic Fiction",
+          ageRange: "8-12",
+          reason: "Heartwarming story about kindness and understanding differences"
         }
-      ],
-      temperature: 0.7,
-    });
+      ];
 
-    // Parse the AI response
-    const recommendationText = response.content[0].text;
-    console.log('AI recommendation response:', recommendationText.substring(0, 200) + '...');
+      return res.json({
+        recommendations: fallbackRecommendations,
+        studentName: student.name,
+        schoolYear: schoolYear,
+        preferredGenres: favoriteGenres,
+        note: 'No AI API key configured, showing curated classic selections'
+      });
+    }
 
+    // Prepare data for AI service
+    const studentProfile = {
+      name: student.name,
+      readingLevel: student.readingLevel || 'intermediate',
+      preferences: student.preferences || {},
+      booksRead: readBooks.map(book => ({
+        title: book.title,
+        author: book.author,
+        genre: book.genreIds?.join(', ') || 'General Fiction',
+        readingLevel: book.readingLevel || 'intermediate'
+      }))
+    };
+
+    const availableBooksList = data.books.map(book => ({
+      title: book.title,
+      author: book.author,
+      genre: book.genreIds?.join(', ') || 'General Fiction',
+      readingLevel: book.readingLevel || 'intermediate',
+      ageRange: book.ageRange || '8-12'
+    }));
+
+    // Generate recommendations using AI service
+    // Note: We need to dynamically import the AI service here because server/index.js is CommonJS
+    // but aiService.js is ESM. In a real build step this would be handled, but for this hybrid setup
+    // we'll use dynamic import()
     try {
-      const recommendations = JSON.parse(recommendationText);
-      console.log(`Generated ${recommendations.length} book recommendations for ${student.name}`);
+      const { generateRecommendations } = await import('../src/services/aiService.js');
+      
+      const recommendations = await generateRecommendations({
+        studentProfile,
+        availableBooks: availableBooksList,
+        config: aiConfig
+      });
 
-      // Return the recommended books with additional metadata
-      res.json({
+      console.log(`Successfully generated ${recommendations.length} AI recommendations for student ${student.name} using ${aiConfig.provider}`);
+      
+      return res.json({
         recommendations,
         studentName: student.name,
         schoolYear: schoolYear,
@@ -943,114 +996,50 @@ Recommendations should be 8-12 excellent books that stimulate the student's inte
         totalAvailable: data.books.length
       });
 
-    } catch (parseError) {
-      console.error('Error parsing AI response:', parseError);
-      console.log('Raw AI response:', recommendationText);
-
-      // Try to extract JSON from the response if there are extra characters
-      const jsonMatch = recommendationText.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        try {
-          const recommendations = JSON.parse(jsonMatch[0]);
-          console.log('Successfully parsed JSON after extraction');
-
-          res.json({
-            recommendations,
-            studentName: student.name,
-            schoolYear: schoolYear,
-            preferredGenres: favoriteGenres,
-            note: 'Recommendations extracted from AI response'
-          });
-        } catch (extractionError) {
-          console.error('JSON extraction also failed:', extractionError);
-          res.status(500).json({
-            error: 'Unable to parse AI recommendations',
-            note: 'The AI provided recommendations in an unexpected format.'
-          });
+    } catch (aiError) {
+      console.error('AI service error:', aiError);
+      
+      // Return fallback recommendations on error
+      const emergencyRecommendations = [
+        {
+          title: "The Very Hungry Caterpillar",
+          author: "Eric Carle",
+          genre: "Picture Book",
+          ageRange: "2-8",
+          reason: "Excellent early reader with beautiful illustrations"
+        },
+        {
+          title: "Green Eggs and Ham",
+          author: "Dr. Seuss",
+          genre: "Nonsense Poetry",
+          ageRange: "3-7",
+          reason: "Fun rhyming book that encourages reading aloud"
+        },
+        {
+          title: "Where the Wild Things Are",
+          author: "Maurice Sendak",
+          genre: "Picture Book",
+          ageRange: "4-8",
+          reason: "Wildly imaginative story for imaginative minds"
+        },
+        {
+          title: "Brown Bear, Brown Bear, What Do You See?",
+          author: "Bill Martin Jr. and Eric Carle",
+          genre: "Picture Book",
+          ageRange: "2-6",
+          reason: "Predictable text perfect for early learning"
         }
-      } else {
-        // Fallback to basic recommendations if all parsing fails
-        const fallbackRecommendations = [
-          {
-            title: "Charlotte's Web",
-            author: "E.B. White",
-            genre: "Animal Fiction",
-            ageRange: "7-12",
-            reason: "A timeless classic about friendship and adventure"
-          },
-          {
-            title: "The BFG",
-            author: "Roald Dahl",
-            genre: "Fantasy",
-            ageRange: "7-11",
-            reason: "Imaginative story that sparks creativity and humor"
-          },
-          {
-            title: "Hatchet",
-            author: "Gary Paulsen",
-            genre: "Survival Adventure",
-            ageRange: "9-14",
-            reason: "Thrilling outdoor adventure promoting resilience"
-          },
-          {
-            title: "Wonder",
-            author: "R.J. Palacio",
-            genre: "Realistic Fiction",
-            ageRange: "8-12",
-            reason: "Heartwarming story about kindness and understanding differences"
-          }
-        ];
+      ];
 
-        res.json({
-          recommendations: fallbackRecommendations,
-          studentName: student.name,
-          schoolYear: schoolYear,
-          preferredGenres: favoriteGenres,
-          note: 'AI recommendation parsing failed, showing curated classic selections'
-        });
-      }
+      return res.status(500).json({
+        error: 'AI recommendation service temporarily unavailable',
+        recommendations: emergencyRecommendations,
+        note: 'Providing classic early reader recommendations as backup'
+      });
     }
-
   } catch (error) {
-    console.error('Error generating AI recommendations:', error);
-
-    // Final emergency fallback with well-known children's books
-    const emergencyRecommendations = [
-      {
-        title: "The Very Hungry Caterpillar",
-        author: "Eric Carle",
-        genre: "Picture Book",
-        ageRange: "2-8",
-        reason: "Excellent early reader with beautiful illustrations"
-      },
-      {
-        title: "Green Eggs and Ham",
-        author: "Dr. Seuss",
-        genre: "Nonsense Poetry",
-        ageRange: "3-7",
-        reason: "Fun rhyming book that encourages reading aloud"
-      },
-      {
-        title: "Where the Wild Things Are",
-        author: "Maurice Sendak",
-        genre: "Picture Book",
-        ageRange: "4-8",
-        reason: "Wildly imaginative story for imaginative minds"
-      },
-      {
-        title: "Brown Bear, Brown Bear, What Do You See?",
-        author: "Bill Martin Jr. and Eric Carle",
-        genre: "Picture Book",
-        ageRange: "2-6",
-        reason: "Predictable text perfect for early learning"
-      }
-    ];
-
-    res.status(500).json({
-      error: 'AI recommendation service temporarily unavailable',
-      recommendations: emergencyRecommendations,
-      note: 'Providing classic early reader recommendations as backup'
-    });
+    console.error('Error in recommendation endpoint:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

@@ -90,6 +90,28 @@ export function validateSettings(settings) {
       errors.push('Recently read days must be less than needs attention days');
     }
   }
+
+  // Validate AI settings if provided
+  if (settings.ai) {
+    const { provider, apiKey, baseUrl, model } = settings.ai;
+    
+    if (provider && !['anthropic', 'openai', 'gemini'].includes(provider)) {
+      errors.push('Invalid AI provider selected');
+    }
+    
+    // API key is optional (might be set in env vars), but if provided should be a string
+    if (apiKey && typeof apiKey !== 'string') {
+      errors.push('API key must be a string');
+    }
+    
+    if (baseUrl && typeof baseUrl !== 'string') {
+      errors.push('Base URL must be a string');
+    }
+    
+    if (model && typeof model !== 'string') {
+      errors.push('Model name must be a string');
+    }
+  }
   
   return {
     isValid: errors.length === 0,
