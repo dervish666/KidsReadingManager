@@ -20,7 +20,11 @@ import { useAppContext } from '../contexts/AppContext';
 const AISettings = () => {
   const { settings, updateSettings, loading } = useAppContext();
   const [provider, setProvider] = useState('anthropic');
-  const [apiKey, setApiKey] = useState('');
+  const [apiKeys, setApiKeys] = useState({
+    anthropic: '',
+    openai: '',
+    gemini: ''
+  });
   const [baseUrl, setBaseUrl] = useState('');
   const [model, setModel] = useState('');
   const [saveStatus, setSaveStatus] = useState(null); // 'success', 'error', or null
@@ -30,7 +34,17 @@ const AISettings = () => {
   useEffect(() => {
     if (settings?.ai) {
       setProvider(settings.ai.provider || 'anthropic');
-      setApiKey(settings.ai.apiKey || '');
+      
+      // Load keys from new structure or fallback to old single key
+      const savedKeys = settings.ai.keys || {};
+      const singleKey = settings.ai.apiKey || '';
+      
+      setApiKeys({
+        anthropic: savedKeys.anthropic || (settings.ai.provider === 'anthropic' ? singleKey : ''),
+        openai: savedKeys.openai || (settings.ai.provider === 'openai' ? singleKey : ''),
+        gemini: savedKeys.gemini || (settings.ai.provider === 'gemini' ? singleKey : '')
+      });
+
       setBaseUrl(settings.ai.baseUrl || '');
       setModel(settings.ai.model || '');
     }
@@ -45,7 +59,9 @@ const AISettings = () => {
         ...settings,
         ai: {
           provider,
-          apiKey,
+          keys: apiKeys,
+          // Also save the current key as apiKey for backward compatibility/easier access
+          apiKey: apiKeys[provider],
           baseUrl,
           model
         }
@@ -92,6 +108,14 @@ const AISettings = () => {
     const defaults = getProviderDefaults(newProvider);
     setBaseUrl(defaults.baseUrl);
     setModel(defaults.model);
+  };
+
+  const handleApiKeyChange = (e) => {
+    const newKey = e.target.value;
+    setApiKeys(prev => ({
+      ...prev,
+      [provider]: newKey
+    }));
   };
 
   if (loading) {
@@ -146,10 +170,10 @@ const AISettings = () => {
 
           <TextField
             fullWidth
-            label="API Key"
+            label={`${provider.charAt(0).toUpperCase() + provider.slice(1)} API Key`}
             type="password"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
+            value={apiKeys[provider] || ''}
+            onChange={handleApiKeyChange}
             helperText="Your API key is stored securely and never shared."
             sx={{ mb: 3 }}
           />

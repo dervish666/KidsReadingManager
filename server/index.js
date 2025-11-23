@@ -902,13 +902,23 @@ Recommendations should be 8-12 excellent books that stimulate the student's inte
     const settings = data.settings || {};
     const aiConfig = settings.ai || {};
     
-    // Fallback to environment variable if no settings configured (backward compatibility)
-    if (!aiConfig.apiKey && process.env.ANTHROPIC_API_KEY) {
-      aiConfig.provider = 'anthropic';
-      aiConfig.apiKey = process.env.ANTHROPIC_API_KEY;
+    // Resolve API key based on provider
+    let apiKey = aiConfig.apiKey; // Legacy/Single key fallback
+    
+    if (aiConfig.keys && aiConfig.provider && aiConfig.keys[aiConfig.provider]) {
+      apiKey = aiConfig.keys[aiConfig.provider];
     }
 
-    if (!aiConfig.apiKey) {
+    // Fallback to environment variable if no settings configured (backward compatibility)
+    if (!apiKey && process.env.ANTHROPIC_API_KEY) {
+      aiConfig.provider = 'anthropic';
+      apiKey = process.env.ANTHROPIC_API_KEY;
+    }
+
+    // Ensure the resolved key is passed to the service
+    aiConfig.apiKey = apiKey;
+
+    if (!apiKey) {
       console.error('No AI API key found in settings or environment variables');
       // Return fallback recommendations
       const fallbackRecommendations = [

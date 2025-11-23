@@ -233,10 +233,18 @@ booksRouter.get('/recommendations', async (c) => {
     const settings = await getSettings(c.env);
     const aiConfig = settings?.ai || {};
     
+    // Resolve API key based on provider
+    if (aiConfig.keys && aiConfig.provider && aiConfig.keys[aiConfig.provider]) {
+      aiConfig.apiKey = aiConfig.keys[aiConfig.provider];
+    }
+
     // Fallback to environment variable if no settings configured (backward compatibility)
     if (!aiConfig.apiKey && c.env.ANTHROPIC_API_KEY) {
-      aiConfig.provider = 'anthropic';
-      aiConfig.apiKey = c.env.ANTHROPIC_API_KEY;
+      // Only use fallback if no provider is selected or if selected provider is anthropic
+      if (!aiConfig.provider || aiConfig.provider === 'anthropic') {
+        aiConfig.provider = 'anthropic';
+        aiConfig.apiKey = c.env.ANTHROPIC_API_KEY;
+      }
     }
 
     if (!aiConfig.apiKey) {

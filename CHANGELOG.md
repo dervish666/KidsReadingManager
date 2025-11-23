@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.22.0] - 2025-11-23
+
+### Fixed
+- **AI Key Persistence**: Fixed issue where API keys were not persisting correctly per provider. Keys are now stored in a `keys` object within settings.
+- **Settings Update**: Fixed "t is not a function" error by implementing `updateSettings` in `AppContext`.
+- **Worker Route**: Updated `src/routes/books.js` to correctly resolve API keys from settings in the Cloudflare Worker environment.
+
 ## [0.21.0] - 2025-11-23
 
 ### Added
