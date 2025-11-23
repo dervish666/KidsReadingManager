@@ -82,7 +82,7 @@ Ensure recommendations are age-appropriate and match the student's reading level
 /**
  * Call Anthropic API (Claude)
  */
-async function callAnthropic(prompt, apiKey, model = 'claude-3-sonnet-20240229', baseUrl = 'https://api.anthropic.com/v1') {
+async function callAnthropic(prompt, apiKey, model = 'claude-haiku-4-5', baseUrl = 'https://api.anthropic.com/v1') {
   // Use dynamic import for SDK to support Worker environment
   const { Anthropic } = await import('@anthropic-ai/sdk');
   
@@ -109,7 +109,7 @@ async function callAnthropic(prompt, apiKey, model = 'claude-3-sonnet-20240229',
 /**
  * Call OpenAI API (ChatGPT)
  */
-async function callOpenAI(prompt, apiKey, model = 'gpt-4-turbo', baseUrl = 'https://api.openai.com/v1') {
+async function callOpenAI(prompt, apiKey, model = 'gpt-5-nano', baseUrl = 'https://api.openai.com/v1') {
   const url = `${baseUrl}/chat/completions`;
   
   const response = await fetch(url, {
@@ -161,7 +161,7 @@ async function callOpenAI(prompt, apiKey, model = 'gpt-4-turbo', baseUrl = 'http
 /**
  * Call Google Gemini API
  */
-async function callGemini(prompt, apiKey, model = 'gemini-1.5-pro', baseUrl = 'https://generativelanguage.googleapis.com/v1beta') {
+async function callGemini(prompt, apiKey, model = 'gemini-flash-latest', baseUrl = 'https://generativelanguage.googleapis.com/v1beta') {
   const url = `${baseUrl}/models/${model}:generateContent?key=${apiKey}`;
   
   const response = await fetch(url, {

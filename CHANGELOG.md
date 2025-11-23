@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.23.1] - 2025-11-23
+
+### Fixed
+- **Settings Persistence**: Fixed issue where AI model names were not persisting correctly when switching between providers.
+- **Default Models**: Updated default AI models to `claude-haiku-4-5` (Anthropic), `gpt-5-nano` (OpenAI), and `gemini-flash-latest` (Google).
+
 ## [0.23.0] - 2025-11-23
 
 ### Changed

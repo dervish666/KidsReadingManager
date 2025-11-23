@@ -25,8 +25,12 @@ const AISettings = () => {
     openai: '',
     gemini: ''
   });
+  const [models, setModels] = useState({
+    anthropic: 'claude-haiku-4-5',
+    openai: 'gpt-5-nano',
+    gemini: 'gemini-flash-latest'
+  });
   const [baseUrl, setBaseUrl] = useState('');
-  const [model, setModel] = useState('');
   const [saveStatus, setSaveStatus] = useState(null); // 'success', 'error', or null
   const [isSaving, setIsSaving] = useState(false);
 
@@ -45,8 +49,17 @@ const AISettings = () => {
         gemini: savedKeys.gemini || (settings.ai.provider === 'gemini' ? singleKey : '')
       });
 
+      // Load models from new structure or fallback to defaults
+      const savedModels = settings.ai.models || {};
+      const currentModel = settings.ai.model || '';
+      
+      setModels({
+        anthropic: savedModels.anthropic || (settings.ai.provider === 'anthropic' && currentModel ? currentModel : 'claude-haiku-4-5'),
+        openai: savedModels.openai || (settings.ai.provider === 'openai' && currentModel ? currentModel : 'gpt-5-nano'),
+        gemini: savedModels.gemini || (settings.ai.provider === 'gemini' && currentModel ? currentModel : 'gemini-flash-latest')
+      });
+
       setBaseUrl(settings.ai.baseUrl || '');
-      setModel(settings.ai.model || '');
     }
   }, [settings]);
 
@@ -60,10 +73,11 @@ const AISettings = () => {
         ai: {
           provider,
           keys: apiKeys,
-          // Also save the current key as apiKey for backward compatibility/easier access
+          models: models,
+          // Also save the current key and model for backward compatibility/easier access
           apiKey: apiKeys[provider],
-          baseUrl,
-          model
+          model: models[provider],
+          baseUrl
         }
       };
 
@@ -81,23 +95,19 @@ const AISettings = () => {
     switch (selectedProvider) {
       case 'anthropic':
         return {
-          baseUrl: 'https://api.anthropic.com/v1',
-          model: 'claude-3-sonnet-20240229'
+          baseUrl: 'https://api.anthropic.com/v1'
         };
       case 'openai':
         return {
-          baseUrl: 'https://api.openai.com/v1',
-          model: 'gpt-4-turbo'
+          baseUrl: 'https://api.openai.com/v1'
         };
       case 'gemini':
         return {
-          baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
-          model: 'gemini-1.5-pro'
+          baseUrl: 'https://generativelanguage.googleapis.com/v1beta'
         };
       default:
         return {
-          baseUrl: '',
-          model: ''
+          baseUrl: ''
         };
     }
   };
@@ -107,7 +117,6 @@ const AISettings = () => {
     setProvider(newProvider);
     const defaults = getProviderDefaults(newProvider);
     setBaseUrl(defaults.baseUrl);
-    setModel(defaults.model);
   };
 
   const handleApiKeyChange = (e) => {
@@ -115,6 +124,14 @@ const AISettings = () => {
     setApiKeys(prev => ({
       ...prev,
       [provider]: newKey
+    }));
+  };
+
+  const handleModelChange = (e) => {
+    const newModel = e.target.value;
+    setModels(prev => ({
+      ...prev,
+      [provider]: newModel
     }));
   };
 
@@ -190,9 +207,9 @@ const AISettings = () => {
           <TextField
             fullWidth
             label="Model Name"
-            value={model}
-            onChange={(e) => setModel(e.target.value)}
-            helperText="Specify the model version to use (e.g., claude-3-sonnet-20240229, gpt-4-turbo)."
+            value={models[provider] || ''}
+            onChange={handleModelChange}
+            helperText="Specify the model version to use."
             sx={{ mb: 3 }}
           />
 
