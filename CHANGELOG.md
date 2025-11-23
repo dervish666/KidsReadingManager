@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.23.2] - 2025-11-23
+
+### Changed
+- **Architecture**: Removed legacy Express backend (`server/`) to focus exclusively on Cloudflare Workers architecture.
+- **Development**: Updated `npm run start:dev` to run both the React frontend and Cloudflare Worker backend concurrently.
+- **Proxy**: Updated frontend proxy configuration to point to the Cloudflare Worker development server (port 8787).
+
 ## [0.23.1] - 2025-11-23
 
 ### Fixed

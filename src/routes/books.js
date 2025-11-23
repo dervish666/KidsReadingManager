@@ -225,6 +225,19 @@ booksRouter.get('/recommendations', async (c) => {
       aiConfig.apiKey = aiConfig.keys[aiConfig.provider];
     }
 
+    // Resolve model based on provider
+    if (aiConfig.models && aiConfig.provider && aiConfig.models[aiConfig.provider]) {
+      aiConfig.model = aiConfig.models[aiConfig.provider];
+    }
+
+    console.log('AI Config Debug:', {
+      provider: aiConfig.provider,
+      hasKey: !!aiConfig.apiKey,
+      keyLength: aiConfig.apiKey ? aiConfig.apiKey.length : 0,
+      model: aiConfig.model,
+      baseUrl: aiConfig.baseUrl
+    });
+
     if (!aiConfig.apiKey) {
       // Return fallback recommendations
       const fallbackRecommendations = [
