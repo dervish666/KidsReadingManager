@@ -66,6 +66,17 @@ const BookRecommendations = () => {
     return `Book ${bookId}`;
   };
 
+  const getStudentBookCount = (student) => {
+    if (!student || !student.readingSessions) return 0;
+    const uniqueBooks = new Set();
+    student.readingSessions.forEach(session => {
+      if (session.bookId) {
+        uniqueBooks.add(session.bookId);
+      }
+    });
+    return uniqueBooks.size;
+  };
+
   const handleClassChange = (event) => {
     const classId = event.target.value;
     setSelectedClassId(classId);
@@ -240,7 +251,7 @@ const BookRecommendations = () => {
 
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
-            <FormControl fullWidth>
+            <FormControl fullWidth sx={{ minWidth: 200 }}>
               <InputLabel>Class (Optional)</InputLabel>
               <Select
                 value={selectedClassId}
@@ -260,7 +271,7 @@ const BookRecommendations = () => {
           </Grid>
 
           <Grid item xs={12} md={6}>
-            <FormControl fullWidth>
+            <FormControl fullWidth sx={{ minWidth: 200 }}>
               <InputLabel>Student</InputLabel>
               <Select
                 value={selectedStudentId}
@@ -273,7 +284,7 @@ const BookRecommendations = () => {
                 </MenuItem>
                 {filteredStudents.map((student) => (
                   <MenuItem key={student.id} value={student.id}>
-                    {student.name}
+                    {student.name} ({getStudentBookCount(student)} books read)
                   </MenuItem>
                 ))}
               </Select>
