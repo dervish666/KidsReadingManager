@@ -43,6 +43,9 @@ export const AppProvider = ({ children }) => {
     needsAttentionDays: 21,
   });
 
+  // State for general settings (including AI)
+  const [settings, setSettings] = useState({});
+
   // State for classes
   const [classes, setClasses] = useState([]);
   // State for books
@@ -245,6 +248,7 @@ export const AppProvider = ({ children }) => {
         const settingsResponse = await fetchWithAuth(`${API_URL}/settings`);
         if (settingsResponse.ok) {
           const settingsData = await settingsResponse.json();
+          setSettings(settingsData);
           if (settingsData.readingStatusSettings) {
             setReadingStatusSettings(settingsData.readingStatusSettings);
           }
@@ -720,6 +724,53 @@ export const AppProvider = ({ children }) => {
     [students, fetchWithAuth]
   );
 
+  // Settings management
+  const updateSettings = useCallback(
+    async (newSettings) => {
+      // Optimistic update
+      const previousSettings = settings;
+      setSettings(newSettings);
+      
+      // Also update derived state if needed
+      if (newSettings.readingStatusSettings) {
+        setReadingStatusSettings(newSettings.readingStatusSettings);
+      }
+
+      try {
+        const response = await fetchWithAuth(`${API_URL}/settings`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newSettings),
+        });
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+
+        const savedSettings = await response.json();
+        setSettings(savedSettings);
+        
+        // Update derived state from server response
+        if (savedSettings.readingStatusSettings) {
+          setReadingStatusSettings(savedSettings.readingStatusSettings);
+        }
+        
+        setApiError(null);
+        return savedSettings;
+      } catch (error) {
+        console.error('Error updating settings:', error);
+        setApiError(error.message);
+        setSettings(previousSettings);
+        // Revert derived state
+        if (previousSettings.readingStatusSettings) {
+          setReadingStatusSettings(previousSettings.readingStatusSettings);
+        }
+        throw error;
+      }
+    },
+    [settings, fetchWithAuth]
+  );
+
   // Genre management
   const addGenre = useCallback(
     async (genreData) => {
@@ -909,6 +960,8 @@ export const AppProvider = ({ children }) => {
     updateBook,
     updateBookField,
     addGenre,
+    settings,
+    updateSettings,
     isAuthenticated,
     login,
     logout,
