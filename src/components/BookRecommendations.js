@@ -29,7 +29,7 @@ import RecommendationsIcon from '@mui/icons-material/Star';
 import { getBookDetails, getCoverUrl } from '../utils/openLibraryApi';
 
 const BookRecommendations = () => {
-  const { students, classes, books, apiError } = useAppContext();
+  const { students, classes, books, apiError, fetchWithAuth } = useAppContext();
 
   // State for selections and data
   const [selectedClassId, setSelectedClassId] = useState('');
@@ -176,7 +176,7 @@ const BookRecommendations = () => {
 
     try {
       console.log('Fetching AI-powered recommendations for studentId:', selectedStudentId);
-      const response = await fetch(`/api/books/recommendations?studentId=${selectedStudentId}`);
+      const response = await fetchWithAuth(`/api/books/recommendations?studentId=${selectedStudentId}`);
       console.log('Response status:', response.status);
 
       if (!response.ok) {

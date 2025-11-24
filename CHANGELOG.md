@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.23.3] - 2025-11-24
+
+### Fixed
+- **Authentication**: Fixed "unauthorized" error in book recommendations by ensuring the authentication token is included in the API request.
+
 ## [0.23.2] - 2025-11-23
 
 ### Changed
