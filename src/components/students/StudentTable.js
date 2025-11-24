@@ -23,7 +23,7 @@ import ReadingPreferences from './ReadingPreferences';
 
 const StudentTable = ({ students }) => {
   const theme = useTheme();
-  const { getReadingStatus, classes } = useAppContext();
+  const { getReadingStatus, classes, markStudentAsPriorityHandled } = useAppContext();
   const [openSessionsDialog, setOpenSessionsDialog] = useState(false);
   const [openPreferencesDialog, setOpenPreferencesDialog] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -68,6 +68,13 @@ const StudentTable = ({ students }) => {
   const handleRowClick = (student) => {
     setSelectedStudent(student);
     setOpenSessionsDialog(true);
+  };
+
+  const handleIconClick = (e, student) => {
+    e.stopPropagation();
+    if (markStudentAsPriorityHandled) {
+      markStudentAsPriorityHandled(student.id);
+    }
   };
 
   const handlePreferencesClick = (e, student) => {
@@ -232,18 +239,27 @@ const StudentTable = ({ students }) => {
                 >
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <Box sx={{
-                        bgcolor: 'primary.main',
-                        color: 'white',
-                        width: { xs: 36, sm: 40 },
-                        height: { xs: 36, sm: 40 },
-                        borderRadius: 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                        boxShadow: 1
-                      }}>
+                      <Box
+                        onClick={(e) => handleIconClick(e, student)}
+                        sx={{
+                          bgcolor: 'primary.main',
+                          color: 'white',
+                          width: { xs: 36, sm: 40 },
+                          height: { xs: 36, sm: 40 },
+                          borderRadius: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                          boxShadow: 1,
+                          cursor: 'pointer',
+                          transition: 'transform 0.2s',
+                          '&:hover': {
+                            transform: 'scale(1.1)',
+                            bgcolor: 'primary.dark'
+                          }
+                        }}
+                      >
                         <MenuBookIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />
                       </Box>
                       <Box sx={{ minWidth: 0 }}>

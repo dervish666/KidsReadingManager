@@ -63,6 +63,17 @@ export const AppProvider = ({ children }) => {
     }
   });
 
+  // State for marked priority students (hidden from priority list)
+  const [markedPriorityStudentIds, setMarkedPriorityStudentIds] = useState(() => {
+    if (typeof window === 'undefined') return new Set();
+    try {
+      const storedIds = window.sessionStorage.getItem('markedPriorityStudents');
+      return storedIds ? new Set(JSON.parse(storedIds)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+
   // Helper: fetch with auth header + 401 handling
   const fetchWithAuth = useCallback(
     async (url, options = {}) => {
@@ -849,6 +860,27 @@ export const AppProvider = ({ children }) => {
     });
   }, []);
 
+  // Helper: Mark student as priority handled
+  const markStudentAsPriorityHandled = useCallback((studentId) => {
+    setMarkedPriorityStudentIds((prev) => {
+      const newSet = new Set(prev).add(studentId);
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.setItem('markedPriorityStudents', JSON.stringify(Array.from(newSet)));
+      }
+      return newSet;
+    });
+    // Also add to recently accessed
+    addRecentlyAccessedStudent(studentId);
+  }, [addRecentlyAccessedStudent]);
+
+  // Helper: Reset priority list
+  const resetPriorityList = useCallback(() => {
+    setMarkedPriorityStudentIds(new Set());
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.removeItem('markedPriorityStudents');
+    }
+  }, []);
+
   // Helper: Update priority student count
   const updatePriorityStudentCount = useCallback((count) => {
     setPriorityStudentCount(count);
@@ -974,6 +1006,9 @@ export const AppProvider = ({ children }) => {
     addRecentlyAccessedStudent,
     updatePriorityStudentCount,
     prioritizedStudents,
+    markedPriorityStudentIds,
+    markStudentAsPriorityHandled,
+    resetPriorityList,
   };
 
   console.log('[AppContext] Provider value keys:', Object.keys(value));

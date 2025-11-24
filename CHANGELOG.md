@@ -1,6 +1,9 @@
 # Changelog
 
-## [0.23.4] - 2025-11-24
+## [0.23.5] - 2025-11-24
+
+### Added
+- **Student Table**: Clicking the student icon in the main student table now marks the student as "handled" in the priority list, mirroring the behavior of clicking the student tile in the priority list.
 
 ### Fixed
 - **Authentication**: Audited and updated all internal API calls to use `fetchWithAuth` to ensure consistent authentication.

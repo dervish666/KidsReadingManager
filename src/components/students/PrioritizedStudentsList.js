@@ -141,37 +141,28 @@ const PrioritizedStudentsList = ({ defaultCount = 8, filterClassId = 'all' }) =>
    // Pull from context; if fields are missing, fall back to safe defaults
    const ctx = useAppContext();
    const {
-     prioritizedStudents: contextPrioritizedStudents,
-     updatePriorityStudentCount,
-     priorityStudentCount,
-     classes,
-     addRecentlyAccessedStudent
-   } = ctx || {};
- 
-   console.log('[PrioritizedStudentsList] context keys:', ctx ? Object.keys(ctx) : 'NO CONTEXT');
+      prioritizedStudents: contextPrioritizedStudents,
+      updatePriorityStudentCount,
+      priorityStudentCount,
+      classes,
+      markedPriorityStudentIds,
+      markStudentAsPriorityHandled,
+      resetPriorityList
+    } = ctx || {};
   
-  // Initialize state from sessionStorage
-  const [markedStudentIds, setMarkedStudentIds] = useState(() => {
-    const storedIds = sessionStorage.getItem('markedPriorityStudents');
-    return storedIds ? new Set(JSON.parse(storedIds)) : new Set();
-  });
-
-  // Effect to update sessionStorage when state changes
-  useEffect(() => {
-    sessionStorage.setItem('markedPriorityStudents', JSON.stringify(Array.from(markedStudentIds)));
-  }, [markedStudentIds]);
-
-  const handleStudentClick = useCallback((studentId) => {
-    setMarkedStudentIds(prevIds => new Set(prevIds).add(studentId));
-    // Add to recently accessed students for quick access in dropdowns
-    addRecentlyAccessedStudent(studentId);
-    // No need to explicitly save here, the useEffect above handles it
-  }, [addRecentlyAccessedStudent]);
-
-  const handleResetList = useCallback(() => {
-    sessionStorage.removeItem('markedPriorityStudents');
-    setMarkedStudentIds(new Set());
-  }, []);
+    console.log('[PrioritizedStudentsList] context keys:', ctx ? Object.keys(ctx) : 'NO CONTEXT');
+ 
+   const handleStudentClick = useCallback((studentId) => {
+     if (markStudentAsPriorityHandled) {
+       markStudentAsPriorityHandled(studentId);
+     }
+   }, [markStudentAsPriorityHandled]);
+ 
+   const handleResetList = useCallback(() => {
+     if (resetPriorityList) {
+       resetPriorityList();
+     }
+   }, [resetPriorityList]);
   
   // Use the current priority count from context, but initialize with the prop
   useEffect(() => {
@@ -208,7 +199,9 @@ const PrioritizedStudentsList = ({ defaultCount = 8, filterClassId = 'all' }) =>
   // Use the memoized prioritized students array from context
   // Filter to use only the number specified by count
   const allPrioritizedStudents = filteredPrioritizedStudents.slice(0, count);
-  const prioritizedStudents = allPrioritizedStudents.filter(student => !markedStudentIds.has(student.id));
+  const prioritizedStudents = allPrioritizedStudents.filter(student =>
+    !markedPriorityStudentIds || !markedPriorityStudentIds.has(student.id)
+  );
   
   const handleCountChange = (event, newValue) => {
     setCount(newValue);
