@@ -5,10 +5,10 @@ This comprehensive application helps track reading sessions for students, manage
 
 ## Architecture (Current)
 - **Frontend**: React single-page application with Material-UI components
-- **Backend/API**: Node.js/Express server with enhanced endpoints
-- **Data Persistence**: JSON file storage (`app_data.json`) with expanded data structures
+- **Backend/API**: Cloudflare Worker using Hono framework
+- **Data Persistence**: Cloudflare KV Storage (`READING_MANAGER_KV`)
 - **AI Integration**: Multi-provider support (Anthropic, OpenAI, Gemini) for intelligent book recommendations
-- **Deployment**: Supports both Docker containers and Cloudflare Workers deployment
+- **Deployment**: Cloudflare Workers (Primary)
 
 ## Key Features
 
@@ -57,10 +57,10 @@ This comprehensive application helps track reading sessions for students, manage
 - **JSON Editor**: Direct data editing capabilities for advanced users
 
 ## Data Storage
-- **File**: `/config/app_data.json` (within the container, mapped to host's `./config/app_data.json`)
-- **Format**: Enhanced JSON structure with expanded data models
+- **Primary**: Cloudflare KV (`READING_MANAGER_KV`)
+- **Format**: JSON data stored in KV keys (e.g., `students`, `books`, `classes`)
 
-### Enhanced Data Structures (`app_data.json`)
+### Data Structures
 
 The application now uses a comprehensive data model:
 
@@ -207,14 +207,11 @@ The application integrates with multiple AI providers (Anthropic, OpenAI, Gemini
 3. Start the development server: `npm run start`
 4. Access at `http://localhost:3000`
 
-### Docker Deployment
-1. Ensure Docker and Docker Compose are installed
-2. Create a `./config` directory in the project root
-3. Run `docker-compose up -d` from the project root
-4. Access the application at `http://localhost:8080` (or as configured)
-
-### Cloudflare Workers Deployment
+### Cloudflare Workers Deployment (Primary)
 1. Configure `wrangler.toml` with KV namespace
 2. Set up environment variables in Cloudflare dashboard
 3. Deploy using `wrangler deploy`
 4. Access via your Cloudflare Workers domain
+
+### Docker Deployment (Legacy)
+Docker support is maintained for legacy purposes but Cloudflare Workers is the primary deployment target.

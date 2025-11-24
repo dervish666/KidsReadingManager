@@ -10,7 +10,7 @@ This file provides guidance to agents when working with code in this repository.
 - `npm run migrate` - Run data migration script
 
 ## Architecture
-- **Backend**: Cloudflare Worker (`src/worker.js`) + KV storage
+- **Backend**: Cloudflare Worker (`src/worker.js`) + KV storage (Cloudflare Only)
 - **Frontend**: React (Rsbuild)
 - **Data Storage**: Cloudflare KV (`READING_MANAGER_KV`)
 - API routes are defined in `src/routes/` using Hono
@@ -22,12 +22,13 @@ This file provides guidance to agents when working with code in this repository.
 
 ## Non-Standard Patterns
 - React Context (`src/contexts/AppContext.js`) handles ALL API calls and optimistic updates
+- **Authentication**: All internal API calls MUST use `fetchWithAuth` from `AppContext` to ensure proper authentication headers are sent.
 - API calls use relative `/api` paths (same-origin serving)
 - UUID generation uses Web Crypto API (`src/utils/helpers.js`) for Worker compatibility
 - Book autocomplete requires `bookId` field in sessions for tracking
 
 ## Environment-Specific Gotchas
 - `wrangler.toml` requires KV namespace creation before first deploy
-- Docker serves on port 8080 (maps to internal 3000)
+- Docker support is deprecated/legacy; primary deployment is Cloudflare Workers
 - AI configuration (Provider/API Key) can be set via Settings UI or `ANTHROPIC_API_KEY` env var (fallback)
 - Worker environment detection: `env.READING_MANAGER_KV` presence

@@ -30,7 +30,7 @@ import QuickEntry from './QuickEntry';
 import BookAutocomplete from './BookAutocomplete';
 
 const SessionForm = () => {
-  const { students, addReadingSession, classes, recentlyAccessedStudents, books } = useAppContext(); // <-- ADDED books
+  const { students, addReadingSession, classes, recentlyAccessedStudents, books, fetchWithAuth } = useAppContext(); // <-- ADDED books
 
   // Helper function to get book display info
   const getBookInfo = (bookId) => {
@@ -406,7 +406,7 @@ const SessionForm = () => {
                           };
 
                           try {
-                            const response = await fetch(`/api/books/${selectedBookId}`, {
+                            const response = await fetchWithAuth(`/api/books/${selectedBookId}`, {
                               method: 'PUT',
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify(updated),

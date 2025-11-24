@@ -151,7 +151,7 @@ const BookManager = () => {
     if (!confirmDelete) return;
 
     try {
-      const response = await fetch(`/api/books/${confirmDelete.id}`, { method: 'DELETE' });
+      const response = await fetchWithAuth(`/api/books/${confirmDelete.id}`, { method: 'DELETE' });
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);
       }
@@ -352,7 +352,7 @@ const BookManager = () => {
       }
 
       // Use bulk import endpoint for efficiency (avoids KV rate limits)
-      const response = await fetch('/api/books/bulk', {
+      const response = await fetchWithAuth('/api/books/bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(validBooks),

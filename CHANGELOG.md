@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.23.4] - 2025-11-24
+
+### Fixed
+- **Authentication**: Audited and updated all internal API calls to use `fetchWithAuth` to ensure consistent authentication.
+- **Components**: Updated `SessionForm` and `BookManager` to use authenticated fetch for book operations.
+
+### Documentation
+- **Architecture**: Updated documentation to reflect Cloudflare Workers as the primary deployment target and deprecated Docker/Node.js legacy support.
+
 ## [0.23.3] - 2025-11-24
 
 ### Fixed
