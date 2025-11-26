@@ -402,27 +402,43 @@ const BookRecommendations = () => {
           <Grid container spacing={3}>
             {enhancedRecommendations.slice(0, 4).map((book, index) => (
               <Grid item xs={12} sm={6} key={index}>
-                <Card elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <Card elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'row' }}>
                   {book.coverUrl && (
-                    <CardMedia
-                      component="img"
-                      height="200"
-                      image={book.coverUrl}
-                      alt={`Cover of ${book.title}`}
-                      sx={{ objectFit: 'cover' }}
-                      onError={(e) => {
-                        e.target.style.display = 'none';
+                    <Box
+                      sx={{
+                        flexShrink: 0,
+                        width: 120,
+                        minHeight: 180,
+                        position: 'relative',
+                        backgroundColor: 'grey.100'
                       }}
-                    />
+                    >
+                      <CardMedia
+                        component="img"
+                        image={book.coverUrl}
+                        alt={`Cover of ${book.title}`}
+                        sx={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          position: 'absolute',
+                          top: 0,
+                          left: 0
+                        }}
+                        onError={(e) => {
+                          e.target.parentElement.style.display = 'none';
+                        }}
+                      />
+                    </Box>
                   )}
-                  <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                  <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                     <Typography variant="h6" component="h3" gutterBottom sx={{ fontSize: '1.1rem' }}>
                       {book.title}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" gutterBottom>
                       {book.author && `by ${book.author}`}
                     </Typography>
-                    <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+                    <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap', gap: 0.5 }}>
                       {book.genre && (
                         <Chip label={book.genre} size="small" color="secondary" />
                       )}
@@ -434,7 +450,18 @@ const BookRecommendations = () => {
                       )}
                     </Stack>
                     {book.description && (
-                      <Typography variant="body2" color="text.secondary" sx={{ flexGrow: 1, mb: 2 }}>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{
+                          flexGrow: 1,
+                          mb: 2,
+                          overflow: 'hidden',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 3,
+                          WebkitBoxOrient: 'vertical'
+                        }}
+                      >
                         {book.description}
                       </Typography>
                     )}
