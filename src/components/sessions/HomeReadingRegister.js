@@ -400,7 +400,7 @@ const HomeReadingRegister = () => {
   return (
     <Box>
       <Typography variant="h5" component="h1" gutterBottom>
-        Home Reading Register
+        Reading Record
       </Typography>
 
       {/* Controls Section */}

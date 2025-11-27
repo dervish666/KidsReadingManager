@@ -123,7 +123,7 @@ function AppContent() {
         >
           <BottomNavigationAction label="Students" icon={<PeopleIcon />} />
           <BottomNavigationAction label="Reading" icon={<MenuBookIcon />} />
-          <BottomNavigationAction label="Home" icon={<HomeIcon />} />
+          <BottomNavigationAction label="Record" icon={<HomeIcon />} />
           <BottomNavigationAction label="Stats" icon={<BarChartIcon />} />
           <BottomNavigationAction label="Recommend" icon={<StarIcon />} />
           <BottomNavigationAction label="Books" icon={<LibraryBooksIcon />} />
