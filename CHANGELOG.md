@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.24.2] - 2025-11-27
+
+### Fixed
+- **Reading Record Page**: Fixed multiple bugs in the home reading register:
+  - Added clear button (X) on each pupil's row to allow correcting/removing entries
+  - Fixed 2+ button to correctly add the specified number of sessions even when the row had no previous entry
+  - Fixed state change behavior - clicking any status button (✓, 2+, A, •) now properly replaces the previous state instead of adding to it
+  - Absent (A) and No Record (•) entries no longer incorrectly increment the total sessions count
+
 ## [0.24.1] - 2025-11-27
 
 ### Removed
