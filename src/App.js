@@ -5,6 +5,7 @@ import BottomNavigation from '@mui/material/BottomNavigation';
 import BottomNavigationAction from '@mui/material/BottomNavigationAction';
 import PeopleIcon from '@mui/icons-material/People';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
+import HomeIcon from '@mui/icons-material/Home';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import StarIcon from '@mui/icons-material/Star';
 import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
@@ -14,6 +15,7 @@ import { AppProvider, useAppContext } from './contexts/AppContext';
 import Login from './components/Login';
 import StudentList from './components/students/StudentList';
 import SessionForm from './components/sessions/SessionForm';
+import HomeReadingRegister from './components/sessions/HomeReadingRegister';
 import ReadingStats from './components/stats/ReadingStats';
 import BookRecommendations from './components/BookRecommendations';
 import BookManager from './components/books/BookManager';
@@ -34,12 +36,14 @@ function AppContent() {
       case 1:
         return <SessionForm />;
       case 2:
-        return <ReadingStats />;
+        return <HomeReadingRegister />;
       case 3:
-        return <BookRecommendations />;
+        return <ReadingStats />;
       case 4:
-        return <BookManager />;
+        return <BookRecommendations />;
       case 5:
+        return <BookManager />;
+      case 6:
         return <SettingsPage />;
       default:
         return <StudentList />;
@@ -119,8 +123,9 @@ function AppContent() {
         >
           <BottomNavigationAction label="Students" icon={<PeopleIcon />} />
           <BottomNavigationAction label="Reading" icon={<MenuBookIcon />} />
+          <BottomNavigationAction label="Home" icon={<HomeIcon />} />
           <BottomNavigationAction label="Stats" icon={<BarChartIcon />} />
-          <BottomNavigationAction label="Recommendations" icon={<StarIcon />} />
+          <BottomNavigationAction label="Recommend" icon={<StarIcon />} />
           <BottomNavigationAction label="Books" icon={<LibraryBooksIcon />} />
           <BottomNavigationAction label="Settings" icon={<SettingsIcon />} />
         </BottomNavigation>
