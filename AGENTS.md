@@ -29,6 +29,5 @@ This file provides guidance to agents when working with code in this repository.
 
 ## Environment-Specific Gotchas
 - `wrangler.toml` requires KV namespace creation before first deploy
-- Docker support is deprecated/legacy; primary deployment is Cloudflare Workers
 - AI configuration (Provider/API Key) can be set via Settings UI or `ANTHROPIC_API_KEY` env var (fallback)
 - Worker environment detection: `env.READING_MANAGER_KV` presence

@@ -24,27 +24,25 @@
 - **uuid v11**: For generating unique identifiers (updated from v9)
 
 ### Deployment
-- **Docker**: Containerization for deployment
-- **Docker Compose**: Multi-container orchestration
-- **Nginx**: Web server and reverse proxy
+- **Cloudflare Workers**: Serverless deployment platform
+- **Cloudflare KV**: Key-value storage for data persistence
 
 ## Development Setup
 1. **Local Development**:
    - Node.js and npm required
    - Run `npm install` to install dependencies
-   - Run `npm start` to start the development server
-   - Access at http://localhost:3000
+   - Run `npm run start:dev` to start both frontend and worker
+   - Access at http://localhost:3001 (frontend) or http://localhost:8787 (worker)
 
-2. **Docker Deployment**:
-   - Docker and Docker Compose required
-   - Run `docker-compose up -d` to build and start containers
-   - Access at http://your-server-ip:8080
+2. **Cloudflare Deployment**:
+   - Cloudflare account required
+   - Configure `wrangler.toml` with KV namespace
+   - Run `npm run deploy` to deploy to Cloudflare Workers
 
 ## Technical Constraints
 - Designed for up to 30 students
 - Mobile-friendly interface with touch targets
-- Data integrity between local and remote storage
-- Persistent storage using Docker volumes
+- Data integrity with Cloudflare KV storage
 - API endpoints for CRUD operations on student data
 - Performance optimizations for state management
 - Material UI v7 Grid API for responsive layouts

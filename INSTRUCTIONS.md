@@ -285,15 +285,6 @@ See the [Cloudflare Frontend Serving](./cline_docs/cloudflare_frontend_serving.m
 For AI-powered book recommendations, you'll need:
 - `ANTHROPIC_API_KEY`: Required for AI-powered recommendations
 
-## Docker Deployment (Alternative)
-
-If you prefer Docker deployment:
-
-1. Ensure Docker and Docker Compose are installed
-2. Create a `./config` directory in the project root
-3. Run `docker-compose up -d` from the project root
-4. Access the application at `http://localhost:8080` (or as configured)
-
 ## Troubleshooting
 
 ### Common Issues

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.24.1] - 2025-11-27
+
+### Removed
+- **Docker Support**: Removed all Docker-related files (Dockerfile, docker-compose.yml, .dockerignore, nginx.conf) as the application now uses Cloudflare Workers exclusively.
+
+### Documentation
+- Updated all documentation to remove Docker references and reflect Cloudflare Workers as the sole deployment target.
+
 ## [0.24.0] - 2025-11-27
 
 ### Added
@@ -27,7 +35,7 @@
 - **Components**: Updated `SessionForm` and `BookManager` to use authenticated fetch for book operations.
 
 ### Documentation
-- **Architecture**: Updated documentation to reflect Cloudflare Workers as the primary deployment target and deprecated Docker/Node.js legacy support.
+- **Architecture**: Updated documentation to reflect Cloudflare Workers as the primary deployment target.
 
 ## [0.23.3] - 2025-11-24
 

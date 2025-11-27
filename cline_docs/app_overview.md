@@ -226,11 +226,8 @@ The application integrates with multiple AI providers (Anthropic, OpenAI, Gemini
 3. Start the development server: `npm run start`
 4. Access at `http://localhost:3000`
 
-### Cloudflare Workers Deployment (Primary)
+### Cloudflare Workers Deployment
 1. Configure `wrangler.toml` with KV namespace
 2. Set up environment variables in Cloudflare dashboard
 3. Deploy using `wrangler deploy`
 4. Access via your Cloudflare Workers domain
-
-### Docker Deployment (Legacy)
-Docker support is maintained for legacy purposes but Cloudflare Workers is the primary deployment target.
