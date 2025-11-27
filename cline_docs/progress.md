@@ -13,6 +13,11 @@
   - Adding notes to reading sessions
   - Editing and deleting existing sessions
   - Viewing all sessions for a specific student
+  - **Reading Record (Home Reading Register)**:
+    - Class-wide home reading entry with register-style grid
+    - Quick status buttons (✓, 2+, A, •)
+    - Book persistence per student
+    - Session totals and summaries
   
 - **Data Visualization**:
   - Visual indicators showing reading status
@@ -60,6 +65,7 @@
 
 ## Changelog
 
+- **2025-11-27**: Added Reading Record page for quick class-wide home reading entry with register-style grid, quick status buttons, and book persistence.
 - **2025-04-21**: Updated key development dependencies to their latest versions (Wrangler 4.12.0, @rsbuild/core 1.3.9, Hono 4.7.7). Incremented version to 1.0.2.
 - **2025-04-03**: Refactored data persistence to use a single Docker container with a host-mounted `./config` volume for `app_data.json`, removing the separate API server container. Simplified architecture and enabled easier data access/backup.
 - **2025-04-03**: Enhanced UI with a bookshelf-themed design, improved mobile responsiveness, and made the Stats page tabs scrollable. Added a warm color palette that complements the bookshelf background image.

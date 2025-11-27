@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.24.0] - 2025-11-27
+
+### Added
+- **Reading Record Page**: New page for quickly recording home reading for entire classes, similar to a paper register.
+  - Date picker defaulting to yesterday
+  - Class selection with student list
+  - Quick input buttons: ✓ (read), 2+ (multiple sessions), A (absent), • (no record)
+  - Book selection with persistence (remembers last book per student via localStorage)
+  - Session totals and summary statistics
+  - Search filter to quickly find students
+  - Mobile-responsive design with collapsible input panel
+- **Navigation**: Added "Record" tab to bottom navigation for accessing the Reading Record page
+
+### Changed
+- **Session Data**: Home reading sessions now include `location: 'home'` field to distinguish from school reading
+- **Status Markers**: Special notes markers (`[ABSENT]`, `[NO_RECORD]`) used to track non-reading statuses
+
 ## [0.23.5] - 2025-11-24
 
 ### Added

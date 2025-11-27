@@ -19,6 +19,12 @@ This comprehensive application helps track reading sessions for students, manage
   - Reading assessments and progress notes
   - School vs. home reading environment tracking
   - Date and time tracking for detailed analytics
+- **Reading Record (Home Reading Register)**: Quick class-wide home reading entry:
+  - Register-style grid view for efficient data entry
+  - Quick status buttons: ✓ (read), 2+ (multiple), A (absent), • (no record)
+  - Book persistence per student (remembers current book)
+  - Session totals and daily summaries
+  - Date picker defaulting to yesterday
 - **Class Management**: Organize students into classes with teacher assignments
 - **Data Visualization**: Advanced charts and statistics for reading patterns
 
@@ -134,12 +140,14 @@ The application now uses a comprehensive data model:
 ## User Interface Overview
 
 ### Navigation Structure
-The application uses a bottom navigation bar with five main sections:
+The application uses a bottom navigation bar with seven main sections:
 1. **Students** - Student management and profiles
-2. **Reading** - Reading session entry and tracking
-3. **Stats** - Analytics and reading statistics
-4. **Recommendations** - AI-powered book recommendations
-5. **Books** - Book database management and CRUD operations
+2. **Reading** - Individual reading session entry and tracking
+3. **Record** - Quick class-wide home reading register
+4. **Stats** - Analytics and reading statistics
+5. **Recommend** - AI-powered book recommendations
+6. **Books** - Book database management and CRUD operations
+7. **Settings** - Application configuration and AI settings
 
 ### Key User Workflows
 
@@ -164,12 +172,26 @@ The application uses a bottom navigation bar with five main sections:
    - Age range suitability
    - Specific recommendation reasoning
 
-#### Tracking Reading Sessions
-1. Navigate to the Sessions section
+#### Tracking Reading Sessions (Individual)
+1. Navigate to the Reading section
 2. Select student and reading environment (school/home)
 3. Enter book information (with autocomplete support)
 4. Add assessment level and notes
 5. Save session for progress tracking
+
+#### Recording Home Reading (Class Register)
+1. Navigate to the Record section
+2. Select the date (defaults to yesterday)
+3. Choose the class from the dropdown
+4. Click on a student row to select them
+5. Optionally set/change their current book (persists automatically)
+6. Click the appropriate status button:
+   - ✓ for read once
+   - 2+ for multiple sessions (enter count)
+   - A for absent
+   - • for no reading record received
+7. System automatically advances to next student
+8. View totals in the summary section at the bottom
 
 ### Class Management
 - **Class Creation**: Add classes with teacher assignments
@@ -195,9 +217,6 @@ The application integrates with multiple AI providers (Anthropic, OpenAI, Gemini
 - Considers age-appropriate content
 - Balances educational value with student interests
 - Provides reasoning for each recommendation
-
-### Environment Variables Required
-- `ANTHROPIC_API_KEY`: Optional fallback for AI-powered recommendations (if not configured in UI)
 
 ## Running the Application
 
