@@ -85,6 +85,7 @@ const HomeReadingRegister = () => {
     classes,
     books,
     addReadingSession,
+    deleteReadingSession,
     reloadDataFromServer
   } = useAppContext();
 
@@ -226,11 +227,40 @@ const HomeReadingRegister = () => {
     return totals;
   }, [classStudents, selectedDate, getStudentReadingStatus]);
 
+  // Clear all sessions for a student on the selected date
+  const handleClearEntry = async (student) => {
+    if (!student) return;
+    
+    try {
+      const { sessions } = getStudentReadingStatus(student, selectedDate);
+      
+      // Delete all sessions for this date
+      for (const session of sessions) {
+        await deleteReadingSession(student.id, session.id);
+      }
+      
+      setSnackbarMessage(`Cleared entry for ${student.name}`);
+      setSnackbarSeverity('info');
+      setSnackbarOpen(true);
+    } catch (error) {
+      console.error('Error clearing entry:', error);
+      setSnackbarMessage('Failed to clear entry');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    }
+  };
+
   // Handle recording a reading session
   const handleRecordReading = async (status, count = 1) => {
     if (!selectedStudent) return;
 
     try {
+      // First, clear any existing sessions for this date (allows changing state)
+      const { sessions: existingSessions } = getStudentReadingStatus(selectedStudent, selectedDate);
+      for (const session of existingSessions) {
+        await deleteReadingSession(selectedStudent.id, session.id);
+      }
+      
       const bookId = studentBooks[selectedStudent.id] || null;
       
       // Create session(s) based on status
@@ -578,6 +608,7 @@ const HomeReadingRegister = () => {
                 <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', minWidth: 50 }}>
                   {getWeekInfo(selectedDate).dayName}
                 </TableCell>
+                <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', minWidth: 40 }}>Clear</TableCell>
                 <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', minWidth: 60 }}>Total</TableCell>
                 <TableCell sx={{ fontWeight: 'bold', minWidth: 150 }}>Current Book</TableCell>
               </TableRow>
@@ -586,35 +617,56 @@ const HomeReadingRegister = () => {
               {filteredStudents.map(student => {
                 const lastBook = getStudentLastBook(student.id);
                 const isSelected = selectedStudent?.id === student.id;
+                const { status } = getStudentReadingStatus(student, selectedDate);
+                const hasEntry = status !== READING_STATUS.NONE;
                 
                 return (
-                  <TableRow 
+                  <TableRow
                     key={student.id}
                     hover
                     selected={isSelected}
-                    sx={{ 
+                    sx={{
                       cursor: 'pointer',
                       '&.Mui-selected': {
                         backgroundColor: 'primary.light'
                       }
                     }}
                   >
-                    <TableCell 
+                    <TableCell
                       onClick={() => setSelectedStudent(student)}
                       sx={{ fontWeight: isSelected ? 'bold' : 'normal' }}
                     >
                       {student.name}
                     </TableCell>
                     {renderStatusCell(student)}
-                    <TableCell 
+                    <TableCell sx={{ textAlign: 'center', padding: '4px' }}>
+                      {hasEntry && (
+                        <Tooltip title="Clear entry">
+                          <IconButton
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleClearEntry(student);
+                            }}
+                            sx={{
+                              color: 'error.main',
+                              '&:hover': { backgroundColor: 'error.light' }
+                            }}
+                          >
+                            <CloseIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                    </TableCell>
+                    <TableCell
                       sx={{ textAlign: 'center', fontWeight: 'bold' }}
                       onClick={() => setSelectedStudent(student)}
                     >
                       {getStudentTotalSessions(student)}
                     </TableCell>
-                    <TableCell 
+                    <TableCell
                       onClick={() => setSelectedStudent(student)}
-                      sx={{ 
+                      sx={{
                         fontSize: '0.85rem',
                         color: lastBook ? 'text.primary' : 'text.secondary',
                         fontStyle: lastBook ? 'normal' : 'italic'
@@ -627,7 +679,7 @@ const HomeReadingRegister = () => {
               })}
               {filteredStudents.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} sx={{ textAlign: 'center', py: 4 }}>
+                  <TableCell colSpan={5} sx={{ textAlign: 'center', py: 4 }}>
                     <Typography color="text.secondary">
                       {searchQuery ? 'No students match your search' : 'No students in this class'}
                     </Typography>
