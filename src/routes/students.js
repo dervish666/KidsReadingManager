@@ -44,8 +44,11 @@ studentsRouter.post('/', async (c) => {
   const newStudent = {
     id: body.id || uuidv4(),
     name: body.name,
+    classId: body.classId || null,
     lastReadDate: body.lastReadDate || null,
-    readingSessions: body.readingSessions || []
+    readingSessions: body.readingSessions || [],
+    likes: body.likes || [],
+    dislikes: body.dislikes || []
   };
   
   // Save student
@@ -121,8 +124,11 @@ studentsRouter.post('/bulk', async (c) => {
   const newStudents = body.map(student => ({
     id: student.id || uuidv4(),
     name: student.name,
+    classId: student.classId || null,
     lastReadDate: student.lastReadDate || null,
-    readingSessions: student.readingSessions || []
+    readingSessions: student.readingSessions || [],
+    likes: student.likes || [],
+    dislikes: student.dislikes || []
   }));
   
   // Add students

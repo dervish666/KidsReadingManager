@@ -13,8 +13,6 @@ import {
   Divider,
   Alert,
   Snackbar,
-  ToggleButtonGroup,
-  ToggleButton,
   Card,
   CardContent,
   RadioGroup,
@@ -26,7 +24,6 @@ import StarIcon from '@mui/icons-material/Star';
 import { useAppContext } from '../../contexts/AppContext';
 import AssessmentSelector from './AssessmentSelector';
 import SessionNotes from './SessionNotes';
-import QuickEntry from './QuickEntry';
 import BookAutocomplete from './BookAutocomplete';
 
 const SessionForm = () => {
@@ -55,7 +52,6 @@ const SessionForm = () => {
   const [assessment, setAssessment] = useState('independent');
   const [notes, setNotes] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [mode, setMode] = useState('standard');
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [error, setError] = useState('');
   const [selectedBookId, setSelectedBookId] = useState(''); // <-- ADDED for book tracking
@@ -115,12 +111,6 @@ const SessionForm = () => {
 
   const handleLocationChange = (event) => { // <-- ADDED for location selection
     setSelectedLocation(event.target.value);
-  };
-
-  const handleModeChange = (event, newMode) => {
-    if (newMode !== null) {
-      setMode(newMode);
-    }
   };
 
   const handleSubmit = (event) => {
@@ -196,29 +186,8 @@ const SessionForm = () => {
         <Typography variant="h5" component="h1" gutterBottom>
           Record Reading Session
         </Typography>
-        
-        <ToggleButtonGroup
-          value={mode}
-          exclusive
-          onChange={handleModeChange}
-          aria-label="session mode"
-          sx={{
-            mb: 3,
-            display: 'flex',
-            width: '100%',
-            '& .MuiToggleButton-root': { flex: 1, minWidth: 0 }
-          }}
-        >
-          <ToggleButton value="standard" aria-label="standard mode">
-            Standard
-          </ToggleButton>
-          <ToggleButton value="quick" aria-label="quick entry mode">
-            Quick Entry
-          </ToggleButton>
-        </ToggleButtonGroup>
       </Box>
-      {mode === 'standard' ? (
-        <Paper sx={{
+      <Paper sx={{
           p: 3,
           pb: 'calc(env(safe-area-inset-bottom) + 16px)',
           background: 'rgba(255, 255, 255, 0.9)',
@@ -565,9 +534,6 @@ const SessionForm = () => {
             </Box>
           )}
         </Paper>
-      ) : (
-        <QuickEntry />
-      )}
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={3000}

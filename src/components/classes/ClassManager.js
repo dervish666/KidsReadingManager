@@ -17,7 +17,11 @@ import {
   DialogActions,
   Switch,
   FormControlLabel,
-  Chip
+  Chip,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -25,6 +29,9 @@ import SaveIcon from '@mui/icons-material/Save';
 import BlockIcon from '@mui/icons-material/Block';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { useAppContext } from '../../contexts/AppContext';
+
+// Year options for the dropdown (Year 1 to Year 11)
+const YEAR_OPTIONS = Array.from({ length: 11 }, (_, i) => `Year ${i + 1}`);
 
 const ClassManager = () => {
   const { classes, addClass, updateClass, deleteClass } = useAppContext();
@@ -104,13 +111,22 @@ const ClassManager = () => {
       <Box component="form" onSubmit={handleAddClass} sx={{ mt: 2 }}>
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} sm={5}>
-            <TextField
-              label="Class Name (e.g., Year 3 Robins)"
-              value={newClassName}
-              onChange={(e) => setNewClassName(e.target.value)}
-              fullWidth
-              size="small"
-            />
+            <FormControl fullWidth size="small">
+              <InputLabel id="new-class-year-label">Year Group</InputLabel>
+              <Select
+                labelId="new-class-year-label"
+                id="new-class-year-select"
+                value={newClassName}
+                label="Year Group"
+                onChange={(e) => setNewClassName(e.target.value)}
+              >
+                {YEAR_OPTIONS.map((year) => (
+                  <MenuItem key={year} value={year}>
+                    {year}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Grid>
 
           <Grid item xs={12} sm={5}>
@@ -209,13 +225,22 @@ const ClassManager = () => {
           <Box component="form" onSubmit={handleUpdateClass} sx={{ mt: 1 }}>
             <Grid container spacing={2}>
               <Grid item xs={12}>
-                <TextField
-                  label="Class Name"
-                  value={editClassName}
-                  onChange={(e) => setEditClassName(e.target.value)}
-                  fullWidth
-                  size="small"
-                />
+                <FormControl fullWidth size="small">
+                  <InputLabel id="edit-class-year-label">Year Group</InputLabel>
+                  <Select
+                    labelId="edit-class-year-label"
+                    id="edit-class-year-select"
+                    value={editClassName}
+                    label="Year Group"
+                    onChange={(e) => setEditClassName(e.target.value)}
+                  >
+                    {YEAR_OPTIONS.map((year) => (
+                      <MenuItem key={year} value={year}>
+                        {year}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
               </Grid>
               <Grid item xs={12}>
                 <TextField

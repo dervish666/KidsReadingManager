@@ -566,6 +566,48 @@ export const AppProvider = ({ children }) => {
     [updateBook]
   );
 
+  // Add a new book
+  const addBook = useCallback(
+    async (title, author = null) => {
+      const newBook = {
+        id: uuidv4(),
+        title,
+        author,
+        genreIds: [],
+        readingLevel: null,
+        ageRange: null,
+        description: null,
+      };
+
+      // Optimistic update
+      const previousBooks = books;
+      setBooks((prev) => [...prev, newBook]);
+
+      try {
+        const response = await fetchWithAuth(`${API_URL}/books`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newBook),
+        });
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+
+        const savedBook = await response.json();
+        setBooks((prev) => prev.map((b) => (b.id === newBook.id ? savedBook : b)));
+        setApiError(null);
+        return savedBook;
+      } catch (error) {
+        console.error('Error adding book:', error);
+        setApiError(error.message);
+        setBooks(previousBooks);
+        return null;
+      }
+    },
+    [books, fetchWithAuth]
+  );
+
   // Reading session helpers
   const addReadingSession = useCallback(
     async (studentId, sessionData) => {
@@ -820,6 +862,119 @@ export const AppProvider = ({ children }) => {
     [genres, fetchWithAuth]
   );
 
+  // Class management
+  const addClass = useCallback(
+    async (classData) => {
+      const newClass = {
+        id: uuidv4(),
+        name: classData.name,
+        teacherName: classData.teacherName || '',
+        disabled: false,
+      };
+
+      // Optimistic update
+      const previousClasses = classes;
+      setClasses((prev) => [...prev, newClass]);
+
+      try {
+        const response = await fetchWithAuth(`${API_URL}/classes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newClass),
+        });
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+
+        const savedClass = await response.json();
+        setClasses((prev) => prev.map((c) => (c.id === newClass.id ? savedClass : c)));
+        setApiError(null);
+        return savedClass;
+      } catch (error) {
+        console.error('Error adding class:', error);
+        setApiError(error.message);
+        setClasses(previousClasses);
+        return null;
+      }
+    },
+    [classes, fetchWithAuth]
+  );
+
+  const updateClass = useCallback(
+    async (id, updatedFields) => {
+      const existing = classes.find((c) => c.id === id);
+      if (!existing) {
+        console.warn('updateClass: Class not found for id', id);
+        return null;
+      }
+
+      const updatedClass = {
+        ...existing,
+        ...updatedFields,
+      };
+
+      // Optimistic update
+      const previousClasses = classes;
+      setClasses((prev) => prev.map((c) => (c.id === id ? updatedClass : c)));
+
+      try {
+        const response = await fetchWithAuth(`${API_URL}/classes/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedClass),
+        });
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+
+        const savedClass = await response.json();
+        setClasses((prev) => prev.map((c) => (c.id === id ? savedClass : c)));
+        setApiError(null);
+        return savedClass;
+      } catch (error) {
+        console.error('Error updating class:', error);
+        setApiError(error.message);
+        setClasses(previousClasses);
+        return null;
+      }
+    },
+    [classes, fetchWithAuth]
+  );
+
+  const deleteClass = useCallback(
+    async (id) => {
+      // Optimistic update
+      const previousClasses = classes;
+      setClasses((prev) => prev.filter((c) => c.id !== id));
+
+      // Also unassign students from this class
+      const previousStudents = students;
+      setStudents((prev) =>
+        prev.map((s) => (s.classId === id ? { ...s, classId: null } : s))
+      );
+
+      try {
+        const response = await fetchWithAuth(`${API_URL}/classes/${id}`, {
+          method: 'DELETE',
+        });
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+
+        setApiError(null);
+      } catch (error) {
+        console.error('Error deleting class:', error);
+        setApiError(error.message);
+        setClasses(previousClasses);
+        setStudents(previousStudents);
+      }
+    },
+    [classes, students, fetchWithAuth]
+  );
+
   // Helper: Get reading status for a student
   const getReadingStatus = useCallback(
     (student) => {
@@ -989,8 +1144,12 @@ export const AppProvider = ({ children }) => {
     addReadingSession,
     editReadingSession,
     deleteReadingSession,
+    addBook,
     updateBook,
     updateBookField,
+    addClass,
+    updateClass,
+    deleteClass,
     addGenre,
     settings,
     updateSettings,

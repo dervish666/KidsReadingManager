@@ -1,5 +1,43 @@
 # Changelog
 
+## [0.25.3] - 2025-11-28
+
+### Removed
+- **Quick Entry Mode**: Removed the Quick Entry tab from the Record Reading Session page. The standard session form now displays directly without the mode toggle, providing a simpler and more consistent user experience.
+
+## [0.25.2] - 2025-11-28
+
+### Fixed
+- **Student Class Assignment**: Fixed bug where students were not being assigned to their selected class when adding or importing. The backend API route was not including the `classId` field when creating new students, causing all students to be saved as "Unassigned" regardless of the class selected in the dropdown.
+
+## [0.25.1] - 2025-11-28
+
+### Changed
+- **Class Name Field**: Changed the class name input from a free text field to a dropdown selector with Year 1 through Year 11 options. This allows inferring student age from the year group and ensures consistent class naming.
+
+### Fixed
+- **Class Management Functions**: Added missing `addClass`, `updateClass`, and `deleteClass` functions to AppContext. These functions were being called by ClassManager but were never implemented, causing "t is not a function" errors when adding or editing classes.
+
+## [0.25.0] - 2025-11-28
+
+### Added
+- **Cloudflare D1 Database**: Migrated book storage from KV to D1 SQL database for improved scalability (supports 18,000+ books).
+- **D1 Provider**: New `src/data/d1Provider.js` for SQL-based book operations with full CRUD support.
+- **Full-Text Search**: Implemented FTS5 full-text search for efficient book title/author searching.
+- **Pagination Support**: Added paginated book retrieval with `GET /api/books?page=1&limit=50` endpoint.
+- **Book Search API**: New `GET /api/books/search?q=query` endpoint for searching books.
+- **Book Count API**: New `GET /api/books/count` endpoint for total book count.
+- **Bulk Import**: D1 provider supports batch operations (up to 100 statements per batch) for efficient bulk imports.
+
+### Changed
+- **Hybrid Storage Architecture**: Books now use D1 database while students, classes, settings, and genres remain in KV storage.
+- **Provider Pattern**: Updated `src/data/index.js` to auto-detect D1 availability and use appropriate provider.
+- **Book Routes**: Enhanced `src/routes/books.js` with search, pagination, and count endpoints.
+
+### Technical
+- **Database Schema**: Created `migrations/0001_create_books_table.sql` with indexes and FTS5 triggers.
+- **D1 Binding**: Added `READING_MANAGER_DB` binding to `wrangler.toml`.
+
 ## [0.24.2] - 2025-11-27
 
 ### Fixed

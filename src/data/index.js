@@ -1,15 +1,22 @@
 /**
  * Data Provider Exports
  * Conditionally exports the correct data provider functions based on environment
+ *
+ * Storage Strategy:
+ * - D1 Database: Used for books (scalable SQL storage for 18,000+ books)
+ * - KV Storage: Used for students, classes, settings, genres (smaller datasets)
+ * - JSON: Used for local development only
  */
 
 import * as kvProvider from './kvProvider.js';
+import * as d1Provider from './d1Provider.js';
 
 /**
  * Detects the appropriate storage mechanism and returns the corresponding provider functions
  * Priority order:
- * 1. STORAGE_TYPE environment variable (if set to 'kv' or 'json')
- * 2. Environment detection (KV available = Cloudflare Worker, otherwise local JSON)
+ * 1. D1 database if available (for books - scalable SQL storage)
+ * 2. STORAGE_TYPE environment variable (if set to 'kv' or 'json')
+ * 3. Environment detection (KV available = Cloudflare Worker, otherwise local JSON)
  *
  * @param {Object|null} env - Worker environment (null for Node.js local development)
  * @returns {Object} Object with all provider functions (getAllBooks, getBookById, addBook, updateBook, deleteBook)
@@ -17,6 +24,12 @@ import * as kvProvider from './kvProvider.js';
 async function createProvider(env = null) {
   // Check for explicit STORAGE_TYPE environment variable first
   const storageType = typeof process !== 'undefined' ? (process.env.STORAGE_TYPE || process.env.storage_type) : null;
+
+  // If D1 database is available, use it for books (preferred for large collections)
+  if (env && env.READING_MANAGER_DB) {
+    console.log('Using D1 database for books (scalable SQL storage)');
+    return createD1Provider(env);
+  }
 
   if (storageType === 'kv') {
     console.log('Using KV storage (explicitly set via STORAGE_TYPE)');
@@ -28,9 +41,9 @@ async function createProvider(env = null) {
     return await createJSONProvider();
   }
 
-  // Auto-detect based on environment
+  // Auto-detect based on environment - fallback to KV if D1 not available
   if (env && env.READING_MANAGER_KV) {
-    console.log('Using KV storage (auto-detected Cloudflare Worker environment)');
+    console.log('Using KV storage (auto-detected Cloudflare Worker environment, D1 not available)');
     return createKVProvider(env);
   }
 
@@ -82,7 +95,24 @@ async function createJSONProvider() {
   };
 }
 
-// Wrapper for KV provider (already async)
+// Wrapper for D1 provider (SQL database for books)
+function createD1Provider(env) {
+  return {
+    getAllBooks: (...args) => d1Provider.getAllBooks(env || {}, ...args),
+    getBookById: (...args) => d1Provider.getBookById(env || {}, ...args),
+    addBook: (...args) => d1Provider.addBook(env || {}, ...args),
+    updateBook: (...args) => d1Provider.updateBook(env || {}, ...args),
+    deleteBook: (...args) => d1Provider.deleteBook(env || {}, ...args),
+    addBooksBatch: (...args) => d1Provider.addBooksBatch(env || {}, ...args),
+    updateBooksBatch: (...args) => d1Provider.updateBooksBatch(env || {}, ...args),
+    // D1-specific methods for enhanced functionality
+    searchBooks: (...args) => d1Provider.searchBooks(env || {}, ...args),
+    getBooksPaginated: (...args) => d1Provider.getBooksPaginated(env || {}, ...args),
+    getBookCount: (...args) => d1Provider.getBookCount(env || {})
+  };
+}
+
+// Wrapper for KV provider (already async) - fallback for when D1 is not available
 function createKVProvider(env) {
   return {
     getAllBooks: (...args) => kvProvider.getAllBooks(env || {}, ...args),
@@ -91,7 +121,33 @@ function createKVProvider(env) {
     updateBook: (...args) => kvProvider.updateBook(env || {}, ...args),
     deleteBook: (...args) => kvProvider.deleteBook(env || {}, ...args),
     addBooksBatch: (...args) => kvProvider.addBooksBatch(env || {}, ...args),
-    updateBooksBatch: (...args) => kvProvider.updateBooksBatch(env || {}, ...args)
+    updateBooksBatch: (...args) => kvProvider.updateBooksBatch(env || {}, ...args),
+    // Stub methods for compatibility (KV doesn't have these optimized methods)
+    searchBooks: async (query, limit = 50) => {
+      const books = await kvProvider.getAllBooks(env || {});
+      const lowerQuery = query.toLowerCase();
+      return books
+        .filter(book =>
+          book.title?.toLowerCase().includes(lowerQuery) ||
+          book.author?.toLowerCase().includes(lowerQuery)
+        )
+        .slice(0, limit);
+    },
+    getBooksPaginated: async (page = 1, pageSize = 50) => {
+      const books = await kvProvider.getAllBooks(env || {});
+      const offset = (page - 1) * pageSize;
+      return {
+        books: books.slice(offset, offset + pageSize),
+        total: books.length,
+        page,
+        pageSize,
+        totalPages: Math.ceil(books.length / pageSize)
+      };
+    },
+    getBookCount: async () => {
+      const books = await kvProvider.getAllBooks(env || {});
+      return books.length;
+    }
   };
 }
 

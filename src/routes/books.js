@@ -22,12 +22,69 @@ const booksRouter = new Hono();
 
 /**
  * GET /api/books
- * Get all books
+ * Get all books (with optional pagination)
+ * Query params:
+ * - page: Page number (1-based, optional)
+ * - pageSize: Items per page (default 50, optional)
+ * - search: Search query for title/author (optional)
  */
 booksRouter.get('/', async (c) => {
   const provider = await createProvider(c.env);
+  const { page, pageSize, search } = c.req.query();
+  
+  // If search query provided, use search functionality
+  if (search && search.trim()) {
+    const limit = pageSize ? parseInt(pageSize, 10) : 50;
+    const books = await provider.searchBooks(search.trim(), limit);
+    return c.json(books);
+  }
+  
+  // If pagination params provided, use paginated query
+  if (page) {
+    const pageNum = parseInt(page, 10) || 1;
+    const size = parseInt(pageSize, 10) || 50;
+    const result = await provider.getBooksPaginated(pageNum, size);
+    return c.json(result);
+  }
+  
+  // Default: return all books
   const books = await provider.getAllBooks();
   return c.json(books);
+});
+
+/**
+ * GET /api/books/search
+ * Search books by title or author (full-text search with D1)
+ * Query params:
+ * - q: Search query (required)
+ * - limit: Maximum results (default 50)
+ */
+booksRouter.get('/search', async (c) => {
+  const { q, limit } = c.req.query();
+  
+  if (!q || !q.trim()) {
+    return c.json({ error: 'Search query (q) is required' }, 400);
+  }
+  
+  const provider = await createProvider(c.env);
+  const maxResults = limit ? parseInt(limit, 10) : 50;
+  const books = await provider.searchBooks(q.trim(), maxResults);
+  
+  return c.json({
+    query: q.trim(),
+    count: books.length,
+    books
+  });
+});
+
+/**
+ * GET /api/books/count
+ * Get total book count
+ */
+booksRouter.get('/count', async (c) => {
+  const provider = await createProvider(c.env);
+  const count = await provider.getBookCount();
+  return c.json({ count });
 });
 
 /**
