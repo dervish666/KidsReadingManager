@@ -173,6 +173,18 @@ const HomeReadingRegister = () => {
     const noRecordSession = sessions.find(s => s.notes?.includes('[NO_RECORD]'));
     if (noRecordSession) return { status: READING_STATUS.NO_RECORD, count: 0, sessions };
     
+    // Check for reading count stored in notes (format: [COUNT:N])
+    const sessionWithCount = sessions.find(s => s.notes?.match(/\[COUNT:(\d+)\]/));
+    if (sessionWithCount) {
+      const match = sessionWithCount.notes.match(/\[COUNT:(\d+)\]/);
+      const count = parseInt(match[1], 10);
+      if (count > 1) {
+        return { status: READING_STATUS.MULTIPLE, count, sessions };
+      }
+      return { status: READING_STATUS.READ, count: 1, sessions };
+    }
+    
+    // Legacy: count actual sessions if no COUNT marker
     if (sessions.length === 1) return { status: READING_STATUS.READ, count: 1, sessions };
     return { status: READING_STATUS.MULTIPLE, count: sessions.length, sessions };
   }, []);
@@ -225,9 +237,11 @@ const HomeReadingRegister = () => {
           break;
         case READING_STATUS.ABSENT:
           totals.absent++;
+          // Don't add to totalSessions - student was absent, didn't read
           break;
         case READING_STATUS.NO_RECORD:
           totals.noRecord++;
+          // Don't add to totalSessions - no reading record received
           break;
         default:
           totals.notEntered++;
@@ -273,7 +287,7 @@ const HomeReadingRegister = () => {
       
       const bookId = studentBooks[selectedStudent.id] || null;
       
-      // Create session(s) based on status
+      // Create a single session based on status
       if (status === READING_STATUS.ABSENT) {
         await addReadingSession(selectedStudent.id, {
           date: selectedDate,
@@ -291,19 +305,18 @@ const HomeReadingRegister = () => {
           location: 'home'
         });
       } else {
-        // Record one or more reading sessions
-        for (let i = 0; i < count; i++) {
-          await addReadingSession(selectedStudent.id, {
-            date: selectedDate,
-            assessment: 'independent',
-            notes: '',
-            bookId,
-            location: 'home'
-          });
-        }
+        // Record a single session with count stored in notes
+        // This avoids race conditions with multiple API calls
+        await addReadingSession(selectedStudent.id, {
+          date: selectedDate,
+          assessment: 'independent',
+          notes: count > 1 ? `[COUNT:${count}]` : '',
+          bookId,
+          location: 'home'
+        });
       }
 
-      setSnackbarMessage(`Recorded for ${selectedStudent.name}`);
+      setSnackbarMessage(`Recorded ${count > 1 ? count + ' sessions' : ''} for ${selectedStudent.name}`);
       setSnackbarSeverity('success');
       setSnackbarOpen(true);
 
@@ -432,9 +445,23 @@ const HomeReadingRegister = () => {
   };
 
   // Calculate student's total sessions for the current week/term
+  // Excludes absent and no_record markers - only counts actual reading sessions
+  // Respects [COUNT:N] markers for multiple sessions stored in a single record
   const getStudentTotalSessions = (student) => {
-    // Count all home reading sessions
-    return student.readingSessions.filter(s => s.location === 'home').length;
+    let total = 0;
+    student.readingSessions.forEach(s => {
+      if (s.location !== 'home') return;
+      if (s.notes?.includes('[ABSENT]') || s.notes?.includes('[NO_RECORD]')) return;
+      
+      // Check for count marker
+      const countMatch = s.notes?.match(/\[COUNT:(\d+)\]/);
+      if (countMatch) {
+        total += parseInt(countMatch[1], 10);
+      } else {
+        total += 1;
+      }
+    });
+    return total;
   };
 
   return (

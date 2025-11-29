@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.26.1] - 2025-11-29
+
+### Fixed
+- **Reading Record Totals**: Fixed incorrect totals calculation in the Home Reading Register. Absent and No Record entries no longer increment the total sessions count, as students marked with these statuses didn't actually read.
+- **Student Total Sessions**: Fixed the "Total" column in the register table to exclude absent and no_record marker sessions. Only actual reading sessions are now counted in the student's total.
+- **Summary Statistics**: The summary chips now correctly track and display absent and no_record counts separately without adding them to total sessions.
+- **Multiple Sessions (2+ button)**: Fixed race condition when recording multiple reading sessions. Now stores the count in a single session record using `[COUNT:N]` marker instead of creating multiple records, which was causing data loss due to optimistic update conflicts.
+- **Status Cell Display**: Fixed the status cell to correctly display the number of sessions when using the 2+ button (e.g., shows "3" instead of "✓" when 3 sessions are recorded).
+
 ## [0.26.0] - 2025-11-28
 
 ### Added
