@@ -84,13 +84,13 @@ const BookRecommendations = () => {
 
     const student = students.find(s => s.id === studentId);
     if (student && student.readingSessions) {
-      // Extract unique books read by this student
+      // Extract unique books read by this student (store bookId, resolve title at render time)
       const uniqueBooks = new Map();
       student.readingSessions.forEach(session => {
         if (session.bookId) {
           uniqueBooks.set(session.bookId, {
             id: session.bookId,
-            title: getBookTitle(session.bookId),
+            bookId: session.bookId,
             dateRead: session.date,
             assessment: session.assessment
           });
@@ -282,10 +282,10 @@ const BookRecommendations = () => {
                   {booksRead.length > 0 ? (
                     <List sx={{ maxHeight: 200, overflow: 'auto' }}>
                       {booksRead.map((book, index) => (
-                        <React.Fragment key={book.id}>
-                          <ListItem>
-                            <ListItemText
-                              primary={book.title}
+                          <React.Fragment key={book.id}>
+                            <ListItem>
+                              <ListItemText
+                                primary={getBookTitle(book.bookId)}
                               secondary={
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
                                   <Typography variant="body2" color="text.secondary">

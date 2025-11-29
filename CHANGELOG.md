@@ -1,5 +1,51 @@
 # Changelog
 
+## [0.29.0] - 2025-11-29
+
+### Added
+- **Fill Missing Descriptions**: Added a new "Fill Missing Descriptions" button on the Books page that batch-processes books without descriptions, fetching them from OpenLibrary. Shows progress during lookup and displays results in a dialog for review before applying.
+
+### Changed
+- **Books Page Layout Improvements**:
+  - Reorganized Import/Export section into its own bordered box with Export JSON and Export CSV stacked vertically above Import Books
+  - Moved "Fill Missing Authors" and new "Fill Missing Descriptions" buttons to the right side of the page in separate bordered boxes
+  - Improved visual separation between import/export controls and AI-powered lookup features
+
+## [0.28.0] - 2025-11-29
+
+### Added
+- **Book Details from OpenLibrary**: Added a "Get Details" button in the book edit modal that fetches book descriptions and cover images from OpenLibrary. Descriptions are saved to the database; covers are displayed but not stored.
+- **Book Descriptions in Table**: Book descriptions now appear in the book list between the author chip and delete button, truncated with ellipsis for long text.
+
+### Changed
+- **Books Page UI Improvements**:
+  - Moved the "Include 'Unknown' authors" checkbox into a dedicated box with the "Fill Missing Authors" button for better clarity
+  - Removed the edit button from book rows - clicking anywhere on a book row now opens the edit modal
+  - Expanded the edit modal to include a cover image display area and description field
+  - Made the edit modal wider (md size) to accommodate the new two-column layout with cover image
+
+## [0.27.2] - 2025-11-29
+
+### Changed
+- **Reading Record Layout**: Improved space utilization on the Reading Record page by arranging the "Recording for" section and "Date/Search" controls in a two-column layout on larger screens. On mobile, the sections stack vertically as before.
+
+## [0.27.1] - 2025-11-29
+
+### Changed
+- **Header Navigation**: Removed the Recommendations link from the top navigation bar as it's redundant with the bottom navigation.
+- **Version Display**: Improved version number visibility in the header with a semi-transparent background and white text for better readability against the purple gradient.
+
+## [0.27.0] - 2025-11-29
+
+### Added
+- **Reading History Table**: Added a new table at the bottom of the Reading Record page that displays all reading sessions for the selected class within a configurable date range.
+  - Date range presets: This Week, Last Week, Last Month, or Custom date range
+  - Table shows dates as columns and students as rows
+  - Visual indicators for reading status (✓ for read, number for multiple sessions, A for absent, • for no record, - for not entered)
+  - Total column showing each student's reading count for the selected period
+  - Responsive design with sticky headers and student name column
+  - Legend explaining the status indicators
+
 ## [0.26.1] - 2025-11-29
 
 ### Fixed

@@ -35,6 +35,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { useAppContext } from '../../contexts/AppContext';
 import BookAutocomplete from './BookAutocomplete';
+import ClassReadingHistoryTable from './ClassReadingHistoryTable';
 
 // Reading status types for home reading
 const READING_STATUS = {
@@ -470,151 +471,158 @@ const HomeReadingRegister = () => {
         Reading Record
       </Typography>
 
-      {/* Controls Section */}
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Box sx={{ 
-          display: 'flex', 
-          flexDirection: isMobile ? 'column' : 'row',
-          gap: 2,
-          alignItems: isMobile ? 'stretch' : 'center',
-          flexWrap: 'wrap'
-        }}>
-          {/* Date Picker */}
-          <TextField
-            label="Date"
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            sx={{ minWidth: 150 }}
-            size="small"
-          />
-
-          {/* Search */}
-          <TextField
-            placeholder="Search student..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            size="small"
-            sx={{ minWidth: 150, flexGrow: 1 }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon fontSize="small" />
-                </InputAdornment>
-              )
+      {/* Two-column layout for Recording and Date sections */}
+      <Box sx={{
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        gap: 2,
+        mb: 2
+      }}>
+        {/* Left Column - Input Panel (Recording for) */}
+        <Paper sx={{ p: 2, flex: isMobile ? 'none' : 1 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: isMobile ? 'pointer' : 'default'
             }}
-          />
-
-          {/* Date Display */}
-          <Chip 
-            label={formatDateDisplay(selectedDate)}
-            color="primary"
-            variant="outlined"
-          />
-        </Box>
-      </Paper>
-
-      {/* Input Panel - Collapsible on mobile */}
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Box 
-          sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'space-between',
-            cursor: isMobile ? 'pointer' : 'default'
-          }}
-          onClick={() => isMobile && setShowInputPanel(!showInputPanel)}
-        >
-          <Typography variant="h6">
-            {selectedStudent ? `Recording for: ${selectedStudent.name}` : 'Select a student from the register'}
-          </Typography>
-          {isMobile && (
-            <IconButton size="small">
-              {showInputPanel ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            </IconButton>
-          )}
-        </Box>
-
-        <Collapse in={showInputPanel || !isMobile}>
-          {selectedStudent ? (
-            <Box sx={{ mt: 2 }}>
-              {/* Book Selection */}
-              <Box sx={{ mb: 2 }}>
-                <BookAutocomplete
-                  value={books.find(b => b.id === studentBooks[selectedStudent.id]) || getStudentLastBook(selectedStudent.id)}
-                  onChange={handleBookChange}
-                  label="Current Book"
-                  placeholder="Select or search for book..."
-                />
-                <Typography variant="caption" color="text.secondary">
-                  Book will be remembered for future entries
-                </Typography>
-              </Box>
-
-              {/* Quick Input Buttons */}
-              <Box sx={{ 
-                display: 'flex', 
-                gap: 1, 
-                flexWrap: 'wrap',
-                justifyContent: 'center'
-              }}>
-                <Tooltip title="Read (✓)">
-                  <Button
-                    variant="contained"
-                    color="success"
-                    size="large"
-                    onClick={() => handleRecordReading(READING_STATUS.READ)}
-                    sx={{ minWidth: 80, fontSize: '1.5rem', py: 1.5 }}
-                  >
-                    ✓
-                  </Button>
-                </Tooltip>
-
-                <Tooltip title="Multiple Sessions">
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    size="large"
-                    onClick={handleMultipleClick}
-                    sx={{ minWidth: 80, fontSize: '1.2rem', py: 1.5 }}
-                  >
-                    2+
-                  </Button>
-                </Tooltip>
-
-                <Tooltip title="Absent (A)">
-                  <Button
-                    variant="contained"
-                    color="warning"
-                    size="large"
-                    onClick={() => handleRecordReading(READING_STATUS.ABSENT)}
-                    sx={{ minWidth: 80, fontSize: '1.5rem', py: 1.5 }}
-                  >
-                    A
-                  </Button>
-                </Tooltip>
-
-                <Tooltip title="No Record (•)">
-                  <Button
-                    variant="outlined"
-                    color="inherit"
-                    size="large"
-                    onClick={() => handleRecordReading(READING_STATUS.NO_RECORD)}
-                    sx={{ minWidth: 80, fontSize: '1.5rem', py: 1.5 }}
-                  >
-                    •
-                  </Button>
-                </Tooltip>
-              </Box>
-            </Box>
-          ) : (
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 2, textAlign: 'center' }}>
-              Click on a student in the register below to record their reading
+            onClick={() => isMobile && setShowInputPanel(!showInputPanel)}
+          >
+            <Typography variant="h6">
+              {selectedStudent ? `Recording for: ${selectedStudent.name}` : 'Select a student from the register'}
             </Typography>
-          )}
-        </Collapse>
-      </Paper>
+            {isMobile && (
+              <IconButton size="small">
+                {showInputPanel ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+              </IconButton>
+            )}
+          </Box>
+
+          <Collapse in={showInputPanel || !isMobile}>
+            {selectedStudent ? (
+              <Box sx={{ mt: 2 }}>
+                {/* Book Selection */}
+                <Box sx={{ mb: 2 }}>
+                  <BookAutocomplete
+                    value={books.find(b => b.id === studentBooks[selectedStudent.id]) || getStudentLastBook(selectedStudent.id)}
+                    onChange={handleBookChange}
+                    label="Current Book"
+                    placeholder="Select or search for book..."
+                  />
+                  <Typography variant="caption" color="text.secondary">
+                    Book will be remembered for future entries
+                  </Typography>
+                </Box>
+
+                {/* Quick Input Buttons */}
+                <Box sx={{
+                  display: 'flex',
+                  gap: 1,
+                  flexWrap: 'wrap',
+                  justifyContent: 'center'
+                }}>
+                  <Tooltip title="Read (✓)">
+                    <Button
+                      variant="contained"
+                      color="success"
+                      size="large"
+                      onClick={() => handleRecordReading(READING_STATUS.READ)}
+                      sx={{ minWidth: 80, fontSize: '1.5rem', py: 1.5 }}
+                    >
+                      ✓
+                    </Button>
+                  </Tooltip>
+
+                  <Tooltip title="Multiple Sessions">
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      size="large"
+                      onClick={handleMultipleClick}
+                      sx={{ minWidth: 80, fontSize: '1.2rem', py: 1.5 }}
+                    >
+                      2+
+                    </Button>
+                  </Tooltip>
+
+                  <Tooltip title="Absent (A)">
+                    <Button
+                      variant="contained"
+                      color="warning"
+                      size="large"
+                      onClick={() => handleRecordReading(READING_STATUS.ABSENT)}
+                      sx={{ minWidth: 80, fontSize: '1.5rem', py: 1.5 }}
+                    >
+                      A
+                    </Button>
+                  </Tooltip>
+
+                  <Tooltip title="No Record (•)">
+                    <Button
+                      variant="outlined"
+                      color="inherit"
+                      size="large"
+                      onClick={() => handleRecordReading(READING_STATUS.NO_RECORD)}
+                      sx={{ minWidth: 80, fontSize: '1.5rem', py: 1.5 }}
+                    >
+                      •
+                    </Button>
+                  </Tooltip>
+                </Box>
+              </Box>
+            ) : (
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 2, textAlign: 'center' }}>
+                Click on a student in the register below to record their reading
+              </Typography>
+            )}
+          </Collapse>
+        </Paper>
+
+        {/* Right Column - Date and Search Controls */}
+        <Paper sx={{ p: 2, flex: isMobile ? 'none' : 1 }}>
+          <Box sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2,
+            height: '100%'
+          }}>
+            {/* Date Picker */}
+            <TextField
+              label="Date"
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              fullWidth
+            />
+
+            {/* Search */}
+            <TextField
+              placeholder="Search student..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              fullWidth
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" />
+                  </InputAdornment>
+                )
+              }}
+            />
+
+            {/* Date Display */}
+            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+              <Chip
+                label={formatDateDisplay(selectedDate)}
+                color="primary"
+                variant="outlined"
+              />
+            </Box>
+          </Box>
+        </Paper>
+      </Box>
 
       {/* Register Table */}
       <Paper sx={{ mb: 2 }}>
@@ -775,14 +783,17 @@ const HomeReadingRegister = () => {
         </DialogActions>
       </Dialog>
 
+      {/* Reading History Table */}
+      <ClassReadingHistoryTable students={classStudents} books={books} />
+
       {/* Snackbar */}
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={2000}
         onClose={() => setSnackbarOpen(false)}
       >
-        <Alert 
-          onClose={() => setSnackbarOpen(false)} 
+        <Alert
+          onClose={() => setSnackbarOpen(false)}
           severity={snackbarSeverity}
           sx={{ width: '100%' }}
         >

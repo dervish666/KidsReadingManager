@@ -31,15 +31,20 @@ import CloseIcon from '@mui/icons-material/Close';
 import { useAppContext } from '../../contexts/AppContext';
 import BookAutocomplete from './BookAutocomplete';
 
-const StudentSessions = ({ open, onClose, student }) => {
+const StudentSessions = ({ open, onClose, student: studentProp }) => {
   const {
     editReadingSession,
     deleteReadingSession,
     deleteStudent,
     classes, // Get classes
     updateStudentClassId, // Get update function
-    books // Get books for display
+    books, // Get books for display
+    students // Get students to find fresh data
   } = useAppContext();
+
+  // Get fresh student data from context to ensure we have the latest sessions
+  // This fixes the issue where deleting a session doesn't update the UI
+  const student = students.find(s => s.id === studentProp?.id) || studentProp;
 
   // Helper function to get book display info
   const getBookInfo = (bookId) => {

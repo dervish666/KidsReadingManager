@@ -1,12 +1,11 @@
 import React from 'react';
-import { AppBar, Toolbar, Typography, IconButton, Box, Button, FormControl, Select, MenuItem } from '@mui/material';
+import { AppBar, Toolbar, Typography, IconButton, Box, FormControl, Select, MenuItem } from '@mui/material';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
-import StarIcon from '@mui/icons-material/Star';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import packageJson from '../../package.json';
 import { useAppContext } from '../contexts/AppContext';
 
-const Header = ({ currentTab, onTabChange }) => {
+const Header = () => {
   const { classes, globalClassFilter, setGlobalClassFilter } = useAppContext();
   
   // Get active (non-disabled) classes
@@ -122,38 +121,19 @@ const Header = ({ currentTab, onTabChange }) => {
             </FormControl>
           </Box>
           
-          {/* Navigation Links - Hidden on mobile, shown on larger screens */}
-          <Box sx={{
-            display: { xs: 'none', md: 'flex' },
-            gap: 1,
-            ml: 'auto',
-            mr: 2
-          }}>
-            <Button
-              color="inherit"
-              startIcon={<StarIcon />}
-              onClick={() => onTabChange && onTabChange(3)}
-              sx={{
-                fontWeight: currentTab === 3 ? 600 : 400,
-                textDecoration: currentTab === 3 ? 'underline' : 'none',
-                textUnderlineOffset: '4px',
-                '&:hover': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                },
-              }}
-            >
-              Recommendations
-            </Button>
-          </Box>
         </Box>
         <Typography
           variant="body2"
           sx={{
             fontFamily: (theme) => theme.typography.fontFamily,
-            fontWeight: 500,
-            opacity: 0.8,
+            fontWeight: 600,
+            color: 'white',
             fontSize: { xs: '0.75rem', sm: '0.875rem' },
             mr: 2,
+            backgroundColor: 'rgba(0, 0, 0, 0.2)',
+            px: 1.5,
+            py: 0.5,
+            borderRadius: 1,
           }}
         >
           v{packageJson.version}

@@ -28,15 +28,16 @@ import {
   FormControlLabel,
   Checkbox,
 } from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
 import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
 import DownloadIcon from '@mui/icons-material/Download';
 import UploadIcon from '@mui/icons-material/Upload';
 import PersonSearchIcon from '@mui/icons-material/PersonSearch';
+import InfoIcon from '@mui/icons-material/Info';
+import DescriptionIcon from '@mui/icons-material/Description';
 import { useAppContext } from '../../contexts/AppContext';
-import { batchFindMissingAuthors } from '../../utils/openLibraryApi';
+import { batchFindMissingAuthors, batchFindMissingDescriptions, getBookDetails } from '../../utils/openLibraryApi';
 
 const BookManager = () => {
   const { books, genres, addBook, reloadDataFromServer, fetchWithAuth } = useAppContext();
@@ -49,6 +50,9 @@ const BookManager = () => {
   const [editBookAuthor, setEditBookAuthor] = useState('');
   const [editBookReadingLevel, setEditBookReadingLevel] = useState('');
   const [editBookAgeRange, setEditBookAgeRange] = useState('');
+  const [editBookDescription, setEditBookDescription] = useState('');
+  const [editBookCoverUrl, setEditBookCoverUrl] = useState(null);
+  const [isFetchingDetails, setIsFetchingDetails] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [confirmImport, setConfirmImport] = useState({ open: false, file: null, data: null });
   const [error, setError] = useState('');
@@ -61,6 +65,12 @@ const BookManager = () => {
   const [authorLookupResults, setAuthorLookupResults] = useState([]);
   const [showAuthorResults, setShowAuthorResults] = useState(false);
   const [includeUnknownAuthors, setIncludeUnknownAuthors] = useState(true);
+  
+  // Description lookup state
+  const [isLookingUpDescriptions, setIsLookingUpDescriptions] = useState(false);
+  const [descriptionLookupProgress, setDescriptionLookupProgress] = useState({ current: 0, total: 0, book: '' });
+  const [descriptionLookupResults, setDescriptionLookupResults] = useState([]);
+  const [showDescriptionResults, setShowDescriptionResults] = useState(false);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -101,7 +111,54 @@ const BookManager = () => {
     setEditBookAuthor(book.author || '');
     setEditBookReadingLevel(book.readingLevel || '');
     setEditBookAgeRange(book.ageRange || '');
+    setEditBookDescription(book.description || '');
+    setEditBookCoverUrl(null); // Cover is not stored, only fetched on demand
     setError('');
+  };
+
+  const handleFetchBookDetails = async () => {
+    if (!editBookTitle.trim()) {
+      setSnackbar({
+        open: true,
+        message: 'Please enter a book title first',
+        severity: 'warning'
+      });
+      return;
+    }
+
+    setIsFetchingDetails(true);
+    try {
+      const details = await getBookDetails(editBookTitle, editBookAuthor || null);
+      
+      if (details) {
+        if (details.coverUrl) {
+          setEditBookCoverUrl(details.coverUrl);
+        }
+        if (details.description) {
+          setEditBookDescription(details.description);
+        }
+        setSnackbar({
+          open: true,
+          message: details.description ? 'Book details loaded successfully' : 'Cover found, but no description available',
+          severity: 'success'
+        });
+      } else {
+        setSnackbar({
+          open: true,
+          message: 'No details found for this book',
+          severity: 'warning'
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching book details:', error);
+      setSnackbar({
+        open: true,
+        message: `Failed to fetch details: ${error.message}`,
+        severity: 'error'
+      });
+    } finally {
+      setIsFetchingDetails(false);
+    }
   };
 
   const handleUpdateBook = async (e) => {
@@ -122,6 +179,7 @@ const BookManager = () => {
           author: editBookAuthor.trim() || null,
           readingLevel: editBookReadingLevel.trim() || null,
           ageRange: editBookAgeRange.trim() || null,
+          description: editBookDescription.trim() || null,
           genreIds: editingBook.genreIds || [],
         }),
       });
@@ -136,6 +194,8 @@ const BookManager = () => {
       setEditBookAuthor('');
       setEditBookReadingLevel('');
       setEditBookAgeRange('');
+      setEditBookDescription('');
+      setEditBookCoverUrl(null);
       setError('');
     } catch (error) {
       console.error('Error updating book:', error);
@@ -402,6 +462,8 @@ const BookManager = () => {
     setEditBookAuthor('');
     setEditBookReadingLevel('');
     setEditBookAgeRange('');
+    setEditBookDescription('');
+    setEditBookCoverUrl(null);
     setError('');
   };
 
@@ -525,6 +587,111 @@ const BookManager = () => {
       const author = (book.author || '').trim().toLowerCase();
       return !author || author === 'unknown';
     });
+  };
+
+  const getBooksWithoutDescriptions = () => {
+    // Used for the "Fill Missing Descriptions" count button.
+    return books.filter(book => {
+      const description = (book.description || '').trim();
+      return !description;
+    });
+  };
+
+  // Description lookup functions
+  const handleFillMissingDescriptions = async () => {
+    const booksWithoutDescriptions = getBooksWithoutDescriptions();
+    if (booksWithoutDescriptions.length === 0) {
+      setSnackbar({
+        open: true,
+        message: 'All books already have descriptions!',
+        severity: 'info'
+      });
+      return;
+    }
+
+    setIsLookingUpDescriptions(true);
+    setDescriptionLookupProgress({ current: 0, total: booksWithoutDescriptions.length, book: '' });
+    setDescriptionLookupResults([]);
+
+    try {
+      const results = await batchFindMissingDescriptions(booksWithoutDescriptions, (progress) => {
+        setDescriptionLookupProgress(progress);
+      });
+
+      setDescriptionLookupResults(results);
+      setIsLookingUpDescriptions(false);
+      setShowDescriptionResults(true);
+
+      const successCount = results.filter(r => r.success).length;
+      const totalCount = results.length;
+
+      setSnackbar({
+        open: true,
+        message: `Description lookup completed: ${successCount}/${totalCount} descriptions found`,
+        severity: successCount > 0 ? 'success' : 'warning'
+      });
+    } catch (error) {
+      console.error('Error during description lookup:', error);
+      setIsLookingUpDescriptions(false);
+      setSnackbar({
+        open: true,
+        message: `Description lookup failed: ${error.message}`,
+        severity: 'error'
+      });
+    }
+  };
+
+  const handleApplyDescriptionUpdates = async () => {
+    const resultsToApply = descriptionLookupResults.filter(r => r.success && r.foundDescription);
+    
+    if (resultsToApply.length === 0) {
+      setSnackbar({
+        open: true,
+        message: 'No descriptions to update',
+        severity: 'info'
+      });
+      return;
+    }
+
+    let updateCount = 0;
+    let errorCount = 0;
+
+    for (const result of resultsToApply) {
+      try {
+        const response = await fetchWithAuth(`/api/books/${result.book.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...result.book,
+            description: result.foundDescription
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+
+        updateCount++;
+      } catch (error) {
+        console.error(`Error updating book "${result.book.title}":`, error);
+        errorCount++;
+      }
+    }
+
+    await reloadDataFromServer();
+    setShowDescriptionResults(false);
+    setDescriptionLookupResults([]);
+
+    setSnackbar({
+      open: true,
+      message: `Updated ${updateCount} books${errorCount > 0 ? `, ${errorCount} failed` : ''}`,
+      severity: errorCount > 0 ? 'warning' : 'success'
+    });
+  };
+
+  const handleCancelDescriptionResults = () => {
+    setShowDescriptionResults(false);
+    setDescriptionLookupResults([]);
   };
 
   // Duplicate detection helper function
@@ -652,55 +819,49 @@ const BookManager = () => {
       </Box>
 
       {/* Import/Export Section */}
-      <Box sx={{ mt: 3 }}>
-        <Typography variant="subtitle1" gutterBottom>
-          Import/Export Books
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 3 }}>
-          <Button
-            variant="outlined"
-            startIcon={<DownloadIcon />}
-            onClick={handleExportJSON}
-            disabled={books.length === 0}
-          >
-            Export JSON
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<DownloadIcon />}
-            onClick={handleExportCSV}
-            disabled={books.length === 0}
-          >
-            Export CSV
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<UploadIcon />}
-            onClick={handleImportClick}
-          >
-            Import Books
-          </Button>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  size="small"
-                  checked={includeUnknownAuthors}
-                  onChange={(e) => setIncludeUnknownAuthors(e.target.checked)}
-                />
-              }
-              label="Include 'Unknown' authors"
-            />
+      <Box sx={{ mt: 3, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+        {/* Import/Export Box */}
+        <Paper
+          variant="outlined"
+          sx={{
+            p: 2,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1.5,
+          }}
+        >
+          <Typography variant="subtitle2" gutterBottom sx={{ mb: 0 }}>
+            Import/Export Books
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <Button
               variant="outlined"
-              startIcon={isLookingUpAuthors ? <CircularProgress size={20} /> : <PersonSearchIcon />}
-              onClick={handleFillMissingAuthors}
-              disabled={isLookingUpAuthors || books.length === 0}
-              color="secondary"
+              startIcon={<DownloadIcon />}
+              onClick={handleExportJSON}
+              disabled={books.length === 0}
+              size="small"
+              fullWidth
             >
-              {isLookingUpAuthors
-                ? 'Finding Authors...'
-                : `Fill Missing Authors (${getBooksWithoutAuthors().length})`}
+              Export JSON
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<DownloadIcon />}
+              onClick={handleExportCSV}
+              disabled={books.length === 0}
+              size="small"
+              fullWidth
+            >
+              Export CSV
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<UploadIcon />}
+              onClick={handleImportClick}
+              size="small"
+              fullWidth
+            >
+              Import Books
             </Button>
           </Box>
           <input
@@ -710,25 +871,109 @@ const BookManager = () => {
             style={{ display: 'none' }}
             onChange={handleFileChange}
           />
-        </Box>
+        </Paper>
 
-        {/* Author Lookup Progress */}
-        {isLookingUpAuthors && (
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="body2" gutterBottom>
-              Looking up authors: {authorLookupProgress.current}/{authorLookupProgress.total}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              Current: {authorLookupProgress.book}
-            </Typography>
-            <LinearProgress
-              variant="determinate"
-              value={(authorLookupProgress.current / authorLookupProgress.total) * 100}
-              sx={{ mb: 1 }}
-            />
-          </Box>
-        )}
+        {/* Spacer to push AI lookup boxes to the right */}
+        <Box sx={{ flex: 1 }} />
+
+        {/* Author Lookup Box */}
+        <Paper
+          variant="outlined"
+          sx={{
+            p: 2,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1,
+            borderColor: 'secondary.main',
+            borderStyle: 'dashed'
+          }}
+        >
+          <Button
+            variant="outlined"
+            startIcon={isLookingUpAuthors ? <CircularProgress size={20} /> : <PersonSearchIcon />}
+            onClick={handleFillMissingAuthors}
+            disabled={isLookingUpAuthors || books.length === 0}
+            color="secondary"
+            size="small"
+          >
+            {isLookingUpAuthors
+              ? 'Finding Authors...'
+              : `Fill Missing Authors (${getBooksWithoutAuthors().length})`}
+          </Button>
+          <FormControlLabel
+            control={
+              <Checkbox
+                size="small"
+                checked={includeUnknownAuthors}
+                onChange={(e) => setIncludeUnknownAuthors(e.target.checked)}
+              />
+            }
+            label={<Typography variant="caption">Include 'Unknown' authors</Typography>}
+            sx={{ ml: 0, mr: 0 }}
+          />
+        </Paper>
+
+        {/* Description Lookup Box */}
+        <Paper
+          variant="outlined"
+          sx={{
+            p: 2,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1,
+            borderColor: 'info.main',
+            borderStyle: 'dashed'
+          }}
+        >
+          <Button
+            variant="outlined"
+            startIcon={isLookingUpDescriptions ? <CircularProgress size={20} /> : <DescriptionIcon />}
+            onClick={handleFillMissingDescriptions}
+            disabled={isLookingUpDescriptions || books.length === 0}
+            color="info"
+            size="small"
+          >
+            {isLookingUpDescriptions
+              ? 'Finding Descriptions...'
+              : `Fill Missing Descriptions (${getBooksWithoutDescriptions().length})`}
+          </Button>
+        </Paper>
       </Box>
+
+      {/* Author Lookup Progress */}
+      {isLookingUpAuthors && (
+        <Box sx={{ mt: 2 }}>
+          <Typography variant="body2" gutterBottom>
+            Looking up authors: {authorLookupProgress.current}/{authorLookupProgress.total}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            Current: {authorLookupProgress.book}
+          </Typography>
+          <LinearProgress
+            variant="determinate"
+            value={(authorLookupProgress.current / authorLookupProgress.total) * 100}
+            sx={{ mb: 1 }}
+          />
+        </Box>
+      )}
+
+      {/* Description Lookup Progress */}
+      {isLookingUpDescriptions && (
+        <Box sx={{ mt: 2 }}>
+          <Typography variant="body2" gutterBottom>
+            Looking up descriptions: {descriptionLookupProgress.current}/{descriptionLookupProgress.total}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            Current: {descriptionLookupProgress.book}
+          </Typography>
+          <LinearProgress
+            variant="determinate"
+            value={(descriptionLookupProgress.current / descriptionLookupProgress.total) * 100}
+            color="info"
+            sx={{ mb: 1 }}
+          />
+        </Box>
+      )}
 
       {error && (
         <Grid item xs={12}>
@@ -774,43 +1019,53 @@ const BookManager = () => {
                 <ListItem
                   key={book.id}
                   divider
+                  onClick={() => handleEditClick(book)}
+                  sx={{
+                    cursor: 'pointer',
+                    '&:hover': {
+                      backgroundColor: 'action.hover'
+                    }
+                  }}
                   secondaryAction={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <IconButton edge="end" aria-label="edit" onClick={() => handleEditClick(book)}>
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton edge="end" aria-label="delete" color="error" onClick={() => handleDeleteClick(book)}>
-                        <DeleteIcon />
-                      </IconButton>
-                    </Box>
+                    <IconButton
+                      edge="end"
+                      aria-label="delete"
+                      color="error"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteClick(book);
+                      }}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
                   }
                 >
                   <ListItemText
                     primary={
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                        <Typography variant="subtitle2">{book.title}</Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', pr: 2 }}>
+                        <Typography variant="subtitle2" sx={{ flexShrink: 0 }}>{book.title}</Typography>
                         {book.author && (
                           <Chip
                             label={`by ${book.author}`}
                             size="small"
                             variant="outlined"
+                            sx={{ flexShrink: 0 }}
                           />
                         )}
-                        {book.readingLevel && (
-                          <Chip
-                            label={`Level: ${book.readingLevel}`}
-                            size="small"
-                            color="primary"
-                            variant="outlined"
-                          />
-                        )}
-                        {book.ageRange && (
-                          <Chip
-                            label={`Age: ${book.ageRange}`}
-                            size="small"
-                            color="secondary"
-                            variant="outlined"
-                          />
+                        {book.description && (
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{
+                              flex: 1,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              minWidth: 0
+                            }}
+                          >
+                            {book.description}
+                          </Typography>
                         )}
                       </Box>
                     }
@@ -836,12 +1091,74 @@ const BookManager = () => {
       </Box>
 
       {/* Edit Book Dialog */}
-      <Dialog open={!!editingBook} onClose={handleCancelEdit} fullWidth maxWidth="sm">
+      <Dialog open={!!editingBook} onClose={handleCancelEdit} fullWidth maxWidth="md">
         <DialogTitle>Edit Book</DialogTitle>
         <DialogContent>
           <Box component="form" onSubmit={handleUpdateBook} sx={{ mt: 1 }}>
+            {/* Cover and Description Row */}
+            <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+              {/* Cover Image */}
+              <Box
+                sx={{
+                  flexShrink: 0,
+                  width: 140,
+                  display: 'flex',
+                  alignItems: 'flex-start'
+                }}
+              >
+                {editBookCoverUrl ? (
+                  <Box
+                    component="img"
+                    src={editBookCoverUrl}
+                    alt={`Cover of ${editBookTitle}`}
+                    sx={{
+                      width: '100%',
+                      maxHeight: 200,
+                      objectFit: 'contain',
+                      borderRadius: 1,
+                      boxShadow: 2
+                    }}
+                  />
+                ) : (
+                  <Box
+                    sx={{
+                      width: '100%',
+                      height: 180,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: 'grey.100',
+                      borderRadius: 1,
+                      border: '1px dashed',
+                      borderColor: 'grey.300'
+                    }}
+                  >
+                    <Typography variant="body2" color="text.secondary" align="center">
+                      No cover
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+              
+              {/* Description beside cover */}
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <TextField
+                  label="Description"
+                  value={editBookDescription}
+                  onChange={(e) => setEditBookDescription(e.target.value)}
+                  fullWidth
+                  size="small"
+                  multiline
+                  rows={7}
+                  placeholder="Book description (can be fetched from OpenLibrary)"
+                  sx={{ height: '100%' }}
+                />
+              </Box>
+            </Box>
+            
+            {/* Form Fields */}
             <Grid container spacing={2}>
-              <Grid item xs={12}>
+              <Grid item xs={12} sm={6}>
                 <TextField
                   label="Book Title"
                   value={editBookTitle}
@@ -851,7 +1168,7 @@ const BookManager = () => {
                   required
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid item xs={12} sm={6}>
                 <TextField
                   label="Author"
                   value={editBookAuthor}
@@ -860,7 +1177,7 @@ const BookManager = () => {
                   size="small"
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid item xs={6}>
                 <TextField
                   label="Reading Level"
                   value={editBookReadingLevel}
@@ -869,7 +1186,7 @@ const BookManager = () => {
                   size="small"
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid item xs={6}>
                 <TextField
                   label="Age Range"
                   value={editBookAgeRange}
@@ -882,7 +1199,17 @@ const BookManager = () => {
             </Grid>
           </Box>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={isFetchingDetails ? <CircularProgress size={20} /> : <InfoIcon />}
+            onClick={handleFetchBookDetails}
+            disabled={isFetchingDetails || !editBookTitle.trim()}
+            size="small"
+          >
+            {isFetchingDetails ? 'Loading...' : 'Get Details'}
+          </Button>
+          <Box sx={{ flex: 1 }} />
           <Button onClick={handleCancelEdit}>Cancel</Button>
           <Button onClick={handleUpdateBook} variant="contained" color="primary">
             Save
@@ -1137,6 +1464,69 @@ const BookManager = () => {
             disabled={authorLookupResults.filter(r => r.success).length === 0}
           >
             Apply Updates ({authorLookupResults.filter(r => r.success).length})
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Description Lookup Results Dialog */}
+      <Dialog open={showDescriptionResults} onClose={handleCancelDescriptionResults} fullWidth maxWidth="md">
+        <DialogTitle>Description Lookup Results</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            Found descriptions for {descriptionLookupResults.filter(r => r.success).length} out of {descriptionLookupResults.length} books.
+            Click "Apply Updates" to save the found descriptions to your books.
+          </DialogContentText>
+          
+          <List>
+            {descriptionLookupResults.map((result, index) => (
+              <ListItem key={index} divider alignItems="flex-start">
+                <ListItemText
+                  primary={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                      <Typography variant="subtitle2">{result.book.title}</Typography>
+                      {result.book.author && (
+                        <Chip label={`by ${result.book.author}`} size="small" variant="outlined" />
+                      )}
+                      {result.success ? (
+                        <Chip label="Description found" color="success" size="small" />
+                      ) : (
+                        <Chip label="No description" color="error" size="small" />
+                      )}
+                    </Box>
+                  }
+                  secondary={
+                    <Box sx={{ mt: 1 }}>
+                      {result.foundDescription ? (
+                        <Typography variant="body2" color="text.secondary" sx={{
+                          maxHeight: 100,
+                          overflow: 'auto',
+                          backgroundColor: 'action.hover',
+                          p: 1,
+                          borderRadius: 1
+                        }}>
+                          {result.foundDescription}
+                        </Typography>
+                      ) : (
+                        <Typography variant="body2" color="error">
+                          {result.error || 'No description found for this book'}
+                        </Typography>
+                      )}
+                    </Box>
+                  }
+                />
+              </ListItem>
+            ))}
+          </List>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelDescriptionResults}>Cancel</Button>
+          <Button
+            onClick={handleApplyDescriptionUpdates}
+            variant="contained"
+            color="primary"
+            disabled={descriptionLookupResults.filter(r => r.success).length === 0}
+          >
+            Apply Updates ({descriptionLookupResults.filter(r => r.success).length})
           </Button>
         </DialogActions>
       </Dialog>

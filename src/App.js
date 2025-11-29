@@ -64,7 +64,7 @@ function AppContent() {
         `,
       }}
     >
-      <Header currentTab={currentTab} onTabChange={setCurrentTab} />
+      <Header />
 
       <Container
         component="main"

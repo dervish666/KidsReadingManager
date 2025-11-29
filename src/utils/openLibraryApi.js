@@ -432,6 +432,79 @@ export async function getBookDetails(title, author = null) {
 }
 
 /**
+ * Batch process multiple books to find missing descriptions
+ * @param {Array} books - Array of book objects with title, author, and description properties
+ * @param {Function} onProgress - Callback function called with progress updates
+ * @returns {Promise<Array>} Array of results with original book and found description
+ */
+export async function batchFindMissingDescriptions(books, onProgress = null) {
+  const results = [];
+
+  // Filter books that need descriptions
+  const needsDescription = (book) => {
+    const description = (book.description || '').trim();
+    return !description;
+  };
+
+  const booksNeedingDescriptions = books.filter(needsDescription);
+
+  if (booksNeedingDescriptions.length === 0) {
+    return [];
+  }
+
+  for (let i = 0; i < booksNeedingDescriptions.length; i++) {
+    const book = booksNeedingDescriptions[i];
+
+    try {
+      // Small delay to be respectful to the API
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+      const details = await getBookDetails(book.title, book.author || null);
+      const foundDescription = details?.description || null;
+
+      results.push({
+        book,
+        foundDescription,
+        success: !!foundDescription
+      });
+
+      if (onProgress) {
+        onProgress({
+          current: i + 1,
+          total: booksNeedingDescriptions.length,
+          book: book.title,
+          foundDescription,
+          success: !!foundDescription
+        });
+      }
+    } catch (error) {
+      console.error(`Error processing book "${book.title}":`, error);
+      results.push({
+        book,
+        foundDescription: null,
+        success: false,
+        error: error.message
+      });
+
+      if (onProgress) {
+        onProgress({
+          current: i + 1,
+          total: booksNeedingDescriptions.length,
+          book: book.title,
+          foundDescription: null,
+          success: false,
+          error: error.message
+        });
+      }
+    }
+  }
+
+  return results;
+}
+
+/**
  * Get cover URL from book data
  * @param {Object} bookData - Book data from OpenLibrary
  * @returns {string|null} Cover URL or null
