@@ -31,7 +31,8 @@ const StudentList = () => {
     apiError, // Added apiError
     addStudent,
     studentsSortedByPriority, // Changed from getStudentsByReadingPriority
-    classes // Get classes from context
+    classes, // Get classes from context
+    globalClassFilter // Get global class filter from context
   } = useAppContext();
   
   const [newStudentName, setNewStudentName] = useState('');
@@ -41,7 +42,6 @@ const StudentList = () => {
   const [error, setError] = useState('');
   const [sortMethod, setSortMethod] = useState('priority');
   const [sortDirection, setSortDirection] = useState('desc'); // 'asc' or 'desc'
-  const [filterClassId, setFilterClassId] = useState('all'); // State for class filter ('all' or classId)
 
   const handleAddStudent = () => {
     if (!newStudentName.trim()) {
@@ -99,31 +99,27 @@ const StudentList = () => {
     }
   };
 
-  const handleFilterChange = (event) => {
-    setFilterClassId(event.target.value);
-  };
-
-  // Filter and sort students
+  // Filter and sort students using global class filter
   const getFilteredAndSortedStudents = () => {
     // Get IDs of disabled classes
     const disabledClassIds = classes.filter(cls => cls.disabled).map(cls => cls.id);
 
-    // 1. Filter by class and exclude disabled classes
+    // 1. Filter by class (using global filter) and exclude disabled classes
     const filteredStudents = students.filter(student => {
       // First, exclude students from disabled classes
       if (student.classId && disabledClassIds.includes(student.classId)) {
         return false;
       }
 
-      if (filterClassId === 'all') {
+      if (globalClassFilter === 'all') {
         return true; // Show all students (excluding disabled classes)
       }
       // Handle unassigned students if 'unassigned' is selected
-      if (filterClassId === 'unassigned') {
+      if (globalClassFilter === 'unassigned') {
         return !student.classId;
       }
       // Otherwise, match the classId
-      return student.classId === filterClassId;
+      return student.classId === globalClassFilter;
     });
 
     // 2. Sort the filtered list
@@ -221,29 +217,6 @@ const StudentList = () => {
           width: { xs: '100%', sm: 'auto' },
           justifyContent: { xs: 'stretch', sm: 'flex-end' }
         }}> {/* Allow controls to wrap */}
-          {/* Class Filter Dropdown */}
-          <FormControl sx={{
-            minWidth: { xs: '100%', sm: 180 },
-            flex: { xs: '1 1 100%', sm: 'none' }
-          }} size="small">
-            <InputLabel id="filter-class-label">Filter by Class</InputLabel>
-            <Select
-              labelId="filter-class-label"
-              id="filter-class-select"
-              value={filterClassId}
-              label="Filter by Class"
-              onChange={handleFilterChange}
-            >
-              <MenuItem value="all">All Classes</MenuItem>
-              <MenuItem value="unassigned">Unassigned</MenuItem>
-              {classes.filter(cls => !cls.disabled).map((cls) => (
-                <MenuItem key={cls.id} value={cls.id}>
-                  {cls.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
           {/* Sort Dropdown */}
           <FormControl sx={{
             minWidth: { xs: '100%', sm: 180 },
@@ -300,7 +273,7 @@ const StudentList = () => {
         <>
           {/* Priority Reading List - Add bottom margin */}
           <Box mb={4}> {/* Added Box wrapper with margin */}
-            <PrioritizedStudentsList filterClassId={filterClassId} />
+            <PrioritizedStudentsList filterClassId={globalClassFilter} />
           </Box>
           
           {/* All Students Table */}

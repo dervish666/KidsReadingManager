@@ -48,6 +48,15 @@ export const AppProvider = ({ children }) => {
 
   // State for classes
   const [classes, setClasses] = useState([]);
+  // Global class filter state (persisted in sessionStorage)
+  const [globalClassFilter, setGlobalClassFilter] = useState(() => {
+    if (typeof window === 'undefined') return 'all';
+    try {
+      return window.sessionStorage.getItem('globalClassFilter') || 'all';
+    } catch {
+      return 'all';
+    }
+  });
   // State for books
   const [books, setBooks] = useState([]);
   // State for genres
@@ -1122,6 +1131,18 @@ export const AppProvider = ({ children }) => {
     });
   }, [fetchWithAuth, reloadDataFromServer]);
 
+  // Update global class filter with persistence
+  const updateGlobalClassFilter = useCallback((classId) => {
+    setGlobalClassFilter(classId);
+    if (typeof window !== 'undefined') {
+      try {
+        window.sessionStorage.setItem('globalClassFilter', classId);
+      } catch (err) {
+        console.warn('Failed to save global class filter:', err);
+      }
+    }
+  }, []);
+
   // Provider value
   const value = {
     students,
@@ -1130,6 +1151,8 @@ export const AppProvider = ({ children }) => {
     genres,
     loading,
     apiError,
+    globalClassFilter,
+    setGlobalClassFilter: updateGlobalClassFilter,
     priorityStudentCount,
     setPriorityStudentCount,
     readingStatusSettings,
@@ -1169,8 +1192,6 @@ export const AppProvider = ({ children }) => {
     markStudentAsPriorityHandled,
     resetPriorityList,
   };
-
-  console.log('[AppContext] Provider value keys:', Object.keys(value));
 
   return (
     <AppContext.Provider value={value}>

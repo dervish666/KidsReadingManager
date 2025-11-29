@@ -29,7 +29,7 @@ import ReadingFrequencyChart from './ReadingFrequencyChart';
 import { useAppContext } from '../../contexts/AppContext';
 
 const ReadingStats = () => {
-  const { students, classes, exportToJson, getReadingStatus } = useAppContext();
+  const { students, classes, exportToJson, getReadingStatus, globalClassFilter } = useAppContext();
   const [currentTab, setCurrentTab] = useState(0);
   
   const handleTabChange = (event, newValue) => {
@@ -42,8 +42,18 @@ const ReadingStats = () => {
   
   // Calculate statistics
   const calculateStats = () => {
-    // Filter out students from disabled classes
+    // Filter students based on global class filter and disabled classes
     const activeStudents = students.filter(student => {
+      // First, filter by global class filter
+      if (globalClassFilter && globalClassFilter !== 'all') {
+        if (globalClassFilter === 'unassigned') {
+          if (student.classId) return false;
+        } else {
+          if (student.classId !== globalClassFilter) return false;
+        }
+      }
+      
+      // Then, filter out students from disabled classes
       if (!student.classId) return true; // Include students not assigned to any class
       const studentClass = classes.find(cls => cls.id === student.classId);
       return !studentClass || !studentClass.disabled;
@@ -117,6 +127,16 @@ const ReadingStats = () => {
   // Get students sorted by session count (least to most)
   const getStudentsBySessionCount = () => {
     const activeStudents = students.filter(student => {
+      // First, filter by global class filter
+      if (globalClassFilter && globalClassFilter !== 'all') {
+        if (globalClassFilter === 'unassigned') {
+          if (student.classId) return false;
+        } else {
+          if (student.classId !== globalClassFilter) return false;
+        }
+      }
+      
+      // Then, filter out students from disabled classes
       if (!student.classId) return true;
       const studentClass = classes.find(cls => cls.id === student.classId);
       return !studentClass || !studentClass.disabled;
@@ -129,6 +149,16 @@ const ReadingStats = () => {
   // Get students who haven't been read with recently
   const getNeedsAttentionStudents = () => {
     const activeStudents = students.filter(student => {
+      // First, filter by global class filter
+      if (globalClassFilter && globalClassFilter !== 'all') {
+        if (globalClassFilter === 'unassigned') {
+          if (student.classId) return false;
+        } else {
+          if (student.classId !== globalClassFilter) return false;
+        }
+      }
+      
+      // Then, filter out students from disabled classes
       if (!student.classId) return true;
       const studentClass = classes.find(cls => cls.id === student.classId);
       return !studentClass || !studentClass.disabled;

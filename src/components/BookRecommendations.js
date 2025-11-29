@@ -29,10 +29,9 @@ import RecommendationsIcon from '@mui/icons-material/Star';
 import { getBookDetails, getCoverUrl } from '../utils/openLibraryApi';
 
 const BookRecommendations = () => {
-  const { students, classes, books, apiError, fetchWithAuth } = useAppContext();
+  const { students, classes, books, apiError, fetchWithAuth, globalClassFilter } = useAppContext();
 
   // State for selections and data
-  const [selectedClassId, setSelectedClassId] = useState('');
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [booksRead, setBooksRead] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
@@ -41,13 +40,15 @@ const BookRecommendations = () => {
   const [enhancing, setEnhancing] = useState(false);
   const [error, setError] = useState(null);
 
-  // Filter students by selected class
-  const filteredStudents = students.filter(student =>
-    selectedClassId ? student.classId === selectedClassId : true
-  );
+  // Filter students by global class filter
+  const filteredStudents = students.filter(student => {
+    if (!globalClassFilter || globalClassFilter === 'all') return true;
+    if (globalClassFilter === 'unassigned') return !student.classId;
+    return student.classId === globalClassFilter;
+  });
 
   const selectedStudent = students.find(s => s.id === selectedStudentId);
-  const selectedClass = classes.find(c => c.id === selectedClassId);
+  const selectedClass = selectedStudent ? classes.find(c => c.id === selectedStudent.classId) : null;
 
   // Helper function to resolve book title from bookId
   const getBookTitle = (bookId) => {
@@ -75,16 +76,6 @@ const BookRecommendations = () => {
       }
     });
     return uniqueBooks.size;
-  };
-
-  const handleClassChange = (event) => {
-    const classId = event.target.value;
-    setSelectedClassId(classId);
-    setSelectedStudentId(''); // Reset student selection
-    setBooksRead([]);
-    setRecommendations([]);
-    setEnhancedRecommendations([]);
-    setError(null);
   };
 
   const handleStudentChange = (event) => {
@@ -242,55 +233,31 @@ const BookRecommendations = () => {
         </Alert>
       )}
 
-      {/* Class and Student selection */}
+      {/* Student selection */}
       <Paper sx={{ p: 3, mb: 4 }}>
         <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <SchoolIcon />
           Select Student
         </Typography>
 
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth sx={{ minWidth: 200 }}>
-              <InputLabel>Class (Optional)</InputLabel>
-              <Select
-                value={selectedClassId}
-                onChange={handleClassChange}
-                label="Class (Optional)"
-              >
-                <MenuItem value="">
-                  <em>All Classes</em>
-                </MenuItem>
-                {classes.map((classItem) => (
-                  <MenuItem key={classItem.id} value={classItem.id}>
-                    {classItem.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth sx={{ minWidth: 200 }}>
-              <InputLabel>Student</InputLabel>
-              <Select
-                value={selectedStudentId}
-                onChange={handleStudentChange}
-                label="Student"
-                disabled={filteredStudents.length === 0}
-              >
-                <MenuItem value="">
-                  <em>Select a student</em>
-                </MenuItem>
-                {filteredStudents.map((student) => (
-                  <MenuItem key={student.id} value={student.id}>
-                    {student.name} ({getStudentBookCount(student)} books read)
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-        </Grid>
+        <FormControl fullWidth sx={{ minWidth: 200 }}>
+          <InputLabel>Student</InputLabel>
+          <Select
+            value={selectedStudentId}
+            onChange={handleStudentChange}
+            label="Student"
+            disabled={filteredStudents.length === 0}
+          >
+            <MenuItem value="">
+              <em>Select a student</em>
+            </MenuItem>
+            {filteredStudents.map((student) => (
+              <MenuItem key={student.id} value={student.id}>
+                {student.name} ({getStudentBookCount(student)} books read)
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
       </Paper>
 
       {/* Student info and books read */}

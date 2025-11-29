@@ -1,10 +1,29 @@
 import React from 'react';
-import { AppBar, Toolbar, Typography, IconButton, Box, Button } from '@mui/material';
+import { AppBar, Toolbar, Typography, IconButton, Box, Button, FormControl, Select, MenuItem } from '@mui/material';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import StarIcon from '@mui/icons-material/Star';
+import FilterListIcon from '@mui/icons-material/FilterList';
 import packageJson from '../../package.json';
+import { useAppContext } from '../contexts/AppContext';
 
 const Header = ({ currentTab, onTabChange }) => {
+  const { classes, globalClassFilter, setGlobalClassFilter } = useAppContext();
+  
+  // Get active (non-disabled) classes
+  const activeClasses = classes.filter(cls => !cls.disabled);
+  
+  const handleClassFilterChange = (event) => {
+    setGlobalClassFilter(event.target.value);
+  };
+  
+  // Get display name for current filter
+  const getFilterDisplayName = () => {
+    if (globalClassFilter === 'all') return 'All Classes';
+    if (globalClassFilter === 'unassigned') return 'Unassigned';
+    const selectedClass = classes.find(cls => cls.id === globalClassFilter);
+    return selectedClass ? selectedClass.name : 'All Classes';
+  };
+
   return (
     <AppBar
       position="sticky"
@@ -44,6 +63,64 @@ const Header = ({ currentTab, onTabChange }) => {
           >
             Kids Reading Manager
           </Typography>
+          
+          {/* Global Class Filter Dropdown */}
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            mr: { xs: 1, sm: 2 }
+          }}>
+            <FilterListIcon sx={{
+              mr: 0.5,
+              fontSize: { xs: '1rem', sm: '1.25rem' },
+              opacity: 0.9,
+              display: { xs: 'none', sm: 'block' }
+            }} />
+            <FormControl
+              size="small"
+              sx={{
+                minWidth: { xs: 100, sm: 150 },
+                '& .MuiOutlinedInput-root': {
+                  color: 'white',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  '& fieldset': {
+                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: 'rgba(255, 255, 255, 0.5)',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: 'rgba(255, 255, 255, 0.7)',
+                  },
+                },
+                '& .MuiSelect-icon': {
+                  color: 'rgba(255, 255, 255, 0.7)',
+                },
+              }}
+            >
+              <Select
+                value={globalClassFilter}
+                onChange={handleClassFilterChange}
+                displayEmpty
+                renderValue={() => getFilterDisplayName()}
+                sx={{
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                  '& .MuiSelect-select': {
+                    py: { xs: 0.5, sm: 0.75 },
+                    px: { xs: 1, sm: 1.5 },
+                  },
+                }}
+              >
+                <MenuItem value="all">All Classes</MenuItem>
+                <MenuItem value="unassigned">Unassigned</MenuItem>
+                {activeClasses.map((cls) => (
+                  <MenuItem key={cls.id} value={cls.id}>
+                    {cls.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
           
           {/* Navigation Links - Hidden on mobile, shown on larger screens */}
           <Box sx={{

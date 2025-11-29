@@ -16,13 +16,23 @@ import { formatAssessmentDisplay } from '../../utils/helpers';
 
 const ReadingTimelineChart = () => {
   const theme = useTheme();
-  const { students, classes } = useAppContext();
+  const { students, classes, globalClassFilter } = useAppContext();
 
   // Get IDs of disabled classes
   const disabledClassIds = classes.filter(cls => cls.disabled).map(cls => cls.id);
 
-  // Filter out students from disabled classes
+  // Filter students based on global class filter and disabled classes
   const activeStudents = students.filter(student => {
+    // First, filter by global class filter
+    if (globalClassFilter && globalClassFilter !== 'all') {
+      if (globalClassFilter === 'unassigned') {
+        if (student.classId) return false;
+      } else {
+        if (student.classId !== globalClassFilter) return false;
+      }
+    }
+    
+    // Then, filter out students from disabled classes
     return !student.classId || !disabledClassIds.includes(student.classId);
   });
   const [timeRange, setTimeRange] = useState('30'); // Default to 30 days

@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.26.0] - 2025-11-28
+
+### Added
+- **Global Class Filter**: Added a class filter dropdown to the top navigation bar that persists across all pages. Users can now set their class filter once and have it apply to Students, Reading, Record, Recommend, and Stats pages.
+
+### Changed
+- **StudentList**: Removed local class filter dropdown, now uses global filter from header.
+- **SessionForm (Reading page)**: Removed local class filter dropdown, now uses global filter from header.
+- **HomeReadingRegister (Record page)**: Removed local class filter dropdown, now uses global filter from header. When 'All Classes' or 'Unassigned' is selected, automatically switches to first available class.
+- **BookRecommendations (Recommend page)**: Removed local class filter dropdown, now uses global filter from header.
+- **ReadingStats (Stats page)**: Now respects global class filter for all statistics calculations, including session count sorting and needs attention lists.
+- **ReadingFrequencyChart**: Now respects global class filter for frequency chart.
+- **ReadingTimelineChart**: Now respects global class filter for timeline chart.
+- **DaysSinceReadingChart**: Now respects global class filter for days since reading chart.
+
+### Technical
+- Added `globalClassFilter` and `setGlobalClassFilter` to AppContext with sessionStorage persistence.
+- Header component now includes styled class filter dropdown.
+
 ## [0.25.3] - 2025-11-28
 
 ### Removed

@@ -27,7 +27,7 @@ import SessionNotes from './SessionNotes';
 import BookAutocomplete from './BookAutocomplete';
 
 const SessionForm = () => {
-  const { students, addReadingSession, classes, recentlyAccessedStudents, books, fetchWithAuth } = useAppContext(); // <-- ADDED books
+  const { students, addReadingSession, classes, recentlyAccessedStudents, books, fetchWithAuth, globalClassFilter } = useAppContext();
 
   // Helper function to get book display info
   const getBookInfo = (bookId) => {
@@ -48,7 +48,6 @@ const SessionForm = () => {
         };
   };
   const [selectedStudentId, setSelectedStudentId] = useState('');
-  const [selectedClassId, setSelectedClassId] = useState(''); // Added for class filtering
   const [assessment, setAssessment] = useState('independent');
   const [notes, setNotes] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -85,15 +84,6 @@ const SessionForm = () => {
   const handleStudentChange = (event) => {
     setSelectedStudentId(event.target.value);
     setError('');
-  };
-
-  const handleClassChange = (event) => { // Added for class selection
-    const newClassId = event.target.value;
-    setSelectedClassId(newClassId);
-    // Reset student selection when class changes
-    if (selectedStudentId) {
-      setSelectedStudentId('');
-    }
   };
 
   const handleAssessmentChange = (newAssessment) => {
@@ -154,18 +144,20 @@ const SessionForm = () => {
   // Get IDs of disabled classes
   const disabledClassIds = classes.filter(cls => cls.disabled).map(cls => cls.id);
 
-  // Filter out students from disabled classes
+  // Filter students based on global class filter and disabled classes
   let filteredStudents = students.filter(student => {
+    // First, filter by global class filter
+    if (globalClassFilter && globalClassFilter !== 'all') {
+      if (globalClassFilter === 'unassigned') {
+        if (student.classId) return false;
+      } else {
+        if (student.classId !== globalClassFilter) return false;
+      }
+    }
+    
+    // Then, filter out students from disabled classes
     return !student.classId || !disabledClassIds.includes(student.classId);
   });
-
-  // Additional filtering by selected class
-  if (selectedClassId) {
-    filteredStudents = filteredStudents.filter(student => student.classId === selectedClassId);
-  }
-
-  // Get active classes for the dropdown (only non-disabled classes)
-  const activeClasses = classes.filter(cls => !cls.disabled);
 
   // Separate recently accessed students within the filtered list
   const recentStudents = filteredStudents.filter(student =>
@@ -202,29 +194,6 @@ const SessionForm = () => {
           
           <form onSubmit={handleSubmit}>
             <Grid container spacing={3}>
-              {/* Class Filter Dropdown */}
-              <Grid sx={{ mb: 2 }} size={12}>
-                <FormControl fullWidth>
-                  <InputLabel id="class-filter-label">Filter by Class (Optional)</InputLabel>
-                  <Select
-                    labelId="class-filter-label"
-                    id="class-filter"
-                    value={selectedClassId}
-                    label="Filter by Class (Optional)"
-                    onChange={handleClassChange}
-                  >
-                    <MenuItem value="">
-                      <em>All Classes</em>
-                    </MenuItem>
-                    {activeClasses.map((cls) => (
-                      <MenuItem key={cls.id} value={cls.id}>
-                        {cls.name} {cls.teacherName && `(${cls.teacherName})`}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-
               {/* Student Dropdown */}
               <Grid sx={{ mb: 3 }} size={12}>
                 <FormControl fullWidth>
@@ -237,11 +206,11 @@ const SessionForm = () => {
                     onChange={handleStudentChange}
                   >
                     {sortedStudents.length === 0 ? (
-                      <MenuItem disabled>
-                        <Typography variant="body2" color="text.secondary">
-                          {selectedClassId ? 'No students found in this class' : 'No active students available'}
-                        </Typography>
-                      </MenuItem>
+                        <MenuItem disabled>
+                          <Typography variant="body2" color="text.secondary">
+                            {globalClassFilter && globalClassFilter !== 'all' ? 'No students found in this class' : 'No active students available'}
+                          </Typography>
+                        </MenuItem>
                     ) : (
                       sortedStudents.map((student) => {
                         const isRecentlyAccessed = recentlyAccessedStudents.includes(student.id);

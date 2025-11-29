@@ -4,10 +4,6 @@ import {
   Typography,
   Paper,
   TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Table,
   TableBody,
   TableCell,
@@ -86,12 +82,13 @@ const HomeReadingRegister = () => {
     books,
     addReadingSession,
     deleteReadingSession,
-    reloadDataFromServer
+    reloadDataFromServer,
+    globalClassFilter,
+    setGlobalClassFilter
   } = useAppContext();
 
   // State
   const [selectedDate, setSelectedDate] = useState(getYesterday());
-  const [selectedClassId, setSelectedClassId] = useState('');
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -125,20 +122,33 @@ const HomeReadingRegister = () => {
     return classes.filter(cls => !cls.disabled);
   }, [classes]);
 
-  // Auto-select first class if none selected
-  useEffect(() => {
-    if (!selectedClassId && activeClasses.length > 0) {
-      setSelectedClassId(activeClasses[0].id);
+  // Determine the effective class ID for this component
+  // HomeReadingRegister requires a specific class, so we need to handle 'all' and 'unassigned'
+  const effectiveClassId = useMemo(() => {
+    // If a specific class is selected in global filter, use it
+    if (globalClassFilter && globalClassFilter !== 'all' && globalClassFilter !== 'unassigned') {
+      // Verify the class exists and is active
+      const classExists = activeClasses.some(cls => cls.id === globalClassFilter);
+      if (classExists) return globalClassFilter;
     }
-  }, [activeClasses, selectedClassId]);
+    // Otherwise, default to first active class
+    return activeClasses.length > 0 ? activeClasses[0].id : '';
+  }, [globalClassFilter, activeClasses]);
+
+  // Auto-select first class in global filter if 'all' or 'unassigned' is selected
+  useEffect(() => {
+    if ((globalClassFilter === 'all' || globalClassFilter === 'unassigned') && activeClasses.length > 0) {
+      setGlobalClassFilter(activeClasses[0].id);
+    }
+  }, [globalClassFilter, activeClasses, setGlobalClassFilter]);
 
   // Get students for selected class
   const classStudents = useMemo(() => {
-    if (!selectedClassId) return [];
+    if (!effectiveClassId) return [];
     return students
-      .filter(s => s.classId === selectedClassId)
+      .filter(s => s.classId === effectiveClassId)
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [students, selectedClassId]);
+  }, [students, effectiveClassId]);
 
   // Filter students by search query
   const filteredStudents = useMemo(() => {
@@ -452,25 +462,6 @@ const HomeReadingRegister = () => {
             sx={{ minWidth: 150 }}
             size="small"
           />
-
-          {/* Class Selector */}
-          <FormControl sx={{ minWidth: 200 }} size="small">
-            <InputLabel>Class</InputLabel>
-            <Select
-              value={selectedClassId}
-              label="Class"
-              onChange={(e) => {
-                setSelectedClassId(e.target.value);
-                setSelectedStudent(null);
-              }}
-            >
-              {activeClasses.map(cls => (
-                <MenuItem key={cls.id} value={cls.id}>
-                  {cls.name} {cls.teacherName && `(${cls.teacherName})`}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
 
           {/* Search */}
           <TextField
