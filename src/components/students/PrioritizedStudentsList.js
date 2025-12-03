@@ -13,7 +13,7 @@ import {
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import RefreshIcon from '@mui/icons-material/Refresh'; // Corrected import
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { useAppContext } from '../../contexts/AppContext';
 import { useTheme } from '@mui/material/styles';
 
@@ -28,25 +28,20 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
     recentlyRead: theme.palette.status.recentlyRead
   };
   
-  // Get the most recent reading date from the sessions
   const getMostRecentReadDate = () => {
     if (!student.readingSessions || student.readingSessions.length === 0) {
       return null;
     }
     
-    // Sort sessions by date (newest first)
     const sortedSessions = [...student.readingSessions].sort((a, b) =>
       new Date(b.date) - new Date(a.date)
     );
     
-    // Return the date of the most recent session
     return sortedSessions[0].date;
   };
   
-  // Get the most recent reading date
   const mostRecentReadDate = getMostRecentReadDate();
   
-  // Calculate days since last reading
   const getDaysSinceReading = () => {
     const dateToUse = mostRecentReadDate || student.lastReadDate;
     if (!dateToUse) return 'Never read';
@@ -61,46 +56,53 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
   
   return (
     <Card
-      onClick={onClick} // Add the onClick handler here
+      onClick={onClick}
       sx={{
-        // mb: 1, // Removed bottom margin to rely on Grid spacing
-        borderLeft: `4px solid ${statusColors[status]}`,
         position: 'relative',
         overflow: 'visible',
-        cursor: 'pointer', // Add cursor pointer style
-        '&:hover': { // Optional: Add a hover effect
-          boxShadow: 3,
+        cursor: 'pointer',
+        borderRadius: 4,
+        backgroundColor: 'rgba(255, 255, 255, 0.7)',
+        backdropFilter: 'blur(10px)',
+        boxShadow: '12px 12px 24px rgba(160, 150, 180, 0.2), -8px -8px 16px rgba(255, 255, 255, 0.9), inset 4px 4px 8px rgba(139, 92, 246, 0.03), inset -4px -4px 8px rgba(255, 255, 255, 1)',
+        border: '1px solid rgba(255, 255, 255, 0.4)',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        '&:hover': {
+          transform: 'translateY(-6px)',
+          boxShadow: '16px 16px 32px rgba(160, 150, 180, 0.25), -10px -10px 24px rgba(255, 255, 255, 0.95)',
+          zIndex: 10,
         }
       }}
     >
       <Box
         sx={{
           position: 'absolute',
-          top: -8,
-          left: -8,
-          bgcolor: theme.palette.primary.main,
+          top: -10,
+          left: -10,
+          background: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)',
           color: 'white',
-          width: 28,
-          height: 28,
-          borderRadius: 0,
+          width: 36,
+          height: 36,
+          borderRadius: '50%',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontWeight: 'bold',
-          fontSize: '0.875rem',
-          boxShadow: 2,
-          border: '2px solid white'
+          fontWeight: 800,
+          fontSize: '1rem',
+          boxShadow: '4px 4px 8px rgba(139, 92, 246, 0.3), -4px -4px 8px rgba(255, 255, 255, 0.4)',
+          border: '2px solid white',
+          fontFamily: '"Nunito", sans-serif'
         }}
       >
         {priorityRank}
       </Box>
-      <CardContent>
-        <Typography variant="h6" component="h3" gutterBottom>
+      <CardContent sx={{ pt: 3, pb: 2 }}>
+        <Typography variant="h6" component="h3" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#332F3A', ml: 1 }}>
           {student.name}
         </Typography>
         
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-          <Typography variant="body2" color="text.secondary">
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5, p: 1, borderRadius: 3, bgcolor: 'rgba(255,255,255,0.5)' }}>
+          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
             Last read:
           </Typography>
           <Chip
@@ -112,22 +114,38 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
                 })
               : 'Never'}
             size="small"
-            color={status === 'notRead' ? 'error' : status === 'needsAttention' ? 'warning' : 'success'}
+            sx={{
+              height: 24,
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              borderRadius: 2,
+              backgroundColor: status === 'notRead' ? '#FEE2E2' : status === 'needsAttention' ? '#FEF3C7' : '#D1FAE5',
+              color: status === 'notRead' ? '#EF4444' : status === 'needsAttention' ? '#F59E0B' : '#10B981',
+              border: 'none'
+            }}
           />
         </Box>
         
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="body2" color="text.secondary">
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1, borderRadius: 3, bgcolor: 'rgba(255,255,255,0.5)' }}>
+          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
             Total sessions:
           </Typography>
           <Chip 
             label={student.readingSessions.length}
             size="small"
-            color={student.readingSessions.length === 0 ? 'error' : 'primary'}
+            sx={{
+              height: 24,
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              borderRadius: 2,
+              backgroundColor: '#E0E7FF',
+              color: '#4F46E5',
+              border: 'none'
+            }}
           />
         </Box>
         
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontStyle: 'italic' }}>
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 1.5, display: 'block', textAlign: 'right', fontStyle: 'italic', fontWeight: 500 }}>
           {getDaysSinceReading()}
         </Typography>
       </CardContent>
@@ -138,7 +156,6 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
 const PrioritizedStudentsList = ({ defaultCount = 8, filterClassId = 'all' }) => {
    const [expanded, setExpanded] = useState(true);
    const [count, setCount] = useState(defaultCount);
-   // Pull from context; if fields are missing, fall back to safe defaults
    const ctx = useAppContext();
    const {
       prioritizedStudents: contextPrioritizedStudents,
@@ -150,8 +167,6 @@ const PrioritizedStudentsList = ({ defaultCount = 8, filterClassId = 'all' }) =>
       resetPriorityList
     } = ctx || {};
   
-    console.log('[PrioritizedStudentsList] context keys:', ctx ? Object.keys(ctx) : 'NO CONTEXT');
- 
    const handleStudentClick = useCallback((studentId) => {
      if (markStudentAsPriorityHandled) {
        markStudentAsPriorityHandled(studentId);
@@ -164,40 +179,31 @@ const PrioritizedStudentsList = ({ defaultCount = 8, filterClassId = 'all' }) =>
      }
    }, [resetPriorityList]);
   
-  // Use the current priority count from context, but initialize with the prop
   useEffect(() => {
     setCount(priorityStudentCount);
   }, [priorityStudentCount]);
   
-  // Safeguard against undefined context fields during initialization
   const safeClasses = Array.isArray(classes) ? classes : [];
   const safeContextPrioritizedStudents = Array.isArray(contextPrioritizedStudents)
     ? contextPrioritizedStudents
     : [];
 
-  // Get IDs of disabled classes
   const disabledClassIds = safeClasses.filter(cls => cls.disabled).map(cls => cls.id);
 
-  // Filter prioritized students by class and exclude disabled classes
   const filteredPrioritizedStudents = safeContextPrioritizedStudents.filter(student => {
-    // First, exclude students from disabled classes
     if (student.classId && disabledClassIds.includes(student.classId)) {
       return false;
     }
 
     if (filterClassId === 'all') {
-      return true; // Show all students (excluding disabled classes)
+      return true;
     }
-    // Handle unassigned students if 'unassigned' is selected
     if (filterClassId === 'unassigned') {
       return !student.classId;
     }
-    // Otherwise, match the classId
     return student.classId === filterClassId;
   });
 
-  // Use the memoized prioritized students array from context
-  // Filter to use only the number specified by count
   const allPrioritizedStudents = filteredPrioritizedStudents.slice(0, count);
   const prioritizedStudents = allPrioritizedStudents.filter(student =>
     !markedPriorityStudentIds || !markedPriorityStudentIds.has(student.id)
@@ -217,24 +223,32 @@ const PrioritizedStudentsList = ({ defaultCount = 8, filterClassId = 'all' }) =>
   };
   
   return (
-    <Paper sx={{ p: 2, mb: 3 }}>
+    <Paper sx={{ 
+      p: 3, 
+      mb: 4, 
+      borderRadius: 6, 
+      backgroundColor: 'rgba(255, 255, 255, 0.6)',
+      backdropFilter: 'blur(20px)',
+      boxShadow: '16px 16px 32px rgba(160, 150, 180, 0.2), -10px -10px 24px rgba(255, 255, 255, 0.9), inset 6px 6px 12px rgba(139, 92, 246, 0.03), inset -6px -6px 12px rgba(255, 255, 255, 1)',
+      border: '1px solid rgba(255, 255, 255, 0.4)',
+    }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-        <Typography variant="h6" sx={{ flexGrow: 1 }}> {/* Allow title to take up space */}
+        <Typography variant="h5" sx={{ flexGrow: 1, fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#332F3A' }}>
           Priority Reading List
         </Typography>
-        <IconButton onClick={handleResetList} size="small" title="Reset List"> {/* Reset Button */}
+        <IconButton onClick={handleResetList} size="small" title="Reset List" sx={{ color: '#7C3AED', bgcolor: 'rgba(124, 58, 237, 0.1)', mr: 1, '&:hover': { bgcolor: 'rgba(124, 58, 237, 0.2)' } }}>
           <RefreshIcon />
         </IconButton>
-        <IconButton onClick={toggleExpanded} size="small" title={expanded ? 'Collapse' : 'Expand'}> {/* Expand/Collapse Button */}
+        <IconButton onClick={toggleExpanded} size="small" title={expanded ? 'Collapse' : 'Expand'} sx={{ color: '#635F69', bgcolor: 'rgba(99, 95, 105, 0.1)', '&:hover': { bgcolor: 'rgba(99, 95, 105, 0.2)' } }}>
           {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
         </IconButton>
       </Box>
       <Collapse in={expanded}>
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="body2" color="text.secondary" gutterBottom>
+        <Box sx={{ mb: 4, px: 1 }}>
+          <Typography variant="body2" color="text.secondary" gutterBottom sx={{ fontWeight: 600 }}>
             Number of students to display: {count}
           </Typography>
-          <Box sx={{ px: 2, width: '100%' }}>
+          <Box sx={{ px: 1, width: '100%' }}>
             <Slider
               value={count}
               onChange={handleCountChange}
@@ -247,12 +261,21 @@ const PrioritizedStudentsList = ({ defaultCount = 8, filterClassId = 'all' }) =>
                 { value: 15, label: '15' }
               ]}
               valueLabelDisplay="auto"
-              sx={{ width: '100%' }}
+              sx={{ 
+                width: '100%',
+                color: '#7C3AED',
+                '& .MuiSlider-thumb': {
+                  boxShadow: '0 4px 8px rgba(124, 58, 237, 0.4)',
+                },
+                '& .MuiSlider-rail': {
+                  opacity: 0.3,
+                }
+              }}
             />
           </Box>
         </Box>
         
-        <Grid container spacing={2}>
+        <Grid container spacing={3}>
           {prioritizedStudents.map((student, index) => (
             <Grid item key={student.id} xs={12} sm={6} md={4}>
               <StudentPriorityCard
@@ -265,7 +288,7 @@ const PrioritizedStudentsList = ({ defaultCount = 8, filterClassId = 'all' }) =>
         </Grid>
         
         {prioritizedStudents.length === 0 && (
-          <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center', py: 3 }}>
+          <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center', py: 4, fontStyle: 'italic' }}>
             No students available. Add students to see the priority list.
           </Typography>
         )}

@@ -56,14 +56,18 @@ function AppContent() {
         display: 'flex',
         flexDirection: 'column',
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #DFE6E9 0%, #F5F6FA 100%)',
-        backgroundImage: `
-          radial-gradient(circle at 10% 20%, rgba(108, 92, 231, 0.05) 0%, transparent 20%),
-          radial-gradient(circle at 90% 80%, rgba(0, 206, 201, 0.05) 0%, transparent 20%),
-          linear-gradient(135deg, #DFE6E9 0%, #F5F6FA 100%)
-        `,
+        position: 'relative',
+        overflow: 'hidden',
+        backgroundColor: '#F4F1FA',
       }}
     >
+      {/* Animated Background Blobs */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden -z-10">
+        <div className="absolute h-[60vh] w-[60vh] rounded-full blur-3xl bg-[#7C3AED]/10 -top-[10%] -left-[10%] animate-float" style={{ position: 'fixed', top: '-10%', left: '-10%', width: '60vh', height: '60vh', borderRadius: '50%', filter: 'blur(80px)', background: 'rgba(124, 58, 237, 0.1)', zIndex: -1, animation: 'clay-float 8s ease-in-out infinite' }}></div>
+        <div className="absolute h-[60vh] w-[60vh] rounded-full blur-3xl bg-[#DB2777]/10 top-[20%] -right-[10%] animate-float-delayed" style={{ position: 'fixed', top: '20%', right: '-10%', width: '60vh', height: '60vh', borderRadius: '50%', filter: 'blur(80px)', background: 'rgba(219, 39, 119, 0.1)', zIndex: -1, animation: 'clay-float-delayed 10s ease-in-out infinite' }}></div>
+        <div className="absolute h-[60vh] w-[60vh] rounded-full blur-3xl bg-[#0EA5E9]/10 bottom-[-10%] left-[20%] animate-float" style={{ position: 'fixed', bottom: '-10%', left: '20%', width: '60vh', height: '60vh', borderRadius: '50%', filter: 'blur(80px)', background: 'rgba(14, 165, 233, 0.1)', zIndex: -1, animation: 'clay-float 8s ease-in-out infinite' }}></div>
+      </div>
+
       <Header />
 
       <Container
@@ -75,7 +79,8 @@ function AppContent() {
           px: { xs: 1, sm: 3 },
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden',
+          position: 'relative',
+          zIndex: 1,
         }}
       >
         <Paper
@@ -83,16 +88,18 @@ function AppContent() {
           sx={{
             flexGrow: 1,
             p: { xs: 2, sm: 4 },
-            borderRadius: { xs: 2, sm: 3 },
-            overflow: 'auto',
+            borderRadius: { xs: 3, sm: 4 },
+            overflow: 'visible', // Allow pop-out effects
             mb: { xs: 10, sm: 9 },
-            backgroundColor: 'rgba(255, 255, 255, 0.8)',
-            backdropFilter: 'blur(10px)',
+            backgroundColor: 'rgba(255, 255, 255, 0.6)',
+            backdropFilter: 'blur(20px)',
             minHeight: 'calc(100vh - 140px)',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
+            border: '1px solid rgba(255, 255, 255, 0.4)',
+            boxShadow: '16px 16px 32px rgba(160, 150, 180, 0.2), -10px -10px 24px rgba(255, 255, 255, 0.9), inset 6px 6px 12px rgba(139, 92, 246, 0.03), inset -6px -6px 12px rgba(255, 255, 255, 1)',
             '@media (max-width: 600px)': {
               minHeight: 'calc(100vh - 160px)',
               p: 2,
+              borderRadius: 3,
             },
           }}
         >
@@ -107,10 +114,12 @@ function AppContent() {
           left: 0,
           right: 0,
           zIndex: 1100,
-          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          backgroundColor: 'rgba(255, 255, 255, 0.8)',
           backdropFilter: 'blur(20px)',
-          borderTop: '1px solid rgba(255, 255, 255, 0.5)',
-          boxShadow: '0 -5px 20px rgba(0,0,0,0.05)',
+          borderTop: '1px solid rgba(255, 255, 255, 0.4)',
+          boxShadow: '0 -10px 30px rgba(0,0,0,0.05)',
+          borderTopLeftRadius: 32,
+          borderTopRightRadius: 32,
         }}
         elevation={0}
       >
@@ -120,6 +129,10 @@ function AppContent() {
             setCurrentTab(newValue);
           }}
           showLabels
+          sx={{
+            backgroundColor: 'transparent',
+            height: 80,
+          }}
         >
           <BottomNavigationAction label="Students" icon={<PeopleIcon />} />
           <BottomNavigationAction label="Reading" icon={<MenuBookIcon />} />

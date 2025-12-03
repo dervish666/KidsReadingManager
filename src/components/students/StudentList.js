@@ -15,7 +15,8 @@ import {
   Select,
   MenuItem,
   FormControl,
-  InputLabel
+  InputLabel,
+  Paper
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import SortIcon from '@mui/icons-material/Sort';
@@ -28,20 +29,19 @@ const StudentList = () => {
   const {
     students,
     loading,
-    apiError, // Added apiError
+    apiError,
     addStudent,
-    studentsSortedByPriority, // Changed from getStudentsByReadingPriority
-    classes, // Get classes from context
-    globalClassFilter // Get global class filter from context
+    classes,
+    globalClassFilter
   } = useAppContext();
   
   const [newStudentName, setNewStudentName] = useState('');
-  const [selectedClassId, setSelectedClassId] = useState(''); // State for selected class
+  const [selectedClassId, setSelectedClassId] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [openBulkDialog, setOpenBulkDialog] = useState(false);
   const [error, setError] = useState('');
   const [sortMethod, setSortMethod] = useState('priority');
-  const [sortDirection, setSortDirection] = useState('desc'); // 'asc' or 'desc'
+  const [sortDirection, setSortDirection] = useState('desc');
 
   const handleAddStudent = () => {
     if (!newStudentName.trim()) {
@@ -49,19 +49,18 @@ const StudentList = () => {
       return;
     }
     
-    // Pass name and selected class ID (null if 'unassigned' or empty)
     const classIdToSend = selectedClassId === 'unassigned' || selectedClassId === '' ? null : selectedClassId;
     addStudent(newStudentName.trim(), classIdToSend);
     
     setNewStudentName('');
-    setSelectedClassId(''); // Reset class selection
+    setSelectedClassId('');
     setOpenDialog(false);
     setError('');
   };
 
   const handleOpenDialog = () => {
-    setNewStudentName(''); // Clear name field on open
-    setSelectedClassId(''); // Clear class selection on open
+    setNewStudentName('');
+    setSelectedClassId('');
     setError('');
     setOpenDialog(true);
   };
@@ -82,68 +81,48 @@ const StudentList = () => {
   const handleSortChange = (event) => {
     const newSortMethod = event.target.value;
     
-    // If selecting the same method, toggle the sort direction
     if (newSortMethod === sortMethod) {
-      // Toggle the direction
       const newDirection = sortDirection === 'asc' ? 'desc' : 'asc';
       setSortDirection(newDirection);
-      
-      // Force a re-render by setting the sort method again
-      // This ensures the list updates when toggling direction
       setSortMethod(newSortMethod);
     } else {
-      // For new sort method, set default direction
-      // Default to ascending for name, descending for others
       setSortDirection(newSortMethod === 'name' ? 'asc' : 'desc');
       setSortMethod(newSortMethod);
     }
   };
 
-  // Filter and sort students using global class filter
   const getFilteredAndSortedStudents = () => {
-    // Get IDs of disabled classes
     const disabledClassIds = classes.filter(cls => cls.disabled).map(cls => cls.id);
 
-    // 1. Filter by class (using global filter) and exclude disabled classes
     const filteredStudents = students.filter(student => {
-      // First, exclude students from disabled classes
       if (student.classId && disabledClassIds.includes(student.classId)) {
         return false;
       }
 
       if (globalClassFilter === 'all') {
-        return true; // Show all students (excluding disabled classes)
+        return true;
       }
-      // Handle unassigned students if 'unassigned' is selected
       if (globalClassFilter === 'unassigned') {
         return !student.classId;
       }
-      // Otherwise, match the classId
       return student.classId === globalClassFilter;
     });
 
-    // 2. Sort the filtered list
     let sortedList;
     
     if (sortMethod === 'priority') {
-      // Need to re-calculate priority based on the *filtered* list
-      // This is a simplification; ideally, priority calculation considers all students.
-      // For now, we'll sort the filtered list by lastReadDate as a proxy.
-      // TODO: Revisit priority sorting with filtering if needed.
       sortedList = [...filteredStudents].sort((a, b) => {
-         const dateA = a.lastReadDate ? new Date(a.lastReadDate) : new Date(0); // Treat null as very old
+         const dateA = a.lastReadDate ? new Date(a.lastReadDate) : new Date(0);
          const dateB = b.lastReadDate ? new Date(b.lastReadDate) : new Date(0);
-         return dateA - dateB; // Oldest first (highest priority)
+         return dateA - dateB;
       });
 
-      // If descending priority (ascending date) is selected, reverse
       if (sortDirection === 'asc') {
         sortedList = [...sortedList].reverse();
       }
       
       return sortedList;
     } else {
-      // Sort the filtered list based on other criteria
       sortedList = [...filteredStudents].sort((a, b) => {
         let comparison = 0;
         
@@ -157,7 +136,6 @@ const StudentList = () => {
           break;
         
         case 'lastRead':
-          // Handle cases where lastReadDate might be null
           if (!a.lastReadDate) return sortDirection === 'asc' ? -1 : 1;
           if (!b.lastReadDate) return sortDirection === 'asc' ? 1 : -1;
           comparison = new Date(b.lastReadDate) - new Date(a.lastReadDate);
@@ -167,24 +145,20 @@ const StudentList = () => {
           return 0;
       }
       
-      // Reverse the comparison if ascending order is selected
-        // Reverse the comparison if ascending order is selected
-        return sortDirection === 'asc' ? comparison : -comparison; // Adjusted logic for asc/desc
+        return sortDirection === 'asc' ? comparison : -comparison;
       });
     }
     return sortedList;
   };
-  // Handle API errors first
-  if (apiError) {
-    // Display error message if the API call failed
-    return <Alert severity="error">Error loading student data: {apiError}</Alert>;
-  }
 
+  if (apiError) {
+    return <Alert severity="error" sx={{ borderRadius: 4 }}>Error loading student data: {apiError}</Alert>;
+  }
 
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-        <CircularProgress />
+        <CircularProgress sx={{ color: '#7C3AED' }} />
       </Box>
     );
   }
@@ -197,32 +171,38 @@ const StudentList = () => {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        mb: 3,
+        mb: 4,
         flexWrap: 'wrap',
         gap: 2,
         px: { xs: 0, sm: 1 }
       }}>
         <Box>
-          <Typography variant="h5" component="h1" sx={{ mb: { xs: 0.5, sm: 0 } }}>
+          <Typography variant="h4" component="h1" sx={{ mb: 0.5, fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#332F3A' }}>
             Students
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body1" sx={{ color: '#635F69', fontWeight: 500 }}>
             {filteredAndSortedStudents.length} total
           </Typography>
         </Box>
         <Box sx={{
           display: 'flex',
-          gap: 1,
+          gap: 2,
           flexWrap: 'wrap',
           width: { xs: '100%', sm: 'auto' },
           justifyContent: { xs: 'stretch', sm: 'flex-end' }
-        }}> {/* Allow controls to wrap */}
-          {/* Sort Dropdown */}
+        }}>
           <FormControl sx={{
-            minWidth: { xs: '100%', sm: 180 },
-            flex: { xs: '1 1 100%', sm: 'none' }
+            minWidth: { xs: '100%', sm: 200 },
+            flex: { xs: '1 1 100%', sm: 'none' },
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 4,
+              backgroundColor: '#ffffff',
+              boxShadow: 'inset 4px 4px 8px #d9d4e3, inset -4px -4px 8px #ffffff',
+              border: 'none',
+              '& fieldset': { border: 'none' },
+            }
           }} size="small">
-            <InputLabel id="sort-select-label">Sort By</InputLabel>
+            <InputLabel id="sort-select-label" sx={{ fontFamily: '"DM Sans", sans-serif' }}>Sort By</InputLabel>
             <Select
               labelId="sort-select-label"
               id="sort-select"
@@ -230,9 +210,9 @@ const StudentList = () => {
               label="Sort By"
               onChange={handleSortChange}
               startAdornment={
-                <SortIcon sx={{ mr: 1, ml: -0.5 }} fontSize="small" />
+                <SortIcon sx={{ mr: 1, ml: -0.5, color: '#7C3AED' }} fontSize="small" />
               }
-              sx={{ pr: 4 }}
+              sx={{ pr: 4, fontFamily: '"DM Sans", sans-serif', fontWeight: 600 }}
             >
               <MenuItem value="priority">Reading Priority</MenuItem>
               <MenuItem value="name">Name</MenuItem>
@@ -242,12 +222,19 @@ const StudentList = () => {
           </FormControl>
           <Button
             variant="outlined"
-            color="primary"
             onClick={handleOpenBulkDialog}
-            size="small"
+            size="medium"
             sx={{
               flex: { xs: 1, sm: 'none' },
-              minWidth: { xs: 'auto', sm: 120 }
+              minWidth: { xs: 'auto', sm: 120 },
+              borderRadius: 4,
+              border: '2px solid rgba(124, 58, 237, 0.2)',
+              color: '#7C3AED',
+              fontWeight: 700,
+              '&:hover': {
+                border: '2px solid #7C3AED',
+                backgroundColor: 'rgba(124, 58, 237, 0.05)',
+              }
             }}
           >
             <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Bulk Input</Box>
@@ -255,36 +242,65 @@ const StudentList = () => {
           </Button>
         </Box>
       </Box>
+
       {students.length === 0 ? (
-        <Box sx={{ textAlign: 'center', my: 4 }}>
-          <Typography variant="body1" sx={{ mb: 2 }}>
+        <Paper sx={{ 
+          textAlign: 'center', 
+          py: 8, 
+          px: 4, 
+          borderRadius: 8, 
+          backgroundColor: 'rgba(255,255,255,0.5)',
+          backdropFilter: 'blur(10px)',
+          border: '1px dashed rgba(124, 58, 237, 0.3)'
+        }}>
+          <Typography variant="h6" sx={{ mb: 3, color: '#635F69', fontFamily: '"Nunito", sans-serif' }}>
             No students added yet. Add your first student to get started!
           </Typography>
           <Button
             variant="contained"
-            color="primary"
             onClick={handleOpenDialog}
             startIcon={<AddIcon />}
+            size="large"
+            sx={{
+              borderRadius: 4,
+              background: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)',
+              boxShadow: '12px 12px 24px rgba(139, 92, 246, 0.3), -8px -8px 16px rgba(255, 255, 255, 0.4)',
+              fontWeight: 700,
+              px: 4,
+              py: 1.5
+            }}
           >
             Add Student
           </Button>
-        </Box>
+        </Paper>
       ) : (
         <>
-          {/* Priority Reading List - Add bottom margin */}
-          <Box mb={4}> {/* Added Box wrapper with margin */}
+          <Box mb={6}>
             <PrioritizedStudentsList filterClassId={globalClassFilter} />
           </Box>
           
-          {/* All Students Table */}
           <StudentTable students={filteredAndSortedStudents} />
         </>
       )}
-      {/* Add Student Dialog */}
-      <Dialog open={openDialog} onClose={handleCloseDialog}>
-        <DialogTitle>Add New Student</DialogTitle>
+
+      <Dialog 
+        open={openDialog} 
+        onClose={handleCloseDialog}
+        PaperProps={{
+          sx: {
+            borderRadius: 6,
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            backdropFilter: 'blur(20px)',
+            boxShadow: '20px 20px 60px rgba(160, 150, 180, 0.4)',
+            p: 2
+          }
+        }}
+      >
+        <DialogTitle sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, fontSize: '1.5rem', color: '#332F3A' }}>
+          Add New Student
+        </DialogTitle>
         <DialogContent>
-          <DialogContentText>
+          <DialogContentText sx={{ mb: 2, color: '#635F69' }}>
             Enter the student's name below:
           </DialogContentText>
           <TextField
@@ -297,16 +313,34 @@ const StudentList = () => {
             onChange={(e) => setNewStudentName(e.target.value)}
             error={!!error}
             helperText={error}
+            InputProps={{
+              sx: {
+                borderRadius: 4,
+                backgroundColor: '#EFEBF5',
+                boxShadow: 'inset 4px 4px 8px #d9d4e3, inset -4px -4px 8px #ffffff',
+                '& fieldset': { border: 'none' },
+                '&.Mui-focused': { backgroundColor: '#ffffff', boxShadow: '0 0 0 3px rgba(124, 58, 237, 0.2)' },
+              }
+            }}
+            InputLabelProps={{
+              sx: { fontFamily: '"DM Sans", sans-serif' }
+            }}
           />
-          {/* Class Selection Dropdown */}
-          <FormControl fullWidth margin="dense" sx={{ mt: 2 }}>
-            <InputLabel id="add-student-class-label">Assign to Class (Optional)</InputLabel>
+          <FormControl fullWidth margin="dense" sx={{ mt: 3 }}>
+            <InputLabel id="add-student-class-label" sx={{ fontFamily: '"DM Sans", sans-serif' }}>Assign to Class (Optional)</InputLabel>
             <Select
               labelId="add-student-class-label"
               id="add-student-class-select"
               value={selectedClassId}
               label="Assign to Class (Optional)"
               onChange={(e) => setSelectedClassId(e.target.value)}
+              sx={{
+                borderRadius: 4,
+                backgroundColor: '#EFEBF5',
+                boxShadow: 'inset 4px 4px 8px #d9d4e3, inset -4px -4px 8px #ffffff',
+                '& fieldset': { border: 'none' },
+                '&.Mui-focused': { backgroundColor: '#ffffff', boxShadow: '0 0 0 3px rgba(124, 58, 237, 0.2)' },
+              }}
             >
               <MenuItem value="unassigned">
                 <em>Unassigned</em>
@@ -319,21 +353,31 @@ const StudentList = () => {
             </Select>
           </FormControl>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog} color="primary">
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={handleCloseDialog} sx={{ color: '#635F69', fontWeight: 700, mr: 1 }}>
             Cancel
           </Button>
-          <Button onClick={handleAddStudent} color="primary" variant="contained">
+          <Button 
+            onClick={handleAddStudent} 
+            variant="contained"
+            sx={{
+              borderRadius: 3,
+              background: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)',
+              boxShadow: '8px 8px 16px rgba(139, 92, 246, 0.3), -6px -6px 12px rgba(255, 255, 255, 0.4)',
+              fontWeight: 700,
+              px: 3
+            }}
+          >
             Add
           </Button>
         </DialogActions>
       </Dialog>
-      {/* Bulk Import Dialog */}
+
       <BulkImport 
         open={openBulkDialog} 
         onClose={handleCloseBulkDialog} 
       />
-      {/* Floating Action Button */}
+
       <Fab
         color="primary"
         aria-label="add-student"
@@ -341,16 +385,22 @@ const StudentList = () => {
           position: 'fixed',
           bottom: {
             xs: 'calc(env(safe-area-inset-bottom) + 110px)',
-            sm: 80
+            sm: 100
           },
-          right: { xs: 16, sm: 24 },
+          right: { xs: 20, sm: 40 },
           zIndex: 1200,
-          width: { xs: 64, sm: 64 },
-          height: { xs: 64, sm: 64 }
+          width: { xs: 64, sm: 72 },
+          height: { xs: 64, sm: 72 },
+          background: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)',
+          boxShadow: '12px 12px 24px rgba(139, 92, 246, 0.4), -8px -8px 16px rgba(255, 255, 255, 0.4)',
+          '&:hover': {
+            transform: 'translateY(-4px)',
+            boxShadow: '16px 16px 32px rgba(139, 92, 246, 0.5), -10px -10px 20px rgba(255, 255, 255, 0.5)',
+          }
         }}
         onClick={handleOpenDialog}
       >
-        <AddIcon />
+        <AddIcon sx={{ fontSize: 32 }} />
       </Fab>
     </Box>
   );

@@ -29,35 +29,47 @@ const Header = () => {
       elevation={0}
       sx={{
         top: 0,
-        background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-        backdropFilter: 'saturate(120%) blur(8px)',
-        borderBottom: '1px solid rgba(15,23,42,0.06)',
+        background: 'rgba(255, 255, 255, 0.8)',
+        backdropFilter: 'blur(20px)',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.4)',
+        boxShadow: '0 10px 30px rgba(0,0,0,0.05)',
         px: { xs: 2, sm: 3 },
         pt: 'env(safe-area-inset-top)',
         zIndex: (theme) => theme.zIndex.appBar,
-        minHeight: { xs: 56, sm: 64 },
+        minHeight: { xs: 70, sm: 80 },
+        borderBottomLeftRadius: 32,
+        borderBottomRightRadius: 32,
+        mb: 2,
       }}
     >
-      <Toolbar sx={{ minHeight: { xs: 56, sm: 64 } }}>
-        <IconButton
-          edge="start"
-          color="inherit"
-          aria-label="menu"
-          size="large"
-          sx={{ mr: 2, p: { xs: 1.25, sm: 1 } }}
+      <Toolbar sx={{ minHeight: { xs: 70, sm: 80 } }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)',
+            borderRadius: '50%',
+            width: 48,
+            height: 48,
+            mr: 2,
+            boxShadow: '4px 4px 8px rgba(139, 92, 246, 0.3), -4px -4px 8px rgba(255, 255, 255, 0.4)',
+          }}
         >
-          <MenuBookIcon />
-        </IconButton>
+          <MenuBookIcon sx={{ color: 'white' }} />
+        </Box>
+        
         <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
           <Typography
-            variant="h6"
+            variant="h5"
             component="div"
             sx={{
-              fontFamily: (theme) => theme.typography.fontFamily,
-              fontWeight: 600,
-              letterSpacing: '0.25px',
-              fontSize: { xs: '1rem', sm: '1.15rem' },
+              fontFamily: '"Nunito", sans-serif',
+              fontWeight: 800,
+              color: '#332F3A',
+              fontSize: { xs: '1.25rem', sm: '1.5rem' },
               mr: { xs: 1, sm: 3 },
+              letterSpacing: '-0.025em',
             }}
           >
             Kids Reading Manager
@@ -67,33 +79,42 @@ const Header = () => {
           <Box sx={{
             display: 'flex',
             alignItems: 'center',
-            mr: { xs: 1, sm: 2 }
+            mr: { xs: 1, sm: 2 },
+            ml: 'auto',
           }}>
             <FilterListIcon sx={{
-              mr: 0.5,
+              mr: 1,
               fontSize: { xs: '1rem', sm: '1.25rem' },
-              opacity: 0.9,
+              color: '#635F69',
               display: { xs: 'none', sm: 'block' }
             }} />
             <FormControl
               size="small"
               sx={{
-                minWidth: { xs: 100, sm: 150 },
+                minWidth: { xs: 120, sm: 160 },
                 '& .MuiOutlinedInput-root': {
-                  color: 'white',
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  borderRadius: 4,
+                  backgroundColor: '#EFEBF5',
+                  boxShadow: 'inset 4px 4px 8px #d9d4e3, inset -4px -4px 8px #ffffff',
+                  border: 'none',
                   '& fieldset': {
-                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                    border: 'none',
                   },
-                  '&:hover fieldset': {
-                    borderColor: 'rgba(255, 255, 255, 0.5)',
+                  '&:hover': {
+                    backgroundColor: '#EFEBF5',
                   },
-                  '&.Mui-focused fieldset': {
-                    borderColor: 'rgba(255, 255, 255, 0.7)',
+                  '&.Mui-focused': {
+                    backgroundColor: '#ffffff',
+                    boxShadow: '0 0 0 2px rgba(124, 58, 237, 0.2)',
                   },
                 },
+                '& .MuiSelect-select': {
+                  color: '#332F3A',
+                  fontWeight: 600,
+                  fontFamily: '"Nunito", sans-serif',
+                },
                 '& .MuiSelect-icon': {
-                  color: 'rgba(255, 255, 255, 0.7)',
+                  color: '#7C3AED',
                 },
               }}
             >
@@ -103,17 +124,17 @@ const Header = () => {
                 displayEmpty
                 renderValue={() => getFilterDisplayName()}
                 sx={{
-                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                  fontSize: { xs: '0.875rem', sm: '0.9rem' },
                   '& .MuiSelect-select': {
-                    py: { xs: 0.5, sm: 0.75 },
-                    px: { xs: 1, sm: 1.5 },
+                    py: { xs: 1, sm: 1.25 },
+                    px: { xs: 1.5, sm: 2 },
                   },
                 }}
               >
-                <MenuItem value="all">All Classes</MenuItem>
-                <MenuItem value="unassigned">Unassigned</MenuItem>
+                <MenuItem value="all" sx={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 500 }}>All Classes</MenuItem>
+                <MenuItem value="unassigned" sx={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 500 }}>Unassigned</MenuItem>
                 {activeClasses.map((cls) => (
-                  <MenuItem key={cls.id} value={cls.id}>
+                  <MenuItem key={cls.id} value={cls.id} sx={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 500 }}>
                     {cls.name}
                   </MenuItem>
                 ))}
@@ -123,17 +144,18 @@ const Header = () => {
           
         </Box>
         <Typography
-          variant="body2"
+          variant="caption"
           sx={{
-            fontFamily: (theme) => theme.typography.fontFamily,
-            fontWeight: 600,
-            color: 'white',
-            fontSize: { xs: '0.75rem', sm: '0.875rem' },
-            mr: 2,
-            backgroundColor: 'rgba(0, 0, 0, 0.2)',
+            fontFamily: '"DM Sans", sans-serif',
+            fontWeight: 700,
+            color: '#7C3AED',
+            fontSize: { xs: '0.7rem', sm: '0.75rem' },
+            ml: 2,
+            backgroundColor: 'rgba(124, 58, 237, 0.1)',
             px: 1.5,
             py: 0.5,
-            borderRadius: 1,
+            borderRadius: 4,
+            display: { xs: 'none', sm: 'block' },
           }}
         >
           v{packageJson.version}

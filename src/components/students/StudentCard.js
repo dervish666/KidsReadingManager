@@ -3,7 +3,6 @@ import {
   Card,
   CardActionArea,
   CardHeader,
-  Avatar,
   CardContent,
   Typography,
   Box,
@@ -67,19 +66,18 @@ const StudentCard = ({ student }) => {
           display: 'flex',
           flexDirection: 'column',
           position: 'relative',
-          overflow: 'hidden',
-          transition: 'all 0.18s ease-in-out',
-          borderRadius: 0,
-          p: { xs: 0.5, sm: 0 },
+          overflow: 'visible',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          borderRadius: 6,
+          backgroundColor: 'rgba(255, 255, 255, 0.7)',
+          backdropFilter: 'blur(10px)',
+          boxShadow: '16px 16px 32px rgba(160, 150, 180, 0.2), -10px -10px 24px rgba(255, 255, 255, 0.9), inset 6px 6px 12px rgba(139, 92, 246, 0.03), inset -6px -6px 12px rgba(255, 255, 255, 1)',
+          border: '1px solid rgba(255, 255, 255, 0.4)',
           '&:hover': {
-            transform: 'translateY(-4px)',
-            boxShadow: (theme) => theme.shadows[3],
+            transform: 'translateY(-8px)',
+            boxShadow: '20px 20px 40px rgba(160, 150, 180, 0.25), -12px -12px 28px rgba(255, 255, 255, 0.95), inset 6px 6px 12px rgba(139, 92, 246, 0.03), inset -6px -6px 12px rgba(255, 255, 255, 1)',
+            zIndex: 10,
           },
-          '@media (max-width: 600px)': {
-            '&:hover': {
-              transform: 'translateY(-2px)',
-            }
-          }
         }}
       >
         <CardActionArea
@@ -90,44 +88,26 @@ const StudentCard = ({ student }) => {
             flexDirection: 'column',
             alignItems: 'stretch',
             textAlign: 'left',
-            p: { xs: 1, sm: 0 },
-            gap: 1,
-            cursor: 'pointer',
-            '&:focus-visible': {
-              outline: '3px solid',
-              outlineColor: (theme) => theme.palette.primary.main,
-              outlineOffset: '3px',
-            },
-            '@media (hover: none)': {
-              '&:hover': {
-                backgroundColor: 'transparent',
-              }
-            }
-          }}
-          aria-label={`View sessions for ${student.name}`}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              setOpenSessionsDialog(true);
+            p: 0,
+            '&:hover': {
+              backgroundColor: 'transparent',
             }
           }}
         >
           <CardHeader
             avatar={
               <Box sx={{
-                bgcolor: 'primary.main',
+                background: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)',
                 color: 'white',
-                width: { xs: 40, sm: 44 },
-                height: { xs: 40, sm: 44 },
-                borderRadius: 1,
+                width: 48,
+                height: 48,
+                borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: 1
+                boxShadow: '4px 4px 8px rgba(139, 92, 246, 0.3), -4px -4px 8px rgba(255, 255, 255, 0.4)',
               }}>
-                <MenuBookIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />
+                <MenuBookIcon sx={{ fontSize: 24 }} />
               </Box>
             }
             title={
@@ -135,96 +115,85 @@ const StudentCard = ({ student }) => {
                 variant="h6"
                 component="div"
                 sx={{
-                  fontWeight: 600,
-                  fontSize: { xs: '1rem', sm: '1.125rem' },
+                  fontFamily: '"Nunito", sans-serif',
+                  fontWeight: 800,
+                  fontSize: '1.125rem',
+                  color: '#332F3A',
                   lineHeight: 1.2
                 }}
               >
-                {student.name} ({student.readingSessions.length})
+                {student.name}
               </Typography>
             }
             subheader={
               <Typography
                 variant="body2"
-                color="text.secondary"
                 sx={{
-                  fontSize: { xs: '0.75rem', sm: '0.875rem' }
+                  fontFamily: '"DM Sans", sans-serif',
+                  color: '#635F69',
+                  fontSize: '0.875rem',
+                  mt: 0.5
                 }}
               >
                 {className}
               </Typography>
             }
             action={
-              <Box sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                mr: { xs: 1, sm: 2 }
-              }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Tooltip title="Reading Preferences">
                   <IconButton
                     size="small"
-                    type="button"
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
                       setOpenPreferencesDialog(true);
                     }}
-                    sx={{ padding: { xs: 0.5, sm: 1 } }}
+                    sx={{ 
+                      color: '#7C3AED',
+                      backgroundColor: 'rgba(124, 58, 237, 0.1)',
+                      '&:hover': { backgroundColor: 'rgba(124, 58, 237, 0.2)' }
+                    }}
                   >
-                    <PsychologyIcon sx={{ fontSize: { xs: 16, sm: 18 }, color: 'primary.main' }} />
+                    <PsychologyIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
                 <Box sx={{
-                  width: { xs: 8, sm: 10 },
-                  height: { xs: 8, sm: 10 },
-                  borderRadius: 0,
+                  width: 12,
+                  height: 12,
+                  borderRadius: '50%',
                   bgcolor: statusColor,
-                  boxShadow: 1
+                  boxShadow: 'inset 2px 2px 4px rgba(0,0,0,0.2), 2px 2px 4px rgba(255,255,255,0.5)'
                 }} />
               </Box>
             }
-            sx={{
-              pb: 1,
-              '& .MuiCardHeader-content': {
-                minWidth: 0,
-                flex: 1
-              }
-            }}
+            sx={{ pb: 1 }}
           />
 
-          <CardContent sx={{
-            flexGrow: 1,
-            pt: { xs: 0.5, sm: 0 },
-            pb: { xs: 2, sm: 3 },
-            '&:last-child': { pb: { xs: 2, sm: 3 } }
-          }}>
-            <Box sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: { xs: 1.5, sm: 2 }
-            }}>
+          <CardContent sx={{ flexGrow: 1, pt: 1, pb: 3 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <Box sx={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: 1
+                p: 1.5,
+                borderRadius: 4,
+                backgroundColor: 'rgba(255,255,255,0.5)',
+                boxShadow: 'inset 2px 2px 4px rgba(160, 150, 180, 0.1), inset -2px -2px 4px rgba(255, 255, 255, 0.8)'
               }}>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
-                >
+                <Typography variant="body2" sx={{ color: '#635F69', fontWeight: 600 }}>
                   Last read
                 </Typography>
                 <Chip
                   label={formatDate(mostRecentReadDate || student.lastReadDate)}
                   size="small"
-                  color={status === 'notRead' ? 'error' : status === 'needsAttention' ? 'warning' : 'success'}
                   sx={{
-                    height: { xs: 24, sm: 28 },
-                    fontSize: { xs: '0.7rem', sm: '0.75rem' }
+                    height: 24,
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    borderRadius: 2,
+                    backgroundColor: status === 'notRead' ? '#FEE2E2' : status === 'needsAttention' ? '#FEF3C7' : '#D1FAE5',
+                    color: status === 'notRead' ? '#EF4444' : status === 'needsAttention' ? '#F59E0B' : '#10B981',
+                    border: 'none'
                   }}
                 />
               </Box>
@@ -233,35 +202,37 @@ const StudentCard = ({ student }) => {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: 1
+                p: 1.5,
+                borderRadius: 4,
+                backgroundColor: 'rgba(255,255,255,0.5)',
+                boxShadow: 'inset 2px 2px 4px rgba(160, 150, 180, 0.1), inset -2px -2px 4px rgba(255, 255, 255, 0.8)'
               }}>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
-                >
+                <Typography variant="body2" sx={{ color: '#635F69', fontWeight: 600 }}>
                   Sessions
                 </Typography>
                 <Chip
                   label={student.readingSessions.length}
                   size="small"
-                  color={student.readingSessions.length === 0 ? 'default' : 'primary'}
                   sx={{
-                    height: { xs: 24, sm: 28 },
-                    fontSize: { xs: '0.7rem', sm: '0.75rem' }
+                    height: 24,
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    borderRadius: 2,
+                    backgroundColor: '#E0E7FF',
+                    color: '#4F46E5',
+                    border: 'none'
                   }}
                 />
               </Box>
 
               <Typography
-                variant="body2"
-                color="text.secondary"
+                variant="caption"
                 sx={{
+                  color: '#635F69',
                   fontStyle: 'italic',
-                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                  opacity: 0.8,
-                  alignSelf: 'flex-start'
+                  textAlign: 'right',
+                  mt: 0.5,
+                  fontWeight: 500
                 }}
               >
                 {daysSince}

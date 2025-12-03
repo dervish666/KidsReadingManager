@@ -53,12 +53,12 @@ const SessionForm = () => {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [error, setError] = useState('');
-  const [selectedBookId, setSelectedBookId] = useState(''); // <-- ADDED for book tracking
+  const [selectedBookId, setSelectedBookId] = useState('');
   const [bookAuthor, setBookAuthor] = useState('');
   const [bookReadingLevel, setBookReadingLevel] = useState('');
   const [bookAgeRange, setBookAgeRange] = useState('');
-  const [selectedLocation, setSelectedLocation] = useState('school'); // <-- ADDED for location tracking
-  const [isCreatingBook, setIsCreatingBook] = useState(false); // <-- ADDED to track book creation state
+  const [selectedLocation, setSelectedLocation] = useState('school');
+  const [isCreatingBook, setIsCreatingBook] = useState(false);
 
   const handleBookChange = (book) => {
     const bookId = book ? book.id : '';
@@ -74,11 +74,11 @@ const SessionForm = () => {
       setBookAgeRange('');
     }
 
-    setIsCreatingBook(false); // Reset book creation state when book selection completes
+    setIsCreatingBook(false);
   };
 
   const handleBookCreationStart = () => {
-    setIsCreatingBook(true); // Set book creation state when book creation starts
+    setIsCreatingBook(true);
   };
 
   const handleStudentChange = (event) => {
@@ -99,7 +99,7 @@ const SessionForm = () => {
   };
 
 
-  const handleLocationChange = (event) => { // <-- ADDED for location selection
+  const handleLocationChange = (event) => {
     setSelectedLocation(event.target.value);
   };
 
@@ -120,20 +120,18 @@ const SessionForm = () => {
       date,
       assessment,
       notes,
-      bookId: selectedBookId || null, // <-- ADDED for book tracking
-      location: selectedLocation || 'school' // <-- ADDED for location tracking
-      // Note: Book details (author/readingLevel/ageRange) are edited here for the selected book,
-      // but persisted via BookManager / book APIs, not directly as part of the session.
+      bookId: selectedBookId || null,
+      location: selectedLocation || 'school'
     });
 
     // Reset form
     setNotes('');
     setAssessment('independent');
-    setSelectedBookId(''); // <-- Reset book selection to empty string for consistency
+    setSelectedBookId('');
     setBookAuthor('');
     setBookReadingLevel('');
     setBookAgeRange('');
-    setSelectedLocation('school'); // <-- Reset location
+    setSelectedLocation('school');
     setSnackbarOpen(true);
   };
 
@@ -175,19 +173,21 @@ const SessionForm = () => {
   return (
     <Box>
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" component="h1" gutterBottom>
+        <Typography variant="h4" component="h1" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#332F3A' }}>
           Record Reading Session
         </Typography>
       </Box>
       <Paper sx={{
-          p: 3,
-          pb: 'calc(env(safe-area-inset-bottom) + 16px)',
-          background: 'rgba(255, 255, 255, 0.9)',
-          backdropFilter: 'blur(10px)',
-          borderRadius: 3
+          p: 4,
+          pb: 'calc(env(safe-area-inset-bottom) + 24px)',
+          background: 'rgba(255, 255, 255, 0.6)',
+          backdropFilter: 'blur(20px)',
+          borderRadius: 6,
+          boxShadow: '16px 16px 32px rgba(160, 150, 180, 0.2), -10px -10px 24px rgba(255, 255, 255, 0.9), inset 6px 6px 12px rgba(139, 92, 246, 0.03), inset -6px -6px 12px rgba(255, 255, 255, 1)',
+          border: '1px solid rgba(255, 255, 255, 0.4)',
         }}>
           {error && (
-            <Alert severity="error" sx={{ mb: 3 }}>
+            <Alert severity="error" sx={{ mb: 3, borderRadius: 4 }}>
               {error}
             </Alert>
           )}
@@ -195,15 +195,22 @@ const SessionForm = () => {
           <form onSubmit={handleSubmit}>
             <Grid container spacing={3}>
               {/* Student Dropdown */}
-              <Grid sx={{ mb: 3 }} size={12}>
+              <Grid item xs={12} sx={{ mb: 1 }}>
                 <FormControl fullWidth>
-                  <InputLabel id="student-select-label">Student</InputLabel>
+                  <InputLabel id="student-select-label" sx={{ fontFamily: '"DM Sans", sans-serif' }}>Student</InputLabel>
                   <Select
                     labelId="student-select-label"
                     id="student-select"
                     value={selectedStudentId}
                     label="Student"
                     onChange={handleStudentChange}
+                    sx={{
+                      borderRadius: 4,
+                      backgroundColor: '#EFEBF5',
+                      boxShadow: 'inset 4px 4px 8px #d9d4e3, inset -4px -4px 8px #ffffff',
+                      '& fieldset': { border: 'none' },
+                      '&.Mui-focused': { backgroundColor: '#ffffff', boxShadow: '0 0 0 3px rgba(124, 58, 237, 0.2)' },
+                    }}
                   >
                     {sortedStudents.length === 0 ? (
                         <MenuItem disabled>
@@ -221,12 +228,12 @@ const SessionForm = () => {
                                 <StarIcon
                                   sx={{
                                     mr: 1,
-                                    color: 'warning.main',
+                                    color: '#F59E0B',
                                     fontSize: '1rem'
                                   }}
                                 />
                               )}
-                              <Typography variant="inherit">
+                              <Typography variant="inherit" sx={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 500 }}>
                                 {student.name}
                               </Typography>
                               {isRecentlyAccessed && (
@@ -234,7 +241,7 @@ const SessionForm = () => {
                                   variant="caption"
                                   sx={{
                                     ml: 'auto',
-                                    color: 'text.secondary',
+                                    color: '#635F69',
                                     fontStyle: 'italic'
                                   }}
                                 >
@@ -250,7 +257,7 @@ const SessionForm = () => {
                 </FormControl>
               </Grid>
               
-              <Grid size={12}> {/* Use item prop and xs={12}, remove Box wrapper */}
+              <Grid item xs={12}>
                 <TextField
                   label="Date"
                   type="date"
@@ -259,16 +266,22 @@ const SessionForm = () => {
                   fullWidth
                   InputLabelProps={{
                     shrink: true,
+                    sx: { fontFamily: '"DM Sans", sans-serif' }
                   }}
-                  sx={{
-                    '& .MuiInputBase-root': {
-                      height: 56 // Ensure consistent height
+                  InputProps={{
+                    sx: {
+                      borderRadius: 4,
+                      backgroundColor: '#EFEBF5',
+                      boxShadow: 'inset 4px 4px 8px #d9d4e3, inset -4px -4px 8px #ffffff',
+                      '& fieldset': { border: 'none' },
+                      '&.Mui-focused': { backgroundColor: '#ffffff', boxShadow: '0 0 0 3px rgba(124, 58, 237, 0.2)' },
+                      height: 56
                     }
                   }}
                 />
               </Grid>
 
-              <Grid size={12} sx={{ mb: 3 }}>
+              <Grid item xs={12} sx={{ mb: 1 }}>
                 {/* Book selection with autocomplete */}
                 <BookAutocomplete
                   value={books.find(book => book.id === selectedBookId) || null}
@@ -279,8 +292,15 @@ const SessionForm = () => {
 
                 {/* Editable selected book details with explicit Update button */}
                 {selectedBookId && (
-                  <Box sx={{ mt: 2, p: 2, borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
-                    <Typography variant="subtitle2" gutterBottom>
+                  <Box sx={{ 
+                    mt: 3, 
+                    p: 3, 
+                    borderRadius: 4, 
+                    backgroundColor: 'rgba(255,255,255,0.5)',
+                    border: '1px solid rgba(255,255,255,0.6)',
+                    boxShadow: 'inset 2px 2px 4px rgba(160, 150, 180, 0.1), inset -2px -2px 4px rgba(255, 255, 255, 0.8)'
+                  }}>
+                    <Typography variant="subtitle2" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: '#332F3A' }}>
                       Selected Book Details
                     </Typography>
                     <Grid container spacing={2}>
@@ -291,6 +311,7 @@ const SessionForm = () => {
                           onChange={(e) => setBookAuthor(e.target.value)}
                           fullWidth
                           size="small"
+                          InputProps={{ sx: { borderRadius: 3, backgroundColor: '#fff' } }}
                         />
                       </Grid>
                       <Grid item xs={12} sm={4}>
@@ -301,6 +322,7 @@ const SessionForm = () => {
                           fullWidth
                           size="small"
                           placeholder="e.g. Blue, Level 4"
+                          InputProps={{ sx: { borderRadius: 3, backgroundColor: '#fff' } }}
                         />
                       </Grid>
                       <Grid item xs={12} sm={4}>
@@ -311,6 +333,7 @@ const SessionForm = () => {
                           fullWidth
                           size="small"
                           placeholder="e.g. 6-8"
+                          InputProps={{ sx: { borderRadius: 3, backgroundColor: '#fff' } }}
                         />
                       </Grid>
                     </Grid>
@@ -319,12 +342,12 @@ const SessionForm = () => {
                         variant="outlined"
                         size="small"
                         onClick={() => {
-                          // Reset inline edits back to the current stored book values
                           const current = books.find(b => b.id === selectedBookId);
                           setBookAuthor(current?.author || '');
                           setBookReadingLevel(current?.readingLevel || '');
                           setBookAgeRange(current?.ageRange || '');
                         }}
+                        sx={{ borderRadius: 3, fontWeight: 600 }}
                       >
                         Reset
                       </Button>
@@ -354,48 +377,55 @@ const SessionForm = () => {
                               throw new Error(`API error: ${response.status}`);
                             }
 
-                            // Refresh books via context helper if available
-                            // Fallback: update local books array in place for immediate feedback
                             const saved = await response.json().catch(() => updated);
                             const idx = books.findIndex(b => b.id === selectedBookId);
                             if (idx !== -1) {
-                              // Note: direct state setter is in AppContext; here we rely on reloadDataFromServer pattern.
-                              // To avoid breaking architecture, we trigger a full reload through a lightweight call
-                              // if you later expose reloadDataFromServer on context this can be wired directly.
                               books[idx] = saved;
                             }
                           } catch (err) {
                             console.error('Failed to update book from SessionForm:', err);
                           }
                         }}
+                        sx={{ 
+                          borderRadius: 3, 
+                          fontWeight: 600,
+                          background: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)',
+                          boxShadow: '4px 4px 8px rgba(139, 92, 246, 0.3)'
+                        }}
                       >
                         Update Book
                       </Button>
                     </Box>
-                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block', fontStyle: 'italic' }}>
                       Adjust these details and click "Update Book" to save them to the book record.
                     </Typography>
                   </Box>
                 )}
               </Grid>
 
-              <Grid size={12} sx={{ mb: 3 }}> {/* ADDED - Location selection */}
-                <FormControl component="fieldset">
-                  <FormLabel component="legend">Location</FormLabel>
+              <Grid item xs={12} sx={{ mb: 1 }}>
+                <FormControl component="fieldset" sx={{ 
+                  width: '100%', 
+                  p: 2, 
+                  borderRadius: 4, 
+                  border: '1px solid rgba(0,0,0,0.05)',
+                  backgroundColor: 'rgba(255,255,255,0.3)'
+                }}>
+                  <FormLabel component="legend" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: '#332F3A', mb: 1 }}>Location</FormLabel>
                   <RadioGroup
                     aria-label="location"
                     value={selectedLocation}
                     onChange={handleLocationChange}
                     row
                   >
-                    <FormControlLabel value="school" control={<Radio />} label="School" />
-                    <FormControlLabel value="home" control={<Radio />} label="Home" />
+                    <FormControlLabel value="school" control={<Radio sx={{ color: '#7C3AED', '&.Mui-checked': { color: '#7C3AED' } }} />} label="School" />
+                    <FormControlLabel value="home" control={<Radio sx={{ color: '#7C3AED', '&.Mui-checked': { color: '#7C3AED' } }} />} label="Home" />
                   </RadioGroup>
                 </FormControl>
               </Grid>
 
-              <Grid sx={{ mb: 3 }} size={12}> {/* Correct Grid item and add margin */}
-                <Typography variant="subtitle1" gutterBottom sx={{ mb: 1 }}> {/* Add margin bottom to title */}
+              <Grid item xs={12} sx={{ mb: 1 }}>
+                <Typography variant="subtitle1" gutterBottom sx={{ mb: 1, fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: '#332F3A' }}>
                   Assessment:
                 </Typography>
                 <AssessmentSelector
@@ -404,21 +434,37 @@ const SessionForm = () => {
                 />
               </Grid>
               
-              <Grid sx={{ mb: 3 }} size={12}> {/* Correct Grid item and add margin */}
+              <Grid item xs={12} sx={{ mb: 3 }}>
                 <SessionNotes
                   value={notes}
                   onChange={handleNotesChange}
                 />
               </Grid>
               
-              <Grid size={12}> {/* Correct Grid item */}
+              <Grid item xs={12}>
                 <Button
                   type="submit"
                   variant="contained"
                   color="primary"
                   fullWidth
                   size="large"
-                  sx={{ mb: { xs: 2, sm: 0 } }}
+                  sx={{ 
+                    mb: { xs: 2, sm: 0 },
+                    height: 56,
+                    borderRadius: 4,
+                    background: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)',
+                    boxShadow: '12px 12px 24px rgba(139, 92, 246, 0.3), -8px -8px 16px rgba(255, 255, 255, 0.4), inset 4px 4px 8px rgba(255, 255, 255, 0.4), inset -4px -4px 8px rgba(0, 0, 0, 0.1)',
+                    fontSize: '1.1rem',
+                    fontWeight: 700,
+                    textTransform: 'none',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: '16px 16px 32px rgba(139, 92, 246, 0.4), -10px -10px 20px rgba(255, 255, 255, 0.5)',
+                    },
+                    '&:active': {
+                      transform: 'scale(0.96)',
+                    },
+                  }}
                 >
                   Save Reading Session
                 </Button>
@@ -427,9 +473,9 @@ const SessionForm = () => {
           </form>
           
           {selectedStudent && (
-            <Box sx={{ mt: 4 }}>
-              <Divider sx={{ mb: 2 }} />
-              <Typography variant="h6" gutterBottom>
+            <Box sx={{ mt: 6 }}>
+              <Divider sx={{ mb: 4, borderColor: 'rgba(0,0,0,0.05)' }} />
+              <Typography variant="h5" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#332F3A' }}>
                 Previous Sessions for {selectedStudent.name}
               </Typography>
               
@@ -437,47 +483,63 @@ const SessionForm = () => {
                 <>
                   <Grid container spacing={2}>
                     {[...selectedStudent.readingSessions]
-                      .sort((a, b) => new Date(b.date) - new Date(a.date)) // Sort by date, newest first
+                      .sort((a, b) => new Date(b.date) - new Date(a.date))
                       .slice(0, 3)
                       .map((session) => (
-                        <Grid size={12} key={session.id}>
-                          <Card variant="outlined">
+                        <Grid item xs={12} key={session.id}>
+                          <Card 
+                            elevation={0}
+                            sx={{ 
+                              borderRadius: 4,
+                              backgroundColor: 'rgba(255,255,255,0.5)',
+                              border: '1px solid rgba(255,255,255,0.6)',
+                              boxShadow: '4px 4px 10px rgba(160, 150, 180, 0.1)'
+                            }}
+                          >
                             <CardContent>
-                              <Typography variant="subtitle2" color="text.secondary">
-                                {new Date(session.date).toLocaleDateString('en-GB', {
-                                  day: 'numeric',
-                                  month: 'short',
-                                  year: 'numeric'
-                                })}
-                              </Typography>
-                              <Typography variant="body1" sx={{ mt: 1, fontWeight: 'medium' }}>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                                <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                                  {new Date(session.date).toLocaleDateString('en-GB', {
+                                    day: 'numeric',
+                                    month: 'short',
+                                    year: 'numeric'
+                                  })}
+                                </Typography>
+                                <Typography variant="caption" sx={{ 
+                                  bgcolor: session.location === 'home' ? '#DBEAFE' : '#F3E8FF', 
+                                  color: session.location === 'home' ? '#1E40AF' : '#6B21A8',
+                                  px: 1, 
+                                  py: 0.5, 
+                                  borderRadius: 2,
+                                  fontWeight: 700
+                                }}>
+                                  {session.location === 'school' ? 'School' : session.location === 'home' ? 'Home' : 'Unknown'}
+                                </Typography>
+                              </Box>
+                              
+                              <Typography variant="body1" sx={{ mt: 1, fontWeight: 700, color: '#332F3A' }}>
                                 {session.assessment.charAt(0).toUpperCase() + session.assessment.slice(1)}
                               </Typography>
 
                               {/* Book Information */}
                               {session.bookId ? (
-                                <Box sx={{ mt: 1 }}>
-                                  <Typography variant="body2" color="primary.main" sx={{ fontWeight: 'medium' }}>
+                                <Box sx={{ mt: 1.5, p: 1.5, bgcolor: 'rgba(255,255,255,0.6)', borderRadius: 3 }}>
+                                  <Typography variant="body2" sx={{ fontWeight: 700, color: '#7C3AED' }}>
                                     "{getBookInfo(session.bookId)?.title}"
                                   </Typography>
-                                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
                                     by {getBookInfo(session.bookId)?.author}
                                   </Typography>
                                 </Box>
                               ) : (
-                                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                                <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontStyle: 'italic' }}>
                                   No book specified
                                 </Typography>
                               )}
 
-                              {/* Location */}
-                              <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: '0.8rem' }}>
-                                Location: {session.location === 'school' ? '🏫 School' : session.location === 'home' ? '🏠 Home' : 'Not specified'}
-                              </Typography>
-
                               {/* Notes */}
                               {session.notes && (
-                                <Box sx={{ mt: 1, p: 1, bgcolor: 'action.hover', borderRadius: 1 }}>
+                                <Box sx={{ mt: 2, p: 1.5, bgcolor: '#F4F1FA', borderRadius: 3 }}>
                                   <Typography variant="body2" color="text.secondary">
                                     <strong>Notes:</strong> {session.notes}
                                   </Typography>
@@ -490,7 +552,7 @@ const SessionForm = () => {
                     }
                   </Grid>
                   {selectedStudent.readingSessions.length > 3 && (
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 2, fontStyle: 'italic' }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 2, fontStyle: 'italic', textAlign: 'center' }}>
                       Showing 3 most recent sessions of {selectedStudent.readingSessions.length} total sessions.
                     </Typography>
                   )}
@@ -508,6 +570,16 @@ const SessionForm = () => {
         autoHideDuration={3000}
         onClose={handleSnackbarClose}
         message="Reading session saved successfully"
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        ContentProps={{
+          sx: {
+            borderRadius: 4,
+            bgcolor: '#10B981',
+            color: '#fff',
+            fontWeight: 600,
+            boxShadow: '0 10px 20px rgba(16, 185, 129, 0.3)'
+          }
+        }}
       />
     </Box>
   );

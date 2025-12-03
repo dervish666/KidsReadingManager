@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../contexts/AppContext';
+import { Box, Typography, Button, TextField, Paper } from '@mui/material';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
 
 const Login = () => {
   const context = useAppContext();
-  console.log('[Login] useAppContext() value:', context);
   const { login, apiError } = context;
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -14,25 +15,19 @@ const Login = () => {
     setLocalError(null);
 
     if (!password) {
-      console.warn('[Login] Submit blocked: empty password');
       return;
     }
 
     if (typeof login !== 'function') {
-      console.error('[Login] login is not a function. Context value:', { login });
       setLocalError('Internal error: login function not available');
       return;
     }
 
-    console.log('[Login] Submitting login with password length:', password.length);
-
     setSubmitting(true);
     try {
       await login(password);
-      console.log('[Login] login() resolved successfully');
       setPassword('');
     } catch (error) {
-      console.error('[Login] login() threw:', error);
       setLocalError(error && error.message ? error.message : 'Login failed');
     } finally {
       setSubmitting(false);
@@ -40,83 +35,118 @@ const Login = () => {
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <h2>Kids Reading Manager</h2>
-        <p style={styles.subtitle}>Enter the access password to continue.</p>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#F4F1FA',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Animated Background Blobs */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden -z-10">
+        <div className="absolute h-[60vh] w-[60vh] rounded-full blur-3xl bg-[#7C3AED]/10 -top-[10%] -left-[10%] animate-float" style={{ position: 'fixed', top: '-10%', left: '-10%', width: '60vh', height: '60vh', borderRadius: '50%', filter: 'blur(80px)', background: 'rgba(124, 58, 237, 0.1)', zIndex: -1, animation: 'clay-float 8s ease-in-out infinite' }}></div>
+        <div className="absolute h-[60vh] w-[60vh] rounded-full blur-3xl bg-[#DB2777]/10 top-[20%] -right-[10%] animate-float-delayed" style={{ position: 'fixed', top: '20%', right: '-10%', width: '60vh', height: '60vh', borderRadius: '50%', filter: 'blur(80px)', background: 'rgba(219, 39, 119, 0.1)', zIndex: -1, animation: 'clay-float-delayed 10s ease-in-out infinite' }}></div>
+      </div>
+
+      <Paper
+        elevation={0}
+        sx={{
+          p: 5,
+          borderRadius: 8,
+          backgroundColor: 'rgba(255, 255, 255, 0.6)',
+          backdropFilter: 'blur(20px)',
+          boxShadow: '16px 16px 32px rgba(160, 150, 180, 0.2), -10px -10px 24px rgba(255, 255, 255, 0.9), inset 6px 6px 12px rgba(139, 92, 246, 0.03), inset -6px -6px 12px rgba(255, 255, 255, 1)',
+          maxWidth: 400,
+          width: '90%',
+          textAlign: 'center',
+          border: '1px solid rgba(255, 255, 255, 0.4)',
+        }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)',
+            borderRadius: '50%',
+            width: 80,
+            height: 80,
+            mx: 'auto',
+            mb: 3,
+            boxShadow: '12px 12px 24px rgba(139, 92, 246, 0.3), -8px -8px 16px rgba(255, 255, 255, 0.4)',
+          }}
+        >
+          <MenuBookIcon sx={{ color: 'white', fontSize: 40 }} />
+        </Box>
+
+        <Typography variant="h4" sx={{ mb: 1, fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#332F3A' }}>
+          Kids Reading Manager
+        </Typography>
+        
+        <Typography variant="body1" sx={{ mb: 4, color: '#635F69' }}>
+          Enter the access password to continue.
+        </Typography>
 
         <form onSubmit={handleSubmit}>
-          <input
+          <TextField
+            fullWidth
             type="password"
             value={password}
             placeholder="Password"
             onChange={(e) => setPassword(e.target.value)}
-            style={styles.input}
             autoFocus
+            sx={{ mb: 3 }}
+            InputProps={{
+              sx: {
+                borderRadius: 4,
+                backgroundColor: '#EFEBF5',
+                boxShadow: 'inset 6px 6px 12px #d9d4e3, inset -6px -6px 12px #ffffff',
+                '& fieldset': { border: 'none' },
+                '&:hover': { backgroundColor: '#EFEBF5' },
+                '&.Mui-focused': { backgroundColor: '#ffffff', boxShadow: '0 0 0 4px rgba(124, 58, 237, 0.2)' },
+              }
+            }}
           />
 
-          <button
+          <Button
+            fullWidth
             type="submit"
             disabled={submitting || !password}
-            style={styles.button}
+            variant="contained"
+            size="large"
+            sx={{
+              height: 56,
+              borderRadius: 4,
+              background: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)',
+              boxShadow: '12px 12px 24px rgba(139, 92, 246, 0.3), -8px -8px 16px rgba(255, 255, 255, 0.4), inset 4px 4px 8px rgba(255, 255, 255, 0.4), inset -4px -4px 8px rgba(0, 0, 0, 0.1)',
+              fontSize: '1.1rem',
+              fontWeight: 700,
+              textTransform: 'none',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: '16px 16px 32px rgba(139, 92, 246, 0.4), -10px -10px 20px rgba(255, 255, 255, 0.5)',
+              },
+              '&:active': {
+                transform: 'scale(0.96)',
+              },
+            }}
           >
             {submitting ? 'Logging in...' : 'Login'}
-          </button>
+          </Button>
         </form>
 
         {(localError || apiError) && (
-          <div style={styles.error}>{localError || apiError}</div>
+          <Typography sx={{ mt: 3, color: '#EF4444', fontWeight: 600 }}>
+            {localError || apiError}
+          </Typography>
         )}
-      </div>
-    </div>
+      </Paper>
+    </Box>
   );
-};
-
-const styles = {
-  container: {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: '#f5f5f5',
-  },
-  card: {
-    padding: '24px 28px',
-    borderRadius: '8px',
-    background: '#ffffff',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-    maxWidth: '360px',
-    width: '100%',
-    textAlign: 'center',
-  },
-  subtitle: {
-    color: '#555',
-    fontSize: '0.9rem',
-    marginBottom: '16px',
-  },
-  input: {
-    width: '100%',
-    padding: '10px 12px',
-    marginBottom: '12px',
-    borderRadius: '4px',
-    border: '1px solid #ccc',
-    fontSize: '0.95rem',
-  },
-  button: {
-    width: '100%',
-    padding: '10px 12px',
-    borderRadius: '4px',
-    border: 'none',
-    background: '#1976d2',
-    color: '#fff',
-    fontWeight: 600,
-    cursor: 'pointer',
-  },
-  error: {
-    marginTop: '10px',
-    color: '#b00020',
-    fontSize: '0.85rem',
-  },
 };
 
 export default Login;

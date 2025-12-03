@@ -168,87 +168,62 @@ const ReadingStats = () => {
   
   const renderOverviewTab = () => (
     <Grid container spacing={3}>
-      {/* Corrected Grid item props */}
-      <Grid
-        size={{
-          xs: 12,
-          sm: 6,
-          md: 3
-        }}>
-        <Card>
-          <CardContent>
-            <Typography color="text.secondary" gutterBottom>
+      <Grid item xs={12} sm={6} md={3}>
+        <Card sx={{ height: '100%', borderRadius: 4, boxShadow: '8px 8px 16px rgba(160, 150, 180, 0.1)' }}>
+          <CardContent sx={{ textAlign: 'center', py: 4 }}>
+            <Typography color="text.secondary" gutterBottom sx={{ fontWeight: 600 }}>
               Total Students
             </Typography>
-            <Typography variant="h4">
+            <Typography variant="h3" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#7C3AED' }}>
               {stats.totalStudents}
             </Typography>
           </CardContent>
         </Card>
       </Grid>
       
-      {/* Corrected Grid item props */}
-      <Grid
-        size={{
-          xs: 12,
-          sm: 6,
-          md: 3
-        }}>
-        <Card>
-          <CardContent>
-            <Typography color="text.secondary" gutterBottom>
+      <Grid item xs={12} sm={6} md={3}>
+        <Card sx={{ height: '100%', borderRadius: 4, boxShadow: '8px 8px 16px rgba(160, 150, 180, 0.1)' }}>
+          <CardContent sx={{ textAlign: 'center', py: 4 }}>
+            <Typography color="text.secondary" gutterBottom sx={{ fontWeight: 600 }}>
               Total Reading Sessions
             </Typography>
-            <Typography variant="h4">
+            <Typography variant="h3" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#DB2777' }}>
               {stats.totalSessions}
             </Typography>
           </CardContent>
         </Card>
       </Grid>
       
-      {/* Corrected Grid item props */}
-      <Grid
-        size={{
-          xs: 12,
-          sm: 6,
-          md: 3
-        }}>
-        <Card>
-          <CardContent>
-            <Typography color="text.secondary" gutterBottom>
+      <Grid item xs={12} sm={6} md={3}>
+        <Card sx={{ height: '100%', borderRadius: 4, boxShadow: '8px 8px 16px rgba(160, 150, 180, 0.1)' }}>
+          <CardContent sx={{ textAlign: 'center', py: 4 }}>
+            <Typography color="text.secondary" gutterBottom sx={{ fontWeight: 600 }}>
               Avg. Sessions per Student
             </Typography>
-            <Typography variant="h4">
+            <Typography variant="h3" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#0EA5E9' }}>
               {stats.averageSessionsPerStudent.toFixed(1)}
             </Typography>
           </CardContent>
         </Card>
       </Grid>
       
-      {/* Corrected Grid item props */}
-      <Grid
-        size={{
-          xs: 12,
-          sm: 6,
-          md: 3
-        }}>
-        <Card>
-          <CardContent>
-            <Typography color="text.secondary" gutterBottom>
+      <Grid item xs={12} sm={6} md={3}>
+        <Card sx={{ height: '100%', borderRadius: 4, boxShadow: '8px 8px 16px rgba(160, 150, 180, 0.1)' }}>
+          <CardContent sx={{ textAlign: 'center', py: 4 }}>
+            <Typography color="text.secondary" gutterBottom sx={{ fontWeight: 600 }}>
               Students Never Read With
             </Typography>
-            <Typography variant="h4">
+            <Typography variant="h3" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#F59E0B' }}>
               {stats.studentsWithNoSessions}
             </Typography>
           </CardContent>
         </Card>
       </Grid>
       
-      {/* Corrected Grid item props */}
-      <Grid size={12}>
-        <Card>
+      <Grid item xs={12}>
+        <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(160, 150, 180, 0.1)' }}>
           <CardContent>
-            <Typography variant="h6" gutterBottom>
+            <Typography variant="h6" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
               Reading Status Distribution
             </Typography>
             <VisualIndicators data={stats.statusDistribution} />
@@ -256,37 +231,36 @@ const ReadingStats = () => {
         </Card>
       </Grid>
       
-      {/* Corrected Grid item props */}
-      <Grid size={12}>
-        <Card>
+      <Grid item xs={12}>
+        <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(160, 150, 180, 0.1)' }}>
           <CardContent>
-            <Typography variant="h6" gutterBottom>
+            <Typography variant="h6" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
               Assessment Distribution
             </Typography>
-            <Box sx={{ display: 'flex', justifyContent: 'space-around', mt: 2 }}>
-              <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="h5" color="error.main">
+            <Box sx={{ display: 'flex', justifyContent: 'space-around', mt: 4, flexWrap: 'wrap', gap: 2 }}>
+              <Box sx={{ textAlign: 'center', p: 2, borderRadius: 3, bgcolor: '#FEE2E2', minWidth: 120 }}>
+                <Typography variant="h4" sx={{ color: '#EF4444', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}>
                   {stats.assessmentDistribution.struggling}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" sx={{ color: '#B91C1C', fontWeight: 600 }}>
                   Struggling
                 </Typography>
               </Box>
               
-              <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="h5" color="warning.main">
+              <Box sx={{ textAlign: 'center', p: 2, borderRadius: 3, bgcolor: '#FEF3C7', minWidth: 120 }}>
+                <Typography variant="h4" sx={{ color: '#F59E0B', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}>
                   {stats.assessmentDistribution['needs-help']}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" sx={{ color: '#B45309', fontWeight: 600 }}>
                   Needs Help
                 </Typography>
               </Box>
               
-              <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="h5" color="success.main">
+              <Box sx={{ textAlign: 'center', p: 2, borderRadius: 3, bgcolor: '#D1FAE5', minWidth: 120 }}>
+                <Typography variant="h4" sx={{ color: '#10B981', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}>
                   {stats.assessmentDistribution.independent}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" sx={{ color: '#047857', fontWeight: 600 }}>
                   Independent
                 </Typography>
               </Box>
@@ -302,39 +276,56 @@ const ReadingStats = () => {
     
     return (
       <Box>
-        <Typography variant="h6" gutterBottom>
+        <Typography variant="h6" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
           Students Needing Attention
         </Typography>
         
         {needsAttentionStudents.length === 0 ? (
-          <Alert severity="success" sx={{ mt: 2 }}>
+          <Alert severity="success" sx={{ mt: 2, borderRadius: 4 }}>
             Great job! All students have been read with recently.
           </Alert>
         ) : (
-          <List>
-            {needsAttentionStudents.map(student => (
-              <ListItem key={student.id} divider>
-                <ListItemIcon>
-                  <PersonIcon />
-                </ListItemIcon>
-                <ListItemText
-                  primary={student.name}
-                  secondary={`Last read: ${student.lastReadDate 
-                    ? new Date(student.lastReadDate).toLocaleDateString('en-GB', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric'
-                      }) 
-                    : 'Never'}`}
-                />
-                <Chip 
-                  label="Needs Reading" 
-                  color="error" 
-                  size="small" 
-                />
-              </ListItem>
-            ))}
-          </List>
+          <Paper sx={{ borderRadius: 4, overflow: 'hidden' }}>
+            <List>
+              {needsAttentionStudents.map(student => (
+                <ListItem key={student.id} divider>
+                  <ListItemIcon>
+                    <Box sx={{ 
+                      width: 40, 
+                      height: 40, 
+                      borderRadius: '50%', 
+                      bgcolor: '#FEE2E2', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center' 
+                    }}>
+                      <PersonIcon sx={{ color: '#EF4444' }} />
+                    </Box>
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={<Typography sx={{ fontWeight: 600, fontFamily: '"DM Sans", sans-serif' }}>{student.name}</Typography>}
+                    secondary={`Last read: ${student.lastReadDate 
+                      ? new Date(student.lastReadDate).toLocaleDateString('en-GB', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric'
+                        }) 
+                      : 'Never'}`}
+                  />
+                  <Chip 
+                    label="Needs Reading" 
+                    sx={{ 
+                      bgcolor: '#FEE2E2', 
+                      color: '#EF4444', 
+                      fontWeight: 700,
+                      borderRadius: 2
+                    }}
+                    size="small" 
+                  />
+                </ListItem>
+              ))}
+            </List>
+          </Paper>
         )}
       </Box>
     );
@@ -349,34 +340,51 @@ const ReadingStats = () => {
         <ReadingFrequencyChart />
         
         {/* List View */}
-        <Typography variant="h6" gutterBottom>
+        <Typography variant="h6" gutterBottom sx={{ mt: 4, fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
           Reading Frequency Details
         </Typography>
         
-        <List>
-          {sortedStudents.map(student => (
-            <ListItem key={student.id} divider>
-              <ListItemIcon>
-                <PersonIcon />
-              </ListItemIcon>
-              <ListItemText
-                primary={student.name}
-                secondary={`Last read: ${student.lastReadDate
-                  ? new Date(student.lastReadDate).toLocaleDateString('en-GB', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric'
-                    })
-                  : 'Never'}`}
-              />
-              <Chip
-                label={`${student.readingSessions.length} sessions`}
-                color={student.readingSessions.length === 0 ? "error" : "primary"}
-                size="small"
-              />
-            </ListItem>
-          ))}
-        </List>
+        <Paper sx={{ borderRadius: 4, overflow: 'hidden' }}>
+          <List>
+            {sortedStudents.map(student => (
+              <ListItem key={student.id} divider>
+                <ListItemIcon>
+                  <Box sx={{ 
+                    width: 40, 
+                    height: 40, 
+                    borderRadius: '50%', 
+                    bgcolor: '#E0E7FF', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center' 
+                  }}>
+                    <PersonIcon sx={{ color: '#4F46E5' }} />
+                  </Box>
+                </ListItemIcon>
+                <ListItemText
+                  primary={<Typography sx={{ fontWeight: 600, fontFamily: '"DM Sans", sans-serif' }}>{student.name}</Typography>}
+                  secondary={`Last read: ${student.lastReadDate
+                    ? new Date(student.lastReadDate).toLocaleDateString('en-GB', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric'
+                      })
+                    : 'Never'}`}
+                />
+                <Chip
+                  label={`${student.readingSessions.length} sessions`}
+                  sx={{ 
+                    bgcolor: student.readingSessions.length === 0 ? '#FEE2E2' : '#E0E7FF', 
+                    color: student.readingSessions.length === 0 ? '#EF4444' : '#4F46E5',
+                    fontWeight: 700,
+                    borderRadius: 2
+                  }}
+                  size="small"
+                />
+              </ListItem>
+            ))}
+          </List>
+        </Paper>
       </Box>
     );
   };
@@ -384,20 +392,33 @@ const ReadingStats = () => {
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" component="h1">
+        <Typography variant="h4" component="h1" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#332F3A' }}>
           Reading Statistics
         </Typography>
         <Button 
           variant="outlined" 
           startIcon={<DownloadIcon />}
           onClick={handleExport}
+          sx={{ 
+            borderRadius: 3, 
+            fontWeight: 600,
+            borderWidth: 2,
+            '&:hover': { borderWidth: 2 }
+          }}
         >
           Export Data
         </Button>
       </Box>
       
       <Box>
-        <Paper sx={{ mb: 3, overflow: 'hidden' }}>
+        <Paper sx={{ 
+          mb: 3, 
+          overflow: 'hidden', 
+          borderRadius: 4, 
+          backgroundColor: 'rgba(255,255,255,0.6)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255,255,255,0.4)'
+        }}>
           <Tabs
             value={currentTab}
             onChange={handleTabChange}
@@ -407,19 +428,28 @@ const ReadingStats = () => {
             indicatorColor="primary"
             textColor="primary"
             aria-label="Statistics tabs"
+            sx={{
+              '& .MuiTab-root': {
+                fontFamily: '"Nunito", sans-serif',
+                fontWeight: 700,
+                textTransform: 'none',
+                fontSize: '1rem',
+                minHeight: 64
+              }
+            }}
           >
-            <Tab icon={<AssessmentIcon />} label="Overview" />
-            <Tab icon={<CalendarTodayIcon />} label="Needs Attention" />
-            <Tab icon={<MenuBookIcon />} label="Reading Frequency" />
-            <Tab icon={<TimelineIcon />} label="Reading Timeline" />
+            <Tab icon={<AssessmentIcon />} iconPosition="start" label="Overview" />
+            <Tab icon={<CalendarTodayIcon />} iconPosition="start" label="Needs Attention" />
+            <Tab icon={<MenuBookIcon />} iconPosition="start" label="Reading Frequency" />
+            <Tab icon={<TimelineIcon />} iconPosition="start" label="Reading Timeline" />
           </Tabs>
         </Paper>
         
-        <Box sx={{ p: 2 }}>
+        <Box sx={{ p: 0 }}>
           {currentTab === 0 && (
             students.length === 0 ? (
-              <Paper sx={{ p: 3, textAlign: 'center' }}>
-                <Typography variant="body1">
+              <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 4 }}>
+                <Typography variant="body1" color="text.secondary">
                   No data available yet. Add students and record reading sessions to see statistics.
                 </Typography>
               </Paper>
@@ -427,8 +457,8 @@ const ReadingStats = () => {
           )}
           {currentTab === 1 && (
             students.length === 0 ? (
-              <Paper sx={{ p: 3, textAlign: 'center' }}>
-                <Typography variant="body1">
+              <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 4 }}>
+                <Typography variant="body1" color="text.secondary">
                   No data available yet. Add students and record reading sessions to see statistics.
                 </Typography>
               </Paper>
@@ -436,8 +466,8 @@ const ReadingStats = () => {
           )}
           {currentTab === 2 && (
             students.length === 0 ? (
-              <Paper sx={{ p: 3, textAlign: 'center' }}>
-                <Typography variant="body1">
+              <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 4 }}>
+                <Typography variant="body1" color="text.secondary">
                   No data available yet. Add students and record reading sessions to see statistics.
                 </Typography>
               </Paper>
@@ -445,15 +475,17 @@ const ReadingStats = () => {
           )}
           {currentTab === 3 && (
             students.length === 0 ? (
-              <Paper sx={{ p: 3, textAlign: 'center' }}>
-                <Typography variant="body1">
+              <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 4 }}>
+                <Typography variant="body1" color="text.secondary">
                   No data available yet. Add students and record reading sessions to see statistics.
                 </Typography>
               </Paper>
             ) : (
               <Box>
                 <DaysSinceReadingChart />
-                <ReadingTimelineChart />
+                <Box sx={{ mt: 4 }}>
+                  <ReadingTimelineChart />
+                </Box>
               </Box>
             )
           )}
