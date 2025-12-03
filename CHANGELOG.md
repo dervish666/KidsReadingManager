@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.29.2] - 2025-12-03
+
+### Fixed
+- **Record Reading Session Layout**: Fixed broken layout on the Record Reading Session page where dropdowns were incorrectly sized and elements were cramped horizontally. Updated MUI Grid components from deprecated v5 syntax (`<Grid item xs={12}>`) to v7 syntax (`<Grid size={12}>`) for proper responsive layout.
+
 ## [0.29.0] - 2025-11-29
 
 ### Added

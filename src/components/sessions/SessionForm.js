@@ -195,7 +195,7 @@ const SessionForm = () => {
           <form onSubmit={handleSubmit}>
             <Grid container spacing={3}>
               {/* Student Dropdown */}
-              <Grid item xs={12} sx={{ mb: 1 }}>
+              <Grid size={12} sx={{ mb: 1 }}>
                 <FormControl fullWidth>
                   <InputLabel id="student-select-label" sx={{ fontFamily: '"DM Sans", sans-serif' }}>Student</InputLabel>
                   <Select
@@ -257,7 +257,7 @@ const SessionForm = () => {
                 </FormControl>
               </Grid>
               
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <TextField
                   label="Date"
                   type="date"
@@ -281,7 +281,7 @@ const SessionForm = () => {
                 />
               </Grid>
 
-              <Grid item xs={12} sx={{ mb: 1 }}>
+              <Grid size={12} sx={{ mb: 1 }}>
                 {/* Book selection with autocomplete */}
                 <BookAutocomplete
                   value={books.find(book => book.id === selectedBookId) || null}
@@ -292,10 +292,10 @@ const SessionForm = () => {
 
                 {/* Editable selected book details with explicit Update button */}
                 {selectedBookId && (
-                  <Box sx={{ 
-                    mt: 3, 
-                    p: 3, 
-                    borderRadius: 4, 
+                  <Box sx={{
+                    mt: 3,
+                    p: 3,
+                    borderRadius: 4,
                     backgroundColor: 'rgba(255,255,255,0.5)',
                     border: '1px solid rgba(255,255,255,0.6)',
                     boxShadow: 'inset 2px 2px 4px rgba(160, 150, 180, 0.1), inset -2px -2px 4px rgba(255, 255, 255, 0.8)'
@@ -304,7 +304,7 @@ const SessionForm = () => {
                       Selected Book Details
                     </Typography>
                     <Grid container spacing={2}>
-                      <Grid item xs={12} sm={4}>
+                      <Grid size={{ xs: 12, sm: 4 }}>
                         <TextField
                           label="Author"
                           value={bookAuthor}
@@ -314,7 +314,7 @@ const SessionForm = () => {
                           InputProps={{ sx: { borderRadius: 3, backgroundColor: '#fff' } }}
                         />
                       </Grid>
-                      <Grid item xs={12} sm={4}>
+                      <Grid size={{ xs: 12, sm: 4 }}>
                         <TextField
                           label="Reading Level"
                           value={bookReadingLevel}
@@ -325,7 +325,7 @@ const SessionForm = () => {
                           InputProps={{ sx: { borderRadius: 3, backgroundColor: '#fff' } }}
                         />
                       </Grid>
-                      <Grid item xs={12} sm={4}>
+                      <Grid size={{ xs: 12, sm: 4 }}>
                         <TextField
                           label="Age Range"
                           value={bookAgeRange}
@@ -386,8 +386,8 @@ const SessionForm = () => {
                             console.error('Failed to update book from SessionForm:', err);
                           }
                         }}
-                        sx={{ 
-                          borderRadius: 3, 
+                        sx={{
+                          borderRadius: 3,
                           fontWeight: 600,
                           background: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)',
                           boxShadow: '4px 4px 8px rgba(139, 92, 246, 0.3)'
@@ -403,11 +403,11 @@ const SessionForm = () => {
                 )}
               </Grid>
 
-              <Grid item xs={12} sx={{ mb: 1 }}>
-                <FormControl component="fieldset" sx={{ 
-                  width: '100%', 
-                  p: 2, 
-                  borderRadius: 4, 
+              <Grid size={12} sx={{ mb: 1 }}>
+                <FormControl component="fieldset" sx={{
+                  width: '100%',
+                  p: 2,
+                  borderRadius: 4,
                   border: '1px solid rgba(0,0,0,0.05)',
                   backgroundColor: 'rgba(255,255,255,0.3)'
                 }}>
@@ -424,7 +424,7 @@ const SessionForm = () => {
                 </FormControl>
               </Grid>
 
-              <Grid item xs={12} sx={{ mb: 1 }}>
+              <Grid size={12} sx={{ mb: 1 }}>
                 <Typography variant="subtitle1" gutterBottom sx={{ mb: 1, fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: '#332F3A' }}>
                   Assessment:
                 </Typography>
@@ -434,21 +434,21 @@ const SessionForm = () => {
                 />
               </Grid>
               
-              <Grid item xs={12} sx={{ mb: 3 }}>
+              <Grid size={12} sx={{ mb: 3 }}>
                 <SessionNotes
                   value={notes}
                   onChange={handleNotesChange}
                 />
               </Grid>
               
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <Button
                   type="submit"
                   variant="contained"
                   color="primary"
                   fullWidth
                   size="large"
-                  sx={{ 
+                  sx={{
                     mb: { xs: 2, sm: 0 },
                     height: 56,
                     borderRadius: 4,
@@ -486,7 +486,7 @@ const SessionForm = () => {
                       .sort((a, b) => new Date(b.date) - new Date(a.date))
                       .slice(0, 3)
                       .map((session) => (
-                        <Grid item xs={12} key={session.id}>
+                        <Grid size={12} key={session.id}>
                           <Card 
                             elevation={0}
                             sx={{ 
