@@ -23,6 +23,11 @@ const theme = createTheme({
       primary: '#332F3A', // Soft Charcoal
       secondary: '#635F69', // Muted Lavender-Gray
     },
+    status: {
+      notRead: '#EF4444', // Red
+      needsAttention: '#F59E0B', // Amber
+      recentlyRead: '#10B981', // Emerald Green
+    },
     success: {
       main: '#10B981', // Emerald Green
     },

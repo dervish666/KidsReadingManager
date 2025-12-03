@@ -150,9 +150,9 @@ const QuickEntry = () => {
   
   const status = getReadingStatus(currentStudent);
   const statusColors = {
-    notRead: theme.palette.status.notRead,
-    needsAttention: theme.palette.status.needsAttention,
-    recentlyRead: theme.palette.status.recentlyRead
+    notRead: theme.palette.status?.notRead || '#EF4444',
+    needsAttention: theme.palette.status?.needsAttention || '#F59E0B',
+    recentlyRead: theme.palette.status?.recentlyRead || '#10B981'
   };
   
   return (

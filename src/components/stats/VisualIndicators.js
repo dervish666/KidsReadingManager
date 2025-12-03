@@ -46,7 +46,7 @@ const VisualIndicators = ({ data }) => {
                 borderRadius: 5,
                 bgcolor: 'rgba(244, 67, 54, 0.1)',
                 '& .MuiLinearProgress-bar': {
-                  bgcolor: theme.palette.status.notRead,
+                  bgcolor: theme.palette.status?.notRead || '#EF4444',
                   borderRadius: 5,
                 },
               }}
@@ -75,7 +75,7 @@ const VisualIndicators = ({ data }) => {
                 borderRadius: 5,
                 bgcolor: 'rgba(255, 152, 0, 0.1)',
                 '& .MuiLinearProgress-bar': {
-                  bgcolor: theme.palette.status.needsAttention,
+                  bgcolor: theme.palette.status?.needsAttention || '#F59E0B',
                   borderRadius: 5,
                 },
               }}
@@ -104,7 +104,7 @@ const VisualIndicators = ({ data }) => {
                 borderRadius: 5,
                 bgcolor: 'rgba(76, 175, 80, 0.1)',
                 '& .MuiLinearProgress-bar': {
-                  bgcolor: theme.palette.status.recentlyRead,
+                  bgcolor: theme.palette.status?.recentlyRead || '#10B981',
                   borderRadius: 5,
                 },
               }}
