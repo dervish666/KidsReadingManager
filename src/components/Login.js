@@ -56,14 +56,14 @@ const Login = () => {
         elevation={0}
         sx={{
           p: 5,
-          borderRadius: 8,
-          backgroundColor: 'rgba(255, 255, 255, 0.6)',
+          borderRadius: '20px',
+          backgroundColor: 'rgba(255, 255, 255, 0.85)',
           backdropFilter: 'blur(20px)',
-          boxShadow: '16px 16px 32px rgba(160, 150, 180, 0.2), -10px -10px 24px rgba(255, 255, 255, 0.9), inset 6px 6px 12px rgba(139, 92, 246, 0.03), inset -6px -6px 12px rgba(255, 255, 255, 1)',
+          boxShadow: '0 8px 32px rgba(160, 150, 180, 0.15), 0 2px 8px rgba(0, 0, 0, 0.05)',
           maxWidth: 400,
           width: '90%',
           textAlign: 'center',
-          border: '1px solid rgba(255, 255, 255, 0.4)',
+          border: '1px solid rgba(255, 255, 255, 0.5)',
         }}
       >
         <Box
@@ -72,15 +72,15 @@ const Login = () => {
             alignItems: 'center',
             justifyContent: 'center',
             background: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)',
-            borderRadius: '50%',
-            width: 80,
-            height: 80,
+            borderRadius: '16px',
+            width: 72,
+            height: 72,
             mx: 'auto',
             mb: 3,
-            boxShadow: '12px 12px 24px rgba(139, 92, 246, 0.3), -8px -8px 16px rgba(255, 255, 255, 0.4)',
+            boxShadow: '0 8px 24px rgba(139, 92, 246, 0.35)',
           }}
         >
-          <MenuBookIcon sx={{ color: 'white', fontSize: 40 }} />
+          <MenuBookIcon sx={{ color: 'white', fontSize: 36 }} />
         </Box>
 
         <Typography variant="h4" sx={{ mb: 1, fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#332F3A' }}>
@@ -102,12 +102,20 @@ const Login = () => {
             sx={{ mb: 3 }}
             InputProps={{
               sx: {
-                borderRadius: 4,
-                backgroundColor: '#EFEBF5',
-                boxShadow: 'inset 6px 6px 12px #d9d4e3, inset -6px -6px 12px #ffffff',
+                borderRadius: '10px',
+                backgroundColor: '#F8F6FC',
+                boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.04)',
+                border: '1px solid rgba(160, 150, 180, 0.15)',
                 '& fieldset': { border: 'none' },
-                '&:hover': { backgroundColor: '#EFEBF5' },
-                '&.Mui-focused': { backgroundColor: '#ffffff', boxShadow: '0 0 0 4px rgba(124, 58, 237, 0.2)' },
+                '&:hover': {
+                  backgroundColor: '#F8F6FC',
+                  border: '1px solid rgba(124, 58, 237, 0.3)',
+                },
+                '&.Mui-focused': {
+                  backgroundColor: '#ffffff',
+                  border: '1px solid rgba(124, 58, 237, 0.5)',
+                  boxShadow: '0 0 0 3px rgba(124, 58, 237, 0.15)'
+                },
               }
             }}
           />
@@ -119,19 +127,19 @@ const Login = () => {
             variant="contained"
             size="large"
             sx={{
-              height: 56,
-              borderRadius: 4,
+              height: 52,
+              borderRadius: '12px',
               background: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)',
-              boxShadow: '12px 12px 24px rgba(139, 92, 246, 0.3), -8px -8px 16px rgba(255, 255, 255, 0.4), inset 4px 4px 8px rgba(255, 255, 255, 0.4), inset -4px -4px 8px rgba(0, 0, 0, 0.1)',
-              fontSize: '1.1rem',
+              boxShadow: '0 6px 20px rgba(139, 92, 246, 0.35)',
+              fontSize: '1rem',
               fontWeight: 700,
               textTransform: 'none',
               '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: '16px 16px 32px rgba(139, 92, 246, 0.4), -10px -10px 20px rgba(255, 255, 255, 0.5)',
+                transform: 'translateY(-2px)',
+                boxShadow: '0 8px 28px rgba(139, 92, 246, 0.45)',
               },
               '&:active': {
-                transform: 'scale(0.96)',
+                transform: 'scale(0.98)',
               },
             }}
           >

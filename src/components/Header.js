@@ -29,34 +29,34 @@ const Header = () => {
       elevation={0}
       sx={{
         top: 0,
-        background: 'rgba(255, 255, 255, 0.8)',
+        background: 'rgba(255, 255, 255, 0.9)',
         backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.4)',
-        boxShadow: '0 10px 30px rgba(0,0,0,0.05)',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.5)',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
         px: { xs: 2, sm: 3 },
         pt: 'env(safe-area-inset-top)',
         zIndex: (theme) => theme.zIndex.appBar,
-        minHeight: { xs: 70, sm: 80 },
-        borderBottomLeftRadius: 32,
-        borderBottomRightRadius: 32,
+        minHeight: { xs: 64, sm: 72 },
+        borderBottomLeftRadius: 16,
+        borderBottomRightRadius: 16,
         mb: 2,
       }}
     >
-      <Toolbar sx={{ minHeight: { xs: 70, sm: 80 } }}>
+      <Toolbar sx={{ minHeight: { xs: 64, sm: 72 } }}>
         <Box
           sx={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             background: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)',
-            borderRadius: '50%',
-            width: 48,
-            height: 48,
+            borderRadius: '10px',
+            width: 42,
+            height: 42,
             mr: 2,
-            boxShadow: '4px 4px 8px rgba(139, 92, 246, 0.3), -4px -4px 8px rgba(255, 255, 255, 0.4)',
+            boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)',
           }}
         >
-          <MenuBookIcon sx={{ color: 'white' }} />
+          <MenuBookIcon sx={{ color: 'white', fontSize: 22 }} />
         </Box>
         
         <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
@@ -93,25 +93,27 @@ const Header = () => {
               sx={{
                 minWidth: { xs: 120, sm: 160 },
                 '& .MuiOutlinedInput-root': {
-                  borderRadius: 4,
-                  backgroundColor: '#EFEBF5',
-                  boxShadow: 'inset 4px 4px 8px #d9d4e3, inset -4px -4px 8px #ffffff',
-                  border: 'none',
+                  borderRadius: '10px',
+                  backgroundColor: '#F8F6FC',
+                  boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.04)',
+                  border: '1px solid rgba(160, 150, 180, 0.15)',
                   '& fieldset': {
                     border: 'none',
                   },
                   '&:hover': {
-                    backgroundColor: '#EFEBF5',
+                    backgroundColor: '#F8F6FC',
+                    border: '1px solid rgba(124, 58, 237, 0.3)',
                   },
                   '&.Mui-focused': {
                     backgroundColor: '#ffffff',
-                    boxShadow: '0 0 0 2px rgba(124, 58, 237, 0.2)',
+                    border: '1px solid rgba(124, 58, 237, 0.5)',
+                    boxShadow: '0 0 0 3px rgba(124, 58, 237, 0.15)',
                   },
                 },
                 '& .MuiSelect-select': {
                   color: '#332F3A',
                   fontWeight: 600,
-                  fontFamily: '"Nunito", sans-serif',
+                  fontFamily: '"DM Sans", sans-serif',
                 },
                 '& .MuiSelect-icon': {
                   color: '#7C3AED',
@@ -154,7 +156,7 @@ const Header = () => {
             backgroundColor: 'rgba(124, 58, 237, 0.1)',
             px: 1.5,
             py: 0.5,
-            borderRadius: 4,
+            borderRadius: '6px',
             display: { xs: 'none', sm: 'block' },
           }}
         >

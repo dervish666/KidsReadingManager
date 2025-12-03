@@ -87,19 +87,19 @@ function AppContent() {
           elevation={0}
           sx={{
             flexGrow: 1,
-            p: { xs: 2, sm: 4 },
-            borderRadius: { xs: 3, sm: 4 },
-            overflow: 'visible', // Allow pop-out effects
+            p: { xs: 2, sm: 3 },
+            borderRadius: '16px',
+            overflow: 'visible',
             mb: { xs: 10, sm: 9 },
-            backgroundColor: 'rgba(255, 255, 255, 0.6)',
+            backgroundColor: 'rgba(255, 255, 255, 0.75)',
             backdropFilter: 'blur(20px)',
             minHeight: 'calc(100vh - 140px)',
-            border: '1px solid rgba(255, 255, 255, 0.4)',
-            boxShadow: '16px 16px 32px rgba(160, 150, 180, 0.2), -10px -10px 24px rgba(255, 255, 255, 0.9), inset 6px 6px 12px rgba(139, 92, 246, 0.03), inset -6px -6px 12px rgba(255, 255, 255, 1)',
+            border: '1px solid rgba(255, 255, 255, 0.5)',
+            boxShadow: '0 8px 32px rgba(160, 150, 180, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04)',
             '@media (max-width: 600px)': {
               minHeight: 'calc(100vh - 160px)',
               p: 2,
-              borderRadius: 3,
+              borderRadius: '12px',
             },
           }}
         >
@@ -114,12 +114,12 @@ function AppContent() {
           left: 0,
           right: 0,
           zIndex: 1100,
-          backgroundColor: 'rgba(255, 255, 255, 0.8)',
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
           backdropFilter: 'blur(20px)',
-          borderTop: '1px solid rgba(255, 255, 255, 0.4)',
-          boxShadow: '0 -10px 30px rgba(0,0,0,0.05)',
-          borderTopLeftRadius: 32,
-          borderTopRightRadius: 32,
+          borderTop: '1px solid rgba(255, 255, 255, 0.5)',
+          boxShadow: '0 -4px 20px rgba(0,0,0,0.04)',
+          borderTopLeftRadius: 20,
+          borderTopRightRadius: 20,
         }}
         elevation={0}
       >

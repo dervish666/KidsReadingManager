@@ -61,15 +61,15 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
         position: 'relative',
         overflow: 'visible',
         cursor: 'pointer',
-        borderRadius: 4,
-        backgroundColor: 'rgba(255, 255, 255, 0.7)',
+        borderRadius: '12px',
+        backgroundColor: 'rgba(255, 255, 255, 0.85)',
         backdropFilter: 'blur(10px)',
-        boxShadow: '12px 12px 24px rgba(160, 150, 180, 0.2), -8px -8px 16px rgba(255, 255, 255, 0.9), inset 4px 4px 8px rgba(139, 92, 246, 0.03), inset -4px -4px 8px rgba(255, 255, 255, 1)',
-        border: '1px solid rgba(255, 255, 255, 0.4)',
+        boxShadow: '0 4px 12px rgba(160, 150, 180, 0.15), 0 2px 4px rgba(0, 0, 0, 0.05)',
+        border: '1px solid rgba(255, 255, 255, 0.6)',
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         '&:hover': {
-          transform: 'translateY(-6px)',
-          boxShadow: '16px 16px 32px rgba(160, 150, 180, 0.25), -10px -10px 24px rgba(255, 255, 255, 0.95)',
+          transform: 'translateY(-4px)',
+          boxShadow: '0 8px 24px rgba(160, 150, 180, 0.2), 0 4px 8px rgba(0, 0, 0, 0.08)',
           zIndex: 10,
         }
       }}
@@ -223,14 +223,14 @@ const PrioritizedStudentsList = ({ defaultCount = 8, filterClassId = 'all' }) =>
   };
   
   return (
-    <Paper sx={{ 
-      p: 3, 
-      mb: 4, 
-      borderRadius: 6, 
-      backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    <Paper sx={{
+      p: 3,
+      mb: 4,
+      borderRadius: '16px',
+      backgroundColor: 'rgba(255, 255, 255, 0.75)',
       backdropFilter: 'blur(20px)',
-      boxShadow: '16px 16px 32px rgba(160, 150, 180, 0.2), -10px -10px 24px rgba(255, 255, 255, 0.9), inset 6px 6px 12px rgba(139, 92, 246, 0.03), inset -6px -6px 12px rgba(255, 255, 255, 1)',
-      border: '1px solid rgba(255, 255, 255, 0.4)',
+      boxShadow: '0 8px 32px rgba(160, 150, 180, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04)',
+      border: '1px solid rgba(255, 255, 255, 0.5)',
     }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
         <Typography variant="h5" sx={{ flexGrow: 1, fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#332F3A' }}>

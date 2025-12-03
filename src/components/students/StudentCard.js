@@ -68,14 +68,14 @@ const StudentCard = ({ student }) => {
           position: 'relative',
           overflow: 'visible',
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          borderRadius: 6,
-          backgroundColor: 'rgba(255, 255, 255, 0.7)',
-          backdropFilter: 'blur(10px)',
-          boxShadow: '16px 16px 32px rgba(160, 150, 180, 0.2), -10px -10px 24px rgba(255, 255, 255, 0.9), inset 6px 6px 12px rgba(139, 92, 246, 0.03), inset -6px -6px 12px rgba(255, 255, 255, 1)',
-          border: '1px solid rgba(255, 255, 255, 0.4)',
+          borderRadius: '12px',
+          backgroundColor: 'rgba(255, 255, 255, 0.85)',
+          backdropFilter: 'blur(16px)',
+          boxShadow: '0 4px 12px rgba(160, 150, 180, 0.15), 0 2px 4px rgba(0, 0, 0, 0.05)',
+          border: '1px solid rgba(255, 255, 255, 0.6)',
           '&:hover': {
-            transform: 'translateY(-8px)',
-            boxShadow: '20px 20px 40px rgba(160, 150, 180, 0.25), -12px -12px 28px rgba(255, 255, 255, 0.95), inset 6px 6px 12px rgba(139, 92, 246, 0.03), inset -6px -6px 12px rgba(255, 255, 255, 1)',
+            transform: 'translateY(-4px)',
+            boxShadow: '0 8px 24px rgba(160, 150, 180, 0.2), 0 4px 8px rgba(0, 0, 0, 0.08)',
             zIndex: 10,
           },
         }}
@@ -99,15 +99,15 @@ const StudentCard = ({ student }) => {
               <Box sx={{
                 background: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)',
                 color: 'white',
-                width: 48,
-                height: 48,
-                borderRadius: '50%',
+                width: 42,
+                height: 42,
+                borderRadius: '10px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '4px 4px 8px rgba(139, 92, 246, 0.3), -4px -4px 8px rgba(255, 255, 255, 0.4)',
+                boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)',
               }}>
-                <MenuBookIcon sx={{ fontSize: 24 }} />
+                <MenuBookIcon sx={{ fontSize: 22 }} />
               </Box>
             }
             title={
@@ -176,9 +176,8 @@ const StudentCard = ({ student }) => {
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 p: 1.5,
-                borderRadius: 4,
-                backgroundColor: 'rgba(255,255,255,0.5)',
-                boxShadow: 'inset 2px 2px 4px rgba(160, 150, 180, 0.1), inset -2px -2px 4px rgba(255, 255, 255, 0.8)'
+                borderRadius: '8px',
+                backgroundColor: 'rgba(248, 246, 252, 0.8)',
               }}>
                 <Typography variant="body2" sx={{ color: '#635F69', fontWeight: 600 }}>
                   Last read
@@ -189,8 +188,8 @@ const StudentCard = ({ student }) => {
                   sx={{
                     height: 24,
                     fontSize: '0.75rem',
-                    fontWeight: 700,
-                    borderRadius: 2,
+                    fontWeight: 600,
+                    borderRadius: '6px',
                     backgroundColor: status === 'notRead' ? '#FEE2E2' : status === 'needsAttention' ? '#FEF3C7' : '#D1FAE5',
                     color: status === 'notRead' ? '#EF4444' : status === 'needsAttention' ? '#F59E0B' : '#10B981',
                     border: 'none'
@@ -203,9 +202,8 @@ const StudentCard = ({ student }) => {
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 p: 1.5,
-                borderRadius: 4,
-                backgroundColor: 'rgba(255,255,255,0.5)',
-                boxShadow: 'inset 2px 2px 4px rgba(160, 150, 180, 0.1), inset -2px -2px 4px rgba(255, 255, 255, 0.8)'
+                borderRadius: '8px',
+                backgroundColor: 'rgba(248, 246, 252, 0.8)',
               }}>
                 <Typography variant="body2" sx={{ color: '#635F69', fontWeight: 600 }}>
                   Sessions
@@ -216,8 +214,8 @@ const StudentCard = ({ student }) => {
                   sx={{
                     height: 24,
                     fontSize: '0.75rem',
-                    fontWeight: 700,
-                    borderRadius: 2,
+                    fontWeight: 600,
+                    borderRadius: '6px',
                     backgroundColor: '#E0E7FF',
                     color: '#4F46E5',
                     border: 'none'
