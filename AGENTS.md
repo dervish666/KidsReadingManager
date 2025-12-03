@@ -7,6 +7,7 @@ This file provides guidance to agents when working with code in this repository.
 - `npm run dev` - Cloudflare Worker dev mode (wrangler dev) at http://localhost:8787
 - `npm run start:dev` - Runs both frontend and worker concurrently
 - `npm run deploy` - Deploy to Cloudflare Workers
+- `npm run build && npm run deploy` - Build and deploy to cloudflare workers
 - `npm run migrate` - Run data migration script
 - `npx wrangler d1 migrations apply reading-manager-db --local` - Apply D1 migrations locally
 - `npx wrangler d1 migrations apply reading-manager-db --remote` - Apply D1 migrations to production
