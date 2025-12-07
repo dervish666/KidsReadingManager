@@ -10,7 +10,6 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
-  Fab,
   CircularProgress,
   Select,
   MenuItem,
@@ -240,6 +239,27 @@ const StudentList = () => {
             <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Bulk Input</Box>
             <Box sx={{ display: { xs: 'inline', sm: 'none' } }}>Input</Box>
           </Button>
+          <Button
+            variant="outlined"
+            onClick={handleOpenDialog}
+            size="medium"
+            startIcon={<AddIcon />}
+            sx={{
+              flex: { xs: 1, sm: 'none' },
+              minWidth: { xs: 'auto', sm: 120 },
+              borderRadius: 4,
+              border: '2px solid rgba(124, 58, 237, 0.2)',
+              color: '#7C3AED',
+              fontWeight: 700,
+              '&:hover': {
+                border: '2px solid #7C3AED',
+                backgroundColor: 'rgba(124, 58, 237, 0.05)',
+              }
+            }}
+          >
+            <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Add Student</Box>
+            <Box sx={{ display: { xs: 'inline', sm: 'none' } }}>Add</Box>
+          </Button>
         </Box>
       </Box>
 
@@ -378,30 +398,6 @@ const StudentList = () => {
         onClose={handleCloseBulkDialog} 
       />
 
-      <Fab
-        color="primary"
-        aria-label="add-student"
-        sx={{
-          position: 'fixed',
-          bottom: {
-            xs: 'calc(env(safe-area-inset-bottom) + 110px)',
-            sm: 100
-          },
-          right: { xs: 20, sm: 40 },
-          zIndex: 1200,
-          width: { xs: 64, sm: 72 },
-          height: { xs: 64, sm: 72 },
-          background: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)',
-          boxShadow: '12px 12px 24px rgba(139, 92, 246, 0.4), -8px -8px 16px rgba(255, 255, 255, 0.4)',
-          '&:hover': {
-            transform: 'translateY(-4px)',
-            boxShadow: '16px 16px 32px rgba(139, 92, 246, 0.5), -10px -10px 20px rgba(255, 255, 255, 0.5)',
-          }
-        }}
-        onClick={handleOpenDialog}
-      >
-        <AddIcon sx={{ fontSize: 32 }} />
-      </Fab>
     </Box>
   );
 };
