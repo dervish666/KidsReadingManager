@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.30.0] - 2025-12-04
+
+### Added
+- **Drag-and-Drop Student Reordering**: Users can now reorder students in the Reading Record table by dragging and dropping rows. Custom order is persisted per class in localStorage. A "Reset Order" button appears when a custom order is active, allowing users to return to alphabetical sorting. Drag handles appear on the left side of each row.
+
 ## [0.29.2] - 2025-12-03
 
 ### Fixed

@@ -33,6 +33,23 @@ import PersonOffIcon from '@mui/icons-material/PersonOff';
 import SearchIcon from '@mui/icons-material/Search';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useAppContext } from '../../contexts/AppContext';
 import BookAutocomplete from './BookAutocomplete';
 import ClassReadingHistoryTable from './ClassReadingHistoryTable';
@@ -44,6 +61,137 @@ const READING_STATUS = {
   ABSENT: 'absent',       // A - Absent
   NO_RECORD: 'no_record', // • - No reading record received
   NONE: 'none'            // No entry yet
+};
+
+// LocalStorage key for student order
+const STUDENT_ORDER_KEY = 'homeReadingStudentOrder';
+
+// Load student order from localStorage
+const loadStudentOrder = () => {
+  try {
+    const saved = localStorage.getItem(STUDENT_ORDER_KEY);
+    return saved ? JSON.parse(saved) : {};
+  } catch {
+    return {};
+  }
+};
+
+// Save student order to localStorage
+const saveStudentOrder = (orderMap) => {
+  try {
+    localStorage.setItem(STUDENT_ORDER_KEY, JSON.stringify(orderMap));
+  } catch (e) {
+    console.error('Failed to save student order:', e);
+  }
+};
+
+// Sortable table row component
+const SortableStudentRow = ({
+  student,
+  isSelected,
+  onSelect,
+  renderStatusCell,
+  hasEntry,
+  onClearEntry,
+  totalSessions,
+  lastBook,
+  isDragDisabled
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: student.id, disabled: isDragDisabled });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    backgroundColor: isDragging ? 'rgba(103, 58, 183, 0.1)' : undefined,
+  };
+
+  return (
+    <TableRow
+      ref={setNodeRef}
+      style={style}
+      hover
+      selected={isSelected}
+      sx={{
+        cursor: 'pointer',
+        '&.Mui-selected': {
+          backgroundColor: 'primary.light'
+        }
+      }}
+    >
+      <TableCell
+        sx={{
+          fontWeight: isSelected ? 'bold' : 'normal',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1
+        }}
+      >
+        {!isDragDisabled && (
+          <Box
+            {...attributes}
+            {...listeners}
+            sx={{
+              cursor: 'grab',
+              display: 'flex',
+              alignItems: 'center',
+              color: 'grey.500',
+              '&:hover': { color: 'grey.700' },
+              '&:active': { cursor: 'grabbing' }
+            }}
+          >
+            <DragIndicatorIcon fontSize="small" />
+          </Box>
+        )}
+        <Box onClick={() => onSelect(student)} sx={{ flex: 1 }}>
+          {student.name}
+        </Box>
+      </TableCell>
+      {renderStatusCell(student)}
+      <TableCell sx={{ textAlign: 'center', padding: '4px' }}>
+        {hasEntry && (
+          <Tooltip title="Clear entry">
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                onClearEntry(student);
+              }}
+              sx={{
+                color: 'error.main',
+                '&:hover': { backgroundColor: 'error.light' }
+              }}
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
+      </TableCell>
+      <TableCell
+        sx={{ textAlign: 'center', fontWeight: 'bold' }}
+        onClick={() => onSelect(student)}
+      >
+        {totalSessions}
+      </TableCell>
+      <TableCell
+        onClick={() => onSelect(student)}
+        sx={{
+          fontSize: '0.85rem',
+          color: lastBook ? 'text.primary' : 'text.secondary',
+          fontStyle: lastBook ? 'normal' : 'italic'
+        }}
+      >
+        {lastBook ? lastBook.title : 'No book set'}
+      </TableCell>
+    </TableRow>
+  );
 };
 
 // Get yesterday's date in YYYY-MM-DD format
@@ -98,6 +246,19 @@ const HomeReadingRegister = () => {
   const [multipleCountDialog, setMultipleCountDialog] = useState(false);
   const [multipleCount, setMultipleCount] = useState(2);
   const [showInputPanel, setShowInputPanel] = useState(true);
+  const [studentOrderMap, setStudentOrderMap] = useState(loadStudentOrder);
+
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Require 8px movement before starting drag
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
   
   // Book persistence - stores last book per student (in localStorage)
   const [studentBooks, setStudentBooks] = useState(() => {
@@ -143,13 +304,30 @@ const HomeReadingRegister = () => {
     }
   }, [globalClassFilter, activeClasses, setGlobalClassFilter]);
 
-  // Get students for selected class
+  // Get students for selected class with custom order
   const classStudents = useMemo(() => {
     if (!effectiveClassId) return [];
-    return students
-      .filter(s => s.classId === effectiveClassId)
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [students, effectiveClassId]);
+    const classStudentsList = students.filter(s => s.classId === effectiveClassId);
+    
+    // Get the custom order for this class
+    const customOrder = studentOrderMap[effectiveClassId];
+    
+    if (customOrder && customOrder.length > 0) {
+      // Sort by custom order, putting any new students at the end alphabetically
+      const orderMap = new Map(customOrder.map((id, index) => [id, index]));
+      return classStudentsList.sort((a, b) => {
+        const aIndex = orderMap.has(a.id) ? orderMap.get(a.id) : Infinity;
+        const bIndex = orderMap.has(b.id) ? orderMap.get(b.id) : Infinity;
+        if (aIndex === Infinity && bIndex === Infinity) {
+          return a.name.localeCompare(b.name);
+        }
+        return aIndex - bIndex;
+      });
+    }
+    
+    // Default: sort alphabetically
+    return classStudentsList.sort((a, b) => a.name.localeCompare(b.name));
+  }, [students, effectiveClassId, studentOrderMap]);
 
   // Filter students by search query
   const filteredStudents = useMemo(() => {
@@ -157,6 +335,43 @@ const HomeReadingRegister = () => {
     const query = searchQuery.toLowerCase();
     return classStudents.filter(s => s.name.toLowerCase().includes(query));
   }, [classStudents, searchQuery]);
+
+  // Handle drag end for reordering
+  const handleDragEnd = useCallback((event) => {
+    const { active, over } = event;
+    
+    if (active.id !== over?.id) {
+      const oldIndex = classStudents.findIndex(s => s.id === active.id);
+      const newIndex = classStudents.findIndex(s => s.id === over.id);
+      
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const newOrder = arrayMove(classStudents.map(s => s.id), oldIndex, newIndex);
+        
+        setStudentOrderMap(prev => {
+          const updated = { ...prev, [effectiveClassId]: newOrder };
+          saveStudentOrder(updated);
+          return updated;
+        });
+        
+        setSnackbarMessage('Student order updated');
+        setSnackbarSeverity('info');
+        setSnackbarOpen(true);
+      }
+    }
+  }, [classStudents, effectiveClassId]);
+
+  // Reset to alphabetical order
+  const handleResetOrder = useCallback(() => {
+    setStudentOrderMap(prev => {
+      const updated = { ...prev };
+      delete updated[effectiveClassId];
+      saveStudentOrder(updated);
+      return updated;
+    });
+    setSnackbarMessage('Reset to alphabetical order');
+    setSnackbarSeverity('info');
+    setSnackbarOpen(true);
+  }, [effectiveClassId]);
 
   // Get reading status for a student on a specific date
   const getStudentReadingStatus = useCallback((student, date) => {
@@ -626,11 +841,26 @@ const HomeReadingRegister = () => {
 
       {/* Register Table */}
       <Paper sx={{ mb: 2 }}>
+        {/* Reset Order Button */}
+        {studentOrderMap[effectiveClassId] && !searchQuery && (
+          <Box sx={{ p: 1, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'flex-end' }}>
+            <Tooltip title="Reset to alphabetical order">
+              <Button
+                size="small"
+                variant="text"
+                onClick={handleResetOrder}
+                sx={{ textTransform: 'none' }}
+              >
+                Reset Order
+              </Button>
+            </Tooltip>
+          </Box>
+        )}
         <TableContainer sx={{ maxHeight: isMobile ? 400 : 500 }}>
           <Table stickyHeader size="small">
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 'bold', minWidth: 120 }}>Name</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', minWidth: 140 }}>Name</TableCell>
                 <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', minWidth: 50 }}>
                   {getWeekInfo(selectedDate).dayName}
                 </TableCell>
@@ -639,70 +869,37 @@ const HomeReadingRegister = () => {
                 <TableCell sx={{ fontWeight: 'bold', minWidth: 150 }}>Current Book</TableCell>
               </TableRow>
             </TableHead>
-            <TableBody>
-              {filteredStudents.map(student => {
-                const lastBook = getStudentLastBook(student.id);
-                const isSelected = selectedStudent?.id === student.id;
-                const { status } = getStudentReadingStatus(student, selectedDate);
-                const hasEntry = status !== READING_STATUS.NONE;
-                
-                return (
-                  <TableRow
-                    key={student.id}
-                    hover
-                    selected={isSelected}
-                    sx={{
-                      cursor: 'pointer',
-                      '&.Mui-selected': {
-                        backgroundColor: 'primary.light'
-                      }
-                    }}
-                  >
-                    <TableCell
-                      onClick={() => setSelectedStudent(student)}
-                      sx={{ fontWeight: isSelected ? 'bold' : 'normal' }}
-                    >
-                      {student.name}
-                    </TableCell>
-                    {renderStatusCell(student)}
-                    <TableCell sx={{ textAlign: 'center', padding: '4px' }}>
-                      {hasEntry && (
-                        <Tooltip title="Clear entry">
-                          <IconButton
-                            size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleClearEntry(student);
-                            }}
-                            sx={{
-                              color: 'error.main',
-                              '&:hover': { backgroundColor: 'error.light' }
-                            }}
-                          >
-                            <CloseIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                    </TableCell>
-                    <TableCell
-                      sx={{ textAlign: 'center', fontWeight: 'bold' }}
-                      onClick={() => setSelectedStudent(student)}
-                    >
-                      {getStudentTotalSessions(student)}
-                    </TableCell>
-                    <TableCell
-                      onClick={() => setSelectedStudent(student)}
-                      sx={{
-                        fontSize: '0.85rem',
-                        color: lastBook ? 'text.primary' : 'text.secondary',
-                        fontStyle: lastBook ? 'normal' : 'italic'
-                      }}
-                    >
-                      {lastBook ? lastBook.title : 'No book set'}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={filteredStudents.map(s => s.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <TableBody>
+                  {filteredStudents.map(student => {
+                    const lastBook = getStudentLastBook(student.id);
+                    const isSelected = selectedStudent?.id === student.id;
+                    const { status } = getStudentReadingStatus(student, selectedDate);
+                    const hasEntry = status !== READING_STATUS.NONE;
+                    
+                    return (
+                      <SortableStudentRow
+                        key={student.id}
+                        student={student}
+                        isSelected={isSelected}
+                        onSelect={setSelectedStudent}
+                        renderStatusCell={renderStatusCell}
+                        hasEntry={hasEntry}
+                        onClearEntry={handleClearEntry}
+                        totalSessions={getStudentTotalSessions(student)}
+                        lastBook={lastBook}
+                        isDragDisabled={!!searchQuery}
+                      />
+                    );
+                  })}
               {filteredStudents.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={5} sx={{ textAlign: 'center', py: 4 }}>
@@ -712,7 +909,9 @@ const HomeReadingRegister = () => {
                   </TableCell>
                 </TableRow>
               )}
-            </TableBody>
+                </TableBody>
+              </SortableContext>
+            </DndContext>
           </Table>
         </TableContainer>
       </Paper>
