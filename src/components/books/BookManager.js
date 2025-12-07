@@ -36,8 +36,9 @@ import UploadIcon from '@mui/icons-material/Upload';
 import PersonSearchIcon from '@mui/icons-material/PersonSearch';
 import InfoIcon from '@mui/icons-material/Info';
 import DescriptionIcon from '@mui/icons-material/Description';
+import CategoryIcon from '@mui/icons-material/Category';
 import { useAppContext } from '../../contexts/AppContext';
-import { batchFindMissingAuthors, batchFindMissingDescriptions, getBookDetails, checkOpenLibraryAvailability } from '../../utils/openLibraryApi';
+import { batchFindMissingAuthors, batchFindMissingDescriptions, batchFindMissingGenres, getBookDetails, checkOpenLibraryAvailability } from '../../utils/openLibraryApi';
 
 const BookManager = () => {
   const { books, genres, addBook, reloadDataFromServer, fetchWithAuth } = useAppContext();
@@ -72,9 +73,16 @@ const BookManager = () => {
   const [descriptionLookupResults, setDescriptionLookupResults] = useState([]);
   const [showDescriptionResults, setShowDescriptionResults] = useState(false);
   
-  // Pagination state
+  // Genre lookup state
+  const [isLookingUpGenres, setIsLookingUpGenres] = useState(false);
+  const [genreLookupProgress, setGenreLookupProgress] = useState({ current: 0, total: 0, book: '' });
+  const [genreLookupResults, setGenreLookupResults] = useState([]);
+  const [showGenreResults, setShowGenreResults] = useState(false);
+  
+  // Pagination and filter state
   const [currentPage, setCurrentPage] = useState(1);
   const [booksPerPage, setBooksPerPage] = useState(10);
+  const [genreFilter, setGenreFilter] = useState('');
 
   const handleAddBook = async (e) => {
     e.preventDefault();
@@ -627,6 +635,14 @@ const BookManager = () => {
     });
   };
 
+  const getBooksWithoutGenres = () => {
+    // Used for the "Fill Missing Genres" count button.
+    return books.filter(book => {
+      const genreIds = book.genreIds || [];
+      return genreIds.length === 0;
+    });
+  };
+
   // Description lookup functions
   const handleFillMissingDescriptions = async () => {
     const booksWithoutDescriptions = getBooksWithoutDescriptions();
@@ -741,6 +757,171 @@ const BookManager = () => {
     setDescriptionLookupResults([]);
   };
 
+  // Genre lookup functions
+  const handleFillMissingGenres = async () => {
+    const booksWithoutGenres = getBooksWithoutGenres();
+    if (booksWithoutGenres.length === 0) {
+      setSnackbar({
+        open: true,
+        message: 'All books already have genres assigned!',
+        severity: 'info'
+      });
+      return;
+    }
+
+    // Check OpenLibrary availability first with a quick timeout
+    setSnackbar({
+      open: true,
+      message: 'Checking OpenLibrary availability...',
+      severity: 'info'
+    });
+    
+    const isAvailable = await checkOpenLibraryAvailability(3000);
+    if (!isAvailable) {
+      setSnackbar({
+        open: true,
+        message: 'OpenLibrary is currently unavailable. Please try again later.',
+        severity: 'error'
+      });
+      return;
+    }
+
+    setIsLookingUpGenres(true);
+    setGenreLookupProgress({ current: 0, total: booksWithoutGenres.length, book: '' });
+    setGenreLookupResults([]);
+
+    try {
+      const results = await batchFindMissingGenres(booksWithoutGenres, (progress) => {
+        setGenreLookupProgress(progress);
+      });
+
+      setGenreLookupResults(results);
+      setIsLookingUpGenres(false);
+      setShowGenreResults(true);
+
+      const successCount = results.filter(r => r.success).length;
+      const totalCount = results.length;
+
+      setSnackbar({
+        open: true,
+        message: `Genre lookup completed: ${successCount}/${totalCount} genres found`,
+        severity: successCount > 0 ? 'success' : 'warning'
+      });
+    } catch (error) {
+      console.error('Error during genre lookup:', error);
+      setIsLookingUpGenres(false);
+      setSnackbar({
+        open: true,
+        message: `Genre lookup failed: ${error.message}`,
+        severity: 'error'
+      });
+    }
+  };
+
+  const handleApplyGenreUpdates = async () => {
+    const resultsToApply = genreLookupResults.filter(r => r.success && r.foundGenres && r.foundGenres.length > 0);
+    
+    if (resultsToApply.length === 0) {
+      setSnackbar({
+        open: true,
+        message: 'No genres to update',
+        severity: 'info'
+      });
+      return;
+    }
+
+    let updateCount = 0;
+    let errorCount = 0;
+    let genresCreated = 0;
+
+    // First, ensure all found genres exist in the system
+    const allFoundGenres = new Set();
+    for (const result of resultsToApply) {
+      for (const genreName of result.foundGenres) {
+        allFoundGenres.add(genreName);
+      }
+    }
+
+    // Create a map of genre name to ID
+    const genreNameToId = {};
+    for (const genre of genres) {
+      genreNameToId[genre.name.toLowerCase()] = genre.id;
+    }
+
+    // Create any missing genres
+    for (const genreName of allFoundGenres) {
+      if (!genreNameToId[genreName.toLowerCase()]) {
+        try {
+          const response = await fetchWithAuth('/api/genres', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: genreName }),
+          });
+
+          if (response.ok) {
+            const newGenre = await response.json();
+            genreNameToId[genreName.toLowerCase()] = newGenre.id;
+            genresCreated++;
+          }
+        } catch (error) {
+          console.error(`Error creating genre "${genreName}":`, error);
+        }
+      }
+    }
+
+    // Now update books with genre IDs
+    for (const result of resultsToApply) {
+      try {
+        const genreIds = result.foundGenres
+          .map(name => genreNameToId[name.toLowerCase()])
+          .filter(id => id); // Filter out any undefined IDs
+
+        if (genreIds.length === 0) continue;
+
+        const response = await fetchWithAuth(`/api/books/${result.book.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...result.book,
+            genreIds: genreIds
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+
+        updateCount++;
+      } catch (error) {
+        console.error(`Error updating book "${result.book.title}":`, error);
+        errorCount++;
+      }
+    }
+
+    await reloadDataFromServer();
+    setShowGenreResults(false);
+    setGenreLookupResults([]);
+
+    let message = `Updated ${updateCount} books`;
+    if (genresCreated > 0) {
+      message += `, created ${genresCreated} new genres`;
+    }
+    if (errorCount > 0) {
+      message += `, ${errorCount} failed`;
+    }
+
+    setSnackbar({
+      open: true,
+      message,
+      severity: errorCount > 0 ? 'warning' : 'success'
+    });
+  };
+
+  const handleCancelGenreResults = () => {
+    setShowGenreResults(false);
+    setGenreLookupResults([]);
+  };
+
   // Duplicate detection helper function
   const isDuplicateBook = (newBook, existingBooks) => {
     const normalizeTitle = (title) => {
@@ -790,6 +971,37 @@ const BookManager = () => {
   const handleBooksPerPageChange = (event) => {
     setBooksPerPage(event.target.value);
     setCurrentPage(1); // Reset to first page when changing items per page
+  };
+
+  // Genre filter helper functions
+  const getFilteredBooks = () => {
+    if (!genreFilter) return books;
+    return books.filter(book => {
+      const bookGenreIds = book.genreIds || [];
+      return bookGenreIds.includes(genreFilter);
+    });
+  };
+
+  const handleGenreFilterChange = (event) => {
+    setGenreFilter(event.target.value);
+    setCurrentPage(1); // Reset to first page when changing filter
+  };
+
+  const getGenreName = (genreId) => {
+    const genre = genres.find(g => g.id === genreId);
+    return genre ? genre.name : 'Unknown';
+  };
+
+  // Update pagination to use filtered books
+  const getFilteredTotalPages = () => {
+    return Math.ceil(getFilteredBooks().length / booksPerPage);
+  };
+
+  const getFilteredPaginatedBooks = () => {
+    const filtered = getFilteredBooks();
+    const startIndex = (currentPage - 1) * booksPerPage;
+    const endIndex = startIndex + booksPerPage;
+    return filtered.slice(startIndex, endIndex);
   };
 
   return (
@@ -985,6 +1197,32 @@ const BookManager = () => {
               : `Fill Missing Descriptions (${getBooksWithoutDescriptions().length})`}
           </Button>
         </Paper>
+
+        {/* Genre Lookup Box */}
+        <Paper
+          variant="outlined"
+          sx={{
+            p: 2,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1,
+            borderColor: 'warning.main',
+            borderStyle: 'dashed'
+          }}
+        >
+          <Button
+            variant="outlined"
+            startIcon={isLookingUpGenres ? <CircularProgress size={20} /> : <CategoryIcon />}
+            onClick={handleFillMissingGenres}
+            disabled={isLookingUpGenres || books.length === 0}
+            color="warning"
+            size="small"
+          >
+            {isLookingUpGenres
+              ? 'Finding Genres...'
+              : `Fill Missing Genres (${getBooksWithoutGenres().length})`}
+          </Button>
+        </Paper>
       </Box>
 
       {/* Author Lookup Progress */}
@@ -1022,6 +1260,24 @@ const BookManager = () => {
         </Box>
       )}
 
+      {/* Genre Lookup Progress */}
+      {isLookingUpGenres && (
+        <Box sx={{ mt: 2 }}>
+          <Typography variant="body2" gutterBottom>
+            Looking up genres: {genreLookupProgress.current}/{genreLookupProgress.total}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            Current: {genreLookupProgress.book}
+          </Typography>
+          <LinearProgress
+            variant="determinate"
+            value={(genreLookupProgress.current / genreLookupProgress.total) * 100}
+            color="warning"
+            sx={{ mb: 1 }}
+          />
+        </Box>
+      )}
+
       {error && (
         <Grid item xs={12}>
           <Alert severity="error">{error}</Alert>
@@ -1029,10 +1285,29 @@ const BookManager = () => {
       )}
 
       <Box sx={{ mt: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="subtitle1">
-            Existing Books ({books.length})
-          </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography variant="subtitle1">
+              Existing Books ({genreFilter ? `${getFilteredBooks().length} of ${books.length}` : books.length})
+            </Typography>
+            
+            {/* Genre Filter */}
+            {genres.length > 0 && (
+              <FormControl size="small" sx={{ minWidth: 150 }}>
+                <InputLabel>Filter by Genre</InputLabel>
+                <Select
+                  value={genreFilter}
+                  label="Filter by Genre"
+                  onChange={handleGenreFilterChange}
+                >
+                  <MenuItem value="">All Genres</MenuItem>
+                  {genres.map((genre) => (
+                    <MenuItem key={genre.id} value={genre.id}>{genre.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+          </Box>
           
           {books.length > 0 && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -1051,7 +1326,7 @@ const BookManager = () => {
               </FormControl>
               
               <Typography variant="body2" color="text.secondary">
-                Showing {Math.min((currentPage - 1) * booksPerPage + 1, books.length)}-{Math.min(currentPage * booksPerPage, books.length)} of {books.length}
+                Showing {Math.min((currentPage - 1) * booksPerPage + 1, getFilteredBooks().length)}-{Math.min(currentPage * booksPerPage, getFilteredBooks().length)} of {getFilteredBooks().length}
               </Typography>
             </Box>
           )}
@@ -1059,10 +1334,12 @@ const BookManager = () => {
 
         {books.length === 0 ? (
           <Typography variant="body2">No books created yet.</Typography>
+        ) : getFilteredBooks().length === 0 ? (
+          <Typography variant="body2" color="text.secondary">No books match the selected genre filter.</Typography>
         ) : (
           <>
             <List>
-              {getPaginatedBooks().map((book) => (
+              {getFilteredPaginatedBooks().map((book) => (
                 <ListItem
                   key={book.id}
                   divider
@@ -1099,6 +1376,30 @@ const BookManager = () => {
                             sx={{ flexShrink: 0 }}
                           />
                         )}
+                        {/* Genre chips */}
+                        {book.genreIds && book.genreIds.length > 0 && (
+                          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                            {book.genreIds.slice(0, 3).map((genreId) => (
+                              <Chip
+                                key={genreId}
+                                label={getGenreName(genreId)}
+                                size="small"
+                                color="warning"
+                                variant="outlined"
+                                sx={{ fontSize: '0.7rem', height: 20 }}
+                              />
+                            ))}
+                            {book.genreIds.length > 3 && (
+                              <Chip
+                                label={`+${book.genreIds.length - 3}`}
+                                size="small"
+                                color="warning"
+                                variant="outlined"
+                                sx={{ fontSize: '0.7rem', height: 20 }}
+                              />
+                            )}
+                          </Box>
+                        )}
                         {book.description && (
                           <Typography
                             variant="body2"
@@ -1121,10 +1422,10 @@ const BookManager = () => {
               ))}
             </List>
             
-            {getTotalPages() > 1 && (
+            {getFilteredTotalPages() > 1 && (
               <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
                 <Pagination
-                  count={getTotalPages()}
+                  count={getFilteredTotalPages()}
                   page={currentPage}
                   onChange={handlePageChange}
                   color="primary"
@@ -1574,6 +1875,71 @@ const BookManager = () => {
             disabled={descriptionLookupResults.filter(r => r.success).length === 0}
           >
             Apply Updates ({descriptionLookupResults.filter(r => r.success).length})
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Genre Lookup Results Dialog */}
+      <Dialog open={showGenreResults} onClose={handleCancelGenreResults} fullWidth maxWidth="md">
+        <DialogTitle>Genre Lookup Results</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            Found genres for {genreLookupResults.filter(r => r.success).length} out of {genreLookupResults.length} books.
+            Click "Apply Updates" to save the found genres to your books. New genres will be created automatically.
+          </DialogContentText>
+          
+          <List>
+            {genreLookupResults.map((result, index) => (
+              <ListItem key={index} divider alignItems="flex-start">
+                <ListItemText
+                  primary={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                      <Typography variant="subtitle2">{result.book.title}</Typography>
+                      {result.book.author && (
+                        <Chip label={`by ${result.book.author}`} size="small" variant="outlined" />
+                      )}
+                      {result.success ? (
+                        <Chip label={`${result.foundGenres?.length || 0} genres found`} color="success" size="small" />
+                      ) : (
+                        <Chip label="No genres" color="error" size="small" />
+                      )}
+                    </Box>
+                  }
+                  secondary={
+                    <Box sx={{ mt: 1 }}>
+                      {result.foundGenres && result.foundGenres.length > 0 ? (
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                          {result.foundGenres.map((genre, gIndex) => (
+                            <Chip
+                              key={gIndex}
+                              label={genre}
+                              size="small"
+                              color="warning"
+                              variant="outlined"
+                            />
+                          ))}
+                        </Box>
+                      ) : (
+                        <Typography variant="body2" color="error">
+                          {result.error || 'No genres found for this book'}
+                        </Typography>
+                      )}
+                    </Box>
+                  }
+                />
+              </ListItem>
+            ))}
+          </List>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelGenreResults}>Cancel</Button>
+          <Button
+            onClick={handleApplyGenreUpdates}
+            variant="contained"
+            color="warning"
+            disabled={genreLookupResults.filter(r => r.success && r.foundGenres?.length > 0).length === 0}
+          >
+            Apply Updates ({genreLookupResults.filter(r => r.success && r.foundGenres?.length > 0).length})
           </Button>
         </DialogActions>
       </Dialog>

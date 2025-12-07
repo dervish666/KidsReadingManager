@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.33.0] - 2025-12-07
+
+### Added
+- **Fill Missing Genres Button**: New OpenLibrary integration to automatically fetch genre/subject data for books
+  - Batch lookup for books without assigned genres
+  - Filters OpenLibrary subjects to common genre keywords (Fiction, Fantasy, Mystery, etc.)
+  - Automatically creates new genres in the system when needed
+  - Results dialog showing found genres with apply/cancel options
+  - Progress indicator during lookup process
+
+- **Genre Filter for Book List**: Filter books by genre in the book manager
+  - Dropdown filter to show only books with a specific genre
+  - Updated pagination to work with filtered results
+  - Shows "X of Y" count when filter is active
+
+- **Genre Display on Book List**: Visual genre indicators on book list items
+  - Shows up to 3 genre chips per book
+  - "+N" indicator for books with more than 3 genres
+  - Warning color scheme to distinguish from author chips
+
+### Changed
+- **Reorganized Book Manager UI**: Consolidated OpenLibrary lookup buttons
+  - All three lookup buttons (Authors, Descriptions, Genres) now in a consistent row
+  - Each button has its own dashed border box with distinct color coding
+  - Author lookup: secondary (purple), Description lookup: info (blue), Genre lookup: warning (orange)
+
 ## [0.32.0] - 2025-12-07
 
 ### Added

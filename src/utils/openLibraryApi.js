@@ -572,6 +572,176 @@ export async function batchFindMissingDescriptions(books, onProgress = null) {
 }
 
 /**
+ * Find genre/subject information for a book from OpenLibrary
+ * @param {string} title - The book title to search for
+ * @param {string} author - The book's author (optional, improves matching)
+ * @returns {Promise<Array<string>|null>} Array of subjects/genres or null if not found
+ */
+export async function findGenresForBook(title, author = null) {
+  try {
+    const searchParams = new URLSearchParams({
+      title: title.trim(),
+      limit: '5',
+      fields: 'key,title,author_name,subject'
+    });
+
+    if (author) {
+      searchParams.set('author', author.trim());
+    }
+
+    const response = await fetch(`${SEARCH_API_URL}?${searchParams}`, {
+      headers: {
+        'User-Agent': 'KidsReadingManager/1.0 (educational-app)'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenLibrary API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const docs = data.docs || [];
+
+    if (docs.length === 0) {
+      return null;
+    }
+
+    // Find the best match
+    const bestMatch = findBestTitleMatch(title, docs);
+
+    if (!bestMatch || !bestMatch.subject || bestMatch.subject.length === 0) {
+      // Try to get subjects from the first result if no best match
+      const firstWithSubjects = docs.find(doc => doc.subject && doc.subject.length > 0);
+      if (firstWithSubjects) {
+        return filterAndNormalizeGenres(firstWithSubjects.subject);
+      }
+      return null;
+    }
+
+    return filterAndNormalizeGenres(bestMatch.subject);
+  } catch (error) {
+    console.error('Error finding genres for book:', error);
+    return null;
+  }
+}
+
+/**
+ * Filter and normalize genre/subject strings from OpenLibrary
+ * OpenLibrary subjects can be very specific, so we filter to common genres
+ * @param {Array<string>} subjects - Raw subjects from OpenLibrary
+ * @returns {Array<string>} Filtered and normalized genres
+ */
+function filterAndNormalizeGenres(subjects) {
+  if (!subjects || !Array.isArray(subjects)) return [];
+
+  // Common genre keywords to look for (case-insensitive)
+  const genreKeywords = [
+    'fiction', 'fantasy', 'science fiction', 'mystery', 'adventure',
+    'romance', 'horror', 'thriller', 'historical', 'biography',
+    'autobiography', 'non-fiction', 'nonfiction', 'poetry', 'drama',
+    'comedy', 'humor', 'children', 'young adult', 'juvenile',
+    'picture book', 'graphic novel', 'comic', 'fairy tale', 'folklore',
+    'mythology', 'legend', 'animal', 'nature', 'science', 'history',
+    'sports', 'school', 'family', 'friendship', 'magic', 'detective',
+    'spy', 'war', 'action', 'suspense', 'paranormal', 'supernatural',
+    'dystopian', 'utopian', 'realistic fiction', 'contemporary'
+  ];
+
+  const normalizedGenres = new Set();
+
+  for (const subject of subjects.slice(0, 50)) { // Limit to first 50 subjects
+    const lowerSubject = subject.toLowerCase();
+    
+    // Check if subject matches or contains a genre keyword
+    for (const keyword of genreKeywords) {
+      if (lowerSubject === keyword || lowerSubject.includes(keyword)) {
+        // Capitalize first letter of each word
+        const normalized = keyword.split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+        normalizedGenres.add(normalized);
+        break;
+      }
+    }
+  }
+
+  // Return up to 5 genres
+  return Array.from(normalizedGenres).slice(0, 5);
+}
+
+/**
+ * Batch process multiple books to find missing genres
+ * @param {Array} books - Array of book objects with title, author, and genreIds properties
+ * @param {Function} onProgress - Callback function called with progress updates
+ * @returns {Promise<Array>} Array of results with original book and found genres
+ */
+export async function batchFindMissingGenres(books, onProgress = null) {
+  const results = [];
+
+  // Filter books that need genres (empty or no genreIds)
+  const needsGenres = (book) => {
+    const genreIds = book.genreIds || [];
+    return genreIds.length === 0;
+  };
+
+  const booksNeedingGenres = books.filter(needsGenres);
+
+  if (booksNeedingGenres.length === 0) {
+    return [];
+  }
+
+  for (let i = 0; i < booksNeedingGenres.length; i++) {
+    const book = booksNeedingGenres[i];
+
+    try {
+      // Small delay to be respectful to the API
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+      const foundGenres = await findGenresForBook(book.title, book.author || null);
+
+      results.push({
+        book,
+        foundGenres: foundGenres || [],
+        success: foundGenres && foundGenres.length > 0
+      });
+
+      if (onProgress) {
+        onProgress({
+          current: i + 1,
+          total: booksNeedingGenres.length,
+          book: book.title,
+          foundGenres: foundGenres || [],
+          success: foundGenres && foundGenres.length > 0
+        });
+      }
+    } catch (error) {
+      console.error(`Error processing book "${book.title}":`, error);
+      results.push({
+        book,
+        foundGenres: [],
+        success: false,
+        error: error.message
+      });
+
+      if (onProgress) {
+        onProgress({
+          current: i + 1,
+          total: booksNeedingGenres.length,
+          book: book.title,
+          foundGenres: [],
+          success: false,
+          error: error.message
+        });
+      }
+    }
+  }
+
+  return results;
+}
+
+/**
  * Get cover URL from book data
  * @param {Object} bookData - Book data from OpenLibrary
  * @returns {string|null} Cover URL or null
