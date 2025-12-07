@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -19,14 +19,18 @@ import {
   ListItemText,
   Divider,
   Paper,
-  Stack
+  Stack,
+  Snackbar,
+  IconButton
 } from '@mui/material';
 import { useAppContext } from '../contexts/AppContext';
 import BookIcon from '@mui/icons-material/Book';
 import SchoolIcon from '@mui/icons-material/School';
 import PersonIcon from '@mui/icons-material/Person';
 import RecommendationsIcon from '@mui/icons-material/Star';
-import { getBookDetails, getCoverUrl } from '../utils/openLibraryApi';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import CloudOffIcon from '@mui/icons-material/CloudOff';
+import { getBookDetails, getCoverUrl, checkOpenLibraryAvailability, resetOpenLibraryAvailabilityCache } from '../utils/openLibraryApi';
 
 const BookRecommendations = () => {
   const { students, classes, books, apiError, fetchWithAuth, globalClassFilter } = useAppContext();
@@ -39,6 +43,8 @@ const BookRecommendations = () => {
   const [loading, setLoading] = useState(false);
   const [enhancing, setEnhancing] = useState(false);
   const [error, setError] = useState(null);
+  const [openLibraryStatus, setOpenLibraryStatus] = useState({ available: null, message: '' });
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
 
   // Filter students by global class filter
   const filteredStudents = students.filter(student => {
@@ -103,57 +109,99 @@ const BookRecommendations = () => {
     setRecommendations([]);
     setEnhancedRecommendations([]);
     setError(null);
+    setOpenLibraryStatus({ available: null, message: '' });
   };
 
-  const enhanceRecommendationsWithOpenLibrary = async (basicRecommendations) => {
+  // Background enhancement function that updates state progressively
+  const enhanceRecommendationsInBackground = useCallback(async (basicRecommendations) => {
     if (!basicRecommendations || basicRecommendations.length === 0) {
-      return [];
+      return;
     }
 
+    // First, check if OpenLibrary is available with a quick timeout
+    console.log('Checking OpenLibrary availability...');
+    const isAvailable = await checkOpenLibraryAvailability(3000);
+    
+    if (!isAvailable) {
+      console.log('OpenLibrary is not available, skipping enhancement');
+      setOpenLibraryStatus({
+        available: false,
+        message: 'OpenLibrary is currently unavailable. Book covers and descriptions will not be loaded.'
+      });
+      setSnackbarOpen(true);
+      setEnhancing(false);
+      return;
+    }
+
+    setOpenLibraryStatus({ available: true, message: 'Enhancing with book covers...' });
     setEnhancing(true);
 
-    try {
-      const enhancedBooks = await Promise.all(
-        basicRecommendations.map(async (book) => {
-          try {
-            // Add a small delay to be respectful to the API
-            await new Promise(resolve => setTimeout(resolve, 200));
+    // Enhance books one at a time and update state progressively
+    for (let i = 0; i < basicRecommendations.length; i++) {
+      const book = basicRecommendations[i];
+      
+      try {
+        // Add a small delay to be respectful to the API
+        if (i > 0) {
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
 
-            const bookDetails = await getBookDetails(book.title, book.author);
-
-            return {
-              ...book,
-              coverUrl: bookDetails ? getCoverUrl(bookDetails) : null,
-              description: bookDetails ? bookDetails.description : null,
-              olid: bookDetails ? bookDetails.olid : null,
-              ia: bookDetails ? bookDetails.ia : null
-            };
-          } catch (error) {
-            console.warn(`Failed to enhance book "${book.title}":`, error);
-            return {
-              ...book,
-              coverUrl: null,
-              description: null,
-              olid: null,
-              ia: null
-            };
-          }
-        })
-      );
-
-      return enhancedBooks;
-    } catch (error) {
-      console.error('Error enhancing recommendations:', error);
-      return basicRecommendations.map(book => ({
-        ...book,
-        coverUrl: null,
-        description: null,
-        olid: null,
-        ia: null
-      }));
-    } finally {
-      setEnhancing(false);
+        const bookDetails = await getBookDetails(book.title, book.author);
+        
+        // Update the enhanced recommendations progressively
+        setEnhancedRecommendations(prev => {
+          const updated = [...prev];
+          updated[i] = {
+            ...book,
+            coverUrl: bookDetails ? getCoverUrl(bookDetails) : null,
+            description: bookDetails ? bookDetails.description : null,
+            olid: bookDetails ? bookDetails.olid : null,
+            ia: bookDetails ? bookDetails.ia : null,
+            enhanced: true
+          };
+          return updated;
+        });
+      } catch (error) {
+        console.warn(`Failed to enhance book "${book.title}":`, error);
+        // Mark as enhanced but without data
+        setEnhancedRecommendations(prev => {
+          const updated = [...prev];
+          updated[i] = {
+            ...book,
+            coverUrl: null,
+            description: null,
+            olid: null,
+            ia: null,
+            enhanced: true,
+            enhancementFailed: true
+          };
+          return updated;
+        });
+      }
     }
+
+    setEnhancing(false);
+    setOpenLibraryStatus({ available: true, message: '' });
+  }, []);
+
+  const handleRetryEnhancement = async () => {
+    resetOpenLibraryAvailabilityCache();
+    setOpenLibraryStatus({ available: null, message: 'Retrying OpenLibrary connection...' });
+    
+    // Reset enhanced recommendations to basic ones
+    const basicRecs = enhancedRecommendations.map(rec => ({
+      ...rec,
+      coverUrl: null,
+      description: null,
+      olid: null,
+      ia: null,
+      enhanced: false,
+      enhancementFailed: false
+    }));
+    setEnhancedRecommendations(basicRecs);
+    
+    // Try enhancement again
+    await enhanceRecommendationsInBackground(basicRecs);
   };
 
   const fetchRecommendations = async () => {
@@ -164,6 +212,7 @@ const BookRecommendations = () => {
 
     setLoading(true);
     setError(null);
+    setOpenLibraryStatus({ available: null, message: '' });
 
     try {
       console.log('Fetching AI-powered recommendations for studentId:', selectedStudentId);
@@ -183,39 +232,56 @@ const BookRecommendations = () => {
         const firstRecommendation = data.recommendations[0];
         console.log('First recommendation format check:', firstRecommendation);
 
+        let processedRecommendations;
+
         // Check if this is the new AI format (has 'genre', 'ageRange', 'reason') vs old database format (has 'id', 'genreIds')
         if (firstRecommendation.genre && firstRecommendation.ageRange && firstRecommendation.reason) {
           console.log('✅ AI recommendations successfully received!');
-          setRecommendations(data.recommendations);
+          processedRecommendations = data.recommendations;
         } else if (firstRecommendation.id && firstRecommendation.genreIds) {
           console.log('⚠️  Received old database format. Server may need restart. Data:', firstRecommendation);
           // Still display what we got for now
-          const formattedRecommendations = data.recommendations.map(book => ({
+          processedRecommendations = data.recommendations.map(book => ({
             title: book.title,
             author: book.author || 'Unknown',
             genre: 'Fiction',
             ageRange: '8-12',
             reason: `Classics book available in your library`
           }));
-          setRecommendations(formattedRecommendations);
         } else {
           console.log('❌ Unknown recommendation format:', firstRecommendation);
-          setRecommendations(data.recommendations);
+          processedRecommendations = data.recommendations;
         }
 
-        // Enhance recommendations with OpenLibrary data
-        console.log('Enhancing recommendations with OpenLibrary data...');
-        const enhanced = await enhanceRecommendationsWithOpenLibrary(data.recommendations);
-        setEnhancedRecommendations(enhanced);
+        // Set recommendations immediately so user sees results right away
+        setRecommendations(processedRecommendations);
+        
+        // Initialize enhanced recommendations with basic data (no covers yet)
+        const initialEnhanced = processedRecommendations.map(book => ({
+          ...book,
+          coverUrl: null,
+          description: null,
+          olid: null,
+          ia: null,
+          enhanced: false
+        }));
+        setEnhancedRecommendations(initialEnhanced);
+        
+        // Stop the main loading indicator - user can see results now
+        setLoading(false);
+
+        // Enhance recommendations with OpenLibrary data in the background
+        console.log('Starting background enhancement with OpenLibrary data...');
+        enhanceRecommendationsInBackground(processedRecommendations);
       } else {
         console.log('❌ No recommendations returned');
         setRecommendations([]);
         setEnhancedRecommendations([]);
+        setLoading(false);
       }
     } catch (err) {
       console.error('Error fetching recommendations:', err);
       setError(`Failed to fetch recommendations: ${err.message}`);
-    } finally {
       setLoading(false);
     }
   };
@@ -337,19 +403,52 @@ const BookRecommendations = () => {
 
       {/* Get Recommendations Button */}
       {selectedStudentId && (
-        <Box sx={{ mb: 4 }}>
+        <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', gap: 2 }}>
           <Button
             variant="contained"
             onClick={fetchRecommendations}
-            disabled={loading || enhancing}
+            disabled={loading}
             size="large"
-            startIcon={(loading || enhancing) ? <CircularProgress size={20} /> : <RecommendationsIcon />}
+            startIcon={loading ? <CircularProgress size={20} /> : <RecommendationsIcon />}
             sx={{ minWidth: 200 }}
           >
-            {loading ? 'Getting Recommendations...' : enhancing ? 'Enhancing with Covers...' : 'Get Recommendations'}
+            {loading ? 'Getting Recommendations...' : 'Get Recommendations'}
           </Button>
+          
+          {enhancing && (
+            <Chip
+              icon={<CircularProgress size={16} />}
+              label="Loading book covers..."
+              color="info"
+              variant="outlined"
+            />
+          )}
+          
+          {openLibraryStatus.available === false && !enhancing && enhancedRecommendations.length > 0 && (
+            <Chip
+              icon={<CloudOffIcon />}
+              label="Covers unavailable"
+              color="warning"
+              variant="outlined"
+              onDelete={handleRetryEnhancement}
+              deleteIcon={<RefreshIcon />}
+            />
+          )}
         </Box>
       )}
+
+      {/* OpenLibrary status snackbar */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={() => setSnackbarOpen(false)}
+        message={openLibraryStatus.message}
+        action={
+          <IconButton size="small" color="inherit" onClick={handleRetryEnhancement}>
+            <RefreshIcon fontSize="small" />
+          </IconButton>
+        }
+      />
 
       {/* Error display */}
       {error && (

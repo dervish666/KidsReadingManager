@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.32.0] - 2025-12-07
+
+### Added
+- **OpenLibrary Availability Check**: Quick connectivity test before attempting to fetch book covers
+  - 3-second timeout for fast failure detection
+  - Cached availability status (60-second refresh interval)
+  - User-friendly status indicators and retry functionality
+
+### Improved
+- **Immediate Recommendations Display**: AI recommendations now show instantly
+  - Book covers and descriptions load progressively in the background
+  - Users see results immediately without waiting for OpenLibrary
+  - Visual feedback with "Loading book covers..." chip indicator
+  - "Covers unavailable" warning with retry button when OpenLibrary is down
+  - Snackbar notification for OpenLibrary connectivity issues
+
+### Changed
+- **BookManager OpenLibrary Integration**: Added availability checks before batch operations
+ - Fill Missing Authors now checks OpenLibrary availability before starting
+ - Fill Missing Descriptions now checks OpenLibrary availability before starting
+ - Individual book detail fetch in edit modal checks availability first
+ - Shows clear error message when OpenLibrary is unavailable
+
+### Fixed
+- Eliminated long waits when OpenLibrary is unreachable
+- Removed silent failures during book cover enhancement
+
 ## [0.31.0] - 2025-12-07
 
 ### Added

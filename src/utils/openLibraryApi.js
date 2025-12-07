@@ -8,6 +8,73 @@ const OPENLIBRARY_BASE_URL = 'https://openlibrary.org';
 const SEARCH_API_URL = `${OPENLIBRARY_BASE_URL}/search.json`;
 const COVERS_BASE_URL = 'https://covers.openlibrary.org/b';
 
+// Cache for OpenLibrary availability status
+let openLibraryAvailable = null;
+let lastAvailabilityCheck = 0;
+const AVAILABILITY_CHECK_INTERVAL = 60000; // Re-check every 60 seconds
+
+/**
+ * Check if OpenLibrary is available with a quick timeout
+ * @param {number} timeout - Timeout in milliseconds (default: 3000ms)
+ * @returns {Promise<boolean>} True if OpenLibrary is reachable
+ */
+export async function checkOpenLibraryAvailability(timeout = 3000) {
+  const now = Date.now();
+  
+  // Return cached result if recent
+  if (openLibraryAvailable !== null && (now - lastAvailabilityCheck) < AVAILABILITY_CHECK_INTERVAL) {
+    return openLibraryAvailable;
+  }
+  
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    
+    // Use a simple HEAD request to check availability
+    const response = await fetch(`${OPENLIBRARY_BASE_URL}/search.json?q=test&limit=1`, {
+      method: 'GET',
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'KidsReadingManager/1.0 (educational-app)'
+      }
+    });
+    
+    clearTimeout(timeoutId);
+    
+    openLibraryAvailable = response.ok;
+    lastAvailabilityCheck = now;
+    
+    console.log(`OpenLibrary availability check: ${openLibraryAvailable ? 'available' : 'unavailable'}`);
+    return openLibraryAvailable;
+  } catch (error) {
+    console.log('OpenLibrary availability check failed:', error.message);
+    openLibraryAvailable = false;
+    lastAvailabilityCheck = now;
+    return false;
+  }
+}
+
+/**
+ * Reset the availability cache (useful for retry scenarios)
+ */
+export function resetOpenLibraryAvailabilityCache() {
+  openLibraryAvailable = null;
+  lastAvailabilityCheck = 0;
+}
+
+/**
+ * Get the current cached availability status without making a request
+ * @returns {{available: boolean|null, lastCheck: number, stale: boolean}}
+ */
+export function getOpenLibraryStatus() {
+  const now = Date.now();
+  return {
+    available: openLibraryAvailable,
+    lastCheck: lastAvailabilityCheck,
+    stale: (now - lastAvailabilityCheck) >= AVAILABILITY_CHECK_INTERVAL
+  };
+}
+
 /**
  * Search for books by title using OpenLibrary Search API
  * @param {string} title - The book title to search for

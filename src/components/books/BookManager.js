@@ -37,7 +37,7 @@ import PersonSearchIcon from '@mui/icons-material/PersonSearch';
 import InfoIcon from '@mui/icons-material/Info';
 import DescriptionIcon from '@mui/icons-material/Description';
 import { useAppContext } from '../../contexts/AppContext';
-import { batchFindMissingAuthors, batchFindMissingDescriptions, getBookDetails } from '../../utils/openLibraryApi';
+import { batchFindMissingAuthors, batchFindMissingDescriptions, getBookDetails, checkOpenLibraryAvailability } from '../../utils/openLibraryApi';
 
 const BookManager = () => {
   const { books, genres, addBook, reloadDataFromServer, fetchWithAuth } = useAppContext();
@@ -127,6 +127,19 @@ const BookManager = () => {
     }
 
     setIsFetchingDetails(true);
+    
+    // Check OpenLibrary availability first with a quick timeout
+    const isAvailable = await checkOpenLibraryAvailability(3000);
+    if (!isAvailable) {
+      setIsFetchingDetails(false);
+      setSnackbar({
+        open: true,
+        message: 'OpenLibrary is currently unavailable. Please try again later.',
+        severity: 'error'
+      });
+      return;
+    }
+    
     try {
       const details = await getBookDetails(editBookTitle, editBookAuthor || null);
       
@@ -487,6 +500,23 @@ const BookManager = () => {
       return;
     }
 
+    // Check OpenLibrary availability first with a quick timeout
+    setSnackbar({
+      open: true,
+      message: 'Checking OpenLibrary availability...',
+      severity: 'info'
+    });
+    
+    const isAvailable = await checkOpenLibraryAvailability(3000);
+    if (!isAvailable) {
+      setSnackbar({
+        open: true,
+        message: 'OpenLibrary is currently unavailable. Please try again later.',
+        severity: 'error'
+      });
+      return;
+    }
+
     setIsLookingUpAuthors(true);
     setAuthorLookupProgress({ current: 0, total: booksWithoutAuthors.length, book: '' });
     setAuthorLookupResults([]);
@@ -605,6 +635,23 @@ const BookManager = () => {
         open: true,
         message: 'All books already have descriptions!',
         severity: 'info'
+      });
+      return;
+    }
+
+    // Check OpenLibrary availability first with a quick timeout
+    setSnackbar({
+      open: true,
+      message: 'Checking OpenLibrary availability...',
+      severity: 'info'
+    });
+    
+    const isAvailable = await checkOpenLibraryAvailability(3000);
+    if (!isAvailable) {
+      setSnackbar({
+        open: true,
+        message: 'OpenLibrary is currently unavailable. Please try again later.',
+        severity: 'error'
       });
       return;
     }
