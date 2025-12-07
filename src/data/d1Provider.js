@@ -411,6 +411,193 @@ const getBookCount = async (env) => {
   }
 };
 
+/**
+ * Reading level to numeric value mapping for range queries
+ * Allows filtering books within ±N levels of student's reading level
+ */
+const READING_LEVEL_MAP = {
+  'beginner': 1,
+  'early': 2,
+  'developing': 3,
+  'intermediate': 4,
+  'advanced': 5,
+  'expert': 6
+};
+
+/**
+ * Get numeric value for a reading level (case-insensitive)
+ * @param {string} level - Reading level string
+ * @returns {number} Numeric value (defaults to 4 for intermediate if unknown)
+ */
+const getReadingLevelValue = (level) => {
+  if (!level) return 4; // Default to intermediate
+  const normalized = level.toLowerCase().trim();
+  return READING_LEVEL_MAP[normalized] || 4;
+};
+
+/**
+ * Get filtered books optimized for AI recommendations
+ * Uses SQL-level filtering to efficiently handle large book collections (18,000+)
+ *
+ * Filtering strategy:
+ * 1. Exclude already-read books
+ * 2. Filter by reading level (±levelRange from student's level)
+ * 3. Filter by favorite genres (if specified)
+ * 4. Randomize results for variety
+ * 5. Limit to specified count
+ *
+ * @param {Object} env - Worker environment
+ * @param {Object} options - Filtering options
+ * @param {string} options.readingLevel - Student's reading level
+ * @param {Array<string>} options.excludeBookIds - Book IDs to exclude (already read)
+ * @param {Array<string>} options.favoriteGenreIds - Preferred genre IDs
+ * @param {number} options.levelRange - Reading level range (default: 2)
+ * @param {number} options.limit - Maximum books to return (default: 100)
+ * @returns {Promise<Array>} Array of filtered book objects
+ */
+const getFilteredBooksForRecommendations = async (env, options = {}) => {
+  try {
+    const db = getDB(env);
+    if (!db) {
+      throw new Error('D1 database not available');
+    }
+
+    const {
+      readingLevel = 'intermediate',
+      excludeBookIds = [],
+      favoriteGenreIds = [],
+      levelRange = 2,
+      limit = 100
+    } = options;
+
+    // Calculate reading level range
+    const studentLevel = getReadingLevelValue(readingLevel);
+    const minLevel = Math.max(1, studentLevel - levelRange);
+    const maxLevel = Math.min(6, studentLevel + levelRange);
+
+    // Get reading levels that fall within the range
+    const validLevels = Object.entries(READING_LEVEL_MAP)
+      .filter(([_, value]) => value >= minLevel && value <= maxLevel)
+      .map(([level, _]) => level);
+
+    // Build the query dynamically based on filters
+    let query = 'SELECT * FROM books WHERE 1=1';
+    const params = [];
+
+    // Filter by reading level if we have valid levels
+    if (validLevels.length > 0) {
+      const levelPlaceholders = validLevels.map(() => '?').join(', ');
+      query += ` AND (reading_level IN (${levelPlaceholders}) OR reading_level IS NULL)`;
+      params.push(...validLevels);
+    }
+
+    // Exclude already-read books (batch into chunks to avoid SQL limits)
+    if (excludeBookIds.length > 0) {
+      // SQLite has a limit on the number of parameters, so we handle this carefully
+      // For very large exclusion lists, we'll use a subquery approach
+      if (excludeBookIds.length <= 500) {
+        const excludePlaceholders = excludeBookIds.map(() => '?').join(', ');
+        query += ` AND id NOT IN (${excludePlaceholders})`;
+        params.push(...excludeBookIds);
+      }
+      // For larger lists, we'll filter in JavaScript after the query
+    }
+
+    // Filter by favorite genres if specified
+    // Genre IDs are stored as JSON array in genre_ids column
+    if (favoriteGenreIds.length > 0) {
+      // Use LIKE for JSON array matching (works with SQLite)
+      const genreConditions = favoriteGenreIds.map(() => 'genre_ids LIKE ?').join(' OR ');
+      query += ` AND (${genreConditions})`;
+      params.push(...favoriteGenreIds.map(id => `%"${id}"%`));
+    }
+
+    // Add randomization and limit
+    query += ' ORDER BY RANDOM() LIMIT ?';
+    params.push(limit);
+
+    console.log('Filtered books query:', query);
+    console.log('Query params count:', params.length);
+
+    const result = await db.prepare(query).bind(...params).all();
+    let books = (result.results || []).map(rowToBook);
+
+    // If we had too many exclusions, filter them in JavaScript
+    if (excludeBookIds.length > 500) {
+      const excludeSet = new Set(excludeBookIds);
+      books = books.filter(book => !excludeSet.has(book.id));
+    }
+
+    console.log(`Filtered books: ${books.length} results for level ${readingLevel} (range: ${minLevel}-${maxLevel})`);
+
+    // If we got too few results, try a fallback query with relaxed filters
+    if (books.length < 20) {
+      console.log('Too few results, trying fallback query with relaxed filters...');
+      return await getFilteredBooksForRecommendationsFallback(env, {
+        excludeBookIds,
+        limit
+      });
+    }
+
+    return books;
+  } catch (error) {
+    console.error('Error getting filtered books from D1:', error);
+    // Fallback to basic query on error
+    return await getFilteredBooksForRecommendationsFallback(env, {
+      excludeBookIds: options.excludeBookIds || [],
+      limit: options.limit || 100
+    });
+  }
+};
+
+/**
+ * Fallback query for when strict filtering returns too few results
+ * Returns random books excluding already-read ones
+ *
+ * @param {Object} env - Worker environment
+ * @param {Object} options - Options
+ * @param {Array<string>} options.excludeBookIds - Book IDs to exclude
+ * @param {number} options.limit - Maximum books to return
+ * @returns {Promise<Array>} Array of book objects
+ */
+const getFilteredBooksForRecommendationsFallback = async (env, options = {}) => {
+  try {
+    const db = getDB(env);
+    if (!db) {
+      throw new Error('D1 database not available');
+    }
+
+    const { excludeBookIds = [], limit = 100 } = options;
+
+    let query = 'SELECT * FROM books';
+    const params = [];
+
+    if (excludeBookIds.length > 0 && excludeBookIds.length <= 500) {
+      const excludePlaceholders = excludeBookIds.map(() => '?').join(', ');
+      query += ` WHERE id NOT IN (${excludePlaceholders})`;
+      params.push(...excludeBookIds);
+    }
+
+    query += ' ORDER BY RANDOM() LIMIT ?';
+    params.push(limit);
+
+    const result = await db.prepare(query).bind(...params).all();
+    let books = (result.results || []).map(rowToBook);
+
+    // Filter exclusions in JavaScript if needed
+    if (excludeBookIds.length > 500) {
+      const excludeSet = new Set(excludeBookIds);
+      books = books.filter(book => !excludeSet.has(book.id));
+    }
+
+    console.log(`Fallback query returned ${books.length} books`);
+    return books;
+  } catch (error) {
+    console.error('Error in fallback books query:', error);
+    throw new Error('Failed to retrieve books for recommendations');
+  }
+};
+
 export {
   getAllBooks,
   getBookById,
@@ -421,5 +608,7 @@ export {
   updateBooksBatch,
   searchBooks,
   getBooksPaginated,
-  getBookCount
+  getBookCount,
+  getFilteredBooksForRecommendations,
+  READING_LEVEL_MAP
 };

@@ -108,7 +108,9 @@ function createD1Provider(env) {
     // D1-specific methods for enhanced functionality
     searchBooks: (...args) => d1Provider.searchBooks(env || {}, ...args),
     getBooksPaginated: (...args) => d1Provider.getBooksPaginated(env || {}, ...args),
-    getBookCount: (...args) => d1Provider.getBookCount(env || {})
+    getBookCount: (...args) => d1Provider.getBookCount(env || {}),
+    // AI recommendation filtering - optimized for large book collections
+    getFilteredBooksForRecommendations: (...args) => d1Provider.getFilteredBooksForRecommendations(env || {}, ...args)
   };
 }
 
@@ -147,6 +149,45 @@ function createKVProvider(env) {
     getBookCount: async () => {
       const books = await kvProvider.getAllBooks(env || {});
       return books.length;
+    },
+    // AI recommendation filtering - fallback implementation for KV storage
+    getFilteredBooksForRecommendations: async (options = {}) => {
+      const {
+        readingLevel = 'intermediate',
+        excludeBookIds = [],
+        favoriteGenreIds = [],
+        limit = 100
+      } = options;
+
+      const books = await kvProvider.getAllBooks(env || {});
+      const excludeSet = new Set(excludeBookIds);
+
+      // Filter books based on criteria
+      let filtered = books.filter(book => !excludeSet.has(book.id));
+
+      // Filter by reading level if specified (simple matching for KV)
+      if (readingLevel) {
+        const levelLower = readingLevel.toLowerCase();
+        filtered = filtered.filter(book =>
+          !book.readingLevel || book.readingLevel.toLowerCase() === levelLower
+        );
+      }
+
+      // Filter by favorite genres if specified
+      if (favoriteGenreIds.length > 0) {
+        const genreSet = new Set(favoriteGenreIds);
+        const genreFiltered = filtered.filter(book =>
+          book.genreIds?.some(id => genreSet.has(id))
+        );
+        // Only use genre filter if it returns results
+        if (genreFiltered.length > 0) {
+          filtered = genreFiltered;
+        }
+      }
+
+      // Shuffle and limit results
+      const shuffled = filtered.sort(() => Math.random() - 0.5);
+      return shuffled.slice(0, limit);
     }
   };
 }

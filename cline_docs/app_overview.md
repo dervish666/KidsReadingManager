@@ -45,6 +45,13 @@ This comprehensive application helps track reading sessions for students, manage
   - Age-appropriate content selection
   - Reading level and developmental stage
   - School year and class information
+- **Smart Book Filtering** (v0.31.0): Optimized for large book collections (18,000+)
+  - Database-level filtering by reading level (±2 levels from student's level)
+  - Genre-based filtering using student's favorite genres
+  - Excludes already-read books at SQL level for efficiency
+  - Randomization for variety in recommendations
+  - Automatic fallback to relaxed filters if strict criteria return too few results
+  - Reduces memory usage from loading all books to ~100 pre-filtered relevant books
 - **Intelligent Filtering**: Excludes already-read books and considers dislikes
 - **Diverse Recommendations**: Balances student preferences with educational value
 

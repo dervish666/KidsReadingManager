@@ -244,6 +244,12 @@ booksRouter.post('/bulk', async (c) => {
 /**
  * GET /api/books/recommendations
  * Get AI-powered book recommendations for a student
+ *
+ * Optimized for large book collections (18,000+) by using smart pre-filtering:
+ * - Filters by reading level (±2 levels from student's level)
+ * - Filters by favorite genres (if specified)
+ * - Excludes already-read books at the database level
+ * - Limits to 100 most relevant books before sending to AI
  */
 booksRouter.get('/recommendations', async (c) => {
   try {
@@ -262,17 +268,12 @@ booksRouter.get('/recommendations', async (c) => {
       return c.json({ error: `Student with ID ${studentId} not found` }, 404);
     }
 
-    // Get all books using data provider
+    // Get the data provider
     const provider = await createProvider(c.env);
-    const allBooks = await provider.getAllBooks();
 
-    // Get books the student has already read
+    // Get books the student has already read (for the student profile)
     const readBookIds = student.readingSessions?.map(session => session.bookId).filter(Boolean) || [];
-    const readBooks = allBooks.filter(book => readBookIds.includes(book.id));
-
-    // Filter out books the student has already read
-    const unreadBooks = allBooks.filter(book => !readBookIds.includes(book.id));
-
+    
     // Get settings to check for AI configuration
     const settings = await getSettings(c.env);
     const aiConfig = settings?.ai || {};
@@ -324,12 +325,55 @@ booksRouter.get('/recommendations', async (c) => {
       return c.json({ recommendations: fallbackRecommendations });
     }
 
+    // Use smart filtering to get relevant books for recommendations
+    // This is optimized for large book collections (18,000+)
+    const studentReadingLevel = student.readingLevel || 'intermediate';
+    const favoriteGenreIds = student.preferences?.favoriteGenreIds || [];
+
+    console.log('Recommendation filtering:', {
+      studentName: student.name,
+      readingLevel: studentReadingLevel,
+      favoriteGenres: favoriteGenreIds.length,
+      alreadyReadCount: readBookIds.length
+    });
+
+    // Get filtered books using the optimized query
+    // This filters at the database level instead of loading all 18,000+ books
+    let filteredBooks = [];
+    if (provider.getFilteredBooksForRecommendations) {
+      filteredBooks = await provider.getFilteredBooksForRecommendations({
+        readingLevel: studentReadingLevel,
+        excludeBookIds: readBookIds,
+        favoriteGenreIds: favoriteGenreIds,
+        levelRange: 2, // ±2 reading levels
+        limit: 100 // Get up to 100 relevant books
+      });
+    } else {
+      // Fallback for providers without optimized filtering
+      const allBooks = await provider.getAllBooks();
+      filteredBooks = allBooks
+        .filter(book => !readBookIds.includes(book.id))
+        .slice(0, 100);
+    }
+
+    console.log(`Filtered books for AI: ${filteredBooks.length} books (from potentially 18,000+)`);
+
+    // Get read books for the student profile (need to fetch these separately)
+    // Only fetch the ones we need for the profile (last 10 read)
+    let readBooks = [];
+    if (readBookIds.length > 0) {
+      const recentReadIds = readBookIds.slice(-10); // Last 10 books read
+      const bookPromises = recentReadIds.map(id => provider.getBookById(id));
+      const fetchedBooks = await Promise.all(bookPromises);
+      readBooks = fetchedBooks.filter(Boolean); // Remove any null results
+    }
+
     // Prepare data for AI service
     const studentProfile = {
       name: student.name,
-      readingLevel: student.readingLevel || 'intermediate',
+      readingLevel: studentReadingLevel,
       preferences: student.preferences || {},
-      booksRead: readBooks.slice(0, 10).map(book => ({
+      booksRead: readBooks.map(book => ({
         title: book.title,
         author: book.author,
         genre: book.genreIds?.join(', ') || 'General Fiction',
@@ -337,7 +381,8 @@ booksRouter.get('/recommendations', async (c) => {
       }))
     };
 
-    const availableBooks = unreadBooks.slice(0, 50).map(book => ({
+    // Prepare available books for AI (limit to 50 for prompt size)
+    const availableBooks = filteredBooks.slice(0, 50).map(book => ({
       title: book.title,
       author: book.author,
       genre: book.genreIds?.join(', ') || 'General Fiction',

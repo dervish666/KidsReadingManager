@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.31.0] - 2025-12-07
+
+### Added
+- **Smart Book Filtering for AI Recommendations**: Implemented intelligent pre-filtering for book recommendations to handle large book collections (18,000+) efficiently.
+  - New `getFilteredBooksForRecommendations()` method in D1 provider that filters at the database level
+  - Filters by reading level (±2 levels from student's level)
+  - Filters by favorite genres when specified
+  - Excludes already-read books at the SQL level
+  - Uses randomization for variety in recommendations
+  - Automatic fallback to relaxed filters if strict criteria return too few results
+
+### Changed
+- **Recommendation Endpoint Optimization**: Updated `/api/books/recommendations` to use smart filtering instead of loading all books into memory
+  - Reduced memory usage from loading 18,000+ books to ~100 pre-filtered relevant books
+  - Maintains the same 50-book limit for AI prompts but with much more relevant selections
+  - Added detailed logging for debugging recommendation filtering
+
+### Technical Details
+- Reading level mapping: beginner(1), early(2), developing(3), intermediate(4), advanced(5), expert(6)
+- SQL-level filtering with JSON genre matching using LIKE patterns
+- Handles large exclusion lists (500+ already-read books) with JavaScript fallback
+- KV provider fallback implementation for non-D1 environments
+
 ## [0.30.0] - 2025-12-04
 
 ### Added
