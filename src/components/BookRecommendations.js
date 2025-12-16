@@ -473,7 +473,7 @@ const BookRecommendations = () => {
                     <Box
                       sx={{
                         flexShrink: 0,
-                        width: 120,
+                        width: 180,
                         minHeight: 180,
                         position: 'relative',
                         backgroundColor: 'grey.100'

@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.33.1] - 2025-12-13
+
+### Changed
+- **Book Recommendations UI**: Increased the width of book cover images by 50% (from 120px to 180px) to better match standard book aspect ratios.
+
 ## [0.33.0] - 2025-12-07
 
 ### Added
