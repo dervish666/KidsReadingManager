@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.34.0] - 2025-12-18
+
+### Added
+- **Reading Level Filter**: New dropdown filter to filter books by reading level
+  - Dynamically populated from unique reading levels in the book collection
+  - Works in combination with the existing genre filter
+  - Resets pagination when filter changes
+
+- **Reading Level Chip Display**: Visual reading level indicator on book list items
+  - Displayed as a filled primary-colored chip between author and genre
+  - Compact styling consistent with other chips
+
+### Changed
+- **Reorganized AI Fill Buttons**: Consolidated all three "Fill Missing" buttons into a single grouped container
+  - All buttons (Authors, Descriptions, Genres) now in one dashed-border box on the right
+  - Cleaner layout with "AI Fill Missing Data" header
+  - Maintains individual color coding for each button type
+  - Author checkbox option remains accessible within the group
+
+- **Updated Filter Messages**: "No books match" message now accounts for both genre and reading level filters
+
 ## [0.33.1] - 2025-12-13
 
 ### Changed

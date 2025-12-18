@@ -83,6 +83,7 @@ const BookManager = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [booksPerPage, setBooksPerPage] = useState(10);
   const [genreFilter, setGenreFilter] = useState('');
+  const [readingLevelFilter, setReadingLevelFilter] = useState('');
 
   const handleAddBook = async (e) => {
     e.preventDefault();
@@ -973,17 +974,42 @@ const BookManager = () => {
     setCurrentPage(1); // Reset to first page when changing items per page
   };
 
-  // Genre filter helper functions
-  const getFilteredBooks = () => {
-    if (!genreFilter) return books;
-    return books.filter(book => {
-      const bookGenreIds = book.genreIds || [];
-      return bookGenreIds.includes(genreFilter);
+  // Get unique reading levels from books
+  const getUniqueReadingLevels = () => {
+    const levels = new Set();
+    books.forEach(book => {
+      if (book.readingLevel) {
+        levels.add(book.readingLevel);
+      }
     });
+    return Array.from(levels).sort();
+  };
+
+  // Genre and reading level filter helper functions
+  const getFilteredBooks = () => {
+    let filtered = books;
+    
+    if (genreFilter) {
+      filtered = filtered.filter(book => {
+        const bookGenreIds = book.genreIds || [];
+        return bookGenreIds.includes(genreFilter);
+      });
+    }
+    
+    if (readingLevelFilter) {
+      filtered = filtered.filter(book => book.readingLevel === readingLevelFilter);
+    }
+    
+    return filtered;
   };
 
   const handleGenreFilterChange = (event) => {
     setGenreFilter(event.target.value);
+    setCurrentPage(1); // Reset to first page when changing filter
+  };
+
+  const handleReadingLevelFilterChange = (event) => {
+    setReadingLevelFilter(event.target.value);
     setCurrentPage(1); // Reset to first page when changing filter
   };
 
@@ -1135,93 +1161,80 @@ const BookManager = () => {
         {/* Spacer to push AI lookup boxes to the right */}
         <Box sx={{ flex: 1 }} />
 
-        {/* Author Lookup Box */}
+        {/* AI Fill Missing Data Box - Grouped */}
         <Paper
           variant="outlined"
           sx={{
             p: 2,
             display: 'flex',
             flexDirection: 'column',
-            gap: 1,
-            borderColor: 'secondary.main',
+            gap: 1.5,
+            borderColor: 'primary.main',
             borderStyle: 'dashed'
           }}
         >
-          <Button
-            variant="outlined"
-            startIcon={isLookingUpAuthors ? <CircularProgress size={20} /> : <PersonSearchIcon />}
-            onClick={handleFillMissingAuthors}
-            disabled={isLookingUpAuthors || books.length === 0}
-            color="secondary"
-            size="small"
-          >
-            {isLookingUpAuthors
-              ? 'Finding Authors...'
-              : `Fill Missing Authors (${getBooksWithoutAuthors().length})`}
-          </Button>
-          <FormControlLabel
-            control={
-              <Checkbox
+          <Typography variant="subtitle2" gutterBottom sx={{ mb: 0 }}>
+            AI Fill Missing Data
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            {/* Author Lookup */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              <Button
+                variant="outlined"
+                startIcon={isLookingUpAuthors ? <CircularProgress size={20} /> : <PersonSearchIcon />}
+                onClick={handleFillMissingAuthors}
+                disabled={isLookingUpAuthors || books.length === 0}
+                color="secondary"
                 size="small"
-                checked={includeUnknownAuthors}
-                onChange={(e) => setIncludeUnknownAuthors(e.target.checked)}
+                fullWidth
+              >
+                {isLookingUpAuthors
+                  ? 'Finding Authors...'
+                  : `Fill Missing Authors (${getBooksWithoutAuthors().length})`}
+              </Button>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    size="small"
+                    checked={includeUnknownAuthors}
+                    onChange={(e) => setIncludeUnknownAuthors(e.target.checked)}
+                  />
+                }
+                label={<Typography variant="caption">Include 'Unknown' authors</Typography>}
+                sx={{ ml: 0, mr: 0 }}
               />
-            }
-            label={<Typography variant="caption">Include 'Unknown' authors</Typography>}
-            sx={{ ml: 0, mr: 0 }}
-          />
-        </Paper>
+            </Box>
 
-        {/* Description Lookup Box */}
-        <Paper
-          variant="outlined"
-          sx={{
-            p: 2,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 1,
-            borderColor: 'info.main',
-            borderStyle: 'dashed'
-          }}
-        >
-          <Button
-            variant="outlined"
-            startIcon={isLookingUpDescriptions ? <CircularProgress size={20} /> : <DescriptionIcon />}
-            onClick={handleFillMissingDescriptions}
-            disabled={isLookingUpDescriptions || books.length === 0}
-            color="info"
-            size="small"
-          >
-            {isLookingUpDescriptions
-              ? 'Finding Descriptions...'
-              : `Fill Missing Descriptions (${getBooksWithoutDescriptions().length})`}
-          </Button>
-        </Paper>
+            {/* Description Lookup */}
+            <Button
+              variant="outlined"
+              startIcon={isLookingUpDescriptions ? <CircularProgress size={20} /> : <DescriptionIcon />}
+              onClick={handleFillMissingDescriptions}
+              disabled={isLookingUpDescriptions || books.length === 0}
+              color="info"
+              size="small"
+              fullWidth
+            >
+              {isLookingUpDescriptions
+                ? 'Finding Descriptions...'
+                : `Fill Missing Descriptions (${getBooksWithoutDescriptions().length})`}
+            </Button>
 
-        {/* Genre Lookup Box */}
-        <Paper
-          variant="outlined"
-          sx={{
-            p: 2,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 1,
-            borderColor: 'warning.main',
-            borderStyle: 'dashed'
-          }}
-        >
-          <Button
-            variant="outlined"
-            startIcon={isLookingUpGenres ? <CircularProgress size={20} /> : <CategoryIcon />}
-            onClick={handleFillMissingGenres}
-            disabled={isLookingUpGenres || books.length === 0}
-            color="warning"
-            size="small"
-          >
-            {isLookingUpGenres
-              ? 'Finding Genres...'
-              : `Fill Missing Genres (${getBooksWithoutGenres().length})`}
-          </Button>
+            {/* Genre Lookup */}
+            <Button
+              variant="outlined"
+              startIcon={isLookingUpGenres ? <CircularProgress size={20} /> : <CategoryIcon />}
+              onClick={handleFillMissingGenres}
+              disabled={isLookingUpGenres || books.length === 0}
+              color="warning"
+              size="small"
+              fullWidth
+            >
+              {isLookingUpGenres
+                ? 'Finding Genres...'
+                : `Fill Missing Genres (${getBooksWithoutGenres().length})`}
+            </Button>
+          </Box>
         </Paper>
       </Box>
 
@@ -1288,7 +1301,7 @@ const BookManager = () => {
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Typography variant="subtitle1">
-              Existing Books ({genreFilter ? `${getFilteredBooks().length} of ${books.length}` : books.length})
+              Existing Books ({(genreFilter || readingLevelFilter) ? `${getFilteredBooks().length} of ${books.length}` : books.length})
             </Typography>
             
             {/* Genre Filter */}
@@ -1303,6 +1316,23 @@ const BookManager = () => {
                   <MenuItem value="">All Genres</MenuItem>
                   {genres.map((genre) => (
                     <MenuItem key={genre.id} value={genre.id}>{genre.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+            
+            {/* Reading Level Filter */}
+            {getUniqueReadingLevels().length > 0 && (
+              <FormControl size="small" sx={{ minWidth: 150 }}>
+                <InputLabel>Filter by Level</InputLabel>
+                <Select
+                  value={readingLevelFilter}
+                  label="Filter by Level"
+                  onChange={handleReadingLevelFilterChange}
+                >
+                  <MenuItem value="">All Levels</MenuItem>
+                  {getUniqueReadingLevels().map((level) => (
+                    <MenuItem key={level} value={level}>{level}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -1335,7 +1365,7 @@ const BookManager = () => {
         {books.length === 0 ? (
           <Typography variant="body2">No books created yet.</Typography>
         ) : getFilteredBooks().length === 0 ? (
-          <Typography variant="body2" color="text.secondary">No books match the selected genre filter.</Typography>
+          <Typography variant="body2" color="text.secondary">No books match the selected filters.</Typography>
         ) : (
           <>
             <List>
@@ -1374,6 +1404,16 @@ const BookManager = () => {
                             size="small"
                             variant="outlined"
                             sx={{ flexShrink: 0 }}
+                          />
+                        )}
+                        {/* Reading Level chip */}
+                        {book.readingLevel && (
+                          <Chip
+                            label={book.readingLevel}
+                            size="small"
+                            color="primary"
+                            variant="filled"
+                            sx={{ flexShrink: 0, fontSize: '0.7rem', height: 20 }}
                           />
                         )}
                         {/* Genre chips */}

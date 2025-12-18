@@ -860,7 +860,7 @@ const HomeReadingRegister = () => {
           <Table stickyHeader size="small">
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 'bold', minWidth: 140 }}>Name</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', minWidth: 140, paddingLeft: '40px' }}>Name</TableCell>
                 <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', minWidth: 50 }}>
                   {getWeekInfo(selectedDate).dayName}
                 </TableCell>
