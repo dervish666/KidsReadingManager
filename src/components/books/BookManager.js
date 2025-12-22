@@ -27,6 +27,7 @@ import {
   MenuItem,
   FormControlLabel,
   Checkbox,
+  InputAdornment,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
@@ -37,6 +38,7 @@ import PersonSearchIcon from '@mui/icons-material/PersonSearch';
 import InfoIcon from '@mui/icons-material/Info';
 import DescriptionIcon from '@mui/icons-material/Description';
 import CategoryIcon from '@mui/icons-material/Category';
+import SearchIcon from '@mui/icons-material/Search';
 import { useAppContext } from '../../contexts/AppContext';
 import { batchFindMissingAuthors, batchFindMissingDescriptions, batchFindMissingGenres, getBookDetails, checkOpenLibraryAvailability } from '../../utils/openLibraryApi';
 
@@ -84,6 +86,8 @@ const BookManager = () => {
   const [booksPerPage, setBooksPerPage] = useState(10);
   const [genreFilter, setGenreFilter] = useState('');
   const [readingLevelFilter, setReadingLevelFilter] = useState('');
+  const [levelRangeFilter, setLevelRangeFilter] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleAddBook = async (e) => {
     e.preventDefault();
@@ -989,6 +993,16 @@ const BookManager = () => {
   const getFilteredBooks = () => {
     let filtered = books;
     
+    // Search filter - search by title or author
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(book => {
+        const title = (book.title || '').toLowerCase();
+        const author = (book.author || '').toLowerCase();
+        return title.includes(query) || author.includes(query);
+      });
+    }
+    
     if (genreFilter) {
       filtered = filtered.filter(book => {
         const bookGenreIds = book.genreIds || [];
@@ -996,8 +1010,22 @@ const BookManager = () => {
       });
     }
     
+    // Reading level filter with optional range
     if (readingLevelFilter) {
-      filtered = filtered.filter(book => book.readingLevel === readingLevelFilter);
+      const baseLevel = parseFloat(readingLevelFilter);
+      if (!isNaN(baseLevel)) {
+        const range = levelRangeFilter ? parseFloat(levelRangeFilter) : 0;
+        const maxLevel = baseLevel + range;
+        
+        filtered = filtered.filter(book => {
+          const bookLevel = parseFloat(book.readingLevel);
+          if (isNaN(bookLevel)) return false;
+          return bookLevel >= baseLevel && bookLevel <= maxLevel;
+        });
+      } else {
+        // Non-numeric level - exact match only
+        filtered = filtered.filter(book => book.readingLevel === readingLevelFilter);
+      }
     }
     
     return filtered;
@@ -1010,7 +1038,18 @@ const BookManager = () => {
 
   const handleReadingLevelFilterChange = (event) => {
     setReadingLevelFilter(event.target.value);
+    setLevelRangeFilter(''); // Reset range when level changes
     setCurrentPage(1); // Reset to first page when changing filter
+  };
+
+  const handleLevelRangeFilterChange = (event) => {
+    setLevelRangeFilter(event.target.value);
+    setCurrentPage(1); // Reset to first page when changing filter
+  };
+
+  const handleSearchQueryChange = (event) => {
+    setSearchQuery(event.target.value);
+    setCurrentPage(1); // Reset to first page when searching
   };
 
   const getGenreName = (genreId) => {
@@ -1037,74 +1076,84 @@ const BookManager = () => {
         Manage Books
       </Typography>
 
-      <Box component="form" onSubmit={handleAddBook} sx={{ mt: 2 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={3}>
-            <TextField
-              label="Book Title"
-              value={newBookTitle}
-              onChange={(e) => setNewBookTitle(e.target.value)}
-              fullWidth
-              size="small"
-              required
-            />
-          </Grid>
-
-          <Grid item xs={12} sm={2}>
-            <TextField
-              label="Author (Optional)"
-              value={newBookAuthor}
-              onChange={(e) => setNewBookAuthor(e.target.value)}
-              fullWidth
-              size="small"
-            />
-          </Grid>
-
-          <Grid item xs={12} sm={2}>
-            <TextField
-              label="Reading Level (Optional)"
-              value={newBookReadingLevel}
-              onChange={(e) => setNewBookReadingLevel(e.target.value)}
-              fullWidth
-              size="small"
-            />
-          </Grid>
-
-          <Grid item xs={12} sm={2}>
-            <TextField
-              label="Age Range (Optional)"
-              value={newBookAgeRange}
-              onChange={(e) => setNewBookAgeRange(e.target.value)}
-              fullWidth
-              size="small"
-              placeholder="e.g., 6-9"
-            />
-          </Grid>
-
-          <Grid item xs={12} sm={3}>
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              fullWidth
-              startIcon={<SaveIcon />}
-            >
-              Add Book
-            </Button>
-          </Grid>
-
-          {error && (
-            <Grid item xs={12}>
-              <Typography color="error" variant="body2">
-                {error}
-              </Typography>
+      {/* Add Book Form and Import/Export/AI Fill Section - Three Column Layout */}
+      <Box sx={{ mt: 2, display: 'flex', gap: 3, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+        {/* Add Book Form - Two Column Layout */}
+        <Paper
+          component="form"
+          onSubmit={handleAddBook}
+          variant="outlined"
+          sx={{
+            p: 2,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1.5,
+            minWidth: 280,
+          }}
+        >
+          <Typography variant="subtitle2" gutterBottom sx={{ mb: 0 }}>
+            Add New Book
+          </Typography>
+          <Grid container spacing={1.5}>
+            <Grid item xs={6}>
+              <TextField
+                label="Book Title"
+                value={newBookTitle}
+                onChange={(e) => setNewBookTitle(e.target.value)}
+                fullWidth
+                size="small"
+                required
+              />
             </Grid>
-          )}
-        </Grid>
-      </Box>
+            <Grid item xs={6}>
+              <TextField
+                label="Author (Optional)"
+                value={newBookAuthor}
+                onChange={(e) => setNewBookAuthor(e.target.value)}
+                fullWidth
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                label="Reading Level (Optional)"
+                value={newBookReadingLevel}
+                onChange={(e) => setNewBookReadingLevel(e.target.value)}
+                fullWidth
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                label="Age Range (Optional)"
+                value={newBookAgeRange}
+                onChange={(e) => setNewBookAgeRange(e.target.value)}
+                fullWidth
+                size="small"
+                placeholder="e.g., 6-9"
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <Button
+                type="submit"
+                variant="contained"
+                color="primary"
+                fullWidth
+                startIcon={<SaveIcon />}
+              >
+                Add Book
+              </Button>
+            </Grid>
+            {error && (
+              <Grid item xs={12}>
+                <Typography color="error" variant="body2">
+                  {error}
+                </Typography>
+              </Grid>
+            )}
+          </Grid>
+        </Paper>
 
-      {/* Import/Export Section */}
-      <Box sx={{ mt: 3, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'flex-start' }}>
         {/* Import/Export Box */}
         <Paper
           variant="outlined"
@@ -1157,9 +1206,6 @@ const BookManager = () => {
             onChange={handleFileChange}
           />
         </Paper>
-
-        {/* Spacer to push AI lookup boxes to the right */}
-        <Box sx={{ flex: 1 }} />
 
         {/* AI Fill Missing Data Box - Grouped */}
         <Paper
@@ -1299,10 +1345,26 @@ const BookManager = () => {
 
       <Box sx={{ mt: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
             <Typography variant="subtitle1">
-              Existing Books ({(genreFilter || readingLevelFilter) ? `${getFilteredBooks().length} of ${books.length}` : books.length})
+              Existing Books ({(genreFilter || readingLevelFilter || searchQuery) ? `${getFilteredBooks().length} of ${books.length}` : books.length})
             </Typography>
+            
+            {/* Search Box */}
+            <TextField
+              size="small"
+              placeholder="Search books..."
+              value={searchQuery}
+              onChange={handleSearchQueryChange}
+              sx={{ minWidth: 200 }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
+            />
             
             {/* Genre Filter */}
             {genres.length > 0 && (
@@ -1334,6 +1396,28 @@ const BookManager = () => {
                   {getUniqueReadingLevels().map((level) => (
                     <MenuItem key={level} value={level}>{level}</MenuItem>
                   ))}
+                </Select>
+              </FormControl>
+            )}
+            
+            {/* Level Range Filter - only show when a level is selected */}
+            {readingLevelFilter && (
+              <FormControl size="small" sx={{ minWidth: 120 }}>
+                <InputLabel>Level Range</InputLabel>
+                <Select
+                  value={levelRangeFilter}
+                  label="Level Range"
+                  onChange={handleLevelRangeFilterChange}
+                >
+                  <MenuItem value="">Exact</MenuItem>
+                  <MenuItem value="0.5">+0.5</MenuItem>
+                  <MenuItem value="1">+1.0</MenuItem>
+                  <MenuItem value="1.5">+1.5</MenuItem>
+                  <MenuItem value="2">+2.0</MenuItem>
+                  <MenuItem value="2.5">+2.5</MenuItem>
+                  <MenuItem value="3">+3.0</MenuItem>
+                  <MenuItem value="4">+4.0</MenuItem>
+                  <MenuItem value="5">+5.0</MenuItem>
                 </Select>
               </FormControl>
             )}

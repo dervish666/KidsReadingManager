@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.35.0] - 2025-12-22
+
+### Added
+- **Book Search Box**: New search field in the Existing Books section
+  - Searches by book title and author
+  - Inline with filter dropdowns for easy access
+  - Real-time filtering as you type
+
+- **Level Range Filter**: New dropdown to filter books within a reading level range
+  - Options: Exact, +0.5, +1.0, +1.5, +2.0, +2.5, +3.0, +4.0, +5.0
+  - Only appears when a reading level is selected
+  - Filters books from the selected level up to the range
+
+### Changed
+- **Reorganized Add Book Section**: New three-column horizontal layout
+  - Add Book form now uses a compact 2-column grid (Title/Author, Level/Age Range)
+  - Import/Export section positioned next to Add Book form
+  - AI Fill Missing Data section on the right
+  - All sections wrapped in Paper components for visual clarity
+
 ## [0.34.0] - 2025-12-18
 
 ### Added
