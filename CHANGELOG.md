@@ -1,5 +1,44 @@
 # Changelog
 
+## [2.1.0] - 2025-12-27
+
+### Added
+- **Google Books API Integration**: Added support for Google Books API as an alternative metadata provider
+  - New `src/utils/googleBooksApi.js` module with full Google Books API integration
+  - Supports fetching authors, descriptions, genres, and cover images
+  - Automatic HTTPS conversion for cover URLs
+  - Rate limiting with 300ms delays between batch requests
+
+- **Unified Book Metadata API**: Created abstraction layer for switching between providers
+  - New `src/utils/bookMetadataApi.js` module that routes to appropriate provider
+  - Exports `METADATA_PROVIDERS` constants for provider selection
+  - Provider validation ensures API key is configured before use
+  - Dynamic provider display names in UI messages
+
+- **Book Metadata Settings**: New settings tab for configuring metadata provider
+  - Provider dropdown to select between OpenLibrary and Google Books
+  - Google Books API key input field (shown conditionally)
+  - Validation warning when Google Books selected without API key
+  - Settings persist in organization settings
+
+### Changed
+- **BookManager**: Updated all metadata lookup functions to use unified API
+  - `handleFetchBookDetails` now uses provider-agnostic API
+  - `handleFillMissingAuthors` supports both providers
+  - `handleFillMissingDescriptions` supports both providers
+  - `handleFillMissingGenres` supports both providers
+  - All functions validate provider configuration before operations
+
+## [2.0.3] - 2025-12-27
+
+### Improved
+- **Edit Book Modal**: Redesigned layout with genre management
+  - Shrunk description field from 7 rows to 4 rows for a more compact layout
+  - Added genre tags section on the right side of the description
+  - Users can now view, add, and remove genre tags directly in the edit modal
+  - Genre selector dropdown shows available genres not yet assigned to the book
+  - Genre chips display with delete buttons for easy removal
+
 ## [2.0.2] - 2025-12-27
 
 ### Improved

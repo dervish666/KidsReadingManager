@@ -40,10 +40,18 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import CategoryIcon from '@mui/icons-material/Category';
 import SearchIcon from '@mui/icons-material/Search';
 import { useAppContext } from '../../contexts/AppContext';
-import { batchFindMissingAuthors, batchFindMissingDescriptions, batchFindMissingGenres, getBookDetails, checkOpenLibraryAvailability } from '../../utils/openLibraryApi';
+import {
+  batchFindMissingAuthors,
+  batchFindMissingDescriptions,
+  batchFindMissingGenres,
+  getBookDetails,
+  checkAvailability,
+  getProviderDisplayName,
+  validateProviderConfig
+} from '../../utils/bookMetadataApi';
 
 const BookManager = () => {
-  const { books, genres, addBook, reloadDataFromServer, fetchWithAuth } = useAppContext();
+  const { books, genres, addBook, reloadDataFromServer, fetchWithAuth, settings } = useAppContext();
   const [newBookTitle, setNewBookTitle] = useState('');
   const [newBookAuthor, setNewBookAuthor] = useState('');
   const [newBookReadingLevel, setNewBookReadingLevel] = useState('');
@@ -55,6 +63,7 @@ const BookManager = () => {
   const [editBookAgeRange, setEditBookAgeRange] = useState('');
   const [editBookDescription, setEditBookDescription] = useState('');
   const [editBookCoverUrl, setEditBookCoverUrl] = useState(null);
+  const [editBookGenreIds, setEditBookGenreIds] = useState([]);
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [confirmImport, setConfirmImport] = useState({ open: false, file: null, data: null });
@@ -126,6 +135,7 @@ const BookManager = () => {
     setEditBookAgeRange(book.ageRange || '');
     setEditBookDescription(book.description || '');
     setEditBookCoverUrl(null); // Cover is not stored, only fetched on demand
+    setEditBookGenreIds(book.genreIds || []);
     setError('');
   };
 
@@ -139,22 +149,34 @@ const BookManager = () => {
       return;
     }
 
+    // Validate provider configuration
+    const configValidation = validateProviderConfig(settings);
+    if (!configValidation.valid) {
+      setSnackbar({
+        open: true,
+        message: configValidation.error,
+        severity: 'error'
+      });
+      return;
+    }
+
     setIsFetchingDetails(true);
+    const providerName = getProviderDisplayName(settings);
     
-    // Check OpenLibrary availability first with a quick timeout
-    const isAvailable = await checkOpenLibraryAvailability(3000);
+    // Check provider availability first with a quick timeout
+    const isAvailable = await checkAvailability(settings, 3000);
     if (!isAvailable) {
       setIsFetchingDetails(false);
       setSnackbar({
         open: true,
-        message: 'OpenLibrary is currently unavailable. Please try again later.',
+        message: `${providerName} is currently unavailable. Please try again later.`,
         severity: 'error'
       });
       return;
     }
     
     try {
-      const details = await getBookDetails(editBookTitle, editBookAuthor || null);
+      const details = await getBookDetails(editBookTitle, editBookAuthor || null, settings);
       
       if (details) {
         if (details.coverUrl) {
@@ -165,13 +187,13 @@ const BookManager = () => {
         }
         setSnackbar({
           open: true,
-          message: details.description ? 'Book details loaded successfully' : 'Cover found, but no description available',
+          message: details.description ? `Book details loaded from ${providerName}` : 'Cover found, but no description available',
           severity: 'success'
         });
       } else {
         setSnackbar({
           open: true,
-          message: 'No details found for this book',
+          message: `No details found for this book on ${providerName}`,
           severity: 'warning'
         });
       }
@@ -206,7 +228,7 @@ const BookManager = () => {
           readingLevel: editBookReadingLevel.trim() || null,
           ageRange: editBookAgeRange.trim() || null,
           description: editBookDescription.trim() || null,
-          genreIds: editingBook.genreIds || [],
+          genreIds: editBookGenreIds,
         }),
       });
 
@@ -222,6 +244,7 @@ const BookManager = () => {
       setEditBookAgeRange('');
       setEditBookDescription('');
       setEditBookCoverUrl(null);
+      setEditBookGenreIds([]);
       setError('');
     } catch (error) {
       console.error('Error updating book:', error);
@@ -490,6 +513,7 @@ const BookManager = () => {
     setEditBookAgeRange('');
     setEditBookDescription('');
     setEditBookCoverUrl(null);
+    setEditBookGenreIds([]);
     setError('');
   };
 
@@ -513,18 +537,31 @@ const BookManager = () => {
       return;
     }
 
-    // Check OpenLibrary availability first with a quick timeout
+    // Validate provider configuration
+    const configValidation = validateProviderConfig(settings);
+    if (!configValidation.valid) {
+      setSnackbar({
+        open: true,
+        message: configValidation.error,
+        severity: 'error'
+      });
+      return;
+    }
+
+    const providerName = getProviderDisplayName(settings);
+    
+    // Check provider availability first with a quick timeout
     setSnackbar({
       open: true,
-      message: 'Checking OpenLibrary availability...',
+      message: `Checking ${providerName} availability...`,
       severity: 'info'
     });
     
-    const isAvailable = await checkOpenLibraryAvailability(3000);
+    const isAvailable = await checkAvailability(settings, 3000);
     if (!isAvailable) {
       setSnackbar({
         open: true,
-        message: 'OpenLibrary is currently unavailable. Please try again later.',
+        message: `${providerName} is currently unavailable. Please try again later.`,
         severity: 'error'
       });
       return;
@@ -535,7 +572,7 @@ const BookManager = () => {
     setAuthorLookupResults([]);
 
     try {
-      const results = await batchFindMissingAuthors(booksWithoutAuthors, (progress) => {
+      const results = await batchFindMissingAuthors(booksWithoutAuthors, settings, (progress) => {
         setAuthorLookupProgress(progress);
       });
 
@@ -665,18 +702,31 @@ const BookManager = () => {
       return;
     }
 
-    // Check OpenLibrary availability first with a quick timeout
+    // Validate provider configuration
+    const configValidation = validateProviderConfig(settings);
+    if (!configValidation.valid) {
+      setSnackbar({
+        open: true,
+        message: configValidation.error,
+        severity: 'error'
+      });
+      return;
+    }
+
+    const providerName = getProviderDisplayName(settings);
+    
+    // Check provider availability first with a quick timeout
     setSnackbar({
       open: true,
-      message: 'Checking OpenLibrary availability...',
+      message: `Checking ${providerName} availability...`,
       severity: 'info'
     });
     
-    const isAvailable = await checkOpenLibraryAvailability(3000);
+    const isAvailable = await checkAvailability(settings, 3000);
     if (!isAvailable) {
       setSnackbar({
         open: true,
-        message: 'OpenLibrary is currently unavailable. Please try again later.',
+        message: `${providerName} is currently unavailable. Please try again later.`,
         severity: 'error'
       });
       return;
@@ -687,7 +737,7 @@ const BookManager = () => {
     setDescriptionLookupResults([]);
 
     try {
-      const results = await batchFindMissingDescriptions(booksWithoutDescriptions, (progress) => {
+      const results = await batchFindMissingDescriptions(booksWithoutDescriptions, settings, (progress) => {
         setDescriptionLookupProgress(progress);
       });
 
@@ -779,18 +829,31 @@ const BookManager = () => {
       return;
     }
 
-    // Check OpenLibrary availability first with a quick timeout
+    // Validate provider configuration
+    const configValidation = validateProviderConfig(settings);
+    if (!configValidation.valid) {
+      setSnackbar({
+        open: true,
+        message: configValidation.error,
+        severity: 'error'
+      });
+      return;
+    }
+
+    const providerName = getProviderDisplayName(settings);
+    
+    // Check provider availability first with a quick timeout
     setSnackbar({
       open: true,
-      message: 'Checking OpenLibrary availability...',
+      message: `Checking ${providerName} availability...`,
       severity: 'info'
     });
     
-    const isAvailable = await checkOpenLibraryAvailability(3000);
+    const isAvailable = await checkAvailability(settings, 3000);
     if (!isAvailable) {
       setSnackbar({
         open: true,
-        message: 'OpenLibrary is currently unavailable. Please try again later.',
+        message: `${providerName} is currently unavailable. Please try again later.`,
         severity: 'error'
       });
       return;
@@ -801,7 +864,7 @@ const BookManager = () => {
     setGenreLookupResults([]);
 
     try {
-      const results = await batchFindMissingGenres(booksWithoutGenres, (progress) => {
+      const results = await batchFindMissingGenres(booksWithoutGenres, settings, (progress) => {
         setGenreLookupProgress(progress);
       });
 
@@ -1572,7 +1635,7 @@ const BookManager = () => {
         <DialogTitle>Edit Book</DialogTitle>
         <DialogContent>
           <Box component="form" onSubmit={handleUpdateBook} sx={{ mt: 1 }}>
-            {/* Cover and Description Row */}
+            {/* Cover, Description, and Genres Row */}
             <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
               {/* Cover Image */}
               <Box
@@ -1590,7 +1653,7 @@ const BookManager = () => {
                     alt={`Cover of ${editBookTitle}`}
                     sx={{
                       width: '100%',
-                      maxHeight: 200,
+                      maxHeight: 150,
                       objectFit: 'contain',
                       borderRadius: 1,
                       boxShadow: 2
@@ -1600,7 +1663,7 @@ const BookManager = () => {
                   <Box
                     sx={{
                       width: '100%',
-                      height: 180,
+                      height: 150,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -1626,10 +1689,81 @@ const BookManager = () => {
                   fullWidth
                   size="small"
                   multiline
-                  rows={7}
+                  rows={4}
                   placeholder="Book description (can be fetched from OpenLibrary)"
-                  sx={{ height: '100%' }}
                 />
+              </Box>
+              
+              {/* Genre Tags Section */}
+              <Box
+                sx={{
+                  flexShrink: 0,
+                  width: 200,
+                  display: 'flex',
+                  flexDirection: 'column'
+                }}
+              >
+                <Typography variant="caption" color="text.secondary" sx={{ mb: 1 }}>
+                  Genres
+                </Typography>
+                <Box
+                  sx={{
+                    flex: 1,
+                    border: '1px solid',
+                    borderColor: 'grey.300',
+                    borderRadius: 1,
+                    p: 1,
+                    minHeight: 100,
+                    maxHeight: 120,
+                    overflowY: 'auto',
+                    backgroundColor: 'grey.50'
+                  }}
+                >
+                  {/* Display selected genre chips */}
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
+                    {editBookGenreIds.map(genreId => {
+                      const genre = genres.find(g => g.id === genreId);
+                      return genre ? (
+                        <Chip
+                          key={genreId}
+                          label={genre.name}
+                          size="small"
+                          onDelete={() => setEditBookGenreIds(prev => prev.filter(id => id !== genreId))}
+                          sx={{ height: 24 }}
+                        />
+                      ) : null;
+                    })}
+                    {editBookGenreIds.length === 0 && (
+                      <Typography variant="caption" color="text.secondary">
+                        No genres selected
+                      </Typography>
+                    )}
+                  </Box>
+                </Box>
+                {/* Genre selector dropdown */}
+                <FormControl size="small" sx={{ mt: 1 }}>
+                  <InputLabel id="edit-genre-select-label">Add Genre</InputLabel>
+                  <Select
+                    labelId="edit-genre-select-label"
+                    value=""
+                    label="Add Genre"
+                    onChange={(e) => {
+                      const genreId = e.target.value;
+                      if (genreId && !editBookGenreIds.includes(genreId)) {
+                        setEditBookGenreIds(prev => [...prev, genreId]);
+                      }
+                    }}
+                  >
+                    {genres
+                      .filter(genre => !editBookGenreIds.includes(genre.id))
+                      .map(genre => (
+                        <MenuItem key={genre.id} value={genre.id}>
+                          {genre.name}
+                        </MenuItem>
+                      ))
+                    }
+                  </Select>
+                </FormControl>
               </Box>
             </Box>
             

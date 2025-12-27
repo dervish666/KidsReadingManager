@@ -9,9 +9,11 @@ import {
 import SettingsIcon from '@mui/icons-material/Settings';
 import StorageIcon from '@mui/icons-material/Storage';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
 import Settings from './Settings';
 import DataManagement from './DataManagement';
 import AISettings from './AISettings';
+import BookMetadataSettings from './BookMetadataSettings';
 
 const SettingsPage = () => {
   const [currentTab, setCurrentTab] = useState(0);
@@ -59,6 +61,7 @@ const SettingsPage = () => {
             <Tab icon={<SettingsIcon />} iconPosition="start" label="Application Settings" />
             <Tab icon={<StorageIcon />} iconPosition="start" label="Data Management" />
             <Tab icon={<SmartToyIcon />} iconPosition="start" label="AI Integration" />
+            <Tab icon={<MenuBookIcon />} iconPosition="start" label="Book Metadata" />
           </Tabs>
         </Paper>
         
@@ -66,6 +69,7 @@ const SettingsPage = () => {
           {currentTab === 0 && <Settings />}
           {currentTab === 1 && <DataManagement />}
           {currentTab === 2 && <AISettings />}
+          {currentTab === 3 && <BookMetadataSettings />}
         </Box>
       </Box>
     </Box>
