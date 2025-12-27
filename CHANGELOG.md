@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.0.2] - 2025-12-27
+
+### Improved
+- **Fill Missing Genres Button**: Now also detects and updates books with unknown/invalid genre IDs
+  - Previously only found books with no genres at all
+  - Now includes books where genre IDs don't match any genre in the database (displayed as "Unknown")
+  - Button renamed to "Fix Missing/Unknown Genres" for clarity
+  - Helps fix genre mismatches that occurred during multi-tenant migration
+
 ## [2.0.1] - 2025-12-27
 
 ### Fixed

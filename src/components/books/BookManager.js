@@ -642,9 +642,14 @@ const BookManager = () => {
 
   const getBooksWithoutGenres = () => {
     // Used for the "Fill Missing Genres" count button.
+    // Includes books with no genres AND books with unknown/invalid genre IDs
     return books.filter(book => {
       const genreIds = book.genreIds || [];
-      return genreIds.length === 0;
+      // No genres at all
+      if (genreIds.length === 0) return true;
+      // Has genre IDs but some/all are unknown (not in genres list)
+      const hasUnknownGenre = genreIds.some(id => !genres.find(g => g.id === id));
+      return hasUnknownGenre;
     });
   };
 
@@ -1278,7 +1283,7 @@ const BookManager = () => {
             >
               {isLookingUpGenres
                 ? 'Finding Genres...'
-                : `Fill Missing Genres (${getBooksWithoutGenres().length})`}
+                : `Fix Missing/Unknown Genres (${getBooksWithoutGenres().length})`}
             </Button>
           </Box>
         </Paper>
