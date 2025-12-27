@@ -175,36 +175,48 @@ classesRouter.post('/', async (c) => {
   
   // Multi-tenant mode: use D1
   if (isMultiTenantMode(c)) {
-    const db = getDB(c.env);
-    const organizationId = c.get('organizationId');
-    const userId = c.get('userId');
-    
-    // Check permission
-    const userRole = c.get('userRole');
-    if (!permissions.canManageClasses(userRole)) {
-      return c.json({ error: 'Permission denied' }, 403);
+    try {
+      const db = getDB(c.env);
+      const organizationId = c.get('organizationId');
+      const userId = c.get('userId');
+      
+      // Check permission
+      const userRole = c.get('userRole');
+      console.log('POST /api/classes - userRole:', userRole, 'organizationId:', organizationId, 'userId:', userId);
+      
+      if (!permissions.canManageClasses(userRole)) {
+        console.log('Permission denied - userRole:', userRole);
+        return c.json({ error: 'Permission denied' }, 403);
+      }
+      
+      const classId = body.id || generateId();
+      
+      console.log('Inserting class:', { classId, organizationId, name: body.name, userId });
+      
+      await db.prepare(`
+        INSERT INTO classes (id, organization_id, name, teacher_name, academic_year, created_by)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).bind(
+        classId,
+        organizationId,
+        body.name,
+        body.teacherName || null,
+        body.academicYear || new Date().getFullYear().toString(),
+        userId
+      ).run();
+      
+      // Fetch the created class
+      const cls = await db.prepare(`
+        SELECT * FROM classes WHERE id = ?
+      `).bind(classId).first();
+      
+      console.log('Class created:', cls);
+      
+      return c.json(rowToClass(cls), 201);
+    } catch (error) {
+      console.error('Error in POST /api/classes (multi-tenant):', error.message, error.stack);
+      throw error;
     }
-    
-    const classId = body.id || generateId();
-    
-    await db.prepare(`
-      INSERT INTO classes (id, organization_id, name, teacher_name, academic_year, created_by)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).bind(
-      classId,
-      organizationId,
-      body.name,
-      body.teacherName || null,
-      body.academicYear || new Date().getFullYear().toString(),
-      userId
-    ).run();
-    
-    // Fetch the created class
-    const cls = await db.prepare(`
-      SELECT * FROM classes WHERE id = ?
-    `).bind(classId).first();
-    
-    return c.json(rowToClass(cls), 201);
   }
   
   // Legacy mode: use KV

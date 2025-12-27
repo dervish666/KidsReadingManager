@@ -52,7 +52,8 @@ const rowToStudent = (row) => {
     notes: row.notes,
     isActive: Boolean(row.is_active),
     createdAt: row.created_at,
-    updatedAt: row.updated_at
+    updatedAt: row.updated_at,
+    readingSessions: [] // Default empty array, will be populated separately if needed
   };
 };
 
@@ -99,6 +100,7 @@ studentsRouter.get('/', async (c) => {
         duration: s.duration_minutes,
         assessment: s.assessment,
         notes: s.notes,
+        location: s.location || 'school',
         recordedBy: s.recorded_by
       }));
     }
@@ -156,6 +158,7 @@ studentsRouter.get('/:id', async (c) => {
       duration: s.duration_minutes,
       assessment: s.assessment,
       notes: s.notes,
+      location: s.location || 'school',
       recordedBy: s.recorded_by
     }));
     
@@ -468,8 +471,8 @@ studentsRouter.post('/:id/sessions', async (c) => {
     await db.prepare(`
       INSERT INTO reading_sessions (
         id, student_id, session_date, book_id, book_title_manual, book_author_manual,
-        pages_read, duration_minutes, assessment, notes, recorded_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        pages_read, duration_minutes, assessment, notes, location, recorded_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       sessionId,
       id,
@@ -481,6 +484,7 @@ studentsRouter.post('/:id/sessions', async (c) => {
       body.duration || null,
       body.assessment || null,
       body.notes || null,
+      body.location || 'school',
       userId
     ).run();
     
@@ -501,7 +505,9 @@ studentsRouter.post('/:id/sessions', async (c) => {
       pagesRead: session.pages_read,
       duration: session.duration_minutes,
       assessment: session.assessment,
-      notes: session.notes
+      notes: session.notes,
+      location: session.location || 'school',
+      recordedBy: session.recorded_by
     }, 201);
   }
   
@@ -520,7 +526,8 @@ studentsRouter.post('/:id/sessions', async (c) => {
     pagesRead: body.pagesRead,
     duration: body.duration,
     assessment: body.assessment,
-    notes: body.notes
+    notes: body.notes,
+    location: body.location || 'school'
   };
   
   student.readingSessions = student.readingSessions || [];
@@ -593,6 +600,105 @@ studentsRouter.delete('/:id/sessions/:sessionId', async (c) => {
   await saveStudentKV(c.env, student);
   
   return c.json({ message: 'Session deleted successfully' });
+});
+
+/**
+ * PUT /api/students/:id/sessions/:sessionId
+ * Update a reading session
+ */
+studentsRouter.put('/:id/sessions/:sessionId', async (c) => {
+  const { id, sessionId } = c.req.param();
+  const body = await c.req.json();
+  
+  // Multi-tenant mode: use D1
+  if (isMultiTenantMode(c)) {
+    const db = getDB(c.env);
+    const organizationId = c.get('organizationId');
+    
+    // Check if student exists and belongs to organization
+    const student = await db.prepare(`
+      SELECT id FROM students WHERE id = ? AND organization_id = ? AND is_active = 1
+    `).bind(id, organizationId).first();
+    
+    if (!student) {
+      throw notFoundError(`Student with ID ${id} not found`);
+    }
+    
+    // Check if session exists
+    const existingSession = await db.prepare(`
+      SELECT id FROM reading_sessions WHERE id = ? AND student_id = ?
+    `).bind(sessionId, id).first();
+    
+    if (!existingSession) {
+      throw notFoundError(`Session with ID ${sessionId} not found`);
+    }
+    
+    // Update session
+    await db.prepare(`
+      UPDATE reading_sessions SET
+        session_date = ?,
+        book_id = ?,
+        book_title_manual = ?,
+        book_author_manual = ?,
+        pages_read = ?,
+        duration_minutes = ?,
+        assessment = ?,
+        notes = ?
+      WHERE id = ?
+    `).bind(
+      body.date || new Date().toISOString().split('T')[0],
+      body.bookId || null,
+      body.bookTitle || null,
+      body.bookAuthor || null,
+      body.pagesRead || null,
+      body.duration || null,
+      body.assessment || null,
+      body.notes || null,
+      sessionId
+    ).run();
+    
+    // Fetch the updated session
+    const session = await db.prepare(`
+      SELECT rs.*, b.title as book_title, b.author as book_author
+      FROM reading_sessions rs
+      LEFT JOIN books b ON rs.book_id = b.id
+      WHERE rs.id = ?
+    `).bind(sessionId).first();
+    
+    return c.json({
+      id: session.id,
+      date: session.session_date,
+      bookTitle: session.book_title || session.book_title_manual,
+      bookAuthor: session.book_author || session.book_author_manual,
+      bookId: session.book_id,
+      pagesRead: session.pages_read,
+      duration: session.duration_minutes,
+      assessment: session.assessment,
+      notes: session.notes
+    });
+  }
+  
+  // Legacy mode: use KV
+  const student = await getStudentByIdKV(c.env, id);
+  if (!student) {
+    throw notFoundError(`Student with ID ${id} not found`);
+  }
+  
+  const sessionIndex = student.readingSessions.findIndex(s => s.id === sessionId);
+  if (sessionIndex === -1) {
+    throw notFoundError(`Session with ID ${sessionId} not found`);
+  }
+  
+  // Update the session
+  student.readingSessions[sessionIndex] = {
+    ...student.readingSessions[sessionIndex],
+    ...body,
+    id: sessionId // Ensure ID doesn't change
+  };
+  
+  await saveStudentKV(c.env, student);
+  
+  return c.json(student.readingSessions[sessionIndex]);
 });
 
 export { studentsRouter };

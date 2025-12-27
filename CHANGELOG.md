@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.0.1] - 2025-12-27
+
+### Fixed
+- **Reading Sessions Location**: Added missing `location` column to `reading_sessions` table
+  - Sessions now properly store and return the `location` field ('school' or 'home')
+  - Home Reading Register now correctly displays recorded sessions
+  - Fixed issue where sessions were saved but not displayed due to missing location filter match
+- **Backend Session Handling**: Updated POST `/api/students/:id/sessions` endpoint to include `location` in INSERT and response
+
 ## [2.0.0] - 2025-12-27
 
 ### Added - Multi-Tenant SaaS Architecture

@@ -1019,12 +1019,17 @@ export const AppProvider = ({ children }) => {
     async (studentId, sessionData) => {
       const date =
         sessionData.date || new Date().toISOString().split('T')[0];
-      const newSession = {
-        id: uuidv4(),
+      
+      // Prepare session data for API
+      const sessionPayload = {
         date,
         assessment: sessionData.assessment,
         notes: sessionData.notes || '',
         bookId: sessionData.bookId || null,
+        bookTitle: sessionData.bookTitle || null,
+        bookAuthor: sessionData.bookAuthor || null,
+        pagesRead: sessionData.pagesRead || null,
+        duration: sessionData.duration || null,
         location: sessionData.location || 'school',
       };
 
@@ -1034,7 +1039,13 @@ export const AppProvider = ({ children }) => {
         return null;
       }
 
-      const updatedReadingSessions = [newSession, ...student.readingSessions];
+      // Optimistic update with temporary ID
+      const tempSession = {
+        id: uuidv4(),
+        ...sessionPayload,
+      };
+      
+      const updatedReadingSessions = [tempSession, ...(student.readingSessions || [])];
       let mostRecentDate = date;
       for (const session of updatedReadingSessions) {
         if (
@@ -1056,17 +1067,38 @@ export const AppProvider = ({ children }) => {
       );
 
       try {
-        const response = await fetchWithAuth(`${API_URL}/students/${studentId}`, {
-          method: 'PUT',
+        // Use dedicated session endpoint for multi-tenant mode
+        const response = await fetchWithAuth(`${API_URL}/students/${studentId}/sessions`, {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedStudent),
+          body: JSON.stringify(sessionPayload),
         });
 
         if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `API error: ${response.status}`);
         }
+        
+        // Get the actual session from the server (with real ID)
+        const savedSession = await response.json();
+        
+        // Update the student with the real session ID
+        setStudents((prev) =>
+          prev.map((s) => {
+            if (s.id === studentId) {
+              return {
+                ...s,
+                readingSessions: s.readingSessions.map((sess) =>
+                  sess.id === tempSession.id ? savedSession : sess
+                ),
+              };
+            }
+            return s;
+          })
+        );
+        
         setApiError(null);
-        return newSession;
+        return savedSession;
       } catch (error) {
         console.error('Error adding reading session:', error);
         setApiError(error.message);
@@ -1084,6 +1116,18 @@ export const AppProvider = ({ children }) => {
         console.error('Edit session failed: Student not found');
         return;
       }
+
+      // Prepare session payload for API
+      const sessionPayload = {
+        date: updatedSessionData.date,
+        bookId: updatedSessionData.bookId || null,
+        bookTitle: updatedSessionData.bookTitle || null,
+        bookAuthor: updatedSessionData.bookAuthor || null,
+        pagesRead: updatedSessionData.pagesRead || null,
+        duration: updatedSessionData.duration || null,
+        assessment: updatedSessionData.assessment || null,
+        notes: updatedSessionData.notes || null,
+      };
 
       const updatedReadingSessions = student.readingSessions.map((session) =>
         session.id === sessionId
@@ -1112,10 +1156,11 @@ export const AppProvider = ({ children }) => {
       );
 
       try {
-        const response = await fetchWithAuth(`${API_URL}/students/${studentId}`, {
+        // Use dedicated session endpoint for multi-tenant mode
+        const response = await fetchWithAuth(`${API_URL}/students/${studentId}/sessions/${sessionId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedStudent),
+          body: JSON.stringify(sessionPayload),
         });
 
         if (!response.ok) {
@@ -1164,10 +1209,10 @@ export const AppProvider = ({ children }) => {
       );
 
       try {
-        const response = await fetchWithAuth(`${API_URL}/students/${studentId}`, {
-          method: 'PUT',
+        // Use dedicated session endpoint for multi-tenant mode
+        const response = await fetchWithAuth(`${API_URL}/students/${studentId}/sessions/${sessionId}`, {
+          method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedStudent),
         });
 
         if (!response.ok) {
