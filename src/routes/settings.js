@@ -95,8 +95,8 @@ settingsRouter.post('/', async (c) => {
     const userId = c.get('userId');
     
     // Check permission
-    const user = c.get('user');
-    if (!permissions.canManageSettings(user.role)) {
+    const userRole = c.get('userRole');
+    if (!permissions.canManageSettings(userRole)) {
       return c.json({ error: 'Permission denied' }, 403);
     }
     
@@ -210,8 +210,8 @@ settingsRouter.post('/ai', async (c) => {
     const userId = c.get('userId');
     
     // Check permission
-    const user = c.get('user');
-    if (!permissions.canManageSettings(user.role)) {
+    const userRole = c.get('userRole');
+    if (!permissions.canManageSettings(userRole)) {
       return c.json({ error: 'Permission denied' }, 403);
     }
     

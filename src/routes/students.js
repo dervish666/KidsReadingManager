@@ -190,8 +190,8 @@ studentsRouter.post('/', async (c) => {
     const userId = c.get('userId');
     
     // Check permission
-    const user = c.get('user');
-    if (!permissions.canManageStudents(user.role)) {
+    const userRole = c.get('userRole');
+    if (!permissions.canManageStudents(userRole)) {
       return c.json({ error: 'Permission denied' }, 403);
     }
     
@@ -256,8 +256,8 @@ studentsRouter.put('/:id', async (c) => {
     const userId = c.get('userId');
     
     // Check permission
-    const user = c.get('user');
-    if (!permissions.canManageStudents(user.role)) {
+    const userRole = c.get('userRole');
+    if (!permissions.canManageStudents(userRole)) {
       return c.json({ error: 'Permission denied' }, 403);
     }
     
@@ -329,8 +329,8 @@ studentsRouter.delete('/:id', async (c) => {
     const organizationId = c.get('organizationId');
     
     // Check permission
-    const user = c.get('user');
-    if (!permissions.canManageStudents(user.role)) {
+    const userRole = c.get('userRole');
+    if (!permissions.canManageStudents(userRole)) {
       return c.json({ error: 'Permission denied' }, 403);
     }
     
@@ -381,8 +381,8 @@ studentsRouter.post('/bulk', async (c) => {
     const userId = c.get('userId');
     
     // Check permission
-    const user = c.get('user');
-    if (!permissions.canManageStudents(user.role)) {
+    const userRole = c.get('userRole');
+    if (!permissions.canManageStudents(userRole)) {
       return c.json({ error: 'Permission denied' }, 403);
     }
     

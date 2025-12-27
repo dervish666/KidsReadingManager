@@ -118,8 +118,8 @@ genresRouter.post('/', async (c) => {
     const db = getDB(c.env);
     
     // Check permission - only admins can create genres
-    const user = c.get('user');
-    if (!permissions.canManageSettings(user.role)) {
+    const userRole = c.get('userRole');
+    if (!permissions.canManageSettings(userRole)) {
       return c.json({ error: 'Permission denied' }, 403);
     }
     
@@ -181,8 +181,8 @@ genresRouter.put('/:id', async (c) => {
     const db = getDB(c.env);
     
     // Check permission - only admins can update genres
-    const user = c.get('user');
-    if (!permissions.canManageSettings(user.role)) {
+    const userRole = c.get('userRole');
+    if (!permissions.canManageSettings(userRole)) {
       return c.json({ error: 'Permission denied' }, 403);
     }
     
@@ -249,8 +249,8 @@ genresRouter.delete('/:id', async (c) => {
     const db = getDB(c.env);
     
     // Check permission - only admins can delete genres
-    const user = c.get('user');
-    if (!permissions.canManageSettings(user.role)) {
+    const userRole = c.get('userRole');
+    if (!permissions.canManageSettings(userRole)) {
       return c.json({ error: 'Permission denied' }, 403);
     }
     

@@ -103,12 +103,7 @@ const Login = () => {
 
     setSubmitting(true);
     try {
-      await register({
-        email,
-        password,
-        name,
-        organizationName
-      });
+      await register(organizationName, name, email, password);
       setSuccessMessage('Registration successful! You can now log in.');
       setMode('login');
       setPassword('');
