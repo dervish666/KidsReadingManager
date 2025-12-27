@@ -53,8 +53,83 @@ const rowToStudent = (row) => {
     isActive: Boolean(row.is_active),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    readingSessions: [] // Default empty array, will be populated separately if needed
+    readingSessions: [], // Default empty array, will be populated separately if needed
+    preferences: {
+      favoriteGenreIds: [],
+      likes: [],
+      dislikes: []
+    }
   };
+};
+
+/**
+ * Fetch student preferences from student_preferences table
+ */
+const fetchStudentPreferences = async (db, studentId) => {
+  const result = await db.prepare(`
+    SELECT sp.genre_id, sp.preference_type, g.name as genre_name
+    FROM student_preferences sp
+    LEFT JOIN genres g ON sp.genre_id = g.id
+    WHERE sp.student_id = ?
+  `).bind(studentId).all();
+  
+  const preferences = {
+    favoriteGenreIds: [],
+    likes: [],
+    dislikes: []
+  };
+  
+  for (const row of (result.results || [])) {
+    if (row.preference_type === 'favorite') {
+      preferences.favoriteGenreIds.push(row.genre_id);
+    } else if (row.preference_type === 'like') {
+      preferences.likes.push(row.genre_name || row.genre_id);
+    } else if (row.preference_type === 'dislike') {
+      preferences.dislikes.push(row.genre_name || row.genre_id);
+    }
+  }
+  
+  return preferences;
+};
+
+/**
+ * Save student preferences to student_preferences table
+ */
+const saveStudentPreferences = async (db, studentId, preferences) => {
+  if (!preferences) return;
+  
+  // Delete existing preferences for this student
+  await db.prepare(`
+    DELETE FROM student_preferences WHERE student_id = ?
+  `).bind(studentId).run();
+  
+  const statements = [];
+  
+  // Add favorite genre preferences
+  if (preferences.favoriteGenreIds && Array.isArray(preferences.favoriteGenreIds)) {
+    for (const genreId of preferences.favoriteGenreIds) {
+      statements.push(
+        db.prepare(`
+          INSERT INTO student_preferences (id, student_id, genre_id, preference_type)
+          VALUES (?, ?, ?, 'favorite')
+        `).bind(generateId(), studentId, genreId)
+      );
+    }
+  }
+  
+  // Note: likes and dislikes in the preferences object are book titles (strings),
+  // not genre IDs. We'll store them in the students table likes/dislikes columns instead.
+  // The student_preferences table is specifically for genre preferences.
+  
+  // Execute batch if there are statements
+  if (statements.length > 0) {
+    // D1 batch limit is 100
+    const batchSize = 100;
+    for (let i = 0; i < statements.length; i += batchSize) {
+      const batch = statements.slice(i, i + batchSize);
+      await db.batch(batch);
+    }
+  }
 };
 
 /**
@@ -80,7 +155,7 @@ studentsRouter.get('/', async (c) => {
       className: row.class_name
     }));
     
-    // Fetch reading sessions for each student
+    // Fetch reading sessions and preferences for each student
     for (const student of students) {
       const sessions = await db.prepare(`
         SELECT rs.*, b.title as book_title, b.author as book_author
@@ -103,6 +178,12 @@ studentsRouter.get('/', async (c) => {
         location: s.location || 'school',
         recordedBy: s.recorded_by
       }));
+      
+      // Fetch student preferences
+      student.preferences = await fetchStudentPreferences(db, student.id);
+      // Also include likes/dislikes from the students table in preferences
+      student.preferences.likes = student.likes || [];
+      student.preferences.dislikes = student.dislikes || [];
     }
     
     return c.json(students);
@@ -161,6 +242,12 @@ studentsRouter.get('/:id', async (c) => {
       location: s.location || 'school',
       recordedBy: s.recorded_by
     }));
+    
+    // Fetch student preferences
+    result.preferences = await fetchStudentPreferences(db, id);
+    // Also include likes/dislikes from the students table in preferences
+    result.preferences.likes = result.likes || [];
+    result.preferences.dislikes = result.dislikes || [];
     
     return c.json(result);
   }
@@ -273,6 +360,20 @@ studentsRouter.put('/:id', async (c) => {
       throw notFoundError(`Student with ID ${id} not found`);
     }
     
+    // Extract likes/dislikes from preferences if provided
+    let likes = body.likes || [];
+    let dislikes = body.dislikes || [];
+    
+    if (body.preferences) {
+      // If preferences object is provided, use its likes/dislikes
+      if (body.preferences.likes && Array.isArray(body.preferences.likes)) {
+        likes = body.preferences.likes;
+      }
+      if (body.preferences.dislikes && Array.isArray(body.preferences.dislikes)) {
+        dislikes = body.preferences.dislikes;
+      }
+    }
+    
     // Update student
     await db.prepare(`
       UPDATE students SET
@@ -288,19 +389,31 @@ studentsRouter.put('/:id', async (c) => {
       body.name,
       body.classId || null,
       body.readingLevel || null,
-      JSON.stringify(body.likes || []),
-      JSON.stringify(body.dislikes || []),
+      JSON.stringify(likes),
+      JSON.stringify(dislikes),
       body.notes || null,
       id,
       organizationId
     ).run();
+    
+    // Save student preferences (favorite genres) to student_preferences table
+    if (body.preferences) {
+      await saveStudentPreferences(db, id, body.preferences);
+    }
     
     // Fetch updated student
     const student = await db.prepare(`
       SELECT * FROM students WHERE id = ?
     `).bind(id).first();
     
-    return c.json(rowToStudent(student));
+    const result = rowToStudent(student);
+    
+    // Fetch and include preferences in response
+    result.preferences = await fetchStudentPreferences(db, id);
+    result.preferences.likes = likes;
+    result.preferences.dislikes = dislikes;
+    
+    return c.json(result);
   }
   
   // Legacy mode: use KV

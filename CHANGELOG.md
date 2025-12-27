@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.1.1] - 2025-12-27
+
+### Fixed
+- **Student Reading Preferences**: Fixed bug where student reading preferences (favorite genres, likes, dislikes) were not being saved in multi-tenant D1 mode
+  - Added `fetchStudentPreferences()` helper to read from `student_preferences` table
+  - Added `saveStudentPreferences()` helper to write favorite genre IDs to `student_preferences` table
+  - Updated GET `/api/students` and GET `/api/students/:id` to include preferences in response
+  - Updated PUT `/api/students/:id` to properly extract and save preferences from request body
+  - Preferences now correctly persist across page reloads
+
 ## [2.1.0] - 2025-12-27
 
 ### Added
