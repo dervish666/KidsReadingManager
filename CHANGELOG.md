@@ -1,5 +1,82 @@
 # Changelog
 
+## [2.0.0] - 2025-12-27
+
+### Added - Multi-Tenant SaaS Architecture
+
+This major release transforms Kids Reading Manager from a single-user application into a multi-tenant SaaS platform with full organization isolation, user management, and role-based access control.
+
+#### Database Foundation (Phase 1)
+- **Organizations Table**: Multi-tenant foundation with unique slugs, settings, and subscription tiers
+- **Users Table**: Full user management with email/password authentication, roles (owner, admin, teacher, readonly)
+- **Refresh Tokens**: Secure token rotation for JWT authentication
+- **Password Reset Tokens**: Self-service password recovery with expiration
+- **Classes Table**: Organization-scoped classes with soft delete support
+- **Students Table**: Organization-scoped students with reading preferences and soft delete
+- **Reading Sessions Table**: Normalized session storage with automatic last_read_date triggers
+- **Organization Book Selections**: Per-organization book catalog customization
+- **Organization Settings**: Tenant-specific configuration and AI settings
+- **Audit Log**: Comprehensive activity tracking for compliance
+- **Genres Table**: Organization-scoped genres with default data seeding
+
+#### Authentication System (Phase 2)
+- **JWT Authentication**: Secure token-based auth using Web Crypto API (Workers-compatible)
+- **PBKDF2 Password Hashing**: 100,000 iterations with random salt for secure password storage
+- **Token Refresh**: Automatic access token refresh with 60-second buffer before expiration
+- **Role-Based Access Control**: Hierarchical permissions (owner > admin > teacher > readonly)
+- **Auth Routes**: Complete authentication endpoints
+  - `POST /api/auth/register` - Organization and owner registration
+  - `POST /api/auth/login` - Email/password authentication
+  - `POST /api/auth/refresh` - Token refresh
+  - `POST /api/auth/logout` - Session termination
+  - `POST /api/auth/forgot-password` - Password reset initiation
+  - `POST /api/auth/reset-password` - Password reset completion
+
+#### API Updates (Phase 3)
+- **Tenant Middleware**: Automatic organization context injection and isolation
+- **User Management Routes**: Full CRUD for organization users with role management
+- **Organization Routes**: Organization settings, AI configuration, and audit log access
+- **Updated Routes**: All existing routes (students, classes, settings, genres) now support both legacy KV mode and multi-tenant D1 mode
+- **Dual-Mode Operation**: Seamless backward compatibility with legacy single-user deployments
+
+#### Frontend Updates (Phase 4)
+- **Multi-Tenant Login**: Email/password authentication with registration support
+- **AppContext Enhancements**:
+  - New state: `authMode`, `refreshToken`, `user`
+  - New functions: `loginWithEmail()`, `register()`, `forgotPassword()`, `resetPassword()`
+  - Automatic token refresh on 401 responses
+  - Derived state: `isMultiTenantMode`, `organization`, `userRole`
+  - Permission helpers: `canManageUsers`, `canManageStudents`, `canManageClasses`, `canManageSettings`
+- **Login Component**: Tabbed interface for login/register in multi-tenant mode
+
+### New Files
+- `migrations/0002_organizations_users.sql` - Organizations and users schema
+- `migrations/0003_classes_students.sql` - Classes and students schema
+- `migrations/0004_reading_sessions.sql` - Reading sessions schema
+- `migrations/0005_org_book_selections.sql` - Book selections schema
+- `migrations/0006_org_settings.sql` - Settings and audit log schema
+- `migrations/0007_genres.sql` - Genres schema
+- `src/utils/crypto.js` - JWT and password hashing utilities
+- `src/middleware/tenant.js` - Multi-tenant middleware
+- `src/routes/auth.js` - Authentication endpoints
+- `src/routes/users.js` - User management endpoints
+- `src/routes/organization.js` - Organization management endpoints
+
+### Changed
+- `src/worker.js` - Integrated new auth middleware and routes
+- `src/routes/students.js` - Added multi-tenant D1 support
+- `src/routes/classes.js` - Added multi-tenant D1 support
+- `src/routes/settings.js` - Added multi-tenant D1 support
+- `src/routes/genres.js` - Added multi-tenant D1 support
+- `src/contexts/AppContext.js` - Added multi-tenant state and authentication
+- `src/components/Login.js` - Added multi-tenant login/register UI
+
+### Migration Notes
+- **Backward Compatible**: Existing single-user deployments continue to work without changes
+- **Multi-Tenant Activation**: Set `JWT_SECRET` environment variable to enable multi-tenant mode
+- **Database Migrations**: Run `npx wrangler d1 migrations apply reading-manager-db --local` (or `--remote` for production)
+- **First Organization**: Use the `/api/auth/register` endpoint to create the first organization and owner
+
 ## [0.35.0] - 2025-12-22
 
 ### Added

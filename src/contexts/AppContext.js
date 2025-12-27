@@ -5,6 +5,7 @@ import React, {
   useEffect,
   useMemo,
   useCallback,
+  useRef,
 } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -14,9 +15,31 @@ const AppContext = createContext();
 // API URL - relative path since frontend and API are served from the same origin
 const API_URL = '/api';
 const AUTH_STORAGE_KEY = 'krm_auth_token';
+const REFRESH_TOKEN_KEY = 'krm_refresh_token';
+const USER_STORAGE_KEY = 'krm_user';
+const AUTH_MODE_KEY = 'krm_auth_mode';
 
 // Custom hook to use the app context
 export const useAppContext = () => useContext(AppContext);
+
+// Helper to decode JWT payload (without verification - just for reading claims)
+const decodeJwtPayload = (token) => {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return payload;
+  } catch {
+    return null;
+  }
+};
+
+// Check if token is expired (with 60 second buffer)
+const isTokenExpired = (token) => {
+  const payload = decodeJwtPayload(token);
+  if (!payload || !payload.exp) return true;
+  return Date.now() >= (payload.exp * 1000) - 60000;
+};
 
 export const AppProvider = ({ children }) => {
   // State for students
@@ -25,6 +48,20 @@ export const AppProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   // State for API errors
   const [apiError, setApiError] = useState(null);
+  
+  // Track if server auth mode has been detected
+  const [serverAuthModeDetected, setServerAuthModeDetected] = useState(false);
+  
+  // Multi-tenant auth state - initially null until detected from server
+  const [authMode, setAuthMode] = useState(() => {
+    if (typeof window === 'undefined') return 'legacy';
+    try {
+      return window.localStorage.getItem(AUTH_MODE_KEY) || 'legacy';
+    } catch {
+      return 'legacy';
+    }
+  });
+  
   // Auth token (from localStorage if present)
   const [authToken, setAuthToken] = useState(() => {
     if (typeof window === 'undefined') return null;
@@ -34,6 +71,30 @@ export const AppProvider = ({ children }) => {
       return null;
     }
   });
+  
+  // Refresh token for multi-tenant mode
+  const [refreshToken, setRefreshToken] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      return window.localStorage.getItem(REFRESH_TOKEN_KEY) || null;
+    } catch {
+      return null;
+    }
+  });
+  
+  // User info for multi-tenant mode
+  const [user, setUser] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const stored = window.localStorage.getItem(USER_STORAGE_KEY);
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
+  
+  // Track if token refresh is in progress
+  const refreshingToken = useRef(false);
 
   // State for preferred number of priority students to display
   const [priorityStudentCount, setPriorityStudentCount] = useState(8);
@@ -83,16 +144,144 @@ export const AppProvider = ({ children }) => {
     }
   });
 
-  // Helper: fetch with auth header + 401 handling
+  // Detect auth mode from server on startup
+  useEffect(() => {
+    const detectAuthMode = async () => {
+      try {
+        console.log('[Auth] Detecting server auth mode...');
+        const response = await fetch(`${API_URL}/auth/mode`);
+        if (response.ok) {
+          const data = await response.json();
+          console.log('[Auth] Server auth mode:', data.mode);
+          
+          // Update auth mode based on server response
+          if (data.mode === 'multitenant') {
+            setAuthMode('multitenant');
+            try {
+              if (typeof window !== 'undefined') {
+                window.localStorage.setItem(AUTH_MODE_KEY, 'multitenant');
+              }
+            } catch {
+              // ignore
+            }
+          } else {
+            // If server is in legacy mode but we have multitenant tokens, clear them
+            if (authMode === 'multitenant' && !authToken) {
+              setAuthMode('legacy');
+              try {
+                if (typeof window !== 'undefined') {
+                  window.localStorage.setItem(AUTH_MODE_KEY, 'legacy');
+                }
+              } catch {
+                // ignore
+              }
+            }
+          }
+          setServerAuthModeDetected(true);
+        } else {
+          console.warn('[Auth] Failed to detect auth mode, using default');
+          setServerAuthModeDetected(true);
+        }
+      } catch (err) {
+        console.error('[Auth] Error detecting auth mode:', err);
+        setServerAuthModeDetected(true);
+      }
+    };
+    
+    detectAuthMode();
+  }, []); // Run once on mount
+
+  // Token refresh function for multi-tenant mode
+  const refreshAccessToken = useCallback(async () => {
+    if (!refreshToken || refreshingToken.current) {
+      return null;
+    }
+    
+    refreshingToken.current = true;
+    
+    try {
+      console.log('[Auth] Refreshing access token...');
+      const response = await fetch(`${API_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      });
+      
+      if (!response.ok) {
+        console.error('[Auth] Token refresh failed:', response.status);
+        // Clear all auth state on refresh failure
+        clearAuthState();
+        return null;
+      }
+      
+      const data = await response.json();
+      const newToken = data.accessToken;
+      
+      if (newToken) {
+        setAuthToken(newToken);
+        try {
+          if (typeof window !== 'undefined') {
+            window.localStorage.setItem(AUTH_STORAGE_KEY, newToken);
+          }
+        } catch {
+          // ignore
+        }
+        console.log('[Auth] Token refreshed successfully');
+        return newToken;
+      }
+      
+      return null;
+    } catch (err) {
+      console.error('[Auth] Token refresh error:', err);
+      clearAuthState();
+      return null;
+    } finally {
+      refreshingToken.current = false;
+    }
+  }, [refreshToken]);
+  
+  // Clear all auth state
+  const clearAuthState = useCallback(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem(AUTH_STORAGE_KEY);
+        window.localStorage.removeItem(REFRESH_TOKEN_KEY);
+        window.localStorage.removeItem(USER_STORAGE_KEY);
+        window.localStorage.removeItem(AUTH_MODE_KEY);
+      }
+    } catch {
+      // ignore
+    }
+    setAuthToken(null);
+    setRefreshToken(null);
+    setUser(null);
+    setAuthMode('legacy');
+  }, []);
+
+  // Helper: fetch with auth header + 401 handling + token refresh
   const fetchWithAuth = useCallback(
-    async (url, options = {}) => {
+    async (url, options = {}, retryCount = 0) => {
+      let currentToken = authToken;
+      
+      // In multi-tenant mode, check if token needs refresh
+      if (authMode === 'multitenant' && currentToken && isTokenExpired(currentToken)) {
+        console.log('[Auth] Token expired, attempting refresh...');
+        const newToken = await refreshAccessToken();
+        if (newToken) {
+          currentToken = newToken;
+        } else {
+          setApiError('Session expired. Please log in again.');
+          throw new Error('Session expired');
+        }
+      }
+      
       const headers = {
         'Content-Type': 'application/json',
         ...(options.headers || {}),
       };
 
-      if (authToken) {
-        headers['Authorization'] = `Bearer ${authToken}`;
+      if (currentToken) {
+        headers['Authorization'] = `Bearer ${currentToken}`;
       }
 
       const response = await fetch(url, {
@@ -101,27 +290,29 @@ export const AppProvider = ({ children }) => {
       });
 
       if (response.status === 401) {
-        try {
-          if (typeof window !== 'undefined') {
-            window.localStorage.removeItem(AUTH_STORAGE_KEY);
+        // In multi-tenant mode, try to refresh token once
+        if (authMode === 'multitenant' && retryCount === 0 && refreshToken) {
+          console.log('[Auth] Got 401, attempting token refresh...');
+          const newToken = await refreshAccessToken();
+          if (newToken) {
+            return fetchWithAuth(url, options, retryCount + 1);
           }
-        } catch {
-          // ignore
         }
-        setAuthToken(null);
+        
+        clearAuthState();
         setApiError('Authentication required. Please log in.');
         throw new Error('Unauthorized');
       }
 
       return response;
     },
-    [authToken]
+    [authToken, authMode, refreshToken, refreshAccessToken, clearAuthState]
   );
 
-  // Login helper (with diagnostics)
+  // Legacy login helper (shared password)
   const login = useCallback(
     async (password) => {
-      console.log('[Auth] login() called');
+      console.log('[Auth] login() called (legacy mode)');
       setApiError(null);
 
       try {
@@ -168,6 +359,7 @@ export const AppProvider = ({ children }) => {
         try {
           if (typeof window !== 'undefined') {
             window.localStorage.setItem(AUTH_STORAGE_KEY, token);
+            window.localStorage.setItem(AUTH_MODE_KEY, 'legacy');
             console.log('[Auth] Stored token in localStorage');
           }
         } catch (storageErr) {
@@ -175,6 +367,7 @@ export const AppProvider = ({ children }) => {
         }
 
         setAuthToken(token);
+        setAuthMode('legacy');
         setApiError(null);
         console.log('[Auth] login() success, authToken state updated');
       } catch (err) {
@@ -185,19 +378,206 @@ export const AppProvider = ({ children }) => {
     },
     []
   );
+  
+  // Multi-tenant login with email/password
+  const loginWithEmail = useCallback(
+    async (email, password) => {
+      console.log('[Auth] loginWithEmail() called');
+      setApiError(null);
+
+      try {
+        const response = await fetch(`${API_URL}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          if (response.status === 401) {
+            throw new Error(errorData.error || 'Invalid email or password');
+          }
+          throw new Error(errorData.error || `Login failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        if (!data.accessToken) {
+          throw new Error('No access token returned from server');
+        }
+
+        // Store tokens and user info
+        try {
+          if (typeof window !== 'undefined') {
+            window.localStorage.setItem(AUTH_STORAGE_KEY, data.accessToken);
+            window.localStorage.setItem(AUTH_MODE_KEY, 'multitenant');
+            if (data.refreshToken) {
+              window.localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
+            }
+            if (data.user) {
+              window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(data.user));
+            }
+          }
+        } catch (storageErr) {
+          console.warn('[Auth] Failed to store auth data:', storageErr);
+        }
+
+        setAuthToken(data.accessToken);
+        setRefreshToken(data.refreshToken || null);
+        setUser(data.user || null);
+        setAuthMode('multitenant');
+        setApiError(null);
+        
+        console.log('[Auth] loginWithEmail() success');
+        return data.user;
+      } catch (err) {
+        console.error('[Auth] loginWithEmail() error:', err);
+        setApiError(err.message || 'Login failed');
+        throw err;
+      }
+    },
+    []
+  );
+  
+  // Register new organization and user
+  const register = useCallback(
+    async (organizationName, userName, email, password) => {
+      console.log('[Auth] register() called');
+      setApiError(null);
+
+      try {
+        const response = await fetch(`${API_URL}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            organizationName,
+            name: userName,
+            email,
+            password
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Registration failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        if (!data.accessToken) {
+          throw new Error('No access token returned from server');
+        }
+
+        // Store tokens and user info
+        try {
+          if (typeof window !== 'undefined') {
+            window.localStorage.setItem(AUTH_STORAGE_KEY, data.accessToken);
+            window.localStorage.setItem(AUTH_MODE_KEY, 'multitenant');
+            if (data.refreshToken) {
+              window.localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
+            }
+            if (data.user) {
+              window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(data.user));
+            }
+          }
+        } catch (storageErr) {
+          console.warn('[Auth] Failed to store auth data:', storageErr);
+        }
+
+        setAuthToken(data.accessToken);
+        setRefreshToken(data.refreshToken || null);
+        setUser(data.user || null);
+        setAuthMode('multitenant');
+        setApiError(null);
+        
+        console.log('[Auth] register() success');
+        return data.user;
+      } catch (err) {
+        console.error('[Auth] register() error:', err);
+        setApiError(err.message || 'Registration failed');
+        throw err;
+      }
+    },
+    []
+  );
+  
+  // Request password reset
+  const forgotPassword = useCallback(
+    async (email) => {
+      console.log('[Auth] forgotPassword() called');
+      setApiError(null);
+
+      try {
+        const response = await fetch(`${API_URL}/auth/forgot-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Failed to send reset email');
+        }
+
+        return true;
+      } catch (err) {
+        console.error('[Auth] forgotPassword() error:', err);
+        setApiError(err.message || 'Failed to send reset email');
+        throw err;
+      }
+    },
+    []
+  );
+  
+  // Reset password with token
+  const resetPassword = useCallback(
+    async (token, newPassword) => {
+      console.log('[Auth] resetPassword() called');
+      setApiError(null);
+
+      try {
+        const response = await fetch(`${API_URL}/auth/reset-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, newPassword }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Failed to reset password');
+        }
+
+        return true;
+      } catch (err) {
+        console.error('[Auth] resetPassword() error:', err);
+        setApiError(err.message || 'Failed to reset password');
+        throw err;
+      }
+    },
+    []
+  );
 
   // Logout helper
-  const logout = useCallback(() => {
-    try {
-      if (typeof window !== 'undefined') {
-        window.localStorage.removeItem(AUTH_STORAGE_KEY);
+  const logout = useCallback(async () => {
+    // In multi-tenant mode, call logout endpoint to invalidate refresh token
+    if (authMode === 'multitenant' && refreshToken) {
+      try {
+        await fetch(`${API_URL}/auth/logout`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`,
+          },
+          body: JSON.stringify({ refreshToken }),
+        });
+      } catch {
+        // Ignore logout API errors
       }
-    } catch {
-      // ignore
     }
-    setAuthToken(null);
+    
+    clearAuthState();
     setApiError(null);
-  }, []);
+  }, [authMode, authToken, refreshToken, clearAuthState]);
 
   // Load data from API
   const reloadDataFromServer = useCallback(async () => {
@@ -304,6 +684,23 @@ export const AppProvider = ({ children }) => {
 
   // --- Derived auth state ---
   const isAuthenticated = !!authToken;
+  const isMultiTenantMode = authMode === 'multitenant';
+  
+  // Organization info from user state
+  const organization = user ? {
+    id: user.organizationId,
+    name: user.organizationName,
+    slug: user.organizationSlug,
+  } : null;
+  
+  // User role for RBAC
+  const userRole = user?.role || null;
+  
+  // Permission helpers
+  const canManageUsers = userRole === 'owner' || userRole === 'admin';
+  const canManageStudents = userRole !== 'readonly';
+  const canManageClasses = userRole !== 'readonly';
+  const canManageSettings = userRole === 'owner' || userRole === 'admin';
 
   // --- Student and session operations (unchanged, but use fetchWithAuth where appropriate) ---
 
@@ -1191,6 +1588,22 @@ export const AppProvider = ({ children }) => {
     markedPriorityStudentIds,
     markStudentAsPriorityHandled,
     resetPriorityList,
+    // Multi-tenant auth
+    user,
+    organization,
+    userRole,
+    authMode,
+    serverAuthModeDetected,
+    isMultiTenantMode,
+    loginWithEmail,
+    register,
+    forgotPassword,
+    resetPassword,
+    // Permission helpers
+    canManageUsers,
+    canManageStudents,
+    canManageClasses,
+    canManageSettings,
   };
 
   return (
