@@ -20,7 +20,7 @@ import { METADATA_PROVIDERS } from '../utils/bookMetadataApi';
 
 const BookMetadataSettings = () => {
   const { settings, updateSettings, loading } = useAppContext();
-  const [provider, setProvider] = useState(METADATA_PROVIDERS.OPENLIBRARY);
+  const [provider, setProvider] = useState(METADATA_PROVIDERS.OPEN_LIBRARY);
   const [googleBooksApiKey, setGoogleBooksApiKey] = useState('');
   const [saveStatus, setSaveStatus] = useState(null); // 'success', 'error', or null
   const [isSaving, setIsSaving] = useState(false);
@@ -28,7 +28,7 @@ const BookMetadataSettings = () => {
   // Load existing settings
   useEffect(() => {
     if (settings?.bookMetadata) {
-      setProvider(settings.bookMetadata.provider || METADATA_PROVIDERS.OPENLIBRARY);
+      setProvider(settings.bookMetadata.provider || METADATA_PROVIDERS.OPEN_LIBRARY);
       setGoogleBooksApiKey(settings.bookMetadata.googleBooksApiKey || '');
     }
   }, [settings]);
@@ -68,8 +68,8 @@ const BookMetadataSettings = () => {
     );
   }
 
-  const showApiKeyField = provider === METADATA_PROVIDERS.GOOGLEBOOKS;
-  const isGoogleBooksWithoutKey = provider === METADATA_PROVIDERS.GOOGLEBOOKS && !googleBooksApiKey.trim();
+  const showApiKeyField = provider === METADATA_PROVIDERS.GOOGLE_BOOKS;
+  const isGoogleBooksWithoutKey = provider === METADATA_PROVIDERS.GOOGLE_BOOKS && !googleBooksApiKey.trim();
 
   return (
     <Box>
@@ -113,10 +113,10 @@ const BookMetadataSettings = () => {
               label="Metadata Provider"
               onChange={handleProviderChange}
             >
-              <MenuItem value={METADATA_PROVIDERS.OPENLIBRARY}>
+              <MenuItem value={METADATA_PROVIDERS.OPEN_LIBRARY}>
                 Open Library (Free, no API key)
               </MenuItem>
-              <MenuItem value={METADATA_PROVIDERS.GOOGLEBOOKS}>
+              <MenuItem value={METADATA_PROVIDERS.GOOGLE_BOOKS}>
                 Google Books (Requires API key)
               </MenuItem>
             </Select>

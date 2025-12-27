@@ -106,7 +106,8 @@ settingsRouter.post('/', async (c) => {
       'timezone',
       'academicYear',
       'defaultReadingLevel',
-      'schoolName'
+      'schoolName',
+      'bookMetadata'
     ];
     
     const updates = [];

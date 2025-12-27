@@ -29,6 +29,11 @@
   - `handleFillMissingGenres` supports both providers
   - All functions validate provider configuration before operations
 
+### Fixed
+- **Settings Persistence**: Added `bookMetadata` to allowed settings keys in multi-tenant mode
+  - Book metadata provider and API key settings now persist correctly after page reload
+  - Fixed issue where settings were being filtered out by the backend validation
+
 ## [2.0.3] - 2025-12-27
 
 ### Improved
