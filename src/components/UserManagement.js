@@ -79,11 +79,8 @@ const UserManagement = () => {
 
     setLoading(true);
     try {
-      const response = await fetchWithAuth('/users', {
+      const data = await fetchWithAuth('/users', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
@@ -91,11 +88,6 @@ const UserManagement = () => {
           role: formData.role
         }),
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Registration failed');
-      }
 
       setSuccess('User registered successfully');
       setFormData({
@@ -118,11 +110,8 @@ const UserManagement = () => {
   // Fetch existing users
   const fetchUsers = async () => {
     try {
-      const response = await fetchWithAuth('/users');
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data.users || []);
-      }
+      const data = await fetchWithAuth('/users');
+      setUsers(data.users || []);
     } catch (err) {
       console.error('Error fetching users:', err);
     }
@@ -133,17 +122,12 @@ const UserManagement = () => {
     if (!userToDelete) return;
 
     try {
-      const response = await fetchWithAuth(`/users/${userToDelete.id}`, {
+      await fetchWithAuth(`/users/${userToDelete.id}`, {
         method: 'DELETE',
       });
 
-      if (response.ok) {
-        setSuccess('User deleted successfully');
-        fetchUsers();
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Failed to delete user');
-      }
+      setSuccess('User deleted successfully');
+      fetchUsers();
     } catch (err) {
       setError('Failed to delete user');
     } finally {
