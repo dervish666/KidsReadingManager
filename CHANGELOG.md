@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.2.0] - 2025-12-28
+
+### Changed
+- **User Registration**: Moved registration form from login page to hidden User Management tab in Settings
+  - Registration is now only accessible to organization owners and admins via Settings > User Management
+  - Removed registration tab from login page to streamline the login experience
+  - Added comprehensive user management interface for creating, viewing, and managing users
+
+### Added
+- **User Management**: New dedicated User Management component for owner-only user registration
+  - Create new users with roles (teacher, admin, readonly)
+  - View all users in the organization with role badges
+  - Delete/deactivate users (except owner)
+  - Role-based access control ensuring only owners can create admin users
+  - Clean, intuitive interface integrated into Settings page
+
+- **Settings Enhancement**: Added User Management tab to Settings page
+  - Tab only visible to users with owner or admin roles
+  - Uses existing role-based permissions from AppContext
+  - Seamlessly integrates with existing settings navigation
+
 ## [2.1.1] - 2025-12-27
 
 ### Fixed

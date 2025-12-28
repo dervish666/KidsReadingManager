@@ -15,12 +15,8 @@ const Login = () => {
   const { login, loginWithEmail, register, apiError, isMultiTenantMode, serverAuthModeDetected } = context;
   
   // Form state
-  const [mode, setMode] = useState('login'); // 'login' or 'register'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [name, setName] = useState('');
-  const [organizationName, setOrganizationName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [localError, setLocalError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
@@ -76,53 +72,9 @@ const Login = () => {
     }
   };
 
-  const handleRegister = async (event) => {
-    event.preventDefault();
-    setLocalError(null);
-    setSuccessMessage(null);
-
-    if (!email || !password || !name || !organizationName) {
-      setLocalError('All fields are required');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setLocalError('Passwords do not match');
-      return;
-    }
-
-    if (password.length < 8) {
-      setLocalError('Password must be at least 8 characters');
-      return;
-    }
-
-    if (typeof register !== 'function') {
-      setLocalError('Internal error: register function not available');
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      await register(organizationName, name, email, password);
-      setSuccessMessage('Registration successful! You can now log in.');
-      setMode('login');
-      setPassword('');
-      setConfirmPassword('');
-      setOrganizationName('');
-    } catch (error) {
-      setLocalError(error && error.message ? error.message : 'Registration failed');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const handleSubmit = (event) => {
     if (!isMultiTenantMode) {
       return handleLegacyLogin(event);
-    }
-    
-    if (mode === 'register') {
-      return handleRegister(event);
     }
     
     return handleMultiTenantLogin(event);
@@ -188,55 +140,14 @@ const Login = () => {
 
   const renderMultiTenantForm = () => (
     <>
-      <Tabs
-        value={mode}
-        onChange={(e, newValue) => {
-          setMode(newValue);
-          setLocalError(null);
-          setSuccessMessage(null);
-        }}
-        centered
-        sx={{ mb: 3 }}
-      >
-        <Tab value="login" label="Login" />
-        <Tab value="register" label="Register" />
-      </Tabs>
-
       <form onSubmit={handleSubmit}>
-        {mode === 'register' && (
-          <>
-            <TextField
-              fullWidth
-              type="text"
-              value={name}
-              placeholder="Your Name"
-              onChange={(e) => setName(e.target.value)}
-              sx={{ mb: 2 }}
-              InputProps={{
-                sx: inputStyles
-              }}
-            />
-            <TextField
-              fullWidth
-              type="text"
-              value={organizationName}
-              placeholder="School/Organization Name"
-              onChange={(e) => setOrganizationName(e.target.value)}
-              sx={{ mb: 2 }}
-              InputProps={{
-                sx: inputStyles
-              }}
-            />
-          </>
-        )}
-
         <TextField
           fullWidth
           type="email"
           value={email}
           placeholder="Email"
           onChange={(e) => setEmail(e.target.value)}
-          autoFocus={mode === 'login'}
+          autoFocus
           sx={{ mb: 2 }}
           InputProps={{
             sx: inputStyles
@@ -249,30 +160,16 @@ const Login = () => {
           value={password}
           placeholder="Password"
           onChange={(e) => setPassword(e.target.value)}
-          sx={{ mb: mode === 'register' ? 2 : 3 }}
+          sx={{ mb: 3 }}
           InputProps={{
             sx: inputStyles
           }}
         />
 
-        {mode === 'register' && (
-          <TextField
-            fullWidth
-            type="password"
-            value={confirmPassword}
-            placeholder="Confirm Password"
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            sx={{ mb: 3 }}
-            InputProps={{
-              sx: inputStyles
-            }}
-          />
-        )}
-
         <Button
           fullWidth
           type="submit"
-          disabled={submitting || !email || !password || (mode === 'register' && (!name || !organizationName || !confirmPassword))}
+          disabled={submitting || !email || !password}
           variant="contained"
           size="large"
           sx={{
@@ -292,27 +189,22 @@ const Login = () => {
             },
           }}
         >
-          {submitting 
-            ? (mode === 'register' ? 'Creating Account...' : 'Logging in...') 
-            : (mode === 'register' ? 'Create Account' : 'Login')
-          }
+          {submitting ? 'Logging in...' : 'Login'}
         </Button>
 
-        {mode === 'login' && (
-          <Box sx={{ mt: 2, textAlign: 'center' }}>
-            <Link
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                // TODO: Implement forgot password flow
-                alert('Forgot password functionality coming soon');
-              }}
-              sx={{ color: '#7C3AED', fontSize: '0.875rem' }}
-            >
-              Forgot your password?
-            </Link>
-          </Box>
-        )}
+        <Box sx={{ mt: 2, textAlign: 'center' }}>
+          <Link
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              // TODO: Implement forgot password flow
+              alert('Forgot password functionality coming soon');
+            }}
+            sx={{ color: '#7C3AED', fontSize: '0.875rem' }}
+          >
+            Forgot your password?
+          </Link>
+        </Box>
       </form>
     </>
   );
