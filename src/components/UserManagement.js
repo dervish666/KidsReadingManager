@@ -1,85 +1,91 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAppContext } from '../contexts/AppContext';
 import {
   Box,
   Typography,
-  Paper,
   TextField,
   Button,
-  Alert,
-  CircularProgress,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  Divider,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
+  Alert,
+  CircularProgress,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Chip,
   IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogContentText,
   DialogActions,
-  Chip
+  Grid,
 } from '@mui/material';
-import PersonAddIcon from '@mui/icons-material/PersonAdd';
-import DeleteIcon from '@mui/icons-material/Delete';
-import { useAppContext } from '../contexts/AppContext';
+import { Delete as DeleteIcon, PersonAdd as PersonAddIcon } from '@mui/icons-material';
 
 const UserManagement = () => {
-  const { register, fetchWithAuth, user } = useAppContext();
-  
-  // Form state for new user registration
+  const { fetchWithAuth, user } = useAppContext();
+  const [users, setUsers] = useState([]);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'teacher'
+    role: 'teacher',
   });
-  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const [users, setUsers] = useState([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
 
-  // Handle form input changes
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const validateForm = () => {
+    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
+      setError('All fields are required');
+      return false;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return false;
+    }
+
+    if (formData.password.length < 8) {
+      setError('Password must be at least 8 characters');
+      return false;
+    }
+
+    if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      setError('Please enter a valid email address');
+      return false;
+    }
+
+    setError(null);
+    return true;
   };
 
-  // Handle user registration
   const handleRegister = async (e) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
 
-    // Validate form
-    if (!formData.name || !formData.email || !formData.password) {
-      setError('All fields are required');
-      return;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters');
+    if (!validateForm()) {
       return;
     }
 
     setLoading(true);
     try {
-      const data = await fetchWithAuth('/users', {
+      const data = await fetchWithAuth('/api/users', {
         method: 'POST',
         body: JSON.stringify({
           name: formData.name,
@@ -107,22 +113,20 @@ const UserManagement = () => {
     }
   };
 
-  // Fetch existing users
   const fetchUsers = async () => {
     try {
-      const data = await fetchWithAuth('/users');
+      const data = await fetchWithAuth('/api/users');
       setUsers(data.users || []);
     } catch (err) {
       console.error('Error fetching users:', err);
     }
   };
 
-  // Handle user deletion
   const handleDeleteUser = async () => {
     if (!userToDelete) return;
 
     try {
-      await fetchWithAuth(`/users/${userToDelete.id}`, {
+      await fetchWithAuth(`/api/users/${userToDelete.id}`, {
         method: 'DELETE',
       });
 
@@ -136,7 +140,6 @@ const UserManagement = () => {
     }
   };
 
-  // Get role color
   const getRoleColor = (role) => {
     switch (role) {
       case 'owner': return 'primary';
@@ -147,171 +150,171 @@ const UserManagement = () => {
     }
   };
 
-  // Load users on component mount
-  React.useEffect(() => {
-    fetchUsers();
-  }, []);
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const openDeleteDialog = (user) => {
+    setUserToDelete(user);
+    setDeleteDialogOpen(true);
+  };
 
   return (
-    <Box sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h6" gutterBottom>
+    <Box>
+      <Typography variant="h4" gutterBottom>
         User Management
       </Typography>
-      
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Typography variant="subtitle1" gutterBottom>
-          Add New User
-        </Typography>
-        <Typography variant="body2" color="text.secondary" paragraph>
-          Create new user accounts for your organization. Only users with owner role can access this feature.
-        </Typography>
+      <Typography variant="body1" color="text.secondary" paragraph>
+        Manage users in your organization. Only organization owners can create new users.
+      </Typography>
 
-        <form onSubmit={handleRegister}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
-            <TextField
-              fullWidth
-              label="Full Name"
-              name="name"
-              value={formData.name}
-              onChange={handleInputChange}
-              required
-            />
-            
-            <TextField
-              fullWidth
-              label="Email Address"
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              required
-            />
-            
-            <FormControl fullWidth>
-              <InputLabel>Role</InputLabel>
-              <Select
-                name="role"
-                value={formData.role}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
+      {success && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          {success}
+        </Alert>
+      )}
+
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={4}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Add New User
+            </Typography>
+            <form onSubmit={handleRegister}>
+              <TextField
+                fullWidth
+                label="Full Name"
+                name="name"
+                value={formData.name}
                 onChange={handleInputChange}
-                label="Role"
+                margin="normal"
+                required
+              />
+              <TextField
+                fullWidth
+                label="Email Address"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                margin="normal"
+                required
+              />
+              <TextField
+                fullWidth
+                label="Password"
+                name="password"
+                type="password"
+                value={formData.password}
+                onChange={handleInputChange}
+                margin="normal"
+                required
+                helperText="At least 8 characters"
+              />
+              <TextField
+                fullWidth
+                label="Confirm Password"
+                name="confirmPassword"
+                type="password"
+                value={formData.confirmPassword}
+                onChange={handleInputChange}
+                margin="normal"
+                required
+              />
+              <FormControl fullWidth margin="normal">
+                <InputLabel>Role</InputLabel>
+                <Select
+                  name="role"
+                  value={formData.role}
+                  onChange={handleInputChange}
+                  label="Role"
+                >
+                  <MenuItem value="teacher">Teacher</MenuItem>
+                  <MenuItem value="admin">Admin</MenuItem>
+                  <MenuItem value="readonly">Read Only</MenuItem>
+                </Select>
+              </FormControl>
+              <Button
+                type="submit"
+                variant="contained"
+                fullWidth
+                disabled={loading}
+                sx={{ mt: 2 }}
+                startIcon={loading ? <CircularProgress size={20} /> : <PersonAddIcon />}
               >
-                <MenuItem value="teacher">Teacher</MenuItem>
-                <MenuItem value="admin">Admin</MenuItem>
-                <MenuItem value="readonly">Read Only</MenuItem>
-              </Select>
-            </FormControl>
-            
-            <TextField
-              fullWidth
-              label="Password"
-              name="password"
-              type="password"
-              value={formData.password}
-              onChange={handleInputChange}
-              required
-              helperText="Minimum 8 characters"
-            />
-            
-            <TextField
-              fullWidth
-              label="Confirm Password"
-              name="confirmPassword"
-              type="password"
-              value={formData.confirmPassword}
-              onChange={handleInputChange}
-              required
-            />
-            
-            <Button
-              type="submit"
-              variant="contained"
-              disabled={loading}
-              startIcon={loading ? <CircularProgress size={20} /> : <PersonAddIcon />}
-            >
-              {loading ? 'Creating User...' : 'Create User'}
-            </Button>
-          </Box>
-        </form>
+                {loading ? 'Creating...' : 'Create User'}
+              </Button>
+            </form>
+          </Paper>
+        </Grid>
 
-        {error && (
-          <Alert severity="error" sx={{ mt: 2 }}>
-            {error}
-          </Alert>
-        )}
-        
-        {success && (
-          <Alert severity="success" sx={{ mt: 2 }}>
-            {success}
-          </Alert>
-        )}
-      </Paper>
+        <Grid item xs={12} md={8}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Existing Users
+            </Typography>
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Name</TableCell>
+                    <TableCell>Email</TableCell>
+                    <TableCell>Role</TableCell>
+                    <TableCell>Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {users.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell>{user.name}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={user.role}
+                          color={getRoleColor(user.role)}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {user.role !== 'owner' && (
+                          <IconButton
+                            color="error"
+                            onClick={() => openDeleteDialog(user)}
+                            size="small"
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
+        </Grid>
+      </Grid>
 
-      <Paper sx={{ p: 3 }}>
-        <Typography variant="subtitle1" gutterBottom>
-          Existing Users
-        </Typography>
-        
-        {users.length === 0 ? (
-          <Typography variant="body2" color="text.secondary">
-            No users found in your organization.
-          </Typography>
-        ) : (
-          <List>
-            {users.map((user) => (
-              <ListItem key={user.id} divider>
-                <ListItemText
-                  primary={user.name}
-                  secondary={user.email}
-                />
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Chip 
-                    label={user.role} 
-                    size="small" 
-                    color={getRoleColor(user.role)}
-                    variant={user.role === 'owner' ? 'filled' : 'outlined'}
-                  />
-                  {user.role !== 'owner' && (
-                    <ListItemSecondaryAction>
-                      <IconButton
-                        edge="end"
-                        aria-label="delete"
-                        onClick={() => {
-                          setUserToDelete(user);
-                          setDeleteDialogOpen(true);
-                        }}
-                        color="error"
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </ListItemSecondaryAction>
-                  )}
-                </Box>
-              </ListItem>
-            ))}
-          </List>
-        )}
-      </Paper>
-
-      {/* Delete Confirmation Dialog */}
       <Dialog
         open={deleteDialogOpen}
-        onClose={() => {
-          setDeleteDialogOpen(false);
-          setUserToDelete(null);
-        }}
+        onClose={() => setDeleteDialogOpen(false)}
       >
-        <DialogTitle>Delete User</DialogTitle>
+        <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
-          Are you sure you want to delete {userToDelete?.name} ({userToDelete?.email})?
-          This action cannot be undone.
+          <DialogContentText>
+            Are you sure you want to delete {userToDelete?.name} ({userToDelete?.email})?
+            This action cannot be undone.
+          </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => {
-            setDeleteDialogOpen(false);
-            setUserToDelete(null);
-          }}>
-            Cancel
-          </Button>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
           <Button onClick={handleDeleteUser} color="error">
             Delete
           </Button>

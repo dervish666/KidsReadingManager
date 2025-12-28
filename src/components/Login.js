@@ -302,10 +302,8 @@ const Login = () => {
         </Typography>
         
         <Typography variant="body1" sx={{ mb: 4, color: '#635F69' }}>
-          {isMultiTenantMode 
-            ? (mode === 'register' 
-                ? 'Create your school account to get started.' 
-                : 'Sign in to your account.')
+          {isMultiTenantMode
+            ? 'Sign in to your account.'
             : 'Enter the access password to continue.'
           }
         </Typography>
