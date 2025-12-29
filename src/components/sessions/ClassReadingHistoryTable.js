@@ -105,7 +105,7 @@ const getDateRange = (start, end) => {
   return dates;
 };
 
-const ClassReadingHistoryTable = ({ students, books }) => {
+const ClassReadingHistoryTable = ({ students, books, selectedDate, onDateChange }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
@@ -257,6 +257,45 @@ const ClassReadingHistoryTable = ({ students, books }) => {
     return [...students].sort((a, b) => a.name.localeCompare(b.name));
   }, [students]);
 
+  // Calculate daily totals for each date
+  const dailyTotals = useMemo(() => {
+    const totals = dates.map(date => {
+      const dateStr = formatDateISO(date);
+      let read = 0;
+      let multiple = 0;
+      let absent = 0;
+      let noRecord = 0;
+      let notEntered = 0;
+      let totalSessions = 0;
+
+      sortedStudents.forEach(student => {
+        const { status, count } = getStudentReadingStatus(student, dateStr);
+        switch (status) {
+          case READING_STATUS.READ:
+            read++;
+            totalSessions += 1;
+            break;
+          case READING_STATUS.MULTIPLE:
+            multiple++;
+            totalSessions += count;
+            break;
+          case READING_STATUS.ABSENT:
+            absent++;
+            break;
+          case READING_STATUS.NO_RECORD:
+            noRecord++;
+            break;
+          default:
+            notEntered++;
+        }
+      });
+
+      return { read, multiple, absent, noRecord, notEntered, totalSessions };
+    });
+
+    return totals;
+  }, [dates, sortedStudents, getStudentReadingStatus]);
+
   // Handle preset change
   const handlePresetChange = (event) => {
     const newPreset = event.target.value;
@@ -357,6 +396,7 @@ const ClassReadingHistoryTable = ({ students, books }) => {
               {dates.map((date, index) => {
                 const { day, date: dayNum } = formatDateHeader(date);
                 const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+                const isSelectedDate = selectedDate === formatDateISO(date);
                 return (
                   <TableCell 
                     key={index}
@@ -365,8 +405,15 @@ const ClassReadingHistoryTable = ({ students, books }) => {
                       textAlign: 'center',
                       minWidth: isMobile ? 30 : 40,
                       padding: isMobile ? '4px 2px' : '8px 4px',
-                      backgroundColor: isWeekend ? 'grey.100' : 'background.paper'
+                      backgroundColor: isWeekend ? 'grey.100' : (isSelectedDate ? 'primary.light' : 'background.paper'),
+                      color: isSelectedDate ? 'primary.contrastText' : 'text.primary',
+                      cursor: 'pointer',
+                      '&:hover': {
+                        backgroundColor: isSelectedDate ? 'primary.main' : 'action.hover'
+                      },
+                      transition: 'background-color 0.2s ease-in-out'
                     }}
+                    onClick={() => onDateChange(formatDateISO(date))}
                   >
                     <Tooltip title={date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}>
                       <Box>
@@ -430,6 +477,75 @@ const ClassReadingHistoryTable = ({ students, books }) => {
                 </TableCell>
               </TableRow>
             ))}
+            {/* Daily Totals Row */}
+            <TableRow sx={{ backgroundColor: 'grey.50' }}>
+              <TableCell 
+                sx={{ 
+                  fontWeight: 'bold', 
+                  minWidth: isMobile ? 80 : 120,
+                  position: 'sticky',
+                  left: 0,
+                  backgroundColor: 'grey.50',
+                  zIndex: 3,
+                  borderTop: '2px solid',
+                  borderColor: 'grey.300'
+                }}
+              >
+                Daily Totals
+              </TableCell>
+              {dailyTotals.map((totals, index) => {
+                const isWeekend = dates[index].getDay() === 0 || dates[index].getDay() === 6;
+                return (
+                  <TableCell 
+                    key={index}
+                    sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 'bold',
+                      minWidth: isMobile ? 30 : 40,
+                      padding: isMobile ? '4px 2px' : '8px 4px',
+                      backgroundColor: isWeekend ? 'grey.100' : 'grey.50',
+                      color: 'text.primary',
+                      borderTop: '2px solid',
+                      borderColor: 'grey.300',
+                      fontSize: isMobile ? '0.7rem' : '0.8rem'
+                    }}
+                  >
+                    {totals.totalSessions > 0 && (
+                      <Tooltip title={`${totals.read} read, ${totals.multiple} multiple, ${totals.absent} absent, ${totals.noRecord} no record, ${totals.notEntered} not entered`}>
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                            {totals.totalSessions}
+                          </Typography>
+                          {totals.read > 0 && (
+                            <Typography variant="caption" sx={{ color: 'success.dark', fontSize: '0.6rem' }}>
+                              {totals.read}✓
+                            </Typography>
+                          )}
+                          {totals.multiple > 0 && (
+                            <Typography variant="caption" sx={{ color: 'success.dark', fontSize: '0.6rem' }}>
+                              +{totals.multiple}
+                            </Typography>
+                          )}
+                        </Box>
+                      </Tooltip>
+                    )}
+                  </TableCell>
+                );
+              })}
+              <TableCell 
+                sx={{ 
+                  textAlign: 'center', 
+                  fontWeight: 'bold',
+                  backgroundColor: 'primary.light',
+                  color: 'primary.contrastText',
+                  borderTop: '2px solid',
+                  borderColor: 'grey.300',
+                  fontSize: isMobile ? '0.8rem' : '0.9rem'
+                }}
+              >
+                {dailyTotals.reduce((sum, day) => sum + day.totalSessions, 0)}
+              </TableCell>
+            </TableRow>
           </TableBody>
         </Table>
       </TableContainer>

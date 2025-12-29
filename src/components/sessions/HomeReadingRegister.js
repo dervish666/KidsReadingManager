@@ -983,7 +983,12 @@ const HomeReadingRegister = () => {
       </Dialog>
 
       {/* Reading History Table */}
-      <ClassReadingHistoryTable students={classStudents} books={books} />
+      <ClassReadingHistoryTable 
+        students={classStudents} 
+        books={books}
+        selectedDate={selectedDate}
+        onDateChange={setSelectedDate}
+      />
 
       {/* Snackbar */}
       <Snackbar
