@@ -194,251 +194,259 @@ const SessionForm = () => {
           
           <form onSubmit={handleSubmit}>
             <Grid container spacing={3}>
-              {/* Student Dropdown */}
-              <Grid size={12} sx={{ mb: 1 }}>
-                <FormControl fullWidth>
-                  <InputLabel id="student-select-label" sx={{ fontFamily: '"DM Sans", sans-serif' }}>Student</InputLabel>
-                  <Select
-                    labelId="student-select-label"
-                    id="student-select"
-                    value={selectedStudentId}
-                    label="Student"
-                    onChange={handleStudentChange}
-                    sx={{
-                      borderRadius: 4,
-                      backgroundColor: '#EFEBF5',
-                      boxShadow: 'inset 4px 4px 8px #d9d4e3, inset -4px -4px 8px #ffffff',
-                      '& fieldset': { border: 'none' },
-                      '&.Mui-focused': { backgroundColor: '#ffffff', boxShadow: '0 0 0 3px rgba(124, 58, 237, 0.2)' },
-                    }}
-                  >
-                    {sortedStudents.length === 0 ? (
-                        <MenuItem disabled>
-                          <Typography variant="body2" color="text.secondary">
-                            {globalClassFilter && globalClassFilter !== 'all' ? 'No students found in this class' : 'No active students available'}
-                          </Typography>
-                        </MenuItem>
-                    ) : (
-                      sortedStudents.map((student) => {
-                        const isRecentlyAccessed = recentlyAccessedStudents.includes(student.id);
-                        return (
-                          <MenuItem key={student.id} value={student.id}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                              {isRecentlyAccessed && (
-                                <StarIcon
-                                  sx={{
-                                    mr: 1,
-                                    color: '#F59E0B',
-                                    fontSize: '1rem'
-                                  }}
-                                />
-                              )}
-                              <Typography variant="inherit" sx={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 500 }}>
-                                {student.name}
-                              </Typography>
-                              {isRecentlyAccessed && (
-                                <Typography
-                                  variant="caption"
-                                  sx={{
-                                    ml: 'auto',
-                                    color: '#635F69',
-                                    fontStyle: 'italic'
-                                  }}
-                                >
-                                  Recent
-                                </Typography>
-                              )}
-                            </Box>
+              {/* Student and Date - Two Columns */}
+              <Grid container item size={12} spacing={3}>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <FormControl fullWidth>
+                    <InputLabel id="student-select-label" sx={{ fontFamily: '"DM Sans", sans-serif' }}>Student</InputLabel>
+                    <Select
+                      labelId="student-select-label"
+                      id="student-select"
+                      value={selectedStudentId}
+                      label="Student"
+                      onChange={handleStudentChange}
+                      sx={{
+                        borderRadius: 4,
+                        backgroundColor: '#EFEBF5',
+                        boxShadow: 'inset 4px 4px 8px #d9d4e3, inset -4px -4px 8px #ffffff',
+                        '& fieldset': { border: 'none' },
+                        '&.Mui-focused': { backgroundColor: '#ffffff', boxShadow: '0 0 0 3px rgba(124, 58, 237, 0.2)' },
+                      }}
+                    >
+                      {sortedStudents.length === 0 ? (
+                          <MenuItem disabled>
+                            <Typography variant="body2" color="text.secondary">
+                              {globalClassFilter && globalClassFilter !== 'all' ? 'No students found in this class' : 'No active students available'}
+                            </Typography>
                           </MenuItem>
-                        );
-                      })
-                    )}
-                  </Select>
-                </FormControl>
+                      ) : (
+                        sortedStudents.map((student) => {
+                          const isRecentlyAccessed = recentlyAccessedStudents.includes(student.id);
+                          return (
+                            <MenuItem key={student.id} value={student.id}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                                {isRecentlyAccessed && (
+                                  <StarIcon
+                                    sx={{
+                                      mr: 1,
+                                      color: '#F59E0B',
+                                      fontSize: '1rem'
+                                    }}
+                                  />
+                                )}
+                                <Typography variant="inherit" sx={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 500 }}>
+                                  {student.name}
+                                </Typography>
+                                {isRecentlyAccessed && (
+                                  <Typography
+                                    variant="caption"
+                                    sx={{
+                                      ml: 'auto',
+                                      color: '#635F69',
+                                      fontStyle: 'italic'
+                                    }}
+                                  >
+                                    Recent
+                                  </Typography>
+                                )}
+                              </Box>
+                            </MenuItem>
+                          );
+                        })
+                      )}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField
+                    label="Date"
+                    type="date"
+                    value={date}
+                    onChange={handleDateChange}
+                    fullWidth
+                    InputLabelProps={{
+                      shrink: true,
+                      sx: { fontFamily: '"DM Sans", sans-serif' }
+                    }}
+                    InputProps={{
+                      sx: {
+                        borderRadius: 4,
+                        backgroundColor: '#EFEBF5',
+                        boxShadow: 'inset 4px 4px 8px #d9d4e3, inset -4px -4px 8px #ffffff',
+                        '& fieldset': { border: 'none' },
+                        '&.Mui-focused': { backgroundColor: '#ffffff', boxShadow: '0 0 0 3px rgba(124, 58, 237, 0.2)' },
+                        height: 56
+                      }
+                    }}
+                  />
+                </Grid>
               </Grid>
-              
-              <Grid size={12}>
-                <TextField
-                  label="Date"
-                  type="date"
-                  value={date}
-                  onChange={handleDateChange}
-                  fullWidth
-                  InputLabelProps={{
-                    shrink: true,
-                    sx: { fontFamily: '"DM Sans", sans-serif' }
-                  }}
-                  InputProps={{
-                    sx: {
-                      borderRadius: 4,
-                      backgroundColor: '#EFEBF5',
-                      boxShadow: 'inset 4px 4px 8px #d9d4e3, inset -4px -4px 8px #ffffff',
-                      '& fieldset': { border: 'none' },
-                      '&.Mui-focused': { backgroundColor: '#ffffff', boxShadow: '0 0 0 3px rgba(124, 58, 237, 0.2)' },
-                      height: 56
-                    }
-                  }}
-                />
-              </Grid>
 
-              <Grid size={12} sx={{ mb: 1 }}>
-                {/* Book selection with autocomplete */}
-                <BookAutocomplete
-                  value={books.find(book => book.id === selectedBookId) || null}
-                  onChange={handleBookChange}
-                  onBookCreated={handleBookChange}
-                  onBookCreationStart={handleBookCreationStart}
-                />
-
-                {/* Editable selected book details with explicit Update button */}
-                {selectedBookId && (
-                  <Box sx={{
-                    mt: 3,
-                    p: 3,
-                    borderRadius: 4,
-                    backgroundColor: 'rgba(255,255,255,0.5)',
-                    border: '1px solid rgba(255,255,255,0.6)',
-                    boxShadow: 'inset 2px 2px 4px rgba(160, 150, 180, 0.1), inset -2px -2px 4px rgba(255, 255, 255, 0.8)'
-                  }}>
-                    <Typography variant="subtitle2" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: '#332F3A' }}>
-                      Selected Book Details
-                    </Typography>
-                    <Grid container spacing={2}>
-                      <Grid size={{ xs: 12, sm: 4 }}>
-                        <TextField
-                          label="Author"
-                          value={bookAuthor}
-                          onChange={(e) => setBookAuthor(e.target.value)}
-                          fullWidth
-                          size="small"
-                          InputProps={{ sx: { borderRadius: 3, backgroundColor: '#fff' } }}
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 4 }}>
-                        <TextField
-                          label="Reading Level"
-                          value={bookReadingLevel}
-                          onChange={(e) => setBookReadingLevel(e.target.value)}
-                          fullWidth
-                          size="small"
-                          placeholder="e.g. Blue, Level 4"
-                          InputProps={{ sx: { borderRadius: 3, backgroundColor: '#fff' } }}
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 4 }}>
-                        <TextField
-                          label="Age Range"
-                          value={bookAgeRange}
-                          onChange={(e) => setBookAgeRange(e.target.value)}
-                          fullWidth
-                          size="small"
-                          placeholder="e.g. 6-8"
-                          InputProps={{ sx: { borderRadius: 3, backgroundColor: '#fff' } }}
-                        />
-                      </Grid>
-                    </Grid>
-                    <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={() => {
-                          const current = books.find(b => b.id === selectedBookId);
-                          setBookAuthor(current?.author || '');
-                          setBookReadingLevel(current?.readingLevel || '');
-                          setBookAgeRange(current?.ageRange || '');
-                        }}
-                        sx={{ borderRadius: 3, fontWeight: 600 }}
-                      >
-                        Reset
-                      </Button>
-                      <Button
-                        variant="contained"
-                        size="small"
-                        color="primary"
-                        onClick={async () => {
-                          const current = books.find(b => b.id === selectedBookId);
-                          if (!current) return;
-
-                          const updated = {
-                            ...current,
-                            author: bookAuthor.trim() || null,
-                            readingLevel: bookReadingLevel.trim() || null,
-                            ageRange: bookAgeRange.trim() || null,
-                          };
-
-                          try {
-                            const response = await fetchWithAuth(`/api/books/${selectedBookId}`, {
-                              method: 'PUT',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify(updated),
-                            });
-
-                            if (!response.ok) {
-                              throw new Error(`API error: ${response.status}`);
-                            }
-
-                            const saved = await response.json().catch(() => updated);
-                            const idx = books.findIndex(b => b.id === selectedBookId);
-                            if (idx !== -1) {
-                              books[idx] = saved;
-                            }
-                          } catch (err) {
-                            console.error('Failed to update book from SessionForm:', err);
-                          }
-                        }}
-                        sx={{
-                          borderRadius: 3,
-                          fontWeight: 600,
-                          background: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)',
-                          boxShadow: '4px 4px 8px rgba(139, 92, 246, 0.3)'
-                        }}
-                      >
-                        Update Book
-                      </Button>
-                    </Box>
-                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block', fontStyle: 'italic' }}>
-                      Adjust these details and click "Update Book" to save them to the book record.
-                    </Typography>
+              {/* Book and Location - Two Columns */}
+              <Grid container item size={12} spacing={3}>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Box sx={{ mb: 1 }}>
+                    {/* Book selection with autocomplete */}
+                    <BookAutocomplete
+                      value={books.find(book => book.id === selectedBookId) || null}
+                      onChange={handleBookChange}
+                      onBookCreated={handleBookChange}
+                      onBookCreationStart={handleBookCreationStart}
+                    />
                   </Box>
-                )}
+                  {/* Location Radio Buttons */}
+                  <FormControl component="fieldset" sx={{
+                    width: '100%',
+                    p: 2,
+                    borderRadius: 4,
+                    border: '1px solid rgba(0,0,0,0.05)',
+                    backgroundColor: 'rgba(255,255,255,0.3)'
+                  }}>
+                    <FormLabel component="legend" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: '#332F3A', mb: 1 }}>Location</FormLabel>
+                    <RadioGroup
+                      aria-label="location"
+                      value={selectedLocation}
+                      onChange={handleLocationChange}
+                      row
+                    >
+                      <FormControlLabel value="school" control={<Radio sx={{ color: '#7C3AED', '&.Mui-checked': { color: '#7C3AED' } }} />} label="School" />
+                      <FormControlLabel value="home" control={<Radio sx={{ color: '#7C3AED', '&.Mui-checked': { color: '#7C3AED' } }} />} label="Home" />
+                    </RadioGroup>
+                  </FormControl>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  {/* Editable selected book details with explicit Update button */}
+                  {selectedBookId && (
+                    <Box sx={{
+                      p: 3,
+                      borderRadius: 4,
+                      backgroundColor: 'rgba(255,255,255,0.5)',
+                      border: '1px solid rgba(255,255,255,0.6)',
+                      boxShadow: 'inset 2px 2px 4px rgba(160, 150, 180, 0.1), inset -2px -2px 4px rgba(255, 255, 255, 0.8)',
+                      height: '100%'
+                    }}>
+                      <Typography variant="subtitle2" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: '#332F3A' }}>
+                        Selected Book Details
+                      </Typography>
+                      <Grid container spacing={2}>
+                        <Grid size={12}>
+                          <TextField
+                            label="Author"
+                            value={bookAuthor}
+                            onChange={(e) => setBookAuthor(e.target.value)}
+                            fullWidth
+                            size="small"
+                            InputProps={{ sx: { borderRadius: 3, backgroundColor: '#fff' } }}
+                          />
+                        </Grid>
+                        <Grid size={12}>
+                          <TextField
+                            label="Reading Level"
+                            value={bookReadingLevel}
+                            onChange={(e) => setBookReadingLevel(e.target.value)}
+                            fullWidth
+                            size="small"
+                            placeholder="e.g. Blue, Level 4"
+                            InputProps={{ sx: { borderRadius: 3, backgroundColor: '#fff' } }}
+                          />
+                        </Grid>
+                        <Grid size={12}>
+                          <TextField
+                            label="Age Range"
+                            value={bookAgeRange}
+                            onChange={(e) => setBookAgeRange(e.target.value)}
+                            fullWidth
+                            size="small"
+                            placeholder="e.g. 6-8"
+                            InputProps={{ sx: { borderRadius: 3, backgroundColor: '#fff' } }}
+                          />
+                        </Grid>
+                      </Grid>
+                      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={() => {
+                            const current = books.find(b => b.id === selectedBookId);
+                            setBookAuthor(current?.author || '');
+                            setBookReadingLevel(current?.readingLevel || '');
+                            setBookAgeRange(current?.ageRange || '');
+                          }}
+                          sx={{ borderRadius: 3, fontWeight: 600 }}
+                        >
+                          Reset
+                        </Button>
+                        <Button
+                          variant="contained"
+                          size="small"
+                          color="primary"
+                          onClick={async () => {
+                            const current = books.find(b => b.id === selectedBookId);
+                            if (!current) return;
+
+                            const updated = {
+                              ...current,
+                              author: bookAuthor.trim() || null,
+                              readingLevel: bookReadingLevel.trim() || null,
+                              ageRange: bookAgeRange.trim() || null,
+                            };
+
+                            try {
+                              const response = await fetchWithAuth(`/api/books/${selectedBookId}`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(updated),
+                              });
+
+                              if (!response.ok) {
+                                throw new Error(`API error: ${response.status}`);
+                              }
+
+                              const saved = await response.json().catch(() => updated);
+                              const idx = books.findIndex(b => b.id === selectedBookId);
+                              if (idx !== -1) {
+                                books[idx] = saved;
+                              }
+                            } catch (err) {
+                              console.error('Failed to update book from SessionForm:', err);
+                            }
+                          }}
+                          sx={{
+                            borderRadius: 3,
+                            fontWeight: 600,
+                            background: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)',
+                            boxShadow: '4px 4px 8px rgba(139, 92, 246, 0.3)'
+                          }}
+                        >
+                          Update Book
+                        </Button>
+                      </Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block', fontStyle: 'italic' }}>
+                        Adjust these details and click "Update Book" to save them to the book record.
+                      </Typography>
+                    </Box>
+                  )}
+                </Grid>
               </Grid>
 
-              <Grid size={12} sx={{ mb: 1 }}>
-                <FormControl component="fieldset" sx={{
-                  width: '100%',
-                  p: 2,
-                  borderRadius: 4,
-                  border: '1px solid rgba(0,0,0,0.05)',
-                  backgroundColor: 'rgba(255,255,255,0.3)'
-                }}>
-                  <FormLabel component="legend" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: '#332F3A', mb: 1 }}>Location</FormLabel>
-                  <RadioGroup
-                    aria-label="location"
-                    value={selectedLocation}
-                    onChange={handleLocationChange}
-                    row
-                  >
-                    <FormControlLabel value="school" control={<Radio sx={{ color: '#7C3AED', '&.Mui-checked': { color: '#7C3AED' } }} />} label="School" />
-                    <FormControlLabel value="home" control={<Radio sx={{ color: '#7C3AED', '&.Mui-checked': { color: '#7C3AED' } }} />} label="Home" />
-                  </RadioGroup>
-                </FormControl>
-              </Grid>
-
-              <Grid size={12} sx={{ mb: 1 }}>
-                <Typography variant="subtitle1" gutterBottom sx={{ mb: 1, fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: '#332F3A' }}>
-                  Assessment:
-                </Typography>
-                <AssessmentSelector
-                  value={assessment}
-                  onChange={handleAssessmentChange}
-                />
-              </Grid>
-              
-              <Grid size={12} sx={{ mb: 3 }}>
-                <SessionNotes
-                  value={notes}
-                  onChange={handleNotesChange}
-                />
+              {/* Assessment and Notes - Two Columns */}
+              <Grid container item size={12} spacing={3}>
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  <Typography variant="subtitle1" gutterBottom sx={{ mb: 1, fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: '#332F3A' }}>
+                    Assessment:
+                  </Typography>
+                  <AssessmentSelector
+                    value={assessment}
+                    onChange={handleAssessmentChange}
+                    direction="column"
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 8 }}>
+                  <SessionNotes
+                    value={notes}
+                    onChange={handleNotesChange}
+                  />
+                </Grid>
               </Grid>
               
               <Grid size={12}>

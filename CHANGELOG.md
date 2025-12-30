@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.3.1] - 2025-12-30
+
+### Changed
+- **Reading Record Form Layout**: Improved space utilization on the Record Reading Session page
+  - **Student & Date**: Now arranged in a two-column layout on larger screens
+  - **Book & Location**: Book autocomplete and location radio buttons are now side-by-side
+  - **Book Details**: Selected book details (author, reading level, age range) appear in a separate column next to the book selection
+  - **Assessment & Notes**: Assessment buttons now display vertically (stacked) in a dedicated column, with notes taking the adjacent column
+  - All changes maintain responsive behavior - columns stack vertically on mobile devices
+
+### Updated
+- **AssessmentSelector Component**: Added `direction` prop to support vertical orientation
+  - Accepts "row" (default) or "column" for button stacking
+  - Adjusts border radius and spacing for vertical layout
+  - Maintains consistent styling with the rest of the application
+
 ## [2.3.0] - 2025-12-29
 
 ### Added

@@ -4,20 +4,21 @@ import SentimentVeryDissatisfiedIcon from '@mui/icons-material/SentimentVeryDiss
 import SentimentNeutralIcon from '@mui/icons-material/SentimentNeutral';
 import SentimentSatisfiedAltIcon from '@mui/icons-material/SentimentSatisfiedAlt';
 
-const AssessmentSelector = ({ value, onChange }) => {
+const AssessmentSelector = ({ value, onChange, direction = 'row' }) => {
   const handleChange = (newValue) => {
     onChange(newValue);
   };
 
+  const isVertical = direction === 'column' || direction === 'vertical';
+
   return (
     <Box sx={{ width: '100%' }}>
-      {/* Replace ButtonGroup with Stack for better layout control in MUI v7 */}
       <Stack
-        direction="row"
-        spacing={0}
+        direction={isVertical ? 'column' : 'row'}
+        spacing={isVertical ? 1 : 0}
         sx={{
           width: '100%',
-          '& > *': { flex: 1 } // Make all children take equal space
+          '& > *': { flex: isVertical ? 'none' : 1 }
         }}
       >
         <Tooltip title="Needing Help - Requires additional support">
@@ -28,8 +29,9 @@ const AssessmentSelector = ({ value, onChange }) => {
             startIcon={<SentimentVeryDissatisfiedIcon />}
             sx={{
               py: 1.5,
-              borderRadius: '8px 0 0 8px',
-              width: '100%'
+              borderRadius: isVertical ? '8px' : '8px 0 0 8px',
+              width: '100%',
+              mb: isVertical ? 0.5 : 0
             }}
           >
             Needing Help
@@ -44,8 +46,9 @@ const AssessmentSelector = ({ value, onChange }) => {
             startIcon={<SentimentNeutralIcon />}
             sx={{
               py: 1.5,
-              borderRadius: 0,
-              width: '100%'
+              borderRadius: isVertical ? '8px' : 0,
+              width: '100%',
+              mb: isVertical ? 0.5 : 0
             }}
           >
             Moderate Help
@@ -60,7 +63,7 @@ const AssessmentSelector = ({ value, onChange }) => {
             startIcon={<SentimentSatisfiedAltIcon />}
             sx={{
               py: 1.5,
-              borderRadius: '0 8px 8px 0',
+              borderRadius: isVertical ? '8px' : '0 8px 8px 0',
               width: '100%'
             }}
           >
