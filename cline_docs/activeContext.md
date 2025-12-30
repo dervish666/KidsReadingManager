@@ -1,116 +1,111 @@
 # Active Context: Kids Reading Manager
 
+## Current Version: 2.3.0
+
 ## What I'm Working On Now
-I've just completed a major dependency update and optimization of the application. This involved:
-1. Updating all major dependencies to their latest versions
-2. Optimizing the state management in AppContext
-3. Fixing layout issues caused by the Material UI v7 update
+Documentation review and update to ensure all documentation reflects the current state of the application after the major v2.0.0 multi-tenant SaaS transformation and subsequent feature additions.
 
-These changes ensure the application is using the latest libraries and is optimized for performance.
+## Recent Changes (v2.3.0 - December 2025)
 
-## Recent Changes
-- Updated key development dependencies to their latest versions (April 2025)
-  - Updated Wrangler from 4.9.1 to 4.12.0
-  - Updated @rsbuild/core from 1.3.5 to 1.3.9
-  - Updated Hono from 4.7.6 to 4.7.7
-  - Updated version number to 1.0.2
-  - Verified compatibility with existing codebase
+### User Management Enhancements
+- **User Editing**: Complete user editing workflow with modal dialog
+  - Edit button (pencil icon) on each user row
+  - Editable fields: name, role, and school (when multiple organizations exist)
+  - Email field is read-only
+  - Form validation and error handling
+  - Reactive table updates without page refresh
 
-- Changed project license from MIT to Creative Commons Attribution-NonCommercial 4.0 (CC BY-NC 4.0)
-  - Updated LICENSE file with CC BY-NC 4.0 license text
-  - Added license field to package.json
-  - Updated README.md to reflect the new license terms
-  
-- Previously updated major dependencies to their latest versions
-  - Updated Material UI from v5 to v7
-  - Updated React from v18 to v19
-  - Updated body-parser from v1 to v2
-  - Updated uuid from v9 to v11
-  - Fixed layout issues caused by the Material UI Grid API changes
+- **Cross-Organization User Management**: Move users between schools
+  - Enhanced PUT `/api/users/:id` endpoint to support organization changes
+  - Owners can move users between any organizations
+  - Validates target organization exists and has available capacity
 
-- Optimized state management in AppContext
-  - Added memoization using React.useMemo for derived data
-  - Added memoization using React.useCallback for functions
-  - Memoized the context value to prevent unnecessary re-renders
-  - Replaced function calls with memoized arrays for better performance
+- **School Management**: Complete CRUD interface for managing schools/organizations (Owner-only)
+  - New `SchoolManagement` component with full management capabilities
+  - Create new schools with configurable subscription tiers and limits
+  - Edit existing school details (name, tier, max students, max teachers)
+  - Deactivate schools (soft delete)
+  - Visual table displaying all schools with tier badges
 
-- Fixed layout issues with Material UI v7
-  - Updated all Grid components to use the new API
-  - Changed `<Grid item xs={12}>` to `<Grid size={12}>`
-  - Changed responsive grid items to use the new format: `<Grid size={{ xs: 12, sm: 6, md: 4 }}>`
-  - Fixed slider components in Settings and other pages
+- **School Name Visibility**: Enhanced user management with school name column
+  - Users can see which school each user belongs to
+  - School dropdown selector when registering new users
 
-- Implemented application settings functionality
-  - Created a new Settings component to manage application settings
-  - Added ability to configure reading status durations (days for "Recently Read" and "Needs Attention" statuses)
-  - Added settings tab to the Reading Statistics page
-  - Implemented server endpoints for saving and retrieving settings
-  - Updated the getReadingStatus function to use configurable durations instead of hardcoded values
-  - Added visual feedback when settings are saved or reset
+### Previous Major Changes (v2.0.0 - v2.2.0)
+- **Multi-Tenant SaaS Architecture**: Complete transformation from single-user to multi-tenant
+- **JWT Authentication**: Secure token-based auth with refresh mechanism
+- **Role-Based Access Control**: owner, admin, teacher, readonly roles
+- **D1 Database**: Migration from KV to SQL database for scalability
+- **User Management**: Moved registration to Settings > User Management tab
+- **Book Metadata Providers**: OpenLibrary and Google Books API integration
 
-- Implemented session management functionality
-  - Created a new StudentSessions component to display all sessions for a student
-  - Added ability to edit session details (date, assessment, notes)
-  - Added ability to delete sessions
-  - Made student cards clickable to view all sessions
-  - Added "View All Sessions" option to the student card menu
+## Architecture Overview
 
-- Added new functions to AppContext
-  - Implemented editReadingSession function to update session details
-  - Implemented deleteReadingSession function to remove sessions
-  - Implemented updateReadingStatusSettings function to save settings
-  - Ensured proper lastReadDate recalculation when sessions are edited or deleted
+### Current Stack
+- **Frontend**: React 19 + Material-UI v7
+- **Backend**: Cloudflare Workers + Hono framework
+- **Database**: Cloudflare D1 (SQL) for multi-tenant data
+- **Storage**: Cloudflare KV (legacy single-tenant mode)
+- **Authentication**: JWT with PBKDF2 password hashing
 
-- Fixed issues with reading sessions display and date tracking
-  - Fixed UI to show a message when a student has more than 3 reading sessions
-  - Modified the SessionForm component to sort reading sessions by date (newest first)
-  - Fixed the lastReadDate calculation to always use the most recent session date
-  - Ensured proper date comparison when adding sessions with older dates
-  - Fixed missing IconButton import in QuickEntry component
-
-- Implemented sorting functionality for the Students page
-  - Added ability to sort by total sessions, name, or last read date
-  - Added a dropdown menu with sorting options in the Students page header
-  - Implemented sorting functions for each sort type
-  - Default sort is still by reading priority
-  - Added ascending/descending toggle when selecting the same sort option multiple times
-  - Added visual indicators (arrows) to show the current sort direction
-  - Fixed issue with toggling sort direction to ensure the student list updates correctly
-  - Added support for reversing the reading priority order when toggling direction
+### Key Components
+- `src/worker.js` - Cloudflare Worker entry point
+- `src/contexts/AppContext.js` - Central state management
+- `src/routes/` - API route handlers
+- `src/middleware/` - Auth, tenant, and error handling
+- `src/data/` - Data provider layer (D1/KV)
 
 ## Next Steps
-1. **Testing the Updated Dependencies**:
-   - Test the application thoroughly with the new dependencies
-   - Verify that all features work correctly with Material UI v7 and React 19
-   - Check for any performance improvements from the optimizations
-   - Monitor for any regressions or issues caused by the updates
 
-2. **Further Optimization Opportunities**:
-   - Consider splitting the AppContext into smaller, more focused contexts
-   - Add React.memo to components that don't need to re-render often
-   - Implement virtualization for long lists of students or sessions
+### Immediate
+1. Continue monitoring for bugs and issues
+2. Gather user feedback on new features
+3. Performance optimization for large datasets
 
-3. **Potential Enhancements**:
-   - Add bulk session management (delete multiple sessions)
-   - Implement session filtering by date range or assessment level
-   - Add confirmation for session edits to prevent accidental changes
-   - Add more application settings (e.g., default sort order, theme preferences)
+### Potential Enhancements
+- Parent portal for home reading tracking
+- Email notifications for reading reminders
+- Advanced reporting with PDF export
+- Bulk session management
+- Additional AI provider integrations
 
-4. **Next Feature Implementation**:
-   - Implement advanced filtering functionality
-   - Enhance reporting capabilities
-   - Consider user authentication features
+## Implementation Notes
 
-## Implementation Plan Completed
-✅ Updated all major dependencies to their latest versions
-✅ Optimized state management in AppContext with useMemo and useCallback
-✅ Fixed layout issues caused by Material UI v7 Grid API changes
-✅ Added functions to AppContext for editing and deleting sessions
-✅ Created StudentSessions component for viewing and managing sessions
-✅ Modified StudentCard to open sessions dialog on click
-✅ Added "View All Sessions" option to student card menu
-✅ Implemented edit and delete functionality for sessions
-✅ Added settings functionality for configuring reading status durations
-✅ Created Settings component with UI for adjusting durations
-✅ Added server endpoints for saving and retrieving settings
-✅ Updated reading status logic to use configurable durations
+### Multi-Tenant Mode Activation
+- Set `JWT_SECRET` environment variable to enable multi-tenant mode
+- Without `JWT_SECRET`, app runs in legacy single-tenant KV mode
+
+### Database Migrations
+- Migrations in `migrations/` directory
+- Apply locally: `npx wrangler d1 migrations apply reading-manager-db --local`
+- Apply to production: `npx wrangler d1 migrations apply reading-manager-db --remote`
+
+### API Authentication
+- All internal API calls use `fetchWithAuth` from AppContext
+- Automatic token refresh on 401 responses
+- 60-second buffer before token expiration triggers refresh
+
+### Role Permissions
+- **Owner**: Full system access, manage all organizations and users
+- **Admin**: Organization-level management, manage users within organization
+- **Teacher**: Manage students, classes, and reading sessions
+- **Readonly**: View-only access to data
+
+## Files Recently Modified
+- `src/components/UserManagement.js` - User editing modal
+- `src/components/SchoolManagement.js` - School CRUD interface
+- `src/components/SettingsPage.js` - Added School Management tab
+- `src/routes/users.js` - Cross-organization user updates
+- `src/routes/organization.js` - Organization CRUD endpoints
+
+## Testing Checklist
+- [x] User login/logout
+- [x] User registration (via Settings)
+- [x] User editing
+- [x] Cross-organization user moves
+- [x] School creation/editing/deactivation
+- [x] Student management
+- [x] Reading session recording
+- [x] Book management
+- [x] AI recommendations
+- [x] Data export/import

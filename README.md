@@ -73,12 +73,6 @@ The Recommendations section enables:
 
 ## 🚀 Quick Start
 
-### Try It Now
-The easiest way to get started is with our one-click deployment:
-
-<a target="_blank" href="https://deploy.workers.cloudflare.com/?url=https%3A%2F%2Fgithub.com%2Fdervish666%2FKidsReadingManager">
-  <img src="https://deploy.workers.cloudflare.com/button" alt="Deploy to Cloudflare">
-</a>
 
 ### Local Development
 ```bash
@@ -90,7 +84,7 @@ cd KidsReadingManager
 npm install
 
 # Start the development server
-npm run start
+npm run start:dev
 
 # Open http://localhost:3000 in your browser
 ```
@@ -122,9 +116,12 @@ The application features a clean, mobile-friendly interface with:
 
 ## 🔧 Technical Highlights
 
-- **Modern React**: Built with React 19 and Material-UI components
+- **Modern React**: Built with React 19 and Material-UI v7 components
 - **Serverless Architecture**: Runs on Cloudflare Workers for global performance
-- **AI Integration**: Powered by Anthropic's Claude for intelligent recommendations
+- **Multi-Tenant SaaS**: Support for multiple schools with complete data isolation
+- **Role-Based Access**: Owner, Admin, Teacher, and Readonly permission levels
+- **AI Integration**: Multi-provider support (Anthropic Claude, OpenAI, Google Gemini)
+- **D1 Database**: Cloudflare D1 SQL database for scalable data storage
 - **Data Persistence**: Secure cloud storage with import/export capabilities
 - **Mobile-First**: Optimized for touch interfaces and mobile devices
 
@@ -150,7 +147,9 @@ The application features a clean, mobile-friendly interface with:
 
 ## 🛡️ Privacy & Security
 
-- **Local Data Control**: Your data stays in your chosen cloud environment
+- **Multi-Tenant Isolation**: Each school's data is completely isolated
+- **JWT Authentication**: Secure token-based authentication with automatic refresh
+- **Role-Based Access**: Granular permissions control who can access what
 - **No Tracking**: No analytics or user tracking beyond application functionality
 - **Secure Storage**: Data encrypted in transit and at rest
 - **Export Freedom**: Full data export capabilities for portability
@@ -159,7 +158,7 @@ The application features a clean, mobile-friendly interface with:
 
 - Modern web browser (Chrome, Firefox, Safari, Edge)
 - Internet connection for AI recommendations
-- Optional: Anthropic API key for book recommendations
+- Optional: API key for book recommendations
 
 ## 🤝 Contributing
 

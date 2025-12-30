@@ -3,12 +3,38 @@
 ## Purpose
 This comprehensive application helps track reading sessions for students, manage reading preferences, and provide AI-powered book recommendations. It offers insights into reading frequency, identifies students who may need more attention, and personalizes the reading experience through intelligent book suggestions.
 
-## Architecture (Current)
-- **Frontend**: React single-page application with Material-UI components
+## Architecture (Current - v2.3.0)
+- **Frontend**: React 19 single-page application with Material-UI v7 components
 - **Backend/API**: Cloudflare Worker using Hono framework
-- **Data Persistence**: Cloudflare KV Storage (`READING_MANAGER_KV`)
+- **Data Persistence**: 
+  - **Cloudflare D1 Database** (`READING_MANAGER_DB`): Primary storage for books, organizations, users, classes, students, reading sessions, and settings
+  - **Cloudflare KV Storage** (`READING_MANAGER_KV`): Legacy mode fallback for single-tenant deployments
+- **Authentication**: JWT-based authentication with PBKDF2 password hashing (multi-tenant mode)
 - **AI Integration**: Multi-provider support (Anthropic, OpenAI, Gemini) for intelligent book recommendations
 - **Deployment**: Cloudflare Workers (Primary)
+
+## Multi-Tenant SaaS Architecture (v2.0.0+)
+
+### Organization Management
+- **Multi-Organization Support**: Each organization (school) operates in complete isolation
+- **Subscription Tiers**: Configurable limits for students and teachers per organization
+- **School Management**: Owners can create, edit, and deactivate schools
+- **Cross-Organization User Management**: Owners can move users between schools
+
+### User Management & Authentication
+- **Role-Based Access Control**: Hierarchical permissions system
+  - **Owner**: Full system access, can manage all organizations and users
+  - **Admin**: Organization-level management, can manage users within their organization
+  - **Teacher**: Can manage students, classes, and reading sessions
+  - **Readonly**: View-only access to data
+- **JWT Authentication**: Secure token-based authentication using Web Crypto API
+- **Token Refresh**: Automatic access token refresh with 60-second buffer
+- **Password Security**: PBKDF2 hashing with 100,000 iterations and random salt
+
+### Data Isolation
+- **Tenant Middleware**: Automatic organization context injection
+- **Scoped Queries**: All data queries are automatically scoped to the user's organization
+- **Audit Logging**: Comprehensive activity tracking for compliance
 
 ## Key Features
 
@@ -25,6 +51,7 @@ This comprehensive application helps track reading sessions for students, manage
   - Book persistence per student (remembers current book)
   - Session totals and daily summaries
   - Date picker defaulting to yesterday
+  - Drag-and-drop student reordering
 - **Class Management**: Organize students into classes with teacher assignments
 - **Data Visualization**: Advanced charts and statistics for reading patterns
 
@@ -60,30 +87,69 @@ This comprehensive application helps track reading sessions for students, manage
   - Title, author, and publication information
   - Genre classifications and reading levels
   - Age range recommendations
+  - Book descriptions and cover images (via OpenLibrary/Google Books API)
+- **Book Metadata Providers**: 
+  - OpenLibrary API (default)
+  - Google Books API (requires API key)
 - **Genre System**: Flexible genre management for categorization
 - **Book Autocomplete**: Smart book entry with existing database integration
+- **Bulk Operations**: Fill missing authors, descriptions, and genres from external APIs
+
+### User & Organization Management (v2.0.0+)
+- **User Management**: Create, edit, and delete users within organizations
+- **School Management**: Create and manage multiple schools/organizations (Owner-only)
+- **Role Assignment**: Assign appropriate roles to users based on responsibilities
+- **Cross-Organization Features**: Owners can view and manage users across all organizations
 
 ### Data Management and Analytics
 - **Import/Export**: Enhanced JSON and CSV support with new data structures
 - **Settings Configuration**: Customizable reading status thresholds
 - **Analytics Tracking**: Monitor application usage and reading patterns
-- **JSON Editor**: Direct data editing capabilities for advanced users
+- **Global Class Filter**: Persistent class filter across all pages
 
 ## Data Storage
+
+### Multi-Tenant Mode (D1 Database)
+Primary storage using Cloudflare D1 SQL database with the following tables:
+- `organizations` - Multi-tenant foundation with settings and subscription tiers
+- `users` - User accounts with roles and authentication
+- `refresh_tokens` - JWT refresh token storage
+- `password_reset_tokens` - Password recovery tokens
+- `classes` - Organization-scoped classes
+- `students` - Organization-scoped students with preferences
+- `student_preferences` - Student reading preferences (favorite genres)
+- `reading_sessions` - Normalized session storage
+- `books` - Book catalog with FTS5 full-text search
+- `organization_book_selections` - Per-organization book customization
+- `organization_settings` - Tenant-specific configuration
+- `genres` - Organization-scoped genres
+- `audit_log` - Activity tracking
+
+### Legacy Mode (KV Storage)
+For backward compatibility with single-tenant deployments:
 - **Primary**: Cloudflare KV (`READING_MANAGER_KV`)
 - **Format**: JSON data stored in KV keys (e.g., `students`, `books`, `classes`)
 
-### Data Structures
-
-The application now uses a comprehensive data model:
+### Data Structures (Multi-Tenant)
 
 ```json
 {
-  "settings": {
-    "readingStatusSettings": {
-      "recentlyReadDays": 7,
-      "needsAttentionDays": 14
-    }
+  "organization": {
+    "id": "org_UUID",
+    "name": "School Name",
+    "slug": "school-slug",
+    "subscriptionTier": "free|basic|premium",
+    "maxStudents": 100,
+    "maxTeachers": 10,
+    "isActive": true
+  },
+  "user": {
+    "id": "user_UUID",
+    "email": "user@example.com",
+    "name": "User Name",
+    "role": "owner|admin|teacher|readonly",
+    "organizationId": "org_UUID",
+    "organizationName": "School Name"
   },
   "students": [
     {
@@ -92,36 +158,17 @@ The application now uses a comprehensive data model:
       "classId": "class_UUID | null",
       "readingLevel": "Level designation",
       "lastReadDate": "ISO8601 Date",
-      "preferences": {
-        "favoriteGenreIds": ["genre_UUID_1", "genre_UUID_2"],
-        "likes": ["adventure stories", "animals", "magic"],
-        "dislikes": ["scary stories", "sad endings"],
-        "readingFormats": ["picture books", "chapter books"]
-      },
-      "readingSessions": [
-        {
-          "id": "session_UUID",
-          "date": "ISO8601 Date",
-          "bookId": "book_UUID",
-          "bookTitle": "Book Title",
-          "author": "Author Name",
-          "assessment": "Reading level assessment",
-          "notes": "Session notes",
-          "environment": "school | home"
-        }
-      ],
-      "createdAt": "ISO8601 Timestamp",
-      "updatedAt": "ISO8601 Timestamp"
+      "organizationId": "org_UUID",
+      "createdBy": "user_UUID"
     }
   ],
   "classes": [
     {
       "id": "class_UUID",
-      "name": "Class Name",
+      "name": "Year 1",
       "teacherName": "Teacher's Name",
-      "disabled": false,
-      "createdAt": "ISO8601 Timestamp",
-      "updatedAt": "ISO8601 Timestamp"
+      "organizationId": "org_UUID",
+      "isActive": true
     }
   ],
   "books": [
@@ -129,16 +176,32 @@ The application now uses a comprehensive data model:
       "id": "book_UUID",
       "title": "Book Title",
       "author": "Author Name",
+      "description": "Book description",
       "genreIds": ["genre_UUID_1", "genre_UUID_2"],
       "readingLevel": "Level designation",
       "ageRange": "Age range (e.g., 6-9)"
+    }
+  ],
+  "readingSessions": [
+    {
+      "id": "session_UUID",
+      "studentId": "student_UUID",
+      "date": "ISO8601 Date",
+      "bookId": "book_UUID",
+      "bookTitle": "Book Title",
+      "author": "Author Name",
+      "assessment": "Reading level assessment",
+      "notes": "Session notes",
+      "location": "school | home"
     }
   ],
   "genres": [
     {
       "id": "genre_UUID",
       "name": "Genre Name",
-      "description": "Genre description"
+      "description": "Genre description",
+      "organizationId": "org_UUID",
+      "isPredefined": true
     }
   ]
 }
@@ -154,7 +217,7 @@ The application uses a bottom navigation bar with seven main sections:
 4. **Stats** - Analytics and reading statistics
 5. **Recommend** - AI-powered book recommendations
 6. **Books** - Book database management and CRUD operations
-7. **Settings** - Application configuration and AI settings
+7. **Settings** - Application configuration, AI settings, User Management, and School Management
 
 ### Key User Workflows
 
@@ -200,8 +263,22 @@ The application uses a bottom navigation bar with seven main sections:
 7. System automatically advances to next student
 8. View totals in the summary section at the bottom
 
+#### Managing Users (Admin/Owner)
+1. Navigate to Settings > User Management
+2. View all users in the organization (or all organizations for owners)
+3. Create new users with appropriate roles
+4. Edit user details (name, role, school assignment)
+5. Deactivate users as needed
+
+#### Managing Schools (Owner Only)
+1. Navigate to Settings > School Management
+2. View all schools with subscription tier badges
+3. Create new schools with configurable limits
+4. Edit school details and subscription tiers
+5. Deactivate schools (soft delete)
+
 ### Class Management
-- **Class Creation**: Add classes with teacher assignments
+- **Class Creation**: Add classes with teacher assignments (Year 1-11 dropdown)
 - **Student Assignment**: Assign students to classes for organization
 - **Class-based Filtering**: Filter students and recommendations by class
 - **Teacher Management**: Track which teacher manages each class
@@ -213,9 +290,31 @@ The application uses a bottom navigation bar with seven main sections:
 - **Data Migration**: Easy transfer of book data between systems
 - **Genre System**: Categorize books for better recommendations
 - **Autocomplete**: Smart book entry with existing database integration
-- **Book Details**: Store title, author, reading level, and age range information
+- **Book Details**: Store title, author, reading level, age range, description, and genres
+- **AI Fill Features**: Automatically fetch missing authors, descriptions, and genres from external APIs
 
 ## API Integration
+
+### Authentication API (Multi-Tenant Mode)
+- `POST /api/auth/register` - Organization and owner registration
+- `POST /api/auth/login` - Email/password authentication
+- `POST /api/auth/refresh` - Token refresh
+- `POST /api/auth/logout` - Session termination
+- `POST /api/auth/forgot-password` - Password reset initiation
+- `POST /api/auth/reset-password` - Password reset completion
+
+### User Management API
+- `GET /api/users` - List users (scoped by role)
+- `POST /api/users` - Create new user
+- `PUT /api/users/:id` - Update user (including organization changes)
+- `DELETE /api/users/:id` - Deactivate user
+
+### Organization API
+- `GET /api/organization` - Get current organization
+- `GET /api/organization/all` - List all organizations (owner only)
+- `POST /api/organization/create` - Create new organization
+- `PUT /api/organization/:id` - Update organization
+- `DELETE /api/organization/:id` - Deactivate organization
 
 ### AI Recommendations
 The application integrates with multiple AI providers (Anthropic, OpenAI, Gemini) to provide intelligent book recommendations:
@@ -230,11 +329,19 @@ The application integrates with multiple AI providers (Anthropic, OpenAI, Gemini
 ### Local Development
 1. Install dependencies: `npm install`
 2. Set up environment variables (`.env` file)
-3. Start the development server: `npm run start`
-4. Access at `http://localhost:3000`
+3. Apply D1 migrations: `npx wrangler d1 migrations apply reading-manager-db --local`
+4. Start the development server: `npm run start:dev`
+5. Access frontend at `http://localhost:3001`, worker at `http://localhost:8787`
 
 ### Cloudflare Workers Deployment
-1. Configure `wrangler.toml` with KV namespace
-2. Set up environment variables in Cloudflare dashboard
-3. Deploy using `wrangler deploy`
-4. Access via your Cloudflare Workers domain
+1. Configure `wrangler.toml` with KV namespace and D1 database
+2. Apply D1 migrations: `npx wrangler d1 migrations apply reading-manager-db --remote`
+3. Set up environment variables in Cloudflare dashboard (including `JWT_SECRET` for multi-tenant mode)
+4. Deploy using `npm run deploy`
+5. Access via your Cloudflare Workers domain
+
+### Environment Variables
+- `JWT_SECRET` - Required for multi-tenant mode authentication
+- `ANTHROPIC_API_KEY` - Optional fallback for AI recommendations
+- `READING_MANAGER_DB` - D1 database binding
+- `READING_MANAGER_KV` - KV namespace binding (legacy mode)
