@@ -27,27 +27,54 @@ import {
   DialogActions,
   Grid,
 } from '@mui/material';
-import { Delete as DeleteIcon, PersonAdd as PersonAddIcon } from '@mui/icons-material';
+import { Delete as DeleteIcon, PersonAdd as PersonAddIcon, Edit as EditIcon } from '@mui/icons-material';
 
 const UserManagement = () => {
   const { fetchWithAuth, user } = useAppContext();
   const [users, setUsers] = useState([]);
+  const [organizations, setOrganizations] = useState([]);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
     role: 'teacher',
+    organizationId: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [userToEdit, setUserToEdit] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    email: '',
+    role: 'teacher',
+    organizationId: '',
+  });
 
   useEffect(() => {
     fetchUsers();
+    fetchOrganizations();
   }, []);
+
+  const fetchOrganizations = async () => {
+    try {
+      const response = await fetchWithAuth('/api/organization/all');
+      
+      if (response && typeof response.json === 'function') {
+        const data = await response.json();
+        setOrganizations(data.organizations || []);
+      } else {
+        setOrganizations(response.organizations || []);
+      }
+    } catch (err) {
+      console.error('Error fetching organizations:', err);
+      // Don't show error to user, just log it
+    }
+  };
 
   const validateForm = () => {
     if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
@@ -67,6 +94,12 @@ const UserManagement = () => {
 
     if (!/\S+@\S+\.\S+/.test(formData.email)) {
       setError('Please enter a valid email address');
+      return false;
+    }
+
+    // Organization is only required if there are multiple organizations
+    if (organizations.length > 1 && !formData.organizationId) {
+      setError('Please select a school');
       return false;
     }
 
@@ -115,10 +148,21 @@ const UserManagement = () => {
 
   const fetchUsers = async () => {
     try {
-      const data = await fetchWithAuth('/api/users');
-      setUsers(data.users || []);
+      const response = await fetchWithAuth('/api/users');
+      
+      // Check if response is a Response object (not yet parsed)
+      if (response && typeof response.json === 'function') {
+        const data = await response.json();
+        console.log('Users API response:', data);
+        setUsers(data.users || []);
+      } else {
+        // Already parsed JSON
+        console.log('Users API response:', response);
+        setUsers(response.users || []);
+      }
     } catch (err) {
       console.error('Error fetching users:', err);
+      setError('Failed to load users');
     }
   };
 
@@ -158,6 +202,59 @@ const UserManagement = () => {
   const openDeleteDialog = (user) => {
     setUserToDelete(user);
     setDeleteDialogOpen(true);
+  };
+
+  const openEditDialog = (user) => {
+    setUserToEdit(user);
+    setEditFormData({
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      organizationId: user.organizationId,
+    });
+    setEditDialogOpen(true);
+    setError(null);
+    setSuccess(null);
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+
+    if (!userToEdit) return;
+
+    setLoading(true);
+    try {
+      const updateData = {
+        name: editFormData.name,
+        role: editFormData.role,
+      };
+
+      // Only include organizationId if it changed and user is owner
+      if (editFormData.organizationId !== userToEdit.organizationId) {
+        updateData.organizationId = editFormData.organizationId;
+      }
+
+      await fetchWithAuth(`/api/users/${userToEdit.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updateData),
+      });
+
+      setSuccess('User updated successfully');
+      setEditDialogOpen(false);
+      setUserToEdit(null);
+      fetchUsers();
+    } catch (err) {
+      setError(err.message || 'Update failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditInputChange = (e) => {
+    const { name, value } = e.target;
+    setEditFormData(prev => ({ ...prev, [name]: value }));
   };
 
   return (
@@ -241,6 +338,26 @@ const UserManagement = () => {
                   <MenuItem value="readonly">Read Only</MenuItem>
                 </Select>
               </FormControl>
+              {organizations.length > 1 && (
+                <FormControl fullWidth margin="normal">
+                  <InputLabel>School</InputLabel>
+                  <Select
+                    name="organizationId"
+                    value={formData.organizationId}
+                    onChange={handleInputChange}
+                    label="School"
+                  >
+                    <MenuItem value="">
+                      <em>Select School</em>
+                    </MenuItem>
+                    {organizations.map((org) => (
+                      <MenuItem key={org.id} value={org.id}>
+                        {org.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              )}
               <Button
                 type="submit"
                 variant="contained"
@@ -266,35 +383,55 @@ const UserManagement = () => {
                   <TableRow>
                     <TableCell>Name</TableCell>
                     <TableCell>Email</TableCell>
+                    <TableCell>School</TableCell>
                     <TableCell>Role</TableCell>
                     <TableCell>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {users.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell>{user.name}</TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={user.role}
-                          color={getRoleColor(user.role)}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        {user.role !== 'owner' && (
-                          <IconButton
-                            color="error"
-                            onClick={() => openDeleteDialog(user)}
-                            size="small"
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        )}
+                  {users.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} align="center">
+                        <Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>
+                          No users found. Create a new user to get started.
+                        </Typography>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    users.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell>{user.name}</TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>{user.organizationName || 'N/A'}</TableCell>
+                        <TableCell>
+                          <Chip
+                            label={user.role}
+                            color={getRoleColor(user.role)}
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <IconButton
+                            color="primary"
+                            onClick={() => openEditDialog(user)}
+                            size="small"
+                            sx={{ mr: 1 }}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                          {user.role !== 'owner' && (
+                            <IconButton
+                              color="error"
+                              onClick={() => openDeleteDialog(user)}
+                              size="small"
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </TableContainer>
@@ -317,6 +454,80 @@ const UserManagement = () => {
           <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
           <Button onClick={handleDeleteUser} color="error">
             Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={editDialogOpen}
+        onClose={() => setEditDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Edit User</DialogTitle>
+        <DialogContent>
+          <form onSubmit={handleEditSubmit}>
+            <TextField
+              fullWidth
+              label="Full Name"
+              name="name"
+              value={editFormData.name}
+              onChange={handleEditInputChange}
+              margin="normal"
+              required
+            />
+            <TextField
+              fullWidth
+              label="Email Address"
+              name="email"
+              type="email"
+              value={editFormData.email}
+              onChange={handleEditInputChange}
+              margin="normal"
+              required
+              disabled
+              helperText="Email cannot be changed"
+            />
+            <FormControl fullWidth margin="normal">
+              <InputLabel>Role</InputLabel>
+              <Select
+                name="role"
+                value={editFormData.role}
+                onChange={handleEditInputChange}
+                label="Role"
+              >
+                <MenuItem value="teacher">Teacher</MenuItem>
+                <MenuItem value="admin">Admin</MenuItem>
+                <MenuItem value="readonly">Read Only</MenuItem>
+              </Select>
+            </FormControl>
+            {organizations.length > 1 && (
+              <FormControl fullWidth margin="normal">
+                <InputLabel>School</InputLabel>
+                <Select
+                  name="organizationId"
+                  value={editFormData.organizationId}
+                  onChange={handleEditInputChange}
+                  label="School"
+                >
+                  {organizations.map((org) => (
+                    <MenuItem key={org.id} value={org.id}>
+                      {org.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+          </form>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+          <Button
+            onClick={handleEditSubmit}
+            variant="contained"
+            disabled={loading}
+          >
+            {loading ? 'Updating...' : 'Update User'}
           </Button>
         </DialogActions>
       </Dialog>

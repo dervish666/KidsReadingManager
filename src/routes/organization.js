@@ -62,6 +62,233 @@ organizationRouter.get('/', async (c) => {
 });
 
 /**
+ * GET /api/organization/all
+ * List all organizations (for admin purposes)
+ * Requires: admin role
+ */
+organizationRouter.get('/all', requireAdmin(), async (c) => {
+  try {
+    const db = getDB(c.env);
+
+    const result = await db.prepare(`
+      SELECT * FROM organizations
+      WHERE is_active = 1
+      ORDER BY name
+    `).all();
+
+    const organizations = (result.results || []).map(rowToOrganization);
+
+    return c.json({ organizations });
+
+  } catch (error) {
+    console.error('List organizations error:', error);
+    return c.json({ error: 'Failed to list organizations' }, 500);
+  }
+});
+
+/**
+ * GET /api/organization/:id
+ * Get a specific organization by ID
+ * Requires: owner role
+ */
+organizationRouter.get('/:id', requireOwner(), async (c) => {
+  try {
+    const db = getDB(c.env);
+    const orgId = c.req.param('id');
+
+    const org = await db.prepare(`
+      SELECT * FROM organizations WHERE id = ?
+    `).bind(orgId).first();
+
+    if (!org) {
+      return c.json({ error: 'Organization not found' }, 404);
+    }
+
+    return c.json({ organization: rowToOrganization(org) });
+
+  } catch (error) {
+    console.error('Get organization error:', error);
+    return c.json({ error: 'Failed to get organization' }, 500);
+  }
+});
+
+/**
+ * POST /api/organization/create
+ * Create a new organization
+ * Requires: owner role
+ *
+ * Body: {
+ *   name: string,
+ *   slug?: string (auto-generated from name if not provided),
+ *   subscriptionTier?: string (default: 'free'),
+ *   maxStudents?: number (default: 50),
+ *   maxTeachers?: number (default: 3)
+ * }
+ */
+organizationRouter.post('/create', requireOwner(), auditLog('create', 'organization'), async (c) => {
+  try {
+    const db = getDB(c.env);
+    const body = await c.req.json();
+    const { generateId } = await import('../utils/helpers.js');
+
+    const { name, slug, subscriptionTier, maxStudents, maxTeachers } = body;
+
+    if (!name) {
+      return c.json({ error: 'Organization name is required' }, 400);
+    }
+
+    // Generate slug from name if not provided
+    const orgSlug = slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+    // Check if slug already exists
+    const existing = await db.prepare(
+      'SELECT id FROM organizations WHERE slug = ?'
+    ).bind(orgSlug).first();
+
+    if (existing) {
+      return c.json({ error: 'An organization with this slug already exists' }, 409);
+    }
+
+    const orgId = generateId();
+    await db.prepare(`
+      INSERT INTO organizations (id, name, slug, subscription_tier, max_students, max_teachers, is_active)
+      VALUES (?, ?, ?, ?, ?, ?, 1)
+    `).bind(
+      orgId,
+      name,
+      orgSlug,
+      subscriptionTier || 'free',
+      maxStudents || 50,
+      maxTeachers || 3
+    ).run();
+
+    const newOrg = await db.prepare(`
+      SELECT * FROM organizations WHERE id = ?
+    `).bind(orgId).first();
+
+    return c.json({
+      message: 'Organization created successfully',
+      organization: rowToOrganization(newOrg)
+    }, 201);
+
+  } catch (error) {
+    console.error('Create organization error:', error);
+    return c.json({ error: 'Failed to create organization' }, 500);
+  }
+});
+
+/**
+ * PUT /api/organization/:id
+ * Update a specific organization
+ * Requires: owner role
+ *
+ * Body: {
+ *   name?: string,
+ *   subscriptionTier?: string,
+ *   maxStudents?: number,
+ *   maxTeachers?: number
+ * }
+ */
+organizationRouter.put('/:id', requireOwner(), auditLog('update', 'organization'), async (c) => {
+  try {
+    const db = getDB(c.env);
+    const orgId = c.req.param('id');
+    const body = await c.req.json();
+
+    const { name, subscriptionTier, maxStudents, maxTeachers } = body;
+
+    // Check if organization exists
+    const existing = await db.prepare(
+      'SELECT id FROM organizations WHERE id = ?'
+    ).bind(orgId).first();
+
+    if (!existing) {
+      return c.json({ error: 'Organization not found' }, 404);
+    }
+
+    // Build update query
+    const updates = [];
+    const params = [];
+
+    if (name !== undefined) {
+      updates.push('name = ?');
+      params.push(name);
+    }
+
+    if (subscriptionTier !== undefined) {
+      updates.push('subscription_tier = ?');
+      params.push(subscriptionTier);
+    }
+
+    if (maxStudents !== undefined) {
+      updates.push('max_students = ?');
+      params.push(maxStudents);
+    }
+
+    if (maxTeachers !== undefined) {
+      updates.push('max_teachers = ?');
+      params.push(maxTeachers);
+    }
+
+    if (updates.length === 0) {
+      return c.json({ error: 'No valid fields to update' }, 400);
+    }
+
+    updates.push('updated_at = datetime("now")');
+    params.push(orgId);
+
+    await db.prepare(`
+      UPDATE organizations SET ${updates.join(', ')} WHERE id = ?
+    `).bind(...params).run();
+
+    const updatedOrg = await db.prepare(`
+      SELECT * FROM organizations WHERE id = ?
+    `).bind(orgId).first();
+
+    return c.json({
+      message: 'Organization updated successfully',
+      organization: rowToOrganization(updatedOrg)
+    });
+
+  } catch (error) {
+    console.error('Update organization error:', error);
+    return c.json({ error: 'Failed to update organization' }, 500);
+  }
+});
+
+/**
+ * DELETE /api/organization/:id
+ * Deactivate an organization (soft delete)
+ * Requires: owner role
+ */
+organizationRouter.delete('/:id', requireOwner(), auditLog('delete', 'organization'), async (c) => {
+  try {
+    const db = getDB(c.env);
+    const orgId = c.req.param('id');
+
+    // Check if organization exists
+    const existing = await db.prepare(
+      'SELECT id FROM organizations WHERE id = ?'
+    ).bind(orgId).first();
+
+    if (!existing) {
+      return c.json({ error: 'Organization not found' }, 404);
+    }
+
+    // Soft delete (deactivate)
+    await db.prepare(`
+      UPDATE organizations SET is_active = 0, updated_at = datetime("now") WHERE id = ?
+    `).bind(orgId).run();
+
+    return c.json({ message: 'Organization deactivated successfully' });
+
+  } catch (error) {
+    console.error('Delete organization error:', error);
+    return c.json({ error: 'Failed to delete organization' }, 500);
+  }
+});
+
+/**
  * PUT /api/organization
  * Update organization details
  * Requires: owner role

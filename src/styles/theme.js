@@ -194,11 +194,27 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           height: 72,
-          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
           backdropFilter: 'blur(20px)',
           borderTopLeftRadius: 20,
           borderTopRightRadius: 20,
           boxShadow: '0 -4px 20px rgba(0,0,0,0.04)',
+          // Critical for viewport anchoring - always visible
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          transform: 'translateZ(0)',
+          WebkitTransform: 'translateZ(0)',
+          willChange: 'transform',
+          // Safe area support
+          paddingBottom: 'env(safe-area-inset-bottom)',
+          // Prevent any overflow
+          overflow: 'hidden',
+          // Ensure it stays at bottom
+          zIndex: 1100,
+          // Make sure it's always visible
+          height: '80px',
         },
       },
     },
@@ -206,18 +222,31 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           color: '#635F69',
+          // Ensure proper touch targets for mobile
+          minHeight: '60px',
+          padding: '8px 4px',
+          flex: 1,
           '&.Mui-selected': {
             color: '#7C3AED',
             transform: 'translateY(-2px)',
+          },
+          // Better touch response
+          '&:active': {
+            transform: 'scale(0.95)',
           },
         },
         label: {
           fontFamily: '"Nunito", sans-serif',
           fontWeight: 700,
           fontSize: '0.7rem',
+          marginTop: '4px',
           '&.Mui-selected': {
             fontSize: '0.75rem',
           },
+        },
+        wrapper: {
+          flexDirection: 'column',
+          gap: '2px',
         },
       },
     },

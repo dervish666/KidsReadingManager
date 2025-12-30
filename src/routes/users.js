@@ -28,6 +28,7 @@ const rowToUser = (row) => {
   return {
     id: row.id,
     organizationId: row.organization_id,
+    organizationName: row.organization_name,
     email: row.email,
     name: row.name,
     role: row.role,
@@ -47,13 +48,34 @@ usersRouter.get('/', requireAdmin(), async (c) => {
   try {
     const db = getDB(c.env);
     const organizationId = c.get('organizationId');
+    const userRole = c.get('userRole');
 
-    const result = await db.prepare(`
-      SELECT id, organization_id, email, name, role, is_active, last_login_at, created_at, updated_at
-      FROM users
-      WHERE organization_id = ?
-      ORDER BY name
-    `).bind(organizationId).all();
+    let query;
+    let params;
+
+    // Owners can see users from all organizations, admins only from their own
+    if (userRole === ROLES.OWNER) {
+      query = `
+        SELECT u.id, u.organization_id, o.name as organization_name, u.email, u.name, u.role,
+               u.is_active, u.last_login_at, u.created_at, u.updated_at
+        FROM users u
+        LEFT JOIN organizations o ON u.organization_id = o.id
+        ORDER BY o.name, u.name
+      `;
+      params = [];
+    } else {
+      query = `
+        SELECT u.id, u.organization_id, o.name as organization_name, u.email, u.name, u.role,
+               u.is_active, u.last_login_at, u.created_at, u.updated_at
+        FROM users u
+        LEFT JOIN organizations o ON u.organization_id = o.id
+        WHERE u.organization_id = ?
+        ORDER BY u.name
+      `;
+      params = [organizationId];
+    }
+
+    const result = await db.prepare(query).bind(...params).all();
 
     const users = (result.results || []).map(rowToUser);
 
@@ -116,11 +138,20 @@ usersRouter.get('/:id', async (c) => {
 usersRouter.post('/', requireAdmin(), auditLog('create', 'user'), async (c) => {
   try {
     const db = getDB(c.env);
-    const organizationId = c.get('organizationId');
+    const currentUserOrgId = c.get('organizationId');
     const currentUserRole = c.get('userRole');
     const body = await c.req.json();
 
-    const { email, name, role, password } = body;
+    const { email, name, role, password, organizationId } = body;
+
+    // Determine which organization to create user in
+    // Owners can create users in any organization, admins only in their own
+    let targetOrgId = organizationId || currentUserOrgId;
+    
+    // Only owners can create users in different organizations
+    if (targetOrgId !== currentUserOrgId && currentUserRole !== ROLES.OWNER) {
+      return c.json({ error: 'Only owners can create users in other organizations' }, 403);
+    }
 
     // Validate required fields
     if (!email || !name || !role) {
@@ -162,11 +193,15 @@ usersRouter.post('/', requireAdmin(), auditLog('create', 'user'), async (c) => {
     // Check organization limits
     const org = await db.prepare(
       'SELECT max_teachers FROM organizations WHERE id = ?'
-    ).bind(organizationId).first();
+    ).bind(targetOrgId).first();
+
+    if (!org) {
+      return c.json({ error: 'Organization not found' }, 404);
+    }
 
     const userCount = await db.prepare(
       'SELECT COUNT(*) as count FROM users WHERE organization_id = ? AND is_active = 1'
-    ).bind(organizationId).first();
+    ).bind(targetOrgId).first();
 
     if (userCount.count >= org.max_teachers) {
       return c.json({ 
@@ -184,7 +219,7 @@ usersRouter.post('/', requireAdmin(), auditLog('create', 'user'), async (c) => {
     await db.prepare(`
       INSERT INTO users (id, organization_id, email, password_hash, name, role, is_active)
       VALUES (?, ?, ?, ?, ?, ?, 1)
-    `).bind(userId, organizationId, email.toLowerCase(), passwordHash, name, role).run();
+    `).bind(userId, targetOrgId, email.toLowerCase(), passwordHash, name, role).run();
 
     // TODO: Send invitation email with temporary password
 
@@ -221,18 +256,18 @@ usersRouter.post('/', requireAdmin(), auditLog('create', 'user'), async (c) => {
 usersRouter.put('/:id', auditLog('update', 'user'), async (c) => {
   try {
     const db = getDB(c.env);
-    const organizationId = c.get('organizationId');
+    const currentUserOrgId = c.get('organizationId');
     const currentUserId = c.get('userId');
     const currentUserRole = c.get('userRole');
     const targetUserId = c.req.param('id');
     const body = await c.req.json();
 
-    const { name, role, isActive } = body;
+    const { name, role, isActive, organizationId } = body;
 
-    // Check if user exists and belongs to organization
+    // Check if user exists (in any organization - we'll check permissions next)
     const existingUser = await db.prepare(`
-      SELECT * FROM users WHERE id = ? AND organization_id = ?
-    `).bind(targetUserId, organizationId).first();
+      SELECT * FROM users WHERE id = ?
+    `).bind(targetUserId).first();
 
     if (!existingUser) {
       return c.json({ error: 'User not found' }, 404);
@@ -245,7 +280,7 @@ usersRouter.put('/:id', auditLog('update', 'user'), async (c) => {
 
     // Self can only update name
     if (isSelf && !isAdmin) {
-      if (role !== undefined || isActive !== undefined) {
+      if (role !== undefined || isActive !== undefined || organizationId !== undefined) {
         return c.json({ error: 'You can only update your own name' }, 403);
       }
     }
@@ -253,6 +288,34 @@ usersRouter.put('/:id', auditLog('update', 'user'), async (c) => {
     // Non-admins can't update other users
     if (!isSelf && !isAdmin) {
       return c.json({ error: 'Forbidden' }, 403);
+    }
+
+    // Check if updating organization - only owners can move users
+    if (organizationId !== undefined) {
+      if (!isOwner) {
+        return c.json({ error: 'Only owners can move users between organizations' }, 403);
+      }
+
+      // Validate organization exists
+      const targetOrg = await db.prepare(
+        'SELECT * FROM organizations WHERE id = ? AND is_active = 1'
+      ).bind(organizationId).first();
+
+      if (!targetOrg) {
+        return c.json({ error: 'Target organization not found' }, 404);
+      }
+
+      // Check target organization limits
+      const userCount = await db.prepare(
+        'SELECT COUNT(*) as count FROM users WHERE organization_id = ? AND is_active = 1'
+      ).bind(organizationId).first();
+
+      if (userCount.count >= targetOrg.max_teachers) {
+        return c.json({
+          error: 'Target organization has reached maximum user limit',
+          limit: targetOrg.max_teachers
+        }, 403);
+      }
     }
 
     // Only owners can change roles to/from admin
@@ -302,6 +365,11 @@ usersRouter.put('/:id', auditLog('update', 'user'), async (c) => {
       params.push(isActive ? 1 : 0);
     }
 
+    if (organizationId !== undefined && isOwner) {
+      updates.push('organization_id = ?');
+      params.push(organizationId);
+    }
+
     if (updates.length === 0) {
       return c.json({ error: 'No valid fields to update' }, 400);
     }
@@ -313,13 +381,16 @@ usersRouter.put('/:id', auditLog('update', 'user'), async (c) => {
       UPDATE users SET ${updates.join(', ')} WHERE id = ?
     `).bind(...params).run();
 
-    // Get updated user
+    // Get updated user with organization name
     const updatedUser = await db.prepare(`
-      SELECT id, organization_id, email, name, role, is_active, last_login_at, created_at, updated_at
-      FROM users WHERE id = ?
+      SELECT u.id, u.organization_id, o.name as organization_name, u.email, u.name, u.role,
+             u.is_active, u.last_login_at, u.created_at, u.updated_at
+      FROM users u
+      LEFT JOIN organizations o ON u.organization_id = o.id
+      WHERE u.id = ?
     `).bind(targetUserId).first();
 
-    return c.json({ 
+    return c.json({
       message: 'User updated successfully',
       user: rowToUser(updatedUser)
     });

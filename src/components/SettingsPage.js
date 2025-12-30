@@ -11,16 +11,21 @@ import StorageIcon from '@mui/icons-material/Storage';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import PeopleIcon from '@mui/icons-material/People';
+import SchoolIcon from '@mui/icons-material/School';
 import Settings from './Settings';
 import DataManagement from './DataManagement';
 import AISettings from './AISettings';
 import BookMetadataSettings from './BookMetadataSettings';
 import UserManagement from './UserManagement';
+import SchoolManagement from './SchoolManagement';
 import { useAppContext } from '../contexts/AppContext';
 
 const SettingsPage = () => {
   const [currentTab, setCurrentTab] = useState(0);
   const { canManageUsers, user } = useAppContext();
+  
+  // Only owners can manage schools
+  const isOwner = user?.role === 'owner';
 
   const handleTabChange = (event, newValue) => {
     setCurrentTab(newValue);
@@ -77,6 +82,9 @@ const SettingsPage = () => {
             {canManageUsers && (
               <Tab icon={<PeopleIcon />} iconPosition="start" label="User Management" />
             )}
+            {isOwner && (
+              <Tab icon={<SchoolIcon />} iconPosition="start" label="School Management" />
+            )}
           </Tabs>
         </Paper>
         
@@ -86,6 +94,7 @@ const SettingsPage = () => {
           {currentTab === 2 && <AISettings />}
           {currentTab === 3 && <BookMetadataSettings />}
           {canManageUsers && currentTab === 4 && <UserManagement />}
+          {isOwner && currentTab === (canManageUsers ? 5 : 4) && <SchoolManagement />}
         </Box>
       </Box>
     </Box>

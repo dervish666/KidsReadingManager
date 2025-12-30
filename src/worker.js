@@ -79,7 +79,8 @@ app.use('/api/*', async (c, next) => {
     '/api/auth/forgot-password',
     '/api/auth/reset-password',
     '/api/health',
-    '/api/login'
+    '/api/login',
+    '/api/logout'
   ];
 
   if (publicPaths.includes(url.pathname)) {
@@ -134,7 +135,7 @@ app.get('/api/health', (c) => {
 app.post('/api/login', async (c) => {
   // If JWT_SECRET is configured, redirect to new auth
   if (c.env.JWT_SECRET) {
-    return c.json({ 
+    return c.json({
       error: 'Please use /api/auth/login for authentication',
       redirect: '/api/auth/login'
     }, 400);
@@ -142,6 +143,22 @@ app.post('/api/login', async (c) => {
   
   // Otherwise use legacy login
   return handleLogin(c);
+});
+
+// Legacy logout endpoint (for backward compatibility)
+// In legacy mode, logout just clears client-side token - no server-side action needed
+app.post('/api/logout', async (c) => {
+  // If JWT_SECRET is configured, redirect to new auth
+  if (c.env.JWT_SECRET) {
+    return c.json({
+      error: 'Please use /api/auth/logout for logout',
+      redirect: '/api/auth/logout'
+    }, 400);
+  }
+  
+  // Legacy mode: No server-side session to invalidate
+  // Client just clears the token from localStorage
+  return c.json({ message: 'Logged out successfully' });
 });
 
 // Error handler

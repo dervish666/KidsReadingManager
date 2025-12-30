@@ -559,9 +559,10 @@ export const AppProvider = ({ children }) => {
 
   // Logout helper
   const logout = useCallback(async () => {
-    // In multi-tenant mode, call logout endpoint to invalidate refresh token
-    if (authMode === 'multitenant' && refreshToken) {
-      try {
+    // Call logout endpoint to invalidate server-side session if applicable
+    try {
+      if (authMode === 'multitenant' && refreshToken) {
+        // Multi-tenant mode: invalidate refresh token
         await fetch(`${API_URL}/auth/logout`, {
           method: 'POST',
           headers: {
@@ -570,9 +571,18 @@ export const AppProvider = ({ children }) => {
           },
           body: JSON.stringify({ refreshToken }),
         });
-      } catch {
-        // Ignore logout API errors
+      } else if (authMode === 'legacy' && authToken) {
+        // Legacy mode: call logout endpoint for consistency (even though it doesn't do server-side invalidation)
+        await fetch(`${API_URL}/logout`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`,
+          },
+        });
       }
+    } catch {
+      // Ignore logout API errors - client-side logout always works
     }
     
     clearAuthState();

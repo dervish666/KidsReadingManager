@@ -1,5 +1,72 @@
 # Changelog
 
+## [2.3.0] - 2025-12-29
+
+### Added
+- **User Editing**: Complete user editing workflow with modal dialog
+  - Added Edit button (pencil icon) to each user row in the table
+  - Responsive modal window with pre-populated form fields
+  - Editable fields: name, role, and school (when multiple organizations exist)
+  - Email field is read-only (cannot be changed)
+  - Robust form validation and error handling
+  - Cancel button to dismiss modal without saving
+  - Save Changes button with loading state indicator
+  - Asynchronous API call to update user details
+  - Success/error notifications displayed to user
+  - Reactive table updates without page refresh
+
+- **Cross-Organization User Management**: Move users between schools
+  - Enhanced PUT `/api/users/:id` endpoint to support organization changes
+  - Owners can move users between any organizations
+  - Validates target organization exists and has available capacity
+  - Checks organization limits before moving users
+  - Only owners can perform cross-organization user moves
+
+- **School Management**: Complete CRUD interface for managing schools/organizations (Owner-only)
+  - New [`SchoolManagement`](src/components/SchoolManagement.js) component with full management capabilities
+  - Create new schools with configurable subscription tiers and limits
+  - Edit existing school details (name, tier, max students, max teachers)
+  - Deactivate schools (soft delete)
+  - Visual table displaying all schools with tier badges and action buttons
+  - Only visible to users with "owner" role
+  - Added School Management tab to Settings page
+
+- **School Name Management**: Enhanced user management with school name visibility
+  - Added school name column to user management table
+  - Users can now see which school each user belongs to
+  - Added school dropdown selector when registering new users (displays when multiple organizations exist)
+  - Backend API now includes organization name in user responses via JOIN with organizations table
+  - New endpoint GET `/api/organization/all` to fetch all organizations for dropdown selection
+  - School selection is only required when multiple organizations are present in the system
+
+- **Organization API Endpoints**: New routes for school management
+  - POST `/api/organization/create` - Create new organization (owner role required)
+  - GET `/api/organization/:id` - Get specific organization by ID (owner role required)
+  - PUT `/api/organization/:id` - Update organization details (owner role required)
+  - DELETE `/api/organization/:id` - Deactivate organization (owner role required)
+
+### Changed
+- **User Listing**: Enhanced GET `/api/users` endpoint for owners
+  - Owners now see users from ALL organizations in a single table
+  - Admins continue to see only users from their own organization
+  - Results are sorted by organization name, then by user name
+  - Enables cross-organization user management for owners
+
+- **User API Responses**: User objects now include `organizationName` field
+  - Updated `rowToUser()` function in [`src/routes/users.js`](src/routes/users.js:26) to include organization name
+  - Modified user queries to JOIN with organizations table for name retrieval
+  - Enhanced user listing, retrieval, and update endpoints to include school information
+
+- **Organization API**: Enhanced `/api/organization/all` endpoint to return complete organization objects
+  - Now includes all organization fields (subscriptionTier, maxStudents, maxTeachers)
+  - Uses `rowToOrganization()` mapper for consistent data structure
+
+- **User Update Endpoint**: Enhanced PUT `/api/users/:id` to support organization changes
+  - Added support for `organizationId` field in request body
+  - Owners can move users between organizations
+  - Validates target organization exists and has capacity
+  - Enhanced to return user with updated organization name
+
 ## [2.2.0] - 2025-12-28
 
 ### Changed

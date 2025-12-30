@@ -1,12 +1,13 @@
 import React from 'react';
-import { AppBar, Toolbar, Typography, IconButton, Box, FormControl, Select, MenuItem } from '@mui/material';
+import { AppBar, Toolbar, Typography, IconButton, Box, FormControl, Select, MenuItem, Button, Chip } from '@mui/material';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import FilterListIcon from '@mui/icons-material/FilterList';
+import LogoutIcon from '@mui/icons-material/Logout';
 import packageJson from '../../package.json';
 import { useAppContext } from '../contexts/AppContext';
 
 const Header = () => {
-  const { classes, globalClassFilter, setGlobalClassFilter } = useAppContext();
+  const { classes, globalClassFilter, setGlobalClassFilter, isAuthenticated, logout, user } = useAppContext();
   
   // Get active (non-disabled) classes
   const activeClasses = classes.filter(cls => !cls.disabled);
@@ -162,6 +163,73 @@ const Header = () => {
         >
           v{packageJson.version}
         </Typography>
+        
+        {/* Logout Section - only show when authenticated */}
+        {isAuthenticated && (
+          <Box sx={{ display: 'flex', alignItems: 'center', ml: 2 }}>
+            {/* User info - only show in multi-tenant mode */}
+            {user && (
+              <Box sx={{
+                display: { xs: 'none', sm: 'flex' },
+                alignItems: 'center',
+                mr: 1,
+                backgroundColor: 'rgba(124, 58, 237, 0.05)',
+                px: 1.5,
+                py: 0.5,
+                borderRadius: '6px',
+              }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 600,
+                    color: '#332F3A',
+                    fontSize: '0.75rem'
+                  }}
+                >
+                  {user.name}
+                </Typography>
+                <Chip
+                  label={user.role || 'User'}
+                  size="small"
+                  sx={{
+                    ml: 1,
+                    height: 18,
+                    fontSize: '0.65rem',
+                    backgroundColor: '#7C3AED',
+                    color: 'white',
+                    '& .MuiChip-label': {
+                      px: 1,
+                      padding: 0,
+                    }
+                  }}
+                />
+              </Box>
+            )}
+            
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={logout}
+              startIcon={<LogoutIcon sx={{ fontSize: 16 }} />}
+              sx={{
+                color: '#7C3AED',
+                borderColor: 'rgba(124, 58, 237, 0.3)',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                textTransform: 'none',
+                px: 1.5,
+                py: 0.5,
+                minHeight: 32,
+                '&:hover': {
+                  borderColor: '#7C3AED',
+                  backgroundColor: 'rgba(124, 58, 237, 0.05)',
+                },
+              }}
+            >
+              Logout
+            </Button>
+          </Box>
+        )}
       </Toolbar>
     </AppBar>
   );

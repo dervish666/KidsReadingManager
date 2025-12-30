@@ -59,6 +59,15 @@ function AppContent() {
         position: 'relative',
         overflow: 'hidden',
         backgroundColor: '#F4F1FA',
+        // iOS Safari scrolling fixes
+        WebkitOverflowScrolling: 'touch',
+        // Prevent any bounce effect
+        overscrollBehavior: 'none',
+        // Ensure the fixed bottom bar is always visible
+        pb: '80px', // Height of the bottom bar
+        '@media (max-width: 600px)': {
+          pb: '90px', // Extra space for safe area on mobile
+        },
       }}
     >
       {/* Animated Background Blobs */}
@@ -89,17 +98,24 @@ function AppContent() {
             flexGrow: 1,
             p: { xs: 2, sm: 3 },
             borderRadius: '16px',
-            overflow: 'visible',
-            mb: { xs: 10, sm: 9 },
+            overflow: 'auto',
+            // No margin bottom since the bar is fixed to viewport
+            mb: 0,
             backgroundColor: 'rgba(255, 255, 255, 0.75)',
             backdropFilter: 'blur(20px)',
+            // Calculate height to account for fixed header and bottom bar
+            height: 'calc(100vh - 140px)',
             minHeight: 'calc(100vh - 140px)',
             border: '1px solid rgba(255, 255, 255, 0.5)',
             boxShadow: '0 8px 32px rgba(160, 150, 180, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04)',
+            // Safe area support for iOS
+            pb: 'calc(env(safe-area-inset-bottom) + 20px)',
             '@media (max-width: 600px)': {
+              height: 'calc(100vh - 160px)',
               minHeight: 'calc(100vh - 160px)',
               p: 2,
               borderRadius: '12px',
+              pb: 'calc(env(safe-area-inset-bottom) + 90px)',
             },
           }}
         >
@@ -114,12 +130,26 @@ function AppContent() {
           left: 0,
           right: 0,
           zIndex: 1100,
-          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
           backdropFilter: 'blur(20px)',
           borderTop: '1px solid rgba(255, 255, 255, 0.5)',
           boxShadow: '0 -4px 20px rgba(0,0,0,0.04)',
           borderTopLeftRadius: 20,
           borderTopRightRadius: 20,
+          // Critical fixes for viewport anchoring
+          position: 'fixed',
+          bottom: 0,
+          // Ensure it stays above all content
+          transform: 'translateZ(0)',
+          WebkitTransform: 'translateZ(0)',
+          willChange: 'transform',
+          // Safe area support for iOS devices
+          pb: 'env(safe-area-inset-bottom)',
+          // Prevent any scrolling behavior
+          overflow: 'hidden',
+          // Make sure it's always visible
+          height: '80px',
+          minHeight: '80px',
         }}
         elevation={0}
       >
@@ -132,6 +162,10 @@ function AppContent() {
           sx={{
             backgroundColor: 'transparent',
             height: 80,
+            // Ensure proper touch targets
+            minHeight: '60px',
+            // Safe area support
+            pb: 'env(safe-area-inset-bottom)',
           }}
         >
           <BottomNavigationAction label="Students" icon={<PeopleIcon />} />
