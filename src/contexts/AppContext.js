@@ -1024,6 +1024,30 @@ export const AppProvider = ({ children }) => {
     [books, fetchWithAuth]
   );
 
+  // Find an existing book by title (case-insensitive) or create a new one
+  const findOrCreateBook = useCallback(
+    async (title, author = null) => {
+      // First, try to find an existing book with the same title (case-insensitive)
+      const normalizedTitle = title.trim().toLowerCase();
+      const existingBook = books.find(
+        (book) => book.title.toLowerCase() === normalizedTitle
+      );
+
+      if (existingBook) {
+        // If we found a book and author is provided but book doesn't have one, update it
+        if (author && !existingBook.author) {
+          const updatedBook = await updateBook(existingBook.id, { author });
+          return updatedBook || existingBook;
+        }
+        return existingBook;
+      }
+
+      // No existing book found, create a new one
+      return addBook(title, author);
+    },
+    [books, addBook, updateBook]
+  );
+
   // Reading session helpers
   const addReadingSession = useCallback(
     async (studentId, sessionData) => {
@@ -1620,6 +1644,7 @@ export const AppProvider = ({ children }) => {
     editReadingSession,
     deleteReadingSession,
     addBook,
+    findOrCreateBook,
     updateBook,
     updateBookField,
     addClass,

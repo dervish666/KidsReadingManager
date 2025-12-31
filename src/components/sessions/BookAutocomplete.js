@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Autocomplete,
-  TextField,
-  createFilterOptions
+  TextField
 } from '@mui/material';
 import { useAppContext } from '../../contexts/AppContext';
 import AddBookModal from '../books/AddBookModal';
@@ -37,10 +36,12 @@ const BookAutocomplete = ({
     }
   }, [value]);
 
-  // Filter options to exclude duplicates (case insensitive)
-  const filterOptions = createFilterOptions({
-    stringify: (option) => `${option.title} ${option.author || ''}`.toLowerCase(),
-  });
+  // Custom filter that preserves the "Add new book" option
+  // We handle filtering ourselves in computedOptions, so this just passes through
+  const filterOptions = (options, state) => {
+    // Return options as-is since we already filter in computedOptions
+    return options;
+  };
 
   // Parse input to extract title and potential author
   const parseBookInput = (input) => {
@@ -147,8 +148,9 @@ const BookAutocomplete = ({
       return term ? displayText.includes(term) : true;
     });
 
-    // When there is input and no exact matching title, offer explicit add option
-    if (term && !existingBooks.some(b => b.title.toLowerCase() === term)) {
+    // Always show "Add new book" option when there is input, regardless of matches
+    // This option will always be the last item in the list
+    if (term) {
       return [
         ...existingBooks,
         {

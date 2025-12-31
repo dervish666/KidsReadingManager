@@ -18,13 +18,21 @@ import {
   RadioGroup,
   Radio,
   FormControlLabel,
-  FormLabel
+  FormLabel,
+  Chip
 } from '@mui/material';
 import StarIcon from '@mui/icons-material/Star';
+import DownloadIcon from '@mui/icons-material/Download';
 import { useAppContext } from '../../contexts/AppContext';
 import AssessmentSelector from './AssessmentSelector';
 import SessionNotes from './SessionNotes';
 import BookAutocomplete from './BookAutocomplete';
+import {
+  getBookDetails,
+  checkAvailability,
+  getProviderDisplayName,
+  validateProviderConfig
+} from '../../utils/bookMetadataApi';
 
 const SessionForm = () => {
   const { students, addReadingSession, classes, recentlyAccessedStudents, books, fetchWithAuth, globalClassFilter } = useAppContext();
@@ -57,8 +65,10 @@ const SessionForm = () => {
   const [bookAuthor, setBookAuthor] = useState('');
   const [bookReadingLevel, setBookReadingLevel] = useState('');
   const [bookAgeRange, setBookAgeRange] = useState('');
+  const [bookGenres, setBookGenres] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState('school');
   const [isCreatingBook, setIsCreatingBook] = useState(false);
+  const [isFetchingDetails, setIsFetchingDetails] = useState(false);
 
   const handleBookChange = (book) => {
     const bookId = book ? book.id : '';
@@ -68,10 +78,12 @@ const SessionForm = () => {
       setBookAuthor(book.author || '');
       setBookReadingLevel(book.readingLevel || '');
       setBookAgeRange(book.ageRange || '');
+      setBookGenres(book.genreIds || []);
     } else {
       setBookAuthor('');
       setBookReadingLevel('');
       setBookAgeRange('');
+      setBookGenres([]);
     }
 
     setIsCreatingBook(false);
@@ -79,6 +91,110 @@ const SessionForm = () => {
 
   const handleBookCreationStart = () => {
     setIsCreatingBook(true);
+  };
+
+  const handleGetBookDetails = async () => {
+    // Get the current book title from the books array or use form values
+    const currentBook = books.find(b => b.id === selectedBookId);
+    const title = currentBook?.title || '';
+    
+    if (!title) {
+      setSnackbarOpen(true);
+      setError('Please select or create a book first');
+      return;
+    }
+
+    // Validate provider configuration
+    const configValidation = validateProviderConfig(settings);
+    if (!configValidation.valid) {
+      setSnackbarOpen(true);
+      setError(configValidation.error);
+      return;
+    }
+
+    setIsFetchingDetails(true);
+    const providerName = getProviderDisplayName(settings);
+    
+    // Check provider availability first with a quick timeout
+    const isAvailable = await checkAvailability(settings, 3000);
+    if (!isAvailable) {
+      setIsFetchingDetails(false);
+      setSnackbarOpen(true);
+      setError(`${providerName} is currently unavailable. Please try again later.`);
+      return;
+    }
+    
+    try {
+      const author = bookAuthor || null;
+      const details = await getBookDetails(title, author, settings);
+      
+      if (details) {
+        // Update form fields with fetched details
+        if (details.author) {
+          setBookAuthor(details.author);
+        }
+        
+        setSnackbarOpen(true);
+        setError(''); // Clear any previous errors
+      } else {
+        setSnackbarOpen(true);
+        setError(`No details found for this book on ${providerName}`);
+      }
+    } catch (err) {
+      console.error('Error fetching book details:', err);
+      setSnackbarOpen(true);
+      setError(`Failed to fetch details: ${err.message}`);
+    } finally {
+      setIsFetchingDetails(false);
+    }
+  };
+
+  const handleUpdateBookWithDetails = async () => {
+    if (!selectedBookId) {
+      setSnackbarOpen(true);
+      setError('Please select a book first');
+      return;
+    }
+
+    try {
+      const current = books.find(b => b.id === selectedBookId);
+      if (!current) {
+        setSnackbarOpen(true);
+        setError('Book not found');
+        return;
+      }
+
+      const updated = {
+        ...current,
+        author: bookAuthor.trim() || null,
+        readingLevel: bookReadingLevel.trim() || null,
+        ageRange: bookAgeRange.trim() || null,
+        genreIds: bookGenres,
+      };
+
+      const response = await fetchWithAuth(`/api/books/${selectedBookId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const saved = await response.json().catch(() => updated);
+      const idx = books.findIndex(b => b.id === selectedBookId);
+      if (idx !== -1) {
+        books[idx] = saved;
+      }
+      
+      setSnackbarOpen(true);
+      setError('');
+    } catch (err) {
+      console.error('Failed to update book from SessionForm:', err);
+      setSnackbarOpen(true);
+      setError('Failed to update book');
+    }
   };
 
   const handleStudentChange = (event) => {
@@ -131,6 +247,7 @@ const SessionForm = () => {
     setBookAuthor('');
     setBookReadingLevel('');
     setBookAgeRange('');
+    setBookGenres([]);
     setSelectedLocation('school');
     setSnackbarOpen(true);
   };
@@ -169,6 +286,9 @@ const SessionForm = () => {
   const sortedStudents = [...recentStudents, ...otherStudents];
 
   const selectedStudent = students.find(s => s.id === selectedStudentId);
+
+  // Get available genres from context
+  const { genres } = useAppContext();
 
   return (
     <Box>
@@ -361,68 +481,87 @@ const SessionForm = () => {
                             InputProps={{ sx: { borderRadius: 3, backgroundColor: '#fff' } }}
                           />
                         </Grid>
+                        <Grid size={12}>
+                          <FormControl fullWidth size="small">
+                            <InputLabel id="genre-select-label">Genres</InputLabel>
+                            <Select
+                              labelId="genre-select-label"
+                              multiple
+                              value={bookGenres}
+                              onChange={(e) => setBookGenres(e.target.value)}
+                              label="Genres"
+                              renderValue={(selected) => (
+                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                  {selected.map((value) => {
+                                    const genre = genres.find(g => g.id === value);
+                                    return (
+                                      <Chip
+                                        key={value}
+                                        label={genre?.name || value}
+                                        size="small"
+                                        sx={{ borderRadius: 1 }}
+                                      />
+                                    );
+                                  })}
+                                </Box>
+                              )}
+                              sx={{ borderRadius: 3, backgroundColor: '#fff' }}
+                            >
+                              {genres.map((genre) => (
+                                <MenuItem key={genre.id} value={genre.id}>
+                                  {genre.name}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        </Grid>
                       </Grid>
-                      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          onClick={() => {
-                            const current = books.find(b => b.id === selectedBookId);
-                            setBookAuthor(current?.author || '');
-                            setBookReadingLevel(current?.readingLevel || '');
-                            setBookAgeRange(current?.ageRange || '');
-                          }}
-                          sx={{ borderRadius: 3, fontWeight: 600 }}
-                        >
-                          Reset
-                        </Button>
-                        <Button
-                          variant="contained"
-                          size="small"
-                          color="primary"
-                          onClick={async () => {
-                            const current = books.find(b => b.id === selectedBookId);
-                            if (!current) return;
-
-                            const updated = {
-                              ...current,
-                              author: bookAuthor.trim() || null,
-                              readingLevel: bookReadingLevel.trim() || null,
-                              ageRange: bookAgeRange.trim() || null,
-                            };
-
-                            try {
-                              const response = await fetchWithAuth(`/api/books/${selectedBookId}`, {
-                                method: 'PUT',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(updated),
-                              });
-
-                              if (!response.ok) {
-                                throw new Error(`API error: ${response.status}`);
-                              }
-
-                              const saved = await response.json().catch(() => updated);
-                              const idx = books.findIndex(b => b.id === selectedBookId);
-                              if (idx !== -1) {
-                                books[idx] = saved;
-                              }
-                            } catch (err) {
-                              console.error('Failed to update book from SessionForm:', err);
-                            }
-                          }}
-                          sx={{
-                            borderRadius: 3,
-                            fontWeight: 600,
-                            background: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)',
-                            boxShadow: '4px 4px 8px rgba(139, 92, 246, 0.3)'
-                          }}
-                        >
-                          Update Book
-                        </Button>
+                      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', gap: 1 }}>
+                        <Box>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => {
+                              const current = books.find(b => b.id === selectedBookId);
+                              setBookAuthor(current?.author || '');
+                              setBookReadingLevel(current?.readingLevel || '');
+                              setBookAgeRange(current?.ageRange || '');
+                              setBookGenres(current?.genreIds || []);
+                            }}
+                            sx={{ borderRadius: 3, fontWeight: 600 }}
+                          >
+                            Reset
+                          </Button>
+                        </Box>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={handleGetBookDetails}
+                            disabled={isFetchingDetails}
+                            startIcon={<DownloadIcon />}
+                            sx={{ borderRadius: 3, fontWeight: 600 }}
+                          >
+                            {isFetchingDetails ? 'Fetching...' : 'Get Details'}
+                          </Button>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            color="primary"
+                            onClick={handleUpdateBookWithDetails}
+                            sx={{
+                              borderRadius: 3,
+                              fontWeight: 600,
+                              background: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)',
+                              boxShadow: '4px 4px 8px rgba(139, 92, 246, 0.3)'
+                            }}
+                          >
+                            Update Book
+                          </Button>
+                        </Box>
                       </Box>
                       <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block', fontStyle: 'italic' }}>
-                        Adjust these details and click "Update Book" to save them to the book record.
+                        Use "Get Details" to fetch author info from external APIs, then "Update Book" to save changes.
                       </Typography>
                     </Box>
                   )}
@@ -495,9 +634,9 @@ const SessionForm = () => {
                       .slice(0, 3)
                       .map((session) => (
                         <Grid size={12} key={session.id}>
-                          <Card 
+                          <Card
                             elevation={0}
-                            sx={{ 
+                            sx={{
                               borderRadius: 4,
                               backgroundColor: 'rgba(255,255,255,0.5)',
                               border: '1px solid rgba(255,255,255,0.6)',

@@ -1,5 +1,35 @@
 # Changelog
 
+## [2.3.2] - 2025-12-30
+
+### Added
+- **"Get Details" Button in Reading Record**: New button in the book details pane that fetches author information from Google Books or OpenLibrary
+  - Automatically populates the author field with metadata from the configured provider
+  - Works for both existing books and newly created books
+  - Shows loading state and provider availability checks
+  - Integrated with the existing unified book metadata API
+
+- **Genre Selector in Reading Record**: Added genre selection capability to the book details pane
+  - Multi-select dropdown showing all available genres
+  - Displays selected genres as chips with remove functionality
+  - Genres are saved when updating the book record
+
+- **Enhanced Book Autocomplete**: Always shows "Add new book" option when typing
+  - Option appears at the bottom of the dropdown list regardless of existing matches
+  - Streamlines adding books not yet in the library during reading sessions
+
+### Changed
+- **Reading Record Book Details Pane**: Enhanced with metadata retrieval workflow
+  - Added "Get Details" button alongside "Update Book"
+  - Improved button layout with proper spacing
+  - Added genre selection field
+  - Updated helper text to explain the metadata retrieval process
+
+### Fixed
+- **Form Reset**: Book genres now properly reset when clearing the form
+- **Error Handling**: Improved validation and error messages for metadata fetching
+- **State Management**: Ensures UI state updates correctly after metadata retrieval
+
 ## [2.3.1] - 2025-12-30
 
 ### Changed
