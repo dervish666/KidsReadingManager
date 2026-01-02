@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.3.3] - 2026-01-02
+
+### Changed
+- **Reading Preferences Modal**: Books the student has previously read now appear at the top of the likes/dislikes dropdowns
+  - Priority books are sorted first, then remaining books alphabetically
+  - Previously read books are labeled with "(previously read)" indicator
+  - Makes it easier to select familiar books when setting student preferences
+
+- **Reading Preferences Modal**: Modal now closes automatically after successfully saving preferences
+  - Remains open on error so users can see the error message and retry
+
 ## [2.3.2] - 2025-12-30
 
 ### Added

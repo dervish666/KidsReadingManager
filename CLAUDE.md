@@ -1,0 +1,307 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+Kids Reading Manager is a multi-tenant SaaS application for tracking student reading progress. Built with React 19 frontend and Cloudflare Workers backend (using Hono framework), it runs entirely on Cloudflare's edge infrastructure with D1 database and KV storage.
+
+## Development Commands
+
+### Local Development
+```bash
+# Start both frontend and backend (recommended)
+npm run start:dev
+
+# Frontend only (requires worker running separately)
+npm start          # Runs on http://localhost:3001
+
+# Worker only (API server)
+npm run dev        # Runs on http://localhost:8787
+```
+
+### Building
+```bash
+# Build React frontend only
+npm run build
+
+# Build and deploy to Cloudflare (production)
+npm run go                    # Runs build + deploy
+./scripts/build-and-deploy.sh # Full rebuild with clean install
+
+# Build and deploy to dev environment
+npm run build:deploy:dev
+```
+
+### Database Management
+```bash
+# Run migrations locally
+npx wrangler d1 migrations apply reading-manager-db --local
+
+# Run migrations on production
+npx wrangler d1 migrations apply reading-manager-db --remote
+
+# Run data migration from old format
+npm run migrate
+```
+
+### Deployment
+```bash
+# Deploy to Cloudflare Workers (production)
+npm run deploy
+wrangler deploy
+
+# Deploy to dev environment
+wrangler deploy --env=dev
+```
+
+## Architecture
+
+### Dual Authentication System
+
+The application supports two authentication modes that coexist:
+
+1. **Multi-Tenant Mode** (JWT_SECRET configured): JWT-based authentication with organizations, users, roles, and D1 database storage
+2. **Legacy Mode** (WORKER_ADMIN_PASSWORD only): Simple shared password with KV storage
+
+The worker automatically detects which mode to use based on environment variables (see `src/worker.js:59-68`). This allows gradual migration from legacy to multi-tenant.
+
+### Data Storage Strategy
+
+**Multi-Tenant Mode (Primary)**:
+- D1 SQL database (`READING_MANAGER_DB` binding) for all data
+- Normalized tables with foreign keys and organization scoping
+- See `migrations/*.sql` for schema
+- Data provider: `src/data/d1Provider.js`
+
+**Legacy Mode (Fallback)**:
+- Cloudflare KV (`READING_MANAGER_KV` binding) with JSON blobs
+- Single-tenant, backward compatible
+- Data provider: `src/data/jsonProvider.js`
+
+### Request Flow
+
+1. Request hits Cloudflare Worker (`src/worker.js`)
+2. Middleware chain:
+   - `logger()` - Request logging
+   - `cors()` - CORS headers
+   - `errorHandler()` - Catch errors
+   - `authMiddleware()` OR `jwtAuthMiddleware()` - Authentication (mode-dependent)
+   - `tenantMiddleware()` - Inject organization context (multi-tenant only)
+3. Routes in `src/routes/` handle business logic
+4. Data providers (`src/data/`) abstract storage layer
+5. Response sent back
+
+### Frontend-Backend Integration
+
+**Development**: Frontend proxies `/api` requests to backend (see `rsbuild.config.mjs:8-13`)
+**Production**: Worker serves both API (`/api/*`) and static assets from `build/` directory (see `wrangler.toml:22-24`)
+
+## Multi-Tenant Architecture
+
+### Organization Isolation
+
+All data queries are automatically scoped to the user's organization through middleware:
+- `tenantMiddleware()` injects `c.get('organizationId')` into context
+- Routes use this to filter queries: `WHERE organization_id = ?`
+- Users can only access data from their organization (except owners)
+
+### Role Hierarchy
+
+- **Owner**: Full system access, manages all organizations
+- **Admin**: Organization-level management, creates users/teachers
+- **Teacher**: Manages students, classes, reading sessions
+- **Readonly**: View-only access
+
+Permissions are enforced in middleware (`src/middleware/tenant.js`) and route handlers.
+
+### Key Tables
+
+- `organizations` - Multi-tenant foundation with subscription tiers
+- `users` - User accounts with roles and organization FK
+- `students` - Organization-scoped students
+- `reading_sessions` - Session data linked to students
+- `books` - Global book catalog with FTS5 search
+- `organization_book_selections` - Per-organization book customization
+- `classes`, `genres`, `organization_settings` - Organization-scoped
+
+## Important Implementation Details
+
+### Book Recommendations (AI)
+
+The recommendations feature optimizes for large book collections (18,000+):
+1. Pre-filter at SQL level by reading level (±2 levels) and genres
+2. Exclude already-read books in query
+3. Randomize and limit to ~100 books
+4. Send filtered list to AI provider with student context
+5. AI returns personalized recommendations with reasoning
+
+See `src/routes/books.js` (recommendations endpoint) and `src/components/BookRecommendations.js`.
+
+### Home Reading Register
+
+Quick entry UI for recording class-wide home reading:
+- Register-style grid with students as rows
+- Status buttons: ✓ (read), 2+ (multiple), A (absent), • (no record)
+- Student book persistence (remembers current book)
+- Drag-and-drop student reordering
+- Efficient bulk session creation
+
+See `src/components/sessions/HomeReadingRegister.js`.
+
+### Book Metadata APIs
+
+Two providers for fetching book metadata:
+- **OpenLibrary API**: Default, no API key required
+- **Google Books API**: Requires API key, more complete data
+
+Configured in Settings UI. Used for auto-filling book descriptions, authors, genres.
+
+## File Structure
+
+```
+src/
+├── worker.js                 # Cloudflare Worker entry point
+├── index.js                  # React app entry point
+├── App.js                    # Root React component
+├── routes/                   # API route handlers (Hono)
+│   ├── auth.js              # JWT authentication endpoints
+│   ├── users.js             # User management
+│   ├── organization.js      # Organization/school management
+│   ├── students.js          # Student CRUD
+│   ├── classes.js           # Class management
+│   ├── books.js             # Book CRUD + recommendations
+│   ├── genres.js            # Genre management
+│   ├── settings.js          # App settings
+│   └── data.js              # Import/export
+├── middleware/
+│   ├── auth.js              # Legacy password auth
+│   ├── tenant.js            # JWT auth + organization middleware
+│   └── errorHandler.js      # Error handling
+├── data/
+│   ├── d1Provider.js        # D1 database operations (multi-tenant)
+│   └── jsonProvider.js      # KV storage operations (legacy)
+├── components/              # React UI components
+│   ├── students/            # Student management UIs
+│   ├── sessions/            # Reading session entry UIs
+│   ├── books/               # Book management UIs
+│   ├── classes/             # Class management UIs
+│   ├── stats/               # Analytics/charts
+│   ├── Login.js             # Auth UI
+│   ├── UserManagement.js    # User CRUD UI
+│   ├── SchoolManagement.js  # Organization CRUD UI
+│   └── BookRecommendations.js # AI recommendations UI
+├── contexts/
+│   └── AppContext.js        # Global state (class filter, auth)
+└── utils/
+    ├── openLibraryApi.js    # OpenLibrary API client
+    ├── googleBooksApi.js    # Google Books API client
+    ├── bookMetadataApi.js   # Unified metadata interface
+    └── validation.js        # Input validation
+
+migrations/                   # D1 database migrations
+scripts/
+├── migration.js             # Data migration script
+└── build-and-deploy.sh      # Build + deploy automation
+```
+
+## Common Development Patterns
+
+### Adding a New API Endpoint
+
+1. Create route handler in `src/routes/*.js` (or add to existing)
+2. Apply authentication/authorization checks
+3. Use `c.get('organizationId')` for multi-tenant scoping
+4. Access D1 via `c.env.READING_MANAGER_DB` or KV via `c.env.READING_MANAGER_KV`
+5. Return JSON responses with proper HTTP status codes
+
+Example:
+```javascript
+app.get('/api/students', async (c) => {
+  const organizationId = c.get('organizationId');
+  const db = c.env.READING_MANAGER_DB;
+
+  const result = await db
+    .prepare('SELECT * FROM students WHERE organization_id = ?')
+    .bind(organizationId)
+    .all();
+
+  return c.json(result.results);
+});
+```
+
+### Adding a Database Migration
+
+1. Create new file: `migrations/XXXX_description.sql`
+2. Write migration SQL (use IF NOT EXISTS for safety)
+3. Test locally: `npx wrangler d1 migrations apply reading-manager-db --local`
+4. Deploy: `npx wrangler d1 migrations apply reading-manager-db --remote`
+
+### Working with the Data Providers
+
+The data layer is abstracted through providers:
+- Multi-tenant: Import functions from `src/data/d1Provider.js`
+- Legacy: Import from `src/data/jsonProvider.js`
+- Workers automatically route to correct provider based on config
+
+When adding new data operations, implement in both providers for backward compatibility.
+
+## Configuration
+
+### Environment Variables (Cloudflare)
+
+Set in Cloudflare dashboard or `wrangler.toml`:
+
+**Multi-Tenant Mode**:
+- `JWT_SECRET` - Required for JWT auth (enables multi-tenant)
+- `ANTHROPIC_API_KEY` - Optional fallback for AI recommendations
+
+**Legacy Mode**:
+- `WORKER_ADMIN_PASSWORD` - Shared password for legacy auth
+
+### Wrangler Bindings
+
+Configured in `wrangler.toml`:
+- `READING_MANAGER_KV` - KV namespace for legacy storage
+- `READING_MANAGER_DB` - D1 database for multi-tenant storage
+
+### Frontend Environment Variables
+
+- `REACT_APP_API_BASE_URL` - API base URL (set during build for production)
+
+## Testing Notes
+
+There are currently no automated tests. When testing:
+1. Test both authentication modes (JWT and legacy)
+2. Test multi-tenant isolation (create multiple orgs, verify data separation)
+3. Test role permissions (owner/admin/teacher/readonly)
+4. Test with large datasets (18,000+ books for performance)
+5. Test mobile UI (bottom navigation, touch interactions)
+
+## Deployment Checklist
+
+1. Create KV namespace: `wrangler kv:namespace create READING_MANAGER_KV`
+2. Create D1 database: `wrangler d1 create reading-manager-db`
+3. Update `wrangler.toml` with IDs
+4. Run migrations: `npx wrangler d1 migrations apply reading-manager-db --remote`
+5. Set `JWT_SECRET` in Cloudflare dashboard (for multi-tenant)
+6. Build frontend: `npm run build`
+7. Deploy: `wrangler deploy`
+
+## Key Dependencies
+
+- **Hono**: Fast web framework for Workers
+- **React 19**: UI library
+- **Material-UI v7**: Component library
+- **@rsbuild/core**: Build tool (replaces create-react-app)
+- **@anthropic-ai/sdk**: Claude AI integration
+- **qr-scanner**: Barcode scanning for book ISBN
+- **uuid**: ID generation
+
+## Known Limitations
+
+- No automated tests
+- No TypeScript (plain JavaScript)
+- Single-region deployment (Cloudflare edge)
+- AI recommendations require external API keys
+- Book metadata APIs have rate limits

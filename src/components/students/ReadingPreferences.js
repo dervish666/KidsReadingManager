@@ -55,6 +55,15 @@ const ReadingPreferences = ({ open, onClose, student }) => {
   const [addGenreOpen, setAddGenreOpen] = useState(false);
   const [newGenreName, setNewGenreName] = useState('');
 
+  // Get unique book IDs from student's reading sessions
+  const studentReadBookIds = React.useMemo(() => {
+    if (!student || !student.readingSessions) return [];
+    const bookIds = student.readingSessions
+      .map(session => session.bookId)
+      .filter(Boolean);
+    return [...new Set(bookIds)];
+  }, [student]);
+
   // Initialize preferences when student or dialog changes
   useEffect(() => {
     if (student && open) {
@@ -91,6 +100,7 @@ const ReadingPreferences = ({ open, onClose, student }) => {
       setSnackbarMessage('Reading preferences saved successfully!');
       setSnackbarSeverity('success');
       setSnackbarOpen(true);
+      onClose();
     } catch (error) {
       console.error('Error saving preferences:', error);
       setSnackbarMessage('Failed to save preferences');
@@ -248,6 +258,7 @@ const ReadingPreferences = ({ open, onClose, student }) => {
                 onChange={handleAddLike}
                 label="Add a book they enjoy"
                 placeholder="Type to search for books..."
+                priorityBookIds={studentReadBookIds}
               />
             </Box>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
@@ -275,6 +286,7 @@ const ReadingPreferences = ({ open, onClose, student }) => {
                 onChange={handleAddDislike}
                 label="Add a book they avoid"
                 placeholder="Type to search for books..."
+                priorityBookIds={studentReadBookIds}
               />
             </Box>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>

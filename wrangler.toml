@@ -28,27 +28,10 @@ not_found_handling = "single-page-application"
 ENVIRONMENT = "production"
 STORAGE_TYPE = "kv"
 
-# Development environment variables
-[env.dev]
-[env.dev.vars]
-ENVIRONMENT = "development"
-STORAGE_TYPE = "json"
-
-# Static assets configuration for serving the React frontend
-# [site] block removed (deprecated)
-# Bind to a custom domain or subdomain if needed
-# [routes]
-# pattern = "https://kids-reading-manager.example.com/*"
-# zone_name = "example.com"
-
 # Route configuration for custom domain
 routes = [
   { pattern = "reading.brisflix.com/*", zone_name = "brisflix.com" }
 ]
-
-# Triggers
-[triggers]
-crons = []
 
 [observability.logs]
 enabled = true

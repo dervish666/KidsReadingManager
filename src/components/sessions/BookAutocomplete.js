@@ -12,7 +12,8 @@ const BookAutocomplete = ({
   onBookCreated,
   onBookCreationStart,
   label = 'Book (Optional)',
-  placeholder = 'Select or type book title...'
+  placeholder = 'Select or type book title...',
+  priorityBookIds = []
 }) => {
   const { books, findOrCreateBook } = useAppContext();
   const [inputValue, setInputValue] = useState('');
@@ -140,19 +141,33 @@ const BookAutocomplete = ({
   };
 
   // Build options: filtered books plus conditional "Add new" option
+  // Priority books (e.g., books the student has read) appear at the top
   const computedOptions = React.useMemo(() => {
     const term = inputValue.trim().toLowerCase();
 
-    const existingBooks = books.filter(book => {
+    const filteredBooks = books.filter(book => {
       const displayText = `${book.title}${book.author ? ` ${book.author}` : ''}`.toLowerCase();
       return term ? displayText.includes(term) : true;
+    });
+
+    // Sort books: priority books first, then alphabetically
+    const prioritySet = new Set(priorityBookIds);
+    const sortedBooks = [...filteredBooks].sort((a, b) => {
+      const aIsPriority = prioritySet.has(a.id);
+      const bIsPriority = prioritySet.has(b.id);
+
+      if (aIsPriority && !bIsPriority) return -1;
+      if (!aIsPriority && bIsPriority) return 1;
+
+      // Within same priority group, sort alphabetically
+      return a.title.localeCompare(b.title);
     });
 
     // Always show "Add new book" option when there is input, regardless of matches
     // This option will always be the last item in the list
     if (term) {
       return [
-        ...existingBooks,
+        ...sortedBooks,
         {
           type: 'add-new',
           inputValue: inputValue,
@@ -161,8 +176,8 @@ const BookAutocomplete = ({
       ];
     }
 
-    return existingBooks;
-  }, [books, inputValue]);
+    return sortedBooks;
+  }, [books, inputValue, priorityBookIds]);
 
   const handleModalClose = () => {
     setAddModalOpen(false);
@@ -231,10 +246,24 @@ const BookAutocomplete = ({
             );
           }
 
+          const isPriority = priorityBookIds.includes(option.id);
+
           return (
             <li {...restProps} key={option.id}>
-              <div className="flex flex-col">
-                <span className="font-medium">{option.title}</span>
+              <div className="flex flex-col" style={{ width: '100%' }}>
+                <span className="font-medium">
+                  {option.title}
+                  {isPriority && (
+                    <span style={{
+                      marginLeft: 8,
+                      fontSize: '0.75rem',
+                      color: '#1976d2',
+                      fontWeight: 'normal'
+                    }}>
+                      (previously read)
+                    </span>
+                  )}
+                </span>
                 {option.author && (
                   <span className="text-sm text-gray-500"> by {option.author}</span>
                 )}
