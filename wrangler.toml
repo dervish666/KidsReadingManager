@@ -41,6 +41,11 @@ STORAGE_TYPE = "json"
 # pattern = "https://kids-reading-manager.example.com/*"
 # zone_name = "example.com"
 
+# Route configuration for custom domain
+routes = [
+  { pattern = "reading.brisflix.com/*", zone_name = "brisflix.com" }
+]
+
 # Triggers
 [triggers]
 crons = []
