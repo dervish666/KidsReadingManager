@@ -22,6 +22,10 @@ import MenuBookIcon from '@mui/icons-material/MenuBook';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import TimelineIcon from '@mui/icons-material/Timeline';
+import HomeIcon from '@mui/icons-material/Home';
+import SchoolIcon from '@mui/icons-material/School';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import VisualIndicators from './VisualIndicators';
 import DaysSinceReadingChart from './DaysSinceReadingChart';
 import ReadingTimelineChart from './ReadingTimelineChart';
@@ -52,12 +56,21 @@ const ReadingStats = () => {
           if (student.classId !== globalClassFilter) return false;
         }
       }
-      
+
       // Then, filter out students from disabled classes
       if (!student.classId) return true; // Include students not assigned to any class
       const studentClass = classes.find(cls => cls.id === student.classId);
       return !studentClass || !studentClass.disabled;
     });
+
+    // Calculate date boundaries
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay()); // Sunday
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const startOfLastWeek = new Date(startOfWeek);
+    startOfLastWeek.setDate(startOfLastWeek.getDate() - 7);
 
     if (activeStudents.length === 0) {
       return {
@@ -65,45 +78,59 @@ const ReadingStats = () => {
         totalSessions: 0,
         averageSessionsPerStudent: 0,
         studentsWithNoSessions: 0,
-        assessmentDistribution: {
-          struggling: 0,
-          needsHelp: 0,
-          independent: 0
-        },
-        statusDistribution: {
-          notRead: 0,
-          needsAttention: 0,
-          recentlyRead: 0
-        }
+        statusDistribution: { notRead: 0, needsAttention: 0, recentlyRead: 0 },
+        locationDistribution: { home: 0, school: 0 },
+        weeklyActivity: { thisWeek: 0, lastWeek: 0 },
+        mostReadBooks: [],
+        readingByDay: { Sun: 0, Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0 }
       };
     }
-    
+
     let totalSessions = 0;
     let studentsWithNoSessions = 0;
-    let assessmentCounts = {
-      struggling: 0,
-      'needs-help': 0,
-      independent: 0
-    };
-    let statusCounts = {
-      notRead: 0,
-      needsAttention: 0,
-      recentlyRead: 0
-    };
-    
-    // Count sessions and assessments
+    let statusCounts = { notRead: 0, needsAttention: 0, recentlyRead: 0 };
+    let locationCounts = { home: 0, school: 0 };
+    let thisWeekSessions = 0;
+    let lastWeekSessions = 0;
+    const bookCounts = {};
+    const dayCounts = { Sun: 0, Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0 };
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    // Count sessions and new stats
     activeStudents.forEach(student => {
-      const sessionCount = student.readingSessions.length;
+      const sessionCount = student.readingSessions?.length || 0;
       totalSessions += sessionCount;
 
       if (sessionCount === 0) {
         studentsWithNoSessions++;
       }
 
-      // Count assessments
-      student.readingSessions.forEach(session => {
-        if (assessmentCounts.hasOwnProperty(session.assessment)) {
-          assessmentCounts[session.assessment]++;
+      // Process each session for detailed stats
+      (student.readingSessions || []).forEach(session => {
+        // Location distribution
+        const location = session.location || 'school';
+        if (locationCounts.hasOwnProperty(location)) {
+          locationCounts[location]++;
+        }
+
+        // Weekly activity
+        if (session.date) {
+          const sessionDate = new Date(session.date);
+          if (sessionDate >= startOfWeek) {
+            thisWeekSessions++;
+          } else if (sessionDate >= startOfLastWeek && sessionDate < startOfWeek) {
+            lastWeekSessions++;
+          }
+
+          // Reading by day of week
+          const dayOfWeek = sessionDate.getDay();
+          dayCounts[dayNames[dayOfWeek]]++;
+        }
+
+        // Most read books
+        if (session.bookTitle) {
+          const bookKey = session.bookTitle;
+          bookCounts[bookKey] = (bookCounts[bookKey] || 0) + 1;
         }
       });
 
@@ -112,13 +139,22 @@ const ReadingStats = () => {
       statusCounts[status]++;
     });
 
+    // Get top 5 most read books
+    const mostReadBooks = Object.entries(bookCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([title, count]) => ({ title, count }));
+
     return {
       totalStudents: activeStudents.length,
       totalSessions,
       averageSessionsPerStudent: activeStudents.length > 0 ? totalSessions / activeStudents.length : 0,
       studentsWithNoSessions,
-      assessmentDistribution: assessmentCounts,
-      statusDistribution: statusCounts
+      statusDistribution: statusCounts,
+      locationDistribution: locationCounts,
+      weeklyActivity: { thisWeek: thisWeekSessions, lastWeek: lastWeekSessions },
+      mostReadBooks,
+      readingByDay: dayCounts
     };
   };
   
@@ -231,40 +267,172 @@ const ReadingStats = () => {
         </Card>
       </Grid>
       
-      <Grid item xs={12}>
+      {/* This Week's Activity */}
+      <Grid item xs={12} sm={6}>
         <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(160, 150, 180, 0.1)' }}>
           <CardContent>
             <Typography variant="h6" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
-              Assessment Distribution
+              This Week's Activity
             </Typography>
-            <Box sx={{ display: 'flex', justifyContent: 'space-around', mt: 4, flexWrap: 'wrap', gap: 2 }}>
-              <Box sx={{ textAlign: 'center', p: 2, borderRadius: 3, bgcolor: '#FEE2E2', minWidth: 120 }}>
-                <Typography variant="h4" sx={{ color: '#EF4444', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}>
-                  {stats.assessmentDistribution.struggling}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', mt: 2 }}>
+              <Box sx={{ textAlign: 'center' }}>
+                <Typography variant="h3" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#7C3AED' }}>
+                  {stats.weeklyActivity.thisWeek}
                 </Typography>
-                <Typography variant="body2" sx={{ color: '#B91C1C', fontWeight: 600 }}>
-                  Struggling
-                </Typography>
-              </Box>
-              
-              <Box sx={{ textAlign: 'center', p: 2, borderRadius: 3, bgcolor: '#FEF3C7', minWidth: 120 }}>
-                <Typography variant="h4" sx={{ color: '#F59E0B', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}>
-                  {stats.assessmentDistribution['needs-help']}
-                </Typography>
-                <Typography variant="body2" sx={{ color: '#B45309', fontWeight: 600 }}>
-                  Needs Help
+                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                  This Week
                 </Typography>
               </Box>
-              
-              <Box sx={{ textAlign: 'center', p: 2, borderRadius: 3, bgcolor: '#D1FAE5', minWidth: 120 }}>
-                <Typography variant="h4" sx={{ color: '#10B981', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}>
-                  {stats.assessmentDistribution.independent}
+              <Box sx={{ display: 'flex', alignItems: 'center', px: 2 }}>
+                {stats.weeklyActivity.thisWeek >= stats.weeklyActivity.lastWeek ? (
+                  <TrendingUpIcon sx={{ fontSize: 40, color: '#10B981' }} />
+                ) : (
+                  <TrendingDownIcon sx={{ fontSize: 40, color: '#EF4444' }} />
+                )}
+              </Box>
+              <Box sx={{ textAlign: 'center' }}>
+                <Typography variant="h3" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#9CA3AF' }}>
+                  {stats.weeklyActivity.lastWeek}
                 </Typography>
-                <Typography variant="body2" sx={{ color: '#047857', fontWeight: 600 }}>
-                  Independent
+                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                  Last Week
                 </Typography>
               </Box>
             </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+
+      {/* Home vs School Reading */}
+      <Grid item xs={12} sm={6}>
+        <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(160, 150, 180, 0.1)' }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
+              Home vs School Reading
+            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-around', mt: 2 }}>
+              <Box sx={{ textAlign: 'center', p: 2, borderRadius: 3, bgcolor: '#DBEAFE', minWidth: 120 }}>
+                <SchoolIcon sx={{ fontSize: 32, color: '#3B82F6', mb: 1 }} />
+                <Typography variant="h4" sx={{ color: '#3B82F6', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}>
+                  {stats.locationDistribution.school}
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#1D4ED8', fontWeight: 600 }}>
+                  School
+                </Typography>
+              </Box>
+              <Box sx={{ textAlign: 'center', p: 2, borderRadius: 3, bgcolor: '#FCE7F3', minWidth: 120 }}>
+                <HomeIcon sx={{ fontSize: 32, color: '#EC4899', mb: 1 }} />
+                <Typography variant="h4" sx={{ color: '#EC4899', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}>
+                  {stats.locationDistribution.home}
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#BE185D', fontWeight: 600 }}>
+                  Home
+                </Typography>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+
+      {/* Reading by Day of Week */}
+      <Grid item xs={12} sm={6}>
+        <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(160, 150, 180, 0.1)' }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
+              Reading by Day
+            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2, gap: 0.5 }}>
+              {Object.entries(stats.readingByDay).map(([day, count]) => {
+                const maxCount = Math.max(...Object.values(stats.readingByDay), 1);
+                const height = Math.max((count / maxCount) * 60, 4);
+                return (
+                  <Box key={day} sx={{ textAlign: 'center', flex: 1 }}>
+                    <Box sx={{
+                      height: 70,
+                      display: 'flex',
+                      alignItems: 'flex-end',
+                      justifyContent: 'center',
+                      mb: 0.5
+                    }}>
+                      <Box sx={{
+                        width: '100%',
+                        maxWidth: 30,
+                        height: height,
+                        bgcolor: count > 0 ? '#7C3AED' : '#E5E7EB',
+                        borderRadius: 1,
+                        transition: 'height 0.3s'
+                      }} />
+                    </Box>
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: '#635F69' }}>
+                      {day}
+                    </Typography>
+                    <Typography variant="caption" display="block" sx={{ color: '#9CA3AF', fontSize: '0.65rem' }}>
+                      {count}
+                    </Typography>
+                  </Box>
+                );
+              })}
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+
+      {/* Most Read Books */}
+      <Grid item xs={12} sm={6}>
+        <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(160, 150, 180, 0.1)' }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
+              Most Read Books
+            </Typography>
+            {stats.mostReadBooks.length === 0 ? (
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 2, textAlign: 'center' }}>
+                No book data recorded yet
+              </Typography>
+            ) : (
+              <List dense sx={{ mt: 1 }}>
+                {stats.mostReadBooks.map((book, index) => (
+                  <ListItem key={index} sx={{ px: 0 }}>
+                    <ListItemIcon sx={{ minWidth: 36 }}>
+                      <Box sx={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: '50%',
+                        bgcolor: index === 0 ? '#FEF3C7' : '#F3F4F6',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <Typography variant="caption" sx={{ fontWeight: 700, color: index === 0 ? '#F59E0B' : '#6B7280' }}>
+                          {index + 1}
+                        </Typography>
+                      </Box>
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={
+                        <Typography variant="body2" sx={{
+                          fontWeight: 600,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {book.title}
+                        </Typography>
+                      }
+                    />
+                    <Chip
+                      label={`${book.count} ${book.count === 1 ? 'read' : 'reads'}`}
+                      size="small"
+                      sx={{
+                        bgcolor: '#E0E7FF',
+                        color: '#4F46E5',
+                        fontWeight: 600,
+                        fontSize: '0.7rem'
+                      }}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            )}
           </CardContent>
         </Card>
       </Grid>

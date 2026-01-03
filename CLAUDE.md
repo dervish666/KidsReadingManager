@@ -157,54 +157,6 @@ Two providers for fetching book metadata:
 
 Configured in Settings UI. Used for auto-filling book descriptions, authors, genres.
 
-## File Structure
-
-```
-src/
-├── worker.js                 # Cloudflare Worker entry point
-├── index.js                  # React app entry point
-├── App.js                    # Root React component
-├── routes/                   # API route handlers (Hono)
-│   ├── auth.js              # JWT authentication endpoints
-│   ├── users.js             # User management
-│   ├── organization.js      # Organization/school management
-│   ├── students.js          # Student CRUD
-│   ├── classes.js           # Class management
-│   ├── books.js             # Book CRUD + recommendations
-│   ├── genres.js            # Genre management
-│   ├── settings.js          # App settings
-│   └── data.js              # Import/export
-├── middleware/
-│   ├── auth.js              # Legacy password auth
-│   ├── tenant.js            # JWT auth + organization middleware
-│   └── errorHandler.js      # Error handling
-├── data/
-│   ├── d1Provider.js        # D1 database operations (multi-tenant)
-│   └── jsonProvider.js      # KV storage operations (legacy)
-├── components/              # React UI components
-│   ├── students/            # Student management UIs
-│   ├── sessions/            # Reading session entry UIs
-│   ├── books/               # Book management UIs
-│   ├── classes/             # Class management UIs
-│   ├── stats/               # Analytics/charts
-│   ├── Login.js             # Auth UI
-│   ├── UserManagement.js    # User CRUD UI
-│   ├── SchoolManagement.js  # Organization CRUD UI
-│   └── BookRecommendations.js # AI recommendations UI
-├── contexts/
-│   └── AppContext.js        # Global state (class filter, auth)
-└── utils/
-    ├── openLibraryApi.js    # OpenLibrary API client
-    ├── googleBooksApi.js    # Google Books API client
-    ├── bookMetadataApi.js   # Unified metadata interface
-    └── validation.js        # Input validation
-
-migrations/                   # D1 database migrations
-scripts/
-├── migration.js             # Data migration script
-└── build-and-deploy.sh      # Build + deploy automation
-```
-
 ## Common Development Patterns
 
 ### Adding a New API Endpoint
@@ -254,10 +206,14 @@ Set in Cloudflare dashboard or `wrangler.toml`:
 
 **Multi-Tenant Mode**:
 - `JWT_SECRET` - Required for JWT auth (enables multi-tenant)
-- `ANTHROPIC_API_KEY` - Optional fallback for AI recommendations
 
 **Legacy Mode**:
 - `WORKER_ADMIN_PASSWORD` - Shared password for legacy auth
+
+**AI Recommendations** (at least one required for book recommendations):
+- `ANTHROPIC_API_KEY` - Claude AI provider
+- `OPENAI_API_KEY` - OpenAI provider
+- `GOOGLE_API_KEY` - Google Gemini provider
 
 ### Wrangler Bindings
 
@@ -269,39 +225,8 @@ Configured in `wrangler.toml`:
 
 - `REACT_APP_API_BASE_URL` - API base URL (set during build for production)
 
-## Testing Notes
-
-There are currently no automated tests. When testing:
-1. Test both authentication modes (JWT and legacy)
-2. Test multi-tenant isolation (create multiple orgs, verify data separation)
-3. Test role permissions (owner/admin/teacher/readonly)
-4. Test with large datasets (18,000+ books for performance)
-5. Test mobile UI (bottom navigation, touch interactions)
-
-## Deployment Checklist
-
-1. Create KV namespace: `wrangler kv:namespace create READING_MANAGER_KV`
-2. Create D1 database: `wrangler d1 create reading-manager-db`
-3. Update `wrangler.toml` with IDs
-4. Run migrations: `npx wrangler d1 migrations apply reading-manager-db --remote`
-5. Set `JWT_SECRET` in Cloudflare dashboard (for multi-tenant)
-6. Build frontend: `npm run build`
-7. Deploy: `wrangler deploy`
-
-## Key Dependencies
-
-- **Hono**: Fast web framework for Workers
-- **React 19**: UI library
-- **Material-UI v7**: Component library
-- **@rsbuild/core**: Build tool (replaces create-react-app)
-- **@anthropic-ai/sdk**: Claude AI integration
-- **qr-scanner**: Barcode scanning for book ISBN
-- **uuid**: ID generation
-
 ## Known Limitations
 
-- No automated tests
-- No TypeScript (plain JavaScript)
-- Single-region deployment (Cloudflare edge)
-- AI recommendations require external API keys
-- Book metadata APIs have rate limits
+- No automated tests (manual testing required for both auth modes, multi-tenant isolation, role permissions)
+- AI recommendations require API keys configured in Cloudflare dashboard
+- Book metadata APIs (OpenLibrary, Google Books) have rate limits

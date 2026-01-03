@@ -65,14 +65,24 @@ const BulkImport = ({ open, onClose }) => {
       return;
     }
     
-    // Check for duplicates with existing students
-    const existingNames = students.map(s => s.name.toLowerCase());
-    const duplicates = names.filter(name => 
+    // Check for duplicates only within the same class (or unassigned if no class selected)
+    const studentsInSameClass = students.filter(s => {
+      if (selectedClassId) {
+        return s.classId === selectedClassId;
+      } else {
+        return !s.classId; // Unassigned students
+      }
+    });
+    const existingNames = studentsInSameClass.map(s => s.name.toLowerCase());
+    const duplicates = names.filter(name =>
       existingNames.includes(name.toLowerCase())
     );
-    
+
     if (duplicates.length > 0) {
-      setError(`Some students already exist: ${duplicates.join(', ')}`);
+      const classContext = selectedClassId
+        ? classes.find(c => c.id === selectedClassId)?.name || 'this class'
+        : 'unassigned students';
+      setError(`Some students already exist in ${classContext}: ${duplicates.join(', ')}`);
       return;
     }
     
@@ -116,7 +126,7 @@ const BulkImport = ({ open, onClose }) => {
                 </MenuItem>
                 {classes.map((cls) => (
                   <MenuItem key={cls.id} value={cls.id}>
-                    {cls.name}
+                    {cls.teacherName ? `${cls.name} - ${cls.teacherName}` : cls.name}
                   </MenuItem>
                 ))}
               </Select>

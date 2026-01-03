@@ -367,7 +367,7 @@ const StudentList = () => {
               </MenuItem>
               {classes.filter(cls => !cls.disabled).map((cls) => (
                 <MenuItem key={cls.id} value={cls.id}>
-                  {cls.name} ({cls.teacherName})
+                  {cls.teacherName ? `${cls.name} - ${cls.teacherName}` : cls.name}
                 </MenuItem>
               ))}
             </Select>

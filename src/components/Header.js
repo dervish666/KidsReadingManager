@@ -16,12 +16,20 @@ const Header = () => {
     setGlobalClassFilter(event.target.value);
   };
   
+  // Format class name with teacher if available
+  const formatClassName = (cls) => {
+    if (cls.teacherName) {
+      return `${cls.name} - ${cls.teacherName}`;
+    }
+    return cls.name;
+  };
+
   // Get display name for current filter
   const getFilterDisplayName = () => {
     if (globalClassFilter === 'all') return 'All Classes';
     if (globalClassFilter === 'unassigned') return 'Unassigned';
     const selectedClass = classes.find(cls => cls.id === globalClassFilter);
-    return selectedClass ? selectedClass.name : 'All Classes';
+    return selectedClass ? formatClassName(selectedClass) : 'All Classes';
   };
 
   return (
@@ -138,7 +146,7 @@ const Header = () => {
                 <MenuItem value="unassigned" sx={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 500 }}>Unassigned</MenuItem>
                 {activeClasses.map((cls) => (
                   <MenuItem key={cls.id} value={cls.id} sx={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 500 }}>
-                    {cls.name}
+                    {formatClassName(cls)}
                   </MenuItem>
                 ))}
               </Select>
