@@ -247,7 +247,7 @@ export const AppProvider = ({ children }) => {
         window.localStorage.removeItem(AUTH_STORAGE_KEY);
         window.localStorage.removeItem(REFRESH_TOKEN_KEY);
         window.localStorage.removeItem(USER_STORAGE_KEY);
-        window.localStorage.removeItem(AUTH_MODE_KEY);
+        // Don't remove AUTH_MODE_KEY - preserve the server's detected auth mode
       }
     } catch {
       // ignore
@@ -255,7 +255,7 @@ export const AppProvider = ({ children }) => {
     setAuthToken(null);
     setRefreshToken(null);
     setUser(null);
-    setAuthMode('legacy');
+    // Don't reset authMode - preserve the server's detected auth mode
   }, []);
 
   // Helper: fetch with auth header + 401 handling + token refresh
