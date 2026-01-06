@@ -338,7 +338,8 @@ const UserManagement = () => {
                   <MenuItem value="readonly">Read Only</MenuItem>
                 </Select>
               </FormControl>
-              {organizations.length > 1 && (
+              {/* Only show organization selector for owners with multiple organizations */}
+              {user?.role === 'owner' && organizations.length > 1 && (
                 <FormControl fullWidth margin="normal">
                   <InputLabel>School</InputLabel>
                   <Select
@@ -501,7 +502,8 @@ const UserManagement = () => {
                 <MenuItem value="readonly">Read Only</MenuItem>
               </Select>
             </FormControl>
-            {organizations.length > 1 && (
+            {/* Only show organization selector for owners with multiple organizations */}
+            {user?.role === 'owner' && organizations.length > 1 && (
               <FormControl fullWidth margin="normal">
                 <InputLabel>School</InputLabel>
                 <Select

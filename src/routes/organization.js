@@ -63,18 +63,33 @@ organizationRouter.get('/', async (c) => {
 
 /**
  * GET /api/organization/all
- * List all organizations (for admin purposes)
+ * List organizations
+ * - Owners can see all organizations
+ * - Admins can only see their own organization
  * Requires: admin role
  */
 organizationRouter.get('/all', requireAdmin(), async (c) => {
   try {
     const db = getDB(c.env);
+    const userRole = c.get('userRole');
+    const organizationId = c.get('organizationId');
 
-    const result = await db.prepare(`
-      SELECT * FROM organizations
-      WHERE is_active = 1
-      ORDER BY name
-    `).all();
+    let result;
+
+    // Only owners can see all organizations
+    // Admins can only see their own organization
+    if (userRole === 'owner') {
+      result = await db.prepare(`
+        SELECT * FROM organizations
+        WHERE is_active = 1
+        ORDER BY name
+      `).all();
+    } else {
+      result = await db.prepare(`
+        SELECT * FROM organizations
+        WHERE id = ? AND is_active = 1
+      `).bind(organizationId).all();
+    }
 
     const organizations = (result.results || []).map(rowToOrganization);
 
