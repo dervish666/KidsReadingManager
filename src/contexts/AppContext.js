@@ -54,11 +54,11 @@ export const AppProvider = ({ children }) => {
   
   // Multi-tenant auth state - initially null until detected from server
   const [authMode, setAuthMode] = useState(() => {
-    if (typeof window === 'undefined') return 'legacy';
+    if (typeof window === 'undefined') return 'multitenant';
     try {
-      return window.localStorage.getItem(AUTH_MODE_KEY) || 'legacy';
+      return window.localStorage.getItem(AUTH_MODE_KEY) || 'multitenant';
     } catch {
-      return 'legacy';
+      return 'multitenant';
     }
   });
   
