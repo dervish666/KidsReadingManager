@@ -4,20 +4,27 @@ compatibility_date = "2025-04-09"
 compatibility_flags = ["nodejs_compat"]
 
 # KV Namespace for storing application data (students, classes, settings, genres)
-# IMPORTANT: Before deploying, you must create the KV namespace using Wrangler CLI:
-#   1. Create production namespace: wrangler kv:namespace create READING_MANAGER_KV
-#   2. Create preview namespace: wrangler kv:namespace create READING_MANAGER_KV --preview
-#   3. Copy the namespace IDs from the output and replace the placeholders below
 kv_namespaces = [
   { binding = "READING_MANAGER_KV", id = "09297a22cb3b4abc96bf0a5d4c79b4e9", preview_id = "6b452436a7794d36810e929dde07debf" }
 ]
 
+# Email sending binding (requires Email Routing enabled on domain)
+# Binding name "EMAIL_SENDER" will be available as env.EMAIL_SENDER in the worker
+send_email = [
+  { name = "EMAIL_SENDER" }
+]
+
+# Route configuration for custom domain
+routes = [
+  { pattern = "reading.brisflix.com/*", zone_name = "brisflix.com" }
+]
+
 # D1 Database for storing books (scalable SQL storage for large book collections)
-# Created with: npx wrangler d1 create reading-manager-db
 [[d1_databases]]
 binding = "READING_MANAGER_DB"
 database_name = "reading-manager-db"
 database_id = "30afac38-bccf-436b-8197-b59dabc73384"
+
 # Configuration for serving static assets (React frontend)
 [assets]
 directory = "./build"
@@ -29,16 +36,6 @@ ENVIRONMENT = "production"
 STORAGE_TYPE = "kv"
 ALLOWED_ORIGINS = "https://kids-reading-manager.brisflix.workers.dev/,https://reading.brisflix.com"
 EMAIL_FROM = "noreply@brisflix.com"
-
-# Route configuration for custom domain
-routes = [
-  { pattern = "reading.brisflix.com/*", zone_name = "brisflix.com" }
-]
-
-# Email sending binding (requires Email Routing enabled on domain)
-send_email = [
-  { name = "Reading Admin" }
-]
 
 [observability.logs]
 enabled = true

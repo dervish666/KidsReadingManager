@@ -79,11 +79,13 @@ If you didn't request this, you can safely ignore this email.
 
   // Try Cloudflare Email Routing binding
   if (env.EMAIL_SENDER) {
+    console.log('Using Cloudflare Email Routing to send email to:', recipientEmail);
     return await sendWithCloudflareEmail(env.EMAIL_SENDER, env.EMAIL_FROM || 'noreply@brisflix.com', recipientEmail, subject, textBody, htmlBody);
   }
 
-  // No email provider configured
+  // No email provider configured - log available bindings for debugging
   console.warn('No email provider configured. Set RESEND_API_KEY or EMAIL_SENDER binding.');
+  console.warn('Available env keys:', Object.keys(env || {}).join(', '));
   return {
     success: false,
     error: 'Email service not configured'
@@ -134,6 +136,9 @@ async function sendWithCloudflareEmail(emailBinding, from, to, subject, text, ht
     // Import EmailMessage from cloudflare:email
     const { EmailMessage } = await import('cloudflare:email');
 
+    // Generate a unique Message-ID (required by Cloudflare Email)
+    const messageId = `<${Date.now()}.${Math.random().toString(36).slice(2)}@brisflix.com>`;
+
     // Build MIME message manually (simpler than importing mimetext)
     const boundary = `----=_Part_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 
@@ -141,18 +146,20 @@ async function sendWithCloudflareEmail(emailBinding, from, to, subject, text, ht
       `From: ${from}`,
       `To: ${to}`,
       `Subject: ${subject}`,
+      `Message-ID: ${messageId}`,
+      `Date: ${new Date().toUTCString()}`,
       `MIME-Version: 1.0`,
       `Content-Type: multipart/alternative; boundary="${boundary}"`,
       ``,
       `--${boundary}`,
       `Content-Type: text/plain; charset=utf-8`,
-      `Content-Transfer-Encoding: quoted-printable`,
+      `Content-Transfer-Encoding: 7bit`,
       ``,
       text,
       ``,
       `--${boundary}`,
       `Content-Type: text/html; charset=utf-8`,
-      `Content-Transfer-Encoding: quoted-printable`,
+      `Content-Transfer-Encoding: 7bit`,
       ``,
       html,
       ``,
