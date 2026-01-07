@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import { Box, Typography, Button, TextField, Paper, Link, Tabs, Tab, Alert, CircularProgress } from '@mui/material';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 /**
  * Login Component
@@ -10,16 +11,36 @@ import MenuBookIcon from '@mui/icons-material/MenuBook';
  * 1. Legacy mode: Simple shared password (when isMultiTenantMode is false)
  * 2. Multi-tenant mode: Email/password with organization context (when isMultiTenantMode is true)
  */
+// API URL - relative path since frontend and API are served from the same origin
+const API_URL = '/api';
+
 const Login = () => {
   const context = useAppContext();
   const { login, loginWithEmail, register, apiError, isMultiTenantMode, serverAuthModeDetected } = context;
-  
+
   // Form state
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [localError, setLocalError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
+
+  // View state: 'login' | 'forgot' | 'reset'
+  const [view, setView] = useState('login');
+  const [resetToken, setResetToken] = useState('');
+
+  // Check URL for reset token on mount
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    if (token) {
+      setResetToken(token);
+      setView('reset');
+      // Clean URL without reload
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
 
   const handleLegacyLogin = async (event) => {
     event.preventDefault();
@@ -76,8 +97,88 @@ const Login = () => {
     if (!isMultiTenantMode) {
       return handleLegacyLogin(event);
     }
-    
+
     return handleMultiTenantLogin(event);
+  };
+
+  const handleForgotPassword = async (event) => {
+    event.preventDefault();
+    setLocalError(null);
+    setSuccessMessage(null);
+
+    if (!email) {
+      setLocalError('Email is required');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const response = await fetch(`${API_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to request password reset');
+      }
+
+      setSuccessMessage('If an account exists with this email, you will receive a password reset link.');
+      setEmail('');
+    } catch (error) {
+      setLocalError(error.message || 'Failed to request password reset');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleResetPassword = async (event) => {
+    event.preventDefault();
+    setLocalError(null);
+    setSuccessMessage(null);
+
+    if (!password) {
+      setLocalError('Password is required');
+      return;
+    }
+
+    if (password.length < 8) {
+      setLocalError('Password must be at least 8 characters');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setLocalError('Passwords do not match');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const response = await fetch(`${API_URL}/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: resetToken, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to reset password');
+      }
+
+      setSuccessMessage('Password reset successfully! You can now log in with your new password.');
+      setPassword('');
+      setConfirmPassword('');
+      setResetToken('');
+      // Switch back to login after short delay
+      setTimeout(() => setView('login'), 2000);
+    } catch (error) {
+      setLocalError(error.message || 'Failed to reset password');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const renderLegacyForm = () => (
@@ -197,12 +298,148 @@ const Login = () => {
             href="#"
             onClick={(e) => {
               e.preventDefault();
-              // TODO: Implement forgot password flow
-              alert('Forgot password functionality coming soon');
+              setLocalError(null);
+              setSuccessMessage(null);
+              setView('forgot');
             }}
-            sx={{ color: '#7C3AED', fontSize: '0.875rem' }}
+            sx={{ color: '#7C3AED', fontSize: '0.875rem', cursor: 'pointer' }}
           >
             Forgot your password?
+          </Link>
+        </Box>
+      </form>
+    </>
+  );
+
+  const renderForgotPasswordForm = () => (
+    <>
+      <form onSubmit={handleForgotPassword}>
+        <TextField
+          fullWidth
+          type="email"
+          value={email}
+          placeholder="Enter your email address"
+          onChange={(e) => setEmail(e.target.value)}
+          autoFocus
+          sx={{ mb: 3 }}
+          InputProps={{
+            sx: inputStyles
+          }}
+        />
+
+        <Button
+          fullWidth
+          type="submit"
+          disabled={submitting || !email}
+          variant="contained"
+          size="large"
+          sx={{
+            height: 52,
+            borderRadius: '12px',
+            background: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)',
+            boxShadow: '0 6px 20px rgba(139, 92, 246, 0.35)',
+            fontSize: '1rem',
+            fontWeight: 700,
+            textTransform: 'none',
+            '&:hover': {
+              transform: 'translateY(-2px)',
+              boxShadow: '0 8px 28px rgba(139, 92, 246, 0.45)',
+            },
+            '&:active': {
+              transform: 'scale(0.98)',
+            },
+          }}
+        >
+          {submitting ? 'Sending...' : 'Send Reset Link'}
+        </Button>
+
+        <Box sx={{ mt: 2, textAlign: 'center' }}>
+          <Link
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              setLocalError(null);
+              setSuccessMessage(null);
+              setView('login');
+            }}
+            sx={{ color: '#7C3AED', fontSize: '0.875rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
+          >
+            <ArrowBackIcon sx={{ fontSize: 16 }} />
+            Back to login
+          </Link>
+        </Box>
+      </form>
+    </>
+  );
+
+  const renderResetPasswordForm = () => (
+    <>
+      <form onSubmit={handleResetPassword}>
+        <TextField
+          fullWidth
+          type="password"
+          value={password}
+          placeholder="New password"
+          onChange={(e) => setPassword(e.target.value)}
+          autoFocus
+          sx={{ mb: 2 }}
+          InputProps={{
+            sx: inputStyles
+          }}
+        />
+
+        <TextField
+          fullWidth
+          type="password"
+          value={confirmPassword}
+          placeholder="Confirm new password"
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          sx={{ mb: 3 }}
+          InputProps={{
+            sx: inputStyles
+          }}
+        />
+
+        <Button
+          fullWidth
+          type="submit"
+          disabled={submitting || !password || !confirmPassword}
+          variant="contained"
+          size="large"
+          sx={{
+            height: 52,
+            borderRadius: '12px',
+            background: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)',
+            boxShadow: '0 6px 20px rgba(139, 92, 246, 0.35)',
+            fontSize: '1rem',
+            fontWeight: 700,
+            textTransform: 'none',
+            '&:hover': {
+              transform: 'translateY(-2px)',
+              boxShadow: '0 8px 28px rgba(139, 92, 246, 0.45)',
+            },
+            '&:active': {
+              transform: 'scale(0.98)',
+            },
+          }}
+        >
+          {submitting ? 'Resetting...' : 'Reset Password'}
+        </Button>
+
+        <Box sx={{ mt: 2, textAlign: 'center' }}>
+          <Link
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              setLocalError(null);
+              setSuccessMessage(null);
+              setResetToken('');
+              setView('login');
+            }}
+            sx={{ color: '#7C3AED', fontSize: '0.875rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
+          >
+            <ArrowBackIcon sx={{ fontSize: 16 }} />
+            Back to login
           </Link>
         </Box>
       </form>
@@ -300,12 +537,14 @@ const Login = () => {
         <Typography variant="h4" sx={{ mb: 1, fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#332F3A' }}>
           Kids Reading Manager
         </Typography>
-        
+
         <Typography variant="body1" sx={{ mb: 4, color: '#635F69' }}>
-          {isMultiTenantMode
+          {view === 'forgot' && 'Enter your email to reset your password.'}
+          {view === 'reset' && 'Enter your new password.'}
+          {view === 'login' && (isMultiTenantMode
             ? 'Sign in to your account.'
             : 'Enter the access password to continue.'
-          }
+          )}
         </Typography>
 
         {successMessage && (
@@ -314,7 +553,9 @@ const Login = () => {
           </Alert>
         )}
 
-        {isMultiTenantMode ? renderMultiTenantForm() : renderLegacyForm()}
+        {view === 'login' && (isMultiTenantMode ? renderMultiTenantForm() : renderLegacyForm())}
+        {view === 'forgot' && renderForgotPasswordForm()}
+        {view === 'reset' && renderResetPasswordForm()}
 
         {(localError || apiError) && (
           <Typography sx={{ mt: 3, color: '#EF4444', fontWeight: 600 }}>

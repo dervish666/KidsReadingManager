@@ -14,6 +14,7 @@ import {
   hashToken
 } from '../utils/crypto.js';
 import { authRateLimit } from '../middleware/tenant.js';
+import { sendPasswordResetEmail } from '../utils/email.js';
 
 export const authRouter = new Hono();
 
@@ -654,13 +655,27 @@ authRouter.post('/forgot-password', async (c) => {
       VALUES (?, ?, ?, ?)
     `).bind(tokenId, user.id, tokenHash, expiresAt).run();
 
-    // TODO: Send email with reset link
-    // SECURITY: Never log tokens, even in development mode
-    // The token should only be sent via email to the user
+    // Send password reset email
+    // Determine base URL from request or environment
+    const baseUrl = c.env.APP_URL ||
+                    c.req.header('origin') ||
+                    `https://${c.req.header('host')}`;
+
+    const emailResult = await sendPasswordResetEmail(
+      c.env,
+      user.email,
+      user.name,
+      resetToken,
+      baseUrl
+    );
+
+    if (!emailResult.success) {
+      console.error('Failed to send password reset email:', emailResult.error);
+      // Don't expose email failure to user (security)
+    }
 
     return c.json({
       message: 'If the email exists, a reset link will be sent'
-      // SECURITY: Token removed from response - must be sent via email only
     });
 
   } catch (error) {

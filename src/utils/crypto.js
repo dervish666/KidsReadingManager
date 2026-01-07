@@ -7,11 +7,10 @@
 // Password Hashing (PBKDF2)
 // ============================================================================
 
-// OWASP 2024 recommends 600,000+ iterations for PBKDF2-HMAC-SHA256
-// This provides adequate protection against GPU-based attacks
-const PBKDF2_ITERATIONS = 600000;
-// Legacy iteration count for backward compatibility with existing passwords
-const PBKDF2_ITERATIONS_LEGACY = 100000;
+// Cloudflare Workers Web Crypto API has a maximum of 100,000 iterations for PBKDF2
+// This is a platform limitation. While OWASP recommends higher, 100k provides
+// reasonable protection and is the maximum supported by the runtime.
+const PBKDF2_ITERATIONS = 100000;
 const SALT_LENGTH = 16;  // 128 bits
 const HASH_LENGTH = 32;  // 256 bits
 
@@ -90,26 +89,14 @@ async function verifyPasswordWithIterations(password, storedHash, iterations) {
 
 /**
  * Verify a password against a stored hash
- * Supports both new (600k) and legacy (100k) iteration counts for backward compatibility
  * @param {string} password - Plain text password to verify
  * @param {string} storedHash - Stored hash in format: base64(salt):base64(hash)
- * @returns {Promise<{valid: boolean, needsRehash: boolean}>} - Result with rehash indicator
+ * @returns {Promise<{valid: boolean, needsRehash: boolean}>} - Result object for API consistency
  */
 export async function verifyPassword(password, storedHash) {
   try {
-    // First try with new iteration count
-    if (await verifyPasswordWithIterations(password, storedHash, PBKDF2_ITERATIONS)) {
-      return { valid: true, needsRehash: false };
-    }
-
-    // Fall back to legacy iteration count for existing passwords
-    if (await verifyPasswordWithIterations(password, storedHash, PBKDF2_ITERATIONS_LEGACY)) {
-      // Password valid but was hashed with old iteration count
-      // Caller should rehash and update the stored hash
-      return { valid: true, needsRehash: true };
-    }
-
-    return { valid: false, needsRehash: false };
+    const isValid = await verifyPasswordWithIterations(password, storedHash, PBKDF2_ITERATIONS);
+    return { valid: isValid, needsRehash: false };
   } catch (error) {
     console.error('Password verification error:', error);
     return { valid: false, needsRehash: false };
