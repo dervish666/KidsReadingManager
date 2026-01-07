@@ -9,7 +9,7 @@ import {
 // Import utilities
 import { validateSettings } from '../utils/validation';
 import { badRequestError } from '../middleware/errorHandler';
-import { permissions } from '../utils/crypto';
+import { permissions, encryptSensitiveData, decryptSensitiveData } from '../utils/crypto';
 
 // Create router
 const settingsRouter = new Hono();
@@ -233,16 +233,21 @@ settingsRouter.post('/ai', async (c) => {
       // Update existing config
       const updates = [];
       const params = [];
-      
+
       if (provider !== undefined) {
         updates.push('provider = ?');
         params.push(provider);
       }
-      
+
       if (apiKey !== undefined) {
-        // In production, this should be encrypted
+        // Encrypt the API key before storing
+        const jwtSecret = c.env.JWT_SECRET;
+        if (!jwtSecret) {
+          return c.json({ error: 'Server configuration error - encryption not available' }, 500);
+        }
+        const encryptedApiKey = await encryptSensitiveData(apiKey, jwtSecret);
         updates.push('api_key_encrypted = ?');
-        params.push(apiKey);
+        params.push(encryptedApiKey);
       }
       
       if (modelPreference !== undefined) {
@@ -267,6 +272,15 @@ settingsRouter.post('/ai', async (c) => {
       }
     } else {
       // Create new config
+      let encryptedApiKey = null;
+      if (apiKey) {
+        const jwtSecret = c.env.JWT_SECRET;
+        if (!jwtSecret) {
+          return c.json({ error: 'Server configuration error - encryption not available' }, 500);
+        }
+        encryptedApiKey = await encryptSensitiveData(apiKey, jwtSecret);
+      }
+
       await db.prepare(`
         INSERT INTO org_ai_config (id, organization_id, provider, api_key_encrypted, model_preference, is_enabled, updated_by)
         VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -274,7 +288,7 @@ settingsRouter.post('/ai', async (c) => {
         crypto.randomUUID(),
         organizationId,
         provider || 'anthropic',
-        apiKey || null,
+        encryptedApiKey,
         modelPreference || null,
         isEnabled ? 1 : 0,
         userId

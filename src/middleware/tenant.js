@@ -148,15 +148,34 @@ export const requireAdmin = () => requireRole(ROLES.ADMIN);
 export const requireTeacher = () => requireRole(ROLES.TEACHER);
 export const requireReadonly = () => requireRole(ROLES.READONLY);
 
+// Whitelist of valid table names for ownership checks
+// This prevents SQL injection via dynamic table names
+const ALLOWED_OWNERSHIP_TABLES = new Set([
+  'students',
+  'classes',
+  'reading_sessions',
+  'books',
+  'organization_book_selections',
+  'org_settings',
+  'org_ai_config',
+  'genres',
+  'users'
+]);
+
 /**
  * Resource ownership middleware
  * Ensures the requested resource belongs to the user's organization
- * 
- * @param {string} tableName - Database table name
+ *
+ * @param {string} tableName - Database table name (must be in whitelist)
  * @param {string} idParam - URL parameter name for resource ID (default: 'id')
  * @returns {Function} Hono middleware
  */
 export function requireOrgOwnership(tableName, idParam = 'id') {
+  // Validate table name at middleware creation time (not runtime)
+  if (!ALLOWED_OWNERSHIP_TABLES.has(tableName)) {
+    throw new Error(`Invalid table name for ownership check: ${tableName}. Allowed tables: ${[...ALLOWED_OWNERSHIP_TABLES].join(', ')}`);
+  }
+
   return async (c, next) => {
     const organizationId = c.get('organizationId');
     const resourceId = c.req.param(idParam);
@@ -248,51 +267,86 @@ export function auditLog(action, entityType) {
 }
 
 /**
- * Rate limiting middleware (simple in-memory implementation)
- * For production, consider using Cloudflare's built-in rate limiting
- * 
- * @param {number} maxRequests - Maximum requests per window
- * @param {number} windowMs - Time window in milliseconds
+ * Rate limiting middleware using D1 database for persistence
+ *
+ * IMPORTANT: This implementation uses D1 for rate limit tracking, which works
+ * across all Cloudflare Worker instances. For high-traffic applications,
+ * consider using Cloudflare's built-in Rate Limiting Rules instead:
+ * https://developers.cloudflare.com/waf/rate-limiting-rules/
+ *
+ * @param {number} maxRequests - Maximum requests per window (default: 100)
+ * @param {number} windowMs - Time window in milliseconds (default: 60000 = 1 minute)
  * @returns {Function} Hono middleware
  */
 export function rateLimit(maxRequests = 100, windowMs = 60000) {
-  // Note: This is a simple implementation that won't work across Workers
-  // For production, use Cloudflare Rate Limiting or Durable Objects
-  const requests = new Map();
-
   return async (c, next) => {
-    const key = c.get('userId') || c.req.header('cf-connecting-ip') || 'anonymous';
-    const now = Date.now();
+    const db = c.env.READING_MANAGER_DB;
 
-    // Clean old entries
-    for (const [k, v] of requests.entries()) {
-      if (now - v.timestamp > windowMs) {
-        requests.delete(k);
-      }
+    // If no database, skip rate limiting (graceful degradation)
+    if (!db) {
+      return next();
     }
 
-    // Check rate limit
-    const entry = requests.get(key);
-    if (entry) {
-      if (now - entry.timestamp < windowMs && entry.count >= maxRequests) {
-        return c.json({ 
-          error: 'Too many requests',
-          retryAfter: Math.ceil((entry.timestamp + windowMs - now) / 1000)
+    // Use IP address as the rate limit key (or userId if authenticated)
+    const ipAddress = c.req.header('cf-connecting-ip') ||
+                      c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ||
+                      'unknown';
+    const userId = c.get('userId');
+    const key = userId || `ip:${ipAddress}`;
+    const endpoint = c.req.path;
+
+    try {
+      const windowSeconds = Math.ceil(windowMs / 1000);
+
+      // Count requests in the current window
+      const result = await db.prepare(`
+        SELECT COUNT(*) as count FROM rate_limits
+        WHERE key = ? AND endpoint = ?
+        AND created_at > datetime('now', '-${windowSeconds} seconds')
+      `).bind(key, endpoint).first();
+
+      const currentCount = result?.count || 0;
+
+      if (currentCount >= maxRequests) {
+        // Rate limit exceeded
+        return c.json({
+          error: 'Too many requests. Please slow down.',
+          retryAfter: windowSeconds
         }, 429);
       }
 
-      if (now - entry.timestamp < windowMs) {
-        entry.count++;
-      } else {
-        entry.timestamp = now;
-        entry.count = 1;
+      // Record this request
+      await db.prepare(`
+        INSERT INTO rate_limits (id, key, endpoint, created_at)
+        VALUES (?, ?, ?, datetime('now'))
+      `).bind(crypto.randomUUID(), key, endpoint).run();
+
+      // Cleanup old entries (async, don't wait) - only run occasionally
+      if (Math.random() < 0.01) { // 1% chance to clean up
+        db.prepare(`
+          DELETE FROM rate_limits WHERE created_at < datetime('now', '-1 hour')
+        `).run().catch(() => {});
       }
-    } else {
-      requests.set(key, { timestamp: now, count: 1 });
+
+    } catch (error) {
+      // If rate_limits table doesn't exist or other error, continue without rate limiting
+      // This allows the app to function while migration is pending
+      console.error('Rate limiting error (continuing without limit):', error.message);
     }
 
     return next();
   };
+}
+
+/**
+ * Rate limiting for authentication endpoints (stricter limits)
+ * Uses per-IP tracking to prevent brute force attacks
+ *
+ * @returns {Function} Hono middleware
+ */
+export function authRateLimit() {
+  // 10 requests per minute for auth endpoints
+  return rateLimit(10, 60000);
 }
 
 /**

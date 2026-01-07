@@ -222,18 +222,18 @@ usersRouter.post('/', requireAdmin(), auditLog('create', 'user'), async (c) => {
     `).bind(userId, targetOrgId, email.toLowerCase(), passwordHash, name, role).run();
 
     // TODO: Send invitation email with temporary password
+    // SECURITY: Never include temporary passwords in API responses
+    // The password should only be sent via email to the user
 
     return c.json({
-      message: 'User created successfully',
+      message: 'User created successfully. An invitation email will be sent.',
       user: {
         id: userId,
         email: email.toLowerCase(),
         name,
         role,
         isActive: true
-      },
-      // In development, include the temporary password
-      ...(c.env.ENVIRONMENT === 'development' && { temporaryPassword: userPassword })
+      }
     }, 201);
 
   } catch (error) {
@@ -485,11 +485,11 @@ usersRouter.post('/:id/reset-password', requireAdmin(), auditLog('update', 'user
     `).bind(targetUserId).run();
 
     // TODO: Send email with new password
+    // SECURITY: Never include passwords in API responses
+    // The password should only be sent via email to the user
 
     return c.json({
-      message: 'Password reset successfully',
-      // In development, include the new password
-      ...(c.env.ENVIRONMENT === 'development' && { temporaryPassword: newPassword })
+      message: 'Password reset successfully. The new password will be sent via email.'
     });
 
   } catch (error) {

@@ -16,6 +16,7 @@ import { generateRecommendations } from '../services/aiService.js';
 
 // Import utilities
 import { notFoundError, badRequestError } from '../middleware/errorHandler';
+import { decryptSensitiveData } from '../utils/crypto.js';
 
 // Create router
 const booksRouter = new Hono();
@@ -274,26 +275,55 @@ booksRouter.get('/recommendations', async (c) => {
     // Get books the student has already read (for the student profile)
     const readBookIds = student.readingSessions?.map(session => session.bookId).filter(Boolean) || [];
     
-    // Get settings to check for AI configuration
-    const settings = await getSettings(c.env);
-    const aiConfig = settings?.ai || {};
-    
-    // Resolve API key based on provider
-    if (aiConfig.keys && aiConfig.provider && aiConfig.keys[aiConfig.provider]) {
-      aiConfig.apiKey = aiConfig.keys[aiConfig.provider];
+    // Get AI configuration - check multi-tenant mode first, then fall back to legacy
+    let aiConfig = {};
+    const organizationId = c.get('organizationId');
+    const db = c.env.READING_MANAGER_DB;
+    const jwtSecret = c.env.JWT_SECRET;
+
+    if (organizationId && db && jwtSecret) {
+      // Multi-tenant mode: get AI config from database
+      const dbConfig = await db.prepare(`
+        SELECT provider, api_key_encrypted, model_preference, is_enabled
+        FROM org_ai_config WHERE organization_id = ?
+      `).bind(organizationId).first();
+
+      if (dbConfig && dbConfig.is_enabled && dbConfig.api_key_encrypted) {
+        // Decrypt the API key
+        try {
+          const decryptedApiKey = await decryptSensitiveData(dbConfig.api_key_encrypted, jwtSecret);
+          aiConfig = {
+            provider: dbConfig.provider || 'anthropic',
+            apiKey: decryptedApiKey,
+            model: dbConfig.model_preference
+          };
+        } catch (decryptError) {
+          console.error('Failed to decrypt API key:', decryptError.message);
+          // Continue without API key - will use fallback recommendations
+        }
+      }
+    } else {
+      // Legacy mode: get settings from KV
+      const settings = await getSettings(c.env);
+      aiConfig = settings?.ai || {};
+
+      // Resolve API key based on provider
+      if (aiConfig.keys && aiConfig.provider && aiConfig.keys[aiConfig.provider]) {
+        aiConfig.apiKey = aiConfig.keys[aiConfig.provider];
+      }
+
+      // Resolve model based on provider
+      if (aiConfig.models && aiConfig.provider && aiConfig.models[aiConfig.provider]) {
+        aiConfig.model = aiConfig.models[aiConfig.provider];
+      }
     }
 
-    // Resolve model based on provider
-    if (aiConfig.models && aiConfig.provider && aiConfig.models[aiConfig.provider]) {
-      aiConfig.model = aiConfig.models[aiConfig.provider];
-    }
-
+    // Debug logging (without exposing the actual key)
     console.log('AI Config Debug:', {
       provider: aiConfig.provider,
       hasKey: !!aiConfig.apiKey,
       keyLength: aiConfig.apiKey ? aiConfig.apiKey.length : 0,
-      model: aiConfig.model,
-      baseUrl: aiConfig.baseUrl
+      model: aiConfig.model
     });
 
     if (!aiConfig.apiKey) {

@@ -10,13 +10,16 @@ import {
   verifyPassword,
   createAccessToken,
   createRefreshToken,
-  verifyAccessToken,
-  verifyRefreshToken,
   createJWTPayload,
   hashToken
 } from '../utils/crypto.js';
+import { authRateLimit } from '../middleware/tenant.js';
 
 export const authRouter = new Hono();
+
+// Apply stricter rate limiting to all auth endpoints
+// This provides an additional layer of protection beyond account lockout
+authRouter.use('*', authRateLimit());
 
 /**
  * GET /api/auth/mode
@@ -163,9 +166,23 @@ authRouter.post('/register', async (c) => {
       VALUES (?, ?, ?, ?)
     `).bind(refreshTokenId, userId, refreshTokenData.hash, refreshTokenData.expiresAt).run();
 
+    // Set refresh token as httpOnly cookie
+    const isProduction = c.env.ENVIRONMENT !== 'development';
+    const cookieOptions = [
+      `refresh_token=${refreshTokenData.token}`,
+      'HttpOnly',
+      'Path=/api/auth',
+      `Max-Age=${7 * 24 * 60 * 60}`,
+      'SameSite=Strict',
+      isProduction ? 'Secure' : ''
+    ].filter(Boolean).join('; ');
+
+    c.header('Set-Cookie', cookieOptions);
+
     return c.json({
       message: 'Registration successful',
       accessToken,
+      // Still include refresh token for backward compatibility
       refreshToken: refreshTokenData.token,
       user: {
         id: userId,
@@ -186,10 +203,72 @@ authRouter.post('/register', async (c) => {
   }
 });
 
+// Account lockout configuration
+const MAX_LOGIN_ATTEMPTS = 5;        // Maximum failed attempts before lockout
+const LOCKOUT_DURATION_MINUTES = 15; // Lockout duration in minutes
+
+/**
+ * Check if account is locked due to too many failed attempts
+ */
+async function isAccountLocked(db, email) {
+  try {
+    const result = await db.prepare(`
+      SELECT COUNT(*) as count FROM login_attempts
+      WHERE email = ? AND success = 0
+      AND created_at > datetime('now', '-${LOCKOUT_DURATION_MINUTES} minutes')
+    `).bind(email.toLowerCase()).first();
+
+    return result && result.count >= MAX_LOGIN_ATTEMPTS;
+  } catch (error) {
+    // If table doesn't exist yet, account is not locked
+    console.error('Error checking account lock status:', error);
+    return false;
+  }
+}
+
+/**
+ * Record a login attempt
+ */
+async function recordLoginAttempt(db, email, ipAddress, userAgent, success) {
+  try {
+    await db.prepare(`
+      INSERT INTO login_attempts (id, email, ip_address, user_agent, success)
+      VALUES (?, ?, ?, ?, ?)
+    `).bind(
+      generateId(),
+      email.toLowerCase(),
+      ipAddress || 'unknown',
+      userAgent || 'unknown',
+      success ? 1 : 0
+    ).run();
+
+    // Cleanup old attempts (older than 24 hours) - async, don't wait
+    db.prepare(`
+      DELETE FROM login_attempts WHERE created_at < datetime('now', '-24 hours')
+    `).run().catch(() => {});
+  } catch (error) {
+    // Don't fail login if logging fails
+    console.error('Error recording login attempt:', error);
+  }
+}
+
+/**
+ * Clear failed login attempts on successful login
+ */
+async function clearFailedAttempts(db, email) {
+  try {
+    await db.prepare(`
+      DELETE FROM login_attempts WHERE email = ? AND success = 0
+    `).bind(email.toLowerCase()).run();
+  } catch (error) {
+    console.error('Error clearing failed attempts:', error);
+  }
+}
+
 /**
  * POST /api/auth/login
  * Authenticate user with email and password
- * 
+ *
  * Body: {
  *   email: string,
  *   password: string
@@ -206,6 +285,20 @@ authRouter.post('/login', async (c) => {
       return c.json({ error: 'Email and password required' }, 400);
     }
 
+    // Get client info for logging
+    const ipAddress = c.req.header('cf-connecting-ip') ||
+                      c.req.header('x-forwarded-for') ||
+                      'unknown';
+    const userAgent = c.req.header('user-agent') || 'unknown';
+
+    // Check if account is locked due to too many failed attempts
+    if (await isAccountLocked(db, email)) {
+      return c.json({
+        error: 'Account temporarily locked due to too many failed login attempts. Please try again later.',
+        retryAfter: LOCKOUT_DURATION_MINUTES * 60
+      }, 429);
+    }
+
     // Find user by email
     const user = await db.prepare(`
       SELECT u.*, o.name as org_name, o.slug as org_slug, o.is_active as org_active
@@ -215,23 +308,46 @@ authRouter.post('/login', async (c) => {
     `).bind(email.toLowerCase()).first();
 
     if (!user) {
+      // Record failed attempt even for non-existent users (prevents enumeration timing)
+      await recordLoginAttempt(db, email, ipAddress, userAgent, false);
       return c.json({ error: 'Invalid email or password' }, 401);
     }
 
     // Check if user is active
     if (!user.is_active) {
+      await recordLoginAttempt(db, email, ipAddress, userAgent, false);
       return c.json({ error: 'Account is deactivated' }, 403);
     }
 
     // Check if organization is active
     if (!user.org_active) {
+      await recordLoginAttempt(db, email, ipAddress, userAgent, false);
       return c.json({ error: 'Organization is inactive' }, 403);
     }
 
-    // Verify password
-    const passwordValid = await verifyPassword(password, user.password_hash);
-    if (!passwordValid) {
+    // Verify password (supports both old 100k and new 600k iterations)
+    const passwordResult = await verifyPassword(password, user.password_hash);
+    if (!passwordResult.valid) {
+      await recordLoginAttempt(db, email, ipAddress, userAgent, false);
       return c.json({ error: 'Invalid email or password' }, 401);
+    }
+
+    // Successful login - record it and clear failed attempts
+    await recordLoginAttempt(db, email, ipAddress, userAgent, true);
+    await clearFailedAttempts(db, email);
+
+    // If password was hashed with old iteration count, rehash with new count
+    if (passwordResult.needsRehash) {
+      try {
+        const newHash = await hashPassword(password);
+        await db.prepare(
+          'UPDATE users SET password_hash = ? WHERE id = ?'
+        ).bind(newHash, user.id).run();
+        console.log(`Upgraded password hash for user ${user.id} to new iteration count`);
+      } catch (rehashError) {
+        // Don't fail login if rehash fails, just log it
+        console.error('Failed to upgrade password hash:', rehashError);
+      }
     }
 
     // Update last login
@@ -264,8 +380,24 @@ authRouter.post('/login', async (c) => {
       VALUES (?, ?, ?, ?)
     `).bind(refreshTokenId, user.id, refreshTokenData.hash, refreshTokenData.expiresAt).run();
 
+    // Set refresh token as httpOnly cookie for enhanced security
+    // This prevents XSS attacks from stealing the refresh token
+    const isProduction = c.env.ENVIRONMENT !== 'development';
+    const cookieOptions = [
+      `refresh_token=${refreshTokenData.token}`,
+      'HttpOnly',                           // Not accessible via JavaScript
+      'Path=/api/auth',                     // Only sent to auth endpoints
+      `Max-Age=${7 * 24 * 60 * 60}`,        // 7 days in seconds
+      'SameSite=Strict',                    // CSRF protection
+      isProduction ? 'Secure' : ''          // HTTPS only in production
+    ].filter(Boolean).join('; ');
+
+    c.header('Set-Cookie', cookieOptions);
+
     return c.json({
       accessToken,
+      // Still include refresh token in response for backward compatibility
+      // Frontend should migrate to using cookies instead
       refreshToken: refreshTokenData.token,
       user: {
         id: user.id,
@@ -287,19 +419,42 @@ authRouter.post('/login', async (c) => {
 });
 
 /**
+ * Helper to parse cookies from request
+ */
+function parseCookies(cookieHeader) {
+  const cookies = {};
+  if (!cookieHeader) return cookies;
+
+  cookieHeader.split(';').forEach(cookie => {
+    const [name, ...rest] = cookie.trim().split('=');
+    if (name) {
+      cookies[name] = rest.join('=');
+    }
+  });
+  return cookies;
+}
+
+/**
  * POST /api/auth/refresh
  * Refresh access token using refresh token
- * 
- * Body: {
- *   refreshToken: string
- * }
+ *
+ * Accepts refresh token from:
+ * 1. httpOnly cookie (preferred, more secure)
+ * 2. Request body (backward compatibility)
  */
 authRouter.post('/refresh', async (c) => {
   try {
     const db = getDB(c.env);
-    const body = await c.req.json();
 
-    const { refreshToken } = body;
+    // Try to get refresh token from httpOnly cookie first (more secure)
+    const cookies = parseCookies(c.req.header('cookie'));
+    let refreshToken = cookies.refresh_token;
+
+    // Fall back to request body for backward compatibility
+    if (!refreshToken) {
+      const body = await c.req.json().catch(() => ({}));
+      refreshToken = body.refreshToken;
+    }
 
     if (!refreshToken) {
       return c.json({ error: 'Refresh token required' }, 400);
@@ -367,8 +522,22 @@ authRouter.post('/refresh', async (c) => {
       VALUES (?, ?, ?, ?)
     `).bind(newRefreshTokenId, storedToken.user_id, newRefreshTokenData.hash, newRefreshTokenData.expiresAt).run();
 
+    // Set new refresh token as httpOnly cookie
+    const isProduction = c.env.ENVIRONMENT !== 'development';
+    const cookieOptions = [
+      `refresh_token=${newRefreshTokenData.token}`,
+      'HttpOnly',
+      'Path=/api/auth',
+      `Max-Age=${7 * 24 * 60 * 60}`,
+      'SameSite=Strict',
+      isProduction ? 'Secure' : ''
+    ].filter(Boolean).join('; ');
+
+    c.header('Set-Cookie', cookieOptions);
+
     return c.json({
       accessToken,
+      // Still include refresh token in response for backward compatibility
       refreshToken: newRefreshTokenData.token,
       user: {
         id: storedToken.user_id,
@@ -391,18 +560,25 @@ authRouter.post('/refresh', async (c) => {
 
 /**
  * POST /api/auth/logout
- * Revoke refresh token
- * 
- * Body: {
- *   refreshToken: string
- * }
+ * Revoke refresh token and clear cookie
+ *
+ * Accepts refresh token from:
+ * 1. httpOnly cookie (preferred)
+ * 2. Request body (backward compatibility)
  */
 authRouter.post('/logout', async (c) => {
   try {
     const db = getDB(c.env);
-    const body = await c.req.json();
 
-    const { refreshToken } = body;
+    // Try to get refresh token from cookie first
+    const cookies = parseCookies(c.req.header('cookie'));
+    let refreshToken = cookies.refresh_token;
+
+    // Fall back to request body
+    if (!refreshToken) {
+      const body = await c.req.json().catch(() => ({}));
+      refreshToken = body.refreshToken;
+    }
 
     if (refreshToken) {
       const tokenHash = await hashToken(refreshToken);
@@ -410,6 +586,19 @@ authRouter.post('/logout', async (c) => {
         'UPDATE refresh_tokens SET revoked_at = datetime("now") WHERE token_hash = ?'
       ).bind(tokenHash).run();
     }
+
+    // Clear the refresh token cookie
+    const isProduction = c.env.ENVIRONMENT !== 'development';
+    const clearCookieOptions = [
+      'refresh_token=',
+      'HttpOnly',
+      'Path=/api/auth',
+      'Max-Age=0',  // Expire immediately
+      'SameSite=Strict',
+      isProduction ? 'Secure' : ''
+    ].filter(Boolean).join('; ');
+
+    c.header('Set-Cookie', clearCookieOptions);
 
     return c.json({ message: 'Logged out successfully' });
 
@@ -466,13 +655,12 @@ authRouter.post('/forgot-password', async (c) => {
     `).bind(tokenId, user.id, tokenHash, expiresAt).run();
 
     // TODO: Send email with reset link
-    // For now, log the token (in production, this would be sent via email)
-    console.log(`Password reset token for ${email}: ${resetToken}`);
+    // SECURITY: Never log tokens, even in development mode
+    // The token should only be sent via email to the user
 
-    return c.json({ 
-      message: 'If the email exists, a reset link will be sent',
-      // In development, include the token for testing
-      ...(c.env.ENVIRONMENT === 'development' && { resetToken })
+    return c.json({
+      message: 'If the email exists, a reset link will be sent'
+      // SECURITY: Token removed from response - must be sent via email only
     });
 
   } catch (error) {
@@ -642,9 +830,9 @@ authRouter.put('/password', async (c) => {
       return c.json({ error: 'User not found' }, 404);
     }
 
-    // Verify current password
-    const passwordValid = await verifyPassword(currentPassword, dbUser.password_hash);
-    if (!passwordValid) {
+    // Verify current password (supports both old and new iteration counts)
+    const passwordResult = await verifyPassword(currentPassword, dbUser.password_hash);
+    if (!passwordResult.valid) {
       return c.json({ error: 'Current password is incorrect' }, 401);
     }
 

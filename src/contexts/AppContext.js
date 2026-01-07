@@ -193,18 +193,21 @@ export const AppProvider = ({ children }) => {
 
   // Token refresh function for multi-tenant mode
   const refreshAccessToken = useCallback(async () => {
-    if (!refreshToken || refreshingToken.current) {
+    // We can refresh even without localStorage refreshToken if cookie is set
+    if (refreshingToken.current) {
       return null;
     }
-    
+
     refreshingToken.current = true;
-    
+
     try {
       console.log('[Auth] Refreshing access token...');
       const response = await fetch(`${API_URL}/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken }),
+        credentials: 'include', // Include httpOnly cookies
+        // Send refreshToken in body for backward compatibility
+        body: JSON.stringify({ refreshToken: refreshToken || undefined }),
       });
       
       if (!response.ok) {
@@ -389,6 +392,7 @@ export const AppProvider = ({ children }) => {
         const response = await fetch(`${API_URL}/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include', // Include httpOnly cookies in response
           body: JSON.stringify({ email, password }),
         });
 
@@ -449,6 +453,7 @@ export const AppProvider = ({ children }) => {
         const response = await fetch(`${API_URL}/auth/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include', // Include httpOnly cookies in response
           body: JSON.stringify({
             organizationName,
             name: userName,
@@ -561,18 +566,19 @@ export const AppProvider = ({ children }) => {
   const logout = useCallback(async () => {
     // Call logout endpoint to invalidate server-side session if applicable
     try {
-      if (authMode === 'multitenant' && refreshToken) {
-        // Multi-tenant mode: invalidate refresh token
+      if (authMode === 'multitenant') {
+        // Multi-tenant mode: invalidate refresh token (server will read from cookie)
         await fetch(`${API_URL}/auth/logout`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${authToken}`,
           },
-          body: JSON.stringify({ refreshToken }),
+          credentials: 'include', // Include httpOnly cookies
+          body: JSON.stringify({ refreshToken: refreshToken || undefined }),
         });
       } else if (authMode === 'legacy' && authToken) {
-        // Legacy mode: call logout endpoint for consistency (even though it doesn't do server-side invalidation)
+        // Legacy mode: call logout endpoint for consistency
         await fetch(`${API_URL}/logout`, {
           method: 'POST',
           headers: {
@@ -584,7 +590,7 @@ export const AppProvider = ({ children }) => {
     } catch {
       // Ignore logout API errors - client-side logout always works
     }
-    
+
     clearAuthState();
     setApiError(null);
   }, [authMode, authToken, refreshToken, clearAuthState]);

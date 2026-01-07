@@ -38,7 +38,77 @@ const app = new Hono();
 // Apply middleware
 app.use('/api/*', logger());
 app.use('/api/*', prettyJSON());
-app.use('/api/*', cors());
+
+// CORS configuration with explicit origin whitelist
+app.use('/api/*', cors({
+  origin: (origin, c) => {
+    // Allow requests with no origin (e.g., same-origin, mobile apps, curl)
+    if (!origin) return origin;
+
+    // In development, allow localhost origins
+    if (c.env.ENVIRONMENT === 'development') {
+      if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+        return origin;
+      }
+    }
+
+    // Parse allowed origins from environment variable (comma-separated)
+    // Example: ALLOWED_ORIGINS=https://app.example.com,https://www.example.com
+    const allowedOrigins = c.env.ALLOWED_ORIGINS
+      ? c.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+      : [];
+
+    // Always allow the same origin as the worker itself
+    const workerOrigin = new URL(c.req.url).origin;
+    if (origin === workerOrigin) {
+      return origin;
+    }
+
+    // Check if origin is in the whitelist
+    if (allowedOrigins.includes(origin)) {
+      return origin;
+    }
+
+    // In production without explicit config, allow same-origin only
+    // Return null to reject the request
+    return null;
+  },
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization'],
+  exposeHeaders: ['Content-Length'],
+  maxAge: 86400, // 24 hours
+  credentials: true
+}));
+
+// Security headers middleware
+app.use('/api/*', async (c, next) => {
+  await next();
+
+  // Prevent clickjacking
+  c.header('X-Frame-Options', 'DENY');
+
+  // Prevent MIME type sniffing
+  c.header('X-Content-Type-Options', 'nosniff');
+
+  // Enable XSS filter (legacy browsers)
+  c.header('X-XSS-Protection', '1; mode=block');
+
+  // Strict Transport Security (HTTPS only)
+  // max-age=31536000 = 1 year
+  c.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+
+  // Referrer Policy - don't leak full URLs
+  c.header('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+  // Content Security Policy for API responses
+  c.header('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'");
+
+  // Prevent caching of sensitive API responses
+  if (c.req.path.includes('/auth/') || c.req.path.includes('/users/')) {
+    c.header('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    c.header('Pragma', 'no-cache');
+  }
+});
 
 // Error handler (kept last in the chain)
 app.use('/api/*', errorHandler());

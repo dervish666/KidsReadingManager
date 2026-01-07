@@ -5,6 +5,7 @@
 
 import { Hono } from 'hono';
 import { requireOwner, requireAdmin, auditLog } from '../middleware/tenant.js';
+import { encryptSensitiveData } from '../utils/crypto.js';
 
 export const organizationRouter = new Hono();
 
@@ -594,9 +595,14 @@ organizationRouter.put('/ai-config', requireAdmin(), auditLog('update', 'ai-conf
       }
 
       if (apiKey !== undefined) {
-        // In production, this should be encrypted
+        // Encrypt the API key before storing
+        const jwtSecret = c.env.JWT_SECRET;
+        if (!jwtSecret) {
+          return c.json({ error: 'Server configuration error - encryption not available' }, 500);
+        }
+        const encryptedApiKey = await encryptSensitiveData(apiKey, jwtSecret);
         updates.push('api_key_encrypted = ?');
-        params.push(apiKey);
+        params.push(encryptedApiKey);
       }
 
       if (modelPreference !== undefined) {
@@ -621,6 +627,15 @@ organizationRouter.put('/ai-config', requireAdmin(), auditLog('update', 'ai-conf
       }
     } else {
       // Create new config
+      let encryptedApiKey = null;
+      if (apiKey) {
+        const jwtSecret = c.env.JWT_SECRET;
+        if (!jwtSecret) {
+          return c.json({ error: 'Server configuration error - encryption not available' }, 500);
+        }
+        encryptedApiKey = await encryptSensitiveData(apiKey, jwtSecret);
+      }
+
       await db.prepare(`
         INSERT INTO org_ai_config (id, organization_id, provider, api_key_encrypted, model_preference, is_enabled, updated_by)
         VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -628,7 +643,7 @@ organizationRouter.put('/ai-config', requireAdmin(), auditLog('update', 'ai-conf
         crypto.randomUUID(),
         organizationId,
         provider || 'anthropic',
-        apiKey || null,
+        encryptedApiKey,
         modelPreference || null,
         isEnabled ? 1 : 0,
         userId

@@ -7,9 +7,13 @@
 // Password Hashing (PBKDF2)
 // ============================================================================
 
-const PBKDF2_ITERATIONS = 100000;
-const SALT_LENGTH = 16;
-const HASH_LENGTH = 32; // 256 bits
+// OWASP 2024 recommends 600,000+ iterations for PBKDF2-HMAC-SHA256
+// This provides adequate protection against GPU-based attacks
+const PBKDF2_ITERATIONS = 600000;
+// Legacy iteration count for backward compatibility with existing passwords
+const PBKDF2_ITERATIONS_LEGACY = 100000;
+const SALT_LENGTH = 16;  // 128 bits
+const HASH_LENGTH = 32;  // 256 bits
 
 /**
  * Hash a password using PBKDF2 with a random salt
@@ -47,44 +51,68 @@ export async function hashPassword(password) {
 }
 
 /**
- * Verify a password against a stored hash
+ * Verify a password against a stored hash with a specific iteration count
  * @param {string} password - Plain text password to verify
  * @param {string} storedHash - Stored hash in format: base64(salt):base64(hash)
+ * @param {number} iterations - PBKDF2 iteration count
  * @returns {Promise<boolean>} - True if password matches
+ */
+async function verifyPasswordWithIterations(password, storedHash, iterations) {
+  const [saltBase64, hashBase64] = storedHash.split(':');
+  if (!saltBase64 || !hashBase64) return false;
+
+  const salt = base64ToArrayBuffer(saltBase64);
+  const storedHashBytes = base64ToArrayBuffer(hashBase64);
+
+  const encoder = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(password),
+    'PBKDF2',
+    false,
+    ['deriveBits']
+  );
+
+  const computedHash = await crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      salt,
+      iterations,
+      hash: 'SHA-256'
+    },
+    keyMaterial,
+    HASH_LENGTH * 8
+  );
+
+  // Constant-time comparison to prevent timing attacks
+  return constantTimeEqual(new Uint8Array(computedHash), storedHashBytes);
+}
+
+/**
+ * Verify a password against a stored hash
+ * Supports both new (600k) and legacy (100k) iteration counts for backward compatibility
+ * @param {string} password - Plain text password to verify
+ * @param {string} storedHash - Stored hash in format: base64(salt):base64(hash)
+ * @returns {Promise<{valid: boolean, needsRehash: boolean}>} - Result with rehash indicator
  */
 export async function verifyPassword(password, storedHash) {
   try {
-    const [saltBase64, hashBase64] = storedHash.split(':');
-    if (!saltBase64 || !hashBase64) return false;
+    // First try with new iteration count
+    if (await verifyPasswordWithIterations(password, storedHash, PBKDF2_ITERATIONS)) {
+      return { valid: true, needsRehash: false };
+    }
 
-    const salt = base64ToArrayBuffer(saltBase64);
-    const storedHashBytes = base64ToArrayBuffer(hashBase64);
+    // Fall back to legacy iteration count for existing passwords
+    if (await verifyPasswordWithIterations(password, storedHash, PBKDF2_ITERATIONS_LEGACY)) {
+      // Password valid but was hashed with old iteration count
+      // Caller should rehash and update the stored hash
+      return { valid: true, needsRehash: true };
+    }
 
-    const encoder = new TextEncoder();
-    const keyMaterial = await crypto.subtle.importKey(
-      'raw',
-      encoder.encode(password),
-      'PBKDF2',
-      false,
-      ['deriveBits']
-    );
-
-    const computedHash = await crypto.subtle.deriveBits(
-      {
-        name: 'PBKDF2',
-        salt,
-        iterations: PBKDF2_ITERATIONS,
-        hash: 'SHA-256'
-      },
-      keyMaterial,
-      HASH_LENGTH * 8
-    );
-
-    // Constant-time comparison to prevent timing attacks
-    return constantTimeEqual(new Uint8Array(computedHash), storedHashBytes);
+    return { valid: false, needsRehash: false };
   } catch (error) {
     console.error('Password verification error:', error);
-    return false;
+    return { valid: false, needsRehash: false };
   }
 }
 
@@ -93,7 +121,10 @@ export async function verifyPassword(password, storedHash) {
 // ============================================================================
 
 const JWT_ALGORITHM = 'HS256';
-const ACCESS_TOKEN_TTL = 24 * 60 * 60 * 1000; // 24 hours in ms
+// SECURITY: Short-lived access tokens reduce the window of opportunity for stolen tokens
+// Access tokens: 15 minutes - requires frequent refresh but limits exposure
+// Refresh tokens: 7 days - allows reasonable session persistence
+const ACCESS_TOKEN_TTL = 15 * 60 * 1000; // 15 minutes in ms
 const REFRESH_TOKEN_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days in ms
 
 /**
@@ -408,3 +439,113 @@ export const permissions = {
   canManageBooks: (role) => hasPermission(role, ROLES.ADMIN),
   canManageSettings: (role) => hasPermission(role, ROLES.ADMIN)
 };
+
+// ============================================================================
+// Symmetric Encryption (AES-GCM) for Sensitive Data
+// ============================================================================
+
+const ENCRYPTION_ALGORITHM = 'AES-GCM';
+const ENCRYPTION_KEY_LENGTH = 256;
+const IV_LENGTH = 12; // 96 bits recommended for GCM
+
+/**
+ * Derive an encryption key from the JWT secret
+ * Uses HKDF to derive a separate key for encryption
+ * @param {string} secret - The JWT secret
+ * @returns {Promise<CryptoKey>} - AES-GCM key
+ */
+async function deriveEncryptionKey(secret) {
+  const encoder = new TextEncoder();
+
+  // Import the secret as key material
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret),
+    'HKDF',
+    false,
+    ['deriveKey']
+  );
+
+  // Derive an AES key using HKDF
+  return crypto.subtle.deriveKey(
+    {
+      name: 'HKDF',
+      hash: 'SHA-256',
+      salt: encoder.encode('krm-api-key-encryption-v1'),
+      info: encoder.encode('api-key-encryption')
+    },
+    keyMaterial,
+    { name: ENCRYPTION_ALGORITHM, length: ENCRYPTION_KEY_LENGTH },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+/**
+ * Encrypt sensitive data (like API keys)
+ * @param {string} plaintext - Data to encrypt
+ * @param {string} secret - JWT secret (used to derive encryption key)
+ * @returns {Promise<string>} - Encrypted data as base64 string (iv:ciphertext)
+ */
+export async function encryptSensitiveData(plaintext, secret) {
+  if (!plaintext || !secret) {
+    throw new Error('Plaintext and secret are required for encryption');
+  }
+
+  const encoder = new TextEncoder();
+  const key = await deriveEncryptionKey(secret);
+
+  // Generate random IV
+  const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
+
+  // Encrypt the data
+  const ciphertext = await crypto.subtle.encrypt(
+    { name: ENCRYPTION_ALGORITHM, iv },
+    key,
+    encoder.encode(plaintext)
+  );
+
+  // Combine IV and ciphertext, encode as base64
+  const ivBase64 = arrayBufferToBase64(iv);
+  const ciphertextBase64 = arrayBufferToBase64(new Uint8Array(ciphertext));
+
+  return `${ivBase64}:${ciphertextBase64}`;
+}
+
+/**
+ * Decrypt sensitive data (like API keys)
+ * @param {string} encryptedData - Encrypted data from encryptSensitiveData
+ * @param {string} secret - JWT secret (used to derive encryption key)
+ * @returns {Promise<string>} - Decrypted plaintext
+ */
+export async function decryptSensitiveData(encryptedData, secret) {
+  if (!encryptedData || !secret) {
+    throw new Error('Encrypted data and secret are required for decryption');
+  }
+
+  // Check if data is in encrypted format (contains :)
+  if (!encryptedData.includes(':')) {
+    // Data is not encrypted (legacy plaintext), return as-is
+    // This allows backward compatibility during migration
+    return encryptedData;
+  }
+
+  const [ivBase64, ciphertextBase64] = encryptedData.split(':');
+  if (!ivBase64 || !ciphertextBase64) {
+    throw new Error('Invalid encrypted data format');
+  }
+
+  const key = await deriveEncryptionKey(secret);
+  const iv = base64ToArrayBuffer(ivBase64);
+  const ciphertext = base64ToArrayBuffer(ciphertextBase64);
+
+  // Decrypt the data
+  const decrypted = await crypto.subtle.decrypt(
+    { name: ENCRYPTION_ALGORITHM, iv },
+    key,
+    ciphertext
+  );
+
+  const decoder = new TextDecoder();
+  return decoder.decode(decrypted);
+}

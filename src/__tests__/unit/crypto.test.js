@@ -46,43 +46,44 @@ describe('Password Hashing', () => {
   });
 
   describe('verifyPassword', () => {
-    it('should verify correct password', async () => {
+    it('should verify correct password and return object with valid and needsRehash', async () => {
       const password = 'correctPassword';
       const hash = await hashPassword(password);
 
-      const isValid = await verifyPassword(password, hash);
-      expect(isValid).toBe(true);
+      const result = await verifyPassword(password, hash);
+      expect(result.valid).toBe(true);
+      expect(result.needsRehash).toBe(false);
     });
 
     it('should reject incorrect password', async () => {
       const password = 'correctPassword';
       const hash = await hashPassword(password);
 
-      const isValid = await verifyPassword('wrongPassword', hash);
-      expect(isValid).toBe(false);
+      const result = await verifyPassword('wrongPassword', hash);
+      expect(result.valid).toBe(false);
     });
 
-    it('should return false for malformed hash (missing colon)', async () => {
-      const isValid = await verifyPassword('password', 'invalidhashformat');
-      expect(isValid).toBe(false);
+    it('should return valid=false for malformed hash (missing colon)', async () => {
+      const result = await verifyPassword('password', 'invalidhashformat');
+      expect(result.valid).toBe(false);
     });
 
-    it('should return false for empty stored hash', async () => {
-      const isValid = await verifyPassword('password', '');
-      expect(isValid).toBe(false);
+    it('should return valid=false for empty stored hash', async () => {
+      const result = await verifyPassword('password', '');
+      expect(result.valid).toBe(false);
     });
 
     it('should handle empty password verification', async () => {
       const hash = await hashPassword('');
-      const isValid = await verifyPassword('', hash);
-      expect(isValid).toBe(true);
+      const result = await verifyPassword('', hash);
+      expect(result.valid).toBe(true);
     });
 
     it('should be case-sensitive', async () => {
       const hash = await hashPassword('Password');
 
-      const isValid = await verifyPassword('password', hash);
-      expect(isValid).toBe(false);
+      const result = await verifyPassword('password', hash);
+      expect(result.valid).toBe(false);
     });
   });
 });

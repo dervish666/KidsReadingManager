@@ -1,5 +1,95 @@
 # Changelog
 
+## [2.4.0] - 2026-01-07
+
+### Security Hardening Release
+
+This release implements comprehensive security improvements addressing authentication, data protection, and API security.
+
+#### Critical Security Fixes
+- **API Key Encryption**: API keys for AI providers (Anthropic, OpenAI, Google) are now encrypted using AES-GCM before storage in the database
+  - Added `encryptSensitiveData()` and `decryptSensitiveData()` functions to crypto utilities
+  - Backward compatible with existing plaintext keys (auto-decrypts legacy format)
+  - Keys encrypted with HKDF-derived encryption key from JWT secret
+
+- **SQL Injection Prevention**: Added whitelist validation for dynamic table names in `requireOrgOwnership()` middleware
+  - Validates table names at middleware creation time
+  - Throws error for any table not in the allowed list
+  - Prevents potential SQL injection via parameter manipulation
+
+#### Authentication Improvements
+- **httpOnly Cookies**: Refresh tokens are now stored in httpOnly cookies instead of localStorage
+  - Cookies set with `HttpOnly`, `Secure` (production), `SameSite=Strict` flags
+  - Prevents XSS attacks from stealing refresh tokens
+  - Backend reads from cookie first, falls back to request body for backward compatibility
+  - Login, register, refresh, and logout endpoints all updated
+
+- **Reduced Token TTL**: Access token lifetime reduced from 24 hours to 15 minutes
+  - Limits window of opportunity for stolen tokens
+  - Refresh tokens remain valid for 7 days for session persistence
+
+- **Stronger Password Hashing**: Increased PBKDF2 iterations from 100,000 to 600,000
+  - Meets OWASP 2024 recommendations for GPU-resistant hashing
+  - Provides adequate protection against modern brute-force attacks
+
+- **Account Lockout**: Implemented progressive account lockout after failed login attempts
+  - 5 failed attempts triggers 15-minute lockout
+  - Tracks attempts in D1 database for distributed consistency
+  - Records IP address and user agent for security forensics
+  - Auto-cleanup of old attempt records
+
+#### API Security
+- **CORS Whitelist**: Replaced permissive CORS with explicit origin whitelist
+  - Origins configured via `ALLOWED_ORIGINS` environment variable
+  - Development mode allows localhost origins
+  - Production rejects requests from unknown origins
+
+- **Security Headers**: Added comprehensive security headers middleware
+  - `X-Frame-Options: DENY` - Prevents clickjacking
+  - `X-Content-Type-Options: nosniff` - Prevents MIME sniffing
+  - `X-XSS-Protection: 1; mode=block` - XSS filter for legacy browsers
+  - `Strict-Transport-Security` - Enforces HTTPS
+  - `Referrer-Policy: strict-origin-when-cross-origin` - Controls referrer leakage
+  - `Content-Security-Policy` - Restricts resource loading
+  - `Cache-Control: no-store` on sensitive endpoints
+
+- **Distributed Rate Limiting**: Replaced in-memory rate limiting with D1-based implementation
+  - Works across all Cloudflare Worker instances
+  - Auth endpoints limited to 10 requests/minute per IP
+  - Graceful degradation if table doesn't exist
+  - Automatic cleanup of old entries
+
+#### Removed Sensitive Data Exposure
+- **Token Logging Removed**: Removed all console.log statements that exposed sensitive tokens
+  - Password reset tokens no longer logged even in development
+  - Temporary passwords removed from API responses
+  - Debug output no longer includes actual token values
+
+### New Database Migrations
+- `migrations/0013_login_attempts.sql` - Login attempts tracking for account lockout
+- `migrations/0014_rate_limits.sql` - Rate limiting tracking table
+
+### Changed
+- `src/utils/crypto.js` - Added encryption functions, updated PBKDF2 iterations and token TTL
+- `src/middleware/tenant.js` - Added table whitelist, D1-based rate limiting
+- `src/routes/auth.js` - Added httpOnly cookies, account lockout, rate limiting
+- `src/routes/settings.js` - API keys now encrypted before storage
+- `src/routes/organization.js` - API keys now encrypted before storage
+- `src/routes/books.js` - API keys decrypted when reading for AI recommendations
+- `src/worker.js` - Added CORS whitelist and security headers middleware
+- `src/contexts/AppContext.js` - Added `credentials: 'include'` for cookie support
+
+### Deployment Notes
+```bash
+# Run new migrations
+npx wrangler d1 migrations apply reading-manager-db --local
+npx wrangler d1 migrations apply reading-manager-db --remote
+
+# Optional: Set allowed origins for CORS
+# In Cloudflare dashboard or wrangler.toml:
+# ALLOWED_ORIGINS = "https://yourdomain.com,https://app.yourdomain.com"
+```
+
 ## [2.3.3] - 2026-01-02
 
 ### Changed

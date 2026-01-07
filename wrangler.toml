@@ -27,6 +27,7 @@ not_found_handling = "single-page-application"
 [vars]
 ENVIRONMENT = "production"
 STORAGE_TYPE = "kv"
+ALLOWED_ORIGINS = "https://kids-reading-manager.brisflix.workers.dev/,https://reading.brisflix.com"
 
 # Route configuration for custom domain
 routes = [
