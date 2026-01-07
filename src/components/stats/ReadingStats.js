@@ -26,7 +26,6 @@ import HomeIcon from '@mui/icons-material/Home';
 import SchoolIcon from '@mui/icons-material/School';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
-import VisualIndicators from './VisualIndicators';
 import DaysSinceReadingChart from './DaysSinceReadingChart';
 import ReadingTimelineChart from './ReadingTimelineChart';
 import ReadingFrequencyChart from './ReadingFrequencyChart';
@@ -252,17 +251,6 @@ const ReadingStats = () => {
             <Typography variant="h3" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#F59E0B' }}>
               {stats.studentsWithNoSessions}
             </Typography>
-          </CardContent>
-        </Card>
-      </Grid>
-      
-      <Grid item xs={12}>
-        <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(160, 150, 180, 0.1)' }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
-              Reading Status Distribution
-            </Typography>
-            <VisualIndicators data={stats.statusDistribution} />
           </CardContent>
         </Card>
       </Grid>

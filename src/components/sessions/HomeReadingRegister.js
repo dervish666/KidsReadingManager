@@ -231,6 +231,7 @@ const HomeReadingRegister = () => {
     books,
     addReadingSession,
     deleteReadingSession,
+    updateStudentCurrentBook,
     reloadDataFromServer,
     globalClassFilter,
     setGlobalClassFilter
@@ -259,25 +260,6 @@ const HomeReadingRegister = () => {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
-  
-  // Book persistence - stores last book per student (in localStorage)
-  const [studentBooks, setStudentBooks] = useState(() => {
-    try {
-      const stored = localStorage.getItem('homeReadingStudentBooks');
-      return stored ? JSON.parse(stored) : {};
-    } catch {
-      return {};
-    }
-  });
-
-  // Save student books to localStorage when changed
-  useEffect(() => {
-    try {
-      localStorage.setItem('homeReadingStudentBooks', JSON.stringify(studentBooks));
-    } catch (err) {
-      console.warn('Failed to save student books to localStorage:', err);
-    }
-  }, [studentBooks]);
 
   // Get active classes (non-disabled)
   const activeClasses = useMemo(() => {
@@ -405,28 +387,27 @@ const HomeReadingRegister = () => {
     return { status: READING_STATUS.MULTIPLE, count: sessions.length, sessions };
   }, []);
 
-  // Get the last book a student was reading
+  // Get the current book a student is reading (from database)
   const getStudentLastBook = useCallback((studentId) => {
-    // First check our persisted state
-    if (studentBooks[studentId]) {
-      const book = books.find(b => b.id === studentBooks[studentId]);
-      if (book) return book;
-    }
-    
-    // Fall back to their most recent session with a book
     const student = students.find(s => s.id === studentId);
     if (!student) return null;
-    
-    const sessionsWithBooks = student.readingSessions
-      .filter(s => s.bookId)
-      .sort((a, b) => new Date(b.date) - new Date(a.date));
-    
-    if (sessionsWithBooks.length > 0) {
-      return books.find(b => b.id === sessionsWithBooks[0].bookId) || null;
+
+    // Use the student's current book from the database
+    if (student.currentBookId) {
+      const book = books.find(b => b.id === student.currentBookId);
+      if (book) return book;
+      // If we have a title but no matching book, return a minimal book object
+      if (student.currentBookTitle) {
+        return {
+          id: student.currentBookId,
+          title: student.currentBookTitle,
+          author: student.currentBookAuthor || ''
+        };
+      }
     }
-    
+
     return null;
-  }, [studentBooks, books, students]);
+  }, [books, students]);
 
   // Calculate totals for the register
   const registerTotals = useMemo(() => {
@@ -500,8 +481,9 @@ const HomeReadingRegister = () => {
       for (const session of existingSessions) {
         await deleteReadingSession(selectedStudent.id, session.id);
       }
-      
-      const bookId = studentBooks[selectedStudent.id] || null;
+
+      // Get the student's current book from the database
+      const bookId = selectedStudent.currentBookId || null;
       
       // Create a single session based on status
       if (status === READING_STATUS.ABSENT) {
@@ -554,11 +536,14 @@ const HomeReadingRegister = () => {
   // Handle book change for selected student
   const handleBookChange = (book) => {
     if (!selectedStudent) return;
-    
-    setStudentBooks(prev => ({
-      ...prev,
-      [selectedStudent.id]: book?.id || null
-    }));
+
+    // Update the student's current book in the database
+    updateStudentCurrentBook(
+      selectedStudent.id,
+      book?.id || null,
+      book?.title || null,
+      book?.author || null
+    );
   };
 
   // Handle multiple count dialog
@@ -720,13 +705,13 @@ const HomeReadingRegister = () => {
                 {/* Book Selection */}
                 <Box sx={{ mb: 2 }}>
                   <BookAutocomplete
-                    value={books.find(b => b.id === studentBooks[selectedStudent.id]) || getStudentLastBook(selectedStudent.id)}
+                    value={getStudentLastBook(selectedStudent.id)}
                     onChange={handleBookChange}
                     label="Current Book"
                     placeholder="Select or search for book..."
                   />
                   <Typography variant="caption" color="text.secondary">
-                    Book will be remembered for future entries
+                    Book will be saved and synced across devices
                   </Typography>
                 </Box>
 

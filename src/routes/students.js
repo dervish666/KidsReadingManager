@@ -53,6 +53,9 @@ const rowToStudent = (row) => {
     isActive: Boolean(row.is_active),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    currentBookId: row.current_book_id || null,
+    currentBookTitle: row.current_book_title || null,
+    currentBookAuthor: row.current_book_author || null,
     readingSessions: [], // Default empty array, will be populated separately if needed
     preferences: {
       favoriteGenreIds: [],
@@ -143,9 +146,10 @@ studentsRouter.get('/', async (c) => {
     const organizationId = c.get('organizationId');
     
     const result = await db.prepare(`
-      SELECT s.*, c.name as class_name
+      SELECT s.*, c.name as class_name, b.title as current_book_title, b.author as current_book_author
       FROM students s
       LEFT JOIN classes c ON s.class_id = c.id
+      LEFT JOIN books b ON s.current_book_id = b.id
       WHERE s.organization_id = ? AND s.is_active = 1
       ORDER BY s.name ASC
     `).bind(organizationId).all();
@@ -207,9 +211,10 @@ studentsRouter.get('/:id', async (c) => {
     const organizationId = c.get('organizationId');
     
     const student = await db.prepare(`
-      SELECT s.*, c.name as class_name
+      SELECT s.*, c.name as class_name, b.title as current_book_title, b.author as current_book_author
       FROM students s
       LEFT JOIN classes c ON s.class_id = c.id
+      LEFT JOIN books b ON s.current_book_id = b.id
       WHERE s.id = ? AND s.organization_id = ? AND s.is_active = 1
     `).bind(id, organizationId).first();
     
@@ -478,6 +483,53 @@ studentsRouter.delete('/:id', async (c) => {
 });
 
 /**
+ * PUT /api/students/:id/current-book
+ * Update a student's current book
+ */
+studentsRouter.put('/:id/current-book', async (c) => {
+  const { id } = c.req.param();
+  const body = await c.req.json();
+
+  // Multi-tenant mode: use D1
+  if (isMultiTenantMode(c)) {
+    const db = getDB(c.env);
+    const organizationId = c.get('organizationId');
+
+    // Check if student exists and belongs to organization
+    const existing = await db.prepare(`
+      SELECT id FROM students WHERE id = ? AND organization_id = ? AND is_active = 1
+    `).bind(id, organizationId).first();
+
+    if (!existing) {
+      throw notFoundError(`Student with ID ${id} not found`);
+    }
+
+    // Update current book (bookId can be null to clear)
+    await db.prepare(`
+      UPDATE students SET current_book_id = ?, updated_at = datetime("now")
+      WHERE id = ?
+    `).bind(body.bookId || null, id).run();
+
+    // Fetch updated student with book info
+    const student = await db.prepare(`
+      SELECT s.*, b.title as current_book_title, b.author as current_book_author
+      FROM students s
+      LEFT JOIN books b ON s.current_book_id = b.id
+      WHERE s.id = ?
+    `).bind(id).first();
+
+    return c.json({
+      currentBookId: student.current_book_id,
+      currentBookTitle: student.current_book_title,
+      currentBookAuthor: student.current_book_author
+    });
+  }
+
+  // Legacy mode: not supported (localStorage handles it)
+  return c.json({ error: 'Current book tracking requires multi-tenant mode' }, 400);
+});
+
+/**
  * POST /api/students/bulk
  * Bulk import students
  */
@@ -600,7 +652,15 @@ studentsRouter.post('/:id/sessions', async (c) => {
       body.location || 'school',
       userId
     ).run();
-    
+
+    // Update student's current book if a book was provided
+    if (body.bookId) {
+      await db.prepare(`
+        UPDATE students SET current_book_id = ?, updated_at = datetime("now")
+        WHERE id = ?
+      `).bind(body.bookId, id).run();
+    }
+
     // Fetch the created session
     const session = await db.prepare(`
       SELECT rs.*, b.title as book_title, b.author as book_author

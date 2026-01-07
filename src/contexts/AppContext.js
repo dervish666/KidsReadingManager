@@ -935,6 +935,72 @@ export const AppProvider = ({ children }) => {
     [students, fetchWithAuth]
   );
 
+  const updateStudentCurrentBook = useCallback(
+    async (studentId, bookId, bookTitle = null, bookAuthor = null) => {
+      const student = students.find((s) => s.id === studentId);
+      if (!student) {
+        console.error('Update current book failed: Student not found');
+        return null;
+      }
+
+      // Optimistic update
+      const previousStudents = students;
+      setStudents((prev) =>
+        prev.map((s) =>
+          s.id === studentId
+            ? {
+                ...s,
+                currentBookId: bookId,
+                currentBookTitle: bookTitle,
+                currentBookAuthor: bookAuthor,
+              }
+            : s
+        )
+      );
+
+      try {
+        const response = await fetchWithAuth(
+          `${API_URL}/students/${studentId}/current-book`,
+          {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bookId }),
+          }
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `API error: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        // Update with server response
+        setStudents((prev) =>
+          prev.map((s) =>
+            s.id === studentId
+              ? {
+                  ...s,
+                  currentBookId: result.currentBookId,
+                  currentBookTitle: result.currentBookTitle,
+                  currentBookAuthor: result.currentBookAuthor,
+                }
+              : s
+          )
+        );
+
+        setApiError(null);
+        return result;
+      } catch (error) {
+        console.error('Error updating student current book:', error);
+        setApiError(error.message);
+        setStudents(previousStudents);
+        return null;
+      }
+    },
+    [students, fetchWithAuth]
+  );
+
   // Book helpers
   const updateBook = useCallback(
     async (id, updatedFields) => {
@@ -1084,7 +1150,7 @@ export const AppProvider = ({ children }) => {
         id: uuidv4(),
         ...sessionPayload,
       };
-      
+
       const updatedReadingSessions = [tempSession, ...(student.readingSessions || [])];
       let mostRecentDate = date;
       for (const session of updatedReadingSessions) {
@@ -1099,6 +1165,12 @@ export const AppProvider = ({ children }) => {
         ...student,
         lastReadDate: mostRecentDate,
         readingSessions: updatedReadingSessions,
+        // Also update current book if one was provided
+        ...(sessionPayload.bookId && {
+          currentBookId: sessionPayload.bookId,
+          currentBookTitle: sessionPayload.bookTitle,
+          currentBookAuthor: sessionPayload.bookAuthor,
+        }),
       };
 
       const previousStudents = students;
@@ -1645,6 +1717,7 @@ export const AppProvider = ({ children }) => {
     bulkImportStudents,
     updateStudent,
     updateStudentClassId,
+    updateStudentCurrentBook,
     deleteStudent,
     addReadingSession,
     editReadingSession,

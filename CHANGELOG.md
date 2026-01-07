@@ -1,5 +1,49 @@
 # Changelog
 
+## [2.5.0] - 2026-01-07
+
+### Database-Backed Current Book Tracking
+
+This release replaces the inconsistent localStorage-based approach for tracking a student's current book with proper database storage.
+
+#### Problem Solved
+Previously, a student's "current book" was stored in localStorage on the browser and fell back to their most recent reading session. This caused several issues:
+- **Device-specific**: A teacher using a different computer wouldn't see the current book
+- **Inconsistent**: If a student finished a book, the fallback showed the wrong book
+- **No persistence**: Clearing browser data lost all current book assignments
+
+#### Solution
+The current book is now stored directly in the `students` table and synced across all devices.
+
+### Added
+- **`current_book_id` Column**: New column on the `students` table with foreign key to `books`
+- **New API Endpoint**: `PUT /api/students/:id/current-book` to update a student's current book
+- **Auto-Update on Session**: When recording a reading session with a book, the student's current book is automatically updated
+- **Context Function**: New `updateStudentCurrentBook()` function in AppContext for frontend use
+
+### Changed
+- **Student API Responses**: Now include `currentBookId`, `currentBookTitle`, and `currentBookAuthor` fields
+- **HomeReadingRegister**: Uses database current book instead of localStorage
+- **UI Text**: Updated to indicate book is "synced across devices" instead of "remembered for future entries"
+
+### Removed
+- **localStorage Dependency**: Removed `homeReadingStudentBooks` localStorage usage from HomeReadingRegister
+
+### New Database Migration
+- `migrations/0015_add_students_current_book.sql` - Adds `current_book_id` column and auto-populates from existing reading sessions
+
+### Deployment Notes
+```bash
+# Run the migration
+npx wrangler d1 migrations apply reading-manager-db --local   # for local testing
+npx wrangler d1 migrations apply reading-manager-db --remote  # for production
+
+# Deploy
+npm run go
+```
+
+---
+
 ## [2.4.0] - 2026-01-07
 
 ### Security Hardening Release
