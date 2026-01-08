@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -21,7 +21,8 @@ import {
   Paper,
   Stack,
   Snackbar,
-  IconButton
+  IconButton,
+  Tooltip
 } from '@mui/material';
 import { useAppContext } from '../contexts/AppContext';
 import BookIcon from '@mui/icons-material/Book';
@@ -30,6 +31,9 @@ import PersonIcon from '@mui/icons-material/Person';
 import RecommendationsIcon from '@mui/icons-material/Star';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import CloudOffIcon from '@mui/icons-material/CloudOff';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import WarningIcon from '@mui/icons-material/Warning';
 import { getBookDetails, getCoverUrl, checkOpenLibraryAvailability, resetOpenLibraryAvailabilityCache } from '../utils/openLibraryApi';
 
 const BookRecommendations = () => {
@@ -45,6 +49,36 @@ const BookRecommendations = () => {
   const [error, setError] = useState(null);
   const [openLibraryStatus, setOpenLibraryStatus] = useState({ available: null, message: '' });
   const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [aiConfig, setAiConfig] = useState(null);
+
+  // Load AI config on mount
+  useEffect(() => {
+    const loadAIConfig = async () => {
+      try {
+        const response = await fetchWithAuth('/api/settings/ai');
+        if (response.ok) {
+          const config = await response.json();
+          setAiConfig(config);
+        }
+      } catch (error) {
+        console.error('Error loading AI config:', error);
+      }
+    };
+
+    if (fetchWithAuth) {
+      loadAIConfig();
+    }
+  }, [fetchWithAuth]);
+
+  // Helper to get provider display name
+  const getProviderDisplayName = (provider) => {
+    const names = {
+      anthropic: 'Claude',
+      openai: 'GPT',
+      google: 'Gemini'
+    };
+    return names[provider] || provider;
+  };
 
   // Filter students by global class filter
   const filteredStudents = students.filter(student => {
@@ -286,12 +320,41 @@ const BookRecommendations = () => {
     }
   };
 
+  // Determine AI status
+  const hasActiveAI = aiConfig?.hasApiKey || aiConfig?.keySource === 'environment';
+  const activeProvider = aiConfig?.provider;
+
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 4, display: 'flex', alignItems: 'center', gap: 2 }}>
-        <RecommendationsIcon color="primary" />
-        Book Recommendations
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 4, flexWrap: 'wrap', gap: 2 }}>
+        <Typography variant="h4" component="h1" sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <RecommendationsIcon color="primary" />
+          Book Recommendations
+        </Typography>
+
+        {/* AI Status Indicator */}
+        {aiConfig && (
+          <Tooltip
+            title={
+              hasActiveAI
+                ? `Using ${getProviderDisplayName(activeProvider)} for AI recommendations${aiConfig.modelPreference ? ` (${aiConfig.modelPreference})` : ''}`
+                : 'No AI provider configured. Using fallback recommendations. Configure in Settings > AI Integration.'
+            }
+          >
+            <Chip
+              icon={hasActiveAI ? <SmartToyIcon /> : <WarningIcon />}
+              label={
+                hasActiveAI
+                  ? `AI: ${getProviderDisplayName(activeProvider)}`
+                  : 'AI: Not configured'
+              }
+              color={hasActiveAI ? 'success' : 'warning'}
+              variant="outlined"
+              size="small"
+            />
+          </Tooltip>
+        )}
+      </Box>
 
       {apiError && (
         <Alert severity="error" sx={{ mb: 3 }}>

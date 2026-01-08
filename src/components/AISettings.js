@@ -11,10 +11,14 @@ import {
   MenuItem,
   Alert,
   CircularProgress,
-  Divider
+  Divider,
+  Chip,
+  Stack
 } from '@mui/material';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import SaveIcon from '@mui/icons-material/Save';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CancelIcon from '@mui/icons-material/Cancel';
 import { useAppContext } from '../contexts/AppContext';
 
 const API_URL = '/api';
@@ -25,6 +29,8 @@ const AISettings = () => {
   const [apiKey, setApiKey] = useState('');
   const [modelPreference, setModelPreference] = useState('');
   const [hasApiKey, setHasApiKey] = useState(false);
+  const [availableProviders, setAvailableProviders] = useState({});
+  const [keySource, setKeySource] = useState('none');
   const [saveStatus, setSaveStatus] = useState(null); // 'success', 'error', or null
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -39,6 +45,8 @@ const AISettings = () => {
           setProvider(config.provider || 'anthropic');
           setModelPreference(config.modelPreference || getDefaultModel(config.provider || 'anthropic'));
           setHasApiKey(config.hasApiKey || false);
+          setAvailableProviders(config.availableProviders || {});
+          setKeySource(config.keySource || 'none');
           // Don't set apiKey - it's not returned from the server for security
         }
       } catch (error) {
@@ -98,6 +106,8 @@ const AISettings = () => {
 
       const config = await response.json();
       setHasApiKey(config.hasApiKey);
+      setAvailableProviders(config.availableProviders || {});
+      setKeySource(config.keySource || 'none');
       setApiKey(''); // Clear the input after successful save
       setSaveStatus('success');
     } catch (error) {
@@ -127,6 +137,20 @@ const AISettings = () => {
   const displayProvider = provider === 'google' ? 'gemini' : provider;
   const providerLabel = displayProvider.charAt(0).toUpperCase() + displayProvider.slice(1);
 
+  // Helper to get provider display info
+  const getProviderInfo = (providerKey) => {
+    const names = {
+      anthropic: 'Anthropic (Claude)',
+      openai: 'OpenAI (GPT)',
+      google: 'Google (Gemini)'
+    };
+    return names[providerKey] || providerKey;
+  };
+
+  // Check if current provider has a key
+  const currentProviderKey = displayProvider === 'gemini' ? 'google' : displayProvider;
+  const hasCurrentProviderKey = availableProviders[currentProviderKey] || false;
+
   return (
     <Box>
       <Paper sx={{ p: 3, mb: 3 }}>
@@ -140,9 +164,48 @@ const AISettings = () => {
           You can choose between Anthropic (Claude), OpenAI (ChatGPT), or Google (Gemini).
         </Typography>
 
+        {/* Provider Status Overview */}
+        <Paper variant="outlined" sx={{ p: 2, mb: 3, bgcolor: 'grey.50' }}>
+          <Typography variant="subtitle2" sx={{ mb: 1.5 }}>
+            Provider Status
+          </Typography>
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+            {['anthropic', 'openai', 'google'].map((p) => {
+              const hasKey = availableProviders[p] || false;
+              const isActive = (p === 'google' ? 'gemini' : p) === displayProvider;
+              return (
+                <Chip
+                  key={p}
+                  icon={hasKey ? <CheckCircleIcon /> : <CancelIcon />}
+                  label={getProviderInfo(p)}
+                  color={isActive ? 'primary' : (hasKey ? 'success' : 'default')}
+                  variant={isActive ? 'filled' : 'outlined'}
+                  size="small"
+                  sx={{
+                    '& .MuiChip-icon': {
+                      color: hasKey ? (isActive ? 'inherit' : 'success.main') : 'text.disabled'
+                    }
+                  }}
+                />
+              );
+            })}
+          </Stack>
+          {keySource !== 'none' && (
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+              Active key source: {keySource === 'organization' ? 'Organization settings' : 'Environment variable'}
+            </Typography>
+          )}
+        </Paper>
+
+        {!hasCurrentProviderKey && keySource === 'none' && (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            No API key configured for {getProviderInfo(currentProviderKey)}. Book recommendations will use fallback suggestions.
+          </Alert>
+        )}
+
         {hasApiKey && (
           <Alert severity="info" sx={{ mb: 2 }}>
-            An API key is already configured. Enter a new key below to replace it.
+            An API key is already configured for this provider. Enter a new key below to replace it.
           </Alert>
         )}
 
@@ -169,9 +232,15 @@ const AISettings = () => {
               label="AI Provider"
               onChange={handleProviderChange}
             >
-              <MenuItem value="anthropic">Anthropic (Claude)</MenuItem>
-              <MenuItem value="openai">OpenAI (GPT)</MenuItem>
-              <MenuItem value="gemini">Google (Gemini)</MenuItem>
+              <MenuItem value="anthropic">
+                Anthropic (Claude) {availableProviders.anthropic && '✓'}
+              </MenuItem>
+              <MenuItem value="openai">
+                OpenAI (GPT) {availableProviders.openai && '✓'}
+              </MenuItem>
+              <MenuItem value="gemini">
+                Google (Gemini) {availableProviders.google && '✓'}
+              </MenuItem>
             </Select>
           </FormControl>
 

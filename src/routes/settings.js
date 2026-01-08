@@ -171,29 +171,52 @@ settingsRouter.post('/', async (c) => {
  * Get AI configuration (without exposing API key)
  */
 settingsRouter.get('/ai', async (c) => {
+  // Check environment-level API keys (available as fallback)
+  const envKeys = {
+    anthropic: Boolean(c.env.ANTHROPIC_API_KEY),
+    openai: Boolean(c.env.OPENAI_API_KEY),
+    google: Boolean(c.env.GOOGLE_API_KEY)
+  };
+
   // Multi-tenant mode: use D1
   if (isMultiTenantMode(c)) {
     const db = getDB(c.env);
     const organizationId = c.get('organizationId');
-    
+
     const config = await db.prepare(`
       SELECT provider, model_preference, is_enabled, api_key_encrypted FROM org_ai_config WHERE organization_id = ?
     `).bind(organizationId).first();
-    
+
+    const activeProvider = config?.provider || 'anthropic';
+    const hasOrgKey = Boolean(config?.api_key_encrypted);
+
     return c.json({
-      provider: config?.provider || 'anthropic',
+      provider: activeProvider,
       modelPreference: config?.model_preference || null,
       isEnabled: Boolean(config?.is_enabled),
-      hasApiKey: Boolean(config?.api_key_encrypted)
+      hasApiKey: hasOrgKey,
+      // Show which providers have keys configured (org-level or env-level)
+      availableProviders: {
+        anthropic: hasOrgKey && activeProvider === 'anthropic' ? true : envKeys.anthropic,
+        openai: hasOrgKey && activeProvider === 'openai' ? true : envKeys.openai,
+        google: hasOrgKey && activeProvider === 'google' ? true : envKeys.google
+      },
+      // Indicate the source of the active key
+      keySource: hasOrgKey ? 'organization' : (envKeys[activeProvider] ? 'environment' : 'none')
     });
   }
-  
-  // Legacy mode: check environment variable
+
+  // Legacy mode: check environment variables
+  const hasAnyKey = envKeys.anthropic || envKeys.openai || envKeys.google;
+  const activeProvider = envKeys.anthropic ? 'anthropic' : (envKeys.openai ? 'openai' : (envKeys.google ? 'google' : 'anthropic'));
+
   return c.json({
-    provider: 'anthropic',
+    provider: activeProvider,
     modelPreference: null,
-    isEnabled: Boolean(c.env.ANTHROPIC_API_KEY),
-    hasApiKey: Boolean(c.env.ANTHROPIC_API_KEY)
+    isEnabled: hasAnyKey,
+    hasApiKey: envKeys[activeProvider],
+    availableProviders: envKeys,
+    keySource: hasAnyKey ? 'environment' : 'none'
   });
 });
 
@@ -299,17 +322,33 @@ settingsRouter.post('/ai', async (c) => {
     const config = await db.prepare(`
       SELECT provider, model_preference, is_enabled, api_key_encrypted FROM org_ai_config WHERE organization_id = ?
     `).bind(organizationId).first();
-    
+
+    // Check environment-level API keys (available as fallback)
+    const envKeys = {
+      anthropic: Boolean(c.env.ANTHROPIC_API_KEY),
+      openai: Boolean(c.env.OPENAI_API_KEY),
+      google: Boolean(c.env.GOOGLE_API_KEY)
+    };
+
+    const activeProvider = config?.provider || 'anthropic';
+    const hasOrgKey = Boolean(config?.api_key_encrypted);
+
     return c.json({
-      provider: config?.provider || 'anthropic',
+      provider: activeProvider,
       modelPreference: config?.model_preference || null,
       isEnabled: Boolean(config?.is_enabled),
-      hasApiKey: Boolean(config?.api_key_encrypted)
+      hasApiKey: hasOrgKey,
+      availableProviders: {
+        anthropic: hasOrgKey && activeProvider === 'anthropic' ? true : envKeys.anthropic,
+        openai: hasOrgKey && activeProvider === 'openai' ? true : envKeys.openai,
+        google: hasOrgKey && activeProvider === 'google' ? true : envKeys.google
+      },
+      keySource: hasOrgKey ? 'organization' : (envKeys[activeProvider] ? 'environment' : 'none')
     });
   }
-  
+
   // Legacy mode: AI config is managed via environment variables
-  return c.json({ 
+  return c.json({
     error: 'AI configuration is managed via environment variables in legacy mode',
     message: 'Set ANTHROPIC_API_KEY in your environment'
   }, 400);

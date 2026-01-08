@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.5.2] - 2026-01-08
+
+### Added: Reading Session Sync to Home Reading Register
+
+Reading sessions recorded on the Reading Page are now automatically reflected on the Home Reading Register.
+
+#### How It Works
+- When you record a reading session with a student (on the Reading Page), the system automatically creates or updates a corresponding entry on the Home Reading Register for that same day
+- If the student already has a home reading entry for that day, the count is incremented (✓ becomes 2+, etc.)
+- If the existing entry is marked as "Absent" or "No Record", it is not modified
+- The book being read is also synced to the home reading entry
+
+#### Technical Details
+- Backend: Modified `POST /api/students/:id/sessions` endpoint in [students.js](src/routes/students.js) to sync school reading sessions to home reading entries
+- Frontend: Updated [AppContext.js](src/contexts/AppContext.js) to handle the new `syncedHomeSession` response field
+- Works in both multi-tenant (D1) and legacy (KV) modes
+
+---
+
 ## [2.5.1] - 2026-01-08
 
 ### Fixed: AI Settings Not Saving
@@ -12,13 +31,30 @@ The `AISettings` component was attempting to save AI configuration via the gener
 #### Solution
 Updated `AISettings.js` to use the dedicated `/api/settings/ai` endpoint which properly stores configuration in the `org_ai_config` table.
 
+### Added: AI Provider Status Indicators
+
+Added visual indicators showing which AI providers are configured and active:
+
+- **AI Settings Page**: New "Provider Status" section with chips showing:
+  - Which providers have API keys configured (green checkmark)
+  - Which provider is currently active (filled primary color)
+  - Source of the active key (organization settings vs environment variable)
+  - Dropdown menu now shows checkmarks next to providers with keys
+
+- **Book Recommendations Page**: New status chip in header showing:
+  - Current active AI provider (e.g., "AI: Claude", "AI: Gemini")
+  - Warning indicator when no AI is configured
+  - Tooltip with model details
+
 ### Changed
 - **AISettings Component**: Now calls `/api/settings/ai` endpoint directly instead of the generic settings endpoint
 - **AI Config Loading**: Loads existing configuration from `/api/settings/ai` on component mount
 - **Provider Mapping**: Handles `gemini` ↔ `google` naming between frontend and backend
 - **User Feedback**: Shows an info alert when an API key is already configured
+- **API Response**: `/api/settings/ai` now returns `availableProviders` object and `keySource` field
 
 ### Technical Details
+- Backend checks both organization-level keys and environment-level keys
 - Removed unused state variables and simplified component structure
 - API key field shows placeholder when key exists (key is never returned from server for security)
 - Proper error handling with user-friendly error messages
