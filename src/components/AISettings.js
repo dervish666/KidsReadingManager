@@ -17,7 +17,7 @@ import SmartToyIcon from '@mui/icons-material/SmartToy';
 import SaveIcon from '@mui/icons-material/Save';
 import { useAppContext } from '../contexts/AppContext';
 
-const API_URL = process.env.REACT_APP_API_BASE_URL || '/api';
+const API_URL = '/api';
 
 const AISettings = () => {
   const { fetchWithAuth } = useAppContext();
