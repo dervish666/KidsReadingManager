@@ -17,10 +17,10 @@ import { useAppContext } from '../contexts/AppContext';
 import ClassManager from './classes/ClassManager'; // Import ClassManager
 
 const Settings = () => {
-  const { readingStatusSettings, updateReadingStatusSettings } = useAppContext();
+  const { readingStatusSettings, settings, updateSettings } = useAppContext();
 
-  // Local state for settings
-  const [settings, setSettings] = useState({
+  // Local state for form values
+  const [localSettings, setLocalSettings] = useState({
     recentlyReadDays: readingStatusSettings.recentlyReadDays,
     needsAttentionDays: readingStatusSettings.needsAttentionDays
   });
@@ -34,8 +34,8 @@ const Settings = () => {
 
   // Handle slider change
   const handleSliderChange = (name) => (event, newValue) => {
-    setSettings({
-      ...settings,
+    setLocalSettings({
+      ...localSettings,
       [name]: newValue
     });
   };
@@ -43,8 +43,8 @@ const Settings = () => {
   // Handle input change
   const handleInputChange = (name) => (event) => {
     const value = event.target.value === '' ? '' : Number(event.target.value);
-    setSettings({
-      ...settings,
+    setLocalSettings({
+      ...localSettings,
       [name]: value
     });
   };
@@ -52,22 +52,22 @@ const Settings = () => {
   // Handle input blur (to validate input)
   const handleBlur = (name, min, max) => () => {
     // Ensure value is treated as a number for comparison
-    const numericValue = Number(settings[name]);
+    const numericValue = Number(localSettings[name]);
     if (isNaN(numericValue)) {
-        setSettings({ ...settings, [name]: min }); // Reset if not a number
+        setLocalSettings({ ...localSettings, [name]: min }); // Reset if not a number
         return;
     }
     if (numericValue < min) {
-      setSettings({ ...settings, [name]: min });
+      setLocalSettings({ ...localSettings, [name]: min });
     } else if (numericValue > max) {
-      setSettings({ ...settings, [name]: max });
+      setLocalSettings({ ...localSettings, [name]: max });
     }
   };
 
   // Handle save settings
   const handleSaveSettings = async () => {
     // Ensure needsAttentionDays is greater than recentlyReadDays
-    if (settings.needsAttentionDays <= settings.recentlyReadDays) {
+    if (localSettings.needsAttentionDays <= localSettings.recentlyReadDays) {
       setSnackbar({
         open: true,
         message: 'Needs Attention days must be greater than Recently Read days',
@@ -77,7 +77,11 @@ const Settings = () => {
     }
 
     try {
-      await updateReadingStatusSettings(settings);
+      // Merge with existing settings and update readingStatusSettings
+      await updateSettings({
+        ...settings,
+        readingStatusSettings: localSettings
+      });
       setSnackbar({
         open: true,
         message: 'Settings saved successfully',
@@ -94,7 +98,7 @@ const Settings = () => {
 
   // Handle reset settings
   const handleResetSettings = () => {
-    setSettings({
+    setLocalSettings({
       recentlyReadDays: readingStatusSettings.recentlyReadDays,
       needsAttentionDays: readingStatusSettings.needsAttentionDays
     });
@@ -129,13 +133,13 @@ const Settings = () => {
             {/* Section for Recently Read */}
             <Grid size={12}> {/* Ensure full width */}
               <Typography id="recently-read-days-slider" gutterBottom>
-                Recently Read (Green): 0-{settings.recentlyReadDays} days
+                Recently Read (Green): 0-{localSettings.recentlyReadDays} days
               </Typography>
               {/* Use Box with Flexbox for Slider + Input */}
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Slider
                   sx={{ flexGrow: 1 }} // Slider takes available space
-                  value={typeof settings.recentlyReadDays === 'number' ? settings.recentlyReadDays : 0}
+                  value={typeof localSettings.recentlyReadDays === 'number' ? localSettings.recentlyReadDays : 0}
                   onChange={handleSliderChange('recentlyReadDays')}
                   aria-labelledby="recently-read-days-slider"
                   valueLabelDisplay="auto"
@@ -149,7 +153,7 @@ const Settings = () => {
                   ]}
                 />
                 <TextField
-                  value={settings.recentlyReadDays}
+                  value={localSettings.recentlyReadDays}
                   onChange={handleInputChange('recentlyReadDays')}
                   onBlur={handleBlur('recentlyReadDays', 1, 30)}
                   inputProps={{
@@ -168,17 +172,17 @@ const Settings = () => {
             {/* Section for Needs Attention */}
             <Grid size={12}> {/* Ensure full width */}
               <Typography id="needs-attention-days-slider" gutterBottom>
-                Needs Attention (Yellow): {settings.recentlyReadDays + 1}-{settings.needsAttentionDays} days
+                Needs Attention (Yellow): {localSettings.recentlyReadDays + 1}-{localSettings.needsAttentionDays} days
               </Typography>
               {/* Use Box with Flexbox for Slider + Input */}
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Slider
                   sx={{ flexGrow: 1 }} // Slider takes available space
-                  value={typeof settings.needsAttentionDays === 'number' ? settings.needsAttentionDays : 0}
+                  value={typeof localSettings.needsAttentionDays === 'number' ? localSettings.needsAttentionDays : 0}
                   onChange={handleSliderChange('needsAttentionDays')}
                   aria-labelledby="needs-attention-days-slider"
                   valueLabelDisplay="auto"
-                  min={settings.recentlyReadDays + 1}
+                  min={localSettings.recentlyReadDays + 1}
                   max={60}
                   marks={[
                     { value: 14, label: '14d' },
@@ -188,12 +192,12 @@ const Settings = () => {
                   ]}
                 />
                 <TextField
-                  value={settings.needsAttentionDays}
+                  value={localSettings.needsAttentionDays}
                   onChange={handleInputChange('needsAttentionDays')}
-                  onBlur={handleBlur('needsAttentionDays', settings.recentlyReadDays + 1, 60)}
+                  onBlur={handleBlur('needsAttentionDays', localSettings.recentlyReadDays + 1, 60)}
                   inputProps={{
                     step: 1,
-                    min: settings.recentlyReadDays + 1,
+                    min: localSettings.recentlyReadDays + 1,
                     max: 60,
                     type: 'number',
                     'aria-labelledby': 'needs-attention-days-slider',
@@ -207,7 +211,7 @@ const Settings = () => {
 
           <Box sx={{ mt: 4 }}> {/* Increased margin top */}
             <Typography variant="body2" color="text.secondary">
-              Needs Reading (Red): More than {settings.needsAttentionDays} days
+              Needs Reading (Red): More than {localSettings.needsAttentionDays} days
             </Typography>
           </Box>
         </Box>

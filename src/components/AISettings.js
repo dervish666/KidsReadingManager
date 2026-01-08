@@ -17,71 +17,88 @@ import SmartToyIcon from '@mui/icons-material/SmartToy';
 import SaveIcon from '@mui/icons-material/Save';
 import { useAppContext } from '../contexts/AppContext';
 
+const API_URL = process.env.REACT_APP_API_BASE_URL || '/api';
+
 const AISettings = () => {
-  const { settings, updateSettings, loading } = useAppContext();
+  const { fetchWithAuth } = useAppContext();
   const [provider, setProvider] = useState('anthropic');
-  const [apiKeys, setApiKeys] = useState({
-    anthropic: '',
-    openai: '',
-    gemini: ''
-  });
-  const [models, setModels] = useState({
-    anthropic: 'claude-haiku-4-5',
-    openai: 'gpt-5-nano',
-    gemini: 'gemini-flash-latest'
-  });
-  const [baseUrl, setBaseUrl] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [modelPreference, setModelPreference] = useState('');
+  const [hasApiKey, setHasApiKey] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null); // 'success', 'error', or null
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Load existing settings
+  // Load existing AI config from /api/settings/ai
   useEffect(() => {
-    if (settings?.ai) {
-      setProvider(settings.ai.provider || 'anthropic');
-      
-      // Load keys from new structure or fallback to old single key
-      const savedKeys = settings.ai.keys || {};
-      const singleKey = settings.ai.apiKey || '';
-      
-      setApiKeys({
-        anthropic: savedKeys.anthropic || (settings.ai.provider === 'anthropic' ? singleKey : ''),
-        openai: savedKeys.openai || (settings.ai.provider === 'openai' ? singleKey : ''),
-        gemini: savedKeys.gemini || (settings.ai.provider === 'gemini' ? singleKey : '')
-      });
+    const loadAIConfig = async () => {
+      try {
+        const response = await fetchWithAuth(`${API_URL}/settings/ai`);
+        if (response.ok) {
+          const config = await response.json();
+          setProvider(config.provider || 'anthropic');
+          setModelPreference(config.modelPreference || getDefaultModel(config.provider || 'anthropic'));
+          setHasApiKey(config.hasApiKey || false);
+          // Don't set apiKey - it's not returned from the server for security
+        }
+      } catch (error) {
+        console.error('Error loading AI config:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-      // Load models from new structure or fallback to defaults
-      const savedModels = settings.ai.models || {};
-      const currentModel = settings.ai.model || '';
-      
-      setModels({
-        anthropic: savedModels.anthropic || (settings.ai.provider === 'anthropic' && currentModel ? currentModel : 'claude-haiku-4-5'),
-        openai: savedModels.openai || (settings.ai.provider === 'openai' && currentModel ? currentModel : 'gpt-5-nano'),
-        gemini: savedModels.gemini || (settings.ai.provider === 'gemini' && currentModel ? currentModel : 'gemini-flash-latest')
-      });
-
-      setBaseUrl(settings.ai.baseUrl || '');
+    if (fetchWithAuth) {
+      loadAIConfig();
     }
-  }, [settings]);
+  }, [fetchWithAuth]);
+
+  const getDefaultModel = (selectedProvider) => {
+    switch (selectedProvider) {
+      case 'anthropic':
+        return 'claude-haiku-4-5';
+      case 'openai':
+        return 'gpt-4o-mini';
+      case 'google':
+        return 'gemini-2.0-flash';
+      default:
+        return '';
+    }
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
     setSaveStatus(null);
 
     try {
-      const newSettings = {
-        ...settings,
-        ai: {
-          provider,
-          keys: apiKeys,
-          models: models,
-          // Also save the current key and model for backward compatibility/easier access
-          apiKey: apiKeys[provider],
-          model: models[provider],
-          baseUrl
-        }
+      // Map 'gemini' to 'google' for the backend
+      const backendProvider = provider === 'gemini' ? 'google' : provider;
+
+      const payload = {
+        provider: backendProvider,
+        modelPreference,
+        isEnabled: true
       };
 
-      await updateSettings(newSettings);
+      // Only include apiKey if user entered one (don't send empty string)
+      if (apiKey) {
+        payload.apiKey = apiKey;
+      }
+
+      const response = await fetchWithAuth(`${API_URL}/settings/ai`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save');
+      }
+
+      const config = await response.json();
+      setHasApiKey(config.hasApiKey);
+      setApiKey(''); // Clear the input after successful save
       setSaveStatus('success');
     } catch (error) {
       console.error('Error saving AI settings:', error);
@@ -91,57 +108,24 @@ const AISettings = () => {
     }
   };
 
-  const getProviderDefaults = (selectedProvider) => {
-    switch (selectedProvider) {
-      case 'anthropic':
-        return {
-          baseUrl: 'https://api.anthropic.com/v1'
-        };
-      case 'openai':
-        return {
-          baseUrl: 'https://api.openai.com/v1'
-        };
-      case 'gemini':
-        return {
-          baseUrl: 'https://generativelanguage.googleapis.com/v1beta'
-        };
-      default:
-        return {
-          baseUrl: ''
-        };
-    }
-  };
-
   const handleProviderChange = (e) => {
     const newProvider = e.target.value;
     setProvider(newProvider);
-    const defaults = getProviderDefaults(newProvider);
-    setBaseUrl(defaults.baseUrl);
+    setModelPreference(getDefaultModel(newProvider));
+    setApiKey(''); // Clear API key when switching providers
   };
 
-  const handleApiKeyChange = (e) => {
-    const newKey = e.target.value;
-    setApiKeys(prev => ({
-      ...prev,
-      [provider]: newKey
-    }));
-  };
-
-  const handleModelChange = (e) => {
-    const newModel = e.target.value;
-    setModels(prev => ({
-      ...prev,
-      [provider]: newModel
-    }));
-  };
-
-  if (loading) {
+  if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
         <CircularProgress />
       </Box>
     );
   }
+
+  // Map backend 'google' to 'gemini' for display
+  const displayProvider = provider === 'google' ? 'gemini' : provider;
+  const providerLabel = displayProvider.charAt(0).toUpperCase() + displayProvider.slice(1);
 
   return (
     <Box>
@@ -150,11 +134,17 @@ const AISettings = () => {
           <SmartToyIcon color="primary" sx={{ mr: 1 }} />
           <Typography variant="h6">AI Integration Settings</Typography>
         </Box>
-        
-        <Typography variant="body2" color="text.secondary" paragraph>
-          Configure the AI provider used for generating book recommendations. 
+
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Configure the AI provider used for generating book recommendations.
           You can choose between Anthropic (Claude), OpenAI (ChatGPT), or Google (Gemini).
         </Typography>
+
+        {hasApiKey && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            An API key is already configured. Enter a new key below to replace it.
+          </Alert>
+        )}
 
         <Divider sx={{ my: 3 }} />
 
@@ -175,7 +165,7 @@ const AISettings = () => {
             <InputLabel id="ai-provider-label">AI Provider</InputLabel>
             <Select
               labelId="ai-provider-label"
-              value={provider}
+              value={displayProvider}
               label="AI Provider"
               onChange={handleProviderChange}
             >
@@ -187,28 +177,20 @@ const AISettings = () => {
 
           <TextField
             fullWidth
-            label={`${provider.charAt(0).toUpperCase() + provider.slice(1)} API Key`}
+            label={`${providerLabel} API Key`}
             type="password"
-            value={apiKeys[provider] || ''}
-            onChange={handleApiKeyChange}
-            helperText="Your API key is stored securely and never shared."
-            sx={{ mb: 3 }}
-          />
-
-          <TextField
-            fullWidth
-            label="Base URL (Optional)"
-            value={baseUrl}
-            onChange={(e) => setBaseUrl(e.target.value)}
-            helperText="Override the default API endpoint URL if needed."
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder={hasApiKey ? '••••••••••••••••' : 'Enter API key'}
+            helperText="Your API key is encrypted and stored securely."
             sx={{ mb: 3 }}
           />
 
           <TextField
             fullWidth
             label="Model Name"
-            value={models[provider] || ''}
-            onChange={handleModelChange}
+            value={modelPreference}
+            onChange={(e) => setModelPreference(e.target.value)}
             helperText="Specify the model version to use."
             sx={{ mb: 3 }}
           />

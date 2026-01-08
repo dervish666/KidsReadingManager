@@ -1,5 +1,30 @@
 # Changelog
 
+## [2.5.1] - 2026-01-08
+
+### Fixed: AI Settings Not Saving
+
+This release fixes a bug where AI configuration (provider, API key, model) was not being saved to the database.
+
+#### Problem
+The `AISettings` component was attempting to save AI configuration via the generic `/api/settings` endpoint with an `ai` key. However, the backend only allows specific keys (`readingStatusSettings`, `timezone`, `academicYear`, etc.) and silently ignored the `ai` key. This meant AI settings appeared to save successfully but were never persisted.
+
+#### Solution
+Updated `AISettings.js` to use the dedicated `/api/settings/ai` endpoint which properly stores configuration in the `org_ai_config` table.
+
+### Changed
+- **AISettings Component**: Now calls `/api/settings/ai` endpoint directly instead of the generic settings endpoint
+- **AI Config Loading**: Loads existing configuration from `/api/settings/ai` on component mount
+- **Provider Mapping**: Handles `gemini` ↔ `google` naming between frontend and backend
+- **User Feedback**: Shows an info alert when an API key is already configured
+
+### Technical Details
+- Removed unused state variables and simplified component structure
+- API key field shows placeholder when key exists (key is never returned from server for security)
+- Proper error handling with user-friendly error messages
+
+---
+
 ## [2.5.0] - 2026-01-07
 
 ### Database-Backed Current Book Tracking
