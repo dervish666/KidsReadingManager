@@ -356,35 +356,60 @@ const HomeReadingRegister = () => {
   }, [effectiveClassId]);
 
   // Get reading status for a student on a specific date
+  // Includes both home reading entries and school reading sessions in the count
   const getStudentReadingStatus = useCallback((student, date) => {
-    const sessions = student.readingSessions.filter(
+    // Get home reading entries (these have special markers like ABSENT, NO_RECORD, COUNT)
+    const homeSessions = student.readingSessions.filter(
       s => s.date === date && s.location === 'home'
     );
-    
-    if (sessions.length === 0) return { status: READING_STATUS.NONE, count: 0, sessions: [] };
-    
-    // Check for absent marker (we'll use a special note or assessment)
-    const absentSession = sessions.find(s => s.notes?.includes('[ABSENT]'));
-    if (absentSession) return { status: READING_STATUS.ABSENT, count: 0, sessions };
-    
-    // Check for no record marker
-    const noRecordSession = sessions.find(s => s.notes?.includes('[NO_RECORD]'));
-    if (noRecordSession) return { status: READING_STATUS.NO_RECORD, count: 0, sessions };
-    
-    // Check for reading count stored in notes (format: [COUNT:N])
-    const sessionWithCount = sessions.find(s => s.notes?.match(/\[COUNT:(\d+)\]/));
+
+    // Get school reading sessions (these are individual sessions from the Reading Page)
+    const schoolSessions = student.readingSessions.filter(
+      s => s.date === date && s.location === 'school'
+    );
+
+    // If no sessions at all, return NONE
+    if (homeSessions.length === 0 && schoolSessions.length === 0) {
+      return { status: READING_STATUS.NONE, count: 0, sessions: [] };
+    }
+
+    // Check for absent marker in home sessions - this takes priority
+    const absentSession = homeSessions.find(s => s.notes?.includes('[ABSENT]'));
+    if (absentSession) {
+      return { status: READING_STATUS.ABSENT, count: 0, sessions: homeSessions };
+    }
+
+    // Check for no record marker in home sessions
+    const noRecordSession = homeSessions.find(s => s.notes?.includes('[NO_RECORD]'));
+    if (noRecordSession) {
+      return { status: READING_STATUS.NO_RECORD, count: 0, sessions: homeSessions };
+    }
+
+    // Calculate total count from home sessions
+    let homeCount = 0;
+    const sessionWithCount = homeSessions.find(s => s.notes?.match(/\[COUNT:(\d+)\]/));
     if (sessionWithCount) {
       const match = sessionWithCount.notes.match(/\[COUNT:(\d+)\]/);
-      const count = parseInt(match[1], 10);
-      if (count > 1) {
-        return { status: READING_STATUS.MULTIPLE, count, sessions };
-      }
-      return { status: READING_STATUS.READ, count: 1, sessions };
+      homeCount = parseInt(match[1], 10);
+    } else if (homeSessions.length > 0) {
+      // Legacy: count actual home sessions if no COUNT marker
+      homeCount = homeSessions.length;
     }
-    
-    // Legacy: count actual sessions if no COUNT marker
-    if (sessions.length === 1) return { status: READING_STATUS.READ, count: 1, sessions };
-    return { status: READING_STATUS.MULTIPLE, count: sessions.length, sessions };
+
+    // Add school sessions count (each school session = 1 read)
+    const schoolCount = schoolSessions.length;
+    const totalCount = homeCount + schoolCount;
+
+    // Combine all sessions for reference
+    const allSessions = [...homeSessions, ...schoolSessions];
+
+    if (totalCount === 0) {
+      return { status: READING_STATUS.NONE, count: 0, sessions: [] };
+    } else if (totalCount === 1) {
+      return { status: READING_STATUS.READ, count: 1, sessions: allSessions };
+    } else {
+      return { status: READING_STATUS.MULTIPLE, count: totalCount, sessions: allSessions };
+    }
   }, []);
 
   // Get the current book a student is reading (from database)
@@ -448,19 +473,23 @@ const HomeReadingRegister = () => {
     return totals;
   }, [classStudents, selectedDate, getStudentReadingStatus]);
 
-  // Clear all sessions for a student on the selected date
+  // Clear home reading sessions for a student on the selected date
+  // Note: This only clears home reading entries, not school reading sessions
   const handleClearEntry = async (student) => {
     if (!student) return;
-    
+
     try {
-      const { sessions } = getStudentReadingStatus(student, selectedDate);
-      
-      // Delete all sessions for this date
-      for (const session of sessions) {
+      // Only get home sessions to clear (preserve school reading sessions)
+      const homeSessions = student.readingSessions.filter(
+        s => s.date === selectedDate && s.location === 'home'
+      );
+
+      // Delete only home sessions for this date
+      for (const session of homeSessions) {
         await deleteReadingSession(student.id, session.id);
       }
-      
-      setSnackbarMessage(`Cleared entry for ${student.name}`);
+
+      setSnackbarMessage(`Cleared home reading entry for ${student.name}`);
       setSnackbarSeverity('info');
       setSnackbarOpen(true);
     } catch (error) {
@@ -476,9 +505,12 @@ const HomeReadingRegister = () => {
     if (!selectedStudent) return;
 
     try {
-      // First, clear any existing sessions for this date (allows changing state)
-      const { sessions: existingSessions } = getStudentReadingStatus(selectedStudent, selectedDate);
-      for (const session of existingSessions) {
+      // First, clear any existing HOME sessions for this date (allows changing state)
+      // Note: We preserve school reading sessions - only clear home entries
+      const existingHomeSessions = selectedStudent.readingSessions.filter(
+        s => s.date === selectedDate && s.location === 'home'
+      );
+      for (const session of existingHomeSessions) {
         await deleteReadingSession(selectedStudent.id, session.id);
       }
 

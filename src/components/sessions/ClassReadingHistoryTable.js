@@ -159,35 +159,57 @@ const ClassReadingHistoryTable = ({ students, books, selectedDate, onDateChange 
   }, [startDate, endDate]);
 
   // Get reading status for a student on a specific date
+  // Includes both home reading entries and school reading sessions in the count
   const getStudentReadingStatus = (student, dateStr) => {
-    const sessions = student.readingSessions.filter(
+    // Get home reading entries (these have special markers like ABSENT, NO_RECORD, COUNT)
+    const homeSessions = student.readingSessions.filter(
       s => s.date === dateStr && s.location === 'home'
     );
-    
-    if (sessions.length === 0) return { status: READING_STATUS.NONE, count: 0 };
-    
-    // Check for absent marker
-    const absentSession = sessions.find(s => s.notes?.includes('[ABSENT]'));
-    if (absentSession) return { status: READING_STATUS.ABSENT, count: 0 };
-    
-    // Check for no record marker
-    const noRecordSession = sessions.find(s => s.notes?.includes('[NO_RECORD]'));
-    if (noRecordSession) return { status: READING_STATUS.NO_RECORD, count: 0 };
-    
-    // Check for reading count stored in notes (format: [COUNT:N])
-    const sessionWithCount = sessions.find(s => s.notes?.match(/\[COUNT:(\d+)\]/));
+
+    // Get school reading sessions (these are individual sessions from the Reading Page)
+    const schoolSessions = student.readingSessions.filter(
+      s => s.date === dateStr && s.location === 'school'
+    );
+
+    // If no sessions at all, return NONE
+    if (homeSessions.length === 0 && schoolSessions.length === 0) {
+      return { status: READING_STATUS.NONE, count: 0 };
+    }
+
+    // Check for absent marker in home sessions - this takes priority
+    const absentSession = homeSessions.find(s => s.notes?.includes('[ABSENT]'));
+    if (absentSession) {
+      return { status: READING_STATUS.ABSENT, count: 0 };
+    }
+
+    // Check for no record marker in home sessions
+    const noRecordSession = homeSessions.find(s => s.notes?.includes('[NO_RECORD]'));
+    if (noRecordSession) {
+      return { status: READING_STATUS.NO_RECORD, count: 0 };
+    }
+
+    // Calculate total count from home sessions
+    let homeCount = 0;
+    const sessionWithCount = homeSessions.find(s => s.notes?.match(/\[COUNT:(\d+)\]/));
     if (sessionWithCount) {
       const match = sessionWithCount.notes.match(/\[COUNT:(\d+)\]/);
-      const count = parseInt(match[1], 10);
-      if (count > 1) {
-        return { status: READING_STATUS.MULTIPLE, count };
-      }
-      return { status: READING_STATUS.READ, count: 1 };
+      homeCount = parseInt(match[1], 10);
+    } else if (homeSessions.length > 0) {
+      // Legacy: count actual home sessions if no COUNT marker
+      homeCount = homeSessions.length;
     }
-    
-    // Legacy: count actual sessions if no COUNT marker
-    if (sessions.length === 1) return { status: READING_STATUS.READ, count: 1 };
-    return { status: READING_STATUS.MULTIPLE, count: sessions.length };
+
+    // Add school sessions count (each school session = 1 read)
+    const schoolCount = schoolSessions.length;
+    const totalCount = homeCount + schoolCount;
+
+    if (totalCount === 0) {
+      return { status: READING_STATUS.NONE, count: 0 };
+    } else if (totalCount === 1) {
+      return { status: READING_STATUS.READ, count: 1 };
+    } else {
+      return { status: READING_STATUS.MULTIPLE, count: totalCount };
+    }
   };
 
   // Calculate total sessions for a student in the date range

@@ -1194,31 +1194,15 @@ export const AppProvider = ({ children }) => {
         // Get the actual session from the server (with real ID)
         const savedSession = await response.json();
 
-        // Update the student with the real session ID and handle synced home session
+        // Update the student with the real session ID
         setStudents((prev) =>
           prev.map((s) => {
             if (s.id === studentId) {
-              let updatedSessions = s.readingSessions.map((sess) =>
-                sess.id === tempSession.id ? savedSession : sess
-              );
-
-              // If a home session was synced, add or update it in the sessions list
-              if (savedSession.syncedHomeSession) {
-                const homeSession = savedSession.syncedHomeSession;
-                if (homeSession.isUpdate) {
-                  // Update existing home session
-                  updatedSessions = updatedSessions.map((sess) =>
-                    sess.id === homeSession.id ? homeSession : sess
-                  );
-                } else {
-                  // Add new home session
-                  updatedSessions = [homeSession, ...updatedSessions];
-                }
-              }
-
               return {
                 ...s,
-                readingSessions: updatedSessions,
+                readingSessions: s.readingSessions.map((sess) =>
+                  sess.id === tempSession.id ? savedSession : sess
+                ),
               };
             }
             return s;

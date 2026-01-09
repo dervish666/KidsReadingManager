@@ -661,116 +661,6 @@ studentsRouter.post('/:id/sessions', async (c) => {
       `).bind(body.bookId, id).run();
     }
 
-    // If this is a school reading session, also sync to home reading register
-    // This ensures that reading sessions done with the teacher also appear on the home reading record
-    const sessionLocation = body.location || 'school';
-    const sessionDate = body.date || new Date().toISOString().split('T')[0];
-    let syncedHomeSession = null;
-
-    if (sessionLocation === 'school') {
-      // Check if there's already a home reading entry for this student on this date
-      const existingHomeSession = await db.prepare(`
-        SELECT id, notes FROM reading_sessions
-        WHERE student_id = ? AND session_date = ? AND location = 'home'
-        LIMIT 1
-      `).bind(id, sessionDate).first();
-
-      if (existingHomeSession) {
-        // Update existing home session - increment the count
-        const existingNotes = existingHomeSession.notes || '';
-
-        // Check if it's an absent or no_record entry - don't increment those
-        if (!existingNotes.includes('[ABSENT]') && !existingNotes.includes('[NO_RECORD]')) {
-          // Extract current count or default to 1
-          const countMatch = existingNotes.match(/\[COUNT:(\d+)\]/);
-          const currentCount = countMatch ? parseInt(countMatch[1], 10) : 1;
-          const newCount = currentCount + 1;
-
-          // Update the notes with the new count
-          let newNotes;
-          if (countMatch) {
-            newNotes = existingNotes.replace(/\[COUNT:\d+\]/, `[COUNT:${newCount}]`);
-          } else {
-            newNotes = `[COUNT:${newCount}]${existingNotes ? ' ' + existingNotes : ''}`;
-          }
-
-          await db.prepare(`
-            UPDATE reading_sessions
-            SET notes = ?, book_id = COALESCE(?, book_id), book_title_manual = COALESCE(?, book_title_manual)
-            WHERE id = ?
-          `).bind(newNotes, body.bookId || null, body.bookTitle || null, existingHomeSession.id).run();
-
-          // Fetch the updated home session to return to frontend
-          const updatedHomeSession = await db.prepare(`
-            SELECT rs.*, b.title as book_title, b.author as book_author
-            FROM reading_sessions rs
-            LEFT JOIN books b ON rs.book_id = b.id
-            WHERE rs.id = ?
-          `).bind(existingHomeSession.id).first();
-
-          syncedHomeSession = {
-            id: updatedHomeSession.id,
-            date: updatedHomeSession.session_date,
-            bookTitle: updatedHomeSession.book_title || updatedHomeSession.book_title_manual,
-            bookAuthor: updatedHomeSession.book_author || updatedHomeSession.book_author_manual,
-            bookId: updatedHomeSession.book_id,
-            pagesRead: updatedHomeSession.pages_read,
-            duration: updatedHomeSession.duration_minutes,
-            assessment: updatedHomeSession.assessment,
-            notes: updatedHomeSession.notes,
-            location: updatedHomeSession.location,
-            recordedBy: updatedHomeSession.recorded_by,
-            isUpdate: true
-          };
-        }
-      } else {
-        // Create a new home reading entry for this date
-        const homeSessionId = generateId();
-        await db.prepare(`
-          INSERT INTO reading_sessions (
-            id, student_id, session_date, book_id, book_title_manual, book_author_manual,
-            pages_read, duration_minutes, assessment, notes, location, recorded_by
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).bind(
-          homeSessionId,
-          id,
-          sessionDate,
-          body.bookId || null,
-          body.bookTitle || null,
-          body.bookAuthor || null,
-          null, // pages_read - not tracked for home reading
-          null, // duration_minutes - not tracked for home reading
-          'independent', // default assessment for home reading
-          '', // notes - empty for single read
-          'home',
-          userId
-        ).run();
-
-        // Fetch the created home session to return to frontend
-        const createdHomeSession = await db.prepare(`
-          SELECT rs.*, b.title as book_title, b.author as book_author
-          FROM reading_sessions rs
-          LEFT JOIN books b ON rs.book_id = b.id
-          WHERE rs.id = ?
-        `).bind(homeSessionId).first();
-
-        syncedHomeSession = {
-          id: createdHomeSession.id,
-          date: createdHomeSession.session_date,
-          bookTitle: createdHomeSession.book_title || createdHomeSession.book_title_manual,
-          bookAuthor: createdHomeSession.book_author || createdHomeSession.book_author_manual,
-          bookId: createdHomeSession.book_id,
-          pagesRead: createdHomeSession.pages_read,
-          duration: createdHomeSession.duration_minutes,
-          assessment: createdHomeSession.assessment,
-          notes: createdHomeSession.notes,
-          location: createdHomeSession.location,
-          recordedBy: createdHomeSession.recorded_by,
-          isUpdate: false
-        };
-      }
-    }
-
     // Fetch the created session
     const session = await db.prepare(`
       SELECT rs.*, b.title as book_title, b.author as book_author
@@ -779,7 +669,7 @@ studentsRouter.post('/:id/sessions', async (c) => {
       WHERE rs.id = ?
     `).bind(sessionId).first();
     
-    const response = {
+    return c.json({
       id: session.id,
       date: session.session_date,
       bookTitle: session.book_title || session.book_title_manual,
@@ -791,14 +681,7 @@ studentsRouter.post('/:id/sessions', async (c) => {
       notes: session.notes,
       location: session.location || 'school',
       recordedBy: session.recorded_by
-    };
-
-    // Include the synced home session if one was created/updated
-    if (syncedHomeSession) {
-      response.syncedHomeSession = syncedHomeSession;
-    }
-
-    return c.json(response, 201);
+    }, 201);
   }
   
   // Legacy mode: use KV
@@ -824,59 +707,9 @@ studentsRouter.post('/:id/sessions', async (c) => {
   student.readingSessions.unshift(newSession);
   student.lastReadDate = newSession.date;
 
-  // If this is a school reading session, also sync to home reading register
-  let syncedHomeSession = null;
-  if (newSession.location === 'school') {
-    const existingHomeSession = student.readingSessions.find(
-      s => s.date === newSession.date && s.location === 'home'
-    );
-
-    if (existingHomeSession) {
-      // Update existing home session - increment the count
-      const existingNotes = existingHomeSession.notes || '';
-      if (!existingNotes.includes('[ABSENT]') && !existingNotes.includes('[NO_RECORD]')) {
-        const countMatch = existingNotes.match(/\[COUNT:(\d+)\]/);
-        const currentCount = countMatch ? parseInt(countMatch[1], 10) : 1;
-        const newCount = currentCount + 1;
-
-        if (countMatch) {
-          existingHomeSession.notes = existingNotes.replace(/\[COUNT:\d+\]/, `[COUNT:${newCount}]`);
-        } else {
-          existingHomeSession.notes = `[COUNT:${newCount}]${existingNotes ? ' ' + existingNotes : ''}`;
-        }
-        // Update book if provided
-        if (body.bookId) {
-          existingHomeSession.bookId = body.bookId;
-          existingHomeSession.bookTitle = body.bookTitle;
-        }
-        syncedHomeSession = { ...existingHomeSession, isUpdate: true };
-      }
-    } else {
-      // Create a new home reading entry for this date
-      const homeSession = {
-        id: generateId(),
-        date: newSession.date,
-        bookTitle: body.bookTitle,
-        bookAuthor: body.bookAuthor,
-        bookId: body.bookId,
-        pagesRead: null,
-        duration: null,
-        assessment: 'independent',
-        notes: '',
-        location: 'home'
-      };
-      student.readingSessions.unshift(homeSession);
-      syncedHomeSession = { ...homeSession, isUpdate: false };
-    }
-  }
-
   await saveStudentKV(c.env, student);
 
-  const response = { ...newSession };
-  if (syncedHomeSession) {
-    response.syncedHomeSession = syncedHomeSession;
-  }
-  return c.json(response, 201);
+  return c.json(newSession, 201);
 });
 
 /**

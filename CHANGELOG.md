@@ -2,20 +2,26 @@
 
 ## [2.5.2] - 2026-01-08
 
-### Added: Reading Session Sync to Home Reading Register
+### Added: School Reading Sessions Now Appear on Home Reading Register
 
-Reading sessions recorded on the Reading Page are now automatically reflected on the Home Reading Register.
+Reading sessions recorded on the Reading Page (school sessions) are now included in the Home Reading Register count.
 
 #### How It Works
-- When you record a reading session with a student (on the Reading Page), the system automatically creates or updates a corresponding entry on the Home Reading Register for that same day
-- If the student already has a home reading entry for that day, the count is incremented (✓ becomes 2+, etc.)
-- If the existing entry is marked as "Absent" or "No Record", it is not modified
-- The book being read is also synced to the home reading entry
+- The Home Reading Register now displays a **combined count** of both home reading entries and school reading sessions for each day
+- When you do a reading session with a student on the Reading Page, it will automatically show up on the Home Reading Register
+- Example: If a student has 1 home read (✓) and you do a school reading session, it will show as "2" on the register
+- Special statuses (Absent, No Record) still take priority if set for home reading
+
+#### Behavior
+- **Reading Page**: Records a single session (no change in behavior)
+- **Home Reading Register**: Now shows combined count from both home and school sessions
+- **Clear Entry**: Only clears home reading entries (preserves school sessions)
+- **Record Reading**: Records home entries alongside existing school sessions
 
 #### Technical Details
-- Backend: Modified `POST /api/students/:id/sessions` endpoint in [students.js](src/routes/students.js) to sync school reading sessions to home reading entries
-- Frontend: Updated [AppContext.js](src/contexts/AppContext.js) to handle the new `syncedHomeSession` response field
-- Works in both multi-tenant (D1) and legacy (KV) modes
+- Modified `getStudentReadingStatus()` in [HomeReadingRegister.js](src/components/sessions/HomeReadingRegister.js) to count both `location='home'` and `location='school'` sessions
+- Updated [ClassReadingHistoryTable.js](src/components/sessions/ClassReadingHistoryTable.js) with the same logic
+- No backend changes required - purely frontend display logic
 
 ---
 
