@@ -26,7 +26,10 @@ import HomeIcon from '@mui/icons-material/Home';
 import SchoolIcon from '@mui/icons-material/School';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
+import WhatshotIcon from '@mui/icons-material/Whatshot';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import DaysSinceReadingChart from './DaysSinceReadingChart';
+import StreakBadge from '../students/StreakBadge';
 import ReadingTimelineChart from './ReadingTimelineChart';
 import ReadingFrequencyChart from './ReadingFrequencyChart';
 import { useAppContext } from '../../contexts/AppContext';
@@ -81,7 +84,14 @@ const ReadingStats = () => {
         locationDistribution: { home: 0, school: 0 },
         weeklyActivity: { thisWeek: 0, lastWeek: 0 },
         mostReadBooks: [],
-        readingByDay: { Sun: 0, Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0 }
+        readingByDay: { Sun: 0, Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0 },
+        // Streak stats
+        studentsWithActiveStreak: 0,
+        totalActiveStreakDays: 0,
+        longestCurrentStreak: 0,
+        longestEverStreak: 0,
+        averageStreak: 0,
+        topStreaks: []
       };
     }
 
@@ -94,6 +104,13 @@ const ReadingStats = () => {
     const bookCounts = {};
     const dayCounts = { Sun: 0, Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0 };
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    // Streak tracking
+    let studentsWithActiveStreak = 0;
+    let totalActiveStreakDays = 0;
+    let longestCurrentStreak = 0;
+    let longestEverStreak = 0;
+    const streakData = [];
 
     // Count sessions and new stats
     activeStudents.forEach(student => {
@@ -136,6 +153,33 @@ const ReadingStats = () => {
       // Count reading status
       const status = getReadingStatus(student);
       statusCounts[status]++;
+
+      // Streak tracking
+      const currentStreak = student.currentStreak || 0;
+      const longestStreak = student.longestStreak || 0;
+
+      if (currentStreak > 0) {
+        studentsWithActiveStreak++;
+        totalActiveStreakDays += currentStreak;
+        if (currentStreak > longestCurrentStreak) {
+          longestCurrentStreak = currentStreak;
+        }
+      }
+
+      if (longestStreak > longestEverStreak) {
+        longestEverStreak = longestStreak;
+      }
+
+      // Collect streak data for leaderboard
+      if (currentStreak > 0 || longestStreak > 0) {
+        streakData.push({
+          id: student.id,
+          name: student.name,
+          currentStreak,
+          longestStreak,
+          streakStartDate: student.streakStartDate
+        });
+      }
     });
 
     // Get top 5 most read books
@@ -143,6 +187,21 @@ const ReadingStats = () => {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
       .map(([title, count]) => ({ title, count }));
+
+    // Get top streaks (sorted by current streak, then longest streak)
+    const topStreaks = streakData
+      .sort((a, b) => {
+        if (b.currentStreak !== a.currentStreak) {
+          return b.currentStreak - a.currentStreak;
+        }
+        return b.longestStreak - a.longestStreak;
+      })
+      .slice(0, 5);
+
+    // Calculate average streak for students with active streaks
+    const averageStreak = studentsWithActiveStreak > 0
+      ? totalActiveStreakDays / studentsWithActiveStreak
+      : 0;
 
     return {
       totalStudents: activeStudents.length,
@@ -153,7 +212,14 @@ const ReadingStats = () => {
       locationDistribution: locationCounts,
       weeklyActivity: { thisWeek: thisWeekSessions, lastWeek: lastWeekSessions },
       mostReadBooks,
-      readingByDay: dayCounts
+      readingByDay: dayCounts,
+      // Streak stats
+      studentsWithActiveStreak,
+      totalActiveStreakDays,
+      longestCurrentStreak,
+      longestEverStreak,
+      averageStreak,
+      topStreaks
     };
   };
   
@@ -181,6 +247,39 @@ const ReadingStats = () => {
     );
   };
   
+  // Get all students with streak data, sorted by current streak
+  const getStudentsWithStreaks = () => {
+    const activeStudents = students.filter(student => {
+      // First, filter by global class filter
+      if (globalClassFilter && globalClassFilter !== 'all') {
+        if (globalClassFilter === 'unassigned') {
+          if (student.classId) return false;
+        } else {
+          if (student.classId !== globalClassFilter) return false;
+        }
+      }
+
+      // Then, filter out students from disabled classes
+      if (!student.classId) return true;
+      const studentClass = classes.find(cls => cls.id === student.classId);
+      return !studentClass || !studentClass.disabled;
+    });
+
+    return activeStudents
+      .map(student => ({
+        ...student,
+        currentStreak: student.currentStreak || 0,
+        longestStreak: student.longestStreak || 0
+      }))
+      .sort((a, b) => {
+        // Sort by current streak descending, then by longest streak descending
+        if (b.currentStreak !== a.currentStreak) {
+          return b.currentStreak - a.currentStreak;
+        }
+        return b.longestStreak - a.longestStreak;
+      });
+  };
+
   // Get students who haven't been read with recently
   const getNeedsAttentionStudents = () => {
     const activeStudents = students.filter(student => {
@@ -424,6 +523,103 @@ const ReadingStats = () => {
           </CardContent>
         </Card>
       </Grid>
+
+      {/* Reading Streaks Summary */}
+      <Grid item xs={12} sm={6}>
+        <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(160, 150, 180, 0.1)' }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+              <WhatshotIcon sx={{ color: '#FF6B35' }} />
+              <Typography variant="h6" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
+                Reading Streaks
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-around', mb: 2 }}>
+              <Box sx={{ textAlign: 'center', p: 1.5, borderRadius: 3, bgcolor: 'rgba(255, 107, 53, 0.1)', minWidth: 100 }}>
+                <Typography variant="h4" sx={{ color: '#FF6B35', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}>
+                  {stats.studentsWithActiveStreak}
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#C2410C', fontWeight: 600, fontSize: '0.75rem' }}>
+                  Active Streaks
+                </Typography>
+              </Box>
+              <Box sx={{ textAlign: 'center', p: 1.5, borderRadius: 3, bgcolor: 'rgba(255, 215, 0, 0.15)', minWidth: 100 }}>
+                <Typography variant="h4" sx={{ color: '#B8860B', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}>
+                  {stats.longestCurrentStreak}
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#92400E', fontWeight: 600, fontSize: '0.75rem' }}>
+                  Best Current
+                </Typography>
+              </Box>
+              <Box sx={{ textAlign: 'center', p: 1.5, borderRadius: 3, bgcolor: 'rgba(124, 58, 237, 0.1)', minWidth: 100 }}>
+                <Typography variant="h4" sx={{ color: '#7C3AED', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}>
+                  {stats.averageStreak.toFixed(1)}
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#5B21B6', fontWeight: 600, fontSize: '0.75rem' }}>
+                  Avg Streak
+                </Typography>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+
+      {/* Streak Leaderboard */}
+      <Grid item xs={12} sm={6}>
+        <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(160, 150, 180, 0.1)' }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              <EmojiEventsIcon sx={{ color: '#FFD700' }} />
+              <Typography variant="h6" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
+                Streak Leaderboard
+              </Typography>
+            </Box>
+            {stats.topStreaks.length === 0 ? (
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 2, textAlign: 'center' }}>
+                No active streaks yet
+              </Typography>
+            ) : (
+              <List dense sx={{ mt: 1 }}>
+                {stats.topStreaks.map((student, index) => (
+                  <ListItem key={student.id} sx={{ px: 0 }}>
+                    <ListItemIcon sx={{ minWidth: 36 }}>
+                      <Box sx={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: '50%',
+                        bgcolor: index === 0 ? '#FEF3C7' : index === 1 ? '#F3F4F6' : index === 2 ? '#FED7AA' : '#F3F4F6',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <Typography variant="caption" sx={{
+                          fontWeight: 700,
+                          color: index === 0 ? '#F59E0B' : index === 1 ? '#6B7280' : index === 2 ? '#EA580C' : '#6B7280'
+                        }}>
+                          {index + 1}
+                        </Typography>
+                      </Box>
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={
+                        <Typography variant="body2" sx={{
+                          fontWeight: 600,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {student.name}
+                        </Typography>
+                      }
+                    />
+                    <StreakBadge streak={student.currentStreak} size="small" />
+                  </ListItem>
+                ))}
+              </List>
+            )}
+          </CardContent>
+        </Card>
+      </Grid>
     </Grid>
   );
   
@@ -544,15 +740,205 @@ const ReadingStats = () => {
       </Box>
     );
   };
-  
+
+  const renderStreaksTab = () => {
+    const studentsWithStreaks = getStudentsWithStreaks();
+    const studentsWithActiveStreaks = studentsWithStreaks.filter(s => s.currentStreak > 0);
+    const studentsWithNoStreak = studentsWithStreaks.filter(s => s.currentStreak === 0);
+
+    return (
+      <Box>
+        {/* Streak Summary Cards */}
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid item xs={6} sm={3}>
+            <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(160, 150, 180, 0.1)' }}>
+              <CardContent sx={{ textAlign: 'center', py: 3 }}>
+                <WhatshotIcon sx={{ fontSize: 40, color: '#FF6B35', mb: 1 }} />
+                <Typography variant="h3" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#FF6B35' }}>
+                  {stats.studentsWithActiveStreak}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                  Active Streaks
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={6} sm={3}>
+            <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(160, 150, 180, 0.1)' }}>
+              <CardContent sx={{ textAlign: 'center', py: 3 }}>
+                <EmojiEventsIcon sx={{ fontSize: 40, color: '#FFD700', mb: 1 }} />
+                <Typography variant="h3" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#B8860B' }}>
+                  {stats.longestCurrentStreak}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                  Best Current Streak
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={6} sm={3}>
+            <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(160, 150, 180, 0.1)' }}>
+              <CardContent sx={{ textAlign: 'center', py: 3 }}>
+                <Box sx={{ fontSize: 40, mb: 1 }}>🏆</Box>
+                <Typography variant="h3" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#7C3AED' }}>
+                  {stats.longestEverStreak}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                  All-Time Record
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={6} sm={3}>
+            <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(160, 150, 180, 0.1)' }}>
+              <CardContent sx={{ textAlign: 'center', py: 3 }}>
+                <Box sx={{ fontSize: 40, mb: 1 }}>📊</Box>
+                <Typography variant="h3" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#0EA5E9' }}>
+                  {stats.averageStreak.toFixed(1)}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                  Average Streak
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+
+        {/* Active Streaks List */}
+        <Typography variant="h6" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <WhatshotIcon sx={{ color: '#FF6B35' }} />
+          Students with Active Streaks ({studentsWithActiveStreaks.length})
+        </Typography>
+
+        {studentsWithActiveStreaks.length === 0 ? (
+          <Alert severity="info" sx={{ mb: 4, borderRadius: 4 }}>
+            No students have active reading streaks. Encourage daily reading to build streaks!
+          </Alert>
+        ) : (
+          <Paper sx={{ borderRadius: 4, overflow: 'hidden', mb: 4 }}>
+            <List>
+              {studentsWithActiveStreaks.map((student, index) => (
+                <ListItem key={student.id} divider>
+                  <ListItemIcon>
+                    <Box sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: '50%',
+                      bgcolor: index === 0 ? '#FEF3C7' : index === 1 ? '#F3F4F6' : index === 2 ? '#FED7AA' : 'rgba(255, 107, 53, 0.1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      {index < 3 ? (
+                        <Typography variant="body2" sx={{
+                          fontWeight: 800,
+                          color: index === 0 ? '#F59E0B' : index === 1 ? '#6B7280' : '#EA580C'
+                        }}>
+                          {index + 1}
+                        </Typography>
+                      ) : (
+                        <PersonIcon sx={{ color: '#FF6B35' }} />
+                      )}
+                    </Box>
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={
+                      <Typography sx={{ fontWeight: 600, fontFamily: '"DM Sans", sans-serif' }}>
+                        {student.name}
+                      </Typography>
+                    }
+                    secondary={
+                      <Box component="span" sx={{ display: 'flex', gap: 2, mt: 0.5 }}>
+                        <Typography component="span" variant="caption" color="text.secondary">
+                          Best: {student.longestStreak} days
+                        </Typography>
+                        {student.streakStartDate && (
+                          <Typography component="span" variant="caption" color="text.secondary">
+                            Started: {new Date(student.streakStartDate).toLocaleDateString('en-GB', {
+                              day: 'numeric',
+                              month: 'short'
+                            })}
+                          </Typography>
+                        )}
+                      </Box>
+                    }
+                  />
+                  <StreakBadge streak={student.currentStreak} size="medium" showLabel />
+                </ListItem>
+              ))}
+            </List>
+          </Paper>
+        )}
+
+        {/* Students Without Streaks */}
+        <Typography variant="h6" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <PersonIcon sx={{ color: '#9CA3AF' }} />
+          Students Without Active Streaks ({studentsWithNoStreak.length})
+        </Typography>
+
+        {studentsWithNoStreak.length === 0 ? (
+          <Alert severity="success" sx={{ borderRadius: 4 }}>
+            Amazing! All students have active reading streaks!
+          </Alert>
+        ) : (
+          <Paper sx={{ borderRadius: 4, overflow: 'hidden' }}>
+            <List>
+              {studentsWithNoStreak.map(student => (
+                <ListItem key={student.id} divider>
+                  <ListItemIcon>
+                    <Box sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: '50%',
+                      bgcolor: '#F3F4F6',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <PersonIcon sx={{ color: '#9CA3AF' }} />
+                    </Box>
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={
+                      <Typography sx={{ fontWeight: 600, fontFamily: '"DM Sans", sans-serif' }}>
+                        {student.name}
+                      </Typography>
+                    }
+                    secondary={
+                      student.longestStreak > 0
+                        ? `Previous best: ${student.longestStreak} days`
+                        : 'No streak history'
+                    }
+                  />
+                  <Chip
+                    label="No streak"
+                    size="small"
+                    sx={{
+                      bgcolor: '#F3F4F6',
+                      color: '#6B7280',
+                      fontWeight: 600
+                    }}
+                  />
+                </ListItem>
+              ))}
+            </List>
+          </Paper>
+        )}
+      </Box>
+    );
+  };
+
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4" component="h1" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#332F3A' }}>
           Reading Statistics
         </Typography>
-        <Button 
-          variant="outlined" 
+        <Button
+          variant="outlined"
           startIcon={<DownloadIcon />}
           onClick={handleExport}
           sx={{ 
@@ -595,6 +981,7 @@ const ReadingStats = () => {
             }}
           >
             <Tab icon={<AssessmentIcon />} iconPosition="start" label="Overview" />
+            <Tab icon={<WhatshotIcon />} iconPosition="start" label="Streaks" />
             <Tab icon={<CalendarTodayIcon />} iconPosition="start" label="Needs Attention" />
             <Tab icon={<MenuBookIcon />} iconPosition="start" label="Reading Frequency" />
             <Tab icon={<TimelineIcon />} iconPosition="start" label="Reading Timeline" />
@@ -618,7 +1005,7 @@ const ReadingStats = () => {
                   No data available yet. Add students and record reading sessions to see statistics.
                 </Typography>
               </Paper>
-            ) : renderNeedsAttentionTab()
+            ) : renderStreaksTab()
           )}
           {currentTab === 2 && (
             students.length === 0 ? (
@@ -627,9 +1014,18 @@ const ReadingStats = () => {
                   No data available yet. Add students and record reading sessions to see statistics.
                 </Typography>
               </Paper>
-            ) : renderFrequencyTab()
+            ) : renderNeedsAttentionTab()
           )}
           {currentTab === 3 && (
+            students.length === 0 ? (
+              <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 4 }}>
+                <Typography variant="body1" color="text.secondary">
+                  No data available yet. Add students and record reading sessions to see statistics.
+                </Typography>
+              </Paper>
+            ) : renderFrequencyTab()
+          )}
+          {currentTab === 4 && (
             students.length === 0 ? (
               <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 4 }}>
                 <Typography variant="body1" color="text.secondary">

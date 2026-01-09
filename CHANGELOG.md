@@ -1,5 +1,81 @@
 # Changelog
 
+## [2.6.0] - 2026-01-09
+
+### Added: Reading Streaks
+
+Track consecutive reading days for students with a configurable grace period. Streaks provide gamification to encourage regular reading habits.
+
+#### Statistics Page Integration
+- **Overview Tab**: New "Reading Streaks" summary card showing active streaks count, best current streak, and average streak
+- **Streak Leaderboard**: Top 5 students with active streaks displayed on Overview tab
+- **Dedicated Streaks Tab**: New tab with comprehensive streak statistics including:
+  - Summary cards: Active Streaks, Best Current Streak, All-Time Record, Average Streak
+  - Students with Active Streaks list (ranked with streak badges)
+  - Students Without Active Streaks list (showing previous best streak if any)
+
+#### Features
+- **Streak Tracking**: Automatically calculates consecutive calendar days of reading for each student
+- **Grace Period**: Configurable grace period (0-3 days) allows students to miss a day without breaking their streak
+- **Visual Badge**: Fire emoji badge (🔥) displays current streak on student cards
+- **Streak Details**: Student session dialog shows current streak, longest streak, and streak start date
+- **Batch Recalculation**: Admin endpoint to recalculate all student streaks (useful after migration or data recovery)
+
+#### Display
+- **Student Cards**: StreakBadge appears next to reading preferences icon when streak > 0
+- **Student Sessions Dialog**: Dedicated streak section with gradient background showing:
+  - Current streak with animated badge
+  - Best streak achieved (trophy icon)
+  - Streak start date
+
+#### Settings
+- New "Reading Streak Settings" section in Settings page
+- Grace period dropdown: No grace period (strict), 1 day (recommended), 2 days, 3 days
+- Explanatory text updates dynamically based on selection
+
+#### Technical Details
+- **Database Migration**: `migrations/0016_reading_streaks.sql` adds `current_streak`, `longest_streak`, `streak_start_date` columns to students table
+- **Streak Calculator**: New `src/utils/streakCalculator.js` with comprehensive logic for streak calculation
+- **Automatic Updates**: Streaks recalculated automatically when reading sessions are created or deleted
+- **Timezone Support**: Uses organization timezone setting for accurate day boundaries
+- **API Endpoints**:
+  - `GET /api/students/:id/streak` - Get streak details for a student
+  - `POST /api/students/recalculate-streaks` - Recalculate all streaks (admin only)
+
+#### New Files
+- `migrations/0016_reading_streaks.sql`
+- `src/utils/streakCalculator.js`
+- `src/__tests__/unit/streakCalculator.test.js` (21 tests)
+- `src/components/students/StreakBadge.js`
+
+#### Modified Files
+- `src/routes/students.js` - Streak calculation and endpoints
+- `src/routes/settings.js` - Added `streakGracePeriodDays` to allowed keys
+- `src/components/students/StudentCard.js` - StreakBadge display
+- `src/components/sessions/StudentSessions.js` - Streak details section
+- `src/components/Settings.js` - Grace period configuration UI
+
+#### Deployment Notes
+```bash
+# Run the migration
+npx wrangler d1 migrations apply reading-manager-db --local   # for local testing
+npx wrangler d1 migrations apply reading-manager-db --remote  # for production
+
+# Recalculate streaks for existing students (run in browser console while logged in as admin)
+fetch('/api/students/recalculate-streaks', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${localStorage.getItem('krm_auth_token')}`
+  }
+}).then(r => r.json()).then(console.log);
+
+# Deploy
+npm run go
+```
+
+---
+
 ## [2.5.2] - 2026-01-08
 
 ### Added: School Reading Sessions Now Appear on Home Reading Register

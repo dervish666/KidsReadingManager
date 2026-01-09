@@ -45,6 +45,26 @@ npx wrangler d1 migrations apply reading-manager-db --remote
 npm run migrate
 ```
 
+### Testing
+```bash
+# Run all tests once
+npm test
+
+# Run tests in watch mode (during development)
+npm run test:watch
+
+# Run tests with coverage report
+npm run test:coverage
+
+# Run a single test file
+npx vitest run src/__tests__/unit/validation.test.js
+
+# Run tests matching a pattern
+npx vitest run --testNamePattern="password"
+```
+
+Tests use Vitest with happy-dom environment. Test files are located in `src/__tests__/` with unit and integration subdirectories.
+
 ### Deployment
 ```bash
 # Deploy to Cloudflare Workers (production)
@@ -220,13 +240,8 @@ Set in Cloudflare dashboard or `wrangler.toml`:
 Configured in `wrangler.toml`:
 - `READING_MANAGER_KV` - KV namespace for legacy storage
 - `READING_MANAGER_DB` - D1 database for multi-tenant storage
+- `EMAIL_SENDER` - Email sending binding (requires Email Routing on domain)
 
 ### Frontend Environment Variables
 
 - `REACT_APP_API_BASE_URL` - API base URL (set during build for production)
-
-## Known Limitations
-
-- No automated tests (manual testing required for both auth modes, multi-tenant isolation, role permissions)
-- AI recommendations require API keys configured in Cloudflare dashboard
-- Book metadata APIs (OpenLibrary, Google Books) have rate limits

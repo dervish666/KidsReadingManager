@@ -21,15 +21,19 @@ import {
   Radio,
   FormControlLabel,
   Snackbar,
-  Alert
+  Alert,
+  Divider
 } from '@mui/material';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CloseIcon from '@mui/icons-material/Close';
+import WhatshotIcon from '@mui/icons-material/Whatshot';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import { useAppContext } from '../../contexts/AppContext';
 import BookAutocomplete from './BookAutocomplete';
+import StreakBadge from '../students/StreakBadge';
 
 const StudentSessions = ({ open, onClose, student: studentProp }) => {
   const {
@@ -286,6 +290,78 @@ const StudentSessions = ({ open, onClose, student: studentProp }) => {
           </Box>
         </DialogTitle>
         <DialogContent dividers sx={{ pb: 'calc(env(safe-area-inset-bottom) + 16px)' }}>
+          {/* Streak Information Section */}
+          {(student?.currentStreak > 0 || student?.longestStreak > 0) && (
+            <>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 3,
+                  p: 2,
+                  mb: 2,
+                  borderRadius: 2,
+                  background: 'linear-gradient(135deg, rgba(255, 107, 53, 0.1) 0%, rgba(255, 215, 0, 0.1) 100%)',
+                  border: '1px solid rgba(255, 107, 53, 0.2)',
+                }}
+              >
+                {/* Current Streak */}
+                <Box sx={{ textAlign: 'center' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mb: 0.5 }}>
+                    <WhatshotIcon sx={{ color: '#FF6B35', fontSize: 20 }} />
+                    <Typography variant="body2" color="text.secondary" fontWeight={500}>
+                      Current Streak
+                    </Typography>
+                  </Box>
+                  <StreakBadge streak={student?.currentStreak || 0} size="medium" showLabel />
+                </Box>
+
+                {/* Longest Streak */}
+                {student?.longestStreak > 0 && (
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mb: 0.5 }}>
+                      <EmojiEventsIcon sx={{ color: '#FFD700', fontSize: 20 }} />
+                      <Typography variant="body2" color="text.secondary" fontWeight={500}>
+                        Best Streak
+                      </Typography>
+                    </Box>
+                    <Box
+                      sx={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 0.5,
+                        px: 1.5,
+                        py: 0.5,
+                        borderRadius: '12px',
+                        backgroundColor: 'rgba(255, 215, 0, 0.2)',
+                        border: '1px solid rgba(255, 215, 0, 0.3)',
+                      }}
+                    >
+                      <Typography sx={{ fontSize: '1rem' }}>🏆</Typography>
+                      <Typography sx={{ fontWeight: 700, color: '#B8860B' }}>
+                        {student?.longestStreak} {student?.longestStreak === 1 ? 'day' : 'days'}
+                      </Typography>
+                    </Box>
+                  </Box>
+                )}
+
+                {/* Streak Start Date */}
+                {student?.streakStartDate && student?.currentStreak > 0 && (
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="body2" color="text.secondary" fontWeight={500} sx={{ mb: 0.5 }}>
+                      Streak Started
+                    </Typography>
+                    <Typography variant="body1" fontWeight={600} color="text.primary">
+                      {formatDate(student.streakStartDate)}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+              <Divider sx={{ mb: 2 }} />
+            </>
+          )}
+
           {sortedSessions.length > 0 ? (
             <Grid container spacing={2}>
               {sortedSessions.map((session) => (

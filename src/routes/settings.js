@@ -107,7 +107,8 @@ settingsRouter.post('/', async (c) => {
       'academicYear',
       'defaultReadingLevel',
       'schoolName',
-      'bookMetadata'
+      'bookMetadata',
+      'streakGracePeriodDays'
     ];
     
     const updates = [];

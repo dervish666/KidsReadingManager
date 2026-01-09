@@ -16,6 +16,7 @@ import { useAppContext } from '../../contexts/AppContext';
 import { useTheme } from '@mui/material/styles';
 import StudentSessions from '../sessions/StudentSessions';
 import ReadingPreferences from './ReadingPreferences';
+import StreakBadge from './StreakBadge';
 
 const StudentCard = ({ student }) => {
   const theme = useTheme();
@@ -140,6 +141,9 @@ const StudentCard = ({ student }) => {
             }
             action={
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                {student.currentStreak > 0 && (
+                  <StreakBadge streak={student.currentStreak} size="small" />
+                )}
                 <Tooltip title="Reading Preferences">
                   <IconButton
                     size="small"
@@ -148,7 +152,7 @@ const StudentCard = ({ student }) => {
                       e.stopPropagation();
                       setOpenPreferencesDialog(true);
                     }}
-                    sx={{ 
+                    sx={{
                       color: '#7C3AED',
                       backgroundColor: 'rgba(124, 58, 237, 0.1)',
                       '&:hover': { backgroundColor: 'rgba(124, 58, 237, 0.2)' }

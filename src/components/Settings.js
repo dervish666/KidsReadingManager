@@ -9,10 +9,15 @@ import {
   Grid, // Keep outer Grid
   Divider,
   Alert,
-  Snackbar
+  Snackbar,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import RestoreIcon from '@mui/icons-material/Restore';
+import WhatshotIcon from '@mui/icons-material/Whatshot';
 import { useAppContext } from '../contexts/AppContext';
 import ClassManager from './classes/ClassManager'; // Import ClassManager
 
@@ -22,7 +27,8 @@ const Settings = () => {
   // Local state for form values
   const [localSettings, setLocalSettings] = useState({
     recentlyReadDays: readingStatusSettings.recentlyReadDays,
-    needsAttentionDays: readingStatusSettings.needsAttentionDays
+    needsAttentionDays: readingStatusSettings.needsAttentionDays,
+    streakGracePeriodDays: settings?.streakGracePeriodDays ?? 1
   });
 
   // State for snackbar
@@ -80,7 +86,11 @@ const Settings = () => {
       // Merge with existing settings and update readingStatusSettings
       await updateSettings({
         ...settings,
-        readingStatusSettings: localSettings
+        readingStatusSettings: {
+          recentlyReadDays: localSettings.recentlyReadDays,
+          needsAttentionDays: localSettings.needsAttentionDays
+        },
+        streakGracePeriodDays: localSettings.streakGracePeriodDays
       });
       setSnackbar({
         open: true,
@@ -100,12 +110,21 @@ const Settings = () => {
   const handleResetSettings = () => {
     setLocalSettings({
       recentlyReadDays: readingStatusSettings.recentlyReadDays,
-      needsAttentionDays: readingStatusSettings.needsAttentionDays
+      needsAttentionDays: readingStatusSettings.needsAttentionDays,
+      streakGracePeriodDays: settings?.streakGracePeriodDays ?? 1
     });
     setSnackbar({
       open: true,
       message: 'Settings reset to current values',
       severity: 'info'
+    });
+  };
+
+  // Handle streak grace period change
+  const handleStreakGracePeriodChange = (event) => {
+    setLocalSettings({
+      ...localSettings,
+      streakGracePeriodDays: event.target.value
     });
   };
 
@@ -214,6 +233,44 @@ const Settings = () => {
               Needs Reading (Red): More than {localSettings.needsAttentionDays} days
             </Typography>
           </Box>
+        </Box>
+
+        <Divider sx={{ my: 3 }} />
+
+        {/* Streak Settings Section */}
+        <Box sx={{ mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+            <WhatshotIcon sx={{ color: '#FF6B35' }} />
+            <Typography variant="subtitle1">
+              Reading Streak Settings
+            </Typography>
+          </Box>
+          <Typography variant="body2" color="text.secondary" paragraph>
+            Configure how reading streaks are calculated. The grace period allows students to miss a day without breaking their streak.
+          </Typography>
+
+          <FormControl sx={{ minWidth: 200 }}>
+            <InputLabel id="streak-grace-period-label">Grace Period</InputLabel>
+            <Select
+              labelId="streak-grace-period-label"
+              id="streak-grace-period"
+              value={localSettings.streakGracePeriodDays}
+              label="Grace Period"
+              onChange={handleStreakGracePeriodChange}
+            >
+              <MenuItem value={0}>No grace period (strict)</MenuItem>
+              <MenuItem value={1}>1 day (recommended)</MenuItem>
+              <MenuItem value={2}>2 days</MenuItem>
+              <MenuItem value={3}>3 days</MenuItem>
+            </Select>
+          </FormControl>
+
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+            {localSettings.streakGracePeriodDays === 0
+              ? 'Students must read every day to maintain their streak.'
+              : `Students can miss up to ${localSettings.streakGracePeriodDays} day${localSettings.streakGracePeriodDays > 1 ? 's' : ''} without breaking their streak.`
+            }
+          </Typography>
         </Box>
 
         <Divider sx={{ my: 3 }} />

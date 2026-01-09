@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { generateId } from '../utils/helpers';
+import { calculateStreak } from '../utils/streakCalculator';
 
 // Import services (legacy KV mode)
 import {
@@ -56,6 +57,10 @@ const rowToStudent = (row) => {
     currentBookId: row.current_book_id || null,
     currentBookTitle: row.current_book_title || null,
     currentBookAuthor: row.current_book_author || null,
+    // Streak fields
+    currentStreak: row.current_streak || 0,
+    longestStreak: row.longest_streak || 0,
+    streakStartDate: row.streak_start_date || null,
     readingSessions: [], // Default empty array, will be populated separately if needed
     preferences: {
       favoriteGenreIds: [],
@@ -133,6 +138,83 @@ const saveStudentPreferences = async (db, studentId, preferences) => {
       await db.batch(batch);
     }
   }
+};
+
+/**
+ * Get the streak grace period setting for an organization
+ */
+const getStreakGracePeriod = async (db, organizationId) => {
+  const setting = await db.prepare(`
+    SELECT setting_value FROM org_settings
+    WHERE organization_id = ? AND setting_key = 'streakGracePeriodDays'
+  `).bind(organizationId).first();
+
+  if (setting?.setting_value) {
+    try {
+      return parseInt(JSON.parse(setting.setting_value), 10);
+    } catch {
+      return 1; // Default grace period
+    }
+  }
+  return 1; // Default grace period
+};
+
+/**
+ * Get the timezone setting for an organization
+ */
+const getOrganizationTimezone = async (db, organizationId) => {
+  const setting = await db.prepare(`
+    SELECT setting_value FROM org_settings
+    WHERE organization_id = ? AND setting_key = 'timezone'
+  `).bind(organizationId).first();
+
+  if (setting?.setting_value) {
+    try {
+      return JSON.parse(setting.setting_value);
+    } catch {
+      return setting.setting_value;
+    }
+  }
+  return 'UTC';
+};
+
+/**
+ * Recalculate and update streak for a student based on their reading sessions
+ */
+const updateStudentStreak = async (db, studentId, organizationId) => {
+  // Fetch all sessions for the student
+  const sessions = await db.prepare(`
+    SELECT session_date as date FROM reading_sessions
+    WHERE student_id = ?
+    ORDER BY session_date DESC
+  `).bind(studentId).all();
+
+  // Get organization settings
+  const gracePeriodDays = await getStreakGracePeriod(db, organizationId);
+  const timezone = await getOrganizationTimezone(db, organizationId);
+
+  // Calculate streak
+  const streakData = calculateStreak(sessions.results || [], {
+    gracePeriodDays,
+    timezone
+  });
+
+  // Update student record
+  await db.prepare(`
+    UPDATE students SET
+      current_streak = ?,
+      longest_streak = ?,
+      streak_start_date = ?,
+      updated_at = datetime("now")
+    WHERE id = ?
+  `).bind(
+    streakData.currentStreak,
+    streakData.longestStreak,
+    streakData.streakStartDate,
+    studentId
+  ).run();
+
+  return streakData;
 };
 
 /**
@@ -661,6 +743,9 @@ studentsRouter.post('/:id/sessions', async (c) => {
       `).bind(body.bookId, id).run();
     }
 
+    // Update student's reading streak
+    const streakData = await updateStudentStreak(db, id, organizationId);
+
     // Fetch the created session
     const session = await db.prepare(`
       SELECT rs.*, b.title as book_title, b.author as book_author
@@ -668,7 +753,7 @@ studentsRouter.post('/:id/sessions', async (c) => {
       LEFT JOIN books b ON rs.book_id = b.id
       WHERE rs.id = ?
     `).bind(sessionId).first();
-    
+
     return c.json({
       id: session.id,
       date: session.session_date,
@@ -746,10 +831,13 @@ studentsRouter.delete('/:id/sessions/:sessionId', async (c) => {
     await db.prepare(`
       DELETE FROM reading_sessions WHERE id = ?
     `).bind(sessionId).run();
-    
+
+    // Recalculate student's reading streak after deletion
+    await updateStudentStreak(db, id, organizationId);
+
     return c.json({ message: 'Session deleted successfully' });
   }
-  
+
   // Legacy mode: use KV
   const student = await getStudentByIdKV(c.env, id);
   if (!student) {
@@ -872,6 +960,100 @@ studentsRouter.put('/:id/sessions/:sessionId', async (c) => {
   await saveStudentKV(c.env, student);
   
   return c.json(student.readingSessions[sessionIndex]);
+});
+
+/**
+ * GET /api/students/:id/streak
+ * Get streak details for a student
+ */
+studentsRouter.get('/:id/streak', async (c) => {
+  const { id } = c.req.param();
+
+  // Multi-tenant mode: use D1
+  if (isMultiTenantMode(c)) {
+    const db = getDB(c.env);
+    const organizationId = c.get('organizationId');
+
+    // Check if student exists and belongs to organization
+    const student = await db.prepare(`
+      SELECT id, current_streak, longest_streak, streak_start_date
+      FROM students WHERE id = ? AND organization_id = ? AND is_active = 1
+    `).bind(id, organizationId).first();
+
+    if (!student) {
+      throw notFoundError(`Student with ID ${id} not found`);
+    }
+
+    // Get the last read date from sessions
+    const lastSession = await db.prepare(`
+      SELECT session_date FROM reading_sessions
+      WHERE student_id = ?
+      ORDER BY session_date DESC
+      LIMIT 1
+    `).bind(id).first();
+
+    return c.json({
+      currentStreak: student.current_streak || 0,
+      longestStreak: student.longest_streak || 0,
+      streakStartDate: student.streak_start_date || null,
+      lastReadDate: lastSession?.session_date || null
+    });
+  }
+
+  // Legacy mode: calculate from sessions
+  const student = await getStudentByIdKV(c.env, id);
+  if (!student) {
+    throw notFoundError(`Student with ID ${id} not found`);
+  }
+
+  const streakData = calculateStreak(student.readingSessions || [], {
+    gracePeriodDays: 1 // Default for legacy mode
+  });
+
+  return c.json(streakData);
+});
+
+/**
+ * POST /api/students/recalculate-streaks
+ * Recalculate streaks for all students (admin only)
+ */
+studentsRouter.post('/recalculate-streaks', async (c) => {
+  // Multi-tenant mode only
+  if (!isMultiTenantMode(c)) {
+    return c.json({ error: 'This endpoint requires multi-tenant mode' }, 400);
+  }
+
+  const db = getDB(c.env);
+  const organizationId = c.get('organizationId');
+
+  // Check permission - admin or owner only
+  const userRole = c.get('userRole');
+  if (!permissions.canManageSettings(userRole)) {
+    return c.json({ error: 'Permission denied' }, 403);
+  }
+
+  // Get all active students for this organization
+  const students = await db.prepare(`
+    SELECT id FROM students WHERE organization_id = ? AND is_active = 1
+  `).bind(organizationId).all();
+
+  const results = {
+    total: students.results?.length || 0,
+    updated: 0,
+    errors: []
+  };
+
+  // Recalculate streak for each student
+  for (const student of (students.results || [])) {
+    try {
+      await updateStudentStreak(db, student.id, organizationId);
+      results.updated++;
+    } catch (error) {
+      results.errors.push({ studentId: student.id, error: error.message });
+    }
+  }
+
+  return c.json(results);
 });
 
 export { studentsRouter };
