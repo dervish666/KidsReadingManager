@@ -17,6 +17,7 @@ import {
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import { useAppContext } from '../../contexts/AppContext';
+import StreakBadge from './StreakBadge';
 import { useTheme } from '@mui/material/styles';
 import StudentSessions from '../sessions/StudentSessions';
 import ReadingPreferences from './ReadingPreferences';
@@ -263,18 +264,23 @@ const StudentTable = ({ students }) => {
                         <MenuBookIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />
                       </Box>
                       <Box sx={{ minWidth: 0 }}>
-                        <Typography
-                          variant="body1"
-                          sx={{
-                            fontWeight: 600,
-                            fontSize: { xs: '0.95rem', sm: '1rem' },
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
-                          }}
-                        >
-                          {student.name} ({student.readingSessions.length})
-                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <Typography
+                            variant="body1"
+                            sx={{
+                              fontWeight: 600,
+                              fontSize: { xs: '0.95rem', sm: '1rem' },
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            {student.name} ({student.readingSessions.length})
+                          </Typography>
+                          {student.currentStreak > 0 && (
+                            <StreakBadge streak={student.currentStreak} size="small" />
+                          )}
+                        </Box>
                         <Typography 
                           variant="body2" 
                           color="text.secondary"
