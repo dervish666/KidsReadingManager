@@ -57,12 +57,12 @@ const Header = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)',
+            background: 'linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%)',
             borderRadius: '10px',
             width: 42,
             height: 42,
             mr: 2,
-            boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)',
+            boxShadow: '0 4px 12px rgba(107, 142, 107, 0.3)',
           }}
         >
           <MenuBookIcon sx={{ color: 'white', fontSize: 22 }} />
@@ -75,7 +75,7 @@ const Header = () => {
             sx={{
               fontFamily: '"Nunito", sans-serif',
               fontWeight: 800,
-              color: '#332F3A',
+              color: '#4A4A4A',
               fontSize: { xs: '1.25rem', sm: '1.5rem' },
               mr: { xs: 1, sm: 3 },
               letterSpacing: '-0.025em',
@@ -94,7 +94,7 @@ const Header = () => {
             <FilterListIcon sx={{
               mr: 1,
               fontSize: { xs: '1rem', sm: '1.25rem' },
-              color: '#635F69',
+              color: '#7A7A7A',
               display: { xs: 'none', sm: 'block' }
             }} />
             <FormControl
@@ -103,29 +103,29 @@ const Header = () => {
                 minWidth: { xs: 120, sm: 160 },
                 '& .MuiOutlinedInput-root': {
                   borderRadius: '10px',
-                  backgroundColor: '#F8F6FC',
+                  backgroundColor: '#FAF8F3',
                   boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.04)',
-                  border: '1px solid rgba(160, 150, 180, 0.15)',
+                  border: '1px solid rgba(139, 115, 85, 0.15)',
                   '& fieldset': {
                     border: 'none',
                   },
                   '&:hover': {
-                    backgroundColor: '#F8F6FC',
-                    border: '1px solid rgba(124, 58, 237, 0.3)',
+                    backgroundColor: '#FAF8F3',
+                    border: '1px solid rgba(107, 142, 107, 0.3)',
                   },
                   '&.Mui-focused': {
                     backgroundColor: '#ffffff',
-                    border: '1px solid rgba(124, 58, 237, 0.5)',
-                    boxShadow: '0 0 0 3px rgba(124, 58, 237, 0.15)',
+                    border: '1px solid rgba(107, 142, 107, 0.5)',
+                    boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.15)',
                   },
                 },
                 '& .MuiSelect-select': {
-                  color: '#332F3A',
+                  color: '#4A4A4A',
                   fontWeight: 600,
                   fontFamily: '"DM Sans", sans-serif',
                 },
                 '& .MuiSelect-icon': {
-                  color: '#7C3AED',
+                  color: '#6B8E6B',
                 },
               }}
             >
@@ -159,10 +159,10 @@ const Header = () => {
           sx={{
             fontFamily: '"DM Sans", sans-serif',
             fontWeight: 700,
-            color: '#7C3AED',
+            color: '#6B8E6B',
             fontSize: { xs: '0.7rem', sm: '0.75rem' },
             ml: 2,
-            backgroundColor: 'rgba(124, 58, 237, 0.1)',
+            backgroundColor: 'rgba(107, 142, 107, 0.1)',
             px: 1.5,
             py: 0.5,
             borderRadius: '6px',
@@ -181,7 +181,7 @@ const Header = () => {
                 display: { xs: 'none', sm: 'flex' },
                 alignItems: 'center',
                 mr: 1,
-                backgroundColor: 'rgba(124, 58, 237, 0.05)',
+                backgroundColor: 'rgba(107, 142, 107, 0.05)',
                 px: 1.5,
                 py: 0.5,
                 borderRadius: '6px',
@@ -190,7 +190,7 @@ const Header = () => {
                   variant="caption"
                   sx={{
                     fontWeight: 600,
-                    color: '#332F3A',
+                    color: '#4A4A4A',
                     fontSize: '0.75rem'
                   }}
                 >
@@ -203,7 +203,7 @@ const Header = () => {
                     ml: 1,
                     height: 18,
                     fontSize: '0.65rem',
-                    backgroundColor: '#7C3AED',
+                    backgroundColor: '#6B8E6B',
                     color: 'white',
                     '& .MuiChip-label': {
                       px: 1,
@@ -220,8 +220,8 @@ const Header = () => {
               onClick={logout}
               startIcon={<LogoutIcon sx={{ fontSize: 16 }} />}
               sx={{
-                color: '#7C3AED',
-                borderColor: 'rgba(124, 58, 237, 0.3)',
+                color: '#6B8E6B',
+                borderColor: 'rgba(107, 142, 107, 0.3)',
                 fontSize: '0.75rem',
                 fontWeight: 600,
                 textTransform: 'none',
@@ -229,8 +229,8 @@ const Header = () => {
                 py: 0.5,
                 minHeight: 32,
                 '&:hover': {
-                  borderColor: '#7C3AED',
-                  backgroundColor: 'rgba(124, 58, 237, 0.05)',
+                  borderColor: '#6B8E6B',
+                  backgroundColor: 'rgba(107, 142, 107, 0.05)',
                 },
               }}
             >

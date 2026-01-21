@@ -1,24 +1,24 @@
-/* High-Fidelity Claymorphism Design System */
+/* Cozy Bookshelf Design System */
 
 :root {
-  /* Colors */
-  --clay-canvas: #F4F1FA;
-  --clay-text-primary: #332F3A;
-  --clay-text-muted: #635F69;
-  --clay-accent-primary: #7C3AED;
-  --clay-accent-secondary: #DB2777;
-  --clay-accent-tertiary: #0EA5E9;
-  --clay-success: #10B981;
-  --clay-warning: #F59E0B;
-  --clay-error: #EF4444;
+  /* Colors - Warm Cream & Sage Green Palette */
+  --clay-canvas: #F5F0E8;
+  --clay-text-primary: #4A4A4A;
+  --clay-text-muted: #7A7A7A;
+  --clay-accent-primary: #6B8E6B;
+  --clay-accent-secondary: #8B7355;
+  --clay-accent-tertiary: #7A9EAD;
+  --clay-success: #6B8E6B;
+  --clay-warning: #D4A574;
+  --clay-error: #C17E7E;
 
-  /* Shadows */
-  --shadow-clay-deep: 30px 30px 60px #cdc6d9, -30px -30px 60px #ffffff, inset 10px 10px 20px rgba(139, 92, 246, 0.05), inset -10px -10px 20px rgba(255, 255, 255, 0.8);
-  --shadow-clay-card: 16px 16px 32px rgba(160, 150, 180, 0.2), -10px -10px 24px rgba(255, 255, 255, 0.9), inset 6px 6px 12px rgba(139, 92, 246, 0.03), inset -6px -6px 12px rgba(255, 255, 255, 1);
-  --shadow-clay-card-hover: 20px 20px 40px rgba(160, 150, 180, 0.25), -12px -12px 28px rgba(255, 255, 255, 0.95), inset 6px 6px 12px rgba(139, 92, 246, 0.03), inset -6px -6px 12px rgba(255, 255, 255, 1);
-  --shadow-clay-button: 12px 12px 24px rgba(139, 92, 246, 0.3), -8px -8px 16px rgba(255, 255, 255, 0.4), inset 4px 4px 8px rgba(255, 255, 255, 0.4), inset -4px -4px 8px rgba(0, 0, 0, 0.1);
-  --shadow-clay-button-hover: 16px 16px 32px rgba(139, 92, 246, 0.4), -10px -10px 20px rgba(255, 255, 255, 0.5), inset 4px 4px 8px rgba(255, 255, 255, 0.4), inset -4px -4px 8px rgba(0, 0, 0, 0.1);
-  --shadow-clay-pressed: inset 10px 10px 20px #d9d4e3, inset -10px -10px 20px #ffffff;
+  /* Shadows - Warm tones */
+  --shadow-clay-deep: 30px 30px 60px #E5DFD4, -30px -30px 60px #ffffff, inset 10px 10px 20px rgba(107, 142, 107, 0.03), inset -10px -10px 20px rgba(255, 255, 255, 0.8);
+  --shadow-clay-card: 16px 16px 32px rgba(139, 115, 85, 0.12), -10px -10px 24px rgba(255, 255, 255, 0.9), inset 6px 6px 12px rgba(107, 142, 107, 0.02), inset -6px -6px 12px rgba(255, 255, 255, 1);
+  --shadow-clay-card-hover: 20px 20px 40px rgba(139, 115, 85, 0.15), -12px -12px 28px rgba(255, 255, 255, 0.95), inset 6px 6px 12px rgba(107, 142, 107, 0.02), inset -6px -6px 12px rgba(255, 255, 255, 1);
+  --shadow-clay-button: 12px 12px 24px rgba(107, 142, 107, 0.2), -8px -8px 16px rgba(255, 255, 255, 0.4), inset 4px 4px 8px rgba(255, 255, 255, 0.4), inset -4px -4px 8px rgba(0, 0, 0, 0.05);
+  --shadow-clay-button-hover: 16px 16px 32px rgba(107, 142, 107, 0.25), -10px -10px 20px rgba(255, 255, 255, 0.5), inset 4px 4px 8px rgba(255, 255, 255, 0.4), inset -4px -4px 8px rgba(0, 0, 0, 0.05);
+  --shadow-clay-pressed: inset 10px 10px 20px #E5DFD4, inset -10px -10px 20px #ffffff;
 }
 
 body {
@@ -71,7 +71,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Utility Classes */
 .clay-card {
-  background-color: rgba(255, 255, 255, 0.6);
+  background-color: rgba(255, 254, 249, 0.8);
   backdrop-filter: blur(20px);
   border-radius: 32px;
   box-shadow: var(--shadow-clay-card);
@@ -101,7 +101,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .clay-input {
   border-radius: 16px;
-  background-color: #EFEBF5;
+  background-color: #FAF8F3;
   box-shadow: var(--shadow-clay-pressed);
   border: none;
   transition: all 0.2s ease;
@@ -109,7 +109,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .clay-input:focus {
   background-color: #ffffff;
-  box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.2);
+  box-shadow: 0 0 0 4px rgba(107, 142, 107, 0.15);
   outline: none;
 }
 
@@ -123,12 +123,12 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(99, 95, 105, 0.2);
+  background: rgba(139, 115, 85, 0.2);
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(99, 95, 105, 0.4);
+  background: rgba(139, 115, 85, 0.35);
 }
 
 /* Mobile Adjustments */
@@ -137,7 +137,7 @@ h1, h2, h3, h4, h5, h6 {
     border-radius: 24px;
     padding: 24px !important;
   }
-  
+
   body {
     padding-bottom: env(safe-area-inset-bottom);
   }

@@ -293,7 +293,7 @@ const SessionForm = () => {
   return (
     <Box>
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" component="h1" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#332F3A' }}>
+        <Typography variant="h4" component="h1" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#4A4A4A' }}>
           Record Reading Session
         </Typography>
       </Box>
@@ -303,7 +303,7 @@ const SessionForm = () => {
           background: 'rgba(255, 255, 255, 0.6)',
           backdropFilter: 'blur(20px)',
           borderRadius: 6,
-          boxShadow: '16px 16px 32px rgba(160, 150, 180, 0.2), -10px -10px 24px rgba(255, 255, 255, 0.9), inset 6px 6px 12px rgba(139, 92, 246, 0.03), inset -6px -6px 12px rgba(255, 255, 255, 1)',
+          boxShadow: '16px 16px 32px rgba(139, 115, 85, 0.2), -10px -10px 24px rgba(255, 255, 255, 0.9), inset 6px 6px 12px rgba(107, 142, 107, 0.03), inset -6px -6px 12px rgba(255, 255, 255, 1)',
           border: '1px solid rgba(255, 255, 255, 0.4)',
         }}>
           {error && (
@@ -330,7 +330,7 @@ const SessionForm = () => {
                         backgroundColor: '#EFEBF5',
                         boxShadow: 'inset 4px 4px 8px #d9d4e3, inset -4px -4px 8px #ffffff',
                         '& fieldset': { border: 'none' },
-                        '&.Mui-focused': { backgroundColor: '#ffffff', boxShadow: '0 0 0 3px rgba(124, 58, 237, 0.2)' },
+                        '&.Mui-focused': { backgroundColor: '#ffffff', boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.2)' },
                       }}
                     >
                       {sortedStudents.length === 0 ? (
@@ -362,7 +362,7 @@ const SessionForm = () => {
                                     variant="caption"
                                     sx={{
                                       ml: 'auto',
-                                      color: '#635F69',
+                                      color: '#7A7A7A',
                                       fontStyle: 'italic'
                                     }}
                                   >
@@ -394,7 +394,7 @@ const SessionForm = () => {
                         backgroundColor: '#EFEBF5',
                         boxShadow: 'inset 4px 4px 8px #d9d4e3, inset -4px -4px 8px #ffffff',
                         '& fieldset': { border: 'none' },
-                        '&.Mui-focused': { backgroundColor: '#ffffff', boxShadow: '0 0 0 3px rgba(124, 58, 237, 0.2)' },
+                        '&.Mui-focused': { backgroundColor: '#ffffff', boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.2)' },
                         height: 56
                       }
                     }}
@@ -422,15 +422,15 @@ const SessionForm = () => {
                     border: '1px solid rgba(0,0,0,0.05)',
                     backgroundColor: 'rgba(255,255,255,0.3)'
                   }}>
-                    <FormLabel component="legend" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: '#332F3A', mb: 1 }}>Location</FormLabel>
+                    <FormLabel component="legend" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: '#4A4A4A', mb: 1 }}>Location</FormLabel>
                     <RadioGroup
                       aria-label="location"
                       value={selectedLocation}
                       onChange={handleLocationChange}
                       row
                     >
-                      <FormControlLabel value="school" control={<Radio sx={{ color: '#7C3AED', '&.Mui-checked': { color: '#7C3AED' } }} />} label="School" />
-                      <FormControlLabel value="home" control={<Radio sx={{ color: '#7C3AED', '&.Mui-checked': { color: '#7C3AED' } }} />} label="Home" />
+                      <FormControlLabel value="school" control={<Radio sx={{ color: '#6B8E6B', '&.Mui-checked': { color: '#6B8E6B' } }} />} label="School" />
+                      <FormControlLabel value="home" control={<Radio sx={{ color: '#6B8E6B', '&.Mui-checked': { color: '#6B8E6B' } }} />} label="Home" />
                     </RadioGroup>
                   </FormControl>
                 </Grid>
@@ -442,10 +442,10 @@ const SessionForm = () => {
                       borderRadius: 4,
                       backgroundColor: 'rgba(255,255,255,0.5)',
                       border: '1px solid rgba(255,255,255,0.6)',
-                      boxShadow: 'inset 2px 2px 4px rgba(160, 150, 180, 0.1), inset -2px -2px 4px rgba(255, 255, 255, 0.8)',
+                      boxShadow: 'inset 2px 2px 4px rgba(139, 115, 85, 0.1), inset -2px -2px 4px rgba(255, 255, 255, 0.8)',
                       height: '100%'
                     }}>
-                      <Typography variant="subtitle2" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: '#332F3A' }}>
+                      <Typography variant="subtitle2" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: '#4A4A4A' }}>
                         Selected Book Details
                       </Typography>
                       <Grid container spacing={2}>
@@ -552,8 +552,8 @@ const SessionForm = () => {
                             sx={{
                               borderRadius: 3,
                               fontWeight: 600,
-                              background: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)',
-                              boxShadow: '4px 4px 8px rgba(139, 92, 246, 0.3)'
+                              background: 'linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%)',
+                              boxShadow: '4px 4px 8px rgba(107, 142, 107, 0.3)'
                             }}
                           >
                             Update Book
@@ -571,7 +571,7 @@ const SessionForm = () => {
               {/* Assessment and Notes - Two Columns */}
               <Grid container item size={12} spacing={3}>
                 <Grid size={{ xs: 12, sm: 4 }}>
-                  <Typography variant="subtitle1" gutterBottom sx={{ mb: 1, fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: '#332F3A' }}>
+                  <Typography variant="subtitle1" gutterBottom sx={{ mb: 1, fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: '#4A4A4A' }}>
                     Assessment:
                   </Typography>
                   <AssessmentSelector
@@ -599,14 +599,14 @@ const SessionForm = () => {
                     mb: { xs: 2, sm: 0 },
                     height: 56,
                     borderRadius: 4,
-                    background: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)',
-                    boxShadow: '12px 12px 24px rgba(139, 92, 246, 0.3), -8px -8px 16px rgba(255, 255, 255, 0.4), inset 4px 4px 8px rgba(255, 255, 255, 0.4), inset -4px -4px 8px rgba(0, 0, 0, 0.1)',
+                    background: 'linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%)',
+                    boxShadow: '12px 12px 24px rgba(107, 142, 107, 0.3), -8px -8px 16px rgba(255, 255, 255, 0.4), inset 4px 4px 8px rgba(255, 255, 255, 0.4), inset -4px -4px 8px rgba(0, 0, 0, 0.1)',
                     fontSize: '1.1rem',
                     fontWeight: 700,
                     textTransform: 'none',
                     '&:hover': {
                       transform: 'translateY(-4px)',
-                      boxShadow: '16px 16px 32px rgba(139, 92, 246, 0.4), -10px -10px 20px rgba(255, 255, 255, 0.5)',
+                      boxShadow: '16px 16px 32px rgba(107, 142, 107, 0.4), -10px -10px 20px rgba(255, 255, 255, 0.5)',
                     },
                     '&:active': {
                       transform: 'scale(0.96)',
@@ -622,7 +622,7 @@ const SessionForm = () => {
           {selectedStudent && (
             <Box sx={{ mt: 6 }}>
               <Divider sx={{ mb: 4, borderColor: 'rgba(0,0,0,0.05)' }} />
-              <Typography variant="h5" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#332F3A' }}>
+              <Typography variant="h5" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#4A4A4A' }}>
                 Previous Sessions for {selectedStudent.name}
               </Typography>
               
@@ -640,7 +640,7 @@ const SessionForm = () => {
                               borderRadius: 4,
                               backgroundColor: 'rgba(255,255,255,0.5)',
                               border: '1px solid rgba(255,255,255,0.6)',
-                              boxShadow: '4px 4px 10px rgba(160, 150, 180, 0.1)'
+                              boxShadow: '4px 4px 10px rgba(139, 115, 85, 0.1)'
                             }}
                           >
                             <CardContent>
@@ -664,14 +664,14 @@ const SessionForm = () => {
                                 </Typography>
                               </Box>
                               
-                              <Typography variant="body1" sx={{ mt: 1, fontWeight: 700, color: '#332F3A' }}>
+                              <Typography variant="body1" sx={{ mt: 1, fontWeight: 700, color: '#4A4A4A' }}>
                                 {session.assessment.charAt(0).toUpperCase() + session.assessment.slice(1)}
                               </Typography>
 
                               {/* Book Information */}
                               {session.bookId ? (
                                 <Box sx={{ mt: 1.5, p: 1.5, bgcolor: 'rgba(255,255,255,0.6)', borderRadius: 3 }}>
-                                  <Typography variant="body2" sx={{ fontWeight: 700, color: '#7C3AED' }}>
+                                  <Typography variant="body2" sx={{ fontWeight: 700, color: '#6B8E6B' }}>
                                     "{getBookInfo(session.bookId)?.title}"
                                   </Typography>
                                   <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
@@ -686,7 +686,7 @@ const SessionForm = () => {
 
                               {/* Notes */}
                               {session.notes && (
-                                <Box sx={{ mt: 2, p: 1.5, bgcolor: '#F4F1FA', borderRadius: 3 }}>
+                                <Box sx={{ mt: 2, p: 1.5, bgcolor: '#F5F0E8', borderRadius: 3 }}>
                                   <Typography variant="body2" color="text.secondary">
                                     <strong>Notes:</strong> {session.notes}
                                   </Typography>

@@ -303,12 +303,12 @@ const ReadingStats = () => {
   const renderOverviewTab = () => (
     <Grid container spacing={3}>
       <Grid item xs={12} sm={6} md={3}>
-        <Card sx={{ height: '100%', borderRadius: 4, boxShadow: '8px 8px 16px rgba(160, 150, 180, 0.1)' }}>
+        <Card sx={{ height: '100%', borderRadius: 4, boxShadow: '8px 8px 16px rgba(139, 115, 85, 0.1)' }}>
           <CardContent sx={{ textAlign: 'center', py: 4 }}>
             <Typography color="text.secondary" gutterBottom sx={{ fontWeight: 600 }}>
               Total Students
             </Typography>
-            <Typography variant="h3" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#7C3AED' }}>
+            <Typography variant="h3" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#6B8E6B' }}>
               {stats.totalStudents}
             </Typography>
           </CardContent>
@@ -316,12 +316,12 @@ const ReadingStats = () => {
       </Grid>
       
       <Grid item xs={12} sm={6} md={3}>
-        <Card sx={{ height: '100%', borderRadius: 4, boxShadow: '8px 8px 16px rgba(160, 150, 180, 0.1)' }}>
+        <Card sx={{ height: '100%', borderRadius: 4, boxShadow: '8px 8px 16px rgba(139, 115, 85, 0.1)' }}>
           <CardContent sx={{ textAlign: 'center', py: 4 }}>
             <Typography color="text.secondary" gutterBottom sx={{ fontWeight: 600 }}>
               Total Reading Sessions
             </Typography>
-            <Typography variant="h3" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#DB2777' }}>
+            <Typography variant="h3" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#8B7355' }}>
               {stats.totalSessions}
             </Typography>
           </CardContent>
@@ -329,7 +329,7 @@ const ReadingStats = () => {
       </Grid>
       
       <Grid item xs={12} sm={6} md={3}>
-        <Card sx={{ height: '100%', borderRadius: 4, boxShadow: '8px 8px 16px rgba(160, 150, 180, 0.1)' }}>
+        <Card sx={{ height: '100%', borderRadius: 4, boxShadow: '8px 8px 16px rgba(139, 115, 85, 0.1)' }}>
           <CardContent sx={{ textAlign: 'center', py: 4 }}>
             <Typography color="text.secondary" gutterBottom sx={{ fontWeight: 600 }}>
               Avg. Sessions per Student
@@ -342,7 +342,7 @@ const ReadingStats = () => {
       </Grid>
       
       <Grid item xs={12} sm={6} md={3}>
-        <Card sx={{ height: '100%', borderRadius: 4, boxShadow: '8px 8px 16px rgba(160, 150, 180, 0.1)' }}>
+        <Card sx={{ height: '100%', borderRadius: 4, boxShadow: '8px 8px 16px rgba(139, 115, 85, 0.1)' }}>
           <CardContent sx={{ textAlign: 'center', py: 4 }}>
             <Typography color="text.secondary" gutterBottom sx={{ fontWeight: 600 }}>
               Students Never Read With
@@ -356,14 +356,14 @@ const ReadingStats = () => {
       
       {/* This Week's Activity */}
       <Grid item xs={12} sm={6}>
-        <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(160, 150, 180, 0.1)' }}>
+        <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(139, 115, 85, 0.1)' }}>
           <CardContent>
             <Typography variant="h6" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
               This Week's Activity
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', mt: 2 }}>
               <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="h3" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#7C3AED' }}>
+                <Typography variant="h3" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#6B8E6B' }}>
                   {stats.weeklyActivity.thisWeek}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
@@ -392,7 +392,7 @@ const ReadingStats = () => {
 
       {/* Home vs School Reading */}
       <Grid item xs={12} sm={6}>
-        <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(160, 150, 180, 0.1)' }}>
+        <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(139, 115, 85, 0.1)' }}>
           <CardContent>
             <Typography variant="h6" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
               Home vs School Reading
@@ -423,7 +423,7 @@ const ReadingStats = () => {
 
       {/* Reading by Day of Week */}
       <Grid item xs={12} sm={6}>
-        <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(160, 150, 180, 0.1)' }}>
+        <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(139, 115, 85, 0.1)' }}>
           <CardContent>
             <Typography variant="h6" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
               Reading by Day
@@ -445,12 +445,12 @@ const ReadingStats = () => {
                         width: '100%',
                         maxWidth: 30,
                         height: height,
-                        bgcolor: count > 0 ? '#7C3AED' : '#E5E7EB',
+                        bgcolor: count > 0 ? '#6B8E6B' : '#E5E7EB',
                         borderRadius: 1,
                         transition: 'height 0.3s'
                       }} />
                     </Box>
-                    <Typography variant="caption" sx={{ fontWeight: 600, color: '#635F69' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: '#7A7A7A' }}>
                       {day}
                     </Typography>
                     <Typography variant="caption" display="block" sx={{ color: '#9CA3AF', fontSize: '0.65rem' }}>
@@ -466,7 +466,7 @@ const ReadingStats = () => {
 
       {/* Most Read Books */}
       <Grid item xs={12} sm={6}>
-        <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(160, 150, 180, 0.1)' }}>
+        <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(139, 115, 85, 0.1)' }}>
           <CardContent>
             <Typography variant="h6" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
               Most Read Books
@@ -526,7 +526,7 @@ const ReadingStats = () => {
 
       {/* Reading Streaks Summary */}
       <Grid item xs={12} sm={6}>
-        <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(160, 150, 180, 0.1)' }}>
+        <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(139, 115, 85, 0.1)' }}>
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
               <WhatshotIcon sx={{ color: '#FF6B35' }} />
@@ -551,8 +551,8 @@ const ReadingStats = () => {
                   Best Current
                 </Typography>
               </Box>
-              <Box sx={{ textAlign: 'center', p: 1.5, borderRadius: 3, bgcolor: 'rgba(124, 58, 237, 0.1)', minWidth: 100 }}>
-                <Typography variant="h4" sx={{ color: '#7C3AED', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}>
+              <Box sx={{ textAlign: 'center', p: 1.5, borderRadius: 3, bgcolor: 'rgba(107, 142, 107, 0.1)', minWidth: 100 }}>
+                <Typography variant="h4" sx={{ color: '#6B8E6B', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}>
                   {stats.averageStreak.toFixed(1)}
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#5B21B6', fontWeight: 600, fontSize: '0.75rem' }}>
@@ -566,7 +566,7 @@ const ReadingStats = () => {
 
       {/* Streak Leaderboard */}
       <Grid item xs={12} sm={6}>
-        <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(160, 150, 180, 0.1)' }}>
+        <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(139, 115, 85, 0.1)' }}>
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
               <EmojiEventsIcon sx={{ color: '#FFD700' }} />
@@ -751,7 +751,7 @@ const ReadingStats = () => {
         {/* Streak Summary Cards */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={6} sm={3}>
-            <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(160, 150, 180, 0.1)' }}>
+            <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(139, 115, 85, 0.1)' }}>
               <CardContent sx={{ textAlign: 'center', py: 3 }}>
                 <WhatshotIcon sx={{ fontSize: 40, color: '#FF6B35', mb: 1 }} />
                 <Typography variant="h3" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#FF6B35' }}>
@@ -765,7 +765,7 @@ const ReadingStats = () => {
           </Grid>
 
           <Grid item xs={6} sm={3}>
-            <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(160, 150, 180, 0.1)' }}>
+            <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(139, 115, 85, 0.1)' }}>
               <CardContent sx={{ textAlign: 'center', py: 3 }}>
                 <EmojiEventsIcon sx={{ fontSize: 40, color: '#FFD700', mb: 1 }} />
                 <Typography variant="h3" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#B8860B' }}>
@@ -779,10 +779,10 @@ const ReadingStats = () => {
           </Grid>
 
           <Grid item xs={6} sm={3}>
-            <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(160, 150, 180, 0.1)' }}>
+            <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(139, 115, 85, 0.1)' }}>
               <CardContent sx={{ textAlign: 'center', py: 3 }}>
                 <Box sx={{ fontSize: 40, mb: 1 }}>🏆</Box>
-                <Typography variant="h3" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#7C3AED' }}>
+                <Typography variant="h3" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#6B8E6B' }}>
                   {stats.longestEverStreak}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
@@ -793,7 +793,7 @@ const ReadingStats = () => {
           </Grid>
 
           <Grid item xs={6} sm={3}>
-            <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(160, 150, 180, 0.1)' }}>
+            <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(139, 115, 85, 0.1)' }}>
               <CardContent sx={{ textAlign: 'center', py: 3 }}>
                 <Box sx={{ fontSize: 40, mb: 1 }}>📊</Box>
                 <Typography variant="h3" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#0EA5E9' }}>
@@ -934,7 +934,7 @@ const ReadingStats = () => {
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#332F3A' }}>
+        <Typography variant="h4" component="h1" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#4A4A4A' }}>
           Reading Statistics
         </Typography>
         <Button

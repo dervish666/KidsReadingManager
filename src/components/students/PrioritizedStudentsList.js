@@ -23,9 +23,9 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
   
   const status = getReadingStatus(student);
   const statusColors = {
-    notRead: theme.palette.status?.notRead || '#EF4444',
-    needsAttention: theme.palette.status?.needsAttention || '#F59E0B',
-    recentlyRead: theme.palette.status?.recentlyRead || '#10B981'
+    notRead: theme.palette.status?.notRead || '#C17E7E',
+    needsAttention: theme.palette.status?.needsAttention || '#D4A574',
+    recentlyRead: theme.palette.status?.recentlyRead || '#6B8E6B'
   };
   
   const getMostRecentReadDate = () => {
@@ -64,12 +64,12 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
         borderRadius: '12px',
         backgroundColor: 'rgba(255, 255, 255, 0.85)',
         backdropFilter: 'blur(10px)',
-        boxShadow: '0 4px 12px rgba(160, 150, 180, 0.15), 0 2px 4px rgba(0, 0, 0, 0.05)',
+        boxShadow: '0 4px 12px rgba(139, 115, 85, 0.15), 0 2px 4px rgba(0, 0, 0, 0.05)',
         border: '1px solid rgba(255, 255, 255, 0.6)',
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         '&:hover': {
           transform: 'translateY(-4px)',
-          boxShadow: '0 8px 24px rgba(160, 150, 180, 0.2), 0 4px 8px rgba(0, 0, 0, 0.08)',
+          boxShadow: '0 8px 24px rgba(139, 115, 85, 0.2), 0 4px 8px rgba(0, 0, 0, 0.08)',
           zIndex: 10,
         }
       }}
@@ -79,7 +79,7 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
           position: 'absolute',
           top: -10,
           left: -10,
-          background: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)',
+          background: 'linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%)',
           color: 'white',
           width: 36,
           height: 36,
@@ -89,7 +89,7 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
           justifyContent: 'center',
           fontWeight: 800,
           fontSize: '1rem',
-          boxShadow: '4px 4px 8px rgba(139, 92, 246, 0.3), -4px -4px 8px rgba(255, 255, 255, 0.4)',
+          boxShadow: '4px 4px 8px rgba(107, 142, 107, 0.3), -4px -4px 8px rgba(255, 255, 255, 0.4)',
           border: '2px solid white',
           fontFamily: '"Nunito", sans-serif'
         }}
@@ -97,7 +97,7 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
         {priorityRank}
       </Box>
       <CardContent sx={{ pt: 3, pb: 2 }}>
-        <Typography variant="h6" component="h3" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#332F3A', ml: 1 }}>
+        <Typography variant="h6" component="h3" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#4A4A4A', ml: 1 }}>
           {student.name}
         </Typography>
         
@@ -119,8 +119,8 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
               fontSize: '0.75rem',
               fontWeight: 700,
               borderRadius: 2,
-              backgroundColor: status === 'notRead' ? '#FEE2E2' : status === 'needsAttention' ? '#FEF3C7' : '#D1FAE5',
-              color: status === 'notRead' ? '#EF4444' : status === 'needsAttention' ? '#F59E0B' : '#10B981',
+              backgroundColor: status === 'notRead' ? '#F5E1E1' : status === 'needsAttention' ? '#F5EBE0' : '#E5F0E5',
+              color: status === 'notRead' ? '#C17E7E' : status === 'needsAttention' ? '#D4A574' : '#6B8E6B',
               border: 'none'
             }}
           />
@@ -138,8 +138,8 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
               fontSize: '0.75rem',
               fontWeight: 700,
               borderRadius: 2,
-              backgroundColor: '#E0E7FF',
-              color: '#4F46E5',
+              backgroundColor: '#E5F0E5',
+              color: '#6B8E6B',
               border: 'none'
             }}
           />
@@ -229,17 +229,17 @@ const PrioritizedStudentsList = ({ defaultCount = 8, filterClassId = 'all' }) =>
       borderRadius: '16px',
       backgroundColor: 'rgba(255, 255, 255, 0.75)',
       backdropFilter: 'blur(20px)',
-      boxShadow: '0 8px 32px rgba(160, 150, 180, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04)',
+      boxShadow: '0 8px 32px rgba(139, 115, 85, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04)',
       border: '1px solid rgba(255, 255, 255, 0.5)',
     }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-        <Typography variant="h5" sx={{ flexGrow: 1, fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#332F3A' }}>
+        <Typography variant="h5" sx={{ flexGrow: 1, fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#4A4A4A' }}>
           Priority Reading List
         </Typography>
-        <IconButton onClick={handleResetList} size="small" title="Reset List" sx={{ color: '#7C3AED', bgcolor: 'rgba(124, 58, 237, 0.1)', mr: 1, '&:hover': { bgcolor: 'rgba(124, 58, 237, 0.2)' } }}>
+        <IconButton onClick={handleResetList} size="small" title="Reset List" sx={{ color: '#6B8E6B', bgcolor: 'rgba(107, 142, 107, 0.1)', mr: 1, '&:hover': { bgcolor: 'rgba(107, 142, 107, 0.2)' } }}>
           <RefreshIcon />
         </IconButton>
-        <IconButton onClick={toggleExpanded} size="small" title={expanded ? 'Collapse' : 'Expand'} sx={{ color: '#635F69', bgcolor: 'rgba(99, 95, 105, 0.1)', '&:hover': { bgcolor: 'rgba(99, 95, 105, 0.2)' } }}>
+        <IconButton onClick={toggleExpanded} size="small" title={expanded ? 'Collapse' : 'Expand'} sx={{ color: '#7A7A7A', bgcolor: 'rgba(122, 122, 122, 0.1)', '&:hover': { bgcolor: 'rgba(122, 122, 122, 0.2)' } }}>
           {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
         </IconButton>
       </Box>
@@ -261,11 +261,11 @@ const PrioritizedStudentsList = ({ defaultCount = 8, filterClassId = 'all' }) =>
                 { value: 15, label: '15' }
               ]}
               valueLabelDisplay="auto"
-              sx={{ 
+              sx={{
                 width: '100%',
-                color: '#7C3AED',
+                color: '#6B8E6B',
                 '& .MuiSlider-thumb': {
-                  boxShadow: '0 4px 8px rgba(124, 58, 237, 0.4)',
+                  boxShadow: '0 4px 8px rgba(107, 142, 107, 0.4)',
                 },
                 '& .MuiSlider-rail': {
                   opacity: 0.3,

@@ -72,11 +72,11 @@ const StudentCard = ({ student }) => {
           borderRadius: '12px',
           backgroundColor: 'rgba(255, 255, 255, 0.85)',
           backdropFilter: 'blur(16px)',
-          boxShadow: '0 4px 12px rgba(160, 150, 180, 0.15), 0 2px 4px rgba(0, 0, 0, 0.05)',
+          boxShadow: '0 4px 12px rgba(139, 115, 85, 0.15), 0 2px 4px rgba(0, 0, 0, 0.05)',
           border: '1px solid rgba(255, 255, 255, 0.6)',
           '&:hover': {
             transform: 'translateY(-4px)',
-            boxShadow: '0 8px 24px rgba(160, 150, 180, 0.2), 0 4px 8px rgba(0, 0, 0, 0.08)',
+            boxShadow: '0 8px 24px rgba(139, 115, 85, 0.2), 0 4px 8px rgba(0, 0, 0, 0.08)',
             zIndex: 10,
           },
         }}
@@ -98,7 +98,7 @@ const StudentCard = ({ student }) => {
           <CardHeader
             avatar={
               <Box sx={{
-                background: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)',
+                background: 'linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%)',
                 color: 'white',
                 width: 42,
                 height: 42,
@@ -106,7 +106,7 @@ const StudentCard = ({ student }) => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)',
+                boxShadow: '0 4px 12px rgba(107, 142, 107, 0.3)',
               }}>
                 <MenuBookIcon sx={{ fontSize: 22 }} />
               </Box>
@@ -119,7 +119,7 @@ const StudentCard = ({ student }) => {
                   fontFamily: '"Nunito", sans-serif',
                   fontWeight: 800,
                   fontSize: '1.125rem',
-                  color: '#332F3A',
+                  color: '#4A4A4A',
                   lineHeight: 1.2
                 }}
               >
@@ -131,7 +131,7 @@ const StudentCard = ({ student }) => {
                 variant="body2"
                 sx={{
                   fontFamily: '"DM Sans", sans-serif',
-                  color: '#635F69',
+                  color: '#7A7A7A',
                   fontSize: '0.875rem',
                   mt: 0.5
                 }}
@@ -153,9 +153,9 @@ const StudentCard = ({ student }) => {
                       setOpenPreferencesDialog(true);
                     }}
                     sx={{
-                      color: '#7C3AED',
-                      backgroundColor: 'rgba(124, 58, 237, 0.1)',
-                      '&:hover': { backgroundColor: 'rgba(124, 58, 237, 0.2)' }
+                      color: '#6B8E6B',
+                      backgroundColor: 'rgba(107, 142, 107, 0.1)',
+                      '&:hover': { backgroundColor: 'rgba(107, 142, 107, 0.2)' }
                     }}
                   >
                     <PsychologyIcon fontSize="small" />
@@ -181,9 +181,9 @@ const StudentCard = ({ student }) => {
                 alignItems: 'center',
                 p: 1.5,
                 borderRadius: '8px',
-                backgroundColor: 'rgba(248, 246, 252, 0.8)',
+                backgroundColor: 'rgba(250, 248, 243, 0.8)',
               }}>
-                <Typography variant="body2" sx={{ color: '#635F69', fontWeight: 600 }}>
+                <Typography variant="body2" sx={{ color: '#7A7A7A', fontWeight: 600 }}>
                   Last read
                 </Typography>
                 <Chip
@@ -194,8 +194,8 @@ const StudentCard = ({ student }) => {
                     fontSize: '0.75rem',
                     fontWeight: 600,
                     borderRadius: '6px',
-                    backgroundColor: status === 'notRead' ? '#FEE2E2' : status === 'needsAttention' ? '#FEF3C7' : '#D1FAE5',
-                    color: status === 'notRead' ? '#EF4444' : status === 'needsAttention' ? '#F59E0B' : '#10B981',
+                    backgroundColor: status === 'notRead' ? '#F5E1E1' : status === 'needsAttention' ? '#F5EBE0' : '#E5F0E5',
+                    color: status === 'notRead' ? '#C17E7E' : status === 'needsAttention' ? '#D4A574' : '#6B8E6B',
                     border: 'none'
                   }}
                 />
@@ -207,9 +207,9 @@ const StudentCard = ({ student }) => {
                 alignItems: 'center',
                 p: 1.5,
                 borderRadius: '8px',
-                backgroundColor: 'rgba(248, 246, 252, 0.8)',
+                backgroundColor: 'rgba(250, 248, 243, 0.8)',
               }}>
-                <Typography variant="body2" sx={{ color: '#635F69', fontWeight: 600 }}>
+                <Typography variant="body2" sx={{ color: '#7A7A7A', fontWeight: 600 }}>
                   Sessions
                 </Typography>
                 <Chip
@@ -220,8 +220,8 @@ const StudentCard = ({ student }) => {
                     fontSize: '0.75rem',
                     fontWeight: 600,
                     borderRadius: '6px',
-                    backgroundColor: '#E0E7FF',
-                    color: '#4F46E5',
+                    backgroundColor: '#E5F0E5',
+                    color: '#6B8E6B',
                     border: 'none'
                   }}
                 />
@@ -230,7 +230,7 @@ const StudentCard = ({ student }) => {
               <Typography
                 variant="caption"
                 sx={{
-                  color: '#635F69',
+                  color: '#7A7A7A',
                   fontStyle: 'italic',
                   textAlign: 'right',
                   mt: 0.5,

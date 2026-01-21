@@ -157,7 +157,7 @@ const StudentList = () => {
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-        <CircularProgress sx={{ color: '#7C3AED' }} />
+        <CircularProgress sx={{ color: '#6B8E6B' }} />
       </Box>
     );
   }
@@ -176,10 +176,10 @@ const StudentList = () => {
         px: { xs: 0, sm: 1 }
       }}>
         <Box>
-          <Typography variant="h4" component="h1" sx={{ mb: 0.5, fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#332F3A' }}>
+          <Typography variant="h4" component="h1" sx={{ mb: 0.5, fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#4A4A4A' }}>
             Students
           </Typography>
-          <Typography variant="body1" sx={{ color: '#635F69', fontWeight: 500 }}>
+          <Typography variant="body1" sx={{ color: '#7A7A7A', fontWeight: 500 }}>
             {filteredAndSortedStudents.length} total
           </Typography>
         </Box>
@@ -209,7 +209,7 @@ const StudentList = () => {
               label="Sort By"
               onChange={handleSortChange}
               startAdornment={
-                <SortIcon sx={{ mr: 1, ml: -0.5, color: '#7C3AED' }} fontSize="small" />
+                <SortIcon sx={{ mr: 1, ml: -0.5, color: '#6B8E6B' }} fontSize="small" />
               }
               sx={{ pr: 4, fontFamily: '"DM Sans", sans-serif', fontWeight: 600 }}
             >
@@ -227,12 +227,12 @@ const StudentList = () => {
               flex: { xs: 1, sm: 'none' },
               minWidth: { xs: 'auto', sm: 120 },
               borderRadius: 4,
-              border: '2px solid rgba(124, 58, 237, 0.2)',
-              color: '#7C3AED',
+              border: '2px solid rgba(107, 142, 107, 0.2)',
+              color: '#6B8E6B',
               fontWeight: 700,
               '&:hover': {
-                border: '2px solid #7C3AED',
-                backgroundColor: 'rgba(124, 58, 237, 0.05)',
+                border: '2px solid #6B8E6B',
+                backgroundColor: 'rgba(107, 142, 107, 0.05)',
               }
             }}
           >
@@ -248,12 +248,12 @@ const StudentList = () => {
               flex: { xs: 1, sm: 'none' },
               minWidth: { xs: 'auto', sm: 120 },
               borderRadius: 4,
-              border: '2px solid rgba(124, 58, 237, 0.2)',
-              color: '#7C3AED',
+              border: '2px solid rgba(107, 142, 107, 0.2)',
+              color: '#6B8E6B',
               fontWeight: 700,
               '&:hover': {
-                border: '2px solid #7C3AED',
-                backgroundColor: 'rgba(124, 58, 237, 0.05)',
+                border: '2px solid #6B8E6B',
+                backgroundColor: 'rgba(107, 142, 107, 0.05)',
               }
             }}
           >
@@ -271,9 +271,9 @@ const StudentList = () => {
           borderRadius: 8, 
           backgroundColor: 'rgba(255,255,255,0.5)',
           backdropFilter: 'blur(10px)',
-          border: '1px dashed rgba(124, 58, 237, 0.3)'
+          border: '1px dashed rgba(107, 142, 107, 0.3)'
         }}>
-          <Typography variant="h6" sx={{ mb: 3, color: '#635F69', fontFamily: '"Nunito", sans-serif' }}>
+          <Typography variant="h6" sx={{ mb: 3, color: '#7A7A7A', fontFamily: '"Nunito", sans-serif' }}>
             No students added yet. Add your first student to get started!
           </Typography>
           <Button
@@ -283,8 +283,8 @@ const StudentList = () => {
             size="large"
             sx={{
               borderRadius: 4,
-              background: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)',
-              boxShadow: '12px 12px 24px rgba(139, 92, 246, 0.3), -8px -8px 16px rgba(255, 255, 255, 0.4)',
+              background: 'linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%)',
+              boxShadow: '12px 12px 24px rgba(107, 142, 107, 0.3), -8px -8px 16px rgba(255, 255, 255, 0.4)',
               fontWeight: 700,
               px: 4,
               py: 1.5
@@ -311,16 +311,16 @@ const StudentList = () => {
             borderRadius: 6,
             backgroundColor: 'rgba(255, 255, 255, 0.9)',
             backdropFilter: 'blur(20px)',
-            boxShadow: '20px 20px 60px rgba(160, 150, 180, 0.4)',
+            boxShadow: '20px 20px 60px rgba(139, 115, 85, 0.4)',
             p: 2
           }
         }}
       >
-        <DialogTitle sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, fontSize: '1.5rem', color: '#332F3A' }}>
+        <DialogTitle sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, fontSize: '1.5rem', color: '#4A4A4A' }}>
           Add New Student
         </DialogTitle>
         <DialogContent>
-          <DialogContentText sx={{ mb: 2, color: '#635F69' }}>
+          <DialogContentText sx={{ mb: 2, color: '#7A7A7A' }}>
             Enter the student's name below:
           </DialogContentText>
           <TextField
@@ -339,7 +339,7 @@ const StudentList = () => {
                 backgroundColor: '#EFEBF5',
                 boxShadow: 'inset 4px 4px 8px #d9d4e3, inset -4px -4px 8px #ffffff',
                 '& fieldset': { border: 'none' },
-                '&.Mui-focused': { backgroundColor: '#ffffff', boxShadow: '0 0 0 3px rgba(124, 58, 237, 0.2)' },
+                '&.Mui-focused': { backgroundColor: '#ffffff', boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.2)' },
               }
             }}
             InputLabelProps={{
@@ -359,7 +359,7 @@ const StudentList = () => {
                 backgroundColor: '#EFEBF5',
                 boxShadow: 'inset 4px 4px 8px #d9d4e3, inset -4px -4px 8px #ffffff',
                 '& fieldset': { border: 'none' },
-                '&.Mui-focused': { backgroundColor: '#ffffff', boxShadow: '0 0 0 3px rgba(124, 58, 237, 0.2)' },
+                '&.Mui-focused': { backgroundColor: '#ffffff', boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.2)' },
               }}
             >
               <MenuItem value="unassigned">
@@ -374,7 +374,7 @@ const StudentList = () => {
           </FormControl>
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
-          <Button onClick={handleCloseDialog} sx={{ color: '#635F69', fontWeight: 700, mr: 1 }}>
+          <Button onClick={handleCloseDialog} sx={{ color: '#7A7A7A', fontWeight: 700, mr: 1 }}>
             Cancel
           </Button>
           <Button 
@@ -382,8 +382,8 @@ const StudentList = () => {
             variant="contained"
             sx={{
               borderRadius: 3,
-              background: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)',
-              boxShadow: '8px 8px 16px rgba(139, 92, 246, 0.3), -6px -6px 12px rgba(255, 255, 255, 0.4)',
+              background: 'linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%)',
+              boxShadow: '8px 8px 16px rgba(107, 142, 107, 0.3), -6px -6px 12px rgba(255, 255, 255, 0.4)',
               fontWeight: 700,
               px: 3
             }}
