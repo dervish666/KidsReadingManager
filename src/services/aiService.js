@@ -81,11 +81,16 @@ Ensure recommendations are age-appropriate and match the student's reading level
 
 /**
  * Call Anthropic API (Claude)
+ * @param {string} prompt - The prompt to send
+ * @param {string} apiKey - API key
+ * @param {string} model - Model name
+ * @param {string} baseUrl - Base URL for the API
+ * @param {boolean} raw - If true, return raw text instead of parsed response
  */
-async function callAnthropic(prompt, apiKey, model = 'claude-haiku-4-5', baseUrl = 'https://api.anthropic.com/v1') {
+async function callAnthropic(prompt, apiKey, model = 'claude-haiku-4-5', baseUrl = 'https://api.anthropic.com/v1', raw = false) {
   // Use dynamic import for SDK to support Worker environment
   const { Anthropic } = await import('@anthropic-ai/sdk');
-  
+
   const anthropic = new Anthropic({
     apiKey: apiKey,
     baseURL: baseUrl !== 'https://api.anthropic.com/v1' ? baseUrl : undefined
@@ -93,7 +98,7 @@ async function callAnthropic(prompt, apiKey, model = 'claude-haiku-4-5', baseUrl
 
   const response = await anthropic.messages.create({
     model: model,
-    max_tokens: 1000,
+    max_tokens: raw ? 1500 : 1000,
     temperature: 0.7,
     messages: [
       {
@@ -103,15 +108,21 @@ async function callAnthropic(prompt, apiKey, model = 'claude-haiku-4-5', baseUrl
     ]
   });
 
-  return parseResponse(response.content[0].text);
+  const text = response.content[0].text;
+  return raw ? text : parseResponse(text);
 }
 
 /**
  * Call OpenAI API (ChatGPT)
+ * @param {string} prompt - The prompt to send
+ * @param {string} apiKey - API key
+ * @param {string} model - Model name
+ * @param {string} baseUrl - Base URL for the API
+ * @param {boolean} raw - If true, return raw text instead of parsed response
  */
-async function callOpenAI(prompt, apiKey, model = 'gpt-5-nano', baseUrl = 'https://api.openai.com/v1') {
+async function callOpenAI(prompt, apiKey, model = 'gpt-5-nano', baseUrl = 'https://api.openai.com/v1', raw = false) {
   const url = `${baseUrl}/chat/completions`;
-  
+
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -142,7 +153,12 @@ async function callOpenAI(prompt, apiKey, model = 'gpt-5-nano', baseUrl = 'https
 
   const data = await response.json();
   const content = data.choices[0].message.content;
-  
+
+  // Return raw text if requested
+  if (raw) {
+    return content;
+  }
+
   // OpenAI might wrap the array in an object if json_object mode is used
   // We need to handle both direct array and object wrapper
   try {
@@ -150,7 +166,7 @@ async function callOpenAI(prompt, apiKey, model = 'gpt-5-nano', baseUrl = 'https
     if (Array.isArray(parsed)) return normalizeRecommendations(parsed);
     if (parsed.recommendations && Array.isArray(parsed.recommendations)) return normalizeRecommendations(parsed.recommendations);
     if (parsed.books && Array.isArray(parsed.books)) return normalizeRecommendations(parsed.books);
-    
+
     // If we can't find an array, try to parse again with looser constraints
     return parseResponse(content);
   } catch (e) {
@@ -160,10 +176,15 @@ async function callOpenAI(prompt, apiKey, model = 'gpt-5-nano', baseUrl = 'https
 
 /**
  * Call Google Gemini API
+ * @param {string} prompt - The prompt to send
+ * @param {string} apiKey - API key
+ * @param {string} model - Model name
+ * @param {string} baseUrl - Base URL for the API
+ * @param {boolean} raw - If true, return raw text instead of parsed response
  */
-async function callGemini(prompt, apiKey, model = 'gemini-flash-latest', baseUrl = 'https://generativelanguage.googleapis.com/v1beta') {
+async function callGemini(prompt, apiKey, model = 'gemini-flash-latest', baseUrl = 'https://generativelanguage.googleapis.com/v1beta', raw = false) {
   const url = `${baseUrl}/models/${model}:generateContent?key=${apiKey}`;
-  
+
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -189,8 +210,8 @@ async function callGemini(prompt, apiKey, model = 'gemini-flash-latest', baseUrl
 
   const data = await response.json();
   const content = data.candidates[0].content.parts[0].text;
-  
-  return parseResponse(content);
+
+  return raw ? content : parseResponse(content);
 }
 
 /**
@@ -353,13 +374,13 @@ export async function generateBroadSuggestions(studentProfile, config) {
   let response;
   switch (provider) {
     case 'anthropic':
-      response = await callAnthropicRaw(prompt, apiKey, model, baseUrl);
+      response = await callAnthropic(prompt, apiKey, model, baseUrl, true);
       break;
     case 'openai':
-      response = await callOpenAIRaw(prompt, apiKey, model, baseUrl);
+      response = await callOpenAI(prompt, apiKey, model, baseUrl, true);
       break;
     case 'gemini':
-      response = await callGeminiRaw(prompt, apiKey, model, baseUrl);
+      response = await callGemini(prompt, apiKey, model, baseUrl, true);
       break;
     default:
       throw new Error(`Unsupported AI provider: ${provider}`);
@@ -368,99 +389,3 @@ export async function generateBroadSuggestions(studentProfile, config) {
   return parseBroadSuggestionsResponse(response);
 }
 
-/**
- * Call Anthropic API and return raw text (for broad suggestions)
- */
-async function callAnthropicRaw(prompt, apiKey, model = 'claude-haiku-4-5', baseUrl = 'https://api.anthropic.com/v1') {
-  const { Anthropic } = await import('@anthropic-ai/sdk');
-
-  const anthropic = new Anthropic({
-    apiKey: apiKey,
-    baseURL: baseUrl !== 'https://api.anthropic.com/v1' ? baseUrl : undefined
-  });
-
-  const response = await anthropic.messages.create({
-    model: model,
-    max_tokens: 1500,
-    temperature: 0.7,
-    messages: [
-      {
-        role: 'user',
-        content: prompt
-      }
-    ]
-  });
-
-  return response.content[0].text;
-}
-
-/**
- * Call OpenAI API and return raw text (for broad suggestions)
- */
-async function callOpenAIRaw(prompt, apiKey, model = 'gpt-5-nano', baseUrl = 'https://api.openai.com/v1') {
-  const url = `${baseUrl}/chat/completions`;
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: model,
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a helpful assistant that outputs JSON.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.7,
-      response_format: { type: "json_object" }
-    })
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(`OpenAI API error: ${errorData.error?.message || response.statusText}`);
-  }
-
-  const data = await response.json();
-  return data.choices[0].message.content;
-}
-
-/**
- * Call Google Gemini API and return raw text (for broad suggestions)
- */
-async function callGeminiRaw(prompt, apiKey, model = 'gemini-flash-latest', baseUrl = 'https://generativelanguage.googleapis.com/v1beta') {
-  const url = `${baseUrl}/models/${model}:generateContent?key=${apiKey}`;
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      contents: [{
-        parts: [{
-          text: prompt + "\n\nIMPORTANT: Output ONLY valid JSON array."
-        }]
-      }],
-      generationConfig: {
-        temperature: 0.7,
-        responseMimeType: "application/json"
-      }
-    })
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(`Gemini API error: ${errorData.error?.message || response.statusText}`);
-  }
-
-  const data = await response.json();
-  return data.candidates[0].content.parts[0].text;
-}

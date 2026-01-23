@@ -306,7 +306,10 @@ booksRouter.get('/ai-suggestions', async (c) => {
     const suggestions = await generateBroadSuggestions(profile, aiConfig);
 
     // Check which suggestions are in the library
-    const suggestionTitles = suggestions.map(s => s.title.toLowerCase());
+    // Add null safety in case AI returns malformed data
+    const suggestionTitles = (suggestions || [])
+      .filter(s => s && s.title)
+      .map(s => s.title.toLowerCase());
     let libraryMatches = {};
 
     if (suggestionTitles.length > 0) {
