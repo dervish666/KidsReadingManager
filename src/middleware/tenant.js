@@ -77,15 +77,26 @@ export function jwtAuthMiddleware() {
  * Tenant Isolation Middleware
  * Ensures organization context is available and valid
  * Must be used after jwtAuthMiddleware
- * 
+ *
+ * For owners: Checks X-Organization-Id header to allow switching organizations
+ *
  * @returns {Function} Hono middleware
  */
 export function tenantMiddleware() {
   return async (c, next) => {
     const user = c.get('user');
+    const userRole = c.get('userRole');
 
     if (!user?.org) {
       return c.json({ error: 'Organization context required' }, 403);
+    }
+
+    // Check for organization override (owners only)
+    const overrideOrgId = c.req.header('X-Organization-Id');
+    let targetOrgId = user.org;
+
+    if (overrideOrgId && userRole === 'owner') {
+      targetOrgId = overrideOrgId;
     }
 
     // Verify organization exists and is active
@@ -94,7 +105,7 @@ export function tenantMiddleware() {
       try {
         const org = await db.prepare(
           'SELECT id, is_active FROM organizations WHERE id = ?'
-        ).bind(user.org).first();
+        ).bind(targetOrgId).first();
 
         if (!org) {
           return c.json({ error: 'Organization not found' }, 404);
@@ -102,6 +113,11 @@ export function tenantMiddleware() {
 
         if (!org.is_active) {
           return c.json({ error: 'Organization is inactive' }, 403);
+        }
+
+        // Update the organizationId in context if owner is switching
+        if (overrideOrgId && userRole === 'owner' && org) {
+          c.set('organizationId', targetOrgId);
         }
       } catch (error) {
         console.error('Error verifying organization:', error);
