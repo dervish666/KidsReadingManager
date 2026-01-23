@@ -294,7 +294,7 @@ export const AppProvider = ({ children }) => {
       }
 
       // Include organization override header for owners switching orgs
-      if (activeOrganizationId && userRole === 'owner') {
+      if (activeOrganizationId && user?.role === 'owner') {
         headers['X-Organization-Id'] = activeOrganizationId;
       }
 
@@ -320,7 +320,7 @@ export const AppProvider = ({ children }) => {
 
       return response;
     },
-    [authToken, authMode, refreshToken, refreshAccessToken, clearAuthState, activeOrganizationId, userRole]
+    [authToken, authMode, refreshToken, refreshAccessToken, clearAuthState, activeOrganizationId, user]
   );
 
   // Legacy login helper (shared password)
@@ -575,7 +575,7 @@ export const AppProvider = ({ children }) => {
 
   // Fetch available organizations (for owners)
   const fetchAvailableOrganizations = useCallback(async () => {
-    if (userRole !== 'owner') {
+    if (user?.role !== 'owner') {
       setAvailableOrganizations([]);
       return;
     }
@@ -589,11 +589,11 @@ export const AppProvider = ({ children }) => {
     } catch (error) {
       console.error('Error fetching organizations:', error);
     }
-  }, [userRole, fetchWithAuth]);
+  }, [user, fetchWithAuth]);
 
   // Switch to a different organization (owners only)
   const switchOrganization = useCallback(async (orgId) => {
-    if (userRole !== 'owner') {
+    if (user?.role !== 'owner') {
       console.warn('Only owners can switch organizations');
       return;
     }
@@ -621,7 +621,7 @@ export const AppProvider = ({ children }) => {
     // Reload data from server (fetchWithAuth will include the new org header)
     await reloadDataFromServer();
     setSwitchingOrganization(false);
-  }, [userRole, reloadDataFromServer]);
+  }, [user, reloadDataFromServer]);
 
   // Logout helper
   const logout = useCallback(async () => {
