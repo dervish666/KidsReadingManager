@@ -13,14 +13,9 @@ import {
   Chip,
   CircularProgress,
   Alert,
-  List,
-  ListItem,
-  ListItemText,
-  Divider,
   Paper,
   Stack,
-  Tooltip,
-  IconButton
+  Tooltip
 } from '@mui/material';
 import { useAppContext } from '../contexts/AppContext';
 import BookIcon from '@mui/icons-material/Book';
@@ -295,187 +290,127 @@ const BookRecommendations = () => {
         </FormControl>
       </Paper>
 
-      {/* Student info and profile details */}
+      {/* Student info and profile - simple two-column layout */}
       {selectedStudent && (
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          {/* Left side: Books read */}
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 3, height: '100%' }}>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <PersonIcon />
-                {selectedStudent.name}
-                {selectedClass && (
-                  <Chip label={selectedClass.name} size="small" color="primary" sx={{ ml: 1 }} />
-                )}
-              </Typography>
+        <Paper sx={{ p: 2, mb: 3 }}>
+          {/* Header with student name and edit button */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <PersonIcon color="primary" />
+              <Typography variant="h6">{selectedStudent.name}</Typography>
+              {selectedClass && (
+                <Chip label={selectedClass.name} size="small" color="primary" />
+              )}
+              {studentProfile?.readingLevel && (
+                <Chip label={`Level: ${studentProfile.readingLevel}`} size="small" variant="outlined" />
+              )}
+            </Box>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<EditIcon />}
+              onClick={() => setPreferencesOpen(true)}
+            >
+              Edit Preferences
+            </Button>
+          </Box>
 
-              <Card variant="outlined" sx={{ mt: 2 }}>
-                <CardContent>
-                  <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <BookIcon fontSize="small" />
-                    Books Read ({booksRead.length})
-                  </Typography>
-                  {booksRead.length > 0 ? (
-                    <List dense sx={{ maxHeight: 200, overflow: 'auto' }}>
-                      {booksRead.slice(0, 10).map((book, index) => (
-                        <React.Fragment key={book.id}>
-                          <ListItem>
-                            <ListItemText
-                              primary={getBookTitle(book.bookId)}
-                              secondary={new Date(book.dateRead).toLocaleDateString()}
-                            />
-                          </ListItem>
-                          {index < Math.min(booksRead.length, 10) - 1 && <Divider />}
-                        </React.Fragment>
-                      ))}
-                      {booksRead.length > 10 && (
-                        <ListItem>
-                          <ListItemText
-                            secondary={`... and ${booksRead.length - 10} more`}
-                          />
-                        </ListItem>
-                      )}
-                    </List>
-                  ) : (
-                    <Typography color="text.secondary" variant="body2">
-                      No books recorded yet
-                    </Typography>
-                  )}
-                </CardContent>
-              </Card>
-            </Paper>
-          </Grid>
-
-          {/* Right side: Profile details for recommendations */}
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 3, height: '100%', bgcolor: 'primary.50' }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <SmartToyIcon color="primary" />
-                  Recommendation Profile
+          {profileLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+              <CircularProgress size={20} />
+            </Box>
+          ) : (
+            <Box sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+              gap: 2
+            }}>
+              {/* Left column: Books read */}
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+                  <BookIcon fontSize="small" />
+                  Books Read ({booksRead.length})
                 </Typography>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<EditIcon />}
-                  onClick={() => setPreferencesOpen(true)}
-                >
-                  Edit Preferences
-                </Button>
+                {booksRead.length > 0 ? (
+                  <Box sx={{ maxHeight: 150, overflow: 'auto', fontSize: '0.875rem' }}>
+                    {booksRead.slice(0, 8).map((book, index) => (
+                      <Box key={book.id} sx={{ py: 0.5, borderBottom: index < Math.min(booksRead.length, 8) - 1 ? '1px solid' : 'none', borderColor: 'divider' }}>
+                        <Typography variant="body2" noWrap>{getBookTitle(book.bookId)}</Typography>
+                        <Typography variant="caption" color="text.secondary">{new Date(book.dateRead).toLocaleDateString()}</Typography>
+                      </Box>
+                    ))}
+                    {booksRead.length > 8 && (
+                      <Typography variant="caption" color="text.secondary">... and {booksRead.length - 8} more</Typography>
+                    )}
+                  </Box>
+                ) : (
+                  <Typography variant="body2" color="text.secondary">No books recorded yet</Typography>
+                )}
               </Box>
 
-              {profileLoading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                  <CircularProgress size={24} />
+              {/* Right column: Profile details */}
+              <Box>
+                {/* Favorite Genres */}
+                <Box sx={{ mb: 1.5 }}>
+                  <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                    <FavoriteIcon fontSize="small" color="error" />
+                    Favorites
+                  </Typography>
+                  {studentProfile?.favoriteGenres?.length > 0 ? (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {studentProfile.favoriteGenres.map((genre, i) => (
+                        <Chip key={i} label={genre} size="small" color="error" variant="outlined" />
+                      ))}
+                    </Box>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary" fontStyle="italic">None set</Typography>
+                  )}
                 </Box>
-              ) : studentProfile ? (
-                <Stack spacing={2}>
-                  {/* Reading Level */}
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                      Reading Level
-                    </Typography>
-                    <Chip
-                      label={studentProfile.readingLevel || 'Not set'}
-                      color={studentProfile.readingLevel ? 'primary' : 'default'}
-                      variant={studentProfile.readingLevel ? 'filled' : 'outlined'}
-                    />
-                  </Box>
 
-                  {/* Favorite Genres */}
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <FavoriteIcon fontSize="small" color="error" />
-                      Favorite Genres
-                    </Typography>
-                    {studentProfile.favoriteGenres?.length > 0 ? (
-                      <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
-                        {studentProfile.favoriteGenres.map((genre, i) => (
-                          <Chip key={i} label={genre} size="small" color="error" variant="outlined" />
-                        ))}
-                      </Stack>
-                    ) : (
-                      <Typography variant="body2" color="text.secondary" fontStyle="italic">
-                        None set - click Edit Preferences to add
-                      </Typography>
-                    )}
-                  </Box>
-
-                  {/* Inferred Genres from History */}
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                {/* Inferred from history */}
+                {studentProfile?.inferredGenres?.length > 0 && (
+                  <Box sx={{ mb: 1.5 }}>
+                    <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
                       <HistoryIcon fontSize="small" />
-                      From Reading History
+                      From History
                     </Typography>
-                    {studentProfile.inferredGenres?.length > 0 ? (
-                      <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
-                        {studentProfile.inferredGenres.map((genre, i) => (
-                          <Chip key={i} label={genre} size="small" variant="outlined" />
-                        ))}
-                      </Stack>
-                    ) : (
-                      <Typography variant="body2" color="text.secondary" fontStyle="italic">
-                        No reading history yet
-                      </Typography>
-                    )}
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {studentProfile.inferredGenres.map((genre, i) => (
+                        <Chip key={i} label={genre} size="small" variant="outlined" />
+                      ))}
+                    </Box>
                   </Box>
+                )}
 
-                  {/* Likes */}
-                  {selectedStudent.preferences?.likes?.length > 0 && (
-                    <Box>
-                      <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <ThumbUpIcon fontSize="small" color="success" />
-                        Books They Liked
-                      </Typography>
-                      <Typography variant="body2">
-                        {selectedStudent.preferences.likes.join(', ')}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {/* Dislikes */}
-                  {selectedStudent.preferences?.dislikes?.length > 0 && (
-                    <Box>
-                      <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <ThumbDownIcon fontSize="small" color="warning" />
-                        Books They Disliked
-                      </Typography>
-                      <Typography variant="body2">
-                        {selectedStudent.preferences.dislikes.join(', ')}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {/* Recent Reads */}
-                  {studentProfile.recentReads?.length > 0 && (
-                    <Box>
-                      <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                        Recent Reads
-                      </Typography>
-                      <Typography variant="body2">
-                        {studentProfile.recentReads.slice(0, 5).join(', ')}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {/* Books Read Count */}
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                      Total Books Read
+                {/* Likes */}
+                {selectedStudent.preferences?.likes?.length > 0 && (
+                  <Box sx={{ mb: 1.5 }}>
+                    <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                      <ThumbUpIcon fontSize="small" color="success" />
+                      Liked
                     </Typography>
-                    <Typography variant="h5" color="primary">
-                      {studentProfile.booksRead || booksRead.length}
+                    <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
+                      {selectedStudent.preferences.likes.slice(0, 3).join(', ')}{selectedStudent.preferences.likes.length > 3 && ` +${selectedStudent.preferences.likes.length - 3} more`}
                     </Typography>
                   </Box>
-                </Stack>
-              ) : (
-                <Typography variant="body2" color="text.secondary">
-                  Select a student to see their recommendation profile
-                </Typography>
-              )}
-            </Paper>
-          </Grid>
-        </Grid>
+                )}
+
+                {/* Dislikes */}
+                {selectedStudent.preferences?.dislikes?.length > 0 && (
+                  <Box sx={{ mb: 1.5 }}>
+                    <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                      <ThumbDownIcon fontSize="small" color="warning" />
+                      Disliked
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
+                      {selectedStudent.preferences.dislikes.slice(0, 3).join(', ')}{selectedStudent.preferences.dislikes.length > 3 && ` +${selectedStudent.preferences.dislikes.length - 3} more`}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            </Box>
+          )}
+        </Paper>
       )}
 
       {/* Two Buttons Area */}

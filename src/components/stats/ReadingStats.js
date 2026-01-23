@@ -301,160 +301,152 @@ const ReadingStats = () => {
   };
   
   const renderOverviewTab = () => (
-    <Grid container spacing={3}>
-      <Grid item xs={12} sm={6} md={3}>
-        <Card sx={{ height: '100%', borderRadius: 4, boxShadow: '8px 8px 16px rgba(139, 115, 85, 0.1)' }}>
-          <CardContent sx={{ textAlign: 'center', py: 4 }}>
-            <Typography color="text.secondary" gutterBottom sx={{ fontWeight: 600 }}>
-              Total Students
+    <Box>
+      {/* Summary stats - 4 compact cards in a row */}
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(4, 1fr)',
+        gap: 2,
+        mb: 3
+      }}>
+        <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
+          <CardContent sx={{ textAlign: 'center', py: 2, px: 1 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+              Students
             </Typography>
-            <Typography variant="h3" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#6B8E6B' }}>
+            <Typography variant="h4" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#6B8E6B' }}>
               {stats.totalStudents}
             </Typography>
           </CardContent>
         </Card>
-      </Grid>
-      
-      <Grid item xs={12} sm={6} md={3}>
-        <Card sx={{ height: '100%', borderRadius: 4, boxShadow: '8px 8px 16px rgba(139, 115, 85, 0.1)' }}>
-          <CardContent sx={{ textAlign: 'center', py: 4 }}>
-            <Typography color="text.secondary" gutterBottom sx={{ fontWeight: 600 }}>
-              Total Reading Sessions
+
+        <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
+          <CardContent sx={{ textAlign: 'center', py: 2, px: 1 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+              Sessions
             </Typography>
-            <Typography variant="h3" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#8B7355' }}>
+            <Typography variant="h4" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#8B7355' }}>
               {stats.totalSessions}
             </Typography>
           </CardContent>
         </Card>
-      </Grid>
-      
-      <Grid item xs={12} sm={6} md={3}>
-        <Card sx={{ height: '100%', borderRadius: 4, boxShadow: '8px 8px 16px rgba(139, 115, 85, 0.1)' }}>
-          <CardContent sx={{ textAlign: 'center', py: 4 }}>
-            <Typography color="text.secondary" gutterBottom sx={{ fontWeight: 600 }}>
-              Avg. Sessions per Student
+
+        <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
+          <CardContent sx={{ textAlign: 'center', py: 2, px: 1 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+              Avg/Student
             </Typography>
-            <Typography variant="h3" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#0EA5E9' }}>
+            <Typography variant="h4" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#0EA5E9' }}>
               {stats.averageSessionsPerStudent.toFixed(1)}
             </Typography>
           </CardContent>
         </Card>
-      </Grid>
-      
-      <Grid item xs={12} sm={6} md={3}>
-        <Card sx={{ height: '100%', borderRadius: 4, boxShadow: '8px 8px 16px rgba(139, 115, 85, 0.1)' }}>
-          <CardContent sx={{ textAlign: 'center', py: 4 }}>
-            <Typography color="text.secondary" gutterBottom sx={{ fontWeight: 600 }}>
-              Students Never Read With
+
+        <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
+          <CardContent sx={{ textAlign: 'center', py: 2, px: 1 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+              Never Read
             </Typography>
-            <Typography variant="h3" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#F59E0B' }}>
+            <Typography variant="h4" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#F59E0B' }}>
               {stats.studentsWithNoSessions}
             </Typography>
           </CardContent>
         </Card>
-      </Grid>
-      
-      {/* This Week's Activity */}
-      <Grid item xs={12} sm={6}>
-        <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(139, 115, 85, 0.1)' }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
+      </Box>
+
+      {/* Main content grid - auto-fill columns */}
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: {
+          xs: '1fr',
+          sm: 'repeat(auto-fit, minmax(280px, 1fr))'
+        },
+        gap: 2
+      }}>
+        {/* This Week's Activity */}
+        <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
+          <CardContent sx={{ py: 2 }}>
+            <Typography variant="subtitle2" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
               This Week's Activity
             </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', mt: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around' }}>
               <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="h3" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#6B8E6B' }}>
+                <Typography variant="h4" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#6B8E6B' }}>
                   {stats.weeklyActivity.thisWeek}
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
                   This Week
                 </Typography>
               </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', px: 2 }}>
-                {stats.weeklyActivity.thisWeek >= stats.weeklyActivity.lastWeek ? (
-                  <TrendingUpIcon sx={{ fontSize: 40, color: '#10B981' }} />
-                ) : (
-                  <TrendingDownIcon sx={{ fontSize: 40, color: '#EF4444' }} />
-                )}
-              </Box>
+              {stats.weeklyActivity.thisWeek >= stats.weeklyActivity.lastWeek ? (
+                <TrendingUpIcon sx={{ fontSize: 28, color: '#10B981' }} />
+              ) : (
+                <TrendingDownIcon sx={{ fontSize: 28, color: '#EF4444' }} />
+              )}
               <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="h3" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#9CA3AF' }}>
+                <Typography variant="h4" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#9CA3AF' }}>
                   {stats.weeklyActivity.lastWeek}
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
                   Last Week
                 </Typography>
               </Box>
             </Box>
           </CardContent>
         </Card>
-      </Grid>
 
-      {/* Home vs School Reading */}
-      <Grid item xs={12} sm={6}>
-        <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(139, 115, 85, 0.1)' }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
-              Home vs School Reading
+        {/* Home vs School Reading */}
+        <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
+          <CardContent sx={{ py: 2 }}>
+            <Typography variant="subtitle2" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
+              Home vs School
             </Typography>
-            <Box sx={{ display: 'flex', justifyContent: 'space-around', mt: 2 }}>
-              <Box sx={{ textAlign: 'center', p: 2, borderRadius: 3, bgcolor: '#DBEAFE', minWidth: 120 }}>
-                <SchoolIcon sx={{ fontSize: 32, color: '#3B82F6', mb: 1 }} />
-                <Typography variant="h4" sx={{ color: '#3B82F6', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-around' }}>
+              <Box sx={{ textAlign: 'center', p: 1, borderRadius: 2, bgcolor: '#DBEAFE', minWidth: 80 }}>
+                <SchoolIcon sx={{ fontSize: 20, color: '#3B82F6' }} />
+                <Typography variant="h5" sx={{ color: '#3B82F6', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}>
                   {stats.locationDistribution.school}
                 </Typography>
-                <Typography variant="body2" sx={{ color: '#1D4ED8', fontWeight: 600 }}>
+                <Typography variant="caption" sx={{ color: '#1D4ED8', fontWeight: 600 }}>
                   School
                 </Typography>
               </Box>
-              <Box sx={{ textAlign: 'center', p: 2, borderRadius: 3, bgcolor: '#FCE7F3', minWidth: 120 }}>
-                <HomeIcon sx={{ fontSize: 32, color: '#EC4899', mb: 1 }} />
-                <Typography variant="h4" sx={{ color: '#EC4899', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}>
+              <Box sx={{ textAlign: 'center', p: 1, borderRadius: 2, bgcolor: '#FCE7F3', minWidth: 80 }}>
+                <HomeIcon sx={{ fontSize: 20, color: '#EC4899' }} />
+                <Typography variant="h5" sx={{ color: '#EC4899', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}>
                   {stats.locationDistribution.home}
                 </Typography>
-                <Typography variant="body2" sx={{ color: '#BE185D', fontWeight: 600 }}>
+                <Typography variant="caption" sx={{ color: '#BE185D', fontWeight: 600 }}>
                   Home
                 </Typography>
               </Box>
             </Box>
           </CardContent>
         </Card>
-      </Grid>
 
-      {/* Reading by Day of Week */}
-      <Grid item xs={12} sm={6}>
-        <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(139, 115, 85, 0.1)' }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
+        {/* Reading by Day of Week */}
+        <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
+          <CardContent sx={{ py: 2 }}>
+            <Typography variant="subtitle2" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
               Reading by Day
             </Typography>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2, gap: 0.5 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 0.25 }}>
               {Object.entries(stats.readingByDay).map(([day, count]) => {
                 const maxCount = Math.max(...Object.values(stats.readingByDay), 1);
-                const height = Math.max((count / maxCount) * 60, 4);
+                const height = Math.max((count / maxCount) * 40, 3);
                 return (
                   <Box key={day} sx={{ textAlign: 'center', flex: 1 }}>
-                    <Box sx={{
-                      height: 70,
-                      display: 'flex',
-                      alignItems: 'flex-end',
-                      justifyContent: 'center',
-                      mb: 0.5
-                    }}>
+                    <Box sx={{ height: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', mb: 0.25 }}>
                       <Box sx={{
-                        width: '100%',
-                        maxWidth: 30,
+                        width: '80%',
+                        maxWidth: 20,
                         height: height,
                         bgcolor: count > 0 ? '#6B8E6B' : '#E5E7EB',
-                        borderRadius: 1,
-                        transition: 'height 0.3s'
+                        borderRadius: 0.5
                       }} />
                     </Box>
-                    <Typography variant="caption" sx={{ fontWeight: 600, color: '#7A7A7A' }}>
-                      {day}
-                    </Typography>
-                    <Typography variant="caption" display="block" sx={{ color: '#9CA3AF', fontSize: '0.65rem' }}>
-                      {count}
+                    <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#7A7A7A' }}>
+                      {day.slice(0, 2)}
                     </Typography>
                   </Box>
                 );
@@ -462,165 +454,117 @@ const ReadingStats = () => {
             </Box>
           </CardContent>
         </Card>
-      </Grid>
 
-      {/* Most Read Books */}
-      <Grid item xs={12} sm={6}>
-        <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(139, 115, 85, 0.1)' }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
+        {/* Reading Streaks Summary */}
+        <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
+          <CardContent sx={{ py: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+              <WhatshotIcon sx={{ color: '#FF6B35', fontSize: 20 }} />
+              <Typography variant="subtitle2" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
+                Streaks
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-around' }}>
+              <Box sx={{ textAlign: 'center', p: 1, borderRadius: 2, bgcolor: 'rgba(255, 107, 53, 0.1)' }}>
+                <Typography variant="h5" sx={{ color: '#FF6B35', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}>
+                  {stats.studentsWithActiveStreak}
+                </Typography>
+                <Typography sx={{ color: '#C2410C', fontWeight: 600, fontSize: '0.65rem' }}>
+                  Active
+                </Typography>
+              </Box>
+              <Box sx={{ textAlign: 'center', p: 1, borderRadius: 2, bgcolor: 'rgba(255, 215, 0, 0.15)' }}>
+                <Typography variant="h5" sx={{ color: '#B8860B', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}>
+                  {stats.longestCurrentStreak}
+                </Typography>
+                <Typography sx={{ color: '#92400E', fontWeight: 600, fontSize: '0.65rem' }}>
+                  Best
+                </Typography>
+              </Box>
+              <Box sx={{ textAlign: 'center', p: 1, borderRadius: 2, bgcolor: 'rgba(107, 142, 107, 0.1)' }}>
+                <Typography variant="h5" sx={{ color: '#6B8E6B', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}>
+                  {stats.averageStreak.toFixed(1)}
+                </Typography>
+                <Typography sx={{ color: '#5B21B6', fontWeight: 600, fontSize: '0.65rem' }}>
+                  Avg
+                </Typography>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+
+        {/* Most Read Books */}
+        <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
+          <CardContent sx={{ py: 2 }}>
+            <Typography variant="subtitle2" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
               Most Read Books
             </Typography>
             {stats.mostReadBooks.length === 0 ? (
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 2, textAlign: 'center' }}>
-                No book data recorded yet
+              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
+                No book data yet
               </Typography>
             ) : (
-              <List dense sx={{ mt: 1 }}>
-                {stats.mostReadBooks.map((book, index) => (
-                  <ListItem key={index} sx={{ px: 0 }}>
-                    <ListItemIcon sx={{ minWidth: 36 }}>
-                      <Box sx={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: '50%',
-                        bgcolor: index === 0 ? '#FEF3C7' : '#F3F4F6',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}>
-                        <Typography variant="caption" sx={{ fontWeight: 700, color: index === 0 ? '#F59E0B' : '#6B7280' }}>
-                          {index + 1}
-                        </Typography>
-                      </Box>
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={
-                        <Typography variant="body2" sx={{
-                          fontWeight: 600,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          {book.title}
-                        </Typography>
-                      }
-                    />
-                    <Chip
-                      label={`${book.count} ${book.count === 1 ? 'read' : 'reads'}`}
-                      size="small"
-                      sx={{
-                        bgcolor: '#E0E7FF',
-                        color: '#4F46E5',
-                        fontWeight: 600,
-                        fontSize: '0.7rem'
-                      }}
-                    />
-                  </ListItem>
+              <Box>
+                {stats.mostReadBooks.slice(0, 4).map((book, index) => (
+                  <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
+                    <Box sx={{
+                      width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
+                      bgcolor: index === 0 ? '#FEF3C7' : '#F3F4F6',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}>
+                      <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: index === 0 ? '#F59E0B' : '#6B7280' }}>
+                        {index + 1}
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" sx={{ fontWeight: 500, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.8rem' }}>
+                      {book.title}
+                    </Typography>
+                    <Chip label={book.count} size="small" sx={{ height: 20, fontSize: '0.65rem', bgcolor: '#E0E7FF', color: '#4F46E5' }} />
+                  </Box>
                 ))}
-              </List>
+              </Box>
             )}
           </CardContent>
         </Card>
-      </Grid>
 
-      {/* Reading Streaks Summary */}
-      <Grid item xs={12} sm={6}>
-        <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(139, 115, 85, 0.1)' }}>
-          <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-              <WhatshotIcon sx={{ color: '#FF6B35' }} />
-              <Typography variant="h6" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
-                Reading Streaks
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-around', mb: 2 }}>
-              <Box sx={{ textAlign: 'center', p: 1.5, borderRadius: 3, bgcolor: 'rgba(255, 107, 53, 0.1)', minWidth: 100 }}>
-                <Typography variant="h4" sx={{ color: '#FF6B35', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}>
-                  {stats.studentsWithActiveStreak}
-                </Typography>
-                <Typography variant="body2" sx={{ color: '#C2410C', fontWeight: 600, fontSize: '0.75rem' }}>
-                  Active Streaks
-                </Typography>
-              </Box>
-              <Box sx={{ textAlign: 'center', p: 1.5, borderRadius: 3, bgcolor: 'rgba(255, 215, 0, 0.15)', minWidth: 100 }}>
-                <Typography variant="h4" sx={{ color: '#B8860B', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}>
-                  {stats.longestCurrentStreak}
-                </Typography>
-                <Typography variant="body2" sx={{ color: '#92400E', fontWeight: 600, fontSize: '0.75rem' }}>
-                  Best Current
-                </Typography>
-              </Box>
-              <Box sx={{ textAlign: 'center', p: 1.5, borderRadius: 3, bgcolor: 'rgba(107, 142, 107, 0.1)', minWidth: 100 }}>
-                <Typography variant="h4" sx={{ color: '#6B8E6B', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}>
-                  {stats.averageStreak.toFixed(1)}
-                </Typography>
-                <Typography variant="body2" sx={{ color: '#5B21B6', fontWeight: 600, fontSize: '0.75rem' }}>
-                  Avg Streak
-                </Typography>
-              </Box>
-            </Box>
-          </CardContent>
-        </Card>
-      </Grid>
-
-      {/* Streak Leaderboard */}
-      <Grid item xs={12} sm={6}>
-        <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(139, 115, 85, 0.1)' }}>
-          <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <EmojiEventsIcon sx={{ color: '#FFD700' }} />
-              <Typography variant="h6" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
-                Streak Leaderboard
+        {/* Streak Leaderboard */}
+        <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
+          <CardContent sx={{ py: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+              <EmojiEventsIcon sx={{ color: '#FFD700', fontSize: 20 }} />
+              <Typography variant="subtitle2" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
+                Streak Leaders
               </Typography>
             </Box>
             {stats.topStreaks.length === 0 ? (
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 2, textAlign: 'center' }}>
-                No active streaks yet
+              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
+                No active streaks
               </Typography>
             ) : (
-              <List dense sx={{ mt: 1 }}>
-                {stats.topStreaks.map((student, index) => (
-                  <ListItem key={student.id} sx={{ px: 0 }}>
-                    <ListItemIcon sx={{ minWidth: 36 }}>
-                      <Box sx={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: '50%',
-                        bgcolor: index === 0 ? '#FEF3C7' : index === 1 ? '#F3F4F6' : index === 2 ? '#FED7AA' : '#F3F4F6',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}>
-                        <Typography variant="caption" sx={{
-                          fontWeight: 700,
-                          color: index === 0 ? '#F59E0B' : index === 1 ? '#6B7280' : index === 2 ? '#EA580C' : '#6B7280'
-                        }}>
-                          {index + 1}
-                        </Typography>
-                      </Box>
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={
-                        <Typography variant="body2" sx={{
-                          fontWeight: 600,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          {student.name}
-                        </Typography>
-                      }
-                    />
+              <Box>
+                {stats.topStreaks.slice(0, 4).map((student, index) => (
+                  <Box key={student.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
+                    <Box sx={{
+                      width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
+                      bgcolor: index === 0 ? '#FEF3C7' : index === 1 ? '#F3F4F6' : index === 2 ? '#FED7AA' : '#F3F4F6',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}>
+                      <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: index === 0 ? '#F59E0B' : index === 1 ? '#6B7280' : index === 2 ? '#EA580C' : '#6B7280' }}>
+                        {index + 1}
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" sx={{ fontWeight: 500, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.8rem' }}>
+                      {student.name}
+                    </Typography>
                     <StreakBadge streak={student.currentStreak} size="small" />
-                  </ListItem>
+                  </Box>
                 ))}
-              </List>
+              </Box>
             )}
           </CardContent>
         </Card>
-      </Grid>
-    </Grid>
+      </Box>
+    </Box>
   );
   
   const renderNeedsAttentionTab = () => {
@@ -748,185 +692,135 @@ const ReadingStats = () => {
 
     return (
       <Box>
-        {/* Streak Summary Cards */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={6} sm={3}>
-            <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(139, 115, 85, 0.1)' }}>
-              <CardContent sx={{ textAlign: 'center', py: 3 }}>
-                <WhatshotIcon sx={{ fontSize: 40, color: '#FF6B35', mb: 1 }} />
-                <Typography variant="h3" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#FF6B35' }}>
-                  {stats.studentsWithActiveStreak}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
-                  Active Streaks
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
+        {/* Streak Summary Cards - compact row */}
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 2, mb: 3 }}>
+          <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
+            <CardContent sx={{ textAlign: 'center', py: 2, px: 1 }}>
+              <WhatshotIcon sx={{ fontSize: 24, color: '#FF6B35' }} />
+              <Typography variant="h4" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#FF6B35' }}>
+                {stats.studentsWithActiveStreak}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                Active
+              </Typography>
+            </CardContent>
+          </Card>
 
-          <Grid item xs={6} sm={3}>
-            <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(139, 115, 85, 0.1)' }}>
-              <CardContent sx={{ textAlign: 'center', py: 3 }}>
-                <EmojiEventsIcon sx={{ fontSize: 40, color: '#FFD700', mb: 1 }} />
-                <Typography variant="h3" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#B8860B' }}>
-                  {stats.longestCurrentStreak}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
-                  Best Current Streak
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
+          <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
+            <CardContent sx={{ textAlign: 'center', py: 2, px: 1 }}>
+              <EmojiEventsIcon sx={{ fontSize: 24, color: '#FFD700' }} />
+              <Typography variant="h4" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#B8860B' }}>
+                {stats.longestCurrentStreak}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                Best Current
+              </Typography>
+            </CardContent>
+          </Card>
 
-          <Grid item xs={6} sm={3}>
-            <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(139, 115, 85, 0.1)' }}>
-              <CardContent sx={{ textAlign: 'center', py: 3 }}>
-                <Box sx={{ fontSize: 40, mb: 1 }}>🏆</Box>
-                <Typography variant="h3" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#6B8E6B' }}>
-                  {stats.longestEverStreak}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
-                  All-Time Record
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
+          <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
+            <CardContent sx={{ textAlign: 'center', py: 2, px: 1 }}>
+              <Box sx={{ fontSize: 24 }}>🏆</Box>
+              <Typography variant="h4" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#6B8E6B' }}>
+                {stats.longestEverStreak}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                All-Time
+              </Typography>
+            </CardContent>
+          </Card>
 
-          <Grid item xs={6} sm={3}>
-            <Card sx={{ borderRadius: 4, boxShadow: '8px 8px 16px rgba(139, 115, 85, 0.1)' }}>
-              <CardContent sx={{ textAlign: 'center', py: 3 }}>
-                <Box sx={{ fontSize: 40, mb: 1 }}>📊</Box>
-                <Typography variant="h3" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#0EA5E9' }}>
-                  {stats.averageStreak.toFixed(1)}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
-                  Average Streak
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
+          <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
+            <CardContent sx={{ textAlign: 'center', py: 2, px: 1 }}>
+              <Box sx={{ fontSize: 24 }}>📊</Box>
+              <Typography variant="h4" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#0EA5E9' }}>
+                {stats.averageStreak.toFixed(1)}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                Average
+              </Typography>
+            </CardContent>
+          </Card>
+        </Box>
 
-        {/* Active Streaks List */}
-        <Typography variant="h6" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <WhatshotIcon sx={{ color: '#FF6B35' }} />
-          Students with Active Streaks ({studentsWithActiveStreaks.length})
-        </Typography>
+        {/* Two-column layout for lists */}
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+          {/* Active Streaks List */}
+          <Box>
+            <Typography variant="subtitle1" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <WhatshotIcon sx={{ color: '#FF6B35', fontSize: 20 }} />
+              Active Streaks ({studentsWithActiveStreaks.length})
+            </Typography>
 
-        {studentsWithActiveStreaks.length === 0 ? (
-          <Alert severity="info" sx={{ mb: 4, borderRadius: 4 }}>
-            No students have active reading streaks. Encourage daily reading to build streaks!
-          </Alert>
-        ) : (
-          <Paper sx={{ borderRadius: 4, overflow: 'hidden', mb: 4 }}>
-            <List>
-              {studentsWithActiveStreaks.map((student, index) => (
-                <ListItem key={student.id} divider>
-                  <ListItemIcon>
+            {studentsWithActiveStreaks.length === 0 ? (
+              <Alert severity="info" sx={{ borderRadius: 3 }}>
+                No active streaks yet
+              </Alert>
+            ) : (
+              <Paper sx={{ borderRadius: 3, overflow: 'hidden' }}>
+                {studentsWithActiveStreaks.map((student, index) => (
+                  <Box key={student.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
                     <Box sx={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: '50%',
+                      width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
                       bgcolor: index === 0 ? '#FEF3C7' : index === 1 ? '#F3F4F6' : index === 2 ? '#FED7AA' : 'rgba(255, 107, 53, 0.1)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
+                      display: 'flex', alignItems: 'center', justifyContent: 'center'
                     }}>
-                      {index < 3 ? (
-                        <Typography variant="body2" sx={{
-                          fontWeight: 800,
-                          color: index === 0 ? '#F59E0B' : index === 1 ? '#6B7280' : '#EA580C'
-                        }}>
-                          {index + 1}
+                      <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: index === 0 ? '#F59E0B' : index === 1 ? '#6B7280' : index === 2 ? '#EA580C' : '#FF6B35' }}>
+                        {index + 1}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {student.name}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Best: {student.longestStreak}d
+                      </Typography>
+                    </Box>
+                    <StreakBadge streak={student.currentStreak} size="small" />
+                  </Box>
+                ))}
+              </Paper>
+            )}
+          </Box>
+
+          {/* Students Without Streaks */}
+          <Box>
+            <Typography variant="subtitle1" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <PersonIcon sx={{ color: '#9CA3AF', fontSize: 20 }} />
+              No Streak ({studentsWithNoStreak.length})
+            </Typography>
+
+            {studentsWithNoStreak.length === 0 ? (
+              <Alert severity="success" sx={{ borderRadius: 3 }}>
+                All students have streaks!
+              </Alert>
+            ) : (
+              <Paper sx={{ borderRadius: 3, overflow: 'hidden', maxHeight: 300, overflowY: 'auto' }}>
+                {studentsWithNoStreak.map(student => (
+                  <Box key={student.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
+                    <Box sx={{
+                      width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
+                      bgcolor: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}>
+                      <PersonIcon sx={{ color: '#9CA3AF', fontSize: 14 }} />
+                    </Box>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {student.name}
+                      </Typography>
+                      {student.longestStreak > 0 && (
+                        <Typography variant="caption" color="text.secondary">
+                          Previous: {student.longestStreak}d
                         </Typography>
-                      ) : (
-                        <PersonIcon sx={{ color: '#FF6B35' }} />
                       )}
                     </Box>
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={
-                      <Typography sx={{ fontWeight: 600, fontFamily: '"DM Sans", sans-serif' }}>
-                        {student.name}
-                      </Typography>
-                    }
-                    secondary={
-                      <Box component="span" sx={{ display: 'flex', gap: 2, mt: 0.5 }}>
-                        <Typography component="span" variant="caption" color="text.secondary">
-                          Best: {student.longestStreak} days
-                        </Typography>
-                        {student.streakStartDate && (
-                          <Typography component="span" variant="caption" color="text.secondary">
-                            Started: {new Date(student.streakStartDate).toLocaleDateString('en-GB', {
-                              day: 'numeric',
-                              month: 'short'
-                            })}
-                          </Typography>
-                        )}
-                      </Box>
-                    }
-                  />
-                  <StreakBadge streak={student.currentStreak} size="medium" showLabel />
-                </ListItem>
-              ))}
-            </List>
-          </Paper>
-        )}
-
-        {/* Students Without Streaks */}
-        <Typography variant="h6" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <PersonIcon sx={{ color: '#9CA3AF' }} />
-          Students Without Active Streaks ({studentsWithNoStreak.length})
-        </Typography>
-
-        {studentsWithNoStreak.length === 0 ? (
-          <Alert severity="success" sx={{ borderRadius: 4 }}>
-            Amazing! All students have active reading streaks!
-          </Alert>
-        ) : (
-          <Paper sx={{ borderRadius: 4, overflow: 'hidden' }}>
-            <List>
-              {studentsWithNoStreak.map(student => (
-                <ListItem key={student.id} divider>
-                  <ListItemIcon>
-                    <Box sx={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: '50%',
-                      bgcolor: '#F3F4F6',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}>
-                      <PersonIcon sx={{ color: '#9CA3AF' }} />
-                    </Box>
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={
-                      <Typography sx={{ fontWeight: 600, fontFamily: '"DM Sans", sans-serif' }}>
-                        {student.name}
-                      </Typography>
-                    }
-                    secondary={
-                      student.longestStreak > 0
-                        ? `Previous best: ${student.longestStreak} days`
-                        : 'No streak history'
-                    }
-                  />
-                  <Chip
-                    label="No streak"
-                    size="small"
-                    sx={{
-                      bgcolor: '#F3F4F6',
-                      color: '#6B7280',
-                      fontWeight: 600
-                    }}
-                  />
-                </ListItem>
-              ))}
-            </List>
-          </Paper>
-        )}
+                  </Box>
+                ))}
+              </Paper>
+            )}
+          </Box>
+        </Box>
       </Box>
     );
   };
