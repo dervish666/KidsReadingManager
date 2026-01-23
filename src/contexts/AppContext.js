@@ -122,6 +122,12 @@ export const AppProvider = ({ children }) => {
   const [books, setBooks] = useState([]);
   // State for genres
   const [genres, setGenres] = useState([]);
+  // Available organizations (for owners to switch between)
+  const [availableOrganizations, setAvailableOrganizations] = useState([]);
+  // Active organization ID (for owners switching between orgs)
+  const [activeOrganizationId, setActiveOrganizationId] = useState(null);
+  // Loading state for organization switching
+  const [switchingOrganization, setSwitchingOrganization] = useState(false);
   // Recently accessed students (for quick access in dropdowns)
   const [recentlyAccessedStudents, setRecentlyAccessedStudents] = useState(() => {
     if (typeof window === 'undefined') return [];
@@ -287,6 +293,11 @@ export const AppProvider = ({ children }) => {
         headers['Authorization'] = `Bearer ${currentToken}`;
       }
 
+      // Include organization override header for owners switching orgs
+      if (activeOrganizationId && userRole === 'owner') {
+        headers['X-Organization-Id'] = activeOrganizationId;
+      }
+
       const response = await fetch(url, {
         ...options,
         headers,
@@ -309,7 +320,7 @@ export const AppProvider = ({ children }) => {
 
       return response;
     },
-    [authToken, authMode, refreshToken, refreshAccessToken, clearAuthState]
+    [authToken, authMode, refreshToken, refreshAccessToken, clearAuthState, activeOrganizationId, userRole]
   );
 
   // Legacy login helper (shared password)
@@ -562,6 +573,56 @@ export const AppProvider = ({ children }) => {
     []
   );
 
+  // Fetch available organizations (for owners)
+  const fetchAvailableOrganizations = useCallback(async () => {
+    if (userRole !== 'owner') {
+      setAvailableOrganizations([]);
+      return;
+    }
+
+    try {
+      const response = await fetchWithAuth(`${API_URL}/organization/all`);
+      if (response.ok) {
+        const data = await response.json();
+        setAvailableOrganizations(data.organizations || []);
+      }
+    } catch (error) {
+      console.error('Error fetching organizations:', error);
+    }
+  }, [userRole, fetchWithAuth]);
+
+  // Switch to a different organization (owners only)
+  const switchOrganization = useCallback(async (orgId) => {
+    if (userRole !== 'owner') {
+      console.warn('Only owners can switch organizations');
+      return;
+    }
+
+    setSwitchingOrganization(true);
+    setActiveOrganizationId(orgId);
+
+    // Reset class filter when switching organizations
+    setGlobalClassFilter('all');
+    if (typeof window !== 'undefined') {
+      try {
+        window.sessionStorage.setItem('globalClassFilter', 'all');
+      } catch {
+        // ignore
+      }
+    }
+
+    // Clear existing data
+    setStudents([]);
+    setClasses([]);
+    setBooks([]);
+    setGenres([]);
+    setSettings({});
+
+    // Reload data from server (fetchWithAuth will include the new org header)
+    await reloadDataFromServer();
+    setSwitchingOrganization(false);
+  }, [userRole, reloadDataFromServer]);
+
   // Logout helper
   const logout = useCallback(async () => {
     // Call logout endpoint to invalidate server-side session if applicable
@@ -698,19 +759,39 @@ export const AppProvider = ({ children }) => {
     }
   }, [authToken, reloadDataFromServer]);
 
+  // Fetch available organizations for owners after user is loaded
+  useEffect(() => {
+    if (user && userRole === 'owner') {
+      fetchAvailableOrganizations();
+    }
+  }, [user, userRole, fetchAvailableOrganizations]);
+
   // --- Derived auth state ---
   const isAuthenticated = !!authToken;
   const isMultiTenantMode = authMode === 'multitenant';
-  
-  // Organization info from user state
-  const organization = user ? {
-    id: user.organizationId,
-    name: user.organizationName,
-    slug: user.organizationSlug,
-  } : null;
-  
+
   // User role for RBAC
   const userRole = user?.role || null;
+
+  // Organization info - use active org if owner has switched, otherwise from user state
+  const organization = useMemo(() => {
+    if (activeOrganizationId && userRole === 'owner') {
+      const activeOrg = availableOrganizations.find(org => org.id === activeOrganizationId);
+      if (activeOrg) {
+        return {
+          id: activeOrg.id,
+          name: activeOrg.name,
+          slug: activeOrg.slug,
+        };
+      }
+    }
+
+    return user ? {
+      id: user.organizationId,
+      name: user.organizationName,
+      slug: user.organizationSlug,
+    } : null;
+  }, [user, activeOrganizationId, availableOrganizations, userRole]);
   
   // Permission helpers
   const canManageUsers = userRole === 'owner' || userRole === 'admin';
@@ -1763,6 +1844,12 @@ export const AppProvider = ({ children }) => {
     canManageStudents,
     canManageClasses,
     canManageSettings,
+    // Organization switching (owners)
+    availableOrganizations,
+    activeOrganizationId,
+    switchOrganization,
+    switchingOrganization,
+    fetchAvailableOrganizations,
   };
 
   return (
