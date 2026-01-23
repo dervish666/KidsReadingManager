@@ -26,6 +26,7 @@ export async function generateRecommendations({ studentProfile, availableBooks, 
     case 'openai':
       return await callOpenAI(prompt, apiKey, model, baseUrl);
     case 'gemini':
+    case 'google':
       return await callGemini(prompt, apiKey, model, baseUrl);
     default:
       throw new Error(`Unsupported AI provider: ${provider}`);
@@ -400,6 +401,7 @@ export async function generateBroadSuggestions(studentProfile, config) {
       response = await callOpenAI(prompt, apiKey, model, baseUrl, true);
       break;
     case 'gemini':
+    case 'google':
       response = await callGemini(prompt, apiKey, model, baseUrl, true);
       break;
     default:
