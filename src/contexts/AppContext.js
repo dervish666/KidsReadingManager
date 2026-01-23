@@ -591,41 +591,6 @@ export const AppProvider = ({ children }) => {
     }
   }, [user, fetchWithAuth]);
 
-  // Switch to a different organization (owners only)
-  const switchOrganization = useCallback(async (orgId) => {
-    if (user?.role !== 'owner') {
-      console.warn('Only owners can switch organizations');
-      return;
-    }
-
-    setSwitchingOrganization(true);
-    setActiveOrganizationId(orgId);
-
-    // Reset class filter when switching organizations
-    setGlobalClassFilter('all');
-    if (typeof window !== 'undefined') {
-      try {
-        window.sessionStorage.setItem('globalClassFilter', 'all');
-      } catch {
-        // ignore
-      }
-    }
-
-    // Clear existing data
-    setStudents([]);
-    setClasses([]);
-    setBooks([]);
-    setGenres([]);
-    setSettings({});
-
-    try {
-      // Reload data from server (fetchWithAuth will include the new org header)
-      await reloadDataFromServer();
-    } finally {
-      setSwitchingOrganization(false);
-    }
-  }, [user, reloadDataFromServer]);
-
   // Logout helper
   const logout = useCallback(async () => {
     // Call logout endpoint to invalidate server-side session if applicable
@@ -750,6 +715,41 @@ export const AppProvider = ({ children }) => {
       setLoading(false);
     }
   }, [fetchWithAuth]);
+
+  // Switch to a different organization (owners only)
+  const switchOrganization = useCallback(async (orgId) => {
+    if (user?.role !== 'owner') {
+      console.warn('Only owners can switch organizations');
+      return;
+    }
+
+    setSwitchingOrganization(true);
+    setActiveOrganizationId(orgId);
+
+    // Reset class filter when switching organizations
+    setGlobalClassFilter('all');
+    if (typeof window !== 'undefined') {
+      try {
+        window.sessionStorage.setItem('globalClassFilter', 'all');
+      } catch {
+        // ignore
+      }
+    }
+
+    // Clear existing data
+    setStudents([]);
+    setClasses([]);
+    setBooks([]);
+    setGenres([]);
+    setSettings({});
+
+    try {
+      // Reload data from server (fetchWithAuth will include the new org header)
+      await reloadDataFromServer();
+    } finally {
+      setSwitchingOrganization(false);
+    }
+  }, [user, reloadDataFromServer]);
 
   // Initial load / auth-aware
   useEffect(() => {
