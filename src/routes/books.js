@@ -12,7 +12,7 @@ import {
 } from '../services/kvService.js';
 
 // Import AI service
-import { generateRecommendations } from '../services/aiService.js';
+import { generateRecommendations, generateBroadSuggestions } from '../services/aiService.js';
 
 // Import utilities
 import { notFoundError, badRequestError } from '../middleware/errorHandler';
@@ -245,6 +245,108 @@ booksRouter.get('/library-search', async (c) => {
     // Log unexpected errors and re-throw
     console.error('Error in library-search:', error);
     throw error;
+  }
+});
+
+/**
+ * GET /api/books/ai-suggestions
+ * Get AI-powered book suggestions (not constrained to library)
+ *
+ * Query params:
+ * - studentId: Required - the student to get suggestions for
+ */
+booksRouter.get('/ai-suggestions', async (c) => {
+  try {
+    const { studentId } = c.req.query();
+
+    if (!studentId) {
+      throw badRequestError('studentId query parameter is required');
+    }
+
+    const organizationId = c.get('organizationId');
+    const db = c.env.READING_MANAGER_DB;
+    const jwtSecret = c.env.JWT_SECRET;
+
+    if (!organizationId || !db || !jwtSecret) {
+      throw badRequestError('Multi-tenant mode required for AI suggestions');
+    }
+
+    // Build student profile
+    const profile = await buildStudentReadingProfile(studentId, organizationId, db);
+
+    if (!profile) {
+      throw notFoundError(`Student with ID ${studentId} not found`);
+    }
+
+    // Get AI configuration
+    const dbConfig = await db.prepare(`
+      SELECT provider, api_key_encrypted, model_preference, is_enabled
+      FROM org_ai_config WHERE organization_id = ?
+    `).bind(organizationId).first();
+
+    if (!dbConfig || !dbConfig.is_enabled || !dbConfig.api_key_encrypted) {
+      throw badRequestError('AI not configured. Please configure an AI provider in Settings to use AI suggestions.');
+    }
+
+    // Decrypt API key
+    let aiConfig;
+    try {
+      const decryptedApiKey = await decryptSensitiveData(dbConfig.api_key_encrypted, jwtSecret);
+      aiConfig = {
+        provider: dbConfig.provider || 'anthropic',
+        apiKey: decryptedApiKey,
+        model: dbConfig.model_preference
+      };
+    } catch (decryptError) {
+      console.error('Failed to decrypt API key:', decryptError.message);
+      throw badRequestError('AI configuration error. Please check Settings.');
+    }
+
+    // Generate AI suggestions
+    const suggestions = await generateBroadSuggestions(profile, aiConfig);
+
+    // Check which suggestions are in the library
+    const suggestionTitles = suggestions.map(s => s.title.toLowerCase());
+    let libraryMatches = {};
+
+    if (suggestionTitles.length > 0) {
+      // Search for title matches in library
+      const placeholders = suggestionTitles.map(() => '?').join(',');
+      const booksResult = await db.prepare(`
+        SELECT id, title FROM books WHERE LOWER(title) IN (${placeholders})
+      `).bind(...suggestionTitles).all();
+
+      for (const book of (booksResult.results || [])) {
+        libraryMatches[book.title.toLowerCase()] = book.id;
+      }
+    }
+
+    // Add inLibrary flag to each suggestion
+    const enrichedSuggestions = suggestions.map(suggestion => ({
+      ...suggestion,
+      inLibrary: !!libraryMatches[suggestion.title.toLowerCase()],
+      libraryBookId: libraryMatches[suggestion.title.toLowerCase()] || null
+    }));
+
+    return c.json({
+      suggestions: enrichedSuggestions,
+      studentProfile: {
+        name: profile.student.name,
+        readingLevel: profile.student.readingLevel,
+        favoriteGenres: profile.preferences.favoriteGenreNames,
+        inferredGenres: profile.inferredGenres.map(g => g.name),
+        recentReads: profile.recentReads.map(r => r.title)
+      }
+    });
+
+  } catch (error) {
+    // Re-throw known errors
+    if (error.status) {
+      throw error;
+    }
+    // Log and handle AI service errors
+    console.error('AI suggestions error:', error);
+    throw badRequestError('Failed to generate suggestions. Try again or use "Find in Library" instead.');
   }
 });
 

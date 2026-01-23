@@ -227,3 +227,240 @@ function normalizeRecommendations(recommendations) {
     reason: rec.reason || 'Recommended based on reading preferences'
   }));
 }
+
+/**
+ * Build prompt for broader AI suggestions (not constrained to library)
+ * @param {Object} studentProfile - Profile from buildStudentReadingProfile
+ * @returns {string} The prompt for the AI
+ */
+export function buildBroadSuggestionsPrompt(studentProfile) {
+  const { student, preferences, inferredGenres, recentReads } = studentProfile;
+
+  const favoriteGenresText = preferences.favoriteGenreNames.length > 0
+    ? preferences.favoriteGenreNames.join(', ')
+    : 'Not specified';
+
+  const inferredGenresText = inferredGenres.length > 0
+    ? inferredGenres.map(g => `${g.name} (read ${g.count} books)`).join(', ')
+    : 'No reading history yet';
+
+  const likedBooksText = preferences.likes.length > 0
+    ? preferences.likes.join(', ')
+    : 'None specified';
+
+  const dislikedBooksText = preferences.dislikes.length > 0
+    ? preferences.dislikes.join(', ')
+    : 'None specified';
+
+  const recentReadsText = recentReads.length > 0
+    ? recentReads.map(b => `${b.title}${b.author ? ` by ${b.author}` : ''}`).join(', ')
+    : 'No recent books';
+
+  return `You are an expert children's librarian recommending books for a young reader.
+
+STUDENT PROFILE:
+- Name: ${student.name}
+- Reading Level: ${student.readingLevel}
+- Age Range: ${student.ageRange || 'Not specified'}
+
+EXPLICIT PREFERENCES (teacher/parent provided):
+- Favorite Genres: ${favoriteGenresText}
+- Books They Liked: ${likedBooksText}
+- Books They Disliked: ${dislikedBooksText}
+
+READING PATTERNS (from history):
+- Most-Read Genres: ${inferredGenresText}
+- Recent Books: ${recentReadsText}
+
+TASK: Recommend exactly 5 books that would be perfect for ${student.name}. These should be well-known, quality children's books that:
+1. Match their reading level and interests
+2. Are different from books they've already read
+3. Avoid anything similar to books they disliked
+
+For EACH recommendation, provide:
+1. **title**: The book title
+2. **author**: The author's name
+3. **ageRange**: Appropriate age range (e.g., "8-10", "10-12")
+4. **readingLevel**: One of: beginner, elementary, intermediate, advanced
+5. **reason**: 2-3 sentences explaining why this specific book is perfect for ${student.name}, referencing their preferences and reading history
+6. **whereToFind**: Where to get the book (e.g., "Available at most public libraries", "Popular on Amazon and in bookstores")
+
+Format your response as a valid JSON array with exactly 5 objects.
+Example format:
+[
+  {
+    "title": "Book Title",
+    "author": "Author Name",
+    "ageRange": "8-10",
+    "readingLevel": "intermediate",
+    "reason": "This book is perfect because...",
+    "whereToFind": "Available at..."
+  }
+]`;
+}
+
+/**
+ * Normalize broad suggestions to ensure consistent structure
+ */
+function normalizeBroadSuggestions(suggestions) {
+  if (!Array.isArray(suggestions)) {
+    throw new Error('Suggestions must be an array');
+  }
+
+  return suggestions.slice(0, 5).map(rec => ({
+    title: rec.title || 'Unknown Title',
+    author: rec.author || 'Unknown Author',
+    ageRange: rec.ageRange || '8-12',
+    readingLevel: rec.readingLevel || 'intermediate',
+    reason: rec.reason || 'Recommended based on reading preferences',
+    whereToFind: rec.whereToFind || 'Available at most public libraries and bookstores'
+  }));
+}
+
+/**
+ * Parse AI response for broad suggestions
+ */
+function parseBroadSuggestionsResponse(text) {
+  try {
+    // Extract JSON from the response (in case of extra text)
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    const jsonText = jsonMatch ? jsonMatch[0] : text;
+    const suggestions = JSON.parse(jsonText);
+
+    return normalizeBroadSuggestions(suggestions);
+  } catch (error) {
+    console.error('Failed to parse AI broad suggestions response:', error);
+    console.error('Raw response:', text);
+    throw new Error('Invalid response format from AI provider');
+  }
+}
+
+/**
+ * Generate broad AI suggestions (not constrained to library)
+ * @param {Object} studentProfile - Profile from buildStudentReadingProfile
+ * @param {Object} config - AI configuration (provider, apiKey, model, baseUrl)
+ * @returns {Promise<Array>} - List of suggested books
+ */
+export async function generateBroadSuggestions(studentProfile, config) {
+  const { provider = 'anthropic', apiKey, baseUrl, model } = config;
+
+  if (!apiKey) {
+    throw new Error('API key is required for AI suggestions');
+  }
+
+  const prompt = buildBroadSuggestionsPrompt(studentProfile);
+
+  let response;
+  switch (provider) {
+    case 'anthropic':
+      response = await callAnthropicRaw(prompt, apiKey, model, baseUrl);
+      break;
+    case 'openai':
+      response = await callOpenAIRaw(prompt, apiKey, model, baseUrl);
+      break;
+    case 'gemini':
+      response = await callGeminiRaw(prompt, apiKey, model, baseUrl);
+      break;
+    default:
+      throw new Error(`Unsupported AI provider: ${provider}`);
+  }
+
+  return parseBroadSuggestionsResponse(response);
+}
+
+/**
+ * Call Anthropic API and return raw text (for broad suggestions)
+ */
+async function callAnthropicRaw(prompt, apiKey, model = 'claude-haiku-4-5', baseUrl = 'https://api.anthropic.com/v1') {
+  const { Anthropic } = await import('@anthropic-ai/sdk');
+
+  const anthropic = new Anthropic({
+    apiKey: apiKey,
+    baseURL: baseUrl !== 'https://api.anthropic.com/v1' ? baseUrl : undefined
+  });
+
+  const response = await anthropic.messages.create({
+    model: model,
+    max_tokens: 1500,
+    temperature: 0.7,
+    messages: [
+      {
+        role: 'user',
+        content: prompt
+      }
+    ]
+  });
+
+  return response.content[0].text;
+}
+
+/**
+ * Call OpenAI API and return raw text (for broad suggestions)
+ */
+async function callOpenAIRaw(prompt, apiKey, model = 'gpt-5-nano', baseUrl = 'https://api.openai.com/v1') {
+  const url = `${baseUrl}/chat/completions`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: model,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a helpful assistant that outputs JSON.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      response_format: { type: "json_object" }
+    })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(`OpenAI API error: ${errorData.error?.message || response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
+
+/**
+ * Call Google Gemini API and return raw text (for broad suggestions)
+ */
+async function callGeminiRaw(prompt, apiKey, model = 'gemini-flash-latest', baseUrl = 'https://generativelanguage.googleapis.com/v1beta') {
+  const url = `${baseUrl}/models/${model}:generateContent?key=${apiKey}`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      contents: [{
+        parts: [{
+          text: prompt + "\n\nIMPORTANT: Output ONLY valid JSON array."
+        }]
+      }],
+      generationConfig: {
+        temperature: 0.7,
+        responseMimeType: "application/json"
+      }
+    })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(`Gemini API error: ${errorData.error?.message || response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data.candidates[0].content.parts[0].text;
+}
