@@ -28,6 +28,8 @@ import {
   FormControlLabel,
   Checkbox,
   InputAdornment,
+  Menu,
+  Divider,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
@@ -39,12 +41,16 @@ import InfoIcon from '@mui/icons-material/Info';
 import DescriptionIcon from '@mui/icons-material/Description';
 import CategoryIcon from '@mui/icons-material/Category';
 import SearchIcon from '@mui/icons-material/Search';
+import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import ImportExportIcon from '@mui/icons-material/ImportExport';
 import { useAppContext } from '../../contexts/AppContext';
 import {
   batchFindMissingAuthors,
   batchFindMissingDescriptions,
   batchFindMissingGenres,
   getBookDetails,
+  findGenresForBook,
   checkAvailability,
   getProviderDisplayName,
   validateProviderConfig
@@ -97,6 +103,8 @@ const BookManager = () => {
   const [readingLevelFilter, setReadingLevelFilter] = useState('');
   const [levelRangeFilter, setLevelRangeFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [importExportMenuAnchor, setImportExportMenuAnchor] = useState(null);
+  const [aiFillMenuAnchor, setAiFillMenuAnchor] = useState(null);
 
   const handleAddBook = async (e) => {
     e.preventDefault();
@@ -176,18 +184,61 @@ const BookManager = () => {
     }
     
     try {
+      // Fetch book details (cover and description)
       const details = await getBookDetails(editBookTitle, editBookAuthor || null, settings);
-      
+
+      let foundCover = false;
+      let foundDescription = false;
+      let foundGenres = false;
+
       if (details) {
         if (details.coverUrl) {
           setEditBookCoverUrl(details.coverUrl);
+          foundCover = true;
         }
         if (details.description) {
           setEditBookDescription(details.description);
+          foundDescription = true;
         }
+      }
+
+      // Also fetch genres
+      try {
+        const genresResult = await findGenresForBook(editBookTitle, editBookAuthor || null, settings);
+        if (genresResult && genresResult.length > 0) {
+          // Create a map of genre name to ID
+          const genreNameToId = {};
+          for (const genre of genres) {
+            genreNameToId[genre.name.toLowerCase()] = genre.id;
+          }
+
+          // Map found genres to existing genre IDs (case-insensitive)
+          const matchedGenreIds = genresResult
+            .map(genreName => genreNameToId[genreName.toLowerCase()])
+            .filter(id => id);
+
+          if (matchedGenreIds.length > 0) {
+            // Merge with existing genres (avoid duplicates)
+            const updatedGenreIds = [...new Set([...editBookGenreIds, ...matchedGenreIds])];
+            setEditBookGenreIds(updatedGenreIds);
+            foundGenres = true;
+          }
+        }
+      } catch (genreError) {
+        console.error('Error fetching genres:', genreError);
+        // Don't fail the whole operation if genres fail
+      }
+
+      // Build success message
+      if (foundCover || foundDescription || foundGenres) {
+        const parts = [];
+        if (foundCover) parts.push('cover');
+        if (foundDescription) parts.push('description');
+        if (foundGenres) parts.push('genres');
+
         setSnackbar({
           open: true,
-          message: details.description ? `Book details loaded from ${providerName}` : 'Cover found, but no description available',
+          message: `Loaded ${parts.join(', ')} from ${providerName}`,
           severity: 'success'
         });
       } else {
@@ -1144,128 +1195,177 @@ const BookManager = () => {
         Manage Books
       </Typography>
 
-      {/* Add Book Form and Import/Export/AI Fill Section - Three Column Layout */}
-      <Box sx={{ mt: 2, display: 'flex', gap: 3, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-        {/* Add Book Form - Two Column Layout */}
+      {/* Add Book Form and Actions */}
+      <Box sx={{ mt: 2 }}>
         <Paper
           component="form"
           onSubmit={handleAddBook}
           variant="outlined"
-          sx={{
-            p: 2,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 1.5,
-            minWidth: 280,
-          }}
+          sx={{ p: 2 }}
         >
-          <Typography variant="subtitle2" gutterBottom sx={{ mb: 0 }}>
-            Add New Book
-          </Typography>
-          <Grid container spacing={1.5}>
-            <Grid item xs={6}>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            {/* Add Book Form Fields */}
+            <Box sx={{ display: 'flex', gap: 1.5, flex: '1 1 auto', flexWrap: 'wrap', minWidth: 300 }}>
+              <Typography variant="subtitle2" sx={{ width: '100%', mb: 0.5 }}>
+                Add New Book
+              </Typography>
               <TextField
                 label="Book Title"
                 value={newBookTitle}
                 onChange={(e) => setNewBookTitle(e.target.value)}
-                fullWidth
                 size="small"
                 required
+                sx={{ flex: '1 1 200px' }}
               />
-            </Grid>
-            <Grid item xs={6}>
               <TextField
-                label="Author (Optional)"
+                label="Author"
                 value={newBookAuthor}
                 onChange={(e) => setNewBookAuthor(e.target.value)}
-                fullWidth
                 size="small"
+                sx={{ flex: '1 1 150px' }}
               />
-            </Grid>
-            <Grid item xs={6}>
               <TextField
-                label="Reading Level (Optional)"
+                label="Reading Level"
                 value={newBookReadingLevel}
                 onChange={(e) => setNewBookReadingLevel(e.target.value)}
-                fullWidth
                 size="small"
+                sx={{ flex: '0 1 100px' }}
               />
-            </Grid>
-            <Grid item xs={6}>
               <TextField
-                label="Age Range (Optional)"
+                label="Age Range"
                 value={newBookAgeRange}
                 onChange={(e) => setNewBookAgeRange(e.target.value)}
-                fullWidth
                 size="small"
-                placeholder="e.g., 6-9"
+                placeholder="6-9"
+                sx={{ flex: '0 1 80px' }}
               />
-            </Grid>
-            <Grid item xs={12}>
               <Button
                 type="submit"
                 variant="contained"
                 color="primary"
-                fullWidth
                 startIcon={<SaveIcon />}
+                sx={{ flex: '0 0 auto' }}
               >
-                Add Book
+                Add
               </Button>
-            </Grid>
-            {error && (
-              <Grid item xs={12}>
-                <Typography color="error" variant="body2">
-                  {error}
-                </Typography>
-              </Grid>
-            )}
-          </Grid>
-        </Paper>
+            </Box>
 
-        {/* Import/Export Box */}
-        <Paper
-          variant="outlined"
-          sx={{
-            p: 2,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 1.5,
-          }}
-        >
-          <Typography variant="subtitle2" gutterBottom sx={{ mb: 0 }}>
-            Import/Export Books
-          </Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <Button
-              variant="outlined"
-              startIcon={<DownloadIcon />}
-              onClick={handleExportJSON}
-              disabled={books.length === 0}
-              size="small"
-              fullWidth
-            >
-              Export JSON
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<DownloadIcon />}
-              onClick={handleExportCSV}
-              disabled={books.length === 0}
-              size="small"
-              fullWidth
-            >
-              Export CSV
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<UploadIcon />}
-              onClick={handleImportClick}
-              size="small"
-              fullWidth
-            >
-              Import Books
-            </Button>
+            {/* Action Buttons */}
+            <Box sx={{ display: 'flex', gap: 1, flex: '0 0 auto', alignItems: 'center' }}>
+              {/* Fill Info Button with Menu */}
+              <Button
+                variant="outlined"
+                color="secondary"
+                startIcon={<AutoFixHighIcon />}
+                onClick={(e) => setAiFillMenuAnchor(e.currentTarget)}
+                disabled={books.length === 0}
+                size="small"
+              >
+                Fill Info
+              </Button>
+              <Menu
+                anchorEl={aiFillMenuAnchor}
+                open={Boolean(aiFillMenuAnchor)}
+                onClose={() => setAiFillMenuAnchor(null)}
+              >
+                <MenuItem
+                  onClick={() => {
+                    setAiFillMenuAnchor(null);
+                    handleFillMissingAuthors();
+                  }}
+                  disabled={isLookingUpAuthors}
+                >
+                  <PersonSearchIcon fontSize="small" sx={{ mr: 1 }} />
+                  Fill Missing Authors ({getBooksWithoutAuthors().length})
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    setAiFillMenuAnchor(null);
+                    handleFillMissingDescriptions();
+                  }}
+                  disabled={isLookingUpDescriptions}
+                >
+                  <DescriptionIcon fontSize="small" sx={{ mr: 1 }} />
+                  Fill Missing Descriptions ({getBooksWithoutDescriptions().length})
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    setAiFillMenuAnchor(null);
+                    handleFillMissingGenres();
+                  }}
+                  disabled={isLookingUpGenres}
+                >
+                  <CategoryIcon fontSize="small" sx={{ mr: 1 }} />
+                  Fix Missing Genres ({getBooksWithoutGenres().length})
+                </MenuItem>
+                <Divider />
+                <Box sx={{ px: 2, py: 1 }}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        size="small"
+                        checked={includeUnknownAuthors}
+                        onChange={(e) => setIncludeUnknownAuthors(e.target.checked)}
+                      />
+                    }
+                    label={<Typography variant="caption">Include 'Unknown' authors</Typography>}
+                  />
+                </Box>
+              </Menu>
+
+              {/* Import/Export Button with Menu */}
+              <Button
+                variant="outlined"
+                startIcon={<ImportExportIcon />}
+                onClick={(e) => setImportExportMenuAnchor(e.currentTarget)}
+                size="small"
+              >
+                Import/Export
+              </Button>
+              <Menu
+                anchorEl={importExportMenuAnchor}
+                open={Boolean(importExportMenuAnchor)}
+                onClose={() => setImportExportMenuAnchor(null)}
+              >
+                <MenuItem
+                  onClick={() => {
+                    setImportExportMenuAnchor(null);
+                    handleImportClick();
+                  }}
+                >
+                  <UploadIcon fontSize="small" sx={{ mr: 1 }} />
+                  Import Books
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    setImportExportMenuAnchor(null);
+                    handleExportJSON();
+                  }}
+                  disabled={books.length === 0}
+                >
+                  <DownloadIcon fontSize="small" sx={{ mr: 1 }} />
+                  Export JSON
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    setImportExportMenuAnchor(null);
+                    handleExportCSV();
+                  }}
+                  disabled={books.length === 0}
+                >
+                  <DownloadIcon fontSize="small" sx={{ mr: 1 }} />
+                  Export CSV
+                </MenuItem>
+              </Menu>
+            </Box>
           </Box>
+
+          {error && (
+            <Typography color="error" variant="body2" sx={{ mt: 1 }}>
+              {error}
+            </Typography>
+          )}
+
           <input
             type="file"
             accept=".json,.csv"
@@ -1273,82 +1373,6 @@ const BookManager = () => {
             style={{ display: 'none' }}
             onChange={handleFileChange}
           />
-        </Paper>
-
-        {/* AI Fill Missing Data Box - Grouped */}
-        <Paper
-          variant="outlined"
-          sx={{
-            p: 2,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 1.5,
-            borderColor: 'primary.main',
-            borderStyle: 'dashed'
-          }}
-        >
-          <Typography variant="subtitle2" gutterBottom sx={{ mb: 0 }}>
-            AI Fill Missing Data
-          </Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            {/* Author Lookup */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-              <Button
-                variant="outlined"
-                startIcon={isLookingUpAuthors ? <CircularProgress size={20} /> : <PersonSearchIcon />}
-                onClick={handleFillMissingAuthors}
-                disabled={isLookingUpAuthors || books.length === 0}
-                color="secondary"
-                size="small"
-                fullWidth
-              >
-                {isLookingUpAuthors
-                  ? 'Finding Authors...'
-                  : `Fill Missing Authors (${getBooksWithoutAuthors().length})`}
-              </Button>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    size="small"
-                    checked={includeUnknownAuthors}
-                    onChange={(e) => setIncludeUnknownAuthors(e.target.checked)}
-                  />
-                }
-                label={<Typography variant="caption">Include 'Unknown' authors</Typography>}
-                sx={{ ml: 0, mr: 0 }}
-              />
-            </Box>
-
-            {/* Description Lookup */}
-            <Button
-              variant="outlined"
-              startIcon={isLookingUpDescriptions ? <CircularProgress size={20} /> : <DescriptionIcon />}
-              onClick={handleFillMissingDescriptions}
-              disabled={isLookingUpDescriptions || books.length === 0}
-              color="info"
-              size="small"
-              fullWidth
-            >
-              {isLookingUpDescriptions
-                ? 'Finding Descriptions...'
-                : `Fill Missing Descriptions (${getBooksWithoutDescriptions().length})`}
-            </Button>
-
-            {/* Genre Lookup */}
-            <Button
-              variant="outlined"
-              startIcon={isLookingUpGenres ? <CircularProgress size={20} /> : <CategoryIcon />}
-              onClick={handleFillMissingGenres}
-              disabled={isLookingUpGenres || books.length === 0}
-              color="warning"
-              size="small"
-              fullWidth
-            >
-              {isLookingUpGenres
-                ? 'Finding Genres...'
-                : `Fix Missing/Unknown Genres (${getBooksWithoutGenres().length})`}
-            </Button>
-          </Box>
         </Paper>
       </Box>
 
