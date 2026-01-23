@@ -618,9 +618,12 @@ export const AppProvider = ({ children }) => {
     setGenres([]);
     setSettings({});
 
-    // Reload data from server (fetchWithAuth will include the new org header)
-    await reloadDataFromServer();
-    setSwitchingOrganization(false);
+    try {
+      // Reload data from server (fetchWithAuth will include the new org header)
+      await reloadDataFromServer();
+    } finally {
+      setSwitchingOrganization(false);
+    }
   }, [user, reloadDataFromServer]);
 
   // Logout helper
@@ -761,10 +764,10 @@ export const AppProvider = ({ children }) => {
 
   // Fetch available organizations for owners after user is loaded
   useEffect(() => {
-    if (user && userRole === 'owner') {
+    if (user && user?.role === 'owner') {
       fetchAvailableOrganizations();
     }
-  }, [user, userRole, fetchAvailableOrganizations]);
+  }, [user, fetchAvailableOrganizations]);
 
   // --- Derived auth state ---
   const isAuthenticated = !!authToken;
