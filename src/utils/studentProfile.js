@@ -124,7 +124,7 @@ export async function buildStudentReadingProfile(studentId, organizationId, db) 
     student: {
       id: student.id,
       name: student.name,
-      readingLevel: student.reading_level || 'intermediate',
+      readingLevel: student.reading_level || null,
       ageRange: student.age_range || null,
       notes: student.notes
     },

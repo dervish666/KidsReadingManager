@@ -141,7 +141,7 @@ describe('buildStudentReadingProfile', () => {
     expect(profile.booksReadCount).toBe(0);
   });
 
-  it('should default reading level to intermediate when null', async () => {
+  it('should return null reading level when not set (allows matching all levels)', async () => {
     const studentQuery = {
       bind: vi.fn().mockReturnThis(),
       first: vi.fn().mockResolvedValue({
@@ -172,7 +172,8 @@ describe('buildStudentReadingProfile', () => {
 
     const profile = await buildStudentReadingProfile('student-no-level', 'org-456', mockDb);
 
-    expect(profile.student.readingLevel).toBe('intermediate');
+    // When reading level is null, library search will return books of all levels
+    expect(profile.student.readingLevel).toBeNull();
     expect(profile.student.ageRange).toBeNull();
     expect(profile.preferences.likes).toEqual([]);
     expect(profile.preferences.dislikes).toEqual([]);
