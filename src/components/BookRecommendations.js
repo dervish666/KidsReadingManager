@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -9,7 +9,6 @@ import {
   Button,
   Card,
   CardContent,
-  CardMedia,
   Grid,
   Chip,
   CircularProgress,
@@ -20,8 +19,6 @@ import {
   Divider,
   Paper,
   Stack,
-  Snackbar,
-  IconButton,
   Tooltip
 } from '@mui/material';
 import { useAppContext } from '../contexts/AppContext';
@@ -29,12 +26,9 @@ import BookIcon from '@mui/icons-material/Book';
 import SchoolIcon from '@mui/icons-material/School';
 import PersonIcon from '@mui/icons-material/Person';
 import RecommendationsIcon from '@mui/icons-material/Star';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import CloudOffIcon from '@mui/icons-material/CloudOff';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WarningIcon from '@mui/icons-material/Warning';
-import { getBookDetails, getCoverUrl, checkOpenLibraryAvailability, resetOpenLibraryAvailabilityCache } from '../utils/openLibraryApi';
 
 const BookRecommendations = () => {
   const { students, classes, books, apiError, fetchWithAuth, globalClassFilter } = useAppContext();
@@ -43,13 +37,14 @@ const BookRecommendations = () => {
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [booksRead, setBooksRead] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
-  const [enhancedRecommendations, setEnhancedRecommendations] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [enhancing, setEnhancing] = useState(false);
   const [error, setError] = useState(null);
-  const [openLibraryStatus, setOpenLibraryStatus] = useState({ available: null, message: '' });
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [aiConfig, setAiConfig] = useState(null);
+
+  // New state for two-button UI
+  const [libraryLoading, setLibraryLoading] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [resultType, setResultType] = useState(null); // 'library' or 'ai'
+  const [studentProfile, setStudentProfile] = useState(null);
 
   // Load AI config on mount
   useEffect(() => {
@@ -141,182 +136,66 @@ const BookRecommendations = () => {
       setBooksRead([]);
     }
     setRecommendations([]);
-    setEnhancedRecommendations([]);
+    setStudentProfile(null);
+    setResultType(null);
     setError(null);
-    setOpenLibraryStatus({ available: null, message: '' });
   };
 
-  // Background enhancement function that updates state progressively
-  const enhanceRecommendationsInBackground = useCallback(async (basicRecommendations) => {
-    if (!basicRecommendations || basicRecommendations.length === 0) {
-      return;
-    }
+  // Handler for library search
+  const handleLibrarySearch = async () => {
+    if (!selectedStudentId) return;
 
-    // First, check if OpenLibrary is available with a quick timeout
-    console.log('Checking OpenLibrary availability...');
-    const isAvailable = await checkOpenLibraryAvailability(3000);
-    
-    if (!isAvailable) {
-      console.log('OpenLibrary is not available, skipping enhancement');
-      setOpenLibraryStatus({
-        available: false,
-        message: 'OpenLibrary is currently unavailable. Book covers and descriptions will not be loaded.'
-      });
-      setSnackbarOpen(true);
-      setEnhancing(false);
-      return;
-    }
-
-    setOpenLibraryStatus({ available: true, message: 'Enhancing with book covers...' });
-    setEnhancing(true);
-
-    // Enhance books one at a time and update state progressively
-    for (let i = 0; i < basicRecommendations.length; i++) {
-      const book = basicRecommendations[i];
-      
-      try {
-        // Add a small delay to be respectful to the API
-        if (i > 0) {
-          await new Promise(resolve => setTimeout(resolve, 300));
-        }
-
-        const bookDetails = await getBookDetails(book.title, book.author);
-        
-        // Update the enhanced recommendations progressively
-        setEnhancedRecommendations(prev => {
-          const updated = [...prev];
-          updated[i] = {
-            ...book,
-            coverUrl: bookDetails ? getCoverUrl(bookDetails) : null,
-            description: bookDetails ? bookDetails.description : null,
-            olid: bookDetails ? bookDetails.olid : null,
-            ia: bookDetails ? bookDetails.ia : null,
-            enhanced: true
-          };
-          return updated;
-        });
-      } catch (error) {
-        console.warn(`Failed to enhance book "${book.title}":`, error);
-        // Mark as enhanced but without data
-        setEnhancedRecommendations(prev => {
-          const updated = [...prev];
-          updated[i] = {
-            ...book,
-            coverUrl: null,
-            description: null,
-            olid: null,
-            ia: null,
-            enhanced: true,
-            enhancementFailed: true
-          };
-          return updated;
-        });
-      }
-    }
-
-    setEnhancing(false);
-    setOpenLibraryStatus({ available: true, message: '' });
-  }, []);
-
-  const handleRetryEnhancement = async () => {
-    resetOpenLibraryAvailabilityCache();
-    setOpenLibraryStatus({ available: null, message: 'Retrying OpenLibrary connection...' });
-    
-    // Reset enhanced recommendations to basic ones
-    const basicRecs = enhancedRecommendations.map(rec => ({
-      ...rec,
-      coverUrl: null,
-      description: null,
-      olid: null,
-      ia: null,
-      enhanced: false,
-      enhancementFailed: false
-    }));
-    setEnhancedRecommendations(basicRecs);
-    
-    // Try enhancement again
-    await enhanceRecommendationsInBackground(basicRecs);
-  };
-
-  const fetchRecommendations = async () => {
-    if (!selectedStudentId) {
-      setError('Please select a student first');
-      return;
-    }
-
-    setLoading(true);
+    setLibraryLoading(true);
     setError(null);
-    setOpenLibraryStatus({ available: null, message: '' });
+    setRecommendations([]);
+    setResultType('library');
 
     try {
-      console.log('Fetching AI-powered recommendations for studentId:', selectedStudentId);
-      const response = await fetchWithAuth(`/api/books/recommendations?studentId=${selectedStudentId}`);
-      console.log('Response status:', response.status);
+      const response = await fetchWithAuth(`/api/books/library-search?studentId=${selectedStudentId}`);
 
       if (!response.ok) {
-        throw new Error(`API error: ${response.status} ${response.statusText}`);
+        const errorData = await response.json();
+        throw new Error(errorData.message || errorData.error || `API error: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log('Full API response:', data);
-      console.log('Recommendations data:', data.recommendations);
+      setStudentProfile(data.studentProfile);
+      setRecommendations(data.books || []);
 
-      // Check if we got the new AI format vs old database format
-      if (data.recommendations && data.recommendations.length > 0) {
-        const firstRecommendation = data.recommendations[0];
-        console.log('First recommendation format check:', firstRecommendation);
-
-        let processedRecommendations;
-
-        // Check if this is the new AI format (has 'genre', 'ageRange', 'reason') vs old database format (has 'id', 'genreIds')
-        if (firstRecommendation.genre && firstRecommendation.ageRange && firstRecommendation.reason) {
-          console.log('✅ AI recommendations successfully received!');
-          processedRecommendations = data.recommendations;
-        } else if (firstRecommendation.id && firstRecommendation.genreIds) {
-          console.log('⚠️  Received old database format. Server may need restart. Data:', firstRecommendation);
-          // Still display what we got for now
-          processedRecommendations = data.recommendations.map(book => ({
-            title: book.title,
-            author: book.author || 'Unknown',
-            genre: 'Fiction',
-            ageRange: '8-12',
-            reason: `Classics book available in your library`
-          }));
-        } else {
-          console.log('❌ Unknown recommendation format:', firstRecommendation);
-          processedRecommendations = data.recommendations;
-        }
-
-        // Set recommendations immediately so user sees results right away
-        setRecommendations(processedRecommendations);
-        
-        // Initialize enhanced recommendations with basic data (no covers yet)
-        const initialEnhanced = processedRecommendations.map(book => ({
-          ...book,
-          coverUrl: null,
-          description: null,
-          olid: null,
-          ia: null,
-          enhanced: false
-        }));
-        setEnhancedRecommendations(initialEnhanced);
-        
-        // Stop the main loading indicator - user can see results now
-        setLoading(false);
-
-        // Enhance recommendations with OpenLibrary data in the background
-        console.log('Starting background enhancement with OpenLibrary data...');
-        enhanceRecommendationsInBackground(processedRecommendations);
-      } else {
-        console.log('❌ No recommendations returned');
-        setRecommendations([]);
-        setEnhancedRecommendations([]);
-        setLoading(false);
-      }
     } catch (err) {
-      console.error('Error fetching recommendations:', err);
-      setError(`Failed to fetch recommendations: ${err.message}`);
-      setLoading(false);
+      console.error('Library search error:', err);
+      setError(err.message);
+    } finally {
+      setLibraryLoading(false);
+    }
+  };
+
+  // Handler for AI suggestions
+  const handleAiSuggestions = async () => {
+    if (!selectedStudentId) return;
+
+    setAiLoading(true);
+    setError(null);
+    setRecommendations([]);
+    setResultType('ai');
+
+    try {
+      const response = await fetchWithAuth(`/api/books/ai-suggestions?studentId=${selectedStudentId}`);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || errorData.error || `API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setStudentProfile(data.studentProfile);
+      setRecommendations(data.suggestions || []);
+
+    } catch (err) {
+      console.error('AI suggestions error:', err);
+      setError(err.message);
+    } finally {
+      setAiLoading(false);
     }
   };
 
@@ -338,7 +217,7 @@ const BookRecommendations = () => {
             title={
               hasActiveAI
                 ? `Using ${getProviderDisplayName(activeProvider)} for AI recommendations${aiConfig.modelPreference ? ` (${aiConfig.modelPreference})` : ''}`
-                : 'No AI provider configured. Using fallback recommendations. Configure in Settings > AI Integration.'
+                : 'No AI provider configured. Configure in Settings > AI Integration to enable AI suggestions.'
             }
           >
             <Chip
@@ -464,54 +343,37 @@ const BookRecommendations = () => {
         </Paper>
       )}
 
-      {/* Get Recommendations Button */}
+      {/* Two Buttons Area */}
       {selectedStudentId && (
-        <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
           <Button
             variant="contained"
-            onClick={fetchRecommendations}
-            disabled={loading}
-            size="large"
-            startIcon={loading ? <CircularProgress size={20} /> : <RecommendationsIcon />}
-            sx={{ minWidth: 200 }}
+            color="primary"
+            onClick={handleLibrarySearch}
+            disabled={!selectedStudentId || libraryLoading || aiLoading}
+            startIcon={libraryLoading ? <CircularProgress size={20} color="inherit" /> : <BookIcon />}
           >
-            {loading ? 'Getting Recommendations...' : 'Get Recommendations'}
+            {libraryLoading ? 'Searching...' : 'Find in Library'}
           </Button>
-          
-          {enhancing && (
-            <Chip
-              icon={<CircularProgress size={16} />}
-              label="Loading book covers..."
-              color="info"
-              variant="outlined"
-            />
-          )}
-          
-          {openLibraryStatus.available === false && !enhancing && enhancedRecommendations.length > 0 && (
-            <Chip
-              icon={<CloudOffIcon />}
-              label="Covers unavailable"
-              color="warning"
-              variant="outlined"
-              onDelete={handleRetryEnhancement}
-              deleteIcon={<RefreshIcon />}
-            />
-          )}
+
+          <Tooltip
+            title={!hasActiveAI ? 'Configure AI in Settings to enable' : ''}
+            placement="top"
+          >
+            <span>
+              <Button
+                variant="outlined"
+                color="secondary"
+                onClick={handleAiSuggestions}
+                disabled={!selectedStudentId || libraryLoading || aiLoading || !hasActiveAI}
+                startIcon={aiLoading ? <CircularProgress size={20} color="inherit" /> : <SmartToyIcon />}
+              >
+                {aiLoading ? 'Generating...' : 'AI Suggestions'}
+              </Button>
+            </span>
+          </Tooltip>
         </Box>
       )}
-
-      {/* OpenLibrary status snackbar */}
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={6000}
-        onClose={() => setSnackbarOpen(false)}
-        message={openLibraryStatus.message}
-        action={
-          <IconButton size="small" color="inherit" onClick={handleRetryEnhancement}>
-            <RefreshIcon fontSize="small" />
-          </IconButton>
-        }
-      />
 
       {/* Error display */}
       {error && (
@@ -520,98 +382,101 @@ const BookRecommendations = () => {
         </Alert>
       )}
 
-      {/* Recommendations display */}
-      {enhancedRecommendations.length > 0 && (
-        <Paper sx={{ p: 3 }}>
-          <Typography variant="h6" component="h2" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <RecommendationsIcon color="primary" />
-            Recommended Books for {selectedStudent?.name}
+      {/* Student Profile Summary */}
+      {studentProfile && (
+        <Paper sx={{ p: 2, mb: 3, bgcolor: 'grey.50' }}>
+          <Typography variant="body2" color="text.secondary">
+            <strong>Based on:</strong> {studentProfile.readingLevel} reader
+            {studentProfile.favoriteGenres?.length > 0 && (
+              <> | <strong>Loves:</strong> {studentProfile.favoriteGenres.join(', ')}</>
+            )}
+            {studentProfile.inferredGenres?.length > 0 && (
+              <> | <strong>Also enjoys:</strong> {studentProfile.inferredGenres.join(', ')}</>
+            )}
+            {studentProfile.recentReads?.length > 0 && (
+              <> | <strong>Recent:</strong> {studentProfile.recentReads.slice(0, 3).join(', ')}</>
+            )}
           </Typography>
-
-          <Grid container spacing={3}>
-            {enhancedRecommendations.slice(0, 4).map((book, index) => (
-              <Grid item xs={12} sm={6} key={index}>
-                <Card elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'row' }}>
-                  {book.coverUrl && (
-                    <Box
-                      sx={{
-                        flexShrink: 0,
-                        width: 180,
-                        minHeight: 180,
-                        position: 'relative',
-                        backgroundColor: 'grey.100'
-                      }}
-                    >
-                      <CardMedia
-                        component="img"
-                        image={book.coverUrl}
-                        alt={`Cover of ${book.title}`}
-                        sx={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                          position: 'absolute',
-                          top: 0,
-                          left: 0
-                        }}
-                        onError={(e) => {
-                          e.target.parentElement.style.display = 'none';
-                        }}
-                      />
-                    </Box>
-                  )}
-                  <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                    <Typography variant="h6" component="h3" gutterBottom sx={{ fontSize: '1.1rem' }}>
-                      {book.title}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      {book.author && `by ${book.author}`}
-                    </Typography>
-                    <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap', gap: 0.5 }}>
-                      {book.genre && (
-                        <Chip label={book.genre} size="small" color="secondary" />
-                      )}
-                      {book.level && (
-                        <Chip label={`Level ${book.level}`} size="small" color="primary" />
-                      )}
-                      {book.ageRange && (
-                        <Chip label={book.ageRange} size="small" color="info" />
-                      )}
-                    </Stack>
-                    {book.description && (
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{
-                          flexGrow: 1,
-                          mb: 2,
-                          overflow: 'hidden',
-                          display: '-webkit-box',
-                          WebkitLineClamp: 3,
-                          WebkitBoxOrient: 'vertical'
-                        }}
-                      >
-                        {book.description}
-                      </Typography>
-                    )}
-                    {book.reason && (
-                      <Typography variant="body2" color="primary" sx={{ fontStyle: 'italic' }}>
-                        {book.reason}
-                      </Typography>
-                    )}
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
         </Paper>
       )}
 
+      {/* Results Header */}
+      {recommendations.length > 0 && (
+        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {resultType === 'library' ? (
+            <>
+              <BookIcon /> Books from Your Library
+            </>
+          ) : (
+            <>
+              <SmartToyIcon /> AI Suggestions
+            </>
+          )}
+          <Chip label={`${recommendations.length} results`} size="small" />
+        </Typography>
+      )}
+
+      {/* Results Grid */}
+      {recommendations.length > 0 && (
+        <Grid container spacing={2}>
+          {recommendations.map((book, index) => (
+            <Grid item xs={12} md={6} key={book.id || index}>
+              <Card>
+                <CardContent>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <Typography variant="h6" component="div">
+                      {book.title}
+                    </Typography>
+                    {resultType === 'ai' && book.inLibrary && (
+                      <Chip
+                        icon={<CheckCircleIcon />}
+                        label="In your library"
+                        size="small"
+                        color="success"
+                      />
+                    )}
+                  </Box>
+                  <Typography color="text.secondary" gutterBottom>
+                    by {book.author}
+                  </Typography>
+
+                  <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+                    <Chip label={book.readingLevel || book.level} size="small" variant="outlined" />
+                    {book.ageRange && <Chip label={book.ageRange} size="small" variant="outlined" />}
+                  </Stack>
+
+                  {/* Genres for library results */}
+                  {resultType === 'library' && book.genres && (
+                    <Stack direction="row" spacing={0.5} sx={{ mb: 1, flexWrap: 'wrap', gap: 0.5 }}>
+                      {book.genres.map((genre, i) => (
+                        <Chip key={i} label={genre} size="small" color="primary" variant="outlined" />
+                      ))}
+                    </Stack>
+                  )}
+
+                  {/* Match reason or AI reasoning */}
+                  <Typography variant="body2" sx={{ mt: 1, fontStyle: 'italic' }}>
+                    {resultType === 'library' ? book.matchReason : book.reason}
+                  </Typography>
+
+                  {/* Where to find for AI results */}
+                  {resultType === 'ai' && book.whereToFind && (
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                      {book.whereToFind}
+                    </Typography>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      )}
+
       {/* No recommendations yet */}
-      {enhancedRecommendations.length === 0 && selectedStudentId && !loading && !enhancing && !error && (
+      {recommendations.length === 0 && selectedStudentId && !libraryLoading && !aiLoading && !error && (
         <Paper sx={{ p: 3 }}>
           <Typography variant="body1" color="text.secondary">
-            Click "Get Recommendations" to see personalized book suggestions for this student.
+            Click "Find in Library" to search your book collection, or "AI Suggestions" for personalized recommendations.
           </Typography>
         </Paper>
       )}
