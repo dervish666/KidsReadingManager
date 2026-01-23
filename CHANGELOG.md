@@ -1,5 +1,35 @@
 # Changelog
 
+## [2.7.0] - 2026-01-23
+
+### Added: Owner School Switcher
+
+Allows owner users to switch between organizations and manage any school's data without logging out.
+
+#### Features
+- **School Selector Dropdown**: New chip-style selector in the header (visible only to owners with multiple organizations)
+- **Soft Context Switch**: Data refreshes without page reload when switching schools
+- **Loading Indicator**: Shows spinner during organization switch
+- **Automatic Filter Reset**: Class filter resets to "All Classes" when switching schools
+
+#### UI/UX
+- School name displayed as a green chip with school icon
+- Dropdown menu lists all available organizations
+- Current selection highlighted in the menu
+- Positioned after user info chip, before logout button
+
+#### Technical Details
+- **Backend**: Tenant middleware checks `X-Organization-Id` header for owners to override organization context
+- **Frontend**: AppContext manages available organizations and active organization state
+- **API Requests**: Automatically include `X-Organization-Id` header when owner has switched orgs
+
+#### Files Modified
+- `src/middleware/tenant.js` - Added organization override support for owners
+- `src/contexts/AppContext.js` - Added organization switching state and functions
+- `src/components/Header.js` - Added school selector dropdown UI
+
+---
+
 ## [2.6.0] - 2026-01-09
 
 ### Added: Reading Streaks
