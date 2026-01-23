@@ -1,14 +1,44 @@
-import React from 'react';
-import { AppBar, Toolbar, Typography, IconButton, Box, FormControl, Select, MenuItem, Button, Chip } from '@mui/material';
+import React, { useState } from 'react';
+import { AppBar, Toolbar, Typography, IconButton, Box, FormControl, Select, MenuItem, Button, Chip, Menu, CircularProgress } from '@mui/material';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import LogoutIcon from '@mui/icons-material/Logout';
+import SchoolOutlined from '@mui/icons-material/SchoolOutlined';
 import packageJson from '../../package.json';
 import { useAppContext } from '../contexts/AppContext';
 
 const Header = () => {
-  const { classes, globalClassFilter, setGlobalClassFilter, isAuthenticated, logout, user } = useAppContext();
-  
+  const {
+    classes,
+    globalClassFilter,
+    setGlobalClassFilter,
+    isAuthenticated,
+    logout,
+    user,
+    availableOrganizations,
+    activeOrganizationId,
+    switchOrganization,
+    switchingOrganization,
+    organization,
+  } = useAppContext();
+
+  // State for school selector dropdown
+  const [schoolAnchorEl, setSchoolAnchorEl] = useState(null);
+  const schoolMenuOpen = Boolean(schoolAnchorEl);
+
+  const handleSchoolMenuClick = (event) => {
+    setSchoolAnchorEl(event.currentTarget);
+  };
+
+  const handleSchoolMenuClose = () => {
+    setSchoolAnchorEl(null);
+  };
+
+  const handleSchoolSelect = (orgId) => {
+    switchOrganization(orgId);
+    handleSchoolMenuClose();
+  };
+
   // Get active (non-disabled) classes
   const activeClasses = classes.filter(cls => !cls.disabled);
   
@@ -213,7 +243,76 @@ const Header = () => {
                 />
               </Box>
             )}
-            
+
+            {/* School Selector - Only for owners with multiple organizations */}
+            {user?.role === 'owner' && availableOrganizations.length > 1 && (
+              <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
+                <Chip
+                  icon={switchingOrganization ? (
+                    <CircularProgress size={14} sx={{ color: 'white' }} />
+                  ) : (
+                    <SchoolOutlined sx={{ fontSize: 16 }} />
+                  )}
+                  label={organization?.name || 'Select School'}
+                  onClick={handleSchoolMenuClick}
+                  sx={{
+                    backgroundColor: '#6B8E6B',
+                    color: 'white',
+                    fontWeight: 600,
+                    fontSize: '0.75rem',
+                    cursor: 'pointer',
+                    '&:hover': {
+                      backgroundColor: '#5A7D5A',
+                    },
+                    '& .MuiChip-icon': {
+                      color: 'white',
+                    },
+                  }}
+                />
+                <Menu
+                  anchorEl={schoolAnchorEl}
+                  open={schoolMenuOpen}
+                  onClose={handleSchoolMenuClose}
+                  anchorOrigin={{
+                    vertical: 'bottom',
+                    horizontal: 'right',
+                  }}
+                  transformOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                  }}
+                  PaperProps={{
+                    sx: {
+                      mt: 1,
+                      minWidth: 200,
+                      borderRadius: '10px',
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                    },
+                  }}
+                >
+                  {availableOrganizations.map((org) => (
+                    <MenuItem
+                      key={org.id}
+                      onClick={() => handleSchoolSelect(org.id)}
+                      selected={activeOrganizationId ? org.id === activeOrganizationId : org.id === organization?.id}
+                      sx={{
+                        fontFamily: '"DM Sans", sans-serif',
+                        fontWeight: 500,
+                        '&.Mui-selected': {
+                          backgroundColor: 'rgba(107, 142, 107, 0.15)',
+                        },
+                        '&.Mui-selected:hover': {
+                          backgroundColor: 'rgba(107, 142, 107, 0.25)',
+                        },
+                      }}
+                    >
+                      {org.name}
+                    </MenuItem>
+                  ))}
+                </Menu>
+              </Box>
+            )}
+
             <Button
               variant="outlined"
               size="small"
