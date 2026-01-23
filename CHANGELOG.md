@@ -1,5 +1,34 @@
 # Changelog
 
+## [2.8.0] - 2026-01-23
+
+### Improved: Responsive Layout for Recommendations and Stats Pages
+
+Redesigned the Book Recommendations and Reading Stats pages to use CSS Grid for better responsiveness on different screen sizes, particularly iPad.
+
+#### Book Recommendations Page
+- **Simplified Layout**: Replaced two separate Paper tiles with a single container using CSS Grid
+- **Compact Header**: Student name, class chip, reading level, and Edit Preferences button in a single row
+- **Two-Column Content**: Books read list on left, profile details on right (stacks on mobile)
+- **Cleaner Design**: Removed heavy MUI List components in favor of simple Box-based lists
+
+#### Stats Overview Tab
+- **Compact Summary Row**: Four key stats (Total Sessions, Students Read, Avg Sessions/Student, Days with Activity) in a fixed 4-column grid
+- **Fluid Content Grid**: Main content cards use `auto-fit, minmax(280px, 1fr)` for optimal flow
+- **Smaller Cards**: Reduced padding and font sizes for higher information density
+
+#### Stats Streaks Tab
+- **Consistent Summary Row**: Same 4-column compact layout for streak statistics
+- **Two-Column Lists**: Active Streaks and Students Without Streaks side by side on larger screens
+- **Simplified List Items**: Box components instead of MUI List for cleaner styling
+
+#### Technical Changes
+- Switched from MUI Grid to native CSS Grid for more control over responsive behavior
+- Used `gridTemplateColumns` with responsive breakpoints (`xs`, `sm`)
+- Reduced visual weight by removing nested Paper/Card components
+
+---
+
 ## [2.7.0] - 2026-01-23
 
 ### Added: Owner School Switcher
