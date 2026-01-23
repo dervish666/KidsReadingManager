@@ -17,6 +17,7 @@ import { generateRecommendations } from '../services/aiService.js';
 // Import utilities
 import { notFoundError, badRequestError } from '../middleware/errorHandler';
 import { decryptSensitiveData } from '../utils/crypto.js';
+import { buildStudentReadingProfile } from '../utils/studentProfile.js';
 
 // Create router
 const booksRouter = new Hono();
@@ -75,6 +76,165 @@ booksRouter.get('/search', async (c) => {
     query: q.trim(),
     count: books.length,
     books
+  });
+});
+
+/**
+ * GET /api/books/library-search
+ * Find books from the library matching a student's profile
+ * No AI - pure database search
+ *
+ * Query params:
+ * - studentId: Required - the student to find books for
+ */
+booksRouter.get('/library-search', async (c) => {
+  const { studentId } = c.req.query();
+
+  if (!studentId) {
+    return c.json({ error: 'studentId query parameter is required' }, 400);
+  }
+
+  const organizationId = c.get('organizationId');
+  const db = c.env.READING_MANAGER_DB;
+
+  if (!organizationId || !db) {
+    return c.json({ error: 'Multi-tenant mode required for library search' }, 400);
+  }
+
+  // Build student profile
+  const profile = await buildStudentReadingProfile(studentId, organizationId, db);
+
+  if (!profile) {
+    return c.json({ error: `Student with ID ${studentId} not found` }, 404);
+  }
+
+  // Build the search query
+  const { student, preferences, inferredGenres, readBookIds } = profile;
+
+  // Reading level mapping for ±1 level matching
+  const levelOrder = ['beginner', 'elementary', 'intermediate', 'advanced', 'expert'];
+  const studentLevelIndex = levelOrder.indexOf(student.readingLevel.toLowerCase());
+  const validLevels = levelOrder.slice(
+    Math.max(0, studentLevelIndex - 1),
+    Math.min(levelOrder.length, studentLevelIndex + 2)
+  );
+
+  // Build query to find matching books
+  let query = `
+    SELECT DISTINCT b.id, b.title, b.author, b.reading_level, b.age_range, b.genre_ids, b.description
+    FROM books b
+    WHERE 1=1
+  `;
+  const params = [];
+
+  // Filter by reading level (±1 level)
+  if (validLevels.length > 0 && studentLevelIndex >= 0) {
+    const placeholders = validLevels.map(() => '?').join(',');
+    query += ` AND LOWER(b.reading_level) IN (${placeholders})`;
+    params.push(...validLevels);
+  }
+
+  // Exclude already-read books
+  if (readBookIds.length > 0) {
+    const placeholders = readBookIds.map(() => '?').join(',');
+    query += ` AND b.id NOT IN (${placeholders})`;
+    params.push(...readBookIds);
+  }
+
+  // Exclude disliked books (by title match)
+  if (preferences.dislikes.length > 0) {
+    for (const disliked of preferences.dislikes) {
+      query += ` AND b.title NOT LIKE ?`;
+      params.push(`%${disliked}%`);
+    }
+  }
+
+  query += ` LIMIT 100`; // Get more than we need for scoring
+
+  const booksResult = await db.prepare(query).bind(...params).all();
+  let books = booksResult.results || [];
+
+  // Score and sort books by genre match
+  const scoredBooks = books.map(book => {
+    let score = 0;
+    const matchReasons = [];
+    const bookGenreIds = book.genre_ids ? book.genre_ids.split(',').map(g => g.trim()) : [];
+
+    // Score for matching favorite genres
+    for (const genreId of bookGenreIds) {
+      if (preferences.favoriteGenreIds.includes(genreId)) {
+        score += 3; // Explicit favorite gets higher weight
+        matchReasons.push('favorite genre');
+      } else if (inferredGenres.some(g => g.id === genreId)) {
+        score += 2; // Inferred favorite
+        matchReasons.push('matches reading history');
+      }
+    }
+
+    // Score for matching reading level exactly
+    if (book.reading_level?.toLowerCase() === student.readingLevel.toLowerCase()) {
+      score += 1;
+      matchReasons.push('perfect level match');
+    }
+
+    return { ...book, score, matchReasons: [...new Set(matchReasons)] };
+  });
+
+  // Sort by score (highest first) and take top 10
+  scoredBooks.sort((a, b) => b.score - a.score);
+  const topBooks = scoredBooks.slice(0, 10);
+
+  // Get genre names for display
+  const allGenreIds = [...new Set(topBooks.flatMap(b =>
+    b.genre_ids ? b.genre_ids.split(',').map(g => g.trim()) : []
+  ))];
+
+  let genreNameMap = {};
+  if (allGenreIds.length > 0) {
+    const placeholders = allGenreIds.map(() => '?').join(',');
+    const genresResult = await db.prepare(`
+      SELECT id, name FROM genres WHERE id IN (${placeholders})
+    `).bind(...allGenreIds).all();
+
+    for (const row of (genresResult.results || [])) {
+      genreNameMap[row.id] = row.name;
+    }
+  }
+
+  // Format response
+  const formattedBooks = topBooks.map(book => {
+    const genreIds = book.genre_ids ? book.genre_ids.split(',').map(g => g.trim()) : [];
+    const genres = genreIds.map(id => genreNameMap[id] || id);
+
+    // Build match reason string
+    let matchReason = 'Matches your reading level';
+    if (book.matchReasons.includes('favorite genre')) {
+      const matchingGenre = genres.find(g => preferences.favoriteGenreNames.includes(g));
+      matchReason = `Matches favorite genre: ${matchingGenre || genres[0] || 'General'}`;
+    } else if (book.matchReasons.includes('matches reading history')) {
+      matchReason = 'Similar to books you\'ve enjoyed';
+    }
+
+    return {
+      id: book.id,
+      title: book.title,
+      author: book.author,
+      readingLevel: book.reading_level,
+      ageRange: book.age_range,
+      genres,
+      matchReason
+    };
+  });
+
+  return c.json({
+    books: formattedBooks,
+    studentProfile: {
+      name: student.name,
+      readingLevel: student.readingLevel,
+      favoriteGenres: preferences.favoriteGenreNames,
+      inferredGenres: inferredGenres.map(g => g.name),
+      booksRead: profile.booksReadCount
+    }
   });
 });
 
