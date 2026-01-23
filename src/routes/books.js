@@ -104,14 +104,6 @@ booksRouter.get('/library-search', async (c) => {
     // Build the search query
     const { student, preferences, inferredGenres, readBookIds } = profile;
 
-    // Reading level mapping for ±1 level matching
-    const levelOrder = ['beginner', 'elementary', 'intermediate', 'advanced', 'expert'];
-    const studentLevelIndex = levelOrder.indexOf(student.readingLevel.toLowerCase());
-    const validLevels = levelOrder.slice(
-      Math.max(0, studentLevelIndex - 1),
-      Math.min(levelOrder.length, studentLevelIndex + 2)
-    );
-
     // Build query to find matching books
     let query = `
       SELECT DISTINCT b.id, b.title, b.author, b.reading_level, b.age_range, b.genre_ids, b.description
@@ -120,12 +112,31 @@ booksRouter.get('/library-search', async (c) => {
     `;
     const params = [];
 
-    // Filter by reading level (±1 level)
-    if (validLevels.length > 0 && studentLevelIndex >= 0) {
-      const placeholders = validLevels.map(() => '?').join(',');
-      query += ` AND LOWER(b.reading_level) IN (${placeholders})`;
-      params.push(...validLevels);
+    // Filter by reading level if student has one set
+    // Reading levels can be numeric (0.5, 1.0, 2.0) or text (beginner, intermediate)
+    const studentLevel = student.readingLevel;
+    if (studentLevel) {
+      const numericLevel = parseFloat(studentLevel);
+      if (!isNaN(numericLevel)) {
+        // Numeric level: match within ±0.5 range
+        query += ` AND CAST(b.reading_level AS REAL) BETWEEN ? AND ?`;
+        params.push(numericLevel - 0.5, numericLevel + 0.5);
+      } else {
+        // Text level: use text-based matching
+        const levelOrder = ['beginner', 'elementary', 'intermediate', 'advanced', 'expert'];
+        const studentLevelIndex = levelOrder.indexOf(studentLevel.toLowerCase());
+        if (studentLevelIndex >= 0) {
+          const validLevels = levelOrder.slice(
+            Math.max(0, studentLevelIndex - 1),
+            Math.min(levelOrder.length, studentLevelIndex + 2)
+          );
+          const placeholders = validLevels.map(() => '?').join(',');
+          query += ` AND LOWER(b.reading_level) IN (${placeholders})`;
+          params.push(...validLevels);
+        }
+      }
     }
+    // If no reading level set, don't filter by level (return all levels)
 
     // Exclude already-read books
     if (readBookIds.length > 0) {
@@ -165,9 +176,13 @@ booksRouter.get('/library-search', async (c) => {
       }
 
       // Score for matching reading level exactly
-      if (book.reading_level?.toLowerCase() === student.readingLevel.toLowerCase()) {
-        score += 1;
-        matchReasons.push('perfect level match');
+      if (studentLevel && book.reading_level) {
+        const bookLevel = book.reading_level.toLowerCase();
+        const studentLevelLower = studentLevel.toLowerCase();
+        if (bookLevel === studentLevelLower) {
+          score += 1;
+          matchReasons.push('perfect level match');
+        }
       }
 
       return { ...book, score, matchReasons: [...new Set(matchReasons)] };
