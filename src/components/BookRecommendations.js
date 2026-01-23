@@ -19,7 +19,8 @@ import {
   Divider,
   Paper,
   Stack,
-  Tooltip
+  Tooltip,
+  IconButton
 } from '@mui/material';
 import { useAppContext } from '../contexts/AppContext';
 import BookIcon from '@mui/icons-material/Book';
@@ -29,6 +30,12 @@ import RecommendationsIcon from '@mui/icons-material/Star';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WarningIcon from '@mui/icons-material/Warning';
+import EditIcon from '@mui/icons-material/Edit';
+import FavoriteIcon from '@mui/icons-material/Favorite';
+import HistoryIcon from '@mui/icons-material/History';
+import ThumbUpIcon from '@mui/icons-material/ThumbUp';
+import ThumbDownIcon from '@mui/icons-material/ThumbDown';
+import ReadingPreferences from './students/ReadingPreferences';
 
 const BookRecommendations = () => {
   const { students, classes, books, apiError, fetchWithAuth, globalClassFilter } = useAppContext();
@@ -45,6 +52,10 @@ const BookRecommendations = () => {
   const [aiLoading, setAiLoading] = useState(false);
   const [resultType, setResultType] = useState(null); // 'library' or 'ai'
   const [studentProfile, setStudentProfile] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+
+  // State for preferences modal
+  const [preferencesOpen, setPreferencesOpen] = useState(false);
 
   // Load AI config on mount
   useEffect(() => {
@@ -113,7 +124,7 @@ const BookRecommendations = () => {
     return uniqueBooks.size;
   };
 
-  const handleStudentChange = (event) => {
+  const handleStudentChange = async (event) => {
     const studentId = event.target.value;
     setSelectedStudentId(studentId);
 
@@ -139,6 +150,22 @@ const BookRecommendations = () => {
     setStudentProfile(null);
     setResultType(null);
     setError(null);
+
+    // Fetch the student profile for display
+    if (studentId) {
+      setProfileLoading(true);
+      try {
+        const response = await fetchWithAuth(`/api/books/library-search?studentId=${studentId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setStudentProfile(data.studentProfile);
+        }
+      } catch (err) {
+        console.error('Error fetching student profile:', err);
+      } finally {
+        setProfileLoading(false);
+      }
+    }
   };
 
   // Handler for library search
@@ -268,79 +295,187 @@ const BookRecommendations = () => {
         </FormControl>
       </Paper>
 
-      {/* Student info and books read */}
+      {/* Student info and profile details */}
       {selectedStudent && (
-        <Paper sx={{ p: 3, mb: 4 }}>
-          <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <PersonIcon />
-            {selectedStudent.name}
-            {selectedClass && (
-              <Chip label={selectedClass.name} size="small" color="primary" />
-            )}
-          </Typography>
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          {/* Left side: Books read */}
+          <Grid item xs={12} md={6}>
+            <Paper sx={{ p: 3, height: '100%' }}>
+              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <PersonIcon />
+                {selectedStudent.name}
+                {selectedClass && (
+                  <Chip label={selectedClass.name} size="small" color="primary" sx={{ ml: 1 }} />
+                )}
+              </Typography>
 
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <Card variant="outlined">
+              <Card variant="outlined" sx={{ mt: 2 }}>
                 <CardContent>
-                  <Typography variant="h6"component="h3" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <BookIcon />
+                  <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <BookIcon fontSize="small" />
                     Books Read ({booksRead.length})
                   </Typography>
                   {booksRead.length > 0 ? (
-                    <List sx={{ maxHeight: 200, overflow: 'auto' }}>
-                      {booksRead.map((book, index) => (
-                          <React.Fragment key={book.id}>
-                            <ListItem>
-                              <ListItemText
-                                primary={getBookTitle(book.bookId)}
-                              secondary={
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
-                                  <Typography variant="body2" color="text.secondary">
-                                    {new Date(book.dateRead).toLocaleDateString()}
-                                  </Typography>
-                                  {book.assessment && (
-                                    <Chip label={book.assessment} size="small" />
-                                  )}
-                                </Box>
-                              }
+                    <List dense sx={{ maxHeight: 200, overflow: 'auto' }}>
+                      {booksRead.slice(0, 10).map((book, index) => (
+                        <React.Fragment key={book.id}>
+                          <ListItem>
+                            <ListItemText
+                              primary={getBookTitle(book.bookId)}
+                              secondary={new Date(book.dateRead).toLocaleDateString()}
                             />
                           </ListItem>
-                          {index < booksRead.length - 1 && <Divider />}
+                          {index < Math.min(booksRead.length, 10) - 1 && <Divider />}
                         </React.Fragment>
                       ))}
+                      {booksRead.length > 10 && (
+                        <ListItem>
+                          <ListItemText
+                            secondary={`... and ${booksRead.length - 10} more`}
+                          />
+                        </ListItem>
+                      )}
                     </List>
                   ) : (
-                    <Typography color="text.secondary">
-                      No books recorded for this student
+                    <Typography color="text.secondary" variant="body2">
+                      No books recorded yet
                     </Typography>
                   )}
                 </CardContent>
               </Card>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Card variant="outlined">
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Reading Sessions
-                  </Typography>
-                  <Typography variant="h4" color="primary">
-                    {selectedStudent.readingSessions?.length || 0}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Total sessions recorded
-                  </Typography>
-                  {selectedStudent.lastReadDate && (
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                      Last read: {new Date(selectedStudent.lastReadDate).toLocaleDateString()}
-                    </Typography>
-                  )}
-                </CardContent>
-              </Card>
-            </Grid>
+            </Paper>
           </Grid>
-        </Paper>
+
+          {/* Right side: Profile details for recommendations */}
+          <Grid item xs={12} md={6}>
+            <Paper sx={{ p: 3, height: '100%', bgcolor: 'primary.50' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <SmartToyIcon color="primary" />
+                  Recommendation Profile
+                </Typography>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<EditIcon />}
+                  onClick={() => setPreferencesOpen(true)}
+                >
+                  Edit Preferences
+                </Button>
+              </Box>
+
+              {profileLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                  <CircularProgress size={24} />
+                </Box>
+              ) : studentProfile ? (
+                <Stack spacing={2}>
+                  {/* Reading Level */}
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                      Reading Level
+                    </Typography>
+                    <Chip
+                      label={studentProfile.readingLevel || 'Not set'}
+                      color={studentProfile.readingLevel ? 'primary' : 'default'}
+                      variant={studentProfile.readingLevel ? 'filled' : 'outlined'}
+                    />
+                  </Box>
+
+                  {/* Favorite Genres */}
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <FavoriteIcon fontSize="small" color="error" />
+                      Favorite Genres
+                    </Typography>
+                    {studentProfile.favoriteGenres?.length > 0 ? (
+                      <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                        {studentProfile.favoriteGenres.map((genre, i) => (
+                          <Chip key={i} label={genre} size="small" color="error" variant="outlined" />
+                        ))}
+                      </Stack>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary" fontStyle="italic">
+                        None set - click Edit Preferences to add
+                      </Typography>
+                    )}
+                  </Box>
+
+                  {/* Inferred Genres from History */}
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <HistoryIcon fontSize="small" />
+                      From Reading History
+                    </Typography>
+                    {studentProfile.inferredGenres?.length > 0 ? (
+                      <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                        {studentProfile.inferredGenres.map((genre, i) => (
+                          <Chip key={i} label={genre} size="small" variant="outlined" />
+                        ))}
+                      </Stack>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary" fontStyle="italic">
+                        No reading history yet
+                      </Typography>
+                    )}
+                  </Box>
+
+                  {/* Likes */}
+                  {selectedStudent.preferences?.likes?.length > 0 && (
+                    <Box>
+                      <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <ThumbUpIcon fontSize="small" color="success" />
+                        Books They Liked
+                      </Typography>
+                      <Typography variant="body2">
+                        {selectedStudent.preferences.likes.join(', ')}
+                      </Typography>
+                    </Box>
+                  )}
+
+                  {/* Dislikes */}
+                  {selectedStudent.preferences?.dislikes?.length > 0 && (
+                    <Box>
+                      <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <ThumbDownIcon fontSize="small" color="warning" />
+                        Books They Disliked
+                      </Typography>
+                      <Typography variant="body2">
+                        {selectedStudent.preferences.dislikes.join(', ')}
+                      </Typography>
+                    </Box>
+                  )}
+
+                  {/* Recent Reads */}
+                  {studentProfile.recentReads?.length > 0 && (
+                    <Box>
+                      <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                        Recent Reads
+                      </Typography>
+                      <Typography variant="body2">
+                        {studentProfile.recentReads.slice(0, 5).join(', ')}
+                      </Typography>
+                    </Box>
+                  )}
+
+                  {/* Books Read Count */}
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                      Total Books Read
+                    </Typography>
+                    <Typography variant="h5" color="primary">
+                      {studentProfile.booksRead || booksRead.length}
+                    </Typography>
+                  </Box>
+                </Stack>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  Select a student to see their recommendation profile
+                </Typography>
+              )}
+            </Paper>
+          </Grid>
+        </Grid>
       )}
 
       {/* Two Buttons Area */}
@@ -380,24 +515,6 @@ const BookRecommendations = () => {
         <Alert severity="error" sx={{ mb: 3 }}>
           {error}
         </Alert>
-      )}
-
-      {/* Student Profile Summary */}
-      {studentProfile && (
-        <Paper sx={{ p: 2, mb: 3, bgcolor: 'grey.50' }}>
-          <Typography variant="body2" color="text.secondary">
-            <strong>Based on:</strong> {studentProfile.readingLevel} reader
-            {studentProfile.favoriteGenres?.length > 0 && (
-              <> | <strong>Loves:</strong> {studentProfile.favoriteGenres.join(', ')}</>
-            )}
-            {studentProfile.inferredGenres?.length > 0 && (
-              <> | <strong>Also enjoys:</strong> {studentProfile.inferredGenres.join(', ')}</>
-            )}
-            {studentProfile.recentReads?.length > 0 && (
-              <> | <strong>Recent:</strong> {studentProfile.recentReads.slice(0, 3).join(', ')}</>
-            )}
-          </Typography>
-        </Paper>
       )}
 
       {/* Results Header */}
@@ -479,6 +596,32 @@ const BookRecommendations = () => {
             Click "Find in Library" to search your book collection, or "AI Suggestions" for personalized recommendations.
           </Typography>
         </Paper>
+      )}
+
+      {/* Reading Preferences Modal */}
+      {selectedStudent && (
+        <ReadingPreferences
+          open={preferencesOpen}
+          onClose={async () => {
+            setPreferencesOpen(false);
+            // Refresh student profile after closing preferences modal
+            if (selectedStudentId) {
+              setProfileLoading(true);
+              try {
+                const response = await fetchWithAuth(`/api/books/library-search?studentId=${selectedStudentId}`);
+                if (response.ok) {
+                  const data = await response.json();
+                  setStudentProfile(data.studentProfile);
+                }
+              } catch (err) {
+                console.error('Error refreshing student profile:', err);
+              } finally {
+                setProfileLoading(false);
+              }
+            }
+          }}
+          student={selectedStudent}
+        />
       )}
     </Box>
   );
