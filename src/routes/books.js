@@ -7,7 +7,7 @@ import { createProvider } from '../data/index.js';
 import { generateBroadSuggestions } from '../services/aiService.js';
 
 // Import utilities
-import { notFoundError, badRequestError } from '../middleware/errorHandler';
+import { notFoundError, badRequestError, serverError } from '../middleware/errorHandler';
 import { decryptSensitiveData } from '../utils/crypto.js';
 import { buildStudentReadingProfile } from '../utils/studentProfile.js';
 
@@ -316,11 +316,11 @@ booksRouter.get('/ai-suggestions', async (c) => {
       }
     }
 
-    // Add inLibrary flag to each suggestion
-    const enrichedSuggestions = suggestions.map(suggestion => ({
+    // Add inLibrary flag to each suggestion (with null safety)
+    const enrichedSuggestions = (suggestions || []).map(suggestion => ({
       ...suggestion,
-      inLibrary: !!libraryMatches[suggestion.title.toLowerCase()],
-      libraryBookId: libraryMatches[suggestion.title.toLowerCase()] || null
+      inLibrary: suggestion?.title ? !!libraryMatches[suggestion.title.toLowerCase()] : false,
+      libraryBookId: suggestion?.title ? (libraryMatches[suggestion.title.toLowerCase()] || null) : null
     }));
 
     return c.json({
@@ -335,13 +335,13 @@ booksRouter.get('/ai-suggestions', async (c) => {
     });
 
   } catch (error) {
-    // Re-throw known errors
+    // Re-throw known errors (badRequestError, notFoundError, etc.)
     if (error.status) {
       throw error;
     }
-    // Log and handle AI service errors
+    // Log and handle AI service errors (use 500 for upstream failures)
     console.error('AI suggestions error:', error);
-    throw badRequestError('Failed to generate suggestions. Try again or use "Find in Library" instead.');
+    throw serverError('Failed to generate suggestions. Try again or use "Find in Library" instead.');
   }
 });
 
