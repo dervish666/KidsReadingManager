@@ -355,8 +355,8 @@ booksRouter.get('/ai-suggestions', async (c) => {
       throw error;
     }
     // Log and handle AI service errors (use 500 for upstream failures)
-    console.error('AI suggestions error:', error);
-    throw serverError('Failed to generate suggestions. Try again or use "Find in Library" instead.');
+    console.error('AI suggestions error:', error.message, error.stack);
+    throw serverError(`AI error: ${error.message || 'Unknown error'}. Try "Find in Library" instead.`);
   }
 });
 

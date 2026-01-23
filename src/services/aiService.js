@@ -204,12 +204,32 @@ async function callGemini(prompt, apiKey, model = 'gemini-flash-latest', baseUrl
   });
 
   if (!response.ok) {
-    const errorData = await response.json();
+    const errorData = await response.json().catch(() => ({}));
+    console.error('Gemini API error response:', JSON.stringify(errorData));
     throw new Error(`Gemini API error: ${errorData.error?.message || response.statusText}`);
   }
 
   const data = await response.json();
-  const content = data.candidates[0].content.parts[0].text;
+
+  // Handle various Gemini response structures
+  if (!data.candidates || !data.candidates[0]) {
+    console.error('Gemini unexpected response structure:', JSON.stringify(data));
+    throw new Error('Gemini API returned unexpected response structure');
+  }
+
+  const candidate = data.candidates[0];
+
+  // Check for blocked content or safety issues
+  if (candidate.finishReason === 'SAFETY' || candidate.finishReason === 'BLOCKED') {
+    console.error('Gemini content blocked:', candidate.finishReason);
+    throw new Error('Gemini blocked the response due to safety settings');
+  }
+
+  const content = candidate.content?.parts?.[0]?.text;
+  if (!content) {
+    console.error('Gemini no content in response:', JSON.stringify(candidate));
+    throw new Error('Gemini API returned empty content');
+  }
 
   return raw ? content : parseResponse(content);
 }
