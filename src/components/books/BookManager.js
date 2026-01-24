@@ -1251,7 +1251,7 @@ const BookManager = () => {
             </Box>
 
             {/* Action Buttons */}
-            <Box sx={{ display: 'flex', gap: 1, flex: '0 0 auto', alignItems: 'center' }}>
+            <Box sx={{ display: 'flex', gap: 1, flex: '0 0 auto', alignItems: 'center', alignSelf: 'flex-end' }}>
               {/* Fill Info Button with Menu */}
               <Button
                 variant="outlined"
