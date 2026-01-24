@@ -39,3 +39,8 @@ EMAIL_FROM = "noreply@brisflix.com"
 
 [observability.logs]
 enabled = true
+
+# Cron triggers for scheduled tasks
+# Runs daily at 2:00 AM UTC to recalculate all student streaks
+[triggers]
+crons = ["0 2 * * *"]

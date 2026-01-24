@@ -17,7 +17,7 @@ import { logger } from 'hono/logger';
 import { prettyJSON } from 'hono/pretty-json';
 
 // Import route handlers
-import { studentsRouter } from './routes/students';
+import { studentsRouter, recalculateAllStreaks } from './routes/students';
 import { settingsRouter } from './routes/settings';
 import { dataRouter } from './routes/data';
 import { classesRouter } from './routes/classes';
@@ -279,6 +279,39 @@ export default {
       // return app.fetch(request, env, ctx);
       // Safest default: return a standard 404
        return new Response('Not Found', { status: 404 });
+    }
+  },
+
+  /**
+   * Scheduled handler for cron triggers
+   * Runs daily to recalculate all student streaks across all organizations
+   * This keeps database values accurate for reporting purposes
+   */
+  async scheduled(event, env, ctx) {
+    console.log(`[Cron] Streak recalculation triggered at ${new Date().toISOString()}`);
+
+    // Only run if multi-tenant mode is enabled (D1 database required)
+    if (!env.JWT_SECRET || !env.READING_MANAGER_DB) {
+      console.log('[Cron] Skipping streak recalculation - multi-tenant mode not enabled');
+      return;
+    }
+
+    try {
+      const db = env.READING_MANAGER_DB;
+      const results = await recalculateAllStreaks(db);
+
+      console.log(`[Cron] Streak recalculation complete:`, {
+        organizations: results.organizations,
+        studentsProcessed: results.total,
+        studentsUpdated: results.updated,
+        errors: results.errors.length
+      });
+
+      if (results.errors.length > 0) {
+        console.error('[Cron] Streak recalculation errors:', results.errors.slice(0, 10)); // Log first 10 errors
+      }
+    } catch (error) {
+      console.error('[Cron] Streak recalculation failed:', error.message);
     }
   },
 };

@@ -226,7 +226,11 @@ studentsRouter.get('/', async (c) => {
   if (isMultiTenantMode(c)) {
     const db = getDB(c.env);
     const organizationId = c.get('organizationId');
-    
+
+    // Get organization settings for streak calculation (once for all students)
+    const gracePeriodDays = await getStreakGracePeriod(db, organizationId);
+    const timezone = await getOrganizationTimezone(db, organizationId);
+
     const result = await db.prepare(`
       SELECT s.*, c.name as class_name, b.title as current_book_title, b.author as current_book_author
       FROM students s
@@ -235,12 +239,12 @@ studentsRouter.get('/', async (c) => {
       WHERE s.organization_id = ? AND s.is_active = 1
       ORDER BY s.name ASC
     `).bind(organizationId).all();
-    
+
     const students = (result.results || []).map(row => ({
       ...rowToStudent(row),
       className: row.class_name
     }));
-    
+
     // Fetch reading sessions and preferences for each student
     for (const student of students) {
       const sessions = await db.prepare(`
@@ -250,7 +254,7 @@ studentsRouter.get('/', async (c) => {
         WHERE rs.student_id = ?
         ORDER BY rs.session_date DESC
       `).bind(student.id).all();
-      
+
       student.readingSessions = (sessions.results || []).map(s => ({
         id: s.id,
         date: s.session_date,
@@ -264,14 +268,23 @@ studentsRouter.get('/', async (c) => {
         location: s.location || 'school',
         recordedBy: s.recorded_by
       }));
-      
+
+      // Recalculate streak on-the-fly from sessions (ensures accuracy even if student hasn't read recently)
+      const streakData = calculateStreak(
+        student.readingSessions.map(s => ({ date: s.date })),
+        { gracePeriodDays, timezone }
+      );
+      student.currentStreak = streakData.currentStreak;
+      student.longestStreak = Math.max(streakData.longestStreak, student.longestStreak); // Keep historical longest
+      student.streakStartDate = streakData.streakStartDate;
+
       // Fetch student preferences
       student.preferences = await fetchStudentPreferences(db, student.id);
       // Also include likes/dislikes from the students table in preferences
       student.preferences.likes = student.likes || [];
       student.preferences.dislikes = student.dislikes || [];
     }
-    
+
     return c.json(students);
   }
   
@@ -286,12 +299,16 @@ studentsRouter.get('/', async (c) => {
  */
 studentsRouter.get('/:id', async (c) => {
   const { id } = c.req.param();
-  
+
   // Multi-tenant mode: use D1
   if (isMultiTenantMode(c)) {
     const db = getDB(c.env);
     const organizationId = c.get('organizationId');
-    
+
+    // Get organization settings for streak calculation
+    const gracePeriodDays = await getStreakGracePeriod(db, organizationId);
+    const timezone = await getOrganizationTimezone(db, organizationId);
+
     const student = await db.prepare(`
       SELECT s.*, c.name as class_name, b.title as current_book_title, b.author as current_book_author
       FROM students s
@@ -299,14 +316,14 @@ studentsRouter.get('/:id', async (c) => {
       LEFT JOIN books b ON s.current_book_id = b.id
       WHERE s.id = ? AND s.organization_id = ? AND s.is_active = 1
     `).bind(id, organizationId).first();
-    
+
     if (!student) {
       throw notFoundError(`Student with ID ${id} not found`);
     }
-    
+
     const result = rowToStudent(student);
     result.className = student.class_name;
-    
+
     // Fetch reading sessions
     const sessions = await db.prepare(`
       SELECT rs.*, b.title as book_title, b.author as book_author
@@ -315,7 +332,7 @@ studentsRouter.get('/:id', async (c) => {
       WHERE rs.student_id = ?
       ORDER BY rs.session_date DESC
     `).bind(id).all();
-    
+
     result.readingSessions = (sessions.results || []).map(s => ({
       id: s.id,
       date: s.session_date,
@@ -329,13 +346,22 @@ studentsRouter.get('/:id', async (c) => {
       location: s.location || 'school',
       recordedBy: s.recorded_by
     }));
-    
+
+    // Recalculate streak on-the-fly from sessions (ensures accuracy even if student hasn't read recently)
+    const streakData = calculateStreak(
+      result.readingSessions.map(s => ({ date: s.date })),
+      { gracePeriodDays, timezone }
+    );
+    result.currentStreak = streakData.currentStreak;
+    result.longestStreak = Math.max(streakData.longestStreak, result.longestStreak); // Keep historical longest
+    result.streakStartDate = streakData.streakStartDate;
+
     // Fetch student preferences
     result.preferences = await fetchStudentPreferences(db, id);
     // Also include likes/dislikes from the students table in preferences
     result.preferences.likes = result.likes || [];
     result.preferences.dislikes = result.dislikes || [];
-    
+
     return c.json(result);
   }
   
@@ -1056,4 +1082,54 @@ studentsRouter.post('/recalculate-streaks', async (c) => {
   return c.json(results);
 });
 
-export { studentsRouter };
+/**
+ * Recalculate streaks for all students across all organizations
+ * Used by scheduled cron job to keep database values up-to-date for reporting
+ * @param {D1Database} db - The D1 database instance
+ * @returns {Object} Results summary { total, updated, errors }
+ */
+const recalculateAllStreaks = async (db) => {
+  const results = {
+    total: 0,
+    updated: 0,
+    errors: [],
+    organizations: 0
+  };
+
+  // Get all organizations
+  const orgs = await db.prepare(`
+    SELECT id FROM organizations
+  `).all();
+
+  results.organizations = orgs.results?.length || 0;
+
+  // Process each organization
+  for (const org of (orgs.results || [])) {
+    const organizationId = org.id;
+
+    // Get all active students for this organization
+    const students = await db.prepare(`
+      SELECT id FROM students WHERE organization_id = ? AND is_active = 1
+    `).bind(organizationId).all();
+
+    results.total += students.results?.length || 0;
+
+    // Recalculate streak for each student
+    for (const student of (students.results || [])) {
+      try {
+        await updateStudentStreak(db, student.id, organizationId);
+        results.updated++;
+      } catch (error) {
+        results.errors.push({
+          organizationId,
+          studentId: student.id,
+          error: error.message
+        });
+      }
+    }
+  }
+
+  return results;
+};
+
+export { studentsRouter, recalculateAllStreaks };
