@@ -12,9 +12,12 @@ import {
   IconButton,
   Tooltip,
   Typography,
-  TableSortLabel
+  TableSortLabel,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
+import CheckIcon from '@mui/icons-material/Check';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import { useAppContext } from '../../contexts/AppContext';
 import StreakBadge from './StreakBadge';
@@ -24,12 +27,14 @@ import ReadingPreferences from './ReadingPreferences';
 
 const StudentTable = ({ students }) => {
   const theme = useTheme();
-  const { getReadingStatus, classes, markStudentAsPriorityHandled } = useAppContext();
+  const { getReadingStatus, classes, markStudentAsPriorityHandled, markedPriorityStudentIds } = useAppContext();
   const [openSessionsDialog, setOpenSessionsDialog] = useState(false);
   const [openPreferencesDialog, setOpenPreferencesDialog] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [orderBy, setOrderBy] = useState('name');
   const [order, setOrder] = useState('asc');
+  const [snackbar, setSnackbar] = useState({ open: false, message: '' });
+  const [markedStudentId, setMarkedStudentId] = useState(null);
 
   const formatDate = (dateString) => {
     if (!dateString) return 'Never';
@@ -75,6 +80,13 @@ const StudentTable = ({ students }) => {
     e.stopPropagation();
     if (markStudentAsPriorityHandled) {
       markStudentAsPriorityHandled(student.id);
+      setMarkedStudentId(student.id);
+      setSnackbar({
+        open: true,
+        message: `${student.name} added to reading list`
+      });
+      // Clear the checkmark animation after a delay
+      setTimeout(() => setMarkedStudentId(null), 1500);
     }
   };
 
@@ -240,29 +252,50 @@ const StudentTable = ({ students }) => {
                 >
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <Box
-                        onClick={(e) => handleIconClick(e, student)}
-                        sx={{
-                          bgcolor: 'primary.main',
-                          color: 'white',
-                          width: { xs: 36, sm: 40 },
-                          height: { xs: 36, sm: 40 },
-                          borderRadius: 1,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                          boxShadow: 1,
-                          cursor: 'pointer',
-                          transition: 'transform 0.2s',
-                          '&:hover': {
-                            transform: 'scale(1.1)',
-                            bgcolor: 'primary.dark'
-                          }
-                        }}
-                      >
-                        <MenuBookIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />
-                      </Box>
+                      {(() => {
+                        const isMarkedForToday = markedPriorityStudentIds?.has(student.id);
+                        const isJustClicked = markedStudentId === student.id;
+                        const showGreen = isMarkedForToday || isJustClicked;
+
+                        return (
+                          <Tooltip
+                            title={isMarkedForToday ? "Reading today ✓" : "Reading today"}
+                            arrow
+                            placement="top"
+                          >
+                            <Box
+                              onClick={(e) => handleIconClick(e, student)}
+                              sx={{
+                                bgcolor: showGreen ? 'success.main' : 'primary.main',
+                                color: 'white',
+                                width: { xs: 36, sm: 40 },
+                                height: { xs: 36, sm: 40 },
+                                borderRadius: 1,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                                boxShadow: showGreen ? 2 : 1,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease-in-out',
+                                '&:hover': {
+                                  transform: 'scale(1.1)',
+                                  bgcolor: showGreen ? 'success.dark' : 'primary.dark'
+                                },
+                                '&:active': {
+                                  transform: 'scale(0.95)'
+                                }
+                              }}
+                            >
+                              {isJustClicked ? (
+                                <CheckIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />
+                              ) : (
+                                <MenuBookIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />
+                              )}
+                            </Box>
+                          </Tooltip>
+                        );
+                      })()}
                       <Box sx={{ minWidth: 0 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                           <Typography
@@ -383,6 +416,22 @@ const StudentTable = ({ students }) => {
         }}
         student={selectedStudent}
       />
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={2000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity="success"
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </>
   );
 };
