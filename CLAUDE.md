@@ -169,6 +169,17 @@ Quick entry UI for recording class-wide home reading:
 
 See `src/components/sessions/HomeReadingRegister.js`.
 
+### Book Cover System
+
+The recommendations UI displays book covers fetched from OpenLibrary:
+
+1. **BookCoverContext** (`src/contexts/BookCoverContext.js`): Global cache for cover URLs with localStorage persistence
+2. **useBookCover** hook (`src/hooks/useBookCover.js`): Fetches covers using multiple strategies (ISBN → OCLC → title search)
+3. **BookCover** component (`src/components/BookCover.js`): Displays cover image or placeholder
+4. **BookCoverPlaceholder** (`src/components/BookCoverPlaceholder.js`): Generates gradient placeholders from title hash
+
+The system includes request deduplication, graceful fallbacks, and deterministic placeholder colors.
+
 ### Book Metadata APIs
 
 Two providers for fetching book metadata:

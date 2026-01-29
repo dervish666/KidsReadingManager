@@ -1,5 +1,47 @@
 # Changelog
 
+## [2.9.0] - 2026-01-29
+
+### Added: Book Covers for Recommendations
+
+Book recommendation tiles now display cover images fetched from OpenLibrary, with colorful generated placeholders as fallback.
+
+#### Features
+- **Cover Images**: Automatically fetches book covers from OpenLibrary API using ISBN, OCLC, or title/author search
+- **Placeholder Covers**: Generates attractive gradient placeholders with book initials when no cover is found
+- **Global Caching**: BookCoverContext provides app-wide cover caching with localStorage persistence
+- **Graceful Degradation**: Seamlessly falls back to placeholders on network errors or missing covers
+
+#### Components
+- **BookCover**: Main component combining hook and placeholder logic
+- **BookCoverPlaceholder**: Generates deterministic gradient backgrounds based on book title
+- **BookCoverContext**: React context for global cover URL caching across components
+- **useBookCover**: Hook for fetching covers with multi-strategy lookup (ISBN → OCLC → title search)
+
+#### UI Changes
+- Recommendation tiles now use horizontal layout with 80x120px cover on left
+- Book descriptions displayed for library results (2-line truncation)
+- Maintains all existing functionality (In Library chip, genres, match reasons)
+
+#### Technical Details
+- **OpenLibrary Integration**: Uses covers.openlibrary.org for cover images
+- **Search Strategies**: Tries ISBN first, then OCLC number, then title/author search
+- **Request Deduplication**: Prevents duplicate API calls for the same book
+- **Cache Persistence**: Covers cached in localStorage with `book-cover-cache-` prefix
+- **Deterministic Colors**: Placeholder gradients generated from title hash for consistency
+
+#### Files Added
+- `src/components/BookCover.js` - Main cover component
+- `src/components/BookCoverPlaceholder.js` - Gradient placeholder generator
+- `src/contexts/BookCoverContext.js` - Global caching context
+- `src/hooks/useBookCover.js` - Cover fetching hook
+- `src/__tests__/unit/BookCover.test.js` - Component tests
+- `src/__tests__/unit/BookCoverContext.test.js` - Context tests
+- `src/__tests__/unit/BookCoverPlaceholder.test.js` - Placeholder tests
+- `src/__tests__/unit/useBookCover.test.js` - Hook tests
+
+---
+
 ## [2.8.0] - 2026-01-23
 
 ### Improved: Responsive Layout for Recommendations and Stats Pages

@@ -32,6 +32,7 @@ The Recommendations section enables:
 - **Class Filtering**: Filter recommendations by class groups
 - **AI Integration**: Powered by advanced language models for intelligent suggestions
 - **Preference-Based**: Recommendations based on student reading history and preferences
+- **Visual Book Covers**: Displays cover images fetched from OpenLibrary with gradient placeholders
 
 ## 🌟 Key Features
 
@@ -58,6 +59,7 @@ The Recommendations section enables:
 - **Context-Aware**: Recommendations based on reading history, preferences, and level
 - **Age-Appropriate**: Ensures suggestions match the student's developmental stage
 - **Educational Balance**: Balances student interests with educational value
+- **Book Covers**: Automatically displays cover images from OpenLibrary with colorful placeholders
 
 ### 📊 Analytics & Insights
 - **Reading Frequency Charts**: Visual tracking of how often students read
