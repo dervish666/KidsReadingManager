@@ -342,7 +342,7 @@ describe('buildStudentReadingProfile', () => {
     expect(profile.booksReadCount).toBe(2);
   });
 
-  it('should use genre ID as fallback name when genre lookup fails', async () => {
+  it('should filter out unknown genre IDs when genre lookup fails', async () => {
     const studentQuery = {
       bind: vi.fn().mockReturnThis(),
       first: vi.fn().mockResolvedValue({
@@ -370,7 +370,7 @@ describe('buildStudentReadingProfile', () => {
       })
     };
 
-    // Genre lookup returns nothing
+    // Genre lookup returns nothing (unknown genre)
     const genreNamesQuery = {
       bind: vi.fn().mockReturnThis(),
       all: vi.fn().mockResolvedValue({ results: [] })
@@ -384,9 +384,8 @@ describe('buildStudentReadingProfile', () => {
 
     const profile = await buildStudentReadingProfile('student-unknown-genre', 'org-456', mockDb);
 
-    expect(profile.inferredGenres).toHaveLength(1);
-    expect(profile.inferredGenres[0].id).toBe('unknown-genre-id');
-    expect(profile.inferredGenres[0].name).toBe('unknown-genre-id'); // Fallback to ID
+    // Unknown genre IDs should be filtered out entirely (not shown as raw IDs)
+    expect(profile.inferredGenres).toHaveLength(0);
   });
 
   it('should handle empty database results gracefully', async () => {

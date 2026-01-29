@@ -182,16 +182,12 @@ classesRouter.post('/', async (c) => {
       
       // Check permission
       const userRole = c.get('userRole');
-      console.log('POST /api/classes - userRole:', userRole, 'organizationId:', organizationId, 'userId:', userId);
-      
+
       if (!permissions.canManageClasses(userRole)) {
-        console.log('Permission denied - userRole:', userRole);
         return c.json({ error: 'Permission denied' }, 403);
       }
-      
+
       const classId = body.id || generateId();
-      
-      console.log('Inserting class:', { classId, organizationId, name: body.name, userId });
       
       await db.prepare(`
         INSERT INTO classes (id, organization_id, name, teacher_name, academic_year, created_by)
@@ -209,9 +205,7 @@ classesRouter.post('/', async (c) => {
       const cls = await db.prepare(`
         SELECT * FROM classes WHERE id = ?
       `).bind(classId).first();
-      
-      console.log('Class created:', cls);
-      
+
       return c.json(rowToClass(cls), 201);
     } catch (error) {
       console.error('Error in POST /api/classes (multi-tenant):', error.message, error.stack);

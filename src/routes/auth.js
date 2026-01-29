@@ -344,7 +344,6 @@ authRouter.post('/login', async (c) => {
         await db.prepare(
           'UPDATE users SET password_hash = ? WHERE id = ?'
         ).bind(newHash, user.id).run();
-        console.log(`Upgraded password hash for user ${user.id} to new iteration count`);
       } catch (rehashError) {
         // Don't fail login if rehash fails, just log it
         console.error('Failed to upgrade password hash:', rehashError);
@@ -854,10 +853,17 @@ authRouter.put('/password', async (c) => {
     // Hash new password
     const newPasswordHash = await hashPassword(newPassword);
 
-    // Update password
-    await db.prepare(
-      'UPDATE users SET password_hash = ?, updated_at = datetime("now") WHERE id = ?'
-    ).bind(newPasswordHash, user.sub).run();
+    // Update password and revoke all existing refresh tokens (force re-login on other devices)
+    await db.batch([
+      db.prepare(
+        'UPDATE users SET password_hash = ?, updated_at = datetime("now") WHERE id = ?'
+      ).bind(newPasswordHash, user.sub),
+
+      // Revoke all refresh tokens for this user (security: invalidate existing sessions)
+      db.prepare(
+        'UPDATE refresh_tokens SET revoked_at = datetime("now") WHERE user_id = ? AND revoked_at IS NULL'
+      ).bind(user.sub)
+    ]);
 
     return c.json({ message: 'Password changed successfully' });
 

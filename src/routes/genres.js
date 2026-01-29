@@ -13,6 +13,9 @@ import {
 import { notFoundError, badRequestError } from '../middleware/errorHandler';
 import { permissions } from '../utils/crypto';
 
+// Import middleware
+import { requireReadonly, requireAdmin } from '../middleware/tenant.js';
+
 // Create router
 const genresRouter = new Hono();
 
@@ -50,8 +53,10 @@ const rowToGenre = (row) => {
 /**
  * GET /api/genres
  * Get all genres (global - shared across all organizations)
+ *
+ * Requires authentication (at least readonly access)
  */
-genresRouter.get('/', async (c) => {
+genresRouter.get('/', requireReadonly(), async (c) => {
   // Multi-tenant mode: use D1 (genres are global)
   if (isMultiTenantMode(c)) {
     const db = getDB(c.env);
@@ -72,8 +77,10 @@ genresRouter.get('/', async (c) => {
 /**
  * GET /api/genres/:id
  * Get a genre by ID
+ *
+ * Requires authentication (at least readonly access)
  */
-genresRouter.get('/:id', async (c) => {
+genresRouter.get('/:id', requireReadonly(), async (c) => {
   const { id } = c.req.param();
   
   // Multi-tenant mode: use D1
@@ -104,8 +111,10 @@ genresRouter.get('/:id', async (c) => {
 /**
  * POST /api/genres
  * Add a new genre (admin only in multi-tenant mode)
+ *
+ * Requires authentication (at least admin access)
  */
-genresRouter.post('/', async (c) => {
+genresRouter.post('/', requireAdmin(), async (c) => {
   const body = await c.req.json();
   
   // Validate genre data
@@ -166,8 +175,10 @@ genresRouter.post('/', async (c) => {
 /**
  * PUT /api/genres/:id
  * Update a genre (admin only in multi-tenant mode)
+ *
+ * Requires authentication (at least admin access)
  */
-genresRouter.put('/:id', async (c) => {
+genresRouter.put('/:id', requireAdmin(), async (c) => {
   const { id } = c.req.param();
   const body = await c.req.json();
   
@@ -240,8 +251,10 @@ genresRouter.put('/:id', async (c) => {
 /**
  * DELETE /api/genres/:id
  * Delete a genre (admin only, cannot delete predefined genres)
+ *
+ * Requires authentication (at least admin access)
  */
-genresRouter.delete('/:id', async (c) => {
+genresRouter.delete('/:id', requireAdmin(), async (c) => {
   const { id } = c.req.param();
   
   // Multi-tenant mode: use D1

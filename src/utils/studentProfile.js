@@ -71,7 +71,17 @@ export async function buildStudentReadingProfile(studentId, organizationId, db) 
   const genreCounts = {};
   for (const session of sessions) {
     if (session.genre_ids) {
-      const genreIds = session.genre_ids.split(',').map(g => g.trim()).filter(Boolean);
+      let genreIds = [];
+      try {
+        // genre_ids is stored as a JSON array string like '["genre-1","genre-2"]'
+        genreIds = JSON.parse(session.genre_ids);
+        if (!Array.isArray(genreIds)) {
+          genreIds = [];
+        }
+      } catch {
+        // Fallback for legacy comma-separated format
+        genreIds = session.genre_ids.split(',').map(g => g.trim()).filter(Boolean);
+      }
       for (const genreId of genreIds) {
         genreCounts[genreId] = (genreCounts[genreId] || 0) + 1;
       }
@@ -97,11 +107,14 @@ export async function buildStudentReadingProfile(studentId, organizationId, db) 
       genreNameMap[row.id] = row.name;
     }
 
-    inferredGenres = sortedGenres.map(([id, count]) => ({
-      id,
-      name: genreNameMap[id] || id,
-      count
-    }));
+    // Only include genres that have a valid name (filter out invalid IDs like book UUIDs)
+    inferredGenres = sortedGenres
+      .filter(([id]) => genreNameMap[id])
+      .map(([id, count]) => ({
+        id,
+        name: genreNameMap[id],
+        count
+      }));
   }
 
   // Parse likes/dislikes from JSON strings

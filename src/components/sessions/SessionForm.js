@@ -35,7 +35,7 @@ import {
 } from '../../utils/bookMetadataApi';
 
 const SessionForm = () => {
-  const { students, addReadingSession, classes, recentlyAccessedStudents, books, fetchWithAuth, globalClassFilter } = useAppContext();
+  const { students, addReadingSession, classes, recentlyAccessedStudents, books, globalClassFilter, settings, updateBook } = useAppContext();
 
   // Helper function to get book display info
   const getBookInfo = (bookId) => {
@@ -157,39 +157,21 @@ const SessionForm = () => {
     }
 
     try {
-      const current = books.find(b => b.id === selectedBookId);
-      if (!current) {
-        setSnackbarOpen(true);
-        setError('Book not found');
-        return;
-      }
-
-      const updated = {
-        ...current,
+      // Use context's updateBook function which handles both API call and state update
+      const result = await updateBook(selectedBookId, {
         author: bookAuthor.trim() || null,
         readingLevel: bookReadingLevel.trim() || null,
         ageRange: bookAgeRange.trim() || null,
         genreIds: bookGenres,
-      };
-
-      const response = await fetchWithAuth(`/api/books/${selectedBookId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated),
       });
 
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+      if (result) {
+        setSnackbarOpen(true);
+        setError('');
+      } else {
+        setSnackbarOpen(true);
+        setError('Failed to update book');
       }
-
-      const saved = await response.json().catch(() => updated);
-      const idx = books.findIndex(b => b.id === selectedBookId);
-      if (idx !== -1) {
-        books[idx] = saved;
-      }
-      
-      setSnackbarOpen(true);
-      setError('');
     } catch (err) {
       console.error('Failed to update book from SessionForm:', err);
       setSnackbarOpen(true);

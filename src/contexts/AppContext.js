@@ -154,12 +154,10 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     const detectAuthMode = async () => {
       try {
-        console.log('[Auth] Detecting server auth mode...');
         const response = await fetch(`${API_URL}/auth/mode`);
         if (response.ok) {
           const data = await response.json();
-          console.log('[Auth] Server auth mode:', data.mode);
-          
+
           // Update auth mode based on server response
           if (data.mode === 'multitenant') {
             setAuthMode('multitenant');
@@ -185,15 +183,13 @@ export const AppProvider = ({ children }) => {
           }
           setServerAuthModeDetected(true);
         } else {
-          console.warn('[Auth] Failed to detect auth mode, using default');
           setServerAuthModeDetected(true);
         }
       } catch (err) {
-        console.error('[Auth] Error detecting auth mode:', err);
         setServerAuthModeDetected(true);
       }
     };
-    
+
     detectAuthMode();
   }, []); // Run once on mount
 
@@ -207,7 +203,6 @@ export const AppProvider = ({ children }) => {
     refreshingToken.current = true;
 
     try {
-      console.log('[Auth] Refreshing access token...');
       const response = await fetch(`${API_URL}/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -215,17 +210,16 @@ export const AppProvider = ({ children }) => {
         // Send refreshToken in body for backward compatibility
         body: JSON.stringify({ refreshToken: refreshToken || undefined }),
       });
-      
+
       if (!response.ok) {
-        console.error('[Auth] Token refresh failed:', response.status);
         // Clear all auth state on refresh failure
         clearAuthState();
         return null;
       }
-      
+
       const data = await response.json();
       const newToken = data.accessToken;
-      
+
       if (newToken) {
         setAuthToken(newToken);
         try {
@@ -235,13 +229,11 @@ export const AppProvider = ({ children }) => {
         } catch {
           // ignore
         }
-        console.log('[Auth] Token refreshed successfully');
         return newToken;
       }
-      
+
       return null;
     } catch (err) {
-      console.error('[Auth] Token refresh error:', err);
       clearAuthState();
       return null;
     } finally {
@@ -274,7 +266,6 @@ export const AppProvider = ({ children }) => {
       
       // In multi-tenant mode, check if token needs refresh
       if (authMode === 'multitenant' && currentToken && isTokenExpired(currentToken)) {
-        console.log('[Auth] Token expired, attempting refresh...');
         const newToken = await refreshAccessToken();
         if (newToken) {
           currentToken = newToken;
@@ -306,7 +297,6 @@ export const AppProvider = ({ children }) => {
       if (response.status === 401) {
         // In multi-tenant mode, try to refresh token once
         if (authMode === 'multitenant' && retryCount === 0 && refreshToken) {
-          console.log('[Auth] Got 401, attempting token refresh...');
           const newToken = await refreshAccessToken();
           if (newToken) {
             return fetchWithAuth(url, options, retryCount + 1);
@@ -326,28 +316,16 @@ export const AppProvider = ({ children }) => {
   // Legacy login helper (shared password)
   const login = useCallback(
     async (password) => {
-      console.log('[Auth] login() called (legacy mode)');
       setApiError(null);
 
       try {
-        console.log('[Auth] Sending POST to /api/login');
         const response = await fetch(`${API_URL}/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ password }),
         });
 
-        console.log('[Auth] /api/login response status:', response.status);
-
         if (!response.ok) {
-          let errorText = '';
-          try {
-            errorText = await response.text();
-          } catch {
-            // ignore
-          }
-          console.error('[Auth] /api/login non-OK response body:', errorText);
-
           if (response.status === 401) {
             throw new Error('Invalid password');
           }
@@ -358,15 +336,11 @@ export const AppProvider = ({ children }) => {
         try {
           data = await response.json();
         } catch (err) {
-          console.error('[Auth] Failed to parse /api/login JSON:', err);
           throw new Error('Login failed: invalid JSON response');
         }
 
-        console.log('[Auth] /api/login response JSON:', data);
-
         const token = data && data.token;
         if (!token) {
-          console.error('[Auth] No token field in /api/login response');
           throw new Error('No token returned from server');
         }
 
@@ -374,18 +348,15 @@ export const AppProvider = ({ children }) => {
           if (typeof window !== 'undefined') {
             window.localStorage.setItem(AUTH_STORAGE_KEY, token);
             window.localStorage.setItem(AUTH_MODE_KEY, 'legacy');
-            console.log('[Auth] Stored token in localStorage');
           }
         } catch (storageErr) {
-          console.warn('[Auth] Failed to store token in localStorage:', storageErr);
+          // Storage error is non-critical
         }
 
         setAuthToken(token);
         setAuthMode('legacy');
         setApiError(null);
-        console.log('[Auth] login() success, authToken state updated');
       } catch (err) {
-        console.error('[Auth] login() error:', err);
         setApiError(err.message || 'Login failed');
         throw err;
       }
@@ -396,7 +367,6 @@ export const AppProvider = ({ children }) => {
   // Multi-tenant login with email/password
   const loginWithEmail = useCallback(
     async (email, password) => {
-      console.log('[Auth] loginWithEmail() called');
       setApiError(null);
 
       try {
@@ -416,7 +386,7 @@ export const AppProvider = ({ children }) => {
         }
 
         const data = await response.json();
-        
+
         if (!data.accessToken) {
           throw new Error('No access token returned from server');
         }
@@ -434,7 +404,7 @@ export const AppProvider = ({ children }) => {
             }
           }
         } catch (storageErr) {
-          console.warn('[Auth] Failed to store auth data:', storageErr);
+          // Storage error is non-critical
         }
 
         setAuthToken(data.accessToken);
@@ -442,11 +412,9 @@ export const AppProvider = ({ children }) => {
         setUser(data.user || null);
         setAuthMode('multitenant');
         setApiError(null);
-        
-        console.log('[Auth] loginWithEmail() success');
+
         return data.user;
       } catch (err) {
-        console.error('[Auth] loginWithEmail() error:', err);
         setApiError(err.message || 'Login failed');
         throw err;
       }
@@ -457,7 +425,6 @@ export const AppProvider = ({ children }) => {
   // Register new organization and user
   const register = useCallback(
     async (organizationName, userName, email, password) => {
-      console.log('[Auth] register() called');
       setApiError(null);
 
       try {
@@ -479,7 +446,7 @@ export const AppProvider = ({ children }) => {
         }
 
         const data = await response.json();
-        
+
         if (!data.accessToken) {
           throw new Error('No access token returned from server');
         }
@@ -497,7 +464,7 @@ export const AppProvider = ({ children }) => {
             }
           }
         } catch (storageErr) {
-          console.warn('[Auth] Failed to store auth data:', storageErr);
+          // Storage error is non-critical
         }
 
         setAuthToken(data.accessToken);
@@ -505,11 +472,9 @@ export const AppProvider = ({ children }) => {
         setUser(data.user || null);
         setAuthMode('multitenant');
         setApiError(null);
-        
-        console.log('[Auth] register() success');
+
         return data.user;
       } catch (err) {
-        console.error('[Auth] register() error:', err);
         setApiError(err.message || 'Registration failed');
         throw err;
       }
@@ -520,7 +485,6 @@ export const AppProvider = ({ children }) => {
   // Request password reset
   const forgotPassword = useCallback(
     async (email) => {
-      console.log('[Auth] forgotPassword() called');
       setApiError(null);
 
       try {
@@ -537,7 +501,6 @@ export const AppProvider = ({ children }) => {
 
         return true;
       } catch (err) {
-        console.error('[Auth] forgotPassword() error:', err);
         setApiError(err.message || 'Failed to send reset email');
         throw err;
       }
@@ -548,7 +511,6 @@ export const AppProvider = ({ children }) => {
   // Reset password with token
   const resetPassword = useCallback(
     async (token, newPassword) => {
-      console.log('[Auth] resetPassword() called');
       setApiError(null);
 
       try {
@@ -565,7 +527,6 @@ export const AppProvider = ({ children }) => {
 
         return true;
       } catch (err) {
-        console.error('[Auth] resetPassword() error:', err);
         setApiError(err.message || 'Failed to reset password');
         throw err;
       }
@@ -587,7 +548,7 @@ export const AppProvider = ({ children }) => {
         setAvailableOrganizations(data.organizations || []);
       }
     } catch (error) {
-      console.error('Error fetching organizations:', error);
+      // Non-critical fetch failure
     }
   }, [user, fetchWithAuth]);
 
@@ -628,7 +589,6 @@ export const AppProvider = ({ children }) => {
   const reloadDataFromServer = useCallback(async () => {
     setLoading(true);
     setApiError(null);
-    console.log('[Data] Reloading data from server...');
 
     try {
       // Students
@@ -650,11 +610,9 @@ export const AppProvider = ({ children }) => {
           const classesData = await classesResponse.json();
           setClasses(classesData);
         } else {
-          console.warn('[Data] API error fetching classes:', classesResponse.status);
           setClasses([]);
         }
       } catch (err) {
-        console.error('[Data] Error fetching classes:', err);
         setClasses([]);
       }
 
@@ -665,11 +623,9 @@ export const AppProvider = ({ children }) => {
           const booksData = await booksResponse.json();
           setBooks(booksData);
         } else {
-          console.warn('[Data] API error fetching books:', booksResponse.status);
           setBooks([]);
         }
       } catch (err) {
-        console.error('[Data] Error fetching books:', err);
         setBooks([]);
       }
 
@@ -680,11 +636,9 @@ export const AppProvider = ({ children }) => {
           const genresData = await genresResponse.json();
           setGenres(genresData);
         } else {
-          console.warn('[Data] API error fetching genres:', genresResponse.status);
           setGenres([]);
         }
       } catch (err) {
-        console.error('[Data] Error fetching genres:', err);
         setGenres([]);
       }
 
@@ -697,16 +651,13 @@ export const AppProvider = ({ children }) => {
           if (settingsData.readingStatusSettings) {
             setReadingStatusSettings(settingsData.readingStatusSettings);
           }
-        } else {
-          console.warn('[Data] API error fetching settings:', settingsResponse.status);
         }
       } catch (err) {
-        console.error('[Data] Error fetching settings:', err);
+        // Settings fetch failure is non-critical
       }
 
       return { success: true };
     } catch (error) {
-      console.error('[Data] Error reloading data:', error);
       if (error.message !== 'Unauthorized') {
         setApiError(error.message);
       }
@@ -719,7 +670,6 @@ export const AppProvider = ({ children }) => {
   // Switch to a different organization (owners only)
   const switchOrganization = useCallback(async (orgId) => {
     if (user?.role !== 'owner') {
-      console.warn('Only owners can switch organizations');
       return;
     }
 
@@ -754,10 +704,8 @@ export const AppProvider = ({ children }) => {
   // Initial load / auth-aware
   useEffect(() => {
     if (authToken) {
-      console.log('[Auth] Existing token found, loading data');
       reloadDataFromServer();
     } else {
-      console.log('[Auth] No token, skipping initial data load');
       setLoading(false);
     }
   }, [authToken, reloadDataFromServer]);
@@ -834,7 +782,6 @@ export const AppProvider = ({ children }) => {
         setApiError(null);
         return savedStudent;
       } catch (error) {
-        console.error('Error adding student:', error);
         setApiError(error.message);
         setStudents(previousStudents);
         return null;
@@ -846,14 +793,11 @@ export const AppProvider = ({ children }) => {
   const bulkImportStudents = useCallback(
     async (names, classId = null) => {
       if (!Array.isArray(names) || names.length === 0) {
-        console.error('Bulk import failed: No names provided');
         return [];
       }
 
       // Normalize classId - convert empty string to null
       const normalizedClassId = classId && classId.trim() !== '' ? classId : null;
-
-      console.log('Bulk importing students:', { names, classId: normalizedClassId });
 
       const newStudents = names.map((name) => ({
         id: uuidv4(),
@@ -864,8 +808,6 @@ export const AppProvider = ({ children }) => {
         likes: [],
         dislikes: [],
       }));
-
-      console.log('Created student objects:', newStudents);
 
       const previousStudents = students;
       setStudents((prev) => [...prev, ...newStudents]);
@@ -884,16 +826,12 @@ export const AppProvider = ({ children }) => {
         // Check if all responses are ok
         const allOk = responses.every((r) => r.ok);
         if (!allOk) {
-          const failedResponses = responses.filter((r) => !r.ok);
-          console.error('Some students failed to save:', failedResponses);
           throw new Error('Some students failed to save');
         }
 
         const savedStudents = await Promise.all(
           responses.map((r) => r.json().catch(() => null))
         );
-
-        console.log('Saved students from server:', savedStudents);
 
         // Update with saved students (with any server-side modifications)
         const validSavedStudents = savedStudents.filter((s) => s && s.id);
@@ -911,10 +849,8 @@ export const AppProvider = ({ children }) => {
         }
 
         setApiError(null);
-        console.log('Bulk import completed successfully:', validSavedStudents.length, 'students');
         return validSavedStudents;
       } catch (error) {
-        console.error('Error bulk importing students:', error);
         setApiError(error.message);
         setStudents(previousStudents);
         return [];
@@ -927,7 +863,6 @@ export const AppProvider = ({ children }) => {
     async (studentId, classId) => {
       const student = students.find((s) => s.id === studentId);
       if (!student) {
-        console.error('Update class failed: Student not found');
         return;
       }
 
@@ -955,7 +890,6 @@ export const AppProvider = ({ children }) => {
         }
         setApiError(null);
       } catch (error) {
-        console.error('Error updating student class:', error);
         setApiError(error.message);
         setStudents(previousStudents);
         throw error; // Re-throw so the component can handle it
@@ -968,7 +902,6 @@ export const AppProvider = ({ children }) => {
     async (id, updatedData) => {
       const currentStudent = students.find((student) => student.id === id);
       if (!currentStudent) {
-        console.error('Update failed: Student not found');
         return;
       }
       const updatedStudent = { ...currentStudent, ...updatedData };
@@ -989,7 +922,6 @@ export const AppProvider = ({ children }) => {
         }
         setApiError(null);
       } catch (error) {
-        console.error('Error updating student:', error);
         setApiError(error.message);
         setStudents(previousStudents);
       }
@@ -1011,7 +943,6 @@ export const AppProvider = ({ children }) => {
         }
         setApiError(null);
       } catch (error) {
-        console.error('Error deleting student:', error);
         setApiError(error.message);
         setStudents(previousStudents);
       }
@@ -1023,7 +954,6 @@ export const AppProvider = ({ children }) => {
     async (studentId, bookId, bookTitle = null, bookAuthor = null) => {
       const student = students.find((s) => s.id === studentId);
       if (!student) {
-        console.error('Update current book failed: Student not found');
         return null;
       }
 
@@ -1076,7 +1006,6 @@ export const AppProvider = ({ children }) => {
         setApiError(null);
         return result;
       } catch (error) {
-        console.error('Error updating student current book:', error);
         setApiError(error.message);
         setStudents(previousStudents);
         return null;
@@ -1090,7 +1019,6 @@ export const AppProvider = ({ children }) => {
     async (id, updatedFields) => {
       const existing = books.find((b) => b.id === id);
       if (!existing) {
-        console.warn('updateBook: Book not found for id', id);
         return null;
       }
 
@@ -1121,7 +1049,6 @@ export const AppProvider = ({ children }) => {
 
         return updatedBook;
       } catch (error) {
-        console.error('Error updating book:', error);
         setApiError(error.message);
         setBooks(previousBooks);
         return null;
@@ -1171,7 +1098,6 @@ export const AppProvider = ({ children }) => {
         setApiError(null);
         return savedBook;
       } catch (error) {
-        console.error('Error adding book:', error);
         setApiError(error.message);
         setBooks(previousBooks);
         return null;
@@ -1225,7 +1151,6 @@ export const AppProvider = ({ children }) => {
 
       const student = students.find((s) => s.id === studentId);
       if (!student) {
-        console.error('Add session failed: Student not found');
         return null;
       }
 
@@ -1296,7 +1221,6 @@ export const AppProvider = ({ children }) => {
         setApiError(null);
         return savedSession;
       } catch (error) {
-        console.error('Error adding reading session:', error);
         setApiError(error.message);
         setStudents(previousStudents);
         return null;
@@ -1309,7 +1233,6 @@ export const AppProvider = ({ children }) => {
     async (studentId, sessionId, updatedSessionData) => {
       const student = students.find((s) => s.id === studentId);
       if (!student) {
-        console.error('Edit session failed: Student not found');
         return;
       }
 
@@ -1364,7 +1287,6 @@ export const AppProvider = ({ children }) => {
         }
         setApiError(null);
       } catch (error) {
-        console.error('Error editing reading session:', error);
         setApiError(error.message);
         setStudents(previousStudents);
       }
@@ -1376,7 +1298,6 @@ export const AppProvider = ({ children }) => {
     async (studentId, sessionId) => {
       const student = students.find((s) => s.id === studentId);
       if (!student) {
-        console.error('Delete session failed: Student not found');
         return;
       }
 
@@ -1416,7 +1337,6 @@ export const AppProvider = ({ children }) => {
         }
         setApiError(null);
       } catch (error) {
-        console.error('Error deleting reading session:', error);
         setApiError(error.message);
         setStudents(previousStudents);
       }
@@ -1458,7 +1378,6 @@ export const AppProvider = ({ children }) => {
         setApiError(null);
         return savedSettings;
       } catch (error) {
-        console.error('Error updating settings:', error);
         setApiError(error.message);
         setSettings(previousSettings);
         // Revert derived state
@@ -1500,7 +1419,6 @@ export const AppProvider = ({ children }) => {
         setApiError(null);
         return savedGenre;
       } catch (error) {
-        console.error('Error adding genre:', error);
         setApiError(error.message);
         setGenres(previousGenres);
         return null;
@@ -1539,7 +1457,6 @@ export const AppProvider = ({ children }) => {
         setApiError(null);
         return savedClass;
       } catch (error) {
-        console.error('Error adding class:', error);
         setApiError(error.message);
         setClasses(previousClasses);
         return null;
@@ -1552,7 +1469,6 @@ export const AppProvider = ({ children }) => {
     async (id, updatedFields) => {
       const existing = classes.find((c) => c.id === id);
       if (!existing) {
-        console.warn('updateClass: Class not found for id', id);
         return null;
       }
 
@@ -1581,7 +1497,6 @@ export const AppProvider = ({ children }) => {
         setApiError(null);
         return savedClass;
       } catch (error) {
-        console.error('Error updating class:', error);
         setApiError(error.message);
         setClasses(previousClasses);
         return null;
@@ -1613,7 +1528,6 @@ export const AppProvider = ({ children }) => {
 
         setApiError(null);
       } catch (error) {
-        console.error('Error deleting class:', error);
         setApiError(error.message);
         setClasses(previousClasses);
         setStudents(previousStudents);
@@ -1654,10 +1568,10 @@ export const AppProvider = ({ children }) => {
         try {
           window.sessionStorage.setItem('recentlyAccessedStudents', JSON.stringify(updated));
         } catch (err) {
-          console.warn('Failed to save recently accessed students:', err);
+          // Storage error is non-critical
         }
       }
-      
+
       return updated;
     });
   }, []);
@@ -1722,7 +1636,6 @@ export const AppProvider = ({ children }) => {
       
       return true;
     } catch (error) {
-      console.error('Export failed:', error);
       setApiError(error.message);
       throw error;
     }
@@ -1755,7 +1668,6 @@ export const AppProvider = ({ children }) => {
           
           resolve(result.count || 0);
         } catch (error) {
-          console.error('Import failed:', error);
           setApiError(error.message);
           reject(error);
         }
@@ -1776,7 +1688,7 @@ export const AppProvider = ({ children }) => {
       try {
         window.sessionStorage.setItem('globalClassFilter', classId);
       } catch (err) {
-        console.warn('Failed to save global class filter:', err);
+        // Storage error is non-critical
       }
     }
   }, []);

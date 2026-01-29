@@ -1,8 +1,18 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      // Mock Cloudflare-specific modules for testing
+      'cloudflare:email': path.resolve(__dirname, 'src/__tests__/mocks/cloudflare-email.js')
+    }
+  },
   esbuild: {
     loader: 'jsx',
     include: /src\/.*\.jsx?$/,

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import {
   Box,
   Paper,
@@ -130,7 +130,6 @@ const BookManager = () => {
       setNewBookAgeRange('');
       setError('');
     } catch (error) {
-      console.error('Error adding book:', error);
       setError('Failed to add book');
     }
   };
@@ -225,7 +224,6 @@ const BookManager = () => {
           }
         }
       } catch (genreError) {
-        console.error('Error fetching genres:', genreError);
         // Don't fail the whole operation if genres fail
       }
 
@@ -249,7 +247,6 @@ const BookManager = () => {
         });
       }
     } catch (error) {
-      console.error('Error fetching book details:', error);
       setSnackbar({
         open: true,
         message: `Failed to fetch details: ${error.message}`,
@@ -298,7 +295,6 @@ const BookManager = () => {
       setEditBookGenreIds([]);
       setError('');
     } catch (error) {
-      console.error('Error updating book:', error);
       setError('Failed to update book');
     }
   };
@@ -318,7 +314,6 @@ const BookManager = () => {
       await reloadDataFromServer();
       setConfirmDelete(null);
     } catch (error) {
-      console.error('Error deleting book:', error);
       setError('Failed to delete book');
     }
   };
@@ -344,7 +339,6 @@ const BookManager = () => {
         severity: 'success'
       });
     } catch (error) {
-      console.error('Export failed:', error);
       setSnackbar({
         open: true,
         message: 'Export failed',
@@ -380,7 +374,6 @@ const BookManager = () => {
         severity: 'success'
       });
     } catch (error) {
-      console.error('Export failed:', error);
       setSnackbar({
         open: true,
         message: 'Export failed',
@@ -420,7 +413,6 @@ const BookManager = () => {
           data: importedData
         });
       } catch (error) {
-        console.error('File parsing failed:', error);
         setSnackbar({
           open: true,
           message: `Import failed: ${error.message}`,
@@ -539,7 +531,6 @@ const BookManager = () => {
         severity: 'success'
       });
     } catch (error) {
-      console.error('Import failed:', error);
       setSnackbar({
         open: true,
         message: `Import failed: ${error.message}`,
@@ -640,7 +631,6 @@ const BookManager = () => {
         severity: successCount > 0 ? 'success' : 'warning'
       });
     } catch (error) {
-      console.error('Error during author lookup:', error);
       setIsLookingUpAuthors(false);
       setSnackbar({
         open: true,
@@ -690,7 +680,6 @@ const BookManager = () => {
 
         updateCount++;
       } catch (error) {
-        console.error(`Error updating book "${result.book.title}":`, error);
         errorCount++;
       }
     }
@@ -805,7 +794,6 @@ const BookManager = () => {
         severity: successCount > 0 ? 'success' : 'warning'
       });
     } catch (error) {
-      console.error('Error during description lookup:', error);
       setIsLookingUpDescriptions(false);
       setSnackbar({
         open: true,
@@ -847,7 +835,6 @@ const BookManager = () => {
 
         updateCount++;
       } catch (error) {
-        console.error(`Error updating book "${result.book.title}":`, error);
         errorCount++;
       }
     }
@@ -932,7 +919,6 @@ const BookManager = () => {
         severity: successCount > 0 ? 'success' : 'warning'
       });
     } catch (error) {
-      console.error('Error during genre lookup:', error);
       setIsLookingUpGenres(false);
       setSnackbar({
         open: true,
@@ -988,7 +974,7 @@ const BookManager = () => {
             genresCreated++;
           }
         } catch (error) {
-          console.error(`Error creating genre "${genreName}":`, error);
+          // Genre creation failed, continue with others
         }
       }
     }
@@ -1017,7 +1003,6 @@ const BookManager = () => {
 
         updateCount++;
       } catch (error) {
-        console.error(`Error updating book "${result.book.title}":`, error);
         errorCount++;
       }
     }
@@ -1108,10 +1093,10 @@ const BookManager = () => {
     return Array.from(levels).sort();
   };
 
-  // Genre and reading level filter helper functions
-  const getFilteredBooks = () => {
+  // Memoized filtered books to avoid recalculating on every render
+  const filteredBooks = useMemo(() => {
     let filtered = books;
-    
+
     // Search filter - search by title or author
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
@@ -1121,21 +1106,21 @@ const BookManager = () => {
         return title.includes(query) || author.includes(query);
       });
     }
-    
+
     if (genreFilter) {
       filtered = filtered.filter(book => {
         const bookGenreIds = book.genreIds || [];
         return bookGenreIds.includes(genreFilter);
       });
     }
-    
+
     // Reading level filter with optional range
     if (readingLevelFilter) {
       const baseLevel = parseFloat(readingLevelFilter);
       if (!isNaN(baseLevel)) {
         const range = levelRangeFilter ? parseFloat(levelRangeFilter) : 0;
         const maxLevel = baseLevel + range;
-        
+
         filtered = filtered.filter(book => {
           const bookLevel = parseFloat(book.readingLevel);
           if (isNaN(bookLevel)) return false;
@@ -1146,9 +1131,9 @@ const BookManager = () => {
         filtered = filtered.filter(book => book.readingLevel === readingLevelFilter);
       }
     }
-    
+
     return filtered;
-  };
+  }, [books, searchQuery, genreFilter, readingLevelFilter, levelRangeFilter]);
 
   const handleGenreFilterChange = (event) => {
     setGenreFilter(event.target.value);
@@ -1176,17 +1161,16 @@ const BookManager = () => {
     return genre ? genre.name : 'Unknown';
   };
 
-  // Update pagination to use filtered books
-  const getFilteredTotalPages = () => {
-    return Math.ceil(getFilteredBooks().length / booksPerPage);
-  };
+  // Memoized pagination values using filteredBooks
+  const filteredTotalPages = useMemo(() => {
+    return Math.ceil(filteredBooks.length / booksPerPage);
+  }, [filteredBooks.length, booksPerPage]);
 
-  const getFilteredPaginatedBooks = () => {
-    const filtered = getFilteredBooks();
+  const paginatedBooks = useMemo(() => {
     const startIndex = (currentPage - 1) * booksPerPage;
     const endIndex = startIndex + booksPerPage;
-    return filtered.slice(startIndex, endIndex);
-  };
+    return filteredBooks.slice(startIndex, endIndex);
+  }, [filteredBooks, currentPage, booksPerPage]);
 
   return (
     <Paper sx={{ p: 3, mt: 3 }}>
@@ -1439,7 +1423,7 @@ const BookManager = () => {
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
             <Typography variant="subtitle1">
-              Existing Books ({(genreFilter || readingLevelFilter || searchQuery) ? `${getFilteredBooks().length} of ${books.length}` : books.length})
+              Existing Books ({(genreFilter || readingLevelFilter || searchQuery) ? `${filteredBooks.length} of ${books.length}` : books.length})
             </Typography>
             
             {/* Search Box */}
@@ -1532,7 +1516,7 @@ const BookManager = () => {
               </FormControl>
               
               <Typography variant="body2" color="text.secondary">
-                Showing {Math.min((currentPage - 1) * booksPerPage + 1, getFilteredBooks().length)}-{Math.min(currentPage * booksPerPage, getFilteredBooks().length)} of {getFilteredBooks().length}
+                Showing {Math.min((currentPage - 1) * booksPerPage + 1, filteredBooks.length)}-{Math.min(currentPage * booksPerPage, filteredBooks.length)} of {filteredBooks.length}
               </Typography>
             </Box>
           )}
@@ -1540,12 +1524,12 @@ const BookManager = () => {
 
         {books.length === 0 ? (
           <Typography variant="body2">No books created yet.</Typography>
-        ) : getFilteredBooks().length === 0 ? (
+        ) : filteredBooks.length === 0 ? (
           <Typography variant="body2" color="text.secondary">No books match the selected filters.</Typography>
         ) : (
           <>
             <List>
-              {getFilteredPaginatedBooks().map((book) => (
+              {paginatedBooks.map((book) => (
                 <ListItem
                   key={book.id}
                   divider
@@ -1638,10 +1622,10 @@ const BookManager = () => {
               ))}
             </List>
             
-            {getFilteredTotalPages() > 1 && (
+            {filteredTotalPages > 1 && (
               <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
                 <Pagination
-                  count={getFilteredTotalPages()}
+                  count={filteredTotalPages}
                   page={currentPage}
                   onChange={handlePageChange}
                   color="primary"

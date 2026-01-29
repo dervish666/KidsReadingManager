@@ -30,7 +30,7 @@ import FavoriteIcon from '@mui/icons-material/Favorite';
 import HistoryIcon from '@mui/icons-material/History';
 import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import ThumbDownIcon from '@mui/icons-material/ThumbDown';
-import ReadingPreferences from './students/ReadingPreferences';
+import StudentProfile from './students/StudentProfile';
 
 const BookRecommendations = () => {
   const { students, classes, books, apiError, fetchWithAuth, globalClassFilter } = useAppContext();
@@ -62,7 +62,7 @@ const BookRecommendations = () => {
           setAiConfig(config);
         }
       } catch (error) {
-        console.error('Error loading AI config:', error);
+        // AI config loading failed silently - not critical
       }
     };
 
@@ -156,7 +156,7 @@ const BookRecommendations = () => {
           setStudentProfile(data.studentProfile);
         }
       } catch (err) {
-        console.error('Error fetching student profile:', err);
+        // Profile loading failed silently
       } finally {
         setProfileLoading(false);
       }
@@ -185,7 +185,6 @@ const BookRecommendations = () => {
       setRecommendations(data.books || []);
 
     } catch (err) {
-      console.error('Library search error:', err);
       setError(err.message);
     } finally {
       setLibraryLoading(false);
@@ -214,7 +213,6 @@ const BookRecommendations = () => {
       setRecommendations(data.suggestions || []);
 
     } catch (err) {
-      console.error('AI suggestions error:', err);
       setError(err.message);
     } finally {
       setAiLoading(false);
@@ -271,12 +269,15 @@ const BookRecommendations = () => {
         </Typography>
 
         <FormControl fullWidth sx={{ minWidth: 200 }}>
-          <InputLabel>Student</InputLabel>
+          <InputLabel id="student-select-label">Student</InputLabel>
           <Select
+            labelId="student-select-label"
+            id="student-select"
             value={selectedStudentId}
             onChange={handleStudentChange}
             label="Student"
             disabled={filteredStudents.length === 0}
+            aria-describedby={filteredStudents.length === 0 ? "no-students-helper" : undefined}
           >
             <MenuItem value="">
               <em>Select a student</em>
@@ -535,7 +536,7 @@ const BookRecommendations = () => {
 
       {/* Reading Preferences Modal */}
       {selectedStudent && (
-        <ReadingPreferences
+        <StudentProfile
           open={preferencesOpen}
           onClose={async () => {
             setPreferencesOpen(false);
@@ -549,7 +550,7 @@ const BookRecommendations = () => {
                   setStudentProfile(data.studentProfile);
                 }
               } catch (err) {
-                console.error('Error refreshing student profile:', err);
+                // Profile refresh failed silently
               } finally {
                 setProfileLoading(false);
               }

@@ -23,7 +23,7 @@ import { useAppContext } from '../../contexts/AppContext';
 import StreakBadge from './StreakBadge';
 import { useTheme } from '@mui/material/styles';
 import StudentSessions from '../sessions/StudentSessions';
-import ReadingPreferences from './ReadingPreferences';
+import StudentProfile from './StudentProfile';
 
 const StudentTable = ({ students }) => {
   const theme = useTheme();
@@ -164,6 +164,7 @@ const StudentTable = ({ students }) => {
                   active={orderBy === 'name'}
                   direction={orderBy === 'name' ? order : 'asc'}
                   onClick={() => handleRequestSort('name')}
+                  aria-label={`Sort by student name, currently ${orderBy === 'name' ? (order === 'asc' ? 'ascending' : 'descending') : 'unsorted'}`}
                   sx={{
                     color: 'white !important',
                     '&:hover': { color: 'white !important' },
@@ -180,6 +181,7 @@ const StudentTable = ({ students }) => {
                   active={orderBy === 'class'}
                   direction={orderBy === 'class' ? order : 'asc'}
                   onClick={() => handleRequestSort('class')}
+                  aria-label={`Sort by class, currently ${orderBy === 'class' ? (order === 'asc' ? 'ascending' : 'descending') : 'unsorted'}`}
                   sx={{
                     color: 'white !important',
                     '&:hover': { color: 'white !important' },
@@ -196,6 +198,7 @@ const StudentTable = ({ students }) => {
                   active={orderBy === 'lastRead'}
                   direction={orderBy === 'lastRead' ? order : 'asc'}
                   onClick={() => handleRequestSort('lastRead')}
+                  aria-label={`Sort by last read date, currently ${orderBy === 'lastRead' ? (order === 'asc' ? 'ascending' : 'descending') : 'unsorted'}`}
                   sx={{
                     color: 'white !important',
                     '&:hover': { color: 'white !important' },
@@ -212,6 +215,7 @@ const StudentTable = ({ students }) => {
                   active={orderBy === 'sessions'}
                   direction={orderBy === 'sessions' ? order : 'asc'}
                   onClick={() => handleRequestSort('sessions')}
+                  aria-label={`Sort by number of reading sessions, currently ${orderBy === 'sessions' ? (order === 'asc' ? 'ascending' : 'descending') : 'unsorted'}`}
                   sx={{
                     color: 'white !important',
                     '&:hover': { color: 'white !important' },
@@ -265,6 +269,15 @@ const StudentTable = ({ students }) => {
                           >
                             <Box
                               onClick={(e) => handleIconClick(e, student)}
+                              role="button"
+                              tabIndex={0}
+                              aria-label={isMarkedForToday ? `${student.name} marked as reading today` : `Mark ${student.name} as reading today`}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  handleIconClick(e, student);
+                                }
+                              }}
                               sx={{
                                 bgcolor: showGreen ? 'success.main' : 'primary.main',
                                 color: 'white',
@@ -371,11 +384,12 @@ const StudentTable = ({ students }) => {
                     />
                   </TableCell>
                   <TableCell align="center">
-                    <Tooltip title="Reading Preferences">
+                    <Tooltip title="Student Profile">
                       <IconButton
                         size="small"
                         onClick={(e) => handlePreferencesClick(e, student)}
-                        sx={{ 
+                        aria-label={`View profile for ${student.name}`}
+                        sx={{
                           // Touch-friendly size
                           width: { xs: 44, sm: 40 },
                           height: { xs: 44, sm: 40 },
@@ -384,11 +398,11 @@ const StudentTable = ({ students }) => {
                           }
                         }}
                       >
-                        <PsychologyIcon 
-                          sx={{ 
-                            fontSize: { xs: 22, sm: 20 }, 
-                            color: 'primary.main' 
-                          }} 
+                        <PsychologyIcon
+                          sx={{
+                            fontSize: { xs: 22, sm: 20 },
+                            color: 'primary.main'
+                          }}
                         />
                       </IconButton>
                     </Tooltip>
@@ -408,7 +422,7 @@ const StudentTable = ({ students }) => {
         }}
         student={selectedStudent}
       />
-      <ReadingPreferences
+      <StudentProfile
         open={openPreferencesDialog}
         onClose={() => {
           setOpenPreferencesDialog(false);

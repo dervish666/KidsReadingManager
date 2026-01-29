@@ -71,8 +71,7 @@ const UserManagement = () => {
         setOrganizations(response.organizations || []);
       }
     } catch (err) {
-      console.error('Error fetching organizations:', err);
-      // Don't show error to user, just log it
+      // Don't show error to user - non-critical fetch
     }
   };
 
@@ -153,15 +152,12 @@ const UserManagement = () => {
       // Check if response is a Response object (not yet parsed)
       if (response && typeof response.json === 'function') {
         const data = await response.json();
-        console.log('Users API response:', data);
         setUsers(data.users || []);
       } else {
         // Already parsed JSON
-        console.log('Users API response:', response);
         setUsers(response.users || []);
       }
     } catch (err) {
-      console.error('Error fetching users:', err);
       setError('Failed to load users');
     }
   };

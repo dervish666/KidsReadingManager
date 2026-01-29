@@ -7,6 +7,7 @@ import { Hono } from 'hono';
 import { generateId } from '../utils/helpers.js';
 import { hashPassword, ROLES, hasPermission } from '../utils/crypto.js';
 import { requireAdmin, requireOwner, auditLog } from '../middleware/tenant.js';
+import { sendWelcomeEmail } from '../utils/email.js';
 
 export const usersRouter = new Hono();
 
@@ -192,7 +193,7 @@ usersRouter.post('/', requireAdmin(), auditLog('create', 'user'), async (c) => {
 
     // Check organization limits
     const org = await db.prepare(
-      'SELECT max_teachers FROM organizations WHERE id = ?'
+      'SELECT name, max_teachers FROM organizations WHERE id = ?'
     ).bind(targetOrgId).first();
 
     if (!org) {
@@ -221,19 +222,38 @@ usersRouter.post('/', requireAdmin(), auditLog('create', 'user'), async (c) => {
       VALUES (?, ?, ?, ?, ?, ?, 1)
     `).bind(userId, targetOrgId, email.toLowerCase(), passwordHash, name, role).run();
 
-    // TODO: Send invitation email with temporary password
+    // Send invitation email with temporary password
     // SECURITY: Never include temporary passwords in API responses
     // The password should only be sent via email to the user
+    const baseUrl = c.env.APP_URL ||
+                    c.req.header('origin') ||
+                    `https://${c.req.header('host')}`;
+
+    const emailResult = await sendWelcomeEmail(
+      c.env,
+      email.toLowerCase(),
+      name,
+      org.name,
+      userPassword,
+      baseUrl
+    );
+
+    if (!emailResult.success) {
+      console.warn('Failed to send welcome email:', emailResult.error);
+    }
 
     return c.json({
-      message: 'User created successfully. An invitation email will be sent.',
+      message: emailResult.success
+        ? 'User created successfully. An invitation email has been sent.'
+        : 'User created successfully. Note: invitation email could not be sent.',
       user: {
         id: userId,
         email: email.toLowerCase(),
         name,
         role,
         isActive: true
-      }
+      },
+      emailSent: emailResult.success
     }, 201);
 
   } catch (error) {
@@ -461,9 +481,12 @@ usersRouter.post('/:id/reset-password', requireAdmin(), auditLog('update', 'user
     const organizationId = c.get('organizationId');
     const targetUserId = c.req.param('id');
 
-    // Check if user exists and belongs to organization
+    // Check if user exists and belongs to organization, include org name for email
     const existingUser = await db.prepare(`
-      SELECT * FROM users WHERE id = ? AND organization_id = ?
+      SELECT u.*, o.name as organization_name
+      FROM users u
+      JOIN organizations o ON u.organization_id = o.id
+      WHERE u.id = ? AND u.organization_id = ?
     `).bind(targetUserId, organizationId).first();
 
     if (!existingUser) {
@@ -484,12 +507,31 @@ usersRouter.post('/:id/reset-password', requireAdmin(), auditLog('update', 'user
       UPDATE refresh_tokens SET revoked_at = datetime("now") WHERE user_id = ? AND revoked_at IS NULL
     `).bind(targetUserId).run();
 
-    // TODO: Send email with new password
+    // Send email with new password
     // SECURITY: Never include passwords in API responses
     // The password should only be sent via email to the user
+    const baseUrl = c.env.APP_URL ||
+                    c.req.header('origin') ||
+                    `https://${c.req.header('host')}`;
+
+    const emailResult = await sendWelcomeEmail(
+      c.env,
+      existingUser.email,
+      existingUser.name,
+      existingUser.organization_name,
+      newPassword,
+      baseUrl
+    );
+
+    if (!emailResult.success) {
+      console.warn('Failed to send password reset email:', emailResult.error);
+    }
 
     return c.json({
-      message: 'Password reset successfully. The new password will be sent via email.'
+      message: emailResult.success
+        ? 'Password reset successfully. The new password has been sent via email.'
+        : 'Password reset successfully. Note: email notification could not be sent.',
+      emailSent: emailResult.success
     });
 
   } catch (error) {

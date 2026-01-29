@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -81,7 +81,7 @@ const saveStudentOrder = (orderMap) => {
   try {
     localStorage.setItem(STUDENT_ORDER_KEY, JSON.stringify(orderMap));
   } catch (e) {
-    console.error('Failed to save student order:', e);
+    // Storage error is non-critical
   }
 };
 
@@ -249,6 +249,9 @@ const HomeReadingRegister = () => {
   const [showInputPanel, setShowInputPanel] = useState(true);
   const [studentOrderMap, setStudentOrderMap] = useState(loadStudentOrder);
 
+  // Ref to track if we've already auto-set the class filter (prevents infinite loop)
+  const hasAutoSetClassFilter = useRef(false);
+
   // DnD sensors
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -280,9 +283,17 @@ const HomeReadingRegister = () => {
   }, [globalClassFilter, activeClasses]);
 
   // Auto-select first class in global filter if 'all' or 'unassigned' is selected
+  // Uses a ref guard to prevent infinite render loops
   useEffect(() => {
     if ((globalClassFilter === 'all' || globalClassFilter === 'unassigned') && activeClasses.length > 0) {
-      setGlobalClassFilter(activeClasses[0].id);
+      // Only auto-set once per mount or when activeClasses changes significantly
+      if (!hasAutoSetClassFilter.current) {
+        hasAutoSetClassFilter.current = true;
+        setGlobalClassFilter(activeClasses[0].id);
+      }
+    } else if (globalClassFilter && globalClassFilter !== 'all' && globalClassFilter !== 'unassigned') {
+      // Reset the guard when a valid class is selected (allows re-triggering if user navigates away and back)
+      hasAutoSetClassFilter.current = false;
     }
   }, [globalClassFilter, activeClasses, setGlobalClassFilter]);
 
@@ -493,7 +504,6 @@ const HomeReadingRegister = () => {
       setSnackbarSeverity('info');
       setSnackbarOpen(true);
     } catch (error) {
-      console.error('Error clearing entry:', error);
       setSnackbarMessage('Failed to clear entry');
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
@@ -558,7 +568,6 @@ const HomeReadingRegister = () => {
         setSelectedStudent(null);
       }
     } catch (error) {
-      console.error('Error recording reading:', error);
       setSnackbarMessage('Failed to record reading');
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
@@ -827,6 +836,9 @@ const HomeReadingRegister = () => {
               onChange={(e) => setSelectedDate(e.target.value)}
               InputLabelProps={{ shrink: true }}
               fullWidth
+              inputProps={{
+                'aria-label': 'Select date for reading session'
+              }}
             />
 
             {/* Search */}
@@ -835,6 +847,9 @@ const HomeReadingRegister = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               fullWidth
+              inputProps={{
+                'aria-label': 'Search for a student by name'
+              }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">

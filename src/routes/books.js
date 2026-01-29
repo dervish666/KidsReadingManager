@@ -8,11 +8,18 @@ import { generateBroadSuggestions } from '../services/aiService.js';
 
 // Import utilities
 import { notFoundError, badRequestError, serverError } from '../middleware/errorHandler';
-import { decryptSensitiveData } from '../utils/crypto.js';
+import { decryptSensitiveData, permissions } from '../utils/crypto.js';
 import { buildStudentReadingProfile } from '../utils/studentProfile.js';
+
+// Import middleware
+import { requireReadonly, requireTeacher } from '../middleware/tenant.js';
 
 // Create router
 const booksRouter = new Hono();
+
+// Apply authentication middleware to all book routes
+// GET endpoints require at least readonly access
+// POST/PUT/DELETE endpoints require teacher access (checked via permissions below)
 
 /**
  * GET /api/books
@@ -21,8 +28,10 @@ const booksRouter = new Hono();
  * - page: Page number (1-based, optional)
  * - pageSize: Items per page (default 50, optional)
  * - search: Search query for title/author (optional)
+ *
+ * Requires authentication (at least readonly access)
  */
-booksRouter.get('/', async (c) => {
+booksRouter.get('/', requireReadonly(), async (c) => {
   const provider = await createProvider(c.env);
   const { page, pageSize, search } = c.req.query();
   
@@ -52,8 +61,10 @@ booksRouter.get('/', async (c) => {
  * Query params:
  * - q: Search query (required)
  * - limit: Maximum results (default 50)
+ *
+ * Requires authentication (at least readonly access)
  */
-booksRouter.get('/search', async (c) => {
+booksRouter.get('/search', requireReadonly(), async (c) => {
   const { q, limit } = c.req.query();
   
   if (!q || !q.trim()) {
@@ -78,8 +89,10 @@ booksRouter.get('/search', async (c) => {
  *
  * Query params:
  * - studentId: Required - the student to find books for
+ *
+ * Requires authentication (at least readonly access)
  */
-booksRouter.get('/library-search', async (c) => {
+booksRouter.get('/library-search', requireReadonly(), async (c) => {
   try {
     const { studentId } = c.req.query();
 
@@ -212,7 +225,10 @@ booksRouter.get('/library-search', async (c) => {
     // Format response
     const formattedBooks = topBooks.map(book => {
       const genreIds = book.genre_ids ? book.genre_ids.split(',').map(g => g.trim()) : [];
-      const genres = genreIds.map(id => genreNameMap[id] || id);
+      // Only include genres that have a name in the map (filter out invalid IDs)
+      const genres = genreIds
+        .filter(id => genreNameMap[id])
+        .map(id => genreNameMap[id]);
 
       // Build match reason string
       let matchReason = 'Matches your reading level';
@@ -261,8 +277,10 @@ booksRouter.get('/library-search', async (c) => {
  *
  * Query params:
  * - studentId: Required - the student to get suggestions for
+ *
+ * Requires authentication (at least readonly access)
  */
-booksRouter.get('/ai-suggestions', async (c) => {
+booksRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
   try {
     const { studentId } = c.req.query();
 
@@ -363,8 +381,10 @@ booksRouter.get('/ai-suggestions', async (c) => {
 /**
  * GET /api/books/count
  * Get total book count
+ *
+ * Requires authentication (at least readonly access)
  */
-booksRouter.get('/count', async (c) => {
+booksRouter.get('/count', requireReadonly(), async (c) => {
   const provider = await createProvider(c.env);
   const count = await provider.getBookCount();
   return c.json({ count });
@@ -373,8 +393,10 @@ booksRouter.get('/count', async (c) => {
 /**
  * POST /api/books
  * Add a new book
+ *
+ * Requires authentication (at least teacher access)
  */
-booksRouter.post('/', async (c) => {
+booksRouter.post('/', requireTeacher(), async (c) => {
   const bookData = await c.req.json();
 
   // Basic validation - only title is required
@@ -400,8 +422,10 @@ booksRouter.post('/', async (c) => {
 /**
  * PUT /api/books/:id
  * Update a book
+ *
+ * Requires authentication (at least teacher access)
  */
-booksRouter.put('/:id', async (c) => {
+booksRouter.put('/:id', requireTeacher(), async (c) => {
   const { id } = c.req.param();
   const bookData = await c.req.json();
 
@@ -437,8 +461,10 @@ booksRouter.put('/:id', async (c) => {
 /**
  * DELETE /api/books/:id
  * Delete a book
+ *
+ * Requires authentication (at least teacher access)
  */
-booksRouter.delete('/:id', async (c) => {
+booksRouter.delete('/:id', requireTeacher(), async (c) => {
    const { id } = c.req.param();
 
    // Delete book
@@ -455,8 +481,10 @@ booksRouter.delete('/:id', async (c) => {
 /**
  * POST /api/books/bulk
  * Bulk import books with duplicate detection and KV optimization
+ *
+ * Requires authentication (at least teacher access)
  */
-booksRouter.post('/bulk', async (c) => {
+booksRouter.post('/bulk', requireTeacher(), async (c) => {
   const booksData = await c.req.json();
 
   // Validate input

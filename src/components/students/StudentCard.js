@@ -15,7 +15,7 @@ import PsychologyIcon from '@mui/icons-material/Psychology';
 import { useAppContext } from '../../contexts/AppContext';
 import { useTheme } from '@mui/material/styles';
 import StudentSessions from '../sessions/StudentSessions';
-import ReadingPreferences from './ReadingPreferences';
+import StudentProfile from './StudentProfile';
 import StreakBadge from './StreakBadge';
 
 const StudentCard = ({ student }) => {
@@ -144,7 +144,7 @@ const StudentCard = ({ student }) => {
                 {student.currentStreak > 0 && (
                   <StreakBadge streak={student.currentStreak} size="small" />
                 )}
-                <Tooltip title="Reading Preferences">
+                <Tooltip title="Student Profile">
                   <IconButton
                     size="small"
                     onClick={(e) => {
@@ -245,7 +245,7 @@ const StudentCard = ({ student }) => {
       </Card>
 
       <StudentSessions open={openSessionsDialog} onClose={() => setOpenSessionsDialog(false)} student={student} />
-      <ReadingPreferences open={openPreferencesDialog} onClose={() => setOpenPreferencesDialog(false)} student={student} />
+      <StudentProfile open={openPreferencesDialog} onClose={() => setOpenPreferencesDialog(false)} student={student} />
     </>
   );
 };
