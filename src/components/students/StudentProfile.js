@@ -21,7 +21,6 @@ import {
   InputLabel,
   Tabs,
   Tab,
-  ListSubheader,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -37,10 +36,7 @@ import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
 import { useAppContext } from '../../contexts/AppContext';
 import BookAutocomplete from '../sessions/BookAutocomplete';
-
-// Reading level options
-const NUMERIC_LEVELS = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0];
-const TEXT_LEVELS = ['Beginner', 'Elementary', 'Intermediate', 'Advanced', 'Expert'];
+import ReadingLevelRangeInput from './ReadingLevelRangeInput';
 
 const StudentProfile = ({ open, onClose, student }) => {
   const theme = useTheme();
@@ -59,7 +55,8 @@ const StudentProfile = ({ open, onClose, student }) => {
   // Student settings state
   const [name, setName] = useState('');
   const [classId, setClassId] = useState('');
-  const [readingLevel, setReadingLevel] = useState('');
+  const [readingLevelMin, setReadingLevelMin] = useState(null);
+  const [readingLevelMax, setReadingLevelMax] = useState(null);
 
   // Reading preferences state
   const [selectedGenres, setSelectedGenres] = useState([]);
@@ -91,7 +88,8 @@ const StudentProfile = ({ open, onClose, student }) => {
       // Student settings
       setName(student.name || '');
       setClassId(student.classId || '');
-      setReadingLevel(student.readingLevel ?? '');
+      setReadingLevelMin(student.readingLevelMin ?? null);
+      setReadingLevelMax(student.readingLevelMax ?? null);
 
       // Reading preferences
       const preferences = student.preferences || {};
@@ -107,7 +105,8 @@ const StudentProfile = ({ open, onClose, student }) => {
       setActiveTab(0);
       setName('');
       setClassId('');
-      setReadingLevel('');
+      setReadingLevelMin(null);
+      setReadingLevelMax(null);
       setSelectedGenres([]);
       setLikes([]);
       setDislikes([]);
@@ -134,7 +133,8 @@ const StudentProfile = ({ open, onClose, student }) => {
       await updateStudent(student.id, {
         name: name.trim(),
         classId: classId || null,
-        readingLevel: readingLevel === '' ? null : readingLevel,
+        readingLevelMin,
+        readingLevelMax,
         preferences,
         updatedAt: new Date().toISOString()
       });
@@ -158,7 +158,8 @@ const StudentProfile = ({ open, onClose, student }) => {
     if (student) {
       setName(student.name || '');
       setClassId(student.classId || '');
-      setReadingLevel(student.readingLevel ?? '');
+      setReadingLevelMin(student.readingLevelMin ?? null);
+      setReadingLevelMax(student.readingLevelMax ?? null);
 
       const preferences = student.preferences || {};
       setSelectedGenres(preferences.favoriteGenreIds || []);
@@ -218,13 +219,6 @@ const StudentProfile = ({ open, onClose, student }) => {
 
   const filteredGenres = Array.isArray(genres) ? genres : [];
   const filteredClasses = Array.isArray(classes) ? classes : [];
-
-  // Format reading level for display
-  const formatReadingLevel = (level) => {
-    if (level === '' || level === null || level === undefined) return 'Not Set';
-    if (typeof level === 'number') return level.toFixed(1);
-    return level;
-  };
 
   return (
     <>
@@ -307,33 +301,21 @@ const StudentProfile = ({ open, onClose, student }) => {
                     </Select>
                   </FormControl>
 
-                  {/* Reading Level */}
-                  <FormControl fullWidth>
-                    <InputLabel id="reading-level-label">Reading Level</InputLabel>
-                    <Select
-                      labelId="reading-level-label"
-                      value={readingLevel}
-                      onChange={(e) => setReadingLevel(e.target.value)}
-                      label="Reading Level"
-                      renderValue={(value) => formatReadingLevel(value)}
-                    >
-                      <MenuItem value="">
-                        <em>Not Set</em>
-                      </MenuItem>
-                      <ListSubheader>Numeric Levels</ListSubheader>
-                      {NUMERIC_LEVELS.map((level) => (
-                        <MenuItem key={level} value={level}>
-                          {level.toFixed(1)}
-                        </MenuItem>
-                      ))}
-                      <ListSubheader>Text Levels</ListSubheader>
-                      {TEXT_LEVELS.map((level) => (
-                        <MenuItem key={level} value={level}>
-                          {level}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                  {/* Reading Level Range */}
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                      Reading Level Range
+                    </Typography>
+                    <ReadingLevelRangeInput
+                      min={readingLevelMin}
+                      max={readingLevelMax}
+                      onChange={({ min, max }) => {
+                        setReadingLevelMin(min);
+                        setReadingLevelMax(max);
+                      }}
+                      disabled={false}
+                    />
+                  </Box>
                 </Box>
               )}
 
