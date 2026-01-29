@@ -3,7 +3,8 @@ import {
   validateStudent,
   validateSettings,
   validateBulkImport,
-  validateDataImport
+  validateDataImport,
+  validateReadingLevelRange
 } from '../../utils/validation.js';
 
 describe('validateStudent', () => {
@@ -334,5 +335,69 @@ describe('validateDataImport', () => {
     });
     expect(result.isValid).toBe(false);
     expect(result.errors[0]).toContain('Settings are invalid');
+  });
+});
+
+describe('validateReadingLevelRange', () => {
+  it('should return valid for null min and max', () => {
+    const result = validateReadingLevelRange(null, null);
+    expect(result.isValid).toBe(true);
+  });
+
+  it('should return valid for undefined min and max', () => {
+    const result = validateReadingLevelRange(undefined, undefined);
+    expect(result.isValid).toBe(true);
+  });
+
+  it('should return valid for valid range', () => {
+    const result = validateReadingLevelRange(5.2, 8.7);
+    expect(result.isValid).toBe(true);
+  });
+
+  it('should return valid when min equals max', () => {
+    const result = validateReadingLevelRange(6.0, 6.0);
+    expect(result.isValid).toBe(true);
+  });
+
+  it('should return invalid when min > max', () => {
+    const result = validateReadingLevelRange(8.0, 5.0);
+    expect(result.isValid).toBe(false);
+    expect(result.error).toContain('minimum');
+  });
+
+  it('should return invalid when min < 1.0', () => {
+    const result = validateReadingLevelRange(0.5, 5.0);
+    expect(result.isValid).toBe(false);
+    expect(result.error).toContain('1.0');
+  });
+
+  it('should return invalid when max > 13.0', () => {
+    const result = validateReadingLevelRange(5.0, 15.0);
+    expect(result.isValid).toBe(false);
+    expect(result.error).toContain('13.0');
+  });
+
+  it('should return invalid when only min is provided', () => {
+    const result = validateReadingLevelRange(5.0, null);
+    expect(result.isValid).toBe(false);
+    expect(result.error).toContain('both');
+  });
+
+  it('should return invalid when only max is provided', () => {
+    const result = validateReadingLevelRange(null, 8.0);
+    expect(result.isValid).toBe(false);
+    expect(result.error).toContain('both');
+  });
+
+  it('should handle string numbers by converting them', () => {
+    const result = validateReadingLevelRange('5.2', '8.7');
+    expect(result.isValid).toBe(true);
+  });
+
+  it('should round to one decimal place', () => {
+    const result = validateReadingLevelRange(5.234, 8.789);
+    expect(result.isValid).toBe(true);
+    expect(result.normalizedMin).toBe(5.2);
+    expect(result.normalizedMax).toBe(8.8);
   });
 });

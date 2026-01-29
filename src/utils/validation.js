@@ -3,6 +3,48 @@
  */
 
 /**
+ * Validates reading level range (min and max values)
+ * @param {number|string|null} min - Minimum reading level
+ * @param {number|string|null} max - Maximum reading level
+ * @returns {{isValid: boolean, error?: string, normalizedMin?: number, normalizedMax?: number}}
+ */
+export function validateReadingLevelRange(min, max) {
+  // Both null/undefined is valid (not assessed)
+  if ((min === null || min === undefined) && (max === null || max === undefined)) {
+    return { isValid: true };
+  }
+
+  // If one is set, both must be set
+  if ((min === null || min === undefined) !== (max === null || max === undefined)) {
+    return { isValid: false, error: 'Reading level range requires both minimum and maximum values' };
+  }
+
+  // Convert to numbers and round to 1 decimal place
+  const minNum = Math.round(parseFloat(min) * 10) / 10;
+  const maxNum = Math.round(parseFloat(max) * 10) / 10;
+
+  // Check for valid numbers
+  if (isNaN(minNum) || isNaN(maxNum)) {
+    return { isValid: false, error: 'Reading level values must be valid numbers' };
+  }
+
+  // Check range bounds (1.0 to 13.0)
+  if (minNum < 1.0 || maxNum < 1.0) {
+    return { isValid: false, error: 'Reading level must be at least 1.0' };
+  }
+  if (minNum > 13.0 || maxNum > 13.0) {
+    return { isValid: false, error: 'Reading level must not exceed 13.0' };
+  }
+
+  // Check min <= max
+  if (minNum > maxNum) {
+    return { isValid: false, error: 'Reading level minimum cannot be greater than maximum' };
+  }
+
+  return { isValid: true, normalizedMin: minNum, normalizedMax: maxNum };
+}
+
+/**
  * Validate student data
  * @param {Object} student - Student data to validate
  * @returns {Object} - Validation result with isValid and errors
