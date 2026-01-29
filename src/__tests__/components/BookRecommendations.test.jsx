@@ -23,6 +23,20 @@ vi.mock('../../components/students/StudentProfile', () => ({
   )
 }));
 
+// Mock the BookCover component
+vi.mock('../../components/BookCover', () => ({
+  default: ({ title, author, width, height }) => (
+    <div
+      data-testid="book-cover"
+      data-title={title}
+      data-author={author || ''}
+      style={{ width: width || 80, height: height || 120 }}
+    >
+      Book Cover: {title}
+    </div>
+  )
+}));
+
 // Import after mocking
 import BookRecommendations from '../../components/BookRecommendations';
 

@@ -31,6 +31,7 @@ import HistoryIcon from '@mui/icons-material/History';
 import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import ThumbDownIcon from '@mui/icons-material/ThumbDown';
 import StudentProfile from './students/StudentProfile';
+import BookCover from './BookCover';
 
 const BookRecommendations = () => {
   const { students, classes, books, apiError, fetchWithAuth, globalClassFilter } = useAppContext();
@@ -495,48 +496,79 @@ const BookRecommendations = () => {
             <Grid item xs={12} md={6} key={book.id || index}>
               <Card>
                 <CardContent>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <Typography variant="h6" component="div">
-                      {book.title}
-                    </Typography>
-                    {resultType === 'ai' && book.inLibrary && (
-                      <Chip
-                        icon={<CheckCircleIcon />}
-                        label="In your library"
-                        size="small"
-                        color="success"
-                      />
-                    )}
+                  <Box sx={{ display: 'flex', gap: 2 }}>
+                    {/* Cover on left */}
+                    <BookCover title={book.title} author={book.author} width={80} height={120} />
+
+                    {/* Content on right */}
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      {/* Title with In Library chip for AI results */}
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <Typography variant="h6" component="div" sx={{ wordBreak: 'break-word' }}>
+                          {book.title}
+                        </Typography>
+                        {resultType === 'ai' && book.inLibrary && (
+                          <Chip
+                            icon={<CheckCircleIcon />}
+                            label="In your library"
+                            size="small"
+                            color="success"
+                            sx={{ ml: 1, flexShrink: 0 }}
+                          />
+                        )}
+                      </Box>
+
+                      {/* Author */}
+                      <Typography color="text.secondary" gutterBottom>
+                        by {book.author}
+                      </Typography>
+
+                      {/* Level chips */}
+                      <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+                        <Chip label={book.readingLevel || book.level} size="small" variant="outlined" />
+                        {book.ageRange && <Chip label={book.ageRange} size="small" variant="outlined" />}
+                      </Stack>
+
+                      {/* Genres for library results */}
+                      {resultType === 'library' && book.genres && (
+                        <Stack direction="row" spacing={0.5} sx={{ mb: 1, flexWrap: 'wrap', gap: 0.5 }}>
+                          {book.genres.map((genre, i) => (
+                            <Chip key={i} label={genre} size="small" color="primary" variant="outlined" />
+                          ))}
+                        </Stack>
+                      )}
+
+                      {/* Description for library results - truncated to 2 lines */}
+                      {resultType === 'library' && book.description && (
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            mb: 1
+                          }}
+                        >
+                          {book.description}
+                        </Typography>
+                      )}
+
+                      {/* Match reason or AI reasoning */}
+                      <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
+                        {resultType === 'library' ? book.matchReason : book.reason}
+                      </Typography>
+
+                      {/* Where to find for AI results */}
+                      {resultType === 'ai' && book.whereToFind && (
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                          {book.whereToFind}
+                        </Typography>
+                      )}
+                    </Box>
                   </Box>
-                  <Typography color="text.secondary" gutterBottom>
-                    by {book.author}
-                  </Typography>
-
-                  <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-                    <Chip label={book.readingLevel || book.level} size="small" variant="outlined" />
-                    {book.ageRange && <Chip label={book.ageRange} size="small" variant="outlined" />}
-                  </Stack>
-
-                  {/* Genres for library results */}
-                  {resultType === 'library' && book.genres && (
-                    <Stack direction="row" spacing={0.5} sx={{ mb: 1, flexWrap: 'wrap', gap: 0.5 }}>
-                      {book.genres.map((genre, i) => (
-                        <Chip key={i} label={genre} size="small" color="primary" variant="outlined" />
-                      ))}
-                    </Stack>
-                  )}
-
-                  {/* Match reason or AI reasoning */}
-                  <Typography variant="body2" sx={{ mt: 1, fontStyle: 'italic' }}>
-                    {resultType === 'library' ? book.matchReason : book.reason}
-                  </Typography>
-
-                  {/* Where to find for AI results */}
-                  {resultType === 'ai' && book.whereToFind && (
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                      {book.whereToFind}
-                    </Typography>
-                  )}
                 </CardContent>
               </Card>
             </Grid>
