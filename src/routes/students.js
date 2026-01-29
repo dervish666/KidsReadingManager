@@ -405,7 +405,7 @@ studentsRouter.post('/', async (c) => {
     // Validate reading level range
     const rangeValidation = validateReadingLevelRange(body.readingLevelMin, body.readingLevelMax);
     if (!rangeValidation.isValid) {
-      return c.json({ error: rangeValidation.errors[0] }, 400);
+      throw badRequestError(rangeValidation.errors[0]);
     }
 
     const studentId = body.id || generateId();
@@ -489,7 +489,7 @@ studentsRouter.put('/:id', async (c) => {
     // Validate reading level range
     const rangeValidation = validateReadingLevelRange(body.readingLevelMin, body.readingLevelMax);
     if (!rangeValidation.isValid) {
-      return c.json({ error: rangeValidation.errors[0] }, 400);
+      throw badRequestError(rangeValidation.errors[0]);
     }
 
     // Extract likes/dislikes from preferences if provided
@@ -688,7 +688,7 @@ studentsRouter.post('/bulk', async (c) => {
       const student = body[i];
       const rangeValidation = validateReadingLevelRange(student.readingLevelMin, student.readingLevelMax);
       if (!rangeValidation.isValid) {
-        return c.json({ error: `Student at index ${i}: ${rangeValidation.errors[0]}` }, 400);
+        throw badRequestError(`Student at index ${i}: ${rangeValidation.errors[0]}`);
       }
     }
 
