@@ -208,6 +208,176 @@ describe('Library Search Integration', () => {
     });
   });
 
+  describe('buildStudentReadingProfile with reading level range', () => {
+    let mockDb;
+
+    beforeEach(() => {
+      mockDb = createMockDB();
+    });
+
+    it('should include reading level min and max in profile', async () => {
+      mockDb._mockFirst.mockResolvedValueOnce({
+        id: 'student-range-1',
+        name: 'Range Student',
+        reading_level: '3.0',
+        reading_level_min: 2.5,
+        reading_level_max: 3.5,
+        age_range: '8-10',
+        likes: null,
+        dislikes: null,
+        notes: null
+      });
+
+      mockDb._mockAll
+        .mockResolvedValueOnce({ results: [] }) // No preferences
+        .mockResolvedValueOnce({ results: [] }); // No reading sessions
+
+      const profile = await buildStudentReadingProfile('student-range-1', 'org-1', mockDb);
+
+      expect(profile.student.readingLevelMin).toBe(2.5);
+      expect(profile.student.readingLevelMax).toBe(3.5);
+    });
+
+    it('should handle null reading level range', async () => {
+      mockDb._mockFirst.mockResolvedValueOnce({
+        id: 'student-no-range',
+        name: 'No Range Student',
+        reading_level: null,
+        reading_level_min: null,
+        reading_level_max: null,
+        age_range: '8-10',
+        likes: null,
+        dislikes: null,
+        notes: null
+      });
+
+      mockDb._mockAll
+        .mockResolvedValueOnce({ results: [] })
+        .mockResolvedValueOnce({ results: [] });
+
+      const profile = await buildStudentReadingProfile('student-no-range', 'org-1', mockDb);
+
+      expect(profile.student.readingLevelMin).toBeNull();
+      expect(profile.student.readingLevelMax).toBeNull();
+    });
+
+    it('should handle zero as valid reading level min', async () => {
+      // Edge case: ensure 0 is not treated as falsy
+      mockDb._mockFirst.mockResolvedValueOnce({
+        id: 'student-zero',
+        name: 'Zero Min Student',
+        reading_level: '1.0',
+        reading_level_min: 0,
+        reading_level_max: 1.5,
+        age_range: '6-8',
+        likes: null,
+        dislikes: null,
+        notes: null
+      });
+
+      mockDb._mockAll
+        .mockResolvedValueOnce({ results: [] })
+        .mockResolvedValueOnce({ results: [] });
+
+      const profile = await buildStudentReadingProfile('student-zero', 'org-1', mockDb);
+
+      // 0 should be preserved, not treated as null
+      expect(profile.student.readingLevelMin).toBe(0);
+      expect(profile.student.readingLevelMax).toBe(1.5);
+    });
+  });
+
+  describe('Library search reading level range filtering', () => {
+    // These tests verify the expected filtering behavior at a conceptual level
+    // The actual SQL filtering is tested in integration with the endpoint
+
+    it('should filter books within student range', () => {
+      const studentRange = { min: 2.0, max: 4.0 };
+      const books = [
+        { id: 'b1', reading_level: '1.5' }, // Below range
+        { id: 'b2', reading_level: '2.0' }, // At min boundary
+        { id: 'b3', reading_level: '3.0' }, // Within range
+        { id: 'b4', reading_level: '4.0' }, // At max boundary
+        { id: 'b5', reading_level: '4.5' }, // Above range
+        { id: 'b6', reading_level: null },  // Unleveled
+      ];
+
+      const isInRange = (book) => {
+        const level = parseFloat(book.reading_level);
+        if (isNaN(level)) return true; // Include unleveled books
+        return level >= studentRange.min && level <= studentRange.max;
+      };
+
+      const filteredBooks = books.filter(isInRange);
+
+      // Should include: b2 (2.0), b3 (3.0), b4 (4.0), b6 (null)
+      expect(filteredBooks.map(b => b.id)).toEqual(['b2', 'b3', 'b4', 'b6']);
+    });
+
+    it('should include all books when student has no range', () => {
+      const studentRange = { min: null, max: null };
+      const books = [
+        { id: 'b1', reading_level: '1.5' },
+        { id: 'b2', reading_level: '5.0' },
+        { id: 'b3', reading_level: null },
+      ];
+
+      const isInRange = (book) => {
+        if (studentRange.min === null || studentRange.max === null) {
+          return true; // No filtering when range is not set
+        }
+        const level = parseFloat(book.reading_level);
+        if (isNaN(level)) return true;
+        return level >= studentRange.min && level <= studentRange.max;
+      };
+
+      const filteredBooks = books.filter(isInRange);
+
+      expect(filteredBooks.length).toBe(3);
+    });
+
+    it('should handle edge case of narrow range', () => {
+      const studentRange = { min: 3.0, max: 3.0 }; // Same min and max
+      const books = [
+        { id: 'b1', reading_level: '2.9' },
+        { id: 'b2', reading_level: '3.0' },
+        { id: 'b3', reading_level: '3.1' },
+      ];
+
+      const isInRange = (book) => {
+        const level = parseFloat(book.reading_level);
+        if (isNaN(level)) return true;
+        return level >= studentRange.min && level <= studentRange.max;
+      };
+
+      const filteredBooks = books.filter(isInRange);
+
+      // Only exact match should be included
+      expect(filteredBooks.map(b => b.id)).toEqual(['b2']);
+    });
+
+    it('should always include unleveled books regardless of range', () => {
+      const studentRange = { min: 5.0, max: 6.0 };
+      const books = [
+        { id: 'b1', reading_level: null },
+        { id: 'b2', reading_level: '' },
+        { id: 'b3', reading_level: 'unknown' },
+      ];
+
+      const isInRange = (book) => {
+        if (studentRange.min === null || studentRange.max === null) return true;
+        const level = parseFloat(book.reading_level);
+        if (isNaN(level)) return true; // Include unleveled books
+        return level >= studentRange.min && level <= studentRange.max;
+      };
+
+      const filteredBooks = books.filter(isInRange);
+
+      // All should be included because they don't have valid numeric levels
+      expect(filteredBooks.length).toBe(3);
+    });
+  });
+
   describe('Library search scoring algorithm', () => {
     it('should score explicit favorites higher than inferred', () => {
       // Test the scoring logic conceptually
@@ -233,30 +403,31 @@ describe('Library Search Integration', () => {
       expect(scoreA).toBeGreaterThan(scoreB);
     });
 
-    it('should allow ±1 reading level match', () => {
-      const levelOrder = ['beginner', 'elementary', 'intermediate', 'advanced', 'expert'];
+    it('should give bonus score for books near center of reading range', () => {
+      const studentRange = { min: 2.0, max: 4.0 };
+      const rangeCenter = (studentRange.min + studentRange.max) / 2; // 3.0
+      const rangeHalf = (studentRange.max - studentRange.min) / 2; // 1.0
 
-      const getValidLevels = (studentLevel) => {
-        const idx = levelOrder.indexOf(studentLevel);
-        return levelOrder.slice(
-          Math.max(0, idx - 1),
-          Math.min(levelOrder.length, idx + 2)
-        );
+      const calculateLevelScore = (bookLevel) => {
+        if (bookLevel === null) return 0;
+        const level = parseFloat(bookLevel);
+        if (isNaN(level)) return 0;
+        const distanceFromCenter = Math.abs(level - rangeCenter);
+        // Bonus for books closer to the center of the range
+        if (distanceFromCenter <= rangeHalf * 0.5) {
+          return 1;
+        }
+        return 0;
       };
 
-      // Intermediate student should match elementary, intermediate, advanced
-      const intermediateValid = getValidLevels('intermediate');
-      expect(intermediateValid).toContain('elementary');
-      expect(intermediateValid).toContain('intermediate');
-      expect(intermediateValid).toContain('advanced');
-      expect(intermediateValid).not.toContain('beginner');
-      expect(intermediateValid).not.toContain('expert');
+      // Books at center get bonus
+      expect(calculateLevelScore('3.0')).toBe(1);
+      expect(calculateLevelScore('2.5')).toBe(1);
+      expect(calculateLevelScore('3.5')).toBe(1);
 
-      // Beginner student should only match beginner and elementary
-      const beginnerValid = getValidLevels('beginner');
-      expect(beginnerValid).toContain('beginner');
-      expect(beginnerValid).toContain('elementary');
-      expect(beginnerValid).not.toContain('intermediate');
+      // Books at edges don't get bonus (but are still included in results)
+      expect(calculateLevelScore('2.0')).toBe(0);
+      expect(calculateLevelScore('4.0')).toBe(0);
     });
   });
 });

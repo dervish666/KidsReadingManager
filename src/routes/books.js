@@ -125,31 +125,19 @@ booksRouter.get('/library-search', requireReadonly(), async (c) => {
     `;
     const params = [];
 
-    // Filter by reading level if student has one set
-    // Reading levels can be numeric (0.5, 1.0, 2.0) or text (beginner, intermediate)
-    const studentLevel = student.readingLevel;
-    if (studentLevel) {
-      const numericLevel = parseFloat(studentLevel);
-      if (!isNaN(numericLevel)) {
-        // Numeric level: match within ±0.5 range
-        query += ` AND CAST(b.reading_level AS REAL) BETWEEN ? AND ?`;
-        params.push(numericLevel - 0.5, numericLevel + 0.5);
-      } else {
-        // Text level: use text-based matching
-        const levelOrder = ['beginner', 'elementary', 'intermediate', 'advanced', 'expert'];
-        const studentLevelIndex = levelOrder.indexOf(studentLevel.toLowerCase());
-        if (studentLevelIndex >= 0) {
-          const validLevels = levelOrder.slice(
-            Math.max(0, studentLevelIndex - 1),
-            Math.min(levelOrder.length, studentLevelIndex + 2)
-          );
-          const placeholders = validLevels.map(() => '?').join(',');
-          query += ` AND LOWER(b.reading_level) IN (${placeholders})`;
-          params.push(...validLevels);
-        }
-      }
+    // Filter by reading level range if student has one set
+    const minLevel = student.readingLevelMin;
+    const maxLevel = student.readingLevelMax;
+
+    if (minLevel !== null && maxLevel !== null) {
+      // Filter books where book level falls within student's range
+      // Include books with no reading level (don't exclude unleveled books)
+      query += ` AND (b.reading_level IS NULL OR (
+        CAST(b.reading_level AS REAL) >= ? AND CAST(b.reading_level AS REAL) <= ?
+      ))`;
+      params.push(minLevel, maxLevel);
     }
-    // If no reading level set, don't filter by level (return all levels)
+    // If no range set, don't filter by level (return all books)
 
     // Exclude already-read books
     if (readBookIds.length > 0) {
@@ -188,13 +176,19 @@ booksRouter.get('/library-search', requireReadonly(), async (c) => {
         }
       }
 
-      // Score for matching reading level exactly
-      if (studentLevel && book.reading_level) {
-        const bookLevel = book.reading_level.toLowerCase();
-        const studentLevelLower = studentLevel.toLowerCase();
-        if (bookLevel === studentLevelLower) {
-          score += 1;
-          matchReasons.push('perfect level match');
+      // Score for books well within the reading level range
+      if (minLevel !== null && maxLevel !== null && book.reading_level) {
+        const bookLevel = parseFloat(book.reading_level);
+        if (!isNaN(bookLevel)) {
+          // Calculate how centered the book is within the range
+          const rangeCenter = (minLevel + maxLevel) / 2;
+          const rangeHalf = (maxLevel - minLevel) / 2;
+          const distanceFromCenter = Math.abs(bookLevel - rangeCenter);
+          // Bonus for books closer to the center of the range
+          if (distanceFromCenter <= rangeHalf * 0.5) {
+            score += 1;
+            matchReasons.push('ideal level match');
+          }
         }
       }
 
@@ -255,6 +249,8 @@ booksRouter.get('/library-search', requireReadonly(), async (c) => {
       studentProfile: {
         name: student.name,
         readingLevel: student.readingLevel,
+        readingLevelMin: student.readingLevelMin,
+        readingLevelMax: student.readingLevelMax,
         favoriteGenres: preferences.favoriteGenreNames,
         inferredGenres: inferredGenres.map(g => g.name),
         booksRead: profile.booksReadCount

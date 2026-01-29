@@ -17,7 +17,7 @@
 export async function buildStudentReadingProfile(studentId, organizationId, db) {
   // 1. Get student basic info
   const student = await db.prepare(`
-    SELECT id, name, reading_level, age_range, likes, dislikes, notes
+    SELECT id, name, reading_level, reading_level_min, reading_level_max, age_range, likes, dislikes, notes
     FROM students
     WHERE id = ? AND organization_id = ?
   `).bind(studentId, organizationId).first();
@@ -138,6 +138,8 @@ export async function buildStudentReadingProfile(studentId, organizationId, db) 
       id: student.id,
       name: student.name,
       readingLevel: student.reading_level || null,
+      readingLevelMin: student.reading_level_min ?? null,
+      readingLevelMax: student.reading_level_max ?? null,
       ageRange: student.age_range || null,
       notes: student.notes
     },
