@@ -6,6 +6,7 @@ import BottomNavigationAction from '@mui/material/BottomNavigationAction';
 import SettingsIcon from '@mui/icons-material/Settings';
 import Header from './components/Header';
 import { AppProvider, useAppContext } from './contexts/AppContext';
+import { BookCoverProvider } from './contexts/BookCoverContext';
 import Login from './components/Login';
 import StudentList from './components/students/StudentList';
 import SessionForm from './components/sessions/SessionForm';
@@ -266,7 +267,9 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AppProvider>
-        <AppContent />
+        <BookCoverProvider>
+          <AppContent />
+        </BookCoverProvider>
       </AppProvider>
     </ThemeProvider>
   );
