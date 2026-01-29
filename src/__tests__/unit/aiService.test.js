@@ -168,6 +168,165 @@ describe('aiService', () => {
     });
   });
 
+  describe('buildBroadSuggestionsPrompt - Focus Mode', () => {
+    const createMockProfileWithRange = (overrides = {}) => ({
+      student: {
+        id: 'student-1',
+        name: 'Test',
+        readingLevel: 'intermediate',
+        readingLevelMin: 5.0,
+        readingLevelMax: 9.0,
+        ageRange: '8-10',
+        ...overrides.student
+      },
+      preferences: {
+        favoriteGenreIds: [],
+        favoriteGenreNames: [],
+        likes: [],
+        dislikes: [],
+        ...overrides.preferences
+      },
+      inferredGenres: [],
+      recentReads: [],
+      readBookIds: [],
+      booksReadCount: 0,
+      ...overrides
+    });
+
+    it('should include AR level explanation when student has reading level range', () => {
+      const profile = createMockProfileWithRange({
+        student: {
+          name: 'Test',
+          readingLevelMin: 5.2,
+          readingLevelMax: 8.7,
+        }
+      });
+
+      const prompt = buildBroadSuggestionsPrompt(profile, 'balanced');
+
+      expect(prompt).toContain('Accelerated Reader');
+      expect(prompt).toContain('1.0');
+      expect(prompt).toContain('13.0');
+      expect(prompt).toContain('5.2');
+      expect(prompt).toContain('8.7');
+    });
+
+    it('should include consolidation guidance when focus is consolidation', () => {
+      const profile = createMockProfileWithRange({
+        student: {
+          name: 'Test',
+          readingLevelMin: 5.0,
+          readingLevelMax: 9.0,
+        }
+      });
+
+      const prompt = buildBroadSuggestionsPrompt(profile, 'consolidation');
+
+      expect(prompt).toContain('Consolidation');
+      expect(prompt).toContain('lower end');
+      expect(prompt).toContain('fluency');
+      expect(prompt).toContain('confidence');
+      expect(prompt).toContain('5.0');
+      expect(prompt).toContain('7.0'); // midpoint
+    });
+
+    it('should include challenge guidance when focus is challenge', () => {
+      const profile = createMockProfileWithRange({
+        student: {
+          name: 'Test',
+          readingLevelMin: 5.0,
+          readingLevelMax: 9.0,
+        }
+      });
+
+      const prompt = buildBroadSuggestionsPrompt(profile, 'challenge');
+
+      expect(prompt).toContain('Challenge');
+      expect(prompt).toContain('upper end');
+      expect(prompt).toContain('stretch');
+      expect(prompt).toContain('7.0'); // midpoint
+      expect(prompt).toContain('9.0');
+    });
+
+    it('should include balanced guidance when focus is balanced', () => {
+      const profile = createMockProfileWithRange({
+        student: {
+          name: 'Test',
+          readingLevelMin: 5.0,
+          readingLevelMax: 9.0,
+        }
+      });
+
+      const prompt = buildBroadSuggestionsPrompt(profile, 'balanced');
+
+      expect(prompt).toContain('Balanced');
+      expect(prompt).toContain('mix across');
+      expect(prompt).toContain('5.0');
+      expect(prompt).toContain('9.0');
+    });
+
+    it('should default to balanced when no focus mode provided', () => {
+      const profile = createMockProfileWithRange({
+        student: {
+          name: 'Test',
+          readingLevelMin: 5.0,
+          readingLevelMax: 9.0,
+        }
+      });
+
+      const prompt = buildBroadSuggestionsPrompt(profile);
+
+      expect(prompt).toContain('Balanced');
+      expect(prompt).toContain('mix across');
+    });
+
+    it('should show "Reading level not assessed" when no range provided', () => {
+      const profile = createMockProfileWithRange({
+        student: {
+          name: 'Test',
+          readingLevelMin: null,
+          readingLevelMax: null,
+        }
+      });
+
+      const prompt = buildBroadSuggestionsPrompt(profile, 'balanced');
+
+      expect(prompt).toContain('Reading level not assessed');
+      expect(prompt).toContain('age-appropriate');
+      expect(prompt).not.toContain('Accelerated Reader');
+    });
+
+    it('should handle only readingLevelMin being set', () => {
+      const profile = createMockProfileWithRange({
+        student: {
+          name: 'Test',
+          readingLevelMin: 5.0,
+          readingLevelMax: null,
+        }
+      });
+
+      const prompt = buildBroadSuggestionsPrompt(profile, 'balanced');
+
+      // Should fallback to unassessed since both are required
+      expect(prompt).toContain('Reading level not assessed');
+    });
+
+    it('should handle only readingLevelMax being set', () => {
+      const profile = createMockProfileWithRange({
+        student: {
+          name: 'Test',
+          readingLevelMin: null,
+          readingLevelMax: 9.0,
+        }
+      });
+
+      const prompt = buildBroadSuggestionsPrompt(profile, 'balanced');
+
+      // Should fallback to unassessed since both are required
+      expect(prompt).toContain('Reading level not assessed');
+    });
+  });
+
   describe('normalizeBroadSuggestions (via parsing)', () => {
     // We can't directly test private functions, but we can test edge cases
     // through the response structure expectations

@@ -273,9 +273,10 @@ function normalizeRecommendations(recommendations) {
 /**
  * Build prompt for broader AI suggestions (not constrained to library)
  * @param {Object} studentProfile - Profile from buildStudentReadingProfile
+ * @param {string} focusMode - 'balanced' | 'consolidation' | 'challenge' (default: 'balanced')
  * @returns {string} The prompt for the AI
  */
-export function buildBroadSuggestionsPrompt(studentProfile) {
+export function buildBroadSuggestionsPrompt(studentProfile, focusMode = 'balanced') {
   const { student, preferences, inferredGenres, recentReads } = studentProfile;
 
   const favoriteGenresText = preferences.favoriteGenreNames.length > 0
@@ -298,13 +299,51 @@ export function buildBroadSuggestionsPrompt(studentProfile) {
     ? recentReads.map(b => `${b.title}${b.author ? ` by ${b.author}` : ''}`).join(', ')
     : 'No recent books';
 
+  // Build reading level context with AR explanation
+  let readingLevelContext = '';
+  if (student.readingLevelMin != null && student.readingLevelMax != null) {
+    const min = student.readingLevelMin;
+    const max = student.readingLevelMax;
+    const midpoint = (min + max) / 2;
+
+    readingLevelContext = `
+READING ABILITY:
+This student's reading ability is assessed using Accelerated Reader (AR) levels, which range from 1.0 (early first readers) to 13.0 (adult-level complexity). Their assessed range is ${min.toFixed(1)} to ${max.toFixed(1)} - they read confidently at the lower end and can stretch to the upper end with engagement.
+
+Use these levels as a guide for book difficulty rather than looking for exact AR level matches.
+`;
+
+    // Add focus mode guidance
+    if (focusMode === 'consolidation') {
+      readingLevelContext += `
+TEACHER'S REQUEST: Consolidation
+Recommend books appropriate for the lower end of their range (around ${min.toFixed(1)}-${midpoint.toFixed(1)} AR level difficulty) to build fluency and confidence.
+`;
+    } else if (focusMode === 'challenge') {
+      readingLevelContext += `
+TEACHER'S REQUEST: Challenge
+Recommend books appropriate for the upper end of their range (around ${midpoint.toFixed(1)}-${max.toFixed(1)} AR level difficulty) to stretch their abilities.
+`;
+    } else {
+      readingLevelContext += `
+TEACHER'S REQUEST: Balanced
+Recommend a mix across their ability range from ${min.toFixed(1)} to ${max.toFixed(1)}.
+`;
+    }
+  } else {
+    readingLevelContext = `
+READING ABILITY:
+Reading level not assessed. Recommend age-appropriate books based on other factors.
+`;
+  }
+
   return `You are an expert children's librarian recommending books for a young reader.
 
 STUDENT PROFILE:
 - Name: ${student.name}
 - Reading Level: ${student.readingLevel}
 - Age Range: ${student.ageRange || 'Not specified'}
-
+${readingLevelContext}
 EXPLICIT PREFERENCES (teacher/parent provided):
 - Favorite Genres: ${favoriteGenresText}
 - Books They Liked: ${likedBooksText}
@@ -381,16 +420,17 @@ function parseBroadSuggestionsResponse(text) {
  * Generate broad AI suggestions (not constrained to library)
  * @param {Object} studentProfile - Profile from buildStudentReadingProfile
  * @param {Object} config - AI configuration (provider, apiKey, model, baseUrl)
+ * @param {string} focusMode - 'balanced' | 'consolidation' | 'challenge' (default: 'balanced')
  * @returns {Promise<Array>} - List of suggested books
  */
-export async function generateBroadSuggestions(studentProfile, config) {
+export async function generateBroadSuggestions(studentProfile, config, focusMode = 'balanced') {
   const { provider = 'anthropic', apiKey, baseUrl, model } = config;
 
   if (!apiKey) {
     throw new Error('API key is required for AI suggestions');
   }
 
-  const prompt = buildBroadSuggestionsPrompt(studentProfile);
+  const prompt = buildBroadSuggestionsPrompt(studentProfile, focusMode);
 
   let response;
   switch (provider) {

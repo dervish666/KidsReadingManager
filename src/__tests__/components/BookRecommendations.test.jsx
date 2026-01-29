@@ -678,7 +678,7 @@ describe('BookRecommendations Component', () => {
       await user.click(screen.getByRole('button', { name: /ai suggestions/i }));
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/books/ai-suggestions?studentId=student-1');
+        expect(mockFetch).toHaveBeenCalledWith('/api/books/ai-suggestions?studentId=student-1&focusMode=balanced');
       });
     });
 
@@ -1406,6 +1406,168 @@ describe('BookRecommendations Component', () => {
       // Should render without crashing
       render(<BookRecommendations />, { wrapper: createWrapper(context) });
       expect(screen.getByText('Book Recommendations')).toBeInTheDocument();
+    });
+  });
+
+  describe('Focus Mode', () => {
+    it('should render focus mode dropdown after student selection', async () => {
+      const mockFetch = createMockFetch();
+      const context = createMockContext({ fetchWithAuth: mockFetch });
+      const user = userEvent.setup();
+      render(<BookRecommendations />, { wrapper: createWrapper(context) });
+
+      // Select a student
+      const studentSelect = screen.getByLabelText(/student/i);
+      await user.click(studentSelect);
+      await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
+
+      // Focus mode dropdown should be visible
+      await waitFor(() => {
+        expect(screen.getByLabelText(/focus/i)).toBeInTheDocument();
+      });
+    });
+
+    it('should default to balanced focus mode', async () => {
+      const mockFetch = createMockFetch();
+      const context = createMockContext({ fetchWithAuth: mockFetch });
+      const user = userEvent.setup();
+      render(<BookRecommendations />, { wrapper: createWrapper(context) });
+
+      const studentSelect = screen.getByLabelText(/student/i);
+      await user.click(studentSelect);
+      await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
+
+      // Check that balanced is selected
+      await waitFor(() => {
+        const focusSelect = screen.getByLabelText(/focus/i);
+        expect(focusSelect).toHaveTextContent('Balanced');
+      });
+    });
+
+    it('should allow changing focus mode to consolidation', async () => {
+      const mockFetch = createMockFetch();
+      const context = createMockContext({ fetchWithAuth: mockFetch });
+      const user = userEvent.setup();
+      render(<BookRecommendations />, { wrapper: createWrapper(context) });
+
+      const studentSelect = screen.getByLabelText(/student/i);
+      await user.click(studentSelect);
+      await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/focus/i)).toBeInTheDocument();
+      });
+
+      // Open and select consolidation
+      const focusSelect = screen.getByLabelText(/focus/i);
+      await user.click(focusSelect);
+      await user.click(screen.getByRole('option', { name: /consolidation/i }));
+
+      // Verify consolidation is selected
+      await waitFor(() => {
+        expect(screen.getByLabelText(/focus/i)).toHaveTextContent('Consolidation');
+      });
+    });
+
+    it('should allow changing focus mode to challenge', async () => {
+      const mockFetch = createMockFetch();
+      const context = createMockContext({ fetchWithAuth: mockFetch });
+      const user = userEvent.setup();
+      render(<BookRecommendations />, { wrapper: createWrapper(context) });
+
+      const studentSelect = screen.getByLabelText(/student/i);
+      await user.click(studentSelect);
+      await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/focus/i)).toBeInTheDocument();
+      });
+
+      // Open and select challenge
+      const focusSelect = screen.getByLabelText(/focus/i);
+      await user.click(focusSelect);
+      await user.click(screen.getByRole('option', { name: /challenge/i }));
+
+      // Verify challenge is selected
+      await waitFor(() => {
+        expect(screen.getByLabelText(/focus/i)).toHaveTextContent('Challenge');
+      });
+    });
+
+    it('should include focusMode in AI suggestions API call', async () => {
+      const mockFetch = createMockFetch();
+      const context = createMockContext({ fetchWithAuth: mockFetch });
+      const user = userEvent.setup();
+      render(<BookRecommendations />, { wrapper: createWrapper(context) });
+
+      const studentSelect = screen.getByLabelText(/student/i);
+      await user.click(studentSelect);
+      await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
+
+      // Wait for AI to be configured
+      await waitFor(() => {
+        expect(screen.getByText(/AI: Claude/i)).toBeInTheDocument();
+      });
+
+      // Change to challenge mode
+      const focusSelect = screen.getByLabelText(/focus/i);
+      await user.click(focusSelect);
+      await user.click(screen.getByRole('option', { name: /challenge/i }));
+
+      // Click AI Suggestions
+      await user.click(screen.getByRole('button', { name: /ai suggestions/i }));
+
+      // Verify the API was called with focusMode
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith('/api/books/ai-suggestions?studentId=student-1&focusMode=challenge');
+      });
+    });
+
+    it('should disable focus mode dropdown during loading', async () => {
+      const mockFetch = vi.fn().mockImplementation((url) => {
+        if (url === '/api/settings/ai') {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ hasApiKey: true, provider: 'anthropic' })
+          });
+        }
+        if (url.startsWith('/api/books/library-search')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ studentProfile: {}, books: [] })
+          });
+        }
+        if (url.startsWith('/api/books/ai-suggestions')) {
+          // Delay to capture loading state
+          return new Promise(resolve => {
+            setTimeout(() => {
+              resolve({
+                ok: true,
+                json: () => Promise.resolve({ studentProfile: {}, suggestions: [] })
+              });
+            }, 500);
+          });
+        }
+        return Promise.resolve({ ok: false });
+      });
+
+      const context = createMockContext({ fetchWithAuth: mockFetch });
+      const user = userEvent.setup();
+      render(<BookRecommendations />, { wrapper: createWrapper(context) });
+
+      const studentSelect = screen.getByLabelText(/student/i);
+      await user.click(studentSelect);
+      await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/AI: Claude/i)).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: /ai suggestions/i }));
+
+      // Focus dropdown should be disabled during loading
+      const focusSelect = screen.getByLabelText(/focus/i);
+      expect(focusSelect).toHaveAttribute('aria-disabled', 'true');
     });
   });
 

@@ -52,6 +52,9 @@ const BookRecommendations = () => {
   // State for preferences modal
   const [preferencesOpen, setPreferencesOpen] = useState(false);
 
+  // State for focus mode
+  const [focusMode, setFocusMode] = useState('balanced');
+
   // Load AI config on mount
   useEffect(() => {
     const loadAIConfig = async () => {
@@ -201,7 +204,7 @@ const BookRecommendations = () => {
     setResultType('ai');
 
     try {
-      const response = await fetchWithAuth(`/api/books/ai-suggestions?studentId=${selectedStudentId}`);
+      const response = await fetchWithAuth(`/api/books/ai-suggestions?studentId=${selectedStudentId}&focusMode=${focusMode}`);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -416,7 +419,7 @@ const BookRecommendations = () => {
 
       {/* Two Buttons Area */}
       {selectedStudentId && (
-        <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+        <Box sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'center', flexWrap: 'wrap' }}>
           <Button
             variant="contained"
             color="primary"
@@ -426,6 +429,22 @@ const BookRecommendations = () => {
           >
             {libraryLoading ? 'Searching...' : 'Find in Library'}
           </Button>
+
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel id="focus-mode-label">Focus</InputLabel>
+            <Select
+              labelId="focus-mode-label"
+              id="focus-mode-select"
+              value={focusMode}
+              onChange={(e) => setFocusMode(e.target.value)}
+              label="Focus"
+              disabled={libraryLoading || aiLoading}
+            >
+              <MenuItem value="balanced">Balanced</MenuItem>
+              <MenuItem value="consolidation">Consolidation</MenuItem>
+              <MenuItem value="challenge">Challenge</MenuItem>
+            </Select>
+          </FormControl>
 
           <Tooltip
             title={!hasActiveAI ? 'Configure AI in Settings to enable' : ''}

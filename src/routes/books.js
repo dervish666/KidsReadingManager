@@ -273,12 +273,13 @@ booksRouter.get('/library-search', requireReadonly(), async (c) => {
  *
  * Query params:
  * - studentId: Required - the student to get suggestions for
+ * - focusMode: Optional - 'balanced' | 'consolidation' | 'challenge' (default: 'balanced')
  *
  * Requires authentication (at least readonly access)
  */
 booksRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
   try {
-    const { studentId } = c.req.query();
+    const { studentId, focusMode = 'balanced' } = c.req.query();
 
     if (!studentId) {
       throw badRequestError('studentId query parameter is required');
@@ -324,7 +325,7 @@ booksRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
     }
 
     // Generate AI suggestions
-    const suggestions = await generateBroadSuggestions(profile, aiConfig);
+    const suggestions = await generateBroadSuggestions(profile, aiConfig, focusMode);
 
     // Check which suggestions are in the library
     // Add null safety in case AI returns malformed data
