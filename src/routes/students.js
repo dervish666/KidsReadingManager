@@ -12,7 +12,7 @@ import {
 } from '../services/kvService';
 
 // Import utilities
-import { validateStudent, validateBulkImport } from '../utils/validation';
+import { validateStudent, validateBulkImport, validateReadingLevelRange } from '../utils/validation';
 import { notFoundError, badRequestError } from '../middleware/errorHandler';
 import { requireRole } from '../middleware/tenant';
 import { permissions } from '../utils/crypto';
@@ -49,6 +49,10 @@ const rowToStudent = (row) => {
     lastReadDate: row.last_read_date,
     likes: row.likes ? JSON.parse(row.likes) : [],
     dislikes: row.dislikes ? JSON.parse(row.dislikes) : [],
+    // New reading level range fields
+    readingLevelMin: row.reading_level_min,
+    readingLevelMax: row.reading_level_max,
+    // Keep legacy field for backward compatibility during transition
     readingLevel: row.reading_level,
     notes: row.notes,
     isActive: Boolean(row.is_active),
@@ -379,50 +383,57 @@ studentsRouter.get('/:id', async (c) => {
  */
 studentsRouter.post('/', async (c) => {
   const body = await c.req.json();
-  
+
   // Validate student data
   const validation = validateStudent(body);
   if (!validation.isValid) {
     throw badRequestError(validation.errors.join(', '));
   }
-  
+
   // Multi-tenant mode: use D1
   if (isMultiTenantMode(c)) {
     const db = getDB(c.env);
     const organizationId = c.get('organizationId');
     const userId = c.get('userId');
-    
+
     // Check permission
     const userRole = c.get('userRole');
     if (!permissions.canManageStudents(userRole)) {
       return c.json({ error: 'Permission denied' }, 403);
     }
-    
+
+    // Validate reading level range
+    const rangeValidation = validateReadingLevelRange(body.readingLevelMin, body.readingLevelMax);
+    if (!rangeValidation.isValid) {
+      return c.json({ error: rangeValidation.errors[0] }, 400);
+    }
+
     const studentId = body.id || generateId();
-    
+
     await db.prepare(`
-      INSERT INTO students (id, organization_id, name, class_id, reading_level, likes, dislikes, notes, created_by)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO students (id, organization_id, name, class_id, reading_level_min, reading_level_max, likes, dislikes, notes, created_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       studentId,
       organizationId,
       body.name,
       body.classId || null,
-      body.readingLevel || null,
+      rangeValidation.normalizedMin ?? null,
+      rangeValidation.normalizedMax ?? null,
       JSON.stringify(body.likes || []),
       JSON.stringify(body.dislikes || []),
       body.notes || null,
       userId
     ).run();
-    
+
     // Fetch the created student
     const student = await db.prepare(`
       SELECT * FROM students WHERE id = ?
     `).bind(studentId).first();
-    
+
     return c.json(rowToStudent(student), 201);
   }
-  
+
   // Legacy mode: use KV
   const newStudent = {
     id: body.id || generateId(),
@@ -431,9 +442,11 @@ studentsRouter.post('/', async (c) => {
     lastReadDate: body.lastReadDate || null,
     readingSessions: body.readingSessions || [],
     likes: body.likes || [],
-    dislikes: body.dislikes || []
+    dislikes: body.dislikes || [],
+    readingLevelMin: body.readingLevelMin || null,
+    readingLevelMax: body.readingLevelMax || null
   };
-  
+
   const savedStudent = await saveStudentKV(c.env, newStudent);
   return c.json(savedStudent, 201);
 });
@@ -445,38 +458,44 @@ studentsRouter.post('/', async (c) => {
 studentsRouter.put('/:id', async (c) => {
   const { id } = c.req.param();
   const body = await c.req.json();
-  
+
   // Validate student data
   const validation = validateStudent(body);
   if (!validation.isValid) {
     throw badRequestError(validation.errors.join(', '));
   }
-  
+
   // Multi-tenant mode: use D1
   if (isMultiTenantMode(c)) {
     const db = getDB(c.env);
     const organizationId = c.get('organizationId');
     const userId = c.get('userId');
-    
+
     // Check permission
     const userRole = c.get('userRole');
     if (!permissions.canManageStudents(userRole)) {
       return c.json({ error: 'Permission denied' }, 403);
     }
-    
+
     // Check if student exists and belongs to organization
     const existing = await db.prepare(`
       SELECT id FROM students WHERE id = ? AND organization_id = ? AND is_active = 1
     `).bind(id, organizationId).first();
-    
+
     if (!existing) {
       throw notFoundError(`Student with ID ${id} not found`);
     }
-    
+
+    // Validate reading level range
+    const rangeValidation = validateReadingLevelRange(body.readingLevelMin, body.readingLevelMax);
+    if (!rangeValidation.isValid) {
+      return c.json({ error: rangeValidation.errors[0] }, 400);
+    }
+
     // Extract likes/dislikes from preferences if provided
     let likes = body.likes || [];
     let dislikes = body.dislikes || [];
-    
+
     if (body.preferences) {
       // If preferences object is provided, use its likes/dislikes
       if (body.preferences.likes && Array.isArray(body.preferences.likes)) {
@@ -486,13 +505,14 @@ studentsRouter.put('/:id', async (c) => {
         dislikes = body.preferences.dislikes;
       }
     }
-    
+
     // Update student
     await db.prepare(`
       UPDATE students SET
         name = ?,
         class_id = ?,
-        reading_level = ?,
+        reading_level_min = ?,
+        reading_level_max = ?,
         likes = ?,
         dislikes = ?,
         notes = ?,
@@ -501,46 +521,47 @@ studentsRouter.put('/:id', async (c) => {
     `).bind(
       body.name,
       body.classId || null,
-      body.readingLevel || null,
+      rangeValidation.normalizedMin ?? null,
+      rangeValidation.normalizedMax ?? null,
       JSON.stringify(likes),
       JSON.stringify(dislikes),
       body.notes || null,
       id,
       organizationId
     ).run();
-    
+
     // Save student preferences (favorite genres) to student_preferences table
     if (body.preferences) {
       await saveStudentPreferences(db, id, body.preferences);
     }
-    
+
     // Fetch updated student
     const student = await db.prepare(`
       SELECT * FROM students WHERE id = ?
     `).bind(id).first();
-    
+
     const result = rowToStudent(student);
-    
+
     // Fetch and include preferences in response
     result.preferences = await fetchStudentPreferences(db, id);
     result.preferences.likes = likes;
     result.preferences.dislikes = dislikes;
-    
+
     return c.json(result);
   }
-  
+
   // Legacy mode: use KV
   const existingStudent = await getStudentByIdKV(c.env, id);
   if (!existingStudent) {
     throw notFoundError(`Student with ID ${id} not found`);
   }
-  
+
   const updatedStudent = {
     ...existingStudent,
     ...body,
     id // Ensure ID doesn't change
   };
-  
+
   const savedStudent = await saveStudentKV(c.env, updatedStudent);
   return c.json(savedStudent);
 });
@@ -643,64 +664,78 @@ studentsRouter.put('/:id/current-book', async (c) => {
  */
 studentsRouter.post('/bulk', async (c) => {
   const body = await c.req.json();
-  
+
   // Validate bulk import data
   const validation = validateBulkImport(body);
   if (!validation.isValid) {
     throw badRequestError(validation.errors.join(', '));
   }
-  
+
   // Multi-tenant mode: use D1
   if (isMultiTenantMode(c)) {
     const db = getDB(c.env);
     const organizationId = c.get('organizationId');
     const userId = c.get('userId');
-    
+
     // Check permission
     const userRole = c.get('userRole');
     if (!permissions.canManageStudents(userRole)) {
       return c.json({ error: 'Permission denied' }, 403);
     }
-    
+
+    // Validate reading level range for each student
+    for (let i = 0; i < body.length; i++) {
+      const student = body[i];
+      const rangeValidation = validateReadingLevelRange(student.readingLevelMin, student.readingLevelMax);
+      if (!rangeValidation.isValid) {
+        return c.json({ error: `Student at index ${i}: ${rangeValidation.errors[0]}` }, 400);
+      }
+    }
+
     // Prepare batch insert (D1 batch limit is 100)
-    const students = body.map(student => ({
-      id: student.id || generateId(),
-      name: student.name,
-      classId: student.classId || null,
-      readingLevel: student.readingLevel || null,
-      likes: student.likes || [],
-      dislikes: student.dislikes || []
-    }));
-    
+    const students = body.map(student => {
+      const rangeValidation = validateReadingLevelRange(student.readingLevelMin, student.readingLevelMax);
+      return {
+        id: student.id || generateId(),
+        name: student.name,
+        classId: student.classId || null,
+        readingLevelMin: rangeValidation.normalizedMin ?? null,
+        readingLevelMax: rangeValidation.normalizedMax ?? null,
+        likes: student.likes || [],
+        dislikes: student.dislikes || []
+      };
+    });
+
     // Insert in batches of 100
     const batchSize = 100;
     const savedStudents = [];
-    
+
     for (let i = 0; i < students.length; i += batchSize) {
       const batch = students.slice(i, i + batchSize);
       const statements = batch.map(student => {
         return db.prepare(`
-          INSERT INTO students (id, organization_id, name, class_id, reading_level, likes, dislikes, created_by)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO students (id, organization_id, name, class_id, reading_level_min, reading_level_max, likes, dislikes, created_by)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
           student.id,
           organizationId,
           student.name,
           student.classId,
-          student.readingLevel,
+          student.readingLevelMin,
+          student.readingLevelMax,
           JSON.stringify(student.likes),
           JSON.stringify(student.dislikes),
           userId
         );
       });
-      
+
       await db.batch(statements);
       savedStudents.push(...batch);
     }
-    
+
     return c.json(savedStudents, 201);
   }
-  
+
   // Legacy mode: use KV
   const newStudents = body.map(student => ({
     id: student.id || generateId(),
@@ -709,9 +744,11 @@ studentsRouter.post('/bulk', async (c) => {
     lastReadDate: student.lastReadDate || null,
     readingSessions: student.readingSessions || [],
     likes: student.likes || [],
-    dislikes: student.dislikes || []
+    dislikes: student.dislikes || [],
+    readingLevelMin: student.readingLevelMin || null,
+    readingLevelMax: student.readingLevelMax || null
   }));
-  
+
   const savedStudents = await addStudentsKV(c.env, newStudents);
   return c.json(savedStudents, 201);
 });
