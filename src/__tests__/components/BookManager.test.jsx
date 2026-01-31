@@ -893,7 +893,7 @@ describe('BookManager Component', () => {
       expect(screen.getByText('Export CSV')).toBeInTheDocument();
     });
 
-    it('should trigger file input when Import Books is clicked', async () => {
+    it('should open import wizard when Import Books is clicked', async () => {
       const context = createMockContext();
       const user = userEvent.setup();
       render(<BookManager />, { wrapper: createWrapper(context) });
@@ -901,14 +901,13 @@ describe('BookManager Component', () => {
       const importExportButton = screen.getByRole('button', { name: /import\/export/i });
       await user.click(importExportButton);
 
-      // Get the hidden file input
-      const fileInput = document.querySelector('input[type="file"]');
-      const clickSpy = vi.spyOn(fileInput, 'click');
-
       const importItem = screen.getByText('Import Books');
       await user.click(importItem);
 
-      expect(clickSpy).toHaveBeenCalled();
+      // The BookImportWizard dialog should be rendered with stepper
+      await waitFor(() => {
+        expect(screen.getByText('Upload CSV')).toBeInTheDocument();
+      });
     });
 
     it('should show import confirmation dialog after valid file selection', async () => {

@@ -55,6 +55,7 @@ import {
   getProviderDisplayName,
   validateProviderConfig
 } from '../../utils/bookMetadataApi';
+import BookImportWizard from './BookImportWizard';
 
 const BookManager = () => {
   const { books, genres, addBook, reloadDataFromServer, fetchWithAuth, settings } = useAppContext();
@@ -105,6 +106,7 @@ const BookManager = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [importExportMenuAnchor, setImportExportMenuAnchor] = useState(null);
   const [aiFillMenuAnchor, setAiFillMenuAnchor] = useState(null);
+  const [showImportWizard, setShowImportWizard] = useState(false);
 
   const handleAddBook = async (e) => {
     e.preventDefault();
@@ -1314,7 +1316,7 @@ const BookManager = () => {
                 <MenuItem
                   onClick={() => {
                     setImportExportMenuAnchor(null);
-                    handleImportClick();
+                    setShowImportWizard(true);
                   }}
                 >
                   <UploadIcon fontSize="small" sx={{ mr: 1 }} />
@@ -2214,6 +2216,12 @@ const BookManager = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Book Import Wizard */}
+      <BookImportWizard
+        open={showImportWizard}
+        onClose={() => setShowImportWizard(false)}
+      />
 
       {/* Snackbar for notifications */}
       <Snackbar
