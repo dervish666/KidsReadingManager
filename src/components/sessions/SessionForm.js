@@ -300,6 +300,7 @@ const SessionForm = () => {
           value={date}
           onChange={handleDateChange}
           size="small"
+          inputProps={{ 'aria-label': 'Session date' }}
           InputProps={{
             sx: {
               borderRadius: 3,
