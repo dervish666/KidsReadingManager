@@ -274,10 +274,26 @@ const SessionForm = () => {
 
   return (
     <Box>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" component="h1" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#4A4A4A' }}>
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+        <Typography variant="h4" component="h1" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#4A4A4A' }}>
           Record Reading Session
         </Typography>
+        <TextField
+          type="date"
+          value={date}
+          onChange={handleDateChange}
+          size="small"
+          InputProps={{
+            sx: {
+              borderRadius: 3,
+              backgroundColor: '#EFEBF5',
+              boxShadow: 'inset 2px 2px 4px #d9d4e3, inset -2px -2px 4px #ffffff',
+              '& fieldset': { border: 'none' },
+              '&.Mui-focused': { backgroundColor: '#ffffff', boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.2)' },
+              minWidth: 150
+            }
+          }}
+        />
       </Box>
       <Paper sx={{
           p: 4,
@@ -358,29 +374,6 @@ const SessionForm = () => {
                       )}
                     </Select>
                   </FormControl>
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <TextField
-                    label="Date"
-                    type="date"
-                    value={date}
-                    onChange={handleDateChange}
-                    fullWidth
-                    InputLabelProps={{
-                      shrink: true,
-                      sx: { fontFamily: '"DM Sans", sans-serif' }
-                    }}
-                    InputProps={{
-                      sx: {
-                        borderRadius: 4,
-                        backgroundColor: '#EFEBF5',
-                        boxShadow: 'inset 4px 4px 8px #d9d4e3, inset -4px -4px 8px #ffffff',
-                        '& fieldset': { border: 'none' },
-                        '&.Mui-focused': { backgroundColor: '#ffffff', boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.2)' },
-                        height: 56
-                      }
-                    }}
-                  />
                 </Grid>
               </Grid>
 

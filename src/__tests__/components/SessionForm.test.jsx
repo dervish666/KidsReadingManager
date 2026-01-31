@@ -121,7 +121,8 @@ describe('SessionForm Component', () => {
 
       expect(screen.getByText('Record Reading Session')).toBeInTheDocument();
       expect(screen.getByLabelText('Student')).toBeInTheDocument();
-      expect(screen.getByLabelText('Date')).toBeInTheDocument();
+      // Date picker is now in header without a label - find by type
+      expect(screen.getByDisplayValue(new Date().toISOString().split('T')[0])).toBeInTheDocument();
       expect(screen.getByText('Location')).toBeInTheDocument();
       expect(screen.getByText('Assessment:')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /save reading session/i })).toBeInTheDocument();
@@ -132,7 +133,8 @@ describe('SessionForm Component', () => {
       render(<SessionForm />, { wrapper: createWrapper(context) });
 
       const today = new Date().toISOString().split('T')[0];
-      const dateInput = screen.getByLabelText('Date');
+      // Date picker is now in header without a label - find by display value
+      const dateInput = screen.getByDisplayValue(today);
       expect(dateInput).toHaveValue(today);
     });
 
@@ -267,7 +269,9 @@ describe('SessionForm Component', () => {
       const user = userEvent.setup();
       render(<SessionForm />, { wrapper: createWrapper(context) });
 
-      const dateInput = screen.getByLabelText('Date');
+      const today = new Date().toISOString().split('T')[0];
+      // Date picker is now in header without a label - find by display value
+      const dateInput = screen.getByDisplayValue(today);
       await user.clear(dateInput);
       await user.type(dateInput, '2024-06-15');
 
