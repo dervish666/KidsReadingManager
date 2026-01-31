@@ -239,6 +239,7 @@ booksRouter.get('/library-search', requireReadonly(), async (c) => {
         author: book.author,
         readingLevel: book.reading_level,
         ageRange: book.age_range,
+        description: book.description,
         genres,
         matchReason
       };
