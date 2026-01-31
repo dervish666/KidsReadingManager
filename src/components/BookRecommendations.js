@@ -306,7 +306,9 @@ const BookRecommendations = () => {
               {selectedClass && (
                 <Chip label={selectedClass.name} size="small" color="primary" />
               )}
-              {studentProfile?.readingLevel && (
+              {(studentProfile?.readingLevelMin != null && studentProfile?.readingLevelMax != null) ? (
+                <Chip label={`Level: ${studentProfile.readingLevelMin} - ${studentProfile.readingLevelMax}`} size="small" variant="outlined" />
+              ) : studentProfile?.readingLevel && (
                 <Chip label={`Level: ${studentProfile.readingLevel}`} size="small" variant="outlined" />
               )}
             </Box>
