@@ -317,4 +317,130 @@ describe('Book Import API', () => {
       expect(data.message).toContain('Multi-tenant mode required');
     });
   });
+
+  describe('POST /api/books/import/confirm', () => {
+    it('should link matched books to organization', async () => {
+      const { app, mockDB } = createTestApp(
+        { organizationId: 'org-123', userRole: 'teacher' },
+        {}
+      );
+
+      const res = await app.request('/api/books/import/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          matched: [{ existingBookId: 'book-1' }, { existingBookId: 'book-2' }],
+          newBooks: [],
+          conflicts: []
+        })
+      });
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.linked).toBe(2);
+    });
+
+    it('should create new books and link to organization', async () => {
+      const { app, mockDB } = createTestApp(
+        { organizationId: 'org-123', userRole: 'teacher' },
+        {}
+      );
+
+      const res = await app.request('/api/books/import/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          matched: [],
+          newBooks: [
+            { title: 'New Book 1', author: 'Author 1' },
+            { title: 'New Book 2', author: 'Author 2', readingLevel: '3.0' }
+          ],
+          conflicts: []
+        })
+      });
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.created).toBe(2);
+    });
+
+    it('should update books when conflicts are accepted', async () => {
+      const { app, mockDB } = createTestApp(
+        { organizationId: 'org-123', userRole: 'teacher' },
+        {}
+      );
+
+      const res = await app.request('/api/books/import/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          matched: [],
+          newBooks: [],
+          conflicts: [
+            { existingBookId: 'book-1', updateReadingLevel: true, newReadingLevel: '5.0' }
+          ]
+        })
+      });
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.updated).toBe(1);
+    });
+
+    it('should require authentication', async () => {
+      const { app } = createTestApp({}, {});
+
+      const res = await app.request('/api/books/import/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          matched: [],
+          newBooks: [],
+          conflicts: []
+        })
+      });
+
+      expect(res.status).toBe(401);
+    });
+
+    it('should reject readonly users', async () => {
+      const { app } = createTestApp(
+        { organizationId: 'org-123', userRole: 'readonly' },
+        {}
+      );
+
+      const res = await app.request('/api/books/import/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          matched: [],
+          newBooks: [],
+          conflicts: []
+        })
+      });
+
+      expect(res.status).toBe(403);
+    });
+
+    it('should require multi-tenant mode', async () => {
+      const { app } = createTestApp(
+        { userRole: 'teacher' }, // no organizationId
+        {}
+      );
+
+      const res = await app.request('/api/books/import/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          matched: [],
+          newBooks: [],
+          conflicts: []
+        })
+      });
+
+      expect(res.status).toBe(400);
+      const data = await res.json();
+      expect(data.message).toContain('Multi-tenant mode required');
+    });
+  });
 });

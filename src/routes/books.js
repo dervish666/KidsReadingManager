@@ -658,4 +658,96 @@ booksRouter.post('/import/preview', requireTeacher(), async (c) => {
   });
 });
 
+/**
+ * POST /api/books/import/confirm
+ * Execute the import based on user's decisions from preview
+ *
+ * Request body: {
+ *   matched: [{ existingBookId }],
+ *   newBooks: [{ title, author, readingLevel }],
+ *   conflicts: [{ existingBookId, updateReadingLevel, newReadingLevel }]
+ * }
+ */
+booksRouter.post('/import/confirm', requireTeacher(), async (c) => {
+  const { matched = [], newBooks = [], conflicts = [] } = await c.req.json();
+  const organizationId = c.get('organizationId');
+  const db = c.env.READING_MANAGER_DB;
+
+  if (!organizationId || !db) {
+    throw badRequestError('Multi-tenant mode required for import');
+  }
+
+  let linked = 0;
+  let created = 0;
+  let updated = 0;
+  const errors = [];
+
+  // 1. Link matched books to organization
+  for (const match of matched) {
+    try {
+      await db.prepare(`
+        INSERT INTO org_book_selections (id, organization_id, book_id, is_available, created_at)
+        VALUES (?, ?, ?, 1, datetime('now'))
+        ON CONFLICT (organization_id, book_id) DO UPDATE SET is_available = 1, updated_at = datetime('now')
+      `).bind(crypto.randomUUID(), organizationId, match.existingBookId).run();
+      linked++;
+    } catch (error) {
+      errors.push({ type: 'link', bookId: match.existingBookId, error: error.message });
+    }
+  }
+
+  // 2. Create new books and link to organization
+  for (const book of newBooks) {
+    try {
+      const bookId = crypto.randomUUID();
+
+      // Insert book
+      await db.prepare(`
+        INSERT INTO books (id, title, author, reading_level, created_at, updated_at)
+        VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
+      `).bind(bookId, book.title, book.author || null, book.readingLevel || null).run();
+
+      // Link to organization
+      await db.prepare(`
+        INSERT INTO org_book_selections (id, organization_id, book_id, is_available, created_at)
+        VALUES (?, ?, ?, 1, datetime('now'))
+      `).bind(crypto.randomUUID(), organizationId, bookId).run();
+
+      created++;
+    } catch (error) {
+      errors.push({ type: 'create', title: book.title, error: error.message });
+    }
+  }
+
+  // 3. Handle conflicts (update books if requested)
+  for (const conflict of conflicts) {
+    try {
+      if (conflict.updateReadingLevel) {
+        await db.prepare(`
+          UPDATE books SET reading_level = ?, updated_at = datetime('now') WHERE id = ?
+        `).bind(conflict.newReadingLevel, conflict.existingBookId).run();
+        updated++;
+      }
+
+      // Link to organization
+      await db.prepare(`
+        INSERT INTO org_book_selections (id, organization_id, book_id, is_available, created_at)
+        VALUES (?, ?, ?, 1, datetime('now'))
+        ON CONFLICT (organization_id, book_id) DO UPDATE SET is_available = 1, updated_at = datetime('now')
+      `).bind(crypto.randomUUID(), organizationId, conflict.existingBookId).run();
+      linked++;
+    } catch (error) {
+      errors.push({ type: 'conflict', bookId: conflict.existingBookId, error: error.message });
+    }
+  }
+
+  return c.json({
+    linked,
+    created,
+    updated,
+    errors: errors.length > 0 ? errors : undefined,
+    success: errors.length === 0
+  });
+});
+
 export { booksRouter };
