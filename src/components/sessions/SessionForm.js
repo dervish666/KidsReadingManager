@@ -27,6 +27,7 @@ import { useAppContext } from '../../contexts/AppContext';
 import AssessmentSelector from './AssessmentSelector';
 import SessionNotes from './SessionNotes';
 import BookAutocomplete from './BookAutocomplete';
+import StudentInfoCard from './StudentInfoCard';
 import {
   getBookDetails,
   checkAvailability,
@@ -312,9 +313,10 @@ const SessionForm = () => {
           
           <form onSubmit={handleSubmit}>
             <Grid container spacing={3}>
-              {/* Student and Date - Two Columns */}
+              {/* Student Selection Row - Two Columns */}
               <Grid container item size={12} spacing={3}>
-                <Grid size={{ xs: 12, sm: 6 }}>
+                {/* Left column: Student dropdown */}
+                <Grid size={{ xs: 12, md: 6 }}>
                   <FormControl fullWidth>
                     <InputLabel id="student-select-label" sx={{ fontFamily: '"DM Sans", sans-serif' }}>Student</InputLabel>
                     <Select
@@ -332,11 +334,11 @@ const SessionForm = () => {
                       }}
                     >
                       {sortedStudents.length === 0 ? (
-                          <MenuItem disabled>
-                            <Typography variant="body2" color="text.secondary">
-                              {globalClassFilter && globalClassFilter !== 'all' ? 'No students found in this class' : 'No active students available'}
-                            </Typography>
-                          </MenuItem>
+                        <MenuItem disabled>
+                          <Typography variant="body2" color="text.secondary">
+                            {globalClassFilter && globalClassFilter !== 'all' ? 'No students found in this class' : 'No active students available'}
+                          </Typography>
+                        </MenuItem>
                       ) : (
                         sortedStudents.map((student) => {
                           const isRecentlyAccessed = recentlyAccessedStudents.includes(student.id);
@@ -344,26 +346,13 @@ const SessionForm = () => {
                             <MenuItem key={student.id} value={student.id}>
                               <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
                                 {isRecentlyAccessed && (
-                                  <StarIcon
-                                    sx={{
-                                      mr: 1,
-                                      color: '#F59E0B',
-                                      fontSize: '1rem'
-                                    }}
-                                  />
+                                  <StarIcon sx={{ mr: 1, color: '#F59E0B', fontSize: '1rem' }} />
                                 )}
                                 <Typography variant="inherit" sx={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 500 }}>
                                   {student.name}
                                 </Typography>
                                 {isRecentlyAccessed && (
-                                  <Typography
-                                    variant="caption"
-                                    sx={{
-                                      ml: 'auto',
-                                      color: '#7A7A7A',
-                                      fontStyle: 'italic'
-                                    }}
-                                  >
+                                  <Typography variant="caption" sx={{ ml: 'auto', color: '#7A7A7A', fontStyle: 'italic' }}>
                                     Recent
                                   </Typography>
                                 )}
@@ -374,6 +363,13 @@ const SessionForm = () => {
                       )}
                     </Select>
                   </FormControl>
+                </Grid>
+
+                {/* Right column: Student Info Card (only shown when student selected) */}
+                <Grid size={{ xs: 12, md: 6 }}>
+                  {selectedStudent && (
+                    <StudentInfoCard student={selectedStudent} />
+                  )}
                 </Grid>
               </Grid>
 
