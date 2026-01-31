@@ -27,6 +27,7 @@ import { useAppContext } from '../../contexts/AppContext';
 import AssessmentSelector from './AssessmentSelector';
 import SessionNotes from './SessionNotes';
 import BookAutocomplete from './BookAutocomplete';
+import StudentInfoCard from './StudentInfoCard';
 import {
   getBookDetails,
   checkAvailability,
@@ -180,8 +181,24 @@ const SessionForm = () => {
   };
 
   const handleStudentChange = (event) => {
-    setSelectedStudentId(event.target.value);
+    const studentId = event.target.value;
+    setSelectedStudentId(studentId);
     setError('');
+
+    // Pre-select the student's current book if they have one
+    const student = students.find(s => s.id === studentId);
+    if (student?.currentBookId) {
+      const book = books.find(b => b.id === student.currentBookId);
+      if (book) {
+        handleBookChange(book);
+      } else {
+        // Book reference is stale - clear selection
+        handleBookChange(null);
+      }
+    } else {
+      // Clear book selection if student has no current book
+      handleBookChange(null);
+    }
   };
 
   const handleAssessmentChange = (newAssessment) => {
@@ -274,10 +291,27 @@ const SessionForm = () => {
 
   return (
     <Box>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" component="h1" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#4A4A4A' }}>
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+        <Typography variant="h4" component="h1" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#4A4A4A' }}>
           Record Reading Session
         </Typography>
+        <TextField
+          type="date"
+          value={date}
+          onChange={handleDateChange}
+          size="small"
+          inputProps={{ 'aria-label': 'Session date' }}
+          InputProps={{
+            sx: {
+              borderRadius: 3,
+              backgroundColor: '#EFEBF5',
+              boxShadow: 'inset 2px 2px 4px #d9d4e3, inset -2px -2px 4px #ffffff',
+              '& fieldset': { border: 'none' },
+              '&.Mui-focused': { backgroundColor: '#ffffff', boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.2)' },
+              minWidth: 150
+            }
+          }}
+        />
       </Box>
       <Paper sx={{
           p: 4,
@@ -296,9 +330,10 @@ const SessionForm = () => {
           
           <form onSubmit={handleSubmit}>
             <Grid container spacing={3}>
-              {/* Student and Date - Two Columns */}
+              {/* Student Selection Row - Two Columns */}
               <Grid container item size={12} spacing={3}>
-                <Grid size={{ xs: 12, sm: 6 }}>
+                {/* Left column: Student dropdown */}
+                <Grid size={{ xs: 12, md: 6 }}>
                   <FormControl fullWidth>
                     <InputLabel id="student-select-label" sx={{ fontFamily: '"DM Sans", sans-serif' }}>Student</InputLabel>
                     <Select
@@ -316,11 +351,11 @@ const SessionForm = () => {
                       }}
                     >
                       {sortedStudents.length === 0 ? (
-                          <MenuItem disabled>
-                            <Typography variant="body2" color="text.secondary">
-                              {globalClassFilter && globalClassFilter !== 'all' ? 'No students found in this class' : 'No active students available'}
-                            </Typography>
-                          </MenuItem>
+                        <MenuItem disabled>
+                          <Typography variant="body2" color="text.secondary">
+                            {globalClassFilter && globalClassFilter !== 'all' ? 'No students found in this class' : 'No active students available'}
+                          </Typography>
+                        </MenuItem>
                       ) : (
                         sortedStudents.map((student) => {
                           const isRecentlyAccessed = recentlyAccessedStudents.includes(student.id);
@@ -328,26 +363,13 @@ const SessionForm = () => {
                             <MenuItem key={student.id} value={student.id}>
                               <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
                                 {isRecentlyAccessed && (
-                                  <StarIcon
-                                    sx={{
-                                      mr: 1,
-                                      color: '#F59E0B',
-                                      fontSize: '1rem'
-                                    }}
-                                  />
+                                  <StarIcon sx={{ mr: 1, color: '#F59E0B', fontSize: '1rem' }} />
                                 )}
                                 <Typography variant="inherit" sx={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 500 }}>
                                   {student.name}
                                 </Typography>
                                 {isRecentlyAccessed && (
-                                  <Typography
-                                    variant="caption"
-                                    sx={{
-                                      ml: 'auto',
-                                      color: '#7A7A7A',
-                                      fontStyle: 'italic'
-                                    }}
-                                  >
+                                  <Typography variant="caption" sx={{ ml: 'auto', color: '#7A7A7A', fontStyle: 'italic' }}>
                                     Recent
                                   </Typography>
                                 )}
@@ -359,28 +381,12 @@ const SessionForm = () => {
                     </Select>
                   </FormControl>
                 </Grid>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <TextField
-                    label="Date"
-                    type="date"
-                    value={date}
-                    onChange={handleDateChange}
-                    fullWidth
-                    InputLabelProps={{
-                      shrink: true,
-                      sx: { fontFamily: '"DM Sans", sans-serif' }
-                    }}
-                    InputProps={{
-                      sx: {
-                        borderRadius: 4,
-                        backgroundColor: '#EFEBF5',
-                        boxShadow: 'inset 4px 4px 8px #d9d4e3, inset -4px -4px 8px #ffffff',
-                        '& fieldset': { border: 'none' },
-                        '&.Mui-focused': { backgroundColor: '#ffffff', boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.2)' },
-                        height: 56
-                      }
-                    }}
-                  />
+
+                {/* Right column: Student Info Card (only shown when student selected) */}
+                <Grid size={{ xs: 12, md: 6 }}>
+                  {selectedStudent && (
+                    <StudentInfoCard student={selectedStudent} />
+                  )}
                 </Grid>
               </Grid>
 
