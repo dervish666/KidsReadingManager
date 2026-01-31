@@ -181,8 +181,24 @@ const SessionForm = () => {
   };
 
   const handleStudentChange = (event) => {
-    setSelectedStudentId(event.target.value);
+    const studentId = event.target.value;
+    setSelectedStudentId(studentId);
     setError('');
+
+    // Pre-select the student's current book if they have one
+    const student = students.find(s => s.id === studentId);
+    if (student?.currentBookId) {
+      const book = books.find(b => b.id === student.currentBookId);
+      if (book) {
+        handleBookChange(book);
+      } else {
+        // Book reference is stale - clear selection
+        handleBookChange(null);
+      }
+    } else {
+      // Clear book selection if student has no current book
+      handleBookChange(null);
+    }
   };
 
   const handleAssessmentChange = (newAssessment) => {
