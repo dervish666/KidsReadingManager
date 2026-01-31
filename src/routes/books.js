@@ -10,6 +10,7 @@ import { generateBroadSuggestions } from '../services/aiService.js';
 import { notFoundError, badRequestError, serverError } from '../middleware/errorHandler';
 import { decryptSensitiveData, permissions } from '../utils/crypto.js';
 import { buildStudentReadingProfile } from '../utils/studentProfile.js';
+import { isExactMatch, isFuzzyMatch } from '../utils/stringMatching.js';
 
 // Import middleware
 import { requireReadonly, requireTeacher } from '../middleware/tenant.js';
@@ -548,6 +549,113 @@ booksRouter.post('/bulk', requireTeacher(), async (c) => {
     total: validBooks.length,
     books: savedBooks
   }, 201);
+});
+
+/**
+ * POST /api/books/import/preview
+ * Preview import results: categorize books into matched, fuzzy matches, new, and conflicts
+ *
+ * Request body: { books: [{ title, author, readingLevel }] }
+ * Response: { matched, possibleMatches, newBooks, conflicts, alreadyInLibrary, summary }
+ *
+ * Categories:
+ * - matched: Exact matches to existing books (auto-link to org)
+ * - possibleMatches: Fuzzy matches (require user confirmation)
+ * - newBooks: No match found (will create new book)
+ * - conflicts: Match exists but metadata differs (user decides to update)
+ * - alreadyInLibrary: Already linked to this organization
+ *
+ * Requires authentication (at least teacher access)
+ */
+booksRouter.post('/import/preview', requireTeacher(), async (c) => {
+  const { books: importBooks } = await c.req.json();
+  const organizationId = c.get('organizationId');
+  const db = c.env.READING_MANAGER_DB;
+
+  if (!Array.isArray(importBooks) || importBooks.length === 0) {
+    throw badRequestError('Request must contain an array of books');
+  }
+
+  if (!organizationId || !db) {
+    throw badRequestError('Multi-tenant mode required for import preview');
+  }
+
+  // Get all existing books
+  const allBooksResult = await db.prepare('SELECT * FROM books').all();
+  const existingBooks = allBooksResult.results || [];
+
+  // Get books already in this organization's library
+  const orgBooksResult = await db.prepare(
+    'SELECT book_id FROM org_book_selections WHERE organization_id = ? AND is_available = 1'
+  ).bind(organizationId).all();
+  const orgBookIds = new Set((orgBooksResult.results || []).map(r => r.book_id));
+
+  // Categorize imports
+  const matched = [];
+  const possibleMatches = [];
+  const newBooks = [];
+  const conflicts = [];
+  const alreadyInLibrary = [];
+
+  for (const importedBook of importBooks) {
+    if (!importedBook.title || !importedBook.title.trim()) continue;
+
+    // Check for exact match
+    const exactMatch = existingBooks.find(existing =>
+      isExactMatch(existing.title, importedBook.title) &&
+      (!importedBook.author || !existing.author || isExactMatch(existing.author, importedBook.author))
+    );
+
+    if (exactMatch) {
+      // Check if already in this org's library
+      if (orgBookIds.has(exactMatch.id)) {
+        alreadyInLibrary.push({ importedBook, existingBook: exactMatch });
+        continue;
+      }
+
+      // Check for metadata conflicts (reading level difference)
+      const hasConflict = importedBook.readingLevel &&
+                          exactMatch.reading_level &&
+                          importedBook.readingLevel !== exactMatch.reading_level;
+
+      if (hasConflict) {
+        conflicts.push({ importedBook, existingBook: exactMatch });
+      } else {
+        matched.push({ importedBook, existingBook: exactMatch });
+      }
+      continue;
+    }
+
+    // Check for fuzzy match
+    const fuzzyMatch = existingBooks.find(existing =>
+      isFuzzyMatch(
+        { title: importedBook.title, author: importedBook.author },
+        { title: existing.title, author: existing.author }
+      )
+    );
+
+    if (fuzzyMatch) {
+      possibleMatches.push({ importedBook, existingBook: fuzzyMatch });
+    } else {
+      newBooks.push({ importedBook });
+    }
+  }
+
+  return c.json({
+    matched,
+    possibleMatches,
+    newBooks,
+    conflicts,
+    alreadyInLibrary,
+    summary: {
+      total: importBooks.length,
+      matched: matched.length,
+      possibleMatches: possibleMatches.length,
+      newBooks: newBooks.length,
+      conflicts: conflicts.length,
+      alreadyInLibrary: alreadyInLibrary.length
+    }
+  });
 });
 
 export { booksRouter };
