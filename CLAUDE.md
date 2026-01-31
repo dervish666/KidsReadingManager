@@ -141,9 +141,18 @@ Permissions are enforced in middleware (`src/middleware/tenant.js`) and route ha
 - `users` - User accounts with roles and organization FK
 - `students` - Organization-scoped students
 - `reading_sessions` - Session data linked to students
-- `books` - Global book catalog with FTS5 search
-- `organization_book_selections` - Per-organization book customization
+- `books` - Global book catalog with FTS5 search (shared metadata)
+- `org_book_selections` - Links books to organizations (controls visibility per school)
 - `classes`, `genres`, `organization_settings` - Organization-scoped
+
+### Book Visibility Model
+
+Books use a shared catalog with organization-scoped visibility:
+- The `books` table contains global book metadata (title, author, reading level, etc.)
+- The `org_book_selections` table links books to organizations
+- Each organization only sees books linked to them via `org_book_selections`
+- When a school imports books, matching books are linked (not duplicated)
+- This allows metadata sharing while maintaining per-school libraries
 
 ## Important Implementation Details
 
@@ -187,6 +196,33 @@ Two providers for fetching book metadata:
 - **Google Books API**: Requires API key, more complete data
 
 Configured in Settings UI. Used for auto-filling book descriptions, authors, genres.
+
+### Multi-School Library Import
+
+Schools can import their own book libraries via CSV with intelligent deduplication:
+
+**Import Flow:**
+1. Upload CSV file (Title, Author, Reading Level columns)
+2. Auto-detect column mapping with manual override option
+3. Preview categorizes books: matched, new, conflicts, already in library
+4. Confirm import: links matched books, creates new ones, optionally updates conflicts
+
+**Key Components:**
+- `src/components/books/BookImportWizard.js` - 4-step import wizard UI
+- `src/utils/csvParser.js` - CSV parsing with column auto-detection
+- `src/utils/stringMatching.js` - Levenshtein distance for fuzzy matching
+
+**API Endpoints:**
+- `POST /api/books/import/preview` - Analyzes CSV books against existing catalog
+- `POST /api/books/import/confirm` - Executes the import (links/creates/updates)
+
+**Deduplication Logic:**
+- Exact match: Normalized title + author match → auto-link to existing book
+- Fuzzy match (85% similarity): Title typos, author variations → flagged for review
+- Metadata conflict: Same book, different reading level → user decides to update or not
+- New book: No match found → creates new book in global catalog
+
+The import is transparent to users - they see "their library" while the system handles deduplication behind the scenes. See `docs/plans/2026-01-31-multi-school-library-design.md` for full design.
 
 ## Common Development Patterns
 
