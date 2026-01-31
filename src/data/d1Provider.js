@@ -57,7 +57,7 @@ const bookToRow = (book) => {
 };
 
 /**
- * Get all books from D1 database
+ * Get all books from D1 database (no organization filter - for admin/legacy use)
  * @param {Object} env - Worker environment
  * @returns {Promise<Array>} Array of book objects
  */
@@ -72,6 +72,33 @@ const getAllBooks = async (env) => {
     return (result.results || []).map(rowToBook);
   } catch (error) {
     console.error('Error getting all books from D1:', error);
+    throw new Error('Failed to retrieve books');
+  }
+};
+
+/**
+ * Get books for a specific organization (filtered by org_book_selections)
+ * @param {Object} env - Worker environment
+ * @param {string} organizationId - Organization ID to filter by
+ * @returns {Promise<Array>} Array of book objects linked to the organization
+ */
+const getBooksByOrganization = async (env, organizationId) => {
+  try {
+    const db = getDB(env);
+    if (!db) {
+      throw new Error('D1 database not available');
+    }
+
+    const result = await db.prepare(`
+      SELECT b.* FROM books b
+      INNER JOIN org_book_selections obs ON b.id = obs.book_id
+      WHERE obs.organization_id = ? AND obs.is_available = 1
+      ORDER BY b.title
+    `).bind(organizationId).all();
+
+    return (result.results || []).map(rowToBook);
+  } catch (error) {
+    console.error('Error getting books by organization from D1:', error);
     throw new Error('Failed to retrieve books');
   }
 };
@@ -600,6 +627,7 @@ const getFilteredBooksForRecommendationsFallback = async (env, options = {}) => 
 
 export {
   getAllBooks,
+  getBooksByOrganization,
   getBookById,
   addBook,
   updateBook,

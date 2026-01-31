@@ -1340,8 +1340,8 @@ describe('Books API Routes', () => {
     });
   });
 
-  describe('Books are global (not organization-scoped)', () => {
-    it('should not scope book queries by organization', async () => {
+  describe('Books are organization-scoped via org_book_selections', () => {
+    it('should scope book queries by organization', async () => {
       const { app, mockDB } = createTestApp(
         createUserContext({
           userRole: 'readonly',
@@ -1352,34 +1352,32 @@ describe('Books API Routes', () => {
 
       await makeRequest(app, 'GET', '/api/books');
 
-      // Verify the query does NOT contain organization_id filter
-      // Books are global to all organizations
+      // Verify the query DOES contain organization_id filter via org_book_selections join
+      // Books are scoped to organizations through the org_book_selections table
       const prepareCall = mockDB.prepare.mock.calls[0]?.[0];
       if (prepareCall) {
-        expect(prepareCall).not.toContain('organization_id');
+        expect(prepareCall).toContain('organization_id');
+        expect(prepareCall).toContain('org_book_selections');
       }
     });
 
-    it('should allow different organizations to access the same books', async () => {
-      const books = [createMockBookRow({ id: 'shared-book' })];
+    it('should filter books by organization through org_book_selections', async () => {
+      const books = [createMockBookRow({ id: 'org-book' })];
 
-      // Request from org-1
-      const { app: app1 } = createTestApp(
+      // Request from org-1 - books returned are those linked to org-1
+      const { app: app1, mockDB: mockDB1 } = createTestApp(
         createUserContext({ organizationId: 'org-1', userRole: 'readonly' }),
         { allResults: { results: books, success: true } }
       );
       const response1 = await makeRequest(app1, 'GET', '/api/books');
       const data1 = await response1.json();
 
-      // Request from org-2
-      const { app: app2 } = createTestApp(
-        createUserContext({ organizationId: 'org-2', userRole: 'readonly' }),
-        { allResults: { results: books, success: true } }
-      );
-      const response2 = await makeRequest(app2, 'GET', '/api/books');
-      const data2 = await response2.json();
+      // Verify org-1 was used in the query
+      const prepareCall1 = mockDB1.prepare.mock.calls[0]?.[0];
+      expect(prepareCall1).toContain('org_book_selections');
 
-      expect(data1[0].id).toBe(data2[0].id);
+      expect(data1).toHaveLength(1);
+      expect(data1[0].id).toBe('org-book');
     });
   });
 });

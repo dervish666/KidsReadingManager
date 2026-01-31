@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 
 // Import data provider functions
 import { createProvider } from '../data/index.js';
+import { getBooksByOrganization } from '../data/d1Provider.js';
 
 // Import AI service
 import { generateBroadSuggestions } from '../services/aiService.js';
@@ -34,15 +35,16 @@ const booksRouter = new Hono();
  */
 booksRouter.get('/', requireReadonly(), async (c) => {
   const provider = await createProvider(c.env);
+  const organizationId = c.get('organizationId');
   const { page, pageSize, search } = c.req.query();
-  
+
   // If search query provided, use search functionality
   if (search && search.trim()) {
     const limit = pageSize ? parseInt(pageSize, 10) : 50;
     const books = await provider.searchBooks(search.trim(), limit);
     return c.json(books);
   }
-  
+
   // If pagination params provided, use paginated query
   if (page) {
     const pageNum = parseInt(page, 10) || 1;
@@ -50,8 +52,14 @@ booksRouter.get('/', requireReadonly(), async (c) => {
     const result = await provider.getBooksPaginated(pageNum, size);
     return c.json(result);
   }
-  
-  // Default: return all books
+
+  // If organizationId is set (multi-tenant mode), filter by organization
+  if (organizationId && c.env.READING_MANAGER_DB) {
+    const books = await getBooksByOrganization(c.env, organizationId);
+    return c.json(books);
+  }
+
+  // Default: return all books (legacy/admin mode)
   const books = await provider.getAllBooks();
   return c.json(books);
 });
