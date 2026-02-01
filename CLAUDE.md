@@ -159,13 +159,39 @@ Books use a shared catalog with organization-scoped visibility:
 ### Book Recommendations (AI)
 
 The recommendations feature optimizes for large book collections (18,000+):
-1. Pre-filter at SQL level by reading level (±2 levels) and genres
+1. Pre-filter at SQL level by reading level range and genres
 2. Exclude already-read books in query
 3. Randomize and limit to ~100 books
-4. Send filtered list to AI provider with student context
+4. Send filtered list to AI provider with student context and focus mode
 5. AI returns personalized recommendations with reasoning
 
+**Focus Mode:** Teachers can select a focus mode when requesting recommendations:
+- **Balanced** (default): Mix of consolidation and challenge
+- **Consolidation**: Books at or slightly below student's level for fluency building
+- **Challenge**: Books at the upper end of student's range for growth
+
 See `src/routes/books.js` (recommendations endpoint) and `src/components/BookRecommendations.js`.
+
+### Reading Level Range
+
+Students have a reading level range (`readingLevelMin` to `readingLevelMax`) instead of a single level:
+- Supports AR (Accelerated Reader) levels from 1.0 to 13.0
+- UI uses `ReadingLevelRangeInput` component with visual range bar
+- Validation ensures min ≤ max, both required if either set
+- AI recommendations filter books within student's range
+
+See `src/components/students/ReadingLevelRangeInput.js` and `src/utils/validation.js`.
+
+### Session Form
+
+The Record Reading Session form includes:
+- Date picker in header for quick access
+- Two-column layout with student selector and context card
+- **StudentInfoCard**: Shows reading level, streak, last read date, recent books
+- Auto pre-selection of student's current book
+- Accessible with ARIA labels for screen readers
+
+See `src/components/sessions/SessionForm.js` and `src/components/sessions/StudentInfoCard.js`.
 
 ### Home Reading Register
 
@@ -204,8 +230,9 @@ Schools can import their own book libraries via CSV with intelligent deduplicati
 **Import Flow:**
 1. Upload CSV file (Title, Author, Reading Level columns)
 2. Auto-detect column mapping with manual override option
-3. Preview categorizes books: matched, new, conflicts, already in library
-4. Confirm import: links matched books, creates new ones, optionally updates conflicts
+3. Preview categorizes books: matched, possible matches, new, conflicts, already in library
+4. Review possible matches (fuzzy matches like "The Hobit" → "The Hobbit") - accept to link, reject to create new
+5. Confirm import: links matched books, creates new ones, optionally updates conflicts
 
 **Key Components:**
 - `src/components/books/BookImportWizard.js` - 4-step import wizard UI
