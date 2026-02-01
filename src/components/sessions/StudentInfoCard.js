@@ -8,7 +8,7 @@ import WhatshotIcon from '@mui/icons-material/Whatshot';
 const StudentInfoCard = ({ student }) => {
   if (!student) return null;
 
-  const { readingLevelMin, readingLevelMax, currentStreak, readingSessions = [] } = student;
+  const { name, readingLevelMin, readingLevelMax, currentStreak, readingSessions = [] } = student;
 
   // Derive last session date and recent books from sessions (already sorted DESC)
   const lastSession = readingSessions[0];
@@ -52,13 +52,17 @@ const StudentInfoCard = ({ student }) => {
   // Empty state
   if (!hasHistory && !levelText) {
     return (
-      <Box sx={{
-        p: 2,
-        borderRadius: 4,
-        backgroundColor: 'rgba(255,255,255,0.5)',
-        border: '1px solid rgba(255,255,255,0.6)',
-        boxShadow: 'inset 2px 2px 4px rgba(139, 115, 85, 0.1), inset -2px -2px 4px rgba(255, 255, 255, 0.8)',
-      }}>
+      <Box
+        role="region"
+        aria-label={`Reading information for ${name || 'student'}`}
+        sx={{
+          p: 2,
+          borderRadius: 4,
+          backgroundColor: 'rgba(255,255,255,0.5)',
+          border: '1px solid rgba(255,255,255,0.6)',
+          boxShadow: 'inset 2px 2px 4px rgba(139, 115, 85, 0.1), inset -2px -2px 4px rgba(255, 255, 255, 0.8)',
+        }}
+      >
         <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
           No reading history yet
         </Typography>
@@ -67,13 +71,17 @@ const StudentInfoCard = ({ student }) => {
   }
 
   return (
-    <Box sx={{
-      p: 2,
-      borderRadius: 4,
-      backgroundColor: 'rgba(255,255,255,0.5)',
-      border: '1px solid rgba(255,255,255,0.6)',
-      boxShadow: 'inset 2px 2px 4px rgba(139, 115, 85, 0.1), inset -2px -2px 4px rgba(255, 255, 255, 0.8)',
-    }}>
+    <Box
+      role="region"
+      aria-label={`Reading information for ${name || 'student'}`}
+      sx={{
+        p: 2,
+        borderRadius: 4,
+        backgroundColor: 'rgba(255,255,255,0.5)',
+        border: '1px solid rgba(255,255,255,0.6)',
+        boxShadow: 'inset 2px 2px 4px rgba(139, 115, 85, 0.1), inset -2px -2px 4px rgba(255, 255, 255, 0.8)',
+      }}
+    >
       {/* Line 1: Level and Streak */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
         {levelText && (
@@ -82,13 +90,13 @@ const StudentInfoCard = ({ student }) => {
           </Typography>
         )}
         {levelText && currentStreak > 0 && (
-          <Typography variant="body2" color="text.secondary">·</Typography>
+          <Typography variant="body2" color="text.secondary" aria-hidden="true">·</Typography>
         )}
         {currentStreak > 0 && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <WhatshotIcon sx={{ fontSize: 16, color: '#F59E0B' }} />
+            <WhatshotIcon aria-hidden="true" sx={{ fontSize: 16, color: '#F59E0B' }} />
             <Typography variant="body2" sx={{ fontWeight: 600, color: '#F59E0B' }}>
-              {currentStreak} {currentStreak === 1 ? 'day' : 'days'}
+              {currentStreak} {currentStreak === 1 ? 'day' : 'days'} reading streak
             </Typography>
           </Box>
         )}

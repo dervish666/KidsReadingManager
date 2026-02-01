@@ -37,6 +37,7 @@ const BookImportWizard = ({ open, onClose }) => {
   const [columnMapping, setColumnMapping] = useState({ title: null, author: null, readingLevel: null });
   const [previewResults, setPreviewResults] = useState(null);
   const [selectedConflicts, setSelectedConflicts] = useState({});
+  const [selectedPossibleMatches, setSelectedPossibleMatches] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [importResult, setImportResult] = useState(null);
@@ -118,6 +119,19 @@ const BookImportWizard = ({ open, onClose }) => {
         .map(c => ({ existingBookId: c.existingBook.id }));
       payload.matched.push(...unupdatedConflicts);
 
+      // Handle possible matches: accepted ones link to existing, rejected become new books
+      if (previewResults.possibleMatches) {
+        const acceptedMatches = previewResults.possibleMatches
+          .filter(pm => selectedPossibleMatches[pm.existingBook.id])
+          .map(pm => ({ existingBookId: pm.existingBook.id }));
+        payload.matched.push(...acceptedMatches);
+
+        const rejectedMatches = previewResults.possibleMatches
+          .filter(pm => !selectedPossibleMatches[pm.existingBook.id])
+          .map(pm => pm.importedBook);
+        payload.newBooks.push(...rejectedMatches);
+      }
+
       const response = await fetchWithAuth('/api/books/import/confirm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -143,6 +157,7 @@ const BookImportWizard = ({ open, onClose }) => {
     setColumnMapping({ title: null, author: null, readingLevel: null });
     setPreviewResults(null);
     setSelectedConflicts({});
+    setSelectedPossibleMatches({});
     setError(null);
     setImportResult(null);
     onClose();
@@ -213,9 +228,64 @@ const BookImportWizard = ({ open, onClose }) => {
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
                   <Chip label={`${previewResults.matched.length} matched`} color="success" />
                   <Chip label={`${previewResults.newBooks.length} new`} color="primary" />
+                  {previewResults.possibleMatches?.length > 0 && (
+                    <Chip label={`${previewResults.possibleMatches.length} possible matches`} color="info" />
+                  )}
                   <Chip label={`${previewResults.conflicts.length} conflicts`} color="warning" />
                   <Chip label={`${previewResults.alreadyInLibrary.length} already in library`} color="default" />
                 </Box>
+
+                {previewResults.possibleMatches?.length > 0 && (
+                  <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Possible Matches - Are these the same book?
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      Check to link to existing book, uncheck to create new
+                    </Typography>
+                    <List dense>
+                      {previewResults.possibleMatches.map((match) => (
+                        <ListItem key={match.existingBook.id} dense sx={{ alignItems: 'flex-start' }}>
+                          <Checkbox
+                            checked={!!selectedPossibleMatches[match.existingBook.id]}
+                            onChange={(e) => setSelectedPossibleMatches(prev => ({
+                              ...prev,
+                              [match.existingBook.id]: e.target.checked
+                            }))}
+                            sx={{ mt: 0.5 }}
+                          />
+                          <ListItemText
+                            primary={
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                                <Typography variant="body2" component="span" sx={{ color: 'text.secondary' }}>
+                                  "{match.importedBook.title}"
+                                </Typography>
+                                <Typography variant="body2" component="span">→</Typography>
+                                <Typography variant="body2" component="span" sx={{ fontWeight: 500 }}>
+                                  "{match.existingBook.title}"
+                                </Typography>
+                              </Box>
+                            }
+                            secondary={
+                              <Box component="span" sx={{ display: 'block', mt: 0.5 }}>
+                                {match.importedBook.author && (
+                                  <Typography variant="caption" component="span" sx={{ color: 'text.secondary', mr: 1 }}>
+                                    by {match.importedBook.author}
+                                  </Typography>
+                                )}
+                                {match.existingBook.author && match.importedBook.author !== match.existingBook.author && (
+                                  <Typography variant="caption" component="span">
+                                    → by {match.existingBook.author}
+                                  </Typography>
+                                )}
+                              </Box>
+                            }
+                          />
+                        </ListItem>
+                      ))}
+                    </List>
+                  </Paper>
+                )}
 
                 {previewResults.conflicts.length > 0 && (
                   <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>

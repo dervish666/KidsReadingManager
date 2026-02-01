@@ -56,4 +56,17 @@ describe('StudentInfoCard', () => {
     render(<StudentInfoCard student={studentNoLevel} />);
     expect(screen.queryByText(/Level/)).not.toBeInTheDocument();
   });
+
+  it('has accessible region with student name', () => {
+    render(<StudentInfoCard student={mockStudent} />);
+    const region = screen.getByRole('region', { name: /Reading information for Alice/i });
+    expect(region).toBeInTheDocument();
+  });
+
+  it('has accessible region in empty state', () => {
+    const newStudent = { ...mockStudent, name: 'Bob', readingSessions: [], currentStreak: 0, readingLevelMin: null, readingLevelMax: null };
+    render(<StudentInfoCard student={newStudent} />);
+    const region = screen.getByRole('region', { name: /Reading information for Bob/i });
+    expect(region).toBeInTheDocument();
+  });
 });
