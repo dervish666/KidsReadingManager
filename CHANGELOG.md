@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.9.1] - 2026-02-05
+
+### Security Fixes
+
+- **JWT timing attack**: JWT signature verification now uses constant-time comparison (`constantTimeEqual`) instead of string equality, preventing potential timing side-channel attacks
+- **Password reset bug**: Fixed field name mismatch between frontend (`newPassword`) and backend (`password`) that caused password reset to always fail with "Token and password required"
+
+---
+
 ## [2.9.0] - 2026-01-29
 
 ### Added: Book Covers for Recommendations

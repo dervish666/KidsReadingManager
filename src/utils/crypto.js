@@ -187,7 +187,9 @@ export async function verifyAccessToken(token, secret) {
     const expectedSignature = await signHS256(signatureInput, secret);
     const expectedEncodedSignature = base64UrlEncode(expectedSignature);
 
-    if (encodedSignature !== expectedEncodedSignature) {
+    const sigBytes = new Uint8Array([...atob(encodedSignature.replace(/-/g, '+').replace(/_/g, '/'))].map(c => c.charCodeAt(0)));
+    const expectedSigBytes = new Uint8Array([...atob(expectedEncodedSignature.replace(/-/g, '+').replace(/_/g, '/'))].map(c => c.charCodeAt(0)));
+    if (!constantTimeEqual(sigBytes, expectedSigBytes)) {
       return { valid: false, error: 'Invalid signature' };
     }
 
