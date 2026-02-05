@@ -109,7 +109,8 @@ authRouter.post('/register', async (c) => {
     ).bind(email.toLowerCase()).first();
 
     if (existingUser) {
-      return c.json({ error: 'Email already registered' }, 409);
+      // Return generic error that doesn't reveal email existence
+      return c.json({ error: 'Registration could not be completed. Please try a different email or contact support.' }, 400);
     }
 
     // Generate IDs
