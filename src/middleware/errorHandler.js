@@ -14,10 +14,14 @@ export const errorHandler = () => {
       // Determine status code
       const status = error.status || 500;
       
-      // Format error response
+      // For 5xx errors, don't leak internal details to client
+      const message = status >= 500
+        ? 'Internal Server Error'
+        : (error.message || 'An error occurred');
+
       return c.json({
         status: 'error',
-        message: error.message || 'Internal Server Error',
+        message,
         path: c.req.path
       }, status);
     }
