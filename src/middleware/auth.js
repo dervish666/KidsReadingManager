@@ -2,6 +2,7 @@
 // Simple shared-secret auth for Cloudflare Worker (Hono)
 // No external libraries; designed to stop casual access, not be cryptographically perfect.
 
+import { constantTimeStringEqual } from '../utils/crypto.js';
 
 // Header name and prefix used by the client
 const AUTH_HEADER = 'authorization';
@@ -76,7 +77,7 @@ export async function validateAuthToken(env, token) {
 
   const base = `${iat}|${exp}`;
   const expected = await sign(env, base);
-  return expected === sig;
+  return constantTimeStringEqual(expected, sig);
 }
 
 /**
@@ -123,7 +124,7 @@ export async function handleLogin(c) {
     return c.json({ error: 'Server auth not configured' }, 500);
   }
 
-  if (!password || password !== env.WORKER_ADMIN_PASSWORD) {
+  if (!password || !constantTimeStringEqual(password, env.WORKER_ADMIN_PASSWORD)) {
     return c.json({ error: 'Invalid password' }, 401);
   }
 

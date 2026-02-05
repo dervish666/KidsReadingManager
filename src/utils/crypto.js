@@ -217,7 +217,7 @@ export async function verifyAccessToken(token, secret) {
  */
 export async function verifyRefreshToken(token, storedHash) {
   const computedHash = await hashToken(token);
-  return computedHash === storedHash;
+  return constantTimeStringEqual(computedHash, storedHash);
 }
 
 /**
@@ -295,7 +295,7 @@ async function signHS256(data, secret) {
  * @param {Uint8Array} b - Second array
  * @returns {boolean} - True if equal
  */
-function constantTimeEqual(a, b) {
+export function constantTimeEqual(a, b) {
   if (a.length !== b.length) return false;
 
   let result = 0;
@@ -303,6 +303,17 @@ function constantTimeEqual(a, b) {
     result |= a[i] ^ b[i];
   }
   return result === 0;
+}
+
+/**
+ * Constant-time string comparison (converts to bytes first)
+ * @param {string} a - First string
+ * @param {string} b - Second string
+ * @returns {boolean} - True if equal
+ */
+export function constantTimeStringEqual(a, b) {
+  const encoder = new TextEncoder();
+  return constantTimeEqual(encoder.encode(a), encoder.encode(b));
 }
 
 /**

@@ -249,17 +249,50 @@ studentsRouter.get('/', async (c) => {
       className: row.class_name
     }));
 
-    // Fetch reading sessions and preferences for each student
-    for (const student of students) {
-      const sessions = await db.prepare(`
+    // Batch-fetch all reading sessions for all students in this org (single query)
+    const studentIds = students.map(s => s.id);
+
+    let allSessions = [];
+    let allPreferences = [];
+
+    if (studentIds.length > 0) {
+      const sessionPlaceholders = studentIds.map(() => '?').join(',');
+      const sessionsResult = await db.prepare(`
         SELECT rs.*, b.title as book_title, b.author as book_author
         FROM reading_sessions rs
         LEFT JOIN books b ON rs.book_id = b.id
-        WHERE rs.student_id = ?
+        WHERE rs.student_id IN (${sessionPlaceholders})
         ORDER BY rs.session_date DESC
-      `).bind(student.id).all();
+      `).bind(...studentIds).all();
+      allSessions = sessionsResult.results || [];
 
-      student.readingSessions = (sessions.results || []).map(s => ({
+      // Batch-fetch all preferences for all students (single query)
+      const prefsResult = await db.prepare(`
+        SELECT sp.student_id, sp.genre_id, sp.preference_type, g.name as genre_name
+        FROM student_preferences sp
+        LEFT JOIN genres g ON sp.genre_id = g.id
+        WHERE sp.student_id IN (${sessionPlaceholders})
+      `).bind(...studentIds).all();
+      allPreferences = prefsResult.results || [];
+    }
+
+    // Group sessions and preferences by student_id
+    const sessionsByStudent = {};
+    for (const s of allSessions) {
+      if (!sessionsByStudent[s.student_id]) sessionsByStudent[s.student_id] = [];
+      sessionsByStudent[s.student_id].push(s);
+    }
+
+    const prefsByStudent = {};
+    for (const p of allPreferences) {
+      if (!prefsByStudent[p.student_id]) prefsByStudent[p.student_id] = [];
+      prefsByStudent[p.student_id].push(p);
+    }
+
+    // Map data to each student
+    for (const student of students) {
+      const sessions = sessionsByStudent[student.id] || [];
+      student.readingSessions = sessions.map(s => ({
         id: s.id,
         date: s.session_date,
         bookTitle: s.book_title || s.book_title_manual,
@@ -273,20 +306,31 @@ studentsRouter.get('/', async (c) => {
         recordedBy: s.recorded_by
       }));
 
-      // Recalculate streak on-the-fly from sessions (ensures accuracy even if student hasn't read recently)
+      // Recalculate streak on-the-fly
       const streakData = calculateStreak(
         student.readingSessions.map(s => ({ date: s.date })),
         { gracePeriodDays, timezone }
       );
       student.currentStreak = streakData.currentStreak;
-      student.longestStreak = Math.max(streakData.longestStreak, student.longestStreak); // Keep historical longest
+      student.longestStreak = Math.max(streakData.longestStreak, student.longestStreak);
       student.streakStartDate = streakData.streakStartDate;
 
-      // Fetch student preferences
-      student.preferences = await fetchStudentPreferences(db, student.id);
-      // Also include likes/dislikes from the students table in preferences
-      student.preferences.likes = student.likes || [];
-      student.preferences.dislikes = student.dislikes || [];
+      // Build preferences from batch data
+      const prefs = prefsByStudent[student.id] || [];
+      student.preferences = {
+        favoriteGenreIds: [],
+        likes: student.likes || [],
+        dislikes: student.dislikes || []
+      };
+      for (const row of prefs) {
+        if (row.preference_type === 'favorite') {
+          student.preferences.favoriteGenreIds.push(row.genre_id);
+        } else if (row.preference_type === 'like') {
+          student.preferences.likes.push(row.genre_name || row.genre_id);
+        } else if (row.preference_type === 'dislike') {
+          student.preferences.dislikes.push(row.genre_name || row.genre_id);
+        }
+      }
     }
 
     return c.json(students);

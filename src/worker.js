@@ -234,10 +234,15 @@ app.post('/api/logout', async (c) => {
 // Error handler
 app.onError((err, c) => {
   console.error(`Error: ${err.message}`);
+  const status = err.status || 500;
+  const message = status >= 500
+    ? 'Internal Server Error'
+    : (err.message || 'An error occurred');
+
   return c.json({
     status: 'error',
-    message: err.message || 'Internal Server Error'
-  }, err.status || 500);
+    message
+  }, status);
 });
 
 /**

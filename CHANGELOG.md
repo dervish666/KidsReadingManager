@@ -1,5 +1,42 @@
 # Changelog
 
+## [2.9.2] - 2026-02-05
+
+### Security & Quality Fixes
+
+Comprehensive security hardening and performance improvements based on full codebase audit.
+
+#### Security
+- **Timing attack prevention**: All auth comparisons (HMAC signatures, passwords, refresh token hashes) now use constant-time comparison to prevent timing side-channel attacks
+- **Refresh token exposure**: Removed refresh token from JSON response bodies in register, login, and refresh endpoints; now transmitted exclusively via httpOnly cookie
+- **localStorage cleanup**: Removed refresh token storage from localStorage on the frontend
+- **Password reset hardening**: Requires `APP_URL` environment variable for reset email links; no longer trusts `Origin`/`Host` request headers
+- **Email enumeration prevention**: Registration endpoint returns generic error for duplicate emails instead of revealing whether an email is registered
+- **5xx error sanitization**: Server errors no longer leak internal error messages to clients; returns generic "Internal Server Error" for 500+ status codes
+- **Empty slug guard**: Organization slug generation now falls back to 'org' when names contain only special characters
+
+#### Performance
+- **N+1 query fix**: Students endpoint reduced from 2N+1 queries to 3 queries total using batch `IN()` fetches for reading sessions and preferences
+
+#### Reliability
+- **Error Boundary**: Added React Error Boundary component wrapping the entire app to prevent white-screen crashes
+- **Batch error tracking**: D1 batch operations now report exactly how many items succeeded before a failure, aiding diagnosis of partial failures
+
+#### Database
+- **FTS5 fix**: Rebuilt full-text search as standalone table to fix incompatibility between `content_rowid='rowid'` and TEXT primary keys (migration 0019)
+
+#### Deployment Notes
+```bash
+# Run the new FTS5 migration
+npx wrangler d1 migrations apply reading-manager-db --local   # local
+npx wrangler d1 migrations apply reading-manager-db --remote  # production
+
+# Ensure APP_URL is set in Cloudflare dashboard for password reset emails
+# e.g. APP_URL = "https://yourapp.example.com"
+```
+
+---
+
 ## [2.9.1] - 2026-02-05
 
 ### Security Fixes

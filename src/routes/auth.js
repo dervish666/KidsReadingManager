@@ -58,12 +58,13 @@ const getDB = (env) => {
  * Generate URL-safe slug from organization name
  */
 function generateSlug(name) {
-  return name
+  const slug = name
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .substring(0, 50);
+  return slug || 'org';
 }
 
 /**
@@ -109,7 +110,8 @@ authRouter.post('/register', async (c) => {
     ).bind(email.toLowerCase()).first();
 
     if (existingUser) {
-      return c.json({ error: 'Email already registered' }, 409);
+      // Return generic error that doesn't reveal email existence
+      return c.json({ error: 'Registration could not be completed. Please try a different email or contact support.' }, 400);
     }
 
     // Generate IDs
@@ -183,8 +185,6 @@ authRouter.post('/register', async (c) => {
     return c.json({
       message: 'Registration successful',
       accessToken,
-      // Still include refresh token for backward compatibility
-      refreshToken: refreshTokenData.token,
       user: {
         id: userId,
         email: email.toLowerCase(),
@@ -396,9 +396,6 @@ authRouter.post('/login', async (c) => {
 
     return c.json({
       accessToken,
-      // Still include refresh token in response for backward compatibility
-      // Frontend should migrate to using cookies instead
-      refreshToken: refreshTokenData.token,
       user: {
         id: user.id,
         email: user.email,
@@ -537,8 +534,6 @@ authRouter.post('/refresh', async (c) => {
 
     return c.json({
       accessToken,
-      // Still include refresh token in response for backward compatibility
-      refreshToken: newRefreshTokenData.token,
       user: {
         id: storedToken.user_id,
         email: storedToken.email,
@@ -655,10 +650,12 @@ authRouter.post('/forgot-password', async (c) => {
     `).bind(tokenId, user.id, tokenHash, expiresAt).run();
 
     // Send password reset email
-    // Determine base URL from request or environment
-    const baseUrl = c.env.APP_URL ||
-                    c.req.header('origin') ||
-                    `https://${c.req.header('host')}`;
+    const baseUrl = c.env.APP_URL;
+    if (!baseUrl) {
+      console.error('APP_URL environment variable not configured - cannot send password reset email');
+      // Still return success to prevent email enumeration
+      return c.json({ message: 'If the email exists, a reset link will be sent' });
+    }
 
     const emailResult = await sendPasswordResetEmail(
       c.env,

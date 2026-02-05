@@ -15,7 +15,6 @@ const AppContext = createContext();
 // API URL - relative path since frontend and API are served from the same origin
 const API_URL = '/api';
 const AUTH_STORAGE_KEY = 'krm_auth_token';
-const REFRESH_TOKEN_KEY = 'krm_refresh_token';
 const USER_STORAGE_KEY = 'krm_user';
 const AUTH_MODE_KEY = 'krm_auth_mode';
 
@@ -72,15 +71,8 @@ export const AppProvider = ({ children }) => {
     }
   });
   
-  // Refresh token for multi-tenant mode
-  const [refreshToken, setRefreshToken] = useState(() => {
-    if (typeof window === 'undefined') return null;
-    try {
-      return window.localStorage.getItem(REFRESH_TOKEN_KEY) || null;
-    } catch {
-      return null;
-    }
-  });
+  // Refresh token now handled exclusively via httpOnly cookie
+  const [refreshToken] = useState(null);
   
   // User info for multi-tenant mode
   const [user, setUser] = useState(() => {
@@ -207,8 +199,7 @@ export const AppProvider = ({ children }) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include', // Include httpOnly cookies
-        // Send refreshToken in body for backward compatibility
-        body: JSON.stringify({ refreshToken: refreshToken || undefined }),
+        body: JSON.stringify({}),
       });
 
       if (!response.ok) {
@@ -239,14 +230,13 @@ export const AppProvider = ({ children }) => {
     } finally {
       refreshingToken.current = false;
     }
-  }, [refreshToken]);
-  
+  }, []);
+
   // Clear all auth state
   const clearAuthState = useCallback(() => {
     try {
       if (typeof window !== 'undefined') {
         window.localStorage.removeItem(AUTH_STORAGE_KEY);
-        window.localStorage.removeItem(REFRESH_TOKEN_KEY);
         window.localStorage.removeItem(USER_STORAGE_KEY);
         // Don't remove AUTH_MODE_KEY - preserve the server's detected auth mode
       }
@@ -254,7 +244,6 @@ export const AppProvider = ({ children }) => {
       // ignore
     }
     setAuthToken(null);
-    setRefreshToken(null);
     setUser(null);
     // Don't reset authMode - preserve the server's detected auth mode
   }, []);
@@ -296,7 +285,7 @@ export const AppProvider = ({ children }) => {
 
       if (response.status === 401) {
         // In multi-tenant mode, try to refresh token once
-        if (authMode === 'multitenant' && retryCount === 0 && refreshToken) {
+        if (authMode === 'multitenant' && retryCount === 0) {
           const newToken = await refreshAccessToken();
           if (newToken) {
             return fetchWithAuth(url, options, retryCount + 1);
@@ -310,7 +299,7 @@ export const AppProvider = ({ children }) => {
 
       return response;
     },
-    [authToken, authMode, refreshToken, refreshAccessToken, clearAuthState, activeOrganizationId, user]
+    [authToken, authMode, refreshAccessToken, clearAuthState, activeOrganizationId, user]
   );
 
   // Legacy login helper (shared password)
@@ -396,9 +385,6 @@ export const AppProvider = ({ children }) => {
           if (typeof window !== 'undefined') {
             window.localStorage.setItem(AUTH_STORAGE_KEY, data.accessToken);
             window.localStorage.setItem(AUTH_MODE_KEY, 'multitenant');
-            if (data.refreshToken) {
-              window.localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
-            }
             if (data.user) {
               window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(data.user));
             }
@@ -408,7 +394,6 @@ export const AppProvider = ({ children }) => {
         }
 
         setAuthToken(data.accessToken);
-        setRefreshToken(data.refreshToken || null);
         setUser(data.user || null);
         setAuthMode('multitenant');
         setApiError(null);
@@ -456,9 +441,6 @@ export const AppProvider = ({ children }) => {
           if (typeof window !== 'undefined') {
             window.localStorage.setItem(AUTH_STORAGE_KEY, data.accessToken);
             window.localStorage.setItem(AUTH_MODE_KEY, 'multitenant');
-            if (data.refreshToken) {
-              window.localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
-            }
             if (data.user) {
               window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(data.user));
             }
@@ -468,7 +450,6 @@ export const AppProvider = ({ children }) => {
         }
 
         setAuthToken(data.accessToken);
-        setRefreshToken(data.refreshToken || null);
         setUser(data.user || null);
         setAuthMode('multitenant');
         setApiError(null);
@@ -565,7 +546,7 @@ export const AppProvider = ({ children }) => {
             'Authorization': `Bearer ${authToken}`,
           },
           credentials: 'include', // Include httpOnly cookies
-          body: JSON.stringify({ refreshToken: refreshToken || undefined }),
+          body: JSON.stringify({}),
         });
       } else if (authMode === 'legacy' && authToken) {
         // Legacy mode: call logout endpoint for consistency
@@ -583,7 +564,7 @@ export const AppProvider = ({ children }) => {
 
     clearAuthState();
     setApiError(null);
-  }, [authMode, authToken, refreshToken, clearAuthState]);
+  }, [authMode, authToken, clearAuthState]);
 
   // Load data from API
   const reloadDataFromServer = useCallback(async () => {

@@ -5,6 +5,7 @@ import BottomNavigation from '@mui/material/BottomNavigation';
 import BottomNavigationAction from '@mui/material/BottomNavigationAction';
 import SettingsIcon from '@mui/icons-material/Settings';
 import Header from './components/Header';
+import ErrorBoundary from './components/ErrorBoundary';
 import { AppProvider, useAppContext } from './contexts/AppContext';
 import { BookCoverProvider } from './contexts/BookCoverContext';
 import Login from './components/Login';
@@ -264,14 +265,16 @@ function AppContent() {
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <AppProvider>
-        <BookCoverProvider>
-          <AppContent />
-        </BookCoverProvider>
-      </AppProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <AppProvider>
+          <BookCoverProvider>
+            <AppContent />
+          </BookCoverProvider>
+        </AppProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 
