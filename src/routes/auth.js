@@ -58,12 +58,13 @@ const getDB = (env) => {
  * Generate URL-safe slug from organization name
  */
 function generateSlug(name) {
-  return name
+  const slug = name
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .substring(0, 50);
+  return slug || 'org';
 }
 
 /**
