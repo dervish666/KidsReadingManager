@@ -648,10 +648,12 @@ authRouter.post('/forgot-password', async (c) => {
     `).bind(tokenId, user.id, tokenHash, expiresAt).run();
 
     // Send password reset email
-    // Determine base URL from request or environment
-    const baseUrl = c.env.APP_URL ||
-                    c.req.header('origin') ||
-                    `https://${c.req.header('host')}`;
+    const baseUrl = c.env.APP_URL;
+    if (!baseUrl) {
+      console.error('APP_URL environment variable not configured - cannot send password reset email');
+      // Still return success to prevent email enumeration
+      return c.json({ message: 'If the email exists, a reset link will be sent' });
+    }
 
     const emailResult = await sendPasswordResetEmail(
       c.env,
