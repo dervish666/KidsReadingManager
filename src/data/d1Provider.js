@@ -268,9 +268,16 @@ const addBooksBatch = async (env, newBooks) => {
     // Execute batch (D1 supports up to 100 statements per batch)
     // For larger batches, we need to chunk them
     const BATCH_SIZE = 100;
+    let completedCount = 0;
     for (let i = 0; i < statements.length; i += BATCH_SIZE) {
       const batch = statements.slice(i, i + BATCH_SIZE);
-      await db.batch(batch);
+      try {
+        await db.batch(batch);
+        completedCount += batch.length;
+      } catch (batchError) {
+        console.error(`Batch insert failed at items ${i}-${i + batch.length} of ${statements.length}. ${completedCount} items were committed before failure.`);
+        throw new Error(`Batch insert failed after ${completedCount}/${statements.length} items: ${batchError.message}`);
+      }
     }
 
     return newBooks;
@@ -317,9 +324,16 @@ const updateBooksBatch = async (env, bookUpdates) => {
 
     // Execute batch
     const BATCH_SIZE = 100;
+    let completedCount = 0;
     for (let i = 0; i < statements.length; i += BATCH_SIZE) {
       const batch = statements.slice(i, i + BATCH_SIZE);
-      await db.batch(batch);
+      try {
+        await db.batch(batch);
+        completedCount += batch.length;
+      } catch (batchError) {
+        console.error(`Batch update failed at items ${i}-${i + batch.length} of ${statements.length}. ${completedCount} items were committed before failure.`);
+        throw new Error(`Batch update failed after ${completedCount}/${statements.length} items: ${batchError.message}`);
+      }
     }
 
     return bookUpdates.map(({ id, bookData }) => ({ ...bookData, id }));
