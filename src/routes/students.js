@@ -37,6 +37,16 @@ const isMultiTenantMode = (c) => {
   return Boolean(c.env.JWT_SECRET && c.get('organizationId'));
 };
 
+/** Safe JSON parse that returns a fallback on malformed data */
+const safeJsonParse = (value, fallback) => {
+  if (!value) return fallback;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+};
+
 /**
  * Convert database row to student object (snake_case to camelCase)
  */
@@ -47,8 +57,8 @@ const rowToStudent = (row) => {
     name: row.name,
     classId: row.class_id,
     lastReadDate: row.last_read_date,
-    likes: row.likes ? JSON.parse(row.likes) : [],
-    dislikes: row.dislikes ? JSON.parse(row.dislikes) : [],
+    likes: safeJsonParse(row.likes, []),
+    dislikes: safeJsonParse(row.dislikes, []),
     // New reading level range fields
     readingLevelMin: row.reading_level_min,
     readingLevelMax: row.reading_level_max,
@@ -804,7 +814,39 @@ studentsRouter.post('/bulk', async (c) => {
 studentsRouter.post('/:id/sessions', async (c) => {
   const { id } = c.req.param();
   const body = await c.req.json();
-  
+
+  // Validate reading session input
+  if (body.pagesRead !== undefined && body.pagesRead !== null) {
+    const pages = Number(body.pagesRead);
+    if (!Number.isFinite(pages) || pages < 0 || pages > 10000) {
+      throw badRequestError('pagesRead must be a number between 0 and 10000');
+    }
+    body.pagesRead = pages;
+  }
+  if (body.duration !== undefined && body.duration !== null) {
+    const dur = Number(body.duration);
+    if (!Number.isFinite(dur) || dur < 0 || dur > 1440) {
+      throw badRequestError('duration must be a number between 0 and 1440 minutes');
+    }
+    body.duration = dur;
+  }
+  if (body.date) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(body.date) || isNaN(Date.parse(body.date))) {
+      throw badRequestError('date must be a valid YYYY-MM-DD format');
+    }
+  }
+  if (body.notes && body.notes.length > 2000) {
+    throw badRequestError('notes must be 2000 characters or fewer');
+  }
+  const validAssessments = [null, undefined, '', 'independent', 'guided', 'struggled', 'read_aloud', 'not_assessed'];
+  if (body.assessment && !validAssessments.includes(body.assessment)) {
+    throw badRequestError('Invalid assessment value');
+  }
+  const validLocations = [null, undefined, '', 'school', 'home', 'library', 'other'];
+  if (body.location && !validLocations.includes(body.location)) {
+    throw badRequestError('Invalid location value');
+  }
+
   // Multi-tenant mode: use D1
   if (isMultiTenantMode(c)) {
     const db = getDB(c.env);

@@ -9,6 +9,17 @@
  * Falls back gracefully if no email provider is configured.
  */
 
+/** Escape user-controlled values for safe HTML interpolation */
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 /**
  * Send a password reset email
  * @param {Object} env - Cloudflare environment bindings
@@ -48,7 +59,7 @@ If you didn't request this, you can safely ignore this email.
   </div>
 
   <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
-    <p style="font-size: 16px;">Hi <strong>${recipientName}</strong>,</p>
+    <p style="font-size: 16px;">Hi <strong>${escapeHtml(recipientName)}</strong>,</p>
 
     <p>You requested to reset your password for Kids Reading Manager.</p>
 
@@ -212,14 +223,14 @@ ${loginUrl}
   </div>
 
   <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
-    <p style="font-size: 16px;">Hi <strong>${recipientName}</strong>,</p>
+    <p style="font-size: 16px;">Hi <strong>${escapeHtml(recipientName)}</strong>,</p>
 
-    <p>Welcome to Kids Reading Manager! You've been added to the <strong>${organizationName}</strong> organization.</p>
+    <p>Welcome to Kids Reading Manager! You've been added to the <strong>${escapeHtml(organizationName)}</strong> organization.</p>
 
     <div style="background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 20px; margin: 20px 0;">
       <p style="margin: 0 0 10px 0;"><strong>Your login credentials:</strong></p>
-      <p style="margin: 5px 0; font-family: monospace; background: #f3f4f6; padding: 8px; border-radius: 4px;">Email: ${recipientEmail}</p>
-      <p style="margin: 5px 0; font-family: monospace; background: #f3f4f6; padding: 8px; border-radius: 4px;">Temporary Password: ${temporaryPassword}</p>
+      <p style="margin: 5px 0; font-family: monospace; background: #f3f4f6; padding: 8px; border-radius: 4px;">Email: ${escapeHtml(recipientEmail)}</p>
+      <p style="margin: 5px 0; font-family: monospace; background: #f3f4f6; padding: 8px; border-radius: 4px;">Temporary Password: ${escapeHtml(temporaryPassword)}</p>
     </div>
 
     <p style="color: #dc2626; font-size: 14px;"><strong>Important:</strong> Please log in and change your password immediately.</p>

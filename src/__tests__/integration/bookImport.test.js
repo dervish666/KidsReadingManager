@@ -14,7 +14,9 @@ const createMockDB = (overrides = {}) => {
 
   return {
     prepare: vi.fn().mockReturnValue(prepareChain),
-    batch: vi.fn().mockResolvedValue([{ success: true }]),
+    batch: vi.fn().mockImplementation((stmts) =>
+      Promise.resolve(stmts.map(() => ({ success: true, results: [], meta: { changes: 1 } })))
+    ),
     _chain: prepareChain,
     ...overrides
   };

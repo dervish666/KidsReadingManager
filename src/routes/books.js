@@ -36,30 +36,81 @@ const booksRouter = new Hono();
 booksRouter.get('/', requireReadonly(), async (c) => {
   const provider = await createProvider(c.env);
   const organizationId = c.get('organizationId');
+  const db = c.env.READING_MANAGER_DB;
   const { page, pageSize, search } = c.req.query();
 
-  // If search query provided, use search functionality
+  // In multi-tenant mode, always scope to organization's books
+  if (organizationId && db) {
+    // Search with org scoping
+    if (search && search.trim()) {
+      const limit = pageSize ? parseInt(pageSize, 10) : 50;
+      const likeQuery = `%${search.trim()}%`;
+      const result = await db.prepare(`
+        SELECT b.* FROM books b
+        INNER JOIN org_book_selections obs ON b.id = obs.book_id
+        WHERE obs.organization_id = ? AND (b.title LIKE ? OR b.author LIKE ?)
+        ORDER BY b.title LIMIT ?
+      `).bind(organizationId, likeQuery, likeQuery, limit).all();
+      return c.json((result.results || []).map(b => ({
+        id: b.id, title: b.title, author: b.author,
+        readingLevel: b.reading_level, ageRange: b.age_range,
+        genreIds: b.genre_ids, description: b.description
+      })));
+    }
+
+    // Pagination with org scoping
+    if (page) {
+      const pageNum = parseInt(page, 10) || 1;
+      const size = parseInt(pageSize, 10) || 50;
+      const offset = (pageNum - 1) * size;
+      const countResult = await db.prepare(
+        'SELECT COUNT(*) as count FROM books b INNER JOIN org_book_selections obs ON b.id = obs.book_id WHERE obs.organization_id = ?'
+      ).bind(organizationId).first();
+      const total = countResult?.count || 0;
+      const result = await db.prepare(`
+        SELECT b.* FROM books b
+        INNER JOIN org_book_selections obs ON b.id = obs.book_id
+        WHERE obs.organization_id = ?
+        ORDER BY b.title LIMIT ? OFFSET ?
+      `).bind(organizationId, size, offset).all();
+      return c.json({
+        books: (result.results || []).map(b => ({
+          id: b.id, title: b.title, author: b.author,
+          readingLevel: b.reading_level, ageRange: b.age_range,
+          genreIds: b.genre_ids, description: b.description
+        })),
+        total, page: pageNum, pageSize: size,
+        totalPages: Math.ceil(total / size)
+      });
+    }
+
+    // Default: all org books with safety cap to prevent unbounded result sets
+    const MAX_DEFAULT_BOOKS = 5000;
+    const result = await db.prepare(`
+      SELECT b.* FROM books b
+      INNER JOIN org_book_selections obs ON b.id = obs.book_id
+      WHERE obs.organization_id = ? AND obs.is_available = 1
+      ORDER BY b.title LIMIT ?
+    `).bind(organizationId, MAX_DEFAULT_BOOKS).all();
+    return c.json((result.results || []).map(b => ({
+      id: b.id, title: b.title, author: b.author,
+      readingLevel: b.reading_level, ageRange: b.age_range,
+      genreIds: b.genre_ids, description: b.description
+    })));
+  }
+
+  // Legacy mode: no org scoping
   if (search && search.trim()) {
     const limit = pageSize ? parseInt(pageSize, 10) : 50;
     const books = await provider.searchBooks(search.trim(), limit);
     return c.json(books);
   }
-
-  // If pagination params provided, use paginated query
   if (page) {
     const pageNum = parseInt(page, 10) || 1;
     const size = parseInt(pageSize, 10) || 50;
     const result = await provider.getBooksPaginated(pageNum, size);
     return c.json(result);
   }
-
-  // If organizationId is set (multi-tenant mode), filter by organization
-  if (organizationId && c.env.READING_MANAGER_DB) {
-    const books = await getBooksByOrganization(c.env, organizationId);
-    return c.json(books);
-  }
-
-  // Default: return all books (legacy/admin mode)
   const books = await provider.getAllBooks();
   return c.json(books);
 });
@@ -75,20 +126,36 @@ booksRouter.get('/', requireReadonly(), async (c) => {
  */
 booksRouter.get('/search', requireReadonly(), async (c) => {
   const { q, limit } = c.req.query();
-  
+
   if (!q || !q.trim()) {
     return c.json({ error: 'Search query (q) is required' }, 400);
   }
-  
-  const provider = await createProvider(c.env);
+
   const maxResults = limit ? parseInt(limit, 10) : 50;
+  const organizationId = c.get('organizationId');
+  const db = c.env.READING_MANAGER_DB;
+
+  // In multi-tenant mode, scope search to organization's books
+  if (organizationId && db) {
+    const likeQuery = `%${q.trim()}%`;
+    const result = await db.prepare(`
+      SELECT b.* FROM books b
+      INNER JOIN org_book_selections obs ON b.id = obs.book_id
+      WHERE obs.organization_id = ? AND (b.title LIKE ? OR b.author LIKE ?)
+      ORDER BY b.title LIMIT ?
+    `).bind(organizationId, likeQuery, likeQuery, maxResults).all();
+    const books = (result.results || []).map(b => ({
+      id: b.id, title: b.title, author: b.author,
+      readingLevel: b.reading_level, ageRange: b.age_range,
+      genreIds: b.genre_ids, description: b.description
+    }));
+    return c.json({ query: q.trim(), count: books.length, books });
+  }
+
+  // Legacy mode
+  const provider = await createProvider(c.env);
   const books = await provider.searchBooks(q.trim(), maxResults);
-  
-  return c.json({
-    query: q.trim(),
-    count: books.length,
-    books
-  });
+  return c.json({ query: q.trim(), count: books.length, books });
 });
 
 /**
@@ -126,13 +193,14 @@ booksRouter.get('/library-search', requireReadonly(), async (c) => {
     // Build the search query
     const { student, preferences, inferredGenres, readBookIds } = profile;
 
-    // Build query to find matching books
+    // Build query to find matching books, scoped to organization
     let query = `
       SELECT DISTINCT b.id, b.title, b.author, b.reading_level, b.age_range, b.genre_ids, b.description
       FROM books b
+      INNER JOIN org_book_selections obs ON b.id = obs.book_id AND obs.organization_id = ?
       WHERE 1=1
     `;
-    const params = [];
+    const params = [organizationId];
 
     // Filter by reading level range if student has one set
     const minLevel = student.readingLevelMin;
@@ -443,6 +511,18 @@ booksRouter.put('/:id', requireTeacher(), async (c) => {
     throw notFoundError(`Book with ID ${id} not found`);
   }
 
+  // In multi-tenant mode, verify the book belongs to this organization
+  const organizationId = c.get('organizationId');
+  if (organizationId && c.env.READING_MANAGER_DB) {
+    const db = c.env.READING_MANAGER_DB;
+    const orgLink = await db.prepare(
+      'SELECT 1 FROM org_book_selections WHERE organization_id = ? AND book_id = ?'
+    ).bind(organizationId, id).first();
+    if (!orgLink) {
+      throw notFoundError(`Book with ID ${id} not found`);
+    }
+  }
+
   // Update book with safe merge
   const updatedBook = {
     ...existingBook,
@@ -474,7 +554,24 @@ booksRouter.put('/:id', requireTeacher(), async (c) => {
 booksRouter.delete('/:id', requireTeacher(), async (c) => {
    const { id } = c.req.param();
 
-   // Delete book
+   // In multi-tenant mode, only remove the org's link to the book (not the global book)
+   const organizationId = c.get('organizationId');
+   if (organizationId && c.env.READING_MANAGER_DB) {
+     const db = c.env.READING_MANAGER_DB;
+     const orgLink = await db.prepare(
+       'SELECT 1 FROM org_book_selections WHERE organization_id = ? AND book_id = ?'
+     ).bind(organizationId, id).first();
+     if (!orgLink) {
+       throw notFoundError(`Book with ID ${id} not found`);
+     }
+     // Remove the org's link to the book rather than deleting the global book record
+     await db.prepare(
+       'DELETE FROM org_book_selections WHERE organization_id = ? AND book_id = ?'
+     ).bind(organizationId, id).run();
+     return c.json({ message: 'Book removed from organization successfully' });
+   }
+
+   // Legacy mode: delete the book directly
    const provider = await createProvider(c.env);
    const deletedBook = await provider.deleteBook(id);
 
@@ -690,62 +787,81 @@ booksRouter.post('/import/confirm', requireTeacher(), async (c) => {
   let updated = 0;
   const errors = [];
 
+  // Collect all statements, then execute in batches of 100 (D1 limit)
+  const statements = [];
+
   // 1. Link matched books to organization
   for (const match of matched) {
-    try {
-      await db.prepare(`
+    statements.push({
+      stmt: db.prepare(`
         INSERT INTO org_book_selections (id, organization_id, book_id, is_available, created_at)
         VALUES (?, ?, ?, 1, datetime('now'))
         ON CONFLICT (organization_id, book_id) DO UPDATE SET is_available = 1, updated_at = datetime('now')
-      `).bind(crypto.randomUUID(), organizationId, match.existingBookId).run();
-      linked++;
-    } catch (error) {
-      errors.push({ type: 'link', bookId: match.existingBookId, error: error.message });
-    }
+      `).bind(crypto.randomUUID(), organizationId, match.existingBookId),
+      onSuccess: () => { linked++; },
+      onError: (err) => { errors.push({ type: 'link', bookId: match.existingBookId, error: err }); }
+    });
   }
 
   // 2. Create new books and link to organization
   for (const book of newBooks) {
-    try {
-      const bookId = crypto.randomUUID();
-
-      // Insert book
-      await db.prepare(`
+    const bookId = crypto.randomUUID();
+    statements.push({
+      stmt: db.prepare(`
         INSERT INTO books (id, title, author, reading_level, created_at, updated_at)
         VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
-      `).bind(bookId, book.title, book.author || null, book.readingLevel || null).run();
-
-      // Link to organization
-      await db.prepare(`
+      `).bind(bookId, book.title, book.author || null, book.readingLevel || null),
+      onSuccess: () => { created++; },
+      onError: (err) => { errors.push({ type: 'create', title: book.title, error: err }); }
+    });
+    statements.push({
+      stmt: db.prepare(`
         INSERT INTO org_book_selections (id, organization_id, book_id, is_available, created_at)
         VALUES (?, ?, ?, 1, datetime('now'))
-      `).bind(crypto.randomUUID(), organizationId, bookId).run();
-
-      created++;
-    } catch (error) {
-      errors.push({ type: 'create', title: book.title, error: error.message });
-    }
+      `).bind(crypto.randomUUID(), organizationId, bookId),
+      onSuccess: () => {},
+      onError: (err) => { errors.push({ type: 'create', title: book.title, error: err }); }
+    });
   }
 
-  // 3. Handle conflicts (update books if requested)
+  // 3. Handle conflicts (update books if requested, then link)
   for (const conflict of conflicts) {
-    try {
-      if (conflict.updateReadingLevel) {
-        await db.prepare(`
+    if (conflict.updateReadingLevel) {
+      statements.push({
+        stmt: db.prepare(`
           UPDATE books SET reading_level = ?, updated_at = datetime('now') WHERE id = ?
-        `).bind(conflict.newReadingLevel, conflict.existingBookId).run();
-        updated++;
-      }
-
-      // Link to organization
-      await db.prepare(`
+        `).bind(conflict.newReadingLevel, conflict.existingBookId),
+        onSuccess: () => { updated++; },
+        onError: (err) => { errors.push({ type: 'conflict', bookId: conflict.existingBookId, error: err }); }
+      });
+    }
+    statements.push({
+      stmt: db.prepare(`
         INSERT INTO org_book_selections (id, organization_id, book_id, is_available, created_at)
         VALUES (?, ?, ?, 1, datetime('now'))
         ON CONFLICT (organization_id, book_id) DO UPDATE SET is_available = 1, updated_at = datetime('now')
-      `).bind(crypto.randomUUID(), organizationId, conflict.existingBookId).run();
-      linked++;
+      `).bind(crypto.randomUUID(), organizationId, conflict.existingBookId),
+      onSuccess: () => { linked++; },
+      onError: (err) => { errors.push({ type: 'conflict', bookId: conflict.existingBookId, error: err }); }
+    });
+  }
+
+  // Execute in batches of 100 (D1 batch limit)
+  const BATCH_SIZE = 100;
+  for (let i = 0; i < statements.length; i += BATCH_SIZE) {
+    const batch = statements.slice(i, i + BATCH_SIZE);
+    try {
+      const results = await db.batch(batch.map(b => b.stmt));
+      results.forEach((result, idx) => {
+        if (result.success) {
+          batch[idx].onSuccess();
+        } else {
+          batch[idx].onError(result.error || 'Unknown error');
+        }
+      });
     } catch (error) {
-      errors.push({ type: 'conflict', bookId: conflict.existingBookId, error: error.message });
+      // If the entire batch fails, record errors for all items in it
+      batch.forEach(b => b.onError(error.message));
     }
   }
 

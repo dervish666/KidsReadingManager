@@ -20,302 +20,198 @@ npm start          # Runs on http://localhost:3001
 npm run dev        # Runs on http://localhost:8787
 ```
 
-### Building
+### Building & Deployment
 ```bash
-# Build React frontend only
-npm run build
-
-# Build and deploy to Cloudflare (production)
-npm run go                    # Runs build + deploy
+npm run build                 # Build React frontend (Rsbuild, outputs to build/)
+npm run go                    # Build + deploy to Cloudflare production
+npm run build:deploy:dev      # Build + deploy to dev environment
 ./scripts/build-and-deploy.sh # Full rebuild with clean install
-
-# Build and deploy to dev environment
-npm run build:deploy:dev
 ```
 
-### Database Management
+### Database
 ```bash
-# Run migrations locally
-npx wrangler d1 migrations apply reading-manager-db --local
-
-# Run migrations on production
-npx wrangler d1 migrations apply reading-manager-db --remote
-
-# Run data migration from old format
-npm run migrate
+npx wrangler d1 migrations apply reading-manager-db --local   # Local
+npx wrangler d1 migrations apply reading-manager-db --remote  # Production
+npm run migrate                                                # Data migration from old format
 ```
 
 ### Testing
 ```bash
-# Run all tests once
-npm test
-
-# Run tests in watch mode (during development)
-npm run test:watch
-
-# Run tests with coverage report
-npm run test:coverage
-
-# Run a single test file
-npx vitest run src/__tests__/unit/validation.test.js
-
-# Run tests matching a pattern
-npx vitest run --testNamePattern="password"
+npm test                                                    # Run all tests once
+npm run test:watch                                          # Watch mode
+npm run test:coverage                                       # With coverage
+npx vitest run src/__tests__/unit/validation.test.js        # Single file
+npx vitest run --testNamePattern="password"                 # Pattern match
 ```
 
-Tests use Vitest with happy-dom environment. Test files are located in `src/__tests__/` with unit and integration subdirectories.
+Tests use Vitest with happy-dom environment. Setup file (`src/__tests__/setup.js`) mocks Web Crypto API, btoa/atob, and TextEncoder/TextDecoder. The vitest config (`vitest.config.mjs`) aliases `cloudflare:email` to a test mock. Test files live in `src/__tests__/unit/` and `src/__tests__/integration/`.
 
-### Deployment
-```bash
-# Deploy to Cloudflare Workers (production)
-npm run deploy
-wrangler deploy
-
-# Deploy to dev environment
-wrangler deploy --env=dev
-```
+CI runs on push/PR to `main` via GitHub Actions (`.github/workflows/build.yml`): installs deps with `npm ci` and runs `npm run build`.
 
 ## Architecture
 
+### Tech Stack
+- **Frontend**: React 19, Material-UI v7, Rsbuild (build tool), plain JS (no TypeScript)
+- **Backend**: Cloudflare Workers, Hono framework, D1 database, KV storage
+- **Testing**: Vitest, happy-dom, @testing-library/react
+
 ### Dual Authentication System
 
-The application supports two authentication modes that coexist:
+Two auth modes coexist, auto-detected from environment variables (`src/worker.js:129-138`):
 
-1. **Multi-Tenant Mode** (JWT_SECRET configured): JWT-based authentication with organizations, users, roles, and D1 database storage
-2. **Legacy Mode** (WORKER_ADMIN_PASSWORD only): Simple shared password with KV storage
+1. **Multi-Tenant Mode** (`JWT_SECRET` configured): JWT auth with organizations, users, roles, D1 storage
+2. **Legacy Mode** (`WORKER_ADMIN_PASSWORD` only): Simple shared password, KV storage
 
-The worker automatically detects which mode to use based on environment variables (see `src/worker.js:59-68`). This allows gradual migration from legacy to multi-tenant.
-
-### Data Storage Strategy
-
-**Multi-Tenant Mode (Primary)**:
-- D1 SQL database (`READING_MANAGER_DB` binding) for all data
-- Normalized tables with foreign keys and organization scoping
-- See `migrations/*.sql` for schema
-- Data provider: `src/data/d1Provider.js`
-
-**Legacy Mode (Fallback)**:
-- Cloudflare KV (`READING_MANAGER_KV` binding) with JSON blobs
-- Single-tenant, backward compatible
-- Data provider: `src/data/jsonProvider.js`
+JWT lifecycle: access tokens (15 min) + refresh tokens (7 days). Client auto-refreshes 60 seconds before expiration. Password hashing uses PBKDF2 with 100,000 iterations (`src/utils/crypto.js`). Role constants defined in `ROLES` object in `src/utils/crypto.js`.
 
 ### Request Flow
 
 1. Request hits Cloudflare Worker (`src/worker.js`)
-2. Middleware chain:
-   - `logger()` - Request logging
-   - `cors()` - CORS headers
-   - `errorHandler()` - Catch errors
-   - `authMiddleware()` OR `jwtAuthMiddleware()` - Authentication (mode-dependent)
-   - `tenantMiddleware()` - Inject organization context (multi-tenant only)
-3. Routes in `src/routes/` handle business logic
-4. Data providers (`src/data/`) abstract storage layer
-5. Response sent back
+2. Middleware chain: `logger()` → `cors()` → security headers → `errorHandler()` → auth middleware (JWT or legacy) → `tenantMiddleware()`
+3. Auth endpoints additionally pass through `authRateLimit()` (rate limiting via D1 `rate_limits` table)
+4. Routes in `src/routes/` handle business logic
+5. Data providers (`src/data/`) abstract storage layer
 
-### Frontend-Backend Integration
+### Frontend Architecture
 
-**Development**: Frontend proxies `/api` requests to backend (see `rsbuild.config.mjs:8-13`)
-**Production**: Worker serves both API (`/api/*`) and static assets from `build/` directory (see `wrangler.toml:22-24`)
+**State Management**: Single `AppContext` (`src/contexts/AppContext.js`) holds all global state (students, classes, books, sessions, auth, settings). All API calls go through `fetchWithAuth()` which auto-attaches JWT and handles 401 refresh.
+
+**Frontend-Backend Integration**:
+- Development: Rsbuild proxies `/api` to `http://localhost:8787` (see `rsbuild.config.mjs`)
+- Production: Worker serves both API (`/api/*`) and static assets from `build/` directory
+
+### Data Storage
+
+**D1 (Multi-Tenant)**: Normalized SQL tables with organization scoping. Provider: `src/data/d1Provider.js`
+**KV (Legacy)**: JSON blobs in Cloudflare KV. Provider: `src/data/kvProvider.js`
+**JSON (Local Dev)**: File-based storage via `data.json`. Provider: `src/data/jsonProvider.js`
+**Provider Factory**: `src/data/index.js` auto-detects: D1 binding > `STORAGE_TYPE` env var > fallback.
+
+**Critical**: D1 batch operations are limited to 100 statements. See batch pattern in `src/routes/books.js`.
+
+### Naming Conventions
+- **Database**: snake_case columns (`organization_id`, `reading_level_min`)
+- **JavaScript**: camelCase properties (`organizationId`, `readingLevelMin`)
+- Data providers handle the conversion between these conventions.
 
 ## Multi-Tenant Architecture
 
 ### Organization Isolation
 
-All data queries are automatically scoped to the user's organization through middleware:
-- `tenantMiddleware()` injects `c.get('organizationId')` into context
-- Routes use this to filter queries: `WHERE organization_id = ?`
-- Users can only access data from their organization (except owners)
+`tenantMiddleware()` injects `c.get('organizationId')` into Hono context. All routes filter with `WHERE organization_id = ?`. Users only access their organization's data (except owners).
 
 ### Role Hierarchy
 
-- **Owner**: Full system access, manages all organizations
+- **Owner**: Full system access, manages all organizations, can switch between schools
 - **Admin**: Organization-level management, creates users/teachers
 - **Teacher**: Manages students, classes, reading sessions
 - **Readonly**: View-only access
 
-Permissions are enforced in middleware (`src/middleware/tenant.js`) and route handlers.
+Permissions enforced via `requireOwner()`, `requireAdmin()`, `requireTeacher()`, `requireReadonly()` helpers in `src/middleware/tenant.js`. Audit logging via `auditLog()` middleware wrapper (same file).
 
 ### Key Tables
 
-- `organizations` - Multi-tenant foundation with subscription tiers
-- `users` - User accounts with roles and organization FK
-- `students` - Organization-scoped students
-- `reading_sessions` - Session data linked to students
-- `books` - Global book catalog with FTS5 search (shared metadata)
-- `org_book_selections` - Links books to organizations (controls visibility per school)
+- `organizations` - Multi-tenant foundation (soft delete via `is_active`)
+- `users` - Accounts with roles and org FK (soft delete via `is_active`)
+- `students` - Organization-scoped, has `reading_level_min`/`reading_level_max` range
+- `reading_sessions` - Session data linked to students (hard delete)
+- `books` - Global catalog with FTS5 search (`books_fts` virtual table)
+- `org_book_selections` - Links books to organizations (controls per-school visibility)
 - `classes`, `genres`, `organization_settings` - Organization-scoped
 
 ### Book Visibility Model
 
-Books use a shared catalog with organization-scoped visibility:
-- The `books` table contains global book metadata (title, author, reading level, etc.)
-- The `org_book_selections` table links books to organizations
-- Each organization only sees books linked to them via `org_book_selections`
-- When a school imports books, matching books are linked (not duplicated)
-- This allows metadata sharing while maintaining per-school libraries
+Books use a shared global catalog with per-organization visibility via `org_book_selections`. When schools import books, matching books are linked (not duplicated). Each school only sees books linked to them.
 
 ## Important Implementation Details
 
 ### Book Recommendations (AI)
 
-The recommendations feature optimizes for large book collections (18,000+):
-1. Pre-filter at SQL level by reading level range and genres
-2. Exclude already-read books in query
-3. Randomize and limit to ~100 books
-4. Send filtered list to AI provider with student context and focus mode
-5. AI returns personalized recommendations with reasoning
+Optimized for large collections (18,000+ books):
+1. SQL pre-filter by reading level range + genres, exclude already-read
+2. Randomize and limit to ~100 books
+3. Send to AI provider with student context and focus mode (balanced/consolidation/challenge)
 
-**Focus Mode:** Teachers can select a focus mode when requesting recommendations:
-- **Balanced** (default): Mix of consolidation and challenge
-- **Consolidation**: Books at or slightly below student's level for fluency building
-- **Challenge**: Books at the upper end of student's range for growth
-
-See `src/routes/books.js` (recommendations endpoint) and `src/components/BookRecommendations.js`.
+See `src/routes/books.js` and `src/components/BookRecommendations.js`. AI providers configured in `src/services/aiService.js`.
 
 ### Reading Level Range
 
-Students have a reading level range (`readingLevelMin` to `readingLevelMax`) instead of a single level:
-- Supports AR (Accelerated Reader) levels from 1.0 to 13.0
-- UI uses `ReadingLevelRangeInput` component with visual range bar
-- Validation ensures min ≤ max, both required if either set
-- AI recommendations filter books within student's range
-
-See `src/components/students/ReadingLevelRangeInput.js` and `src/utils/validation.js`.
-
-### Session Form
-
-The Record Reading Session form includes:
-- Date picker in header for quick access
-- Two-column layout with student selector and context card
-- **StudentInfoCard**: Shows reading level, streak, last read date, recent books
-- Auto pre-selection of student's current book
-- Accessible with ARIA labels for screen readers
-
-See `src/components/sessions/SessionForm.js` and `src/components/sessions/StudentInfoCard.js`.
+Students have `readingLevelMin` to `readingLevelMax` (AR levels 1.0–13.0). UI: `src/components/students/ReadingLevelRangeInput.js`. Validation in `src/utils/validation.js`.
 
 ### Home Reading Register
 
-Quick entry UI for recording class-wide home reading:
-- Register-style grid with students as rows
-- Status buttons: ✓ (read), 2+ (multiple), A (absent), • (no record)
-- Student book persistence (remembers current book)
-- Drag-and-drop student reordering
-- Efficient bulk session creation
-
-See `src/components/sessions/HomeReadingRegister.js`.
+Quick entry grid for class-wide reading: status buttons (read/multiple/absent/no record), student book persistence, drag-and-drop reordering (`@dnd-kit`), bulk session creation. See `src/components/sessions/HomeReadingRegister.js`.
 
 ### Book Cover System
 
-The recommendations UI displays book covers fetched from OpenLibrary:
-
-1. **BookCoverContext** (`src/contexts/BookCoverContext.js`): Global cache for cover URLs with localStorage persistence
-2. **useBookCover** hook (`src/hooks/useBookCover.js`): Fetches covers using multiple strategies (ISBN → OCLC → title search)
-3. **BookCover** component (`src/components/BookCover.js`): Displays cover image or placeholder
-4. **BookCoverPlaceholder** (`src/components/BookCoverPlaceholder.js`): Generates gradient placeholders from title hash
-
-The system includes request deduplication, graceful fallbacks, and deterministic placeholder colors.
-
-### Book Metadata APIs
-
-Two providers for fetching book metadata:
-- **OpenLibrary API**: Default, no API key required
-- **Google Books API**: Requires API key, more complete data
-
-Configured in Settings UI. Used for auto-filling book descriptions, authors, genres.
+Covers fetched from OpenLibrary with multi-strategy lookup (ISBN → OCLC → title), request deduplication, localStorage caching (`src/contexts/BookCoverContext.js`), and deterministic gradient placeholders from title hash.
 
 ### Multi-School Library Import
 
-Schools can import their own book libraries via CSV with intelligent deduplication:
+CSV import wizard (`src/components/books/BookImportWizard.js`) with:
+- Column auto-detection + manual override
+- Deduplication: exact match (auto-link), fuzzy match at 85% similarity (flagged for review), new books created
+- API: `POST /api/books/import/preview` and `POST /api/books/import/confirm`
+- String matching: `src/utils/stringMatching.js` (Levenshtein distance)
 
-**Import Flow:**
-1. Upload CSV file (Title, Author, Reading Level columns)
-2. Auto-detect column mapping with manual override option
-3. Preview categorizes books: matched, possible matches, new, conflicts, already in library
-4. Review possible matches (fuzzy matches like "The Hobit" → "The Hobbit") - accept to link, reject to create new
-5. Confirm import: links matched books, creates new ones, optionally updates conflicts
+### Error Handling
 
-**Key Components:**
-- `src/components/books/BookImportWizard.js` - 4-step import wizard UI
-- `src/utils/csvParser.js` - CSV parsing with column auto-detection
-- `src/utils/stringMatching.js` - Levenshtein distance for fuzzy matching
+Global error handler in `src/middleware/errorHandler.js` standardizes all error responses. Helper constructors: `notFoundError()`, `badRequestError()`, `serverError()`. 5xx responses are sanitized to prevent internal detail leakage.
 
-**API Endpoints:**
-- `POST /api/books/import/preview` - Analyzes CSV books against existing catalog
-- `POST /api/books/import/confirm` - Executes the import (links/creates/updates)
+### Public Endpoints
 
-**Deduplication Logic:**
-- Exact match: Normalized title + author match → auto-link to existing book
-- Fuzzy match (85% similarity): Title typos, author variations → flagged for review
-- Metadata conflict: Same book, different reading level → user decides to update or not
-- New book: No match found → creates new book in global catalog
+These paths bypass auth middleware: `/api/auth/*`, `/api/health`, `/api/login`, `/api/logout`. The health endpoint is useful for monitoring. Legacy `/api/login` and `/api/logout` redirect to the auth router equivalents.
 
-The import is transparent to users - they see "their library" while the system handles deduplication behind the scenes. See `docs/plans/2026-01-31-multi-school-library-design.md` for full design.
+### Scheduled Tasks
+
+Cron trigger runs daily at 2:00 AM UTC to recalculate all student reading streaks (`wrangler.toml` triggers, handler in `src/worker.js`, logic in `src/utils/streakCalculator.js`).
 
 ## Common Development Patterns
 
 ### Adding a New API Endpoint
 
-1. Create route handler in `src/routes/*.js` (or add to existing)
-2. Apply authentication/authorization checks
-3. Use `c.get('organizationId')` for multi-tenant scoping
-4. Access D1 via `c.env.READING_MANAGER_DB` or KV via `c.env.READING_MANAGER_KV`
-5. Return JSON responses with proper HTTP status codes
-
-Example:
-```javascript
-app.get('/api/students', async (c) => {
-  const organizationId = c.get('organizationId');
-  const db = c.env.READING_MANAGER_DB;
-
-  const result = await db
-    .prepare('SELECT * FROM students WHERE organization_id = ?')
-    .bind(organizationId)
-    .all();
-
-  return c.json(result.results);
-});
-```
+1. Add route handler in `src/routes/*.js`
+2. Use `c.get('organizationId')` for tenant scoping
+3. Access D1 via `c.env.READING_MANAGER_DB`
+4. Return JSON with proper HTTP status codes
 
 ### Adding a Database Migration
 
-1. Create new file: `migrations/XXXX_description.sql`
-2. Write migration SQL (use IF NOT EXISTS for safety)
+1. Create `migrations/XXXX_description.sql` (next number after 0020)
+2. Use `IF NOT EXISTS` for safety
 3. Test locally: `npx wrangler d1 migrations apply reading-manager-db --local`
 4. Deploy: `npx wrangler d1 migrations apply reading-manager-db --remote`
 
-### Working with the Data Providers
+### Working with Data Providers
 
-The data layer is abstracted through providers:
-- Multi-tenant: Import functions from `src/data/d1Provider.js`
-- Legacy: Import from `src/data/jsonProvider.js`
-- Workers automatically route to correct provider based on config
+When adding new data operations, implement in `d1Provider.js` (primary) and `kvProvider.js`/`jsonProvider.js` for backward compatibility. All three providers export the same interface. The factory in `data/index.js` routes to the correct one.
 
-When adding new data operations, implement in both providers for backward compatibility.
+## Local Development Setup
+
+Local dev requires two files in the project root:
+- `.env` — sets `STORAGE_TYPE=json` and `JWT_SECRET` for local multi-tenant mode
+- `.dev.vars` — sets `WORKER_ADMIN_PASSWORD` for legacy mode testing
+
+The frontend dev server (port 3001) proxies `/api` requests to the worker (port 8787). Use `npm run start:dev` to run both concurrently.
+
+### Utility Scripts
+
+- `scripts/build-and-deploy.sh` — Full rebuild + deploy pipeline (supports `production` and `dev` args)
+- `scripts/migration.js` — Data migration from old format to new
+- `scripts/reset-admin-password.js` — Admin password reset utility
 
 ## Configuration
 
 ### Environment Variables (Cloudflare)
 
-Set in Cloudflare dashboard or `wrangler.toml`:
+- `JWT_SECRET` - Enables multi-tenant JWT auth
+- `WORKER_ADMIN_PASSWORD` - Legacy shared password auth
+- `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `GOOGLE_API_KEY` - AI recommendation providers
+- `ALLOWED_ORIGINS` - Comma-separated CORS whitelist
+- `EMAIL_FROM` - Email sender address
 
-**Multi-Tenant Mode**:
-- `JWT_SECRET` - Required for JWT auth (enables multi-tenant)
+### Wrangler Bindings (`wrangler.toml`)
 
-**Legacy Mode**:
-- `WORKER_ADMIN_PASSWORD` - Shared password for legacy auth
-
-**AI Recommendations** (at least one required for book recommendations):
-- `ANTHROPIC_API_KEY` - Claude AI provider
-- `OPENAI_API_KEY` - OpenAI provider
-- `GOOGLE_API_KEY` - Google Gemini provider
-
-### Wrangler Bindings
-
-Configured in `wrangler.toml`:
 - `READING_MANAGER_KV` - KV namespace for legacy storage
 - `READING_MANAGER_DB` - D1 database for multi-tenant storage
-- `EMAIL_SENDER` - Email sending binding (requires Email Routing on domain)
-
-### Frontend Environment Variables
-
-- `REACT_APP_API_BASE_URL` - API base URL (set during build for production)
+- `EMAIL_SENDER` - Email sending (requires Email Routing on domain)

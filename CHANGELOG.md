@@ -1,5 +1,52 @@
 # Changelog
 
+## [2.9.3] - 2026-02-07
+
+### Security & Audit Fixes
+
+Deep codebase audit addressing 5 critical, 11 high-severity, and 4 performance issues. Full report in `docs/audit-2026-02-07.md`.
+
+#### Critical Fixes
+- **Foreign key enforcement**: PRAGMA foreign_keys = ON now executed per-request via middleware
+- **IDOR cross-org user modification**: PUT /api/users/:id now filters by organization_id for non-owners
+- **Global book mutation**: PUT/DELETE on books now checks org_book_selections membership; delete removes org link only
+- **Data export blocked**: Legacy KV export/import endpoints disabled in multi-tenant mode
+- **Token refresh race condition**: Concurrent refresh callers now share a single in-flight promise; authTokenRef eliminates stale closures
+
+#### High-Severity Fixes
+- **Password reset token invalidation**: Old tokens revoked before creating new ones
+- **Book search/pagination org scoping**: All book query paths now use INNER JOIN org_book_selections
+- **hasApiKey always false**: Fixed SQL query to use `(api_key_encrypted IS NOT NULL) as has_key`
+- **rowToStudent JSON crash**: safeJsonParse prevents crash on malformed JSON in student records
+- **Org deletion cascade**: Batch deactivates users and revokes refresh tokens on org soft-delete
+- **Reading session validation**: Server-side validation for pages, duration, date, notes, assessment, location
+- **Email HTML injection**: escapeHtml() applied to all user-controlled values in email templates
+- **Login timing attack**: Dummy hashPassword() call for non-existent users
+- **Optimistic update rollbacks**: Functional state updates prevent stale closure bugs in React state
+- **Unbounded parallel requests**: bulkImportStudents batched to 5 concurrent requests
+
+#### Performance
+- **Composite indexes**: Migration 0020 adds indexes for (org_id, is_active) on students/users, (student_id, session_date) on reading_sessions, (org_id, is_available) on org_book_selections
+- **Batch import confirm**: Book import uses db.batch() in chunks of 100 instead of sequential per-item queries
+- **Batch organization stats**: 6 sequential COUNT queries consolidated into single db.batch() call
+- **Default book list cap**: GET /api/books without pagination capped at 5,000 rows
+
+#### Tests
+- **93 new tests**: security-audit.test.js (50 tests), auth.test.js (43 tests)
+- Total: 1,283 tests passing
+
+#### Database
+- **Migration 0020**: Composite indexes for common multi-column query patterns
+
+#### Deployment Notes
+```bash
+# Run the new composite index migration
+npx wrangler d1 migrations apply reading-manager-db --local   # local
+npx wrangler d1 migrations apply reading-manager-db --remote  # production
+```
+
+---
+
 ## [2.9.2] - 2026-02-05
 
 ### Security & Quality Fixes

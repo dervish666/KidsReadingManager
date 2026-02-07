@@ -85,8 +85,12 @@ export const AppProvider = ({ children }) => {
     }
   });
   
-  // Track if token refresh is in progress
-  const refreshingToken = useRef(false);
+  // Ref to always hold the latest auth token (avoids stale closure in fetchWithAuth)
+  const authTokenRef = useRef(authToken);
+  authTokenRef.current = authToken;
+
+  // Track in-flight token refresh promise so concurrent callers share it
+  const refreshingToken = useRef(null);
 
   // State for preferred number of priority students to display
   const [priorityStudentCount, setPriorityStudentCount] = useState(8);
@@ -186,50 +190,53 @@ export const AppProvider = ({ children }) => {
   }, []); // Run once on mount
 
   // Token refresh function for multi-tenant mode
+  // Uses a shared promise so concurrent callers all await the same refresh
   const refreshAccessToken = useCallback(async () => {
-    // We can refresh even without localStorage refreshToken if cookie is set
+    // If a refresh is already in flight, return the existing promise
     if (refreshingToken.current) {
-      return null;
+      return refreshingToken.current;
     }
 
-    refreshingToken.current = true;
+    const refreshPromise = (async () => {
+      try {
+        const response = await fetch(`${API_URL}/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include', // Include httpOnly cookies
+          body: JSON.stringify({}),
+        });
 
-    try {
-      const response = await fetch(`${API_URL}/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // Include httpOnly cookies
-        body: JSON.stringify({}),
-      });
+        if (!response.ok) {
+          clearAuthState();
+          return null;
+        }
 
-      if (!response.ok) {
-        // Clear all auth state on refresh failure
+        const data = await response.json();
+        const newToken = data.accessToken;
+
+        if (newToken) {
+          setAuthToken(newToken);
+          try {
+            if (typeof window !== 'undefined') {
+              window.localStorage.setItem(AUTH_STORAGE_KEY, newToken);
+            }
+          } catch {
+            // ignore
+          }
+          return newToken;
+        }
+
+        return null;
+      } catch (err) {
         clearAuthState();
         return null;
+      } finally {
+        refreshingToken.current = null;
       }
+    })();
 
-      const data = await response.json();
-      const newToken = data.accessToken;
-
-      if (newToken) {
-        setAuthToken(newToken);
-        try {
-          if (typeof window !== 'undefined') {
-            window.localStorage.setItem(AUTH_STORAGE_KEY, newToken);
-          }
-        } catch {
-          // ignore
-        }
-        return newToken;
-      }
-
-      return null;
-    } catch (err) {
-      clearAuthState();
-      return null;
-    } finally {
-      refreshingToken.current = false;
-    }
+    refreshingToken.current = refreshPromise;
+    return refreshPromise;
   }, []);
 
   // Clear all auth state
@@ -251,8 +258,9 @@ export const AppProvider = ({ children }) => {
   // Helper: fetch with auth header + 401 handling + token refresh
   const fetchWithAuth = useCallback(
     async (url, options = {}, retryCount = 0) => {
-      let currentToken = authToken;
-      
+      // Read token from ref to avoid stale closure after refresh
+      let currentToken = authTokenRef.current;
+
       // In multi-tenant mode, check if token needs refresh
       if (authMode === 'multitenant' && currentToken && isTokenExpired(currentToken)) {
         const newToken = await refreshAccessToken();
@@ -263,7 +271,7 @@ export const AppProvider = ({ children }) => {
           throw new Error('Session expired');
         }
       }
-      
+
       const headers = {
         'Content-Type': 'application/json',
         ...(options.headers || {}),
@@ -291,7 +299,7 @@ export const AppProvider = ({ children }) => {
             return fetchWithAuth(url, options, retryCount + 1);
           }
         }
-        
+
         clearAuthState();
         setApiError('Authentication required. Please log in.');
         throw new Error('Unauthorized');
@@ -299,7 +307,7 @@ export const AppProvider = ({ children }) => {
 
       return response;
     },
-    [authToken, authMode, refreshAccessToken, clearAuthState, activeOrganizationId, user]
+    [authMode, refreshAccessToken, clearAuthState, activeOrganizationId, user]
   );
 
   // Legacy login helper (shared password)
@@ -743,7 +751,6 @@ export const AppProvider = ({ children }) => {
         classId,
       };
 
-      const previousStudents = students;
       setStudents((prev) => [...prev, newStudent]);
 
       try {
@@ -764,11 +771,12 @@ export const AppProvider = ({ children }) => {
         return savedStudent;
       } catch (error) {
         setApiError(error.message);
-        setStudents(previousStudents);
+        // Functional rollback: remove the optimistic student without clobbering concurrent changes
+        setStudents((prev) => prev.filter((s) => s.id !== newStudent.id));
         return null;
       }
     },
-    [students, fetchWithAuth]
+    [fetchWithAuth]
   );
 
   const bulkImportStudents = useCallback(
@@ -790,28 +798,34 @@ export const AppProvider = ({ children }) => {
         dislikes: [],
       }));
 
-      const previousStudents = students;
+      const newStudentIds = new Set(newStudents.map((s) => s.id));
       setStudents((prev) => [...prev, ...newStudents]);
 
       try {
-        // Send all students in a single batch request
-        const promises = newStudents.map((student) =>
-          fetchWithAuth(`${API_URL}/students`, {
-            method: 'POST',
-            body: JSON.stringify(student),
-          })
-        );
+        // Send students in batches of 5 to avoid overwhelming the server
+        const BATCH_SIZE = 5;
+        const allResponses = [];
+        for (let i = 0; i < newStudents.length; i += BATCH_SIZE) {
+          const batch = newStudents.slice(i, i + BATCH_SIZE);
+          const batchResponses = await Promise.all(
+            batch.map((student) =>
+              fetchWithAuth(`${API_URL}/students`, {
+                method: 'POST',
+                body: JSON.stringify(student),
+              })
+            )
+          );
+          allResponses.push(...batchResponses);
+        }
 
-        const responses = await Promise.all(promises);
-        
         // Check if all responses are ok
-        const allOk = responses.every((r) => r.ok);
+        const allOk = allResponses.every((r) => r.ok);
         if (!allOk) {
           throw new Error('Some students failed to save');
         }
 
         const savedStudents = await Promise.all(
-          responses.map((r) => r.json().catch(() => null))
+          allResponses.map((r) => r.json().catch(() => null))
         );
 
         // Update with saved students (with any server-side modifications)
@@ -833,11 +847,12 @@ export const AppProvider = ({ children }) => {
         return validSavedStudents;
       } catch (error) {
         setApiError(error.message);
-        setStudents(previousStudents);
+        // Functional rollback: remove optimistic students without clobbering concurrent changes
+        setStudents((prev) => prev.filter((s) => !newStudentIds.has(s.id)));
         return [];
       }
     },
-    [students, fetchWithAuth]
+    [fetchWithAuth]
   );
 
   const updateStudentClassId = useCallback(
@@ -849,13 +864,13 @@ export const AppProvider = ({ children }) => {
 
       // Normalize classId - convert 'unassigned' string to null
       const normalizedClassId = classId === 'unassigned' || classId === '' ? null : classId;
+      const previousClassId = student.classId;
 
       const updatedStudent = {
         ...student,
         classId: normalizedClassId,
       };
 
-      const previousStudents = students;
       setStudents((prev) =>
         prev.map((s) => (s.id === studentId ? updatedStudent : s))
       );
@@ -872,7 +887,10 @@ export const AppProvider = ({ children }) => {
         setApiError(null);
       } catch (error) {
         setApiError(error.message);
-        setStudents(previousStudents);
+        // Functional rollback: restore just the classId without clobbering concurrent changes
+        setStudents((prev) =>
+          prev.map((s) => (s.id === studentId ? { ...s, classId: previousClassId } : s))
+        );
         throw error; // Re-throw so the component can handle it
       }
     },
@@ -886,8 +904,8 @@ export const AppProvider = ({ children }) => {
         return;
       }
       const updatedStudent = { ...currentStudent, ...updatedData };
+      const snapshotBeforeUpdate = { ...currentStudent };
 
-      const previousStudents = students;
       setStudents((prev) =>
         prev.map((student) => (student.id === id ? updatedStudent : student))
       );
@@ -904,7 +922,10 @@ export const AppProvider = ({ children }) => {
         setApiError(null);
       } catch (error) {
         setApiError(error.message);
-        setStudents(previousStudents);
+        // Functional rollback: restore only this student's data
+        setStudents((prev) =>
+          prev.map((s) => (s.id === id ? { ...s, ...snapshotBeforeUpdate } : s))
+        );
       }
     },
     [students, fetchWithAuth]
@@ -912,7 +933,8 @@ export const AppProvider = ({ children }) => {
 
   const deleteStudent = useCallback(
     async (id) => {
-      const previousStudents = students;
+      // Capture the student being deleted for potential rollback
+      const deletedStudent = students.find((s) => s.id === id);
       setStudents((prev) => prev.filter((student) => student.id !== id));
 
       try {
@@ -925,7 +947,10 @@ export const AppProvider = ({ children }) => {
         setApiError(null);
       } catch (error) {
         setApiError(error.message);
-        setStudents(previousStudents);
+        // Functional rollback: re-add the student without clobbering concurrent changes
+        if (deletedStudent) {
+          setStudents((prev) => [...prev, deletedStudent]);
+        }
       }
     },
     [students, fetchWithAuth]

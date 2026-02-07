@@ -943,72 +943,45 @@ describe('Books API Routes', () => {
     });
 
     describe('Book existence check', () => {
-      it('should return 404 for non-existent book', async () => {
+      it('should return 404 for book not linked to organization', async () => {
         const { app, mockDB } = createTestApp(createUserContext({ userRole: 'teacher' }));
 
-        // When the book doesn't exist, getBookById returns null, and the provider
-        // returns null from deleteBook. The route then throws notFoundError.
-        // We need to mock the provider.deleteBook to return null by making
-        // the chain return null from first() (which getBookById uses).
+        // org_book_selections check returns null (book not linked to org)
         mockDB._chain.first.mockResolvedValue(null);
-
-        // Mock the d1Provider behavior: when book not found, it throws an error
-        // Since we can't easily control the provider's thrown error, and the
-        // actual d1Provider throws a generic Error("Book not found") which
-        // becomes a 500, we'll mock the behavior correctly.
-        // The provider.deleteBook will first call getBookById which uses first(),
-        // then if that returns null, it throws. The error gets caught by error handler.
-
-        // Actually, the provider throws Error('Book not found') without status,
-        // so it becomes 500. But the route expects deletedBook to be null for 404.
-        // The current implementation has the provider throw before route can check.
-
-        // For this test to work with the actual route logic (provider returning null),
-        // we need to simulate the case where deleteBook returns null instead of throwing.
-        // Since our mock wraps the D1 provider which throws, we get 500.
-        // Let's verify the actual behavior matches the implementation.
 
         const response = await makeRequest(app, 'DELETE', '/api/books/nonexistent');
 
-        // The d1Provider throws "Book not found" error (status 500) when book doesn't exist
-        // because it internally calls getBookById first and throws if null
-        expect(response.status).toBe(500);
+        // In multi-tenant mode, the route checks org_book_selections first
+        // and returns 404 if no link exists
+        expect(response.status).toBe(404);
       });
 
-      it('should handle provider returning null for non-existent book', async () => {
-        // This tests the route's notFoundError logic if provider were to return null
-        // instead of throwing (which is what the route code expects)
+      it('should successfully delete when book is linked to organization', async () => {
         const { app, mockDB } = createTestApp(createUserContext({ userRole: 'teacher' }));
 
-        // Simulate a provider that returns null instead of throwing
-        // First mock getBookById to return a book (so provider doesn't throw)
-        // Then mock the delete to return null
-        mockDB._chain.first
-          .mockResolvedValueOnce(createMockBookRow()) // getBookById finds the book
-          .mockResolvedValueOnce(null); // second call (if any)
-        mockDB._chain.run.mockResolvedValue({ success: true, meta: { changes: 0 } });
+        // org_book_selections check returns truthy (book is linked to org)
+        mockDB._chain.first.mockResolvedValueOnce({ book_id: 'book-123' });
+        mockDB._chain.run.mockResolvedValue({ success: true });
 
-        // Even with the book existing, deleteBook returns the book object on success
-        // The route only throws 404 if deletedBook is falsy
         const response = await makeRequest(app, 'DELETE', '/api/books/book-123');
 
-        // This should succeed since the book was found and deleted
         expect(response.status).toBe(200);
       });
     });
 
     describe('Successful deletion', () => {
-      it('should return success message', async () => {
+      it('should return success message (removes org link in multi-tenant mode)', async () => {
         const { app, mockDB } = createTestApp(createUserContext({ userRole: 'teacher' }));
 
-        mockDB._chain.first.mockResolvedValue(createMockBookRow());
+        // First query checks org_book_selections, returns truthy
+        mockDB._chain.first.mockResolvedValueOnce({ book_id: 'book-123' });
         mockDB._chain.run.mockResolvedValue({ success: true });
 
         const response = await makeRequest(app, 'DELETE', '/api/books/book-123');
         const data = await response.json();
 
         expect(response.status).toBe(200);
-        expect(data.message).toBe('Book deleted successfully');
+        expect(data.message).toBe('Book removed from organization successfully');
       });
     });
   });

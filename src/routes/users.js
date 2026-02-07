@@ -284,19 +284,26 @@ usersRouter.put('/:id', auditLog('update', 'user'), async (c) => {
 
     const { name, role, isActive, organizationId } = body;
 
-    // Check if user exists (in any organization - we'll check permissions next)
-    const existingUser = await db.prepare(`
-      SELECT * FROM users WHERE id = ?
-    `).bind(targetUserId).first();
+    // Determine roles upfront
+    const isSelf = targetUserId === currentUserId;
+    const isAdmin = hasPermission(currentUserRole, ROLES.ADMIN);
+    const isOwner = currentUserRole === ROLES.OWNER;
+
+    // Check if user exists - owners can see any user, others must be same org
+    let existingUser;
+    if (isOwner) {
+      existingUser = await db.prepare(`
+        SELECT * FROM users WHERE id = ?
+      `).bind(targetUserId).first();
+    } else {
+      existingUser = await db.prepare(`
+        SELECT * FROM users WHERE id = ? AND organization_id = ?
+      `).bind(targetUserId, currentUserOrgId).first();
+    }
 
     if (!existingUser) {
       return c.json({ error: 'User not found' }, 404);
     }
-
-    // Determine what can be updated
-    const isSelf = targetUserId === currentUserId;
-    const isAdmin = hasPermission(currentUserRole, ROLES.ADMIN);
-    const isOwner = currentUserRole === ROLES.OWNER;
 
     // Self can only update name
     if (isSelf && !isAdmin) {

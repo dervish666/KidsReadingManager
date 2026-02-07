@@ -563,28 +563,20 @@ describe('Organization Routes', () => {
   describe('GET /api/organization/stats', () => {
     it('should return organization usage statistics', async () => {
       const mockDb = createMockDB();
-      let callCount = 0;
 
-      const createChainable = (firstFn) => ({
-        bind: vi.fn().mockReturnThis(),
-        first: firstFn
+      mockDb.prepare = vi.fn().mockReturnValue({
+        bind: vi.fn().mockReturnThis()
       });
 
-      mockDb.prepare = vi.fn().mockImplementation(() => {
-        callCount++;
-        const currentCall = callCount;
-        return createChainable(vi.fn().mockImplementation(() => {
-          switch (currentCall) {
-            case 1: return Promise.resolve({ max_students: 100, max_teachers: 10 }); // org limits
-            case 2: return Promise.resolve({ count: 5 }); // user count
-            case 3: return Promise.resolve({ count: 45 }); // student count
-            case 4: return Promise.resolve({ count: 3 }); // class count
-            case 5: return Promise.resolve({ count: 120 }); // sessions this month
-            case 6: return Promise.resolve({ count: 50 }); // selected books
-            default: return Promise.resolve(null);
-          }
-        }));
-      });
+      // Stats endpoint now uses db.batch() for all queries in one round-trip
+      mockDb.batch = vi.fn().mockResolvedValue([
+        { results: [{ max_students: 100, max_teachers: 10 }], success: true },  // org limits
+        { results: [{ count: 5 }], success: true },   // user count
+        { results: [{ count: 45 }], success: true },   // student count
+        { results: [{ count: 3 }], success: true },    // class count
+        { results: [{ count: 120 }], success: true },  // sessions this month
+        { results: [{ count: 50 }], success: true },   // selected books
+      ]);
 
       const app = createTestApp(mockDb, createUserContext());
 
@@ -605,10 +597,19 @@ describe('Organization Routes', () => {
     it('should handle zero counts gracefully', async () => {
       const mockDb = createMockDB();
 
-      mockDb.prepare = vi.fn().mockImplementation(() => ({
-        bind: vi.fn().mockReturnThis(),
-        first: vi.fn().mockResolvedValue(null)
-      }));
+      mockDb.prepare = vi.fn().mockReturnValue({
+        bind: vi.fn().mockReturnThis()
+      });
+
+      // All queries return null/empty results
+      mockDb.batch = vi.fn().mockResolvedValue([
+        { results: [], success: true },   // org limits (no org found)
+        { results: [{ count: 0 }], success: true },
+        { results: [{ count: 0 }], success: true },
+        { results: [{ count: 0 }], success: true },
+        { results: [{ count: 0 }], success: true },
+        { results: [{ count: 0 }], success: true },
+      ]);
 
       const app = createTestApp(mockDb, createUserContext());
 
@@ -797,7 +798,7 @@ describe('Organization Routes', () => {
           provider: 'anthropic',
           model_preference: 'claude-3-sonnet',
           is_enabled: 1,
-          api_key_encrypted: 'encrypted-key-data'
+          has_key: 1
         })
       }));
 

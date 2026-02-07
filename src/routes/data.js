@@ -13,9 +13,20 @@ import { badRequestError, serverError } from '../middleware/errorHandler';
 // Create router
 const dataRouter = new Hono();
 
+// Block data export/import in multi-tenant mode (these operate on raw KV, not org-scoped)
+dataRouter.use('/*', async (c, next) => {
+  if (c.env.JWT_SECRET) {
+    return c.json({
+      error: 'Data export/import is not available in multi-tenant mode. Use organization-specific endpoints instead.'
+    }, 403);
+  }
+  return next();
+});
+
 /**
  * GET /api/data
  * Get all application data (for export)
+ * Only available in legacy (single-tenant) mode
  */
 dataRouter.get('/', async (c) => {
   try {

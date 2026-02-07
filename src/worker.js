@@ -137,6 +137,18 @@ app.use('/api/*', async (c, next) => {
   }
 });
 
+// Enable SQLite foreign key enforcement per request (D1 requires this per connection)
+app.use('/api/*', async (c, next) => {
+  if (c.env.READING_MANAGER_DB) {
+    try {
+      await c.env.READING_MANAGER_DB.prepare('PRAGMA foreign_keys = ON').run();
+    } catch (e) {
+      console.error('Failed to enable foreign keys:', e.message);
+    }
+  }
+  return next();
+});
+
 // Apply tenant middleware for multi-tenant mode (only if JWT auth is enabled)
 app.use('/api/*', async (c, next) => {
   // Skip tenant middleware for public endpoints

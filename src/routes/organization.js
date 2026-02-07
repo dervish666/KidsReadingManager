@@ -111,53 +111,33 @@ organizationRouter.get('/stats', async (c) => {
     const db = getDB(c.env);
     const organizationId = c.get('organizationId');
 
-    // Get organization limits
-    const org = await db.prepare(`
-      SELECT max_students, max_teachers FROM organizations WHERE id = ?
-    `).bind(organizationId).first();
-
-    // Count users
-    const userCount = await db.prepare(`
-      SELECT COUNT(*) as count FROM users WHERE organization_id = ? AND is_active = 1
-    `).bind(organizationId).first();
-
-    // Count students
-    const studentCount = await db.prepare(`
-      SELECT COUNT(*) as count FROM students WHERE organization_id = ? AND is_active = 1
-    `).bind(organizationId).first();
-
-    // Count classes
-    const classCount = await db.prepare(`
-      SELECT COUNT(*) as count FROM classes WHERE organization_id = ? AND is_active = 1
-    `).bind(organizationId).first();
-
-    // Count reading sessions (this month)
     const now = new Date();
     const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-    const sessionCount = await db.prepare(`
-      SELECT COUNT(*) as count FROM reading_sessions rs
-      INNER JOIN students s ON rs.student_id = s.id
-      WHERE s.organization_id = ? AND rs.session_date >= ?
-    `).bind(organizationId, firstOfMonth).first();
 
-    // Count selected books
-    const bookCount = await db.prepare(`
-      SELECT COUNT(*) as count FROM org_book_selections WHERE organization_id = ? AND is_available = 1
-    `).bind(organizationId).first();
+    // Execute all stats queries in a single batch round-trip
+    const [org, userCount, studentCount, classCount, sessionCount, bookCount] = await db.batch([
+      db.prepare(`SELECT max_students, max_teachers FROM organizations WHERE id = ?`).bind(organizationId),
+      db.prepare(`SELECT COUNT(*) as count FROM users WHERE organization_id = ? AND is_active = 1`).bind(organizationId),
+      db.prepare(`SELECT COUNT(*) as count FROM students WHERE organization_id = ? AND is_active = 1`).bind(organizationId),
+      db.prepare(`SELECT COUNT(*) as count FROM classes WHERE organization_id = ? AND is_active = 1`).bind(organizationId),
+      db.prepare(`SELECT COUNT(*) as count FROM reading_sessions rs INNER JOIN students s ON rs.student_id = s.id WHERE s.organization_id = ? AND rs.session_date >= ?`).bind(organizationId, firstOfMonth),
+      db.prepare(`SELECT COUNT(*) as count FROM org_book_selections WHERE organization_id = ? AND is_available = 1`).bind(organizationId),
+    ]);
 
+    const orgRow = org.results?.[0];
     return c.json({
       stats: {
         users: {
-          current: userCount?.count || 0,
-          limit: org?.max_teachers || 0
+          current: userCount.results?.[0]?.count || 0,
+          limit: orgRow?.max_teachers || 0
         },
         students: {
-          current: studentCount?.count || 0,
-          limit: org?.max_students || 0
+          current: studentCount.results?.[0]?.count || 0,
+          limit: orgRow?.max_students || 0
         },
-        classes: classCount?.count || 0,
-        sessionsThisMonth: sessionCount?.count || 0,
-        selectedBooks: bookCount?.count || 0
+        classes: classCount.results?.[0]?.count || 0,
+        sessionsThisMonth: sessionCount.results?.[0]?.count || 0,
+        selectedBooks: bookCount.results?.[0]?.count || 0
       }
     });
 
@@ -287,7 +267,8 @@ organizationRouter.get('/ai-config', async (c) => {
     const organizationId = c.get('organizationId');
 
     const config = await db.prepare(`
-      SELECT provider, model_preference, is_enabled FROM org_ai_config WHERE organization_id = ?
+      SELECT provider, model_preference, is_enabled, (api_key_encrypted IS NOT NULL) as has_key
+      FROM org_ai_config WHERE organization_id = ?
     `).bind(organizationId).first();
 
     return c.json({
@@ -295,7 +276,7 @@ organizationRouter.get('/ai-config', async (c) => {
         provider: config.provider,
         modelPreference: config.model_preference,
         isEnabled: Boolean(config.is_enabled),
-        hasApiKey: Boolean(config.api_key_encrypted)
+        hasApiKey: Boolean(config.has_key)
       } : {
         provider: 'anthropic',
         modelPreference: null,
@@ -666,10 +647,24 @@ organizationRouter.delete('/:id', requireOwner(), auditLog('delete', 'organizati
       return c.json({ error: 'Organization not found' }, 404);
     }
 
-    // Soft delete (deactivate)
-    await db.prepare(`
-      UPDATE organizations SET is_active = 0, updated_at = datetime("now") WHERE id = ?
-    `).bind(orgId).run();
+    // Soft delete (deactivate) organization and clean up user access
+    await db.batch([
+      // Deactivate the organization
+      db.prepare(`
+        UPDATE organizations SET is_active = 0, updated_at = datetime("now") WHERE id = ?
+      `).bind(orgId),
+      // Deactivate all users in the organization
+      db.prepare(`
+        UPDATE users SET is_active = 0, updated_at = datetime("now")
+        WHERE organization_id = ? AND role != 'owner'
+      `).bind(orgId),
+      // Revoke all refresh tokens for users in the organization
+      db.prepare(`
+        UPDATE refresh_tokens SET revoked_at = datetime("now")
+        WHERE user_id IN (SELECT id FROM users WHERE organization_id = ?)
+        AND revoked_at IS NULL
+      `).bind(orgId),
+    ]);
 
     return c.json({ message: 'Organization deactivated successfully' });
 

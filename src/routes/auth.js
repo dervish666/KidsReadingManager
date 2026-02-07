@@ -309,7 +309,8 @@ authRouter.post('/login', async (c) => {
     `).bind(email.toLowerCase()).first();
 
     if (!user) {
-      // Record failed attempt even for non-existent users (prevents enumeration timing)
+      // Perform a dummy hash to prevent timing-based email enumeration
+      await hashPassword(password);
       await recordLoginAttempt(db, email, ipAddress, userAgent, false);
       return c.json({ error: 'Invalid email or password' }, 401);
     }
@@ -642,7 +643,13 @@ authRouter.post('/forgot-password', async (c) => {
     // Token expires in 1 hour
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
-    // Store reset token
+    // Invalidate any existing unused reset tokens for this user
+    await db.prepare(`
+      UPDATE password_reset_tokens SET used_at = datetime('now')
+      WHERE user_id = ? AND used_at IS NULL
+    `).bind(user.id).run();
+
+    // Store new reset token
     const tokenId = generateId();
     await db.prepare(`
       INSERT INTO password_reset_tokens (id, user_id, token_hash, expires_at)
