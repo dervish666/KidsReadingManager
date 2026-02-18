@@ -5,7 +5,8 @@ compatibility_flags = ["nodejs_compat"]
 
 # KV Namespace for storing application data (students, classes, settings, genres)
 kv_namespaces = [
-  { binding = "READING_MANAGER_KV", id = "09297a22cb3b4abc96bf0a5d4c79b4e9", preview_id = "6b452436a7794d36810e929dde07debf" }
+  { binding = "READING_MANAGER_KV", id = "09297a22cb3b4abc96bf0a5d4c79b4e9", preview_id = "6b452436a7794d36810e929dde07debf" },
+  { binding = "RECOMMENDATIONS_CACHE", id = "PLACEHOLDER_CREATE_BEFORE_DEPLOY", preview_id = "PLACEHOLDER_CREATE_BEFORE_DEPLOY" }
 ]
 
 # Email sending binding (requires Email Routing enabled on domain)
@@ -24,6 +25,11 @@ routes = [
 binding = "READING_MANAGER_DB"
 database_name = "reading-manager-db"
 database_id = "30afac38-bccf-436b-8197-b59dabc73384"
+
+# R2 bucket for caching book cover images
+[[r2_buckets]]
+binding = "BOOK_COVERS"
+bucket_name = "book-covers"
 
 # Configuration for serving static assets (React frontend)
 [assets]
