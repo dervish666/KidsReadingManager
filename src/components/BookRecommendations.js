@@ -56,6 +56,9 @@ const BookRecommendations = () => {
   // State for focus mode
   const [focusMode, setFocusMode] = useState('balanced');
 
+  // State for cached result indicator
+  const [isCachedResult, setIsCachedResult] = useState(false);
+
   // Load AI config on mount
   useEffect(() => {
     const loadAIConfig = async () => {
@@ -175,6 +178,7 @@ const BookRecommendations = () => {
     setError(null);
     setRecommendations([]);
     setResultType('library');
+    setIsCachedResult(false);
 
     try {
       const response = await fetchWithAuth(`/api/books/library-search?studentId=${selectedStudentId}&focusMode=${focusMode}`);
@@ -196,16 +200,21 @@ const BookRecommendations = () => {
   };
 
   // Handler for AI suggestions
-  const handleAiSuggestions = async () => {
+  const handleAiSuggestions = async (skipCache = false) => {
     if (!selectedStudentId) return;
 
     setAiLoading(true);
     setError(null);
     setRecommendations([]);
     setResultType('ai');
+    setIsCachedResult(false);
 
     try {
-      const response = await fetchWithAuth(`/api/books/ai-suggestions?studentId=${selectedStudentId}&focusMode=${focusMode}`);
+      let url = `/api/books/ai-suggestions?studentId=${selectedStudentId}&focusMode=${focusMode}`;
+      if (skipCache) {
+        url += '&skipCache=true';
+      }
+      const response = await fetchWithAuth(url);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -215,12 +224,18 @@ const BookRecommendations = () => {
       const data = await response.json();
       setStudentProfile(data.studentProfile);
       setRecommendations(data.suggestions || []);
+      setIsCachedResult(data.cached === true);
 
     } catch (err) {
       setError(err.message);
     } finally {
       setAiLoading(false);
     }
+  };
+
+  // Handler for refreshing AI suggestions (bypasses cache)
+  const handleRefreshAiSuggestions = () => {
+    handleAiSuggestions(true);
   };
 
   // Determine AI status
@@ -457,7 +472,7 @@ const BookRecommendations = () => {
               <Button
                 variant="outlined"
                 color="secondary"
-                onClick={handleAiSuggestions}
+                onClick={() => handleAiSuggestions()}
                 disabled={!selectedStudentId || libraryLoading || aiLoading || !hasActiveAI}
                 startIcon={aiLoading ? <CircularProgress size={20} color="inherit" /> : <SmartToyIcon />}
               >
@@ -489,6 +504,20 @@ const BookRecommendations = () => {
           )}
           <Chip label={`${recommendations.length} results`} size="small" />
         </Typography>
+      )}
+
+      {/* Cached result indicator */}
+      {isCachedResult && resultType === 'ai' && recommendations.length > 0 && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+          <Chip label="Cached result" color="info" size="small" variant="outlined" />
+          <Button
+            size="small"
+            onClick={handleRefreshAiSuggestions}
+            disabled={aiLoading}
+          >
+            Get fresh suggestions
+          </Button>
+        </Box>
       )}
 
       {/* Results Grid */}
