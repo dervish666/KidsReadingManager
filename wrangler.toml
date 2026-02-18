@@ -6,7 +6,7 @@ compatibility_flags = ["nodejs_compat"]
 # KV Namespace for storing application data (students, classes, settings, genres)
 kv_namespaces = [
   { binding = "READING_MANAGER_KV", id = "09297a22cb3b4abc96bf0a5d4c79b4e9", preview_id = "6b452436a7794d36810e929dde07debf" },
-  { binding = "RECOMMENDATIONS_CACHE", id = "PLACEHOLDER_CREATE_BEFORE_DEPLOY", preview_id = "PLACEHOLDER_CREATE_BEFORE_DEPLOY" }
+  { binding = "RECOMMENDATIONS_CACHE", id = "e5ea3bf7cf9946edb4e5f0ef0d837c73", preview_id = "c323071d32ad44c8bdc1f5ec5094e083" }
 ]
 
 # Email sending binding (requires Email Routing enabled on domain)
