@@ -11,6 +11,11 @@ vi.mock('../../contexts/AppContext', () => ({
   useAppContext: () => useContext(TestAppContext)
 }));
 
+// Mock BookCover to avoid needing BookCoverProvider
+vi.mock('../../components/BookCover', () => ({
+  default: () => <div data-testid="book-cover" />
+}));
+
 // Mock the bookMetadataApi module
 vi.mock('../../utils/bookMetadataApi', () => ({
   batchFindMissingAuthors: vi.fn(),

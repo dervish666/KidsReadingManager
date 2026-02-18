@@ -151,6 +151,15 @@ describe('Cover Proxy Route', () => {
       expect(response.status).toBe(200);
     });
 
+    it('should accept type "ia" with valid key', async () => {
+      const { request, mockR2 } = createTestApp();
+      mockR2.get.mockResolvedValue(createMockR2Object());
+
+      const response = await request('/api/covers/ia/harrypottersorce0000rowl-M.jpg');
+
+      expect(response.status).toBe(200);
+    });
+
     it('should accept all valid size suffixes (S, M, L)', async () => {
       const { request, mockR2 } = createTestApp();
       mockR2.get.mockResolvedValue(createMockR2Object());

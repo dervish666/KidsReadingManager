@@ -3,7 +3,7 @@ import { Hono } from 'hono';
 const coversRouter = new Hono();
 
 // Valid cover types
-const VALID_TYPES = new Set(['id', 'olid', 'isbn']);
+const VALID_TYPES = new Set(['id', 'olid', 'isbn', 'ia']);
 
 // Key format: {identifier}-{S|M|L}.jpg
 const KEY_PATTERN = /^[A-Za-z0-9_]+-[SML]\.jpg$/;
@@ -26,7 +26,7 @@ coversRouter.get('/:type/:key', async (c) => {
 
   // 1. Validate type
   if (!VALID_TYPES.has(type)) {
-    return c.json({ message: 'Invalid cover type. Must be id, olid, or isbn.' }, 400);
+    return c.json({ message: 'Invalid cover type. Must be id, olid, isbn, or ia.' }, 400);
   }
 
   // 2. Validate key format
@@ -85,12 +85,17 @@ coversRouter.get('/:type/:key', async (c) => {
   const contentType = originResponse.headers.get('Content-Type') || 'image/jpeg';
 
   // 7. Store in R2 via waitUntil (non-blocking)
-  if (r2 && c.executionCtx?.waitUntil) {
-    c.executionCtx.waitUntil(
-      r2.put(r2Key, imageData, {
-        httpMetadata: { contentType }
-      })
-    );
+  // Copy the ArrayBuffer so R2 put and Response don't race over the same buffer
+  if (r2) {
+    const r2PutPromise = r2.put(r2Key, imageData.slice(0), {
+      httpMetadata: { contentType }
+    }).catch(err => {
+      console.error('R2 put error:', err);
+    });
+
+    if (c.executionCtx?.waitUntil) {
+      c.executionCtx.waitUntil(r2PutPromise);
+    }
   }
 
   // 8. Return origin response

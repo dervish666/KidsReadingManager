@@ -56,6 +56,7 @@ import {
   validateProviderConfig
 } from '../../utils/bookMetadataApi';
 import BookImportWizard from './BookImportWizard';
+import BookCover from '../BookCover';
 
 const BookManager = () => {
   const { books, genres, addBook, reloadDataFromServer, fetchWithAuth, settings } = useAppContext();
@@ -69,7 +70,6 @@ const BookManager = () => {
   const [editBookReadingLevel, setEditBookReadingLevel] = useState('');
   const [editBookAgeRange, setEditBookAgeRange] = useState('');
   const [editBookDescription, setEditBookDescription] = useState('');
-  const [editBookCoverUrl, setEditBookCoverUrl] = useState(null);
   const [editBookGenreIds, setEditBookGenreIds] = useState([]);
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
@@ -143,7 +143,7 @@ const BookManager = () => {
     setEditBookReadingLevel(book.readingLevel || '');
     setEditBookAgeRange(book.ageRange || '');
     setEditBookDescription(book.description || '');
-    setEditBookCoverUrl(null); // Cover is not stored, only fetched on demand
+
     setEditBookGenreIds(book.genreIds || []);
     setError('');
   };
@@ -194,7 +194,7 @@ const BookManager = () => {
 
       if (details) {
         if (details.coverUrl) {
-          setEditBookCoverUrl(details.coverUrl);
+
           foundCover = true;
         }
         if (details.description) {
@@ -293,7 +293,7 @@ const BookManager = () => {
       setEditBookReadingLevel('');
       setEditBookAgeRange('');
       setEditBookDescription('');
-      setEditBookCoverUrl(null);
+
       setEditBookGenreIds([]);
       setError('');
     } catch (error) {
@@ -1556,6 +1556,9 @@ const BookManager = () => {
                     </IconButton>
                   }
                 >
+                  <Box sx={{ mr: 1.5, flexShrink: 0 }}>
+                    <BookCover title={book.title} author={book.author} width={40} height={56} />
+                  </Box>
                   <ListItemText
                     primary={
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', pr: 2 }}>
@@ -1656,38 +1659,7 @@ const BookManager = () => {
                   alignItems: 'flex-start'
                 }}
               >
-                {editBookCoverUrl ? (
-                  <Box
-                    component="img"
-                    src={editBookCoverUrl}
-                    alt={`Cover of ${editBookTitle}`}
-                    sx={{
-                      width: '100%',
-                      maxHeight: 150,
-                      objectFit: 'contain',
-                      borderRadius: 1,
-                      boxShadow: 2
-                    }}
-                  />
-                ) : (
-                  <Box
-                    sx={{
-                      width: '100%',
-                      height: 150,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: 'grey.100',
-                      borderRadius: 1,
-                      border: '1px dashed',
-                      borderColor: 'grey.300'
-                    }}
-                  >
-                    <Typography variant="body2" color="text.secondary" align="center">
-                      No cover
-                    </Typography>
-                  </Box>
-                )}
+                <BookCover title={editBookTitle} author={editBookAuthor} width={140} height={190} />
               </Box>
               
               {/* Description beside cover */}
