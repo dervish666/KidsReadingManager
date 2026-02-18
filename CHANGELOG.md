@@ -1,5 +1,70 @@
 # Changelog
 
+## [3.0.0] - 2026-02-18
+
+### Added: Cover Image Caching & AI Recommendation Caching
+
+Major performance release adding edge caching for book covers (R2) and AI recommendations (KV), plus book covers throughout the library UI.
+
+#### Cover Image Caching (R2)
+- **Cover proxy route**: New `/api/covers/:type/:key` endpoint proxies OpenLibrary cover images through Cloudflare R2
+- **Automatic caching**: First request fetches from OpenLibrary, stores in R2; subsequent requests served from R2
+- **Supported types**: `id`, `olid`, `isbn`, `ia` (Internet Archive)
+- **Placeholder detection**: Images under 1KB are treated as OpenLibrary placeholders and return 404
+- **30-day browser cache**: `Cache-Control: public, max-age=2592000` reduces repeat requests
+- **Fail-open design**: R2 errors fall through to origin fetch transparently
+
+#### AI Recommendation Caching (KV)
+- **Deterministic cache keys**: SHA-256 hash of student profile (reading level, genres, recent books, focus mode, provider)
+- **7-day TTL**: Cached recommendations expire after one week
+- **Skip cache option**: `?skipCache=true` query param forces fresh AI generation
+- **Cached indicator**: UI shows chip when serving cached results with refresh button
+- **Fail-open design**: KV errors silently fall through to fresh AI generation
+
+#### Book Covers in Library
+- **Book list thumbnails**: 40x56px cover images on every book in the library list
+- **Edit modal covers**: Book cover displayed in edit dialog (replaces old "No cover" placeholder)
+- **Consistent component**: Uses same `BookCover` component as recommendations page
+
+#### Infrastructure
+- **R2 bucket**: `book-covers` binding in wrangler.toml
+- **KV namespace**: `RECOMMENDATIONS_CACHE` binding in wrangler.toml
+- **Database migration**: `0021_add_cover_columns.sql` (cover metadata columns)
+
+#### Tests
+- **25 new cover proxy tests**: Input validation, R2 cache hits, origin fetch, error handling, R2 binding unavailable
+- **16 new recommendation cache tests**: Key generation, cache hits/misses, fail-open behavior, TTL
+- Total: 1,324 tests passing (37 files)
+
+#### Files Added
+- `src/routes/covers.js` - Cover proxy route with R2 caching
+- `src/utils/recommendationCache.js` - KV-based recommendation cache utility
+- `src/__tests__/integration/covers.test.js` - Cover proxy tests
+- `src/__tests__/unit/recommendationCache.test.js` - Cache utility tests
+- `migrations/0021_add_cover_columns.sql` - Cover metadata migration
+
+#### Files Modified
+- `src/worker.js` - Mount covers router, bypass auth for cover routes
+- `src/routes/books.js` - Integrate recommendation cache into AI suggestions endpoint
+- `src/components/BookRecommendations.js` - Cached indicator UI, refresh button
+- `src/components/books/BookManager.js` - BookCover in list items and edit modal
+- `src/hooks/useBookCover.js` - Route cover URLs through proxy
+- `src/utils/openLibraryApi.js` - Route cover URLs through proxy
+- `wrangler.toml` - R2 and KV bindings
+
+#### Deployment Notes
+```bash
+# Run the cover columns migration
+npx wrangler d1 migrations apply reading-manager-db --local   # local
+npx wrangler d1 migrations apply reading-manager-db --remote  # production
+
+# R2 bucket and KV namespace must be created in Cloudflare dashboard
+# and bound in wrangler.toml before deploying
+npm run go
+```
+
+---
+
 ## [2.9.3] - 2026-02-07
 
 ### Security & Audit Fixes
