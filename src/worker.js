@@ -26,6 +26,7 @@ import { genresRouter } from './routes/genres';
 import { authRouter } from './routes/auth';
 import { usersRouter } from './routes/users';
 import { organizationRouter } from './routes/organization';
+import coversRouter from './routes/covers';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -165,7 +166,7 @@ app.use('/api/*', async (c, next) => {
     '/api/logout'
   ];
 
-  if (publicPaths.includes(url.pathname)) {
+  if (publicPaths.includes(url.pathname) || url.pathname.startsWith('/api/covers/')) {
     return next();
   }
 
@@ -197,6 +198,7 @@ app.route('/api/data', dataRouter);
 app.route('/api/classes', classesRouter);
 app.route('/api/books', booksRouter);
 app.route('/api/genres', genresRouter);
+app.route('/api/covers', coversRouter);
 
 // API health check (public)
 app.get('/api/health', (c) => {

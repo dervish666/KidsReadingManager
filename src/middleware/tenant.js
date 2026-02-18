@@ -35,7 +35,7 @@ export function jwtAuthMiddleware() {
     const url = new URL(c.req.url);
 
     // Allow public endpoints
-    if (publicPaths.includes(url.pathname)) {
+    if (publicPaths.includes(url.pathname) || url.pathname.startsWith('/api/covers/')) {
       return next();
     }
 
