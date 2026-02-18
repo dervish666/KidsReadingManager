@@ -66,7 +66,7 @@ describe('BookCover Component', () => {
 
       // Verify the image has the correct src
       const img = screen.getByRole('img', { name: /cover of harry potter/i });
-      expect(img).toHaveAttribute('src', 'https://covers.openlibrary.org/b/id/12345678-M.jpg');
+      expect(img).toHaveAttribute('src', '/api/covers/id/12345678-M.jpg');
     });
 
     it('should have correct alt text on cover image', async () => {

@@ -46,7 +46,7 @@ const buildSearchUrl = (title, author) => {
  * @returns {string} The cover image URL
  */
 const buildCoverUrl = (coverId) => {
-  return `https://covers.openlibrary.org/b/id/${coverId}-${COVER_SIZE}.jpg`;
+  return `/api/covers/id/${coverId}-${COVER_SIZE}.jpg`;
 };
 
 /**

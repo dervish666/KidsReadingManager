@@ -60,7 +60,7 @@ describe('useBookCover', () => {
       });
 
       // Should have the correct cover URL
-      expect(result.current.coverUrl).toBe('https://covers.openlibrary.org/b/id/12345678-M.jpg');
+      expect(result.current.coverUrl).toBe('/api/covers/id/12345678-M.jpg');
       expect(result.current.error).toBeNull();
 
       // Verify fetch was called with correct URL (URLSearchParams uses + for spaces)
@@ -137,7 +137,7 @@ describe('useBookCover', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(result.current.coverUrl).toBe('https://covers.openlibrary.org/b/id/99999-M.jpg');
+      expect(result.current.coverUrl).toBe('/api/covers/id/99999-M.jpg');
 
       // Verify fetch was called without author param (URLSearchParams uses + for spaces)
       expect(global.fetch).toHaveBeenCalledWith(
@@ -170,7 +170,7 @@ describe('useBookCover', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(result.current.coverUrl).toBe('https://covers.openlibrary.org/b/id/11111-M.jpg');
+      expect(result.current.coverUrl).toBe('/api/covers/id/11111-M.jpg');
       expect(global.fetch).toHaveBeenCalledTimes(1);
 
       // Re-render with same title/author - should use cache
@@ -178,7 +178,7 @@ describe('useBookCover', () => {
 
       // Should immediately have the cached value without loading
       expect(result.current.isLoading).toBe(false);
-      expect(result.current.coverUrl).toBe('https://covers.openlibrary.org/b/id/11111-M.jpg');
+      expect(result.current.coverUrl).toBe('/api/covers/id/11111-M.jpg');
 
       // Fetch should NOT have been called again
       expect(global.fetch).toHaveBeenCalledTimes(1);

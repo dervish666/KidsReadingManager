@@ -6,7 +6,7 @@
 
 const OPENLIBRARY_BASE_URL = 'https://openlibrary.org';
 const SEARCH_API_URL = `${OPENLIBRARY_BASE_URL}/search.json`;
-const COVERS_BASE_URL = 'https://covers.openlibrary.org/b';
+const COVERS_BASE_URL = '/api/covers';
 
 // Cache for OpenLibrary availability status
 let openLibraryAvailable = null;
@@ -155,13 +155,13 @@ export async function findTopAuthorCandidatesForBook(title, limit = 3) {
         const normalizedResultTitle = normalizeTitle(r.title || '');
         const similarity = calculateTitleSimilarity(normalizedSearchTitle, normalizedResultTitle);
 
-        // Open Library covers: https://covers.openlibrary.org/b/ID/KEY-SIZE.jpg
+        // Cover images via local proxy: /api/covers/{type}/{key}-{size}.jpg
         // Prefer edition/cover_i if present.
         let coverUrl = null;
         if (r.cover_i) {
-          coverUrl = `https://covers.openlibrary.org/b/id/${r.cover_i}-M.jpg`;
+          coverUrl = `${COVERS_BASE_URL}/id/${r.cover_i}-M.jpg`;
         } else if (r.isbn && r.isbn.length > 0) {
-          coverUrl = `https://covers.openlibrary.org/b/isbn/${encodeURIComponent(r.isbn[0])}-M.jpg`;
+          coverUrl = `${COVERS_BASE_URL}/isbn/${encodeURIComponent(r.isbn[0])}-M.jpg`;
         }
 
         return {
