@@ -55,7 +55,7 @@ booksRouter.get('/', requireReadonly(), async (c) => {
       return c.json((result.results || []).map(b => ({
         id: b.id, title: b.title, author: b.author,
         readingLevel: b.reading_level, ageRange: b.age_range,
-        genreIds: b.genre_ids, description: b.description
+        genreIds: b.genre_ids ? JSON.parse(b.genre_ids) : [], description: b.description
       })));
     }
 
@@ -78,7 +78,7 @@ booksRouter.get('/', requireReadonly(), async (c) => {
         books: (result.results || []).map(b => ({
           id: b.id, title: b.title, author: b.author,
           readingLevel: b.reading_level, ageRange: b.age_range,
-          genreIds: b.genre_ids, description: b.description
+          genreIds: b.genre_ids ? JSON.parse(b.genre_ids) : [], description: b.description
         })),
         total, page: pageNum, pageSize: size,
         totalPages: Math.ceil(total / size)
@@ -96,7 +96,7 @@ booksRouter.get('/', requireReadonly(), async (c) => {
     return c.json((result.results || []).map(b => ({
       id: b.id, title: b.title, author: b.author,
       readingLevel: b.reading_level, ageRange: b.age_range,
-      genreIds: b.genre_ids, description: b.description
+      genreIds: b.genre_ids ? JSON.parse(b.genre_ids) : [], description: b.description
     })));
   }
 
@@ -148,7 +148,7 @@ booksRouter.get('/search', requireReadonly(), async (c) => {
     const books = (result.results || []).map(b => ({
       id: b.id, title: b.title, author: b.author,
       readingLevel: b.reading_level, ageRange: b.age_range,
-      genreIds: b.genre_ids, description: b.description
+      genreIds: b.genre_ids ? JSON.parse(b.genre_ids) : [], description: b.description
     }));
     return c.json({ query: q.trim(), count: books.length, books });
   }
