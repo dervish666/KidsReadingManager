@@ -74,30 +74,23 @@ coversRouter.get('/:type/:key', async (c) => {
     return c.json({ message: 'Cover not found' }, 404);
   }
 
-  // 6. Check content-length to detect placeholder images
-  const contentLength = parseInt(originResponse.headers.get('Content-Length') || '0', 10);
-  if (contentLength < MIN_IMAGE_SIZE) {
+  // 6. Read full body and check actual size to detect placeholder images
+  const imageData = await originResponse.arrayBuffer();
+  if (imageData.byteLength < MIN_IMAGE_SIZE) {
     return c.json({ message: 'Cover not found' }, 404);
   }
 
-  // 7. Clone response body so we can both return it and store in R2
-  const [streamForResponse, streamForR2] = originResponse.body.tee();
-
-  // 8. Store in R2 via waitUntil (non-blocking)
-  let execCtx;
-  try { execCtx = c.executionCtx; } catch { /* no executionCtx available */ }
-  if (r2 && execCtx?.waitUntil) {
-    execCtx.waitUntil(
-      new Response(streamForR2).arrayBuffer().then((buffer) =>
-        r2.put(r2Key, buffer, {
-          httpMetadata: { contentType: 'image/jpeg' }
-        })
-      )
+  // 7. Store in R2 via waitUntil (non-blocking)
+  if (r2 && c.executionCtx?.waitUntil) {
+    c.executionCtx.waitUntil(
+      r2.put(r2Key, imageData.slice(0), {
+        httpMetadata: { contentType: 'image/jpeg' }
+      })
     );
   }
 
-  // 9. Return origin response
-  return new Response(streamForResponse, {
+  // 8. Return origin response
+  return new Response(imageData, {
     status: 200,
     headers: {
       'Content-Type': originResponse.headers.get('Content-Type') || 'image/jpeg',

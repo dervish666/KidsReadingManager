@@ -302,6 +302,25 @@ describe('Cover Proxy Route', () => {
       expect(mockR2.put).not.toHaveBeenCalled();
     });
 
+    it('should return valid image even when origin omits Content-Length header', async () => {
+      const { request, mockR2 } = createTestApp();
+      mockR2.get.mockResolvedValue(null);
+
+      const imageBody = new Uint8Array(2000);
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response(imageBody, {
+          status: 200,
+          headers: { 'Content-Type': 'image/jpeg' }
+          // No Content-Length header
+        })
+      );
+
+      const response = await request('/api/covers/isbn/9780140449136-M.jpg');
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('X-Cache-Source')).toBe('origin');
+    });
+
     it('should return 404 when OpenLibrary returns non-OK response', async () => {
       const { request, mockR2 } = createTestApp();
       mockR2.get.mockResolvedValue(null);
@@ -338,6 +357,26 @@ describe('Cover Proxy Route', () => {
 
       expect(mockWaitUntil).not.toHaveBeenCalled();
       expect(mockR2.put).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('R2 get() error', () => {
+    it('should fall through to origin fetch when R2 get() throws', async () => {
+      const { request, mockR2 } = createTestApp();
+      mockR2.get.mockRejectedValue(new Error('R2 internal error'));
+
+      const imageBody = new Uint8Array(2000);
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response(imageBody, {
+          status: 200,
+          headers: { 'Content-Type': 'image/jpeg' }
+        })
+      );
+
+      const response = await request('/api/covers/isbn/9780140449136-M.jpg');
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('X-Cache-Source')).toBe('origin');
     });
   });
 
