@@ -165,12 +165,13 @@ booksRouter.get('/search', requireReadonly(), async (c) => {
  *
  * Query params:
  * - studentId: Required - the student to find books for
+ * - focusMode: Optional - 'balanced' | 'consolidation' | 'challenge' (default: 'balanced')
  *
  * Requires authentication (at least readonly access)
  */
 booksRouter.get('/library-search', requireReadonly(), async (c) => {
   try {
-    const { studentId } = c.req.query();
+    const { studentId, focusMode = 'balanced' } = c.req.query();
 
     if (!studentId) {
       throw badRequestError('studentId query parameter is required');
@@ -206,13 +207,25 @@ booksRouter.get('/library-search', requireReadonly(), async (c) => {
     const minLevel = student.readingLevelMin;
     const maxLevel = student.readingLevelMax;
 
+    // Adjust effective range based on focus mode
+    let effectiveMin = minLevel;
+    let effectiveMax = maxLevel;
     if (minLevel !== null && maxLevel !== null) {
-      // Filter books where book level falls within student's range
+      const midpoint = (minLevel + maxLevel) / 2;
+      if (focusMode === 'consolidation') {
+        effectiveMax = midpoint;
+      } else if (focusMode === 'challenge') {
+        effectiveMin = midpoint;
+      }
+    }
+
+    if (effectiveMin !== null && effectiveMax !== null) {
+      // Filter books where book level falls within the effective range
       // Include books with no reading level (don't exclude unleveled books)
       query += ` AND (b.reading_level IS NULL OR (
         CAST(b.reading_level AS REAL) >= ? AND CAST(b.reading_level AS REAL) <= ?
       ))`;
-      params.push(minLevel, maxLevel);
+      params.push(effectiveMin, effectiveMax);
     }
     // If no range set, don't filter by level (return all books)
 
@@ -253,18 +266,18 @@ booksRouter.get('/library-search', requireReadonly(), async (c) => {
         }
       }
 
-      // Score for books well within the reading level range
-      if (minLevel !== null && maxLevel !== null && book.reading_level) {
+      // Score for books well within the target reading level range
+      if (effectiveMin !== null && effectiveMax !== null && book.reading_level) {
         const bookLevel = parseFloat(book.reading_level);
         if (!isNaN(bookLevel)) {
-          // Calculate how centered the book is within the range
-          const rangeCenter = (minLevel + maxLevel) / 2;
-          const rangeHalf = (maxLevel - minLevel) / 2;
-          const distanceFromCenter = Math.abs(bookLevel - rangeCenter);
-          // Bonus for books closer to the center of the range
-          if (distanceFromCenter <= rangeHalf * 0.5) {
+          const targetCenter = (effectiveMin + effectiveMax) / 2;
+          const targetHalf = (effectiveMax - effectiveMin) / 2;
+          const distanceFromCenter = Math.abs(bookLevel - targetCenter);
+          // Bonus for books closer to the center of the target range
+          if (targetHalf > 0 && distanceFromCenter <= targetHalf * 0.5) {
             score += 1;
-            matchReasons.push('ideal level match');
+            matchReasons.push(focusMode === 'consolidation' ? 'consolidation level' :
+              focusMode === 'challenge' ? 'challenge level' : 'ideal level match');
           }
         }
       }

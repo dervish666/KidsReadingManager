@@ -177,7 +177,7 @@ const BookRecommendations = () => {
     setResultType('library');
 
     try {
-      const response = await fetchWithAuth(`/api/books/library-search?studentId=${selectedStudentId}`);
+      const response = await fetchWithAuth(`/api/books/library-search?studentId=${selectedStudentId}&focusMode=${focusMode}`);
 
       if (!response.ok) {
         const errorData = await response.json();
