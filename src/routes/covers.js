@@ -6,7 +6,7 @@ const coversRouter = new Hono();
 const VALID_TYPES = new Set(['id', 'olid', 'isbn']);
 
 // Key format: {identifier}-{S|M|L}.jpg
-const KEY_PATTERN = /^.+-[SML]\.jpg$/;
+const KEY_PATTERN = /^[A-Za-z0-9_]+-[SML]\.jpg$/;
 
 // Cache-Control: 30 days
 const CACHE_CONTROL = 'public, max-age=2592000';
@@ -63,7 +63,9 @@ coversRouter.get('/:type/:key', async (c) => {
 
   let originResponse;
   try {
-    originResponse = await fetch(originUrl);
+    originResponse = await fetch(originUrl, {
+      headers: { 'User-Agent': 'KidsReadingManager/1.0 (educational-app)' }
+    });
   } catch (err) {
     console.error('Origin fetch error:', err);
     return c.json({ message: 'Failed to fetch cover from origin' }, 502);
@@ -80,11 +82,13 @@ coversRouter.get('/:type/:key', async (c) => {
     return c.json({ message: 'Cover not found' }, 404);
   }
 
+  const contentType = originResponse.headers.get('Content-Type') || 'image/jpeg';
+
   // 7. Store in R2 via waitUntil (non-blocking)
   if (r2 && c.executionCtx?.waitUntil) {
     c.executionCtx.waitUntil(
-      r2.put(r2Key, imageData.slice(0), {
-        httpMetadata: { contentType: 'image/jpeg' }
+      r2.put(r2Key, imageData, {
+        httpMetadata: { contentType }
       })
     );
   }
@@ -93,7 +97,7 @@ coversRouter.get('/:type/:key', async (c) => {
   return new Response(imageData, {
     status: 200,
     headers: {
-      'Content-Type': originResponse.headers.get('Content-Type') || 'image/jpeg',
+      'Content-Type': contentType,
       'Cache-Control': CACHE_CONTROL,
       'X-Cache-Source': 'origin'
     }

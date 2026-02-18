@@ -116,6 +116,14 @@ describe('Cover Proxy Route', () => {
       expect(data.message).toMatch(/invalid.*key/i);
     });
 
+    it('should reject key containing whitespace', async () => {
+      const { request } = createTestApp();
+
+      const response = await request('/api/covers/id/foo%20bar-M.jpg');
+
+      expect(response.status).toBe(400);
+    });
+
     it('should accept type "id" with valid key', async () => {
       const { request, mockR2 } = createTestApp();
       mockR2.get.mockResolvedValue(createMockR2Object());
@@ -212,7 +220,10 @@ describe('Cover Proxy Route', () => {
 
       expect(response.status).toBe(200);
       expect(fetchSpy).toHaveBeenCalledWith(
-        'https://covers.openlibrary.org/b/isbn/9780140449136-M.jpg'
+        'https://covers.openlibrary.org/b/isbn/9780140449136-M.jpg',
+        expect.objectContaining({
+          headers: expect.objectContaining({ 'User-Agent': expect.any(String) })
+        })
       );
     });
 
