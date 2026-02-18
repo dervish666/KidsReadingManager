@@ -12,6 +12,7 @@ import { notFoundError, badRequestError, serverError } from '../middleware/error
 import { decryptSensitiveData, permissions } from '../utils/crypto.js';
 import { buildStudentReadingProfile } from '../utils/studentProfile.js';
 import { isExactMatch, isFuzzyMatch } from '../utils/stringMatching.js';
+import { getCachedRecommendations, cacheRecommendations } from '../utils/recommendationCache.js';
 
 // Import middleware
 import { requireReadonly, requireTeacher } from '../middleware/tenant.js';
@@ -370,7 +371,7 @@ booksRouter.get('/library-search', requireReadonly(), async (c) => {
  */
 booksRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
   try {
-    const { studentId, focusMode = 'balanced' } = c.req.query();
+    const { studentId, focusMode = 'balanced', skipCache } = c.req.query();
 
     if (!studentId) {
       throw badRequestError('studentId query parameter is required');
@@ -389,6 +390,62 @@ booksRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
 
     if (!profile) {
       throw notFoundError(`Student with ID ${studentId} not found`);
+    }
+
+    // Build cache inputs from profile
+    const cacheInputs = {
+      readingLevelMin: profile.student.readingLevelMin,
+      readingLevelMax: profile.student.readingLevelMax,
+      genres: profile.preferences.favoriteGenreNames,
+      focusMode,
+      recentBookIds: profile.readBookIds || [],
+      provider: null, // set after we know which provider
+    };
+
+    // Check cache (unless skipCache requested)
+    if (skipCache !== 'true') {
+      // Quick-read AI config just for provider name (for cache key)
+      const configRow = await db.prepare(
+        'SELECT provider FROM org_ai_config WHERE organization_id = ?'
+      ).bind(organizationId).first();
+      cacheInputs.provider = configRow?.provider || 'anthropic';
+
+      const cached = await getCachedRecommendations(c.env, cacheInputs);
+      if (cached) {
+        // Library cross-check on cached suggestions
+        const suggestionTitles = (cached.suggestions || [])
+          .filter(s => s && s.title)
+          .map(s => s.title.toLowerCase());
+        let libraryMatches = {};
+
+        if (suggestionTitles.length > 0) {
+          const placeholders = suggestionTitles.map(() => '?').join(',');
+          const booksResult = await db.prepare(
+            `SELECT id, title FROM books WHERE LOWER(title) IN (${placeholders})`
+          ).bind(...suggestionTitles).all();
+          for (const book of (booksResult.results || [])) {
+            libraryMatches[book.title.toLowerCase()] = book.id;
+          }
+        }
+
+        const enriched = (cached.suggestions || []).map(s => ({
+          ...s,
+          inLibrary: s?.title ? !!libraryMatches[s.title.toLowerCase()] : false,
+          libraryBookId: s?.title ? (libraryMatches[s.title.toLowerCase()] || null) : null,
+        }));
+
+        return c.json({
+          suggestions: enriched,
+          studentProfile: {
+            name: profile.student.name,
+            readingLevel: profile.student.readingLevel,
+            favoriteGenres: profile.preferences.favoriteGenreNames,
+            inferredGenres: profile.inferredGenres.map(g => g.name),
+            recentReads: profile.recentReads.map(r => r.title),
+          },
+          cached: true,
+        });
+      }
     }
 
     // Get AI configuration
@@ -417,6 +474,19 @@ booksRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
 
     // Generate AI suggestions
     const suggestions = await generateBroadSuggestions(profile, aiConfig, focusMode);
+
+    // Set provider on cache inputs (now we know from aiConfig)
+    cacheInputs.provider = aiConfig.provider;
+
+    // Cache the raw suggestions (non-blocking)
+    if (c.executionCtx?.waitUntil) {
+      c.executionCtx.waitUntil(
+        cacheRecommendations(c.env, cacheInputs, { suggestions })
+      );
+    } else {
+      // Fallback for environments without waitUntil
+      cacheRecommendations(c.env, cacheInputs, { suggestions }).catch(() => {});
+    }
 
     // Check which suggestions are in the library
     // Add null safety in case AI returns malformed data
@@ -452,7 +522,8 @@ booksRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
         favoriteGenres: profile.preferences.favoriteGenreNames,
         inferredGenres: profile.inferredGenres.map(g => g.name),
         recentReads: profile.recentReads.map(r => r.title)
-      }
+      },
+      cached: false,
     });
 
   } catch (error) {
