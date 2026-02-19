@@ -1,4 +1,4 @@
-# Kids Reading Manager - Application Overview
+# Tally Reading - Application Overview
 
 ## Purpose
 This comprehensive application helps track reading sessions for students, manage reading preferences, and provide AI-powered book recommendations. It offers insights into reading frequency, identifies students who may need more attention, and personalizes the reading experience through intelligent book suggestions.

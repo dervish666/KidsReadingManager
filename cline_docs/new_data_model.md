@@ -1,4 +1,4 @@
-# Enhanced Data Model for Kids Reading Manager
+# Enhanced Data Model for Tally Reading
 
 This document outlines the proposed new data model to support enhanced features including school/home reading tracking, student reading preferences, and a book recommendation system.
 

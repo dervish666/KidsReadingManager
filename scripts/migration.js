@@ -1,5 +1,5 @@
 /**
- * Migration script for Kids Reading Manager
+ * Migration script for Tally Reading
  *
  * This script exports data from the current system and imports it to Cloudflare KV.
  *

@@ -1,6 +1,6 @@
 # Cloudflare Worker Implementation Plan
 
-This document provides a detailed implementation plan for the Cloudflare Worker that will serve as the backend API for the Kids Reading Manager application.
+This document provides a detailed implementation plan for the Cloudflare Worker that will serve as the backend API for the Tally Reading application.
 
 ## Core Worker Implementation
 

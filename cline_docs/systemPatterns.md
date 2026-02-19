@@ -1,4 +1,4 @@
-# System Patterns: Kids Reading Manager
+# System Patterns: Tally Reading
 
 ## Architecture Patterns
 

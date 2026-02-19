@@ -19,7 +19,7 @@ Add a school selector to the header allowing owners to switch between organizati
 School selector appears after user info, before logout:
 
 ```
-[Logo] Kids Reading Manager    [Class Filter ▼]    v1.x    [User | Role]  [School Name ▼]  [Logout]
+[Logo] Tally Reading    [Class Filter ▼]    v1.x    [User | Role]  [School Name ▼]  [Logout]
 ```
 
 Components:

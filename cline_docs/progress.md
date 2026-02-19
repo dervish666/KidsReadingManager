@@ -1,4 +1,4 @@
-# Project Progress: Kids Reading Manager
+# Project Progress: Tally Reading
 
 ## Current Version: 2.3.0
 

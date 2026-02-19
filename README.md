@@ -1,4 +1,4 @@
-# 📚 Kids Reading Manager
+# 📚 Tally Reading
 
 A comprehensive web application designed to help teachers, teaching assistants, and parents track reading progress for primary school children. Built with React and featuring AI-powered book recommendations, this tool makes it easy to monitor reading sessions, identify students who need attention, and encourage continued reading engagement.
 

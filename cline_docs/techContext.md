@@ -1,4 +1,4 @@
-# Technical Context: Kids Reading Manager
+# Technical Context: Tally Reading
 
 ## Technologies Used
 

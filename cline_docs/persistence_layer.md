@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Kids Reading Manager application now supports a flexible persistence layer that allows seamless switching between different data storage mechanisms. This design enables the application to use Cloudflare KV for production deployments while maintaining JSON file-based storage for local development.
+The Tally Reading application now supports a flexible persistence layer that allows seamless switching between different data storage mechanisms. This design enables the application to use Cloudflare KV for production deployments while maintaining JSON file-based storage for local development.
 
 ## Architecture
 

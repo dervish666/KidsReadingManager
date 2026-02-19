@@ -1,7 +1,7 @@
-# Product Context: Kids Reading Manager
+# Product Context: Tally Reading
 
 ## Why this project exists
-The Kids Reading Manager is a multi-tenant SaaS web application designed to help schools, teachers, teaching assistants, and parents track reading progress for primary school children. It provides a comprehensive platform for recording and monitoring reading sessions, managing students across multiple schools, and delivering AI-powered book recommendations.
+Tally Reading is a multi-tenant SaaS web application designed to help schools, teachers, teaching assistants, and parents track reading progress for primary school children. It provides a comprehensive platform for recording and monitoring reading sessions, managing students across multiple schools, and delivering AI-powered book recommendations.
 
 ## What problems it solves
 

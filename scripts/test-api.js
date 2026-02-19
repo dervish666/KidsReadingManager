@@ -1,7 +1,7 @@
 /**
- * API Test Script for Kids Reading Manager Cloudflare Worker
- * 
- * This script tests the API endpoints of the Kids Reading Manager Cloudflare Worker.
+ * API Test Script for Tally Reading Cloudflare Worker
+ *
+ * This script tests the API endpoints of the Tally Reading Cloudflare Worker.
  * It can be used to verify that the API is working correctly after deployment.
  * 
  * Usage:

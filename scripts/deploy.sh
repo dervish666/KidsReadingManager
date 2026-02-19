@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Deployment script for Kids Reading Manager Cloudflare Worker
+# Deployment script for Tally Reading Cloudflare Worker
 # This script deploys the Worker to Cloudflare and updates the KV namespace bindings
 
 # Exit on error
@@ -11,7 +11,7 @@ ENVIRONMENT=${1:-production}
 WORKER_NAME="kids-reading-manager"
 KV_NAMESPACE="READING_MANAGER_KV"
 
-echo "Deploying Kids Reading Manager Worker to $ENVIRONMENT environment..."
+echo "Deploying Tally Reading Worker to $ENVIRONMENT environment..."
 
 # Check if wrangler is installed
 if ! command -v wrangler &> /dev/null; then

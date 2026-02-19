@@ -1,8 +1,8 @@
-# Kids Reading Manager — Multi-Tenant SaaS Scaling Plan
+# Tally Reading — Multi-Tenant SaaS Scaling Plan
 
 ## Executive Summary
 
-Transform the Kids Reading Manager from a single-user application into a multi-tenant SaaS platform serving multiple schools. Each school will have isolated data (students, classes, sessions, settings) while sharing a global book catalog that they can filter/select from.
+Transform Tally Reading from a single-user application into a multi-tenant SaaS platform serving multiple schools. Each school will have isolated data (students, classes, sessions, settings) while sharing a global book catalog that they can filter/select from.
 
 ---
 

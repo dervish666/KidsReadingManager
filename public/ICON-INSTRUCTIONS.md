@@ -1,6 +1,6 @@
 # Icon and Favicon Instructions
 
-This document provides instructions on how to set up the favicon and icons for the Kids Reading Manager application.
+This document provides instructions on how to set up the favicon and icons for the Tally Reading application.
 
 ## Quick Setup
 
@@ -28,7 +28,7 @@ If you prefer to use your own icon or a different book icon, you can:
 After setting up the icons and rebuilding the application:
 
 1. The browser tab should show the book icon as the favicon
-2. The title should be "Kids Reading Manager" instead of "React App"
+2. The title should be "Tally Reading" instead of "React App"
 
 ## Troubleshooting
 

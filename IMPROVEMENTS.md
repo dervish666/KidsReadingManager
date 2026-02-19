@@ -1,6 +1,6 @@
-# Kids Reading Manager - Planned Improvements
+# Tally Reading - Planned Improvements
 
-This document outlines potential features and improvements brainstormed for the Kids Reading Manager application.
+This document outlines potential features and improvements brainstormed for the Tally Reading application.
 
 ## Status Legend
 - **Implemented** - Feature is complete and deployed

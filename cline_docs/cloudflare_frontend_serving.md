@@ -4,7 +4,7 @@ This document explains how the Cloudflare Worker has been configured to serve bo
 
 ## Overview
 
-The Kids Reading Manager application now uses a single Cloudflare Worker to:
+The Tally Reading application now uses a single Cloudflare Worker to:
 1. Serve API endpoints at `/api/*` paths
 2. Serve the React frontend static files for all other paths
 

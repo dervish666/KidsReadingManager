@@ -14,7 +14,7 @@ The quickest and simplest way to get your own copy of this application running i
 
 ## Technical Overview (Cloudflare Workers Implementation)
 
-This project implements the Kids Reading Manager application using Cloudflare Workers and KV storage. It provides a serverless backend API and serves the React frontend from a single Worker. This approach replaces the previous Express.js server implementation for a more streamlined, serverless architecture.
+This project implements the Tally Reading application using Cloudflare Workers and KV storage. It provides a serverless backend API and serves the React frontend from a single Worker. This approach replaces the previous Express.js server implementation for a more streamlined, serverless architecture.
 
 ## Project Structure
 

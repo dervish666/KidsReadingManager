@@ -1,4 +1,4 @@
-# Kids Reading Manager - API Test Scripts
+# Tally Reading - API Test Scripts
 
 This document provides detailed test scripts for validating the API endpoints after migration to Cloudflare Workers. These scripts can be executed using tools like Postman, curl, or automated testing frameworks.
 

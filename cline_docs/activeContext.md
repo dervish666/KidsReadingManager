@@ -1,4 +1,4 @@
-# Active Context: Kids Reading Manager
+# Active Context: Tally Reading
 
 ## Current Version: 2.3.0
 

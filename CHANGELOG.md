@@ -757,7 +757,7 @@ npx wrangler d1 migrations apply reading-manager-db --remote
 
 ### Added - Multi-Tenant SaaS Architecture
 
-This major release transforms Kids Reading Manager from a single-user application into a multi-tenant SaaS platform with full organization isolation, user management, and role-based access control.
+This major release transforms Tally Reading from a single-user application into a multi-tenant SaaS platform with full organization isolation, user management, and role-based access control.
 
 #### Database Foundation (Phase 1)
 - **Organizations Table**: Multi-tenant foundation with unique slugs, settings, and subscription tiers
@@ -1204,5 +1204,5 @@ This major release transforms Kids Reading Manager from a single-user applicatio
 ## [0.0.1] - 2025-11-20
 
 ### Added
-- **Initial Release**: Initial release of Kids Reading Manager.
+- **Initial Release**: Initial release of Tally Reading.
 - **Core Features**: Student management, Book tracking, Reading sessions, Class management.
