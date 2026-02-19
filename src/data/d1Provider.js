@@ -34,6 +34,11 @@ const rowToBook = (row) => {
     readingLevel: row.reading_level,
     ageRange: row.age_range,
     description: row.description,
+    isbn: row.isbn || null,
+    pageCount: row.page_count || null,
+    seriesName: row.series_name || null,
+    seriesNumber: row.series_number || null,
+    publicationYear: row.publication_year || null,
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
@@ -52,7 +57,12 @@ const bookToRow = (book) => {
     genre_ids: book.genreIds ? JSON.stringify(book.genreIds) : null,
     reading_level: book.readingLevel || null,
     age_range: book.ageRange || null,
-    description: book.description || null
+    description: book.description || null,
+    isbn: book.isbn || null,
+    page_count: book.pageCount || null,
+    series_name: book.seriesName || null,
+    series_number: book.seriesNumber || null,
+    publication_year: book.publicationYear || null
   };
 };
 
@@ -140,8 +150,8 @@ const addBook = async (env, newBook) => {
     const row = bookToRow(newBook);
     
     await db.prepare(`
-      INSERT INTO books (id, title, author, genre_ids, reading_level, age_range, description)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO books (id, title, author, genre_ids, reading_level, age_range, description, isbn, page_count, series_name, series_number, publication_year)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       row.id,
       row.title,
@@ -149,7 +159,12 @@ const addBook = async (env, newBook) => {
       row.genre_ids,
       row.reading_level,
       row.age_range,
-      row.description
+      row.description,
+      row.isbn,
+      row.page_count,
+      row.series_name,
+      row.series_number,
+      row.publication_year
     ).run();
 
     return newBook;
@@ -182,8 +197,10 @@ const updateBook = async (env, id, updatedBook) => {
     const row = bookToRow({ ...updatedBook, id });
     
     await db.prepare(`
-      UPDATE books 
-      SET title = ?, author = ?, genre_ids = ?, reading_level = ?, age_range = ?, description = ?, updated_at = datetime('now')
+      UPDATE books
+      SET title = ?, author = ?, genre_ids = ?, reading_level = ?, age_range = ?, description = ?,
+          isbn = ?, page_count = ?, series_name = ?, series_number = ?, publication_year = ?,
+          updated_at = datetime('now')
       WHERE id = ?
     `).bind(
       row.title,
@@ -192,6 +209,11 @@ const updateBook = async (env, id, updatedBook) => {
       row.reading_level,
       row.age_range,
       row.description,
+      row.isbn,
+      row.page_count,
+      row.series_name,
+      row.series_number,
+      row.publication_year,
       id
     ).run();
 
@@ -252,8 +274,8 @@ const addBooksBatch = async (env, newBooks) => {
     const statements = newBooks.map(book => {
       const row = bookToRow(book);
       return db.prepare(`
-        INSERT INTO books (id, title, author, genre_ids, reading_level, age_range, description)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO books (id, title, author, genre_ids, reading_level, age_range, description, isbn, page_count, series_name, series_number, publication_year)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         row.id,
         row.title,
@@ -261,7 +283,12 @@ const addBooksBatch = async (env, newBooks) => {
         row.genre_ids,
         row.reading_level,
         row.age_range,
-        row.description
+        row.description,
+        row.isbn,
+        row.page_count,
+        row.series_name,
+        row.series_number,
+        row.publication_year
       );
     });
 
@@ -308,8 +335,10 @@ const updateBooksBatch = async (env, bookUpdates) => {
     const statements = bookUpdates.map(({ id, bookData }) => {
       const row = bookToRow({ ...bookData, id });
       return db.prepare(`
-        UPDATE books 
-        SET title = ?, author = ?, genre_ids = ?, reading_level = ?, age_range = ?, description = ?, updated_at = datetime('now')
+        UPDATE books
+        SET title = ?, author = ?, genre_ids = ?, reading_level = ?, age_range = ?, description = ?,
+            isbn = ?, page_count = ?, series_name = ?, series_number = ?, publication_year = ?,
+            updated_at = datetime('now')
         WHERE id = ?
       `).bind(
         row.title,
@@ -318,6 +347,11 @@ const updateBooksBatch = async (env, bookUpdates) => {
         row.reading_level,
         row.age_range,
         row.description,
+        row.isbn,
+        row.page_count,
+        row.series_name,
+        row.series_number,
+        row.publication_year,
         id
       );
     });
