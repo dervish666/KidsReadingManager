@@ -1,5 +1,55 @@
 # Changelog
 
+## [3.1.0] - 2026-02-19
+
+### Added: ISBN Barcode Scanning & Book Metadata Redesign
+
+#### ISBN Barcode Scanning
+- **Camera-based ISBN scanning**: New BarcodeScanner component using html5-qrcode for EAN-13 barcode detection
+- **ScanBookFlow**: Full scan-to-add workflow — scan barcode, preview book metadata from OpenLibrary, add to library
+- **ISBN lookup API**: Two new endpoints — `GET /api/books/isbn/:isbn` (lookup) and `POST /api/books/scan` (confirm & add)
+- **OpenLibrary integration**: ISBN lookup with KV caching (30-day success, 24-hour not-found)
+- **ISBN validation**: Validates and normalizes ISBN-10 and ISBN-13 with check digit verification
+- **Scanner integration**: Scan button added to BookManager toolbar, BookAutocomplete, and HomeReadingRegister
+- **CSV import**: ISBN column auto-detection and ISBN-based deduplication during import
+- **AddBookModal**: New fields for ISBN, page count, series name/number, and publication year
+
+#### Book Metadata Fields
+- **Database migration 0022**: Adds `isbn`, `page_count`, `series_name`, `series_number`, `publication_year` to books table
+- **D1 provider**: Updated rowToBook/bookToRow mappings and all CRUD operations for new fields
+- **API routes**: All book endpoints return and accept the new metadata fields
+
+#### Fill Info Redesign
+- **Fill Missing button**: One-click fills all gaps (author, description, genres) across the library in a single pass per book, auto-applies without review
+- **Refresh All button**: Re-fetches metadata for every book, shows a diff-style review dialog with per-field checkboxes (old value vs new value) before applying
+- **Unified batch API**: New `batchFetchAllMetadata()` function fetches author + description + genres in parallel per book via `Promise.allSettled`
+- **Removed**: Old Fill Info dropdown menu with separate Authors/Descriptions/Genres options, 3 separate progress bars, 3 results dialogs, "Include Unknown authors" toggle
+- **Net reduction**: BookManager.js reduced by ~460 lines (from 2241 to 1777)
+
+#### Tests
+- 74 new tests for ISBN features (validation, lookup, scanning, CSV import)
+- 9 new tests for batchFetchAllMetadata
+- 10 new tests for Fill Missing/Refresh All buttons
+- Total: 1,407 tests passing (40 files)
+
+#### Files Added
+- `src/utils/isbn.js` — ISBN validation and normalization
+- `src/utils/isbnLookup.js` — OpenLibrary ISBN lookup with KV caching
+- `src/components/books/BarcodeScanner.js` — Camera barcode scanner modal
+- `src/components/books/ScanBookFlow.js` — Scan-to-add orchestration
+- `migrations/0022_add_book_metadata_fields.sql` — New book columns
+
+#### Deployment Notes
+```bash
+# Run the new migration
+npx wrangler d1 migrations apply reading-manager-db --local   # local
+npx wrangler d1 migrations apply reading-manager-db --remote  # production
+
+npm run go
+```
+
+---
+
 ## [3.0.0] - 2026-02-18
 
 ### Added: Cover Image Caching & AI Recommendation Caching
