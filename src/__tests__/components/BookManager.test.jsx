@@ -18,9 +18,7 @@ vi.mock('../../components/BookCover', () => ({
 
 // Mock the bookMetadataApi module
 vi.mock('../../utils/bookMetadataApi', () => ({
-  batchFindMissingAuthors: vi.fn(),
-  batchFindMissingDescriptions: vi.fn(),
-  batchFindMissingGenres: vi.fn(),
+  batchFetchAllMetadata: vi.fn(),
   getBookDetails: vi.fn(),
   findGenresForBook: vi.fn(),
   checkAvailability: vi.fn(),
@@ -123,9 +121,7 @@ describe('BookManager Component', () => {
       description: 'Test description'
     });
     bookMetadataApi.findGenresForBook.mockResolvedValue(['Fiction', 'Adventure']);
-    bookMetadataApi.batchFindMissingAuthors.mockResolvedValue([]);
-    bookMetadataApi.batchFindMissingDescriptions.mockResolvedValue([]);
-    bookMetadataApi.batchFindMissingGenres.mockResolvedValue([]);
+    bookMetadataApi.batchFetchAllMetadata.mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -1047,103 +1043,90 @@ describe('BookManager Component', () => {
     });
   });
 
-  describe('Fill Info Button (AI Features)', () => {
-    it('should render Fill Info button', () => {
+  describe('Fill Missing and Refresh All Buttons', () => {
+    it('should render Fill Missing button', () => {
       const context = createMockContext();
       render(<BookManager />, { wrapper: createWrapper(context) });
 
-      expect(screen.getByRole('button', { name: /fill info/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /fill missing/i })).toBeInTheDocument();
     });
 
-    it('should show menu with fill options when clicking Fill Info', async () => {
+    it('should render Refresh All button', () => {
       const context = createMockContext();
-      const user = userEvent.setup();
       render(<BookManager />, { wrapper: createWrapper(context) });
 
-      const fillInfoButton = screen.getByRole('button', { name: /fill info/i });
-      await user.click(fillInfoButton);
-
-      expect(screen.getByText(/fill missing authors/i)).toBeInTheDocument();
-      expect(screen.getByText(/fill missing descriptions/i)).toBeInTheDocument();
-      expect(screen.getByText(/fix missing genres/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /refresh all/i })).toBeInTheDocument();
     });
 
-    it('should show count of books needing authors', async () => {
-      const context = createMockContext();
-      const user = userEvent.setup();
-      render(<BookManager />, { wrapper: createWrapper(context) });
-
-      const fillInfoButton = screen.getByRole('button', { name: /fill info/i });
-      await user.click(fillInfoButton);
-
-      // Unknown Book has no author
-      expect(screen.getByText(/fill missing authors \(1\)/i)).toBeInTheDocument();
-    });
-
-    it('should show count of books needing descriptions', async () => {
-      const context = createMockContext();
-      const user = userEvent.setup();
-      render(<BookManager />, { wrapper: createWrapper(context) });
-
-      const fillInfoButton = screen.getByRole('button', { name: /fill info/i });
-      await user.click(fillInfoButton);
-
-      // Harry Potter and Unknown Book have no description
-      expect(screen.getByText(/fill missing descriptions \(2\)/i)).toBeInTheDocument();
-    });
-
-    it('should show count of books needing genres', async () => {
-      const context = createMockContext();
-      const user = userEvent.setup();
-      render(<BookManager />, { wrapper: createWrapper(context) });
-
-      const fillInfoButton = screen.getByRole('button', { name: /fill info/i });
-      await user.click(fillInfoButton);
-
-      // Unknown Book has no genres
-      expect(screen.getByText(/fix missing genres \(1\)/i)).toBeInTheDocument();
-    });
-
-    it('should call batchFindMissingAuthors when Fill Missing Authors is clicked', async () => {
+    it('should call batchFetchAllMetadata when Fill Missing is clicked', async () => {
       const mockResults = [
-        { book: { id: 'book-4', title: 'Unknown Book' }, success: true, foundAuthor: 'Found Author' }
+        { book: { id: 'book-4', title: 'Unknown Book', author: null, description: null, genreIds: [] }, foundAuthor: 'Found Author', foundDescription: 'A description', foundGenres: ['Fiction'] }
       ];
-      bookMetadataApi.batchFindMissingAuthors.mockResolvedValue(mockResults);
+      bookMetadataApi.batchFetchAllMetadata.mockResolvedValue(mockResults);
 
-      const context = createMockContext();
+      const mockFetchWithAuth = vi.fn().mockResolvedValue({ ok: true });
+      const mockReload = vi.fn().mockResolvedValue();
+      const context = createMockContext({
+        fetchWithAuth: mockFetchWithAuth,
+        reloadDataFromServer: mockReload
+      });
       const user = userEvent.setup();
       render(<BookManager />, { wrapper: createWrapper(context) });
 
-      const fillInfoButton = screen.getByRole('button', { name: /fill info/i });
-      await user.click(fillInfoButton);
-
-      const fillAuthorsItem = screen.getByText(/fill missing authors/i);
-      await user.click(fillAuthorsItem);
+      const fillMissingButton = screen.getByRole('button', { name: /fill missing/i });
+      await user.click(fillMissingButton);
 
       await waitFor(() => {
-        expect(bookMetadataApi.batchFindMissingAuthors).toHaveBeenCalled();
+        expect(bookMetadataApi.batchFetchAllMetadata).toHaveBeenCalled();
       });
     });
 
-    it('should show error when provider is unavailable', async () => {
+    it('should call batchFetchAllMetadata when Refresh All is clicked', async () => {
+      bookMetadataApi.batchFetchAllMetadata.mockResolvedValue([]);
+
+      const context = createMockContext();
+      const user = userEvent.setup();
+      render(<BookManager />, { wrapper: createWrapper(context) });
+
+      const refreshAllButton = screen.getByRole('button', { name: /refresh all/i });
+      await user.click(refreshAllButton);
+
+      await waitFor(() => {
+        expect(bookMetadataApi.batchFetchAllMetadata).toHaveBeenCalled();
+      });
+    });
+
+    it('should show error when provider is unavailable for Fill Missing', async () => {
       bookMetadataApi.checkAvailability.mockResolvedValue(false);
 
       const context = createMockContext();
       const user = userEvent.setup();
       render(<BookManager />, { wrapper: createWrapper(context) });
 
-      const fillInfoButton = screen.getByRole('button', { name: /fill info/i });
-      await user.click(fillInfoButton);
-
-      const fillAuthorsItem = screen.getByText(/fill missing authors/i);
-      await user.click(fillAuthorsItem);
+      const fillMissingButton = screen.getByRole('button', { name: /fill missing/i });
+      await user.click(fillMissingButton);
 
       await waitFor(() => {
         expect(screen.getByText(/is currently unavailable/i)).toBeInTheDocument();
       });
     });
 
-    it('should show error when provider config is invalid', async () => {
+    it('should show error when provider is unavailable for Refresh All', async () => {
+      bookMetadataApi.checkAvailability.mockResolvedValue(false);
+
+      const context = createMockContext();
+      const user = userEvent.setup();
+      render(<BookManager />, { wrapper: createWrapper(context) });
+
+      const refreshAllButton = screen.getByRole('button', { name: /refresh all/i });
+      await user.click(refreshAllButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/is currently unavailable/i)).toBeInTheDocument();
+      });
+    });
+
+    it('should show error when provider config is invalid for Fill Missing', async () => {
       bookMetadataApi.validateProviderConfig.mockReturnValue({
         valid: false,
         error: 'API key required'
@@ -1153,23 +1136,47 @@ describe('BookManager Component', () => {
       const user = userEvent.setup();
       render(<BookManager />, { wrapper: createWrapper(context) });
 
-      const fillInfoButton = screen.getByRole('button', { name: /fill info/i });
-      await user.click(fillInfoButton);
-
-      const fillAuthorsItem = screen.getByText(/fill missing authors/i);
-      await user.click(fillAuthorsItem);
+      const fillMissingButton = screen.getByRole('button', { name: /fill missing/i });
+      await user.click(fillMissingButton);
 
       await waitFor(() => {
         expect(screen.getByText('API key required')).toBeInTheDocument();
       });
     });
 
-    it('should be disabled when no books exist', () => {
+    it('should disable Fill Missing and Refresh All when no books exist', () => {
       const context = createMockContext({ books: [] });
       render(<BookManager />, { wrapper: createWrapper(context) });
 
-      const fillInfoButton = screen.getByRole('button', { name: /fill info/i });
-      expect(fillInfoButton).toBeDisabled();
+      const fillMissingButton = screen.getByRole('button', { name: /fill missing/i });
+      expect(fillMissingButton).toBeDisabled();
+
+      const refreshAllButton = screen.getByRole('button', { name: /refresh all/i });
+      expect(refreshAllButton).toBeDisabled();
+    });
+
+    it('should show info when all books already have complete metadata', async () => {
+      const completeBooks = [
+        {
+          id: 'book-1',
+          title: 'Complete Book',
+          author: 'Author',
+          description: 'A description',
+          genreIds: ['genre-1'],
+          readingLevel: '3.0',
+          ageRange: '6-10'
+        }
+      ];
+      const context = createMockContext({ books: completeBooks });
+      const user = userEvent.setup();
+      render(<BookManager />, { wrapper: createWrapper(context) });
+
+      const fillMissingButton = screen.getByRole('button', { name: /fill missing/i });
+      await user.click(fillMissingButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/all books already have complete metadata/i)).toBeInTheDocument();
+      });
     });
   });
 
