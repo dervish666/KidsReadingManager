@@ -56,6 +56,7 @@ export const detectColumnMapping = (headers) => {
   const titlePatterns = ['title', 'book title', 'book name', 'name'];
   const authorPatterns = ['author', 'author name', 'writer', 'by'];
   const levelPatterns = ['reading level', 'level', 'reading_level', 'readinglevel', 'grade level'];
+  const isbnPatterns = ['isbn', 'isbn13', 'isbn-13', 'isbn10', 'isbn-10'];
 
   const findIndex = (patterns) => {
     for (const pattern of patterns) {
@@ -68,7 +69,8 @@ export const detectColumnMapping = (headers) => {
   return {
     title: findIndex(titlePatterns),
     author: findIndex(authorPatterns),
-    readingLevel: findIndex(levelPatterns)
+    readingLevel: findIndex(levelPatterns),
+    isbn: findIndex(isbnPatterns)
   };
 };
 
@@ -84,7 +86,8 @@ export const mapCSVToBooks = (rows, mapping) => {
       return {
         title,
         author: mapping.author !== null ? row[mapping.author]?.trim() || null : null,
-        readingLevel: mapping.readingLevel !== null ? row[mapping.readingLevel]?.trim() || null : null
+        readingLevel: mapping.readingLevel !== null ? row[mapping.readingLevel]?.trim() || null : null,
+        isbn: mapping.isbn !== null ? row[mapping.isbn]?.trim() || null : null
       };
     })
     .filter(book => book !== null);

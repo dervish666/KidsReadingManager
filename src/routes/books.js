@@ -909,7 +909,7 @@ booksRouter.post('/bulk', requireTeacher(), async (c) => {
  * POST /api/books/import/preview
  * Preview import results: categorize books into matched, fuzzy matches, new, and conflicts
  *
- * Request body: { books: [{ title, author, readingLevel }] }
+ * Request body: { books: [{ title, author, readingLevel, isbn }] }
  * Response: { matched, possibleMatches, newBooks, conflicts, alreadyInLibrary, summary }
  *
  * Categories:
@@ -954,7 +954,27 @@ booksRouter.post('/import/preview', requireTeacher(), async (c) => {
   for (const importedBook of importBooks) {
     if (!importedBook.title || !importedBook.title.trim()) continue;
 
-    // Check for exact match
+    // ISBN exact match (most reliable dedup strategy)
+    if (importedBook.isbn) {
+      const isbnMatch = existingBooks.find(eb => eb.isbn === importedBook.isbn);
+      if (isbnMatch) {
+        if (orgBookIds.has(isbnMatch.id)) {
+          alreadyInLibrary.push({ importedBook, existingBook: isbnMatch });
+        } else {
+          const hasConflict = importedBook.readingLevel &&
+                              isbnMatch.reading_level &&
+                              importedBook.readingLevel !== isbnMatch.reading_level;
+          if (hasConflict) {
+            conflicts.push({ importedBook, existingBook: isbnMatch });
+          } else {
+            matched.push({ importedBook, existingBook: isbnMatch });
+          }
+        }
+        continue;
+      }
+    }
+
+    // Check for exact title/author match
     const exactMatch = existingBooks.find(existing =>
       isExactMatch(existing.title, importedBook.title) &&
       (!importedBook.author || !existing.author || isExactMatch(existing.author, importedBook.author))
