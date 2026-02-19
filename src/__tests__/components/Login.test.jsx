@@ -256,7 +256,7 @@ describe('Login Component', () => {
 
       render(<Login />, { wrapper: createWrapper(context) });
 
-      expect(screen.getByText('Kids Reading Manager')).toBeInTheDocument();
+      expect(screen.getByText('Tally Reading')).toBeInTheDocument();
     });
 
     it('should clear password field on successful login', async () => {

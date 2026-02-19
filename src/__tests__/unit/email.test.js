@@ -94,7 +94,7 @@ describe('Email Service', () => {
 
         expect(requestBody.from).toBe('noreply@myapp.com');
         expect(requestBody.to).toBe('user@example.com');
-        expect(requestBody.subject).toBe('Reset your Kids Reading Manager password');
+        expect(requestBody.subject).toBe('Reset your Tally Reading password');
         expect(requestBody.text).toContain('Hi John Doe');
         expect(requestBody.text).toContain('https://app.example.com/reset-password?token=abc123token');
         expect(requestBody.html).toContain('John Doe');
@@ -419,7 +419,7 @@ describe('Email Service', () => {
         const requestBody = JSON.parse(fetchCall[1].body);
 
         expect(requestBody.html).toContain('<!DOCTYPE html>');
-        expect(requestBody.html).toContain('Kids Reading Manager');
+        expect(requestBody.html).toContain('Tally Reading');
         expect(requestBody.html).toContain('Reset Password');
         expect(requestBody.html).toContain('linear-gradient');
       });
@@ -478,9 +478,9 @@ describe('Email Service', () => {
         const fetchCall = global.fetch.mock.calls[0];
         const requestBody = JSON.parse(fetchCall[1].body);
 
-        expect(requestBody.subject).toBe('Welcome to Kids Reading Manager - Springfield Elementary');
+        expect(requestBody.subject).toBe('Welcome to Tally Reading - Springfield Elementary');
         expect(requestBody.text).toContain('Hi Jane Doe');
-        expect(requestBody.text).toContain('Welcome to Kids Reading Manager');
+        expect(requestBody.text).toContain('Welcome to Tally Reading');
         expect(requestBody.text).toContain('Springfield Elementary');
         expect(requestBody.text).toContain('Email: newuser@example.com');
         expect(requestBody.text).toContain('Temporary Password: TempPass123!');
@@ -633,7 +633,7 @@ describe('Email Service', () => {
         const fetchCall = global.fetch.mock.calls[0];
         const requestBody = JSON.parse(fetchCall[1].body);
 
-        expect(requestBody.subject).toBe('Welcome to Kids Reading Manager - Awesome School');
+        expect(requestBody.subject).toBe('Welcome to Tally Reading - Awesome School');
       });
 
       it('should include password change reminder in welcome email', async () => {
@@ -677,7 +677,7 @@ describe('Email Service', () => {
         const requestBody = JSON.parse(fetchCall[1].body);
 
         expect(requestBody.html).toContain('<!DOCTYPE html>');
-        expect(requestBody.html).toContain('Kids Reading Manager');
+        expect(requestBody.html).toContain('Tally Reading');
         expect(requestBody.html).toContain('Log In Now');
         expect(requestBody.html).toContain('linear-gradient');
       });
