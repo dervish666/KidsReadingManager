@@ -34,6 +34,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
+import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import {
   DndContext,
   closestCenter,
@@ -52,6 +53,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useAppContext } from '../../contexts/AppContext';
 import BookAutocomplete from './BookAutocomplete';
+import ScanBookFlow from '../books/ScanBookFlow';
 import ClassReadingHistoryTable from './ClassReadingHistoryTable';
 
 // Reading status types for home reading
@@ -248,6 +250,7 @@ const HomeReadingRegister = () => {
   const [multipleCount, setMultipleCount] = useState(2);
   const [showInputPanel, setShowInputPanel] = useState(true);
   const [studentOrderMap, setStudentOrderMap] = useState(loadStudentOrder);
+  const [scanOpen, setScanOpen] = useState(false);
 
   // Ref to track if we've already auto-set the class filter (prevents infinite loop)
   const hasAutoSetClassFilter = useRef(false);
@@ -745,12 +748,24 @@ const HomeReadingRegister = () => {
               <Box sx={{ mt: 2 }}>
                 {/* Book Selection */}
                 <Box sx={{ mb: 2 }}>
-                  <BookAutocomplete
-                    value={getStudentLastBook(selectedStudent.id)}
-                    onChange={handleBookChange}
-                    label="Current Book"
-                    placeholder="Select or search for book..."
-                  />
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                    <Box sx={{ flex: 1 }}>
+                      <BookAutocomplete
+                        value={getStudentLastBook(selectedStudent.id)}
+                        onChange={handleBookChange}
+                        label="Current Book"
+                        placeholder="Select or search for book..."
+                      />
+                    </Box>
+                    <IconButton
+                      onClick={() => setScanOpen(true)}
+                      color="primary"
+                      title="Scan ISBN barcode"
+                      sx={{ mt: 1 }}
+                    >
+                      <QrCodeScannerIcon />
+                    </IconButton>
+                  </Box>
                   <Typography variant="caption" color="text.secondary">
                     Book will be saved and synced across devices
                   </Typography>
@@ -1020,6 +1035,16 @@ const HomeReadingRegister = () => {
         books={books}
         selectedDate={selectedDate}
         onDateChange={setSelectedDate}
+      />
+
+      {/* ISBN Scanner Flow */}
+      <ScanBookFlow
+        open={scanOpen}
+        onClose={() => setScanOpen(false)}
+        onBookSelected={(book) => {
+          setScanOpen(false);
+          handleBookChange(book);
+        }}
       />
 
       {/* Snackbar */}
