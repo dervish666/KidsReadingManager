@@ -74,7 +74,9 @@ JWT lifecycle: access tokens (15 min) + refresh tokens (7 days). Client auto-ref
 
 ### Frontend Architecture
 
-**State Management**: Single `AppContext` (`src/contexts/AppContext.js`) holds all global state (students, classes, books, sessions, auth, settings). All API calls go through `fetchWithAuth()` which auto-attaches JWT and handles 401 refresh.
+**State Management**: Single `AppContext` (`src/contexts/AppContext.js`) holds all global state (students, classes, books, sessions, auth, settings). All API calls go through `fetchWithAuth()` which auto-attaches JWT and handles 401 refresh. Concurrent requests share a single refresh promise to prevent thundering herd on token expiry.
+
+**Owner Organization Switching**: Owners can switch org context via `X-Organization-Id` header (set in `fetchWithAuth()` when `activeOrganizationId` is set). Backend validates this in `tenantMiddleware()` — only works for `owner` role.
 
 **Frontend-Backend Integration**:
 - Development: Rsbuild proxies `/api` to `http://localhost:8787` (see `rsbuild.config.mjs`)
@@ -85,7 +87,7 @@ JWT lifecycle: access tokens (15 min) + refresh tokens (7 days). Client auto-ref
 **D1 (Multi-Tenant)**: Normalized SQL tables with organization scoping. Provider: `src/data/d1Provider.js`
 **KV (Legacy)**: JSON blobs in Cloudflare KV. Provider: `src/data/kvProvider.js`
 **JSON (Local Dev)**: File-based storage via `data.json`. Provider: `src/data/jsonProvider.js`
-**Provider Factory**: `src/data/index.js` auto-detects: D1 binding > `STORAGE_TYPE` env var > fallback.
+**Provider Factory**: `src/data/index.js` auto-detects in priority order: D1 binding present → `STORAGE_TYPE` env var → KV binding present → JSON file fallback (Node.js only).
 
 **Critical**: D1 batch operations are limited to 100 statements. See batch pattern in `src/routes/books.js`.
 
@@ -160,7 +162,7 @@ Global error handler in `src/middleware/errorHandler.js` standardizes all error 
 
 ### Public Endpoints
 
-These paths bypass auth middleware: `/api/auth/*`, `/api/health`, `/api/login`, `/api/logout`. The health endpoint is useful for monitoring. Legacy `/api/login` and `/api/logout` redirect to the auth router equivalents.
+Public paths are defined in `src/middleware/tenant.js` (jwtAuthMiddleware): `/api/auth/mode`, `/api/auth/login`, `/api/auth/register`, `/api/auth/refresh`, `/api/auth/forgot-password`, `/api/auth/reset-password`, `/api/health`, `/api/login` (legacy redirect), and `/api/covers/*`. When adding public paths, update the `publicPaths` array in `jwtAuthMiddleware()`.
 
 ### Scheduled Tasks
 
@@ -171,14 +173,16 @@ Cron trigger runs daily at 2:00 AM UTC to recalculate all student reading streak
 ### Adding a New API Endpoint
 
 1. Add route handler in `src/routes/*.js`
-2. Use `c.get('organizationId')` for tenant scoping
+2. Use `c.get('organizationId')` for tenant scoping — **always** add `WHERE organization_id = ?` to queries
 3. Access D1 via `c.env.READING_MANAGER_DB`
-4. Return JSON with proper HTTP status codes
+4. Apply role guards: `requireOwner()`, `requireAdmin()`, `requireTeacher()`, or `requireReadonly()` from `src/middleware/tenant.js`
+5. For tables with soft delete (`organizations`, `users`), filter `WHERE is_active = 1` — this is not automatic
+6. Return JSON with proper HTTP status codes
 
 ### Adding a Database Migration
 
-1. Create `migrations/XXXX_description.sql` (next number after 0020)
-2. Use `IF NOT EXISTS` for safety
+1. Create `migrations/XXXX_description.sql` (next number after 0021)
+2. Use `IF NOT EXISTS` for safety (migrations are forward-only, no down migrations)
 3. Test locally: `npx wrangler d1 migrations apply reading-manager-db --local`
 4. Deploy: `npx wrangler d1 migrations apply reading-manager-db --remote`
 
@@ -214,4 +218,15 @@ The frontend dev server (port 3001) proxies `/api` requests to the worker (port 
 
 - `READING_MANAGER_KV` - KV namespace for legacy storage
 - `READING_MANAGER_DB` - D1 database for multi-tenant storage
+- `RECOMMENDATIONS_CACHE` - KV namespace for AI recommendation caching
+- `BOOK_COVERS` - R2 bucket for cached book cover images
 - `EMAIL_SENDER` - Email sending (requires Email Routing on domain)
+
+## Gotchas
+
+- **D1 batch limit**: Max 100 statements per `db.batch()` call. Chunk larger operations. See pattern in `src/routes/books.js`.
+- **Soft delete is not automatic**: `organizations` and `users` use `is_active` column. Queries must explicitly filter `WHERE is_active = 1` — forgetting this returns "deleted" records.
+- **snake_case ↔ camelCase**: Database uses snake_case, JavaScript uses camelCase. Conversion happens in `rowTo*()` functions (e.g., `rowToStudent`, `rowToBook`). New columns need mapping in both directions.
+- **Routes sometimes bypass the data provider**: Some routes (especially `books.js`) call D1 directly for complex queries (FTS5, JOINs) instead of going through the provider abstraction. This is intentional when query complexity exceeds what the provider interface supports.
+- **Security headers applied after handler**: In `src/worker.js`, security headers are set in the `onResponse` callback, meaning they run after the route handler executes.
+- **Rate limiting uses D1**: Auth rate limiting stores attempts in the D1 `rate_limits` table, not Cloudflare's built-in rate limiting. See `authRateLimit()` in `src/middleware/tenant.js`.
