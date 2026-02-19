@@ -55,7 +55,10 @@ booksRouter.get('/', requireReadonly(), async (c) => {
       return c.json((result.results || []).map(b => ({
         id: b.id, title: b.title, author: b.author,
         readingLevel: b.reading_level, ageRange: b.age_range,
-        genreIds: b.genre_ids ? JSON.parse(b.genre_ids) : [], description: b.description
+        genreIds: b.genre_ids ? JSON.parse(b.genre_ids) : [], description: b.description,
+        isbn: b.isbn, pageCount: b.page_count,
+        seriesName: b.series_name, seriesNumber: b.series_number,
+        publicationYear: b.publication_year,
       })));
     }
 
@@ -78,7 +81,10 @@ booksRouter.get('/', requireReadonly(), async (c) => {
         books: (result.results || []).map(b => ({
           id: b.id, title: b.title, author: b.author,
           readingLevel: b.reading_level, ageRange: b.age_range,
-          genreIds: b.genre_ids ? JSON.parse(b.genre_ids) : [], description: b.description
+          genreIds: b.genre_ids ? JSON.parse(b.genre_ids) : [], description: b.description,
+          isbn: b.isbn, pageCount: b.page_count,
+          seriesName: b.series_name, seriesNumber: b.series_number,
+          publicationYear: b.publication_year,
         })),
         total, page: pageNum, pageSize: size,
         totalPages: Math.ceil(total / size)
@@ -96,7 +102,10 @@ booksRouter.get('/', requireReadonly(), async (c) => {
     return c.json((result.results || []).map(b => ({
       id: b.id, title: b.title, author: b.author,
       readingLevel: b.reading_level, ageRange: b.age_range,
-      genreIds: b.genre_ids ? JSON.parse(b.genre_ids) : [], description: b.description
+      genreIds: b.genre_ids ? JSON.parse(b.genre_ids) : [], description: b.description,
+      isbn: b.isbn, pageCount: b.page_count,
+      seriesName: b.series_name, seriesNumber: b.series_number,
+      publicationYear: b.publication_year,
     })));
   }
 
@@ -148,7 +157,10 @@ booksRouter.get('/search', requireReadonly(), async (c) => {
     const books = (result.results || []).map(b => ({
       id: b.id, title: b.title, author: b.author,
       readingLevel: b.reading_level, ageRange: b.age_range,
-      genreIds: b.genre_ids ? JSON.parse(b.genre_ids) : [], description: b.description
+      genreIds: b.genre_ids ? JSON.parse(b.genre_ids) : [], description: b.description,
+      isbn: b.isbn, pageCount: b.page_count,
+      seriesName: b.series_name, seriesNumber: b.series_number,
+      publicationYear: b.publication_year,
     }));
     return c.json({ query: q.trim(), count: books.length, books });
   }
@@ -197,7 +209,8 @@ booksRouter.get('/library-search', requireReadonly(), async (c) => {
 
     // Build query to find matching books, scoped to organization
     let query = `
-      SELECT DISTINCT b.id, b.title, b.author, b.reading_level, b.age_range, b.genre_ids, b.description
+      SELECT DISTINCT b.id, b.title, b.author, b.reading_level, b.age_range, b.genre_ids, b.description,
+        b.isbn, b.page_count, b.series_name, b.series_number, b.publication_year
       FROM books b
       INNER JOIN org_book_selections obs ON b.id = obs.book_id AND obs.organization_id = ?
       WHERE 1=1
@@ -331,6 +344,11 @@ booksRouter.get('/library-search', requireReadonly(), async (c) => {
         readingLevel: book.reading_level,
         ageRange: book.age_range,
         description: book.description,
+        isbn: book.isbn,
+        pageCount: book.page_count,
+        seriesName: book.series_name,
+        seriesNumber: book.series_number,
+        publicationYear: book.publication_year,
         genres,
         matchReason
       };
@@ -570,7 +588,12 @@ booksRouter.post('/', requireTeacher(), async (c) => {
     genreIds: bookData.genreIds || [],
     readingLevel: bookData.readingLevel || null,
     ageRange: bookData.ageRange || null,
-    description: bookData.description || null
+    description: bookData.description || null,
+    isbn: bookData.isbn || null,
+    pageCount: bookData.pageCount || null,
+    seriesName: bookData.seriesName || null,
+    seriesNumber: bookData.seriesNumber || null,
+    publicationYear: bookData.publicationYear || null,
   };
 
   const provider = await createProvider(c.env);
@@ -616,6 +639,11 @@ booksRouter.put('/:id', requireTeacher(), async (c) => {
     readingLevel: bookData.readingLevel !== undefined ? bookData.readingLevel : existingBook.readingLevel,
     ageRange: bookData.ageRange !== undefined ? bookData.ageRange : existingBook.ageRange,
     description: bookData.description !== undefined ? bookData.description : existingBook.description,
+    isbn: bookData.isbn !== undefined ? bookData.isbn : existingBook.isbn,
+    pageCount: bookData.pageCount !== undefined ? bookData.pageCount : existingBook.pageCount,
+    seriesName: bookData.seriesName !== undefined ? bookData.seriesName : existingBook.seriesName,
+    seriesNumber: bookData.seriesNumber !== undefined ? bookData.seriesNumber : existingBook.seriesNumber,
+    publicationYear: bookData.publicationYear !== undefined ? bookData.publicationYear : existingBook.publicationYear,
     id // Ensure ID doesn't change
   };
 
@@ -690,7 +718,12 @@ booksRouter.post('/bulk', requireTeacher(), async (c) => {
       genreIds: book.genreIds || [],
       readingLevel: book.readingLevel || null,
       ageRange: book.ageRange || null,
-      description: book.description || null
+      description: book.description || null,
+      isbn: book.isbn || null,
+      pageCount: book.pageCount || null,
+      seriesName: book.seriesName || null,
+      seriesNumber: book.seriesNumber || null,
+      publicationYear: book.publicationYear || null,
     }));
 
   if (validBooks.length === 0) {
