@@ -25,31 +25,24 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  FormControlLabel,
   Checkbox,
   InputAdornment,
   Menu,
-  Divider,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
 import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
 import DownloadIcon from '@mui/icons-material/Download';
 import UploadIcon from '@mui/icons-material/Upload';
-import PersonSearchIcon from '@mui/icons-material/PersonSearch';
 import InfoIcon from '@mui/icons-material/Info';
-import DescriptionIcon from '@mui/icons-material/Description';
-import CategoryIcon from '@mui/icons-material/Category';
 import SearchIcon from '@mui/icons-material/Search';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
+import SyncIcon from '@mui/icons-material/Sync';
 import ImportExportIcon from '@mui/icons-material/ImportExport';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import { useAppContext } from '../../contexts/AppContext';
 import {
-  batchFindMissingAuthors,
-  batchFindMissingDescriptions,
-  batchFindMissingGenres,
+  batchFetchAllMetadata,
   getBookDetails,
   findGenresForBook,
   checkAvailability,
@@ -80,25 +73,16 @@ const BookManager = () => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const fileInputRef = useRef(null);
   
-  // Author lookup state
-  const [isLookingUpAuthors, setIsLookingUpAuthors] = useState(false);
-  const [authorLookupProgress, setAuthorLookupProgress] = useState({ current: 0, total: 0, book: '' });
-  const [authorLookupResults, setAuthorLookupResults] = useState([]);
-  const [showAuthorResults, setShowAuthorResults] = useState(false);
-  const [includeUnknownAuthors, setIncludeUnknownAuthors] = useState(true);
-  
-  // Description lookup state
-  const [isLookingUpDescriptions, setIsLookingUpDescriptions] = useState(false);
-  const [descriptionLookupProgress, setDescriptionLookupProgress] = useState({ current: 0, total: 0, book: '' });
-  const [descriptionLookupResults, setDescriptionLookupResults] = useState([]);
-  const [showDescriptionResults, setShowDescriptionResults] = useState(false);
-  
-  // Genre lookup state
-  const [isLookingUpGenres, setIsLookingUpGenres] = useState(false);
-  const [genreLookupProgress, setGenreLookupProgress] = useState({ current: 0, total: 0, book: '' });
-  const [genreLookupResults, setGenreLookupResults] = useState([]);
-  const [showGenreResults, setShowGenreResults] = useState(false);
-  
+  // Fill Missing state
+  const [isFilling, setIsFilling] = useState(false);
+  const [fillProgress, setFillProgress] = useState({ current: 0, total: 0, book: '' });
+
+  // Refresh All state
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshProgress, setRefreshProgress] = useState({ current: 0, total: 0, book: '' });
+  const [refreshResults, setRefreshResults] = useState([]);
+  const [showRefreshReview, setShowRefreshReview] = useState(false);
+
   // Pagination and filter state
   const [currentPage, setCurrentPage] = useState(1);
   const [booksPerPage, setBooksPerPage] = useState(10);
@@ -107,7 +91,6 @@ const BookManager = () => {
   const [levelRangeFilter, setLevelRangeFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [importExportMenuAnchor, setImportExportMenuAnchor] = useState(null);
-  const [aiFillMenuAnchor, setAiFillMenuAnchor] = useState(null);
   const [showImportWizard, setShowImportWizard] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
 
@@ -559,481 +542,308 @@ const BookManager = () => {
     setEditBookReadingLevel('');
     setEditBookAgeRange('');
     setEditBookDescription('');
-    setEditBookCoverUrl(null);
     setEditBookGenreIds([]);
     setError('');
   };
 
-  // Author lookup functions
-  const handleFillMissingAuthors = async () => {
-    // Determine which books need lookup based on toggle
-    const booksNeedingLookup = books.filter(book => {
-      const author = (book.author || '').trim().toLowerCase();
-      if (!author) return true;
-      if (includeUnknownAuthors && author === 'unknown') return true;
-      return false;
+  // Fill Missing: auto-fill gaps (author, description, genres) in one pass
+  const handleFillMissing = async () => {
+    // Find books with any missing data
+    const booksWithGaps = books.filter(book => {
+      const authorMissing = !book.author || book.author.trim().toLowerCase() === 'unknown' || !book.author.trim();
+      const descriptionMissing = !book.description || !book.description.trim();
+      const genresMissing = !book.genreIds || book.genreIds.length === 0;
+      return authorMissing || descriptionMissing || genresMissing;
     });
 
-    const booksWithoutAuthors = booksNeedingLookup;
-    if (booksWithoutAuthors.length === 0) {
-      setSnackbar({
-        open: true,
-        message: 'All books already have authors assigned!',
-        severity: 'info'
-      });
+    if (booksWithGaps.length === 0) {
+      setSnackbar({ open: true, message: 'All books already have complete metadata!', severity: 'info' });
       return;
     }
 
-    // Validate provider configuration
     const configValidation = validateProviderConfig(settings);
     if (!configValidation.valid) {
-      setSnackbar({
-        open: true,
-        message: configValidation.error,
-        severity: 'error'
-      });
+      setSnackbar({ open: true, message: configValidation.error, severity: 'error' });
       return;
     }
 
     const providerName = getProviderDisplayName(settings);
-    
-    // Check provider availability first with a quick timeout
-    setSnackbar({
-      open: true,
-      message: `Checking ${providerName} availability...`,
-      severity: 'info'
-    });
-    
     const isAvailable = await checkAvailability(settings, 3000);
     if (!isAvailable) {
-      setSnackbar({
-        open: true,
-        message: `${providerName} is currently unavailable. Please try again later.`,
-        severity: 'error'
-      });
+      setSnackbar({ open: true, message: `${providerName} is currently unavailable. Please try again later.`, severity: 'error' });
       return;
     }
 
-    setIsLookingUpAuthors(true);
-    setAuthorLookupProgress({ current: 0, total: booksWithoutAuthors.length, book: '' });
-    setAuthorLookupResults([]);
+    setIsFilling(true);
+    setFillProgress({ current: 0, total: booksWithGaps.length, book: '' });
 
     try {
-      const results = await batchFindMissingAuthors(booksWithoutAuthors, settings, (progress) => {
-        setAuthorLookupProgress(progress);
+      const results = await batchFetchAllMetadata(booksWithGaps, settings, (progress) => {
+        setFillProgress(progress);
       });
 
-      setAuthorLookupResults(results);
-      setIsLookingUpAuthors(false);
-      setShowAuthorResults(true);
+      // Auto-apply: only fill fields that are currently missing
+      let authorsUpdated = 0, descriptionsUpdated = 0, genresUpdated = 0, errorCount = 0;
 
-      const successCount = results.filter(r => r.success).length;
-      const totalCount = results.length;
-
-      setSnackbar({
-        open: true,
-        message: `Author lookup completed: ${successCount}/${totalCount} authors found`,
-        severity: successCount > 0 ? 'success' : 'warning'
-      });
-    } catch (error) {
-      setIsLookingUpAuthors(false);
-      setSnackbar({
-        open: true,
-        message: `Author lookup failed: ${error.message}`,
-        severity: 'error'
-      });
-    }
-  };
-
-  const handleApplyAuthorUpdates = async () => {
-    // Allow both auto-suggested and manually edited authors:
-    // We trust whatever is currently in authorLookupResults as the chosen value.
-    if (!authorLookupResults || authorLookupResults.length === 0) {
-      setSnackbar({
-        open: true,
-        message: 'No authors to update',
-        severity: 'info'
-      });
-      return;
-    }
-
-    let updateCount = 0;
-    let errorCount = 0;
-
-    for (const result of authorLookupResults) {
-      const chosenAuthor = (result.chosenAuthor ?? result.foundAuthor ?? '').trim();
-
-      // Skip if nothing selected or entered for this book
-      if (!chosenAuthor) {
-        continue;
+      // Build genre name -> ID map
+      const genreNameToId = {};
+      for (const genre of genres) {
+        genreNameToId[genre.name.toLowerCase()] = genre.id;
       }
 
-      try {
-        // Use authenticated helper to include credentials/headers consistently
-        const response = await fetchWithAuth(`/api/books/${result.book.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...result.book,
-            author: chosenAuthor
-          }),
-        });
+      for (const result of results) {
+        const book = result.book;
+        const updates = {};
+        let hasUpdate = false;
 
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
+        // Fill author if missing
+        const authorMissing = !book.author || book.author.trim().toLowerCase() === 'unknown' || !book.author.trim();
+        if (authorMissing && result.foundAuthor) {
+          updates.author = result.foundAuthor;
+          hasUpdate = true;
+          authorsUpdated++;
         }
 
-        updateCount++;
-      } catch (error) {
-        errorCount++;
-      }
-    }
-
-    await reloadDataFromServer();
-    setShowAuthorResults(false);
-    setAuthorLookupResults([]);
-
-    setSnackbar({
-      open: true,
-      message: `Updated ${updateCount} books${errorCount > 0 ? `, ${errorCount} failed` : ''}`,
-      severity: errorCount > 0 ? 'warning' : 'success'
-    });
-  };
-
-  const handleCancelAuthorResults = () => {
-    setShowAuthorResults(false);
-    setAuthorLookupResults([]);
-  };
-
-  const getBooksWithoutAuthors = () => {
-    // Used for the "Fill Missing Authors" count button.
-    // Includes truly empty authors and explicit "Unknown" markers.
-    return books.filter(book => {
-      const author = (book.author || '').trim().toLowerCase();
-      return !author || author === 'unknown';
-    });
-  };
-
-  const getBooksWithoutDescriptions = () => {
-    // Used for the "Fill Missing Descriptions" count button.
-    return books.filter(book => {
-      const description = (book.description || '').trim();
-      return !description;
-    });
-  };
-
-  const getBooksWithoutGenres = () => {
-    // Used for the "Fill Missing Genres" count button.
-    // Includes books with no genres AND books with unknown/invalid genre IDs
-    return books.filter(book => {
-      const genreIds = book.genreIds || [];
-      // No genres at all
-      if (genreIds.length === 0) return true;
-      // Has genre IDs but some/all are unknown (not in genres list)
-      const hasUnknownGenre = genreIds.some(id => !genres.find(g => g.id === id));
-      return hasUnknownGenre;
-    });
-  };
-
-  // Description lookup functions
-  const handleFillMissingDescriptions = async () => {
-    const booksWithoutDescriptions = getBooksWithoutDescriptions();
-    if (booksWithoutDescriptions.length === 0) {
-      setSnackbar({
-        open: true,
-        message: 'All books already have descriptions!',
-        severity: 'info'
-      });
-      return;
-    }
-
-    // Validate provider configuration
-    const configValidation = validateProviderConfig(settings);
-    if (!configValidation.valid) {
-      setSnackbar({
-        open: true,
-        message: configValidation.error,
-        severity: 'error'
-      });
-      return;
-    }
-
-    const providerName = getProviderDisplayName(settings);
-    
-    // Check provider availability first with a quick timeout
-    setSnackbar({
-      open: true,
-      message: `Checking ${providerName} availability...`,
-      severity: 'info'
-    });
-    
-    const isAvailable = await checkAvailability(settings, 3000);
-    if (!isAvailable) {
-      setSnackbar({
-        open: true,
-        message: `${providerName} is currently unavailable. Please try again later.`,
-        severity: 'error'
-      });
-      return;
-    }
-
-    setIsLookingUpDescriptions(true);
-    setDescriptionLookupProgress({ current: 0, total: booksWithoutDescriptions.length, book: '' });
-    setDescriptionLookupResults([]);
-
-    try {
-      const results = await batchFindMissingDescriptions(booksWithoutDescriptions, settings, (progress) => {
-        setDescriptionLookupProgress(progress);
-      });
-
-      setDescriptionLookupResults(results);
-      setIsLookingUpDescriptions(false);
-      setShowDescriptionResults(true);
-
-      const successCount = results.filter(r => r.success).length;
-      const totalCount = results.length;
-
-      setSnackbar({
-        open: true,
-        message: `Description lookup completed: ${successCount}/${totalCount} descriptions found`,
-        severity: successCount > 0 ? 'success' : 'warning'
-      });
-    } catch (error) {
-      setIsLookingUpDescriptions(false);
-      setSnackbar({
-        open: true,
-        message: `Description lookup failed: ${error.message}`,
-        severity: 'error'
-      });
-    }
-  };
-
-  const handleApplyDescriptionUpdates = async () => {
-    const resultsToApply = descriptionLookupResults.filter(r => r.success && r.foundDescription);
-    
-    if (resultsToApply.length === 0) {
-      setSnackbar({
-        open: true,
-        message: 'No descriptions to update',
-        severity: 'info'
-      });
-      return;
-    }
-
-    let updateCount = 0;
-    let errorCount = 0;
-
-    for (const result of resultsToApply) {
-      try {
-        const response = await fetchWithAuth(`/api/books/${result.book.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...result.book,
-            description: result.foundDescription
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
+        // Fill description if missing
+        if ((!book.description || !book.description.trim()) && result.foundDescription) {
+          updates.description = result.foundDescription;
+          hasUpdate = true;
+          descriptionsUpdated++;
         }
 
-        updateCount++;
-      } catch (error) {
-        errorCount++;
+        // Fill genres if missing
+        if ((!book.genreIds || book.genreIds.length === 0) && result.foundGenres && result.foundGenres.length > 0) {
+          // Create missing genres first
+          for (const genreName of result.foundGenres) {
+            if (!genreNameToId[genreName.toLowerCase()]) {
+              try {
+                const response = await fetchWithAuth('/api/genres', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ name: genreName }),
+                });
+                if (response.ok) {
+                  const newGenre = await response.json();
+                  genreNameToId[genreName.toLowerCase()] = newGenre.id;
+                }
+              } catch (e) { /* continue */ }
+            }
+          }
+
+          const genreIds = result.foundGenres
+            .map(name => genreNameToId[name.toLowerCase()])
+            .filter(Boolean);
+
+          if (genreIds.length > 0) {
+            updates.genreIds = genreIds;
+            hasUpdate = true;
+            genresUpdated++;
+          }
+        }
+
+        if (hasUpdate) {
+          try {
+            const response = await fetchWithAuth(`/api/books/${book.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ...book, ...updates }),
+            });
+            if (!response.ok) errorCount++;
+          } catch (e) {
+            errorCount++;
+          }
+        }
       }
+
+      await reloadDataFromServer();
+
+      const parts = [];
+      if (authorsUpdated > 0) parts.push(`${authorsUpdated} authors`);
+      if (descriptionsUpdated > 0) parts.push(`${descriptionsUpdated} descriptions`);
+      if (genresUpdated > 0) parts.push(`${genresUpdated} genres`);
+
+      const totalUpdated = authorsUpdated + descriptionsUpdated + genresUpdated;
+      const message = totalUpdated > 0
+        ? `Updated ${totalUpdated} fields (${parts.join(', ')})${errorCount > 0 ? `, ${errorCount} errors` : ''}`
+        : 'No new metadata found for books with gaps';
+
+      setSnackbar({ open: true, message, severity: totalUpdated > 0 ? 'success' : 'warning' });
+    } catch (error) {
+      setSnackbar({ open: true, message: `Fill missing failed: ${error.message}`, severity: 'error' });
+    } finally {
+      setIsFilling(false);
     }
-
-    await reloadDataFromServer();
-    setShowDescriptionResults(false);
-    setDescriptionLookupResults([]);
-
-    setSnackbar({
-      open: true,
-      message: `Updated ${updateCount} books${errorCount > 0 ? `, ${errorCount} failed` : ''}`,
-      severity: errorCount > 0 ? 'warning' : 'success'
-    });
   };
 
-  const handleCancelDescriptionResults = () => {
-    setShowDescriptionResults(false);
-    setDescriptionLookupResults([]);
-  };
-
-  // Genre lookup functions
-  const handleFillMissingGenres = async () => {
-    const booksWithoutGenres = getBooksWithoutGenres();
-    if (booksWithoutGenres.length === 0) {
-      setSnackbar({
-        open: true,
-        message: 'All books already have genres assigned!',
-        severity: 'info'
-      });
+  // Refresh All: fetch metadata for all books, show diff review before applying
+  const handleRefreshAll = async () => {
+    if (books.length === 0) {
+      setSnackbar({ open: true, message: 'No books to refresh', severity: 'info' });
       return;
     }
 
-    // Validate provider configuration
     const configValidation = validateProviderConfig(settings);
     if (!configValidation.valid) {
-      setSnackbar({
-        open: true,
-        message: configValidation.error,
-        severity: 'error'
-      });
+      setSnackbar({ open: true, message: configValidation.error, severity: 'error' });
       return;
     }
 
     const providerName = getProviderDisplayName(settings);
-    
-    // Check provider availability first with a quick timeout
-    setSnackbar({
-      open: true,
-      message: `Checking ${providerName} availability...`,
-      severity: 'info'
-    });
-    
     const isAvailable = await checkAvailability(settings, 3000);
     if (!isAvailable) {
-      setSnackbar({
-        open: true,
-        message: `${providerName} is currently unavailable. Please try again later.`,
-        severity: 'error'
-      });
+      setSnackbar({ open: true, message: `${providerName} is currently unavailable. Please try again later.`, severity: 'error' });
       return;
     }
 
-    setIsLookingUpGenres(true);
-    setGenreLookupProgress({ current: 0, total: booksWithoutGenres.length, book: '' });
-    setGenreLookupResults([]);
+    setIsRefreshing(true);
+    setRefreshProgress({ current: 0, total: books.length, book: '' });
 
     try {
-      const results = await batchFindMissingGenres(booksWithoutGenres, settings, (progress) => {
-        setGenreLookupProgress(progress);
+      const results = await batchFetchAllMetadata(books, settings, (progress) => {
+        setRefreshProgress(progress);
       });
 
-      setGenreLookupResults(results);
-      setIsLookingUpGenres(false);
-      setShowGenreResults(true);
+      // Build diff: compare fetched vs existing, only show changes
+      const diffs = [];
+      for (const result of results) {
+        const book = result.book;
+        const changes = [];
 
-      const successCount = results.filter(r => r.success).length;
-      const totalCount = results.length;
+        // Author diff
+        const currentAuthor = (book.author || '').trim();
+        const newAuthor = (result.foundAuthor || '').trim();
+        if (newAuthor && newAuthor.toLowerCase() !== currentAuthor.toLowerCase()) {
+          changes.push({ field: 'author', oldValue: currentAuthor || '(empty)', newValue: newAuthor, checked: true });
+        }
 
-      setSnackbar({
-        open: true,
-        message: `Genre lookup completed: ${successCount}/${totalCount} genres found`,
-        severity: successCount > 0 ? 'success' : 'warning'
-      });
+        // Description diff
+        const currentDesc = (book.description || '').trim();
+        const newDesc = (result.foundDescription || '').trim();
+        if (newDesc && newDesc !== currentDesc) {
+          changes.push({ field: 'description', oldValue: currentDesc || '(empty)', newValue: newDesc, checked: true });
+        }
+
+        // Genres diff
+        const currentGenreIds = book.genreIds || [];
+        if (result.foundGenres && result.foundGenres.length > 0) {
+          const currentGenreNames = currentGenreIds
+            .map(id => genres.find(g => g.id === id)?.name?.toLowerCase())
+            .filter(Boolean);
+          const newGenreNames = result.foundGenres.map(g => g.toLowerCase());
+          const hasNewGenres = newGenreNames.some(g => !currentGenreNames.includes(g));
+          if (hasNewGenres) {
+            changes.push({
+              field: 'genres',
+              oldValue: currentGenreIds.length > 0
+                ? currentGenreIds.map(id => genres.find(g => g.id === id)?.name || 'Unknown').join(', ')
+                : '(none)',
+              newValue: result.foundGenres.join(', '),
+              newGenres: result.foundGenres,
+              checked: true
+            });
+          }
+        }
+
+        if (changes.length > 0) {
+          diffs.push({ book, changes });
+        }
+      }
+
+      setRefreshResults(diffs);
+      setIsRefreshing(false);
+      setShowRefreshReview(true);
+
+      if (diffs.length === 0) {
+        setSnackbar({ open: true, message: 'All books are already up to date!', severity: 'info' });
+      }
     } catch (error) {
-      setIsLookingUpGenres(false);
-      setSnackbar({
-        open: true,
-        message: `Genre lookup failed: ${error.message}`,
-        severity: 'error'
-      });
+      setIsRefreshing(false);
+      setSnackbar({ open: true, message: `Refresh failed: ${error.message}`, severity: 'error' });
     }
   };
 
-  const handleApplyGenreUpdates = async () => {
-    const resultsToApply = genreLookupResults.filter(r => r.success && r.foundGenres && r.foundGenres.length > 0);
-    
-    if (resultsToApply.length === 0) {
-      setSnackbar({
-        open: true,
-        message: 'No genres to update',
-        severity: 'info'
-      });
-      return;
-    }
-
+  const handleApplyRefreshUpdates = async () => {
     let updateCount = 0;
     let errorCount = 0;
-    let genresCreated = 0;
 
-    // First, ensure all found genres exist in the system
-    const allFoundGenres = new Set();
-    for (const result of resultsToApply) {
-      for (const genreName of result.foundGenres) {
-        allFoundGenres.add(genreName);
-      }
-    }
-
-    // Create a map of genre name to ID
+    // Build genre name -> ID map
     const genreNameToId = {};
     for (const genre of genres) {
       genreNameToId[genre.name.toLowerCase()] = genre.id;
     }
 
-    // Create any missing genres
-    for (const genreName of allFoundGenres) {
-      if (!genreNameToId[genreName.toLowerCase()]) {
-        try {
-          const response = await fetchWithAuth('/api/genres', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: genreName }),
-          });
+    for (const diff of refreshResults) {
+      const checkedChanges = diff.changes.filter(c => c.checked);
+      if (checkedChanges.length === 0) continue;
 
-          if (response.ok) {
-            const newGenre = await response.json();
-            genreNameToId[genreName.toLowerCase()] = newGenre.id;
-            genresCreated++;
+      const updates = { ...diff.book };
+
+      for (const change of checkedChanges) {
+        if (change.field === 'author') {
+          updates.author = change.newValue;
+        } else if (change.field === 'description') {
+          updates.description = change.newValue;
+        } else if (change.field === 'genres' && change.newGenres) {
+          // Create missing genres
+          for (const genreName of change.newGenres) {
+            if (!genreNameToId[genreName.toLowerCase()]) {
+              try {
+                const response = await fetchWithAuth('/api/genres', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ name: genreName }),
+                });
+                if (response.ok) {
+                  const newGenre = await response.json();
+                  genreNameToId[genreName.toLowerCase()] = newGenre.id;
+                }
+              } catch (e) { /* continue */ }
+            }
           }
-        } catch (error) {
-          // Genre creation failed, continue with others
+          const genreIds = change.newGenres
+            .map(name => genreNameToId[name.toLowerCase()])
+            .filter(Boolean);
+          if (genreIds.length > 0) {
+            updates.genreIds = genreIds;
+          }
         }
       }
-    }
 
-    // Now update books with genre IDs
-    for (const result of resultsToApply) {
       try {
-        const genreIds = result.foundGenres
-          .map(name => genreNameToId[name.toLowerCase()])
-          .filter(id => id); // Filter out any undefined IDs
-
-        if (genreIds.length === 0) continue;
-
-        const response = await fetchWithAuth(`/api/books/${result.book.id}`, {
+        const response = await fetchWithAuth(`/api/books/${diff.book.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...result.book,
-            genreIds: genreIds
-          }),
+          body: JSON.stringify(updates),
         });
-
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
-        }
-
-        updateCount++;
-      } catch (error) {
+        if (response.ok) updateCount++;
+        else errorCount++;
+      } catch (e) {
         errorCount++;
       }
     }
 
     await reloadDataFromServer();
-    setShowGenreResults(false);
-    setGenreLookupResults([]);
-
-    let message = `Updated ${updateCount} books`;
-    if (genresCreated > 0) {
-      message += `, created ${genresCreated} new genres`;
-    }
-    if (errorCount > 0) {
-      message += `, ${errorCount} failed`;
-    }
+    setShowRefreshReview(false);
+    setRefreshResults([]);
 
     setSnackbar({
       open: true,
-      message,
+      message: `Applied changes to ${updateCount} books${errorCount > 0 ? `, ${errorCount} errors` : ''}`,
       severity: errorCount > 0 ? 'warning' : 'success'
     });
   };
 
-  const handleCancelGenreResults = () => {
-    setShowGenreResults(false);
-    setGenreLookupResults([]);
+  const handleToggleRefreshChange = (bookIndex, changeIndex) => {
+    setRefreshResults(prev => prev.map((diff, bi) => {
+      if (bi !== bookIndex) return diff;
+      return {
+        ...diff,
+        changes: diff.changes.map((change, ci) => {
+          if (ci !== changeIndex) return change;
+          return { ...change, checked: !change.checked };
+        })
+      };
+    }));
   };
 
   // Duplicate detection helper function
@@ -1241,66 +1051,28 @@ const BookManager = () => {
 
             {/* Action Buttons */}
             <Box sx={{ display: 'flex', gap: 1, flex: '0 0 auto', alignItems: 'center', alignSelf: 'flex-end' }}>
-              {/* Fill Info Button with Menu */}
+              {/* Fill Missing Button */}
               <Button
                 variant="outlined"
                 color="secondary"
-                startIcon={<AutoFixHighIcon />}
-                onClick={(e) => setAiFillMenuAnchor(e.currentTarget)}
-                disabled={books.length === 0}
+                startIcon={isFilling ? <CircularProgress size={16} /> : <AutoFixHighIcon />}
+                onClick={handleFillMissing}
+                disabled={books.length === 0 || isFilling || isRefreshing}
                 size="small"
               >
-                Fill Info
+                Fill Missing
               </Button>
-              <Menu
-                anchorEl={aiFillMenuAnchor}
-                open={Boolean(aiFillMenuAnchor)}
-                onClose={() => setAiFillMenuAnchor(null)}
+
+              {/* Refresh All Button */}
+              <Button
+                variant="outlined"
+                startIcon={isRefreshing ? <CircularProgress size={16} /> : <SyncIcon />}
+                onClick={handleRefreshAll}
+                disabled={books.length === 0 || isFilling || isRefreshing}
+                size="small"
               >
-                <MenuItem
-                  onClick={() => {
-                    setAiFillMenuAnchor(null);
-                    handleFillMissingAuthors();
-                  }}
-                  disabled={isLookingUpAuthors}
-                >
-                  <PersonSearchIcon fontSize="small" sx={{ mr: 1 }} />
-                  Fill Missing Authors ({getBooksWithoutAuthors().length})
-                </MenuItem>
-                <MenuItem
-                  onClick={() => {
-                    setAiFillMenuAnchor(null);
-                    handleFillMissingDescriptions();
-                  }}
-                  disabled={isLookingUpDescriptions}
-                >
-                  <DescriptionIcon fontSize="small" sx={{ mr: 1 }} />
-                  Fill Missing Descriptions ({getBooksWithoutDescriptions().length})
-                </MenuItem>
-                <MenuItem
-                  onClick={() => {
-                    setAiFillMenuAnchor(null);
-                    handleFillMissingGenres();
-                  }}
-                  disabled={isLookingUpGenres}
-                >
-                  <CategoryIcon fontSize="small" sx={{ mr: 1 }} />
-                  Fix Missing Genres ({getBooksWithoutGenres().length})
-                </MenuItem>
-                <Divider />
-                <Box sx={{ px: 2, py: 1 }}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        size="small"
-                        checked={includeUnknownAuthors}
-                        onChange={(e) => setIncludeUnknownAuthors(e.target.checked)}
-                      />
-                    }
-                    label={<Typography variant="caption">Include 'Unknown' authors</Typography>}
-                  />
-                </Box>
-              </Menu>
+                Refresh All
+              </Button>
 
               {/* Scan ISBN Button */}
               <Button
@@ -1375,54 +1147,21 @@ const BookManager = () => {
         </Paper>
       </Box>
 
-      {/* Author Lookup Progress */}
-      {isLookingUpAuthors && (
+      {/* Metadata Lookup Progress */}
+      {(isFilling || isRefreshing) && (
         <Box sx={{ mt: 2 }}>
           <Typography variant="body2" gutterBottom>
-            Looking up authors: {authorLookupProgress.current}/{authorLookupProgress.total}
+            {isFilling ? 'Filling missing data' : 'Refreshing all books'}: {(isFilling ? fillProgress : refreshProgress).current}/{(isFilling ? fillProgress : refreshProgress).total}
           </Typography>
           <Typography variant="body2" color="text.secondary" gutterBottom>
-            Current: {authorLookupProgress.book}
+            Current: {(isFilling ? fillProgress : refreshProgress).book}
           </Typography>
           <LinearProgress
             variant="determinate"
-            value={(authorLookupProgress.current / authorLookupProgress.total) * 100}
-            sx={{ mb: 1 }}
-          />
-        </Box>
-      )}
-
-      {/* Description Lookup Progress */}
-      {isLookingUpDescriptions && (
-        <Box sx={{ mt: 2 }}>
-          <Typography variant="body2" gutterBottom>
-            Looking up descriptions: {descriptionLookupProgress.current}/{descriptionLookupProgress.total}
-          </Typography>
-          <Typography variant="body2" color="text.secondary" gutterBottom>
-            Current: {descriptionLookupProgress.book}
-          </Typography>
-          <LinearProgress
-            variant="determinate"
-            value={(descriptionLookupProgress.current / descriptionLookupProgress.total) * 100}
-            color="info"
-            sx={{ mb: 1 }}
-          />
-        </Box>
-      )}
-
-      {/* Genre Lookup Progress */}
-      {isLookingUpGenres && (
-        <Box sx={{ mt: 2 }}>
-          <Typography variant="body2" gutterBottom>
-            Looking up genres: {genreLookupProgress.current}/{genreLookupProgress.total}
-          </Typography>
-          <Typography variant="body2" color="text.secondary" gutterBottom>
-            Current: {genreLookupProgress.book}
-          </Typography>
-          <LinearProgress
-            variant="determinate"
-            value={(genreLookupProgress.current / genreLookupProgress.total) * 100}
-            color="warning"
+            value={(() => {
+              const p = isFilling ? fillProgress : refreshProgress;
+              return p.total > 0 ? (p.current / p.total) * 100 : 0;
+            })()}
             sx={{ mb: 1 }}
           />
         </Box>
@@ -1905,299 +1644,97 @@ const BookManager = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Author Lookup Results Dialog */}
-      <Dialog open={showAuthorResults} onClose={handleCancelAuthorResults} fullWidth maxWidth="md">
-        <DialogTitle>Author Lookup Results</DialogTitle>
+      {/* Refresh All Review Dialog */}
+      <Dialog open={showRefreshReview} onClose={() => { setShowRefreshReview(false); setRefreshResults([]); }} fullWidth maxWidth="md">
+        <DialogTitle>Review Proposed Changes</DialogTitle>
         <DialogContent>
           <DialogContentText sx={{ mb: 2 }}>
-            Found authors for {authorLookupResults.filter(r => r.success).length} out of {authorLookupResults.length} books.
-            Click "Apply Updates" to save the found authors to your books.
+            Found changes for {refreshResults.length} books. Toggle individual changes on/off, then click Apply.
           </DialogContentText>
-          
-          <List>
-            {authorLookupResults.map((result, index) => (
-                          <ListItem key={index} divider alignItems="flex-start">
-                            <ListItemText
-                              primary={
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                                  <Typography variant="subtitle2">{result.book.title}</Typography>
-                                  {result.success ? (
-                                    <Chip label="Suggestions found" color="success" size="small" />
-                                  ) : (
-                                    <Chip label="No suggestions" color="error" size="small" />
-                                  )}
-                                </Box>
-                              }
-                              secondary={
-                                <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                                  {Array.isArray(result.candidates) && result.candidates.length > 0 ? (
-                                    <>
-                                      <Typography variant="body2" color="text.secondary">
-                                        Select an author or enter manually:
-                                      </Typography>
-                                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                                        {result.candidates.map((candidate, cIndex) => (
-                                          <Box
-                                            key={cIndex}
-                                            sx={{
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              gap: 1
-                                            }}
-                                          >
-                                            {candidate.coverUrl && (
-                                              <img
-                                                src={candidate.coverUrl}
-                                                alt={candidate.sourceTitle || result.book.title}
-                                                style={{
-                                                  width: 56,
-                                                  height: 84,
-                                                  objectFit: 'cover',
-                                                  borderRadius: 4,
-                                                  boxShadow: '0 1px 4px rgba(0,0,0,0.35)'
-                                                }}
-                                              />
-                                            )}
-                                            <Chip
-                                              label={`${candidate.name}${
-                                                candidate.sourceTitle ? ` (${candidate.sourceTitle})` : ''
-                                              }`}
-                                              variant={
-                                                (result.chosenAuthor || result.foundAuthor) === candidate.name
-                                                  ? 'filled'
-                                                  : 'outlined'
-                                              }
-                                              color={
-                                                (result.chosenAuthor || result.foundAuthor) === candidate.name
-                                                  ? 'primary'
-                                                  : 'default'
-                                              }
-                                              size="small"
-                                              onClick={() => {
-                                                setAuthorLookupResults(prev =>
-                                                  prev.map((r, i) =>
-                                                    i === index
-                                                      ? { ...r, chosenAuthor: candidate.name }
-                                                      : r
-                                                  )
-                                                );
-                                              }}
-                                            />
-                                          </Box>
-                                        ))}
-                                      </Box>
-                                    </>
-                                  ) : result.success && result.foundAuthor ? (
-                                    <Typography variant="body2" color="text.secondary">
-                                      Suggested author: {result.foundAuthor}
-                                    </Typography>
-                                  ) : (
-                                    <Typography variant="body2" color="error">
-                                      {result.error || 'No matching author candidates found'}
-                                    </Typography>
-                                  )}
-            
-                                  {/* Manual override input */}
-                                  <Box sx={{ mt: 1, maxWidth: 360, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                                    <Typography variant="caption" color="text.secondary">
-                                      Or type an author name, or choose "Unknown":
-                                    </Typography>
-                                    <input
-                                      type="text"
-                                      value={result.chosenAuthor ?? result.foundAuthor ?? result.book.author ?? ''}
-                                      onChange={(e) => {
-                                        const value = e.target.value;
-                                        setAuthorLookupResults(prev =>
-                                          prev.map((r, i) =>
-                                            i === index
-                                              ? { ...r, chosenAuthor: value }
-                                              : r
-                                          )
-                                        );
-                                      }}
-                                      style={{
-                                        width: '100%',
-                                        padding: '6px 8px',
-                                        fontSize: '0.8125rem',
-                                        borderRadius: 4,
-                                        border: '1px solid rgba(0,0,0,0.23)'
-                                      }}
-                                    />
-                                    <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
-                                      <Chip
-                                        label="Set as Unknown"
-                                        variant={(result.chosenAuthor || '').trim().toLowerCase() === 'unknown' ? 'filled' : 'outlined'}
-                                        size="small"
-                                        onClick={() => {
-                                          setAuthorLookupResults(prev =>
-                                            prev.map((r, i) =>
-                                              i === index
-                                                ? { ...r, chosenAuthor: 'Unknown' }
-                                                : r
-                                            )
-                                          );
-                                        }}
-                                      />
-                                      <Chip
-                                        label="Clear selection"
-                                        variant={!(result.chosenAuthor || '').trim() ? 'filled' : 'outlined'}
-                                        size="small"
-                                        onClick={() => {
-                                          setAuthorLookupResults(prev =>
-                                            prev.map((r, i) =>
-                                              i === index
-                                                ? { ...r, chosenAuthor: '' }
-                                                : r
-                                            )
-                                          );
-                                        }}
-                                      />
-                                    </Box>
-                                  </Box>
-                                </Box>
-                              }
-                            />
-                          </ListItem>
-                        ))}
-          </List>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCancelAuthorResults}>Cancel</Button>
-          <Button
-            onClick={handleApplyAuthorUpdates}
-            variant="contained"
-            color="primary"
-            disabled={authorLookupResults.filter(r => r.success).length === 0}
-          >
-            Apply Updates ({authorLookupResults.filter(r => r.success).length})
-          </Button>
-        </DialogActions>
-      </Dialog>
 
-      {/* Description Lookup Results Dialog */}
-      <Dialog open={showDescriptionResults} onClose={handleCancelDescriptionResults} fullWidth maxWidth="md">
-        <DialogTitle>Description Lookup Results</DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ mb: 2 }}>
-            Found descriptions for {descriptionLookupResults.filter(r => r.success).length} out of {descriptionLookupResults.length} books.
-            Click "Apply Updates" to save the found descriptions to your books.
-          </DialogContentText>
-          
-          <List>
-            {descriptionLookupResults.map((result, index) => (
-              <ListItem key={index} divider alignItems="flex-start">
-                <ListItemText
-                  primary={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                      <Typography variant="subtitle2">{result.book.title}</Typography>
-                      {result.book.author && (
-                        <Chip label={`by ${result.book.author}`} size="small" variant="outlined" />
-                      )}
-                      {result.success ? (
-                        <Chip label="Description found" color="success" size="small" />
-                      ) : (
-                        <Chip label="No description" color="error" size="small" />
+          {refreshResults.length === 0 ? (
+            <Typography color="text.secondary">No changes found — all books are up to date.</Typography>
+          ) : (
+            <List>
+              {refreshResults.map((diff, bookIndex) => (
+                <ListItem key={diff.book.id} divider alignItems="flex-start" sx={{ flexDirection: 'column', alignItems: 'stretch' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <BookCover title={diff.book.title} author={diff.book.author} width={36} height={50} />
+                    <Box>
+                      <Typography variant="subtitle2">{diff.book.title}</Typography>
+                      {diff.book.author && (
+                        <Typography variant="caption" color="text.secondary">by {diff.book.author}</Typography>
                       )}
                     </Box>
-                  }
-                  secondary={
-                    <Box sx={{ mt: 1 }}>
-                      {result.foundDescription ? (
-                        <Typography variant="body2" color="text.secondary" sx={{
-                          maxHeight: 100,
-                          overflow: 'auto',
-                          backgroundColor: 'action.hover',
-                          p: 1,
-                          borderRadius: 1
-                        }}>
-                          {result.foundDescription}
+                  </Box>
+                  {diff.changes.map((change, changeIndex) => (
+                    <Box
+                      key={change.field}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: 1,
+                        ml: 2,
+                        mb: 0.5,
+                        opacity: change.checked ? 1 : 0.5,
+                        cursor: 'pointer',
+                      }}
+                      onClick={() => handleToggleRefreshChange(bookIndex, changeIndex)}
+                    >
+                      <Checkbox
+                        size="small"
+                        checked={change.checked}
+                        sx={{ p: 0.25 }}
+                      />
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
+                          {change.field}
                         </Typography>
-                      ) : (
-                        <Typography variant="body2" color="error">
-                          {result.error || 'No description found for this book'}
-                        </Typography>
-                      )}
-                    </Box>
-                  }
-                />
-              </ListItem>
-            ))}
-          </List>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCancelDescriptionResults}>Cancel</Button>
-          <Button
-            onClick={handleApplyDescriptionUpdates}
-            variant="contained"
-            color="primary"
-            disabled={descriptionLookupResults.filter(r => r.success).length === 0}
-          >
-            Apply Updates ({descriptionLookupResults.filter(r => r.success).length})
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Genre Lookup Results Dialog */}
-      <Dialog open={showGenreResults} onClose={handleCancelGenreResults} fullWidth maxWidth="md">
-        <DialogTitle>Genre Lookup Results</DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ mb: 2 }}>
-            Found genres for {genreLookupResults.filter(r => r.success).length} out of {genreLookupResults.length} books.
-            Click "Apply Updates" to save the found genres to your books. New genres will be created automatically.
-          </DialogContentText>
-          
-          <List>
-            {genreLookupResults.map((result, index) => (
-              <ListItem key={index} divider alignItems="flex-start">
-                <ListItemText
-                  primary={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                      <Typography variant="subtitle2">{result.book.title}</Typography>
-                      {result.book.author && (
-                        <Chip label={`by ${result.book.author}`} size="small" variant="outlined" />
-                      )}
-                      {result.success ? (
-                        <Chip label={`${result.foundGenres?.length || 0} genres found`} color="success" size="small" />
-                      ) : (
-                        <Chip label="No genres" color="error" size="small" />
-                      )}
-                    </Box>
-                  }
-                  secondary={
-                    <Box sx={{ mt: 1 }}>
-                      {result.foundGenres && result.foundGenres.length > 0 ? (
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                          {result.foundGenres.map((genre, gIndex) => (
-                            <Chip
-                              key={gIndex}
-                              label={genre}
-                              size="small"
-                              color="warning"
-                              variant="outlined"
-                            />
-                          ))}
+                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              textDecoration: 'line-through',
+                              color: 'error.main',
+                              maxWidth: '45%',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: change.field === 'description' ? 'normal' : 'nowrap',
+                            }}
+                          >
+                            {change.oldValue}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">{'\u2192'}</Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: 'success.main',
+                              maxWidth: '45%',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: change.field === 'description' ? 'normal' : 'nowrap',
+                            }}
+                          >
+                            {change.newValue}
+                          </Typography>
                         </Box>
-                      ) : (
-                        <Typography variant="body2" color="error">
-                          {result.error || 'No genres found for this book'}
-                        </Typography>
-                      )}
+                      </Box>
                     </Box>
-                  }
-                />
-              </ListItem>
-            ))}
-          </List>
+                  ))}
+                </ListItem>
+              ))}
+            </List>
+          )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCancelGenreResults}>Cancel</Button>
+          <Button onClick={() => { setShowRefreshReview(false); setRefreshResults([]); }}>Cancel</Button>
           <Button
-            onClick={handleApplyGenreUpdates}
+            onClick={handleApplyRefreshUpdates}
             variant="contained"
-            color="warning"
-            disabled={genreLookupResults.filter(r => r.success && r.foundGenres?.length > 0).length === 0}
+            color="primary"
+            disabled={refreshResults.every(d => d.changes.every(c => !c.checked))}
           >
-            Apply Updates ({genreLookupResults.filter(r => r.success && r.foundGenres?.length > 0).length})
+            Apply Selected Changes ({refreshResults.reduce((sum, d) => sum + d.changes.filter(c => c.checked).length, 0)})
           </Button>
         </DialogActions>
       </Dialog>
