@@ -39,7 +39,7 @@ export default defineConfig({
   tools: {
     htmlPlugin: (config) => {
       // Override the title with the one from the template
-      config.title = 'Kids Reading Manager';
+      config.title = 'Tally Reading';
       // Ensure the template is used as-is
       config.templateContent = undefined;
       return config;

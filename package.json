@@ -1,7 +1,7 @@
 {
-  "name": "kids-reading-manager-cloudflare",
+  "name": "tally-reading",
   "version": "3.0.0",
-  "description": "Cloudflare Workers implementation of Kids Reading Manager API",
+  "description": "Cloudflare Workers implementation of Tally Reading API",
   "main": "src/index.js",
   "scripts": {
     "start": "rsbuild dev",

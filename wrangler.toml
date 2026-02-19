@@ -17,7 +17,8 @@ send_email = [
 
 # Route configuration for custom domain
 routes = [
-  { pattern = "reading.brisflix.com/*", zone_name = "brisflix.com" }
+  { pattern = "reading.brisflix.com/*", zone_name = "brisflix.com" },
+  { pattern = "tallyreading.uk/*", zone_name = "tallyreading.uk" }
 ]
 
 # D1 Database for storing books (scalable SQL storage for large book collections)
@@ -40,7 +41,7 @@ not_found_handling = "single-page-application"
 [vars]
 ENVIRONMENT = "production"
 STORAGE_TYPE = "kv"
-ALLOWED_ORIGINS = "https://kids-reading-manager.brisflix.workers.dev/,https://reading.brisflix.com"
+ALLOWED_ORIGINS = "https://kids-reading-manager.brisflix.workers.dev/,https://reading.brisflix.com,https://tallyreading.uk"
 EMAIL_FROM = "noreply@brisflix.com"
 
 [observability.logs]
