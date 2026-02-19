@@ -535,7 +535,7 @@ const Login = () => {
         </Box>
 
         <Typography variant="h4" sx={{ mb: 1, fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#4A4A4A' }}>
-          Kids Reading Manager
+          Tally Reading
         </Typography>
 
         <Typography variant="body1" sx={{ mb: 4, color: '#7A7A7A' }}>

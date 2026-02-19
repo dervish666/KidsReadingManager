@@ -35,7 +35,7 @@ export async function checkOpenLibraryAvailability(timeout = 3000) {
       method: 'GET',
       signal: controller.signal,
       headers: {
-        'User-Agent': 'KidsReadingManager/1.0 (educational-app)'
+        'User-Agent': 'TallyReading/1.0 (educational-app)'
       }
     });
     
@@ -95,7 +95,7 @@ export async function searchBooksByTitle(title, limit = 5) {
 
     const response = await fetch(`${SEARCH_API_URL}?${searchParams}`, {
       headers: {
-        'User-Agent': 'KidsReadingManager/1.0 (educational-app)'
+        'User-Agent': 'TallyReading/1.0 (educational-app)'
       }
     });
 
@@ -432,7 +432,7 @@ export async function getBookDetails(title, author = null) {
 
     const response = await fetch(`${SEARCH_API_URL}?${searchParams}`, {
       headers: {
-        'User-Agent': 'KidsReadingManager/1.0 (educational-app)'
+        'User-Agent': 'TallyReading/1.0 (educational-app)'
       }
     });
 
@@ -462,7 +462,7 @@ export async function getBookDetails(title, author = null) {
       try {
         const workResponse = await fetch(`${OPENLIBRARY_BASE_URL}${workKey}.json`, {
           headers: {
-            'User-Agent': 'KidsReadingManager/1.0 (educational-app)'
+            'User-Agent': 'TallyReading/1.0 (educational-app)'
           }
         });
 
@@ -591,7 +591,7 @@ export async function findGenresForBook(title, author = null) {
 
     const response = await fetch(`${SEARCH_API_URL}?${searchParams}`, {
       headers: {
-        'User-Agent': 'KidsReadingManager/1.0 (educational-app)'
+        'User-Agent': 'TallyReading/1.0 (educational-app)'
       }
     });
 

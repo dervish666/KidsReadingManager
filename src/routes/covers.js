@@ -64,7 +64,7 @@ coversRouter.get('/:type/:key', async (c) => {
   let originResponse;
   try {
     originResponse = await fetch(originUrl, {
-      headers: { 'User-Agent': 'KidsReadingManager/1.0 (educational-app)' }
+      headers: { 'User-Agent': 'TallyReading/1.0 (educational-app)' }
     });
   } catch (err) {
     console.error('Origin fetch error:', err);

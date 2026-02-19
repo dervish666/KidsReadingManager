@@ -1,5 +1,5 @@
 /**
- * Kids Reading Manager - Cloudflare Worker
+ * Tally Reading - Cloudflare Worker
  *
  * This file serves both the API and frontend from a single Worker.
  * - API requests (/api/*) are handled by Hono routes
@@ -204,7 +204,7 @@ app.route('/api/covers', coversRouter);
 app.get('/api/health', (c) => {
   return c.json({
     status: 'ok',
-    message: 'Kids Reading Manager API is running',
+    message: 'Tally Reading API is running',
     version: '2.0.0',
     environment: c.env.ENVIRONMENT || 'unknown',
     features: {

@@ -111,7 +111,7 @@ const Header = () => {
               letterSpacing: '-0.025em',
             }}
           >
-            Kids Reading Manager
+            Tally Reading
           </Typography>
           
           {/* Global Class Filter Dropdown */}
