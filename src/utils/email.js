@@ -32,10 +32,10 @@ function escapeHtml(str) {
 export async function sendPasswordResetEmail(env, recipientEmail, recipientName, resetToken, baseUrl) {
   const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
 
-  const subject = 'Reset your Kids Reading Manager password';
+  const subject = 'Reset your Tally Reading password';
   const textBody = `Hi ${recipientName},
 
-You requested to reset your password for Kids Reading Manager.
+You requested to reset your password for Tally Reading.
 
 Click the link below to reset your password:
 ${resetUrl}
@@ -44,7 +44,7 @@ This link will expire in 1 hour.
 
 If you didn't request this, you can safely ignore this email.
 
-- The Kids Reading Manager Team`;
+- The Tally Reading Team`;
 
   const htmlBody = `
 <!DOCTYPE html>
@@ -55,13 +55,13 @@ If you didn't request this, you can safely ignore this email.
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 8px 8px 0 0;">
-    <h1 style="color: white; margin: 0; font-size: 24px;">Kids Reading Manager</h1>
+    <h1 style="color: white; margin: 0; font-size: 24px;">Tally Reading</h1>
   </div>
 
   <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
     <p style="font-size: 16px;">Hi <strong>${escapeHtml(recipientName)}</strong>,</p>
 
-    <p>You requested to reset your password for Kids Reading Manager.</p>
+    <p>You requested to reset your password for Tally Reading.</p>
 
     <p>Click the button below to reset your password:</p>
 
@@ -194,10 +194,10 @@ async function sendWithCloudflareEmail(emailBinding, from, to, subject, text, ht
 export async function sendWelcomeEmail(env, recipientEmail, recipientName, organizationName, temporaryPassword, baseUrl) {
   const loginUrl = `${baseUrl}/login`;
 
-  const subject = `Welcome to Kids Reading Manager - ${organizationName}`;
+  const subject = `Welcome to Tally Reading - ${organizationName}`;
   const textBody = `Hi ${recipientName},
 
-Welcome to Kids Reading Manager!
+Welcome to Tally Reading!
 
 You've been added to the ${organizationName} organization.
 
@@ -208,7 +208,7 @@ Temporary Password: ${temporaryPassword}
 Please log in and change your password immediately:
 ${loginUrl}
 
-- The Kids Reading Manager Team`;
+- The Tally Reading Team`;
 
   const htmlBody = `
 <!DOCTYPE html>
@@ -219,13 +219,13 @@ ${loginUrl}
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 8px 8px 0 0;">
-    <h1 style="color: white; margin: 0; font-size: 24px;">Kids Reading Manager</h1>
+    <h1 style="color: white; margin: 0; font-size: 24px;">Tally Reading</h1>
   </div>
 
   <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
     <p style="font-size: 16px;">Hi <strong>${escapeHtml(recipientName)}</strong>,</p>
 
-    <p>Welcome to Kids Reading Manager! You've been added to the <strong>${escapeHtml(organizationName)}</strong> organization.</p>
+    <p>Welcome to Tally Reading! You've been added to the <strong>${escapeHtml(organizationName)}</strong> organization.</p>
 
     <div style="background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 20px; margin: 20px 0;">
       <p style="margin: 0 0 10px 0;"><strong>Your login credentials:</strong></p>
