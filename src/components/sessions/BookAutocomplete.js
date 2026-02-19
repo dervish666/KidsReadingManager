@@ -1,10 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Autocomplete,
-  TextField
+  TextField,
+  IconButton,
+  InputAdornment
 } from '@mui/material';
+import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import { useAppContext } from '../../contexts/AppContext';
 import AddBookModal from '../books/AddBookModal';
+import ScanBookFlow from '../books/ScanBookFlow';
 
 const BookAutocomplete = ({
   value,
@@ -21,6 +25,7 @@ const BookAutocomplete = ({
   const [isCreating, setIsCreating] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [pendingTitleForModal, setPendingTitleForModal] = useState('');
+  const [scanOpen, setScanOpen] = useState(false);
 
   // Sync internal selectedBook with external value
   useEffect(() => {
@@ -225,6 +230,23 @@ const BookAutocomplete = ({
                 : placeholder
             }
             fullWidth
+            InputProps={{
+              ...params.InputProps,
+              endAdornment: (
+                <>
+                  {params.InputProps.endAdornment}
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setScanOpen(true)}
+                      size="small"
+                      title="Scan ISBN barcode"
+                    >
+                      <QrCodeScannerIcon />
+                    </IconButton>
+                  </InputAdornment>
+                </>
+              ),
+            }}
             helperText={
               isCreating
                 ? 'Creating new book...'
@@ -288,6 +310,18 @@ const BookAutocomplete = ({
         initialTitle={pendingTitleForModal}
         onClose={handleModalClose}
         onBookCreated={handleModalBookCreated}
+      />
+
+      <ScanBookFlow
+        open={scanOpen}
+        onClose={() => setScanOpen(false)}
+        onBookSelected={(book) => {
+          setScanOpen(false);
+          setSelectedBook(book);
+          setInputValue(`${book.title}${book.author ? ` by ${book.author}` : ''}`);
+          if (onChange) onChange(book);
+          if (onBookCreated) onBookCreated(book);
+        }}
       />
     </>
   );
