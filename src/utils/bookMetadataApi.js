@@ -303,3 +303,66 @@ export function validateProviderConfig(settings) {
   
   return { valid: true, error: null };
 }
+
+/**
+ * Batch fetch all metadata (author, description, genres) for a list of books.
+ * Makes one lookup pass per book, calling getBookDetails + findAuthorForBook + findGenresForBook.
+ * @param {Array} books - Array of book objects
+ * @param {Object} settings - Application settings object
+ * @param {Function} onProgress - Optional progress callback ({current, total, book})
+ * @returns {Promise<Array>} Array of {book, foundAuthor, foundDescription, foundGenres, error}
+ */
+export async function batchFetchAllMetadata(books, settings, onProgress = null) {
+  if (!books || books.length === 0) return [];
+
+  const results = [];
+
+  for (let i = 0; i < books.length; i++) {
+    const book = books[i];
+
+    try {
+      // Small delay to be respectful to the API
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+      // Fetch all metadata in parallel for this book
+      const [authorResult, detailsResult, genresResult] = await Promise.allSettled([
+        findAuthorForBook(book.title, settings),
+        getBookDetails(book.title, book.author || null, settings),
+        findGenresForBook(book.title, book.author || null, settings),
+      ]);
+
+      const foundAuthor = authorResult.status === 'fulfilled' ? authorResult.value : null;
+      const details = detailsResult.status === 'fulfilled' ? detailsResult.value : null;
+      const foundGenres = genresResult.status === 'fulfilled' ? genresResult.value : null;
+
+      results.push({
+        book,
+        foundAuthor: foundAuthor || null,
+        foundDescription: details?.description || null,
+        foundGenres: foundGenres || null,
+      });
+    } catch (error) {
+      results.push({
+        book,
+        foundAuthor: null,
+        foundDescription: null,
+        foundGenres: null,
+        error: error.message,
+      });
+    }
+
+    if (onProgress) {
+      const last = results[results.length - 1];
+      onProgress({
+        ...last,
+        current: i + 1,
+        total: books.length,
+        book: book.title,
+      });
+    }
+  }
+
+  return results;
+}
