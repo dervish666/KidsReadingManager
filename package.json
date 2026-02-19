@@ -33,7 +33,7 @@
     "dotenv": "^17.2.2",
     "express": "^4.21.2",
     "hono": "^4.7.7",
-    "qr-scanner": "^1.4.2",
+    "html5-qrcode": "^2.3.8",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "uuid": "11.1.0"

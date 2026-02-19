@@ -12,9 +12,14 @@ import {
 import { useAppContext } from '../../contexts/AppContext';
 
 const AddBookModal = ({ open, initialTitle = '', onClose, onBookCreated }) => {
-  const { findOrCreateBook } = useAppContext();
+  const { findOrCreateBook, fetchWithAuth } = useAppContext();
   const [title, setTitle] = useState(initialTitle || '');
   const [author, setAuthor] = useState('');
+  const [isbn, setIsbn] = useState('');
+  const [pageCount, setPageCount] = useState('');
+  const [seriesName, setSeriesName] = useState('');
+  const [seriesNumber, setSeriesNumber] = useState('');
+  const [publicationYear, setPublicationYear] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -23,6 +28,11 @@ const AddBookModal = ({ open, initialTitle = '', onClose, onBookCreated }) => {
     if (open) {
       setTitle(initialTitle || '');
       setAuthor('');
+      setIsbn('');
+      setPageCount('');
+      setSeriesName('');
+      setSeriesNumber('');
+      setPublicationYear('');
       setError('');
       setIsSubmitting(false);
     }
@@ -43,6 +53,23 @@ const AddBookModal = ({ open, initialTitle = '', onClose, onBookCreated }) => {
 
       if (!book || !book.id) {
         throw new Error('Book creation failed');
+      }
+
+      // If additional metadata was provided, update the book
+      const hasMetadata = isbn.trim() || pageCount || seriesName.trim() || seriesNumber || publicationYear;
+      if (hasMetadata) {
+        const updateData = {};
+        if (isbn.trim()) updateData.isbn = isbn.trim();
+        if (pageCount) updateData.pageCount = parseInt(pageCount, 10);
+        if (seriesName.trim()) updateData.seriesName = seriesName.trim();
+        if (seriesNumber) updateData.seriesNumber = parseInt(seriesNumber, 10);
+        if (publicationYear) updateData.publicationYear = parseInt(publicationYear, 10);
+
+        await fetchWithAuth(`/api/books/${book.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updateData)
+        });
       }
 
       if (onBookCreated) {
@@ -87,6 +114,54 @@ const AddBookModal = ({ open, initialTitle = '', onClose, onBookCreated }) => {
             onChange={(e) => setAuthor(e.target.value)}
             disabled={isSubmitting}
           />
+          <TextField
+            label="ISBN (Optional)"
+            fullWidth
+            margin="normal"
+            value={isbn}
+            onChange={(e) => setIsbn(e.target.value)}
+            disabled={isSubmitting}
+            placeholder="e.g., 978-0-14-103614-4"
+          />
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <TextField
+              label="Pages"
+              type="number"
+              margin="normal"
+              value={pageCount}
+              onChange={(e) => setPageCount(e.target.value)}
+              disabled={isSubmitting}
+              sx={{ flex: 1 }}
+            />
+            <TextField
+              label="Year"
+              type="number"
+              margin="normal"
+              value={publicationYear}
+              onChange={(e) => setPublicationYear(e.target.value)}
+              disabled={isSubmitting}
+              sx={{ flex: 1 }}
+            />
+          </Box>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <TextField
+              label="Series Name"
+              margin="normal"
+              value={seriesName}
+              onChange={(e) => setSeriesName(e.target.value)}
+              disabled={isSubmitting}
+              sx={{ flex: 2 }}
+            />
+            <TextField
+              label="#"
+              type="number"
+              margin="normal"
+              value={seriesNumber}
+              onChange={(e) => setSeriesNumber(e.target.value)}
+              disabled={isSubmitting}
+              sx={{ flex: 1 }}
+            />
+          </Box>
           {error && (
             <Typography variant="body2" color="error" sx={{ mt: 1 }}>
               {error}

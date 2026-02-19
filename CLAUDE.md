@@ -181,7 +181,7 @@ Cron trigger runs daily at 2:00 AM UTC to recalculate all student reading streak
 
 ### Adding a Database Migration
 
-1. Create `migrations/XXXX_description.sql` (next number after 0021)
+1. Create `migrations/XXXX_description.sql` (next number after 0022)
 2. Use `IF NOT EXISTS` for safety (migrations are forward-only, no down migrations)
 3. Test locally: `npx wrangler d1 migrations apply reading-manager-db --local`
 4. Deploy: `npx wrangler d1 migrations apply reading-manager-db --remote`

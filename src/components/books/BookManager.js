@@ -44,6 +44,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import ImportExportIcon from '@mui/icons-material/ImportExport';
+import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import { useAppContext } from '../../contexts/AppContext';
 import {
   batchFindMissingAuthors,
@@ -56,6 +57,7 @@ import {
   validateProviderConfig
 } from '../../utils/bookMetadataApi';
 import BookImportWizard from './BookImportWizard';
+import ScanBookFlow from './ScanBookFlow';
 import BookCover from '../BookCover';
 
 const BookManager = () => {
@@ -107,6 +109,7 @@ const BookManager = () => {
   const [importExportMenuAnchor, setImportExportMenuAnchor] = useState(null);
   const [aiFillMenuAnchor, setAiFillMenuAnchor] = useState(null);
   const [showImportWizard, setShowImportWizard] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   const handleAddBook = async (e) => {
     e.preventDefault();
@@ -1299,6 +1302,16 @@ const BookManager = () => {
                 </Box>
               </Menu>
 
+              {/* Scan ISBN Button */}
+              <Button
+                variant="outlined"
+                startIcon={<QrCodeScannerIcon />}
+                onClick={() => setScannerOpen(true)}
+                size="small"
+              >
+                Scan ISBN
+              </Button>
+
               {/* Import/Export Button with Menu */}
               <Button
                 variant="outlined"
@@ -2193,6 +2206,17 @@ const BookManager = () => {
       <BookImportWizard
         open={showImportWizard}
         onClose={() => setShowImportWizard(false)}
+      />
+
+      {/* ISBN Scanner Flow */}
+      <ScanBookFlow
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onBookSelected={(book) => {
+          setScannerOpen(false);
+          reloadDataFromServer();
+          setSnackbar({ open: true, message: `Added "${book.title}" to library`, severity: 'success' });
+        }}
       />
 
       {/* Snackbar for notifications */}

@@ -13,6 +13,8 @@ import { decryptSensitiveData, permissions } from '../utils/crypto.js';
 import { buildStudentReadingProfile } from '../utils/studentProfile.js';
 import { isExactMatch, isFuzzyMatch } from '../utils/stringMatching.js';
 import { getCachedRecommendations, cacheRecommendations } from '../utils/recommendationCache.js';
+import { normalizeISBN } from '../utils/isbn.js';
+import { lookupISBN } from '../utils/isbnLookup.js';
 
 // Import middleware
 import { requireReadonly, requireTeacher } from '../middleware/tenant.js';
@@ -55,7 +57,10 @@ booksRouter.get('/', requireReadonly(), async (c) => {
       return c.json((result.results || []).map(b => ({
         id: b.id, title: b.title, author: b.author,
         readingLevel: b.reading_level, ageRange: b.age_range,
-        genreIds: b.genre_ids ? JSON.parse(b.genre_ids) : [], description: b.description
+        genreIds: b.genre_ids ? JSON.parse(b.genre_ids) : [], description: b.description,
+        isbn: b.isbn, pageCount: b.page_count,
+        seriesName: b.series_name, seriesNumber: b.series_number,
+        publicationYear: b.publication_year,
       })));
     }
 
@@ -78,7 +83,10 @@ booksRouter.get('/', requireReadonly(), async (c) => {
         books: (result.results || []).map(b => ({
           id: b.id, title: b.title, author: b.author,
           readingLevel: b.reading_level, ageRange: b.age_range,
-          genreIds: b.genre_ids ? JSON.parse(b.genre_ids) : [], description: b.description
+          genreIds: b.genre_ids ? JSON.parse(b.genre_ids) : [], description: b.description,
+          isbn: b.isbn, pageCount: b.page_count,
+          seriesName: b.series_name, seriesNumber: b.series_number,
+          publicationYear: b.publication_year,
         })),
         total, page: pageNum, pageSize: size,
         totalPages: Math.ceil(total / size)
@@ -96,7 +104,10 @@ booksRouter.get('/', requireReadonly(), async (c) => {
     return c.json((result.results || []).map(b => ({
       id: b.id, title: b.title, author: b.author,
       readingLevel: b.reading_level, ageRange: b.age_range,
-      genreIds: b.genre_ids ? JSON.parse(b.genre_ids) : [], description: b.description
+      genreIds: b.genre_ids ? JSON.parse(b.genre_ids) : [], description: b.description,
+      isbn: b.isbn, pageCount: b.page_count,
+      seriesName: b.series_name, seriesNumber: b.series_number,
+      publicationYear: b.publication_year,
     })));
   }
 
@@ -148,7 +159,10 @@ booksRouter.get('/search', requireReadonly(), async (c) => {
     const books = (result.results || []).map(b => ({
       id: b.id, title: b.title, author: b.author,
       readingLevel: b.reading_level, ageRange: b.age_range,
-      genreIds: b.genre_ids ? JSON.parse(b.genre_ids) : [], description: b.description
+      genreIds: b.genre_ids ? JSON.parse(b.genre_ids) : [], description: b.description,
+      isbn: b.isbn, pageCount: b.page_count,
+      seriesName: b.series_name, seriesNumber: b.series_number,
+      publicationYear: b.publication_year,
     }));
     return c.json({ query: q.trim(), count: books.length, books });
   }
@@ -197,7 +211,8 @@ booksRouter.get('/library-search', requireReadonly(), async (c) => {
 
     // Build query to find matching books, scoped to organization
     let query = `
-      SELECT DISTINCT b.id, b.title, b.author, b.reading_level, b.age_range, b.genre_ids, b.description
+      SELECT DISTINCT b.id, b.title, b.author, b.reading_level, b.age_range, b.genre_ids, b.description,
+        b.isbn, b.page_count, b.series_name, b.series_number, b.publication_year
       FROM books b
       INNER JOIN org_book_selections obs ON b.id = obs.book_id AND obs.organization_id = ?
       WHERE 1=1
@@ -331,6 +346,11 @@ booksRouter.get('/library-search', requireReadonly(), async (c) => {
         readingLevel: book.reading_level,
         ageRange: book.age_range,
         description: book.description,
+        isbn: book.isbn,
+        pageCount: book.page_count,
+        seriesName: book.series_name,
+        seriesNumber: book.series_number,
+        publicationYear: book.publication_year,
         genres,
         matchReason
       };
@@ -570,12 +590,147 @@ booksRouter.post('/', requireTeacher(), async (c) => {
     genreIds: bookData.genreIds || [],
     readingLevel: bookData.readingLevel || null,
     ageRange: bookData.ageRange || null,
-    description: bookData.description || null
+    description: bookData.description || null,
+    isbn: bookData.isbn || null,
+    pageCount: bookData.pageCount || null,
+    seriesName: bookData.seriesName || null,
+    seriesNumber: bookData.seriesNumber || null,
+    publicationYear: bookData.publicationYear || null,
   };
 
   const provider = await createProvider(c.env);
   const savedBook = await provider.addBook(newBook);
   return c.json(savedBook, 201);
+});
+
+/**
+ * GET /api/books/isbn/:isbn
+ * Look up a book by ISBN — checks local D1 first, then OpenLibrary
+ *
+ * Requires authentication (at least teacher access)
+ */
+booksRouter.get('/isbn/:isbn', requireTeacher(), async (c) => {
+  const { isbn } = c.req.param();
+  const normalized = normalizeISBN(isbn);
+  if (!normalized) {
+    throw badRequestError('Invalid ISBN');
+  }
+
+  const organizationId = c.get('organizationId');
+  const db = c.env.READING_MANAGER_DB;
+
+  // Check local D1 database first
+  if (db) {
+    const row = await db.prepare('SELECT * FROM books WHERE isbn = ?').bind(normalized).first();
+    if (row) {
+      let inLibrary = false;
+      if (organizationId) {
+        const orgLink = await db.prepare(
+          'SELECT 1 FROM org_book_selections WHERE organization_id = ? AND book_id = ? AND is_available = 1'
+        ).bind(organizationId, row.id).first();
+        inLibrary = !!orgLink;
+      }
+      const book = {
+        id: row.id, title: row.title, author: row.author,
+        readingLevel: row.reading_level, ageRange: row.age_range,
+        genreIds: row.genre_ids ? JSON.parse(row.genre_ids) : [], description: row.description,
+        isbn: row.isbn, pageCount: row.page_count,
+        seriesName: row.series_name, seriesNumber: row.series_number,
+        publicationYear: row.publication_year,
+      };
+      return c.json({ source: 'local', inLibrary, book });
+    }
+  }
+
+  // Not found locally — try OpenLibrary
+  const olBook = await lookupISBN(normalized, c.env);
+  if (!olBook) {
+    return c.json({ source: 'not_found', isbn: normalized, book: null });
+  }
+
+  return c.json({ source: 'openlibrary', inLibrary: false, book: olBook });
+});
+
+/**
+ * POST /api/books/scan
+ * Scan a book by ISBN — link existing, preview, or create new
+ *
+ * Request body: { isbn, confirm }
+ * Requires authentication (at least teacher access)
+ */
+booksRouter.post('/scan', requireTeacher(), async (c) => {
+  const { isbn, confirm } = await c.req.json();
+  const normalized = normalizeISBN(isbn);
+  if (!normalized) {
+    throw badRequestError('Invalid ISBN');
+  }
+
+  const organizationId = c.get('organizationId');
+  const db = c.env.READING_MANAGER_DB;
+
+  // Check D1 for existing book by ISBN
+  let existingRow = null;
+  if (db) {
+    existingRow = await db.prepare('SELECT * FROM books WHERE isbn = ?').bind(normalized).first();
+  }
+
+  if (existingRow) {
+    // Book exists — link to this org
+    if (organizationId && db) {
+      await db.prepare(`
+        INSERT INTO org_book_selections (id, organization_id, book_id, is_available, created_at)
+        VALUES (?, ?, ?, 1, datetime('now'))
+        ON CONFLICT (organization_id, book_id) DO UPDATE SET is_available = 1, updated_at = datetime('now')
+      `).bind(crypto.randomUUID(), organizationId, existingRow.id).run();
+    }
+    const book = {
+      id: existingRow.id, title: existingRow.title, author: existingRow.author,
+      readingLevel: existingRow.reading_level, ageRange: existingRow.age_range,
+      genreIds: existingRow.genre_ids ? JSON.parse(existingRow.genre_ids) : [], description: existingRow.description,
+      isbn: existingRow.isbn, pageCount: existingRow.page_count,
+      seriesName: existingRow.series_name, seriesNumber: existingRow.series_number,
+      publicationYear: existingRow.publication_year,
+    };
+    return c.json({ action: 'linked', book });
+  }
+
+  // Not found locally — look up on OpenLibrary
+  const olBook = await lookupISBN(normalized, c.env);
+
+  if (!confirm) {
+    // Preview mode — return metadata (or just the ISBN if OpenLibrary had nothing)
+    return c.json({ action: 'preview', book: olBook || { isbn: normalized } });
+  }
+
+  // Confirmed — create the book and link to org
+  const newBook = {
+    id: crypto.randomUUID(),
+    title: olBook?.title || 'Unknown Title',
+    author: olBook?.author || null,
+    genreIds: [],
+    readingLevel: null,
+    ageRange: null,
+    description: null,
+    isbn: normalized,
+    pageCount: olBook?.pageCount || null,
+    seriesName: olBook?.seriesName || null,
+    seriesNumber: olBook?.seriesNumber || null,
+    publicationYear: olBook?.publicationYear || null,
+  };
+
+  const provider = await createProvider(c.env);
+  const savedBook = await provider.addBook(newBook);
+
+  // Link to org
+  if (organizationId && db) {
+    await db.prepare(`
+      INSERT INTO org_book_selections (id, organization_id, book_id, is_available, created_at)
+      VALUES (?, ?, ?, 1, datetime('now'))
+      ON CONFLICT (organization_id, book_id) DO UPDATE SET is_available = 1, updated_at = datetime('now')
+    `).bind(crypto.randomUUID(), organizationId, savedBook.id).run();
+  }
+
+  return c.json({ action: 'created', book: savedBook }, 201);
 });
 
 /**
@@ -616,6 +771,11 @@ booksRouter.put('/:id', requireTeacher(), async (c) => {
     readingLevel: bookData.readingLevel !== undefined ? bookData.readingLevel : existingBook.readingLevel,
     ageRange: bookData.ageRange !== undefined ? bookData.ageRange : existingBook.ageRange,
     description: bookData.description !== undefined ? bookData.description : existingBook.description,
+    isbn: bookData.isbn !== undefined ? bookData.isbn : existingBook.isbn,
+    pageCount: bookData.pageCount !== undefined ? bookData.pageCount : existingBook.pageCount,
+    seriesName: bookData.seriesName !== undefined ? bookData.seriesName : existingBook.seriesName,
+    seriesNumber: bookData.seriesNumber !== undefined ? bookData.seriesNumber : existingBook.seriesNumber,
+    publicationYear: bookData.publicationYear !== undefined ? bookData.publicationYear : existingBook.publicationYear,
     id // Ensure ID doesn't change
   };
 
@@ -690,7 +850,12 @@ booksRouter.post('/bulk', requireTeacher(), async (c) => {
       genreIds: book.genreIds || [],
       readingLevel: book.readingLevel || null,
       ageRange: book.ageRange || null,
-      description: book.description || null
+      description: book.description || null,
+      isbn: book.isbn || null,
+      pageCount: book.pageCount || null,
+      seriesName: book.seriesName || null,
+      seriesNumber: book.seriesNumber || null,
+      publicationYear: book.publicationYear || null,
     }));
 
   if (validBooks.length === 0) {
@@ -744,7 +909,7 @@ booksRouter.post('/bulk', requireTeacher(), async (c) => {
  * POST /api/books/import/preview
  * Preview import results: categorize books into matched, fuzzy matches, new, and conflicts
  *
- * Request body: { books: [{ title, author, readingLevel }] }
+ * Request body: { books: [{ title, author, readingLevel, isbn }] }
  * Response: { matched, possibleMatches, newBooks, conflicts, alreadyInLibrary, summary }
  *
  * Categories:
@@ -789,7 +954,27 @@ booksRouter.post('/import/preview', requireTeacher(), async (c) => {
   for (const importedBook of importBooks) {
     if (!importedBook.title || !importedBook.title.trim()) continue;
 
-    // Check for exact match
+    // ISBN exact match (most reliable dedup strategy)
+    if (importedBook.isbn) {
+      const isbnMatch = existingBooks.find(eb => eb.isbn === importedBook.isbn);
+      if (isbnMatch) {
+        if (orgBookIds.has(isbnMatch.id)) {
+          alreadyInLibrary.push({ importedBook, existingBook: isbnMatch });
+        } else {
+          const hasConflict = importedBook.readingLevel &&
+                              isbnMatch.reading_level &&
+                              importedBook.readingLevel !== isbnMatch.reading_level;
+          if (hasConflict) {
+            conflicts.push({ importedBook, existingBook: isbnMatch });
+          } else {
+            matched.push({ importedBook, existingBook: isbnMatch });
+          }
+        }
+        continue;
+      }
+    }
+
+    // Check for exact title/author match
     const exactMatch = existingBooks.find(existing =>
       isExactMatch(existing.title, importedBook.title) &&
       (!importedBook.author || !existing.author || isExactMatch(existing.author, importedBook.author))

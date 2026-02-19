@@ -34,7 +34,7 @@ const BookImportWizard = ({ open, onClose }) => {
   const { fetchWithAuth, reloadDataFromServer } = useAppContext();
   const [activeStep, setActiveStep] = useState(0);
   const [csvData, setCsvData] = useState(null);
-  const [columnMapping, setColumnMapping] = useState({ title: null, author: null, readingLevel: null });
+  const [columnMapping, setColumnMapping] = useState({ title: null, author: null, readingLevel: null, isbn: null });
   const [previewResults, setPreviewResults] = useState(null);
   const [selectedConflicts, setSelectedConflicts] = useState({});
   const [selectedPossibleMatches, setSelectedPossibleMatches] = useState({});
@@ -154,7 +154,7 @@ const BookImportWizard = ({ open, onClose }) => {
   const handleClose = () => {
     setActiveStep(0);
     setCsvData(null);
-    setColumnMapping({ title: null, author: null, readingLevel: null });
+    setColumnMapping({ title: null, author: null, readingLevel: null, isbn: null });
     setPreviewResults(null);
     setSelectedConflicts({});
     setSelectedPossibleMatches({});
@@ -186,7 +186,7 @@ const BookImportWizard = ({ open, onClose }) => {
               </Button>
             </label>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-              Expected columns: Title, Author (optional), Reading Level (optional)
+              Expected columns: Title, Author (optional), Reading Level (optional), ISBN (optional)
             </Typography>
           </Box>
         );
@@ -198,12 +198,15 @@ const BookImportWizard = ({ open, onClose }) => {
               Map your CSV columns to book fields:
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
-              {['title', 'author', 'readingLevel'].map((field) => (
+              {['title', 'author', 'readingLevel', 'isbn'].map((field) => {
+                const fieldLabels = { title: 'Title', author: 'Author', readingLevel: 'Reading Level', isbn: 'ISBN' };
+                const label = fieldLabels[field] || field;
+                return (
                 <FormControl key={field} fullWidth size="small">
-                  <InputLabel>{field.charAt(0).toUpperCase() + field.slice(1).replace(/([A-Z])/g, ' $1')}</InputLabel>
+                  <InputLabel>{label}</InputLabel>
                   <Select
                     value={columnMapping[field] ?? ''}
-                    label={field}
+                    label={label}
                     onChange={(e) => handleMappingChange(field, e.target.value)}
                   >
                     <MenuItem value="">Not mapped</MenuItem>
@@ -212,7 +215,7 @@ const BookImportWizard = ({ open, onClose }) => {
                     ))}
                   </Select>
                 </FormControl>
-              ))}
+              ); })}
             </Box>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
               Preview: {csvData?.rows.length} books found in CSV
