@@ -13,6 +13,8 @@ import { decryptSensitiveData, permissions } from '../utils/crypto.js';
 import { buildStudentReadingProfile } from '../utils/studentProfile.js';
 import { isExactMatch, isFuzzyMatch } from '../utils/stringMatching.js';
 import { getCachedRecommendations, cacheRecommendations } from '../utils/recommendationCache.js';
+import { normalizeISBN } from '../utils/isbn.js';
+import { lookupISBN } from '../utils/isbnLookup.js';
 
 // Import middleware
 import { requireReadonly, requireTeacher } from '../middleware/tenant.js';
@@ -599,6 +601,136 @@ booksRouter.post('/', requireTeacher(), async (c) => {
   const provider = await createProvider(c.env);
   const savedBook = await provider.addBook(newBook);
   return c.json(savedBook, 201);
+});
+
+/**
+ * GET /api/books/isbn/:isbn
+ * Look up a book by ISBN — checks local D1 first, then OpenLibrary
+ *
+ * Requires authentication (at least teacher access)
+ */
+booksRouter.get('/isbn/:isbn', requireTeacher(), async (c) => {
+  const { isbn } = c.req.param();
+  const normalized = normalizeISBN(isbn);
+  if (!normalized) {
+    throw badRequestError('Invalid ISBN');
+  }
+
+  const organizationId = c.get('organizationId');
+  const db = c.env.READING_MANAGER_DB;
+
+  // Check local D1 database first
+  if (db) {
+    const row = await db.prepare('SELECT * FROM books WHERE isbn = ?').bind(normalized).first();
+    if (row) {
+      let inLibrary = false;
+      if (organizationId) {
+        const orgLink = await db.prepare(
+          'SELECT 1 FROM org_book_selections WHERE organization_id = ? AND book_id = ? AND is_available = 1'
+        ).bind(organizationId, row.id).first();
+        inLibrary = !!orgLink;
+      }
+      const book = {
+        id: row.id, title: row.title, author: row.author,
+        readingLevel: row.reading_level, ageRange: row.age_range,
+        genreIds: row.genre_ids ? JSON.parse(row.genre_ids) : [], description: row.description,
+        isbn: row.isbn, pageCount: row.page_count,
+        seriesName: row.series_name, seriesNumber: row.series_number,
+        publicationYear: row.publication_year,
+      };
+      return c.json({ source: 'local', inLibrary, book });
+    }
+  }
+
+  // Not found locally — try OpenLibrary
+  const olBook = await lookupISBN(normalized, c.env);
+  if (!olBook) {
+    return c.json({ source: 'not_found', isbn: normalized, book: null });
+  }
+
+  return c.json({ source: 'openlibrary', inLibrary: false, book: olBook });
+});
+
+/**
+ * POST /api/books/scan
+ * Scan a book by ISBN — link existing, preview, or create new
+ *
+ * Request body: { isbn, confirm }
+ * Requires authentication (at least teacher access)
+ */
+booksRouter.post('/scan', requireTeacher(), async (c) => {
+  const { isbn, confirm } = await c.req.json();
+  const normalized = normalizeISBN(isbn);
+  if (!normalized) {
+    throw badRequestError('Invalid ISBN');
+  }
+
+  const organizationId = c.get('organizationId');
+  const db = c.env.READING_MANAGER_DB;
+
+  // Check D1 for existing book by ISBN
+  let existingRow = null;
+  if (db) {
+    existingRow = await db.prepare('SELECT * FROM books WHERE isbn = ?').bind(normalized).first();
+  }
+
+  if (existingRow) {
+    // Book exists — link to this org
+    if (organizationId && db) {
+      await db.prepare(`
+        INSERT INTO org_book_selections (id, organization_id, book_id, is_available, created_at)
+        VALUES (?, ?, ?, 1, datetime('now'))
+        ON CONFLICT (organization_id, book_id) DO UPDATE SET is_available = 1, updated_at = datetime('now')
+      `).bind(crypto.randomUUID(), organizationId, existingRow.id).run();
+    }
+    const book = {
+      id: existingRow.id, title: existingRow.title, author: existingRow.author,
+      readingLevel: existingRow.reading_level, ageRange: existingRow.age_range,
+      genreIds: existingRow.genre_ids ? JSON.parse(existingRow.genre_ids) : [], description: existingRow.description,
+      isbn: existingRow.isbn, pageCount: existingRow.page_count,
+      seriesName: existingRow.series_name, seriesNumber: existingRow.series_number,
+      publicationYear: existingRow.publication_year,
+    };
+    return c.json({ action: 'linked', book });
+  }
+
+  // Not found locally — look up on OpenLibrary
+  const olBook = await lookupISBN(normalized, c.env);
+
+  if (!confirm) {
+    // Preview mode — return metadata (or just the ISBN if OpenLibrary had nothing)
+    return c.json({ action: 'preview', book: olBook || { isbn: normalized } });
+  }
+
+  // Confirmed — create the book and link to org
+  const newBook = {
+    id: crypto.randomUUID(),
+    title: olBook?.title || 'Unknown Title',
+    author: olBook?.author || null,
+    genreIds: [],
+    readingLevel: null,
+    ageRange: null,
+    description: null,
+    isbn: normalized,
+    pageCount: olBook?.pageCount || null,
+    seriesName: olBook?.seriesName || null,
+    seriesNumber: olBook?.seriesNumber || null,
+    publicationYear: olBook?.publicationYear || null,
+  };
+
+  const provider = await createProvider(c.env);
+  const savedBook = await provider.addBook(newBook);
+
+  // Link to org
+  if (organizationId && db) {
+    await db.prepare(`
+      INSERT INTO org_book_selections (id, organization_id, book_id, is_available, created_at)
+      VALUES (?, ?, ?, 1, datetime('now'))
+      ON CONFLICT (organization_id, book_id) DO UPDATE SET is_available = 1, updated_at = datetime('now')
+    `).bind(crypto.randomUUID(), organizationId, savedBook.id).run();
+  }
+
+  return c.json({ action: 'created', book: savedBook }, 201);
 });
 
 /**
