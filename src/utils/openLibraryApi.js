@@ -423,7 +423,8 @@ export async function getBookDetails(title, author = null) {
   try {
     const searchParams = new URLSearchParams({
       title: title.trim(),
-      limit: '5'
+      limit: '5',
+      fields: 'key,title,author_name,cover_i,ia,isbn,first_publish_year,number_of_pages_median'
     });
 
     if (author) {
@@ -485,12 +486,19 @@ export async function getBookDetails(title, author = null) {
       }
     }
 
+    // Extract ISBN-13 preferentially, fall back to any ISBN
+    const isbnList = bestMatch.isbn || [];
+    const isbn13 = isbnList.find(i => i.length === 13) || isbnList[0] || null;
+
     return {
       coverId: bestMatch.cover_i,
       coverUrl: bestMatch.cover_i ? `${COVERS_BASE_URL}/id/${bestMatch.cover_i}-M.jpg` : null,
       description,
       olid: bestMatch.key,
-      ia: bestMatch.ia ? bestMatch.ia[0] : null
+      ia: bestMatch.ia ? bestMatch.ia[0] : null,
+      isbn: isbn13,
+      pageCount: bestMatch.number_of_pages_median || null,
+      publicationYear: bestMatch.first_publish_year || null
     };
   } catch (error) {
     console.error('Error getting book details:', error);

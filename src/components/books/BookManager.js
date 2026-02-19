@@ -553,7 +553,10 @@ const BookManager = () => {
       const authorMissing = !book.author || book.author.trim().toLowerCase() === 'unknown' || !book.author.trim();
       const descriptionMissing = !book.description || !book.description.trim();
       const genresMissing = !book.genreIds || book.genreIds.length === 0;
-      return authorMissing || descriptionMissing || genresMissing;
+      const isbnMissing = !book.isbn;
+      const pageCountMissing = !book.pageCount;
+      const publicationYearMissing = !book.publicationYear;
+      return authorMissing || descriptionMissing || genresMissing || isbnMissing || pageCountMissing || publicationYearMissing;
     });
 
     if (booksWithGaps.length === 0) {
@@ -583,7 +586,7 @@ const BookManager = () => {
       });
 
       // Auto-apply: only fill fields that are currently missing
-      let authorsUpdated = 0, descriptionsUpdated = 0, genresUpdated = 0, errorCount = 0;
+      let authorsUpdated = 0, descriptionsUpdated = 0, genresUpdated = 0, isbnsUpdated = 0, pageCountsUpdated = 0, yearsUpdated = 0, errorCount = 0;
 
       // Build genre name -> ID map
       const genreNameToId = {};
@@ -641,6 +644,27 @@ const BookManager = () => {
           }
         }
 
+        // Fill ISBN if missing
+        if (!book.isbn && result.foundIsbn) {
+          updates.isbn = result.foundIsbn;
+          hasUpdate = true;
+          isbnsUpdated++;
+        }
+
+        // Fill page count if missing
+        if (!book.pageCount && result.foundPageCount) {
+          updates.pageCount = result.foundPageCount;
+          hasUpdate = true;
+          pageCountsUpdated++;
+        }
+
+        // Fill publication year if missing
+        if (!book.publicationYear && result.foundPublicationYear) {
+          updates.publicationYear = result.foundPublicationYear;
+          hasUpdate = true;
+          yearsUpdated++;
+        }
+
         if (hasUpdate) {
           try {
             const response = await fetchWithAuth(`/api/books/${book.id}`, {
@@ -661,8 +685,11 @@ const BookManager = () => {
       if (authorsUpdated > 0) parts.push(`${authorsUpdated} authors`);
       if (descriptionsUpdated > 0) parts.push(`${descriptionsUpdated} descriptions`);
       if (genresUpdated > 0) parts.push(`${genresUpdated} genres`);
+      if (isbnsUpdated > 0) parts.push(`${isbnsUpdated} ISBNs`);
+      if (pageCountsUpdated > 0) parts.push(`${pageCountsUpdated} page counts`);
+      if (yearsUpdated > 0) parts.push(`${yearsUpdated} years`);
 
-      const totalUpdated = authorsUpdated + descriptionsUpdated + genresUpdated;
+      const totalUpdated = authorsUpdated + descriptionsUpdated + genresUpdated + isbnsUpdated + pageCountsUpdated + yearsUpdated;
       const message = totalUpdated > 0
         ? `Updated ${totalUpdated} fields (${parts.join(', ')})${errorCount > 0 ? `, ${errorCount} errors` : ''}`
         : 'No new metadata found for books with gaps';
@@ -744,6 +771,21 @@ const BookManager = () => {
           }
         }
 
+        // ISBN diff
+        if (result.foundIsbn && result.foundIsbn !== book.isbn) {
+          changes.push({ field: 'isbn', oldValue: book.isbn || '(empty)', newValue: result.foundIsbn, checked: true });
+        }
+
+        // Page count diff
+        if (result.foundPageCount && result.foundPageCount !== book.pageCount) {
+          changes.push({ field: 'pageCount', oldValue: book.pageCount ? String(book.pageCount) : '(empty)', newValue: String(result.foundPageCount), checked: true });
+        }
+
+        // Publication year diff
+        if (result.foundPublicationYear && result.foundPublicationYear !== book.publicationYear) {
+          changes.push({ field: 'publicationYear', oldValue: book.publicationYear ? String(book.publicationYear) : '(empty)', newValue: String(result.foundPublicationYear), checked: true });
+        }
+
         if (changes.length > 0) {
           diffs.push({ book, changes });
         }
@@ -783,6 +825,12 @@ const BookManager = () => {
           updates.author = change.newValue;
         } else if (change.field === 'description') {
           updates.description = change.newValue;
+        } else if (change.field === 'isbn') {
+          updates.isbn = change.newValue;
+        } else if (change.field === 'pageCount') {
+          updates.pageCount = parseInt(change.newValue, 10);
+        } else if (change.field === 'publicationYear') {
+          updates.publicationYear = parseInt(change.newValue, 10);
         } else if (change.field === 'genres' && change.newGenres) {
           // Create missing genres
           for (const genreName of change.newGenres) {
@@ -1687,8 +1735,8 @@ const BookManager = () => {
                         sx={{ p: 0.25 }}
                       />
                       <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
-                          {change.field}
+                        <Typography variant="caption" color="text.secondary">
+                          {{ author: 'Author', description: 'Description', genres: 'Genres', isbn: 'ISBN', pageCount: 'Pages', publicationYear: 'Year' }[change.field] || change.field}
                         </Typography>
                         <Box sx={{ display: 'flex', gap: 1, alignItems: 'baseline', flexWrap: 'wrap' }}>
                           <Typography

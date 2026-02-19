@@ -1163,6 +1163,9 @@ describe('BookManager Component', () => {
           author: 'Author',
           description: 'A description',
           genreIds: ['genre-1'],
+          isbn: '9780142410318',
+          pageCount: 176,
+          publicationYear: 1964,
           readingLevel: '3.0',
           ageRange: '6-10'
         }

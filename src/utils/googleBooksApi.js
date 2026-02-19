@@ -303,17 +303,29 @@ export async function getBookDetails(title, author, apiKey) {
       description = description.substring(0, 500) + '...';
     }
 
+    // Extract ISBN-13 preferentially, fall back to ISBN-10
+    const identifiers = volumeInfo.industryIdentifiers || [];
+    const isbn13 = identifiers.find(i => i.type === 'ISBN_13');
+    const isbn10 = identifiers.find(i => i.type === 'ISBN_10');
+    const isbn = isbn13?.identifier || isbn10?.identifier || null;
+
+    // Extract publication year from publishedDate (formats: "2005", "2005-03", "2005-03-15")
+    const publishedDate = volumeInfo.publishedDate || null;
+    const publicationYear = publishedDate ? parseInt(publishedDate.substring(0, 4), 10) || null : null;
+
     return {
       coverUrl,
       description,
       googleBooksId: bestMatch.id,
       previewLink: volumeInfo.previewLink || null,
-      publishedDate: volumeInfo.publishedDate || null,
+      publishedDate,
       publisher: volumeInfo.publisher || null,
       pageCount: volumeInfo.pageCount || null,
       categories: volumeInfo.categories || [],
       averageRating: volumeInfo.averageRating || null,
-      ratingsCount: volumeInfo.ratingsCount || null
+      ratingsCount: volumeInfo.ratingsCount || null,
+      isbn,
+      publicationYear
     };
   } catch (error) {
     console.error('Error getting book details from Google Books:', error);

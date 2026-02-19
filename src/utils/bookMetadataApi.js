@@ -342,6 +342,9 @@ export async function batchFetchAllMetadata(books, settings, onProgress = null) 
         foundAuthor: foundAuthor || null,
         foundDescription: details?.description || null,
         foundGenres: foundGenres || null,
+        foundIsbn: details?.isbn || null,
+        foundPageCount: details?.pageCount || null,
+        foundPublicationYear: details?.publicationYear || null,
       });
     } catch (error) {
       results.push({
@@ -349,6 +352,9 @@ export async function batchFetchAllMetadata(books, settings, onProgress = null) 
         foundAuthor: null,
         foundDescription: null,
         foundGenres: null,
+        foundIsbn: null,
+        foundPageCount: null,
+        foundPublicationYear: null,
         error: error.message,
       });
     }

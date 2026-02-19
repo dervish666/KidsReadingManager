@@ -65,11 +65,14 @@ describe('batchFetchAllMetadata', () => {
     expect(result).toEqual([]);
   });
 
-  it('fetches author, description, and genres for a single book', async () => {
+  it('fetches author, description, genres, isbn, pageCount, and publicationYear for a single book', async () => {
     openLibrary.findAuthorForBook.mockResolvedValue('Roald Dahl');
     openLibrary.getBookDetails.mockResolvedValue({
       description: 'A story about a chocolate factory.',
       coverUrl: 'https://covers.openlibrary.org/b/id/123-M.jpg',
+      isbn: '9780142410318',
+      pageCount: 176,
+      publicationYear: 1964,
     });
     openLibrary.findGenresForBook.mockResolvedValue(['Fiction', 'Children']);
 
@@ -83,6 +86,9 @@ describe('batchFetchAllMetadata', () => {
     expect(results[0].foundAuthor).toBe('Roald Dahl');
     expect(results[0].foundDescription).toBe('A story about a chocolate factory.');
     expect(results[0].foundGenres).toEqual(['Fiction', 'Children']);
+    expect(results[0].foundIsbn).toBe('9780142410318');
+    expect(results[0].foundPageCount).toBe(176);
+    expect(results[0].foundPublicationYear).toBe(1964);
     expect(results[0].error).toBeUndefined();
 
     // Verify the right provider functions were called
@@ -165,6 +171,9 @@ describe('batchFetchAllMetadata', () => {
     expect(results[0].foundAuthor).toBeNull();
     expect(results[0].foundDescription).toBeNull();
     expect(results[0].foundGenres).toBeNull();
+    expect(results[0].foundIsbn).toBeNull();
+    expect(results[0].foundPageCount).toBeNull();
+    expect(results[0].foundPublicationYear).toBeNull();
 
     // Second book: all fields populated
     expect(results[1].foundAuthor).toBe('Good Author');
@@ -186,6 +195,9 @@ describe('batchFetchAllMetadata', () => {
     expect(results[0].foundAuthor).toBeNull();
     expect(results[0].foundDescription).toBeNull();
     expect(results[0].foundGenres).toBeNull();
+    expect(results[0].foundIsbn).toBeNull();
+    expect(results[0].foundPageCount).toBeNull();
+    expect(results[0].foundPublicationYear).toBeNull();
     expect(results[0].error).toBeUndefined();
   });
 

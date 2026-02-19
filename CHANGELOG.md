@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.1.1] - 2026-02-19
+
+### Enhanced: Metadata Fetch Now Populates ISBN, Page Count & Publication Year
+
+- **OpenLibrary `getBookDetails`**: Now requests and returns `isbn` (ISBN-13 preferred), `pageCount` (from `number_of_pages_median`), and `publicationYear` (from `first_publish_year`)
+- **Google Books `getBookDetails`**: Now extracts ISBN from `industryIdentifiers` (ISBN-13 preferred) and `publicationYear` from `publishedDate`
+- **`batchFetchAllMetadata`**: Results now include `foundIsbn`, `foundPageCount`, `foundPublicationYear`
+- **Fill Missing**: Now detects and fills missing ISBN, page count, and publication year alongside author/description/genres
+- **Refresh All**: Diff review dialog now shows ISBN, Pages, and Year changes with proper field labels
+- **Tests**: Updated batch metadata tests and BookManager tests for new fields
+
 ## [3.1.0] - 2026-02-19
 
 ### Added: ISBN Barcode Scanning & Book Metadata Redesign
