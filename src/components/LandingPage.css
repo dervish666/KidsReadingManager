@@ -323,18 +323,11 @@
     0 24px 64px rgba(0,0,0,0.04);
   border: 1px solid rgba(0,0,0,0.06);
   animation: lp-fadeUp 0.8s 0.4s ease both;
-  background: linear-gradient(135deg, var(--sage-light) 0%, var(--cream-dark) 50%, var(--coral-light) 100%);
-  aspect-ratio: 16 / 9;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
-.lp-showcase-main .lp-placeholder-label {
-  font-family: 'Fraunces', serif;
-  color: var(--sage-muted);
-  font-size: 1.2rem;
-  opacity: 0.6;
+.lp-showcase-main img {
+  width: 100%;
+  display: block;
 }
 
 .lp-showcase-floaters {
@@ -354,11 +347,11 @@
   box-shadow: 0 8px 32px rgba(0,0,0,0.12);
   border: 1px solid rgba(0,0,0,0.06);
   transition: transform 0.3s ease;
-  background: linear-gradient(135deg, var(--amber-light) 0%, var(--cream) 100%);
-  aspect-ratio: 4 / 3;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+}
+
+.lp-showcase-float-card img {
+  width: 100%;
+  display: block;
 }
 
 .lp-showcase-float-card:hover {
@@ -513,18 +506,11 @@
   overflow: hidden;
   box-shadow: 0 4px 24px rgba(0,0,0,0.08);
   border: 1px solid rgba(0,0,0,0.06);
-  background: linear-gradient(135deg, var(--sage-light) 0%, var(--cream-dark) 100%);
-  aspect-ratio: 4 / 3;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
-.lp-app-feature-image .lp-placeholder-label {
-  font-family: 'Fraunces', serif;
-  color: var(--sage-muted);
-  font-size: 1rem;
-  opacity: 0.5;
+.lp-app-feature-image img {
+  width: 100%;
+  display: block;
 }
 
 /* ---- HOW IT WORKS ---- */

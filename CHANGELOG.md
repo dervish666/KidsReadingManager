@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.1] - 2026-02-20
+
+### Added: Landing Page Screenshots
+
+- **App screenshots**: Added real screenshots to landing page — students view (hero), reading session, class register, and AI recommendations (feature rows + floating card)
+- Replaced gradient placeholder elements with actual `<img>` tags
+
 ## [3.2.0] - 2026-02-20
 
 ### Added: Landing Page

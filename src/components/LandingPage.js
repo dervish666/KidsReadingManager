@@ -1,6 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import './LandingPage.css';
 
+import screenshotStudents from '../assets/screenshots/screenshot-students.png';
+import screenshotReading from '../assets/screenshots/screenshot-reading.png';
+import screenshotRegister from '../assets/screenshots/screenshot-register.png';
+import screenshotRecommendations from '../assets/screenshots/screenshot-recommendations.png';
+
 const TallyLogo = ({ size = 22 }) => (
   <svg viewBox="0 0 24 24" fill="none" width={size} height={size}>
     <path d="M4 4v16M8 4v16M12 4v16M16 4v16M20 12H4" stroke="white" strokeWidth="2" strokeLinecap="round" />
@@ -105,11 +110,11 @@ export default function LandingPage({ onSignIn }) {
         <section className="lp-showcase">
           <div className="lp-showcase-inner">
             <div className="lp-showcase-main">
-              <span className="lp-placeholder-label">App preview coming soon</span>
+              <img src={screenshotStudents} alt="Tally Reading — Students view showing priority reading list" />
             </div>
             <div className="lp-showcase-floaters">
               <div className="lp-showcase-float-card">
-                <span className="lp-placeholder-label">AI recommendations</span>
+                <img src={screenshotRecommendations} alt="AI book recommendations" />
               </div>
             </div>
           </div>
@@ -148,9 +153,9 @@ export default function LandingPage({ onSignIn }) {
             </div>
 
             {[
-              { tag: 'Reading sessions', tagClass: 'lp-tag-green', tagIcon: '📖', title: 'Record a session in seconds', desc: 'Pick a student, scan or search for the book, assess their reading level, and add notes. The whole thing takes less time than finding your pen used to.', placeholder: 'Session recording' },
-              { tag: 'Class register', tagClass: 'lp-tag-coral', tagIcon: '📋', title: 'The whole class at a glance', desc: "A simple register view showing who's been read with today, their current books, and running totals. Quick mark-off with one tap — tick, absent, or not seen.", placeholder: 'Class register' },
-              { tag: 'AI recommendations', tagClass: 'lp-tag-amber', tagIcon: '✨', title: '"What should they read next?"', desc: "Personalised book suggestions that consider reading level, genre preferences, and what they've enjoyed before. With real covers, real reasons, and books you can actually find.", placeholder: 'Book recommendations' },
+              { tag: 'Reading sessions', tagClass: 'lp-tag-green', tagIcon: '📖', title: 'Record a session in seconds', desc: 'Pick a student, scan or search for the book, assess their reading level, and add notes. The whole thing takes less time than finding your pen used to.', img: screenshotReading, alt: 'Recording a reading session' },
+              { tag: 'Class register', tagClass: 'lp-tag-coral', tagIcon: '📋', title: 'The whole class at a glance', desc: "A simple register view showing who's been read with today, their current books, and running totals. Quick mark-off with one tap — tick, absent, or not seen.", img: screenshotRegister, alt: 'Reading record register view' },
+              { tag: 'AI recommendations', tagClass: 'lp-tag-amber', tagIcon: '✨', title: '"What should they read next?"', desc: "Personalised book suggestions that consider reading level, genre preferences, and what they've enjoyed before. With real covers, real reasons, and books you can actually find.", img: screenshotRecommendations, alt: 'AI-powered book recommendations' },
             ].map((row, i) => (
               <div className="lp-app-feature-row lp-reveal" key={i} ref={addRevealRef}>
                 <div className="lp-app-feature-text">
@@ -159,7 +164,7 @@ export default function LandingPage({ onSignIn }) {
                   <p>{row.desc}</p>
                 </div>
                 <div className="lp-app-feature-image">
-                  <span className="lp-placeholder-label">{row.placeholder}</span>
+                  <img src={row.img} alt={row.alt} />
                 </div>
               </div>
             ))}
