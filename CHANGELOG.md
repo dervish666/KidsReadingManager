@@ -1,5 +1,23 @@
 # Changelog
 
+## [3.3.0] - 2026-02-20
+
+### Added: Email Signup for Landing Page
+
+- **Email signup endpoint**: New `POST /api/signup` public endpoint stores email signups in D1 `email_signups` table
+- **Notification email**: Sends notification to `hello@tallyreading.uk` on each new signup using existing Resend/Cloudflare email provider chain
+- **Duplicate handling**: `INSERT OR IGNORE` silently handles re-submissions; always returns success to avoid revealing whether email was already registered
+- **Rate limiting**: 5 requests per minute per IP to prevent abuse
+- **Frontend wiring**: Landing page "Keep me posted" form now POSTs to `/api/signup` with loading state, error display, and success message
+- **D1 migration**: `0023_email_signups.sql` creates `email_signups` table with unique email constraint
+- **Tests**: 10 new tests for `sendSignupNotificationEmail` covering all providers, XSS escaping, and content formatting (1,417 total tests passing)
+
+#### Deployment Notes
+```bash
+npx wrangler d1 migrations apply reading-manager-db --remote
+npm run go
+```
+
 ## [3.2.1] - 2026-02-20
 
 ### Added: Landing Page Screenshots

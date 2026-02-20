@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { sendPasswordResetEmail, sendWelcomeEmail } from '../../utils/email.js';
+import { sendPasswordResetEmail, sendWelcomeEmail, sendSignupNotificationEmail } from '../../utils/email.js';
 
 // Mock the cloudflare:email module with a proper constructor class
 vi.mock('cloudflare:email', () => {
@@ -120,7 +120,7 @@ describe('Email Service', () => {
         const fetchCall = global.fetch.mock.calls[0];
         const requestBody = JSON.parse(fetchCall[1].body);
 
-        expect(requestBody.from).toBe('noreply@brisflix.com');
+        expect(requestBody.from).toBe('hello@tallyreading.uk');
       });
 
       it('should handle Resend API error response', async () => {
@@ -703,6 +703,164 @@ describe('Email Service', () => {
         expect(requestBody.html).toContain('Your login credentials');
         expect(requestBody.html).toContain('Email: credentials@test.com');
         expect(requestBody.html).toContain('Temporary Password: CredPass456!');
+      });
+    });
+  });
+
+  describe('sendSignupNotificationEmail', () => {
+    describe('with Resend provider', () => {
+      const envWithResend = {
+        RESEND_API_KEY: 'test-resend-api-key',
+        EMAIL_FROM: 'hello@tallyreading.uk'
+      };
+
+      it('should send notification email via Resend API', async () => {
+        global.fetch.mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ id: 'signup-email-123' })
+        });
+
+        const result = await sendSignupNotificationEmail(envWithResend, 'teacher@school.sch.uk');
+
+        expect(result.success).toBe(true);
+        expect(global.fetch).toHaveBeenCalledTimes(1);
+      });
+
+      it('should send to EMAIL_FROM address (self-notification)', async () => {
+        global.fetch.mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ id: 'email-123' })
+        });
+
+        await sendSignupNotificationEmail(envWithResend, 'new@signup.com');
+
+        const fetchCall = global.fetch.mock.calls[0];
+        const requestBody = JSON.parse(fetchCall[1].body);
+
+        expect(requestBody.to).toBe('hello@tallyreading.uk');
+        expect(requestBody.from).toBe('hello@tallyreading.uk');
+      });
+
+      it('should include signup email in subject and body', async () => {
+        global.fetch.mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ id: 'email-123' })
+        });
+
+        await sendSignupNotificationEmail(envWithResend, 'interested@school.sch.uk');
+
+        const fetchCall = global.fetch.mock.calls[0];
+        const requestBody = JSON.parse(fetchCall[1].body);
+
+        expect(requestBody.subject).toBe('New Tally signup: interested@school.sch.uk');
+        expect(requestBody.text).toContain('Email: interested@school.sch.uk');
+        expect(requestBody.html).toContain('interested@school.sch.uk');
+      });
+
+      it('should include timestamp in body', async () => {
+        global.fetch.mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ id: 'email-123' })
+        });
+
+        await sendSignupNotificationEmail(envWithResend, 'test@example.com');
+
+        const fetchCall = global.fetch.mock.calls[0];
+        const requestBody = JSON.parse(fetchCall[1].body);
+
+        expect(requestBody.text).toContain('Time:');
+        expect(requestBody.html).toContain('Time:');
+      });
+
+      it('should use default email when EMAIL_FROM not configured', async () => {
+        global.fetch.mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ id: 'email-123' })
+        });
+
+        await sendSignupNotificationEmail({ RESEND_API_KEY: 'key' }, 'test@example.com');
+
+        const fetchCall = global.fetch.mock.calls[0];
+        const requestBody = JSON.parse(fetchCall[1].body);
+
+        expect(requestBody.to).toBe('hello@tallyreading.uk');
+      });
+
+      it('should handle Resend API error', async () => {
+        global.fetch.mockResolvedValueOnce({
+          ok: false,
+          json: async () => ({ message: 'Forbidden' })
+        });
+
+        const result = await sendSignupNotificationEmail(envWithResend, 'test@example.com');
+
+        expect(result.success).toBe(false);
+        expect(result.error).toBe('Forbidden');
+      });
+    });
+
+    describe('with Cloudflare Email provider', () => {
+      it('should send notification via Cloudflare Email', async () => {
+        const mockEmailBinding = {
+          send: vi.fn().mockResolvedValue(undefined)
+        };
+        const env = { EMAIL_SENDER: mockEmailBinding };
+
+        const result = await sendSignupNotificationEmail(env, 'test@example.com');
+
+        expect(result.success).toBe(true);
+        expect(mockEmailBinding.send).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    describe('with no provider configured', () => {
+      it('should return error when no email provider is configured', async () => {
+        const result = await sendSignupNotificationEmail({}, 'test@example.com');
+
+        expect(result.success).toBe(false);
+        expect(result.error).toBe('Email service not configured');
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+          'No email provider configured for signup notification.'
+        );
+      });
+    });
+
+    describe('email content formatting', () => {
+      it('should escape HTML in signup email address', async () => {
+        global.fetch.mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ id: 'email-123' })
+        });
+
+        await sendSignupNotificationEmail(
+          { RESEND_API_KEY: 'key' },
+          '<script>alert("xss")</script>@evil.com'
+        );
+
+        const fetchCall = global.fetch.mock.calls[0];
+        const requestBody = JSON.parse(fetchCall[1].body);
+
+        expect(requestBody.html).not.toContain('<script>');
+        expect(requestBody.html).toContain('&lt;script&gt;');
+      });
+
+      it('should include HTML styling', async () => {
+        global.fetch.mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ id: 'email-123' })
+        });
+
+        await sendSignupNotificationEmail(
+          { RESEND_API_KEY: 'key' },
+          'test@example.com'
+        );
+
+        const fetchCall = global.fetch.mock.calls[0];
+        const requestBody = JSON.parse(fetchCall[1].body);
+
+        expect(requestBody.html).toContain('<!DOCTYPE html>');
+        expect(requestBody.html).toContain('Tally Reading');
+        expect(requestBody.html).toContain('linear-gradient');
       });
     });
   });

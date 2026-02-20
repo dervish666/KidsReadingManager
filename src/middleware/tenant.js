@@ -28,7 +28,8 @@ export function jwtAuthMiddleware() {
     '/api/auth/forgot-password',
     '/api/auth/reset-password',
     '/api/health',
-    '/api/login' // Legacy endpoint for backward compatibility
+    '/api/login', // Legacy endpoint for backward compatibility
+    '/api/signup'
   ];
 
   return async (c, next) => {

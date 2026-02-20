@@ -42,7 +42,7 @@ not_found_handling = "single-page-application"
 ENVIRONMENT = "production"
 STORAGE_TYPE = "kv"
 ALLOWED_ORIGINS = "https://kids-reading-manager.brisflix.workers.dev/,https://reading.brisflix.com,https://tallyreading.uk"
-EMAIL_FROM = "noreply@brisflix.com"
+EMAIL_FROM = "hello@tallyreading.uk"
 
 [observability.logs]
 enabled = true

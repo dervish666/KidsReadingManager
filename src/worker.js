@@ -27,6 +27,7 @@ import { authRouter } from './routes/auth';
 import { usersRouter } from './routes/users';
 import { organizationRouter } from './routes/organization';
 import coversRouter from './routes/covers';
+import { signupRouter } from './routes/signup';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -163,7 +164,8 @@ app.use('/api/*', async (c, next) => {
     '/api/auth/reset-password',
     '/api/health',
     '/api/login',
-    '/api/logout'
+    '/api/logout',
+    '/api/signup'
   ];
 
   if (publicPaths.includes(url.pathname) || url.pathname.startsWith('/api/covers/')) {
@@ -199,6 +201,7 @@ app.route('/api/classes', classesRouter);
 app.route('/api/books', booksRouter);
 app.route('/api/genres', genresRouter);
 app.route('/api/covers', coversRouter);
+app.route('/api/signup', signupRouter);
 
 // API health check (public)
 app.get('/api/health', (c) => {

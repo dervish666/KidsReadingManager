@@ -57,9 +57,30 @@ export default function LandingPage({ onSignIn }) {
     }
   };
 
-  const handleSignup = (e) => {
+  const [signupLoading, setSignupLoading] = useState(false);
+  const [signupError, setSignupError] = useState(null);
+
+  const handleSignup = async (e) => {
     e.preventDefault();
-    setSignupSubmitted(true);
+    const email = e.target.querySelector('input[type="email"]').value;
+    setSignupLoading(true);
+    setSignupError(null);
+    try {
+      const res = await fetch('/api/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Something went wrong');
+      }
+      setSignupSubmitted(true);
+    } catch (err) {
+      setSignupError(err.message);
+    } finally {
+      setSignupLoading(false);
+    }
   };
 
   return (
@@ -228,9 +249,12 @@ export default function LandingPage({ onSignIn }) {
               {!signupSubmitted ? (
                 <div className="lp-signup-fields">
                   <div className="lp-signup-input-row">
-                    <input type="email" placeholder="your.name@school.sch.uk" required className="lp-signup-input" />
-                    <button type="submit" className="lp-btn lp-btn-primary">Keep me posted</button>
+                    <input type="email" placeholder="your.name@school.sch.uk" required className="lp-signup-input" disabled={signupLoading} />
+                    <button type="submit" className="lp-btn lp-btn-primary" disabled={signupLoading}>
+                      {signupLoading ? 'Sending...' : 'Keep me posted'}
+                    </button>
                   </div>
+                  {signupError && <p className="lp-signup-error">{signupError}</p>}
                   <p className="lp-signup-note">No spam, just a heads-up when we're live.</p>
                 </div>
               ) : (

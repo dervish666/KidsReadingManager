@@ -54,7 +54,7 @@ If you didn't request this, you can safely ignore this email.
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 8px 8px 0 0;">
+  <div style="background: linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%); padding: 30px; border-radius: 8px 8px 0 0;">
     <h1 style="color: white; margin: 0; font-size: 24px;">Tally Reading</h1>
   </div>
 
@@ -66,7 +66,7 @@ If you didn't request this, you can safely ignore this email.
     <p>Click the button below to reset your password:</p>
 
     <div style="text-align: center; margin: 30px 0;">
-      <a href="${resetUrl}" style="background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block;">Reset Password</a>
+      <a href="${resetUrl}" style="background: #6B8E6B; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block;">Reset Password</a>
     </div>
 
     <p style="color: #6b7280; font-size: 14px;">This link will expire in 1 hour.</p>
@@ -77,7 +77,7 @@ If you didn't request this, you can safely ignore this email.
 
     <p style="color: #9ca3af; font-size: 12px; margin: 0;">
       If the button doesn't work, copy and paste this link into your browser:<br>
-      <a href="${resetUrl}" style="color: #667eea; word-break: break-all;">${resetUrl}</a>
+      <a href="${resetUrl}" style="color: #6B8E6B; word-break: break-all;">${resetUrl}</a>
     </p>
   </div>
 </body>
@@ -85,13 +85,13 @@ If you didn't request this, you can safely ignore this email.
 
   // Try Resend first (most reliable for transactional email)
   if (env.RESEND_API_KEY) {
-    return await sendWithResend(env.RESEND_API_KEY, env.EMAIL_FROM || 'noreply@brisflix.com', recipientEmail, subject, textBody, htmlBody);
+    return await sendWithResend(env.RESEND_API_KEY, env.EMAIL_FROM || 'hello@tallyreading.uk', recipientEmail, subject, textBody, htmlBody);
   }
 
   // Try Cloudflare Email Routing binding
   if (env.EMAIL_SENDER) {
     console.log('Using Cloudflare Email Routing to send email to:', recipientEmail);
-    return await sendWithCloudflareEmail(env.EMAIL_SENDER, env.EMAIL_FROM || 'noreply@brisflix.com', recipientEmail, subject, textBody, htmlBody);
+    return await sendWithCloudflareEmail(env.EMAIL_SENDER, env.EMAIL_FROM || 'hello@tallyreading.uk', recipientEmail, subject, textBody, htmlBody);
   }
 
   // No email provider configured - log available bindings for debugging
@@ -148,7 +148,7 @@ async function sendWithCloudflareEmail(emailBinding, from, to, subject, text, ht
     const { EmailMessage } = await import('cloudflare:email');
 
     // Generate a unique Message-ID (required by Cloudflare Email)
-    const messageId = `<${Date.now()}.${Math.random().toString(36).slice(2)}@brisflix.com>`;
+    const messageId = `<${Date.now()}.${Math.random().toString(36).slice(2)}@tallyreading.uk>`;
 
     // Build MIME message manually (simpler than importing mimetext)
     const boundary = `----=_Part_${Date.now()}_${Math.random().toString(36).slice(2)}`;
@@ -189,6 +189,59 @@ async function sendWithCloudflareEmail(emailBinding, from, to, subject, text, ht
 }
 
 /**
+ * Send a notification email when someone signs up via the landing page
+ * @param {Object} env - Cloudflare environment bindings
+ * @param {string} signupEmail - The email address that signed up
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export async function sendSignupNotificationEmail(env, signupEmail) {
+  const to = env.EMAIL_FROM || 'hello@tallyreading.uk';
+  const subject = `New Tally signup: ${signupEmail}`;
+  const timestamp = new Date().toISOString();
+
+  const textBody = `New signup on Tally Reading landing page.
+
+Email: ${signupEmail}
+Time: ${timestamp}`;
+
+  const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%); padding: 30px; border-radius: 8px 8px 0 0;">
+    <h1 style="color: white; margin: 0; font-size: 24px;">Tally Reading</h1>
+  </div>
+
+  <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+    <p style="font-size: 16px;">New signup on the landing page:</p>
+
+    <div style="background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 20px; margin: 20px 0;">
+      <p style="margin: 5px 0; font-family: monospace; background: #f3f4f6; padding: 8px; border-radius: 4px;">Email: ${escapeHtml(signupEmail)}</p>
+      <p style="margin: 5px 0; font-family: monospace; background: #f3f4f6; padding: 8px; border-radius: 4px;">Time: ${timestamp}</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  // Try Resend first
+  if (env.RESEND_API_KEY) {
+    return await sendWithResend(env.RESEND_API_KEY, to, to, subject, textBody, htmlBody);
+  }
+
+  // Try Cloudflare Email Routing binding
+  if (env.EMAIL_SENDER) {
+    return await sendWithCloudflareEmail(env.EMAIL_SENDER, to, to, subject, textBody, htmlBody);
+  }
+
+  console.warn('No email provider configured for signup notification.');
+  return { success: false, error: 'Email service not configured' };
+}
+
+/**
  * Send a welcome email to new users
  */
 export async function sendWelcomeEmail(env, recipientEmail, recipientName, organizationName, temporaryPassword, baseUrl) {
@@ -218,7 +271,7 @@ ${loginUrl}
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 8px 8px 0 0;">
+  <div style="background: linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%); padding: 30px; border-radius: 8px 8px 0 0;">
     <h1 style="color: white; margin: 0; font-size: 24px;">Tally Reading</h1>
   </div>
 
@@ -236,7 +289,7 @@ ${loginUrl}
     <p style="color: #dc2626; font-size: 14px;"><strong>Important:</strong> Please log in and change your password immediately.</p>
 
     <div style="text-align: center; margin: 30px 0;">
-      <a href="${loginUrl}" style="background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block;">Log In Now</a>
+      <a href="${loginUrl}" style="background: #6B8E6B; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block;">Log In Now</a>
     </div>
   </div>
 </body>
@@ -244,12 +297,12 @@ ${loginUrl}
 
   // Try Resend first
   if (env.RESEND_API_KEY) {
-    return await sendWithResend(env.RESEND_API_KEY, env.EMAIL_FROM || 'noreply@brisflix.com', recipientEmail, subject, textBody, htmlBody);
+    return await sendWithResend(env.RESEND_API_KEY, env.EMAIL_FROM || 'hello@tallyreading.uk', recipientEmail, subject, textBody, htmlBody);
   }
 
   // Try Cloudflare Email Routing binding
   if (env.EMAIL_SENDER) {
-    return await sendWithCloudflareEmail(env.EMAIL_SENDER, env.EMAIL_FROM || 'noreply@brisflix.com', recipientEmail, subject, textBody, htmlBody);
+    return await sendWithCloudflareEmail(env.EMAIL_SENDER, env.EMAIL_FROM || 'hello@tallyreading.uk', recipientEmail, subject, textBody, htmlBody);
   }
 
   console.warn('No email provider configured for welcome email.');
