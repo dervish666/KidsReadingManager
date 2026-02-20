@@ -131,29 +131,28 @@ const SortableStudentRow = ({
       <TableCell
         sx={{
           fontWeight: isSelected ? 'bold' : 'normal',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1
         }}
       >
-        {!isDragDisabled && (
-          <Box
-            {...attributes}
-            {...listeners}
-            sx={{
-              cursor: 'grab',
-              display: 'flex',
-              alignItems: 'center',
-              color: 'grey.500',
-              '&:hover': { color: 'grey.700' },
-              '&:active': { cursor: 'grabbing' }
-            }}
-          >
-            <DragIndicatorIcon fontSize="small" />
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {!isDragDisabled && (
+            <Box
+              {...attributes}
+              {...listeners}
+              sx={{
+                cursor: 'grab',
+                display: 'flex',
+                alignItems: 'center',
+                color: 'grey.500',
+                '&:hover': { color: 'grey.700' },
+                '&:active': { cursor: 'grabbing' }
+              }}
+            >
+              <DragIndicatorIcon fontSize="small" />
+            </Box>
+          )}
+          <Box onClick={() => onSelect(student)} sx={{ flex: 1 }}>
+            {student.name}
           </Box>
-        )}
-        <Box onClick={() => onSelect(student)} sx={{ flex: 1 }}>
-          {student.name}
         </Box>
       </TableCell>
       {renderStatusCell(student)}
@@ -907,7 +906,12 @@ const HomeReadingRegister = () => {
           <Table stickyHeader size="small">
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 'bold', minWidth: 140, paddingLeft: '40px' }}>Name</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', minWidth: 140 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ width: '20px', flexShrink: 0 }} />
+                    Name
+                  </Box>
+                </TableCell>
                 <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', minWidth: 50 }}>
                   {getWeekInfo(selectedDate).dayName}
                 </TableCell>
