@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.2.0] - 2026-02-20
+
+### Added: Landing Page
+
+- **Landing page**: New public-facing landing page shown to unauthenticated users, based on the tally-landing-v2 design
+- **Sign In button**: Nav bar includes a Sign In button that navigates to the existing login screen
+- **Back to landing**: Login screen now has a Back link to return to the landing page
+- **Sections**: Hero with CTA, feature grid (6 cards), app-in-action showcase (3 feature rows), how-it-works steps, trust badges, email signup CTA, and footer
+- **Scroll animations**: IntersectionObserver-powered reveal animations on scroll
+- **Responsive**: Full mobile/tablet support with bookshelf edge decoration on desktop
+- **Fraunces font**: Added serif display font for landing page headings
+
 ## [3.1.1] - 2026-02-19
 
 ### Enhanced: Metadata Fetch Now Populates ISBN, Page Count & Publication Year

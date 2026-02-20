@@ -9,6 +9,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { AppProvider, useAppContext } from './contexts/AppContext';
 import { BookCoverProvider } from './contexts/BookCoverContext';
 import Login from './components/Login';
+import LandingPage from './components/LandingPage';
 import StudentList from './components/students/StudentList';
 import SessionForm from './components/sessions/SessionForm';
 import HomeReadingRegister from './components/sessions/HomeReadingRegister';
@@ -80,9 +81,13 @@ const BookshelfBorder = ({ side }) => (
 function AppContent() {
   const { isAuthenticated } = useAppContext();
   const [currentTab, setCurrentTab] = useState(0);
+  const [showLogin, setShowLogin] = useState(false);
 
   if (!isAuthenticated) {
-    return <Login />;
+    if (showLogin) {
+      return <Login onBackToLanding={() => setShowLogin(false)} />;
+    }
+    return <LandingPage onSignIn={() => setShowLogin(true)} />;
   }
 
   const renderTabContent = () => {

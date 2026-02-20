@@ -14,7 +14,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 // API URL - relative path since frontend and API are served from the same origin
 const API_URL = '/api';
 
-const Login = () => {
+const Login = ({ onBackToLanding } = {}) => {
   const context = useAppContext();
   const { login, loginWithEmail, register, apiError, isMultiTenantMode, serverAuthModeDetected } = context;
 
@@ -515,8 +515,32 @@ const Login = () => {
           width: '90%',
           textAlign: 'center',
           border: '1px solid rgba(255, 255, 255, 0.5)',
+          position: 'relative',
         }}
       >
+        {onBackToLanding && (
+          <Link
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              onBackToLanding();
+            }}
+            sx={{
+              position: 'absolute',
+              top: 16,
+              left: 20,
+              color: '#6B8E6B',
+              fontSize: '0.875rem',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 0.5,
+            }}
+          >
+            <ArrowBackIcon sx={{ fontSize: 16 }} />
+            Back
+          </Link>
+        )}
         <Box
           sx={{
             display: 'flex',
