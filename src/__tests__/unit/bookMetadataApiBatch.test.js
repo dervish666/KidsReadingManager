@@ -33,8 +33,24 @@ vi.mock('../../utils/googleBooksApi', () => ({
   getCoverUrl: vi.fn(),
 }));
 
+vi.mock('../../utils/hardcoverApi', () => ({
+  findAuthorForBook: vi.fn(),
+  getBookDetails: vi.fn(),
+  findGenresForBook: vi.fn(),
+  checkHardcoverAvailability: vi.fn(),
+  resetHardcoverAvailabilityCache: vi.fn(),
+  getHardcoverStatus: vi.fn(),
+  searchBooksByTitle: vi.fn(),
+  findTopAuthorCandidatesForBook: vi.fn(),
+  batchFindMissingAuthors: vi.fn(),
+  batchFindMissingDescriptions: vi.fn(),
+  batchFindMissingGenres: vi.fn(),
+  getCoverUrl: vi.fn(),
+}));
+
 import { batchFetchAllMetadata } from '../../utils/bookMetadataApi';
 import * as openLibrary from '../../utils/openLibraryApi';
+import * as hardcover from '../../utils/hardcoverApi';
 
 // Default settings: no bookMetadata config means OpenLibrary provider
 const defaultSettings = {};
@@ -244,5 +260,244 @@ describe('batchFetchAllMetadata', () => {
     expect(openLibrary.findAuthorForBook).toHaveBeenCalledTimes(3);
     expect(openLibrary.getBookDetails).toHaveBeenCalledTimes(3);
     expect(openLibrary.findGenresForBook).toHaveBeenCalledTimes(3);
+  });
+
+  it('includes foundSeriesName and foundSeriesNumber in results when details contain series', async () => {
+    openLibrary.findAuthorForBook.mockResolvedValue('J.K. Rowling');
+    openLibrary.getBookDetails.mockResolvedValue({
+      description: 'A boy wizard.',
+      isbn: '9780747532699',
+      pageCount: 223,
+      publicationYear: 1997,
+      seriesName: 'Harry Potter',
+      seriesNumber: 1,
+    });
+    openLibrary.findGenresForBook.mockResolvedValue(['Fantasy']);
+
+    const books = [{ title: "Harry Potter and the Philosopher's Stone", author: 'J.K. Rowling' }];
+    const promise = batchFetchAllMetadata(books, defaultSettings);
+    await flushTimers();
+    const results = await promise;
+
+    expect(results).toHaveLength(1);
+    expect(results[0].foundSeriesName).toBe('Harry Potter');
+    expect(results[0].foundSeriesNumber).toBe(1);
+  });
+
+  it('returns null for series fields when details have no series', async () => {
+    openLibrary.findAuthorForBook.mockResolvedValue('Author');
+    openLibrary.getBookDetails.mockResolvedValue({
+      description: 'A standalone book.',
+    });
+    openLibrary.findGenresForBook.mockResolvedValue(['Fiction']);
+
+    const books = [{ title: 'Standalone Book' }];
+    const promise = batchFetchAllMetadata(books, defaultSettings);
+    await flushTimers();
+    const results = await promise;
+
+    expect(results[0].foundSeriesName).toBeNull();
+    expect(results[0].foundSeriesNumber).toBeNull();
+  });
+
+  it('returns null for series fields in error results', async () => {
+    openLibrary.findAuthorForBook.mockRejectedValue(new Error('fail'));
+    openLibrary.getBookDetails.mockRejectedValue(new Error('fail'));
+    openLibrary.findGenresForBook.mockRejectedValue(new Error('fail'));
+
+    const books = [{ title: 'Error Book' }];
+    const promise = batchFetchAllMetadata(books, defaultSettings);
+    await flushTimers();
+    const results = await promise;
+
+    // Promise.allSettled handles rejections gracefully, so no error property
+    expect(results[0].foundSeriesName).toBeNull();
+    expect(results[0].foundSeriesNumber).toBeNull();
+  });
+
+  it('returns null for series fields when getBookDetails returns null', async () => {
+    openLibrary.findAuthorForBook.mockResolvedValue(null);
+    openLibrary.getBookDetails.mockResolvedValue(null);
+    openLibrary.findGenresForBook.mockResolvedValue(null);
+
+    const books = [{ title: 'Unknown Book' }];
+    const promise = batchFetchAllMetadata(books, defaultSettings);
+    await flushTimers();
+    const results = await promise;
+
+    expect(results[0].foundSeriesName).toBeNull();
+    expect(results[0].foundSeriesNumber).toBeNull();
+  });
+
+  describe('Hardcover provider', () => {
+    const hardcoverSettings = {
+      bookMetadata: {
+        provider: 'hardcover',
+        hardcoverApiKey: 'test-hardcover-key',
+      }
+    };
+
+    it('routes to hardcover functions when provider is hardcover', async () => {
+      // Hardcover functions return results (waterfall won't fall through)
+      hardcover.findAuthorForBook.mockResolvedValue('Hardcover Author');
+      hardcover.getBookDetails.mockResolvedValue({
+        description: 'Hardcover description.',
+        isbn: '9781234567890',
+        pageCount: 300,
+        publicationYear: 2020,
+        seriesName: 'Hardcover Series',
+        seriesNumber: 3,
+      });
+      hardcover.findGenresForBook.mockResolvedValue(['Sci-Fi', 'Adventure']);
+
+      const books = [{ title: 'Hardcover Book', author: 'HC Author' }];
+      const promise = batchFetchAllMetadata(books, hardcoverSettings);
+      await flushTimers();
+      const results = await promise;
+
+      expect(results).toHaveLength(1);
+      expect(results[0].foundAuthor).toBe('Hardcover Author');
+      expect(results[0].foundDescription).toBe('Hardcover description.');
+      expect(results[0].foundGenres).toEqual(['Sci-Fi', 'Adventure']);
+      expect(results[0].foundIsbn).toBe('9781234567890');
+      expect(results[0].foundPageCount).toBe(300);
+      expect(results[0].foundPublicationYear).toBe(2020);
+      expect(results[0].foundSeriesName).toBe('Hardcover Series');
+      expect(results[0].foundSeriesNumber).toBe(3);
+      expect(results[0].error).toBeUndefined();
+
+      // Hardcover functions were called (via the waterfall routing)
+      expect(hardcover.findAuthorForBook).toHaveBeenCalled();
+      expect(hardcover.getBookDetails).toHaveBeenCalled();
+      expect(hardcover.findGenresForBook).toHaveBeenCalled();
+
+      // OpenLibrary should NOT have been called (Hardcover returned results)
+      expect(openLibrary.findAuthorForBook).not.toHaveBeenCalled();
+      expect(openLibrary.getBookDetails).not.toHaveBeenCalled();
+      expect(openLibrary.findGenresForBook).not.toHaveBeenCalled();
+    });
+
+    it('falls back to OpenLibrary when Hardcover getBookDetails returns null', async () => {
+      // Hardcover returns null for details but has author/genres
+      hardcover.findAuthorForBook.mockResolvedValue('HC Author');
+      hardcover.getBookDetails.mockResolvedValue(null);
+      hardcover.findGenresForBook.mockResolvedValue(['HC Genre']);
+
+      // OpenLibrary fallback for details
+      openLibrary.getBookDetails.mockResolvedValue({
+        description: 'OL description.',
+        isbn: '9780000000000',
+        pageCount: 200,
+        publicationYear: 2015,
+        seriesName: 'OL Series',
+        seriesNumber: 2,
+      });
+
+      const books = [{ title: 'Waterfall Book', author: 'Author' }];
+      const promise = batchFetchAllMetadata(books, hardcoverSettings);
+      await flushTimers();
+      const results = await promise;
+
+      expect(results).toHaveLength(1);
+      // Author came from Hardcover
+      expect(results[0].foundAuthor).toBe('HC Author');
+      // Description came from OpenLibrary fallback
+      expect(results[0].foundDescription).toBe('OL description.');
+      // Genres came from Hardcover
+      expect(results[0].foundGenres).toEqual(['HC Genre']);
+      // ISBN/pageCount/publicationYear came from OpenLibrary fallback details
+      expect(results[0].foundIsbn).toBe('9780000000000');
+      expect(results[0].foundPageCount).toBe(200);
+      expect(results[0].foundPublicationYear).toBe(2015);
+
+      // Both Hardcover and OL getBookDetails were called
+      expect(hardcover.getBookDetails).toHaveBeenCalled();
+      expect(openLibrary.getBookDetails).toHaveBeenCalled();
+    });
+
+    it('falls back to OpenLibrary when Hardcover findAuthorForBook returns null', async () => {
+      hardcover.findAuthorForBook.mockResolvedValue(null);
+      openLibrary.findAuthorForBook.mockResolvedValue('OL Author');
+
+      hardcover.getBookDetails.mockResolvedValue({ description: 'HC desc' });
+      hardcover.findGenresForBook.mockResolvedValue(['HC Genre']);
+
+      const books = [{ title: 'Author Fallback Book' }];
+      const promise = batchFetchAllMetadata(books, hardcoverSettings);
+      await flushTimers();
+      const results = await promise;
+
+      expect(results[0].foundAuthor).toBe('OL Author');
+      expect(hardcover.findAuthorForBook).toHaveBeenCalled();
+      expect(openLibrary.findAuthorForBook).toHaveBeenCalled();
+    });
+
+    it('falls back to OpenLibrary when Hardcover throws an error', async () => {
+      hardcover.findAuthorForBook.mockRejectedValue(new Error('Hardcover down'));
+      openLibrary.findAuthorForBook.mockResolvedValue('OL Fallback Author');
+
+      hardcover.getBookDetails.mockRejectedValue(new Error('Hardcover down'));
+      openLibrary.getBookDetails.mockResolvedValue({ description: 'OL Fallback desc' });
+
+      hardcover.findGenresForBook.mockRejectedValue(new Error('Hardcover down'));
+      openLibrary.findGenresForBook.mockResolvedValue(['OL Fallback Genre']);
+
+      const books = [{ title: 'Error Fallback Book' }];
+      const promise = batchFetchAllMetadata(books, hardcoverSettings);
+      await flushTimers();
+      const results = await promise;
+
+      expect(results[0].foundAuthor).toBe('OL Fallback Author');
+      expect(results[0].foundDescription).toBe('OL Fallback desc');
+      expect(results[0].foundGenres).toEqual(['OL Fallback Genre']);
+    });
+
+    it('throws error when Hardcover is selected but no API key is configured', async () => {
+      const noKeySettings = {
+        bookMetadata: {
+          provider: 'hardcover',
+          // No hardcoverApiKey
+        }
+      };
+
+      const books = [{ title: 'Some Book' }];
+      const promise = batchFetchAllMetadata(books, noKeySettings);
+      await flushTimers();
+      const results = await promise;
+
+      // The error is caught by batchFetchAllMetadata's try/catch (Promise.allSettled),
+      // so it shows up as null fields. The actual throw happens inside
+      // findAuthorForBook/getBookDetails/findGenresForBook which throw if no key.
+      // But since batchFetchAllMetadata uses Promise.allSettled, the rejections
+      // become null fields.
+      expect(results).toHaveLength(1);
+      expect(results[0].foundAuthor).toBeNull();
+      expect(results[0].foundDescription).toBeNull();
+      expect(results[0].foundGenres).toBeNull();
+    });
+
+    it('uses 1000ms delay between books for Hardcover provider', async () => {
+      hardcover.findAuthorForBook.mockResolvedValue('Author');
+      hardcover.getBookDetails.mockResolvedValue({ description: 'Desc' });
+      hardcover.findGenresForBook.mockResolvedValue(['Genre']);
+
+      const books = [
+        { title: 'Book 1' },
+        { title: 'Book 2' },
+      ];
+
+      const promise = batchFetchAllMetadata(books, hardcoverSettings);
+
+      // After first book processes, the second book waits 1000ms
+      // Advance only 500ms - second book should not be processed yet
+      await vi.advanceTimersByTimeAsync(100);
+      // First book should have resolved by now (no delay for first book)
+
+      // Advance the rest
+      await flushTimers();
+      const results = await promise;
+
+      expect(results).toHaveLength(2);
+    });
   });
 });

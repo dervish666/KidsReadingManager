@@ -6,11 +6,13 @@
 
 import * as openLibrary from './openLibraryApi';
 import * as googleBooks from './googleBooksApi';
+import * as hardcover from './hardcoverApi';
 
 // Supported metadata providers
 export const METADATA_PROVIDERS = {
   OPEN_LIBRARY: 'openlibrary',
-  GOOGLE_BOOKS: 'googlebooks'
+  GOOGLE_BOOKS: 'googlebooks',
+  HARDCOVER: 'hardcover'
 };
 
 // Default provider
@@ -25,7 +27,8 @@ export function getMetadataConfig(settings) {
   const bookMetadata = settings?.bookMetadata || {};
   return {
     provider: bookMetadata.provider || DEFAULT_PROVIDER,
-    apiKey: bookMetadata.googleBooksApiKey || null
+    apiKey: bookMetadata.googleBooksApiKey || null,
+    hardcoverApiKey: bookMetadata.hardcoverApiKey || null
   };
 }
 
@@ -37,11 +40,15 @@ export function getMetadataConfig(settings) {
  */
 export async function checkAvailability(settings, timeout = 3000) {
   const config = getMetadataConfig(settings);
-  
+
   if (config.provider === METADATA_PROVIDERS.GOOGLE_BOOKS) {
     return googleBooks.checkGoogleBooksAvailability(config.apiKey, timeout);
   }
-  
+
+  if (config.provider === METADATA_PROVIDERS.HARDCOVER) {
+    return hardcover.checkHardcoverAvailability(config.hardcoverApiKey, timeout);
+  }
+
   return openLibrary.checkOpenLibraryAvailability(timeout);
 }
 
@@ -51,9 +58,11 @@ export async function checkAvailability(settings, timeout = 3000) {
  */
 export function resetAvailabilityCache(settings) {
   const config = getMetadataConfig(settings);
-  
+
   if (config.provider === METADATA_PROVIDERS.GOOGLE_BOOKS) {
     googleBooks.resetGoogleBooksAvailabilityCache();
+  } else if (config.provider === METADATA_PROVIDERS.HARDCOVER) {
+    hardcover.resetHardcoverAvailabilityCache();
   } else {
     openLibrary.resetOpenLibraryAvailabilityCache();
   }
@@ -66,11 +75,15 @@ export function resetAvailabilityCache(settings) {
  */
 export function getProviderStatus(settings) {
   const config = getMetadataConfig(settings);
-  
+
   if (config.provider === METADATA_PROVIDERS.GOOGLE_BOOKS) {
     return googleBooks.getGoogleBooksStatus();
   }
-  
+
+  if (config.provider === METADATA_PROVIDERS.HARDCOVER) {
+    return hardcover.getHardcoverStatus();
+  }
+
   return openLibrary.getOpenLibraryStatus();
 }
 
@@ -81,11 +94,15 @@ export function getProviderStatus(settings) {
  */
 export function getProviderDisplayName(settings) {
   const config = getMetadataConfig(settings);
-  
+
   if (config.provider === METADATA_PROVIDERS.GOOGLE_BOOKS) {
     return 'Google Books';
   }
-  
+
+  if (config.provider === METADATA_PROVIDERS.HARDCOVER) {
+    return 'Hardcover';
+  }
+
   return 'Open Library';
 }
 
@@ -98,14 +115,28 @@ export function getProviderDisplayName(settings) {
  */
 export async function searchBooksByTitle(title, settings, limit = 5) {
   const config = getMetadataConfig(settings);
-  
+
   if (config.provider === METADATA_PROVIDERS.GOOGLE_BOOKS) {
     if (!config.apiKey) {
       throw new Error('Google Books API key is not configured. Please add it in Settings.');
     }
     return googleBooks.searchBooksByTitle(title, config.apiKey, limit);
   }
-  
+
+  if (config.provider === METADATA_PROVIDERS.HARDCOVER) {
+    if (!config.hardcoverApiKey) {
+      throw new Error('Hardcover API key is not configured. Please add it in Settings.');
+    }
+    try {
+      const result = await hardcover.searchBooksByTitle(title, config.hardcoverApiKey, limit);
+      if (result && result.length > 0) return result;
+    } catch (e) {
+      console.warn('Hardcover lookup failed, falling back to OpenLibrary:', e.message);
+    }
+    // Waterfall to OpenLibrary
+    return openLibrary.searchBooksByTitle(title, limit);
+  }
+
   return openLibrary.searchBooksByTitle(title, limit);
 }
 
@@ -117,14 +148,28 @@ export async function searchBooksByTitle(title, settings, limit = 5) {
  */
 export async function findAuthorForBook(title, settings) {
   const config = getMetadataConfig(settings);
-  
+
   if (config.provider === METADATA_PROVIDERS.GOOGLE_BOOKS) {
     if (!config.apiKey) {
       throw new Error('Google Books API key is not configured. Please add it in Settings.');
     }
     return googleBooks.findAuthorForBook(title, config.apiKey);
   }
-  
+
+  if (config.provider === METADATA_PROVIDERS.HARDCOVER) {
+    if (!config.hardcoverApiKey) {
+      throw new Error('Hardcover API key is not configured. Please add it in Settings.');
+    }
+    try {
+      const result = await hardcover.findAuthorForBook(title, config.hardcoverApiKey);
+      if (result) return result;
+    } catch (e) {
+      console.warn('Hardcover lookup failed, falling back to OpenLibrary:', e.message);
+    }
+    // Waterfall to OpenLibrary
+    return openLibrary.findAuthorForBook(title);
+  }
+
   return openLibrary.findAuthorForBook(title);
 }
 
@@ -137,14 +182,28 @@ export async function findAuthorForBook(title, settings) {
  */
 export async function findTopAuthorCandidatesForBook(title, settings, limit = 3) {
   const config = getMetadataConfig(settings);
-  
+
   if (config.provider === METADATA_PROVIDERS.GOOGLE_BOOKS) {
     if (!config.apiKey) {
       throw new Error('Google Books API key is not configured. Please add it in Settings.');
     }
     return googleBooks.findTopAuthorCandidatesForBook(title, config.apiKey, limit);
   }
-  
+
+  if (config.provider === METADATA_PROVIDERS.HARDCOVER) {
+    if (!config.hardcoverApiKey) {
+      throw new Error('Hardcover API key is not configured. Please add it in Settings.');
+    }
+    try {
+      const result = await hardcover.findTopAuthorCandidatesForBook(title, config.hardcoverApiKey, limit);
+      if (result && result.length > 0) return result;
+    } catch (e) {
+      console.warn('Hardcover lookup failed, falling back to OpenLibrary:', e.message);
+    }
+    // Waterfall to OpenLibrary
+    return openLibrary.findTopAuthorCandidatesForBook(title, limit);
+  }
+
   return openLibrary.findTopAuthorCandidatesForBook(title, limit);
 }
 
@@ -157,14 +216,28 @@ export async function findTopAuthorCandidatesForBook(title, settings, limit = 3)
  */
 export async function getBookDetails(title, author, settings) {
   const config = getMetadataConfig(settings);
-  
+
   if (config.provider === METADATA_PROVIDERS.GOOGLE_BOOKS) {
     if (!config.apiKey) {
       throw new Error('Google Books API key is not configured. Please add it in Settings.');
     }
     return googleBooks.getBookDetails(title, author, config.apiKey);
   }
-  
+
+  if (config.provider === METADATA_PROVIDERS.HARDCOVER) {
+    if (!config.hardcoverApiKey) {
+      throw new Error('Hardcover API key is not configured. Please add it in Settings.');
+    }
+    try {
+      const result = await hardcover.getBookDetails(title, author, config.hardcoverApiKey);
+      if (result) return result;
+    } catch (e) {
+      console.warn('Hardcover lookup failed, falling back to OpenLibrary:', e.message);
+    }
+    // Waterfall to OpenLibrary
+    return openLibrary.getBookDetails(title, author);
+  }
+
   return openLibrary.getBookDetails(title, author);
 }
 
@@ -177,14 +250,28 @@ export async function getBookDetails(title, author, settings) {
  */
 export async function findGenresForBook(title, author, settings) {
   const config = getMetadataConfig(settings);
-  
+
   if (config.provider === METADATA_PROVIDERS.GOOGLE_BOOKS) {
     if (!config.apiKey) {
       throw new Error('Google Books API key is not configured. Please add it in Settings.');
     }
     return googleBooks.findGenresForBook(title, author, config.apiKey);
   }
-  
+
+  if (config.provider === METADATA_PROVIDERS.HARDCOVER) {
+    if (!config.hardcoverApiKey) {
+      throw new Error('Hardcover API key is not configured. Please add it in Settings.');
+    }
+    try {
+      const result = await hardcover.findGenresForBook(title, author, config.hardcoverApiKey);
+      if (result) return result;
+    } catch (e) {
+      console.warn('Hardcover lookup failed, falling back to OpenLibrary:', e.message);
+    }
+    // Waterfall to OpenLibrary
+    return openLibrary.findGenresForBook(title, author);
+  }
+
   return openLibrary.findGenresForBook(title, author);
 }
 
@@ -197,14 +284,21 @@ export async function findGenresForBook(title, author, settings) {
  */
 export async function batchFindMissingAuthors(books, settings, onProgress = null) {
   const config = getMetadataConfig(settings);
-  
+
   if (config.provider === METADATA_PROVIDERS.GOOGLE_BOOKS) {
     if (!config.apiKey) {
       throw new Error('Google Books API key is not configured. Please add it in Settings.');
     }
     return googleBooks.batchFindMissingAuthors(books, config.apiKey, onProgress);
   }
-  
+
+  if (config.provider === METADATA_PROVIDERS.HARDCOVER) {
+    if (!config.hardcoverApiKey) {
+      throw new Error('Hardcover API key is not configured. Please add it in Settings.');
+    }
+    return hardcover.batchFindMissingAuthors(books, config.hardcoverApiKey, onProgress);
+  }
+
   return openLibrary.batchFindMissingAuthors(books, onProgress);
 }
 
@@ -217,14 +311,21 @@ export async function batchFindMissingAuthors(books, settings, onProgress = null
  */
 export async function batchFindMissingDescriptions(books, settings, onProgress = null) {
   const config = getMetadataConfig(settings);
-  
+
   if (config.provider === METADATA_PROVIDERS.GOOGLE_BOOKS) {
     if (!config.apiKey) {
       throw new Error('Google Books API key is not configured. Please add it in Settings.');
     }
     return googleBooks.batchFindMissingDescriptions(books, config.apiKey, onProgress);
   }
-  
+
+  if (config.provider === METADATA_PROVIDERS.HARDCOVER) {
+    if (!config.hardcoverApiKey) {
+      throw new Error('Hardcover API key is not configured. Please add it in Settings.');
+    }
+    return hardcover.batchFindMissingDescriptions(books, config.hardcoverApiKey, onProgress);
+  }
+
   return openLibrary.batchFindMissingDescriptions(books, onProgress);
 }
 
@@ -237,14 +338,21 @@ export async function batchFindMissingDescriptions(books, settings, onProgress =
  */
 export async function batchFindMissingGenres(books, settings, onProgress = null) {
   const config = getMetadataConfig(settings);
-  
+
   if (config.provider === METADATA_PROVIDERS.GOOGLE_BOOKS) {
     if (!config.apiKey) {
       throw new Error('Google Books API key is not configured. Please add it in Settings.');
     }
     return googleBooks.batchFindMissingGenres(books, config.apiKey, onProgress);
   }
-  
+
+  if (config.provider === METADATA_PROVIDERS.HARDCOVER) {
+    if (!config.hardcoverApiKey) {
+      throw new Error('Hardcover API key is not configured. Please add it in Settings.');
+    }
+    return hardcover.batchFindMissingGenres(books, config.hardcoverApiKey, onProgress);
+  }
+
   return openLibrary.batchFindMissingGenres(books, onProgress);
 }
 
@@ -256,11 +364,15 @@ export async function batchFindMissingGenres(books, settings, onProgress = null)
  */
 export function getCoverUrl(bookData, settings) {
   const config = getMetadataConfig(settings);
-  
+
   if (config.provider === METADATA_PROVIDERS.GOOGLE_BOOKS) {
     return googleBooks.getCoverUrl(bookData);
   }
-  
+
+  if (config.provider === METADATA_PROVIDERS.HARDCOVER) {
+    return hardcover.getCoverUrl(bookData);
+  }
+
   return openLibrary.getCoverUrl(bookData);
 }
 
@@ -281,7 +393,8 @@ export function isGoogleBooksConfigured(settings) {
  */
 export function providerRequiresApiKey(settings) {
   const config = getMetadataConfig(settings);
-  return config.provider === METADATA_PROVIDERS.GOOGLE_BOOKS;
+  return config.provider === METADATA_PROVIDERS.GOOGLE_BOOKS ||
+    config.provider === METADATA_PROVIDERS.HARDCOVER;
 }
 
 /**
@@ -291,7 +404,7 @@ export function providerRequiresApiKey(settings) {
  */
 export function validateProviderConfig(settings) {
   const config = getMetadataConfig(settings);
-  
+
   if (config.provider === METADATA_PROVIDERS.GOOGLE_BOOKS) {
     if (!config.apiKey) {
       return {
@@ -300,7 +413,16 @@ export function validateProviderConfig(settings) {
       };
     }
   }
-  
+
+  if (config.provider === METADATA_PROVIDERS.HARDCOVER) {
+    if (!config.hardcoverApiKey) {
+      return {
+        valid: false,
+        error: 'Hardcover API key is required. Please configure it in Settings.'
+      };
+    }
+  }
+
   return { valid: true, error: null };
 }
 
@@ -315,6 +437,8 @@ export function validateProviderConfig(settings) {
 export async function batchFetchAllMetadata(books, settings, onProgress = null) {
   if (!books || books.length === 0) return [];
 
+  const config = getMetadataConfig(settings);
+  const delay = config.provider === METADATA_PROVIDERS.HARDCOVER ? 1000 : 500;
   const results = [];
 
   for (let i = 0; i < books.length; i++) {
@@ -323,7 +447,7 @@ export async function batchFetchAllMetadata(books, settings, onProgress = null) 
     try {
       // Small delay to be respectful to the API
       if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
 
       // Fetch all metadata in parallel for this book
@@ -345,6 +469,8 @@ export async function batchFetchAllMetadata(books, settings, onProgress = null) 
         foundIsbn: details?.isbn || null,
         foundPageCount: details?.pageCount || null,
         foundPublicationYear: details?.publicationYear || null,
+        foundSeriesName: details?.seriesName || null,
+        foundSeriesNumber: details?.seriesNumber != null ? details.seriesNumber : null,
       });
     } catch (error) {
       results.push({
@@ -355,6 +481,8 @@ export async function batchFetchAllMetadata(books, settings, onProgress = null) 
         foundIsbn: null,
         foundPageCount: null,
         foundPublicationYear: null,
+        foundSeriesName: null,
+        foundSeriesNumber: null,
         error: error.message,
       });
     }
