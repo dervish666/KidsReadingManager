@@ -210,7 +210,7 @@ describe('hardcoverApi', () => {
 
   describe('searchBooksByTitle', () => {
     it('returns formatted results from Hardcover search', async () => {
-      const mockResults = JSON.stringify([
+      const mockHits = [
         {
           document: {
             id: 101,
@@ -229,13 +229,13 @@ describe('hardcoverApi', () => {
             series_names: ['Percy Jackson']
           }
         }
-      ]);
+      ];
 
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
           data: {
-            search: { results: mockResults }
+            search: { results: { hits: mockHits, found: mockHits.length } }
           }
         })
       });
@@ -271,7 +271,7 @@ describe('hardcoverApi', () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
-          data: { search: { results: '[]' } }
+          data: { search: { results: { hits: [], found: 0 } } }
         })
       });
 
@@ -286,7 +286,7 @@ describe('hardcoverApi', () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
-          data: { search: { results: '[]' } }
+          data: { search: { results: { hits: [], found: 0 } } }
         })
       });
 
@@ -296,7 +296,7 @@ describe('hardcoverApi', () => {
     });
 
     it('handles missing author_names gracefully', async () => {
-      const mockResults = JSON.stringify([
+      const mockHits = [
         {
           document: {
             id: 200,
@@ -306,12 +306,12 @@ describe('hardcoverApi', () => {
             series_names: []
           }
         }
-      ]);
+      ];
 
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
-          data: { search: { results: mockResults } }
+          data: { search: { results: { hits: mockHits, found: mockHits.length } } }
         })
       });
 
@@ -362,7 +362,7 @@ describe('hardcoverApi', () => {
     });
 
     it('handles multiple authors by taking the first', async () => {
-      const mockResults = JSON.stringify([
+      const mockHits = [
         {
           document: {
             id: 300,
@@ -372,12 +372,12 @@ describe('hardcoverApi', () => {
             series_names: []
           }
         }
-      ]);
+      ];
 
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
-          data: { search: { results: mockResults } }
+          data: { search: { results: { hits: mockHits, found: mockHits.length } } }
         })
       });
 
@@ -387,7 +387,7 @@ describe('hardcoverApi', () => {
     });
 
     it('handles missing document fields gracefully', async () => {
-      const mockResults = JSON.stringify([
+      const mockHits = [
         {
           document: {
             id: 400,
@@ -395,12 +395,12 @@ describe('hardcoverApi', () => {
             // No author_names, isbns, or series_names
           }
         }
-      ]);
+      ];
 
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
-          data: { search: { results: mockResults } }
+          data: { search: { results: { hits: mockHits, found: mockHits.length } } }
         })
       });
 
@@ -419,7 +419,7 @@ describe('hardcoverApi', () => {
 
   describe('findAuthorForBook', () => {
     it('returns the best matching author', async () => {
-      const mockResults = JSON.stringify([
+      const mockHits = [
         {
           document: {
             id: 501,
@@ -438,12 +438,12 @@ describe('hardcoverApi', () => {
             series_names: []
           }
         }
-      ]);
+      ];
 
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
-          data: { search: { results: mockResults } }
+          data: { search: { results: { hits: mockHits, found: mockHits.length } } }
         })
       });
 
@@ -456,7 +456,7 @@ describe('hardcoverApi', () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
-          data: { search: { results: '[]' } }
+          data: { search: { results: { hits: [], found: 0 } } }
         })
       });
 
@@ -466,7 +466,7 @@ describe('hardcoverApi', () => {
     });
 
     it('returns null when no results have sufficient similarity', async () => {
-      const mockResults = JSON.stringify([
+      const mockHits = [
         {
           document: {
             id: 601,
@@ -476,12 +476,12 @@ describe('hardcoverApi', () => {
             series_names: []
           }
         }
-      ]);
+      ];
 
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
-          data: { search: { results: mockResults } }
+          data: { search: { results: { hits: mockHits, found: mockHits.length } } }
         })
       });
 
@@ -491,7 +491,7 @@ describe('hardcoverApi', () => {
     });
 
     it('returns null when results have no authors', async () => {
-      const mockResults = JSON.stringify([
+      const mockHits = [
         {
           document: {
             id: 701,
@@ -501,12 +501,12 @@ describe('hardcoverApi', () => {
             series_names: []
           }
         }
-      ]);
+      ];
 
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
-          data: { search: { results: mockResults } }
+          data: { search: { results: { hits: mockHits, found: mockHits.length } } }
         })
       });
 
@@ -524,7 +524,7 @@ describe('hardcoverApi', () => {
     });
 
     it('prefers exact title match over partial match', async () => {
-      const mockResults = JSON.stringify([
+      const mockHits = [
         {
           document: {
             id: 801,
@@ -543,12 +543,12 @@ describe('hardcoverApi', () => {
             series_names: []
           }
         }
-      ]);
+      ];
 
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
-          data: { search: { results: mockResults } }
+          data: { search: { results: { hits: mockHits, found: mockHits.length } } }
         })
       });
 
@@ -560,7 +560,7 @@ describe('hardcoverApi', () => {
 
   describe('findTopAuthorCandidatesForBook', () => {
     it('returns top N candidates sorted by similarity', async () => {
-      const mockResults = JSON.stringify([
+      const mockHits = [
         {
           document: {
             id: 901,
@@ -588,12 +588,12 @@ describe('hardcoverApi', () => {
             series_names: []
           }
         }
-      ]);
+      ];
 
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
-          data: { search: { results: mockResults } }
+          data: { search: { results: { hits: mockHits, found: mockHits.length } } }
         })
       });
 
@@ -620,7 +620,7 @@ describe('hardcoverApi', () => {
     });
 
     it('deduplicates authors across results', async () => {
-      const mockResults = JSON.stringify([
+      const mockHits = [
         {
           document: {
             id: 1001,
@@ -639,12 +639,12 @@ describe('hardcoverApi', () => {
             series_names: ['Diary of a Wimpy Kid']
           }
         }
-      ]);
+      ];
 
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
-          data: { search: { results: mockResults } }
+          data: { search: { results: { hits: mockHits, found: mockHits.length } } }
         })
       });
 
@@ -664,7 +664,7 @@ describe('hardcoverApi', () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
-          data: { search: { results: '[]' } }
+          data: { search: { results: { hits: [], found: 0 } } }
         })
       });
 
@@ -688,7 +688,7 @@ describe('hardcoverApi', () => {
     });
 
     it('filters out results below similarity threshold', async () => {
-      const mockResults = JSON.stringify([
+      const mockHits = [
         {
           document: {
             id: 1101,
@@ -698,12 +698,12 @@ describe('hardcoverApi', () => {
             series_names: []
           }
         }
-      ]);
+      ];
 
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
-          data: { search: { results: mockResults } }
+          data: { search: { results: { hits: mockHits, found: mockHits.length } } }
         })
       });
 
@@ -716,7 +716,7 @@ describe('hardcoverApi', () => {
     });
 
     it('respects the limit parameter', async () => {
-      const mockResults = JSON.stringify([
+      const mockHits = [
         {
           document: {
             id: 1201,
@@ -744,12 +744,12 @@ describe('hardcoverApi', () => {
             series_names: []
           }
         }
-      ]);
+      ];
 
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
-          data: { search: { results: mockResults } }
+          data: { search: { results: { hits: mockHits, found: mockHits.length } } }
         })
       });
 
@@ -763,7 +763,7 @@ describe('hardcoverApi', () => {
     });
 
     it('skips results with no author names', async () => {
-      const mockResults = JSON.stringify([
+      const mockHits = [
         {
           document: {
             id: 1301,
@@ -782,12 +782,12 @@ describe('hardcoverApi', () => {
             series_names: []
           }
         }
-      ]);
+      ];
 
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
-          data: { search: { results: mockResults } }
+          data: { search: { results: { hits: mockHits, found: mockHits.length } } }
         })
       });
 
@@ -815,9 +815,10 @@ describe('hardcoverApi', () => {
             json: () => Promise.resolve({
               data: {
                 search: {
-                  results: JSON.stringify(
-                    searchResults.map(r => ({ document: r }))
-                  )
+                  results: {
+                    hits: searchResults.map(r => ({ document: r })),
+                    found: searchResults.length
+                  }
                 }
               }
             })
@@ -939,7 +940,7 @@ describe('hardcoverApi', () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
-          data: { search: { results: '[]' } }
+          data: { search: { results: { hits: [], found: 0 } } }
         })
       });
 
@@ -1224,9 +1225,10 @@ describe('hardcoverApi', () => {
             json: () => Promise.resolve({
               data: {
                 search: {
-                  results: JSON.stringify(
-                    searchResults.map(r => ({ document: r }))
-                  )
+                  results: {
+                    hits: searchResults.map(r => ({ document: r })),
+                    found: searchResults.length
+                  }
                 }
               }
             })
@@ -1311,7 +1313,7 @@ describe('hardcoverApi', () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
-          data: { search: { results: '[]' } }
+          data: { search: { results: { hits: [], found: 0 } } }
         })
       });
 
@@ -1411,8 +1413,8 @@ describe('hardcoverApi', () => {
           }
         }
 
-        const results = matchedAuthor
-          ? JSON.stringify([{
+        const hits = matchedAuthor
+          ? [{
               document: {
                 id: Math.floor(Math.random() * 10000),
                 title: searchTerm,
@@ -1420,13 +1422,13 @@ describe('hardcoverApi', () => {
                 isbns: [],
                 series_names: []
               }
-            }])
-          : '[]';
+            }]
+          : [];
 
         return {
           ok: true,
           json: () => Promise.resolve({
-            data: { search: { results } }
+            data: { search: { results: { hits, found: hits.length } } }
           })
         };
       });
@@ -1548,8 +1550,8 @@ describe('hardcoverApi', () => {
             }
           }
 
-          const results = matchedTitle
-            ? JSON.stringify([{
+          const hits = matchedTitle
+            ? [{
                 document: {
                   id: 100,
                   title: matchedTitle,
@@ -1557,13 +1559,13 @@ describe('hardcoverApi', () => {
                   isbns: [],
                   series_names: []
                 }
-              }])
-            : '[]';
+              }]
+            : [];
 
           return {
             ok: true,
             json: () => Promise.resolve({
-              data: { search: { results } }
+              data: { search: { results: { hits, found: hits.length } } }
             })
           };
         }
@@ -1657,8 +1659,8 @@ describe('hardcoverApi', () => {
             }
           }
 
-          const results = matchedTitle
-            ? JSON.stringify([{
+          const hits = matchedTitle
+            ? [{
                 document: {
                   id: 200,
                   title: matchedTitle,
@@ -1666,13 +1668,13 @@ describe('hardcoverApi', () => {
                   isbns: [],
                   series_names: []
                 }
-              }])
-            : '[]';
+              }]
+            : [];
 
           return {
             ok: true,
             json: () => Promise.resolve({
-              data: { search: { results } }
+              data: { search: { results: { hits, found: hits.length } } }
             })
           };
         }

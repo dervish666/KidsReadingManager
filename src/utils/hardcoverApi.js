@@ -298,24 +298,34 @@ export async function searchBooksByTitle(title, apiKey, limit = 5) {
     return [];
   }
 
-  let parsed;
-  try {
-    parsed = JSON.parse(rawResults);
-  } catch {
-    console.error('Failed to parse Hardcover search results JSON');
+  // Hardcover returns results as an object with a `hits` array.
+  // Each hit has shape: { document: { id, title, author_names, isbns, series_names } }
+  let hits;
+  if (rawResults.hits && Array.isArray(rawResults.hits)) {
+    // Standard format: { hits: [...], found: N }
+    hits = rawResults.hits;
+  } else if (Array.isArray(rawResults)) {
+    // Fallback: raw array of { document: ... }
+    hits = rawResults;
+  } else if (typeof rawResults === 'string') {
+    // Legacy: JSON string (unlikely but handle for safety)
+    try {
+      const parsed = JSON.parse(rawResults);
+      hits = Array.isArray(parsed) ? parsed : (parsed.hits || []);
+    } catch {
+      console.error('Failed to parse Hardcover search results JSON');
+      return [];
+    }
+  } else {
     return [];
   }
 
-  if (!Array.isArray(parsed)) {
-    return [];
-  }
-
-  return parsed.map(item => {
+  return hits.map(item => {
     const doc = item.document || {};
     const authorNames = Array.isArray(doc.author_names) ? doc.author_names : [];
 
     return {
-      id: doc.id,
+      id: typeof doc.id === 'string' ? parseInt(doc.id, 10) : doc.id,
       title: doc.title || '',
       author: authorNames.length > 0 ? authorNames[0] : null,
       isbns: Array.isArray(doc.isbns) ? doc.isbns : [],
