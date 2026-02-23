@@ -1,5 +1,63 @@
 # Changelog
 
+## [3.4.0] - 2026-02-23
+
+### Added: Hardcover API Integration
+
+Hardcover (hardcover.app) added as a third metadata provider alongside OpenLibrary and Google Books, bringing rich series data and curated metadata to the book enrichment pipeline.
+
+#### Hardcover Provider
+- **Full metadata source**: Searches, author lookup, book details (with series!), genres, cover URLs, and all batch operations
+- **GraphQL API**: Uses Hardcover's Hasura-based GraphQL endpoint with two-step lookup (search → detail fetch)
+- **Series data**: Extracts series name and position number from Hardcover's `book_series` junction table
+- **Title matching**: Same 3-signal fuzzy matching algorithm as OpenLibrary (substring coverage, word overlap, bigram Jaccard)
+- **Rate limiting**: 1000ms delay between batch requests (60 req/min API limit)
+
+#### Waterfall Fallback
+- **Hardcover-first**: When Hardcover is selected, it's tried first for each lookup
+- **Automatic fallback**: If Hardcover returns null or errors, silently falls back to OpenLibrary
+- **Graceful degradation**: Missing API key throws clear error; Hardcover downtime doesn't block metadata enrichment
+
+#### Series Fields in Metadata Pipeline
+- **Fill Missing**: Now detects missing series data as a gap and populates `seriesName`/`seriesNumber` from Hardcover
+- **Refresh All**: Shows series name and number in the diff review dialog with per-field checkboxes
+- **All providers**: OpenLibrary and Google Books `getBookDetails` now return `seriesName: null, seriesNumber: null` for consistent shape
+
+#### Settings UI
+- **Provider dropdown**: Hardcover appears as third option alongside OpenLibrary and Google Books
+- **API key field**: Conditional text field shown when Hardcover is selected
+- **Validation**: Warning alert when Hardcover selected without API key configured
+
+#### Tests
+- 67 new tests for `hardcoverApi.js` (GraphQL client, availability caching, search, author lookup, book details with series, genres, cover URL, batch operations)
+- 10 new tests for waterfall fallback in `bookMetadataApi.js`
+- 2 new tests for series fields in BookManager Fill Missing/Refresh All
+- Total: 1,496 tests passing (41 files)
+
+#### Files Added
+- `src/utils/hardcoverApi.js` — Hardcover GraphQL API provider (806 lines)
+- `src/__tests__/unit/hardcoverApi.test.js` — Provider tests (1,780 lines)
+- `docs/plans/2026-02-23-hardcover-integration-design.md` — Design document
+- `docs/plans/2026-02-23-hardcover-integration-plan.md` — Implementation plan
+
+#### Files Modified
+- `src/utils/bookMetadataApi.js` — Third provider + waterfall + series fields
+- `src/utils/openLibraryApi.js` — Added seriesName/seriesNumber to getBookDetails return
+- `src/utils/googleBooksApi.js` — Added seriesName/seriesNumber to getBookDetails return
+- `src/components/books/BookManager.js` — Series fields in fill/refresh flows
+- `src/components/BookMetadataSettings.js` — Hardcover provider option + API key field
+- `src/__tests__/unit/bookMetadataApiBatch.test.js` — Hardcover + waterfall + series tests
+- `src/__tests__/components/BookManager.test.jsx` — Series field tests
+
+#### Usage
+1. Go to Settings → Book Metadata
+2. Select "Hardcover" from the provider dropdown
+3. Enter your Hardcover API key (from hardcover.app account settings)
+4. Save settings
+5. Use "Fill Missing" or "Refresh All" on the Books page — series data will now be populated
+
+---
+
 ## [3.3.0] - 2026-02-20
 
 ### Added: Email Signup for Landing Page

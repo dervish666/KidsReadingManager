@@ -2,8 +2,8 @@
 
 **Tally** (trading as Tally Reading)
 
-**Effective date:** [TODO: Insert date policy takes effect]
-**Last updated:** [TODO: Insert date of last revision]
+**Effective date:** 23-02-2026
+**Last updated:** 23-02-2026
 
 > **DRAFT -- NOT YET LEGALLY REVIEWED**
 >
@@ -25,10 +25,10 @@ AI-powered book recommendations.
 |---|---|
 | **Product name** | Tally (trading as Tally Reading) |
 | **Website** | https://tallyreading.uk |
-| **Company name** | [TODO: Insert registered company name] |
+| **Company name** | Scratch-IT |
 | **Company number** | [TODO: Insert Companies House number] |
-| **Registered address** | [TODO: Insert registered office address] |
-| **Data Protection Officer** | [TODO: Insert DPO name and contact details, or state that one has not been appointed and explain why] |
+| **Registered address** | 4 Highridge Walk, BS13 8BA |
+| **Data Protection Officer** | Sam Castillo sam@tallyreading.uk |
 | **ICO registration number** | [TODO: Insert ICO registration number once obtained (fee: GBP 40 or GBP 60 depending on tier)] |
 
 ### Controller and processor roles
