@@ -1063,7 +1063,12 @@ describe('BookManager Component', () => {
       const mockResults = [
         { book: { id: 'book-4', title: 'Unknown Book', author: null, description: null, genreIds: [] }, foundAuthor: 'Found Author', foundDescription: 'A description', foundGenres: ['Fiction'] }
       ];
-      bookMetadataApi.batchFetchAllMetadata.mockResolvedValue(mockResults);
+      bookMetadataApi.batchFetchAllMetadata.mockImplementation(async (books, settings, onProgress, options) => {
+        for (const result of mockResults) {
+          if (options?.onBookResult) await options.onBookResult(result);
+        }
+        return mockResults;
+      });
 
       const mockFetchWithAuth = vi.fn().mockResolvedValue({ ok: true });
       const mockReload = vi.fn().mockResolvedValue();
@@ -1215,7 +1220,12 @@ describe('BookManager Component', () => {
           foundSeriesNumber: 2
         }
       ];
-      bookMetadataApi.batchFetchAllMetadata.mockResolvedValue(mockResults);
+      bookMetadataApi.batchFetchAllMetadata.mockImplementation(async (books, settings, onProgress, options) => {
+        for (const result of mockResults) {
+          if (options?.onBookResult) await options.onBookResult(result);
+        }
+        return mockResults;
+      });
 
       const mockFetchWithAuth = vi.fn().mockResolvedValue({ ok: true });
       const mockReload = vi.fn().mockResolvedValue();

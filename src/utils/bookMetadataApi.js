@@ -541,6 +541,11 @@ export async function batchFetchAllMetadata(books, settings, onProgress = null, 
       });
     }
 
+    // Invoke per-book callback (e.g. to apply updates immediately)
+    if (options.onBookResult) {
+      await options.onBookResult(results[results.length - 1]);
+    }
+
     // Check rate limit state after processing this book (outside try/catch)
     const rateLimited = config.provider === METADATA_PROVIDERS.HARDCOVER &&
       typeof isHardcoverRateLimited === 'function' && isHardcoverRateLimited();

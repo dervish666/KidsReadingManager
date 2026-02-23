@@ -706,6 +706,61 @@ describe('batchFetchAllMetadata', () => {
       expect(switchedCall.switchedFrom).toBe('Hardcover');
     });
 
+    it('calls onBookResult callback with each result', async () => {
+      openLibrary.findAuthorForBook.mockResolvedValue('Author A');
+      openLibrary.getBookDetails.mockResolvedValue({ description: 'Desc' });
+      openLibrary.findGenresForBook.mockResolvedValue(['Genre']);
+
+      const books = [
+        { title: 'Book 1' },
+        { title: 'Book 2' },
+      ];
+
+      const onBookResult = vi.fn();
+      const promise = batchFetchAllMetadata(books, defaultSettings, null, { onBookResult });
+      await flushTimers();
+      await promise;
+
+      expect(onBookResult).toHaveBeenCalledTimes(2);
+      expect(onBookResult).toHaveBeenNthCalledWith(1, expect.objectContaining({
+        book: books[0],
+        foundAuthor: 'Author A',
+      }));
+      expect(onBookResult).toHaveBeenNthCalledWith(2, expect.objectContaining({
+        book: books[1],
+        foundAuthor: 'Author A',
+      }));
+    });
+
+    it('awaits async onBookResult before processing next book', async () => {
+      openLibrary.findAuthorForBook.mockResolvedValue('Author');
+      openLibrary.getBookDetails.mockResolvedValue({ description: 'Desc' });
+      openLibrary.findGenresForBook.mockResolvedValue(['Genre']);
+
+      const books = [
+        { title: 'Book 1' },
+        { title: 'Book 2' },
+      ];
+
+      const order = [];
+      const onBookResult = vi.fn().mockImplementation(async (result) => {
+        order.push(`apply-${result.book.title}`);
+      });
+      const onProgress = vi.fn().mockImplementation((p) => {
+        order.push(`progress-${p.book}`);
+      });
+
+      const promise = batchFetchAllMetadata(books, defaultSettings, onProgress, { onBookResult });
+      await flushTimers();
+      await promise;
+
+      // onBookResult should fire before onProgress for each book
+      expect(order[0]).toBe('apply-Book 1');
+      expect(order[1]).toBe('progress-Book 1');
+      expect(order[2]).toBe('apply-Book 2');
+      expect(order[3]).toBe('progress-Book 2');
+    });
+
     it('does not auto-fallback when autoFallback is false', async () => {
       hardcover.findAuthorForBook.mockResolvedValue('Author');
       hardcover.getBookDetails.mockResolvedValue({ description: 'Desc' });

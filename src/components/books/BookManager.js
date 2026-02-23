@@ -596,114 +596,124 @@ const BookManager = () => {
     batchAbortRef.current = controller;
     setFillProgress({ current: 0, total: Math.min(booksWithGaps.length, config.batchSize), book: '', overallTotal: booksWithGaps.length });
 
+    // Build genre name -> ID map once before batch starts
+    const genreNameToId = {};
+    for (const genre of genres) {
+      genreNameToId[genre.name.toLowerCase()] = genre.id;
+    }
+
+    // Counters updated per-book inside onBookResult, read by onProgress
+    let authorsUpdated = 0, descriptionsUpdated = 0, genresUpdated = 0, isbnsUpdated = 0, pageCountsUpdated = 0, yearsUpdated = 0, seriesUpdated = 0, errorCount = 0;
+    let booksProcessed = 0;
+
     try {
       const results = await batchFetchAllMetadata(booksWithGaps, settings, (progress) => {
-        setFillProgress(progress);
-      }, { signal: controller.signal });
+        setFillProgress({
+          ...progress,
+          counts: { authorsUpdated, descriptionsUpdated, genresUpdated, isbnsUpdated, pageCountsUpdated, yearsUpdated, seriesUpdated, errorCount }
+        });
+      }, {
+        signal: controller.signal,
+        onBookResult: async (result) => {
+          const book = result.book;
+          const updates = {};
+          let hasUpdate = false;
 
-      // Auto-apply: only fill fields that are currently missing
-      let authorsUpdated = 0, descriptionsUpdated = 0, genresUpdated = 0, isbnsUpdated = 0, pageCountsUpdated = 0, yearsUpdated = 0, seriesUpdated = 0, errorCount = 0;
+          // Fill author if missing
+          const authorMissing = !book.author || book.author.trim().toLowerCase() === 'unknown' || !book.author.trim();
+          if (authorMissing && result.foundAuthor) {
+            updates.author = result.foundAuthor;
+            hasUpdate = true;
+            authorsUpdated++;
+          }
 
-      // Build genre name -> ID map
-      const genreNameToId = {};
-      for (const genre of genres) {
-        genreNameToId[genre.name.toLowerCase()] = genre.id;
-      }
+          // Fill description if missing
+          if ((!book.description || !book.description.trim()) && result.foundDescription) {
+            updates.description = result.foundDescription;
+            hasUpdate = true;
+            descriptionsUpdated++;
+          }
 
-      for (const result of results) {
-        const book = result.book;
-        const updates = {};
-        let hasUpdate = false;
+          // Fill genres if missing
+          if ((!book.genreIds || book.genreIds.length === 0) && result.foundGenres && result.foundGenres.length > 0) {
+            for (const genreName of result.foundGenres) {
+              if (!genreNameToId[genreName.toLowerCase()]) {
+                try {
+                  const response = await fetchWithAuth('/api/genres', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: genreName }),
+                  });
+                  if (response.ok) {
+                    const newGenre = await response.json();
+                    genreNameToId[genreName.toLowerCase()] = newGenre.id;
+                  }
+                } catch (e) { /* continue */ }
+              }
+            }
 
-        // Fill author if missing
-        const authorMissing = !book.author || book.author.trim().toLowerCase() === 'unknown' || !book.author.trim();
-        if (authorMissing && result.foundAuthor) {
-          updates.author = result.foundAuthor;
-          hasUpdate = true;
-          authorsUpdated++;
-        }
+            const genreIds = result.foundGenres
+              .map(name => genreNameToId[name.toLowerCase()])
+              .filter(Boolean);
 
-        // Fill description if missing
-        if ((!book.description || !book.description.trim()) && result.foundDescription) {
-          updates.description = result.foundDescription;
-          hasUpdate = true;
-          descriptionsUpdated++;
-        }
-
-        // Fill genres if missing
-        if ((!book.genreIds || book.genreIds.length === 0) && result.foundGenres && result.foundGenres.length > 0) {
-          // Create missing genres first
-          for (const genreName of result.foundGenres) {
-            if (!genreNameToId[genreName.toLowerCase()]) {
-              try {
-                const response = await fetchWithAuth('/api/genres', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ name: genreName }),
-                });
-                if (response.ok) {
-                  const newGenre = await response.json();
-                  genreNameToId[genreName.toLowerCase()] = newGenre.id;
-                }
-              } catch (e) { /* continue */ }
+            if (genreIds.length > 0) {
+              updates.genreIds = genreIds;
+              hasUpdate = true;
+              genresUpdated++;
             }
           }
 
-          const genreIds = result.foundGenres
-            .map(name => genreNameToId[name.toLowerCase()])
-            .filter(Boolean);
-
-          if (genreIds.length > 0) {
-            updates.genreIds = genreIds;
+          // Fill ISBN if missing
+          if (!book.isbn && result.foundIsbn) {
+            updates.isbn = result.foundIsbn;
             hasUpdate = true;
-            genresUpdated++;
+            isbnsUpdated++;
+          }
+
+          // Fill page count if missing
+          if (!book.pageCount && result.foundPageCount) {
+            updates.pageCount = result.foundPageCount;
+            hasUpdate = true;
+            pageCountsUpdated++;
+          }
+
+          // Fill publication year if missing
+          if (!book.publicationYear && result.foundPublicationYear) {
+            updates.publicationYear = result.foundPublicationYear;
+            hasUpdate = true;
+            yearsUpdated++;
+          }
+
+          // Fill series if missing
+          if (!book.seriesName && result.foundSeriesName) {
+            updates.seriesName = result.foundSeriesName;
+            if (result.foundSeriesNumber != null) {
+              updates.seriesNumber = result.foundSeriesNumber;
+            }
+            hasUpdate = true;
+            seriesUpdated++;
+          }
+
+          if (hasUpdate) {
+            try {
+              const response = await fetchWithAuth(`/api/books/${book.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...book, ...updates }),
+              });
+              if (!response.ok) errorCount++;
+            } catch (e) {
+              errorCount++;
+            }
+          }
+
+          booksProcessed++;
+          // Reload data periodically so book list updates visually
+          if (booksProcessed % 10 === 0) {
+            await reloadDataFromServer();
           }
         }
-
-        // Fill ISBN if missing
-        if (!book.isbn && result.foundIsbn) {
-          updates.isbn = result.foundIsbn;
-          hasUpdate = true;
-          isbnsUpdated++;
-        }
-
-        // Fill page count if missing
-        if (!book.pageCount && result.foundPageCount) {
-          updates.pageCount = result.foundPageCount;
-          hasUpdate = true;
-          pageCountsUpdated++;
-        }
-
-        // Fill publication year if missing
-        if (!book.publicationYear && result.foundPublicationYear) {
-          updates.publicationYear = result.foundPublicationYear;
-          hasUpdate = true;
-          yearsUpdated++;
-        }
-
-        // Fill series if missing
-        if (!book.seriesName && result.foundSeriesName) {
-          updates.seriesName = result.foundSeriesName;
-          if (result.foundSeriesNumber != null) {
-            updates.seriesNumber = result.foundSeriesNumber;
-          }
-          hasUpdate = true;
-          seriesUpdated++;
-        }
-
-        if (hasUpdate) {
-          try {
-            const response = await fetchWithAuth(`/api/books/${book.id}`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ ...book, ...updates }),
-            });
-            if (!response.ok) errorCount++;
-          } catch (e) {
-            errorCount++;
-          }
-        }
-      }
+      });
 
       await reloadDataFromServer();
 
@@ -1294,6 +1304,25 @@ const BookManager = () => {
             })()}
             sx={{ mb: 1 }}
           />
+          {isFilling && fillProgress.counts && (() => {
+            const c = fillProgress.counts;
+            const total = c.authorsUpdated + c.descriptionsUpdated + c.genresUpdated + c.isbnsUpdated + c.pageCountsUpdated + c.yearsUpdated + c.seriesUpdated;
+            if (total === 0) return null;
+            const parts = [
+              c.authorsUpdated > 0 && `${c.authorsUpdated} authors`,
+              c.descriptionsUpdated > 0 && `${c.descriptionsUpdated} descriptions`,
+              c.genresUpdated > 0 && `${c.genresUpdated} genres`,
+              c.isbnsUpdated > 0 && `${c.isbnsUpdated} ISBNs`,
+              c.pageCountsUpdated > 0 && `${c.pageCountsUpdated} page counts`,
+              c.yearsUpdated > 0 && `${c.yearsUpdated} years`,
+              c.seriesUpdated > 0 && `${c.seriesUpdated} series`,
+            ].filter(Boolean);
+            return (
+              <Typography variant="body2" color="success.main" sx={{ mt: 0.5 }}>
+                Updated so far: {parts.join(', ')}{c.errorCount > 0 ? ` (${c.errorCount} errors)` : ''}
+              </Typography>
+            );
+          })()}
           {(isFilling ? fillProgress : refreshProgress).rateLimited && (
             <Typography variant="body2" color="warning.main" sx={{ mt: 0.5 }}>
               Rate limited — slowing down
