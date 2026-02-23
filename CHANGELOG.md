@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.4.1] - 2026-02-23
+
+### Fixed
+- **Hardcover editions query**: Changed `page_count` to `pages` in the GraphQL `BOOK_DETAILS_QUERY` to match Hardcover's actual schema, fixing "field 'page_count' not found in type: 'editions'" errors
+
 ## [3.4.0] - 2026-02-23
 
 ### Added: Hardcover API Integration

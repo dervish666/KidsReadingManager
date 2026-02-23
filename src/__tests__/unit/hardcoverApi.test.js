@@ -867,7 +867,7 @@ describe('hardcoverApi', () => {
             {
               isbn_13: '9780141346137',
               isbn_10: '0141346132',
-              page_count: 210,
+              pages: 210,
               release_date: '2007-08-01'
             }
           ]
@@ -991,7 +991,7 @@ describe('hardcoverApi', () => {
           cached_image: { url: 'https://hardcover.app/images/cw.jpg' },
           book_series: [],
           editions: [
-            { isbn_13: '9780064400558', isbn_10: null, page_count: 184, release_date: null }
+            { isbn_13: '9780064400558', isbn_10: null, pages: 184, release_date: null }
           ]
         }
       ];
@@ -1080,7 +1080,7 @@ describe('hardcoverApi', () => {
             {
               isbn_13: '9781234567890',
               isbn_10: '1234567890',
-              page_count: 100,
+              pages: 100,
               release_date: null
             }
           ]
@@ -1121,7 +1121,7 @@ describe('hardcoverApi', () => {
             {
               isbn_13: null,
               isbn_10: '0987654321',
-              page_count: 150,
+              pages: 150,
               release_date: null
             }
           ]

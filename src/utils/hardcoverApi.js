@@ -368,7 +368,7 @@ query BookDetails($id: Int!) {
       series { name }
     }
     editions(limit: 1, order_by: {users_count: desc}) {
-      isbn_13 isbn_10 page_count release_date
+      isbn_13 isbn_10 pages release_date
     }
   }
 }`;
@@ -432,7 +432,7 @@ export async function getBookDetails(title, author, apiKey) {
     const isbn = edition?.isbn_13 || edition?.isbn_10 || null;
 
     // Extract page count: prefer edition, fall back to book.pages
-    const pageCount = edition?.page_count || book.pages || null;
+    const pageCount = edition?.pages || book.pages || null;
 
     // Extract publication year
     const publicationYear = book.release_year || null;
