@@ -28,6 +28,7 @@ import { usersRouter } from './routes/users';
 import { organizationRouter } from './routes/organization';
 import coversRouter from './routes/covers';
 import { signupRouter } from './routes/signup';
+import { hardcoverRouter } from './routes/hardcover';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -202,6 +203,7 @@ app.route('/api/books', booksRouter);
 app.route('/api/genres', genresRouter);
 app.route('/api/covers', coversRouter);
 app.route('/api/signup', signupRouter);
+app.route('/api/hardcover', hardcoverRouter);
 
 // API health check (public)
 app.get('/api/health', (c) => {

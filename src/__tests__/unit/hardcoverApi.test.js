@@ -21,11 +21,14 @@ describe('hardcoverApi', () => {
     originalFetch = global.fetch;
     resetHardcoverAvailabilityCache();
     vi.useFakeTimers();
+    // Set auth token so hardcoverQuery includes Authorization header
+    localStorage.setItem('krm_auth_token', 'test-jwt-token');
   });
 
   afterEach(() => {
     global.fetch = originalFetch;
     vi.useRealTimers();
+    localStorage.removeItem('krm_auth_token');
   });
 
   describe('checkHardcoverAvailability', () => {
@@ -40,22 +43,23 @@ describe('hardcoverApi', () => {
       expect(result).toBe(true);
       expect(global.fetch).toHaveBeenCalledTimes(1);
       expect(global.fetch).toHaveBeenCalledWith(
-        'https://api.hardcover.app/v1/graphql',
+        '/api/hardcover/graphql',
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({
             'Content-Type': 'application/json',
-            authorization: 'test-api-key'
+            'Authorization': 'Bearer test-jwt-token'
           }),
           body: expect.any(String),
           signal: expect.any(AbortSignal)
         })
       );
 
-      // Verify the body contains the introspection query
+      // Verify the body contains the introspection query and apiKey
       const callArgs = global.fetch.mock.calls[0];
       const body = JSON.parse(callArgs[1].body);
       expect(body.query).toContain('__typename');
+      expect(body.apiKey).toBe('test-api-key');
     });
 
     it('returns false on GraphQL errors', async () => {

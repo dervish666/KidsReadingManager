@@ -2,9 +2,13 @@
  * Hardcover API Integration
  * Provides functions to query the Hardcover GraphQL API
  * for book metadata, including series information.
+ *
+ * All requests are proxied through the backend at /api/hardcover/graphql
+ * to avoid browser CORS restrictions (Hardcover's API does not set
+ * Access-Control-Allow-Origin headers).
  */
 
-const HARDCOVER_GRAPHQL_URL = 'https://api.hardcover.app/v1/graphql';
+const PROXY_URL = '/api/hardcover/graphql';
 
 // Cache for Hardcover availability status
 let hardcoverAvailable = null;
@@ -12,22 +16,34 @@ let lastAvailabilityCheck = 0;
 const AVAILABILITY_CHECK_INTERVAL = 60000; // Re-check every 60 seconds
 
 /**
- * Internal helper to POST a GraphQL query to the Hardcover API.
+ * Internal helper to POST a GraphQL query via the backend proxy.
+ * The proxy forwards the request to Hardcover server-side, avoiding CORS.
+ * The API key is read from org settings on the backend; an optional apiKey
+ * can be passed for availability checks before the key is saved.
+ *
  * @param {string} query - GraphQL query string
  * @param {Object} variables - GraphQL variables
- * @param {string} apiKey - Hardcover API key
+ * @param {string} apiKey - Hardcover API key (passed to proxy as optional override)
  * @param {Object} [options] - Additional fetch options (e.g. signal)
  * @returns {Promise<Object>} The `data` field from the GraphQL response
  * @throws {Error} On HTTP errors or GraphQL errors
  */
 async function hardcoverQuery(query, variables, apiKey, options = {}) {
-  const response = await fetch(HARDCOVER_GRAPHQL_URL, {
+  const token = typeof localStorage !== 'undefined'
+    ? localStorage.getItem('krm_auth_token')
+    : null;
+
+  const headers = {
+    'Content-Type': 'application/json'
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(PROXY_URL, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      authorization: apiKey
-    },
-    body: JSON.stringify({ query, variables }),
+    headers,
+    body: JSON.stringify({ query, variables, apiKey }),
     ...options
   });
 
