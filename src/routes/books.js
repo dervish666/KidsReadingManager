@@ -1170,6 +1170,7 @@ booksRouter.post('/import/confirm', requireTeacher(), async (c) => {
       });
     } catch (error) {
       // If the entire batch fails, record errors for all items in it
+      console.error(`Batch ${Math.floor(i / BATCH_SIZE) + 1} failed:`, error.message);
       batch.forEach(b => b.onError(error.message));
     }
   }

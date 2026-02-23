@@ -337,14 +337,24 @@ const BookImportWizard = ({ open, onClose }) => {
       case 3: // Complete
         return (
           <Box sx={{ py: 4, textAlign: 'center' }}>
-            <Typography variant="h6" color="success.main" gutterBottom>
-              Import Complete!
+            <Typography variant="h6" color={importResult?.errors ? 'warning.main' : 'success.main'} gutterBottom>
+              {importResult?.errors ? 'Import Partially Complete' : 'Import Complete!'}
             </Typography>
             {importResult && (
               <Box sx={{ mt: 2 }}>
                 <Typography>Linked: {importResult.linked} books</Typography>
                 <Typography>Created: {importResult.created} books</Typography>
                 <Typography>Updated: {importResult.updated} books</Typography>
+                {importResult.errors && (
+                  <Box sx={{ mt: 2 }}>
+                    <Typography color="error.main">
+                      {importResult.errors.length} errors occurred
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      First error: {importResult.errors[0]?.error || JSON.stringify(importResult.errors[0])}
+                    </Typography>
+                  </Box>
+                )}
               </Box>
             )}
           </Box>
