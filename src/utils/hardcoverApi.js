@@ -328,6 +328,105 @@ export async function findAuthorForBook(title, apiKey) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Book detail lookup (search + full detail fetch with series data)
+// ---------------------------------------------------------------------------
+
+const BOOK_DETAILS_QUERY = `
+query BookDetails($id: Int!) {
+  books(where: {id: {_eq: $id}}) {
+    id title description pages release_year
+    cached_contributors cached_tags cached_image
+    book_series(order_by: {featured: desc}) {
+      position details featured
+      series { name }
+    }
+    editions(limit: 1, order_by: {users_count: desc}) {
+      isbn_13 isbn_10 page_count release_date
+    }
+  }
+}`;
+
+/**
+ * Get detailed book information from Hardcover, including series data.
+ *
+ * Two-step lookup:
+ *   1. Search by title (+ author if provided) via searchBooksByTitle
+ *   2. Fetch full book details by ID via hardcoverQuery
+ *
+ * @param {string} title - The book title to look up
+ * @param {string|null} author - Optional author name to narrow the search
+ * @param {string} apiKey - Hardcover API key
+ * @returns {Promise<Object|null>} Book details object, or null if not found
+ */
+export async function getBookDetails(title, author, apiKey) {
+  try {
+    // Step 1: Search for candidates
+    const searchQuery = author ? `${title} ${author}` : title;
+    const searchResults = await searchBooksByTitle(searchQuery, apiKey, 5);
+
+    // Find best title match
+    const bestMatch = findBestTitleMatch(title, searchResults);
+    if (!bestMatch) {
+      return null;
+    }
+
+    // Step 2: Fetch full details by ID
+    const data = await hardcoverQuery(BOOK_DETAILS_QUERY, { id: bestMatch.id }, apiKey);
+    const books = data?.books;
+    if (!books || books.length === 0) {
+      return null;
+    }
+
+    const book = books[0];
+
+    // Extract edition data (first/most popular edition)
+    const edition = book.editions && book.editions.length > 0 ? book.editions[0] : null;
+
+    // Extract series data (first entry is the primary/featured one, ordered by featured desc)
+    let seriesName = null;
+    let seriesNumber = null;
+    if (book.book_series && book.book_series.length > 0) {
+      const primarySeries = book.book_series[0];
+      seriesName = primarySeries.series?.name || null;
+      const pos = Number(primarySeries.position);
+      seriesNumber = Number.isNaN(pos) ? null : pos;
+    }
+
+    // Extract cover URL
+    const coverUrl = book.cached_image?.url || null;
+
+    // Extract and truncate description
+    let description = book.description || null;
+    if (description && description.length > 500) {
+      description = description.slice(0, 500) + '...';
+    }
+
+    // Extract ISBN: prefer isbn_13, fall back to isbn_10
+    const isbn = edition?.isbn_13 || edition?.isbn_10 || null;
+
+    // Extract page count: prefer edition, fall back to book.pages
+    const pageCount = edition?.page_count || book.pages || null;
+
+    // Extract publication year
+    const publicationYear = book.release_year || null;
+
+    return {
+      coverUrl,
+      description,
+      isbn,
+      pageCount,
+      publicationYear,
+      seriesName,
+      seriesNumber,
+      hardcoverId: book.id
+    };
+  } catch (error) {
+    console.error(`Error getting book details for "${title}":`, error);
+    return null;
+  }
+}
+
 /**
  * Find the top N author candidates for a given book title from Hardcover.
  * Returns objects with author name, source title, similarity score, and

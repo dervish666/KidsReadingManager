@@ -5,7 +5,8 @@ import {
   getHardcoverStatus,
   searchBooksByTitle,
   findAuthorForBook,
-  findTopAuthorCandidatesForBook
+  findTopAuthorCandidatesForBook,
+  getBookDetails
 } from '../../utils/hardcoverApi.js';
 
 describe('hardcoverApi', () => {
@@ -788,6 +789,417 @@ describe('hardcoverApi', () => {
 
       expect(candidates.length).toBeGreaterThanOrEqual(1);
       expect(candidates[0].name).toBe('Julia Donaldson');
+    });
+  });
+
+  describe('getBookDetails', () => {
+    // Helper: creates a mock fetch that returns different responses for
+    // the search query vs. the book-detail query based on the GraphQL
+    // operation/query text in the request body.
+    function createMockFetch(searchResults, detailBooks) {
+      return vi.fn(async (url, options) => {
+        const body = JSON.parse(options.body);
+        if (body.query.includes('search')) {
+          // Search query — return stringified search results
+          return {
+            ok: true,
+            json: () => Promise.resolve({
+              data: {
+                search: {
+                  results: JSON.stringify(
+                    searchResults.map(r => ({ document: r }))
+                  )
+                }
+              }
+            })
+          };
+        }
+        // Book detail query
+        return {
+          ok: true,
+          json: () => Promise.resolve({
+            data: { books: detailBooks }
+          })
+        };
+      });
+    }
+
+    it('returns full details from matched book', async () => {
+      const searchResults = [
+        {
+          id: 42,
+          title: 'The BFG',
+          author_names: ['Roald Dahl'],
+          isbns: ['9780141346137'],
+          series_names: []
+        }
+      ];
+
+      const detailBooks = [
+        {
+          id: 42,
+          title: 'The BFG',
+          description: 'A little girl meets a Big Friendly Giant.',
+          pages: 208,
+          release_year: 1982,
+          cached_contributors: { Author: [{ author: { name: 'Roald Dahl' } }] },
+          cached_tags: { Genre: ['Fiction', "Children's"] },
+          cached_image: { url: 'https://hardcover.app/images/bfg.jpg' },
+          book_series: [
+            {
+              position: 1.0,
+              details: null,
+              featured: true,
+              series: { name: 'Roald Dahl Collection' }
+            }
+          ],
+          editions: [
+            {
+              isbn_13: '9780141346137',
+              isbn_10: '0141346132',
+              page_count: 210,
+              release_date: '2007-08-01'
+            }
+          ]
+        }
+      ];
+
+      global.fetch = createMockFetch(searchResults, detailBooks);
+
+      const result = await getBookDetails('The BFG', 'Roald Dahl', 'test-api-key');
+
+      expect(result).not.toBeNull();
+      expect(result.hardcoverId).toBe(42);
+      expect(result.coverUrl).toBe('https://hardcover.app/images/bfg.jpg');
+      expect(result.description).toBe('A little girl meets a Big Friendly Giant.');
+      expect(result.isbn).toBe('9780141346137');
+      expect(result.pageCount).toBe(210);
+      expect(result.publicationYear).toBe(1982);
+      expect(result.seriesName).toBe('Roald Dahl Collection');
+      expect(result.seriesNumber).toBe(1.0);
+    });
+
+    it('returns series data correctly from book_series', async () => {
+      const searchResults = [
+        {
+          id: 100,
+          title: 'Harry Potter and the Philosophers Stone',
+          author_names: ['J.K. Rowling'],
+          isbns: [],
+          series_names: ['Harry Potter']
+        }
+      ];
+
+      const detailBooks = [
+        {
+          id: 100,
+          title: 'Harry Potter and the Philosophers Stone',
+          description: 'A boy discovers he is a wizard.',
+          pages: 332,
+          release_year: 1997,
+          cached_contributors: {},
+          cached_tags: {},
+          cached_image: null,
+          book_series: [
+            {
+              position: 1.0,
+              details: null,
+              featured: true,
+              series: { name: 'Harry Potter' }
+            }
+          ],
+          editions: []
+        }
+      ];
+
+      global.fetch = createMockFetch(searchResults, detailBooks);
+
+      const result = await getBookDetails(
+        'Harry Potter and the Philosophers Stone',
+        null,
+        'test-api-key'
+      );
+
+      expect(result).not.toBeNull();
+      expect(result.seriesName).toBe('Harry Potter');
+      expect(result.seriesNumber).toBe(1.0);
+    });
+
+    it('returns null when search finds no match', async () => {
+      // Return empty search results
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          data: { search: { results: '[]' } }
+        })
+      });
+
+      const result = await getBookDetails('ZZZZZ Nonexistent Book', null, 'test-api-key');
+
+      expect(result).toBeNull();
+    });
+
+    it('returns null when book detail query returns empty', async () => {
+      const searchResults = [
+        {
+          id: 999,
+          title: 'Ghost Book',
+          author_names: ['Ghost Author'],
+          isbns: [],
+          series_names: []
+        }
+      ];
+
+      // Detail query returns empty books array
+      global.fetch = createMockFetch(searchResults, []);
+
+      const result = await getBookDetails('Ghost Book', null, 'test-api-key');
+
+      expect(result).toBeNull();
+    });
+
+    it('handles books with no series', async () => {
+      const searchResults = [
+        {
+          id: 50,
+          title: 'Charlotte\'s Web',
+          author_names: ['E.B. White'],
+          isbns: [],
+          series_names: []
+        }
+      ];
+
+      const detailBooks = [
+        {
+          id: 50,
+          title: 'Charlotte\'s Web',
+          description: 'A story about a pig and a spider.',
+          pages: 184,
+          release_year: 1952,
+          cached_contributors: {},
+          cached_tags: {},
+          cached_image: { url: 'https://hardcover.app/images/cw.jpg' },
+          book_series: [],
+          editions: [
+            { isbn_13: '9780064400558', isbn_10: null, page_count: 184, release_date: null }
+          ]
+        }
+      ];
+
+      global.fetch = createMockFetch(searchResults, detailBooks);
+
+      const result = await getBookDetails('Charlotte\'s Web', null, 'test-api-key');
+
+      expect(result).not.toBeNull();
+      expect(result.seriesName).toBeNull();
+      expect(result.seriesNumber).toBeNull();
+    });
+
+    it('handles books with multiple series entries (picks featured/first one)', async () => {
+      const searchResults = [
+        {
+          id: 60,
+          title: 'Crossover Book',
+          author_names: ['Multi Author'],
+          isbns: [],
+          series_names: ['Series A', 'Series B']
+        }
+      ];
+
+      const detailBooks = [
+        {
+          id: 60,
+          title: 'Crossover Book',
+          description: 'Appears in two series.',
+          pages: 300,
+          release_year: 2020,
+          cached_contributors: {},
+          cached_tags: {},
+          cached_image: null,
+          book_series: [
+            {
+              position: 3.0,
+              details: null,
+              featured: true,
+              series: { name: 'Primary Series' }
+            },
+            {
+              position: 7.0,
+              details: null,
+              featured: false,
+              series: { name: 'Secondary Series' }
+            }
+          ],
+          editions: []
+        }
+      ];
+
+      global.fetch = createMockFetch(searchResults, detailBooks);
+
+      const result = await getBookDetails('Crossover Book', null, 'test-api-key');
+
+      expect(result).not.toBeNull();
+      // Should pick the first entry (featured=true, ordered by featured desc)
+      expect(result.seriesName).toBe('Primary Series');
+      expect(result.seriesNumber).toBe(3.0);
+    });
+
+    it('uses editions.isbn_13 for ISBN when available', async () => {
+      const searchResults = [
+        {
+          id: 70,
+          title: 'ISBN-13 Book',
+          author_names: ['Author A'],
+          isbns: [],
+          series_names: []
+        }
+      ];
+
+      const detailBooks = [
+        {
+          id: 70,
+          title: 'ISBN-13 Book',
+          description: 'A book with ISBN-13.',
+          pages: 100,
+          release_year: 2010,
+          cached_contributors: {},
+          cached_tags: {},
+          cached_image: null,
+          book_series: [],
+          editions: [
+            {
+              isbn_13: '9781234567890',
+              isbn_10: '1234567890',
+              page_count: 100,
+              release_date: null
+            }
+          ]
+        }
+      ];
+
+      global.fetch = createMockFetch(searchResults, detailBooks);
+
+      const result = await getBookDetails('ISBN-13 Book', null, 'test-api-key');
+
+      expect(result).not.toBeNull();
+      expect(result.isbn).toBe('9781234567890');
+    });
+
+    it('falls back to editions.isbn_10 when no ISBN-13', async () => {
+      const searchResults = [
+        {
+          id: 71,
+          title: 'ISBN-10 Only Book',
+          author_names: ['Author B'],
+          isbns: [],
+          series_names: []
+        }
+      ];
+
+      const detailBooks = [
+        {
+          id: 71,
+          title: 'ISBN-10 Only Book',
+          description: 'Only has ISBN-10.',
+          pages: 150,
+          release_year: 2005,
+          cached_contributors: {},
+          cached_tags: {},
+          cached_image: null,
+          book_series: [],
+          editions: [
+            {
+              isbn_13: null,
+              isbn_10: '0987654321',
+              page_count: 150,
+              release_date: null
+            }
+          ]
+        }
+      ];
+
+      global.fetch = createMockFetch(searchResults, detailBooks);
+
+      const result = await getBookDetails('ISBN-10 Only Book', null, 'test-api-key');
+
+      expect(result).not.toBeNull();
+      expect(result.isbn).toBe('0987654321');
+    });
+
+    it('truncates long descriptions to 500 chars + "..."', async () => {
+      const longDescription = 'A'.repeat(600);
+
+      const searchResults = [
+        {
+          id: 80,
+          title: 'Long Description Book',
+          author_names: ['Verbose Author'],
+          isbns: [],
+          series_names: []
+        }
+      ];
+
+      const detailBooks = [
+        {
+          id: 80,
+          title: 'Long Description Book',
+          description: longDescription,
+          pages: 500,
+          release_year: 2023,
+          cached_contributors: {},
+          cached_tags: {},
+          cached_image: null,
+          book_series: [],
+          editions: []
+        }
+      ];
+
+      global.fetch = createMockFetch(searchResults, detailBooks);
+
+      const result = await getBookDetails('Long Description Book', null, 'test-api-key');
+
+      expect(result).not.toBeNull();
+      expect(result.description.length).toBe(503); // 500 + '...'
+      expect(result.description).toBe('A'.repeat(500) + '...');
+    });
+
+    it('handles missing cached_image and missing editions', async () => {
+      const searchResults = [
+        {
+          id: 90,
+          title: 'Minimal Book',
+          author_names: ['Minimal Author'],
+          isbns: [],
+          series_names: []
+        }
+      ];
+
+      const detailBooks = [
+        {
+          id: 90,
+          title: 'Minimal Book',
+          description: 'Short.',
+          pages: 50,
+          release_year: null,
+          cached_contributors: {},
+          cached_tags: {},
+          cached_image: null,
+          book_series: [],
+          editions: []
+        }
+      ];
+
+      global.fetch = createMockFetch(searchResults, detailBooks);
+
+      const result = await getBookDetails('Minimal Book', null, 'test-api-key');
+
+      expect(result).not.toBeNull();
+      expect(result.coverUrl).toBeNull();
+      expect(result.isbn).toBeNull();
+      expect(result.pageCount).toBe(50); // falls back to book.pages
+      expect(result.publicationYear).toBeNull();
+      expect(result.seriesName).toBeNull();
+      expect(result.seriesNumber).toBeNull();
     });
   });
 });
