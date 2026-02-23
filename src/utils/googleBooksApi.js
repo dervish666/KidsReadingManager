@@ -325,7 +325,9 @@ export async function getBookDetails(title, author, apiKey) {
       averageRating: volumeInfo.averageRating || null,
       ratingsCount: volumeInfo.ratingsCount || null,
       isbn,
-      publicationYear
+      publicationYear,
+      seriesName: null,
+      seriesNumber: null
     };
   } catch (error) {
     console.error('Error getting book details from Google Books:', error);

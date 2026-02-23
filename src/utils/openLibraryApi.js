@@ -498,7 +498,9 @@ export async function getBookDetails(title, author = null) {
       ia: bestMatch.ia ? bestMatch.ia[0] : null,
       isbn: isbn13,
       pageCount: bestMatch.number_of_pages_median || null,
-      publicationYear: bestMatch.first_publish_year || null
+      publicationYear: bestMatch.first_publish_year || null,
+      seriesName: null,
+      seriesNumber: null
     };
   } catch (error) {
     console.error('Error getting book details:', error);
