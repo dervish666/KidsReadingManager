@@ -22,6 +22,7 @@ const BookMetadataSettings = () => {
   const { settings, updateSettings, loading } = useAppContext();
   const [provider, setProvider] = useState(METADATA_PROVIDERS.OPEN_LIBRARY);
   const [googleBooksApiKey, setGoogleBooksApiKey] = useState('');
+  const [hardcoverApiKey, setHardcoverApiKey] = useState('');
   const [saveStatus, setSaveStatus] = useState(null); // 'success', 'error', or null
   const [isSaving, setIsSaving] = useState(false);
 
@@ -30,6 +31,7 @@ const BookMetadataSettings = () => {
     if (settings?.bookMetadata) {
       setProvider(settings.bookMetadata.provider || METADATA_PROVIDERS.OPEN_LIBRARY);
       setGoogleBooksApiKey(settings.bookMetadata.googleBooksApiKey || '');
+      setHardcoverApiKey(settings.bookMetadata.hardcoverApiKey || '');
     }
   }, [settings]);
 
@@ -42,7 +44,8 @@ const BookMetadataSettings = () => {
         ...settings,
         bookMetadata: {
           provider,
-          googleBooksApiKey
+          googleBooksApiKey,
+          hardcoverApiKey
         }
       };
 
@@ -70,6 +73,8 @@ const BookMetadataSettings = () => {
 
   const showApiKeyField = provider === METADATA_PROVIDERS.GOOGLE_BOOKS;
   const isGoogleBooksWithoutKey = provider === METADATA_PROVIDERS.GOOGLE_BOOKS && !googleBooksApiKey.trim();
+  const showHardcoverApiKeyField = provider === METADATA_PROVIDERS.HARDCOVER;
+  const isHardcoverWithoutKey = provider === METADATA_PROVIDERS.HARDCOVER && !hardcoverApiKey.trim();
 
   return (
     <Box>
@@ -81,7 +86,7 @@ const BookMetadataSettings = () => {
         
         <Typography variant="body2" color="text.secondary" paragraph>
           Configure the service used for fetching book metadata (authors, descriptions, genres, cover images).
-          Choose between Open Library (free, no API key required) or Google Books (requires API key, often has more comprehensive data).
+          Choose between Open Library (free, no API key required), Google Books (requires API key, often has more comprehensive data), or Hardcover (requires API key, best series data).
         </Typography>
 
         <Divider sx={{ my: 3 }} />
@@ -104,6 +109,12 @@ const BookMetadataSettings = () => {
           </Alert>
         )}
 
+        {isHardcoverWithoutKey && (
+          <Alert severity="warning" sx={{ mb: 3 }}>
+            Hardcover requires an API key. Please enter your API key below or switch to Open Library.
+          </Alert>
+        )}
+
         <Box component="form" noValidate autoComplete="off">
           <FormControl fullWidth sx={{ mb: 3 }}>
             <InputLabel id="metadata-provider-label">Metadata Provider</InputLabel>
@@ -118,6 +129,9 @@ const BookMetadataSettings = () => {
               </MenuItem>
               <MenuItem value={METADATA_PROVIDERS.GOOGLE_BOOKS}>
                 Google Books (Requires API key)
+              </MenuItem>
+              <MenuItem value={METADATA_PROVIDERS.HARDCOVER}>
+                Hardcover (Requires API key, best series data)
               </MenuItem>
             </Select>
           </FormControl>
@@ -135,6 +149,19 @@ const BookMetadataSettings = () => {
             />
           )}
 
+          {showHardcoverApiKeyField && (
+            <TextField
+              fullWidth
+              label="Hardcover API Key"
+              type="password"
+              value={hardcoverApiKey}
+              onChange={(e) => setHardcoverApiKey(e.target.value)}
+              helperText="Get your API key from hardcover.app/account/api"
+              sx={{ mb: 3 }}
+              error={isHardcoverWithoutKey}
+            />
+          )}
+
           <Box sx={{ mb: 3, p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
             <Typography variant="subtitle2" gutterBottom>
               Provider Comparison:
@@ -145,13 +172,16 @@ const BookMetadataSettings = () => {
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
               <strong>Google Books:</strong> Comprehensive database, excellent for newer releases and detailed metadata. Requires API key (free tier available with limits).
             </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              <strong>Hardcover:</strong> Curated community database with excellent series data. Requires API key (free). Falls back to Open Library when no match found.
+            </Typography>
           </Box>
 
           <Button
             variant="contained"
             startIcon={isSaving ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
             onClick={handleSave}
-            disabled={isSaving || isGoogleBooksWithoutKey}
+            disabled={isSaving || isGoogleBooksWithoutKey || isHardcoverWithoutKey}
           >
             {isSaving ? 'Saving...' : 'Save Configuration'}
           </Button>
