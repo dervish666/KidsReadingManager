@@ -41,6 +41,7 @@ const BookImportWizard = ({ open, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [importResult, setImportResult] = useState(null);
+  const [importProgress, setImportProgress] = useState(null);
 
   const handleFileUpload = useCallback((event) => {
     const file = event.target.files[0];
@@ -99,55 +100,108 @@ const BookImportWizard = ({ open, onClose }) => {
   const handleConfirmImport = async () => {
     setIsLoading(true);
     setError(null);
+    setImportProgress(null);
 
     try {
-      const payload = {
-        matched: previewResults.matched.map(m => ({ existingBookId: m.existingBook.id })),
-        newBooks: previewResults.newBooks.map(n => n.importedBook),
-        conflicts: previewResults.conflicts
-          .filter(c => selectedConflicts[c.existingBook.id])
-          .map(c => ({
-            existingBookId: c.existingBook.id,
-            updateReadingLevel: true,
-            newReadingLevel: c.importedBook.readingLevel
-          }))
-      };
+      // Build full payload
+      const allMatched = previewResults.matched.map(m => ({ existingBookId: m.existingBook.id }));
+      const allNewBooks = previewResults.newBooks.map(n => n.importedBook);
+      const allConflicts = previewResults.conflicts
+        .filter(c => selectedConflicts[c.existingBook.id])
+        .map(c => ({
+          existingBookId: c.existingBook.id,
+          updateReadingLevel: true,
+          newReadingLevel: c.importedBook.readingLevel
+        }));
 
       // Also link conflicts that weren't updated
       const unupdatedConflicts = previewResults.conflicts
         .filter(c => !selectedConflicts[c.existingBook.id])
         .map(c => ({ existingBookId: c.existingBook.id }));
-      payload.matched.push(...unupdatedConflicts);
+      allMatched.push(...unupdatedConflicts);
 
       // Handle possible matches: accepted ones link to existing, rejected become new books
       if (previewResults.possibleMatches) {
         const acceptedMatches = previewResults.possibleMatches
           .filter(pm => selectedPossibleMatches[pm.existingBook.id])
           .map(pm => ({ existingBookId: pm.existingBook.id }));
-        payload.matched.push(...acceptedMatches);
+        allMatched.push(...acceptedMatches);
 
         const rejectedMatches = previewResults.possibleMatches
           .filter(pm => !selectedPossibleMatches[pm.existingBook.id])
           .map(pm => pm.importedBook);
-        payload.newBooks.push(...rejectedMatches);
+        allNewBooks.push(...rejectedMatches);
       }
 
-      const response = await fetchWithAuth('/api/books/import/confirm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+      // Send in chunks to avoid Worker timeout on large imports
+      const CHUNK_SIZE = 200;
+      const totalBooks = allMatched.length + allNewBooks.length + allConflicts.length;
+      const totals = { linked: 0, created: 0, updated: 0, errors: [] };
+      let processed = 0;
+
+      // Send matched books in chunks
+      for (let i = 0; i < allMatched.length; i += CHUNK_SIZE) {
+        const chunk = allMatched.slice(i, i + CHUNK_SIZE);
+        setImportProgress({ processed, total: totalBooks });
+        const response = await fetchWithAuth('/api/books/import/confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ matched: chunk, newBooks: [], conflicts: [] })
+        });
+        if (!response.ok) throw new Error(`Import chunk failed (matched ${i})`);
+        const result = await response.json();
+        totals.linked += result.linked || 0;
+        totals.updated += result.updated || 0;
+        if (result.errors) totals.errors.push(...result.errors);
+        processed += chunk.length;
+      }
+
+      // Send new books in chunks
+      for (let i = 0; i < allNewBooks.length; i += CHUNK_SIZE) {
+        const chunk = allNewBooks.slice(i, i + CHUNK_SIZE);
+        setImportProgress({ processed, total: totalBooks });
+        const response = await fetchWithAuth('/api/books/import/confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ matched: [], newBooks: chunk, conflicts: [] })
+        });
+        if (!response.ok) throw new Error(`Import chunk failed (new ${i})`);
+        const result = await response.json();
+        totals.linked += result.linked || 0;
+        totals.created += result.created || 0;
+        if (result.errors) totals.errors.push(...result.errors);
+        processed += chunk.length;
+      }
+
+      // Send conflicts in one go (usually small)
+      if (allConflicts.length > 0) {
+        setImportProgress({ processed, total: totalBooks });
+        const response = await fetchWithAuth('/api/books/import/confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ matched: [], newBooks: [], conflicts: allConflicts })
+        });
+        if (!response.ok) throw new Error('Import chunk failed (conflicts)');
+        const result = await response.json();
+        totals.linked += result.linked || 0;
+        totals.updated += result.updated || 0;
+        if (result.errors) totals.errors.push(...result.errors);
+      }
+
+      setImportResult({
+        linked: totals.linked,
+        created: totals.created,
+        updated: totals.updated,
+        errors: totals.errors.length > 0 ? totals.errors : undefined,
+        success: totals.errors.length === 0
       });
-
-      if (!response.ok) throw new Error('Import failed');
-
-      const result = await response.json();
-      setImportResult(result);
       setActiveStep(3);
       await reloadDataFromServer();
     } catch (err) {
       setError(err.message);
     } finally {
       setIsLoading(false);
+      setImportProgress(null);
     }
   };
 
@@ -160,6 +214,7 @@ const BookImportWizard = ({ open, onClose }) => {
     setSelectedPossibleMatches({});
     setError(null);
     setImportResult(null);
+    setImportProgress(null);
     onClose();
   };
 
@@ -377,7 +432,18 @@ const BookImportWizard = ({ open, onClose }) => {
           ))}
         </Stepper>
 
-        {isLoading && <LinearProgress sx={{ mb: 2 }} />}
+        {isLoading && (
+          importProgress ? (
+            <Box sx={{ mb: 2 }}>
+              <LinearProgress variant="determinate" value={(importProgress.processed / importProgress.total) * 100} sx={{ mb: 0.5 }} />
+              <Typography variant="caption" color="text.secondary" align="center" display="block">
+                Importing {importProgress.processed} / {importProgress.total} books...
+              </Typography>
+            </Box>
+          ) : (
+            <LinearProgress sx={{ mb: 2 }} />
+          )
+        )}
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
         {renderStepContent()}
