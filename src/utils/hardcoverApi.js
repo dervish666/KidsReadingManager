@@ -411,6 +411,11 @@ export async function getBookDetails(title, author, apiKey) {
     // Extract publication year
     const publicationYear = book.release_year || null;
 
+    // Extract genres from cached_tags
+    const genres = Array.isArray(book.cached_tags?.Genre) && book.cached_tags.Genre.length > 0
+      ? book.cached_tags.Genre
+      : null;
+
     return {
       coverUrl,
       description,
@@ -419,6 +424,7 @@ export async function getBookDetails(title, author, apiKey) {
       publicationYear,
       seriesName,
       seriesNumber,
+      genres,
       hardcoverId: book.id
     };
   } catch (error) {
@@ -505,4 +511,296 @@ export async function findTopAuthorCandidatesForBook(title, apiKey, limit = 3) {
     console.error(`Error finding author candidates for "${title}":`, error);
     return [];
   }
+}
+
+// ---------------------------------------------------------------------------
+// Genre lookup
+// ---------------------------------------------------------------------------
+
+/**
+ * Find genre/subject information for a book from Hardcover.
+ *
+ * Uses `getBookDetails` (which already fetches `cached_tags` in the detail
+ * query) and extracts the `Genre` key from `cached_tags`.
+ *
+ * @param {string} title - The book title to search for
+ * @param {string|null} author - Optional author name to narrow the search
+ * @param {string} apiKey - Hardcover API key
+ * @returns {Promise<Array<string>|null>} Array of genre strings or null if not found
+ */
+export async function findGenresForBook(title, author, apiKey) {
+  try {
+    const details = await getBookDetails(title, author, apiKey);
+    if (!details) {
+      return null;
+    }
+
+    const genres = details.genres;
+    if (!genres || genres.length === 0) {
+      return null;
+    }
+
+    return genres;
+  } catch (error) {
+    console.error(`Error finding genres for "${title}":`, error);
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Cover URL helper
+// ---------------------------------------------------------------------------
+
+/**
+ * Get cover URL from book data.
+ * Simple helper matching the pattern of openLibraryApi.js's getCoverUrl.
+ *
+ * @param {Object} bookData - Book data (e.g. from getBookDetails)
+ * @returns {string|null} Cover URL or null
+ */
+export function getCoverUrl(bookData) {
+  if (!bookData) return null;
+
+  if (bookData.coverUrl) {
+    return bookData.coverUrl;
+  }
+
+  if (bookData.cached_image?.url) {
+    return bookData.cached_image.url;
+  }
+
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// Batch operations
+// ---------------------------------------------------------------------------
+
+/**
+ * Batch process multiple books to find missing authors.
+ *
+ * Iterates books without authors, calls findAuthorForBook for each with
+ * 1000ms delay between requests (Hardcover has 60 req/min limit).
+ *
+ * @param {Array} books - Array of book objects with title and author properties
+ * @param {string} apiKey - Hardcover API key
+ * @param {Function} [onProgress] - Callback with {current, total, book} at each step
+ * @returns {Promise<Array<{book: Object, foundAuthor: string|null, success: boolean, error?: string}>>}
+ */
+export async function batchFindMissingAuthors(books, apiKey, onProgress = null) {
+  const results = [];
+
+  const needsAuthor = (book) => {
+    const author = (book.author || '').trim().toLowerCase();
+    return !author || author === 'unknown';
+  };
+
+  const booksNeedingAuthors = books.filter(needsAuthor);
+
+  if (booksNeedingAuthors.length === 0) {
+    return [];
+  }
+
+  for (let i = 0; i < booksNeedingAuthors.length; i++) {
+    const book = booksNeedingAuthors[i];
+
+    try {
+      // 1000ms delay between requests (Hardcover 60 req/min limit)
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      const foundAuthor = await findAuthorForBook(book.title, apiKey);
+
+      results.push({
+        book,
+        foundAuthor,
+        success: !!foundAuthor
+      });
+
+      if (onProgress) {
+        onProgress({
+          current: i + 1,
+          total: booksNeedingAuthors.length,
+          book: book.title,
+          foundAuthor,
+          success: !!foundAuthor
+        });
+      }
+    } catch (error) {
+      console.error(`Error processing book "${book.title}":`, error);
+      results.push({
+        book,
+        foundAuthor: null,
+        success: false,
+        error: error.message
+      });
+
+      if (onProgress) {
+        onProgress({
+          current: i + 1,
+          total: booksNeedingAuthors.length,
+          book: book.title,
+          foundAuthor: null,
+          success: false,
+          error: error.message
+        });
+      }
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Batch process multiple books to find missing descriptions.
+ *
+ * Iterates books without descriptions, calls getBookDetails for each with
+ * 1000ms delay between requests.
+ *
+ * @param {Array} books - Array of book objects with title, author, and description
+ * @param {string} apiKey - Hardcover API key
+ * @param {Function} [onProgress] - Callback with {current, total, book} at each step
+ * @returns {Promise<Array<{book: Object, foundDescription: string|null, success: boolean, error?: string}>>}
+ */
+export async function batchFindMissingDescriptions(books, apiKey, onProgress = null) {
+  const results = [];
+
+  const needsDescription = (book) => {
+    const description = (book.description || '').trim();
+    return !description;
+  };
+
+  const booksNeedingDescriptions = books.filter(needsDescription);
+
+  if (booksNeedingDescriptions.length === 0) {
+    return [];
+  }
+
+  for (let i = 0; i < booksNeedingDescriptions.length; i++) {
+    const book = booksNeedingDescriptions[i];
+
+    try {
+      // 1000ms delay between requests
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      const details = await getBookDetails(book.title, book.author || null, apiKey);
+      const foundDescription = details?.description || null;
+
+      results.push({
+        book,
+        foundDescription,
+        success: !!foundDescription
+      });
+
+      if (onProgress) {
+        onProgress({
+          current: i + 1,
+          total: booksNeedingDescriptions.length,
+          book: book.title,
+          foundDescription,
+          success: !!foundDescription
+        });
+      }
+    } catch (error) {
+      console.error(`Error processing book "${book.title}":`, error);
+      results.push({
+        book,
+        foundDescription: null,
+        success: false,
+        error: error.message
+      });
+
+      if (onProgress) {
+        onProgress({
+          current: i + 1,
+          total: booksNeedingDescriptions.length,
+          book: book.title,
+          foundDescription: null,
+          success: false,
+          error: error.message
+        });
+      }
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Batch process multiple books to find missing genres.
+ *
+ * Iterates books without genres (empty genreIds), calls findGenresForBook
+ * for each with 1000ms delay between requests.
+ *
+ * @param {Array} books - Array of book objects with title, author, and genreIds
+ * @param {string} apiKey - Hardcover API key
+ * @param {Function} [onProgress] - Callback with {current, total, book} at each step
+ * @returns {Promise<Array<{book: Object, foundGenres: Array<string>, success: boolean, error?: string}>>}
+ */
+export async function batchFindMissingGenres(books, apiKey, onProgress = null) {
+  const results = [];
+
+  const needsGenres = (book) => {
+    const genreIds = book.genreIds || [];
+    return genreIds.length === 0;
+  };
+
+  const booksNeedingGenres = books.filter(needsGenres);
+
+  if (booksNeedingGenres.length === 0) {
+    return [];
+  }
+
+  for (let i = 0; i < booksNeedingGenres.length; i++) {
+    const book = booksNeedingGenres[i];
+
+    try {
+      // 1000ms delay between requests
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      const foundGenres = await findGenresForBook(book.title, book.author || null, apiKey);
+
+      results.push({
+        book,
+        foundGenres: foundGenres || [],
+        success: !!(foundGenres && foundGenres.length > 0)
+      });
+
+      if (onProgress) {
+        onProgress({
+          current: i + 1,
+          total: booksNeedingGenres.length,
+          book: book.title,
+          foundGenres: foundGenres || [],
+          success: !!(foundGenres && foundGenres.length > 0)
+        });
+      }
+    } catch (error) {
+      console.error(`Error processing book "${book.title}":`, error);
+      results.push({
+        book,
+        foundGenres: [],
+        success: false,
+        error: error.message
+      });
+
+      if (onProgress) {
+        onProgress({
+          current: i + 1,
+          total: booksNeedingGenres.length,
+          book: book.title,
+          foundGenres: [],
+          success: false,
+          error: error.message
+        });
+      }
+    }
+  }
+
+  return results;
 }

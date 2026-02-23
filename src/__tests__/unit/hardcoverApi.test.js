@@ -6,7 +6,12 @@ import {
   searchBooksByTitle,
   findAuthorForBook,
   findTopAuthorCandidatesForBook,
-  getBookDetails
+  getBookDetails,
+  findGenresForBook,
+  getCoverUrl,
+  batchFindMissingAuthors,
+  batchFindMissingDescriptions,
+  batchFindMissingGenres
 } from '../../utils/hardcoverApi.js';
 
 describe('hardcoverApi', () => {
@@ -1200,6 +1205,576 @@ describe('hardcoverApi', () => {
       expect(result.publicationYear).toBeNull();
       expect(result.seriesName).toBeNull();
       expect(result.seriesNumber).toBeNull();
+    });
+  });
+
+  describe('findGenresForBook', () => {
+    // Helper: creates a mock fetch that returns different responses for
+    // the search query vs. the book-detail query
+    function createMockFetch(searchResults, detailBooks) {
+      return vi.fn(async (url, options) => {
+        const body = JSON.parse(options.body);
+        if (body.query.includes('search')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve({
+              data: {
+                search: {
+                  results: JSON.stringify(
+                    searchResults.map(r => ({ document: r }))
+                  )
+                }
+              }
+            })
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve({
+            data: { books: detailBooks }
+          })
+        };
+      });
+    }
+
+    it('returns genre array from cached_tags.Genre', async () => {
+      const searchResults = [
+        {
+          id: 42,
+          title: 'The BFG',
+          author_names: ['Roald Dahl'],
+          isbns: ['9780141346137'],
+          series_names: []
+        }
+      ];
+
+      const detailBooks = [
+        {
+          id: 42,
+          title: 'The BFG',
+          description: 'A story about a giant.',
+          pages: 208,
+          release_year: 1982,
+          cached_contributors: {},
+          cached_tags: { Genre: ['Fiction', "Children's", 'Fantasy'] },
+          cached_image: null,
+          book_series: [],
+          editions: []
+        }
+      ];
+
+      global.fetch = createMockFetch(searchResults, detailBooks);
+
+      const genres = await findGenresForBook('The BFG', 'Roald Dahl', 'test-api-key');
+
+      expect(genres).toEqual(['Fiction', "Children's", 'Fantasy']);
+    });
+
+    it('returns null when no genres found in cached_tags', async () => {
+      const searchResults = [
+        {
+          id: 43,
+          title: 'Mystery Book',
+          author_names: ['Some Author'],
+          isbns: [],
+          series_names: []
+        }
+      ];
+
+      const detailBooks = [
+        {
+          id: 43,
+          title: 'Mystery Book',
+          description: 'A book.',
+          pages: 100,
+          release_year: 2020,
+          cached_contributors: {},
+          cached_tags: {},
+          cached_image: null,
+          book_series: [],
+          editions: []
+        }
+      ];
+
+      global.fetch = createMockFetch(searchResults, detailBooks);
+
+      const genres = await findGenresForBook('Mystery Book', null, 'test-api-key');
+
+      expect(genres).toBeNull();
+    });
+
+    it('returns null when book is not found', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          data: { search: { results: '[]' } }
+        })
+      });
+
+      const genres = await findGenresForBook('ZZZXXX Nonexistent', null, 'test-api-key');
+
+      expect(genres).toBeNull();
+    });
+
+    it('returns null on API error', async () => {
+      global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+
+      const genres = await findGenresForBook('Some Book', null, 'test-api-key');
+
+      expect(genres).toBeNull();
+    });
+
+    it('returns null when cached_tags.Genre is empty array', async () => {
+      const searchResults = [
+        {
+          id: 44,
+          title: 'Empty Genre Book',
+          author_names: ['Author'],
+          isbns: [],
+          series_names: []
+        }
+      ];
+
+      const detailBooks = [
+        {
+          id: 44,
+          title: 'Empty Genre Book',
+          description: 'A book.',
+          pages: 100,
+          release_year: 2020,
+          cached_contributors: {},
+          cached_tags: { Genre: [] },
+          cached_image: null,
+          book_series: [],
+          editions: []
+        }
+      ];
+
+      global.fetch = createMockFetch(searchResults, detailBooks);
+
+      const genres = await findGenresForBook('Empty Genre Book', null, 'test-api-key');
+
+      expect(genres).toBeNull();
+    });
+  });
+
+  describe('getCoverUrl', () => {
+    it('returns coverUrl from bookData', () => {
+      const bookData = { coverUrl: 'https://hardcover.app/images/cover.jpg' };
+
+      expect(getCoverUrl(bookData)).toBe('https://hardcover.app/images/cover.jpg');
+    });
+
+    it('returns cached_image.url when coverUrl is missing', () => {
+      const bookData = {
+        cached_image: { url: 'https://hardcover.app/images/cached.jpg' }
+      };
+
+      expect(getCoverUrl(bookData)).toBe('https://hardcover.app/images/cached.jpg');
+    });
+
+    it('returns null for empty bookData', () => {
+      expect(getCoverUrl({})).toBeNull();
+    });
+
+    it('returns null for null bookData', () => {
+      expect(getCoverUrl(null)).toBeNull();
+    });
+
+    it('prefers coverUrl over cached_image.url', () => {
+      const bookData = {
+        coverUrl: 'https://hardcover.app/images/primary.jpg',
+        cached_image: { url: 'https://hardcover.app/images/fallback.jpg' }
+      };
+
+      expect(getCoverUrl(bookData)).toBe('https://hardcover.app/images/primary.jpg');
+    });
+  });
+
+  describe('batchFindMissingAuthors', () => {
+    // Helper: creates a mock fetch that responds to search queries
+    function createSearchMockFetch(titleToAuthor) {
+      return vi.fn(async (url, options) => {
+        const body = JSON.parse(options.body);
+        const searchTerm = body.variables?.q || '';
+
+        // Find matching author from our map
+        let matchedAuthor = null;
+        for (const [title, author] of Object.entries(titleToAuthor)) {
+          if (searchTerm.includes(title)) {
+            matchedAuthor = author;
+            break;
+          }
+        }
+
+        const results = matchedAuthor
+          ? JSON.stringify([{
+              document: {
+                id: Math.floor(Math.random() * 10000),
+                title: searchTerm,
+                author_names: [matchedAuthor],
+                isbns: [],
+                series_names: []
+              }
+            }])
+          : '[]';
+
+        return {
+          ok: true,
+          json: () => Promise.resolve({
+            data: { search: { results } }
+          })
+        };
+      });
+    }
+
+    it('calls findAuthorForBook for each book without author', async () => {
+      const books = [
+        { title: 'The BFG', author: '' },
+        { title: 'Matilda', author: '' },
+        { title: 'Charlie', author: 'Roald Dahl' } // Already has author, should be skipped
+      ];
+
+      global.fetch = createSearchMockFetch({
+        'The BFG': 'Roald Dahl',
+        'Matilda': 'Roald Dahl'
+      });
+
+      const promise = batchFindMissingAuthors(books, 'test-api-key');
+
+      // Advance past the 1000ms delay between books
+      await vi.advanceTimersByTimeAsync(1000);
+
+      const results = await promise;
+
+      // Should only process the 2 books without authors
+      expect(results).toHaveLength(2);
+      expect(results[0].book.title).toBe('The BFG');
+      expect(results[0].foundAuthor).toBe('Roald Dahl');
+      expect(results[1].book.title).toBe('Matilda');
+      expect(results[1].foundAuthor).toBe('Roald Dahl');
+    });
+
+    it('returns empty array when all books have authors', async () => {
+      const books = [
+        { title: 'The BFG', author: 'Roald Dahl' },
+        { title: 'Matilda', author: 'Roald Dahl' }
+      ];
+
+      const results = await batchFindMissingAuthors(books, 'test-api-key');
+
+      expect(results).toEqual([]);
+    });
+
+    it('calls onProgress callback with correct data', async () => {
+      const books = [
+        { title: 'The BFG', author: '' }
+      ];
+
+      global.fetch = createSearchMockFetch({
+        'The BFG': 'Roald Dahl'
+      });
+
+      const onProgress = vi.fn();
+
+      await batchFindMissingAuthors(books, 'test-api-key', onProgress);
+
+      expect(onProgress).toHaveBeenCalledTimes(1);
+      expect(onProgress).toHaveBeenCalledWith(expect.objectContaining({
+        current: 1,
+        total: 1,
+        book: 'The BFG'
+      }));
+    });
+
+    it('handles API errors gracefully per book', async () => {
+      const books = [
+        { title: 'Error Book', author: '' }
+      ];
+
+      // findAuthorForBook catches errors internally and returns null
+      global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+
+      const results = await batchFindMissingAuthors(books, 'test-api-key');
+
+      expect(results).toHaveLength(1);
+      expect(results[0].foundAuthor).toBeNull();
+      expect(results[0].success).toBe(false);
+    });
+
+    it('includes delay between API calls', async () => {
+      const books = [
+        { title: 'Book A', author: '' },
+        { title: 'Book B', author: '' }
+      ];
+
+      global.fetch = createSearchMockFetch({
+        'Book A': 'Author A',
+        'Book B': 'Author B'
+      });
+
+      // Process first book immediately
+      const promise = batchFindMissingAuthors(books, 'test-api-key');
+
+      // First book should process without delay
+      await vi.advanceTimersByTimeAsync(0);
+
+      // Second book needs 1000ms delay
+      await vi.advanceTimersByTimeAsync(1000);
+
+      const results = await promise;
+
+      expect(results).toHaveLength(2);
+    });
+  });
+
+  describe('batchFindMissingDescriptions', () => {
+    // Helper: creates a mock fetch for search + detail queries
+    function createDetailMockFetch(titleToDescription) {
+      return vi.fn(async (url, options) => {
+        const body = JSON.parse(options.body);
+
+        if (body.query.includes('search')) {
+          const searchTerm = body.variables?.q || '';
+          let matchedTitle = null;
+          for (const title of Object.keys(titleToDescription)) {
+            if (searchTerm.includes(title)) {
+              matchedTitle = title;
+              break;
+            }
+          }
+
+          const results = matchedTitle
+            ? JSON.stringify([{
+                document: {
+                  id: 100,
+                  title: matchedTitle,
+                  author_names: ['Test Author'],
+                  isbns: [],
+                  series_names: []
+                }
+              }])
+            : '[]';
+
+          return {
+            ok: true,
+            json: () => Promise.resolve({
+              data: { search: { results } }
+            })
+          };
+        }
+
+        // Detail query — return description based on title mapping
+        const description = Object.values(titleToDescription)[0] || null;
+        return {
+          ok: true,
+          json: () => Promise.resolve({
+            data: {
+              books: [{
+                id: 100,
+                title: 'Test',
+                description,
+                pages: 200,
+                release_year: 2020,
+                cached_contributors: {},
+                cached_tags: {},
+                cached_image: null,
+                book_series: [],
+                editions: []
+              }]
+            }
+          })
+        };
+      });
+    }
+
+    it('calls getBookDetails for each book without description', async () => {
+      const books = [
+        { title: 'Book A', author: 'Author A', description: '' },
+        { title: 'Book B', author: 'Author B', description: 'Already has one' }
+      ];
+
+      global.fetch = createDetailMockFetch({
+        'Book A': 'Found description for Book A'
+      });
+
+      const results = await batchFindMissingDescriptions(books, 'test-api-key');
+
+      expect(results).toHaveLength(1);
+      expect(results[0].book.title).toBe('Book A');
+      expect(results[0].foundDescription).toBe('Found description for Book A');
+    });
+
+    it('returns empty array when all books have descriptions', async () => {
+      const books = [
+        { title: 'Book A', description: 'Has description' }
+      ];
+
+      const results = await batchFindMissingDescriptions(books, 'test-api-key');
+
+      expect(results).toEqual([]);
+    });
+
+    it('calls onProgress callback', async () => {
+      const books = [
+        { title: 'Book A', author: 'Author', description: '' }
+      ];
+
+      global.fetch = createDetailMockFetch({
+        'Book A': 'A description'
+      });
+
+      const onProgress = vi.fn();
+
+      await batchFindMissingDescriptions(books, 'test-api-key', onProgress);
+
+      expect(onProgress).toHaveBeenCalledTimes(1);
+      expect(onProgress).toHaveBeenCalledWith(expect.objectContaining({
+        current: 1,
+        total: 1,
+        book: 'Book A'
+      }));
+    });
+  });
+
+  describe('batchFindMissingGenres', () => {
+    // Helper: creates a mock fetch for search + detail queries with genre data
+    function createGenreMockFetch(titleToGenres) {
+      return vi.fn(async (url, options) => {
+        const body = JSON.parse(options.body);
+
+        if (body.query.includes('search')) {
+          const searchTerm = body.variables?.q || '';
+          let matchedTitle = null;
+          for (const title of Object.keys(titleToGenres)) {
+            if (searchTerm.includes(title)) {
+              matchedTitle = title;
+              break;
+            }
+          }
+
+          const results = matchedTitle
+            ? JSON.stringify([{
+                document: {
+                  id: 200,
+                  title: matchedTitle,
+                  author_names: ['Test Author'],
+                  isbns: [],
+                  series_names: []
+                }
+              }])
+            : '[]';
+
+          return {
+            ok: true,
+            json: () => Promise.resolve({
+              data: { search: { results } }
+            })
+          };
+        }
+
+        // Detail query — return genres based on title mapping
+        const genres = Object.values(titleToGenres)[0] || [];
+        return {
+          ok: true,
+          json: () => Promise.resolve({
+            data: {
+              books: [{
+                id: 200,
+                title: 'Test',
+                description: 'Desc',
+                pages: 200,
+                release_year: 2020,
+                cached_contributors: {},
+                cached_tags: genres.length > 0 ? { Genre: genres } : {},
+                cached_image: null,
+                book_series: [],
+                editions: []
+              }]
+            }
+          })
+        };
+      });
+    }
+
+    it('returns genres for books missing them', async () => {
+      const books = [
+        { title: 'Fantasy Book', author: 'Author A', genreIds: [] },
+        { title: 'Has Genres', author: 'Author B', genreIds: [1, 2] }
+      ];
+
+      global.fetch = createGenreMockFetch({
+        'Fantasy Book': ['Fantasy', 'Adventure']
+      });
+
+      const results = await batchFindMissingGenres(books, 'test-api-key');
+
+      expect(results).toHaveLength(1);
+      expect(results[0].book.title).toBe('Fantasy Book');
+      expect(results[0].foundGenres).toEqual(['Fantasy', 'Adventure']);
+    });
+
+    it('returns empty array when all books have genres', async () => {
+      const books = [
+        { title: 'Book A', genreIds: [1] },
+        { title: 'Book B', genreIds: [2, 3] }
+      ];
+
+      const results = await batchFindMissingGenres(books, 'test-api-key');
+
+      expect(results).toEqual([]);
+    });
+
+    it('calls onProgress callback with correct data', async () => {
+      const books = [
+        { title: 'Genre Book', author: 'Author', genreIds: [] }
+      ];
+
+      global.fetch = createGenreMockFetch({
+        'Genre Book': ['Fiction']
+      });
+
+      const onProgress = vi.fn();
+
+      await batchFindMissingGenres(books, 'test-api-key', onProgress);
+
+      expect(onProgress).toHaveBeenCalledTimes(1);
+      expect(onProgress).toHaveBeenCalledWith(expect.objectContaining({
+        current: 1,
+        total: 1,
+        book: 'Genre Book'
+      }));
+    });
+
+    it('handles books where no genres are found', async () => {
+      const books = [
+        { title: 'No Genre Book', author: 'Author', genreIds: [] }
+      ];
+
+      global.fetch = createGenreMockFetch({
+        'No Genre Book': []
+      });
+
+      const results = await batchFindMissingGenres(books, 'test-api-key');
+
+      expect(results).toHaveLength(1);
+      expect(results[0].foundGenres).toEqual([]);
+      expect(results[0].success).toBe(false);
+    });
+
+    it('handles API errors gracefully per book', async () => {
+      const books = [
+        { title: 'Error Book', genreIds: [] }
+      ];
+
+      // findGenresForBook catches errors internally and returns null
+      global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+
+      const results = await batchFindMissingGenres(books, 'test-api-key');
+
+      expect(results).toHaveLength(1);
+      expect(results[0].foundGenres).toEqual([]);
+      expect(results[0].success).toBe(false);
     });
   });
 });
