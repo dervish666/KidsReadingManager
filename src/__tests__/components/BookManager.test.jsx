@@ -1166,6 +1166,7 @@ describe('BookManager Component', () => {
           isbn: '9780142410318',
           pageCount: 176,
           publicationYear: 1964,
+          seriesName: 'Complete Series',
           readingLevel: '3.0',
           ageRange: '6-10'
         }
@@ -1179,6 +1180,145 @@ describe('BookManager Component', () => {
 
       await waitFor(() => {
         expect(screen.getByText(/all books already have complete metadata/i)).toBeInTheDocument();
+      });
+    });
+
+    it('should detect missing series as a gap and apply foundSeriesName/foundSeriesNumber in Fill Missing', async () => {
+      const booksWithMissingSeries = [
+        {
+          id: 'book-series-1',
+          title: 'The Lion, the Witch and the Wardrobe',
+          author: 'C.S. Lewis',
+          description: 'A fantasy novel',
+          genreIds: ['genre-1'],
+          isbn: '9780064404990',
+          pageCount: 208,
+          publicationYear: 1950,
+          seriesName: null,
+          seriesNumber: null,
+          readingLevel: '5.0',
+          ageRange: '8-12'
+        }
+      ];
+
+      const mockResults = [
+        {
+          book: booksWithMissingSeries[0],
+          foundAuthor: null,
+          foundDescription: null,
+          foundGenres: null,
+          foundIsbn: null,
+          foundPageCount: null,
+          foundPublicationYear: null,
+          foundSeriesName: 'The Chronicles of Narnia',
+          foundSeriesNumber: 2
+        }
+      ];
+      bookMetadataApi.batchFetchAllMetadata.mockResolvedValue(mockResults);
+
+      const mockFetchWithAuth = vi.fn().mockResolvedValue({ ok: true });
+      const mockReload = vi.fn().mockResolvedValue();
+      const context = createMockContext({
+        books: booksWithMissingSeries,
+        fetchWithAuth: mockFetchWithAuth,
+        reloadDataFromServer: mockReload
+      });
+      const user = userEvent.setup();
+      render(<BookManager />, { wrapper: createWrapper(context) });
+
+      const fillMissingButton = screen.getByRole('button', { name: /fill missing/i });
+      await user.click(fillMissingButton);
+
+      await waitFor(() => {
+        expect(bookMetadataApi.batchFetchAllMetadata).toHaveBeenCalled();
+      });
+
+      await waitFor(() => {
+        // Should have called PUT with series fields
+        const putCalls = mockFetchWithAuth.mock.calls.filter(
+          call => call[0] === '/api/books/book-series-1' && call[1]?.method === 'PUT'
+        );
+        expect(putCalls.length).toBe(1);
+        const body = JSON.parse(putCalls[0][1].body);
+        expect(body.seriesName).toBe('The Chronicles of Narnia');
+        expect(body.seriesNumber).toBe(2);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText(/1 series/)).toBeInTheDocument();
+      });
+    });
+
+    it('should show series diffs in Refresh All and apply them', async () => {
+      const booksForRefresh = [
+        {
+          id: 'book-refresh-1',
+          title: 'The Philosopher\'s Stone',
+          author: 'J.K. Rowling',
+          description: 'A wizard story',
+          genreIds: ['genre-1'],
+          isbn: '9780747532699',
+          pageCount: 223,
+          publicationYear: 1997,
+          seriesName: null,
+          seriesNumber: null,
+          readingLevel: '5.5',
+          ageRange: '10-14'
+        }
+      ];
+
+      const mockResults = [
+        {
+          book: booksForRefresh[0],
+          foundAuthor: 'J.K. Rowling',
+          foundDescription: 'A wizard story',
+          foundGenres: null,
+          foundIsbn: '9780747532699',
+          foundPageCount: 223,
+          foundPublicationYear: 1997,
+          foundSeriesName: 'Harry Potter',
+          foundSeriesNumber: 1
+        }
+      ];
+      bookMetadataApi.batchFetchAllMetadata.mockResolvedValue(mockResults);
+
+      const mockFetchWithAuth = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
+      const mockReload = vi.fn().mockResolvedValue();
+      const context = createMockContext({
+        books: booksForRefresh,
+        fetchWithAuth: mockFetchWithAuth,
+        reloadDataFromServer: mockReload
+      });
+      const user = userEvent.setup();
+      render(<BookManager />, { wrapper: createWrapper(context) });
+
+      // Click Refresh All
+      const refreshAllButton = screen.getByRole('button', { name: /refresh all/i });
+      await user.click(refreshAllButton);
+
+      // Wait for diff review to appear
+      await waitFor(() => {
+        expect(screen.getByText(/review proposed changes/i)).toBeInTheDocument();
+      });
+
+      // Should show series diff with label
+      expect(screen.getByText('Series')).toBeInTheDocument();
+      expect(screen.getByText('Harry Potter')).toBeInTheDocument();
+      expect(screen.getByText('Series #')).toBeInTheDocument();
+      expect(screen.getByText('1')).toBeInTheDocument();
+
+      // Click apply
+      const applyButton = screen.getByRole('button', { name: /apply/i });
+      await user.click(applyButton);
+
+      await waitFor(() => {
+        const putCalls = mockFetchWithAuth.mock.calls.filter(
+          call => call[0] === '/api/books/book-refresh-1' && call[1]?.method === 'PUT'
+        );
+        expect(putCalls.length).toBe(1);
+        const body = JSON.parse(putCalls[0][1].body);
+        expect(body.seriesName).toBe('Harry Potter');
+        expect(body.seriesNumber).toBe(1);
       });
     });
   });

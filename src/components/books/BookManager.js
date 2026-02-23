@@ -556,7 +556,8 @@ const BookManager = () => {
       const isbnMissing = !book.isbn;
       const pageCountMissing = !book.pageCount;
       const publicationYearMissing = !book.publicationYear;
-      return authorMissing || descriptionMissing || genresMissing || isbnMissing || pageCountMissing || publicationYearMissing;
+      const seriesNameMissing = !book.seriesName;
+      return authorMissing || descriptionMissing || genresMissing || isbnMissing || pageCountMissing || publicationYearMissing || seriesNameMissing;
     });
 
     if (booksWithGaps.length === 0) {
@@ -586,7 +587,7 @@ const BookManager = () => {
       });
 
       // Auto-apply: only fill fields that are currently missing
-      let authorsUpdated = 0, descriptionsUpdated = 0, genresUpdated = 0, isbnsUpdated = 0, pageCountsUpdated = 0, yearsUpdated = 0, errorCount = 0;
+      let authorsUpdated = 0, descriptionsUpdated = 0, genresUpdated = 0, isbnsUpdated = 0, pageCountsUpdated = 0, yearsUpdated = 0, seriesUpdated = 0, errorCount = 0;
 
       // Build genre name -> ID map
       const genreNameToId = {};
@@ -665,6 +666,16 @@ const BookManager = () => {
           yearsUpdated++;
         }
 
+        // Fill series if missing
+        if (!book.seriesName && result.foundSeriesName) {
+          updates.seriesName = result.foundSeriesName;
+          if (result.foundSeriesNumber != null) {
+            updates.seriesNumber = result.foundSeriesNumber;
+          }
+          hasUpdate = true;
+          seriesUpdated++;
+        }
+
         if (hasUpdate) {
           try {
             const response = await fetchWithAuth(`/api/books/${book.id}`, {
@@ -688,8 +699,9 @@ const BookManager = () => {
       if (isbnsUpdated > 0) parts.push(`${isbnsUpdated} ISBNs`);
       if (pageCountsUpdated > 0) parts.push(`${pageCountsUpdated} page counts`);
       if (yearsUpdated > 0) parts.push(`${yearsUpdated} years`);
+      if (seriesUpdated > 0) parts.push(`${seriesUpdated} series`);
 
-      const totalUpdated = authorsUpdated + descriptionsUpdated + genresUpdated + isbnsUpdated + pageCountsUpdated + yearsUpdated;
+      const totalUpdated = authorsUpdated + descriptionsUpdated + genresUpdated + isbnsUpdated + pageCountsUpdated + yearsUpdated + seriesUpdated;
       const message = totalUpdated > 0
         ? `Updated ${totalUpdated} fields (${parts.join(', ')})${errorCount > 0 ? `, ${errorCount} errors` : ''}`
         : 'No new metadata found for books with gaps';
@@ -786,6 +798,16 @@ const BookManager = () => {
           changes.push({ field: 'publicationYear', oldValue: book.publicationYear ? String(book.publicationYear) : '(empty)', newValue: String(result.foundPublicationYear), checked: true });
         }
 
+        // Series name diff
+        if (result.foundSeriesName && result.foundSeriesName !== book.seriesName) {
+          changes.push({ field: 'seriesName', oldValue: book.seriesName || '(empty)', newValue: result.foundSeriesName, checked: true });
+        }
+
+        // Series number diff
+        if (result.foundSeriesNumber != null && result.foundSeriesNumber !== book.seriesNumber) {
+          changes.push({ field: 'seriesNumber', oldValue: book.seriesNumber != null ? String(book.seriesNumber) : '(empty)', newValue: String(result.foundSeriesNumber), checked: true });
+        }
+
         if (changes.length > 0) {
           diffs.push({ book, changes });
         }
@@ -831,6 +853,10 @@ const BookManager = () => {
           updates.pageCount = parseInt(change.newValue, 10);
         } else if (change.field === 'publicationYear') {
           updates.publicationYear = parseInt(change.newValue, 10);
+        } else if (change.field === 'seriesName') {
+          updates.seriesName = change.newValue;
+        } else if (change.field === 'seriesNumber') {
+          updates.seriesNumber = parseInt(change.newValue, 10);
         } else if (change.field === 'genres' && change.newGenres) {
           // Create missing genres
           for (const genreName of change.newGenres) {
@@ -1736,7 +1762,7 @@ const BookManager = () => {
                       />
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Typography variant="caption" color="text.secondary">
-                          {{ author: 'Author', description: 'Description', genres: 'Genres', isbn: 'ISBN', pageCount: 'Pages', publicationYear: 'Year' }[change.field] || change.field}
+                          {{ author: 'Author', description: 'Description', genres: 'Genres', isbn: 'ISBN', pageCount: 'Pages', publicationYear: 'Year', seriesName: 'Series', seriesNumber: 'Series #' }[change.field] || change.field}
                         </Typography>
                         <Box sx={{ display: 'flex', gap: 1, alignItems: 'baseline', flexWrap: 'wrap' }}>
                           <Typography
