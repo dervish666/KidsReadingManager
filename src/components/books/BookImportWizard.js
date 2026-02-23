@@ -34,7 +34,7 @@ const BookImportWizard = ({ open, onClose }) => {
   const { fetchWithAuth, reloadDataFromServer } = useAppContext();
   const [activeStep, setActiveStep] = useState(0);
   const [csvData, setCsvData] = useState(null);
-  const [columnMapping, setColumnMapping] = useState({ title: null, author: null, readingLevel: null, isbn: null });
+  const [columnMapping, setColumnMapping] = useState({ title: null, author: null, readingLevel: null, isbn: null, description: null, pageCount: null, publicationYear: null, seriesName: null, seriesNumber: null });
   const [previewResults, setPreviewResults] = useState(null);
   const [selectedConflicts, setSelectedConflicts] = useState({});
   const [selectedPossibleMatches, setSelectedPossibleMatches] = useState({});
@@ -154,7 +154,7 @@ const BookImportWizard = ({ open, onClose }) => {
   const handleClose = () => {
     setActiveStep(0);
     setCsvData(null);
-    setColumnMapping({ title: null, author: null, readingLevel: null, isbn: null });
+    setColumnMapping({ title: null, author: null, readingLevel: null, isbn: null, description: null, pageCount: null, publicationYear: null, seriesName: null, seriesNumber: null });
     setPreviewResults(null);
     setSelectedConflicts({});
     setSelectedPossibleMatches({});
@@ -186,7 +186,7 @@ const BookImportWizard = ({ open, onClose }) => {
               </Button>
             </label>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-              Expected columns: Title, Author (optional), Reading Level (optional), ISBN (optional)
+              Only Title is required. Optional columns: Author, Reading Level, ISBN, Description, Page Count, Year, Series
             </Typography>
           </Box>
         );
@@ -197,26 +197,41 @@ const BookImportWizard = ({ open, onClose }) => {
             <Typography variant="subtitle2" gutterBottom>
               Map your CSV columns to book fields:
             </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
-              {['title', 'author', 'readingLevel', 'isbn'].map((field) => {
-                const fieldLabels = { title: 'Title', author: 'Author', readingLevel: 'Reading Level', isbn: 'ISBN' };
-                const label = fieldLabels[field] || field;
-                return (
-                <FormControl key={field} fullWidth size="small">
-                  <InputLabel>{label}</InputLabel>
-                  <Select
-                    value={columnMapping[field] ?? ''}
-                    label={label}
-                    onChange={(e) => handleMappingChange(field, e.target.value)}
-                  >
-                    <MenuItem value="">Not mapped</MenuItem>
-                    {csvData?.headers.map((header, idx) => (
-                      <MenuItem key={idx} value={idx}>{header}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              ); })}
-            </Box>
+            {(() => {
+              const allFields = [
+                { key: 'title', label: 'Title *' },
+                { key: 'author', label: 'Author' },
+                { key: 'readingLevel', label: 'Reading Level' },
+                { key: 'isbn', label: 'ISBN' },
+                { key: 'description', label: 'Description' },
+                { key: 'pageCount', label: 'Page Count' },
+                { key: 'publicationYear', label: 'Publication Year' },
+                { key: 'seriesName', label: 'Series Name' },
+                { key: 'seriesNumber', label: 'Series Number' }
+              ];
+              return (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+                  {allFields.map((field, i) => (
+                    <React.Fragment key={field.key}>
+                      {i === 4 && <Divider sx={{ my: 0.5 }}><Chip label="Optional metadata" size="small" /></Divider>}
+                      <FormControl fullWidth size="small">
+                        <InputLabel>{field.label}</InputLabel>
+                        <Select
+                          value={columnMapping[field.key] ?? ''}
+                          label={field.label}
+                          onChange={(e) => handleMappingChange(field.key, e.target.value)}
+                        >
+                          <MenuItem value="">Not mapped</MenuItem>
+                          {csvData?.headers.map((header, idx) => (
+                            <MenuItem key={idx} value={idx}>{header}</MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </React.Fragment>
+                  ))}
+                </Box>
+              );
+            })()}
             <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
               Preview: {csvData?.rows.length} books found in CSV
             </Typography>

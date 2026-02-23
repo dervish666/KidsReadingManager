@@ -1038,7 +1038,7 @@ booksRouter.post('/import/preview', requireTeacher(), async (c) => {
  *
  * Request body: {
  *   matched: [{ existingBookId }],
- *   newBooks: [{ title, author, readingLevel }],
+ *   newBooks: [{ title, author, readingLevel, isbn, description, pageCount, publicationYear, seriesName, seriesNumber }],
  *   conflicts: [{ existingBookId, updateReadingLevel, newReadingLevel }]
  * }
  */
@@ -1075,11 +1075,14 @@ booksRouter.post('/import/confirm', requireTeacher(), async (c) => {
   // 2. Create new books and link to organization
   for (const book of newBooks) {
     const bookId = crypto.randomUUID();
+    const pageCount = book.pageCount ? parseInt(book.pageCount, 10) || null : null;
+    const publicationYear = book.publicationYear ? parseInt(book.publicationYear, 10) || null : null;
+    const seriesNumber = book.seriesNumber ? parseInt(book.seriesNumber, 10) || null : null;
     statements.push({
       stmt: db.prepare(`
-        INSERT INTO books (id, title, author, reading_level, created_at, updated_at)
-        VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
-      `).bind(bookId, book.title, book.author || null, book.readingLevel || null),
+        INSERT INTO books (id, title, author, reading_level, isbn, description, page_count, publication_year, series_name, series_number, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+      `).bind(bookId, book.title, book.author || null, book.readingLevel || null, book.isbn || null, book.description || null, pageCount, publicationYear, book.seriesName || null, seriesNumber),
       onSuccess: () => { created++; },
       onError: (err) => { errors.push({ type: 'create', title: book.title, error: err }); }
     });

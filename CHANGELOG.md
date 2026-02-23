@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.5.0] - 2026-02-23
+
+### Added
+- **Batch processing controls**: Stop button (AbortController) to halt Fill Missing / Refresh All mid-batch; rate limit detection with adaptive delay for Hardcover API; configurable batch size (default 50) with resume capability; processing speed presets (Careful/Normal/Fast); auto-fallback to Open Library when rate limited
+- **Per-book Fill Missing updates**: Books are updated immediately as metadata is fetched instead of waiting for the entire batch to complete, providing better visual feedback and resilience to interruption; live running counts shown in progress UI
+- **Extended CSV import fields**: Book import now supports Description, Page Count, Publication Year, Series Name, and Series Number columns in addition to Title, Author, Reading Level, and ISBN; column auto-detection handles Accelerated Reader export format (BL, No.of Pages, etc.); improved pattern matching with exact-match-first for short patterns to prevent false positives
+
+### Fixed
+- **Fill Missing batch resilience**: Wrapped onBookResult callback in try/catch so callback errors don't kill the batch loop; removed mid-batch reloadDataFromServer that was disrupting async processing
+
 ## [3.4.1] - 2026-02-23
 
 ### Fixed
