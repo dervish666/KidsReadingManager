@@ -1110,8 +1110,30 @@ booksRouter.post('/import/confirm', requireTeacher(), async (c) => {
   }
 
   // 2. Create new books and link to organization
+  // Deduplicate by ISBN within the import batch (CSV may contain duplicate ISBNs
+  // for different editions). First occurrence gets created; duplicates get linked.
+  const isbnToBookId = new Map();
   for (const book of newBooks) {
+    const isbn = book.isbn || null;
+
+    // If we've already seen this ISBN in this import, just link to the existing book
+    if (isbn && isbnToBookId.has(isbn)) {
+      const existingBookId = isbnToBookId.get(isbn);
+      statements.push({
+        stmt: db.prepare(`
+          INSERT INTO org_book_selections (id, organization_id, book_id, is_available, created_at)
+          VALUES (?, ?, ?, 1, datetime('now'))
+          ON CONFLICT (organization_id, book_id) DO UPDATE SET is_available = 1, updated_at = datetime('now')
+        `).bind(crypto.randomUUID(), organizationId, existingBookId),
+        onSuccess: () => { linked++; },
+        onError: (err) => { errors.push({ type: 'link', title: book.title, error: err }); }
+      });
+      continue;
+    }
+
     const bookId = crypto.randomUUID();
+    if (isbn) isbnToBookId.set(isbn, bookId);
+
     const pageCount = book.pageCount ? parseInt(book.pageCount, 10) || null : null;
     const publicationYear = book.publicationYear ? parseInt(book.publicationYear, 10) || null : null;
     const seriesNumber = book.seriesNumber ? parseInt(book.seriesNumber, 10) || null : null;
@@ -1119,7 +1141,7 @@ booksRouter.post('/import/confirm', requireTeacher(), async (c) => {
       stmt: db.prepare(`
         INSERT INTO books (id, title, author, reading_level, isbn, description, page_count, publication_year, series_name, series_number, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-      `).bind(bookId, book.title, book.author || null, book.readingLevel || null, book.isbn || null, book.description || null, pageCount, publicationYear, book.seriesName || null, seriesNumber),
+      `).bind(bookId, book.title, book.author || null, book.readingLevel || null, isbn, book.description || null, pageCount, publicationYear, book.seriesName || null, seriesNumber),
       onSuccess: () => { created++; },
       onError: (err) => { errors.push({ type: 'create', title: book.title, error: err }); }
     });
