@@ -17,7 +17,7 @@ import { normalizeISBN } from '../utils/isbn.js';
 import { lookupISBN } from '../utils/isbnLookup.js';
 
 // Import middleware
-import { requireReadonly, requireTeacher } from '../middleware/tenant.js';
+import { requireReadonly, requireTeacher, requireAdmin } from '../middleware/tenant.js';
 
 // Create router
 const booksRouter = new Hono();
@@ -787,6 +787,43 @@ booksRouter.put('/:id', requireTeacher(), async (c) => {
   const updateProvider = await createProvider(c.env);
   const savedBook = await updateProvider.updateBook(id, updatedBook);
   return c.json(savedBook);
+});
+
+/**
+ * DELETE /api/books/clear-library
+ * Remove all books from the current organization's library and clean up orphaned global books.
+ *
+ * Requires authentication (at least admin access)
+ */
+booksRouter.delete('/clear-library', requireAdmin(), async (c) => {
+  const organizationId = c.get('organizationId');
+  if (!organizationId || !c.env.READING_MANAGER_DB) {
+    throw badRequestError('Clear library is only available in multi-tenant mode');
+  }
+
+  const db = c.env.READING_MANAGER_DB;
+
+  // Count books linked to this org
+  const countResult = await db.prepare(
+    'SELECT COUNT(*) as count FROM org_book_selections WHERE organization_id = ?'
+  ).bind(organizationId).first();
+  const booksUnlinked = countResult?.count || 0;
+
+  if (booksUnlinked === 0) {
+    return c.json({ message: 'No books to clear', booksUnlinked: 0, orphansDeleted: 0 });
+  }
+
+  // Remove all org links and clean up orphaned books
+  await db.batch([
+    db.prepare('DELETE FROM org_book_selections WHERE organization_id = ?').bind(organizationId),
+    db.prepare('DELETE FROM books WHERE id NOT IN (SELECT book_id FROM org_book_selections)')
+  ]);
+
+  // Count remaining orphans deleted (approximate — we know the unlinked count)
+  return c.json({
+    message: `Cleared ${booksUnlinked} books from library`,
+    booksUnlinked
+  });
 });
 
 /**

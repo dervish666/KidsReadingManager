@@ -11,17 +11,21 @@ import {
   DialogContentText,
   DialogActions,
   Paper,
-  Grid // Import Grid
+  Grid,
+  CircularProgress
 } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import UploadIcon from '@mui/icons-material/Upload';
+import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import { useAppContext } from '../contexts/AppContext';
 
 const DataManagement = () => {
-  const { exportToJson, importFromJson, reloadDataFromServer } = useAppContext();
+  const { exportToJson, importFromJson, reloadDataFromServer, fetchWithAuth, canManageUsers, books } = useAppContext();
   const fileInputRef = useRef(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const [confirmDialog, setConfirmDialog] = useState({ open: false, file: null });
+  const [clearLibraryDialog, setClearLibraryDialog] = useState(false);
+  const [clearingLibrary, setClearingLibrary] = useState(false);
 
   const handleExport = () => {
     exportToJson();
@@ -107,6 +111,33 @@ const DataManagement = () => {
     }
   };
 
+  const handleClearLibrary = async () => {
+    setClearingLibrary(true);
+    setClearLibraryDialog(false);
+    try {
+      const response = await fetchWithAuth('/api/books/clear-library', { method: 'DELETE' });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(error.error || 'Failed to clear library');
+      }
+      const result = await response.json();
+      await reloadDataFromServer();
+      setSnackbar({
+        open: true,
+        message: result.message || 'Library cleared successfully',
+        severity: 'success'
+      });
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: `Failed to clear library: ${error.message}`,
+        severity: 'error'
+      });
+    } finally {
+      setClearingLibrary(false);
+    }
+  };
+
   return (
     <Box sx={{ mt: 4, mb: 4 }}>
       <Grid container spacing={3}>
@@ -176,6 +207,33 @@ const DataManagement = () => {
           </Paper>
         </Grid>
 
+        {canManageUsers && (
+          <Grid size={12}>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="subtitle1" gutterBottom>
+                Clear Book Library
+              </Typography>
+              <Typography variant="body2" color="text.secondary" paragraph>
+                Remove all books from your school's library. This will unlink every book from your school
+                and delete any books not used by other schools. Reading session history is preserved.
+                You can reimport books afterwards.
+              </Typography>
+
+              <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={clearingLibrary ? <CircularProgress size={20} /> : <DeleteSweepIcon />}
+                  onClick={() => setClearLibraryDialog(true)}
+                  disabled={clearingLibrary || !books?.length}
+                >
+                  {clearingLibrary ? 'Clearing...' : 'Clear Library'}
+                </Button>
+              </Box>
+            </Paper>
+          </Grid>
+        )}
+
       {/* Snackbar and Dialog remain outside the main layout Grid */}
       <Snackbar
         open={snackbar.open}
@@ -207,6 +265,26 @@ const DataManagement = () => {
           <Button onClick={handleCloseDialog}>Cancel</Button>
           <Button onClick={handleImportConfirm} color="primary" variant="contained">
             Import
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={clearLibraryDialog}
+        onClose={() => setClearLibraryDialog(false)}
+      >
+        <DialogTitle>Clear Book Library</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            This will remove all {books?.length || 0} books from your school's library.
+            Books not used by any other school will be permanently deleted.
+            Reading session history will be preserved. This cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setClearLibraryDialog(false)}>Cancel</Button>
+          <Button onClick={handleClearLibrary} color="error" variant="contained">
+            Clear Library
           </Button>
         </DialogActions>
       </Dialog>
