@@ -543,7 +543,12 @@ export async function batchFetchAllMetadata(books, settings, onProgress = null, 
 
     // Invoke per-book callback (e.g. to apply updates immediately)
     if (options.onBookResult) {
-      await options.onBookResult(results[results.length - 1]);
+      try {
+        await options.onBookResult(results[results.length - 1]);
+      } catch (callbackError) {
+        // Don't let callback errors stop the batch
+        console.warn('onBookResult callback error:', callbackError);
+      }
     }
 
     // Check rate limit state after processing this book (outside try/catch)

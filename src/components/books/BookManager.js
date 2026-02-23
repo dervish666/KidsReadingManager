@@ -708,10 +708,6 @@ const BookManager = () => {
           }
 
           booksProcessed++;
-          // Reload data periodically so book list updates visually
-          if (booksProcessed % 10 === 0) {
-            await reloadDataFromServer();
-          }
         }
       });
 
