@@ -87,6 +87,7 @@ const BookManager = () => {
 
   // Batch control state
   const batchAbortRef = useRef(null);
+  const attemptedBookIdsRef = useRef(new Set());
   const [refreshedBookIds, setRefreshedBookIds] = useState(new Set());
 
   // Pagination and filter state
@@ -560,8 +561,9 @@ const BookManager = () => {
 
   // Fill Missing: auto-fill gaps (author, description, genres) in one pass
   const handleFillMissing = async () => {
-    // Find books with any missing data
+    // Find books with any missing data, excluding already-attempted books
     const booksWithGaps = books.filter(book => {
+      if (attemptedBookIdsRef.current.has(book.id)) return false;
       const authorMissing = !book.author || book.author.trim().toLowerCase() === 'unknown' || !book.author.trim();
       const descriptionMissing = !book.description || !book.description.trim();
       const genresMissing = !book.genreIds || book.genreIds.length === 0;
@@ -573,7 +575,11 @@ const BookManager = () => {
     });
 
     if (booksWithGaps.length === 0) {
-      setSnackbar({ open: true, message: 'All books already have complete metadata!', severity: 'info' });
+      const attempted = attemptedBookIdsRef.current.size;
+      const message = attempted > 0
+        ? `All remaining books already attempted (${attempted} previously tried). Reload the page to reset and try again.`
+        : 'All books already have complete metadata!';
+      setSnackbar({ open: true, message, severity: 'info' });
       return;
     }
 
@@ -594,7 +600,7 @@ const BookManager = () => {
     const config = getMetadataConfig(settings);
     const controller = new AbortController();
     batchAbortRef.current = controller;
-    setFillProgress({ current: 0, total: Math.min(booksWithGaps.length, config.batchSize), book: '', overallTotal: booksWithGaps.length });
+    setFillProgress({ current: 0, total: booksWithGaps.length, book: '', overallTotal: booksWithGaps.length });
 
     // Build genre name -> ID map once before batch starts
     const genreNameToId = {};
@@ -614,6 +620,7 @@ const BookManager = () => {
         });
       }, {
         signal: controller.signal,
+        batchSize: booksWithGaps.length,
         onBookResult: async (result) => {
           const book = result.book;
           const updates = {};
@@ -708,6 +715,7 @@ const BookManager = () => {
           }
 
           booksProcessed++;
+          attemptedBookIdsRef.current.add(book.id);
         }
       });
 
