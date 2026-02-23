@@ -7,6 +7,7 @@
 import * as openLibrary from './openLibraryApi';
 import * as googleBooks from './googleBooksApi';
 import * as hardcover from './hardcoverApi';
+import { isHardcoverRateLimited } from './hardcoverApi';
 
 // Supported metadata providers
 export const METADATA_PROVIDERS = {
@@ -18,6 +19,13 @@ export const METADATA_PROVIDERS = {
 // Default provider
 export const DEFAULT_PROVIDER = METADATA_PROVIDERS.OPEN_LIBRARY;
 
+// Speed presets: delay in ms between books during batch operations
+export const SPEED_PRESETS = {
+  careful: 2000,
+  normal: 1000,
+  fast: 500
+};
+
 /**
  * Get the current metadata provider configuration
  * @param {Object} settings - Application settings object
@@ -28,7 +36,10 @@ export function getMetadataConfig(settings) {
   return {
     provider: bookMetadata.provider || DEFAULT_PROVIDER,
     apiKey: bookMetadata.googleBooksApiKey || null,
-    hardcoverApiKey: bookMetadata.hardcoverApiKey || null
+    hardcoverApiKey: bookMetadata.hardcoverApiKey || null,
+    batchSize: bookMetadata.batchSize || 50,
+    speedPreset: bookMetadata.speedPreset || 'normal',
+    autoFallback: bookMetadata.autoFallback !== false
   };
 }
 
@@ -427,34 +438,77 @@ export function validateProviderConfig(settings) {
 }
 
 /**
+ * Helper: delay that can be aborted via an AbortSignal.
+ * Resolves immediately if signal is already aborted or becomes aborted.
+ * @param {number} ms - Delay in milliseconds
+ * @param {AbortSignal} [signal] - Optional abort signal
+ * @returns {Promise<void>}
+ */
+function abortableDelay(ms, signal) {
+  if (signal?.aborted) return Promise.resolve();
+  return new Promise(resolve => {
+    const timer = setTimeout(resolve, ms);
+    if (signal) {
+      signal.addEventListener('abort', () => {
+        clearTimeout(timer);
+        resolve();
+      }, { once: true });
+    }
+  });
+}
+
+/**
  * Batch fetch all metadata (author, description, genres) for a list of books.
  * Makes one lookup pass per book, calling getBookDetails + findAuthorForBook + findGenresForBook.
+ *
+ * Supports:
+ * - AbortController via options.signal — stops processing and returns partial results
+ * - Adaptive delay — doubles delay on rate limit, recovers when clear
+ * - Auto-fallback — switches to OpenLibrary after consecutive rate-limited books
+ * - Batch size — slices books array via options.batchSize
+ * - Speed presets — reads base delay from config.speedPreset
+ *
  * @param {Array} books - Array of book objects
  * @param {Object} settings - Application settings object
- * @param {Function} onProgress - Optional progress callback ({current, total, book})
+ * @param {Function} onProgress - Optional progress callback ({current, total, book, ...})
+ * @param {Object} [options] - Optional: { signal, batchSize, autoFallback }
  * @returns {Promise<Array>} Array of {book, foundAuthor, foundDescription, foundGenres, error}
  */
-export async function batchFetchAllMetadata(books, settings, onProgress = null) {
+export async function batchFetchAllMetadata(books, settings, onProgress = null, options = {}) {
   if (!books || books.length === 0) return [];
 
   const config = getMetadataConfig(settings);
-  const delay = config.provider === METADATA_PROVIDERS.HARDCOVER ? 1000 : 500;
+  const signal = options.signal || null;
+  const effectiveBatchSize = options.batchSize || config.batchSize || books.length;
+  const overallTotal = books.length;
+  const booksToProcess = books.slice(0, effectiveBatchSize);
+  const baseDelay = SPEED_PRESETS[config.speedPreset] || SPEED_PRESETS.normal;
+  let currentDelay = baseDelay;
+  let consecutiveRateLimited = 0;
+  const autoFallback = options.autoFallback !== undefined ? options.autoFallback : config.autoFallback;
+  let providerSwitched = false;
+  let effectiveSettings = settings;
+
   const results = [];
 
-  for (let i = 0; i < books.length; i++) {
-    const book = books[i];
+  for (let i = 0; i < booksToProcess.length; i++) {
+    // Check abort before each book
+    if (signal?.aborted) break;
+
+    const book = booksToProcess[i];
 
     try {
-      // Small delay to be respectful to the API
+      // Delay between books (not before first)
       if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await abortableDelay(currentDelay, signal);
+        if (signal?.aborted) break;
       }
 
       // Fetch all metadata in parallel for this book
       const [authorResult, detailsResult, genresResult] = await Promise.allSettled([
-        findAuthorForBook(book.title, settings),
-        getBookDetails(book.title, book.author || null, settings),
-        findGenresForBook(book.title, book.author || null, settings),
+        findAuthorForBook(book.title, effectiveSettings),
+        getBookDetails(book.title, book.author || null, effectiveSettings),
+        findGenresForBook(book.title, book.author || null, effectiveSettings),
       ]);
 
       const foundAuthor = authorResult.status === 'fulfilled' ? authorResult.value : null;
@@ -487,13 +541,48 @@ export async function batchFetchAllMetadata(books, settings, onProgress = null) 
       });
     }
 
+    // Check rate limit state after processing this book (outside try/catch)
+    const rateLimited = config.provider === METADATA_PROVIDERS.HARDCOVER &&
+      typeof isHardcoverRateLimited === 'function' && isHardcoverRateLimited();
+
+    if (rateLimited) {
+      consecutiveRateLimited++;
+      // Double the delay, cap at 30s
+      currentDelay = Math.min(currentDelay * 2, 30000);
+
+      // Auto-switch to OpenLibrary after 5 consecutive rate-limited books
+      if (autoFallback && consecutiveRateLimited >= 5 && !providerSwitched) {
+        providerSwitched = true;
+        effectiveSettings = {
+          ...settings,
+          bookMetadata: {
+            ...settings?.bookMetadata,
+            provider: METADATA_PROVIDERS.OPEN_LIBRARY
+          }
+        };
+        currentDelay = baseDelay; // Reset delay after switching
+      }
+    } else {
+      consecutiveRateLimited = 0;
+      // Gradually recover delay if we were slowed
+      if (currentDelay > baseDelay) {
+        currentDelay = Math.max(baseDelay, Math.floor(currentDelay / 1.5));
+      }
+    }
+
     if (onProgress) {
       const last = results[results.length - 1];
       onProgress({
         ...last,
         current: i + 1,
-        total: books.length,
+        total: booksToProcess.length,
+        batchTotal: booksToProcess.length,
+        overallTotal,
         book: book.title,
+        rateLimited: rateLimited || false,
+        currentDelay,
+        providerSwitched,
+        switchedFrom: providerSwitched ? 'Hardcover' : undefined,
       });
     }
   }

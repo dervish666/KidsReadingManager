@@ -23,6 +23,7 @@ vi.mock('../../utils/bookMetadataApi', () => ({
   findGenresForBook: vi.fn(),
   checkAvailability: vi.fn(),
   getProviderDisplayName: vi.fn(),
+  getMetadataConfig: vi.fn().mockReturnValue({ batchSize: 50, speedPreset: 'normal', autoFallback: true }),
   validateProviderConfig: vi.fn()
 }));
 

@@ -40,6 +40,8 @@ vi.mock('../../utils/hardcoverApi', () => ({
   checkHardcoverAvailability: vi.fn(),
   resetHardcoverAvailabilityCache: vi.fn(),
   getHardcoverStatus: vi.fn(),
+  isHardcoverRateLimited: vi.fn().mockReturnValue(false),
+  resetHardcoverRateLimitFlag: vi.fn(),
   searchBooksByTitle: vi.fn(),
   findTopAuthorCandidatesForBook: vi.fn(),
   batchFindMissingAuthors: vi.fn(),
@@ -48,7 +50,7 @@ vi.mock('../../utils/hardcoverApi', () => ({
   getCoverUrl: vi.fn(),
 }));
 
-import { batchFetchAllMetadata } from '../../utils/bookMetadataApi';
+import { batchFetchAllMetadata, SPEED_PRESETS, getMetadataConfig } from '../../utils/bookMetadataApi';
 import * as openLibrary from '../../utils/openLibraryApi';
 import * as hardcover from '../../utils/hardcoverApi';
 
@@ -498,6 +500,228 @@ describe('batchFetchAllMetadata', () => {
       const results = await promise;
 
       expect(results).toHaveLength(2);
+    });
+  });
+
+  describe('AbortController support', () => {
+    it('stops processing when signal is aborted before a book', async () => {
+      openLibrary.findAuthorForBook.mockResolvedValue('Author');
+      openLibrary.getBookDetails.mockResolvedValue({ description: 'Desc' });
+      openLibrary.findGenresForBook.mockResolvedValue(['Genre']);
+
+      const books = [
+        { title: 'Book 1' },
+        { title: 'Book 2' },
+        { title: 'Book 3' },
+      ];
+
+      const controller = new AbortController();
+
+      // Abort after first book processes
+      let callCount = 0;
+      openLibrary.findAuthorForBook.mockImplementation(async () => {
+        callCount++;
+        if (callCount >= 2) controller.abort();
+        return 'Author';
+      });
+
+      const promise = batchFetchAllMetadata(books, defaultSettings, null, { signal: controller.signal });
+      await flushTimers();
+      const results = await promise;
+
+      // Should have partial results (not all 3)
+      expect(results.length).toBeLessThan(3);
+      expect(results.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('returns partial results on abort', async () => {
+      openLibrary.findAuthorForBook.mockResolvedValue('Author');
+      openLibrary.getBookDetails.mockResolvedValue({ description: 'Desc' });
+      openLibrary.findGenresForBook.mockResolvedValue(['Genre']);
+
+      const books = [
+        { title: 'Book 1' },
+        { title: 'Book 2' },
+      ];
+
+      // Abort immediately
+      const controller = new AbortController();
+      controller.abort();
+
+      const results = await batchFetchAllMetadata(books, defaultSettings, null, { signal: controller.signal });
+
+      // Should return empty since signal was already aborted
+      expect(results).toEqual([]);
+    });
+  });
+
+  describe('batch size', () => {
+    it('limits processing to batchSize from options', async () => {
+      openLibrary.findAuthorForBook.mockResolvedValue('Author');
+      openLibrary.getBookDetails.mockResolvedValue({ description: 'Desc' });
+      openLibrary.findGenresForBook.mockResolvedValue(['Genre']);
+
+      const books = [
+        { title: 'Book 1' },
+        { title: 'Book 2' },
+        { title: 'Book 3' },
+        { title: 'Book 4' },
+        { title: 'Book 5' },
+      ];
+
+      const promise = batchFetchAllMetadata(books, defaultSettings, null, { batchSize: 2 });
+      await flushTimers();
+      const results = await promise;
+
+      expect(results).toHaveLength(2);
+      expect(results[0].book.title).toBe('Book 1');
+      expect(results[1].book.title).toBe('Book 2');
+    });
+
+    it('reports batchTotal and overallTotal in onProgress', async () => {
+      openLibrary.findAuthorForBook.mockResolvedValue('Author');
+      openLibrary.getBookDetails.mockResolvedValue({ description: 'Desc' });
+      openLibrary.findGenresForBook.mockResolvedValue(['Genre']);
+
+      const books = [
+        { title: 'Book 1' },
+        { title: 'Book 2' },
+        { title: 'Book 3' },
+      ];
+
+      const onProgress = vi.fn();
+      const promise = batchFetchAllMetadata(books, defaultSettings, onProgress, { batchSize: 2 });
+      await flushTimers();
+      await promise;
+
+      expect(onProgress).toHaveBeenCalledTimes(2);
+      expect(onProgress).toHaveBeenNthCalledWith(1, expect.objectContaining({
+        current: 1,
+        total: 2,
+        batchTotal: 2,
+        overallTotal: 3,
+      }));
+    });
+
+    it('uses batchSize from settings when not in options', async () => {
+      openLibrary.findAuthorForBook.mockResolvedValue('Author');
+      openLibrary.getBookDetails.mockResolvedValue({ description: 'Desc' });
+      openLibrary.findGenresForBook.mockResolvedValue(['Genre']);
+
+      const settingsWithBatchSize = {
+        bookMetadata: {
+          batchSize: 3,
+        }
+      };
+
+      const books = [
+        { title: 'Book 1' },
+        { title: 'Book 2' },
+        { title: 'Book 3' },
+        { title: 'Book 4' },
+        { title: 'Book 5' },
+      ];
+
+      const promise = batchFetchAllMetadata(books, settingsWithBatchSize);
+      await flushTimers();
+      const results = await promise;
+
+      expect(results).toHaveLength(3);
+    });
+  });
+
+  describe('speed presets', () => {
+    it('exports SPEED_PRESETS constant', () => {
+      expect(SPEED_PRESETS).toEqual({
+        careful: 2000,
+        normal: 1000,
+        fast: 500,
+      });
+    });
+
+    it('getMetadataConfig returns batch settings with defaults', () => {
+      const config = getMetadataConfig({});
+      expect(config.batchSize).toBe(50);
+      expect(config.speedPreset).toBe('normal');
+      expect(config.autoFallback).toBe(true);
+    });
+
+    it('getMetadataConfig reads batch settings from bookMetadata', () => {
+      const config = getMetadataConfig({
+        bookMetadata: {
+          batchSize: 25,
+          speedPreset: 'careful',
+          autoFallback: false,
+        }
+      });
+      expect(config.batchSize).toBe(25);
+      expect(config.speedPreset).toBe('careful');
+      expect(config.autoFallback).toBe(false);
+    });
+  });
+
+  describe('adaptive delay and rate limit feedback', () => {
+    const hardcoverSettings = {
+      bookMetadata: {
+        provider: 'hardcover',
+        hardcoverApiKey: 'test-key',
+      }
+    };
+
+    it('reports rateLimited in onProgress when Hardcover is rate limited', async () => {
+      hardcover.findAuthorForBook.mockResolvedValue('Author');
+      hardcover.getBookDetails.mockResolvedValue({ description: 'Desc' });
+      hardcover.findGenresForBook.mockResolvedValue(['Genre']);
+      hardcover.isHardcoverRateLimited.mockReturnValue(true);
+
+      const books = [{ title: 'Book 1' }];
+      const onProgress = vi.fn();
+
+      const promise = batchFetchAllMetadata(books, hardcoverSettings, onProgress);
+      await flushTimers();
+      await promise;
+
+      expect(onProgress).toHaveBeenCalledWith(expect.objectContaining({
+        rateLimited: true,
+      }));
+    });
+
+    it('reports providerSwitched after 5 consecutive rate-limited books', async () => {
+      hardcover.findAuthorForBook.mockResolvedValue('Author');
+      hardcover.getBookDetails.mockResolvedValue({ description: 'Desc' });
+      hardcover.findGenresForBook.mockResolvedValue(['Genre']);
+      hardcover.isHardcoverRateLimited.mockReturnValue(true);
+
+      const books = Array.from({ length: 6 }, (_, i) => ({ title: `Book ${i + 1}` }));
+      const progressCalls = [];
+      const onProgress = (p) => progressCalls.push({ ...p });
+
+      const promise = batchFetchAllMetadata(books, hardcoverSettings, onProgress);
+      await flushTimers();
+      await promise;
+
+      // After 5 consecutive rate-limited books, provider should switch
+      const switchedCall = progressCalls.find(p => p.providerSwitched);
+      expect(switchedCall).toBeTruthy();
+      expect(switchedCall.switchedFrom).toBe('Hardcover');
+    });
+
+    it('does not auto-fallback when autoFallback is false', async () => {
+      hardcover.findAuthorForBook.mockResolvedValue('Author');
+      hardcover.getBookDetails.mockResolvedValue({ description: 'Desc' });
+      hardcover.findGenresForBook.mockResolvedValue(['Genre']);
+      hardcover.isHardcoverRateLimited.mockReturnValue(true);
+
+      const books = Array.from({ length: 6 }, (_, i) => ({ title: `Book ${i + 1}` }));
+      const progressCalls = [];
+      const onProgress = (p) => progressCalls.push({ ...p });
+
+      const promise = batchFetchAllMetadata(books, hardcoverSettings, onProgress, { autoFallback: false });
+      await flushTimers();
+      await promise;
+
+      // Should not have switched provider
+      expect(progressCalls.every(p => !p.providerSwitched)).toBe(true);
     });
   });
 });

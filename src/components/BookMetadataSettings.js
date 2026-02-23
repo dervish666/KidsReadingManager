@@ -11,7 +11,9 @@ import {
   MenuItem,
   Alert,
   CircularProgress,
-  Divider
+  Divider,
+  FormControlLabel,
+  Checkbox
 } from '@mui/material';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import SaveIcon from '@mui/icons-material/Save';
@@ -23,6 +25,9 @@ const BookMetadataSettings = () => {
   const [provider, setProvider] = useState(METADATA_PROVIDERS.OPEN_LIBRARY);
   const [googleBooksApiKey, setGoogleBooksApiKey] = useState('');
   const [hardcoverApiKey, setHardcoverApiKey] = useState('');
+  const [batchSize, setBatchSize] = useState(50);
+  const [speedPreset, setSpeedPreset] = useState('normal');
+  const [autoFallback, setAutoFallback] = useState(true);
   const [saveStatus, setSaveStatus] = useState(null); // 'success', 'error', or null
   const [isSaving, setIsSaving] = useState(false);
 
@@ -32,6 +37,9 @@ const BookMetadataSettings = () => {
       setProvider(settings.bookMetadata.provider || METADATA_PROVIDERS.OPEN_LIBRARY);
       setGoogleBooksApiKey(settings.bookMetadata.googleBooksApiKey || '');
       setHardcoverApiKey(settings.bookMetadata.hardcoverApiKey || '');
+      setBatchSize(settings.bookMetadata.batchSize || 50);
+      setSpeedPreset(settings.bookMetadata.speedPreset || 'normal');
+      setAutoFallback(settings.bookMetadata.autoFallback !== false);
     }
   }, [settings]);
 
@@ -45,7 +53,10 @@ const BookMetadataSettings = () => {
         bookMetadata: {
           provider,
           googleBooksApiKey,
-          hardcoverApiKey
+          hardcoverApiKey,
+          batchSize,
+          speedPreset,
+          autoFallback
         }
       };
 
@@ -161,6 +172,56 @@ const BookMetadataSettings = () => {
               error={isHardcoverWithoutKey}
             />
           )}
+
+          <Divider sx={{ my: 3 }} />
+
+          <Typography variant="subtitle2" gutterBottom>
+            Batch Processing Settings
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Configure how Fill Missing and Refresh All process books.
+          </Typography>
+
+          <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+            <TextField
+              label="Batch Size"
+              type="number"
+              value={batchSize}
+              onChange={(e) => {
+                const val = parseInt(e.target.value, 10);
+                if (!isNaN(val) && val >= 10 && val <= 500) setBatchSize(val);
+              }}
+              helperText="Books per run (10–500). Run again to continue."
+              sx={{ width: 160 }}
+              inputProps={{ min: 10, max: 500 }}
+              size="small"
+            />
+
+            <FormControl size="small" sx={{ minWidth: 180 }}>
+              <InputLabel id="speed-preset-label">Processing Speed</InputLabel>
+              <Select
+                labelId="speed-preset-label"
+                value={speedPreset}
+                label="Processing Speed"
+                onChange={(e) => setSpeedPreset(e.target.value)}
+              >
+                <MenuItem value="careful">Careful (2s delay)</MenuItem>
+                <MenuItem value="normal">Normal (1s delay)</MenuItem>
+                <MenuItem value="fast">Fast (500ms delay)</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={autoFallback}
+                onChange={(e) => setAutoFallback(e.target.checked)}
+              />
+            }
+            label="Auto-switch to Open Library when rate limited"
+            sx={{ mb: 3 }}
+          />
 
           <Box sx={{ mb: 3, p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
             <Typography variant="subtitle2" gutterBottom>

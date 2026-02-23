@@ -47,8 +47,10 @@ import {
   findGenresForBook,
   checkAvailability,
   getProviderDisplayName,
+  getMetadataConfig,
   validateProviderConfig
 } from '../../utils/bookMetadataApi';
+import StopIcon from '@mui/icons-material/Stop';
 import BookImportWizard from './BookImportWizard';
 import ScanBookFlow from './ScanBookFlow';
 import BookCover from '../BookCover';
@@ -82,6 +84,10 @@ const BookManager = () => {
   const [refreshProgress, setRefreshProgress] = useState({ current: 0, total: 0, book: '' });
   const [refreshResults, setRefreshResults] = useState([]);
   const [showRefreshReview, setShowRefreshReview] = useState(false);
+
+  // Batch control state
+  const batchAbortRef = useRef(null);
+  const [refreshedBookIds, setRefreshedBookIds] = useState(new Set());
 
   // Pagination and filter state
   const [currentPage, setCurrentPage] = useState(1);
@@ -531,6 +537,12 @@ const BookManager = () => {
     setSnackbar({ ...snackbar, open: false });
   };
 
+  const handleStopBatch = () => {
+    if (batchAbortRef.current) {
+      batchAbortRef.current.abort();
+    }
+  };
+
   const handleCancelImport = () => {
     setConfirmImport({ open: false, file: null, data: null });
   };
@@ -579,12 +591,15 @@ const BookManager = () => {
     }
 
     setIsFilling(true);
-    setFillProgress({ current: 0, total: booksWithGaps.length, book: '' });
+    const config = getMetadataConfig(settings);
+    const controller = new AbortController();
+    batchAbortRef.current = controller;
+    setFillProgress({ current: 0, total: Math.min(booksWithGaps.length, config.batchSize), book: '', overallTotal: booksWithGaps.length });
 
     try {
       const results = await batchFetchAllMetadata(booksWithGaps, settings, (progress) => {
         setFillProgress(progress);
-      });
+      }, { signal: controller.signal });
 
       // Auto-apply: only fill fields that are currently missing
       let authorsUpdated = 0, descriptionsUpdated = 0, genresUpdated = 0, isbnsUpdated = 0, pageCountsUpdated = 0, yearsUpdated = 0, seriesUpdated = 0, errorCount = 0;
@@ -702,15 +717,22 @@ const BookManager = () => {
       if (seriesUpdated > 0) parts.push(`${seriesUpdated} series`);
 
       const totalUpdated = authorsUpdated + descriptionsUpdated + genresUpdated + isbnsUpdated + pageCountsUpdated + yearsUpdated + seriesUpdated;
-      const message = totalUpdated > 0
+      const processed = results.length;
+      const remaining = booksWithGaps.length - processed;
+      let message = totalUpdated > 0
         ? `Updated ${totalUpdated} fields (${parts.join(', ')})${errorCount > 0 ? `, ${errorCount} errors` : ''}`
         : 'No new metadata found for books with gaps';
+
+      if (remaining > 0) {
+        message += ` — ${remaining} books remaining, run again to continue`;
+      }
 
       setSnackbar({ open: true, message, severity: totalUpdated > 0 ? 'success' : 'warning' });
     } catch (error) {
       setSnackbar({ open: true, message: `Fill missing failed: ${error.message}`, severity: 'error' });
     } finally {
       setIsFilling(false);
+      batchAbortRef.current = null;
     }
   };
 
@@ -734,13 +756,30 @@ const BookManager = () => {
       return;
     }
 
+    // Filter out already-refreshed books for resume capability
+    const booksToRefresh = books.filter(b => !refreshedBookIds.has(b.id));
+    if (booksToRefresh.length === 0) {
+      setSnackbar({ open: true, message: 'All books already refreshed in this session', severity: 'info' });
+      return;
+    }
+
     setIsRefreshing(true);
-    setRefreshProgress({ current: 0, total: books.length, book: '' });
+    const config = getMetadataConfig(settings);
+    const controller = new AbortController();
+    batchAbortRef.current = controller;
+    setRefreshProgress({ current: 0, total: Math.min(booksToRefresh.length, config.batchSize), book: '', overallTotal: booksToRefresh.length });
 
     try {
-      const results = await batchFetchAllMetadata(books, settings, (progress) => {
+      const results = await batchFetchAllMetadata(booksToRefresh, settings, (progress) => {
         setRefreshProgress(progress);
-      });
+      }, { signal: controller.signal });
+
+      // Track refreshed book IDs for resume
+      const newRefreshedIds = new Set(refreshedBookIds);
+      for (const r of results) {
+        if (r.book?.id) newRefreshedIds.add(r.book.id);
+      }
+      setRefreshedBookIds(newRefreshedIds);
 
       // Build diff: compare fetched vs existing, only show changes
       const diffs = [];
@@ -822,6 +861,7 @@ const BookManager = () => {
       }
     } catch (error) {
       setIsRefreshing(false);
+      batchAbortRef.current = null;
       setSnackbar({ open: true, message: `Refresh failed: ${error.message}`, severity: 'error' });
     }
   };
@@ -899,6 +939,7 @@ const BookManager = () => {
     await reloadDataFromServer();
     setShowRefreshReview(false);
     setRefreshResults([]);
+    setRefreshedBookIds(new Set());
 
     setSnackbar({
       open: true,
@@ -1145,7 +1186,9 @@ const BookManager = () => {
                 disabled={books.length === 0 || isFilling || isRefreshing}
                 size="small"
               >
-                Refresh All
+                {refreshedBookIds.size > 0
+                  ? `Continue Refresh (${books.length - refreshedBookIds.size} remaining)`
+                  : 'Refresh All'}
               </Button>
 
               {/* Scan ISBN Button */}
@@ -1224,9 +1267,22 @@ const BookManager = () => {
       {/* Metadata Lookup Progress */}
       {(isFilling || isRefreshing) && (
         <Box sx={{ mt: 2 }}>
-          <Typography variant="body2" gutterBottom>
-            {isFilling ? 'Filling missing data' : 'Refreshing all books'}: {(isFilling ? fillProgress : refreshProgress).current}/{(isFilling ? fillProgress : refreshProgress).total}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+            <Typography variant="body2" sx={{ flex: 1 }}>
+              {isFilling ? 'Filling missing data' : 'Refreshing all books'}: {(isFilling ? fillProgress : refreshProgress).current}/{(isFilling ? fillProgress : refreshProgress).total}
+              {(isFilling ? fillProgress : refreshProgress).overallTotal > (isFilling ? fillProgress : refreshProgress).total &&
+                ` (${(isFilling ? fillProgress : refreshProgress).overallTotal} total)`}
+            </Typography>
+            <Button
+              variant="outlined"
+              color="warning"
+              size="small"
+              startIcon={<StopIcon />}
+              onClick={handleStopBatch}
+            >
+              Stop
+            </Button>
+          </Box>
           <Typography variant="body2" color="text.secondary" gutterBottom>
             Current: {(isFilling ? fillProgress : refreshProgress).book}
           </Typography>
@@ -1238,6 +1294,16 @@ const BookManager = () => {
             })()}
             sx={{ mb: 1 }}
           />
+          {(isFilling ? fillProgress : refreshProgress).rateLimited && (
+            <Typography variant="body2" color="warning.main" sx={{ mt: 0.5 }}>
+              Rate limited — slowing down
+            </Typography>
+          )}
+          {(isFilling ? fillProgress : refreshProgress).providerSwitched && (
+            <Typography variant="body2" color="info.main" sx={{ mt: 0.5 }}>
+              Switched to Open Library due to rate limiting
+            </Typography>
+          )}
         </Box>
       )}
 
@@ -1719,7 +1785,7 @@ const BookManager = () => {
       </Dialog>
 
       {/* Refresh All Review Dialog */}
-      <Dialog open={showRefreshReview} onClose={() => { setShowRefreshReview(false); setRefreshResults([]); }} fullWidth maxWidth="md">
+      <Dialog open={showRefreshReview} onClose={() => { setShowRefreshReview(false); setRefreshResults([]); setRefreshedBookIds(new Set()); }} fullWidth maxWidth="md">
         <DialogTitle>Review Proposed Changes</DialogTitle>
         <DialogContent>
           <DialogContentText sx={{ mb: 2 }}>
@@ -1801,7 +1867,7 @@ const BookManager = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => { setShowRefreshReview(false); setRefreshResults([]); }}>Cancel</Button>
+          <Button onClick={() => { setShowRefreshReview(false); setRefreshResults([]); setRefreshedBookIds(new Set()); }}>Cancel</Button>
           <Button
             onClick={handleApplyRefreshUpdates}
             variant="contained"

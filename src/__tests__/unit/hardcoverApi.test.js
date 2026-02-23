@@ -3,6 +3,8 @@ import {
   checkHardcoverAvailability,
   resetHardcoverAvailabilityCache,
   getHardcoverStatus,
+  isHardcoverRateLimited,
+  resetHardcoverRateLimitFlag,
   searchBooksByTitle,
   findAuthorForBook,
   findTopAuthorCandidatesForBook,
@@ -20,6 +22,7 @@ describe('hardcoverApi', () => {
   beforeEach(() => {
     originalFetch = global.fetch;
     resetHardcoverAvailabilityCache();
+    resetHardcoverRateLimitFlag();
     vi.useFakeTimers();
     // Set auth token so hardcoverQuery includes Authorization header
     localStorage.setItem('krm_auth_token', 'test-jwt-token');
@@ -1781,6 +1784,172 @@ describe('hardcoverApi', () => {
       expect(results).toHaveLength(1);
       expect(results[0].foundGenres).toEqual([]);
       expect(results[0].success).toBe(false);
+    });
+  });
+
+  describe('rate limit detection', () => {
+    it('sets rate limit flag on 429 HTTP status', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 429,
+        statusText: 'Too Many Requests'
+      });
+
+      // Trigger a request that gets 429
+      await expect(searchBooksByTitle('Test', 'test-api-key')).rejects.toThrow('429');
+
+      // isHardcoverRateLimited should now return true
+      expect(isHardcoverRateLimited()).toBe(true);
+    });
+
+    it('sets rate limit flag on GraphQL rate limit error message', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          errors: [{ message: 'Rate limit exceeded, please try again later' }]
+        })
+      });
+
+      await expect(searchBooksByTitle('Test', 'test-api-key')).rejects.toThrow('Rate limit');
+
+      expect(isHardcoverRateLimited()).toBe(true);
+    });
+
+    it('sets rate limit flag on "too many requests" error message', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          errors: [{ message: 'Too many requests' }]
+        })
+      });
+
+      await expect(searchBooksByTitle('Test', 'test-api-key')).rejects.toThrow('Too many requests');
+
+      expect(isHardcoverRateLimited()).toBe(true);
+    });
+
+    it('does not set rate limit flag on regular errors', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          errors: [{ message: 'Unauthorized' }]
+        })
+      });
+
+      await expect(searchBooksByTitle('Test', 'test-api-key')).rejects.toThrow('Unauthorized');
+
+      expect(isHardcoverRateLimited()).toBe(false);
+    });
+
+    it('rate limit flag expires after cooldown period', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 429,
+        statusText: 'Too Many Requests'
+      });
+
+      await expect(searchBooksByTitle('Test', 'test-api-key')).rejects.toThrow('429');
+      expect(isHardcoverRateLimited()).toBe(true);
+
+      // Advance past the 60 second cooldown
+      vi.advanceTimersByTime(61000);
+
+      expect(isHardcoverRateLimited()).toBe(false);
+    });
+
+    it('resetHardcoverRateLimitFlag clears the flag', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 429,
+        statusText: 'Too Many Requests'
+      });
+
+      await expect(searchBooksByTitle('Test', 'test-api-key')).rejects.toThrow('429');
+      expect(isHardcoverRateLimited()).toBe(true);
+
+      resetHardcoverRateLimitFlag();
+      expect(isHardcoverRateLimited()).toBe(false);
+    });
+
+    it('searchBooksByTitle returns empty array when rate limited', async () => {
+      // Set up rate limit state
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 429,
+        statusText: 'Too Many Requests'
+      });
+      await expect(searchBooksByTitle('Trigger', 'test-api-key')).rejects.toThrow();
+
+      // Reset fetch to track calls
+      global.fetch = vi.fn();
+
+      const result = await searchBooksByTitle('Test', 'test-api-key');
+      expect(result).toEqual([]);
+      // Should NOT have made any fetch call
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it('findAuthorForBook returns null when rate limited', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 429,
+        statusText: 'Too Many Requests'
+      });
+      await expect(searchBooksByTitle('Trigger', 'test-api-key')).rejects.toThrow();
+
+      global.fetch = vi.fn();
+
+      const result = await findAuthorForBook('Test', 'test-api-key');
+      expect(result).toBeNull();
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it('getBookDetails returns null when rate limited', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 429,
+        statusText: 'Too Many Requests'
+      });
+      await expect(searchBooksByTitle('Trigger', 'test-api-key')).rejects.toThrow();
+
+      global.fetch = vi.fn();
+
+      const result = await getBookDetails('Test', null, 'test-api-key');
+      expect(result).toBeNull();
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it('findGenresForBook returns null when rate limited', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 429,
+        statusText: 'Too Many Requests'
+      });
+      await expect(searchBooksByTitle('Trigger', 'test-api-key')).rejects.toThrow();
+
+      global.fetch = vi.fn();
+
+      const result = await findGenresForBook('Test', null, 'test-api-key');
+      expect(result).toBeNull();
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it('batch functions return empty when rate limited', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 429,
+        statusText: 'Too Many Requests'
+      });
+      await expect(searchBooksByTitle('Trigger', 'test-api-key')).rejects.toThrow();
+
+      global.fetch = vi.fn();
+
+      const books = [{ title: 'Book A', author: '', description: '', genreIds: [] }];
+
+      expect(await batchFindMissingAuthors(books, 'test-api-key')).toEqual([]);
+      expect(await batchFindMissingDescriptions(books, 'test-api-key')).toEqual([]);
+      expect(await batchFindMissingGenres(books, 'test-api-key')).toEqual([]);
+      expect(global.fetch).not.toHaveBeenCalled();
     });
   });
 });

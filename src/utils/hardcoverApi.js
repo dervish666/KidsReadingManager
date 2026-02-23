@@ -15,6 +15,11 @@ let hardcoverAvailable = null;
 let lastAvailabilityCheck = 0;
 const AVAILABILITY_CHECK_INTERVAL = 60000; // Re-check every 60 seconds
 
+// Rate limit state — module-level flag with cooldown
+let hardcoverRateLimited = false;
+let rateLimitCooldownEnd = 0;
+const RATE_LIMIT_COOLDOWN_MS = 60000; // 60 second cooldown after rate limit detected
+
 /**
  * Internal helper to POST a GraphQL query via the backend proxy.
  * The proxy forwards the request to Hardcover server-side, avoiding CORS.
@@ -48,13 +53,24 @@ async function hardcoverQuery(query, variables, apiKey, options = {}) {
   });
 
   if (!response.ok) {
+    // Detect rate limiting from HTTP status
+    if (response.status === 429) {
+      hardcoverRateLimited = true;
+      rateLimitCooldownEnd = Date.now() + RATE_LIMIT_COOLDOWN_MS;
+    }
     throw new Error(`Hardcover API error: ${response.status} ${response.statusText}`);
   }
 
   const json = await response.json();
 
   if (json.errors && json.errors.length > 0) {
-    throw new Error(`Hardcover GraphQL error: ${json.errors[0].message}`);
+    const errorMsg = json.errors[0].message;
+    // Detect rate limiting from GraphQL error messages
+    if (/rate.?limit|too many requests/i.test(errorMsg)) {
+      hardcoverRateLimited = true;
+      rateLimitCooldownEnd = Date.now() + RATE_LIMIT_COOLDOWN_MS;
+    }
+    throw new Error(`Hardcover GraphQL error: ${errorMsg}`);
   }
 
   return json.data;
@@ -127,6 +143,29 @@ export function getHardcoverStatus() {
     lastCheck: lastAvailabilityCheck,
     stale: (now - lastAvailabilityCheck) >= AVAILABILITY_CHECK_INTERVAL
   };
+}
+
+/**
+ * Check if Hardcover is currently rate limited.
+ * Returns true if the rate limit flag is set and the cooldown hasn't expired.
+ * @returns {boolean}
+ */
+export function isHardcoverRateLimited() {
+  if (!hardcoverRateLimited) return false;
+  if (Date.now() >= rateLimitCooldownEnd) {
+    // Cooldown expired, clear the flag
+    hardcoverRateLimited = false;
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Reset the rate limit flag (for testing or manual recovery)
+ */
+export function resetHardcoverRateLimitFlag() {
+  hardcoverRateLimited = false;
+  rateLimitCooldownEnd = 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -280,6 +319,8 @@ query SearchBooks($q: String!, $perPage: Int!) {
  * @returns {Promise<Array<{id: number, title: string, author: string|null, isbns: string[], seriesNames: string[]}>>}
  */
 export async function searchBooksByTitle(title, apiKey, limit = 5) {
+  if (isHardcoverRateLimited()) return [];
+
   if (!title || typeof title !== 'string' || !title.trim()) {
     throw new Error('Title is required and must be a non-empty string');
   }
@@ -345,6 +386,8 @@ export async function searchBooksByTitle(title, apiKey, limit = 5) {
  * @returns {Promise<string|null>} The best matching author name, or null
  */
 export async function findAuthorForBook(title, apiKey) {
+  if (isHardcoverRateLimited()) return null;
+
   try {
     const candidates = await findTopAuthorCandidatesForBook(title, apiKey, 1);
     return candidates.length > 0 ? candidates[0].name : null;
@@ -386,6 +429,8 @@ query BookDetails($id: Int!) {
  * @returns {Promise<Object|null>} Book details object, or null if not found
  */
 export async function getBookDetails(title, author, apiKey) {
+  if (isHardcoverRateLimited()) return null;
+
   try {
     // Step 1: Search for candidates
     const searchQuery = author ? `${title} ${author}` : title;
@@ -470,6 +515,8 @@ export async function getBookDetails(title, author, apiKey) {
  * @returns {Promise<Array<{name: string, sourceTitle: string, similarity: number, coverUrl: string|null}>>}
  */
 export async function findTopAuthorCandidatesForBook(title, apiKey, limit = 3) {
+  if (isHardcoverRateLimited()) return [];
+
   const maxResults = Math.max(1, Math.min(limit, 10));
 
   try {
@@ -555,6 +602,8 @@ export async function findTopAuthorCandidatesForBook(title, apiKey, limit = 3) {
  * @returns {Promise<Array<string>|null>} Array of genre strings or null if not found
  */
 export async function findGenresForBook(title, author, apiKey) {
+  if (isHardcoverRateLimited()) return null;
+
   try {
     const details = await getBookDetails(title, author, apiKey);
     if (!details) {
@@ -614,6 +663,8 @@ export function getCoverUrl(bookData) {
  * @returns {Promise<Array<{book: Object, foundAuthor: string|null, success: boolean, error?: string}>>}
  */
 export async function batchFindMissingAuthors(books, apiKey, onProgress = null) {
+  if (isHardcoverRateLimited()) return [];
+
   const results = [];
 
   const needsAuthor = (book) => {
@@ -690,6 +741,8 @@ export async function batchFindMissingAuthors(books, apiKey, onProgress = null) 
  * @returns {Promise<Array<{book: Object, foundDescription: string|null, success: boolean, error?: string}>>}
  */
 export async function batchFindMissingDescriptions(books, apiKey, onProgress = null) {
+  if (isHardcoverRateLimited()) return [];
+
   const results = [];
 
   const needsDescription = (book) => {
@@ -767,6 +820,8 @@ export async function batchFindMissingDescriptions(books, apiKey, onProgress = n
  * @returns {Promise<Array<{book: Object, foundGenres: Array<string>, success: boolean, error?: string}>>}
  */
 export async function batchFindMissingGenres(books, apiKey, onProgress = null) {
+  if (isHardcoverRateLimited()) return [];
+
   const results = [];
 
   const needsGenres = (book) => {
