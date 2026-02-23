@@ -19,6 +19,16 @@ export const normalizeString = (str) => {
 };
 
 /**
+ * Normalize an author name for comparison
+ * Handles "Last, First" vs "First Last" by sorting words alphabetically
+ */
+export const normalizeAuthor = (str) => {
+  const normalized = normalizeString(str);
+  if (!normalized) return '';
+  return normalized.split(' ').sort().join(' ');
+};
+
+/**
  * Calculate Levenshtein distance between two strings
  */
 const levenshteinDistance = (a, b) => {
@@ -76,8 +86,16 @@ export const isExactMatch = (a, b) => {
 };
 
 /**
+ * Check if two author names match, handling "Last, First" vs "First Last"
+ */
+export const isAuthorMatch = (a, b) => {
+  if (!a || !b) return true; // missing author = don't block match
+  return normalizeAuthor(a) === normalizeAuthor(b);
+};
+
+/**
  * Check if two books are a fuzzy match
- * Requires title similarity > 85% AND (author similarity > 85% OR one author missing OR one contains the other)
+ * Requires title similarity > 85% AND (author match OR one author missing OR one contains the other)
  */
 export const isFuzzyMatch = (bookA, bookB, threshold = 0.85) => {
   const titleSimilarity = calculateSimilarity(bookA.title, bookB.title);
@@ -89,6 +107,9 @@ export const isFuzzyMatch = (bookA, bookB, threshold = 0.85) => {
   const authorB = normalizeString(bookB.author);
 
   if (!authorA || !authorB) return true;
+
+  // Check word-order-independent match (handles "Last, First" vs "First Last")
+  if (normalizeAuthor(bookA.author) === normalizeAuthor(bookB.author)) return true;
 
   // Check if one author contains the other (e.g., "Tolkien" in "jrr tolkien")
   if (authorA.includes(authorB) || authorB.includes(authorA)) return true;

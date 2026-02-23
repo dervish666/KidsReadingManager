@@ -11,7 +11,7 @@ import { generateBroadSuggestions } from '../services/aiService.js';
 import { notFoundError, badRequestError, serverError } from '../middleware/errorHandler';
 import { decryptSensitiveData, permissions } from '../utils/crypto.js';
 import { buildStudentReadingProfile } from '../utils/studentProfile.js';
-import { isExactMatch, isFuzzyMatch } from '../utils/stringMatching.js';
+import { isExactMatch, isFuzzyMatch, isAuthorMatch } from '../utils/stringMatching.js';
 import { getCachedRecommendations, cacheRecommendations } from '../utils/recommendationCache.js';
 import { normalizeISBN } from '../utils/isbn.js';
 import { lookupISBN } from '../utils/isbnLookup.js';
@@ -1011,10 +1011,10 @@ booksRouter.post('/import/preview', requireTeacher(), async (c) => {
       }
     }
 
-    // Check for exact title/author match
+    // Check for exact title/author match (handles "Last, First" vs "First Last")
     const exactMatch = existingBooks.find(existing =>
       isExactMatch(existing.title, importedBook.title) &&
-      (!importedBook.author || !existing.author || isExactMatch(existing.author, importedBook.author))
+      isAuthorMatch(existing.author, importedBook.author)
     );
 
     if (exactMatch) {
