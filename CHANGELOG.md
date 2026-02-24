@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.5.8] - 2026-02-24
+
+### Updated
+- **Landing page screenshots**: Replaced all 4 existing screenshots (students, reading session, register, recommendations) with fresh captures reflecting the updated frontend design
+- **New landing page sections**: Added "Reading stats" and "Book library" screenshots and feature rows to the "See it in action" section, showcasing the statistics dashboard and book management pages
+
 ## [3.5.7] - 2026-02-24
 
 ### Fixed

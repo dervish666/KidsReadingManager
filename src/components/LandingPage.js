@@ -5,6 +5,8 @@ import screenshotStudents from '../assets/screenshots/screenshot-students.png';
 import screenshotReading from '../assets/screenshots/screenshot-reading.png';
 import screenshotRegister from '../assets/screenshots/screenshot-register.png';
 import screenshotRecommendations from '../assets/screenshots/screenshot-recommendations.png';
+import screenshotStats from '../assets/screenshots/screenshot-stats.png';
+import screenshotBooks from '../assets/screenshots/screenshot-books.png';
 
 const TallyLogo = ({ size = 22 }) => (
   <svg viewBox="0 0 24 24" fill="none" width={size} height={size}>
@@ -177,6 +179,8 @@ export default function LandingPage({ onSignIn }) {
               { tag: 'Reading sessions', tagClass: 'lp-tag-green', tagIcon: '📖', title: 'Record a session in seconds', desc: 'Pick a student, scan or search for the book, assess their reading level, and add notes. The whole thing takes less time than finding your pen used to.', img: screenshotReading, alt: 'Recording a reading session' },
               { tag: 'Class register', tagClass: 'lp-tag-coral', tagIcon: '📋', title: 'The whole class at a glance', desc: "A simple register view showing who's been read with today, their current books, and running totals. Quick mark-off with one tap — tick, absent, or not seen.", img: screenshotRegister, alt: 'Reading record register view' },
               { tag: 'AI recommendations', tagClass: 'lp-tag-amber', tagIcon: '✨', title: '"What should they read next?"', desc: "Personalised book suggestions that consider reading level, genre preferences, and what they've enjoyed before. With real covers, real reasons, and books you can actually find.", img: screenshotRecommendations, alt: 'AI-powered book recommendations' },
+              { tag: 'Reading stats', tagClass: 'lp-tag-green', tagIcon: '📊', title: 'See the bigger picture', desc: "Track reading patterns across your class with clear stats — sessions this week, streaks, home vs school reading, and who's leading the way. All at a glance.", img: screenshotStats, alt: 'Reading statistics dashboard' },
+              { tag: 'Book library', tagClass: 'lp-tag-coral', tagIcon: '📚', title: '2,000+ books and growing', desc: "A shared book library with covers, reading levels, and genres. Search, filter, scan barcodes, or import your whole collection from a CSV. No more guessing what's available.", img: screenshotBooks, alt: 'Book library management' },
             ].map((row, i) => (
               <div className="lp-app-feature-row lp-reveal" key={i} ref={addRevealRef}>
                 <div className="lp-app-feature-text">
