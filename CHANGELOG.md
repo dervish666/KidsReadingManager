@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.5.4] - 2026-02-24
+
+### Added
+- **Wonde + MyLogin SSO integration**: Full school data sync via Wonde API (students, classes, teachers with SEN/PP/EAL/FSM indicators), MyLogin OAuth2 SSO login for school users, webhook-driven school onboarding, daily delta sync with on-demand trigger, encrypted Wonde school tokens (AES-GCM), lazy user creation on first SSO login
+- **School Management Wonde status**: Source column showing Wonde-connected vs manual schools, last sync timestamp tooltip, delete warning for Wonde-managed schools
+
+### Changed
+- **Auth system**: Now supports three modes — MyLogin SSO (primary for schools), email/password JWT (owner/fallback), legacy shared password
+- **Cron schedule**: Added 3:00 AM UTC daily Wonde delta sync alongside existing 2:00 AM streak recalculation
+
 ## [3.5.3] - 2026-02-24
 
 ### Added

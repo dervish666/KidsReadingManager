@@ -25,12 +25,16 @@ import {
   DialogContentText,
   DialogActions,
   Grid,
+  Chip,
+  Tooltip,
 } from '@mui/material';
-import { 
-  Delete as DeleteIcon, 
+import {
+  Delete as DeleteIcon,
   Edit as EditIcon,
   School as SchoolIcon,
-  Add as AddIcon
+  Add as AddIcon,
+  Link as LinkIcon,
+  LinkOff as LinkOffIcon,
 } from '@mui/icons-material';
 
 const SchoolManagement = () => {
@@ -302,6 +306,7 @@ const SchoolManagement = () => {
                 <TableHead>
                   <TableRow>
                     <TableCell>Name</TableCell>
+                    <TableCell>Source</TableCell>
                     <TableCell>Tier</TableCell>
                     <TableCell>Max Students</TableCell>
                     <TableCell>Max Teachers</TableCell>
@@ -311,7 +316,7 @@ const SchoolManagement = () => {
                 <TableBody>
                   {schools.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} align="center">
+                      <TableCell colSpan={6} align="center">
                         <Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>
                           No schools found. Create a new school to get started.
                         </Typography>
@@ -321,6 +326,30 @@ const SchoolManagement = () => {
                     schools.map((school) => (
                       <TableRow key={school.id}>
                         <TableCell>{school.name}</TableCell>
+                        <TableCell>
+                          {school.wondeSchoolId ? (
+                            <Tooltip title={
+                              school.wondeLastSyncAt
+                                ? `Last synced: ${new Date(school.wondeLastSyncAt).toLocaleString()}`
+                                : 'Never synced'
+                            }>
+                              <Chip
+                                icon={<LinkIcon />}
+                                label="Wonde"
+                                size="small"
+                                color="success"
+                                variant="outlined"
+                              />
+                            </Tooltip>
+                          ) : (
+                            <Chip
+                              icon={<LinkOffIcon />}
+                              label="Manual"
+                              size="small"
+                              variant="outlined"
+                            />
+                          )}
+                        </TableCell>
                         <TableCell>
                           <Box
                             component="span"
@@ -377,6 +406,12 @@ const SchoolManagement = () => {
             Are you sure you want to deactivate {schoolToDelete?.name}?
             This will deactivate the school but not delete associated data.
           </DialogContentText>
+          {schoolToDelete?.wondeSchoolId && (
+            <Alert severity="warning" sx={{ mt: 2 }}>
+              This school is managed by Wonde. It may be re-provisioned automatically
+              if a new webhook is received. Consider revoking access in the Wonde dashboard first.
+            </Alert>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>

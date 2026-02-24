@@ -33,7 +33,10 @@ const rowToOrganization = (row) => {
     maxTeachers: row.max_teachers,
     isActive: Boolean(row.is_active),
     createdAt: row.created_at,
-    updatedAt: row.updated_at
+    updatedAt: row.updated_at,
+    wondeSchoolId: row.wonde_school_id || null,
+    wondeLastSyncAt: row.wonde_last_sync_at || null,
+    myloginOrgId: row.mylogin_org_id || null,
   };
 };
 
