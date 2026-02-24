@@ -14,9 +14,11 @@ import {
   ListItemText,
   ListItemIcon,
   Chip,
-  Alert
+  Alert,
+  CircularProgress
 } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import PersonIcon from '@mui/icons-material/Person';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
@@ -35,8 +37,9 @@ import ReadingFrequencyChart from './ReadingFrequencyChart';
 import { useAppContext } from '../../contexts/AppContext';
 
 const ReadingStats = () => {
-  const { students, classes, exportToJson, getReadingStatus, globalClassFilter } = useAppContext();
+  const { students, classes, exportToJson, getReadingStatus, globalClassFilter, fetchWithAuth, reloadDataFromServer } = useAppContext();
   const [currentTab, setCurrentTab] = useState(0);
+  const [recalculating, setRecalculating] = useState(false);
   
   const handleTabChange = (event, newValue) => {
     setCurrentTab(newValue);
@@ -44,6 +47,23 @@ const ReadingStats = () => {
   
   const handleExport = () => {
     exportToJson();
+  };
+
+  const handleRecalculateStreaks = async () => {
+    setRecalculating(true);
+    try {
+      const API_URL = '/api';
+      const response = await fetchWithAuth(`${API_URL}/students/recalculate-streaks`, {
+        method: 'POST'
+      });
+      if (response.ok) {
+        await reloadDataFromServer();
+      }
+    } catch (error) {
+      console.error('Failed to recalculate streaks:', error);
+    } finally {
+      setRecalculating(false);
+    }
   };
   
   // Calculate statistics
@@ -692,6 +712,27 @@ const ReadingStats = () => {
 
     return (
       <Box>
+        {/* Update Streaks Button */}
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={recalculating ? <CircularProgress size={16} /> : <RefreshIcon />}
+            onClick={handleRecalculateStreaks}
+            disabled={recalculating}
+            sx={{
+              borderRadius: 3,
+              fontWeight: 600,
+              borderWidth: 2,
+              borderColor: '#FF6B35',
+              color: '#FF6B35',
+              '&:hover': { borderWidth: 2, borderColor: '#E55A2B', bgcolor: 'rgba(255, 107, 53, 0.04)' }
+            }}
+          >
+            {recalculating ? 'Updating...' : 'Update Streaks'}
+          </Button>
+        </Box>
+
         {/* Streak Summary Cards - compact row */}
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 2, mb: 3 }}>
           <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>

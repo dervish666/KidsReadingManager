@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.5.6] - 2026-02-24
+
+### Added
+- **Update Streaks button**: Manual streak recalculation button on the Streaks tab of the Stats page, allowing teachers to refresh streak data on-demand rather than waiting for the daily 2 AM cron job
+
 ## [3.5.5] - 2026-02-24
 
 ### Improved
