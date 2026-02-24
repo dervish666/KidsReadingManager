@@ -44,10 +44,16 @@ STORAGE_TYPE = "kv"
 ALLOWED_ORIGINS = "https://kids-reading-manager.brisflix.workers.dev/,https://reading.brisflix.com,https://tallyreading.uk"
 EMAIL_FROM = "hello@tallyreading.uk"
 
+# MyLogin OAuth2 SSO (set via `wrangler secret put`)
+# MYLOGIN_CLIENT_ID - OAuth client ID from MyLogin developer portal
+# MYLOGIN_CLIENT_SECRET - OAuth client secret
+# MYLOGIN_REDIRECT_URI - https://tallyreading.uk/api/auth/mylogin/callback
+
 [observability.logs]
 enabled = true
 
 # Cron triggers for scheduled tasks
-# Runs daily at 2:00 AM UTC to recalculate all student streaks
+# 2:00 AM UTC - Recalculate all student streaks
+# 3:00 AM UTC - Wonde daily delta sync
 [triggers]
-crons = ["0 2 * * *"]
+crons = ["0 2 * * *", "0 3 * * *"]

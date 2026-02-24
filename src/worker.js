@@ -29,6 +29,11 @@ import { organizationRouter } from './routes/organization';
 import coversRouter from './routes/covers';
 import { signupRouter } from './routes/signup';
 import { hardcoverRouter } from './routes/hardcover';
+import { myloginRouter } from './routes/mylogin.js';
+import webhooksRouter from './routes/webhooks.js';
+import wondeAdminRouter from './routes/wondeAdmin.js';
+import { runFullSync } from './services/wondeSync.js';
+import { decryptSensitiveData } from './utils/crypto.js';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -166,10 +171,13 @@ app.use('/api/*', async (c, next) => {
     '/api/health',
     '/api/login',
     '/api/logout',
-    '/api/signup'
+    '/api/signup',
+    '/api/auth/mylogin/login',
+    '/api/auth/mylogin/callback',
+    '/api/webhooks/wonde'
   ];
 
-  if (publicPaths.includes(url.pathname) || url.pathname.startsWith('/api/covers/')) {
+  if (publicPaths.includes(url.pathname) || url.pathname.startsWith('/api/covers/') || url.pathname.startsWith('/api/webhooks/')) {
     return next();
   }
 
@@ -204,6 +212,9 @@ app.route('/api/genres', genresRouter);
 app.route('/api/covers', coversRouter);
 app.route('/api/signup', signupRouter);
 app.route('/api/hardcover', hardcoverRouter);
+app.route('/api/auth/mylogin', myloginRouter);
+app.route('/api/webhooks', webhooksRouter);
+app.route('/api/wonde', wondeAdminRouter);
 
 // API health check (public)
 app.get('/api/health', (c) => {
@@ -320,8 +331,9 @@ export default {
       return;
     }
 
+    const db = env.READING_MANAGER_DB;
+
     try {
-      const db = env.READING_MANAGER_DB;
       const results = await recalculateAllStreaks(db);
 
       console.log(`[Cron] Streak recalculation complete:`, {
@@ -336,6 +348,27 @@ export default {
       }
     } catch (error) {
       console.error('[Cron] Streak recalculation failed:', error.message);
+    }
+
+    // Wonde daily delta sync
+    try {
+      const wondeOrgs = await db.prepare(
+        'SELECT id, wonde_school_id, wonde_school_token, wonde_last_sync_at FROM organizations WHERE wonde_school_id IS NOT NULL AND is_active = 1'
+      ).bind().all();
+
+      for (const org of (wondeOrgs.results || [])) {
+        try {
+          const schoolToken = await decryptSensitiveData(org.wonde_school_token, env.JWT_SECRET);
+          await runFullSync(org.id, schoolToken, org.wonde_school_id, db, {
+            updatedAfter: org.wonde_last_sync_at,
+          });
+          console.log(`[Cron] Wonde sync complete for org ${org.id}`);
+        } catch (err) {
+          console.error(`[Cron] Wonde sync failed for org ${org.id}:`, err.message);
+        }
+      }
+    } catch (error) {
+      console.error('[Cron] Wonde sync query failed:', error.message);
     }
   },
 };

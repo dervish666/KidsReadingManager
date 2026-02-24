@@ -182,7 +182,7 @@ describe('Login Component', () => {
 
       render(<Login />, { wrapper: createWrapper(context) });
 
-      const loginButton = screen.getByRole('button', { name: /login/i });
+      const loginButton = screen.getByRole('button', { name: 'Login' });
       expect(loginButton).toBeDisabled();
     });
 
@@ -198,7 +198,7 @@ describe('Login Component', () => {
       await user.type(emailInput, 'test@example.com');
       await user.type(passwordInput, 'password123');
 
-      const loginButton = screen.getByRole('button', { name: /login/i });
+      const loginButton = screen.getByRole('button', { name: 'Login' });
       expect(loginButton).not.toBeDisabled();
     });
 
@@ -218,7 +218,7 @@ describe('Login Component', () => {
       await user.type(emailInput, 'test@example.com');
       await user.type(passwordInput, 'password123');
 
-      const loginButton = screen.getByRole('button', { name: /login/i });
+      const loginButton = screen.getByRole('button', { name: 'Login' });
       await user.click(loginButton);
 
       expect(mockLoginWithEmail).toHaveBeenCalledWith('test@example.com', 'password123');
@@ -234,7 +234,7 @@ describe('Login Component', () => {
       await user.type(passwordInput, 'password123');
 
       // Button should still be disabled
-      const loginButton = screen.getByRole('button', { name: /login/i });
+      const loginButton = screen.getByRole('button', { name: 'Login' });
       expect(loginButton).toBeDisabled();
     });
 

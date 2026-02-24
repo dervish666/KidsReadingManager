@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -17,15 +17,62 @@ import {
 import DownloadIcon from '@mui/icons-material/Download';
 import UploadIcon from '@mui/icons-material/Upload';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
+import SyncIcon from '@mui/icons-material/Sync';
 import { useAppContext } from '../contexts/AppContext';
 
 const DataManagement = () => {
-  const { exportToJson, importFromJson, reloadDataFromServer, fetchWithAuth, canManageUsers, books } = useAppContext();
+  const { exportToJson, importFromJson, reloadDataFromServer, fetchWithAuth, canManageUsers, books, user } = useAppContext();
   const fileInputRef = useRef(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const [confirmDialog, setConfirmDialog] = useState({ open: false, file: null });
   const [clearLibraryDialog, setClearLibraryDialog] = useState(false);
   const [clearingLibrary, setClearingLibrary] = useState(false);
+  const [wondeStatus, setWondeStatus] = useState(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState(null);
+
+  const isAdminOrOwner = user?.role === 'admin' || user?.role === 'owner';
+
+  // Fetch Wonde sync status on mount for admin+ users
+  useEffect(() => {
+    if (!isAdminOrOwner) return;
+    const fetchStatus = async () => {
+      try {
+        const response = await fetchWithAuth('/api/wonde/status');
+        if (response.ok) {
+          const data = await response.json();
+          setWondeStatus(data);
+        }
+      } catch {
+        // Wonde not configured, ignore
+      }
+    };
+    fetchStatus();
+  }, [isAdminOrOwner, fetchWithAuth]);
+
+  const handleWondeSync = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const response = await fetchWithAuth('/api/wonde/sync', { method: 'POST' });
+      const data = await response.json();
+      if (response.ok) {
+        setSyncResult(data);
+        setSnackbar({ open: true, message: 'School data sync completed successfully', severity: 'success' });
+        // Refresh status
+        const statusResponse = await fetchWithAuth('/api/wonde/status');
+        if (statusResponse.ok) setWondeStatus(await statusResponse.json());
+        // Reload app data to reflect synced changes
+        await reloadDataFromServer();
+      } else {
+        setSnackbar({ open: true, message: data.error || 'Sync failed', severity: 'error' });
+      }
+    } catch (error) {
+      setSnackbar({ open: true, message: `Sync error: ${error.message}`, severity: 'error' });
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const handleExport = () => {
     exportToJson();
@@ -206,6 +253,49 @@ const DataManagement = () => {
             </Box>
           </Paper>
         </Grid>
+
+        {isAdminOrOwner && wondeStatus?.connected && (
+          <Grid size={12}>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="subtitle1" gutterBottom>
+                School Data Sync (Wonde)
+              </Typography>
+              <Typography variant="body2" color="text.secondary" paragraph>
+                Sync students, classes, and teacher data from your school's MIS via Wonde.
+                This runs automatically overnight but can be triggered manually.
+              </Typography>
+
+              {wondeStatus.lastSyncAt && (
+                <Typography variant="body2" sx={{ mb: 2, color: '#666' }}>
+                  Last synced: {new Date(wondeStatus.lastSyncAt).toLocaleString()}
+                </Typography>
+              )}
+
+              {syncResult && syncResult.status === 'completed' && (
+                <Alert severity="success" sx={{ mb: 2 }}>
+                  Sync complete: {syncResult.studentsCreated} students created,
+                  {' '}{syncResult.studentsUpdated} updated,
+                  {' '}{syncResult.studentsDeactivated} deactivated,
+                  {' '}{syncResult.classesCreated} classes created,
+                  {' '}{syncResult.classesUpdated} updated,
+                  {' '}{syncResult.employeesSynced} employees synced.
+                </Alert>
+              )}
+
+              <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  startIcon={syncing ? <CircularProgress size={20} /> : <SyncIcon />}
+                  onClick={handleWondeSync}
+                  disabled={syncing}
+                >
+                  {syncing ? 'Syncing...' : 'Sync Now'}
+                </Button>
+              </Box>
+            </Paper>
+          </Grid>
+        )}
 
         {canManageUsers && (
           <Grid size={12}>
