@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.5.3] - 2026-02-24
+
+### Added
+- **School onboarding guide**: New `docs/school-onboarding-guide.md` with IT setup instructions (domain whitelisting, browser requirements), getting started walkthrough (accounts, teachers, classes, students), feature pointers, and troubleshooting table
+
 ## [3.5.2] - 2026-02-24
 
 ### Changed
