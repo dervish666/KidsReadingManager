@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.5.2] - 2026-02-24
+
+### Changed
+- **Bulk metadata operations moved to Settings**: Fill Missing and Refresh All buttons relocated from Book Manager to Settings > Book Metadata, restricting access to admin and owner roles only; reduces accidental heavy API usage by teachers on large (2000+) book libraries
+
 ## [3.5.1] - 2026-02-24
 
 ### Fixed
