@@ -115,6 +115,7 @@ const theme = createTheme({
         root: {
           backgroundImage: 'none',
           backgroundColor: 'rgba(255, 254, 249, 0.85)',
+          WebkitBackdropFilter: 'blur(20px)',
           backdropFilter: 'blur(20px)',
           borderRadius: 16,
           boxShadow: '0 8px 32px rgba(139, 115, 85, 0.08), 0 2px 8px rgba(0, 0, 0, 0.03)',
@@ -130,14 +131,22 @@ const theme = createTheme({
         root: {
           borderRadius: 12,
           backgroundColor: 'rgba(255, 254, 249, 0.95)',
+          WebkitBackdropFilter: 'blur(16px)',
           backdropFilter: 'blur(16px)',
           boxShadow: '0 4px 12px rgba(139, 115, 85, 0.1), 0 2px 4px rgba(0, 0, 0, 0.04)',
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           overflow: 'visible',
           border: '1px solid rgba(139, 115, 85, 0.08)',
-          '&:hover': {
-            transform: 'translateY(-4px)',
-            boxShadow: '0 8px 24px rgba(139, 115, 85, 0.15), 0 4px 8px rgba(0, 0, 0, 0.06)',
+          // Only apply hover transform on devices with a pointer (not touch)
+          '@media (hover: hover) and (pointer: fine)': {
+            '&:hover': {
+              transform: 'translateY(-4px)',
+              boxShadow: '0 8px 24px rgba(139, 115, 85, 0.15), 0 4px 8px rgba(0, 0, 0, 0.06)',
+            },
+          },
+          '&:active': {
+            transform: 'scale(0.98)',
+            boxShadow: '0 2px 8px rgba(139, 115, 85, 0.1), 0 1px 3px rgba(0, 0, 0, 0.03)',
           },
         },
       },
@@ -152,12 +161,14 @@ const theme = createTheme({
           textTransform: 'none',
           boxShadow: '0 4px 12px rgba(107, 142, 107, 0.2)',
           transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-          '&:hover': {
-            transform: 'translateY(-2px)',
-            boxShadow: '0 6px 20px rgba(107, 142, 107, 0.3)',
+          '@media (hover: hover) and (pointer: fine)': {
+            '&:hover': {
+              transform: 'translateY(-2px)',
+              boxShadow: '0 6px 20px rgba(107, 142, 107, 0.3)',
+            },
           },
           '&:active': {
-            transform: 'scale(0.98)',
+            transform: 'scale(0.97)',
             boxShadow: '0 2px 8px rgba(107, 142, 107, 0.15)',
           },
         },
@@ -202,6 +213,7 @@ const theme = createTheme({
         root: {
           height: 72,
           backgroundColor: 'rgba(255, 254, 249, 0.98)',
+          WebkitBackdropFilter: 'blur(20px)',
           backdropFilter: 'blur(20px)',
           borderTopLeftRadius: 20,
           borderTopRightRadius: 20,

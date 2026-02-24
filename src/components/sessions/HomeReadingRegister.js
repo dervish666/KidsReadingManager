@@ -142,9 +142,14 @@ const SortableStudentRow = ({
                 cursor: 'grab',
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'center',
                 color: 'grey.500',
-                '&:hover': { color: 'grey.700' },
-                '&:active': { cursor: 'grabbing' }
+                minWidth: 44,
+                minHeight: 44,
+                '@media (hover: hover) and (pointer: fine)': {
+                  '&:hover': { color: 'grey.700' },
+                },
+                '&:active': { cursor: 'grabbing', color: 'grey.700' }
               }}
             >
               <DragIndicatorIcon fontSize="small" />
@@ -167,7 +172,12 @@ const SortableStudentRow = ({
               }}
               sx={{
                 color: 'error.main',
-                '&:hover': { backgroundColor: 'error.light' }
+                minWidth: 44,
+                minHeight: 44,
+                '@media (hover: hover) and (pointer: fine)': {
+                  '&:hover': { backgroundColor: 'error.light' },
+                },
+                '&:active': { backgroundColor: 'rgba(193, 126, 126, 0.2)' }
               }}
             >
               <CloseIcon fontSize="small" />
@@ -902,7 +912,7 @@ const HomeReadingRegister = () => {
             </Tooltip>
           </Box>
         )}
-        <TableContainer sx={{ maxHeight: isMobile ? 400 : 500 }}>
+        <TableContainer sx={{ maxHeight: { xs: 'clamp(250px, calc(100vh - 360px), 600px)', sm: 'clamp(300px, calc(100vh - 320px), 800px)' } }}>
           <Table stickyHeader size="small">
             <TableHead>
               <TableRow>

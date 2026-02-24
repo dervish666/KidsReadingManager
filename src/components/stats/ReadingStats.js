@@ -322,10 +322,10 @@ const ReadingStats = () => {
   
   const renderOverviewTab = () => (
     <Box>
-      {/* Summary stats - 4 compact cards in a row */}
+      {/* Summary stats - responsive grid */}
       <Box sx={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
+        gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
         gap: 2,
         mb: 3
       }}>
@@ -733,8 +733,8 @@ const ReadingStats = () => {
           </Button>
         </Box>
 
-        {/* Streak Summary Cards - compact row */}
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 2, mb: 3 }}>
+        {/* Streak Summary Cards - responsive row */}
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 2, mb: 3 }}>
           <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
             <CardContent sx={{ textAlign: 'center', py: 2, px: 1 }}>
               <WhatshotIcon sx={{ fontSize: 24, color: '#FF6B35' }} />

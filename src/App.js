@@ -198,20 +198,32 @@ function AppContent() {
             p: { xs: 2, sm: 3 },
             borderRadius: '16px',
             overflow: 'auto',
+            WebkitOverflowScrolling: 'touch',
             mb: 0,
             backgroundColor: 'rgba(255, 254, 249, 0.85)',
+            WebkitBackdropFilter: 'blur(20px)',
             backdropFilter: 'blur(20px)',
-            height: 'calc(100vh - 140px)',
-            minHeight: 'calc(100vh - 140px)',
+            // Height: viewport minus header(72px) - bottomNav(80px) - vertical padding(~48px) - safe area
+            // Use dvh with vh fallback for iOS Safari where 100vh includes address bar
+            height: 'calc(100vh - 220px)',
+            minHeight: 'calc(100vh - 220px)',
+            '@supports (height: 100dvh)': {
+              height: 'calc(100dvh - 220px)',
+              minHeight: 'calc(100dvh - 220px)',
+            },
             border: '1px solid rgba(139, 115, 85, 0.1)',
             boxShadow: '0 8px 32px rgba(139, 115, 85, 0.08), 0 2px 8px rgba(0, 0, 0, 0.03)',
-            pb: 'calc(env(safe-area-inset-bottom) + 20px)',
+            pb: 2,
             '@media (max-width: 600px)': {
-              height: 'calc(100vh - 160px)',
-              minHeight: 'calc(100vh - 160px)',
+              height: 'calc(100vh - 200px)',
+              minHeight: 'calc(100vh - 200px)',
+              '@supports (height: 100dvh)': {
+                height: 'calc(100dvh - 200px)',
+                minHeight: 'calc(100dvh - 200px)',
+              },
               p: 2,
               borderRadius: '12px',
-              pb: 'calc(env(safe-area-inset-bottom) + 90px)',
+              pb: 2,
             },
           }}
         >
@@ -227,6 +239,7 @@ function AppContent() {
           right: 0,
           zIndex: 1100,
           backgroundColor: 'rgba(255, 254, 249, 0.98)',
+          WebkitBackdropFilter: 'blur(20px)',
           backdropFilter: 'blur(20px)',
           borderTop: '1px solid rgba(139, 115, 85, 0.1)',
           boxShadow: '0 -4px 20px rgba(139, 115, 85, 0.06)',

@@ -4,8 +4,10 @@ import {
   Typography,
   Paper,
   Tabs,
-  Tab
+  Tab,
+  Chip
 } from '@mui/material';
+import PersonIcon from '@mui/icons-material/Person';
 import SettingsIcon from '@mui/icons-material/Settings';
 import StorageIcon from '@mui/icons-material/Storage';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
@@ -45,6 +47,23 @@ const SettingsPage = () => {
         <Typography variant="h4" component="h1" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#4A4A4A' }}>
           Settings & Data
         </Typography>
+        {user && (
+          <Chip
+            icon={<PersonIcon sx={{ fontSize: 18 }} />}
+            label={`${user.name} · ${user.role || 'User'}`}
+            variant="outlined"
+            sx={{
+              fontFamily: '"DM Sans", sans-serif',
+              fontWeight: 600,
+              fontSize: '0.8rem',
+              borderColor: 'rgba(107, 142, 107, 0.3)',
+              color: '#4A4A4A',
+              '& .MuiChip-icon': {
+                color: '#6B8E6B',
+              },
+            }}
+          />
+        )}
       </Box>
       
       <Box>

@@ -399,7 +399,7 @@ const ClassReadingHistoryTable = ({ students, books, selectedDate, onDateChange 
       </Box>
 
       {/* History Table */}
-      <TableContainer sx={{ maxHeight: 400 }}>
+      <TableContainer sx={{ maxHeight: { xs: 'clamp(250px, calc(100vh - 380px), 600px)', sm: 'clamp(300px, calc(100vh - 340px), 800px)' }, WebkitOverflowScrolling: 'touch' }}>
         <Table stickyHeader size="small">
           <TableHead>
             <TableRow>
@@ -430,8 +430,13 @@ const ClassReadingHistoryTable = ({ students, books, selectedDate, onDateChange 
                       backgroundColor: isWeekend ? 'grey.100' : (isSelectedDate ? 'primary.light' : 'background.paper'),
                       color: isSelectedDate ? 'primary.contrastText' : 'text.primary',
                       cursor: 'pointer',
-                      '&:hover': {
-                        backgroundColor: isSelectedDate ? 'primary.main' : 'action.hover'
+                      '@media (hover: hover) and (pointer: fine)': {
+                        '&:hover': {
+                          backgroundColor: isSelectedDate ? 'primary.main' : 'action.hover'
+                        },
+                      },
+                      '&:active': {
+                        backgroundColor: isSelectedDate ? 'primary.main' : 'action.selected'
                       },
                       transition: 'background-color 0.2s ease-in-out'
                     }}

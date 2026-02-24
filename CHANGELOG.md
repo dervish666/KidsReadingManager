@@ -1,5 +1,23 @@
 # Changelog
 
+## [3.5.7] - 2026-02-24
+
+### Fixed
+- **Content cutoff behind bottom nav**: Main content container now properly accounts for the 80px fixed bottom navigation bar, preventing tables and lists from being clipped on all pages
+- **iOS Safari viewport height**: Added `dvh` (dynamic viewport height) support with `vh` fallback, fixing content overflow caused by iOS Safari's dynamic address bar
+- **Dialog overlap with bottom nav**: Student sessions dialog no longer extends behind the bottom navigation bar on tablet/desktop
+- **Table height on different devices**: Register and reading history tables now use dynamic `clamp()` heights that adapt to viewport size instead of hardcoded pixel values
+
+### Improved
+- **iPad touch support**: Hover transforms on cards and buttons are now guarded with `@media (hover: hover)` to prevent stuck hover states on touch devices; added `:active` states for tactile feedback
+- **Touch targets**: Drag handles and clear buttons in the reading register now meet Apple's 44x44px minimum touch target size
+- **Responsive stats grid**: Summary cards on the Stats page now use a 2-column layout on narrow screens (iPad Mini portrait) instead of a cramped 4-column grid
+- **Header layout at narrow widths**: Title no longer wraps to two lines; toolbar wraps cleanly with auth controls right-aligned on the second row
+- **Safari compatibility**: Added `-webkit-backdrop-filter` prefix throughout for older Safari/WebKit support; added `-webkit-overflow-scrolling: touch` for smooth scrolling on older iPads
+
+### Changed
+- **User info moved to Settings page**: User name and role chip removed from the header bar (decluttering the nav) and relocated to the Settings & Data page title area
+
 ## [3.5.6] - 2026-02-24
 
 ### Added

@@ -229,9 +229,11 @@ const StudentSessions = ({ open, onClose, student: studentProp }) => {
     }
   };
 
-  // Sort sessions by date (newest first)
+  // Sort sessions by date (newest first), excluding absent/no_record entries
   const sortedSessions = student?.readingSessions
-    ? [...student.readingSessions].sort((a, b) => new Date(b.date) - new Date(a.date))
+    ? [...student.readingSessions]
+        .filter(s => !s.notes?.includes('[ABSENT]') && !s.notes?.includes('[NO_RECORD]'))
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
     : [];
 
   return (
@@ -242,6 +244,12 @@ const StudentSessions = ({ open, onClose, student: studentProp }) => {
         fullWidth
         fullScreen={fullScreen}
         maxWidth={fullScreen ? 'xs' : 'md'}
+        sx={{
+          // Ensure dialog doesn't extend behind the fixed bottom nav
+          '& .MuiDialog-container': {
+            pb: fullScreen ? 0 : '90px',
+          },
+        }}
       >
         <DialogTitle sx={{ m: 0, p: 2 }}> {/* Adjust padding */}
           <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ flexDirection: { xs: 'column', sm: 'row' }, gap: { xs: 1, sm: 0 } }}>
@@ -447,7 +455,7 @@ const StudentSessions = ({ open, onClose, student: studentProp }) => {
       </Dialog>
 
       {/* Edit Session Dialog */}
-      <Dialog open={!!editingSession} onClose={() => setEditingSession(null)} fullWidth maxWidth="md" fullScreen={fullScreen}>
+      <Dialog open={!!editingSession} onClose={() => setEditingSession(null)} fullWidth maxWidth="md" fullScreen={fullScreen} sx={{ '& .MuiDialog-container': { pb: fullScreen ? 0 : '90px' } }}>
         <DialogTitle>Edit Reading Session</DialogTitle>
         <DialogContent sx={{ pb: 'calc(env(safe-area-inset-bottom) + 16px)' }}>
           <Box sx={{ pt: 1 }}>

@@ -196,10 +196,11 @@ const getOrganizationTimezone = async (db, organizationId) => {
  * Recalculate and update streak for a student based on their reading sessions
  */
 const updateStudentStreak = async (db, studentId, organizationId) => {
-  // Fetch all sessions for the student
+  // Fetch all sessions for the student, excluding absent/no_record entries
   const sessions = await db.prepare(`
     SELECT session_date as date FROM reading_sessions
     WHERE student_id = ?
+      AND (notes IS NULL OR (notes NOT LIKE '%[ABSENT]%' AND notes NOT LIKE '%[NO_RECORD]%'))
     ORDER BY session_date DESC
   `).bind(studentId).all();
 
@@ -316,9 +317,11 @@ studentsRouter.get('/', async (c) => {
         recordedBy: s.recorded_by
       }));
 
-      // Recalculate streak on-the-fly
+      // Recalculate streak on-the-fly (exclude absent/no_record sessions)
       const streakData = calculateStreak(
-        student.readingSessions.map(s => ({ date: s.date })),
+        student.readingSessions
+          .filter(s => !s.notes?.includes('[ABSENT]') && !s.notes?.includes('[NO_RECORD]'))
+          .map(s => ({ date: s.date })),
         { gracePeriodDays, timezone }
       );
       student.currentStreak = streakData.currentStreak;
@@ -405,9 +408,11 @@ studentsRouter.get('/:id', async (c) => {
       recordedBy: s.recorded_by
     }));
 
-    // Recalculate streak on-the-fly from sessions (ensures accuracy even if student hasn't read recently)
+    // Recalculate streak on-the-fly from sessions (exclude absent/no_record, ensures accuracy)
     const streakData = calculateStreak(
-      result.readingSessions.map(s => ({ date: s.date })),
+      result.readingSessions
+        .filter(s => !s.notes?.includes('[ABSENT]') && !s.notes?.includes('[NO_RECORD]'))
+        .map(s => ({ date: s.date })),
       { gracePeriodDays, timezone }
     );
     result.currentStreak = streakData.currentStreak;
