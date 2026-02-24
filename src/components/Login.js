@@ -308,6 +308,36 @@ const Login = ({ onBackToLanding } = {}) => {
           </Link>
         </Box>
       </form>
+
+      {/* SSO Divider */}
+      <Box sx={{ display: 'flex', alignItems: 'center', my: 3 }}>
+        <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(0,0,0,0.12)' }} />
+        <Typography variant="body2" sx={{ px: 2, color: '#999' }}>or</Typography>
+        <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(0,0,0,0.12)' }} />
+      </Box>
+
+      {/* MyLogin SSO Button */}
+      <Button
+        fullWidth
+        variant="outlined"
+        size="large"
+        onClick={() => { window.location.href = '/api/auth/mylogin/login'; }}
+        sx={{
+          height: 52,
+          borderRadius: '12px',
+          borderColor: '#00D37F',
+          color: '#333',
+          fontSize: '1rem',
+          fontWeight: 600,
+          textTransform: 'none',
+          '&:hover': {
+            borderColor: '#00B36B',
+            backgroundColor: 'rgba(0, 211, 127, 0.05)',
+          },
+        }}
+      >
+        Sign in with MyLogin
+      </Button>
     </>
   );
 
