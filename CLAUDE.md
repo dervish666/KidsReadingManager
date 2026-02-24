@@ -55,12 +55,15 @@ CI runs on push/PR to `main` via GitHub Actions (`.github/workflows/build.yml`):
 - **Backend**: Cloudflare Workers, Hono framework, D1 database, KV storage
 - **Testing**: Vitest, happy-dom, @testing-library/react
 
-### Dual Authentication System
+### Authentication System
 
-Two auth modes coexist, auto-detected from environment variables (`src/worker.js:129-138`):
+Three auth modes coexist, auto-detected from environment variables (`src/worker.js:129-138`):
 
-1. **Multi-Tenant Mode** (`JWT_SECRET` configured): JWT auth with organizations, users, roles, D1 storage
-2. **Legacy Mode** (`WORKER_ADMIN_PASSWORD` only): Simple shared password, KV storage
+1. **MyLogin SSO** (`MYLOGIN_CLIENT_ID` configured): OAuth2 Authorization Code flow via MyLogin for school users. Primary auth for schools. Routes in `src/routes/mylogin.js`.
+2. **Email/Password** (`JWT_SECRET` configured): JWT auth with email/password for owner account and fallback.
+3. **Legacy Mode** (`WORKER_ADMIN_PASSWORD` only): Simple shared password, KV storage.
+
+After MyLogin OAuth completes, the system issues a standard Tally JWT — the frontend auth flow works identically for SSO and email/password users. JWT payload includes `authProvider` field (`'mylogin'` or `'local'`).
 
 JWT lifecycle: access tokens (15 min) + refresh tokens (7 days). Client auto-refreshes 60 seconds before expiration. Password hashing uses PBKDF2 with 100,000 iterations (`src/utils/crypto.js`). Role constants defined in `ROLES` object in `src/utils/crypto.js`.
 
@@ -162,11 +165,23 @@ Global error handler in `src/middleware/errorHandler.js` standardizes all error 
 
 ### Public Endpoints
 
-Public paths are defined in `src/middleware/tenant.js` (jwtAuthMiddleware): `/api/auth/mode`, `/api/auth/login`, `/api/auth/register`, `/api/auth/refresh`, `/api/auth/forgot-password`, `/api/auth/reset-password`, `/api/health`, `/api/login` (legacy redirect), and `/api/covers/*`. When adding public paths, update the `publicPaths` array in `jwtAuthMiddleware()`.
+Public paths are defined in `src/middleware/tenant.js` (jwtAuthMiddleware): `/api/auth/mode`, `/api/auth/login`, `/api/auth/register`, `/api/auth/refresh`, `/api/auth/forgot-password`, `/api/auth/reset-password`, `/api/auth/mylogin/login`, `/api/auth/mylogin/callback`, `/api/webhooks/wonde`, `/api/health`, `/api/login` (legacy redirect), and `/api/covers/*`. When adding public paths, update the `publicPaths` array in BOTH `jwtAuthMiddleware()` in `src/middleware/tenant.js` AND the tenant middleware bypass in `src/worker.js`.
 
 ### Scheduled Tasks
 
-Cron trigger runs daily at 2:00 AM UTC to recalculate all student reading streaks (`wrangler.toml` triggers, handler in `src/worker.js`, logic in `src/utils/streakCalculator.js`).
+Cron triggers run daily: 2:00 AM UTC for streak recalculation (`src/utils/streakCalculator.js`), 3:00 AM UTC for Wonde delta sync (`src/services/wondeSync.js`). Both run in `src/worker.js` `scheduled` handler.
+
+### Wonde + MyLogin Integration
+
+School data sync and SSO login via two external services:
+
+**Wonde Data Sync** (`src/utils/wondeApi.js`, `src/services/wondeSync.js`): Syncs students, classes, and teacher data from school MIS systems. Schools are onboarded via `schoolApproved` webhook (`src/routes/webhooks.js`), which creates the organization and triggers a full sync. Daily delta sync runs at 3 AM. Manual sync available via `POST /api/wonde/sync` (admin only, `src/routes/wondeAdmin.js`).
+
+**MyLogin OAuth2 SSO** (`src/routes/mylogin.js`): OAuth2 Authorization Code flow. Login initiation stores state in KV, redirects to MyLogin. Callback exchanges code for token, fetches user profile, matches org by `wonde_school_id`, creates/updates user by `mylogin_id`, issues standard Tally JWT. Role mapping: MyLogin admin→admin, employee→teacher, student→readonly.
+
+**Key tables**: `wonde_sync_log` (sync tracking), `wonde_employee_classes` (teacher-class mapping from sync, used at first login). New columns on `organizations` (wonde_school_id, wonde_school_token, wonde_last_sync_at, mylogin_org_id), `users` (mylogin_id, wonde_employee_id, auth_provider), `students` (wonde_student_id, sen_status, pupil_premium, eal_status, fsm, year_group), `classes` (wonde_class_id). See `migrations/0024_wonde_mylogin_integration.sql`.
+
+**Token security**: Wonde school tokens are AES-GCM encrypted in D1 using `encryptSensitiveData`/`decryptSensitiveData` from `src/utils/crypto.js`.
 
 ## Common Development Patterns
 
@@ -213,6 +228,9 @@ The frontend dev server (port 3001) proxies `/api` requests to the worker (port 
 - `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `GOOGLE_API_KEY` - AI recommendation providers
 - `ALLOWED_ORIGINS` - Comma-separated CORS whitelist
 - `EMAIL_FROM` - Email sender address
+- `MYLOGIN_CLIENT_ID` - MyLogin OAuth2 client ID
+- `MYLOGIN_CLIENT_SECRET` - MyLogin OAuth2 client secret
+- `MYLOGIN_REDIRECT_URI` - MyLogin OAuth2 callback URL (e.g. `https://tallyreading.uk/api/auth/mylogin/callback`)
 
 ### Wrangler Bindings (`wrangler.toml`)
 
