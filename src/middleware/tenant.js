@@ -29,14 +29,17 @@ export function jwtAuthMiddleware() {
     '/api/auth/reset-password',
     '/api/health',
     '/api/login', // Legacy endpoint for backward compatibility
-    '/api/signup'
+    '/api/signup',
+    '/api/auth/mylogin/login',
+    '/api/auth/mylogin/callback',
+    '/api/webhooks/wonde'
   ];
 
   return async (c, next) => {
     const url = new URL(c.req.url);
 
     // Allow public endpoints
-    if (publicPaths.includes(url.pathname) || url.pathname.startsWith('/api/covers/')) {
+    if (publicPaths.includes(url.pathname) || url.pathname.startsWith('/api/covers/') || url.pathname.startsWith('/api/webhooks/')) {
       return next();
     }
 
