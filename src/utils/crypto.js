@@ -261,7 +261,8 @@ export function createJWTPayload(user, organization) {
     name: user.name,
     org: organization.id,
     orgSlug: organization.slug,
-    role: user.role
+    role: user.role,
+    authProvider: user.authProvider || 'local',
   };
 }
 

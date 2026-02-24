@@ -184,6 +184,40 @@ export const AppProvider = ({ children }) => {
       } catch (err) {
         setServerAuthModeDetected(true);
       }
+
+      // Check for OAuth SSO callback
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('auth') === 'callback') {
+        // Remove query param from URL (clean up)
+        window.history.replaceState({}, '', window.location.pathname);
+        // Complete SSO login by refreshing token (callback set httpOnly cookie)
+        try {
+          const response = await fetch(`${API_URL}/auth/refresh`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setAuthToken(data.accessToken);
+            try {
+              if (typeof window !== 'undefined') {
+                window.localStorage.setItem(AUTH_STORAGE_KEY, data.accessToken);
+              }
+            } catch { /* ignore */ }
+            if (data.user) {
+              setUser(data.user);
+              try {
+                if (typeof window !== 'undefined') {
+                  window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(data.user));
+                }
+              } catch { /* ignore */ }
+            }
+          }
+        } catch (err) {
+          console.error('SSO callback error:', err);
+        }
+      }
     };
 
     detectAuthMode();
@@ -546,16 +580,36 @@ export const AppProvider = ({ children }) => {
     // Call logout endpoint to invalidate server-side session if applicable
     try {
       if (authMode === 'multitenant') {
-        // Multi-tenant mode: invalidate refresh token (server will read from cookie)
-        await fetch(`${API_URL}/auth/logout`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authToken}`,
-          },
-          credentials: 'include', // Include httpOnly cookies
-          body: JSON.stringify({}),
-        });
+        const isMyLoginUser = user?.authProvider === 'mylogin';
+
+        if (isMyLoginUser) {
+          // SSO logout: revoke token and get MyLogin logout URL
+          const response = await fetch(`${API_URL}/auth/mylogin/logout`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${authToken}`,
+            },
+            credentials: 'include',
+          });
+          const data = await response.json();
+          clearAuthState();
+          if (data.logoutUrl) {
+            window.location.href = data.logoutUrl;
+            return;
+          }
+        } else {
+          // Standard multi-tenant logout: invalidate refresh token
+          await fetch(`${API_URL}/auth/logout`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${authToken}`,
+            },
+            credentials: 'include',
+            body: JSON.stringify({}),
+          });
+        }
       } else if (authMode === 'legacy' && authToken) {
         // Legacy mode: call logout endpoint for consistency
         await fetch(`${API_URL}/logout`, {

@@ -463,7 +463,7 @@ authRouter.post('/refresh', async (c) => {
 
     // Find the refresh token
     const storedToken = await db.prepare(`
-      SELECT rt.*, u.email, u.name, u.role, u.is_active as user_active,
+      SELECT rt.*, u.email, u.name, u.role, u.auth_provider, u.is_active as user_active,
              o.id as org_id, o.name as org_name, o.slug as org_slug, o.is_active as org_active
       FROM refresh_tokens rt
       INNER JOIN users u ON rt.user_id = u.id
@@ -502,11 +502,12 @@ authRouter.post('/refresh', async (c) => {
     }
 
     const organization = { id: storedToken.org_id, slug: storedToken.org_slug };
-    const user = { 
-      id: storedToken.user_id, 
-      email: storedToken.email, 
-      name: storedToken.name, 
-      role: storedToken.role 
+    const user = {
+      id: storedToken.user_id,
+      email: storedToken.email,
+      name: storedToken.name,
+      role: storedToken.role,
+      authProvider: storedToken.auth_provider || 'local',
     };
 
     const payload = createJWTPayload(user, organization);
@@ -539,7 +540,8 @@ authRouter.post('/refresh', async (c) => {
         id: storedToken.user_id,
         email: storedToken.email,
         name: storedToken.name,
-        role: storedToken.role
+        role: storedToken.role,
+        authProvider: storedToken.auth_provider || 'local',
       },
       organization: {
         id: storedToken.org_id,
