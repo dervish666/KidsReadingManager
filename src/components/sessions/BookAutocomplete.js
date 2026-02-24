@@ -7,7 +7,6 @@ import {
 } from '@mui/material';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import { useAppContext } from '../../contexts/AppContext';
-import AddBookModal from '../books/AddBookModal';
 import ScanBookFlow from '../books/ScanBookFlow';
 
 const BookAutocomplete = ({
@@ -23,8 +22,6 @@ const BookAutocomplete = ({
   const [inputValue, setInputValue] = useState('');
   const [selectedBook, setSelectedBook] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
-  const [addModalOpen, setAddModalOpen] = useState(false);
-  const [pendingTitleForModal, setPendingTitleForModal] = useState('');
   const [scanOpen, setScanOpen] = useState(false);
 
   // Sync internal selectedBook with external value
@@ -42,12 +39,8 @@ const BookAutocomplete = ({
     }
   }, [value]);
 
-  // Custom filter that preserves the "Add new book" option
   // We handle filtering ourselves in computedOptions, so this just passes through
-  const filterOptions = (options, state) => {
-    // Return options as-is since we already filter in computedOptions
-    return options;
-  };
+  const filterOptions = (options) => options;
 
   // Parse input to extract title and potential author
   const parseBookInput = (input) => {
@@ -68,23 +61,8 @@ const BookAutocomplete = ({
     };
   };
 
-  // Open modal for manual creation when no match is found
-  const openAddBookModal = (initialTitle) => {
-    setPendingTitleForModal(initialTitle || inputValue || '');
-    setAddModalOpen(true);
-    if (onBookCreationStart) {
-      onBookCreationStart();
-    }
-  };
-
   // Handle selection from dropdown
   const handleSelection = useCallback(async (event, newValue, reason) => {
-    // If user selects the special "Add new book" option
-    if (newValue && newValue.inputValue && newValue.type === 'add-new') {
-      openAddBookModal(newValue.inputValue);
-      return;
-    }
-
     if (typeof newValue === 'string') {
       // User typed and pressed Enter - keep existing behavior:
       // try create/find directly for speed
@@ -134,10 +112,6 @@ const BookAutocomplete = ({
       return option;
     }
 
-    if (option.inputValue && option.type === 'add-new') {
-      return option.label || option.inputValue;
-    }
-
     if (option.title) {
       return `${option.title}${option.author ? ` by ${option.author}` : ''}`;
     }
@@ -145,8 +119,7 @@ const BookAutocomplete = ({
     return '';
   };
 
-  // Build options: filtered books plus conditional "Add new" option
-  // Priority books (e.g., books the student has read) appear at the top
+  // Build options: filtered books with priority books at the top
   const computedOptions = React.useMemo(() => {
     const term = inputValue.trim().toLowerCase();
 
@@ -168,42 +141,8 @@ const BookAutocomplete = ({
       return a.title.localeCompare(b.title);
     });
 
-    // Always show "Add new book" option when there is input, regardless of matches
-    // This option will always be the last item in the list
-    if (term) {
-      return [
-        ...sortedBooks,
-        {
-          type: 'add-new',
-          inputValue: inputValue,
-          label: `Add "${inputValue}" as a new book`
-        }
-      ];
-    }
-
     return sortedBooks;
   }, [books, inputValue, priorityBookIds]);
-
-  const handleModalClose = () => {
-    setAddModalOpen(false);
-    setPendingTitleForModal('');
-    // Do not change isCreating here; it is managed by modal submit
-  };
-
-  const handleModalBookCreated = (book) => {
-    // Called by AddBookModal once book is successfully created
-    if (!book) return;
-
-    const displayValue = `${book.title}${book.author ? ` by ${book.author}` : ''}`;
-    setSelectedBook(book);
-    setInputValue(displayValue);
-    setIsCreating(false);
-    setAddModalOpen(false);
-    setPendingTitleForModal('');
-
-    if (onChange) onChange(book);
-    if (onBookCreated) onBookCreated(book);
-  };
 
   return (
     <>
@@ -251,23 +190,13 @@ const BookAutocomplete = ({
               isCreating
                 ? 'Creating new book...'
                 : inputValue && !selectedBook && inputValue.length > 0
-                  ? 'Type @author to specify author, or choose "Add" to quickly create this book'
+                  ? 'Type @author to specify author. Press Enter to create a new book.'
                   : ''
             }
           />
         )}
         renderOption={(props, option) => {
           const { key, ...restProps } = props;
-
-          // Render the "Add new" option with clear affordance
-          if (option.type === 'add-new') {
-            return (
-              <li {...restProps} key="add-new-book-option">
-                <strong>{option.label}</strong>
-              </li>
-            );
-          }
-
           const isPriority = priorityBookIds.includes(option.id);
 
           return (
@@ -295,7 +224,7 @@ const BookAutocomplete = ({
         }}
         noOptionsText={
           inputValue.trim()
-            ? `No matches found. Select 'Add "${inputValue}" as a new book' to create it.`
+            ? 'No matches found. Press Enter to create a new book.'
             : 'Start typing to search or create a book...'
         }
         sx={{
@@ -303,13 +232,6 @@ const BookAutocomplete = ({
             height: 56 // Match height with other fields
           }
         }}
-      />
-
-      <AddBookModal
-        open={addModalOpen}
-        initialTitle={pendingTitleForModal}
-        onClose={handleModalClose}
-        onBookCreated={handleModalBookCreated}
       />
 
       <ScanBookFlow

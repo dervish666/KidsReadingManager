@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.5.5] - 2026-02-24
+
+### Improved
+- **Record Reading Session book details**: Book cover now displayed alongside author, reading level, age range and genres fields, saving vertical space
+
+### Removed
+- **"Add as new book" dropdown option**: Removed redundant option from book autocomplete that offered to create books already in the library; users can still create new books by pressing Enter or using the barcode scanner
+
 ## [3.5.4] - 2026-02-24
 
 ### Added

@@ -24,6 +24,7 @@ import {
 import StarIcon from '@mui/icons-material/Star';
 import DownloadIcon from '@mui/icons-material/Download';
 import { useAppContext } from '../../contexts/AppContext';
+import BookCover from '../BookCover';
 import AssessmentSelector from './AssessmentSelector';
 import SessionNotes from './SessionNotes';
 import BookAutocomplete from './BookAutocomplete';
@@ -436,74 +437,84 @@ const SessionForm = () => {
                       <Typography variant="subtitle2" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: '#4A4A4A' }}>
                         Selected Book Details
                       </Typography>
-                      <Grid container spacing={2}>
-                        <Grid size={12}>
-                          <TextField
-                            label="Author"
-                            value={bookAuthor}
-                            onChange={(e) => setBookAuthor(e.target.value)}
-                            fullWidth
-                            size="small"
-                            InputProps={{ sx: { borderRadius: 3, backgroundColor: '#fff' } }}
+                      <Box sx={{ display: 'flex', gap: 2 }}>
+                        <Box sx={{ flexShrink: 0 }}>
+                          <BookCover
+                            title={books.find(b => b.id === selectedBookId)?.title || ''}
+                            author={bookAuthor || null}
+                            width={80}
+                            height={120}
                           />
+                        </Box>
+                        <Grid container spacing={2} sx={{ flex: 1 }}>
+                          <Grid size={12}>
+                            <TextField
+                              label="Author"
+                              value={bookAuthor}
+                              onChange={(e) => setBookAuthor(e.target.value)}
+                              fullWidth
+                              size="small"
+                              InputProps={{ sx: { borderRadius: 3, backgroundColor: '#fff' } }}
+                            />
+                          </Grid>
+                          <Grid size={12}>
+                            <TextField
+                              label="Reading Level"
+                              value={bookReadingLevel}
+                              onChange={(e) => setBookReadingLevel(e.target.value)}
+                              fullWidth
+                              size="small"
+                              placeholder="e.g. Blue, Level 4"
+                              InputProps={{ sx: { borderRadius: 3, backgroundColor: '#fff' } }}
+                            />
+                          </Grid>
+                          <Grid size={12}>
+                            <TextField
+                              label="Age Range"
+                              value={bookAgeRange}
+                              onChange={(e) => setBookAgeRange(e.target.value)}
+                              fullWidth
+                              size="small"
+                              placeholder="e.g. 6-8"
+                              InputProps={{ sx: { borderRadius: 3, backgroundColor: '#fff' } }}
+                            />
+                          </Grid>
+                          <Grid size={12}>
+                            <FormControl fullWidth size="small">
+                              <InputLabel id="genre-select-label">Genres</InputLabel>
+                              <Select
+                                labelId="genre-select-label"
+                                multiple
+                                value={bookGenres}
+                                onChange={(e) => setBookGenres(e.target.value)}
+                                label="Genres"
+                                renderValue={(selected) => (
+                                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                    {selected.map((value) => {
+                                      const genre = genres.find(g => g.id === value);
+                                      return (
+                                        <Chip
+                                          key={value}
+                                          label={genre?.name || value}
+                                          size="small"
+                                          sx={{ borderRadius: 1 }}
+                                        />
+                                      );
+                                    })}
+                                  </Box>
+                                )}
+                                sx={{ borderRadius: 3, backgroundColor: '#fff' }}
+                              >
+                                {genres.map((genre) => (
+                                  <MenuItem key={genre.id} value={genre.id}>
+                                    {genre.name}
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                            </FormControl>
+                          </Grid>
                         </Grid>
-                        <Grid size={12}>
-                          <TextField
-                            label="Reading Level"
-                            value={bookReadingLevel}
-                            onChange={(e) => setBookReadingLevel(e.target.value)}
-                            fullWidth
-                            size="small"
-                            placeholder="e.g. Blue, Level 4"
-                            InputProps={{ sx: { borderRadius: 3, backgroundColor: '#fff' } }}
-                          />
-                        </Grid>
-                        <Grid size={12}>
-                          <TextField
-                            label="Age Range"
-                            value={bookAgeRange}
-                            onChange={(e) => setBookAgeRange(e.target.value)}
-                            fullWidth
-                            size="small"
-                            placeholder="e.g. 6-8"
-                            InputProps={{ sx: { borderRadius: 3, backgroundColor: '#fff' } }}
-                          />
-                        </Grid>
-                        <Grid size={12}>
-                          <FormControl fullWidth size="small">
-                            <InputLabel id="genre-select-label">Genres</InputLabel>
-                            <Select
-                              labelId="genre-select-label"
-                              multiple
-                              value={bookGenres}
-                              onChange={(e) => setBookGenres(e.target.value)}
-                              label="Genres"
-                              renderValue={(selected) => (
-                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                                  {selected.map((value) => {
-                                    const genre = genres.find(g => g.id === value);
-                                    return (
-                                      <Chip
-                                        key={value}
-                                        label={genre?.name || value}
-                                        size="small"
-                                        sx={{ borderRadius: 1 }}
-                                      />
-                                    );
-                                  })}
-                                </Box>
-                              )}
-                              sx={{ borderRadius: 3, backgroundColor: '#fff' }}
-                            >
-                              {genres.map((genre) => (
-                                <MenuItem key={genre.id} value={genre.id}>
-                                  {genre.name}
-                                </MenuItem>
-                              ))}
-                            </Select>
-                          </FormControl>
-                        </Grid>
-                      </Grid>
+                      </Box>
                       <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', gap: 1 }}>
                         <Box>
                           <Button

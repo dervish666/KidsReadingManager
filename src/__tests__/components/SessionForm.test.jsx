@@ -19,6 +19,11 @@ vi.mock('../../utils/bookMetadataApi', () => ({
   validateProviderConfig: vi.fn()
 }));
 
+// Mock BookCover to avoid requiring BookCoverProvider
+vi.mock('../../components/BookCover', () => ({
+  default: ({ title }) => <div data-testid="book-cover">{title}</div>
+}));
+
 // Import after mocking
 import SessionForm from '../../components/sessions/SessionForm';
 import * as bookMetadataApi from '../../utils/bookMetadataApi';
