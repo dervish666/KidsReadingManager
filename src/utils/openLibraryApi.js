@@ -752,6 +752,105 @@ export async function batchFindMissingGenres(books, onProgress = null) {
 }
 
 /**
+ * Fetch all metadata for a book in a single search call (+ 1 work fetch for description).
+ * Replaces the previous pattern of 3 separate search calls per book.
+ *
+ * @param {string} title - The book title to search for
+ * @param {string} author - The book's author (optional, improves matching)
+ * @returns {Promise<Object|null>} All metadata or null if not found
+ */
+export async function fetchAllMetadata(title, author = null) {
+  try {
+    const searchParams = new URLSearchParams({
+      title: title.trim(),
+      limit: '5',
+      fields: 'key,title,author_name,author_key,first_publish_year,isbn,cover_i,ia,number_of_pages_median,subject'
+    });
+
+    if (author) {
+      searchParams.set('author', author.trim());
+    }
+
+    const response = await fetch(`${SEARCH_API_URL}?${searchParams}`, {
+      headers: {
+        'User-Agent': 'TallyReading/1.0 (educational-app)'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenLibrary API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const docs = data.docs || [];
+
+    if (docs.length === 0) {
+      return null;
+    }
+
+    const bestMatch = findBestTitleMatch(title, docs);
+    if (!bestMatch) {
+      return null;
+    }
+
+    // Extract author
+    const foundAuthor = bestMatch.author_name && bestMatch.author_name.length > 0
+      ? bestMatch.author_name[0]
+      : null;
+
+    // Extract ISBN-13 preferentially
+    const isbnList = bestMatch.isbn || [];
+    const isbn = isbnList.find(i => i.length === 13) || isbnList[0] || null;
+
+    // Extract genres from subjects
+    const genres = bestMatch.subject && bestMatch.subject.length > 0
+      ? filterAndNormalizeGenres(bestMatch.subject)
+      : null;
+
+    // Fetch description from work endpoint (the only second call needed)
+    let description = null;
+    const workKey = bestMatch.key;
+    if (workKey && workKey.startsWith('/works/')) {
+      try {
+        const workResponse = await fetch(`${OPENLIBRARY_BASE_URL}${workKey}.json`, {
+          headers: {
+            'User-Agent': 'TallyReading/1.0 (educational-app)'
+          }
+        });
+
+        if (workResponse.ok) {
+          const workData = await workResponse.json();
+          description = workData.description;
+          if (typeof description === 'object' && description.value) {
+            description = description.value;
+          }
+          if (description && description.length > 500) {
+            description = description.substring(0, 500) + '...';
+          }
+        }
+      } catch (error) {
+        console.warn('Error fetching work description:', error);
+      }
+    }
+
+    return {
+      foundAuthor,
+      description,
+      isbn,
+      pageCount: bestMatch.number_of_pages_median || null,
+      publicationYear: bestMatch.first_publish_year || null,
+      genres,
+      coverUrl: bestMatch.cover_i ? `${COVERS_BASE_URL}/id/${bestMatch.cover_i}-M.jpg` : null,
+      seriesName: null,
+      seriesNumber: null
+    };
+  } catch (error) {
+    console.error(`Error fetching all metadata for "${title}":`, error);
+    throw error;
+  }
+}
+
+/**
  * Get cover URL from book data
  * @param {Object} bookData - Book data from OpenLibrary
  * @returns {string|null} Cover URL or null

@@ -587,6 +587,93 @@ export async function findTopAuthorCandidatesForBook(title, apiKey, limit = 3) {
 }
 
 // ---------------------------------------------------------------------------
+// Unified metadata fetch (1 search + 1 detail = 2 API calls per book)
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch all metadata for a book in 2 API calls (search + detail).
+ * Replaces the previous pattern of 5 separate API calls per book.
+ *
+ * @param {string} title - The book title to search for
+ * @param {string} author - The book's author (optional, improves matching)
+ * @param {string} apiKey - Hardcover API key
+ * @returns {Promise<Object|null>} All metadata or null if not found
+ */
+export async function fetchAllMetadata(title, author, apiKey) {
+  if (isHardcoverRateLimited()) return null;
+
+  try {
+    // Step 1: Search for candidates
+    const searchQuery = author ? `${title} ${author}` : title;
+    const searchResults = await searchBooksByTitle(searchQuery, apiKey, 5);
+
+    const bestMatch = findBestTitleMatch(title, searchResults);
+    if (!bestMatch) {
+      return null;
+    }
+
+    // Author from search results
+    const foundAuthor = bestMatch.author || null;
+
+    // Step 2: Fetch full details by ID
+    const data = await hardcoverQuery(BOOK_DETAILS_QUERY, { id: bestMatch.id }, apiKey);
+    const books = data?.books;
+    if (!books || books.length === 0) {
+      return {
+        foundAuthor,
+        description: null,
+        isbn: null,
+        pageCount: null,
+        publicationYear: null,
+        genres: null,
+        coverUrl: null,
+        seriesName: null,
+        seriesNumber: null
+      };
+    }
+
+    const book = books[0];
+    const edition = book.editions && book.editions.length > 0 ? book.editions[0] : null;
+
+    // Series
+    let seriesName = null;
+    let seriesNumber = null;
+    if (book.book_series && book.book_series.length > 0) {
+      const primarySeries = book.book_series[0];
+      seriesName = primarySeries.series?.name || null;
+      const pos = Number(primarySeries.position);
+      seriesNumber = Number.isNaN(pos) ? null : pos;
+    }
+
+    // Description
+    let description = book.description || null;
+    if (description && description.length > 500) {
+      description = description.slice(0, 500) + '...';
+    }
+
+    // Genres
+    const genres = Array.isArray(book.cached_tags?.Genre) && book.cached_tags.Genre.length > 0
+      ? book.cached_tags.Genre
+      : null;
+
+    return {
+      foundAuthor,
+      description,
+      isbn: edition?.isbn_13 || edition?.isbn_10 || null,
+      pageCount: edition?.pages || book.pages || null,
+      publicationYear: book.release_year || null,
+      genres,
+      coverUrl: book.cached_image?.url || null,
+      seriesName,
+      seriesNumber
+    };
+  } catch (error) {
+    console.error(`Error fetching all metadata for "${title}":`, error);
+    throw error;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Genre lookup
 // ---------------------------------------------------------------------------
 

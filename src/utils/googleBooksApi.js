@@ -768,6 +768,82 @@ export async function batchFindMissingGenres(books, apiKey, onProgress = null) {
 }
 
 /**
+ * Fetch all metadata for a book in a single search call.
+ * Replaces the previous pattern of 3 separate search calls per book.
+ *
+ * @param {string} title - The book title to search for
+ * @param {string} author - The book's author (optional, improves matching)
+ * @param {string} apiKey - Google Books API key
+ * @returns {Promise<Object|null>} All metadata or null if not found
+ */
+export async function fetchAllMetadata(title, author, apiKey) {
+  try {
+    const results = await searchBooks(title, author, apiKey, 5);
+
+    if (!results || results.length === 0) {
+      return null;
+    }
+
+    const bestMatch = findBestTitleMatch(title, results);
+    if (!bestMatch) {
+      return null;
+    }
+
+    const volumeInfo = bestMatch.volumeInfo || {};
+
+    // Author
+    const foundAuthor = volumeInfo.authors && volumeInfo.authors.length > 0
+      ? volumeInfo.authors[0]
+      : null;
+
+    // Cover URL
+    let coverUrl = null;
+    if (volumeInfo.imageLinks) {
+      coverUrl = volumeInfo.imageLinks.thumbnail || volumeInfo.imageLinks.smallThumbnail || null;
+      if (coverUrl && coverUrl.startsWith('http:')) {
+        coverUrl = coverUrl.replace('http:', 'https:');
+      }
+    }
+
+    // Description
+    let description = volumeInfo.description || null;
+    if (description && description.length > 500) {
+      description = description.substring(0, 500) + '...';
+    }
+
+    // ISBN
+    const identifiers = volumeInfo.industryIdentifiers || [];
+    const isbn13 = identifiers.find(i => i.type === 'ISBN_13');
+    const isbn10 = identifiers.find(i => i.type === 'ISBN_10');
+    const isbn = isbn13?.identifier || isbn10?.identifier || null;
+
+    // Year
+    const publishedDate = volumeInfo.publishedDate || null;
+    const publicationYear = publishedDate ? parseInt(publishedDate.substring(0, 4), 10) || null : null;
+
+    // Genres
+    const genres = volumeInfo.categories && volumeInfo.categories.length > 0
+      ? filterAndNormalizeGenres(volumeInfo.categories)
+      : null;
+
+    return {
+      foundAuthor,
+      description,
+      isbn,
+      pageCount: volumeInfo.pageCount || null,
+      publicationYear,
+      genres,
+      coverUrl,
+      seriesName: null,
+      seriesNumber: null
+    };
+  } catch (error) {
+    console.error(`Error fetching all metadata for "${title}":`, error);
+    throw error;
+  }
+}
+
+/**
  * Get cover URL from book data
  * @param {Object} bookData - Book data from Google Books
  * @returns {string|null} Cover URL or null

@@ -458,8 +458,45 @@ function abortableDelay(ms, signal) {
 }
 
 /**
+ * Fetch all metadata for a single book in minimal API calls.
+ * Each provider implements a unified fetch: 1 search for Google Books,
+ * 1 search + 1 work fetch for OpenLibrary, 1 search + 1 detail for Hardcover.
+ *
+ * @param {string} title - The book title to search for
+ * @param {string} author - The book's author (optional, improves matching)
+ * @param {Object} settings - Application settings object
+ * @returns {Promise<Object|null>} All metadata or null if not found
+ */
+export async function fetchAllMetadata(title, author, settings) {
+  const config = getMetadataConfig(settings);
+
+  if (config.provider === METADATA_PROVIDERS.GOOGLE_BOOKS) {
+    if (!config.apiKey) {
+      throw new Error('Google Books API key is not configured. Please add it in Settings.');
+    }
+    return googleBooks.fetchAllMetadata(title, author, config.apiKey);
+  }
+
+  if (config.provider === METADATA_PROVIDERS.HARDCOVER) {
+    if (!config.hardcoverApiKey) {
+      throw new Error('Hardcover API key is not configured. Please add it in Settings.');
+    }
+    try {
+      const result = await hardcover.fetchAllMetadata(title, author, config.hardcoverApiKey);
+      if (result) return result;
+    } catch (e) {
+      console.warn('Hardcover lookup failed, falling back to OpenLibrary:', e.message);
+    }
+    // Waterfall to OpenLibrary
+    return openLibrary.fetchAllMetadata(title, author);
+  }
+
+  return openLibrary.fetchAllMetadata(title, author);
+}
+
+/**
  * Batch fetch all metadata (author, description, genres) for a list of books.
- * Makes one lookup pass per book, calling getBookDetails + findAuthorForBook + findGenresForBook.
+ * Uses a single unified fetch per book instead of 3+ separate API calls.
  *
  * Supports:
  * - AbortController via options.signal — stops processing and returns partial results
@@ -504,27 +541,19 @@ export async function batchFetchAllMetadata(books, settings, onProgress = null, 
         if (signal?.aborted) break;
       }
 
-      // Fetch all metadata in parallel for this book
-      const [authorResult, detailsResult, genresResult] = await Promise.allSettled([
-        findAuthorForBook(book.title, effectiveSettings),
-        getBookDetails(book.title, book.author || null, effectiveSettings),
-        findGenresForBook(book.title, book.author || null, effectiveSettings),
-      ]);
-
-      const foundAuthor = authorResult.status === 'fulfilled' ? authorResult.value : null;
-      const details = detailsResult.status === 'fulfilled' ? detailsResult.value : null;
-      const foundGenres = genresResult.status === 'fulfilled' ? genresResult.value : null;
+      // Single unified fetch per book (1-2 API calls instead of 3-5)
+      const metadata = await fetchAllMetadata(book.title, book.author || null, effectiveSettings);
 
       results.push({
         book,
-        foundAuthor: foundAuthor || null,
-        foundDescription: details?.description || null,
-        foundGenres: foundGenres || null,
-        foundIsbn: details?.isbn || null,
-        foundPageCount: details?.pageCount || null,
-        foundPublicationYear: details?.publicationYear || null,
-        foundSeriesName: details?.seriesName || null,
-        foundSeriesNumber: details?.seriesNumber != null ? details.seriesNumber : null,
+        foundAuthor: metadata?.foundAuthor || null,
+        foundDescription: metadata?.description || null,
+        foundGenres: metadata?.genres || null,
+        foundIsbn: metadata?.isbn || null,
+        foundPageCount: metadata?.pageCount || null,
+        foundPublicationYear: metadata?.publicationYear || null,
+        foundSeriesName: metadata?.seriesName || null,
+        foundSeriesNumber: metadata?.seriesNumber != null ? metadata.seriesNumber : null,
       });
     } catch (error) {
       results.push({

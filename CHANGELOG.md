@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.5.1] - 2026-02-24
+
+### Fixed
+- **Unified metadata fetch**: Fill Missing now makes 1-2 API calls per book instead of 3-5, reducing rate limit hits by 50-67% across all providers (OpenLibrary: 4→2, Google Books: 3→1, Hardcover: 5→2)
+- **Clear Library feature**: Added bulk-remove all books from a school's library via Settings > Data Management (admin+), with confirmation dialog showing book count; reading sessions preserved via `ON DELETE SET NULL`
+- **CSV import ISBN dedup**: Import no longer fails on duplicate ISBNs in CSV; first occurrence creates the book, subsequent same-ISBN entries link to existing
+- **CSV import chunking**: Large imports (2000+ books) chunked into 200-book HTTP requests with progress bar to avoid Worker timeout
+- **Fill Missing resume**: Processes all books (removed 50-book cap) and tracks attempted books in-session so restarts skip already-processed books
+- **Author format dedup**: Import preview now handles "Last, First" vs "First Last" author formats via alphabetical word-sort normalization
+
 ## [3.5.0] - 2026-02-23
 
 ### Added

@@ -2,10 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock the underlying provider modules
 vi.mock('../../utils/openLibraryApi', () => ({
+  fetchAllMetadata: vi.fn(),
   findAuthorForBook: vi.fn(),
   getBookDetails: vi.fn(),
   findGenresForBook: vi.fn(),
-  // Stubs for other exports that bookMetadataApi imports
   checkOpenLibraryAvailability: vi.fn(),
   resetOpenLibraryAvailabilityCache: vi.fn(),
   getOpenLibraryStatus: vi.fn(),
@@ -18,6 +18,7 @@ vi.mock('../../utils/openLibraryApi', () => ({
 }));
 
 vi.mock('../../utils/googleBooksApi', () => ({
+  fetchAllMetadata: vi.fn(),
   findAuthorForBook: vi.fn(),
   getBookDetails: vi.fn(),
   findGenresForBook: vi.fn(),
@@ -34,6 +35,7 @@ vi.mock('../../utils/googleBooksApi', () => ({
 }));
 
 vi.mock('../../utils/hardcoverApi', () => ({
+  fetchAllMetadata: vi.fn(),
   findAuthorForBook: vi.fn(),
   getBookDetails: vi.fn(),
   findGenresForBook: vi.fn(),
@@ -57,10 +59,24 @@ import * as hardcover from '../../utils/hardcoverApi';
 // Default settings: no bookMetadata config means OpenLibrary provider
 const defaultSettings = {};
 
+// Helper to build a fetchAllMetadata return value
+const makeMetadata = (overrides = {}) => ({
+  foundAuthor: null,
+  description: null,
+  isbn: null,
+  pageCount: null,
+  publicationYear: null,
+  genres: null,
+  coverUrl: null,
+  seriesName: null,
+  seriesNumber: null,
+  ...overrides,
+});
+
 describe('batchFetchAllMetadata', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Use fake timers so the 500ms delay doesn't slow tests
+    // Use fake timers so the delay doesn't slow tests
     vi.useFakeTimers();
   });
 
@@ -83,16 +99,15 @@ describe('batchFetchAllMetadata', () => {
     expect(result).toEqual([]);
   });
 
-  it('fetches author, description, genres, isbn, pageCount, and publicationYear for a single book', async () => {
-    openLibrary.findAuthorForBook.mockResolvedValue('Roald Dahl');
-    openLibrary.getBookDetails.mockResolvedValue({
+  it('fetches all metadata for a single book via unified fetch', async () => {
+    openLibrary.fetchAllMetadata.mockResolvedValue(makeMetadata({
+      foundAuthor: 'Roald Dahl',
       description: 'A story about a chocolate factory.',
-      coverUrl: 'https://covers.openlibrary.org/b/id/123-M.jpg',
+      genres: ['Fiction', 'Children'],
       isbn: '9780142410318',
       pageCount: 176,
       publicationYear: 1964,
-    });
-    openLibrary.findGenresForBook.mockResolvedValue(['Fiction', 'Children']);
+    }));
 
     const books = [{ title: 'Charlie and the Chocolate Factory', author: 'Roald Dahl' }];
     const promise = batchFetchAllMetadata(books, defaultSettings);
@@ -109,30 +124,33 @@ describe('batchFetchAllMetadata', () => {
     expect(results[0].foundPublicationYear).toBe(1964);
     expect(results[0].error).toBeUndefined();
 
-    // Verify the right provider functions were called
-    expect(openLibrary.findAuthorForBook).toHaveBeenCalledWith('Charlie and the Chocolate Factory');
-    expect(openLibrary.getBookDetails).toHaveBeenCalledWith('Charlie and the Chocolate Factory', 'Roald Dahl');
-    expect(openLibrary.findGenresForBook).toHaveBeenCalledWith('Charlie and the Chocolate Factory', 'Roald Dahl');
+    // Verify unified fetch was called with title and author
+    expect(openLibrary.fetchAllMetadata).toHaveBeenCalledWith(
+      'Charlie and the Chocolate Factory', 'Roald Dahl'
+    );
   });
 
-  it('passes null author to getBookDetails and findGenresForBook when book has no author', async () => {
-    openLibrary.findAuthorForBook.mockResolvedValue('Found Author');
-    openLibrary.getBookDetails.mockResolvedValue({ description: 'A desc' });
-    openLibrary.findGenresForBook.mockResolvedValue(['Mystery']);
+  it('passes null author when book has no author', async () => {
+    openLibrary.fetchAllMetadata.mockResolvedValue(makeMetadata({
+      foundAuthor: 'Found Author',
+      description: 'A desc',
+      genres: ['Mystery'],
+    }));
 
     const books = [{ title: 'Unknown Author Book' }];
     const promise = batchFetchAllMetadata(books, defaultSettings);
     await flushTimers();
     await promise;
 
-    expect(openLibrary.getBookDetails).toHaveBeenCalledWith('Unknown Author Book', null);
-    expect(openLibrary.findGenresForBook).toHaveBeenCalledWith('Unknown Author Book', null);
+    expect(openLibrary.fetchAllMetadata).toHaveBeenCalledWith('Unknown Author Book', null);
   });
 
   it('calls onProgress callback with current, total, and book info', async () => {
-    openLibrary.findAuthorForBook.mockResolvedValue('Author A');
-    openLibrary.getBookDetails.mockResolvedValue({ description: 'Desc A' });
-    openLibrary.findGenresForBook.mockResolvedValue(['Genre A']);
+    openLibrary.fetchAllMetadata.mockResolvedValue(makeMetadata({
+      foundAuthor: 'Author A',
+      description: 'Desc A',
+      genres: ['Genre A'],
+    }));
 
     const books = [
       { title: 'Book One', author: 'Auth 1' },
@@ -146,14 +164,12 @@ describe('batchFetchAllMetadata', () => {
 
     expect(onProgress).toHaveBeenCalledTimes(2);
 
-    // First call: current=1, total=2
     expect(onProgress).toHaveBeenNthCalledWith(1, expect.objectContaining({
       current: 1,
       total: 2,
       book: 'Book One',
     }));
 
-    // Second call: current=2, total=2
     expect(onProgress).toHaveBeenNthCalledWith(2, expect.objectContaining({
       current: 2,
       total: 2,
@@ -162,16 +178,13 @@ describe('batchFetchAllMetadata', () => {
   });
 
   it('handles API errors gracefully per book without throwing', async () => {
-    // First book: all providers reject
-    openLibrary.findAuthorForBook
+    openLibrary.fetchAllMetadata
       .mockRejectedValueOnce(new Error('API timeout'))
-      .mockResolvedValueOnce('Good Author');
-    openLibrary.getBookDetails
-      .mockRejectedValueOnce(new Error('API timeout'))
-      .mockResolvedValueOnce({ description: 'Good desc' });
-    openLibrary.findGenresForBook
-      .mockRejectedValueOnce(new Error('API timeout'))
-      .mockResolvedValueOnce(['Good Genre']);
+      .mockResolvedValueOnce(makeMetadata({
+        foundAuthor: 'Good Author',
+        description: 'Good desc',
+        genres: ['Good Genre'],
+      }));
 
     const books = [
       { title: 'Bad Book' },
@@ -182,16 +195,13 @@ describe('batchFetchAllMetadata', () => {
     await flushTimers();
     const results = await promise;
 
-    // Should not throw, both books should have results
     expect(results).toHaveLength(2);
 
-    // First book: all fields null due to rejected promises (Promise.allSettled handles this)
+    // First book: error caught, all fields null
     expect(results[0].foundAuthor).toBeNull();
     expect(results[0].foundDescription).toBeNull();
     expect(results[0].foundGenres).toBeNull();
-    expect(results[0].foundIsbn).toBeNull();
-    expect(results[0].foundPageCount).toBeNull();
-    expect(results[0].foundPublicationYear).toBeNull();
+    expect(results[0].error).toBe('API timeout');
 
     // Second book: all fields populated
     expect(results[1].foundAuthor).toBe('Good Author');
@@ -200,9 +210,7 @@ describe('batchFetchAllMetadata', () => {
   });
 
   it('returns null for fields where provider returns nothing', async () => {
-    openLibrary.findAuthorForBook.mockResolvedValue(null);
-    openLibrary.getBookDetails.mockResolvedValue(null);
-    openLibrary.findGenresForBook.mockResolvedValue(null);
+    openLibrary.fetchAllMetadata.mockResolvedValue(null);
 
     const books = [{ title: 'Obscure Book' }];
     const promise = batchFetchAllMetadata(books, defaultSettings);
@@ -219,10 +227,11 @@ describe('batchFetchAllMetadata', () => {
     expect(results[0].error).toBeUndefined();
   });
 
-  it('returns null for description when getBookDetails returns object without description', async () => {
-    openLibrary.findAuthorForBook.mockResolvedValue('Some Author');
-    openLibrary.getBookDetails.mockResolvedValue({ coverUrl: 'http://example.com/cover.jpg' });
-    openLibrary.findGenresForBook.mockResolvedValue(['Fiction']);
+  it('returns null for description when metadata has no description', async () => {
+    openLibrary.fetchAllMetadata.mockResolvedValue(makeMetadata({
+      foundAuthor: 'Some Author',
+      genres: ['Fiction'],
+    }));
 
     const books = [{ title: 'No Desc Book' }];
     const promise = batchFetchAllMetadata(books, defaultSettings);
@@ -233,18 +242,12 @@ describe('batchFetchAllMetadata', () => {
   });
 
   it('processes multiple books sequentially', async () => {
-    const callOrder = [];
-    openLibrary.findAuthorForBook.mockImplementation(async (title) => {
-      callOrder.push(`author:${title}`);
-      return `Author of ${title}`;
-    });
-    openLibrary.getBookDetails.mockImplementation(async (title) => {
-      callOrder.push(`details:${title}`);
-      return { description: `Desc of ${title}` };
-    });
-    openLibrary.findGenresForBook.mockImplementation(async (title) => {
-      callOrder.push(`genres:${title}`);
-      return ['Genre'];
+    openLibrary.fetchAllMetadata.mockImplementation(async (title) => {
+      return makeMetadata({
+        foundAuthor: `Author of ${title}`,
+        description: `Desc of ${title}`,
+        genres: ['Genre'],
+      });
     });
 
     const books = [
@@ -258,23 +261,21 @@ describe('batchFetchAllMetadata', () => {
     const results = await promise;
 
     expect(results).toHaveLength(3);
-    // Each book should have its three lookups called
-    expect(openLibrary.findAuthorForBook).toHaveBeenCalledTimes(3);
-    expect(openLibrary.getBookDetails).toHaveBeenCalledTimes(3);
-    expect(openLibrary.findGenresForBook).toHaveBeenCalledTimes(3);
+    // One unified fetch per book
+    expect(openLibrary.fetchAllMetadata).toHaveBeenCalledTimes(3);
   });
 
-  it('includes foundSeriesName and foundSeriesNumber in results when details contain series', async () => {
-    openLibrary.findAuthorForBook.mockResolvedValue('J.K. Rowling');
-    openLibrary.getBookDetails.mockResolvedValue({
+  it('includes foundSeriesName and foundSeriesNumber when metadata contains series', async () => {
+    openLibrary.fetchAllMetadata.mockResolvedValue(makeMetadata({
+      foundAuthor: 'J.K. Rowling',
       description: 'A boy wizard.',
       isbn: '9780747532699',
       pageCount: 223,
       publicationYear: 1997,
+      genres: ['Fantasy'],
       seriesName: 'Harry Potter',
       seriesNumber: 1,
-    });
-    openLibrary.findGenresForBook.mockResolvedValue(['Fantasy']);
+    }));
 
     const books = [{ title: "Harry Potter and the Philosopher's Stone", author: 'J.K. Rowling' }];
     const promise = batchFetchAllMetadata(books, defaultSettings);
@@ -286,12 +287,12 @@ describe('batchFetchAllMetadata', () => {
     expect(results[0].foundSeriesNumber).toBe(1);
   });
 
-  it('returns null for series fields when details have no series', async () => {
-    openLibrary.findAuthorForBook.mockResolvedValue('Author');
-    openLibrary.getBookDetails.mockResolvedValue({
+  it('returns null for series fields when metadata has no series', async () => {
+    openLibrary.fetchAllMetadata.mockResolvedValue(makeMetadata({
+      foundAuthor: 'Author',
       description: 'A standalone book.',
-    });
-    openLibrary.findGenresForBook.mockResolvedValue(['Fiction']);
+      genres: ['Fiction'],
+    }));
 
     const books = [{ title: 'Standalone Book' }];
     const promise = batchFetchAllMetadata(books, defaultSettings);
@@ -303,24 +304,20 @@ describe('batchFetchAllMetadata', () => {
   });
 
   it('returns null for series fields in error results', async () => {
-    openLibrary.findAuthorForBook.mockRejectedValue(new Error('fail'));
-    openLibrary.getBookDetails.mockRejectedValue(new Error('fail'));
-    openLibrary.findGenresForBook.mockRejectedValue(new Error('fail'));
+    openLibrary.fetchAllMetadata.mockRejectedValue(new Error('fail'));
 
     const books = [{ title: 'Error Book' }];
     const promise = batchFetchAllMetadata(books, defaultSettings);
     await flushTimers();
     const results = await promise;
 
-    // Promise.allSettled handles rejections gracefully, so no error property
     expect(results[0].foundSeriesName).toBeNull();
     expect(results[0].foundSeriesNumber).toBeNull();
+    expect(results[0].error).toBe('fail');
   });
 
-  it('returns null for series fields when getBookDetails returns null', async () => {
-    openLibrary.findAuthorForBook.mockResolvedValue(null);
-    openLibrary.getBookDetails.mockResolvedValue(null);
-    openLibrary.findGenresForBook.mockResolvedValue(null);
+  it('returns null for series fields when fetchAllMetadata returns null', async () => {
+    openLibrary.fetchAllMetadata.mockResolvedValue(null);
 
     const books = [{ title: 'Unknown Book' }];
     const promise = batchFetchAllMetadata(books, defaultSettings);
@@ -339,18 +336,17 @@ describe('batchFetchAllMetadata', () => {
       }
     };
 
-    it('routes to hardcover functions when provider is hardcover', async () => {
-      // Hardcover functions return results (waterfall won't fall through)
-      hardcover.findAuthorForBook.mockResolvedValue('Hardcover Author');
-      hardcover.getBookDetails.mockResolvedValue({
+    it('routes to hardcover fetchAllMetadata when provider is hardcover', async () => {
+      hardcover.fetchAllMetadata.mockResolvedValue(makeMetadata({
+        foundAuthor: 'Hardcover Author',
         description: 'Hardcover description.',
         isbn: '9781234567890',
         pageCount: 300,
         publicationYear: 2020,
+        genres: ['Sci-Fi', 'Adventure'],
         seriesName: 'Hardcover Series',
         seriesNumber: 3,
-      });
-      hardcover.findGenresForBook.mockResolvedValue(['Sci-Fi', 'Adventure']);
+      }));
 
       const books = [{ title: 'Hardcover Book', author: 'HC Author' }];
       const promise = batchFetchAllMetadata(books, hardcoverSettings);
@@ -368,32 +364,25 @@ describe('batchFetchAllMetadata', () => {
       expect(results[0].foundSeriesNumber).toBe(3);
       expect(results[0].error).toBeUndefined();
 
-      // Hardcover functions were called (via the waterfall routing)
-      expect(hardcover.findAuthorForBook).toHaveBeenCalled();
-      expect(hardcover.getBookDetails).toHaveBeenCalled();
-      expect(hardcover.findGenresForBook).toHaveBeenCalled();
+      // Hardcover fetchAllMetadata was called
+      expect(hardcover.fetchAllMetadata).toHaveBeenCalled();
 
       // OpenLibrary should NOT have been called (Hardcover returned results)
-      expect(openLibrary.findAuthorForBook).not.toHaveBeenCalled();
-      expect(openLibrary.getBookDetails).not.toHaveBeenCalled();
-      expect(openLibrary.findGenresForBook).not.toHaveBeenCalled();
+      expect(openLibrary.fetchAllMetadata).not.toHaveBeenCalled();
     });
 
-    it('falls back to OpenLibrary when Hardcover getBookDetails returns null', async () => {
-      // Hardcover returns null for details but has author/genres
-      hardcover.findAuthorForBook.mockResolvedValue('HC Author');
-      hardcover.getBookDetails.mockResolvedValue(null);
-      hardcover.findGenresForBook.mockResolvedValue(['HC Genre']);
-
-      // OpenLibrary fallback for details
-      openLibrary.getBookDetails.mockResolvedValue({
+    it('falls back to OpenLibrary when Hardcover fetchAllMetadata returns null', async () => {
+      hardcover.fetchAllMetadata.mockResolvedValue(null);
+      openLibrary.fetchAllMetadata.mockResolvedValue(makeMetadata({
+        foundAuthor: 'OL Author',
         description: 'OL description.',
         isbn: '9780000000000',
         pageCount: 200,
         publicationYear: 2015,
+        genres: ['OL Genre'],
         seriesName: 'OL Series',
         seriesNumber: 2,
-      });
+      }));
 
       const books = [{ title: 'Waterfall Book', author: 'Author' }];
       const promise = batchFetchAllMetadata(books, hardcoverSettings);
@@ -401,48 +390,25 @@ describe('batchFetchAllMetadata', () => {
       const results = await promise;
 
       expect(results).toHaveLength(1);
-      // Author came from Hardcover
-      expect(results[0].foundAuthor).toBe('HC Author');
-      // Description came from OpenLibrary fallback
+      expect(results[0].foundAuthor).toBe('OL Author');
       expect(results[0].foundDescription).toBe('OL description.');
-      // Genres came from Hardcover
-      expect(results[0].foundGenres).toEqual(['HC Genre']);
-      // ISBN/pageCount/publicationYear came from OpenLibrary fallback details
+      expect(results[0].foundGenres).toEqual(['OL Genre']);
       expect(results[0].foundIsbn).toBe('9780000000000');
       expect(results[0].foundPageCount).toBe(200);
       expect(results[0].foundPublicationYear).toBe(2015);
 
-      // Both Hardcover and OL getBookDetails were called
-      expect(hardcover.getBookDetails).toHaveBeenCalled();
-      expect(openLibrary.getBookDetails).toHaveBeenCalled();
-    });
-
-    it('falls back to OpenLibrary when Hardcover findAuthorForBook returns null', async () => {
-      hardcover.findAuthorForBook.mockResolvedValue(null);
-      openLibrary.findAuthorForBook.mockResolvedValue('OL Author');
-
-      hardcover.getBookDetails.mockResolvedValue({ description: 'HC desc' });
-      hardcover.findGenresForBook.mockResolvedValue(['HC Genre']);
-
-      const books = [{ title: 'Author Fallback Book' }];
-      const promise = batchFetchAllMetadata(books, hardcoverSettings);
-      await flushTimers();
-      const results = await promise;
-
-      expect(results[0].foundAuthor).toBe('OL Author');
-      expect(hardcover.findAuthorForBook).toHaveBeenCalled();
-      expect(openLibrary.findAuthorForBook).toHaveBeenCalled();
+      // Both were called
+      expect(hardcover.fetchAllMetadata).toHaveBeenCalled();
+      expect(openLibrary.fetchAllMetadata).toHaveBeenCalled();
     });
 
     it('falls back to OpenLibrary when Hardcover throws an error', async () => {
-      hardcover.findAuthorForBook.mockRejectedValue(new Error('Hardcover down'));
-      openLibrary.findAuthorForBook.mockResolvedValue('OL Fallback Author');
-
-      hardcover.getBookDetails.mockRejectedValue(new Error('Hardcover down'));
-      openLibrary.getBookDetails.mockResolvedValue({ description: 'OL Fallback desc' });
-
-      hardcover.findGenresForBook.mockRejectedValue(new Error('Hardcover down'));
-      openLibrary.findGenresForBook.mockResolvedValue(['OL Fallback Genre']);
+      hardcover.fetchAllMetadata.mockRejectedValue(new Error('Hardcover down'));
+      openLibrary.fetchAllMetadata.mockResolvedValue(makeMetadata({
+        foundAuthor: 'OL Fallback Author',
+        description: 'OL Fallback desc',
+        genres: ['OL Fallback Genre'],
+      }));
 
       const books = [{ title: 'Error Fallback Book' }];
       const promise = batchFetchAllMetadata(books, hardcoverSettings);
@@ -454,7 +420,7 @@ describe('batchFetchAllMetadata', () => {
       expect(results[0].foundGenres).toEqual(['OL Fallback Genre']);
     });
 
-    it('throws error when Hardcover is selected but no API key is configured', async () => {
+    it('catches error when Hardcover is selected but no API key is configured', async () => {
       const noKeySettings = {
         bookMetadata: {
           provider: 'hardcover',
@@ -467,11 +433,7 @@ describe('batchFetchAllMetadata', () => {
       await flushTimers();
       const results = await promise;
 
-      // The error is caught by batchFetchAllMetadata's try/catch (Promise.allSettled),
-      // so it shows up as null fields. The actual throw happens inside
-      // findAuthorForBook/getBookDetails/findGenresForBook which throw if no key.
-      // But since batchFetchAllMetadata uses Promise.allSettled, the rejections
-      // become null fields.
+      // The error is caught by batchFetchAllMetadata's try/catch
       expect(results).toHaveLength(1);
       expect(results[0].foundAuthor).toBeNull();
       expect(results[0].foundDescription).toBeNull();
@@ -479,9 +441,11 @@ describe('batchFetchAllMetadata', () => {
     });
 
     it('uses 1000ms delay between books for Hardcover provider', async () => {
-      hardcover.findAuthorForBook.mockResolvedValue('Author');
-      hardcover.getBookDetails.mockResolvedValue({ description: 'Desc' });
-      hardcover.findGenresForBook.mockResolvedValue(['Genre']);
+      hardcover.fetchAllMetadata.mockResolvedValue(makeMetadata({
+        foundAuthor: 'Author',
+        description: 'Desc',
+        genres: ['Genre'],
+      }));
 
       const books = [
         { title: 'Book 1' },
@@ -490,12 +454,7 @@ describe('batchFetchAllMetadata', () => {
 
       const promise = batchFetchAllMetadata(books, hardcoverSettings);
 
-      // After first book processes, the second book waits 1000ms
-      // Advance only 500ms - second book should not be processed yet
-      await vi.advanceTimersByTimeAsync(100);
-      // First book should have resolved by now (no delay for first book)
-
-      // Advance the rest
+      // Advance timers to process both
       await flushTimers();
       const results = await promise;
 
@@ -505,25 +464,20 @@ describe('batchFetchAllMetadata', () => {
 
   describe('AbortController support', () => {
     it('stops processing when signal is aborted before a book', async () => {
-      openLibrary.findAuthorForBook.mockResolvedValue('Author');
-      openLibrary.getBookDetails.mockResolvedValue({ description: 'Desc' });
-      openLibrary.findGenresForBook.mockResolvedValue(['Genre']);
+      let callCount = 0;
+      const controller = new AbortController();
+
+      openLibrary.fetchAllMetadata.mockImplementation(async () => {
+        callCount++;
+        if (callCount >= 2) controller.abort();
+        return makeMetadata({ foundAuthor: 'Author' });
+      });
 
       const books = [
         { title: 'Book 1' },
         { title: 'Book 2' },
         { title: 'Book 3' },
       ];
-
-      const controller = new AbortController();
-
-      // Abort after first book processes
-      let callCount = 0;
-      openLibrary.findAuthorForBook.mockImplementation(async () => {
-        callCount++;
-        if (callCount >= 2) controller.abort();
-        return 'Author';
-      });
 
       const promise = batchFetchAllMetadata(books, defaultSettings, null, { signal: controller.signal });
       await flushTimers();
@@ -535,9 +489,7 @@ describe('batchFetchAllMetadata', () => {
     });
 
     it('returns partial results on abort', async () => {
-      openLibrary.findAuthorForBook.mockResolvedValue('Author');
-      openLibrary.getBookDetails.mockResolvedValue({ description: 'Desc' });
-      openLibrary.findGenresForBook.mockResolvedValue(['Genre']);
+      openLibrary.fetchAllMetadata.mockResolvedValue(makeMetadata({ foundAuthor: 'Author' }));
 
       const books = [
         { title: 'Book 1' },
@@ -557,9 +509,7 @@ describe('batchFetchAllMetadata', () => {
 
   describe('batch size', () => {
     it('limits processing to batchSize from options', async () => {
-      openLibrary.findAuthorForBook.mockResolvedValue('Author');
-      openLibrary.getBookDetails.mockResolvedValue({ description: 'Desc' });
-      openLibrary.findGenresForBook.mockResolvedValue(['Genre']);
+      openLibrary.fetchAllMetadata.mockResolvedValue(makeMetadata({ foundAuthor: 'Author' }));
 
       const books = [
         { title: 'Book 1' },
@@ -579,9 +529,7 @@ describe('batchFetchAllMetadata', () => {
     });
 
     it('reports batchTotal and overallTotal in onProgress', async () => {
-      openLibrary.findAuthorForBook.mockResolvedValue('Author');
-      openLibrary.getBookDetails.mockResolvedValue({ description: 'Desc' });
-      openLibrary.findGenresForBook.mockResolvedValue(['Genre']);
+      openLibrary.fetchAllMetadata.mockResolvedValue(makeMetadata({ foundAuthor: 'Author' }));
 
       const books = [
         { title: 'Book 1' },
@@ -604,9 +552,7 @@ describe('batchFetchAllMetadata', () => {
     });
 
     it('uses batchSize from settings when not in options', async () => {
-      openLibrary.findAuthorForBook.mockResolvedValue('Author');
-      openLibrary.getBookDetails.mockResolvedValue({ description: 'Desc' });
-      openLibrary.findGenresForBook.mockResolvedValue(['Genre']);
+      openLibrary.fetchAllMetadata.mockResolvedValue(makeMetadata({ foundAuthor: 'Author' }));
 
       const settingsWithBatchSize = {
         bookMetadata: {
@@ -669,9 +615,7 @@ describe('batchFetchAllMetadata', () => {
     };
 
     it('reports rateLimited in onProgress when Hardcover is rate limited', async () => {
-      hardcover.findAuthorForBook.mockResolvedValue('Author');
-      hardcover.getBookDetails.mockResolvedValue({ description: 'Desc' });
-      hardcover.findGenresForBook.mockResolvedValue(['Genre']);
+      hardcover.fetchAllMetadata.mockResolvedValue(makeMetadata({ foundAuthor: 'Author' }));
       hardcover.isHardcoverRateLimited.mockReturnValue(true);
 
       const books = [{ title: 'Book 1' }];
@@ -687,9 +631,7 @@ describe('batchFetchAllMetadata', () => {
     });
 
     it('reports providerSwitched after 5 consecutive rate-limited books', async () => {
-      hardcover.findAuthorForBook.mockResolvedValue('Author');
-      hardcover.getBookDetails.mockResolvedValue({ description: 'Desc' });
-      hardcover.findGenresForBook.mockResolvedValue(['Genre']);
+      hardcover.fetchAllMetadata.mockResolvedValue(makeMetadata({ foundAuthor: 'Author' }));
       hardcover.isHardcoverRateLimited.mockReturnValue(true);
 
       const books = Array.from({ length: 6 }, (_, i) => ({ title: `Book ${i + 1}` }));
@@ -707,9 +649,9 @@ describe('batchFetchAllMetadata', () => {
     });
 
     it('calls onBookResult callback with each result', async () => {
-      openLibrary.findAuthorForBook.mockResolvedValue('Author A');
-      openLibrary.getBookDetails.mockResolvedValue({ description: 'Desc' });
-      openLibrary.findGenresForBook.mockResolvedValue(['Genre']);
+      openLibrary.fetchAllMetadata.mockResolvedValue(makeMetadata({
+        foundAuthor: 'Author A',
+      }));
 
       const books = [
         { title: 'Book 1' },
@@ -733,9 +675,9 @@ describe('batchFetchAllMetadata', () => {
     });
 
     it('awaits async onBookResult before processing next book', async () => {
-      openLibrary.findAuthorForBook.mockResolvedValue('Author');
-      openLibrary.getBookDetails.mockResolvedValue({ description: 'Desc' });
-      openLibrary.findGenresForBook.mockResolvedValue(['Genre']);
+      openLibrary.fetchAllMetadata.mockResolvedValue(makeMetadata({
+        foundAuthor: 'Author',
+      }));
 
       const books = [
         { title: 'Book 1' },
@@ -762,9 +704,7 @@ describe('batchFetchAllMetadata', () => {
     });
 
     it('does not auto-fallback when autoFallback is false', async () => {
-      hardcover.findAuthorForBook.mockResolvedValue('Author');
-      hardcover.getBookDetails.mockResolvedValue({ description: 'Desc' });
-      hardcover.findGenresForBook.mockResolvedValue(['Genre']);
+      hardcover.fetchAllMetadata.mockResolvedValue(makeMetadata({ foundAuthor: 'Author' }));
       hardcover.isHardcoverRateLimited.mockReturnValue(true);
 
       const books = Array.from({ length: 6 }, (_, i) => ({ title: `Book ${i + 1}` }));
