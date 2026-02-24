@@ -1,0 +1,175 @@
+# contexts/ and hooks/ structure detail
+module: tally-reading
+directories: [src/contexts/, src/hooks/]
+description: React context providers and custom hooks
+
+files:
+  contexts/AppContext.js:
+    description: Central app state - auth, students, classes, books, genres, settings, multi-org
+    exports:
+      - name: useAppContext
+        kind: hook
+        returns: AppContext value object
+        description: Access global app state and methods
+      - name: AppProvider
+        kind: component
+        description: Context provider wrapping entire app
+    state:
+      # Auth
+      - authToken: string|null
+      - authMode: "'legacy'|'multitenant'"
+      - user: "object|null (id, name, email, role, organizationId, authProvider)"
+      - isAuthenticated: boolean
+      - isMultiTenantMode: boolean
+      - userRole: "'owner'|'admin'|'teacher'|'readonly'|null"
+      - organization: "object|null (id, name, slug)"
+      - canManageUsers: boolean
+      - canManageStudents: boolean
+      - canManageClasses: boolean
+      - canManageSettings: boolean
+      # Data
+      - students: Student[]
+      - classes: Class[]
+      - books: Book[]
+      - genres: Genre[]
+      - settings: object
+      # UI
+      - loading: boolean
+      - apiError: string|null
+      - globalClassFilter: "'all'|classId"
+      - priorityStudentCount: number
+      - recentlyAccessedStudents: string[]
+      - markedPriorityStudentIds: Set<string>
+      - prioritizedStudents: Student[]
+      # Multi-org (owners only)
+      - availableOrganizations: Organization[]
+      - activeOrganizationId: string|null
+    methods:
+      # Auth
+      - name: login
+        params: [password]
+        description: Legacy shared password auth
+      - name: loginWithEmail
+        params: [email, password]
+        description: Multi-tenant email/password login
+      - name: register
+        params: [organizationName, userName, email, password]
+        description: Create new organization and account
+      - name: forgotPassword
+        params: [email]
+      - name: resetPassword
+        params: [token, newPassword]
+      - name: logout
+        description: Logout and clear state (handles SSO)
+      - name: refreshAccessToken
+        description: Refresh JWT; shared promise for concurrent callers
+      - name: fetchWithAuth
+        params: [url, options]
+        description: "Fetch with JWT, auto-refresh, X-Organization-Id header"
+      # Data loading
+      - name: reloadDataFromServer
+        description: Reload all data from API
+      # Student CRUD
+      - name: addStudent
+        params: [name, classId]
+      - name: bulkImportStudents
+        params: [names, classId]
+      - name: updateStudent
+        params: [id, updatedData]
+      - name: updateStudentClassId
+        params: [studentId, classId]
+      - name: updateStudentCurrentBook
+        params: [studentId, bookId, bookTitle, bookAuthor]
+      - name: deleteStudent
+        params: [id]
+      # Session CRUD
+      - name: addReadingSession
+        params: [studentId, sessionData]
+      - name: editReadingSession
+        params: [studentId, sessionId, updatedSessionData]
+      - name: deleteReadingSession
+        params: [studentId, sessionId]
+      # Book CRUD
+      - name: addBook
+        params: [title, author]
+      - name: findOrCreateBook
+        params: [title, author]
+        description: Case-insensitive find or create
+      - name: updateBook
+        params: [id, updatedFields]
+      - name: updateBookField
+        params: [id, field, value]
+      # Class CRUD
+      - name: addClass
+        params: [classData]
+      - name: updateClass
+        params: [id, updatedFields]
+      - name: deleteClass
+        params: [id]
+      # Genre
+      - name: addGenre
+        params: [genreData]
+      # Settings
+      - name: updateSettings
+        params: [newSettings]
+      # Import/Export
+      - name: exportToJson
+        description: Export all data as downloadable JSON
+      - name: importFromJson
+        params: [file]
+      # UI helpers
+      - name: getReadingStatus
+        params: [student]
+        returns: "'never'|'recent'|'attention'|'overdue'"
+      - name: updateGlobalClassFilter
+        params: [classId]
+      - name: addRecentlyAccessedStudent
+        params: [studentId]
+      - name: updatePriorityStudentCount
+        params: [count]
+      - name: markStudentAsPriorityHandled
+        params: [studentId]
+      - name: resetPriorityList
+      # Multi-org
+      - name: switchOrganization
+        params: [orgId]
+        description: Switch active org and reload data (owners only)
+      - name: fetchAvailableOrganizations
+
+  contexts/BookCoverContext.js:
+    description: Book cover URL caching layer with localStorage (7-day TTL)
+    exports:
+      - name: useBookCoverCache
+        kind: hook
+        returns: "{getCachedCover, setCachedCover, isCached}"
+        description: Access cover cache methods
+      - name: BookCoverProvider
+        kind: component
+        description: Context provider for cover caching
+    methods:
+      - name: getCachedCover
+        params: [title, author]
+        returns: string|null
+        description: Get cached URL or null if expired
+      - name: setCachedCover
+        params: [title, author, coverUrl]
+        description: Cache URL with timestamp to localStorage
+      - name: isCached
+        params: [title, author]
+        returns: boolean
+    constants:
+      STORAGE_KEY: "'bookCovers'"
+      CACHE_EXPIRY_MS: 604800000  # 7 days
+      NO_COVER_MARKER: "'__NO_COVER__'"
+
+  hooks/useBookCover.js:
+    description: Fetch book covers from OpenLibrary with caching and request deduplication
+    exports:
+      - name: useBookCover
+        kind: hook
+        params: [{name: title, type: string}, {name: author, type: string|null}]
+        returns: "{coverUrl: string|null, isLoading: boolean, error: string|null}"
+        description: Returns cached result immediately; deduplicates concurrent requests
+    imports:
+      - from: contexts/BookCoverContext
+        items: [useBookCoverCache]

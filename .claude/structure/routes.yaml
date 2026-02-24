@@ -1,0 +1,374 @@
+# routes/ structure detail
+module: tally-reading
+directory: src/routes/
+description: Hono route handlers for REST API endpoints
+
+files:
+  auth.js:
+    description: Authentication endpoints - registration, login, token refresh, password management
+    exports:
+      - name: authRouter
+        kind: object
+        description: Hono router for auth endpoints
+    endpoints:
+      - route: GET /api/auth/mode
+        description: Check authentication mode (legacy vs multitenant)
+        public: true
+      - route: POST /api/auth/register
+        description: Register new organization and owner account
+        public: true
+      - route: POST /api/auth/login
+        description: Authenticate user with email/password; account lockout after 5 attempts
+        public: true
+      - route: POST /api/auth/refresh
+        description: Refresh JWT access token via httpOnly cookie or body
+        public: true
+      - route: POST /api/auth/logout
+        description: Revoke refresh token and clear cookie
+        public: true
+      - route: POST /api/auth/forgot-password
+        description: Request password reset email
+        public: true
+      - route: POST /api/auth/reset-password
+        description: Reset password with token
+        public: true
+      - route: GET /api/auth/me
+        description: Get current authenticated user profile
+      - route: PUT /api/auth/password
+        description: Change password for authenticated user
+    imports:
+      - from: utils/crypto
+        items: [hashPassword, verifyPassword, createAccessToken, createRefreshToken, verifyAccessToken, createJWTPayload]
+      - from: utils/email
+        items: [sendPasswordResetEmail]
+
+  books.js:
+    description: Book catalog, search, AI recommendations, CSV import, ISBN lookup
+    exports:
+      - name: booksRouter
+        kind: object
+        description: Hono router for book endpoints
+    endpoints:
+      - route: GET /api/books
+        description: List books with optional pagination and FTS5 search
+        requires: readonly
+      - route: GET /api/books/search
+        description: Full-text search books by title/author
+        requires: readonly
+      - route: GET /api/books/library-search
+        description: DB-only book search matching student profile
+        requires: readonly
+      - route: GET /api/books/ai-suggestions
+        description: AI-generated book recommendations for student
+        requires: readonly
+      - route: GET /api/books/count
+        description: Total book count for organization
+        requires: readonly
+      - route: POST /api/books
+        description: Create new book in catalog
+        requires: teacher
+      - route: GET /api/books/isbn/:isbn
+        description: Lookup book by ISBN via external APIs
+        requires: teacher
+      - route: POST /api/books/scan
+        description: Scan ISBN barcode and create book
+        requires: teacher
+      - route: PUT /api/books/:id
+        description: Update book details
+        requires: teacher
+      - route: DELETE /api/books/:id
+        description: Delete book from organization library
+        requires: teacher
+      - route: POST /api/books/bulk
+        description: Create multiple books (batched, 100 per chunk)
+        requires: teacher
+      - route: DELETE /api/books/clear-library
+        description: Remove all books from org library
+        requires: admin
+      - route: POST /api/books/import/preview
+        description: Preview CSV import with deduplication (85% fuzzy match)
+        requires: teacher
+      - route: POST /api/books/import/confirm
+        description: Confirm and execute book import
+        requires: teacher
+    imports:
+      - from: services/aiService
+        items: [generateRecommendations, generateBroadSuggestions]
+      - from: utils/recommendationCache
+        items: [getCachedRecommendations, cacheRecommendations]
+      - from: utils/studentProfile
+        items: [buildStudentReadingProfile]
+      - from: utils/stringMatching
+        items: [isExactMatch, isFuzzyMatch, isAuthorMatch]
+
+  classes.js:
+    description: Class management - CRUD with student counts
+    exports:
+      - name: classesRouter
+        kind: object
+        description: Hono router for class endpoints
+    endpoints:
+      - route: GET /api/classes
+        description: List all classes in organization with student counts
+      - route: GET /api/classes/:id
+        description: Get class details including student count
+      - route: GET /api/classes/:id/students
+        description: Get all students in a class
+      - route: POST /api/classes
+        description: Create new class
+        requires: teacher
+      - route: PUT /api/classes/:id
+        description: Update class details
+        requires: teacher
+      - route: DELETE /api/classes/:id
+        description: Soft delete class and unassign students
+        requires: teacher
+
+  covers.js:
+    description: Book cover image serving with R2 caching and OpenLibrary origin
+    exports:
+      - name: coversRouter
+        kind: object
+        description: Hono router for cover endpoints
+    endpoints:
+      - route: GET /api/covers/:type/:key
+        description: Serve cover images with R2 cache + OpenLibrary fallback
+        public: true
+
+  data.js:
+    description: Legacy data export/import (single-tenant only)
+    exports:
+      - name: dataRouter
+        kind: object
+        description: Hono router for data endpoints
+    endpoints:
+      - route: GET /api/data
+        description: Export all application data
+      - route: POST /api/data
+        description: Import application data (replace)
+
+  genres.js:
+    description: Genre management - CRUD, predefined vs custom
+    exports:
+      - name: genresRouter
+        kind: object
+        description: Hono router for genre endpoints
+    endpoints:
+      - route: GET /api/genres
+        description: List all genres
+        requires: readonly
+      - route: GET /api/genres/:id
+        description: Get genre by ID
+        requires: readonly
+      - route: POST /api/genres
+        description: Create custom genre
+        requires: admin
+      - route: PUT /api/genres/:id
+        description: Update genre (not predefined)
+        requires: admin
+      - route: DELETE /api/genres/:id
+        description: Delete custom genre with cascade
+        requires: admin
+
+  hardcover.js:
+    description: Hardcover GraphQL API proxy for book metadata
+    exports:
+      - name: hardcoverRouter
+        kind: object
+        description: Hono router for Hardcover proxy
+    endpoints:
+      - route: POST /api/hardcover/graphql
+        description: Proxy GraphQL requests to Hardcover API
+        requires: teacher
+
+  mylogin.js:
+    description: MyLogin OAuth2 SSO - login initiation and callback
+    exports:
+      - name: myloginRouter
+        kind: object
+        description: Hono router for MyLogin SSO
+    endpoints:
+      - route: GET /api/auth/mylogin/login
+        description: Initiate OAuth2 flow with CSRF state in KV
+        public: true
+      - route: GET /api/auth/mylogin/callback
+        description: Handle OAuth2 callback, exchange code, issue JWT
+        public: true
+      - route: POST /api/auth/mylogin/logout
+        description: Revoke token and return MyLogin logout URL
+    imports:
+      - from: utils/crypto
+        items: [createAccessToken, createRefreshToken, createJWTPayload, hashToken]
+
+  organization.js:
+    description: Organization management - settings, AI config, audit log, multi-org
+    exports:
+      - name: organizationRouter
+        kind: object
+        description: Hono router for organization endpoints
+    endpoints:
+      - route: GET /api/organization
+        description: Get current organization details
+      - route: GET /api/organization/all
+        description: List all organizations (admin+)
+        requires: admin
+      - route: GET /api/organization/stats
+        description: Organization usage statistics
+      - route: GET /api/organization/settings
+        description: Get organization settings with defaults
+      - route: PUT /api/organization/settings
+        description: Update organization settings
+        requires: admin
+      - route: GET /api/organization/ai-config
+        description: Get AI config (key masked)
+      - route: PUT /api/organization/ai-config
+        description: Update AI config with encrypted key
+        requires: admin
+      - route: GET /api/organization/audit-log
+        description: Paginated audit log
+        requires: admin
+      - route: GET /api/organization/:id
+        description: Get specific organization
+        requires: owner
+      - route: POST /api/organization/create
+        description: Create new organization
+        requires: owner
+      - route: PUT /api/organization/:id
+        description: Update organization
+        requires: owner
+      - route: DELETE /api/organization/:id
+        description: Soft delete organization
+        requires: owner
+      - route: PUT /api/organization
+        description: Update current org name
+        requires: owner
+    imports:
+      - from: utils/crypto
+        items: [encryptSensitiveData, decryptSensitiveData]
+
+  settings.js:
+    description: Application settings - reading status, timezone, AI, academic year
+    exports:
+      - name: settingsRouter
+        kind: object
+        description: Hono router for settings endpoints
+    endpoints:
+      - route: GET /api/settings
+        description: Get all settings with defaults
+      - route: POST /api/settings
+        description: Update settings (allowlisted keys)
+        requires: admin
+      - route: GET /api/settings/ai
+        description: Get AI config with availability status
+      - route: POST /api/settings/ai
+        description: Update AI config with encrypted key
+        requires: admin
+
+  signup.js:
+    description: Email newsletter signup - rate limited
+    exports:
+      - name: signupRouter
+        kind: object
+        description: Hono router for signup
+    endpoints:
+      - route: POST /api/signup
+        description: Register email for newsletter (5/min rate limit)
+        public: true
+
+  students.js:
+    description: Student management - CRUD, preferences, bulk import
+    exports:
+      - name: studentsRouter
+        kind: object
+        description: Hono router for student endpoints
+    endpoints:
+      - route: GET /api/students
+        description: List students with optional pagination and class filter
+        requires: readonly
+      - route: GET /api/students/:id
+        description: Get student with preferences and sessions
+        requires: readonly
+      - route: POST /api/students
+        description: Create new student
+        requires: teacher
+      - route: PUT /api/students/:id
+        description: Update student and preferences
+        requires: teacher
+      - route: DELETE /api/students/:id
+        description: Soft delete student
+        requires: teacher
+      - route: POST /api/students/bulk
+        description: Create multiple students
+        requires: teacher
+      - route: POST /api/students/import
+        description: Import students from CSV
+        requires: teacher
+
+  users.js:
+    description: User management - CRUD, role assignment, activation
+    exports:
+      - name: usersRouter
+        kind: object
+        description: Hono router for user endpoints
+    endpoints:
+      - route: GET /api/users
+        description: List users in organization
+        requires: admin
+      - route: GET /api/users/:id
+        description: Get user details
+        requires: admin or self
+      - route: POST /api/users
+        description: Create/invite new user
+        requires: admin
+      - route: PUT /api/users/:id
+        description: Update user details and role
+        requires: admin
+      - route: DELETE /api/users/:id
+        description: Soft delete user
+        requires: admin
+      - route: POST /api/users/:id/deactivate
+        description: Temporarily deactivate user
+        requires: admin
+      - route: POST /api/users/:id/reactivate
+        description: Reactivate user
+        requires: admin
+    imports:
+      - from: utils/crypto
+        items: [hashPassword]
+      - from: utils/email
+        items: [sendWelcomeEmail]
+
+  webhooks.js:
+    description: Wonde webhook handler - school approval, access changes
+    exports:
+      - name: webhooksRouter
+        kind: object
+        description: Hono router for webhook endpoints
+    endpoints:
+      - route: POST /api/webhooks/wonde
+        description: Handle Wonde events (schoolApproved, accessRevoked, accessDeclined, schoolMigration)
+        public: true
+    imports:
+      - from: utils/crypto
+        items: [encryptSensitiveData]
+      - from: services/wondeSync
+        items: [runFullSync]
+
+  wondeAdmin.js:
+    description: Wonde admin operations - manual sync, status
+    exports:
+      - name: wondeAdminRouter
+        kind: object
+        description: Hono router for Wonde admin
+    endpoints:
+      - route: POST /api/wonde/sync
+        description: Trigger manual Wonde data sync
+        requires: admin
+      - route: GET /api/wonde/status
+        description: Get latest Wonde sync status
+        requires: admin
+    imports:
+      - from: utils/crypto
+        items: [decryptSensitiveData]
+      - from: services/wondeSync
+        items: [runFullSync]

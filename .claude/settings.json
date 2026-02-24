@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "A task is being completed. Check if the task involved adding, removing, or renaming source files, public classes, or public functions. If so, respond {\"ok\": false, \"reason\": \"Update the CLAUDE.md file map and .claude/structure/ YAML to reflect added, removed, or renamed files/classes/functions.\"}. If the task only modified existing function bodies, fixed bugs without structural changes, or was non-code work, respond {\"ok\": true}."
+          }
+        ]
+      }
+    ]
+  }
+}

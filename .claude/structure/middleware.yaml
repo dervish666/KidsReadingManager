@@ -1,0 +1,119 @@
+# middleware/ structure detail
+module: tally-reading
+directory: src/middleware/
+description: Authentication, authorization, error handling, and tenant isolation middleware
+
+files:
+  auth.js:
+    description: Legacy shared-secret authentication (12-hour token TTL)
+    exports:
+      - name: createAuthToken
+        kind: function
+        params: [{name: env, type: HonoEnv}]
+        returns: Promise<string>
+        description: Create signed token for successful login with 12-hour expiry
+      - name: validateAuthToken
+        kind: function
+        params: [{name: env, type: HonoEnv}, {name: token, type: string}]
+        returns: Promise<boolean>
+        description: Validate token using constant-time string comparison
+      - name: authMiddleware
+        kind: function
+        returns: Hono middleware
+        description: Protect /api/* with token auth, allows /api/login and /api/health
+      - name: handleLogin
+        kind: function
+        params: [{name: c, type: HonoContext}]
+        returns: Promise<Response>
+        description: Handle /api/login, validates password and issues token
+    imports:
+      - from: utils/crypto
+        items: [constantTimeStringEqual]
+
+  errorHandler.js:
+    description: Standardized error handling and response formatting
+    exports:
+      - name: errorHandler
+        kind: function
+        returns: Hono middleware
+        description: Catch errors and format consistent JSON response; sanitizes 5xx messages
+      - name: createError
+        kind: function
+        params: [{name: message, type: string}, {name: status, type: number, default: 400}]
+        returns: Error
+        description: Create custom error with HTTP status code
+      - name: notFoundError
+        kind: function
+        params: [{name: message, type: string, default: "'Resource not found'"}]
+        returns: Error
+        description: Create 404 error
+      - name: badRequestError
+        kind: function
+        params: [{name: message, type: string, default: "'Bad request'"}]
+        returns: Error
+        description: Create 400 error
+      - name: serverError
+        kind: function
+        params: [{name: message, type: string, default: "'Internal server error'"}]
+        returns: Error
+        description: Create 500 error
+
+  tenant.js:
+    description: JWT auth, tenant isolation, role guards, audit logging, rate limiting
+    exports:
+      - name: jwtAuthMiddleware
+        kind: function
+        returns: Hono middleware
+        description: Validate JWT token, extract user/org context; allows public paths
+      - name: tenantMiddleware
+        kind: function
+        returns: Hono middleware
+        description: Ensure valid org context; owners can override via X-Organization-Id header
+      - name: requireRole
+        kind: function
+        params: [{name: requiredRole, type: string}]
+        returns: Hono middleware
+        description: Role-based access control using hasPermission() hierarchy
+      - name: requireOwner
+        kind: function
+        returns: Hono middleware
+        description: Restrict to owner role
+      - name: requireAdmin
+        kind: function
+        returns: Hono middleware
+        description: Restrict to admin+ roles
+      - name: requireTeacher
+        kind: function
+        returns: Hono middleware
+        description: Restrict to teacher+ roles
+      - name: requireReadonly
+        kind: function
+        returns: Hono middleware
+        description: Restrict to readonly+ roles (any authenticated user)
+      - name: requireOrgOwnership
+        kind: function
+        params: [{name: tableName, type: string}, {name: idParam, type: string, default: "'id'"}]
+        returns: Hono middleware
+        description: Verify resource belongs to user's organization (whitelist-validated tables)
+      - name: auditLog
+        kind: function
+        params: [{name: action, type: string}, {name: entityType, type: string}]
+        returns: Hono middleware
+        description: Log successful operations (2xx) to audit_log table
+      - name: rateLimit
+        kind: function
+        params: [{name: maxRequests, type: number, default: 100}, {name: windowMs, type: number, default: 60000}]
+        returns: Hono middleware
+        description: D1-backed rate limiting using IP or userId key
+      - name: authRateLimit
+        kind: function
+        returns: Hono middleware
+        description: Strict rate limit for auth endpoints (10 requests/minute)
+      - name: scopeToOrganization
+        kind: function
+        params: [{name: c, type: HonoContext}, {name: baseQuery, type: string}, {name: params, type: array}]
+        returns: "{query: string, params: array}"
+        description: Add organization_id filter to SQL queries
+    imports:
+      - from: utils/crypto
+        items: [verifyAccessToken, hasPermission, ROLES]

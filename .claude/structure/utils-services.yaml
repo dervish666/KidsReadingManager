@@ -1,0 +1,503 @@
+# utils/ and services/ structure detail
+module: tally-reading
+directories: [src/utils/, src/services/]
+description: Utility functions and service layer
+
+files:
+  # ---- UTILITIES ----
+
+  utils/helpers.js:
+    description: General utility functions - ID generation, reading status, sorting
+    exports:
+      - name: generateId
+        kind: function
+        returns: string
+        description: Generate UUID v4 via Web Crypto API
+      - name: getTodayDate
+        kind: function
+        returns: string
+        description: Today's date in ISO format (YYYY-MM-DD)
+      - name: getReadingStatus
+        kind: function
+        params: [{name: student}, {name: settings}]
+        returns: "'recentlyRead'|'needsAttention'|'notRead'"
+      - name: sortStudentsByPriority
+        kind: function
+        params: [{name: students}]
+        returns: Array
+      - name: getPrioritizedStudents
+        kind: function
+        params: [{name: students}, {name: count}]
+        returns: Array
+      - name: formatErrorResponse
+        kind: function
+        params: [{name: message}, {name: status}]
+        returns: object
+      - name: formatSuccessResponse
+        kind: function
+        params: [{name: data}, {name: message}]
+        returns: object
+
+  utils/crypto.js:
+    description: Cryptographic utilities - passwords, JWT, AES-GCM encryption, roles
+    exports:
+      - name: hashPassword
+        kind: function
+        params: [{name: password}]
+        returns: Promise<string>
+        description: PBKDF2 hash with 100,000 iterations + random salt
+      - name: verifyPassword
+        kind: function
+        params: [{name: password}, {name: storedHash}]
+        returns: "Promise<{valid, needsRehash}>"
+      - name: createAccessToken
+        kind: function
+        params: [{name: payload}, {name: secret}, {name: expiresIn}]
+        returns: Promise<string>
+        description: Create JWT access token (15min default)
+      - name: createRefreshToken
+        kind: function
+        params: [{name: userId}, {name: secret}]
+        returns: "Promise<{token, hash, expiresAt}>"
+        description: Create refresh token (7 days)
+      - name: verifyAccessToken
+        kind: function
+        params: [{name: token}, {name: secret}]
+        returns: "Promise<{valid, payload?, error?}>"
+      - name: verifyRefreshToken
+        kind: function
+        params: [{name: token}, {name: storedHash}]
+        returns: Promise<boolean>
+      - name: hashToken
+        kind: function
+        params: [{name: token}]
+        returns: Promise<string>
+        description: SHA-256 hash
+      - name: createJWTPayload
+        kind: function
+        params: [{name: user}, {name: organization}]
+        returns: object
+      - name: encryptSensitiveData
+        kind: function
+        params: [{name: plaintext}, {name: secret}]
+        returns: Promise<string>
+        description: AES-GCM encryption with HKDF-derived key
+      - name: decryptSensitiveData
+        kind: function
+        params: [{name: encryptedData}, {name: secret}]
+        returns: Promise<string>
+      - name: constantTimeEqual
+        kind: function
+        params: [{name: a}, {name: b}]
+        returns: boolean
+      - name: constantTimeStringEqual
+        kind: function
+        params: [{name: a}, {name: b}]
+        returns: boolean
+      - name: ROLES
+        kind: object
+        description: "Role constants: {OWNER, ADMIN, TEACHER, READONLY}"
+      - name: ROLE_HIERARCHY
+        kind: object
+        description: "Role levels: {owner:4, admin:3, teacher:2, readonly:1}"
+      - name: hasPermission
+        kind: function
+        params: [{name: userRole}, {name: requiredRole}]
+        returns: boolean
+
+  utils/validation.js:
+    description: Request data validation utilities
+    exports:
+      - name: validateReadingLevelRange
+        kind: function
+        params: [{name: min}, {name: max}]
+        returns: "{isValid, errors?, normalizedMin?, normalizedMax?}"
+        description: Validate AR reading level range (1.0-13.0)
+      - name: validateStudent
+        kind: function
+        params: [{name: student}]
+        returns: "{isValid, errors}"
+      - name: validateSettings
+        kind: function
+        params: [{name: settings}]
+        returns: "{isValid, errors}"
+      - name: validateBulkImport
+        kind: function
+        params: [{name: students}]
+        returns: "{isValid, errors}"
+      - name: validateDataImport
+        kind: function
+        params: [{name: data}]
+        returns: "{isValid, errors}"
+
+  utils/streakCalculator.js:
+    description: Reading streak calculation with configurable grace period
+    exports:
+      - name: getDateString
+        kind: function
+        params: [{name: date}, {name: timezone}]
+        returns: string
+      - name: getUniqueReadingDates
+        kind: function
+        params: [{name: sessions}, {name: timezone}]
+        returns: string[]
+      - name: daysBetween
+        kind: function
+        params: [{name: date1}, {name: date2}]
+        returns: number
+      - name: calculateStreak
+        kind: function
+        params: [{name: sessions}, {name: options}]
+        returns: "{currentStreak, longestStreak, streakStartDate, lastReadDate}"
+      - name: wouldExtendStreak
+        kind: function
+        params: [{name: currentStreakData}, {name: newSessionDate}, {name: gracePeriodDays}, {name: timezone}]
+        returns: boolean
+
+  utils/studentProfile.js:
+    description: Build comprehensive student reading profile for AI context
+    exports:
+      - name: buildStudentReadingProfile
+        kind: function
+        params: [{name: studentId}, {name: organizationId}, {name: db}]
+        returns: Promise<object|null>
+
+  utils/recommendationCache.js:
+    description: KV caching for AI book recommendations (7-day TTL)
+    exports:
+      - name: generateCacheKey
+        kind: function
+        params: [{name: inputs}]
+        returns: Promise<string>
+        description: Deterministic SHA-256 cache key
+      - name: getCachedRecommendations
+        kind: function
+        params: [{name: env}, {name: inputs}]
+        returns: Promise<object|null>
+      - name: cacheRecommendations
+        kind: function
+        params: [{name: env}, {name: inputs}, {name: result}]
+        returns: Promise<void>
+
+  utils/isbn.js:
+    description: ISBN validation and normalization (ISBN-10 and ISBN-13)
+    exports:
+      - name: validateISBN
+        kind: function
+        params: [{name: isbn}]
+        returns: boolean
+      - name: isbn10ToIsbn13
+        kind: function
+        params: [{name: isbn10}]
+        returns: string|null
+      - name: normalizeISBN
+        kind: function
+        params: [{name: isbn}]
+        returns: string|null
+        description: Normalize to ISBN-13 without hyphens
+
+  utils/isbnLookup.js:
+    description: OpenLibrary ISBN lookup with KV caching
+    exports:
+      - name: parseOpenLibraryBook
+        kind: function
+        params: [{name: olData}]
+        returns: "{title, pageCount, publicationYear, coverId, seriesName, seriesNumber}"
+      - name: lookupISBN
+        kind: function
+        params: [{name: isbn}, {name: env}]
+        returns: Promise<object|null>
+    imports:
+      - from: ./isbn
+        items: [normalizeISBN]
+
+  utils/email.js:
+    description: Email sending - multi-provider (Resend, Cloudflare Email, SMTP)
+    exports:
+      - name: sendPasswordResetEmail
+        kind: function
+        params: [{name: env}, {name: recipientEmail}, {name: recipientName}, {name: resetToken}, {name: baseUrl}]
+        returns: "Promise<{success, error?}>"
+      - name: sendSignupNotificationEmail
+        kind: function
+        params: [{name: env}, {name: signupEmail}]
+        returns: "Promise<{success, error?}>"
+      - name: sendWelcomeEmail
+        kind: function
+        params: [{name: env}, {name: recipientEmail}, {name: recipientName}, {name: organizationName}, {name: temporaryPassword}, {name: baseUrl}]
+        returns: "Promise<{success, error?}>"
+
+  utils/csvParser.js:
+    description: CSV parsing for book import
+    exports:
+      - name: parseCSV
+        kind: function
+        params: [{name: csvText}]
+        returns: "{headers, rows}"
+      - name: detectColumnMapping
+        kind: function
+        params: [{name: headers}]
+        returns: "{title?, author?, readingLevel?, isbn?, ...}"
+      - name: mapCSVToBooks
+        kind: function
+        params: [{name: rows}, {name: mapping}]
+        returns: Array
+
+  utils/stringMatching.js:
+    description: String similarity for book deduplication (Levenshtein distance)
+    exports:
+      - name: normalizeString
+        kind: function
+        params: [{name: str}]
+        returns: string
+      - name: normalizeAuthor
+        kind: function
+        params: [{name: str}]
+        returns: string
+        description: "Handles 'Last, First' vs 'First Last'"
+      - name: calculateSimilarity
+        kind: function
+        params: [{name: a}, {name: b}]
+        returns: number
+        description: Levenshtein similarity (0-1)
+      - name: isExactMatch
+        kind: function
+        params: [{name: a}, {name: b}]
+        returns: boolean
+      - name: isAuthorMatch
+        kind: function
+        params: [{name: a}, {name: b}]
+        returns: boolean
+      - name: isFuzzyMatch
+        kind: function
+        params: [{name: bookA}, {name: bookB}, {name: threshold}]
+        returns: boolean
+        description: Check fuzzy match (default >85% title similarity)
+
+  utils/openLibraryApi.js:
+    description: OpenLibrary API client for book metadata search
+    exports:
+      - name: checkOpenLibraryAvailability
+        kind: function
+        returns: Promise<boolean>
+      - name: searchBooksByTitle
+        kind: function
+        params: [{name: title}, {name: limit}]
+        returns: Promise<Array>
+      - name: findAuthorForBook
+        kind: function
+        params: [{name: title}]
+        returns: Promise<string|null>
+      - name: getBookDetails
+        kind: function
+        params: [{name: title}, {name: author}]
+        returns: Promise<object|null>
+      - name: batchFindMissingAuthors
+        kind: function
+        params: [{name: books}, {name: onProgress}]
+        returns: Promise<Array>
+      - name: batchFindMissingDescriptions
+        kind: function
+        params: [{name: books}, {name: onProgress}]
+        returns: Promise<Array>
+      - name: batchFindMissingGenres
+        kind: function
+        params: [{name: books}, {name: onProgress}]
+        returns: Promise<Array>
+      - name: fetchAllMetadata
+        kind: function
+        params: [{name: title}, {name: author}]
+        returns: Promise<object|null>
+
+  utils/googleBooksApi.js:
+    description: Google Books API client for book metadata
+    exports:
+      - name: checkGoogleBooksAvailability
+        kind: function
+        params: [{name: apiKey}, {name: timeout}]
+        returns: Promise<boolean>
+      - name: searchBooksByTitle
+        kind: function
+        params: [{name: title}, {name: apiKey}, {name: limit}]
+        returns: Promise<Array>
+      - name: findAuthorForBook
+        kind: function
+        params: [{name: title}, {name: apiKey}]
+        returns: Promise<string|null>
+      - name: getBookDetails
+        kind: function
+        params: [{name: title}, {name: author}, {name: apiKey}]
+        returns: Promise<object|null>
+      - name: fetchAllMetadata
+        kind: function
+        params: [{name: title}, {name: author}, {name: apiKey}]
+        returns: Promise<object|null>
+
+  utils/hardcoverApi.js:
+    description: Hardcover GraphQL API client with rate limiting (60 req/min)
+    exports:
+      - name: checkHardcoverAvailability
+        kind: function
+        params: [{name: apiKey}, {name: timeout}]
+        returns: Promise<boolean>
+      - name: isHardcoverRateLimited
+        kind: function
+        returns: boolean
+      - name: searchBooksByTitle
+        kind: function
+        params: [{name: title}, {name: apiKey}, {name: limit}]
+        returns: Promise<Array>
+      - name: getBookDetails
+        kind: function
+        params: [{name: title}, {name: author}, {name: apiKey}]
+        returns: Promise<object|null>
+      - name: fetchAllMetadata
+        kind: function
+        params: [{name: title}, {name: author}, {name: apiKey}]
+        returns: Promise<object|null>
+
+  utils/bookMetadataApi.js:
+    description: Unified metadata API with provider abstraction and auto-fallback
+    exports:
+      - name: METADATA_PROVIDERS
+        kind: object
+        description: "Provider constants: {OPEN_LIBRARY, GOOGLE_BOOKS, HARDCOVER}"
+      - name: getMetadataConfig
+        kind: function
+        params: [{name: settings}]
+        returns: "{provider, apiKey, hardcoverApiKey, batchSize, speedPreset, autoFallback}"
+      - name: checkAvailability
+        kind: function
+        params: [{name: settings}, {name: timeout}]
+        returns: Promise<boolean>
+      - name: searchBooksByTitle
+        kind: function
+        params: [{name: title}, {name: settings}, {name: limit}]
+        returns: Promise<Array>
+        description: Search with failover support
+      - name: batchFetchAllMetadata
+        kind: function
+        params: [{name: books}, {name: settings}, {name: onProgress}, {name: options}]
+        returns: Promise<Array>
+        description: Batch metadata fetch with adaptive delay and auto-fallback
+    imports:
+      - from: ./openLibraryApi
+      - from: ./googleBooksApi
+      - from: ./hardcoverApi
+
+  utils/wondeApi.js:
+    description: Wonde REST API client for school data provisioning
+    exports:
+      - name: wondeRequest
+        kind: function
+        params: [{name: path}, {name: token}, {name: params}]
+        returns: Promise<Array>
+        description: Paginated GET request to Wonde API
+      - name: fetchAllStudents
+        kind: function
+        params: [{name: token}, {name: schoolId}, {name: options}]
+        returns: Promise<Array>
+      - name: fetchAllClasses
+        kind: function
+        params: [{name: token}, {name: schoolId}, {name: options}]
+        returns: Promise<Array>
+      - name: fetchAllEmployees
+        kind: function
+        params: [{name: token}, {name: schoolId}, {name: options}]
+        returns: Promise<Array>
+      - name: fetchDeletions
+        kind: function
+        params: [{name: token}, {name: schoolId}, {name: updatedAfter}]
+        returns: Promise<Array>
+
+  # ---- SERVICES ----
+
+  services/aiService.js:
+    description: AI provider abstraction for book recommendations (Anthropic, OpenAI, Google Gemini)
+    exports:
+      - name: generateRecommendations
+        kind: function
+        params: [{name: studentProfile}, {name: availableBooks}, {name: config}]
+        returns: Promise<Array>
+      - name: buildBroadSuggestionsPrompt
+        kind: function
+        params: [{name: studentProfile}, {name: focusMode}]
+        returns: string
+      - name: generateBroadSuggestions
+        kind: function
+        params: [{name: studentProfile}, {name: config}, {name: focusMode}]
+        returns: Promise<Array>
+
+  services/kvService.js:
+    description: Cloudflare KV storage abstraction (legacy/fallback)
+    exports:
+      - name: DEFAULT_DATA
+        kind: object
+        description: Default app data structure
+      - name: APP_DATA_KEY
+        kind: export
+        description: "'app_data' KV key"
+      - name: getData
+        kind: function
+        params: [{name: env}]
+        returns: Promise<object>
+      - name: saveData
+        kind: function
+        params: [{name: env}, {name: data}]
+        returns: Promise<boolean>
+      - name: getStudents
+        kind: function
+        params: [{name: env}]
+        returns: Promise<Array>
+      - name: getStudentById
+        kind: function
+        params: [{name: env}, {name: id}]
+        returns: Promise<object|null>
+      - name: saveStudent
+        kind: function
+        params: [{name: env}, {name: student}]
+        returns: Promise<object>
+      - name: deleteStudent
+        kind: function
+        params: [{name: env}, {name: id}]
+        returns: Promise<boolean>
+      - name: getBooks
+        kind: function
+        params: [{name: env}]
+        returns: Promise<Array>
+      - name: getClasses
+        kind: function
+        params: [{name: env}]
+        returns: Promise<Array>
+      - name: getGenres
+        kind: function
+        params: [{name: env}]
+        returns: Promise<Array>
+      - name: getSettings
+        kind: function
+        params: [{name: env}]
+        returns: Promise<object>
+
+  services/wondeSync.js:
+    description: Orchestrates Wonde school data sync into D1 database
+    exports:
+      - name: mapWondeStudent
+        kind: function
+        params: [{name: wondeStudent}]
+        returns: "{wondeStudentId, name, yearGroup, senStatus, pupilPremium, ealStatus, fsm, wondeClassIds}"
+      - name: mapWondeClass
+        kind: function
+        params: [{name: wondeClass}]
+        returns: "{wondeClassId, name}"
+      - name: mapWondeEmployee
+        kind: function
+        params: [{name: wondeEmployee}]
+        returns: "{wondeEmployeeId, name, wondeClassIds}"
+      - name: runFullSync
+        kind: function
+        params: [{name: orgId}, {name: schoolToken}, {name: wondeSchoolId}, {name: db}, {name: options}]
+        returns: "Promise<{status, syncId, ...counts, errorMessage?}>"
+        description: Run full or delta sync of school data
+    imports:
+      - from: utils/wondeApi
+        items: [fetchAllStudents, fetchAllClasses, fetchAllEmployees, fetchDeletions]

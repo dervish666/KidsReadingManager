@@ -1,0 +1,315 @@
+# components/ structure detail
+module: tally-reading
+directory: src/components/
+description: React 19 components with Material-UI v7 (plain JavaScript)
+
+files:
+  # ---- ROOT LEVEL ----
+
+  App.js:
+    description: Main app component - layout, routing, auth gate
+    exports:
+      - name: App
+        kind: component
+        description: Root component wrapping AppProvider and BookCoverProvider
+
+  BookCover.js:
+    description: Book cover image with OpenLibrary fallback and placeholder
+    exports:
+      - name: BookCover
+        kind: component
+        props: [title, author, width, height]
+    imports:
+      - from: hooks/useBookCover
+        items: [useBookCover]
+
+  BookCoverPlaceholder.js:
+    description: Gradient placeholder with deterministic color from title hash
+    exports:
+      - name: BookCoverPlaceholder
+        kind: component
+        props: [title, width, height]
+
+  BookRecommendations.js:
+    description: AI book recommendations with library search and focus modes
+    exports:
+      - name: BookRecommendations
+        kind: component
+        description: Student selector, Find in Library, AI Suggestions, focus mode toggle
+
+  BookMetadataSettings.js:
+    description: Metadata provider config and bulk operations (fill missing, refresh all)
+    exports:
+      - name: BookMetadataSettings
+        kind: component
+        description: Provider selection, API keys, batch operations with progress
+
+  ErrorBoundary.js:
+    description: React error boundary with refresh button
+    exports:
+      - name: ErrorBoundary
+        kind: component
+
+  Header.js:
+    description: App bar with navigation, class filter, school switcher, user info
+    exports:
+      - name: Header
+        kind: component
+        description: Sticky header with glass morphism, responsive layout
+
+  LandingPage.js:
+    description: Marketing landing page with features, steps, email signup
+    exports:
+      - name: LandingPage
+        kind: component
+        props: [onSignIn]
+
+  Login.js:
+    description: Auth component - legacy, email/password, MyLogin SSO, password reset
+    exports:
+      - name: Login
+        kind: component
+        props: [onBackToLanding]
+
+  SchoolManagement.js:
+    description: Organization CRUD with Wonde integration status
+    exports:
+      - name: SchoolManagement
+        kind: component
+        description: Owner-only school management with subscription tiers
+
+  Settings.js:
+    description: Reading status thresholds, streak grace period, class manager
+    exports:
+      - name: Settings
+        kind: component
+
+  SettingsPage.js:
+    description: Settings hub with tabbed navigation
+    exports:
+      - name: SettingsPage
+        kind: component
+
+  AISettings.js:
+    description: AI provider configuration (Anthropic, OpenAI, Google)
+    exports:
+      - name: AISettings
+        kind: component
+
+  UserManagement.js:
+    description: User CRUD, role assignment, bulk import
+    exports:
+      - name: UserManagement
+        kind: component
+        description: Admin user management across organizations
+
+  DataManagement.js:
+    description: Export/import JSON, Wonde sync management
+    exports:
+      - name: DataManagement
+        kind: component
+
+  # ---- books/ ----
+
+  books/BookManager.js:
+    description: Book library interface - search, add, import, edit, export
+    exports:
+      - name: BookManager
+        kind: component
+        description: Main book management with search, pagination, CSV export
+
+  books/BookImportWizard.js:
+    description: Multi-step CSV import with fuzzy matching and conflict resolution
+    exports:
+      - name: BookImportWizard
+        kind: component
+        props: [open, onClose]
+        description: "4-step wizard: upload, column map, preview, confirm"
+
+  books/AddBookModal.js:
+    description: Dialog for adding single book with metadata fields
+    exports:
+      - name: AddBookModal
+        kind: component
+        props: [open, initialTitle, onClose, onBookCreated]
+
+  books/BarcodeScanner.js:
+    description: ISBN barcode scanner using html5-qrcode
+    exports:
+      - name: BarcodeScanner
+        kind: component
+        props: [open, onScan, onClose]
+
+  books/ScanBookFlow.js:
+    description: Complete scan-to-add workflow (scan, lookup, preview, add)
+    exports:
+      - name: ScanBookFlow
+        kind: component
+        props: [open, onClose, onBookSelected]
+
+  # ---- classes/ ----
+
+  classes/ClassManager.js:
+    description: Class CRUD with year group dropdown and enable/disable toggle
+    exports:
+      - name: ClassManager
+        kind: component
+
+  # ---- students/ ----
+
+  students/StudentList.js:
+    description: Student listing with filters, sorting, add form, bulk import
+    exports:
+      - name: StudentList
+        kind: component
+
+  students/StudentCard.js:
+    description: Individual student card with status, streak, and actions
+    exports:
+      - name: StudentCard
+        kind: component
+        props: [student]
+
+  students/StudentProfile.js:
+    description: Student settings modal - basic info, reading preferences, genres
+    exports:
+      - name: StudentProfile
+        kind: component
+        props: [open, onClose, student]
+
+  students/StudentTable.js:
+    description: Tabular student view with sortable columns
+    exports:
+      - name: StudentTable
+        kind: component
+
+  students/StreakBadge.js:
+    description: Flame icon streak counter badge
+    exports:
+      - name: StreakBadge
+        kind: component
+        props: [streak, size, showLabel]
+
+  students/ReadingLevelRangeInput.js:
+    description: Dual-slider for AR reading level range (1.0-13.0)
+    exports:
+      - name: ReadingLevelRangeInput
+        kind: component
+        props: [min, max, onChange, disabled]
+
+  students/ReadingPreferences.js:
+    description: Reading preferences modal with genre selection
+    exports:
+      - name: ReadingPreferences
+        kind: component
+        props: [open, onClose, student]
+
+  students/PrioritizedStudentsList.js:
+    description: Students ordered by reading priority with class filter
+    exports:
+      - name: PrioritizedStudentsList
+        kind: component
+        props: [defaultCount, filterClassId]
+
+  students/BulkImport.js:
+    description: CSV bulk import for students with validation
+    exports:
+      - name: BulkImport
+        kind: component
+        props: [open, onClose]
+
+  # ---- sessions/ ----
+
+  sessions/HomeReadingRegister.js:
+    description: Class-wide register with drag-drop reordering and status buttons
+    exports:
+      - name: HomeReadingRegister
+        kind: component
+        description: "Uses @dnd-kit; status buttons: read/multiple/absent/no record"
+
+  sessions/SessionForm.js:
+    description: Reading session form - student, book, assessment, date, notes
+    exports:
+      - name: SessionForm
+        kind: component
+
+  sessions/QuickEntry.js:
+    description: Fast session entry for priority students with navigation
+    exports:
+      - name: QuickEntry
+        kind: component
+
+  sessions/StudentSessions.js:
+    description: Student's reading session history with edit/delete
+    exports:
+      - name: StudentSessions
+        kind: component
+        props: [open, onClose, student]
+
+  sessions/BookAutocomplete.js:
+    description: Autocomplete for book selection with cover thumbnails
+    exports:
+      - name: BookAutocomplete
+        kind: component
+        props: [value, onChange, onScanClick, disabled]
+
+  sessions/AssessmentSelector.js:
+    description: Radio group for assessment level (independent/supported/guided)
+    exports:
+      - name: AssessmentSelector
+        kind: component
+        props: [value, onChange, direction]
+
+  sessions/SessionNotes.js:
+    description: Multiline text area for session observation notes
+    exports:
+      - name: SessionNotes
+        kind: component
+        props: [value, onChange]
+
+  sessions/StudentInfoCard.js:
+    description: Student info display during session entry
+    exports:
+      - name: StudentInfoCard
+        kind: component
+        props: [student]
+
+  sessions/ClassReadingHistoryTable.js:
+    description: Historical reading data table with date range selection
+    exports:
+      - name: ClassReadingHistoryTable
+        kind: component
+        props: [students, books, selectedDate, onDateChange]
+
+  # ---- stats/ ----
+
+  stats/ReadingStats.js:
+    description: Stats dashboard with metrics and chart integration
+    exports:
+      - name: ReadingStats
+        kind: component
+
+  stats/ReadingTimelineChart.js:
+    description: Line chart of reading sessions over time (Recharts)
+    exports:
+      - name: ReadingTimelineChart
+        kind: component
+
+  stats/ReadingFrequencyChart.js:
+    description: Bar chart of reading frequency by student/class
+    exports:
+      - name: ReadingFrequencyChart
+        kind: component
+
+  stats/DaysSinceReadingChart.js:
+    description: Days since last reading heatmap/indicator
+    exports:
+      - name: DaysSinceReadingChart
+        kind: component
+
+  stats/VisualIndicators.js:
+    description: Key metric cards with icon badges
+    exports:
+      - name: VisualIndicators
+        kind: component
+        props: [data]

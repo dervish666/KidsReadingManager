@@ -6,6 +6,153 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Tally Reading is a multi-tenant SaaS application for tracking student reading progress. Built with React 19 frontend and Cloudflare Workers backend (using Hono framework), it runs entirely on Cloudflare's edge infrastructure with D1 database and KV storage.
 
+## Codebase Structure Index
+
+The file map below provides instant orientation. For detailed export signatures and dependencies, read the relevant `.claude/structure/*.yaml` file for the directory you're working in.
+
+After adding, removing, or renaming source files or public classes/functions, update both the file map below and the relevant structure YAML file.
+
+### File Map
+
+<!-- One line per source file: relative path - brief description -->
+
+<!-- Entry point -->
+src/worker.js - Cloudflare Worker entry; middleware chain, route registration, scheduled tasks
+src/App.js - Main React app component; layout, routing, auth gate
+src/index.js - React app entry point
+
+<!-- Backend Routes -->
+src/routes/auth.js - POST/GET register, login, refresh, logout, password reset
+src/routes/mylogin.js - MyLogin OAuth2 SSO (login, callback, logout)
+src/routes/students.js - GET/POST/PUT/DELETE student CRUD, bulk import
+src/routes/books.js - GET/POST/PUT/DELETE books, AI recommendations, search, CSV import
+src/routes/classes.js - GET/POST/PUT/DELETE class management
+src/routes/genres.js - GET/POST/PUT/DELETE genre management
+src/routes/covers.js - GET book covers from R2 cache + OpenLibrary fallback
+src/routes/users.js - GET/POST/PUT/DELETE user management (admin only)
+src/routes/organization.js - GET/POST/PUT/DELETE org settings, AI config, audit log
+src/routes/settings.js - GET/POST application settings and AI configuration
+src/routes/signup.js - POST email newsletter signup (rate limited)
+src/routes/data.js - GET/POST legacy data export/import
+src/routes/hardcover.js - POST Hardcover GraphQL API proxy
+src/routes/webhooks.js - POST Wonde webhook handler (schoolApproved, accessRevoked)
+src/routes/wondeAdmin.js - POST/GET manual Wonde sync and status
+
+<!-- Middleware -->
+src/middleware/tenant.js - JWT auth, tenant isolation, role guards, audit logging, rate limiting
+src/middleware/auth.js - Legacy password auth, token creation (deprecated)
+src/middleware/errorHandler.js - Global error handler, error constructors
+
+<!-- Data Providers -->
+src/data/index.js - Provider factory; auto-detects D1, KV, or JSON storage
+src/data/d1Provider.js - D1 SQL implementation with FTS5 search
+src/data/kvProvider.js - Cloudflare KV storage (legacy)
+src/data/jsonProvider.js - File-based JSON storage (dev only)
+
+<!-- Services -->
+src/services/aiService.js - AI recommendation generation (Anthropic/OpenAI/Google)
+src/services/kvService.js - KV storage operations (legacy)
+src/services/wondeSync.js - Wonde delta/full sync orchestration
+
+<!-- Utilities -->
+src/utils/crypto.js - PBKDF2 hashing, JWT, AES-GCM encryption, role constants
+src/utils/validation.js - Input validation for students, books, ranges
+src/utils/helpers.js - ID generation, reading status, student sorting
+src/utils/email.js - Password reset/welcome/signup emails (multi-provider)
+src/utils/streakCalculator.js - Reading streak calculation with grace period
+src/utils/studentProfile.js - Build student reading profile for AI context
+src/utils/stringMatching.js - Levenshtein distance for book deduplication
+src/utils/recommendationCache.js - KV caching for AI recommendations
+src/utils/isbn.js - ISBN validation and normalization
+src/utils/isbnLookup.js - OpenLibrary ISBN lookup with KV caching
+src/utils/openLibraryApi.js - OpenLibrary API client for book metadata
+src/utils/googleBooksApi.js - Google Books API client
+src/utils/hardcoverApi.js - Hardcover GraphQL API client with rate limiting
+src/utils/bookMetadataApi.js - Unified metadata API with provider abstraction
+src/utils/csvParser.js - CSV parsing for book import
+src/utils/wondeApi.js - Wonde REST API client for school data sync
+
+<!-- Contexts & Hooks -->
+src/contexts/AppContext.js - Global app state (auth, students, classes, books, settings)
+src/contexts/BookCoverContext.js - Book cover URL caching (localStorage, 7-day TTL)
+src/hooks/useBookCover.js - Hook for book cover fetching with deduplication
+
+<!-- Frontend Components - Root -->
+src/components/Header.js - App bar with nav, class filter, school switcher
+src/components/LandingPage.js - Marketing landing page with email signup
+src/components/Login.js - Auth UI (legacy, email/password, MyLogin SSO)
+src/components/ErrorBoundary.js - React error boundary wrapper
+src/components/BookCover.js - Book cover image with placeholder fallback
+src/components/BookCoverPlaceholder.js - Gradient placeholder from title hash
+src/components/BookRecommendations.js - AI recommendations with library search
+src/components/BookMetadataSettings.js - Metadata provider config and bulk ops
+src/components/Settings.js - Reading status thresholds and streak settings
+src/components/SettingsPage.js - Settings hub with tabs
+src/components/AISettings.js - AI provider configuration
+src/components/UserManagement.js - User CRUD and role assignment
+src/components/SchoolManagement.js - Organization management with Wonde status
+src/components/DataManagement.js - Export/import and Wonde sync UI
+
+<!-- Frontend Components - Books -->
+src/components/books/BookManager.js - Book library with search, add, import, export
+src/components/books/BookImportWizard.js - CSV import with fuzzy matching
+src/components/books/AddBookModal.js - Add single book dialog
+src/components/books/BarcodeScanner.js - ISBN barcode scanner (html5-qrcode)
+src/components/books/ScanBookFlow.js - Scan-to-add workflow orchestrator
+
+<!-- Frontend Components - Classes -->
+src/components/classes/ClassManager.js - Class CRUD with year groups
+
+<!-- Frontend Components - Students -->
+src/components/students/StudentList.js - Student listing with filters and sorting
+src/components/students/StudentCard.js - Student card with status and streak
+src/components/students/StudentProfile.js - Student settings and preferences modal
+src/components/students/StudentTable.js - Tabular student view
+src/components/students/StreakBadge.js - Flame icon streak counter
+src/components/students/ReadingLevelRangeInput.js - Dual-slider for AR level range
+src/components/students/ReadingPreferences.js - Genre preference selection
+src/components/students/PrioritizedStudentsList.js - Priority-ordered student list
+src/components/students/BulkImport.js - CSV bulk student import
+
+<!-- Frontend Components - Sessions -->
+src/components/sessions/HomeReadingRegister.js - Class-wide register with drag-drop
+src/components/sessions/SessionForm.js - Reading session form
+src/components/sessions/QuickEntry.js - Fast session entry for priority students
+src/components/sessions/StudentSessions.js - Student session history
+src/components/sessions/BookAutocomplete.js - Book search autocomplete
+src/components/sessions/AssessmentSelector.js - Assessment level radio group
+src/components/sessions/SessionNotes.js - Session notes text area
+src/components/sessions/StudentInfoCard.js - Student info during session entry
+src/components/sessions/ClassReadingHistoryTable.js - Class reading history table
+
+<!-- Frontend Components - Stats -->
+src/components/stats/ReadingStats.js - Stats dashboard with metrics and charts
+src/components/stats/ReadingTimelineChart.js - Reading timeline line chart
+src/components/stats/ReadingFrequencyChart.js - Reading frequency bar chart
+src/components/stats/DaysSinceReadingChart.js - Days since reading indicator
+src/components/stats/VisualIndicators.js - Key metric cards with badges
+
+<!-- Styling -->
+src/styles/theme.js - Material-UI theme configuration
+
+<!-- Scripts -->
+scripts/build-and-deploy.sh - Full rebuild + deploy pipeline
+scripts/deploy.sh - Deployment script
+scripts/migration.js - Data migration from old format
+scripts/reset-admin-password.js - Admin password reset utility
+
+### Structure Detail Files
+
+```
+.claude/structure/
+├── routes.yaml           # API route handlers with endpoints
+├── middleware.yaml        # Auth, tenant, error handling middleware
+├── data.yaml             # Storage providers (D1, KV, JSON)
+├── utils-services.yaml   # Utilities and service layer
+├── components.yaml       # React components with props
+└── contexts-hooks.yaml   # Context providers and custom hooks
+```
+
 ## Development Commands
 
 ### Local Development
