@@ -312,9 +312,10 @@ The following categories of events are logged:
 - Logging failures do not cause request failures (wrapped in try/catch, `src/middleware/tenant.js`, lines 277-281)
 - Audit logs are scoped to the organisation (`organization_id` column)
 
-[TODO: Implement audit log retention policy. IP addresses and user-agent
-strings should be anonymised or purged after 90 days to comply with data
-minimisation. See Compliance Checklist item.]
+**IMPLEMENTED 2026-02-25:** Automated audit log retention is now active.
+IP addresses and user-agent strings are anonymised after 90 days via a daily
+cron job in `src/worker.js`. The audit trail (action, actor, timestamp) is
+preserved for accountability while personal data is removed.
 
 ---
 
@@ -442,8 +443,7 @@ prioritised and tracked in the Compliance Checklist
 
 This document is reviewed:
 
-- At least **annually** (next review due: [TODO: Insert date, e.g.
-  February 2027])
+- At least **annually** (next review due: February 2027)
 - After any significant architectural change or security incident
 - Upon request by a controller school or auditor
 

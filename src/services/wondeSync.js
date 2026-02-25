@@ -171,8 +171,19 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
     // -----------------------------------------------------------------------
     const wondeStudents = await fetchAllStudents(schoolToken, wondeSchoolId, fetchOptions);
 
+    // Load GDPR erased students exclusion list to prevent re-syncing
+    const erasedRows = await db.prepare(
+      'SELECT wonde_student_id FROM wonde_erased_students WHERE organization_id = ?'
+    ).bind(orgId).all();
+    const erasedWondeIds = new Set((erasedRows.results || []).map(r => r.wonde_student_id));
+
     for (const ws of wondeStudents) {
       const mapped = mapWondeStudent(ws);
+
+      // Skip students that were GDPR-erased (prevent re-creation from Wonde)
+      if (erasedWondeIds.has(mapped.wondeStudentId)) {
+        continue;
+      }
 
       // Resolve class_id from first wondeClassId
       const classId = mapped.wondeClassIds.length > 0

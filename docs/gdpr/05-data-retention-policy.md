@@ -9,7 +9,7 @@
 | **Status** | DRAFT |
 | **Last Updated** | 2026-02-20 |
 | **Next Review** | 2027-02-20 |
-| **Owner** | [TODO: Data Protection Lead name] |
+| **Owner** | Sam Castillo (Director, Scratch IT LTD) |
 
 ---
 

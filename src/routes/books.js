@@ -17,7 +17,7 @@ import { normalizeISBN } from '../utils/isbn.js';
 import { lookupISBN } from '../utils/isbnLookup.js';
 
 // Import middleware
-import { requireReadonly, requireTeacher, requireAdmin } from '../middleware/tenant.js';
+import { requireReadonly, requireTeacher, requireAdmin, auditLog } from '../middleware/tenant.js';
 
 // Create router
 const booksRouter = new Hono();
@@ -403,6 +403,23 @@ booksRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
 
     if (!organizationId || !db || !jwtSecret) {
       throw badRequestError('Multi-tenant mode required for AI suggestions');
+    }
+
+    // GDPR: Check processing restriction and AI opt-out before generating recommendations
+    const studentFlags = await db.prepare(
+      'SELECT processing_restricted, ai_opt_out FROM students WHERE id = ? AND organization_id = ?'
+    ).bind(studentId, organizationId).first();
+
+    if (!studentFlags) {
+      throw notFoundError(`Student with ID ${studentId} not found`);
+    }
+
+    if (studentFlags.processing_restricted) {
+      return c.json({ suggestions: [], message: 'Processing is restricted for this student. AI recommendations are unavailable.' });
+    }
+
+    if (studentFlags.ai_opt_out) {
+      return c.json({ suggestions: [], message: 'AI recommendations are disabled for this student.' });
     }
 
     // Build student profile
@@ -795,7 +812,7 @@ booksRouter.put('/:id', requireTeacher(), async (c) => {
  *
  * Requires authentication (at least admin access)
  */
-booksRouter.delete('/clear-library', requireAdmin(), async (c) => {
+booksRouter.delete('/clear-library', requireAdmin(), auditLog('clear', 'library'), async (c) => {
   const organizationId = c.get('organizationId');
   if (!organizationId || !c.env.READING_MANAGER_DB) {
     throw badRequestError('Clear library is only available in multi-tenant mode');
@@ -1079,7 +1096,7 @@ booksRouter.post('/import/preview', requireTeacher(), async (c) => {
  *   conflicts: [{ existingBookId, updateReadingLevel, newReadingLevel }]
  * }
  */
-booksRouter.post('/import/confirm', requireTeacher(), async (c) => {
+booksRouter.post('/import/confirm', requireTeacher(), auditLog('import', 'books'), async (c) => {
   const { matched = [], newBooks = [], conflicts = [] } = await c.req.json();
   const organizationId = c.get('organizationId');
   const db = c.env.READING_MANAGER_DB;

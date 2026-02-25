@@ -259,7 +259,7 @@ export default function LandingPage({ onSignIn }) {
                     </button>
                   </div>
                   {signupError && <p className="lp-signup-error">{signupError}</p>}
-                  <p className="lp-signup-note">No spam, just a heads-up when we're live.</p>
+                  <p className="lp-signup-note">No spam, just a heads-up when we're live. See our <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: '#6B8E6B' }}>Privacy Policy</a>.</p>
                 </div>
               ) : (
                 <div className="lp-signup-thanks">
@@ -280,8 +280,8 @@ export default function LandingPage({ onSignIn }) {
             </span>
             <span className="lp-footer-text">&copy; 2026 Tally Reading. Made in Bristol.</span>
             <ul className="lp-footer-links">
-              <li><a href="#">Privacy Policy</a></li>
-              <li><a href="#">Terms</a></li>
+              <li><a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a></li>
+              <li><a href="/terms" target="_blank" rel="noopener noreferrer">Terms</a></li>
             </ul>
           </div>
         </footer>

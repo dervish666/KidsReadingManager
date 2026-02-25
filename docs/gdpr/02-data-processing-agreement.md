@@ -49,15 +49,15 @@ Contact Email: ______________________________
 
 **Processor:**
 
-[TODO: Insert company legal name]
+Scratch IT LTD
 
-Company Registration Number: [TODO: Insert registration number]
+Company Registration Number: 08151576
 
-Registered Address: [TODO: Insert registered address]
+Registered Address: 247 Bishopsworth Road, Bristol, BS13 7LH
 
-Contact Name: [TODO: Insert contact name]
+Contact Name: Sam Castillo
 
-Contact Email: [TODO: Insert contact email]
+Contact Email: privacy@tallyreading.uk
 
 Website: https://tallyreading.uk
 
@@ -421,9 +421,9 @@ This Agreement has been entered into on the date stated above.
 
 | | |
 |---|---|
-| Name: | [TODO: Insert signatory name] |
-| Position: | [TODO: Insert signatory position] |
-| Organisation: | [TODO: Insert company legal name] |
+| Name: | Sam Castillo |
+| Position: | Director |
+| Organisation: | Scratch IT LTD |
 | Signature: | ______________________________ |
 | Date: | ______________________________ |
 
@@ -520,4 +520,4 @@ The following Sub-processors are approved by the Controller as at the date of th
 
 ---
 
-*IMPORTANT NOTICE: This document is provided as a draft template and does not constitute legal advice. It is intended as a starting point and must be reviewed, adapted, and approved by a qualified legal professional with expertise in UK data protection law before execution. The specific circumstances of each Controller and the nature of the processing should be taken into account during legal review. [TODO: Insert company legal name] accepts no liability for the use of this template without independent legal advice.*
+*IMPORTANT NOTICE: This document is provided as a draft template and does not constitute legal advice. It is intended as a starting point and must be reviewed, adapted, and approved by a qualified legal professional with expertise in UK data protection law before execution. The specific circumstances of each Controller and the nature of the processing should be taken into account during legal review. Scratch IT LTD accepts no liability for the use of this template without independent legal advice.*

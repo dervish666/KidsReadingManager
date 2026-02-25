@@ -11,6 +11,7 @@ import {
 
 // Import utilities
 import { notFoundError, badRequestError } from '../middleware/errorHandler';
+import { auditLog } from '../middleware/tenant';
 import { permissions } from '../utils/crypto';
 
 // Create router
@@ -165,7 +166,7 @@ classesRouter.get('/:id/students', async (c) => {
  * POST /api/classes
  * Add a new class
  */
-classesRouter.post('/', async (c) => {
+classesRouter.post('/', auditLog('create', 'class'), async (c) => {
   const body = await c.req.json();
   
   // Validate class data
@@ -230,7 +231,7 @@ classesRouter.post('/', async (c) => {
  * PUT /api/classes/:id
  * Update a class
  */
-classesRouter.put('/:id', async (c) => {
+classesRouter.put('/:id', auditLog('update', 'class'), async (c) => {
   const { id } = c.req.param();
   const body = await c.req.json();
   
@@ -304,7 +305,7 @@ classesRouter.put('/:id', async (c) => {
  * DELETE /api/classes/:id
  * Delete a class (soft delete in multi-tenant mode)
  */
-classesRouter.delete('/:id', async (c) => {
+classesRouter.delete('/:id', auditLog('delete', 'class'), async (c) => {
   const { id } = c.req.param();
   
   // Multi-tenant mode: use D1 (soft delete)

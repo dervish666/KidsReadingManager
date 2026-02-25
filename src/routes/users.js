@@ -478,6 +478,83 @@ usersRouter.delete('/:id', requireAdmin(), auditLog('delete', 'user'), async (c)
 });
 
 /**
+ * DELETE /api/users/:id/erase
+ * GDPR Article 17 — Hard delete a user and all associated data
+ * Requires: admin role, { confirm: true } in request body
+ */
+usersRouter.delete('/:id/erase', requireAdmin(), auditLog('erase', 'user'), async (c) => {
+  try {
+    const db = getDB(c.env);
+    const organizationId = c.get('organizationId');
+    const currentUserId = c.get('userId');
+    const targetUserId = c.req.param('id');
+
+    const body = await c.req.json().catch(() => ({}));
+    if (!body.confirm) {
+      return c.json({ error: 'Erasure requires { "confirm": true } in request body' }, 400);
+    }
+
+    // Fetch the user (include inactive — erasure applies regardless)
+    const existingUser = await db.prepare(`
+      SELECT id, role FROM users WHERE id = ? AND organization_id = ?
+    `).bind(targetUserId, organizationId).first();
+
+    if (!existingUser) {
+      return c.json({ error: 'User not found' }, 404);
+    }
+
+    // Cannot erase yourself
+    if (targetUserId === currentUserId) {
+      return c.json({ error: 'Cannot erase your own account' }, 400);
+    }
+
+    // Cannot erase the owner
+    if (existingUser.role === 'owner') {
+      return c.json({ error: 'Cannot erase the organization owner' }, 400);
+    }
+
+    // Count records for response summary
+    const tokenCount = await db.prepare(
+      'SELECT COUNT(*) as count FROM refresh_tokens WHERE user_id = ?'
+    ).bind(targetUserId).first();
+
+    // Log the erasure request BEFORE deleting
+    const rightsLogId = generateId();
+
+    await db.batch([
+      db.prepare(`
+        INSERT INTO data_rights_log (id, organization_id, request_type, subject_type, subject_id, requested_by, status, completed_at)
+        VALUES (?, ?, 'erasure', 'user', ?, ?, 'completed', datetime('now'))
+      `).bind(rightsLogId, organizationId, targetUserId, currentUserId),
+
+      // Delete in FK order: tokens → password resets → user
+      db.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').bind(targetUserId),
+      db.prepare('DELETE FROM password_reset_tokens WHERE user_id = ?').bind(targetUserId),
+      db.prepare('DELETE FROM users WHERE id = ?').bind(targetUserId),
+
+      // Anonymise audit log entries that reference this user
+      db.prepare(`
+        UPDATE audit_log SET entity_id = 'erased', details = NULL
+        WHERE entity_type = 'user' AND entity_id = ? AND organization_id = ?
+      `).bind(targetUserId, organizationId),
+    ]);
+
+    return c.json({
+      message: 'User data erased successfully',
+      erased: {
+        refreshTokens: tokenCount.count,
+        userRecord: 1,
+        auditEntriesAnonymised: true
+      }
+    });
+
+  } catch (error) {
+    console.error('Erase user error:', error);
+    return c.json({ error: 'Failed to erase user' }, 500);
+  }
+});
+
+/**
  * POST /api/users/:id/reset-password
  * Reset a user's password (admin action)
  * Requires: admin role
@@ -546,6 +623,141 @@ usersRouter.post('/:id/reset-password', requireAdmin(), auditLog('update', 'user
     return c.json({ error: 'Failed to reset password' }, 500);
   }
 });
+
+/**
+ * GET /api/users/:id/export
+ * GDPR Article 15 — Subject Access Request export for staff/users
+ * Returns all personal data held on a user in JSON or CSV format
+ * Requires: owner role
+ */
+usersRouter.get('/:id/export', requireOwner(), async (c) => {
+  try {
+    const db = getDB(c.env);
+    const targetUserId = c.req.param('id');
+    const currentUserId = c.get('userId');
+    const format = (c.req.query('format') || 'json').toLowerCase();
+
+    if (!['json', 'csv'].includes(format)) {
+      return c.json({ error: 'Unsupported format. Use ?format=json or ?format=csv' }, 400);
+    }
+
+    // Fetch user with organization name
+    const user = await db.prepare(`
+      SELECT u.*, o.name as organization_name
+      FROM users u
+      LEFT JOIN organizations o ON u.organization_id = o.id
+      WHERE u.id = ?
+    `).bind(targetUserId).first();
+
+    if (!user) {
+      return c.json({ error: 'User not found' }, 404);
+    }
+
+    // Fetch audit log entries referencing this user
+    const auditEntries = await db.prepare(`
+      SELECT action, entity_type, entity_id, details, created_at
+      FROM audit_log
+      WHERE user_id = ? OR (entity_type = 'user' AND entity_id = ?)
+      ORDER BY created_at DESC
+    `).bind(targetUserId, targetUserId).all();
+
+    // Log the SAR in data_rights_log
+    await db.prepare(`
+      INSERT INTO data_rights_log (id, organization_id, request_type, subject_type, subject_id, requested_by, status, completed_at)
+      VALUES (?, ?, 'access', 'user', ?, ?, 'completed', datetime('now'))
+    `).bind(generateId(), user.organization_id, targetUserId, currentUserId).run();
+
+    const exportData = {
+      metadata: {
+        exportDate: new Date().toISOString(),
+        exportFormat: 'GDPR Article 15 Subject Access Request',
+        organization: user.organization_name || user.organization_id,
+        dataController: 'Scratch IT LTD'
+      },
+      user: {
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        organization: user.organization_name,
+        authProvider: user.auth_provider || 'local',
+        isActive: Boolean(user.is_active),
+        lastLoginAt: user.last_login_at,
+        createdAt: user.created_at,
+        updatedAt: user.updated_at
+      },
+      auditTrail: (auditEntries.results || []).map(a => ({
+        action: a.action,
+        entityType: a.entity_type,
+        entityId: a.entity_id,
+        details: a.details || null,
+        timestamp: a.created_at
+      }))
+    };
+
+    if (format === 'csv') {
+      const lines = [];
+      lines.push(`# GDPR Article 15 Subject Access Request`);
+      lines.push(`# Export Date: ${exportData.metadata.exportDate}`);
+      lines.push(`# Organization: ${exportData.metadata.organization}`);
+      lines.push(`# Data Controller: ${exportData.metadata.dataController}`);
+      lines.push('');
+
+      lines.push('## User Profile');
+      lines.push('Name,Email,Role,Organization,Auth Provider,Active,Last Login,Created,Updated');
+      const u = exportData.user;
+      lines.push(csvRow([
+        u.name, u.email, u.role, u.organization, u.authProvider,
+        u.isActive, u.lastLoginAt, u.createdAt, u.updatedAt
+      ]));
+      lines.push('');
+
+      if (exportData.auditTrail.length > 0) {
+        lines.push('## Audit Trail');
+        lines.push('Action,Entity Type,Entity ID,Details,Timestamp');
+        for (const a of exportData.auditTrail) {
+          lines.push(csvRow([a.action, a.entityType, a.entityId, a.details, a.timestamp]));
+        }
+      }
+
+      const csv = lines.join('\n');
+      const filename = `user-export-${user.name.replace(/[^a-zA-Z0-9]/g, '_')}-${new Date().toISOString().split('T')[0]}.csv`;
+
+      return new Response(csv, {
+        headers: {
+          'Content-Type': 'text/csv; charset=utf-8',
+          'Content-Disposition': `attachment; filename="${filename}"`
+        }
+      });
+    }
+
+    // JSON format (default)
+    const filename = `user-export-${user.name.replace(/[^a-zA-Z0-9]/g, '_')}-${new Date().toISOString().split('T')[0]}.json`;
+    return new Response(JSON.stringify(exportData, null, 2), {
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Content-Disposition': `attachment; filename="${filename}"`
+      }
+    });
+
+  } catch (error) {
+    console.error('Export user error:', error);
+    return c.json({ error: 'Failed to export user data' }, 500);
+  }
+});
+
+/**
+ * CSV helper: escape a value and wrap in quotes if needed
+ */
+function csvRow(values) {
+  return values.map(v => {
+    if (v === null || v === undefined) return '';
+    const str = String(v);
+    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  }).join(',');
+}
 
 /**
  * Generate a temporary password

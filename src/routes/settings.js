@@ -9,6 +9,7 @@ import {
 // Import utilities
 import { validateSettings } from '../utils/validation';
 import { badRequestError } from '../middleware/errorHandler';
+import { auditLog } from '../middleware/tenant';
 import { permissions, encryptSensitiveData, decryptSensitiveData } from '../utils/crypto';
 
 // Create router
@@ -79,7 +80,7 @@ settingsRouter.get('/', async (c) => {
  * POST /api/settings
  * Update application settings
  */
-settingsRouter.post('/', async (c) => {
+settingsRouter.post('/', auditLog('update', 'settings'), async (c) => {
   const body = await c.req.json();
   
   // Validate settings
@@ -225,7 +226,7 @@ settingsRouter.get('/ai', async (c) => {
  * POST /api/settings/ai
  * Update AI configuration
  */
-settingsRouter.post('/ai', async (c) => {
+settingsRouter.post('/ai', auditLog('update', 'ai_settings'), async (c) => {
   const body = await c.req.json();
   
   // Multi-tenant mode: use D1

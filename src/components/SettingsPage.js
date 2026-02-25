@@ -5,9 +5,11 @@ import {
   Paper,
   Tabs,
   Tab,
-  Chip
+  Chip,
+  Link
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
+import PolicyIcon from '@mui/icons-material/Policy';
 import SettingsIcon from '@mui/icons-material/Settings';
 import StorageIcon from '@mui/icons-material/Storage';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
@@ -115,6 +117,26 @@ const SettingsPage = () => {
           {canManageUsers && currentTab === 4 && <UserManagement />}
           {isOwner && currentTab === (canManageUsers ? 5 : 4) && <SchoolManagement />}
         </Box>
+      </Box>
+
+      <Box sx={{ mt: 3, textAlign: 'center' }}>
+        <Link
+          href="/privacy"
+          target="_blank"
+          rel="noopener"
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 0.5,
+            color: 'rgba(74, 74, 74, 0.5)',
+            fontSize: '0.85rem',
+            textDecoration: 'none',
+            '&:hover': { color: '#6B8E6B' },
+          }}
+        >
+          <PolicyIcon sx={{ fontSize: 16 }} />
+          Privacy Policy
+        </Link>
       </Box>
     </Box>
   );

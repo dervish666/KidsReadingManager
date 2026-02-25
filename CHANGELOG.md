@@ -1,5 +1,23 @@
 # Changelog
 
+## [3.6.0] - 2026-02-25
+
+### Added — UK GDPR Compliance
+- **Database migration (0025)**: Added `processing_restricted` and `ai_opt_out` columns to students, DPA consent columns to organizations, `data_rights_log` table for ICO-reportable request tracking, `wonde_erased_students` exclusion table
+- **Student erasure endpoint** (`DELETE /api/students/:id/erase`): Hard-deletes student data (sessions, preferences, student record), anonymises audit log entries, adds Wonde-synced students to exclusion list to prevent re-creation
+- **User erasure endpoint** (`DELETE /api/users/:id/erase`): Hard-deletes user data with cascade through tokens, anonymises audit log
+- **Subject Access Request export** (`GET /api/students/:id/export`, `GET /api/users/:id/export`): JSON and CSV format downloads with full data portability (Article 15/20)
+- **Processing restriction** (`PUT /api/students/:id/restrict`): Article 18 restriction flag that blocks session recording and AI recommendations; visual "Restricted" chip on student cards
+- **AI opt-out toggle** (`PUT /api/students/:id/ai-opt-out`): Per-student AI recommendation opt-out with toggle in Student Profile settings
+- **DPA consent recording**: Modal for admins/owners to accept the Data Processing Agreement on first login; consent tracked with version, timestamp, and accepting user
+- **Privacy policy links**: Added to landing page footer, email signup form, login page, and settings page (Article 13 compliance)
+- **90-day retention auto-deletion**: Scheduled handler now hard-deletes soft-deleted students, users, and inactive organizations after 90-day retention period
+- **Wonde erased student exclusion**: Sync now checks `wonde_erased_students` table to prevent re-creating GDPR-erased students from Wonde data
+
+### Improved
+- **Audit logging coverage**: Added `auditLog()` middleware to 13 additional routes across students (CRUD, sessions, bulk import), classes (CRUD), settings (app + AI config), and books (import, clear library)
+- **GDPR documentation**: Updated all 10 GDPR policy documents (privacy policy, DPA, DPIA, ROPA, data retention, subject rights, breach response, sub-processors, technical security, compliance checklist)
+
 ## [3.5.8] - 2026-02-24
 
 ### Updated

@@ -4,8 +4,8 @@
 **Status:** DRAFT
 **Version:** 0.1
 **Last Updated:** 2026-02-20
-**Owner:** `[TODO: Data Protection Officer / Responsible Person]`
-**Review Date:** `[TODO: Set annual review date]`
+**Owner:** Sam Castillo (Director, Scratch IT LTD)
+**Review Date:** 2027-02-20
 
 ---
 
@@ -101,15 +101,15 @@ Accidental or deliberate loss of access to, or destruction of, personal data.
 
 | Role | Name | Contact | Responsibilities |
 |------|------|---------|-----------------|
-| Incident Response Lead | `[TODO]` | `[TODO: phone + email]` | Overall coordination, decision-making, ICO liaison |
-| Technical Lead | `[TODO]` | `[TODO: phone + email]` | Investigation, containment, technical remediation |
-| Communications Lead | `[TODO]` | `[TODO: phone + email]` | School notifications, parent communication support, public statements |
+| Incident Response Lead | Sam Castillo | sam@tallyreading.uk | Overall coordination, decision-making, ICO liaison |
+| Technical Lead | Sam Castillo | sam@tallyreading.uk | Investigation, containment, technical remediation |
+| Communications Lead | Sam Castillo | sam@tallyreading.uk | School notifications, parent communication support, public statements |
 
 ### 3.2 Extended Support
 
 | Role | Contact | When Engaged |
 |------|---------|-------------|
-| Legal counsel | `[TODO: firm name + contact]` | Any breach likely to be reported to ICO, or involving potential legal liability |
+| Legal counsel | [TODO: Engage a data protection solicitor and record details here] | Any breach likely to be reported to ICO, or involving potential legal liability |
 | Cloudflare support | Enterprise support ticket or community plan escalation | Infrastructure-level incidents, D1/KV data loss |
 | ICO | 0303 123 1113 / ico.org.uk | When notification threshold is met (see Section 6) |
 
@@ -159,7 +159,7 @@ immediately    process
 
 Anyone who discovers or suspects a breach must immediately:
 
-1. **Report** to the Incident Response Lead via `[TODO: incident@tallyreading.uk]` and phone call.
+1. **Report** to the Incident Response Lead via incident@tallyreading.uk and phone call.
 2. **Do not** attempt to investigate or fix the issue independently (to avoid destroying evidence).
 3. **Record** the following initial details:
 
@@ -374,13 +374,12 @@ prepared a template communication below to assist you.]
 We sincerely apologise for this incident and are committed to preventing
 recurrence.
 
-For questions, contact [TODO: Name] at [TODO: phone] or
-[TODO: privacy@tallyreading.uk].
+For questions, contact Sam Castillo at privacy@tallyreading.uk.
 
 Reference: [REF-XXXX]
 
 Regards,
-[TODO: Name]
+Sam Castillo
 Incident Response Lead
 Tally Reading
 ```
@@ -408,7 +407,7 @@ If the breach is likely to result in a risk to the rights and freedoms of data s
 | Nature of the breach | Phase 3 assessment |
 | Categories and approximate number of data subjects | D1 query results from Phase 3 |
 | Categories and approximate number of personal data records | D1 query results from Phase 3 |
-| Name and contact details of DPO or other contact | `[TODO: DPO / contact details]` |
+| Name and contact details of DPO or other contact | Sam Castillo, Data Protection Lead, privacy@tallyreading.uk |
 | Likely consequences of the breach | Phase 3 risk assessment |
 | Measures taken or proposed to address the breach | Phase 2 containment + Phase 5 remediation |
 
@@ -562,7 +561,7 @@ All breaches are logged, including those assessed as not requiring ICO notificat
 ### 5.3 Storage and Retention
 
 - **Location:** `[TODO: Secure storage location -- encrypted document, internal database, or compliance tool]`
-- **Access:** Restricted to Incident Response Lead, Technical Lead, and `[TODO: DPO]`
+- **Access:** Restricted to Incident Response Lead, Technical Lead, and Data Protection Lead (Sam Castillo)
 - **Retention:** Breach register entries are retained for a minimum of **5 years** from the date the breach was resolved, to support accountability obligations and potential regulatory inquiry
 - **Format:** `[TODO: Spreadsheet / database / compliance tool]`
 
@@ -693,7 +692,7 @@ Conduct a simulated breach exercise at least once per year. Rotate through diffe
 
 Test all notification channels quarterly:
 
-- [ ] Incident email (`[TODO: incident@tallyreading.uk]`) reaches all team members
+- [ ] Incident email (incident@tallyreading.uk) reaches all team members
 - [ ] Phone numbers for Response Team are current and reachable
 - [ ] School contact details are up to date in the system
 - [ ] ICO online reporting form is accessible and bookmarked
@@ -721,18 +720,18 @@ Test all notification channels quarterly:
 | ICO postal address | Information Commissioner's Office, Wycliffe House, Water Lane, Wilmslow, Cheshire SK9 5AF |
 | Cloudflare support | `[TODO: Support plan details and contact method]` |
 | Legal counsel | `[TODO: Firm name, contact name, phone, email]` |
-| Tally incident email | `[TODO: incident@tallyreading.uk]` |
-| Tally privacy email | `[TODO: privacy@tallyreading.uk]` |
+| Tally incident email | incident@tallyreading.uk |
+| Tally privacy email | privacy@tallyreading.uk |
 
 ### 9.2 Related Documents
 
 | Document | Reference |
 |----------|-----------|
 | Data Subject Rights Procedures | GDPR-06 |
-| Data Processing Agreement | `[TODO: GDPR-XX]` |
-| Privacy Policy | `[TODO: GDPR-XX]` |
-| Data Protection Impact Assessment | `[TODO: GDPR-XX]` |
-| Data Retention Policy | `[TODO: GDPR-XX]` |
+| Data Processing Agreement | GDPR-02 |
+| Privacy Policy | GDPR-01 |
+| Data Protection Impact Assessment | GDPR-03 |
+| Data Retention Policy | GDPR-05 |
 
 ### 9.3 Legal References
 
@@ -747,6 +746,6 @@ Test all notification channels quarterly:
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
-| 0.1 | 2026-02-20 | `[TODO]` | Initial draft |
+| 0.1 | 2026-02-20 | Sam Castillo | Initial draft |
 
-**Next review date:** `[TODO: Set within 12 months]`
+**Next review date:** 2027-02-20

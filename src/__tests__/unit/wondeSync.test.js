@@ -416,6 +416,9 @@ describe('runFullSync', () => {
       if (sql.includes('SELECT') && sql.includes('classes') && sql.includes('wonde_class_id')) {
         return classLookupStatement;
       }
+      if (sql.includes('wonde_erased_students')) {
+        return { bind: vi.fn().mockReturnThis(), all: vi.fn().mockResolvedValue({ results: [] }) };
+      }
       if (sql.includes('SELECT') && sql.includes('students') && sql.includes('wonde_student_id')) {
         return studentLookupStatement;
       }
@@ -476,6 +479,9 @@ describe('runFullSync', () => {
       if (sql.includes('SELECT') && sql.includes('classes') && sql.includes('wonde_class_id')) {
         return classLookupStatement;
       }
+      if (sql.includes('wonde_erased_students')) {
+        return { bind: vi.fn().mockReturnThis(), all: vi.fn().mockResolvedValue({ results: [] }) };
+      }
       if (sql.includes('SELECT') && sql.includes('students') && sql.includes('wonde_student_id')) {
         return studentLookupStatement;
       }
@@ -524,6 +530,9 @@ describe('runFullSync', () => {
       }
       if (sql.includes('SELECT') && sql.includes('classes') && sql.includes('wonde_class_id')) {
         return classLookupStatement;
+      }
+      if (sql.includes('wonde_erased_students')) {
+        return { bind: vi.fn().mockReturnThis(), all: vi.fn().mockResolvedValue({ results: [] }) };
       }
       if (sql.includes('SELECT') && sql.includes('students') && sql.includes('wonde_student_id')) {
         return studentLookupStatement;
@@ -756,6 +765,9 @@ describe('runFullSync', () => {
       }
       if (sql.includes('INSERT INTO classes')) {
         return insertClassStatement;
+      }
+      if (sql.includes('wonde_erased_students')) {
+        return { bind: vi.fn().mockReturnThis(), all: vi.fn().mockResolvedValue({ results: [] }) };
       }
       if (sql.includes('SELECT') && sql.includes('students') && sql.includes('wonde_student_id')) {
         return studentLookupStatement;

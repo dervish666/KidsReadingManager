@@ -26,6 +26,10 @@ routes = [
 binding = "READING_MANAGER_DB"
 database_name = "reading-manager-db"
 database_id = "30afac38-bccf-436b-8197-b59dabc73384"
+migrations_dir = "migrations"
+# GDPR note: D1 location hint is set at database creation time (--location=weur).
+# Check current location in Cloudflare dashboard. If not weur, consider recreating
+# the database with: wrangler d1 create reading-manager-db --location=weur
 
 # R2 bucket for caching book cover images
 [[r2_buckets]]

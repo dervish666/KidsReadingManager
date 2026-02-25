@@ -43,22 +43,16 @@ schools until all items in this section are complete.
   registration number in all GDPR documents where `[TODO: ICO registration
   number]` appears.
 
-- [ ] **Obtain company details for all GDPR document placeholders.** The
-  following details appear as `[TODO]` markers across all documents in
-  `docs/gdpr/`:
-  - Registered company name (Companies House)
-  - Companies House registration number
-  - Registered office address
-  - Trading name confirmation (Tally / Tally Reading)
+- [x] **Obtain company details for all GDPR document placeholders.**
+  **COMPLETED 2026-02-25:** Scratch IT LTD (08151576), 247 Bishopsworth
+  Road, Bristol, BS13 7LH. Updated across all GDPR documents.
 
-- [ ] **Appoint a Data Protection Officer (DPO) or document why one is not
-  required.** Under Article 37 of UK GDPR, a DPO is mandatory if core
-  activities involve regular and systematic monitoring of data subjects on
-  a large scale, or large-scale processing of special category data.
-  Tally likely does not meet these thresholds as a small processor, but
-  this must be documented. Even if not legally required, appointing a
-  named privacy contact is recommended for school confidence. Document
-  the decision and record the privacy contact in all GDPR documents.
+- [x] **Appoint a Data Protection Officer (DPO) or document why one is not
+  required.** **COMPLETED 2026-02-25:** DPO not formally required under
+  Article 37 — Scratch IT LTD does not carry out large-scale systematic
+  monitoring or large-scale processing of special category data as a core
+  activity. Sam Castillo appointed as named Data Protection Lead and
+  privacy contact. Documented across all GDPR documents.
 
 - [ ] **Get legal review of Privacy Policy and DPA template.** Commission
   a qualified UK data protection solicitor to review:
@@ -93,17 +87,12 @@ the relevant source file(s).
 
 ### Data Minimisation
 
-- [ ] **Remove student names from AI recommendation prompts.** Currently,
+- [x] **Remove student names from AI recommendation prompts.** ~~Currently,
   the student's name is included in prompts sent to AI providers
-  (Anthropic, OpenAI, Google Gemini). This is unnecessary for generating
-  recommendations and shares directly identifying personal data with
-  third-party processors in the US.
-
-  Files to change:
-  - `src/services/aiService.js`, line 59: change `- Name: ${studentProfile.name}` to `- Student: [anonymised]` or remove entirely
-  - `src/services/aiService.js`, line 344: change `- Name: ${student.name}` to `- Student: [anonymised]` or remove entirely
-  - `src/services/aiService.js`, line 356: remove `${student.name}` from the task description (replace with "this student")
-  - `src/services/aiService.js`, line 366: remove `${student.name}` from the reason instruction
+  (Anthropic, OpenAI, Google Gemini).~~ **COMPLETED 2026-02-25:** Removed
+  all student name references from AI prompts in `src/services/aiService.js`.
+  Student names are no longer sent to any AI provider. Replaced with
+  "this student" in task descriptions and reason instructions.
 
   After deployment, update `docs/gdpr/08-sub-processor-register.md`
   (Section 3.2) to confirm that no directly identifying data is sent to
@@ -164,36 +153,22 @@ the relevant source file(s).
 All cleanup jobs should be added to the existing scheduled handler in
 `src/worker.js` (the daily cron trigger at 02:00 UTC, line 309).
 
-- [ ] **Add automated cleanup for expired refresh tokens.**
-  ```sql
-  DELETE FROM refresh_tokens WHERE expires_at < datetime('now')
-  ```
-  Run daily. Log the count of deleted records.
+- [x] **Add automated cleanup for expired refresh tokens.**
+  **COMPLETED 2026-02-25:** Added to daily cron handler in `src/worker.js`.
+  Deletes expired and revoked refresh tokens. Logs count of deleted records.
 
-- [ ] **Add automated cleanup for expired/used password reset tokens.**
-  ```sql
-  DELETE FROM password_reset_tokens
-  WHERE expires_at < datetime('now') OR used_at IS NOT NULL
-  ```
-  Run daily. Log the count of deleted records.
+- [x] **Add automated cleanup for expired/used password reset tokens.**
+  **COMPLETED 2026-02-25:** Added to daily cron handler in `src/worker.js`.
+  Deletes expired and used password reset tokens. Logs count of deleted records.
 
-- [ ] **Add automated cleanup for old login attempt records.**
-  ```sql
-  DELETE FROM login_attempts WHERE created_at < datetime('now', '-30 days')
-  ```
-  Run daily. Login attempts older than 30 days serve no security purpose
-  and contain IP addresses (personal data).
+- [x] **Add automated cleanup for old login attempt records.**
+  **COMPLETED 2026-02-25:** Added to daily cron handler in `src/worker.js`.
+  Deletes login attempts older than 30 days. Logs count of deleted records.
 
-- [ ] **Add IP address anonymisation for old audit log entries.**
-  ```sql
-  UPDATE audit_log
-  SET ip_address = 'anonymised', user_agent = 'anonymised'
-  WHERE created_at < datetime('now', '-90 days')
-  AND ip_address != 'anonymised'
-  ```
-  Run daily. Preserves the audit trail (who did what) while removing
-  personal data (IP address, user-agent) after the useful investigation
-  window.
+- [x] **Add IP address anonymisation for old audit log entries.**
+  **COMPLETED 2026-02-25:** Added to daily cron handler in `src/worker.js`.
+  Anonymises IP addresses and user-agents in audit log entries older than
+  90 days. Preserves the audit trail while removing personal data.
 
 ### Data Storage
 
@@ -246,10 +221,9 @@ All cleanup jobs should be added to the existing scheduled handler in
 
 ### Email Provider
 
-- [ ] **Set up DPA with email provider.** If using Resend (instead of or
-  in addition to Cloudflare Email Routing), obtain and sign Resend's DPA.
-  Check https://resend.com/legal for current terms. If using Cloudflare
-  Email Routing only, this is covered by the Cloudflare DPA.
+- [x] **Set up DPA with email provider.** **COMPLETED 2026-02-25:**
+  Confirmed using Cloudflare Email Routing only — covered by the
+  Cloudflare DPA. No separate email provider DPA required.
 
 ---
 
@@ -312,7 +286,7 @@ These items require recurring attention. Set calendar reminders.
 - [ ] **Set annual calendar reminder: review all GDPR documentation.**
   Review all documents in `docs/gdpr/` for accuracy against the current
   codebase and infrastructure. Update as needed. Next review due:
-  [TODO: Insert date, e.g. February 2027].
+  February 2027.
 
 - [ ] **Set annual calendar reminder: review and update DPIA.** If a Data
   Protection Impact Assessment has been conducted, review it annually
@@ -404,12 +378,12 @@ platform scales.
 | Document | File | Status |
 |---|---|---|
 | Privacy Policy | `docs/gdpr/01-privacy-policy.md` | Draft |
-| Data Processing Agreement | [TODO: Create as `docs/gdpr/02-data-processing-agreement.md`] | Not started |
-| Data Protection Impact Assessment | [TODO: Create as `docs/gdpr/03-dpia.md`] | Not started |
-| Data Retention Policy | [TODO: Create as `docs/gdpr/04-data-retention-policy.md`] | Not started |
-| Breach Response Plan | [TODO: Create as `docs/gdpr/05-breach-response-plan.md`] | Not started |
-| Legitimate Interests Assessments | [TODO: Create as `docs/gdpr/06-legitimate-interests-assessments.md`] | Not started |
-| Transfer Impact Assessment | [TODO: Create as `docs/gdpr/07-transfer-impact-assessment.md`] | Not started |
+| Data Processing Agreement | `docs/gdpr/02-data-processing-agreement.md` | Draft |
+| Data Protection Impact Assessment | `docs/gdpr/03-dpia.md` | Draft |
+| Records of Processing Activities | `docs/gdpr/04-ropa.md` | Draft |
+| Data Retention Policy | `docs/gdpr/05-data-retention-policy.md` | Draft |
+| Data Subject Rights Procedures | `docs/gdpr/06-data-subject-rights.md` | Draft |
+| Data Breach Response Plan | `docs/gdpr/07-data-breach-response-plan.md` | Draft |
 | Sub-Processor Register | `docs/gdpr/08-sub-processor-register.md` | Draft |
 | Technical Security Measures | `docs/gdpr/09-technical-security-measures.md` | Draft |
 | Compliance Checklist | `docs/gdpr/10-compliance-checklist.md` | Draft (this document) |

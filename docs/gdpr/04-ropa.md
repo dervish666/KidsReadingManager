@@ -9,7 +9,7 @@
 | **Status** | DRAFT |
 | **Last Updated** | 2026-02-20 |
 | **Next Review** | 2027-02-20 |
-| **Owner** | [TODO: Data Protection Lead name] |
+| **Owner** | Sam Castillo (Director, Scratch IT LTD) |
 
 ---
 
@@ -23,12 +23,12 @@ Schools (data controllers) engage Tally Reading to process personal data of stud
 
 | | |
 |---|---|
-| **Processor Name** | [TODO: Legal entity name -- e.g., Tally Reading Ltd] |
+| **Processor Name** | Scratch IT LTD (trading as Tally Reading) |
 | **Trading As** | Tally Reading |
 | **Website** | https://tallyreading.uk |
-| **ICO Registration Number** | [TODO: ICO registration number -- registration fee is GBP 40 or GBP 2,900 depending on tier] |
-| **Data Protection Officer** | [TODO: DPO name, email, and phone number -- or state "Not required under Article 37" with justification] |
-| **Contact for Data Subjects** | [TODO: privacy@tallyreading.uk or equivalent] |
+| **ICO Registration Number** | [TODO: Insert once obtained] |
+| **Data Protection Lead** | Sam Castillo (sam@tallyreading.uk). DPO not formally required under Article 37 — Scratch IT LTD does not carry out large-scale systematic monitoring or large-scale processing of special category data as a core activity. |
+| **Contact for Data Subjects** | privacy@tallyreading.uk |
 | **Date of Register** | 2026-02-20 |
 
 ### 1.2 Controllers
@@ -91,13 +91,13 @@ Tally Reading processes data on behalf of multiple controllers (UK primary schoo
 | **Processing Activity** | AI-powered book recommendations |
 | **Purpose** | Generating personalised book recommendations based on student reading profile to support reading development |
 | **Data Subjects** | Students (children, typically aged 4--11) |
-| **Categories of Personal Data** | Reading profile: reading level range, genre preferences, books previously read, focus mode (balanced/consolidation/challenge). **Note:** Student name is currently included in the AI prompt -- this is flagged for removal as it is not necessary for generating recommendations [TODO: Remove student name from AI prompts -- implement pseudonymisation] |
+| **Categories of Personal Data** | Reading profile: reading level range, genre preferences, books previously read, focus mode (balanced/consolidation/challenge). **No directly identifying data (such as student names) is sent to AI providers.** (Remediated 2026-02-25) |
 | **Lawful Basis (Controller's)** | Consent (school enables AI features via organisation settings; can be disabled per-school) |
 | **Source of Data** | Derived from student reading tracking data (see 2.1) |
 | **Recipients / Categories of Recipients** | Third-party AI provider, determined by school's configuration: Anthropic (US), OpenAI (US), or Google (US). Schools provide their own API keys (BYOK model) |
 | **Retention Period** | Not retained by Tally Reading in persistent storage. Data is sent as a transient API call. Responses may be cached in Cloudflare KV (hashed input as key) for up to 7 days for performance/cost optimisation. AI providers' own retention policies apply -- see sub-processor register |
 | **International Transfers** | **Yes -- to the United States.** Transfer mechanism: [TODO: Confirm transfer mechanism -- likely UK IDTA or EU-US Data Privacy Framework adequacy decision where applicable. Document in Transfer Impact Assessment] |
-| **Technical and Organisational Measures** | School-controlled enablement (opt-in), BYOK API keys (encrypted at rest in D1), SQL pre-filtering limits data sent to AI (only ~100 randomised books from filtered set), no student identifiers necessary for recommendation quality [TODO: pseudonymise student data in prompts], KV cache uses hashed inputs (not reversible to student identity), HTTPS for API calls |
+| **Technical and Organisational Measures** | School-controlled enablement (opt-in), BYOK API keys (encrypted at rest in D1), SQL pre-filtering limits data sent to AI (only ~100 randomised books from filtered set), student names removed from prompts (2026-02-25), KV cache uses hashed inputs (not reversible to student identity), HTTPS for API calls |
 
 ### 2.5 Book Cover Retrieval
 
@@ -124,9 +124,9 @@ Tally Reading processes data on behalf of multiple controllers (UK primary schoo
 | **Categories of Personal Data** | Email address, name |
 | **Lawful Basis (Controller's)** | Contract (necessary for account management and security communications) |
 | **Source of Data** | User account data (see 2.2) |
-| **Recipients / Categories of Recipients** | Email delivery provider: Cloudflare Email Routing / [TODO: Confirm if Resend or other provider is also used -- check production configuration] |
+| **Recipients / Categories of Recipients** | Email delivery provider: Cloudflare Email Routing (covered under Cloudflare DPA) |
 | **Retention Period** | Transient -- emails are sent and not stored by Tally Reading. Provider retention policies apply |
-| **International Transfers** | Depends on email provider. Cloudflare: [TODO: Confirm Cloudflare Email Routing data jurisdiction]. [TODO: Document all email sub-processors and their transfer mechanisms] |
+| **International Transfers** | Cloudflare Email Routing — data processed within Cloudflare infrastructure. Transfer mechanism covered by Cloudflare DPA. |
 | **Technical and Organisational Measures** | Emails sent only for legitimate system purposes (password reset, security alerts), sender address configured per deployment, no marketing emails sent |
 
 ### 2.7 Audit Logging
@@ -198,13 +198,13 @@ Under Article 28(2) UK GDPR, the following sub-processors are engaged:
 | Sub-Processor | Purpose | Data Processed | Location | Transfer Mechanism |
 |---|---|---|---|---|
 | Cloudflare, Inc. | Infrastructure: Workers (compute), D1 (database), KV (cache), R2 (object storage), CDN, Email Routing | All application data | [TODO: Confirm -- US/EU. Investigate Cloudflare Data Localisation Suite for UK/EU data residency] | [TODO: UK IDTA / SCCs / adequacy decision] |
-| Anthropic | AI book recommendations (when selected by school) | Reading profile, student name* | United States | [TODO: UK IDTA or equivalent] |
-| OpenAI | AI book recommendations (when selected by school) | Reading profile, student name* | United States | [TODO: UK IDTA or equivalent] |
-| Google (Vertex AI / Gemini) | AI book recommendations (when selected by school) | Reading profile, student name* | United States | [TODO: UK IDTA or equivalent] |
+| Anthropic | AI book recommendations (when selected by school) | Reading profile (no student names) | United States | [TODO: UK IDTA or equivalent] |
+| OpenAI | AI book recommendations (when selected by school) | Reading profile (no student names) | United States | [TODO: UK IDTA or equivalent] |
+| Google (Vertex AI / Gemini) | AI book recommendations (when selected by school) | Reading profile (no student names) | United States | [TODO: UK IDTA or equivalent] |
 | OpenLibrary (Internet Archive) | Book metadata and cover image lookup | ISBN, title, author (non-personal) | United States | N/A -- no personal data |
-| [TODO: Email provider] | Transactional email delivery | Email address, name | [TODO: Confirm] | [TODO: Confirm] |
+| Cloudflare Email Routing | Transactional email delivery | Email address, name | Cloudflare infrastructure | Covered under Cloudflare DPA |
 
-*Student name is currently included in AI prompts -- flagged for removal. See section 2.4.
+*Student names removed from AI prompts as of 2026-02-25. Only pseudonymised reading profile data is shared.
 
 ---
 
@@ -212,9 +212,9 @@ Under Article 28(2) UK GDPR, the following sub-processors are engaged:
 
 | Transfer | Destination | Personal Data? | Safeguard |
 |---|---|---|---|
-| AI recommendations | US (Anthropic/OpenAI/Google) | Yes (reading profile, student name*) | [TODO: UK IDTA / Transfer Impact Assessment required] |
+| AI recommendations | US (Anthropic/OpenAI/Google) | Yes (reading profile, no student names) | [TODO: UK IDTA / Transfer Impact Assessment required] |
 | Book cover retrieval | US (OpenLibrary) | No | N/A |
-| Email delivery | [TODO: Confirm] | Yes (email, name) | [TODO: Confirm] |
+| Email delivery | Cloudflare infrastructure | Yes (email, name) | Covered under Cloudflare DPA |
 | Cloudflare infrastructure | [TODO: Confirm data residency] | Yes (all data) | [TODO: Evaluate Cloudflare Data Localisation Suite. UK IDTA / SCCs as appropriate] |
 
 [TODO: Complete Transfer Impact Assessments for each US transfer involving personal data. Consider whether UK adequacy regulations for the US (if applicable) cover these transfers.]
@@ -250,7 +250,7 @@ The following measures are implemented to protect personal data:
 - Book search (FTS5) operates on non-personal catalog data only
 - Rate limiting stores minimal data (IP, endpoint, timestamp)
 - AI recommendations use pre-filtered subset (~100 books from SQL query) rather than full student history
-- [TODO: Remove student name from AI recommendation prompts]
+- Student names removed from AI recommendation prompts (2026-02-25)
 
 ### 5.6 Availability and Resilience
 - Cloudflare Workers: globally distributed, automatic failover
@@ -271,7 +271,8 @@ This register must be reviewed:
 
 | Review Date | Reviewer | Changes Made |
 |---|---|---|
-| 2026-02-20 | [TODO: Name] | Initial draft created |
+| 2026-02-20 | Sam Castillo | Initial draft created |
+| 2026-02-25 | Sam Castillo | Company details added, AI prompt pseudonymisation confirmed, email provider confirmed as Cloudflare Email Routing, automated cleanup jobs implemented |
 
 ---
 
@@ -279,13 +280,13 @@ This register must be reviewed:
 
 | Item | Priority | Status |
 |---|---|---|
-| Remove student name from AI recommendation prompts | High | [TODO: Implement pseudonymisation] |
+| ~~Remove student name from AI recommendation prompts~~ | ~~High~~ | **COMPLETED 2026-02-25** |
 | Confirm Cloudflare D1 data residency and encryption | High | [TODO: Review Cloudflare documentation / Data Localisation Suite] |
 | Complete Transfer Impact Assessments for US transfers | High | [TODO: TIA for Anthropic, OpenAI, Google, Cloudflare] |
-| Confirm email sub-processor and transfer mechanism | Medium | [TODO: Document production email configuration] |
+| ~~Confirm email sub-processor and transfer mechanism~~ | ~~Medium~~ | **COMPLETED 2026-02-25** — Cloudflare Email Routing confirmed |
 | Appoint DPO or document Article 37 exemption | Medium | [TODO: Legal assessment required] |
 | Register with ICO | High | [TODO: Complete ICO registration -- GBP 40 Tier 1 fee] |
-| Implement automated data retention cleanup jobs | High | [TODO: See Data Retention Policy GDPR-05] |
+| ~~Implement automated data retention cleanup jobs~~ | ~~High~~ | **COMPLETED 2026-02-25** — Daily cron cleanup for tokens, login attempts, audit log anonymisation |
 | Document D1 backup and disaster recovery procedures | Medium | [TODO: Cloudflare D1 backup documentation] |
 
 ---

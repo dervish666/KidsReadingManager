@@ -4,8 +4,8 @@
 **Status:** DRAFT
 **Version:** 0.1
 **Last Updated:** 2026-02-20
-**Owner:** `[TODO: Data Protection Officer / Responsible Person]`
-**Review Date:** `[TODO: Set annual review date]`
+**Owner:** Sam Castillo (Director, Scratch IT LTD)
+**Review Date:** 2027-02-20
 
 ---
 
@@ -16,7 +16,7 @@ This document describes how Tally Reading ("Tally") handles data subject rights 
 ### 1.1 Controller-Processor Relationship
 
 - **Data Controllers:** Schools using Tally Reading to track student reading progress.
-- **Data Processor:** Tally Reading (operated by `[TODO: Legal entity name]`), which processes personal data on behalf of schools.
+- **Data Processor:** Tally Reading (operated by Scratch IT LTD), which processes personal data on behalf of schools.
 - **Data Subjects:** Students (children aged 4-11), school staff (teachers, admins), and parents/carers.
 
 Because students are children, their data rights are exercised by the school (as controller) acting on requests from parents/carers. Tally does not accept rights requests directly from parents or students -- all requests must come through the school.
@@ -47,8 +47,8 @@ Data subjects have the right to obtain confirmation of whether their personal da
 ### 2.2 Request Channels
 
 1. **Authenticated API request** from a school admin or owner (preferred)
-2. **Email** to `[TODO: privacy@tallyreading.uk]` from a verified school contact
-3. **Support portal** at `[TODO: support URL]`
+2. **Email** to privacy@tallyreading.uk from a verified school contact
+3. **Support portal** at https://tallyreading.uk (contact form)
 
 ### 2.3 Verification
 
@@ -797,9 +797,9 @@ If we require any additional information to locate or verify the data
 subject, we will contact you promptly.
 
 Regards,
-[TODO: Name]
+Sam Castillo
 Tally Reading
-[TODO: privacy@tallyreading.uk]
+privacy@tallyreading.uk
 ```
 
 ### 10.2 Completion Template
@@ -821,10 +821,10 @@ live systems. Cached data (AI recommendations) will expire within 7 days.]
 [If restriction: Processing has been restricted. Data is retained but
 excluded from all processing until you notify us to lift the restriction.]
 
-If you have any questions, please contact us at [TODO: privacy@tallyreading.uk].
+If you have any questions, please contact us at privacy@tallyreading.uk.
 
 Regards,
-[TODO: Name]
+Sam Castillo
 Tally Reading
 ```
 
@@ -834,7 +834,7 @@ Tally Reading
 
 If Tally cannot fulfil a request within the stated timelines, or if there is a dispute about the validity of a request:
 
-1. `[TODO: Incident Response Lead]` is notified within 1 business day of the delay.
+1. Sam Castillo (Incident Response Lead) is notified within 1 business day of the delay.
 2. The controller is informed of the delay and given a revised timeline.
 3. If the dispute cannot be resolved, the controller is advised to contact the ICO.
 
@@ -856,4 +856,4 @@ This document is reviewed:
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
-| 0.1 | 2026-02-20 | `[TODO]` | Initial draft |
+| 0.1 | 2026-02-20 | Sam Castillo | Initial draft |

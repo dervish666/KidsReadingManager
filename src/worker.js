@@ -350,6 +350,105 @@ export default {
       console.error('[Cron] Streak recalculation failed:', error.message);
     }
 
+    // GDPR data retention cleanup jobs
+    try {
+      // Clean up expired refresh tokens
+      const expiredRefresh = await db.prepare(
+        `DELETE FROM refresh_tokens WHERE expires_at < datetime('now') OR revoked_at IS NOT NULL`
+      ).run();
+      console.log(`[Cron] Cleaned up ${expiredRefresh.meta?.changes || 0} expired/revoked refresh tokens`);
+
+      // Clean up expired or used password reset tokens
+      const expiredReset = await db.prepare(
+        `DELETE FROM password_reset_tokens WHERE expires_at < datetime('now') OR used_at IS NOT NULL`
+      ).run();
+      console.log(`[Cron] Cleaned up ${expiredReset.meta?.changes || 0} expired/used password reset tokens`);
+
+      // Clean up login attempts older than 30 days (contains IP addresses - personal data)
+      const oldLogins = await db.prepare(
+        `DELETE FROM login_attempts WHERE created_at < datetime('now', '-30 days')`
+      ).run();
+      console.log(`[Cron] Cleaned up ${oldLogins.meta?.changes || 0} login attempts older than 30 days`);
+
+      // Anonymise IP addresses and user-agents in audit logs older than 90 days
+      const anonAudit = await db.prepare(
+        `UPDATE audit_log SET ip_address = 'anonymised', user_agent = 'anonymised' WHERE created_at < datetime('now', '-90 days') AND ip_address != 'anonymised' AND ip_address IS NOT NULL`
+      ).run();
+      console.log(`[Cron] Anonymised ${anonAudit.meta?.changes || 0} audit log entries older than 90 days`);
+
+      // Clean up stale rate limit records (older than 1 hour)
+      const oldRateLimits = await db.prepare(
+        `DELETE FROM rate_limits WHERE created_at < datetime('now', '-1 hour')`
+      ).run();
+      console.log(`[Cron] Cleaned up ${oldRateLimits.meta?.changes || 0} stale rate limit records`);
+    } catch (error) {
+      console.error('[Cron] GDPR data retention cleanup failed:', error.message);
+    }
+
+    // Auto hard-delete soft-deleted records after 90-day retention period
+    try {
+      // Hard-delete soft-deleted students (cascade: sessions → preferences → student)
+      const staleStudents = await db.prepare(
+        `SELECT id FROM students WHERE is_active = 0 AND updated_at < datetime('now', '-90 days')`
+      ).bind().all();
+
+      let studentsDeleted = 0;
+      for (const student of (staleStudents.results || [])) {
+        await db.batch([
+          db.prepare('DELETE FROM reading_sessions WHERE student_id = ?').bind(student.id),
+          db.prepare('DELETE FROM student_preferences WHERE student_id = ?').bind(student.id),
+          db.prepare('DELETE FROM students WHERE id = ?').bind(student.id),
+        ]);
+        studentsDeleted++;
+      }
+      if (studentsDeleted > 0) {
+        console.log(`[Cron] Hard-deleted ${studentsDeleted} soft-deleted students past 90-day retention`);
+      }
+
+      // Hard-delete soft-deleted users (cascade: refresh_tokens → password_reset_tokens → user)
+      const staleUsers = await db.prepare(
+        `SELECT id FROM users WHERE is_active = 0 AND updated_at < datetime('now', '-90 days')`
+      ).bind().all();
+
+      let usersDeleted = 0;
+      for (const user of (staleUsers.results || [])) {
+        await db.batch([
+          db.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').bind(user.id),
+          db.prepare('DELETE FROM password_reset_tokens WHERE user_id = ?').bind(user.id),
+          db.prepare('DELETE FROM users WHERE id = ?').bind(user.id),
+        ]);
+        usersDeleted++;
+      }
+      if (usersDeleted > 0) {
+        console.log(`[Cron] Hard-deleted ${usersDeleted} soft-deleted users past 90-day retention`);
+      }
+
+      // Hard-delete inactive organizations (only if no active students or users remain)
+      const staleOrgs = await db.prepare(
+        `SELECT id FROM organizations WHERE is_active = 0 AND updated_at < datetime('now', '-90 days')`
+      ).bind().all();
+
+      let orgsDeleted = 0;
+      for (const org of (staleOrgs.results || [])) {
+        const activeStudents = await db.prepare(
+          'SELECT COUNT(*) as count FROM students WHERE organization_id = ? AND is_active = 1'
+        ).bind(org.id).first();
+        const activeUsers = await db.prepare(
+          'SELECT COUNT(*) as count FROM users WHERE organization_id = ? AND is_active = 1'
+        ).bind(org.id).first();
+
+        if ((activeStudents?.count || 0) === 0 && (activeUsers?.count || 0) === 0) {
+          await db.prepare('DELETE FROM organizations WHERE id = ?').bind(org.id).run();
+          orgsDeleted++;
+        }
+      }
+      if (orgsDeleted > 0) {
+        console.log(`[Cron] Hard-deleted ${orgsDeleted} inactive organizations past 90-day retention`);
+      }
+    } catch (error) {
+      console.error('[Cron] Retention auto-deletion failed:', error.message);
+    }
+
     // Wonde daily delta sync
     try {
       const wondeOrgs = await db.prepare(

@@ -17,6 +17,7 @@ import ReadingStats from './components/stats/ReadingStats';
 import BookRecommendations from './components/BookRecommendations';
 import BookManager from './components/books/BookManager';
 import SettingsPage from './components/SettingsPage';
+import DpaConsentModal from './components/DpaConsentModal';
 
 // Import custom navigation icons
 import iconStudents from './assets/icon-students.png';
@@ -173,6 +174,7 @@ function AppContent() {
       <BookshelfBorder side="right" />
 
       <Header />
+      <DpaConsentModal />
 
       <Container
         component="main"

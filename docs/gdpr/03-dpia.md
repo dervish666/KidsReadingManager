@@ -7,10 +7,10 @@
 | **Document Status** | DRAFT -- Requires DPO and legal review before finalisation |
 | **Version** | 0.1 |
 | **Date** | 2026-02-20 |
-| **Author** | [TODO: Name and role of person completing this DPIA] |
-| **DPO Reviewer** | [TODO: DPO name or external DPO service] |
+| **Author** | Sam Castillo, Director, Scratch IT LTD |
+| **DPO Reviewer** | Sam Castillo (Data Protection Lead) |
 | **Next Review Date** | 2027-02-20 (annual) or on significant system change |
-| **ICO Registration** | [TODO: ICO registration reference number] |
+| **ICO Registration** | [TODO: Insert ICO registration number once obtained] |
 
 ---
 
@@ -55,7 +55,7 @@ This DPIA covers all personal data processing performed by the Tally Reading app
 | Role | Entity | Basis |
 |---|---|---|
 | **Data Controller** | Each subscribing school | The school determines the purposes and means of processing student data |
-| **Data Processor** | Tally (operated by [TODO: legal entity name]) | Tally processes data on behalf of schools under a Data Processing Agreement |
+| **Data Processor** | Tally (operated by Scratch IT LTD) | Tally processes data on behalf of schools under a Data Processing Agreement |
 | **Sub-Processors** | Cloudflare, Inc. (infrastructure); Anthropic / OpenAI / Google (AI, optional, BYOK) | See Section 2.5 |
 
 ---
@@ -109,8 +109,8 @@ Tally Reading enables UK primary schools to:
 
 | Data Field | Example | Storage Location | Retention |
 |---|---|---|---|
-| Full name | "Mrs. Davies" | D1 `users.name` | Until account deactivation + [TODO: retention period] |
-| Email address | "j.davies@school.sch.uk" | D1 `users.email` | Until account deactivation + [TODO: retention period] |
+| Full name | "Mrs. Davies" | D1 `users.name` | Until account deactivation + 90 days |
+| Email address | "j.davies@school.sch.uk" | D1 `users.email` | Until account deactivation + 90 days |
 | Password hash | PBKDF2 (100,000 iterations, SHA-256) | D1 `users.password_hash` | Until account deactivation |
 | Role | "teacher" / "admin" / "owner" / "readonly" | D1 `users.role` | Until account deactivation |
 | Last login timestamp | "2026-02-15T09:30:00Z" | D1 `users.last_login_at` | Until account deactivation |

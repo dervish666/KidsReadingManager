@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import PsychologyIcon from '@mui/icons-material/Psychology';
+import BlockIcon from '@mui/icons-material/Block';
 import { useAppContext } from '../../contexts/AppContext';
 import { useTheme } from '@mui/material/styles';
 import StudentSessions from '../sessions/StudentSessions';
@@ -127,17 +128,34 @@ const StudentCard = ({ student }) => {
               </Typography>
             }
             subheader={
-              <Typography
-                variant="body2"
-                sx={{
-                  fontFamily: '"DM Sans", sans-serif',
-                  color: '#7A7A7A',
-                  fontSize: '0.875rem',
-                  mt: 0.5
-                }}
-              >
-                {className}
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.5 }}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontFamily: '"DM Sans", sans-serif',
+                    color: '#7A7A7A',
+                    fontSize: '0.875rem',
+                  }}
+                >
+                  {className}
+                </Typography>
+                {student.processingRestricted && (
+                  <Chip
+                    icon={<BlockIcon sx={{ fontSize: 12 }} />}
+                    label="Restricted"
+                    size="small"
+                    sx={{
+                      height: 20,
+                      fontSize: '0.65rem',
+                      fontWeight: 700,
+                      backgroundColor: '#FDE8E8',
+                      color: '#C53030',
+                      '& .MuiChip-icon': { color: '#C53030' },
+                      border: '1px solid #FEB2B2'
+                    }}
+                  />
+                )}
+              </Box>
             }
             action={
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

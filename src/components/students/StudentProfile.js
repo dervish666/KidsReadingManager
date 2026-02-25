@@ -21,6 +21,8 @@ import {
   InputLabel,
   Tabs,
   Tab,
+  Switch,
+  FormControlLabel,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -47,6 +49,7 @@ const StudentProfile = ({ open, onClose, student }) => {
     classes,
     updateStudent,
     addGenre,
+    fetchWithAuth,
   } = useAppContext();
 
   // Tab state
@@ -57,6 +60,7 @@ const StudentProfile = ({ open, onClose, student }) => {
   const [classId, setClassId] = useState('');
   const [readingLevelMin, setReadingLevelMin] = useState(null);
   const [readingLevelMax, setReadingLevelMax] = useState(null);
+  const [aiOptOut, setAiOptOut] = useState(false);
 
   // Reading preferences state
   const [selectedGenres, setSelectedGenres] = useState([]);
@@ -90,6 +94,7 @@ const StudentProfile = ({ open, onClose, student }) => {
       setClassId(student.classId || '');
       setReadingLevelMin(student.readingLevelMin ?? null);
       setReadingLevelMax(student.readingLevelMax ?? null);
+      setAiOptOut(Boolean(student.aiOptOut));
 
       // Reading preferences
       const preferences = student.preferences || {};
@@ -107,6 +112,7 @@ const StudentProfile = ({ open, onClose, student }) => {
       setClassId('');
       setReadingLevelMin(null);
       setReadingLevelMax(null);
+      setAiOptOut(false);
       setSelectedGenres([]);
       setLikes([]);
       setDislikes([]);
@@ -153,6 +159,27 @@ const StudentProfile = ({ open, onClose, student }) => {
     }
   };
 
+  const handleAiOptOutToggle = async (event) => {
+    const newValue = event.target.checked;
+    setAiOptOut(newValue);
+    try {
+      const response = await fetchWithAuth(`/api/students/${student.id}/ai-opt-out`, {
+        method: 'PUT',
+        body: JSON.stringify({ optOut: newValue }),
+      });
+      if (!response.ok) throw new Error('Failed to update AI opt-out');
+      setSnackbarMessage(newValue ? 'AI recommendations disabled' : 'AI recommendations enabled');
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+    } catch (error) {
+      // Revert on failure
+      setAiOptOut(!newValue);
+      setSnackbarMessage('Failed to update AI opt-out setting');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    }
+  };
+
   const handleClose = () => {
     // Reset to student data
     if (student) {
@@ -160,6 +187,7 @@ const StudentProfile = ({ open, onClose, student }) => {
       setClassId(student.classId || '');
       setReadingLevelMin(student.readingLevelMin ?? null);
       setReadingLevelMax(student.readingLevelMax ?? null);
+      setAiOptOut(Boolean(student.aiOptOut));
 
       const preferences = student.preferences || {};
       setSelectedGenres(preferences.favoriteGenreIds || []);
@@ -314,6 +342,39 @@ const StudentProfile = ({ open, onClose, student }) => {
                         setReadingLevelMax(max);
                       }}
                       disabled={false}
+                    />
+                  </Box>
+
+                  {/* AI Opt-Out */}
+                  <Box sx={{
+                    p: 2,
+                    borderRadius: '8px',
+                    backgroundColor: aiOptOut ? 'rgba(211, 47, 47, 0.04)' : 'rgba(46, 125, 50, 0.04)',
+                    border: '1px solid',
+                    borderColor: aiOptOut ? 'rgba(211, 47, 47, 0.2)' : 'rgba(46, 125, 50, 0.2)',
+                  }}>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={aiOptOut}
+                          onChange={handleAiOptOutToggle}
+                          color={aiOptOut ? 'error' : 'success'}
+                        />
+                      }
+                      label={
+                        <Box>
+                          <Typography variant="subtitle2">
+                            AI Book Recommendations
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {aiOptOut
+                              ? 'Disabled — this student\'s reading data will not be sent to AI providers.'
+                              : 'Enabled — AI will generate personalised book recommendations for this student.'}
+                          </Typography>
+                        </Box>
+                      }
+                      labelPlacement="start"
+                      sx={{ ml: 0, width: '100%', justifyContent: 'space-between' }}
                     />
                   </Box>
                 </Box>

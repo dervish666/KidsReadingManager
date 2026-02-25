@@ -73,25 +73,21 @@ with the provider.
 
 **\* Data minimisation concern -- student names:**
 
-The AI recommendation prompt currently includes the student's name (see
-`src/services/aiService.js`, lines 59 and 344). This is flagged for
-removal. Once remediated, only pseudonymised reading profile data (reading
-level, genre preferences, book history) will be sent to AI providers. No
-directly identifying personal data will be shared.
-
-[TODO: Remove student name from AI prompts (src/services/aiService.js).
-Update this register once the change is deployed.]
+**REMEDIATED 2026-02-25:** Student names have been removed from all AI
+recommendation prompts in `src/services/aiService.js`. Only pseudonymised
+reading profile data (reading level, genre preferences, book history) is
+now sent to AI providers. No directly identifying personal data is shared
+with any AI sub-processor.
 
 ### 3.3 Optional Sub-Processors (Transactional Email)
 
 | Sub-processor | Purpose | Data Processed | Location | DPA Status | Transfer Mechanism |
 |---|---|---|---|---|---|
-| **Resend** (if used instead of Cloudflare Email Routing) | Transactional emails: password reset links, account welcome emails, account invitation emails | Staff user email address, staff user display name, email message content (password reset links, invitation URLs) | US | [TODO: Obtain Resend DPA. Check https://resend.com/legal for current data processing terms. Download, review, and countersign.] | UK IDTA / SCCs. [TODO: Confirm transfer mechanism and retain signed documentation.] |
-
-**Note:** Tally currently uses Cloudflare Email Routing (covered under the
-Cloudflare DPA above) for transactional email. Resend is listed as an
-alternative provider that may be adopted. If Resend is adopted, a DPA must
-be obtained before processing begins.
+**Confirmed 2026-02-25:** Tally uses Cloudflare Email Routing for all
+transactional email. This is covered under the Cloudflare DPA (Section 3.1
+above). No separate email sub-processor is currently in use. If Resend or
+another provider is adopted in future, a DPA must be obtained before
+processing begins.
 
 ### 3.4 Third-Party Services (No Personal Data Processed)
 
@@ -137,8 +133,7 @@ Each notification will include:
 
 Schools have the right to object to the appointment of a new or
 replacement sub-processor within the 30-day notice period. Objections
-must be submitted in writing to [TODO: Insert contact email, e.g.
-privacy@tallyreading.uk].
+must be submitted in writing to privacy@tallyreading.uk.
 
 Upon receiving a valid objection, Tally will:
 
@@ -181,8 +176,7 @@ Before engaging any new sub-processor, Tally will:
 
 This register is reviewed:
 
-- At least **annually** (next review due: [TODO: Insert date, e.g.
-  February 2027])
+- At least **annually** (next review due: February 2027)
 - Whenever a sub-processor is added, removed, or materially changed
 - Upon request by a controller school
 

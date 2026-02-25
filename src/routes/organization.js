@@ -37,6 +37,9 @@ const rowToOrganization = (row) => {
     wondeSchoolId: row.wonde_school_id || null,
     wondeLastSyncAt: row.wonde_last_sync_at || null,
     myloginOrgId: row.mylogin_org_id || null,
+    consentGivenAt: row.consent_given_at || null,
+    consentVersion: row.consent_version || null,
+    consentGivenBy: row.consent_given_by || null,
   };
 };
 
@@ -458,6 +461,92 @@ organizationRouter.get('/audit-log', requireAdmin(), async (c) => {
   } catch (error) {
     console.error('Get audit log error:', error);
     return c.json({ error: 'Failed to get audit log' }, 500);
+  }
+});
+
+/**
+ * GET /api/organization/dpa-consent
+ * Get DPA consent status for the current organization
+ */
+organizationRouter.get('/dpa-consent', async (c) => {
+  try {
+    const db = getDB(c.env);
+    const organizationId = c.get('organizationId');
+
+    const org = await db.prepare(`
+      SELECT consent_given_at, consent_version, consent_given_by
+      FROM organizations WHERE id = ?
+    `).bind(organizationId).first();
+
+    if (!org) {
+      return c.json({ error: 'Organization not found' }, 404);
+    }
+
+    let consentGivenByName = null;
+    if (org.consent_given_by) {
+      const user = await db.prepare(
+        'SELECT name FROM users WHERE id = ?'
+      ).bind(org.consent_given_by).first();
+      consentGivenByName = user?.name || null;
+    }
+
+    return c.json({
+      consent: {
+        given: Boolean(org.consent_given_at),
+        givenAt: org.consent_given_at || null,
+        version: org.consent_version || null,
+        givenBy: consentGivenByName,
+      }
+    });
+
+  } catch (error) {
+    console.error('Get DPA consent error:', error);
+    return c.json({ error: 'Failed to get DPA consent status' }, 500);
+  }
+});
+
+/**
+ * POST /api/organization/dpa-consent
+ * Record DPA consent for the current organization
+ * Requires: admin role
+ *
+ * Body: {
+ *   version: string (e.g. "1.0")
+ * }
+ */
+organizationRouter.post('/dpa-consent', requireAdmin(), auditLog('consent', 'organization'), async (c) => {
+  try {
+    const db = getDB(c.env);
+    const organizationId = c.get('organizationId');
+    const userId = c.get('userId');
+    const body = await c.req.json();
+
+    const { version } = body;
+    if (!version) {
+      return c.json({ error: 'DPA version is required' }, 400);
+    }
+
+    await db.prepare(`
+      UPDATE organizations
+      SET consent_given_at = datetime('now'),
+          consent_version = ?,
+          consent_given_by = ?,
+          updated_at = datetime('now')
+      WHERE id = ?
+    `).bind(version, userId, organizationId).run();
+
+    return c.json({
+      message: 'DPA consent recorded successfully',
+      consent: {
+        given: true,
+        version,
+        givenAt: new Date().toISOString(),
+      }
+    });
+
+  } catch (error) {
+    console.error('Record DPA consent error:', error);
+    return c.json({ error: 'Failed to record DPA consent' }, 500);
   }
 });
 

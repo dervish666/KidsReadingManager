@@ -56,7 +56,6 @@ function buildPrompt(studentProfile, availableBooks) {
   return `You are an expert children's librarian with decades of experience in book recommendations for young readers.
 
 STUDENT PROFILE:
-- Name: ${studentProfile.name}
 - Reading Level: ${studentProfile.readingLevel}
 - Favorite Genres: ${studentProfile.preferences.favoriteGenreIds?.join(', ') || 'Not specified'}
 - Likes: ${studentProfile.preferences.likes?.join(', ') || 'Not specified'}
@@ -340,7 +339,6 @@ Reading level not assessed. Recommend age-appropriate books based on other facto
   return `You are an expert children's librarian recommending books for a young reader.
 
 STUDENT PROFILE:
-- Name: ${student.name}
 - Reading Level: ${student.readingLevel}
 - Age Range: ${student.ageRange || 'Not specified'}
 ${readingLevelContext}
@@ -353,7 +351,7 @@ READING PATTERNS (from history):
 - Most-Read Genres: ${inferredGenresText}
 - Recent Books: ${recentReadsText}
 
-TASK: Recommend exactly 5 books that would be perfect for ${student.name}. These should be well-known, quality children's books that:
+TASK: Recommend exactly 5 books that would be perfect for this student. These should be well-known, quality children's books that:
 1. Match their reading level and interests
 2. Are different from books they've already read
 3. Avoid anything similar to books they disliked
@@ -363,7 +361,7 @@ For EACH recommendation, provide:
 2. **author**: The author's name
 3. **ageRange**: Appropriate age range (e.g., "8-10", "10-12")
 4. **readingLevel**: One of: beginner, elementary, intermediate, advanced
-5. **reason**: 2-3 sentences explaining why this specific book is perfect for ${student.name}, referencing their preferences and reading history
+5. **reason**: 2-3 sentences explaining why this specific book is perfect for this student, referencing their preferences and reading history
 6. **whereToFind**: Where to get the book (e.g., "Available at most public libraries", "Popular on Amazon and in bookstores")
 
 Format your response as a valid JSON array with exactly 5 objects.

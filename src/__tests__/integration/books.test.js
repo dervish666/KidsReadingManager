@@ -490,8 +490,9 @@ describe('Books API Routes', () => {
       it('should allow readonly users to get AI suggestions', async () => {
         const { app, mockDB } = createTestApp(createUserContext({ userRole: 'readonly' }));
 
-        // Mock student
+        // Mock GDPR flags check, then student profile, then AI config
         mockDB._chain.first
+          .mockResolvedValueOnce({ processing_restricted: 0, ai_opt_out: 0 })
           .mockResolvedValueOnce(createMockStudent())
           // Mock AI config - not enabled
           .mockResolvedValueOnce(null);
@@ -537,8 +538,9 @@ describe('Books API Routes', () => {
       it('should require AI to be configured', async () => {
         const { app, mockDB } = createTestApp(createUserContext({ userRole: 'readonly' }));
 
-        // Mock student
+        // Mock GDPR flags check, then student profile, then AI config
         mockDB._chain.first
+          .mockResolvedValueOnce({ processing_restricted: 0, ai_opt_out: 0 })
           .mockResolvedValueOnce(createMockStudent())
           // AI config not found
           .mockResolvedValueOnce(null);
@@ -555,8 +557,9 @@ describe('Books API Routes', () => {
       it('should require AI to be enabled', async () => {
         const { app, mockDB } = createTestApp(createUserContext({ userRole: 'readonly' }));
 
-        // Mock student
+        // Mock GDPR flags check, then student profile
         mockDB._chain.first
+          .mockResolvedValueOnce({ processing_restricted: 0, ai_opt_out: 0 })
           .mockResolvedValueOnce(createMockStudent())
           // AI config exists but disabled
           .mockResolvedValueOnce({

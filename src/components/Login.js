@@ -617,6 +617,15 @@ const Login = ({ onBackToLanding } = {}) => {
           </Typography>
         )}
       </Paper>
+
+      <Typography
+        variant="body2"
+        sx={{ mt: 2, textAlign: 'center', color: 'rgba(74, 74, 74, 0.6)' }}
+      >
+        <Link href="/privacy" target="_blank" rel="noopener" sx={{ color: '#6B8E6B' }}>
+          Privacy Policy
+        </Link>
+      </Typography>
     </Box>
   );
 };

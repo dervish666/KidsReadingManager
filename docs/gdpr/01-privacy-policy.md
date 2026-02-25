@@ -25,10 +25,10 @@ AI-powered book recommendations.
 |---|---|
 | **Product name** | Tally (trading as Tally Reading) |
 | **Website** | https://tallyreading.uk |
-| **Company name** | Scratch-IT |
-| **Company number** | [TODO: Insert Companies House number] |
-| **Registered address** | 4 Highridge Walk, BS13 8BA |
-| **Data Protection Officer** | Sam Castillo sam@tallyreading.uk |
+| **Company name** | Scratch IT LTD |
+| **Company number** | 08151576 |
+| **Registered address** | 247 Bishopsworth Road, Bristol, BS13 7LH |
+| **Data Protection Officer** | Sam Castillo (sam@tallyreading.uk) |
 | **ICO registration number** | [TODO: Insert ICO registration number once obtained (fee: GBP 40 or GBP 60 depending on tier)] |
 
 ### Controller and processor roles
@@ -191,12 +191,12 @@ the extent necessary for the stated purpose.
 |---|---|
 | **Providers** | Anthropic (Claude), OpenAI, Google (Gemini) -- at the school's choice |
 | **Activation** | Schools must actively opt in by providing their own API key (BYOK model). The feature is disabled by default. |
-| **Data shared** | Pupil reading level, favourite genres, likes/dislikes, list of books previously read (title, author, genre), and currently the pupil's first name. **Note:** Sending the pupil's name is flagged for removal in a future release. Once removed, no directly identifying pupil data will be shared with AI providers. |
+| **Data shared** | Pupil reading level, favourite genres, likes/dislikes, and a list of books previously read (title, author, genre). **No directly identifying pupil data (such as names) is sent to AI providers.** |
 | **Purpose** | Generating personalised book recommendations for the teacher to review |
 | **Safeguards** | Each school controls whether to enable this feature and which provider to use. Schools provide their own API keys and are bound by their own agreements with the chosen AI provider. |
 
-[TODO: Update this section once pupil name is removed from the AI prompt.
-At that point, clarify that only pseudonymised reading profile data is sent.]
+*Updated 2026-02-25: Student names have been removed from all AI prompts.
+Only pseudonymised reading profile data is now sent to AI providers.*
 
 ### 5.3 OpenLibrary (Internet Archive)
 
@@ -210,7 +210,7 @@ At that point, clarify that only pseudonymised reading profile data is sent.]
 
 | Detail | Value |
 |---|---|
-| **Provider** | [TODO: Confirm provider -- Cloudflare Email Routing or Resend] |
+| **Provider** | Cloudflare Email Routing (covered under Cloudflare DPA) |
 | **Data shared** | Staff user email addresses and email content (password-reset links, welcome messages) |
 | **Purpose** | Transactional emails only (password resets, account invitations). No marketing emails are sent. |
 
@@ -247,18 +247,18 @@ which it was collected, or as required by law.
 
 | Data category | Retention period | Rationale |
 |---|---|---|
-| **Pupil data** (reading sessions, preferences, progress) | Retained while the school's subscription is active. Deleted within [TODO: specify, e.g. 90 days] of subscription termination or upon school request. | Necessary to provide the service. Schools may request earlier deletion at any time. |
-| **Staff user accounts** | Retained while the school's subscription is active. Soft-deleted (deactivated) upon account removal; hard-deleted within [TODO: specify] of subscription termination. | Necessary to provide access to the service. |
-| **Audit logs** (IP addresses, user-agents, actions) | [TODO: Define retention period, e.g. 12 months, then automatically purged.] | Necessary for security monitoring and incident investigation. |
+| **Pupil data** (reading sessions, preferences, progress) | Retained while the school's subscription is active. Deleted within 90 days of subscription termination or upon school request. | Necessary to provide the service. Schools may request earlier deletion at any time. |
+| **Staff user accounts** | Retained while the school's subscription is active. Soft-deleted (deactivated) upon account removal; hard-deleted within 90 days of subscription termination. | Necessary to provide access to the service. |
+| **Audit logs** (IP addresses, user-agents, actions) | IP addresses and user-agents automatically anonymised after 90 days. Audit trail (action, actor, timestamp) retained for 2 years, then automatically purged. | Necessary for security monitoring and incident investigation. |
 | **Rate-limiting records** | Automatically purged after 1 hour. | Short-lived records used solely for brute-force prevention. |
 | **Authentication tokens** | Access tokens: 15 minutes. Refresh tokens: 7 days. Password-reset links: 1 hour. | Minimised to reduce risk of token theft. |
-| **AI recommendation cache** | [TODO: Confirm TTL, e.g. 7 days in KV cache, then automatically expired.] | Temporary cache to avoid redundant API calls. |
+| **AI recommendation cache** | 7 days in KV cache, then automatically expired. | Temporary cache to avoid redundant API calls. |
 | **Book cover image cache** | Cached in browser localStorage for 7 days. Cached in R2 object storage indefinitely (non-personal data: book cover images only). | Performance optimisation. No personal data is stored in the cover cache. |
 | **Cloudflare request logs** | Managed by Cloudflare in accordance with their data processing terms. Typically retained for a limited period (see Cloudflare's privacy policy). | Infrastructure-level logging outside Tally's direct control. |
 
-[TODO: Implement automated data deletion routines and document them.
-Currently, there is no automated purge of audit logs or pupil data upon
-subscription termination -- this must be built before launch.]
+*Updated 2026-02-25: Automated cleanup jobs have been implemented for expired
+tokens, login attempts (30-day purge), and audit log IP anonymisation (90-day
+anonymisation). Post-termination data deletion still requires implementation.*
 
 ---
 
@@ -271,12 +271,12 @@ acting on behalf of a pupil.
 
 | Right | Description | How to exercise |
 |---|---|---|
-| **Right of access** (Article 15) | You have the right to obtain confirmation of whether we process your personal data and, if so, to receive a copy of that data. | Staff: contact [TODO: DPO/privacy contact email]. Parents/carers: contact your child's school, which will liaise with Tally if needed. |
+| **Right of access** (Article 15) | You have the right to obtain confirmation of whether we process your personal data and, if so, to receive a copy of that data. | Staff: contact privacy@tallyreading.uk. Parents/carers: contact your child's school, which will liaise with Tally if needed. |
 | **Right to rectification** (Article 16) | You have the right to have inaccurate personal data corrected without undue delay. | Staff can update their own name and email in the platform. For pupil data, contact the school. |
-| **Right to erasure** (Article 17) | You have the right to request deletion of your personal data in certain circumstances. | Staff: contact [TODO: DPO/privacy contact email]. Parents/carers: contact the school. Schools can delete pupil records directly within the platform. |
-| **Right to restriction** (Article 18) | You have the right to request that we restrict processing of your personal data in certain circumstances. | Contact [TODO: DPO/privacy contact email] or the school. |
-| **Right to data portability** (Article 20) | You have the right to receive your personal data in a structured, commonly used, and machine-readable format. | Schools can export pupil and reading data via CSV export from the platform. Staff can request their data by contacting [TODO: DPO/privacy contact email]. |
-| **Right to object** (Article 21) | You have the right to object to processing based on legitimate interests. | Contact [TODO: DPO/privacy contact email]. We will cease processing unless we demonstrate compelling legitimate grounds. |
+| **Right to erasure** (Article 17) | You have the right to request deletion of your personal data in certain circumstances. | Staff: contact privacy@tallyreading.uk. Parents/carers: contact the school. Schools can delete pupil records directly within the platform. |
+| **Right to restriction** (Article 18) | You have the right to request that we restrict processing of your personal data in certain circumstances. | Contact privacy@tallyreading.uk or the school. |
+| **Right to data portability** (Article 20) | You have the right to receive your personal data in a structured, commonly used, and machine-readable format. | Schools can export pupil and reading data via CSV export from the platform. Staff can request their data by contacting privacy@tallyreading.uk. |
+| **Right to object** (Article 21) | You have the right to object to processing based on legitimate interests. | Contact privacy@tallyreading.uk. We will cease processing unless we demonstrate compelling legitimate grounds. |
 | **Rights related to automated decision-making** (Article 22) | You have the right not to be subject to decisions based solely on automated processing that produce legal or similarly significant effects. | AI book recommendations are advisory suggestions for teachers, not automated decisions. Teachers retain full discretion. |
 
 ### Exercising rights for children
@@ -416,9 +416,9 @@ our data protection practices, please contact us:
 
 | Channel | Detail |
 |---|---|
-| **Email** | [TODO: Insert privacy/DPO contact email, e.g. privacy@tallyreading.uk] |
-| **Post** | [TODO: Insert postal address] |
-| **Data Protection Officer** | [TODO: Insert DPO name and direct contact details, or confirm that a DPO has not been appointed because the conditions in Article 37 of UK GDPR are not met, and provide alternative contact details] |
+| **Email** | privacy@tallyreading.uk |
+| **Post** | Scratch IT LTD, 247 Bishopsworth Road, Bristol, BS13 7LH |
+| **Data Protection Lead** | Sam Castillo (sam@tallyreading.uk). Note: A formal DPO has not been appointed as Scratch IT LTD does not meet the mandatory appointment thresholds under Article 37 of UK GDPR. Sam Castillo acts as the named privacy contact for all data protection matters. |
 
 For requests concerning pupil data, parents and carers should contact their
 child's school in the first instance. The school may then contact Tally to
@@ -447,24 +447,24 @@ Protection Regulation as described above.
 This section collates all outstanding items flagged with `[TODO]` throughout
 this document. All items must be resolved before this policy is published.
 
-| # | Section | Action required |
-|---|---|---|
-| 1 | 1 | Insert registered company name, Companies House number, and registered address |
-| 2 | 1 | Appoint or document DPO (or document why one is not required under Article 37) |
-| 3 | 1 | Complete ICO registration and insert registration number |
-| 4 | 3 | Document Legitimate Interests Assessments (LIAs) for audit logging and rate limiting |
-| 5 | 4 | Review against all 15 standards of the ICO Children's Code and document findings |
-| 6 | 5.1 | Confirm whether Cloudflare Data Localisation Suite is enabled; document data residency |
-| 7 | 5.2 | Remove pupil name from AI prompts; update this section once complete |
-| 8 | 5.4 | Confirm email provider (Cloudflare Email Routing or Resend) |
-| 9 | 6 | Confirm international transfer mechanism for Cloudflare (IDTA/SCCs/Data Localisation) |
-| 10 | 6 | Conduct and document Transfer Impact Assessments (TIAs) for each international transfer |
-| 11 | 7 | Define and insert specific retention periods for pupil data and audit logs |
-| 12 | 7 | Implement automated data deletion routines (audit log purge, post-termination data deletion) |
-| 13 | 8 | Insert DPO/privacy contact email in all rights-exercise instructions |
-| 14 | 10 | Obtain Cyber Essentials certification |
-| 15 | 10 | Document incident response and data breach notification procedures |
-| 16 | 11 | Draft and finalise the Data Processing Agreement |
-| 17 | 12 | Effective date and last-updated date to be set at time of publication |
-| 18 | 13 | Insert all contact details |
-| 19 | -- | Commission qualified legal review of the complete policy before publication |
+| # | Section | Action required | Status |
+|---|---|---|---|
+| 1 | 1 | Insert registered company name, Companies House number, and registered address | **DONE** (2026-02-25) |
+| 2 | 1 | Appoint or document DPO (or document why one is not required under Article 37) | **DONE** (2026-02-25) |
+| 3 | 1 | Complete ICO registration and insert registration number | Outstanding |
+| 4 | 3 | Document Legitimate Interests Assessments (LIAs) for audit logging and rate limiting | Outstanding |
+| 5 | 4 | Review against all 15 standards of the ICO Children's Code and document findings | Outstanding |
+| 6 | 5.1 | Confirm whether Cloudflare Data Localisation Suite is enabled; document data residency | Outstanding |
+| 7 | 5.2 | Remove pupil name from AI prompts; update this section once complete | **DONE** (2026-02-25) |
+| 8 | 5.4 | Confirm email provider (Cloudflare Email Routing or Resend) | **DONE** (2026-02-25) |
+| 9 | 6 | Confirm international transfer mechanism for Cloudflare (IDTA/SCCs/Data Localisation) | Outstanding |
+| 10 | 6 | Conduct and document Transfer Impact Assessments (TIAs) for each international transfer | Outstanding |
+| 11 | 7 | Define and insert specific retention periods for pupil data and audit logs | **DONE** (2026-02-25) |
+| 12 | 7 | Implement automated data deletion routines (audit log purge, post-termination data deletion) | **Partial** — token/login/audit cleanup done; post-termination deletion outstanding |
+| 13 | 8 | Insert DPO/privacy contact email in all rights-exercise instructions | **DONE** (2026-02-25) |
+| 14 | 10 | Obtain Cyber Essentials certification | Outstanding |
+| 15 | 10 | Document incident response and data breach notification procedures | **DONE** — see GDPR-07 |
+| 16 | 11 | Draft and finalise the Data Processing Agreement | **DONE** (draft) — see GDPR-02. Legal review outstanding |
+| 17 | 12 | Effective date and last-updated date to be set at time of publication | Outstanding |
+| 18 | 13 | Insert all contact details | **DONE** (2026-02-25) |
+| 19 | -- | Commission qualified legal review of the complete policy before publication | Outstanding |
