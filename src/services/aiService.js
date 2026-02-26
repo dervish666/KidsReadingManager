@@ -339,6 +339,7 @@ Reading level not assessed. Recommend age-appropriate books based on other facto
   return `You are an expert children's librarian recommending books for a young reader.
 
 STUDENT PROFILE:
+- Name: ${student.name}
 - Reading Level: ${student.readingLevel}
 - Age Range: ${student.ageRange || 'Not specified'}
 ${readingLevelContext}
@@ -351,7 +352,7 @@ READING PATTERNS (from history):
 - Most-Read Genres: ${inferredGenresText}
 - Recent Books: ${recentReadsText}
 
-TASK: Recommend exactly 5 books that would be perfect for this student. These should be well-known, quality children's books that:
+TASK: Recommend exactly 5 books that would be perfect for ${student.name}. These should be well-known, quality children's books that:
 1. Match their reading level and interests
 2. Are different from books they've already read
 3. Avoid anything similar to books they disliked
