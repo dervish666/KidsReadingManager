@@ -36,7 +36,11 @@ export function getMetadataConfig(settings) {
   return {
     provider: bookMetadata.provider || DEFAULT_PROVIDER,
     apiKey: bookMetadata.googleBooksApiKey || null,
-    hardcoverApiKey: bookMetadata.hardcoverApiKey || null,
+    // Hardcover key is stored server-side (encrypted). The proxy reads it from DB.
+    // Use a placeholder when the server has a key, so client-side validation passes.
+    // The proxy ignores the placeholder and uses the DB key.
+    hardcoverApiKey: bookMetadata.hardcoverApiKey || (bookMetadata.hasHardcoverApiKey ? '__server_stored__' : null),
+    hasHardcoverApiKey: Boolean(bookMetadata.hardcoverApiKey || bookMetadata.hasHardcoverApiKey),
     batchSize: bookMetadata.batchSize || 50,
     speedPreset: bookMetadata.speedPreset || 'normal',
     autoFallback: bookMetadata.autoFallback !== false

@@ -312,7 +312,7 @@ Global error handler in `src/middleware/errorHandler.js` standardizes all error 
 
 ### Public Endpoints
 
-Public paths are defined in `src/middleware/tenant.js` (jwtAuthMiddleware): `/api/auth/mode`, `/api/auth/login`, `/api/auth/register`, `/api/auth/refresh`, `/api/auth/forgot-password`, `/api/auth/reset-password`, `/api/auth/mylogin/login`, `/api/auth/mylogin/callback`, `/api/webhooks/wonde`, `/api/health`, `/api/login` (legacy redirect), and `/api/covers/*`. When adding public paths, update the `publicPaths` array in BOTH `jwtAuthMiddleware()` in `src/middleware/tenant.js` AND the tenant middleware bypass in `src/worker.js`.
+Public paths are defined in `src/middleware/tenant.js` (jwtAuthMiddleware): `/api/auth/mode`, `/api/auth/login`, `/api/auth/register`, `/api/auth/refresh`, `/api/auth/forgot-password`, `/api/auth/reset-password`, `/api/auth/mylogin/login`, `/api/auth/mylogin/callback`, `/api/webhooks/wonde`, `/api/health`, `/api/login` (legacy redirect), and `/api/covers/*`. When adding public paths, update the `publicPaths` array in BOTH `jwtAuthMiddleware()` in `src/middleware/tenant.js` AND the tenant middleware bypass in `src/worker.js`. **Important:** Each public path must be explicitly listed — do not use wildcard `startsWith` patterns for new path prefixes, as this creates unintended auth bypass for all future routes under that prefix. The `/api/webhooks/wonde` endpoint is public but implements its own shared-secret authentication via `WONDE_WEBHOOK_SECRET`.
 
 ### Scheduled Tasks
 
@@ -378,6 +378,7 @@ The frontend dev server (port 3001) proxies `/api` requests to the worker (port 
 - `MYLOGIN_CLIENT_ID` - MyLogin OAuth2 client ID
 - `MYLOGIN_CLIENT_SECRET` - MyLogin OAuth2 client secret
 - `MYLOGIN_REDIRECT_URI` - MyLogin OAuth2 callback URL (e.g. `https://tallyreading.uk/api/auth/mylogin/callback`)
+- `WONDE_WEBHOOK_SECRET` - Shared secret for Wonde webhook authentication (append `?secret=<value>` to the webhook URL in Wonde dashboard)
 
 ### Wrangler Bindings (`wrangler.toml`)
 

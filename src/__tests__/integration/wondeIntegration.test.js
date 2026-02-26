@@ -226,6 +226,8 @@ function createMockDb(overrides = {}) {
 /**
  * Create the mock environment for both webhooks and MyLogin routes.
  */
+const WEBHOOK_SECRET = 'test-webhook-secret';
+
 function createMockEnv(dbOverrides = {}) {
   return {
     READING_MANAGER_DB: createMockDb(dbOverrides),
@@ -235,6 +237,7 @@ function createMockEnv(dbOverrides = {}) {
       delete: vi.fn()
     },
     JWT_SECRET: 'test-secret-key',
+    WONDE_WEBHOOK_SECRET: WEBHOOK_SECRET,
     MYLOGIN_CLIENT_ID: 'test-client-id',
     MYLOGIN_CLIENT_SECRET: 'test-client-secret',
     MYLOGIN_REDIRECT_URI: 'https://tallyreading.uk/api/auth/mylogin/callback',
@@ -297,7 +300,7 @@ describe('Wonde + MyLogin Integration', () => {
     it('creates an organization, encrypts the token, and triggers sync', async () => {
       const env = createMockEnv();
 
-      const res = await app.request('/api/webhooks/wonde', {
+      const res = await app.request(`/api/webhooks/wonde?secret=${WEBHOOK_SECRET}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -517,7 +520,7 @@ describe('Wonde + MyLogin Integration', () => {
         orgByWondeId: { id: 'org-id-1', slug: 'furlong-school', name: SCHOOL_NAME }
       });
 
-      const res = await app.request('/api/webhooks/wonde', {
+      const res = await app.request(`/api/webhooks/wonde?secret=${WEBHOOK_SECRET}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -557,7 +560,7 @@ describe('Wonde + MyLogin Integration', () => {
     it('processes a complete school lifecycle correctly', async () => {
       // Step 1: School approves via webhook
       const step1Env = createMockEnv();
-      const webhookRes = await app.request('/api/webhooks/wonde', {
+      const webhookRes = await app.request(`/api/webhooks/wonde?secret=${WEBHOOK_SECRET}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -649,7 +652,7 @@ describe('Wonde + MyLogin Integration', () => {
         orgByWondeId: { id: createdOrgId }
       });
 
-      const revokeRes = await app.request('/api/webhooks/wonde', {
+      const revokeRes = await app.request(`/api/webhooks/wonde?secret=${WEBHOOK_SECRET}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

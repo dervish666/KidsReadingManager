@@ -3,7 +3,8 @@ import { Hono } from 'hono';
 
 // Mock crypto and sync modules before imports
 vi.mock('../../utils/crypto.js', () => ({
-  encryptSensitiveData: vi.fn()
+  encryptSensitiveData: vi.fn(),
+  constantTimeStringEqual: vi.fn((a, b) => a === b)
 }));
 
 vi.mock('../../services/wondeSync.js', () => ({
@@ -45,8 +46,11 @@ function createApp() {
 // ---------------------------------------------------------------------------
 // Helper: send a POST request to the webhook endpoint
 // ---------------------------------------------------------------------------
-async function postWebhook(app, body, env) {
-  return app.request('/api/webhooks/wonde', {
+async function postWebhook(app, body, env, { secret = 'test-webhook-secret' } = {}) {
+  const url = secret
+    ? `/api/webhooks/wonde?secret=${secret}`
+    : '/api/webhooks/wonde';
+  return app.request(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
@@ -65,7 +69,8 @@ describe('Wonde Webhook Handler', () => {
     mockDb = createMockDb();
     env = {
       READING_MANAGER_DB: mockDb,
-      JWT_SECRET: 'test-secret-key'
+      JWT_SECRET: 'test-secret-key',
+      WONDE_WEBHOOK_SECRET: 'test-webhook-secret'
     };
 
     // Default mock return values
@@ -335,6 +340,64 @@ describe('Wonde Webhook Handler', () => {
       expect(res.status).toBe(400);
       const json = await res.json();
       expect(json.error).toMatch(/missing payload_type/i);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Webhook authentication
+  // -------------------------------------------------------------------------
+  describe('webhook authentication', () => {
+    it('returns 503 when WONDE_WEBHOOK_SECRET is not configured', async () => {
+      const envNoSecret = { ...env };
+      delete envNoSecret.WONDE_WEBHOOK_SECRET;
+
+      const res = await postWebhook(app, {
+        payload_type: 'schoolApproved',
+        school_id: 'A1234567890',
+        school_name: 'Test School',
+        school_token: 'tok_abc123'
+      }, envNoSecret);
+
+      expect(res.status).toBe(503);
+      const json = await res.json();
+      expect(json.error).toMatch(/not configured/i);
+    });
+
+    it('returns 401 when secret query parameter is missing', async () => {
+      const res = await postWebhook(app, {
+        payload_type: 'schoolApproved',
+        school_id: 'A1234567890',
+        school_name: 'Test School',
+        school_token: 'tok_abc123'
+      }, env, { secret: null });
+
+      expect(res.status).toBe(401);
+      const json = await res.json();
+      expect(json.error).toMatch(/unauthorized/i);
+    });
+
+    it('returns 401 when secret query parameter is wrong', async () => {
+      const res = await postWebhook(app, {
+        payload_type: 'schoolApproved',
+        school_id: 'A1234567890',
+        school_name: 'Test School',
+        school_token: 'tok_abc123'
+      }, env, { secret: 'wrong-secret' });
+
+      expect(res.status).toBe(401);
+      const json = await res.json();
+      expect(json.error).toMatch(/unauthorized/i);
+    });
+
+    it('succeeds when correct secret is provided', async () => {
+      const res = await postWebhook(app, {
+        payload_type: 'schoolMigration',
+        school_name: 'Test',
+        migrate_from: 'a',
+        migrate_to: 'b'
+      }, env, { secret: 'test-webhook-secret' });
+
+      expect(res.status).toBe(200);
     });
   });
 });

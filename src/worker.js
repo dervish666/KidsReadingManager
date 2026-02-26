@@ -177,7 +177,7 @@ app.use('/api/*', async (c, next) => {
     '/api/webhooks/wonde'
   ];
 
-  if (publicPaths.includes(url.pathname) || url.pathname.startsWith('/api/covers/') || url.pathname.startsWith('/api/webhooks/')) {
+  if (publicPaths.includes(url.pathname) || url.pathname.startsWith('/api/covers/')) {
     return next();
   }
 

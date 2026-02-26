@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { requireTeacher } from '../middleware/tenant';
+import { decryptSensitiveData } from '../utils/crypto.js';
 
 const hardcoverRouter = new Hono();
 
@@ -9,13 +10,13 @@ const HARDCOVER_GRAPHQL_URL = 'https://api.hardcover.app/v1/graphql';
  * POST /api/hardcover/graphql
  * Proxies GraphQL requests to the Hardcover API server-side,
  * avoiding browser CORS restrictions.
- * Reads the API key from organization settings.
+ * Reads the API key from organization settings (encrypted at rest).
  */
 hardcoverRouter.post('/graphql', requireTeacher(), async (c) => {
   const db = c.env.READING_MANAGER_DB;
   const organizationId = c.get('organizationId');
 
-  // Read Hardcover API key from org settings
+  // Read Hardcover API key from org settings and decrypt
   let apiKey = null;
   if (db && organizationId) {
     const row = await db.prepare(
@@ -25,17 +26,27 @@ hardcoverRouter.post('/graphql', requireTeacher(), async (c) => {
     if (row) {
       try {
         const bookMetadata = JSON.parse(row.setting_value);
-        apiKey = bookMetadata.hardcoverApiKey || null;
+        const storedKey = bookMetadata.hardcoverApiKey || null;
+        if (storedKey && c.env.JWT_SECRET) {
+          try {
+            apiKey = await decryptSensitiveData(storedKey, c.env.JWT_SECRET);
+          } catch {
+            // Pre-migration plaintext value — use as-is
+            apiKey = storedKey;
+          }
+        } else {
+          apiKey = storedKey;
+        }
       } catch {
         // ignore parse errors
       }
     }
   }
 
-  // Allow the request body to supply an API key override (for availability checks
-  // before the key is saved to settings)
+  // Prefer the server-stored (encrypted) key. Fall back to request body key
+  // for availability checks before the key has been saved to settings.
   const body = await c.req.json();
-  const effectiveApiKey = body.apiKey || apiKey;
+  const effectiveApiKey = apiKey || body.apiKey;
 
   if (!effectiveApiKey) {
     return c.json({ error: 'Hardcover API key is not configured' }, 400);

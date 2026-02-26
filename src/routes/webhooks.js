@@ -13,12 +13,28 @@
  */
 
 import { Hono } from 'hono';
-import { encryptSensitiveData } from '../utils/crypto.js';
+import { encryptSensitiveData, constantTimeStringEqual } from '../utils/crypto.js';
 import { runFullSync } from '../services/wondeSync.js';
 
 const webhooksRouter = new Hono();
 
 webhooksRouter.post('/wonde', async (c) => {
+  // Verify webhook shared secret
+  // Configure WONDE_WEBHOOK_SECRET in Cloudflare and append ?secret=<value>
+  // to the webhook URL in the Wonde dashboard
+  const webhookSecret = c.env.WONDE_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    console.error('[Webhook] WONDE_WEBHOOK_SECRET not configured — rejecting request');
+    return c.json({ error: 'Webhook authentication not configured' }, 503);
+  }
+
+  const url = new URL(c.req.url);
+  const providedSecret = url.searchParams.get('secret') || '';
+  if (!providedSecret || !constantTimeStringEqual(providedSecret, webhookSecret)) {
+    console.warn('[Webhook] Invalid or missing webhook secret');
+    return c.json({ error: 'Unauthorized' }, 401);
+  }
+
   const body = await c.req.json();
   const db = c.env.READING_MANAGER_DB;
 

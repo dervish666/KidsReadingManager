@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.6.1] - 2026-02-26
+
+### Security
+- **Webhook authentication**: Added shared-secret authentication to the Wonde webhook endpoint (`POST /api/webhooks/wonde`) using `WONDE_WEBHOOK_SECRET` env var with constant-time comparison; previously the endpoint was completely unauthenticated
+- **Wildcard auth bypass removed**: Removed `startsWith('/api/webhooks/')` from JWT and tenant middleware bypass conditions; only explicitly listed public paths are now bypassed
+- **API key encryption at rest**: Hardcover and Google Books API keys in `bookMetadata` settings are now AES-GCM encrypted at rest (same pattern as AI provider keys); backward-compatible with existing plaintext values
+- **Hardcover key redacted from API**: Hardcover API key is no longer returned in `GET /api/settings` responses; replaced with `hasHardcoverApiKey` boolean flag; backend proxy reads the encrypted key directly from DB
+
+### Changed
+- Hardcover GraphQL proxy now prefers the server-stored (encrypted) API key over client-supplied key
+- `WONDE_WEBHOOK_SECRET` environment variable is now required for webhook processing (returns 503 if unconfigured)
+
 ## [3.6.0] - 2026-02-25
 
 ### Added — UK GDPR Compliance
