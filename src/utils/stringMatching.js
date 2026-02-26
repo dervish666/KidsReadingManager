@@ -29,6 +29,21 @@ export const normalizeAuthor = (str) => {
 };
 
 /**
+ * Convert "Lastname, Firstname" format to "Firstname Lastname".
+ * If the name doesn't contain a comma, returns it trimmed as-is.
+ */
+export const normalizeAuthorDisplay = (str) => {
+  if (!str) return null;
+  const trimmed = str.trim();
+  if (!trimmed.includes(',')) return trimmed;
+  const parts = trimmed.split(',').map(s => s.trim()).filter(Boolean);
+  if (parts.length === 2) {
+    return `${parts[1]} ${parts[0]}`;
+  }
+  return trimmed;
+};
+
+/**
  * Calculate Levenshtein distance between two strings
  */
 const levenshteinDistance = (a, b) => {

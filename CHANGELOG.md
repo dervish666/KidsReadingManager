@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.6.2] - 2026-02-26
+
+### Fixed
+- **Session recording failure**: Applied GDPR migration (0025) to production D1 — the `processing_restricted` column query was failing silently, preventing all reading sessions from being saved
+- **SessionForm error handling**: Made `handleSubmit` async and await the API result; form now shows an error message on failure instead of a misleading success snackbar
+- **Duplicate books on barcode scan**: ISBN scan and lookup endpoints now normalize OpenLibrary author names ("Surname, First" to "First Surname") and check for title+author fuzzy matches before creating, preventing duplicate entries with reversed author names
+
+### Added
+- `normalizeAuthorDisplay` utility in `stringMatching.js` for converting "Lastname, Firstname" to "Firstname Lastname"
+
 ## [3.6.1] - 2026-02-26
 
 ### Security

@@ -219,7 +219,7 @@ const SessionForm = () => {
     setSelectedLocation(event.target.value);
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
     if (!selectedStudentId) {
@@ -232,7 +232,7 @@ const SessionForm = () => {
       return;
     }
 
-    addReadingSession(selectedStudentId, {
+    const result = await addReadingSession(selectedStudentId, {
       date,
       assessment,
       notes,
@@ -240,16 +240,21 @@ const SessionForm = () => {
       location: selectedLocation || 'school'
     });
 
-    // Reset form
-    setNotes('');
-    setAssessment('independent');
-    setSelectedBookId('');
-    setBookAuthor('');
-    setBookReadingLevel('');
-    setBookAgeRange('');
-    setBookGenres([]);
-    setSelectedLocation('school');
-    setSnackbarOpen(true);
+    if (result) {
+      // Reset form only on success
+      setNotes('');
+      setAssessment('independent');
+      setSelectedBookId('');
+      setBookAuthor('');
+      setBookReadingLevel('');
+      setBookAgeRange('');
+      setBookGenres([]);
+      setSelectedLocation('school');
+      setError('');
+      setSnackbarOpen(true);
+    } else {
+      setError('Failed to save reading session. Please try again.');
+    }
   };
 
   const handleSnackbarClose = () => {

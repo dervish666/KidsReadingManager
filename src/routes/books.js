@@ -11,7 +11,7 @@ import { generateBroadSuggestions } from '../services/aiService.js';
 import { notFoundError, badRequestError, serverError } from '../middleware/errorHandler';
 import { decryptSensitiveData, permissions } from '../utils/crypto.js';
 import { buildStudentReadingProfile } from '../utils/studentProfile.js';
-import { isExactMatch, isFuzzyMatch, isAuthorMatch } from '../utils/stringMatching.js';
+import { isExactMatch, isFuzzyMatch, isAuthorMatch, normalizeAuthorDisplay } from '../utils/stringMatching.js';
 import { getCachedRecommendations, cacheRecommendations } from '../utils/recommendationCache.js';
 import { normalizeISBN } from '../utils/isbn.js';
 import { lookupISBN } from '../utils/isbnLookup.js';
@@ -659,10 +659,46 @@ booksRouter.get('/isbn/:isbn', requireTeacher(), async (c) => {
     }
   }
 
-  // Not found locally — try OpenLibrary
+  // Not found locally by ISBN — try OpenLibrary
   const olBook = await lookupISBN(normalized, c.env);
   if (!olBook) {
     return c.json({ source: 'not_found', isbn: normalized, book: null });
+  }
+
+  // Normalize author name from OpenLibrary ("Surname, First" → "First Surname")
+  if (olBook.author) {
+    olBook.author = normalizeAuthorDisplay(olBook.author);
+  }
+
+  // Check if a matching book already exists locally by title+author (different edition/ISBN)
+  if (olBook.title && db) {
+    const titleQuery = `%${olBook.title.trim()}%`;
+    const candidates = await db.prepare('SELECT * FROM books WHERE title LIKE ? LIMIT 20')
+      .bind(titleQuery).all();
+    const match = (candidates.results || []).find(row =>
+      isFuzzyMatch(
+        { title: olBook.title, author: olBook.author },
+        { title: row.title, author: row.author }
+      )
+    );
+    if (match) {
+      let inLibrary = false;
+      if (organizationId) {
+        const orgLink = await db.prepare(
+          'SELECT 1 FROM org_book_selections WHERE organization_id = ? AND book_id = ? AND is_available = 1'
+        ).bind(organizationId, match.id).first();
+        inLibrary = !!orgLink;
+      }
+      const book = {
+        id: match.id, title: match.title, author: match.author,
+        readingLevel: match.reading_level, ageRange: match.age_range,
+        genreIds: match.genre_ids ? JSON.parse(match.genre_ids) : [], description: match.description,
+        isbn: match.isbn || normalized, pageCount: match.page_count,
+        seriesName: match.series_name, seriesNumber: match.series_number,
+        publicationYear: match.publication_year,
+      };
+      return c.json({ source: 'local', inLibrary, book });
+    }
   }
 
   return c.json({ source: 'openlibrary', inLibrary: false, book: olBook });
@@ -711,15 +747,60 @@ booksRouter.post('/scan', requireTeacher(), async (c) => {
     return c.json({ action: 'linked', book });
   }
 
-  // Not found locally — look up on OpenLibrary
+  // Not found locally by ISBN — look up on OpenLibrary
   const olBook = await lookupISBN(normalized, c.env);
+
+  // Normalize author name from OpenLibrary ("Surname, First" → "First Surname")
+  if (olBook?.author) {
+    olBook.author = normalizeAuthorDisplay(olBook.author);
+  }
 
   if (!confirm) {
     // Preview mode — return metadata (or just the ISBN if OpenLibrary had nothing)
     return c.json({ action: 'preview', book: olBook || { isbn: normalized } });
   }
 
-  // Confirmed — create the book and link to org
+  // Before creating, check for title+author duplicates in the database.
+  // OpenLibrary may return the same book under a different ISBN (different edition).
+  if (olBook?.title && db) {
+    const titleQuery = `%${olBook.title.trim()}%`;
+    const candidates = await db.prepare(`
+      SELECT * FROM books WHERE title LIKE ? LIMIT 20
+    `).bind(titleQuery).all();
+
+    const match = (candidates.results || []).find(row =>
+      isFuzzyMatch(
+        { title: olBook.title, author: olBook.author },
+        { title: row.title, author: row.author }
+      )
+    );
+
+    if (match) {
+      // Duplicate found — update its ISBN if missing, then link to org
+      if (!match.isbn && normalized) {
+        await db.prepare('UPDATE books SET isbn = ?, updated_at = datetime("now") WHERE id = ?')
+          .bind(normalized, match.id).run();
+      }
+      if (organizationId) {
+        await db.prepare(`
+          INSERT INTO org_book_selections (id, organization_id, book_id, is_available, created_at)
+          VALUES (?, ?, ?, 1, datetime('now'))
+          ON CONFLICT (organization_id, book_id) DO UPDATE SET is_available = 1, updated_at = datetime('now')
+        `).bind(crypto.randomUUID(), organizationId, match.id).run();
+      }
+      const book = {
+        id: match.id, title: match.title, author: match.author,
+        readingLevel: match.reading_level, ageRange: match.age_range,
+        genreIds: match.genre_ids ? JSON.parse(match.genre_ids) : [], description: match.description,
+        isbn: match.isbn || normalized, pageCount: match.page_count,
+        seriesName: match.series_name, seriesNumber: match.series_number,
+        publicationYear: match.publication_year,
+      };
+      return c.json({ action: 'linked', book });
+    }
+  }
+
+  // No duplicate — create the book and link to org
   const newBook = {
     id: crypto.randomUUID(),
     title: olBook?.title || 'Unknown Title',

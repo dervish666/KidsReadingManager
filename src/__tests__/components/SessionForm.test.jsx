@@ -462,7 +462,7 @@ describe('SessionForm Component', () => {
     });
 
     it('should reset form after successful submission', async () => {
-      const mockAddReadingSession = vi.fn();
+      const mockAddReadingSession = vi.fn().mockResolvedValue({ id: 'new-session-1' });
       const context = createMockContext({ addReadingSession: mockAddReadingSession });
       const user = userEvent.setup();
       render(<SessionForm />, { wrapper: createWrapper(context) });
@@ -480,7 +480,7 @@ describe('SessionForm Component', () => {
     });
 
     it('should show snackbar after successful submission', async () => {
-      const mockAddReadingSession = vi.fn();
+      const mockAddReadingSession = vi.fn().mockResolvedValue({ id: 'new-session-1' });
       const context = createMockContext({ addReadingSession: mockAddReadingSession });
       const user = userEvent.setup();
       render(<SessionForm />, { wrapper: createWrapper(context) });
