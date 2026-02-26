@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.6.3] - 2026-02-26
+
+### Changed
+- Renamed bottom navigation tabs for clarity: "Reading" → "School Reading", "Record" → "Home Reading"
+
 ## [3.6.2] - 2026-02-26
 
 ### Fixed

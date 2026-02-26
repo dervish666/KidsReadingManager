@@ -271,8 +271,8 @@ function AppContent() {
           }}
         >
           <BottomNavigationAction label="Students" icon={<NavIcon src={iconStudents} alt="Students" selected={currentTab === 0} />} />
-          <BottomNavigationAction label="Reading" icon={<NavIcon src={iconReading} alt="Reading" selected={currentTab === 1} />} />
-          <BottomNavigationAction label="Record" icon={<NavIcon src={iconRecord} alt="Record" selected={currentTab === 2} />} />
+          <BottomNavigationAction label="School Reading" icon={<NavIcon src={iconReading} alt="School Reading" selected={currentTab === 1} />} />
+          <BottomNavigationAction label="Home Reading" icon={<NavIcon src={iconRecord} alt="Home Reading" selected={currentTab === 2} />} />
           <BottomNavigationAction label="Stats" icon={<NavIcon src={iconStats} alt="Stats" selected={currentTab === 3} />} />
           <BottomNavigationAction label="Recommend" icon={<NavIcon src={iconRecommend} alt="Recommend" selected={currentTab === 4} />} />
           <BottomNavigationAction label="Books" icon={<NavIcon src={iconBooks} alt="Books" selected={currentTab === 5} />} />
