@@ -122,6 +122,8 @@ export const AppProvider = ({ children }) => {
   const [availableOrganizations, setAvailableOrganizations] = useState([]);
   // Active organization ID (for owners switching between orgs)
   const [activeOrganizationId, setActiveOrganizationId] = useState(null);
+  const activeOrgIdRef = useRef(activeOrganizationId);
+  activeOrgIdRef.current = activeOrganizationId;
   // Loading state for organization switching
   const [switchingOrganization, setSwitchingOrganization] = useState(false);
   // Recently accessed students (for quick access in dropdowns)
@@ -316,8 +318,9 @@ export const AppProvider = ({ children }) => {
       }
 
       // Include organization override header for owners switching orgs
-      if (activeOrganizationId && user?.role === 'owner') {
-        headers['X-Organization-Id'] = activeOrganizationId;
+      // Read from ref to avoid stale closure after switchOrganization
+      if (activeOrgIdRef.current && user?.role === 'owner') {
+        headers['X-Organization-Id'] = activeOrgIdRef.current;
       }
 
       const response = await fetch(url, {
@@ -341,7 +344,7 @@ export const AppProvider = ({ children }) => {
 
       return response;
     },
-    [authMode, refreshAccessToken, clearAuthState, activeOrganizationId, user]
+    [authMode, refreshAccessToken, clearAuthState, user]
   );
 
   // Legacy login helper (shared password)
@@ -706,6 +709,7 @@ export const AppProvider = ({ children }) => {
     }
 
     setSwitchingOrganization(true);
+    activeOrgIdRef.current = orgId; // Update ref immediately so fetchWithAuth uses new org
     setActiveOrganizationId(orgId);
 
     // Reset class filter when switching organizations

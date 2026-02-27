@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.7.1] - 2026-02-27
+
+### Fixed
+- **Stale classes after school switch**: Owner switching schools saw the previous school's classes in the dropdown. Two causes: (1) `fetchWithAuth` captured `activeOrganizationId` via closure — by the time `reloadDataFromServer` ran, it still had the old org ID. Fixed with a ref (same pattern as `authTokenRef`). (2) Cache-Control header on `/api/classes` caused the browser to serve cached response from the previous org. Removed classes from cacheable endpoints (genres remain cached as they're global).
+
 ## [3.7.0] - 2026-02-27
 
 ### Performance
