@@ -4,7 +4,10 @@ import {
   validateSettings,
   validateBulkImport,
   validateDataImport,
-  validateReadingLevelRange
+  validateReadingLevelRange,
+  validateGenre,
+  validateClass,
+  validateBook
 } from '../../utils/validation.js';
 
 describe('validateStudent', () => {
@@ -418,5 +421,146 @@ describe('validateReadingLevelRange', () => {
     expect(result.isValid).toBe(true);
     expect(result.normalizedMin).toBe(5.2);
     expect(result.normalizedMax).toBe(8.8);
+  });
+});
+
+describe('validateGenre', () => {
+  it('should accept a valid genre with name', () => {
+    const result = validateGenre({ name: 'Fantasy' });
+    expect(result.isValid).toBe(true);
+  });
+
+  it('should accept genre with name and description', () => {
+    const result = validateGenre({ name: 'Fantasy', description: 'Magical worlds' });
+    expect(result.isValid).toBe(true);
+  });
+
+  it('should reject null genre', () => {
+    const result = validateGenre(null);
+    expect(result.isValid).toBe(false);
+    expect(result.errors).toContain('Genre data is required');
+  });
+
+  it('should reject missing name', () => {
+    const result = validateGenre({});
+    expect(result.isValid).toBe(false);
+    expect(result.errors).toContain('Genre name is required');
+  });
+
+  it('should reject empty name', () => {
+    const result = validateGenre({ name: '  ' });
+    expect(result.isValid).toBe(false);
+  });
+
+  it('should reject name over 100 characters', () => {
+    const result = validateGenre({ name: 'a'.repeat(101) });
+    expect(result.isValid).toBe(false);
+    expect(result.errors[0]).toContain('100 characters');
+  });
+
+  it('should reject description over 500 characters', () => {
+    const result = validateGenre({ name: 'Fantasy', description: 'a'.repeat(501) });
+    expect(result.isValid).toBe(false);
+    expect(result.errors[0]).toContain('500 characters');
+  });
+});
+
+describe('validateClass', () => {
+  it('should accept a valid class with name', () => {
+    const result = validateClass({ name: 'Year 3' });
+    expect(result.isValid).toBe(true);
+  });
+
+  it('should accept class with all fields', () => {
+    const result = validateClass({ name: 'Year 3', teacherName: 'Ms Smith', academicYear: '2025' });
+    expect(result.isValid).toBe(true);
+  });
+
+  it('should accept YYYY/YYYY academic year format', () => {
+    const result = validateClass({ name: 'Year 3', academicYear: '2024/2025' });
+    expect(result.isValid).toBe(true);
+  });
+
+  it('should reject null class', () => {
+    const result = validateClass(null);
+    expect(result.isValid).toBe(false);
+    expect(result.errors).toContain('Class data is required');
+  });
+
+  it('should reject missing name', () => {
+    const result = validateClass({});
+    expect(result.isValid).toBe(false);
+    expect(result.errors).toContain('Class name is required');
+  });
+
+  it('should reject invalid academic year format', () => {
+    const result = validateClass({ name: 'Year 3', academicYear: 'twenty-five' });
+    expect(result.isValid).toBe(false);
+    expect(result.errors[0]).toContain('YYYY');
+  });
+
+  it('should reject teacher name over 200 characters', () => {
+    const result = validateClass({ name: 'Year 3', teacherName: 'a'.repeat(201) });
+    expect(result.isValid).toBe(false);
+    expect(result.errors[0]).toContain('200 characters');
+  });
+});
+
+describe('validateBook', () => {
+  it('should accept a valid book with title', () => {
+    const result = validateBook({ title: 'The Hobbit' });
+    expect(result.isValid).toBe(true);
+  });
+
+  it('should accept book with all fields', () => {
+    const result = validateBook({
+      title: 'The Hobbit',
+      author: 'J.R.R. Tolkien',
+      readingLevel: '5.5',
+      isbn: '9780261102217',
+      genreIds: ['fantasy'],
+      pageCount: 310
+    });
+    expect(result.isValid).toBe(true);
+  });
+
+  it('should accept text-based reading levels', () => {
+    const result = validateBook({ title: 'Test', readingLevel: 'intermediate' });
+    expect(result.isValid).toBe(true);
+  });
+
+  it('should reject null book', () => {
+    const result = validateBook(null);
+    expect(result.isValid).toBe(false);
+    expect(result.errors).toContain('Book data is required');
+  });
+
+  it('should reject missing title', () => {
+    const result = validateBook({});
+    expect(result.isValid).toBe(false);
+    expect(result.errors).toContain('Book title is required');
+  });
+
+  it('should reject empty title', () => {
+    const result = validateBook({ title: '' });
+    expect(result.isValid).toBe(false);
+  });
+
+  it('should reject title over 500 characters', () => {
+    const result = validateBook({ title: 'a'.repeat(501) });
+    expect(result.isValid).toBe(false);
+    expect(result.errors[0]).toContain('500 characters');
+  });
+
+  it('should reject non-array genreIds', () => {
+    const result = validateBook({ title: 'Test', genreIds: 'not-array' });
+    expect(result.isValid).toBe(false);
+    expect(result.errors).toContain('Genre IDs must be an array');
+  });
+
+  it('should reject negative page count', () => {
+    const result = validateBook({ title: 'Test', pageCount: -1 });
+    expect(result.isValid).toBe(false);
+    expect(result.errors[0]).toContain('non-negative');
   });
 });

@@ -59,6 +59,15 @@ export function badRequestError(message = 'Bad request') {
 }
 
 /**
+ * Forbidden error
+ * @param {string} message - Error message
+ * @returns {Error} - Error with 403 status
+ */
+export function forbiddenError(message = 'Permission denied') {
+  return createError(message, 403);
+}
+
+/**
  * Server error
  * @param {string} message - Error message
  * @returns {Error} - Error with 500 status

@@ -49,25 +49,10 @@ async function decryptBookMetadataKeys(bookMetadata, jwtSecret) {
   return result;
 }
 
+import { getDB, isMultiTenantMode } from '../utils/routeHelpers';
+
 // Create router
 const settingsRouter = new Hono();
-
-/**
- * Helper to get D1 database
- */
-const getDB = (env) => {
-  if (!env || !env.READING_MANAGER_DB) {
-    return null;
-  }
-  return env.READING_MANAGER_DB;
-};
-
-/**
- * Check if multi-tenant mode is enabled
- */
-const isMultiTenantMode = (c) => {
-  return Boolean(c.env.JWT_SECRET && c.get('organizationId'));
-};
 
 /**
  * Default settings

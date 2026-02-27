@@ -10,45 +10,15 @@ import {
 } from '../services/kvService';
 
 // Import utilities
-import { notFoundError, badRequestError } from '../middleware/errorHandler';
+import { notFoundError, badRequestError, forbiddenError } from '../middleware/errorHandler';
 import { auditLog } from '../middleware/tenant';
 import { permissions } from '../utils/crypto';
+import { getDB, isMultiTenantMode } from '../utils/routeHelpers';
+import { validateClass } from '../utils/validation';
+import { rowToClass } from '../utils/rowMappers';
 
 // Create router
 const classesRouter = new Hono();
-
-/**
- * Helper to get D1 database
- */
-const getDB = (env) => {
-  if (!env || !env.READING_MANAGER_DB) {
-    return null;
-  }
-  return env.READING_MANAGER_DB;
-};
-
-/**
- * Check if multi-tenant mode is enabled
- */
-const isMultiTenantMode = (c) => {
-  return Boolean(c.env.JWT_SECRET && c.get('organizationId'));
-};
-
-/**
- * Convert database row to class object (snake_case to camelCase)
- */
-const rowToClass = (row) => {
-  if (!row) return null;
-  return {
-    id: row.id,
-    name: row.name,
-    teacherName: row.teacher_name,
-    academicYear: row.academic_year,
-    isActive: Boolean(row.is_active),
-    createdAt: row.created_at,
-    updatedAt: row.updated_at
-  };
-};
 
 /**
  * GET /api/classes
@@ -61,10 +31,11 @@ classesRouter.get('/', async (c) => {
     const organizationId = c.get('organizationId');
     
     const result = await db.prepare(`
-      SELECT c.*, 
-        (SELECT COUNT(*) FROM students s WHERE s.class_id = c.id AND s.is_active = 1) as student_count
+      SELECT c.*, COUNT(s.id) as student_count
       FROM classes c
+      LEFT JOIN students s ON s.class_id = c.id AND s.is_active = 1
       WHERE c.organization_id = ? AND c.is_active = 1
+      GROUP BY c.id
       ORDER BY c.name ASC
     `).bind(organizationId).all();
     
@@ -168,10 +139,11 @@ classesRouter.get('/:id/students', async (c) => {
  */
 classesRouter.post('/', auditLog('create', 'class'), async (c) => {
   const body = await c.req.json();
-  
+
   // Validate class data
-  if (!body.name) {
-    throw badRequestError('Class name is required');
+  const validation = validateClass(body);
+  if (!validation.isValid) {
+    throw badRequestError(validation.errors.join('; '));
   }
   
   // Multi-tenant mode: use D1
@@ -185,7 +157,7 @@ classesRouter.post('/', auditLog('create', 'class'), async (c) => {
       const userRole = c.get('userRole');
 
       if (!permissions.canManageClasses(userRole)) {
-        return c.json({ error: 'Permission denied' }, 403);
+        throw forbiddenError();
       }
 
       const classId = body.id || generateId();
@@ -234,10 +206,11 @@ classesRouter.post('/', auditLog('create', 'class'), async (c) => {
 classesRouter.put('/:id', auditLog('update', 'class'), async (c) => {
   const { id } = c.req.param();
   const body = await c.req.json();
-  
+
   // Validate class data
-  if (!body.name) {
-    throw badRequestError('Class name is required');
+  const validation = validateClass(body);
+  if (!validation.isValid) {
+    throw badRequestError(validation.errors.join('; '));
   }
   
   // Multi-tenant mode: use D1
@@ -248,9 +221,9 @@ classesRouter.put('/:id', auditLog('update', 'class'), async (c) => {
     // Check permission
     const userRole = c.get('userRole');
     if (!permissions.canManageClasses(userRole)) {
-      return c.json({ error: 'Permission denied' }, 403);
+      throw forbiddenError();
     }
-    
+
     // Check if class exists and belongs to organization
     const existing = await db.prepare(`
       SELECT id FROM classes WHERE id = ? AND organization_id = ? AND is_active = 1
@@ -316,9 +289,9 @@ classesRouter.delete('/:id', auditLog('delete', 'class'), async (c) => {
     // Check permission
     const userRole = c.get('userRole');
     if (!permissions.canManageClasses(userRole)) {
-      return c.json({ error: 'Permission denied' }, 403);
+      throw forbiddenError();
     }
-    
+
     // Check if class exists
     const existing = await db.prepare(`
       SELECT id FROM classes WHERE id = ? AND organization_id = ? AND is_active = 1

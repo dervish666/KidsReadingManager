@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Alert,
   Box,
@@ -90,7 +90,7 @@ const StudentList = () => {
     }
   };
 
-  const getFilteredAndSortedStudents = () => {
+  const filteredAndSortedStudents = useMemo(() => {
     const disabledClassIds = classes.filter(cls => cls.disabled).map(cls => cls.id);
 
     const filteredStudents = students.filter(student => {
@@ -107,48 +107,40 @@ const StudentList = () => {
       return student.classId === globalClassFilter;
     });
 
-    let sortedList;
-    
     if (sortMethod === 'priority') {
-      sortedList = [...filteredStudents].sort((a, b) => {
+      const sorted = [...filteredStudents].sort((a, b) => {
          const dateA = a.lastReadDate ? new Date(a.lastReadDate) : new Date(0);
          const dateB = b.lastReadDate ? new Date(b.lastReadDate) : new Date(0);
-         return dateA - dateB;
+         return sortDirection === 'asc' ? dateB - dateA : dateA - dateB;
       });
+      return sorted;
+    }
 
-      if (sortDirection === 'asc') {
-        sortedList = [...sortedList].reverse();
-      }
-      
-      return sortedList;
-    } else {
-      sortedList = [...filteredStudents].sort((a, b) => {
-        let comparison = 0;
-        
+    return [...filteredStudents].sort((a, b) => {
+      let comparison = 0;
+
       switch (sortMethod) {
         case 'name':
           comparison = a.name.localeCompare(b.name);
           break;
-        
+
         case 'sessions':
           comparison = b.readingSessions.length - a.readingSessions.length;
           break;
-        
+
         case 'lastRead':
           if (!a.lastReadDate) return sortDirection === 'asc' ? -1 : 1;
           if (!b.lastReadDate) return sortDirection === 'asc' ? 1 : -1;
           comparison = new Date(b.lastReadDate) - new Date(a.lastReadDate);
           break;
-        
+
         default:
           return 0;
       }
-      
-        return sortDirection === 'asc' ? comparison : -comparison;
-      });
-    }
-    return sortedList;
-  };
+
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [students, classes, globalClassFilter, sortMethod, sortDirection]);
 
   if (apiError) {
     return <Alert severity="error" sx={{ borderRadius: 4 }}>Error loading student data: {apiError}</Alert>;
@@ -161,8 +153,6 @@ const StudentList = () => {
       </Box>
     );
   }
-
-  const filteredAndSortedStudents = getFilteredAndSortedStudents();
 
   return (
     <Box>

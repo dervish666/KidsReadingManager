@@ -10,45 +10,17 @@ import {
 } from '../services/kvService';
 
 // Import utilities
-import { notFoundError, badRequestError } from '../middleware/errorHandler';
+import { notFoundError, badRequestError, forbiddenError } from '../middleware/errorHandler';
 import { permissions } from '../utils/crypto';
+import { getDB, isMultiTenantMode } from '../utils/routeHelpers';
+import { validateGenre } from '../utils/validation';
+import { rowToGenre } from '../utils/rowMappers';
 
 // Import middleware
 import { requireReadonly, requireAdmin } from '../middleware/tenant.js';
 
 // Create router
 const genresRouter = new Hono();
-
-/**
- * Helper to get D1 database
- */
-const getDB = (env) => {
-  if (!env || !env.READING_MANAGER_DB) {
-    return null;
-  }
-  return env.READING_MANAGER_DB;
-};
-
-/**
- * Check if multi-tenant mode is enabled
- */
-const isMultiTenantMode = (c) => {
-  return Boolean(c.env.JWT_SECRET && c.get('organizationId'));
-};
-
-/**
- * Convert database row to genre object (snake_case to camelCase)
- */
-const rowToGenre = (row) => {
-  if (!row) return null;
-  return {
-    id: row.id,
-    name: row.name,
-    description: row.description,
-    isPredefined: Boolean(row.is_predefined),
-    createdAt: row.created_at
-  };
-};
 
 /**
  * GET /api/genres
@@ -116,10 +88,11 @@ genresRouter.get('/:id', requireReadonly(), async (c) => {
  */
 genresRouter.post('/', requireAdmin(), async (c) => {
   const body = await c.req.json();
-  
+
   // Validate genre data
-  if (!body.name) {
-    throw badRequestError('Genre name is required');
+  const validation = validateGenre(body);
+  if (!validation.isValid) {
+    throw badRequestError(validation.errors.join('; '));
   }
   
   // Multi-tenant mode: use D1
@@ -129,9 +102,9 @@ genresRouter.post('/', requireAdmin(), async (c) => {
     // Check permission - only admins can create genres
     const userRole = c.get('userRole');
     if (!permissions.canManageSettings(userRole)) {
-      return c.json({ error: 'Permission denied' }, 403);
+      throw forbiddenError();
     }
-    
+
     const genreId = body.id || generateId();
     
     // Check if genre name already exists
@@ -181,10 +154,11 @@ genresRouter.post('/', requireAdmin(), async (c) => {
 genresRouter.put('/:id', requireAdmin(), async (c) => {
   const { id } = c.req.param();
   const body = await c.req.json();
-  
+
   // Validate genre data
-  if (!body.name) {
-    throw badRequestError('Genre name is required');
+  const validation = validateGenre(body);
+  if (!validation.isValid) {
+    throw badRequestError(validation.errors.join('; '));
   }
   
   // Multi-tenant mode: use D1
@@ -194,9 +168,9 @@ genresRouter.put('/:id', requireAdmin(), async (c) => {
     // Check permission - only admins can update genres
     const userRole = c.get('userRole');
     if (!permissions.canManageSettings(userRole)) {
-      return c.json({ error: 'Permission denied' }, 403);
+      throw forbiddenError();
     }
-    
+
     // Check if genre exists
     const existing = await db.prepare(`
       SELECT * FROM genres WHERE id = ?
@@ -264,9 +238,9 @@ genresRouter.delete('/:id', requireAdmin(), async (c) => {
     // Check permission - only admins can delete genres
     const userRole = c.get('userRole');
     if (!permissions.canManageSettings(userRole)) {
-      return c.json({ error: 'Permission denied' }, 403);
+      throw forbiddenError();
     }
-    
+
     // Check if genre exists
     const existing = await db.prepare(`
       SELECT * FROM genres WHERE id = ?

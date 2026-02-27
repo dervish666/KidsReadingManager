@@ -6,42 +6,10 @@
 import { Hono } from 'hono';
 import { requireOwner, requireAdmin, auditLog } from '../middleware/tenant.js';
 import { encryptSensitiveData } from '../utils/crypto.js';
+import { requireDB as getDB } from '../utils/routeHelpers.js';
+import { rowToOrganization } from '../utils/rowMappers.js';
 
 export const organizationRouter = new Hono();
-
-/**
- * Helper to get D1 database
- */
-const getDB = (env) => {
-  if (!env || !env.READING_MANAGER_DB) {
-    throw new Error('Database not available');
-  }
-  return env.READING_MANAGER_DB;
-};
-
-/**
- * Convert database row to organization object (snake_case to camelCase)
- */
-const rowToOrganization = (row) => {
-  if (!row) return null;
-  return {
-    id: row.id,
-    name: row.name,
-    slug: row.slug,
-    subscriptionTier: row.subscription_tier,
-    maxStudents: row.max_students,
-    maxTeachers: row.max_teachers,
-    isActive: Boolean(row.is_active),
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    wondeSchoolId: row.wonde_school_id || null,
-    wondeLastSyncAt: row.wonde_last_sync_at || null,
-    myloginOrgId: row.mylogin_org_id || null,
-    consentGivenAt: row.consent_given_at || null,
-    consentVersion: row.consent_version || null,
-    consentGivenBy: row.consent_given_by || null,
-  };
-};
 
 /**
  * GET /api/organization

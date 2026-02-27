@@ -1,10 +1,12 @@
 /**
  * D1 Provider for Book Data
  * Handles all book operations using Cloudflare D1 SQL database
- * 
+ *
  * This provider is designed for large book collections (18,000+ books)
  * and provides efficient SQL-based queries with full-text search support.
  */
+
+import { rowToBook } from '../utils/rowMappers.js';
 
 /**
  * Get the D1 database instance
@@ -17,31 +19,6 @@ const getDB = (env) => {
     return null;
   }
   return env.READING_MANAGER_DB;
-};
-
-/**
- * Convert database row to book object (snake_case to camelCase)
- * @param {Object} row - Database row
- * @returns {Object} Book object with camelCase properties
- */
-const rowToBook = (row) => {
-  if (!row) return null;
-  return {
-    id: row.id,
-    title: row.title,
-    author: row.author,
-    genreIds: row.genre_ids ? JSON.parse(row.genre_ids) : [],
-    readingLevel: row.reading_level,
-    ageRange: row.age_range,
-    description: row.description,
-    isbn: row.isbn || null,
-    pageCount: row.page_count || null,
-    seriesName: row.series_name || null,
-    seriesNumber: row.series_number || null,
-    publicationYear: row.publication_year || null,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at
-  };
 };
 
 /**

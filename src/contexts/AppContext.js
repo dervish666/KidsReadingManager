@@ -634,8 +634,17 @@ export const AppProvider = ({ children }) => {
     setApiError(null);
 
     try {
-      // Students
-      const studentsResponse = await fetchWithAuth(`${API_URL}/students`);
+      // Fetch all data in parallel for faster load
+      const [studentsResponse, classesResponse, booksResponse, genresResponse, settingsResponse] =
+        await Promise.all([
+          fetchWithAuth(`${API_URL}/students`),
+          fetchWithAuth(`${API_URL}/classes`).catch(() => null),
+          fetchWithAuth(`${API_URL}/books`).catch(() => null),
+          fetchWithAuth(`${API_URL}/genres`).catch(() => null),
+          fetchWithAuth(`${API_URL}/settings`).catch(() => null),
+        ]);
+
+      // Students (required)
       if (!studentsResponse.ok) {
         throw new Error(`API error fetching students: ${studentsResponse.status}`);
       }
@@ -646,57 +655,37 @@ export const AppProvider = ({ children }) => {
       }));
       setStudents(studentsWithClassId);
 
-      // Classes
-      try {
-        const classesResponse = await fetchWithAuth(`${API_URL}/classes`);
-        if (classesResponse.ok) {
-          const classesData = await classesResponse.json();
-          setClasses(classesData);
-        } else {
-          setClasses([]);
-        }
-      } catch (err) {
+      // Classes (optional)
+      if (classesResponse?.ok) {
+        const classesData = await classesResponse.json();
+        setClasses(classesData);
+      } else {
         setClasses([]);
       }
 
-      // Books
-      try {
-        const booksResponse = await fetchWithAuth(`${API_URL}/books`);
-        if (booksResponse.ok) {
-          const booksData = await booksResponse.json();
-          setBooks(booksData);
-        } else {
-          setBooks([]);
-        }
-      } catch (err) {
+      // Books (optional)
+      if (booksResponse?.ok) {
+        const booksData = await booksResponse.json();
+        setBooks(booksData);
+      } else {
         setBooks([]);
       }
 
-      // Genres
-      try {
-        const genresResponse = await fetchWithAuth(`${API_URL}/genres`);
-        if (genresResponse.ok) {
-          const genresData = await genresResponse.json();
-          setGenres(genresData);
-        } else {
-          setGenres([]);
-        }
-      } catch (err) {
+      // Genres (optional)
+      if (genresResponse?.ok) {
+        const genresData = await genresResponse.json();
+        setGenres(genresData);
+      } else {
         setGenres([]);
       }
 
-      // Settings
-      try {
-        const settingsResponse = await fetchWithAuth(`${API_URL}/settings`);
-        if (settingsResponse.ok) {
-          const settingsData = await settingsResponse.json();
-          setSettings(settingsData);
-          if (settingsData.readingStatusSettings) {
-            setReadingStatusSettings(settingsData.readingStatusSettings);
-          }
+      // Settings (optional)
+      if (settingsResponse?.ok) {
+        const settingsData = await settingsResponse.json();
+        setSettings(settingsData);
+        if (settingsData.readingStatusSettings) {
+          setReadingStatusSettings(settingsData.readingStatusSettings);
         }
-      } catch (err) {
-        // Settings fetch failure is non-critical
       }
 
       return { success: true };
@@ -1753,8 +1742,8 @@ export const AppProvider = ({ children }) => {
     }
   }, []);
 
-  // Provider value
-  const value = {
+  // Provider value - memoized to prevent unnecessary re-renders of all consumers
+  const value = useMemo(() => ({
     students,
     classes,
     books,
@@ -1825,7 +1814,28 @@ export const AppProvider = ({ children }) => {
     switchOrganization,
     switchingOrganization,
     fetchAvailableOrganizations,
-  };
+  }), [
+    students, classes, books, genres, loading, apiError,
+    globalClassFilter, updateGlobalClassFilter,
+    priorityStudentCount, readingStatusSettings,
+    recentlyAccessedStudents,
+    addStudent, bulkImportStudents, updateStudent, updateStudentClassId,
+    updateStudentCurrentBook, deleteStudent,
+    addReadingSession, editReadingSession, deleteReadingSession,
+    addBook, findOrCreateBook, updateBook, updateBookField,
+    addClass, updateClass, deleteClass, addGenre,
+    settings, updateSettings,
+    isAuthenticated, login, logout, fetchWithAuth, reloadDataFromServer,
+    exportToJson, importFromJson,
+    getReadingStatus, addRecentlyAccessedStudent, updatePriorityStudentCount,
+    prioritizedStudents, markedPriorityStudentIds,
+    markStudentAsPriorityHandled, resetPriorityList,
+    user, organization, userRole, authMode, serverAuthModeDetected, isMultiTenantMode,
+    loginWithEmail, register, forgotPassword, resetPassword,
+    canManageUsers, canManageStudents, canManageClasses, canManageSettings,
+    availableOrganizations, activeOrganizationId,
+    switchOrganization, switchingOrganization, fetchAvailableOrganizations,
+  ]);
 
   return (
     <AppContext.Provider value={value}>

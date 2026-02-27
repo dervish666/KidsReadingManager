@@ -252,7 +252,10 @@ describe('Users API Routes', () => {
           isActive: true,
           lastLoginAt: '2024-01-15T10:00:00Z',
           createdAt: '2024-01-01',
-          updatedAt: '2024-01-01'
+          updatedAt: '2024-01-01',
+          authProvider: null,
+          myloginId: null,
+          wondeEmployeeId: null,
         });
       });
 

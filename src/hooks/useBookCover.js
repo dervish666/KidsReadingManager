@@ -192,7 +192,7 @@ export const useBookCover = (title, author = null) => {
     return () => {
       cancelled = true;
     };
-  }, [title, author, getCachedCover, setCachedCover, isCached]);
+  }, [title, author, getCachedCover, setCachedCover, isCached]); // getCachedCover, setCachedCover, isCached are now stable refs
 
   return { coverUrl, isLoading, error };
 };

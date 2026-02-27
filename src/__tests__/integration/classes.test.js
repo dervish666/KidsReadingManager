@@ -659,7 +659,7 @@ describe('Classes API Routes', () => {
         const data = await response.json();
 
         expect(response.status).toBe(403);
-        expect(data.error).toBe('Permission denied');
+        expect(data.message).toBe('Permission denied');
       });
 
       it('should reject requests from readonly users', async () => {
@@ -675,7 +675,7 @@ describe('Classes API Routes', () => {
         const data = await response.json();
 
         expect(response.status).toBe(403);
-        expect(data.error).toBe('Permission denied');
+        expect(data.message).toBe('Permission denied');
       });
 
       it('should allow admins to create classes', async () => {
@@ -914,7 +914,7 @@ describe('Classes API Routes', () => {
         const data = await response.json();
 
         expect(response.status).toBe(403);
-        expect(data.error).toBe('Permission denied');
+        expect(data.message).toBe('Permission denied');
       });
 
       it('should reject requests from readonly users', async () => {
@@ -930,7 +930,7 @@ describe('Classes API Routes', () => {
         const data = await response.json();
 
         expect(response.status).toBe(403);
-        expect(data.error).toBe('Permission denied');
+        expect(data.message).toBe('Permission denied');
       });
 
       it('should allow admins to update classes', async () => {
@@ -1199,7 +1199,7 @@ describe('Classes API Routes', () => {
         const data = await response.json();
 
         expect(response.status).toBe(403);
-        expect(data.error).toBe('Permission denied');
+        expect(data.message).toBe('Permission denied');
       });
 
       it('should reject requests from readonly users', async () => {
@@ -1213,7 +1213,7 @@ describe('Classes API Routes', () => {
         const data = await response.json();
 
         expect(response.status).toBe(403);
-        expect(data.error).toBe('Permission denied');
+        expect(data.message).toBe('Permission denied');
       });
 
       it('should allow admins to delete classes', async () => {

@@ -1,5 +1,39 @@
 # Changelog
 
+## [3.7.0] - 2026-02-27
+
+### Performance
+- **Frontend bundle splitting**: MUI, Emotion, and React split into separate cacheable chunks via Rsbuild cacheGroups (MUI 394KB, React 179KB)
+- **Lazy-loaded tab components**: 6 of 7 tab panels loaded with React.lazy+Suspense, reducing initial JS from 312KB to 125KB (60% reduction)
+- **Memoized AppContext**: Provider value wrapped in useMemo; React.memo added to StudentCard, StudentTable, BookCover
+- **Parallelized data loading**: 5 sequential API fetches in reloadDataFromServer now use Promise.all
+- **FTS5 full-text search**: Book search queries now use existing books_fts index with LIKE fallback
+- **Intersection Observer for book covers**: Covers only fetch when within 200px of viewport
+- **CSS content-visibility on StudentTable rows**: Browser skips rendering off-screen rows
+- **Cached org streak settings**: KV cache with 1hr TTL replaces per-request DB queries
+- **Cache-Control headers**: Genres and classes GET endpoints return `private, max-age=60, stale-while-revalidate=300`
+
+### Added
+- `src/utils/rowMappers.js` — centralized snake_case→camelCase mappers for all 6 entity types (book, student, class, user, organization, genre)
+- `src/utils/routeHelpers.js` — shared helpers: `getDB`, `requireDB`, `isMultiTenantMode`, `safeJsonParse`, `requireStudent`
+- `forbiddenError()` constructor in errorHandler.js for standardized 403 responses
+- `generateTemporaryPassword()` moved to crypto.js as a shared utility
+- Input validation: `validateGenre`, `validateClass`, `validateBook` in validation.js, wired into all POST/PUT routes
+- Database migration 0026: performance indexes on rate_limits, audit_log, organizations, reading_sessions, classes
+
+### Fixed
+- **rowToUser missing columns**: Added `authProvider`, `myloginId`, `wondeEmployeeId` from migration 0024
+- **users.js PUT owner path**: Added missing `is_active = 1` filter on user lookup
+- **Library search genre_ids parsing**: Added `parseGenreIds()` helper that tries JSON.parse before comma-split fallback
+- **Consistent error responses**: Permission denied errors in classes, genres, and students now use `throw forbiddenError()` instead of mixed inline patterns
+
+### Improved
+- Deduplicated 8 inline book row mappings in books.js → single `rowToBook` import
+- Deduplicated 6 inline student existence checks in students.js → single `requireStudent()` call
+- Removed 7 duplicate `getDB` and 4 duplicate `isMultiTenantMode` across route files
+- Stabilized BookCoverContext callbacks with useRef to prevent cascade re-renders
+- Pre-computed StudentTable derived data in single useMemo pass
+
 ## [3.6.3] - 2026-02-26
 
 ### Changed

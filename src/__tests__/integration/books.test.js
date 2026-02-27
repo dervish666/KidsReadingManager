@@ -682,7 +682,7 @@ describe('Books API Routes', () => {
         const data = await response.json();
 
         expect(response.status).toBe(400);
-        expect(data.message).toBe('Book must have a title');
+        expect(data.message).toContain('Book title is required');
       });
 
       it('should reject empty title', async () => {
@@ -837,7 +837,7 @@ describe('Books API Routes', () => {
         const data = await response.json();
 
         expect(response.status).toBe(400);
-        expect(data.message).toBe('Book must have a title');
+        expect(data.message).toContain('Book title is required');
       });
     });
 

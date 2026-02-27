@@ -1,6 +1,6 @@
 {
   "name": "tally-reading",
-  "version": "3.6.3",
+  "version": "3.7.0",
   "description": "Cloudflare Workers implementation of Tally Reading API",
   "main": "src/index.js",
   "scripts": {
@@ -28,10 +28,6 @@
     "@emotion/styled": "^11.11.0",
     "@mui/icons-material": "7.0.2",
     "@mui/material": "7.0.2",
-    "body-parser": "^2.2.0",
-    "cors": "^2.8.5",
-    "dotenv": "^17.2.2",
-    "express": "^4.21.2",
     "hono": "^4.7.7",
     "html5-qrcode": "^2.3.8",
     "react": "19.1.0",

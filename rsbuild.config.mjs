@@ -13,34 +13,62 @@ export default defineConfig({
     },
   },
   source: {
-    // Assuming your entry point is src/index.js
     entry: {
       index: './src/index.js',
     },
   },
-  // Define environment variables to be injected into the code
   define: {
     'process.env.REACT_APP_API_BASE_URL': JSON.stringify(process.env.REACT_APP_API_BASE_URL),
   },
   output: {
-    // Match the default output dir of create-react-app
     distPath: {
       root: 'build',
     },
-    // Ensure index.html is generated
     html: {
       template: './public/index.html',
       inject: true,
     },
-    // Ensure assets are handled correctly
     assetPrefix: '/',
+    // Production source maps for debugging without exposing source
+    sourceMap: {
+      js: process.env.NODE_ENV === 'production' ? 'hidden-source-map' : 'cheap-module-source-map',
+    },
+    // Minimize in production
+    minify: true,
   },
-  // Add direct control over the HTML plugin
+  performance: {
+    chunkSplit: {
+      strategy: 'split-by-experience',
+      override: {
+        cacheGroups: {
+          // MUI is large — split into its own chunk for better caching
+          mui: {
+            test: /[\\/]node_modules[\\/]@mui[\\/]/,
+            name: 'lib-mui',
+            chunks: 'all',
+            priority: 20,
+          },
+          // Emotion (MUI's CSS-in-JS) as separate chunk
+          emotion: {
+            test: /[\\/]node_modules[\\/]@emotion[\\/]/,
+            name: 'lib-emotion',
+            chunks: 'all',
+            priority: 15,
+          },
+          // React core as separate chunk (stable, rarely changes)
+          react: {
+            test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
+            name: 'lib-react',
+            chunks: 'all',
+            priority: 10,
+          },
+        },
+      },
+    },
+  },
   tools: {
     htmlPlugin: (config) => {
-      // Override the title with the one from the template
       config.title = 'Tally Reading';
-      // Ensure the template is used as-is
       config.templateContent = undefined;
       return config;
     },

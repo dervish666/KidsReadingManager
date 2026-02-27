@@ -550,3 +550,23 @@ export async function decryptSensitiveData(encryptedData, secret) {
   const decoder = new TextDecoder();
   return decoder.decode(decrypted);
 }
+
+// ============================================================================
+// Temporary Password Generation
+// ============================================================================
+
+/**
+ * Generate a cryptographically random temporary password.
+ * Uses only unambiguous characters (no 0/O/I/l/1) for readability.
+ * @param {number} length - Password length (default 12)
+ * @returns {string} - Random password
+ */
+export function generateTemporaryPassword(length = 12) {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  const bytes = crypto.getRandomValues(new Uint8Array(length));
+  let password = '';
+  for (let i = 0; i < bytes.length; i++) {
+    password += chars[bytes[i] % chars.length];
+  }
+  return password;
+}

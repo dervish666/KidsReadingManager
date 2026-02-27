@@ -21,3 +21,16 @@ if (typeof globalThis.TextEncoder === 'undefined') {
   globalThis.TextEncoder = TextEncoder;
   globalThis.TextDecoder = TextDecoder;
 }
+
+// Mock IntersectionObserver for BookCover tests (happy-dom has it but doesn't fire callbacks)
+globalThis.IntersectionObserver = class IntersectionObserver {
+  constructor(callback) {
+    this._callback = callback;
+  }
+  observe() {
+    // Immediately fire with isIntersecting: true so covers load in tests
+    this._callback([{ isIntersecting: true }]);
+  }
+  disconnect() {}
+  unobserve() {}
+};

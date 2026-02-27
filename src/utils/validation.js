@@ -189,6 +189,126 @@ export function validateBulkImport(students) {
 }
 
 /**
+ * Validate genre data
+ * @param {Object} genre - Genre data to validate
+ * @returns {Object} - Validation result with isValid and errors
+ */
+export function validateGenre(genre) {
+  const errors = [];
+
+  if (!genre) {
+    return { isValid: false, errors: ['Genre data is required'] };
+  }
+
+  if (!genre.name || typeof genre.name !== 'string' || genre.name.trim() === '') {
+    errors.push('Genre name is required');
+  } else if (genre.name.trim().length > 100) {
+    errors.push('Genre name must be 100 characters or fewer');
+  }
+
+  if (genre.description !== undefined && genre.description !== null) {
+    if (typeof genre.description !== 'string') {
+      errors.push('Genre description must be a string');
+    } else if (genre.description.length > 500) {
+      errors.push('Genre description must be 500 characters or fewer');
+    }
+  }
+
+  return { isValid: errors.length === 0, errors };
+}
+
+/**
+ * Validate class data
+ * @param {Object} cls - Class data to validate
+ * @returns {Object} - Validation result with isValid and errors
+ */
+export function validateClass(cls) {
+  const errors = [];
+
+  if (!cls) {
+    return { isValid: false, errors: ['Class data is required'] };
+  }
+
+  if (!cls.name || typeof cls.name !== 'string' || cls.name.trim() === '') {
+    errors.push('Class name is required');
+  } else if (cls.name.trim().length > 100) {
+    errors.push('Class name must be 100 characters or fewer');
+  }
+
+  if (cls.teacherName !== undefined && cls.teacherName !== null) {
+    if (typeof cls.teacherName !== 'string') {
+      errors.push('Teacher name must be a string');
+    } else if (cls.teacherName.length > 200) {
+      errors.push('Teacher name must be 200 characters or fewer');
+    }
+  }
+
+  if (cls.academicYear !== undefined && cls.academicYear !== null) {
+    if (typeof cls.academicYear !== 'string') {
+      errors.push('Academic year must be a string');
+    } else if (!/^\d{4}(\/\d{4})?$/.test(cls.academicYear)) {
+      errors.push('Academic year must be in format YYYY or YYYY/YYYY');
+    }
+  }
+
+  return { isValid: errors.length === 0, errors };
+}
+
+/**
+ * Validate book data
+ * @param {Object} book - Book data to validate
+ * @returns {Object} - Validation result with isValid and errors
+ */
+export function validateBook(book) {
+  const errors = [];
+
+  if (!book) {
+    return { isValid: false, errors: ['Book data is required'] };
+  }
+
+  if (!book.title || typeof book.title !== 'string' || book.title.trim() === '') {
+    errors.push('Book title is required');
+  } else if (book.title.trim().length > 500) {
+    errors.push('Book title must be 500 characters or fewer');
+  }
+
+  if (book.author !== undefined && book.author !== null) {
+    if (typeof book.author !== 'string') {
+      errors.push('Author must be a string');
+    } else if (book.author.length > 500) {
+      errors.push('Author must be 500 characters or fewer');
+    }
+  }
+
+  if (book.readingLevel !== undefined && book.readingLevel !== null && book.readingLevel !== '') {
+    if (typeof book.readingLevel !== 'string' && typeof book.readingLevel !== 'number') {
+      errors.push('Reading level must be a string or number');
+    }
+  }
+
+  if (book.isbn !== undefined && book.isbn !== null && book.isbn !== '') {
+    if (typeof book.isbn !== 'string') {
+      errors.push('ISBN must be a string');
+    }
+  }
+
+  if (book.genreIds !== undefined && book.genreIds !== null) {
+    if (!Array.isArray(book.genreIds)) {
+      errors.push('Genre IDs must be an array');
+    }
+  }
+
+  if (book.pageCount !== undefined && book.pageCount !== null) {
+    const count = parseInt(book.pageCount, 10);
+    if (isNaN(count) || count < 0) {
+      errors.push('Page count must be a non-negative integer');
+    }
+  }
+
+  return { isValid: errors.length === 0, errors };
+}
+
+/**
  * Validate complete data import
  * @param {Object} data - Complete data to validate
  * @returns {Object} - Validation result with isValid and errors

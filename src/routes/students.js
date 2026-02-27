@@ -13,79 +13,14 @@ import {
 
 // Import utilities
 import { validateStudent, validateBulkImport, validateReadingLevelRange } from '../utils/validation';
-import { notFoundError, badRequestError } from '../middleware/errorHandler';
+import { notFoundError, badRequestError, forbiddenError } from '../middleware/errorHandler';
 import { requireRole, requireAdmin, auditLog } from '../middleware/tenant';
 import { permissions } from '../utils/crypto';
+import { getDB, isMultiTenantMode, safeJsonParse, requireStudent } from '../utils/routeHelpers';
+import { rowToStudent } from '../utils/rowMappers';
 
 // Create router
 const studentsRouter = new Hono();
-
-/**
- * Helper to get D1 database
- */
-const getDB = (env) => {
-  if (!env || !env.READING_MANAGER_DB) {
-    return null;
-  }
-  return env.READING_MANAGER_DB;
-};
-
-/**
- * Check if multi-tenant mode is enabled
- */
-const isMultiTenantMode = (c) => {
-  return Boolean(c.env.JWT_SECRET && c.get('organizationId'));
-};
-
-/** Safe JSON parse that returns a fallback on malformed data */
-const safeJsonParse = (value, fallback) => {
-  if (!value) return fallback;
-  try {
-    return JSON.parse(value);
-  } catch {
-    return fallback;
-  }
-};
-
-/**
- * Convert database row to student object (snake_case to camelCase)
- */
-const rowToStudent = (row) => {
-  if (!row) return null;
-  return {
-    id: row.id,
-    name: row.name,
-    classId: row.class_id,
-    lastReadDate: row.last_read_date,
-    likes: safeJsonParse(row.likes, []),
-    dislikes: safeJsonParse(row.dislikes, []),
-    // New reading level range fields
-    readingLevelMin: row.reading_level_min,
-    readingLevelMax: row.reading_level_max,
-    // Keep legacy field for backward compatibility during transition
-    readingLevel: row.reading_level,
-    notes: row.notes,
-    isActive: Boolean(row.is_active),
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    currentBookId: row.current_book_id || null,
-    currentBookTitle: row.current_book_title || null,
-    currentBookAuthor: row.current_book_author || null,
-    // Streak fields
-    currentStreak: row.current_streak || 0,
-    longestStreak: row.longest_streak || 0,
-    streakStartDate: row.streak_start_date || null,
-    // GDPR fields
-    processingRestricted: Boolean(row.processing_restricted),
-    aiOptOut: Boolean(row.ai_opt_out),
-    readingSessions: [], // Default empty array, will be populated separately if needed
-    preferences: {
-      favoriteGenreIds: [],
-      likes: [],
-      dislikes: []
-    }
-  };
-};
 
 /**
  * Fetch student preferences from student_preferences table
@@ -158,41 +93,54 @@ const saveStudentPreferences = async (db, studentId, preferences) => {
 };
 
 /**
- * Get the streak grace period setting for an organization
+ * Get streak settings (gracePeriodDays + timezone) for an organization.
+ * Uses KV cache with 1-hour TTL to avoid hitting D1 on every request.
+ * Falls back to D1 batch query if KV is unavailable or cache misses.
  */
-const getStreakGracePeriod = async (db, organizationId) => {
-  const setting = await db.prepare(`
-    SELECT setting_value FROM org_settings
-    WHERE organization_id = ? AND setting_key = 'streakGracePeriodDays'
-  `).bind(organizationId).first();
+const getOrgStreakSettings = async (db, organizationId, env) => {
+  const cacheKey = `org-streak-settings:${organizationId}`;
+  const KV = env?.READING_MANAGER_KV;
 
-  if (setting?.setting_value) {
+  // Try KV cache first
+  if (KV) {
     try {
-      return parseInt(JSON.parse(setting.setting_value), 10);
+      const cached = await KV.get(cacheKey);
+      if (cached) {
+        return JSON.parse(cached);
+      }
     } catch {
-      return 1; // Default grace period
+      // KV read failed — fall through to D1
     }
   }
-  return 1; // Default grace period
-};
 
-/**
- * Get the timezone setting for an organization
- */
-const getOrganizationTimezone = async (db, organizationId) => {
-  const setting = await db.prepare(`
-    SELECT setting_value FROM org_settings
-    WHERE organization_id = ? AND setting_key = 'timezone'
-  `).bind(organizationId).first();
+  // Fetch both settings in a single D1 batch
+  const [gracePeriodResult, timezoneResult] = await db.batch([
+    db.prepare(`SELECT setting_value FROM org_settings WHERE organization_id = ? AND setting_key = 'streakGracePeriodDays'`).bind(organizationId),
+    db.prepare(`SELECT setting_value FROM org_settings WHERE organization_id = ? AND setting_key = 'timezone'`).bind(organizationId),
+  ]);
 
-  if (setting?.setting_value) {
+  let gracePeriodDays = 1;
+  if (gracePeriodResult.results?.[0]?.setting_value) {
+    try { gracePeriodDays = parseInt(JSON.parse(gracePeriodResult.results[0].setting_value), 10); } catch { /* use default */ }
+  }
+
+  let timezone = 'UTC';
+  if (timezoneResult.results?.[0]?.setting_value) {
+    try { timezone = JSON.parse(timezoneResult.results[0].setting_value); } catch { timezone = timezoneResult.results[0].setting_value; }
+  }
+
+  const settings = { gracePeriodDays, timezone };
+
+  // Cache in KV for 1 hour
+  if (KV) {
     try {
-      return JSON.parse(setting.setting_value);
+      await KV.put(cacheKey, JSON.stringify(settings), { expirationTtl: 3600 });
     } catch {
-      return setting.setting_value;
+      // KV write failed — non-critical
     }
   }
-  return 'UTC';
+
+  return settings;
 };
 
 /**
@@ -207,9 +155,8 @@ const updateStudentStreak = async (db, studentId, organizationId) => {
     ORDER BY session_date DESC
   `).bind(studentId).all();
 
-  // Get organization settings
-  const gracePeriodDays = await getStreakGracePeriod(db, organizationId);
-  const timezone = await getOrganizationTimezone(db, organizationId);
+  // Get organization settings (from cache or D1)
+  const { gracePeriodDays, timezone } = await getOrgStreakSettings(db, organizationId, {});
 
   // Calculate streak
   const streakData = calculateStreak(sessions.results || [], {
@@ -245,9 +192,8 @@ studentsRouter.get('/', async (c) => {
     const db = getDB(c.env);
     const organizationId = c.get('organizationId');
 
-    // Get organization settings for streak calculation (once for all students)
-    const gracePeriodDays = await getStreakGracePeriod(db, organizationId);
-    const timezone = await getOrganizationTimezone(db, organizationId);
+    // Get organization settings for streak calculation (KV cached, 1-hour TTL)
+    const { gracePeriodDays, timezone } = await getOrgStreakSettings(db, organizationId, c.env);
 
     const result = await db.prepare(`
       SELECT s.*, c.name as class_name, b.title as current_book_title, b.author as current_book_author
@@ -369,17 +315,19 @@ studentsRouter.get('/:id', async (c) => {
     const db = getDB(c.env);
     const organizationId = c.get('organizationId');
 
-    // Get organization settings for streak calculation
-    const gracePeriodDays = await getStreakGracePeriod(db, organizationId);
-    const timezone = await getOrganizationTimezone(db, organizationId);
-
-    const student = await db.prepare(`
-      SELECT s.*, c.name as class_name, b.title as current_book_title, b.author as current_book_author
-      FROM students s
-      LEFT JOIN classes c ON s.class_id = c.id
-      LEFT JOIN books b ON s.current_book_id = b.id
-      WHERE s.id = ? AND s.organization_id = ? AND s.is_active = 1
-    `).bind(id, organizationId).first();
+    // Get org settings (KV cached) and student in parallel
+    const [streakSettings, studentResult] = await Promise.all([
+      getOrgStreakSettings(db, organizationId, c.env),
+      db.prepare(`
+        SELECT s.*, c.name as class_name, b.title as current_book_title, b.author as current_book_author
+        FROM students s
+        LEFT JOIN classes c ON s.class_id = c.id
+        LEFT JOIN books b ON s.current_book_id = b.id
+        WHERE s.id = ? AND s.organization_id = ? AND s.is_active = 1
+      `).bind(id, organizationId).first(),
+    ]);
+    const { gracePeriodDays, timezone } = streakSettings;
+    const student = studentResult;
 
     if (!student) {
       throw notFoundError(`Student with ID ${id} not found`);
@@ -461,7 +409,7 @@ studentsRouter.post('/', auditLog('create', 'student'), async (c) => {
     // Check permission
     const userRole = c.get('userRole');
     if (!permissions.canManageStudents(userRole)) {
-      return c.json({ error: 'Permission denied' }, 403);
+      throw forbiddenError();
     }
 
     // Validate reading level range
@@ -536,17 +484,11 @@ studentsRouter.put('/:id', auditLog('update', 'student'), async (c) => {
     // Check permission
     const userRole = c.get('userRole');
     if (!permissions.canManageStudents(userRole)) {
-      return c.json({ error: 'Permission denied' }, 403);
+      throw forbiddenError();
     }
 
     // Check if student exists and belongs to organization
-    const existing = await db.prepare(`
-      SELECT id FROM students WHERE id = ? AND organization_id = ? AND is_active = 1
-    `).bind(id, organizationId).first();
-
-    if (!existing) {
-      throw notFoundError(`Student with ID ${id} not found`);
-    }
+    await requireStudent(db, id, organizationId);
 
     // Validate reading level range
     const rangeValidation = validateReadingLevelRange(body.readingLevelMin, body.readingLevelMax);
@@ -643,17 +585,10 @@ studentsRouter.delete('/:id', auditLog('delete', 'student'), async (c) => {
     // Check permission
     const userRole = c.get('userRole');
     if (!permissions.canManageStudents(userRole)) {
-      return c.json({ error: 'Permission denied' }, 403);
+      throw forbiddenError();
     }
     
-    // Check if student exists
-    const existing = await db.prepare(`
-      SELECT id FROM students WHERE id = ? AND organization_id = ? AND is_active = 1
-    `).bind(id, organizationId).first();
-    
-    if (!existing) {
-      throw notFoundError(`Student with ID ${id} not found`);
-    }
+    await requireStudent(db, id, organizationId);
     
     // Soft delete
     await db.prepare(`
@@ -686,14 +621,7 @@ studentsRouter.put('/:id/current-book', async (c) => {
     const db = getDB(c.env);
     const organizationId = c.get('organizationId');
 
-    // Check if student exists and belongs to organization
-    const existing = await db.prepare(`
-      SELECT id FROM students WHERE id = ? AND organization_id = ? AND is_active = 1
-    `).bind(id, organizationId).first();
-
-    if (!existing) {
-      throw notFoundError(`Student with ID ${id} not found`);
-    }
+    await requireStudent(db, id, organizationId);
 
     // Update current book (bookId can be null to clear)
     await db.prepare(`
@@ -742,7 +670,7 @@ studentsRouter.post('/bulk', auditLog('import', 'student'), async (c) => {
     // Check permission
     const userRole = c.get('userRole');
     if (!permissions.canManageStudents(userRole)) {
-      return c.json({ error: 'Permission denied' }, 403);
+      throw forbiddenError();
     }
 
     // Validate reading level range for each student
@@ -971,14 +899,7 @@ studentsRouter.delete('/:id/sessions/:sessionId', auditLog('delete', 'session'),
     const db = getDB(c.env);
     const organizationId = c.get('organizationId');
     
-    // Check if student exists and belongs to organization
-    const student = await db.prepare(`
-      SELECT id FROM students WHERE id = ? AND organization_id = ? AND is_active = 1
-    `).bind(id, organizationId).first();
-    
-    if (!student) {
-      throw notFoundError(`Student with ID ${id} not found`);
-    }
+    await requireStudent(db, id, organizationId);
     
     // Check if session exists
     const session = await db.prepare(`
@@ -1038,14 +959,7 @@ studentsRouter.put('/:id/sessions/:sessionId', async (c) => {
     const db = getDB(c.env);
     const organizationId = c.get('organizationId');
     
-    // Check if student exists and belongs to organization
-    const student = await db.prepare(`
-      SELECT id FROM students WHERE id = ? AND organization_id = ? AND is_active = 1
-    `).bind(id, organizationId).first();
-    
-    if (!student) {
-      throw notFoundError(`Student with ID ${id} not found`);
-    }
+    await requireStudent(db, id, organizationId);
     
     // Check if session exists
     const existingSession = await db.prepare(`
@@ -1191,7 +1105,7 @@ studentsRouter.post('/recalculate-streaks', async (c) => {
   // Check permission - admin or owner only
   const userRole = c.get('userRole');
   if (!permissions.canManageSettings(userRole)) {
-    return c.json({ error: 'Permission denied' }, 403);
+    throw forbiddenError();
   }
 
   // Get all active students for this organization
@@ -1373,17 +1287,10 @@ studentsRouter.put('/:id/ai-opt-out', async (c) => {
   // Check permission
   const userRole = c.get('userRole');
   if (!permissions.canManageStudents(userRole)) {
-    return c.json({ error: 'Permission denied' }, 403);
+    throw forbiddenError();
   }
 
-  // Check student exists and belongs to organization
-  const student = await db.prepare(`
-    SELECT id FROM students WHERE id = ? AND organization_id = ? AND is_active = 1
-  `).bind(id, organizationId).first();
-
-  if (!student) {
-    return c.json({ error: 'Student not found' }, 404);
-  }
+  await requireStudent(db, id, organizationId);
 
   await db.prepare(`
     UPDATE students SET ai_opt_out = ?, updated_at = datetime('now')

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Box, Container, Paper, CssBaseline, ThemeProvider } from '@mui/material';
+import React, { useState, Suspense } from 'react';
+import { Box, Container, Paper, CssBaseline, ThemeProvider, CircularProgress } from '@mui/material';
 import theme from './styles/theme';
 import BottomNavigation from '@mui/material/BottomNavigation';
 import BottomNavigationAction from '@mui/material/BottomNavigationAction';
@@ -10,14 +10,18 @@ import { AppProvider, useAppContext } from './contexts/AppContext';
 import { BookCoverProvider } from './contexts/BookCoverContext';
 import Login from './components/Login';
 import LandingPage from './components/LandingPage';
-import StudentList from './components/students/StudentList';
-import SessionForm from './components/sessions/SessionForm';
-import HomeReadingRegister from './components/sessions/HomeReadingRegister';
-import ReadingStats from './components/stats/ReadingStats';
-import BookRecommendations from './components/BookRecommendations';
-import BookManager from './components/books/BookManager';
-import SettingsPage from './components/SettingsPage';
 import DpaConsentModal from './components/DpaConsentModal';
+
+// Eagerly load Students (default tab, always visible first)
+import StudentList from './components/students/StudentList';
+
+// Lazy-load all other tabs — only fetched when user navigates to them
+const SessionForm = React.lazy(() => import('./components/sessions/SessionForm'));
+const HomeReadingRegister = React.lazy(() => import('./components/sessions/HomeReadingRegister'));
+const ReadingStats = React.lazy(() => import('./components/stats/ReadingStats'));
+const BookRecommendations = React.lazy(() => import('./components/BookRecommendations'));
+const BookManager = React.lazy(() => import('./components/books/BookManager'));
+const SettingsPage = React.lazy(() => import('./components/SettingsPage'));
 
 // Import custom navigation icons
 import iconStudents from './assets/icon-students.png';
@@ -229,7 +233,13 @@ function AppContent() {
             },
           }}
         >
-          {renderTabContent()}
+          <Suspense fallback={
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+              <CircularProgress sx={{ color: '#6B8E6B' }} />
+            </Box>
+          }>
+            {renderTabContent()}
+          </Suspense>
         </Paper>
       </Container>
 

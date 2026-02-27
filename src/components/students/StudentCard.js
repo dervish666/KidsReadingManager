@@ -19,7 +19,7 @@ import StudentSessions from '../sessions/StudentSessions';
 import StudentProfile from './StudentProfile';
 import StreakBadge from './StreakBadge';
 
-const StudentCard = ({ student }) => {
+const StudentCard = React.memo(({ student }) => {
   const theme = useTheme();
   const { getReadingStatus, classes } = useAppContext();
   const [openSessionsDialog, setOpenSessionsDialog] = useState(false);
@@ -266,6 +266,7 @@ const StudentCard = ({ student }) => {
       <StudentProfile open={openPreferencesDialog} onClose={() => setOpenPreferencesDialog(false)} student={student} />
     </>
   );
-};
+});
 
 export default StudentCard;
+// Note: React.memo wraps the component definition above

@@ -15,6 +15,8 @@ import { isExactMatch, isFuzzyMatch, isAuthorMatch, normalizeAuthorDisplay } fro
 import { getCachedRecommendations, cacheRecommendations } from '../utils/recommendationCache.js';
 import { normalizeISBN } from '../utils/isbn.js';
 import { lookupISBN } from '../utils/isbnLookup.js';
+import { validateBook } from '../utils/validation.js';
+import { rowToBook } from '../utils/rowMappers.js';
 
 // Import middleware
 import { requireReadonly, requireTeacher, requireAdmin, auditLog } from '../middleware/tenant.js';
@@ -44,24 +46,33 @@ booksRouter.get('/', requireReadonly(), async (c) => {
 
   // In multi-tenant mode, always scope to organization's books
   if (organizationId && db) {
-    // Search with org scoping
+    // Search with org scoping using FTS5 for performance
     if (search && search.trim()) {
       const limit = pageSize ? parseInt(pageSize, 10) : 50;
-      const likeQuery = `%${search.trim()}%`;
-      const result = await db.prepare(`
-        SELECT b.* FROM books b
-        INNER JOIN org_book_selections obs ON b.id = obs.book_id
-        WHERE obs.organization_id = ? AND (b.title LIKE ? OR b.author LIKE ?)
-        ORDER BY b.title LIMIT ?
-      `).bind(organizationId, likeQuery, likeQuery, limit).all();
-      return c.json((result.results || []).map(b => ({
-        id: b.id, title: b.title, author: b.author,
-        readingLevel: b.reading_level, ageRange: b.age_range,
-        genreIds: b.genre_ids ? JSON.parse(b.genre_ids) : [], description: b.description,
-        isbn: b.isbn, pageCount: b.page_count,
-        seriesName: b.series_name, seriesNumber: b.series_number,
-        publicationYear: b.publication_year,
-      })));
+      const searchTerm = search.trim();
+      // Try FTS5 first (handles prefix matching and is much faster than LIKE on large tables)
+      // Escape FTS5 special characters and add prefix matching
+      const ftsQuery = searchTerm.replace(/['"*()^]/g, '').split(/\s+/).filter(Boolean).map(t => `"${t}"*`).join(' ');
+      let result;
+      try {
+        result = await db.prepare(`
+          SELECT b.* FROM books b
+          INNER JOIN org_book_selections obs ON b.id = obs.book_id
+          INNER JOIN books_fts fts ON b.id = fts.id
+          WHERE obs.organization_id = ? AND books_fts MATCH ?
+          ORDER BY rank LIMIT ?
+        `).bind(organizationId, ftsQuery, limit).all();
+      } catch {
+        // FTS5 may not be available or query may be invalid — fall back to LIKE
+        const likeQuery = `%${searchTerm}%`;
+        result = await db.prepare(`
+          SELECT b.* FROM books b
+          INNER JOIN org_book_selections obs ON b.id = obs.book_id
+          WHERE obs.organization_id = ? AND (b.title LIKE ? OR b.author LIKE ?)
+          ORDER BY b.title LIMIT ?
+        `).bind(organizationId, likeQuery, likeQuery, limit).all();
+      }
+      return c.json((result.results || []).map(rowToBook));
     }
 
     // Pagination with org scoping
@@ -80,14 +91,7 @@ booksRouter.get('/', requireReadonly(), async (c) => {
         ORDER BY b.title LIMIT ? OFFSET ?
       `).bind(organizationId, size, offset).all();
       return c.json({
-        books: (result.results || []).map(b => ({
-          id: b.id, title: b.title, author: b.author,
-          readingLevel: b.reading_level, ageRange: b.age_range,
-          genreIds: b.genre_ids ? JSON.parse(b.genre_ids) : [], description: b.description,
-          isbn: b.isbn, pageCount: b.page_count,
-          seriesName: b.series_name, seriesNumber: b.series_number,
-          publicationYear: b.publication_year,
-        })),
+        books: (result.results || []).map(rowToBook),
         total, page: pageNum, pageSize: size,
         totalPages: Math.ceil(total / size)
       });
@@ -101,14 +105,7 @@ booksRouter.get('/', requireReadonly(), async (c) => {
       WHERE obs.organization_id = ? AND obs.is_available = 1
       ORDER BY b.title LIMIT ?
     `).bind(organizationId, MAX_DEFAULT_BOOKS).all();
-    return c.json((result.results || []).map(b => ({
-      id: b.id, title: b.title, author: b.author,
-      readingLevel: b.reading_level, ageRange: b.age_range,
-      genreIds: b.genre_ids ? JSON.parse(b.genre_ids) : [], description: b.description,
-      isbn: b.isbn, pageCount: b.page_count,
-      seriesName: b.series_name, seriesNumber: b.series_number,
-      publicationYear: b.publication_year,
-    })));
+    return c.json((result.results || []).map(rowToBook));
   }
 
   // Legacy mode: no org scoping
@@ -147,23 +144,30 @@ booksRouter.get('/search', requireReadonly(), async (c) => {
   const organizationId = c.get('organizationId');
   const db = c.env.READING_MANAGER_DB;
 
-  // In multi-tenant mode, scope search to organization's books
+  // In multi-tenant mode, scope search to organization's books using FTS5
   if (organizationId && db) {
-    const likeQuery = `%${q.trim()}%`;
-    const result = await db.prepare(`
-      SELECT b.* FROM books b
-      INNER JOIN org_book_selections obs ON b.id = obs.book_id
-      WHERE obs.organization_id = ? AND (b.title LIKE ? OR b.author LIKE ?)
-      ORDER BY b.title LIMIT ?
-    `).bind(organizationId, likeQuery, likeQuery, maxResults).all();
-    const books = (result.results || []).map(b => ({
-      id: b.id, title: b.title, author: b.author,
-      readingLevel: b.reading_level, ageRange: b.age_range,
-      genreIds: b.genre_ids ? JSON.parse(b.genre_ids) : [], description: b.description,
-      isbn: b.isbn, pageCount: b.page_count,
-      seriesName: b.series_name, seriesNumber: b.series_number,
-      publicationYear: b.publication_year,
-    }));
+    const searchTerm = q.trim();
+    const ftsQuery = searchTerm.replace(/['"*()^]/g, '').split(/\s+/).filter(Boolean).map(t => `"${t}"*`).join(' ');
+    let result;
+    try {
+      result = await db.prepare(`
+        SELECT b.* FROM books b
+        INNER JOIN org_book_selections obs ON b.id = obs.book_id
+        INNER JOIN books_fts fts ON b.id = fts.id
+        WHERE obs.organization_id = ? AND books_fts MATCH ?
+        ORDER BY rank LIMIT ?
+      `).bind(organizationId, ftsQuery, maxResults).all();
+    } catch {
+      // FTS5 fallback to LIKE
+      const likeQuery = `%${searchTerm}%`;
+      result = await db.prepare(`
+        SELECT b.* FROM books b
+        INNER JOIN org_book_selections obs ON b.id = obs.book_id
+        WHERE obs.organization_id = ? AND (b.title LIKE ? OR b.author LIKE ?)
+        ORDER BY b.title LIMIT ?
+      `).bind(organizationId, likeQuery, likeQuery, maxResults).all();
+    }
+    const books = (result.results || []).map(rowToBook);
     return c.json({ query: q.trim(), count: books.length, books });
   }
 
@@ -265,11 +269,21 @@ booksRouter.get('/library-search', requireReadonly(), async (c) => {
     const booksResult = await db.prepare(query).bind(...params).all();
     let books = booksResult.results || [];
 
+    // Helper to safely parse genre_ids (handles both JSON array and comma-separated)
+    const parseGenreIds = (genreIdsStr) => {
+      if (!genreIdsStr) return [];
+      try {
+        const parsed = JSON.parse(genreIdsStr);
+        if (Array.isArray(parsed)) return parsed;
+      } catch { /* not JSON, fall through */ }
+      return genreIdsStr.split(',').map(g => g.trim()).filter(Boolean);
+    };
+
     // Score and sort books by genre match
     const scoredBooks = books.map(book => {
       let score = 0;
       const matchReasons = [];
-      const bookGenreIds = book.genre_ids ? book.genre_ids.split(',').map(g => g.trim()) : [];
+      const bookGenreIds = parseGenreIds(book.genre_ids);
 
       // Score for matching favorite genres
       for (const genreId of bookGenreIds) {
@@ -306,9 +320,7 @@ booksRouter.get('/library-search', requireReadonly(), async (c) => {
     const topBooks = scoredBooks.slice(0, 10);
 
     // Get genre names for display
-    const allGenreIds = [...new Set(topBooks.flatMap(b =>
-      b.genre_ids ? b.genre_ids.split(',').map(g => g.trim()) : []
-    ))];
+    const allGenreIds = [...new Set(topBooks.flatMap(b => parseGenreIds(b.genre_ids)))];
 
     let genreNameMap = {};
     if (allGenreIds.length > 0) {
@@ -324,7 +336,7 @@ booksRouter.get('/library-search', requireReadonly(), async (c) => {
 
     // Format response
     const formattedBooks = topBooks.map(book => {
-      const genreIds = book.genre_ids ? book.genre_ids.split(',').map(g => g.trim()) : [];
+      const genreIds = parseGenreIds(book.genre_ids);
       // Only include genres that have a name in the map (filter out invalid IDs)
       const genres = genreIds
         .filter(id => genreNameMap[id])
@@ -595,9 +607,10 @@ booksRouter.get('/count', requireReadonly(), async (c) => {
 booksRouter.post('/', requireTeacher(), async (c) => {
   const bookData = await c.req.json();
 
-  // Basic validation - only title is required
-  if (!bookData.title) {
-    throw badRequestError('Book must have a title');
+  // Validate book data
+  const validation = validateBook(bookData);
+  if (!validation.isValid) {
+    throw badRequestError(validation.errors.join('; '));
   }
 
   const newBook = {
@@ -647,15 +660,7 @@ booksRouter.get('/isbn/:isbn', requireTeacher(), async (c) => {
         ).bind(organizationId, row.id).first();
         inLibrary = !!orgLink;
       }
-      const book = {
-        id: row.id, title: row.title, author: row.author,
-        readingLevel: row.reading_level, ageRange: row.age_range,
-        genreIds: row.genre_ids ? JSON.parse(row.genre_ids) : [], description: row.description,
-        isbn: row.isbn, pageCount: row.page_count,
-        seriesName: row.series_name, seriesNumber: row.series_number,
-        publicationYear: row.publication_year,
-      };
-      return c.json({ source: 'local', inLibrary, book });
+      return c.json({ source: 'local', inLibrary, book: rowToBook(row) });
     }
   }
 
@@ -689,15 +694,7 @@ booksRouter.get('/isbn/:isbn', requireTeacher(), async (c) => {
         ).bind(organizationId, match.id).first();
         inLibrary = !!orgLink;
       }
-      const book = {
-        id: match.id, title: match.title, author: match.author,
-        readingLevel: match.reading_level, ageRange: match.age_range,
-        genreIds: match.genre_ids ? JSON.parse(match.genre_ids) : [], description: match.description,
-        isbn: match.isbn || normalized, pageCount: match.page_count,
-        seriesName: match.series_name, seriesNumber: match.series_number,
-        publicationYear: match.publication_year,
-      };
-      return c.json({ source: 'local', inLibrary, book });
+      return c.json({ source: 'local', inLibrary, book: { ...rowToBook(match), isbn: match.isbn || normalized } });
     }
   }
 
@@ -736,15 +733,7 @@ booksRouter.post('/scan', requireTeacher(), async (c) => {
         ON CONFLICT (organization_id, book_id) DO UPDATE SET is_available = 1, updated_at = datetime('now')
       `).bind(crypto.randomUUID(), organizationId, existingRow.id).run();
     }
-    const book = {
-      id: existingRow.id, title: existingRow.title, author: existingRow.author,
-      readingLevel: existingRow.reading_level, ageRange: existingRow.age_range,
-      genreIds: existingRow.genre_ids ? JSON.parse(existingRow.genre_ids) : [], description: existingRow.description,
-      isbn: existingRow.isbn, pageCount: existingRow.page_count,
-      seriesName: existingRow.series_name, seriesNumber: existingRow.series_number,
-      publicationYear: existingRow.publication_year,
-    };
-    return c.json({ action: 'linked', book });
+    return c.json({ action: 'linked', book: rowToBook(existingRow) });
   }
 
   // Not found locally by ISBN — look up on OpenLibrary
@@ -788,15 +777,7 @@ booksRouter.post('/scan', requireTeacher(), async (c) => {
           ON CONFLICT (organization_id, book_id) DO UPDATE SET is_available = 1, updated_at = datetime('now')
         `).bind(crypto.randomUUID(), organizationId, match.id).run();
       }
-      const book = {
-        id: match.id, title: match.title, author: match.author,
-        readingLevel: match.reading_level, ageRange: match.age_range,
-        genreIds: match.genre_ids ? JSON.parse(match.genre_ids) : [], description: match.description,
-        isbn: match.isbn || normalized, pageCount: match.page_count,
-        seriesName: match.series_name, seriesNumber: match.series_number,
-        publicationYear: match.publication_year,
-      };
-      return c.json({ action: 'linked', book });
+      return c.json({ action: 'linked', book: { ...rowToBook(match), isbn: match.isbn || normalized } });
     }
   }
 
@@ -877,9 +858,10 @@ booksRouter.put('/:id', requireTeacher(), async (c) => {
     id // Ensure ID doesn't change
   };
 
-  // Validate title if it was changed/provided
-  if (!updatedBook.title) {
-    throw badRequestError('Book must have a title');
+  // Validate the merged book data
+  const bookValidation = validateBook(updatedBook);
+  if (!bookValidation.isValid) {
+    throw badRequestError(bookValidation.errors.join('; '));
   }
 
   const updateProvider = await createProvider(c.env);

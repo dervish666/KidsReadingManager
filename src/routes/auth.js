@@ -15,6 +15,7 @@ import {
 } from '../utils/crypto.js';
 import { authRateLimit } from '../middleware/tenant.js';
 import { sendPasswordResetEmail } from '../utils/email.js';
+import { requireDB as getDB } from '../utils/routeHelpers.js';
 
 export const authRouter = new Hono();
 
@@ -30,10 +31,10 @@ authRouter.use('*', authRateLimit());
 authRouter.get('/mode', async (c) => {
   const hasJwtSecret = !!c.env.JWT_SECRET;
   const hasD1 = !!c.env.READING_MANAGER_DB;
-  
+
   // Multi-tenant mode requires both JWT_SECRET and D1 database
   const isMultiTenant = hasJwtSecret && hasD1;
-  
+
   return c.json({
     mode: isMultiTenant ? 'multitenant' : 'legacy',
     features: {
@@ -43,16 +44,6 @@ authRouter.get('/mode', async (c) => {
     }
   });
 });
-
-/**
- * Helper to get D1 database
- */
-const getDB = (env) => {
-  if (!env || !env.READING_MANAGER_DB) {
-    throw new Error('Database not available');
-  }
-  return env.READING_MANAGER_DB;
-};
 
 /**
  * Generate URL-safe slug from organization name

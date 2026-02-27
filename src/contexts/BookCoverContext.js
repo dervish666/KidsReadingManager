@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from 'react';
 
 // Create context
 const BookCoverContext = createContext(null);
@@ -83,37 +83,35 @@ export const BookCoverProvider = ({ children }) => {
     setCache(cleanedCache);
   }, []);
 
+  // Keep a ref to the latest cache so callbacks don't depend on the cache state
+  // This prevents all useBookCover hooks from re-running when any cover is fetched
+  const cacheRef = useRef(cache);
+  cacheRef.current = cache;
+
   /**
-   * Get cached cover URL for a book
-   * @param {string} title - Book title
-   * @param {string|null} author - Book author
-   * @returns {string|null} Cover URL or null if not cached
+   * Get cached cover URL for a book.
+   * Stable reference — does not change when cache updates.
    */
-  const getCachedCover = useCallback(
-    (title, author) => {
-      const key = getCacheKey(title, author);
-      const entry = cache[key];
+  const getCachedCover = useCallback((title, author) => {
+    const key = getCacheKey(title, author);
+    const entry = cacheRef.current[key];
 
-      if (!entry) {
-        return null;
-      }
+    if (!entry) {
+      return null;
+    }
 
-      // Double-check expiry at read time
-      const now = Date.now();
-      if (now - entry.fetchedAt >= CACHE_EXPIRY_MS) {
-        return null;
-      }
+    // Double-check expiry at read time
+    const now = Date.now();
+    if (now - entry.fetchedAt >= CACHE_EXPIRY_MS) {
+      return null;
+    }
 
-      return entry.coverUrl;
-    },
-    [cache]
-  );
+    return entry.coverUrl;
+  }, []);
 
   /**
-   * Cache a cover URL for a book
-   * @param {string} title - Book title
-   * @param {string|null} author - Book author
-   * @param {string} coverUrl - Cover image URL
+   * Cache a cover URL for a book.
+   * Stable reference — does not change when cache updates.
    */
   const setCachedCover = useCallback((title, author, coverUrl) => {
     const key = getCacheKey(title, author);
@@ -136,36 +134,32 @@ export const BookCoverProvider = ({ children }) => {
   }, []);
 
   /**
-   * Check if a book's cover is cached
-   * @param {string} title - Book title
-   * @param {string|null} author - Book author
-   * @returns {boolean} True if cached, false otherwise
+   * Check if a book's cover is cached.
+   * Stable reference — does not change when cache updates.
    */
-  const isCached = useCallback(
-    (title, author) => {
-      const key = getCacheKey(title, author);
-      const entry = cache[key];
+  const isCached = useCallback((title, author) => {
+    const key = getCacheKey(title, author);
+    const entry = cacheRef.current[key];
 
-      if (!entry) {
-        return false;
-      }
+    if (!entry) {
+      return false;
+    }
 
-      // Check if entry is expired
-      const now = Date.now();
-      if (now - entry.fetchedAt >= CACHE_EXPIRY_MS) {
-        return false;
-      }
+    // Check if entry is expired
+    const now = Date.now();
+    if (now - entry.fetchedAt >= CACHE_EXPIRY_MS) {
+      return false;
+    }
 
-      return true;
-    },
-    [cache]
-  );
+    return true;
+  }, []);
 
-  const value = {
+  // Memoize the value to prevent unnecessary re-renders of consumers
+  const value = useMemo(() => ({
     getCachedCover,
     setCachedCover,
     isCached,
-  };
+  }), [getCachedCover, setCachedCover, isCached]);
 
   return (
     <BookCoverContext.Provider value={value}>

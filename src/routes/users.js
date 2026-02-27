@@ -5,40 +5,13 @@
 
 import { Hono } from 'hono';
 import { generateId } from '../utils/helpers.js';
-import { hashPassword, ROLES, hasPermission } from '../utils/crypto.js';
+import { hashPassword, generateTemporaryPassword, ROLES, hasPermission } from '../utils/crypto.js';
 import { requireAdmin, requireOwner, auditLog } from '../middleware/tenant.js';
 import { sendWelcomeEmail } from '../utils/email.js';
+import { requireDB as getDB } from '../utils/routeHelpers.js';
+import { rowToUser } from '../utils/rowMappers.js';
 
 export const usersRouter = new Hono();
-
-/**
- * Helper to get D1 database
- */
-const getDB = (env) => {
-  if (!env || !env.READING_MANAGER_DB) {
-    throw new Error('Database not available');
-  }
-  return env.READING_MANAGER_DB;
-};
-
-/**
- * Convert database row to user object (snake_case to camelCase)
- */
-const rowToUser = (row) => {
-  if (!row) return null;
-  return {
-    id: row.id,
-    organizationId: row.organization_id,
-    organizationName: row.organization_name,
-    email: row.email,
-    name: row.name,
-    role: row.role,
-    isActive: Boolean(row.is_active),
-    lastLoginAt: row.last_login_at,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at
-  };
-};
 
 /**
  * GET /api/users
@@ -293,11 +266,11 @@ usersRouter.put('/:id', auditLog('update', 'user'), async (c) => {
     let existingUser;
     if (isOwner) {
       existingUser = await db.prepare(`
-        SELECT * FROM users WHERE id = ?
+        SELECT * FROM users WHERE id = ? AND is_active = 1
       `).bind(targetUserId).first();
     } else {
       existingUser = await db.prepare(`
-        SELECT * FROM users WHERE id = ? AND organization_id = ?
+        SELECT * FROM users WHERE id = ? AND organization_id = ? AND is_active = 1
       `).bind(targetUserId, currentUserOrgId).first();
     }
 
@@ -759,15 +732,3 @@ function csvRow(values) {
   }).join(',');
 }
 
-/**
- * Generate a temporary password
- */
-function generateTemporaryPassword() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-  const bytes = crypto.getRandomValues(new Uint8Array(12));
-  let password = '';
-  for (let i = 0; i < bytes.length; i++) {
-    password += chars[bytes[i] % chars.length];
-  }
-  return password;
-}

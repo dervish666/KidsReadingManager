@@ -116,6 +116,13 @@ app.use('/api/*', async (c, next) => {
     c.header('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     c.header('Pragma', 'no-cache');
   }
+
+  // Allow short client-side caching for infrequently-changing GET data
+  if (c.req.method === 'GET' && !c.res.headers.has('Cache-Control')) {
+    if (c.req.path.startsWith('/api/genres') || c.req.path.startsWith('/api/classes')) {
+      c.header('Cache-Control', 'private, max-age=60, stale-while-revalidate=300');
+    }
+  }
 });
 
 // Error handler (kept last in the chain)

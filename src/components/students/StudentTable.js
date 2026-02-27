@@ -25,7 +25,7 @@ import { useTheme } from '@mui/material/styles';
 import StudentSessions from '../sessions/StudentSessions';
 import StudentProfile from './StudentProfile';
 
-const StudentTable = ({ students }) => {
+const StudentTable = React.memo(({ students }) => {
   const theme = useTheme();
   const { getReadingStatus, classes, markStudentAsPriorityHandled, markedPriorityStudentIds } = useAppContext();
   const [openSessionsDialog, setOpenSessionsDialog] = useState(false);
@@ -46,30 +46,39 @@ const StudentTable = ({ students }) => {
     });
   };
 
-  const getDaysSince = (student) => {
-    const mostRecentReadDate = student?.readingSessions?.length > 0
-      ? [...student.readingSessions].sort((a, b) => new Date(b.date) - new Date(a.date))[0].date
-      : student?.lastReadDate;
-    
-    if (!mostRecentReadDate) return 'Never read';
-    const diffTime = Math.max(0, new Date() - new Date(mostRecentReadDate));
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
-  };
+  // Pre-compute per-student derived data to avoid repeated array spreads/sorts
+  const studentDerivedData = useMemo(() => {
+    const map = new Map();
+    for (const student of students) {
+      let mostRecentReadDate = student?.lastReadDate || null;
+      if (student?.readingSessions?.length > 0) {
+        mostRecentReadDate = student.readingSessions.reduce(
+          (latest, s) => (!latest || s.date > latest ? s.date : latest),
+          null
+        );
+      }
 
-  const getClassName = (student) => {
-    if (!student?.classId || !classes || classes.length === 0) return 'Unassigned';
-    const found = classes.find((c) => c.id === student.classId);
-    return found ? found.name : 'Unknown';
-  };
+      let daysSince = 'Never read';
+      if (mostRecentReadDate) {
+        const diffTime = Math.max(0, new Date() - new Date(mostRecentReadDate));
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        daysSince = `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+      }
 
-  const getMostRecentReadDate = (student) => {
-    if (!student?.readingSessions || student.readingSessions.length === 0) {
-      return student?.lastReadDate || null;
+      let className = 'Unassigned';
+      if (student?.classId && classes?.length > 0) {
+        const found = classes.find((c) => c.id === student.classId);
+        className = found ? found.name : 'Unknown';
+      }
+
+      map.set(student.id, { mostRecentReadDate, daysSince, className });
     }
-    const sorted = [...student.readingSessions].sort((a, b) => new Date(b.date) - new Date(a.date));
-    return sorted[0].date;
-  };
+    return map;
+  }, [students, classes]);
+
+  const getDaysSince = (student) => studentDerivedData.get(student.id)?.daysSince || 'Never read';
+  const getClassName = (student) => studentDerivedData.get(student.id)?.className || 'Unassigned';
+  const getMostRecentReadDate = (student) => studentDerivedData.get(student.id)?.mostRecentReadDate || null;
 
   const handleRowClick = (student) => {
     setSelectedStudent(student);
@@ -250,6 +259,9 @@ const StudentTable = ({ students }) => {
                     },
                     // Touch-friendly row height
                     height: { xs: 72, sm: 60 },
+                    // Skip rendering for off-screen rows (browser-native virtualization)
+                    contentVisibility: 'auto',
+                    containIntrinsicBlockSize: { xs: '72px', sm: '60px' },
                     // Add border-left for status indicator
                     borderLeft: `4px solid ${statusColor}`,
                   }}
@@ -448,6 +460,6 @@ const StudentTable = ({ students }) => {
       </Snackbar>
     </>
   );
-};
+});
 
 export default StudentTable;

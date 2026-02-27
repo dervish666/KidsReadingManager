@@ -70,6 +70,8 @@ src/utils/googleBooksApi.js - Google Books API client
 src/utils/hardcoverApi.js - Hardcover GraphQL API client with rate limiting
 src/utils/bookMetadataApi.js - Unified metadata API with provider abstraction
 src/utils/csvParser.js - CSV parsing for book import
+src/utils/routeHelpers.js - Shared route helpers (getDB, requireDB, isMultiTenantMode, requireStudent)
+src/utils/rowMappers.js - Centralized row-to-object mappers (rowToBook, rowToStudent, rowToClass, rowToUser, rowToOrganization, rowToGenre)
 src/utils/wondeApi.js - Wonde REST API client for school data sync
 
 <!-- Contexts & Hooks -->
