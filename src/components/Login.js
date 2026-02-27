@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import { Box, Typography, Button, TextField, Paper, Link, Tabs, Tab, Alert, CircularProgress } from '@mui/material';
-import MenuBookIcon from '@mui/icons-material/MenuBook';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import TallyLogo from './TallyLogo';
 
 /**
  * Login Component
@@ -585,7 +585,7 @@ const Login = ({ onBackToLanding } = {}) => {
             boxShadow: '0 8px 24px rgba(107, 142, 107, 0.35)',
           }}
         >
-          <MenuBookIcon sx={{ color: 'white', fontSize: 36 }} />
+          <TallyLogo size={36} />
         </Box>
 
         <Typography variant="h4" sx={{ mb: 1, fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#4A4A4A' }}>

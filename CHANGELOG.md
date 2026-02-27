@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.7.2] - 2026-02-27
+
+### Changed
+- **Custom tally mark logo**: Replaced Material-UI `MenuBookIcon` with a shared `TallyLogo` component (four vertical lines with diagonal fifth line) across Header, Login, and Landing Page
+- Updated `book-icon.svg` favicon to match the new tally mark design
+
 ## [3.7.1] - 2026-02-27
 
 ### Fixed

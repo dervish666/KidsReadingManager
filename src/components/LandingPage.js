@@ -7,12 +7,7 @@ import screenshotRegister from '../assets/screenshots/screenshot-register.png';
 import screenshotRecommendations from '../assets/screenshots/screenshot-recommendations.png';
 import screenshotStats from '../assets/screenshots/screenshot-stats.png';
 import screenshotBooks from '../assets/screenshots/screenshot-books.png';
-
-const TallyLogo = ({ size = 22 }) => (
-  <svg viewBox="0 0 24 24" fill="none" width={size} height={size}>
-    <path d="M4 4v16M8 4v16M12 4v16M16 4v16M20 12H4" stroke="white" strokeWidth="2" strokeLinecap="round" />
-  </svg>
-);
+import TallyLogo from './TallyLogo';
 
 const ChevronRight = () => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">

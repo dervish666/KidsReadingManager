@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#6b4d57">
-  <path d="M21 4H3c-1.1 0-2 .9-2 2v13c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM3 19V6h8v13H3zm18 0h-8V6h8v13zm-7-9.5h6V11h-6zm0 2.5h6v1.5h-6zm0 2.5h6V16h-6z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+  <!-- Four vertical lines -->
+  <line x1="5" y1="3" x2="5" y2="21" stroke="#6B8E6B" stroke-width="2" stroke-linecap="round" />
+  <line x1="9.5" y1="3" x2="9.5" y2="21" stroke="#6B8E6B" stroke-width="2" stroke-linecap="round" />
+  <line x1="14" y1="3" x2="14" y2="21" stroke="#6B8E6B" stroke-width="2" stroke-linecap="round" />
+  <line x1="18.5" y1="3" x2="18.5" y2="21" stroke="#6B8E6B" stroke-width="2" stroke-linecap="round" />
+  <!-- Diagonal fifth line -->
+  <line x1="2.5" y1="18" x2="21" y2="6" stroke="#6B8E6B" stroke-width="2" stroke-linecap="round" />
 </svg>

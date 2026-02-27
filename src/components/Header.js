@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { AppBar, Toolbar, Typography, Box, FormControl, Select, MenuItem, Button, Chip, Menu, CircularProgress } from '@mui/material';
-import MenuBookIcon from '@mui/icons-material/MenuBook';
 import FilterListIcon from '@mui/icons-material/FilterList';
+import TallyLogo from './TallyLogo';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SchoolOutlined from '@mui/icons-material/SchoolOutlined';
 import packageJson from '../../package.json';
@@ -96,7 +96,7 @@ const Header = () => {
             boxShadow: '0 4px 12px rgba(107, 142, 107, 0.3)',
           }}
         >
-          <MenuBookIcon sx={{ color: 'white', fontSize: 22 }} />
+          <TallyLogo size={22} />
         </Box>
         
         <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
