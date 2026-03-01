@@ -37,11 +37,9 @@ schools until all items in this section are complete.
 
 ### Registration and Governance
 
-- [ ] **Register with the ICO as a data processor.** Fee: GBP 40/year for
-  organisations with fewer than 10 staff and turnover under GBP 632,000
-  (Tier 1). Register at https://ico.org.uk/registration/. Record the
-  registration number in all GDPR documents where `[TODO: ICO registration
-  number]` appears.
+- [x] **Register with the ICO as a data processor.**
+  **COMPLETED 2026-03-01:** ICO registration number ZC098130. Updated across
+  all GDPR documents (privacy policy, DPIA, ROPA).
 
 - [x] **Obtain company details for all GDPR document placeholders.**
   **COMPLETED 2026-02-25:** Scratch IT LTD (08151576), 247 Bishopsworth

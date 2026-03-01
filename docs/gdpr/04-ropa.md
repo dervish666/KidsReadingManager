@@ -26,7 +26,7 @@ Schools (data controllers) engage Tally Reading to process personal data of stud
 | **Processor Name** | Scratch IT LTD (trading as Tally Reading) |
 | **Trading As** | Tally Reading |
 | **Website** | https://tallyreading.uk |
-| **ICO Registration Number** | [TODO: Insert once obtained] |
+| **ICO Registration Number** | ZC098130 |
 | **Data Protection Lead** | Sam Castillo (sam@tallyreading.uk). DPO not formally required under Article 37 — Scratch IT LTD does not carry out large-scale systematic monitoring or large-scale processing of special category data as a core activity. |
 | **Contact for Data Subjects** | privacy@tallyreading.uk |
 | **Date of Register** | 2026-02-20 |
@@ -285,7 +285,7 @@ This register must be reviewed:
 | Complete Transfer Impact Assessments for US transfers | High | [TODO: TIA for Anthropic, OpenAI, Google, Cloudflare] |
 | ~~Confirm email sub-processor and transfer mechanism~~ | ~~Medium~~ | **COMPLETED 2026-02-25** — Cloudflare Email Routing confirmed |
 | Appoint DPO or document Article 37 exemption | Medium | [TODO: Legal assessment required] |
-| Register with ICO | High | [TODO: Complete ICO registration -- GBP 40 Tier 1 fee] |
+| ~~Register with ICO~~ | ~~High~~ | **COMPLETED 2026-03-01** — ICO registration ZC098130 |
 | ~~Implement automated data retention cleanup jobs~~ | ~~High~~ | **COMPLETED 2026-02-25** — Daily cron cleanup for tokens, login attempts, audit log anonymisation |
 | Document D1 backup and disaster recovery procedures | Medium | [TODO: Cloudflare D1 backup documentation] |
 

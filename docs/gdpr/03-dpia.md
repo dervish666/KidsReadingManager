@@ -10,7 +10,7 @@
 | **Author** | Sam Castillo, Director, Scratch IT LTD |
 | **DPO Reviewer** | Sam Castillo (Data Protection Lead) |
 | **Next Review Date** | 2027-02-20 (annual) or on significant system change |
-| **ICO Registration** | [TODO: Insert ICO registration number once obtained] |
+| **ICO Registration** | ZC098130 |
 
 ---
 

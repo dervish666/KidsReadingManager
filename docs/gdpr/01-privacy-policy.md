@@ -29,7 +29,7 @@ AI-powered book recommendations.
 | **Company number** | 08151576 |
 | **Registered address** | 247 Bishopsworth Road, Bristol, BS13 7LH |
 | **Data Protection Officer** | Sam Castillo (sam@tallyreading.uk) |
-| **ICO registration number** | [TODO: Insert ICO registration number once obtained (fee: GBP 40 or GBP 60 depending on tier)] |
+| **ICO registration number** | ZC098130 |
 
 ### Controller and processor roles
 
@@ -451,7 +451,7 @@ this document. All items must be resolved before this policy is published.
 |---|---|---|---|
 | 1 | 1 | Insert registered company name, Companies House number, and registered address | **DONE** (2026-02-25) |
 | 2 | 1 | Appoint or document DPO (or document why one is not required under Article 37) | **DONE** (2026-02-25) |
-| 3 | 1 | Complete ICO registration and insert registration number | Outstanding |
+| 3 | 1 | Complete ICO registration and insert registration number | **DONE** (2026-03-01) |
 | 4 | 3 | Document Legitimate Interests Assessments (LIAs) for audit logging and rate limiting | Outstanding |
 | 5 | 4 | Review against all 15 standards of the ICO Children's Code and document findings | Outstanding |
 | 6 | 5.1 | Confirm whether Cloudflare Data Localisation Suite is enabled; document data residency | Outstanding |
