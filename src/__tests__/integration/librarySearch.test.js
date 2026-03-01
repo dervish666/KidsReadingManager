@@ -70,7 +70,6 @@ describe('Library Search Integration', () => {
       const profile = await buildStudentReadingProfile('student-1', 'org-1', mockDb);
 
       expect(profile).not.toBeNull();
-      expect(profile.student.name).toBe('Emma');
       expect(profile.student.readingLevel).toBe('intermediate');
       expect(profile.preferences.favoriteGenreIds).toContain('genre-1');
       expect(profile.preferences.favoriteGenreNames).toContain('Fantasy');
@@ -105,7 +104,6 @@ describe('Library Search Integration', () => {
 
       const profile = await buildStudentReadingProfile('student-2', 'org-1', mockDb);
 
-      expect(profile.student.name).toBe('New Student');
       expect(profile.preferences.favoriteGenreIds).toEqual([]);
       expect(profile.inferredGenres).toEqual([]);
       expect(profile.recentReads).toEqual([]);

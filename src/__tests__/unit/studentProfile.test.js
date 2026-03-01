@@ -70,7 +70,6 @@ describe('buildStudentReadingProfile', () => {
 
     const profile = await buildStudentReadingProfile(studentId, organizationId, mockDb);
 
-    expect(profile.student.name).toBe('Emma');
     expect(profile.student.readingLevel).toBe('intermediate');
     expect(profile.student.ageRange).toBe('8-10');
     expect(profile.student.notes).toBe('Loves adventure books');
@@ -133,7 +132,6 @@ describe('buildStudentReadingProfile', () => {
 
     const profile = await buildStudentReadingProfile('student-new', 'org-456', mockDb);
 
-    expect(profile.student.name).toBe('New Student');
     expect(profile.student.readingLevel).toBe('beginner');
     expect(profile.inferredGenres).toHaveLength(0);
     expect(profile.readBookIds).toHaveLength(0);
@@ -421,7 +419,6 @@ describe('buildStudentReadingProfile', () => {
     const profile = await buildStudentReadingProfile('student-empty', 'org-456', mockDb);
 
     expect(profile).not.toBeNull();
-    expect(profile.student.name).toBe('Empty Results Student');
     expect(profile.preferences.favoriteGenreIds).toEqual([]);
     expect(profile.preferences.favoriteGenreNames).toEqual([]);
     expect(profile.preferences.likes).toEqual([]);

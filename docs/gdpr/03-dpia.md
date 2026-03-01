@@ -493,7 +493,7 @@ The following controls are recommended to address the identified risks. They are
 
 | # | Recommendation | Addresses Risk | Effort | Detail |
 |---|---|---|---|---|
-| M1 | **Remove student names from AI prompts** | (b) | Low | In `src/services/aiService.js`, replace `${studentProfile.name}` / `${student.name}` with "this student" or "the reader" in both `buildPrompt()` (line 59) and `buildBroadSuggestionsPrompt()` (lines 344, 346, 356, 366). This is the single most impactful privacy improvement. |
+| ~~M1~~ | ~~**Remove student names from AI prompts**~~ | ~~(b)~~ | ~~Low~~ | **COMPLETED 2026-03-01.** Removed `student.name` from `buildBroadSuggestionsPrompt()` in `src/services/aiService.js` and `name` from student profile in `src/utils/studentProfile.js`. No student names are sent to AI providers. |
 | M2 | **Configure Cloudflare D1 location hint for EU/UK** | (j) | Low | Add `location_hint = "weur"` (Western Europe) to the D1 database configuration in `wrangler.toml`. While this is a hint rather than a guarantee, it demonstrates intent to keep data in the UK/EEA. [TODO: Investigate Cloudflare's D1 data residency guarantees and whether they meet UK GDPR requirements.] |
 | M3 | **Implement hard delete capability for erasure requests** | (d) | Medium | Create an admin-only API endpoint (and UI) to permanently delete a student and all associated data (sessions, preferences, streaks). This must cascade to `reading_sessions`, `student_preferences`, and any audit log entries. Document the erasure process in the DPA. |
 | M4 | **Add teacher guidance on notes fields** | (c) | Low | Add placeholder text to notes input fields: "Reading observations only. Do not record medical, SEN, behavioural, or safeguarding information." Include this guidance in school onboarding documentation and DPA. |
@@ -669,7 +669,7 @@ The ICO's Age Appropriate Design Code applies to information society services li
 | Standard | Assessment | Action |
 |---|---|---|
 | **Best interests of the child** | Reading tracking serves children's educational interests. | No action -- aligned. |
-| **Data minimisation** | Student name is currently sent to AI providers unnecessarily. | M1 -- remove names from AI prompts. |
+| **Data minimisation** | Student names are not sent to AI providers (removed 2026-03-01). | No action -- resolved. |
 | **Default settings** | AI recommendations are off by default (school must configure API key). | No action -- already privacy-protective default. |
 | **Transparency** | Schools (as controllers) must inform parents. Tally provides DPA and privacy information to support this. | Ensure school-facing documentation is clear. |
 | **Profiling** | AI profiling for recommendations. Not used for detrimental purposes. | Document in DPA; ensure school can disable. |

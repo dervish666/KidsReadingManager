@@ -403,7 +403,7 @@ prioritised and tracked in the Compliance Checklist
 
 | Gap | Risk | Recommendation | Priority |
 |---|---|---|---|
-| Student names sent to AI providers | Directly identifying personal data shared with third-party AI services in the US | Remove `studentProfile.name` and `student.name` from AI prompts in `src/services/aiService.js` (lines 59, 344, 356). Replace with a non-identifying label such as "this student". | Immediate |
+| ~~Student names sent to AI providers~~ | ~~Directly identifying personal data shared with third-party AI services in the US~~ | **COMPLETED 2026-03-01.** Removed student names from AI prompts and student profile builder. Replaced with "this student". | Resolved |
 
 ### 12.2 Data Retention and Cleanup
 

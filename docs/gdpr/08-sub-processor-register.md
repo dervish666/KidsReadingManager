@@ -189,7 +189,7 @@ This register is reviewed:
 | 1 | Download and countersign Cloudflare DPA from cloudflare.com/cloudflare-customer-dpa | Immediate |
 | 2 | Confirm D1 database location setting (EU/UK jurisdiction) in Cloudflare dashboard | Immediate |
 | 3 | Confirm international transfer mechanism for Cloudflare (IDTA or Data Localisation Suite) | Immediate |
-| 4 | Remove student name from AI recommendation prompts (src/services/aiService.js) | Immediate |
+| ~~4~~ | ~~Remove student name from AI recommendation prompts~~ | **COMPLETED 2026-03-01** |
 | 5 | Obtain Resend DPA (if Resend is adopted as email provider) | Before adoption |
 | 6 | Insert privacy contact email address in Section 4.3 | Before launch |
 | 7 | Set next annual review date in Section 6 | Before launch |

@@ -36,7 +36,7 @@ describe('aiService', () => {
       const profile = createMockProfile();
       const prompt = buildBroadSuggestionsPrompt(profile);
 
-      expect(prompt).toContain('Name: Emma');
+      expect(prompt).not.toContain('Name:');
       expect(prompt).toContain('Reading Level: intermediate');
       expect(prompt).toContain('Age Range: 8-10');
     });
@@ -143,12 +143,12 @@ describe('aiService', () => {
       expect(prompt).toContain('different from books they\'ve already read');
     });
 
-    it('should mention student name for personalized recommendations', () => {
+    it('should not include student name in prompt (GDPR)', () => {
       const profile = createMockProfile({ student: { name: 'Oliver' } });
       const prompt = buildBroadSuggestionsPrompt(profile);
 
-      // Should reference the student by name in task description
-      expect(prompt).toContain('perfect for Oliver');
+      expect(prompt).not.toContain('Oliver');
+      expect(prompt).toContain('perfect for this student');
     });
 
     it('should handle missing age range', () => {
