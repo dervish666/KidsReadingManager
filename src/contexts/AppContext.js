@@ -71,9 +71,6 @@ export const AppProvider = ({ children }) => {
     }
   });
   
-  // Refresh token now handled exclusively via httpOnly cookie
-  const [refreshToken] = useState(null);
-  
   // User info for multi-tenant mode
   const [user, setUser] = useState(() => {
     if (typeof window === 'undefined') return null;

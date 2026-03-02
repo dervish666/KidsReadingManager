@@ -136,34 +136,46 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
     // -----------------------------------------------------------------------
     const wondeClasses = await fetchAllClasses(schoolToken, wondeSchoolId, fetchOptions);
 
+    // Batch-fetch existing classes to avoid N+1 queries
+    const existingClassesResult = await db.prepare(
+      `SELECT wonde_class_id, id, name FROM classes WHERE organization_id = ?`
+    ).bind(orgId).all();
+    const existingClassMap = new Map(
+      (existingClassesResult.results || []).map(r => [r.wonde_class_id, r])
+    );
+
     // Map wonde_class_id → tally class id (built as we upsert)
     const classLookup = new Map();
+    const classStatements = [];
 
     for (const wc of wondeClasses) {
       const mapped = mapWondeClass(wc);
-
-      // Check if class exists by wonde_class_id within this org
-      const existing = await db.prepare(
-        `SELECT id, name FROM classes WHERE wonde_class_id = ? AND organization_id = ?`
-      ).bind(mapped.wondeClassId, orgId).first();
+      const existing = existingClassMap.get(mapped.wondeClassId);
 
       if (existing) {
-        // Update name if changed
-        await db.prepare(
-          `UPDATE classes SET name = ?, updated_at = datetime('now') WHERE id = ?`
-        ).bind(mapped.name, existing.id).run();
+        classStatements.push(
+          db.prepare(
+            `UPDATE classes SET name = ?, updated_at = datetime('now') WHERE id = ?`
+          ).bind(mapped.name, existing.id)
+        );
         classLookup.set(mapped.wondeClassId, existing.id);
         counts.classesUpdated++;
       } else {
-        // Create new class
         const classId = crypto.randomUUID();
-        await db.prepare(
-          `INSERT INTO classes (id, organization_id, name, wonde_class_id, is_active, created_at, updated_at)
-           VALUES (?, ?, ?, ?, 1, datetime('now'), datetime('now'))`
-        ).bind(classId, orgId, mapped.name, mapped.wondeClassId).run();
+        classStatements.push(
+          db.prepare(
+            `INSERT INTO classes (id, organization_id, name, wonde_class_id, is_active, created_at, updated_at)
+             VALUES (?, ?, ?, ?, 1, datetime('now'), datetime('now'))`
+          ).bind(classId, orgId, mapped.name, mapped.wondeClassId)
+        );
         classLookup.set(mapped.wondeClassId, classId);
         counts.classesCreated++;
       }
+    }
+
+    // Execute class upserts in batches of 100
+    for (let i = 0; i < classStatements.length; i += 100) {
+      await db.batch(classStatements.slice(i, i + 100));
     }
 
     // -----------------------------------------------------------------------
@@ -171,11 +183,21 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
     // -----------------------------------------------------------------------
     const wondeStudents = await fetchAllStudents(schoolToken, wondeSchoolId, fetchOptions);
 
-    // Load GDPR erased students exclusion list to prevent re-syncing
-    const erasedRows = await db.prepare(
-      'SELECT wonde_student_id FROM wonde_erased_students WHERE organization_id = ?'
-    ).bind(orgId).all();
+    // Batch-fetch existing students and GDPR erased list to avoid N+1 queries
+    const [existingStudentsResult, erasedRows] = await db.batch([
+      db.prepare(
+        'SELECT wonde_student_id, id FROM students WHERE organization_id = ?'
+      ).bind(orgId),
+      db.prepare(
+        'SELECT wonde_student_id FROM wonde_erased_students WHERE organization_id = ?'
+      ).bind(orgId)
+    ]);
+    const existingStudentMap = new Map(
+      (existingStudentsResult.results || []).map(r => [r.wonde_student_id, r.id])
+    );
     const erasedWondeIds = new Set((erasedRows.results || []).map(r => r.wonde_student_id));
+
+    const studentStatements = [];
 
     for (const ws of wondeStudents) {
       const mapped = mapWondeStudent(ws);
@@ -190,39 +212,43 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
         ? (classLookup.get(mapped.wondeClassIds[0]) || null)
         : null;
 
-      // Check if student exists by wonde_student_id within this org
-      const existing = await db.prepare(
-        `SELECT id FROM students WHERE wonde_student_id = ? AND organization_id = ?`
-      ).bind(mapped.wondeStudentId, orgId).first();
+      const existingId = existingStudentMap.get(mapped.wondeStudentId);
 
-      if (existing) {
-        // Update existing student
-        await db.prepare(
-          `UPDATE students SET name = ?, class_id = ?, year_group = ?, sen_status = ?,
-           pupil_premium = ?, eal_status = ?, fsm = ?, is_active = 1,
-           updated_at = datetime('now')
-           WHERE id = ?`
-        ).bind(
-          mapped.name, classId, mapped.yearGroup, mapped.senStatus,
-          mapped.pupilPremium, mapped.ealStatus, mapped.fsm,
-          existing.id
-        ).run();
+      if (existingId) {
+        studentStatements.push(
+          db.prepare(
+            `UPDATE students SET name = ?, class_id = ?, year_group = ?, sen_status = ?,
+             pupil_premium = ?, eal_status = ?, fsm = ?, is_active = 1,
+             updated_at = datetime('now')
+             WHERE id = ?`
+          ).bind(
+            mapped.name, classId, mapped.yearGroup, mapped.senStatus,
+            mapped.pupilPremium, mapped.ealStatus, mapped.fsm,
+            existingId
+          )
+        );
         counts.studentsUpdated++;
       } else {
-        // Create new student
         const studentId = crypto.randomUUID();
-        await db.prepare(
-          `INSERT INTO students (id, organization_id, name, class_id, wonde_student_id,
-           year_group, sen_status, pupil_premium, eal_status, fsm,
-           is_active, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'), datetime('now'))`
-        ).bind(
-          studentId, orgId, mapped.name, classId, mapped.wondeStudentId,
-          mapped.yearGroup, mapped.senStatus, mapped.pupilPremium,
-          mapped.ealStatus, mapped.fsm
-        ).run();
+        studentStatements.push(
+          db.prepare(
+            `INSERT INTO students (id, organization_id, name, class_id, wonde_student_id,
+             year_group, sen_status, pupil_premium, eal_status, fsm,
+             is_active, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'), datetime('now'))`
+          ).bind(
+            studentId, orgId, mapped.name, classId, mapped.wondeStudentId,
+            mapped.yearGroup, mapped.senStatus, mapped.pupilPremium,
+            mapped.ealStatus, mapped.fsm
+          )
+        );
         counts.studentsCreated++;
       }
+    }
+
+    // Execute student upserts in batches of 100
+    for (let i = 0; i < studentStatements.length; i += 100) {
+      await db.batch(studentStatements.slice(i, i + 100));
     }
 
     // -----------------------------------------------------------------------
@@ -235,18 +261,27 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
       `DELETE FROM wonde_employee_classes WHERE organization_id = ?`
     ).bind(orgId).run();
 
+    const employeeStatements = [];
+
     for (const we of wondeEmployees) {
       const mapped = mapWondeEmployee(we);
 
       for (const wondeClassId of mapped.wondeClassIds) {
         const mappingId = crypto.randomUUID();
-        await db.prepare(
-          `INSERT INTO wonde_employee_classes (id, organization_id, wonde_employee_id, wonde_class_id, employee_name)
-           VALUES (?, ?, ?, ?, ?)`
-        ).bind(mappingId, orgId, mapped.wondeEmployeeId, wondeClassId, mapped.name).run();
+        employeeStatements.push(
+          db.prepare(
+            `INSERT INTO wonde_employee_classes (id, organization_id, wonde_employee_id, wonde_class_id, employee_name)
+             VALUES (?, ?, ?, ?, ?)`
+          ).bind(mappingId, orgId, mapped.wondeEmployeeId, wondeClassId, mapped.name)
+        );
       }
 
       counts.employeesSynced++;
+    }
+
+    // Execute employee-class inserts in batches of 100
+    for (let i = 0; i < employeeStatements.length; i += 100) {
+      await db.batch(employeeStatements.slice(i, i + 100));
     }
 
     // -----------------------------------------------------------------------

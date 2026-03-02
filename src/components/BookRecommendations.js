@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -69,7 +69,8 @@ const BookRecommendations = () => {
           setAiConfig(config);
         }
       } catch (error) {
-        // AI config loading failed silently - not critical
+        console.warn('Failed to load AI configuration:', error.message);
+        setAiConfig({ loadError: true });
       }
     };
 
@@ -98,20 +99,20 @@ const BookRecommendations = () => {
   const selectedStudent = students.find(s => s.id === selectedStudentId);
   const selectedClass = selectedStudent ? classes.find(c => c.id === selectedStudent.classId) : null;
 
+  // Build a lookup Map for O(1) book lookups instead of O(n) find() per call
+  const bookMap = useMemo(() => new Map((books || []).map(b => [b.id, b])), [books]);
+
   // Helper function to resolve book title from bookId
   const getBookTitle = (bookId) => {
     if (!bookId || !books) return `Book ${bookId || 'Unknown'}`;
 
-    // First try to find book by exact ID match
-    const book = books.find(b => b.id === bookId);
+    const book = bookMap.get(bookId);
 
-    // If found, return title with author if available
     if (book) {
       const authorText = book.author ? ` by ${book.author}` : '';
       return book.title + authorText;
     }
 
-    // Fallback to unknown book
     return `Book ${bookId}`;
   };
 
@@ -277,6 +278,12 @@ const BookRecommendations = () => {
       {apiError && (
         <Alert severity="error" sx={{ mb: 3 }}>
           {apiError}
+        </Alert>
+      )}
+
+      {aiConfig?.loadError && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          Could not load AI configuration. Library search is still available, but AI suggestions may not work.
         </Alert>
       )}
 

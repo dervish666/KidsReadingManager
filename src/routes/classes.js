@@ -15,7 +15,7 @@ import { auditLog } from '../middleware/tenant';
 import { permissions } from '../utils/crypto';
 import { getDB, isMultiTenantMode } from '../utils/routeHelpers';
 import { validateClass } from '../utils/validation';
-import { rowToClass } from '../utils/rowMappers';
+import { rowToClass, rowToStudent } from '../utils/rowMappers';
 
 // Create router
 const classesRouter = new Hono();
@@ -116,15 +116,7 @@ classesRouter.get('/:id/students', async (c) => {
       SELECT * FROM students WHERE class_id = ? AND is_active = 1 ORDER BY name ASC
     `).bind(id).all();
     
-    const students = (result.results || []).map(row => ({
-      id: row.id,
-      name: row.name,
-      classId: row.class_id,
-      lastReadDate: row.last_read_date,
-      readingLevel: row.reading_level,
-      likes: row.likes ? JSON.parse(row.likes) : [],
-      dislikes: row.dislikes ? JSON.parse(row.dislikes) : []
-    }));
+    const students = (result.results || []).map(rowToStudent);
     
     return c.json(students);
   }

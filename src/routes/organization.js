@@ -529,7 +529,7 @@ organizationRouter.get('/:id', requireOwner(), async (c) => {
     const orgId = c.req.param('id');
 
     const org = await db.prepare(`
-      SELECT * FROM organizations WHERE id = ?
+      SELECT * FROM organizations WHERE id = ? AND is_active = 1
     `).bind(orgId).first();
 
     if (!org) {
@@ -629,9 +629,9 @@ organizationRouter.put('/:id', requireOwner(), auditLog('update', 'organization'
 
     const { name, subscriptionTier, maxStudents, maxTeachers } = body;
 
-    // Check if organization exists
+    // Check if organization exists (and is active)
     const existing = await db.prepare(
-      'SELECT id FROM organizations WHERE id = ?'
+      'SELECT id FROM organizations WHERE id = ? AND is_active = 1'
     ).bind(orgId).first();
 
     if (!existing) {
@@ -698,9 +698,9 @@ organizationRouter.delete('/:id', requireOwner(), auditLog('delete', 'organizati
     const db = getDB(c.env);
     const orgId = c.req.param('id');
 
-    // Check if organization exists
+    // Check if organization exists (and is active)
     const existing = await db.prepare(
-      'SELECT id FROM organizations WHERE id = ?'
+      'SELECT id FROM organizations WHERE id = ? AND is_active = 1'
     ).bind(orgId).first();
 
     if (!existing) {

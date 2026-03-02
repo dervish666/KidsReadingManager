@@ -153,3 +153,17 @@ export function formatSuccessResponse(data, message = 'Success') {
     data
   };
 }
+
+/**
+ * Parse genre IDs from a string value that may be JSON array or comma-separated
+ * @param {string|null} value - Raw genre_ids value from database
+ * @returns {Array<string>} - Array of genre ID strings
+ */
+export function parseGenreIds(value) {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed)) return parsed;
+  } catch { /* not JSON, fall through */ }
+  return value.split(',').map(g => g.trim()).filter(Boolean);
+}

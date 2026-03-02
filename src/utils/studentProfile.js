@@ -7,6 +7,8 @@
  * - Reading history (recent reads, all read book IDs)
  */
 
+import { parseGenreIds } from './helpers.js';
+
 /**
  * Build a comprehensive student reading profile
  * @param {string} studentId - The student's ID
@@ -71,17 +73,7 @@ export async function buildStudentReadingProfile(studentId, organizationId, db) 
   const genreCounts = {};
   for (const session of sessions) {
     if (session.genre_ids) {
-      let genreIds = [];
-      try {
-        // genre_ids is stored as a JSON array string like '["genre-1","genre-2"]'
-        genreIds = JSON.parse(session.genre_ids);
-        if (!Array.isArray(genreIds)) {
-          genreIds = [];
-        }
-      } catch {
-        // Fallback for legacy comma-separated format
-        genreIds = session.genre_ids.split(',').map(g => g.trim()).filter(Boolean);
-      }
+      const genreIds = parseGenreIds(session.genre_ids);
       for (const genreId of genreIds) {
         genreCounts[genreId] = (genreCounts[genreId] || 0) + 1;
       }
@@ -136,6 +128,7 @@ export async function buildStudentReadingProfile(studentId, organizationId, db) 
   return {
     student: {
       id: student.id,
+      name: student.name,
       readingLevel: student.reading_level || null,
       readingLevelMin: student.reading_level_min ?? null,
       readingLevelMax: student.reading_level_max ?? null,

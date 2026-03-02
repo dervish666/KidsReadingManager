@@ -17,6 +17,7 @@ import { normalizeISBN } from '../utils/isbn.js';
 import { lookupISBN } from '../utils/isbnLookup.js';
 import { validateBook } from '../utils/validation.js';
 import { rowToBook } from '../utils/rowMappers.js';
+import { parseGenreIds } from '../utils/helpers.js';
 
 // Import middleware
 import { requireReadonly, requireTeacher, requireAdmin, auditLog } from '../middleware/tenant.js';
@@ -268,16 +269,6 @@ booksRouter.get('/library-search', requireReadonly(), async (c) => {
 
     const booksResult = await db.prepare(query).bind(...params).all();
     let books = booksResult.results || [];
-
-    // Helper to safely parse genre_ids (handles both JSON array and comma-separated)
-    const parseGenreIds = (genreIdsStr) => {
-      if (!genreIdsStr) return [];
-      try {
-        const parsed = JSON.parse(genreIdsStr);
-        if (Array.isArray(parsed)) return parsed;
-      } catch { /* not JSON, fall through */ }
-      return genreIdsStr.split(',').map(g => g.trim()).filter(Boolean);
-    };
 
     // Score and sort books by genre match
     const scoredBooks = books.map(book => {

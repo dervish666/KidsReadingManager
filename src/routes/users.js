@@ -82,7 +82,7 @@ usersRouter.get('/:id', async (c) => {
     const user = await db.prepare(`
       SELECT id, organization_id, email, name, role, is_active, last_login_at, created_at, updated_at
       FROM users
-      WHERE id = ? AND organization_id = ?
+      WHERE id = ? AND organization_id = ? AND is_active = 1
     `).bind(requestedId, organizationId).first();
 
     if (!user) {
@@ -155,9 +155,9 @@ usersRouter.post('/', requireAdmin(), auditLog('create', 'user'), async (c) => {
       return c.json({ error: 'Only owners can create admin users' }, 403);
     }
 
-    // Check if email already exists
+    // Check if email already exists (among active users)
     const existingUser = await db.prepare(
-      'SELECT id FROM users WHERE email = ?'
+      'SELECT id FROM users WHERE email = ? AND is_active = 1'
     ).bind(email.toLowerCase()).first();
 
     if (existingUser) {

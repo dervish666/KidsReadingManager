@@ -1,5 +1,22 @@
 # Changelog
 
+## [3.7.4] - 2026-03-02
+
+### Fixed
+- **Missing soft-delete filters**: Added `AND is_active = 1` to 7 queries across auth, users, and organization routes that could return deactivated records (registration email check, slug check, user create email check, GET user by ID, GET/PUT/DELETE organization by ID)
+- **Incomplete student row mapping**: `GET /api/classes/:id/students` now uses centralized `rowToStudent()` mapper instead of inline mapping that missed `readingLevelMin`, `readingLevelMax`, `aiOptOut`, `processingRestricted`, and other newer fields
+- **Student profile missing name**: `buildStudentReadingProfile()` now includes `name` in the returned student object
+- **Silent AI config failure**: BookRecommendations now shows an info banner when AI configuration fails to load instead of silently swallowing the error
+
+### Performance
+- **Wonde sync N+1 elimination**: Replaced ~1,050 individual DB queries (per school sync) with batch-fetch + `db.batch()` upserts for classes, students, and employee-class mappings
+- **O(1) book title lookups**: BookRecommendations now uses a `useMemo` Map for book lookups instead of O(n) `Array.find()` per reading session
+
+### Changed
+- Removed 5 debug `console.log` statements from d1Provider recommendation filtering
+- Removed unused `refreshToken` state variable from AppContext (now httpOnly cookie)
+- Extracted `parseGenreIds()` utility to `src/utils/helpers.js`, replacing duplicate logic in `books.js` and `studentProfile.js`
+
 ## [3.7.3] - 2026-03-02
 
 ### Security

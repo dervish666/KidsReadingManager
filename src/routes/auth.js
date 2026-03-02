@@ -95,9 +95,9 @@ authRouter.post('/register', async (c) => {
       return c.json({ error: 'Password must be at least 8 characters' }, 400);
     }
 
-    // Check if email already exists
+    // Check if email already exists (among active users)
     const existingUser = await db.prepare(
-      'SELECT id FROM users WHERE email = ?'
+      'SELECT id FROM users WHERE email = ? AND is_active = 1'
     ).bind(email.toLowerCase()).first();
 
     if (existingUser) {
@@ -115,7 +115,7 @@ authRouter.post('/register', async (c) => {
     let slugCounter = 1;
     while (true) {
       const existingOrg = await db.prepare(
-        'SELECT id FROM organizations WHERE slug = ?'
+        'SELECT id FROM organizations WHERE slug = ? AND is_active = 1'
       ).bind(finalSlug).first();
 
       if (!existingOrg) break;

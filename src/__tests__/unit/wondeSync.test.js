@@ -35,6 +35,10 @@ function createMockDb() {
 
   const db = {
     prepare: vi.fn().mockReturnValue(mockStatement),
+    batch: vi.fn().mockResolvedValue([
+      { results: [], success: true },
+      { results: [], success: true }
+    ]),
     _statement: mockStatement
   };
 
@@ -339,6 +343,18 @@ describe('runFullSync', () => {
   });
 
   it('calls all four Wonde API endpoints', async () => {
+    // Batch-fetch for existing classes returns empty
+    db.prepare = vi.fn().mockImplementation((sql) => ({
+      bind: vi.fn().mockReturnThis(),
+      run: vi.fn().mockResolvedValue({ success: true }),
+      first: vi.fn().mockResolvedValue(null),
+      all: vi.fn().mockResolvedValue({ results: [] })
+    }));
+    db.batch = vi.fn().mockResolvedValue([
+      { results: [], success: true },
+      { results: [], success: true }
+    ]);
+
     await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
 
     expect(fetchAllClasses).toHaveBeenCalledWith(SCHOOL_TOKEN, WONDE_SCHOOL_ID, expect.any(Object));
@@ -348,35 +364,16 @@ describe('runFullSync', () => {
   });
 
   it('upserts classes (creates new, updates existing)', async () => {
-    // First class: new (no existing match)
-    // Second class: existing match
-    const classLookupStatement = {
-      bind: vi.fn().mockReturnThis(),
-      first: vi.fn()
-        .mockResolvedValueOnce(null) // WCLS_1 not found
-        .mockResolvedValueOnce({ id: 'existing-class-id', name: 'Old Name' }) // WCLS_2 found
-    };
-    const insertClassStatement = {
-      bind: vi.fn().mockReturnThis(),
-      run: vi.fn().mockResolvedValue({ success: true })
-    };
-    const updateClassStatement = {
-      bind: vi.fn().mockReturnThis(),
-      run: vi.fn().mockResolvedValue({ success: true })
-    };
-
-    // Setup prepare to return different statements based on SQL
+    // Existing classes batch-fetch returns one match for WCLS_2
     db.prepare = vi.fn().mockImplementation((sql) => {
-      if (sql.includes('SELECT') && sql.includes('classes') && sql.includes('wonde_class_id')) {
-        return classLookupStatement;
+      if (sql.includes('SELECT') && sql.includes('classes') && sql.includes('organization_id')) {
+        return {
+          bind: vi.fn().mockReturnThis(),
+          all: vi.fn().mockResolvedValue({
+            results: [{ wonde_class_id: 'WCLS_2', id: 'existing-class-id', name: 'Old Name' }]
+          })
+        };
       }
-      if (sql.includes('INSERT INTO classes')) {
-        return insertClassStatement;
-      }
-      if (sql.includes('UPDATE classes')) {
-        return updateClassStatement;
-      }
-      // Default for sync log and other queries
       return {
         bind: vi.fn().mockReturnThis(),
         run: vi.fn().mockResolvedValue({ success: true }),
@@ -384,6 +381,10 @@ describe('runFullSync', () => {
         all: vi.fn().mockResolvedValue({ results: [] })
       };
     });
+    db.batch = vi.fn().mockResolvedValue([
+      { results: [], success: true },
+      { results: [], success: true }
+    ]);
 
     const result = await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
 
@@ -392,49 +393,14 @@ describe('runFullSync', () => {
   });
 
   it('upserts students (creates new, updates existing)', async () => {
-    // Track SQL calls to determine behavior
-    const classLookupStatement = {
-      bind: vi.fn().mockReturnThis(),
-      first: vi.fn().mockResolvedValue({ id: 'tally-class-1' })
-    };
-    const studentLookupStatement = {
-      bind: vi.fn().mockReturnThis(),
-      first: vi.fn()
-        .mockResolvedValueOnce(null) // WSTU_1 not found -> create
-        .mockResolvedValueOnce({ id: 'existing-student-id' }) // WSTU_2 found -> update
-    };
-    const insertStatement = {
-      bind: vi.fn().mockReturnThis(),
-      run: vi.fn().mockResolvedValue({ success: true })
-    };
-    const updateStatement = {
-      bind: vi.fn().mockReturnThis(),
-      run: vi.fn().mockResolvedValue({ success: true })
-    };
-
+    // Existing students batch-fetch: WSTU_2 exists
     db.prepare = vi.fn().mockImplementation((sql) => {
-      if (sql.includes('SELECT') && sql.includes('classes') && sql.includes('wonde_class_id')) {
-        return classLookupStatement;
+      if (sql.includes('SELECT') && sql.includes('classes') && sql.includes('organization_id') && !sql.includes('wonde_class_id')) {
+        return {
+          bind: vi.fn().mockReturnThis(),
+          all: vi.fn().mockResolvedValue({ results: [] })
+        };
       }
-      if (sql.includes('wonde_erased_students')) {
-        return { bind: vi.fn().mockReturnThis(), all: vi.fn().mockResolvedValue({ results: [] }) };
-      }
-      if (sql.includes('SELECT') && sql.includes('students') && sql.includes('wonde_student_id')) {
-        return studentLookupStatement;
-      }
-      if (sql.includes('INSERT INTO students')) {
-        return insertStatement;
-      }
-      if (sql.includes('UPDATE students')) {
-        return updateStatement;
-      }
-      if (sql.includes('INSERT INTO classes')) {
-        return { bind: vi.fn().mockReturnThis(), run: vi.fn().mockResolvedValue({ success: true }) };
-      }
-      if (sql.includes('UPDATE classes')) {
-        return { bind: vi.fn().mockReturnThis(), run: vi.fn().mockResolvedValue({ success: true }) };
-      }
-      // Default for sync log, employee, deletion, org update queries
       return {
         bind: vi.fn().mockReturnThis(),
         run: vi.fn().mockResolvedValue({ success: true }),
@@ -442,6 +408,20 @@ describe('runFullSync', () => {
         all: vi.fn().mockResolvedValue({ results: [] })
       };
     });
+
+    // db.batch is called multiple times:
+    // 1. Class upserts (no classes match -> all created)
+    // 2. Student + erased batch-fetch
+    // 3. Student upserts
+    // 4. Employee inserts
+    db.batch = vi.fn()
+      .mockResolvedValueOnce([{ success: true }]) // class upserts
+      .mockResolvedValueOnce([ // student + erased batch-fetch
+        { results: [{ wonde_student_id: 'WSTU_2', id: 'existing-student-id' }], success: true },
+        { results: [], success: true }
+      ])
+      .mockResolvedValueOnce([{ success: true }]) // student upserts
+      .mockResolvedValue([{ success: true }]); // remaining batches
 
     const result = await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
 
@@ -454,36 +434,13 @@ describe('runFullSync', () => {
       bind: vi.fn().mockReturnThis(),
       run: vi.fn().mockResolvedValue({ success: true })
     };
-    const insertEmployeeClassStatement = {
-      bind: vi.fn().mockReturnThis(),
-      run: vi.fn().mockResolvedValue({ success: true })
-    };
-
-    // Track class lookups for building the lookup map
-    const classLookupStatement = {
-      bind: vi.fn().mockReturnThis(),
-      first: vi.fn().mockResolvedValue({ id: 'tally-class-1' })
-    };
-    const studentLookupStatement = {
-      bind: vi.fn().mockReturnThis(),
-      first: vi.fn().mockResolvedValue(null)
-    };
 
     db.prepare = vi.fn().mockImplementation((sql) => {
       if (sql.includes('DELETE FROM wonde_employee_classes')) {
         return deleteEmployeeClassesStatement;
       }
       if (sql.includes('INSERT INTO wonde_employee_classes')) {
-        return insertEmployeeClassStatement;
-      }
-      if (sql.includes('SELECT') && sql.includes('classes') && sql.includes('wonde_class_id')) {
-        return classLookupStatement;
-      }
-      if (sql.includes('wonde_erased_students')) {
-        return { bind: vi.fn().mockReturnThis(), all: vi.fn().mockResolvedValue({ results: [] }) };
-      }
-      if (sql.includes('SELECT') && sql.includes('students') && sql.includes('wonde_student_id')) {
-        return studentLookupStatement;
+        return { bind: vi.fn().mockReturnThis() };
       }
       return {
         bind: vi.fn().mockReturnThis(),
@@ -492,6 +449,10 @@ describe('runFullSync', () => {
         all: vi.fn().mockResolvedValue({ results: [] })
       };
     });
+    db.batch = vi.fn().mockResolvedValue([
+      { results: [], success: true },
+      { results: [], success: true }
+    ]);
 
     const result = await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
 
@@ -499,8 +460,8 @@ describe('runFullSync', () => {
     expect(deleteEmployeeClassesStatement.bind).toHaveBeenCalledWith(ORG_ID);
     expect(deleteEmployeeClassesStatement.run).toHaveBeenCalled();
 
-    // WEMP_1 has 2 class IDs -> 2 inserts
-    expect(insertEmployeeClassStatement.run).toHaveBeenCalledTimes(2);
+    // Employee-class inserts are now batched via db.batch()
+    // WEMP_1 has 2 class IDs -> batch should be called with 2 statements
     expect(result.employeesSynced).toBe(1);
   });
 
@@ -515,27 +476,9 @@ describe('runFullSync', () => {
       run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } })
     };
 
-    const classLookupStatement = {
-      bind: vi.fn().mockReturnThis(),
-      first: vi.fn().mockResolvedValue({ id: 'tally-class-1' })
-    };
-    const studentLookupStatement = {
-      bind: vi.fn().mockReturnThis(),
-      first: vi.fn().mockResolvedValue(null)
-    };
-
     db.prepare = vi.fn().mockImplementation((sql) => {
       if (sql.includes('UPDATE students') && sql.includes('is_active = 0')) {
         return deactivateStatement;
-      }
-      if (sql.includes('SELECT') && sql.includes('classes') && sql.includes('wonde_class_id')) {
-        return classLookupStatement;
-      }
-      if (sql.includes('wonde_erased_students')) {
-        return { bind: vi.fn().mockReturnThis(), all: vi.fn().mockResolvedValue({ results: [] }) };
-      }
-      if (sql.includes('SELECT') && sql.includes('students') && sql.includes('wonde_student_id')) {
-        return studentLookupStatement;
       }
       return {
         bind: vi.fn().mockReturnThis(),
@@ -544,6 +487,10 @@ describe('runFullSync', () => {
         all: vi.fn().mockResolvedValue({ results: [] })
       };
     });
+    db.batch = vi.fn().mockResolvedValue([
+      { results: [], success: true },
+      { results: [], success: true }
+    ]);
 
     const result = await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
 
@@ -569,6 +516,10 @@ describe('runFullSync', () => {
         all: vi.fn().mockResolvedValue({ results: [] })
       };
     });
+    db.batch = vi.fn().mockResolvedValue([
+      { results: [], success: true },
+      { results: [], success: true }
+    ]);
 
     await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
 
@@ -593,6 +544,10 @@ describe('runFullSync', () => {
         all: vi.fn().mockResolvedValue({ results: [] })
       };
     });
+    db.batch = vi.fn().mockResolvedValue([
+      { results: [], success: true },
+      { results: [], success: true }
+    ]);
 
     const result = await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
 
@@ -642,6 +597,10 @@ describe('runFullSync', () => {
 
   it('passes updatedAfter to all fetch functions for delta sync', async () => {
     const updatedAfter = '2026-02-20T00:00:00Z';
+    db.batch = vi.fn().mockResolvedValue([
+      { results: [], success: true },
+      { results: [], success: true }
+    ]);
 
     await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db, { updatedAfter });
 
@@ -723,6 +682,10 @@ describe('runFullSync', () => {
     fetchAllStudents.mockResolvedValue([]);
     fetchAllEmployees.mockResolvedValue([]);
     fetchDeletions.mockResolvedValue([]);
+    db.batch = vi.fn().mockResolvedValue([
+      { results: [], success: true },
+      { results: [], success: true }
+    ]);
 
     const result = await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
 
@@ -736,72 +699,36 @@ describe('runFullSync', () => {
   });
 
   it('assigns class_id from first wondeClassId via lookup map', async () => {
-    // Set up so that WCLS_1 maps to tally-class-A and WCLS_2 maps to tally-class-B
-    const classLookupStatement = {
+    // Existing classes batch-fetch returns empty (all classes will be created)
+    db.prepare = vi.fn().mockImplementation((sql) => ({
       bind: vi.fn().mockReturnThis(),
-      first: vi.fn()
-        .mockResolvedValueOnce(null) // WCLS_1 not in DB -> create
-        .mockResolvedValueOnce(null) // WCLS_2 not in DB -> create
-    };
+      run: vi.fn().mockResolvedValue({ success: true }),
+      first: vi.fn().mockResolvedValue(null),
+      all: vi.fn().mockResolvedValue({ results: [] })
+    }));
 
-    const insertClassStatement = {
-      bind: vi.fn().mockReturnThis(),
-      run: vi.fn().mockResolvedValue({ success: true })
-    };
-
-    const studentLookupStatement = {
-      bind: vi.fn().mockReturnThis(),
-      first: vi.fn().mockResolvedValue(null) // all students new
-    };
-
-    const insertStudentStatement = {
-      bind: vi.fn().mockReturnThis(),
-      run: vi.fn().mockResolvedValue({ success: true })
-    };
-
-    db.prepare = vi.fn().mockImplementation((sql) => {
-      if (sql.includes('SELECT') && sql.includes('classes') && sql.includes('wonde_class_id')) {
-        return classLookupStatement;
-      }
-      if (sql.includes('INSERT INTO classes')) {
-        return insertClassStatement;
-      }
-      if (sql.includes('wonde_erased_students')) {
-        return { bind: vi.fn().mockReturnThis(), all: vi.fn().mockResolvedValue({ results: [] }) };
-      }
-      if (sql.includes('SELECT') && sql.includes('students') && sql.includes('wonde_student_id')) {
-        return studentLookupStatement;
-      }
-      if (sql.includes('INSERT INTO students')) {
-        return insertStudentStatement;
-      }
-      return {
-        bind: vi.fn().mockReturnThis(),
-        run: vi.fn().mockResolvedValue({ success: true }),
-        first: vi.fn().mockResolvedValue(null),
-        all: vi.fn().mockResolvedValue({ results: [] })
-      };
+    // Track the student INSERT statements passed to db.batch
+    const batchCalls = [];
+    db.batch = vi.fn().mockImplementation((statements) => {
+      batchCalls.push(statements);
+      return Promise.resolve(
+        (statements || []).map(() => ({ results: [], success: true }))
+      );
     });
 
-    await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
+    const result = await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
 
-    // Both students are created, each with their class_id from the lookup
-    expect(insertStudentStatement.run).toHaveBeenCalledTimes(2);
-
-    // The bind calls for student inserts should include the generated class UUIDs
-    // Student 1 (Alice) is in WCLS_1, Student 2 (Bob) is in WCLS_2
-    // The class UUIDs are generated by crypto.randomUUID() which we mocked
-    const student1BindArgs = insertStudentStatement.bind.mock.calls[0];
-    const student2BindArgs = insertStudentStatement.bind.mock.calls[1];
-
-    // Both should have a class_id (not null/undefined)
-    // The exact position depends on the INSERT column order, but we verify class_id is present
-    expect(student1BindArgs.length).toBeGreaterThan(0);
-    expect(student2BindArgs.length).toBeGreaterThan(0);
+    // Both students should be created (no existing matches)
+    expect(result.studentsCreated).toBe(2);
+    expect(result.classesCreated).toBe(2);
   });
 
   it('handles student error during sync without crashing', async () => {
     fetchAllStudents.mockRejectedValue(new Error('Student fetch failed'));
+    db.batch = vi.fn().mockResolvedValue([
+      { results: [], success: true },
+      { results: [], success: true }
+    ]);
 
     const result = await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
 

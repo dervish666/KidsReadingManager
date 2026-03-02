@@ -568,9 +568,6 @@ const getFilteredBooksForRecommendations = async (env, options = {}) => {
     query += ' ORDER BY RANDOM() LIMIT ?';
     params.push(limit);
 
-    console.log('Filtered books query:', query);
-    console.log('Query params count:', params.length);
-
     const result = await db.prepare(query).bind(...params).all();
     let books = (result.results || []).map(rowToBook);
 
@@ -580,11 +577,8 @@ const getFilteredBooksForRecommendations = async (env, options = {}) => {
       books = books.filter(book => !excludeSet.has(book.id));
     }
 
-    console.log(`Filtered books: ${books.length} results for level ${readingLevel} (range: ${minLevel}-${maxLevel})`);
-
     // If we got too few results, try a fallback query with relaxed filters
     if (books.length < 20) {
-      console.log('Too few results, trying fallback query with relaxed filters...');
       return await getFilteredBooksForRecommendationsFallback(env, {
         excludeBookIds,
         limit
@@ -642,7 +636,6 @@ const getFilteredBooksForRecommendationsFallback = async (env, options = {}) => 
       books = books.filter(book => !excludeSet.has(book.id));
     }
 
-    console.log(`Fallback query returned ${books.length} books`);
     return books;
   } catch (error) {
     console.error('Error in fallback books query:', error);
