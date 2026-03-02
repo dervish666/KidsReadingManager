@@ -51,7 +51,7 @@ Tally Reading processes data on behalf of multiple controllers (UK primary schoo
 | **Source of Data** | Teachers and school staff enter data via the application |
 | **Recipients / Categories of Recipients** | Internal only -- accessible to authenticated users within the student's school (teachers, admins) |
 | **Retention Period** | Duration of school's subscription plus 30 days. See Data Retention Policy (GDPR-05) for full schedule |
-| **International Transfers** | No. Data stored in Cloudflare D1 database. [TODO: Confirm D1 region is EU/UK -- see Cloudflare Data Localisation Suite if required] |
+| **International Transfers** | No. Data stored in Cloudflare D1 database located in Western Europe (Germany). Location hint `weur` set at creation; replication off. Note: `location_hint` is best-effort — consider recreating with `--jurisdiction=eu` for contractual guarantee. |
 | **Technical and Organisational Measures** | Organisation-scoped database queries (tenant isolation), role-based access control (teacher/admin/readonly), JWT authentication, HTTPS in transit, audit logging of sensitive operations |
 
 ### 2.2 User Account Management
@@ -197,7 +197,7 @@ Under Article 28(2) UK GDPR, the following sub-processors are engaged:
 
 | Sub-Processor | Purpose | Data Processed | Location | Transfer Mechanism |
 |---|---|---|---|---|
-| Cloudflare, Inc. | Infrastructure: Workers (compute), D1 (database), KV (cache), R2 (object storage), CDN, Email Routing | All application data | [TODO: Confirm -- US/EU. Investigate Cloudflare Data Localisation Suite for UK/EU data residency] | [TODO: UK IDTA / SCCs / adequacy decision] |
+| Cloudflare, Inc. | Infrastructure: Workers (compute), D1 (database), KV (cache), R2 (object storage), CDN, Email Routing | All application data | D1 database in Western Europe (Germany); Workers and CDN edge nodes worldwide | Cloudflare DPA v6.3 (auto-applies), includes EU SCCs + UK IDTA. Cloudflare certified under EU-US Data Privacy Framework + UK Extension |
 | Anthropic | AI book recommendations (when selected by school) | Reading profile (no student names) | United States | [TODO: UK IDTA or equivalent] |
 | OpenAI | AI book recommendations (when selected by school) | Reading profile (no student names) | United States | [TODO: UK IDTA or equivalent] |
 | Google (Vertex AI / Gemini) | AI book recommendations (when selected by school) | Reading profile (no student names) | United States | [TODO: UK IDTA or equivalent] |
@@ -215,9 +215,9 @@ Under Article 28(2) UK GDPR, the following sub-processors are engaged:
 | AI recommendations | US (Anthropic/OpenAI/Google) | Yes (reading profile, no student names) | [TODO: UK IDTA / Transfer Impact Assessment required] |
 | Book cover retrieval | US (OpenLibrary) | No | N/A |
 | Email delivery | Cloudflare infrastructure | Yes (email, name) | Covered under Cloudflare DPA |
-| Cloudflare infrastructure | [TODO: Confirm data residency] | Yes (all data) | [TODO: Evaluate Cloudflare Data Localisation Suite. UK IDTA / SCCs as appropriate] |
+| Cloudflare infrastructure | D1 in Western Europe (Germany); Workers/CDN global | Yes (all data) | Cloudflare DPA v6.3 with EU SCCs + UK IDTA; EU-US DPF certified |
 
-[TODO: Complete Transfer Impact Assessments for each US transfer involving personal data. Consider whether UK adequacy regulations for the US (if applicable) cover these transfers.]
+Transfer Impact Assessments are required for AI provider transfers (Anthropic, OpenAI, Google) where schools enable AI recommendations. Cloudflare transfers are covered by Cloudflare DPA v6.3 (includes UK IDTA + EU SCCs) and Cloudflare's EU-US Data Privacy Framework certification.
 
 ---
 
@@ -236,7 +236,7 @@ The following measures are implemented to protect personal data:
 - Security headers: Content-Security-Policy, Strict-Transport-Security, X-Frame-Options, X-Content-Type-Options
 
 ### 5.3 Data at Rest
-- Cloudflare D1 database with [TODO: Confirm encryption-at-rest status for D1]
+- Cloudflare D1 database with AES-256-GCM encryption at rest (automatic, Cloudflare-managed keys)
 - AI API keys encrypted before storage in D1
 - Passwords and tokens stored as cryptographic hashes only
 
@@ -254,7 +254,7 @@ The following measures are implemented to protect personal data:
 
 ### 5.6 Availability and Resilience
 - Cloudflare Workers: globally distributed, automatic failover
-- D1 database: [TODO: Confirm backup and recovery procedures]
+- D1 database: Time Travel automatic point-in-time recovery (30-day retention on paid plan, minute granularity). Restore via `wrangler d1 time-travel restore`. Note: deleted data remains recoverable via Time Travel for up to 30 days
 - Static assets served from Cloudflare CDN
 
 ---
@@ -281,13 +281,13 @@ This register must be reviewed:
 | Item | Priority | Status |
 |---|---|---|
 | ~~Remove student name from AI recommendation prompts~~ | ~~High~~ | **COMPLETED 2026-02-25** |
-| Confirm Cloudflare D1 data residency and encryption | High | [TODO: Review Cloudflare documentation / Data Localisation Suite] |
+| ~~Confirm Cloudflare D1 data residency and encryption~~ | ~~High~~ | **COMPLETED 2026-03-01** — D1 in Western Europe (Germany), replication off, AES-256-GCM encryption at rest |
 | Complete Transfer Impact Assessments for US transfers | High | [TODO: TIA for Anthropic, OpenAI, Google, Cloudflare] |
 | ~~Confirm email sub-processor and transfer mechanism~~ | ~~Medium~~ | **COMPLETED 2026-02-25** — Cloudflare Email Routing confirmed |
 | Appoint DPO or document Article 37 exemption | Medium | [TODO: Legal assessment required] |
 | ~~Register with ICO~~ | ~~High~~ | **COMPLETED 2026-03-01** — ICO registration ZC098130 |
 | ~~Implement automated data retention cleanup jobs~~ | ~~High~~ | **COMPLETED 2026-02-25** — Daily cron cleanup for tokens, login attempts, audit log anonymisation |
-| Document D1 backup and disaster recovery procedures | Medium | [TODO: Cloudflare D1 backup documentation] |
+| ~~Document D1 backup and disaster recovery procedures~~ | ~~Medium~~ | **COMPLETED 2026-03-01** — Time Travel: 30-day PITR, minute granularity, automatic |
 
 ---
 

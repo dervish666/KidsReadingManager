@@ -153,7 +153,7 @@ The following retention mechanisms do not yet exist and must be implemented:
 
 **Current usage:** `reading_sessions` (CASCADE from student delete)
 
-**GDPR assessment:** Hard delete satisfies erasure requirements. D1 uses SQLite under the hood; deleted data may persist in WAL files or unvacuumed pages temporarily. [TODO: Confirm Cloudflare D1 vacuum and WAL behaviour -- does Cloudflare handle this automatically?]
+**GDPR assessment:** Hard delete satisfies erasure requirements. D1 uses SQLite with auto-vacuum enabled in production (confirmed by Cloudflare engineering). `secure_delete` is not available, so freed pages are not zeroed — but all D1 storage is AES-256-GCM encrypted at rest. Deleted data remains recoverable via Time Travel for up to 30 days (paid plan), after which bookmarks expire and historical state is no longer accessible. For erasure documentation: logical deletion is immediate; physical byte overwrite timing is indeterminate; Time Travel recovery window is 30 days.
 
 **Implementation note:** D1 batch operations are limited to 100 statements. Cascade deletions of large organisations must be chunked. See existing pattern in `src/routes/books.js`.
 

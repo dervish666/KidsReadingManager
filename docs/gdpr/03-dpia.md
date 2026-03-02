@@ -150,7 +150,7 @@ Cloudflare D1 Database (SQLite)
     |
     v
 Data stored in Cloudflare D1
-(Region: [TODO: confirm EU/UK jurisdiction -- currently unspecified])
+(Region: Western Europe -- Germany, location_hint=weur, replication off)
 ```
 
 #### 2.4.2 AI Recommendation Flow (Optional, BYOK)
@@ -226,10 +226,10 @@ D1 database (scoped to organization)
 
 | Sub-Processor | Purpose | Data Accessed | Location | Transfer Mechanism |
 |---|---|---|---|---|
-| **Cloudflare, Inc.** | Infrastructure: Workers compute, D1 database, KV storage, R2 object storage, CDN, DNS | All data | US-headquartered; edge nodes worldwide; D1 region [TODO: confirm if EU/UK location directive applied] | UK adequacy decision for US (UK Extension to EU-US Data Privacy Framework) [TODO: confirm Cloudflare's participation] |
-| **Anthropic** (optional) | AI book recommendations | Student name, reading level, age range, genre preferences, likes/dislikes, recent books read | US (San Francisco) | BYOK model -- school's own API key. Data sent only when teacher explicitly requests AI recommendations. [TODO: confirm Anthropic's DPA/SCCs] |
-| **OpenAI** (optional) | AI book recommendations | Same as Anthropic | US | BYOK model. Same conditions as Anthropic. [TODO: confirm OpenAI's DPA] |
-| **Google** (optional) | AI book recommendations (Gemini) | Same as Anthropic | US | BYOK model. Same conditions as Anthropic. [TODO: confirm Google Cloud DPA] |
+| **Cloudflare, Inc.** | Infrastructure: Workers compute, D1 database, KV storage, R2 object storage, CDN, DNS | All data | US-headquartered; edge nodes worldwide; D1 in Western Europe (Germany) | Cloudflare DPA v6.3 with EU SCCs + UK IDTA. Certified under EU-US Data Privacy Framework + UK Extension |
+| **Anthropic** (optional) | AI book recommendations | Reading level, age range, genre preferences, likes/dislikes, recent books read (no student names) | US (San Francisco) | BYOK model -- school's own API key and DPA. Data sent only when teacher explicitly requests AI recommendations |
+| **OpenAI** (optional) | AI book recommendations | Same as Anthropic | US | BYOK model. School's own API key and DPA |
+| **Google** (optional) | AI book recommendations (Gemini) | Same as Anthropic | US | BYOK model. School's own API key and DPA |
 | **OpenLibrary** (Internet Archive) | Book metadata lookup (ISBN, title, author, cover images) | Book identifiers only (ISBN, title) -- no personal data | US | No personal data transferred |
 
 ### 2.6 Lawful Basis for Processing
@@ -494,7 +494,7 @@ The following controls are recommended to address the identified risks. They are
 | # | Recommendation | Addresses Risk | Effort | Detail |
 |---|---|---|---|---|
 | ~~M1~~ | ~~**Remove student names from AI prompts**~~ | ~~(b)~~ | ~~Low~~ | **COMPLETED 2026-03-01.** Removed `student.name` from `buildBroadSuggestionsPrompt()` in `src/services/aiService.js` and `name` from student profile in `src/utils/studentProfile.js`. No student names are sent to AI providers. |
-| M2 | **Configure Cloudflare D1 location hint for EU/UK** | (j) | Low | Add `location_hint = "weur"` (Western Europe) to the D1 database configuration in `wrangler.toml`. While this is a hint rather than a guarantee, it demonstrates intent to keep data in the UK/EEA. [TODO: Investigate Cloudflare's D1 data residency guarantees and whether they meet UK GDPR requirements.] |
+| ~~M2~~ | ~~**Configure Cloudflare D1 location hint for EU/UK**~~ | ~~(j)~~ | ~~Low~~ | **CONFIRMED 2026-03-01.** D1 database is in Western Europe (Germany) with `location_hint=weur` and replication off. Note: `location_hint` is best-effort; Cloudflare now offers `--jurisdiction=eu` for contractual guarantee (requires database recreation). Current location verified in Cloudflare dashboard. |
 | M3 | **Implement hard delete capability for erasure requests** | (d) | Medium | Create an admin-only API endpoint (and UI) to permanently delete a student and all associated data (sessions, preferences, streaks). This must cascade to `reading_sessions`, `student_preferences`, and any audit log entries. Document the erasure process in the DPA. |
 | M4 | **Add teacher guidance on notes fields** | (c) | Low | Add placeholder text to notes input fields: "Reading observations only. Do not record medical, SEN, behavioural, or safeguarding information." Include this guidance in school onboarding documentation and DPA. |
 | M5 | **Document international transfers for AI processing** | (b), (j) | Low | Update the DPA and privacy notice to clearly disclose that when AI recommendations are enabled, student data (reading level, preferences, reading history) is sent to the school's chosen AI provider (Anthropic/OpenAI/Google) in the US. Schools must inform parents. |

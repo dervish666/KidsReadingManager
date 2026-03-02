@@ -183,7 +183,7 @@ the extent necessary for the stated purpose.
 | **Services used** | Workers (serverless compute), D1 (SQL database), KV (key-value storage), R2 (object storage), CDN, DNS, email routing |
 | **Data shared** | All data processed by the platform passes through Cloudflare infrastructure |
 | **Safeguards** | Cloudflare is certified under ISO 27001 and SOC 2 Type II. For international transfer safeguards, see Section 6. |
-| **Data region** | [TODO: Confirm whether Cloudflare Data Localisation Suite is enabled to restrict data processing to the UK/EU. If not, document the international transfer mechanism relied upon.] |
+| **Data region** | D1 database located in Western Europe (Germany) with `location_hint=weur` and replication off. Workers compute and CDN operate globally. Cloudflare DPA v6.3 covers international transfers (EU SCCs + UK IDTA). Cloudflare is certified under the EU-US Data Privacy Framework + UK Extension. |
 
 ### 5.2 AI recommendation providers (optional, school-controlled)
 
@@ -231,12 +231,10 @@ as required by Articles 44 to 49 of UK GDPR:
 
 | Transfer | Mechanism |
 |---|---|
-| **Cloudflare (US)** | [TODO: Confirm mechanism. Options include: (a) UK International Data Transfer Agreement (IDTA) incorporating Standard Contractual Clauses; (b) Cloudflare Data Localisation Suite restricting processing to UK/EU jurisdiction; (c) Cloudflare's own Binding Corporate Rules or approved code of conduct. Document the chosen mechanism and retain a copy of the signed IDTA/SCCs.] |
+| **Cloudflare (US-headquartered)** | Cloudflare DPA v6.3 (auto-applies with service agreement), incorporating EU SCCs and UK IDTA (Version B1.0). Cloudflare is certified under the EU-US Data Privacy Framework and UK Extension. D1 database is located in Western Europe (Germany). |
 | **AI providers (US)** -- if enabled by the school | Schools that enable AI recommendations are responsible for ensuring that their use of the chosen AI provider complies with their own data transfer obligations. Tally facilitates the school's BYOK configuration but does not itself hold a contract with the AI provider on the school's behalf. |
 
-[TODO: Conduct a Transfer Impact Assessment (TIA) for each international
-transfer and document the supplementary measures relied upon. Retain copies
-alongside this policy.]
+Cloudflare transfers are covered by the Cloudflare DPA v6.3 and EU-US Data Privacy Framework certification. AI provider transfers are the responsibility of the school as controller (BYOK model — schools hold their own agreements with AI providers).
 
 ---
 
@@ -454,11 +452,11 @@ this document. All items must be resolved before this policy is published.
 | 3 | 1 | Complete ICO registration and insert registration number | **DONE** (2026-03-01) |
 | 4 | 3 | Document Legitimate Interests Assessments (LIAs) for audit logging and rate limiting | Outstanding |
 | 5 | 4 | Review against all 15 standards of the ICO Children's Code and document findings | Outstanding |
-| 6 | 5.1 | Confirm whether Cloudflare Data Localisation Suite is enabled; document data residency | Outstanding |
+| 6 | 5.1 | Confirm whether Cloudflare Data Localisation Suite is enabled; document data residency | **DONE** (2026-03-01) — D1 in Western Europe (Germany), Cloudflare DPA v6.3, EU-US DPF certified |
 | 7 | 5.2 | Remove pupil name from AI prompts; update this section once complete | **DONE** (2026-02-25) |
 | 8 | 5.4 | Confirm email provider (Cloudflare Email Routing or Resend) | **DONE** (2026-02-25) |
-| 9 | 6 | Confirm international transfer mechanism for Cloudflare (IDTA/SCCs/Data Localisation) | Outstanding |
-| 10 | 6 | Conduct and document Transfer Impact Assessments (TIAs) for each international transfer | Outstanding |
+| 9 | 6 | Confirm international transfer mechanism for Cloudflare (IDTA/SCCs/Data Localisation) | **DONE** (2026-03-01) — Cloudflare DPA v6.3 with EU SCCs + UK IDTA; EU-US DPF certified |
+| 10 | 6 | Conduct and document Transfer Impact Assessments (TIAs) for each international transfer | **Partial** (2026-03-01) — Cloudflare covered by DPA; AI providers are BYOK (school's responsibility) |
 | 11 | 7 | Define and insert specific retention periods for pupil data and audit logs | **DONE** (2026-02-25) |
 | 12 | 7 | Implement automated data deletion routines (audit log purge, post-termination data deletion) | **Partial** — token/login/audit cleanup done; post-termination deletion outstanding |
 | 13 | 8 | Insert DPO/privacy contact email in all rights-exercise instructions | **DONE** (2026-02-25) |
