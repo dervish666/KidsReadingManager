@@ -303,24 +303,12 @@ export default {
       return app.fetch(request, env, ctx);
     }
 
-    // Otherwise, serve static assets using Workers Sites
-    // The `env.ASSETS` binding is automatically configured by [site] in wrangler.toml
+    // Serve static assets (SPA fallback handled by not_found_handling in wrangler.toml)
     try {
       return await env.ASSETS.fetch(request);
     } catch (e) {
-      // If env.ASSETS.fetch() throws an error (e.g., asset not found),
-      // let Hono handle it, potentially returning a 404 or other response.
-      // This might be useful if you want Hono to handle SPA routing fallbacks,
-      // although Workers Sites with single_page_app = true usually handles this.
-      // For now, we'll re-throw or return a generic error.
-      // Consider if Hono should handle 404s for non-asset paths.
       console.error(`ASSETS fetch failed: ${e.message}`);
-      // Re-throwing the error might be appropriate, or return a custom 404
-      // return new Response('Not Found', { status: 404 });
-      // Let's try passing to Hono to see if it has a fallback (it likely won't match anything)
-      // return app.fetch(request, env, ctx);
-      // Safest default: return a standard 404
-       return new Response('Not Found', { status: 404 });
+      return new Response('Not Found', { status: 404 });
     }
   },
 

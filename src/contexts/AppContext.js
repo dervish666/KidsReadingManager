@@ -187,9 +187,25 @@ export const AppProvider = ({ children }) => {
         setServerAuthModeDetected(true);
       }
 
-      // Check for OAuth SSO callback
+      // Check for OAuth SSO callback or error
       const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('auth') === 'callback') {
+      const authParam = urlParams.get('auth');
+      const authReason = urlParams.get('reason');
+
+      if (authParam === 'error') {
+        // SSO failed — surface the reason to the user
+        const schoolId = urlParams.get('school_id');
+        window.history.replaceState({}, '', window.location.pathname);
+        const reasonMessages = {
+          invalid_state: 'Login session expired. Please try again.',
+          token_exchange_failed: 'Authentication failed. Please try again.',
+          user_fetch_failed: 'Could not retrieve your account. Please try again.',
+          no_school: 'Your account is not linked to a school.',
+          school_not_found: `Your school has not been set up yet.${schoolId ? ` (Wonde ID: ${schoolId})` : ''} Please contact your administrator.`,
+          internal: 'An unexpected error occurred. Please try again.',
+        };
+        setApiError(reasonMessages[authReason] || `Login failed: ${authReason || 'unknown error'}`);
+      } else if (authParam === 'callback') {
         // Remove query param from URL (clean up)
         window.history.replaceState({}, '', window.location.pathname);
         // Complete SSO login by refreshing token (callback set httpOnly cookie)
@@ -215,9 +231,13 @@ export const AppProvider = ({ children }) => {
                 }
               } catch { /* ignore */ }
             }
+          } else {
+            const errData = await response.json().catch(() => ({}));
+            setApiError(`SSO login failed: ${errData.error || 'could not complete sign-in'}`);
           }
         } catch (err) {
           console.error('SSO callback error:', err);
+          setApiError('SSO login failed: network error');
         }
       }
     };

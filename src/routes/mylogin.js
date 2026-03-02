@@ -92,23 +92,31 @@ myloginRouter.get('/callback', async (c) => {
     // -----------------------------------------------------------------------
     // 1. Verify state (CSRF protection)
     // -----------------------------------------------------------------------
+    if (!state) {
+      return c.redirect('/?auth=error&reason=invalid_state');
+    }
     const stateValue = await c.env.READING_MANAGER_KV.get(`oauth_state:${state}`);
     if (!stateValue) {
       return c.redirect('/?auth=error&reason=invalid_state');
     }
-
     // Delete state so it cannot be reused
     await c.env.READING_MANAGER_KV.delete(`oauth_state:${state}`);
 
     // -----------------------------------------------------------------------
     // 2. Exchange authorization code for access token
     // -----------------------------------------------------------------------
-    const credentials = btoa(`${c.env.MYLOGIN_CLIENT_ID}:${c.env.MYLOGIN_CLIENT_SECRET}`);
+    const clientId = (c.env.MYLOGIN_CLIENT_ID || '').trim();
+    const clientSecret = (c.env.MYLOGIN_CLIENT_SECRET || '').trim();
+    const redirectUri = (c.env.MYLOGIN_REDIRECT_URI || '').trim();
 
+    // Use both Basic auth header AND body params for maximum compatibility
+    const credentials = btoa(`${clientId}:${clientSecret}`);
     const tokenBody = new URLSearchParams({
       grant_type: 'authorization_code',
       code,
-      redirect_uri: c.env.MYLOGIN_REDIRECT_URI
+      redirect_uri: redirectUri,
+      client_id: clientId,
+      client_secret: clientSecret
     });
 
     const tokenRes = await fetch('https://app.mylogin.com/oauth/token', {
@@ -144,7 +152,9 @@ myloginRouter.get('/callback', async (c) => {
       return c.redirect('/?auth=error&reason=user_fetch_failed');
     }
 
-    const profile = await userRes.json();
+    const profileResponse = await userRes.json();
+    // MyLogin wraps the user profile in a "data" property
+    const profile = profileResponse.data || profileResponse;
 
     // -----------------------------------------------------------------------
     // 4. Extract user data
@@ -170,8 +180,8 @@ myloginRouter.get('/callback', async (c) => {
     ).bind(wondeSchoolId).first();
 
     if (!org) {
-      console.error('[MyLogin] No org found for wonde_school_id:', wondeSchoolId);
-      return c.redirect('/?auth=error&reason=school_not_found');
+      console.error('[MyLogin] No org found for wonde_school_id:', wondeSchoolId, '- user:', email);
+      return c.redirect(`/?auth=error&reason=school_not_found&school_id=${encodeURIComponent(wondeSchoolId)}`);
     }
 
     // -----------------------------------------------------------------------

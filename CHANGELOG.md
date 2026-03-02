@@ -1,5 +1,20 @@
 # Changelog
 
+## [3.7.3] - 2026-03-02
+
+### Security
+- **Fixed OAuth2 CSRF state bypass**: The MyLogin SSO callback was conditionally skipping state validation when the `state` parameter was absent (intended for IDP-initiated flow). This allowed an attacker with a stolen authorization code to authenticate without CSRF protection. State is now always required and validated.
+- **Removed debug logging of credentials and PII to D1**: Temporary debug logging in the MyLogin callback was writing OAuth client secret prefix, secret length, user names, emails, and full profile JSON to the `wonde_sync_log` D1 table under a hardcoded org ID. All `debugLog` calls and the function itself have been removed.
+- **Removed debug console.log from App.js**: Removed SSO debug log that captured the full page URL on auth callback.
+
+### Changed
+- **MyLogin profile unwrapping**: Correctly unwraps user profile from MyLogin's `data` wrapper property
+- **Token exchange compatibility**: Sends OAuth client credentials in both Basic auth header and request body for maximum provider compatibility
+- **SSO error handling**: Frontend now displays user-friendly error messages for SSO failures (expired session, auth failure, school not found, etc.)
+- **Auto-show login on SSO return**: Login page automatically displays when returning from SSO callback or error redirect
+- **Static asset serving**: Simplified worker asset serving; SPA fallback handled by `not_found_handling` in wrangler.toml
+- **Wrangler config**: Added `run_worker_first = ["/api/*"]` to ensure OAuth callbacks hit the Worker, not index.html
+
 ## [3.7.2] - 2026-02-27
 
 ### Changed

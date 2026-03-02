@@ -86,7 +86,11 @@ const BookshelfBorder = ({ side }) => (
 function AppContent() {
   const { isAuthenticated } = useAppContext();
   const [currentTab, setCurrentTab] = useState(0);
-  const [showLogin, setShowLogin] = useState(false);
+  // Auto-show login page when returning from SSO (auth=callback or auth=error)
+  const [showLogin, setShowLogin] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return !!params.get('auth');
+  });
 
   if (!isAuthenticated) {
     if (showLogin) {
