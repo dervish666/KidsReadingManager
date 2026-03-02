@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Alert,
   Box,
@@ -15,7 +15,8 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  Paper
+  Paper,
+  Pagination
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import SortIcon from '@mui/icons-material/Sort';
@@ -41,6 +42,8 @@ const StudentList = () => {
   const [error, setError] = useState('');
   const [sortMethod, setSortMethod] = useState('priority');
   const [sortDirection, setSortDirection] = useState('desc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const studentsPerPage = 25;
 
   const handleAddStudent = () => {
     if (!newStudentName.trim()) {
@@ -142,6 +145,22 @@ const StudentList = () => {
     });
   }, [students, classes, globalClassFilter, sortMethod, sortDirection]);
 
+  // Reset to page 1 when filters or sort change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [globalClassFilter, sortMethod, sortDirection]);
+
+  const totalPages = Math.ceil(filteredAndSortedStudents.length / studentsPerPage);
+
+  const paginatedStudents = useMemo(() => {
+    const startIndex = (currentPage - 1) * studentsPerPage;
+    return filteredAndSortedStudents.slice(startIndex, startIndex + studentsPerPage);
+  }, [filteredAndSortedStudents, currentPage]);
+
+  const handlePageChange = (event, newPage) => {
+    setCurrentPage(newPage);
+  };
+
   if (apiError) {
     return <Alert severity="error" sx={{ borderRadius: 4 }}>Error loading student data: {apiError}</Alert>;
   }
@@ -170,7 +189,9 @@ const StudentList = () => {
             Students
           </Typography>
           <Typography variant="body1" sx={{ color: '#7A7A7A', fontWeight: 500 }}>
-            {filteredAndSortedStudents.length} total
+            {filteredAndSortedStudents.length > studentsPerPage
+              ? `Showing ${(currentPage - 1) * studentsPerPage + 1}–${Math.min(currentPage * studentsPerPage, filteredAndSortedStudents.length)} of ${filteredAndSortedStudents.length} students`
+              : `${filteredAndSortedStudents.length} total`}
           </Typography>
         </Box>
         <Box sx={{
@@ -289,7 +310,20 @@ const StudentList = () => {
             <PrioritizedStudentsList filterClassId={globalClassFilter} />
           </Box>
           
-          <StudentTable students={filteredAndSortedStudents} />
+          <StudentTable students={paginatedStudents} />
+
+          {totalPages > 1 && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+              <Pagination
+                count={totalPages}
+                page={currentPage}
+                onChange={handlePageChange}
+                color="primary"
+                showFirstButton
+                showLastButton
+              />
+            </Box>
+          )}
         </>
       )}
 

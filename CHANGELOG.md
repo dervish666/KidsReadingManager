@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.7.5] - 2026-03-02
+
+### Fixed
+- **Class `disabled` toggle not persisting**: The `disabled` column was missing from the `classes` table and the PUT route ignored it — toggle only worked via optimistic UI updates and was lost on page refresh. Added migration `0027_classes_disabled.sql` and updated PUT SQL to persist the value.
+
+### Added
+- **Wonde-aware ClassManager**: Auto-detects Wonde-connected schools (via `wondeClassId` on classes) and shows a read-only view with sync info banner instead of the manual Year 1-11 dropdown. Wonde mode hides Add/Edit/Delete controls since classes are managed by the school MIS.
+- **Expandable student lists**: Click any class to expand and see its students with name and reading level range. Students fetched on-demand from `GET /api/classes/:id/students`.
+- **Student count chips**: Each class now shows a student count badge in the class list.
+- **Row mapper fields**: `rowToClass` now maps `disabled` and `wondeClassId` from D1 rows.
+
 ## [3.7.4] - 2026-03-02
 
 ### Fixed

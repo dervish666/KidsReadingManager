@@ -209,31 +209,36 @@ studentsRouter.get('/', async (c) => {
       className: row.class_name
     }));
 
-    // Batch-fetch all reading sessions for all students in this org (single query)
+    // Batch-fetch all reading sessions for all students in this org
+    // D1 limits bind parameters to 100 per statement, so chunk large lists
     const studentIds = students.map(s => s.id);
+    const BIND_LIMIT = 90; // Leave headroom under D1's 100-parameter limit
 
     let allSessions = [];
     let allPreferences = [];
 
     if (studentIds.length > 0) {
-      const sessionPlaceholders = studentIds.map(() => '?').join(',');
-      const sessionsResult = await db.prepare(`
-        SELECT rs.*, b.title as book_title, b.author as book_author
-        FROM reading_sessions rs
-        LEFT JOIN books b ON rs.book_id = b.id
-        WHERE rs.student_id IN (${sessionPlaceholders})
-        ORDER BY rs.session_date DESC
-      `).bind(...studentIds).all();
-      allSessions = sessionsResult.results || [];
+      for (let i = 0; i < studentIds.length; i += BIND_LIMIT) {
+        const chunk = studentIds.slice(i, i + BIND_LIMIT);
+        const placeholders = chunk.map(() => '?').join(',');
 
-      // Batch-fetch all preferences for all students (single query)
-      const prefsResult = await db.prepare(`
-        SELECT sp.student_id, sp.genre_id, sp.preference_type, g.name as genre_name
-        FROM student_preferences sp
-        LEFT JOIN genres g ON sp.genre_id = g.id
-        WHERE sp.student_id IN (${sessionPlaceholders})
-      `).bind(...studentIds).all();
-      allPreferences = prefsResult.results || [];
+        const sessionsResult = await db.prepare(`
+          SELECT rs.*, b.title as book_title, b.author as book_author
+          FROM reading_sessions rs
+          LEFT JOIN books b ON rs.book_id = b.id
+          WHERE rs.student_id IN (${placeholders})
+          ORDER BY rs.session_date DESC
+        `).bind(...chunk).all();
+        allSessions.push(...(sessionsResult.results || []));
+
+        const prefsResult = await db.prepare(`
+          SELECT sp.student_id, sp.genre_id, sp.preference_type, g.name as genre_name
+          FROM student_preferences sp
+          LEFT JOIN genres g ON sp.genre_id = g.id
+          WHERE sp.student_id IN (${placeholders})
+        `).bind(...chunk).all();
+        allPreferences.push(...(prefsResult.results || []));
+      }
     }
 
     // Group sessions and preferences by student_id

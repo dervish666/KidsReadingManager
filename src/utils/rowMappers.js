@@ -74,6 +74,8 @@ export const rowToClass = (row) => {
     teacherName: row.teacher_name,
     academicYear: row.academic_year,
     isActive: Boolean(row.is_active),
+    disabled: Boolean(row.disabled),
+    wondeClassId: row.wonde_class_id || null,
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };

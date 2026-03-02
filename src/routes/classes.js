@@ -231,12 +231,14 @@ classesRouter.put('/:id', auditLog('update', 'class'), async (c) => {
         name = ?,
         teacher_name = ?,
         academic_year = ?,
+        disabled = ?,
         updated_at = datetime("now")
       WHERE id = ? AND organization_id = ?
     `).bind(
       body.name,
       body.teacherName || null,
       body.academicYear || null,
+      body.disabled ? 1 : 0,
       id,
       organizationId
     ).run();

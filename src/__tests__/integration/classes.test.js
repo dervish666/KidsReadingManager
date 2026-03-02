@@ -1156,6 +1156,7 @@ describe('Classes API Routes', () => {
           'New Name',
           'New Teacher',
           '2026',
+          0,
           'class-123',
           'org-456'
         );
