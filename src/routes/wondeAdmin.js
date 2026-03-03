@@ -47,15 +47,17 @@ wondeAdminRouter.post('/token', async (c) => {
     return c.json({ error: 'Owner access required' }, 403);
   }
 
-  const orgId = c.get('organizationId');
   const db = c.env.READING_MANAGER_DB;
 
   const body = await c.req.json();
-  const { schoolToken } = body;
+  const { schoolToken, organizationId } = body;
 
   if (!schoolToken || typeof schoolToken !== 'string' || schoolToken.trim().length === 0) {
     return c.json({ error: 'schoolToken is required' }, 400);
   }
+
+  // Owner can target any org; otherwise use the caller's org
+  const orgId = organizationId || c.get('organizationId');
 
   // Verify the org exists and has a wonde_school_id
   const org = await db.prepare(

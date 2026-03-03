@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.8.1] - 2026-03-03
+
+### Added
+- **Wonde token UI in School Management**: Owners can now paste a Wonde school token directly in the edit-school form instead of using browser console commands. Token field only appears for Wonde-linked schools, shows "Token is set" when already configured, and encrypts at rest via the existing `POST /api/wonde/token` endpoint
+- **`hasWondeToken` boolean in org API**: `rowToOrganization` now exposes a boolean flag so the frontend knows whether a token exists without leaking the encrypted value
+- **`organizationId` parameter on token endpoint**: `POST /api/wonde/token` accepts an optional `organizationId` so owners can set tokens for any school, not just their current org context
+
 ## [3.8.0] - 2026-03-03
 
 ### Security

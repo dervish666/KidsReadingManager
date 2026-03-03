@@ -117,6 +117,7 @@ export const rowToOrganization = (row) => {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     wondeSchoolId: row.wonde_school_id || null,
+    hasWondeToken: Boolean(row.wonde_school_token),
     wondeLastSyncAt: row.wonde_last_sync_at || null,
     myloginOrgId: row.mylogin_org_id || null,
     consentGivenAt: row.consent_given_at || null,

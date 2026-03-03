@@ -45,6 +45,7 @@ const SchoolManagement = () => {
     subscriptionTier: 'free',
     maxStudents: 50,
     maxTeachers: 3,
+    wondeSchoolToken: '',
   });
   const [editingSchool, setEditingSchool] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -116,6 +117,17 @@ const SchoolManagement = () => {
           }),
         });
 
+        // Set Wonde token if provided and school has a wondeSchoolId
+        if (formData.wondeSchoolToken.trim() && editingSchool.wondeSchoolId) {
+          await fetchWithAuth('/api/wonde/token', {
+            method: 'POST',
+            body: JSON.stringify({
+              schoolToken: formData.wondeSchoolToken.trim(),
+              organizationId: editingSchool.id,
+            }),
+          });
+        }
+
         setSuccess('School updated successfully');
       } else {
         // Create new school
@@ -148,6 +160,7 @@ const SchoolManagement = () => {
       subscriptionTier: school.subscriptionTier,
       maxStudents: school.maxStudents,
       maxTeachers: school.maxTeachers,
+      wondeSchoolToken: '',
     });
     setError(null);
     setSuccess(null);
@@ -177,6 +190,7 @@ const SchoolManagement = () => {
       subscriptionTier: 'free',
       maxStudents: 50,
       maxTeachers: 3,
+      wondeSchoolToken: '',
     });
     setEditingSchool(null);
   };
@@ -272,6 +286,19 @@ const SchoolManagement = () => {
                 required
                 inputProps={{ min: 1 }}
               />
+              {editingSchool?.wondeSchoolId && (
+                <TextField
+                  fullWidth
+                  label="Wonde School Token"
+                  name="wondeSchoolToken"
+                  type="password"
+                  value={formData.wondeSchoolToken}
+                  onChange={handleInputChange}
+                  margin="normal"
+                  placeholder={editingSchool.hasWondeToken ? 'Token is set' : ''}
+                  helperText="Paste from Wonde dashboard. Encrypted at rest."
+                />
+              )}
               <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
                 <Button
                   type="submit"
