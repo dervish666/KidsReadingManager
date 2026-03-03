@@ -64,6 +64,7 @@ const Header = () => {
 
   return (
     <AppBar
+      component="header"
       position="sticky"
       elevation={0}
       sx={{

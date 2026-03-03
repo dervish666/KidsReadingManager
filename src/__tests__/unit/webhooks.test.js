@@ -19,16 +19,18 @@ import { runFullSync } from '../../services/wondeSync.js';
 // Helper: create a mock D1 database
 // ---------------------------------------------------------------------------
 function createMockDb() {
-  const mockStatement = {
-    bind: vi.fn().mockReturnThis(),
-    run: vi.fn().mockResolvedValue({ success: true }),
-    first: vi.fn().mockResolvedValue(null),
-    all: vi.fn().mockResolvedValue({ results: [] })
-  };
-
   const db = {
-    prepare: vi.fn().mockReturnValue(mockStatement),
-    _statement: mockStatement
+    prepare: vi.fn().mockImplementation(() => {
+      const stmt = {
+        bind: vi.fn().mockReturnThis(),
+        run: vi.fn().mockResolvedValue({ success: true }),
+        first: vi.fn().mockResolvedValue(null),
+        all: vi.fn().mockResolvedValue({ results: [] })
+      };
+      // Allow chaining: bind returns the same statement
+      stmt.bind.mockReturnValue(stmt);
+      return stmt;
+    })
   };
 
   return db;

@@ -34,6 +34,7 @@ usersRouter.get('/', requireAdmin(), async (c) => {
                u.is_active, u.last_login_at, u.created_at, u.updated_at
         FROM users u
         LEFT JOIN organizations o ON u.organization_id = o.id
+        WHERE u.is_active = 1
         ORDER BY o.name, u.name
       `;
       params = [];

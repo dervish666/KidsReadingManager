@@ -44,10 +44,10 @@ export async function checkOpenLibraryAvailability(timeout = 3000) {
     openLibraryAvailable = response.ok;
     lastAvailabilityCheck = now;
     
-    console.log(`OpenLibrary availability check: ${openLibraryAvailable ? 'available' : 'unavailable'}`);
+    // Availability check succeeded — no need to log success
     return openLibraryAvailable;
   } catch (error) {
-    console.log('OpenLibrary availability check failed:', error.message);
+    console.warn('OpenLibrary availability check failed:', error.message);
     openLibraryAvailable = false;
     lastAvailabilityCheck = now;
     return false;

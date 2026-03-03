@@ -19,7 +19,7 @@ import { useAppContext } from '../contexts/AppContext';
 const DPA_VERSION = '1.0';
 
 const DpaConsentModal = () => {
-  const { fetchWithAuth, user } = useAppContext();
+  const { fetchWithAuth, user, handleLogout } = useAppContext();
   const [open, setOpen] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -112,7 +112,7 @@ const DpaConsentModal = () => {
           <Typography variant="body2" component="ul" sx={{ pl: 2, mb: 0, '& li': { mb: 0.5 } }}>
             <li>Student data is processed solely for the purpose of tracking reading progress</li>
             <li>Data is stored securely on Cloudflare infrastructure within the UK/EU</li>
-            <li>AI recommendations (if enabled) send only anonymised reading profiles to AI providers</li>
+            <li>AI recommendations (if enabled) send reading profiles (level, genres, history) to AI providers — student names are never sent</li>
             <li>You can request data export or erasure at any time</li>
             <li>The full DPA and privacy policy are available in your account documentation</li>
           </Typography>
@@ -142,7 +142,14 @@ const DpaConsentModal = () => {
         />
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, py: 2 }}>
+      <DialogActions sx={{ px: 3, py: 2, justifyContent: 'space-between' }}>
+        <Button
+          onClick={handleLogout}
+          variant="outlined"
+          color="inherit"
+        >
+          Decline and Log Out
+        </Button>
         <Button
           onClick={handleAccept}
           variant="contained"

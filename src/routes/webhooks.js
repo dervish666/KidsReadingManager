@@ -48,18 +48,33 @@ webhooksRouter.post('/wonde', async (c) => {
         return c.json({ error: 'Missing required fields for schoolApproved' }, 400);
       }
 
-      // Generate org ID and slug
-      const orgId = crypto.randomUUID();
-      const slug = body.school_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      // Check for existing organization with same wonde_school_id
+      const existing = await db.prepare(
+        `SELECT id, is_active FROM organizations WHERE wonde_school_id = ?`
+      ).bind(body.school_id).first();
 
       // Encrypt school token
       const encryptedToken = await encryptSensitiveData(body.school_token, c.env.JWT_SECRET);
 
-      // Create organization
-      await db.prepare(
-        `INSERT INTO organizations (id, name, slug, wonde_school_id, wonde_school_token, is_active, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, 1, datetime("now"), datetime("now"))`
-      ).bind(orgId, body.school_name, slug, body.school_id, encryptedToken).run();
+      let orgId;
+      if (existing) {
+        orgId = existing.id;
+        // Reactivate and update token if previously revoked
+        await db.prepare(
+          `UPDATE organizations SET is_active = 1, wonde_school_token = ?, name = ?, updated_at = datetime("now")
+           WHERE id = ?`
+        ).bind(encryptedToken, body.school_name, orgId).run();
+        console.log(`[Webhook] School re-approved: ${body.school_name} (${body.school_id}), reactivated org ${orgId}`);
+      } else {
+        orgId = crypto.randomUUID();
+        const slug = body.school_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+        await db.prepare(
+          `INSERT INTO organizations (id, name, slug, wonde_school_id, wonde_school_token, is_active, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, 1, datetime("now"), datetime("now"))`
+        ).bind(orgId, body.school_name, slug, body.school_id, encryptedToken).run();
+        console.log(`[Webhook] School approved: ${body.school_name} (${body.school_id}), created org ${orgId}`);
+      }
 
       // Trigger full sync in background
       const syncPromise = runFullSync(orgId, body.school_token, body.school_id, db);
@@ -70,7 +85,6 @@ webhooksRouter.post('/wonde', async (c) => {
         await syncPromise;
       }
 
-      console.log(`[Webhook] School approved: ${body.school_name} (${body.school_id})`);
       return c.json({ success: true, organizationId: orgId });
     }
 

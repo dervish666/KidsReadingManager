@@ -39,6 +39,7 @@ import { decryptSensitiveData } from './utils/crypto.js';
 import { errorHandler } from './middleware/errorHandler';
 import { authMiddleware, handleLogin } from './middleware/auth';
 import { jwtAuthMiddleware, tenantMiddleware } from './middleware/tenant';
+import { PUBLIC_PATHS } from './utils/constants.js';
 
 // Create Hono app for the API
 const app = new Hono();
@@ -82,7 +83,7 @@ app.use('/api/*', cors({
     return null;
   },
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization'],
+  allowHeaders: ['Content-Type', 'Authorization', 'X-Organization-Id'],
   exposeHeaders: ['Content-Length'],
   maxAge: 86400, // 24 hours
   credentials: true
@@ -140,6 +141,17 @@ app.use('/api/*', errorHandler());
 // This allows gradual migration to the new system.
 // ============================================================================
 
+// Environment validation — fail fast on missing critical config
+app.use('/api/*', async (c, next) => {
+  if (!c.env.JWT_SECRET && !c.env.WORKER_ADMIN_PASSWORD) {
+    return c.json({ error: 'Server misconfigured: no authentication method available' }, 500);
+  }
+  if (c.env.MYLOGIN_CLIENT_ID && !c.env.MYLOGIN_CLIENT_SECRET) {
+    return c.json({ error: 'Server misconfigured: MYLOGIN_CLIENT_SECRET required when MYLOGIN_CLIENT_ID is set' }, 500);
+  }
+  return next();
+});
+
 // Determine which auth middleware to use based on environment
 app.use('/api/*', async (c, next) => {
   // Check if JWT_SECRET is configured (new multi-tenant mode)
@@ -168,23 +180,8 @@ app.use('/api/*', async (c, next) => {
 app.use('/api/*', async (c, next) => {
   // Skip tenant middleware for public endpoints
   const url = new URL(c.req.url);
-  const publicPaths = [
-    '/api/auth/mode',
-    '/api/auth/login',
-    '/api/auth/register',
-    '/api/auth/refresh',
-    '/api/auth/forgot-password',
-    '/api/auth/reset-password',
-    '/api/health',
-    '/api/login',
-    '/api/logout',
-    '/api/signup',
-    '/api/auth/mylogin/login',
-    '/api/auth/mylogin/callback',
-    '/api/webhooks/wonde'
-  ];
 
-  if (publicPaths.includes(url.pathname) || url.pathname.startsWith('/api/covers/')) {
+  if (PUBLIC_PATHS.includes(url.pathname) || url.pathname.startsWith('/api/covers/')) {
     return next();
   }
 

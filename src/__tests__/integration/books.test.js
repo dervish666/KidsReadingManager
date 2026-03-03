@@ -479,7 +479,6 @@ describe('Books API Routes', () => {
         expect(response.status).toBe(200);
         expect(data).toHaveProperty('books');
         expect(data).toHaveProperty('studentProfile');
-        expect(data.studentProfile).toHaveProperty('name');
         expect(data.studentProfile).toHaveProperty('readingLevel');
       });
     });

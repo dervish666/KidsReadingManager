@@ -1,5 +1,37 @@
 # Changelog
 
+## [3.8.0] - 2026-03-03
+
+### Security
+- **Owner org-switch DB verification (S-6)**: JWT `owner` role claim is now verified against the database before allowing organization switching via `X-Organization-Id`, closing a trust window where revoked owners could still switch orgs until JWT expiry
+- **Env var validation at startup (E-1)**: Worker now returns 500 immediately if no auth method is configured, or if `MYLOGIN_CLIENT_ID` is set without `MYLOGIN_CLIENT_SECRET`
+- **Rate limiting log level (S-4)**: Rate limit bypass on DB error now logs at `console.warn` instead of `console.error` for proper severity classification
+- **Gemini API key documentation (S-2)**: Added inline comment documenting that Gemini's query-parameter API key is a known constraint with mitigation advice
+
+### Fixed
+- **Quick Entry save not awaited (U-1)**: `handleSave` is now async with `await` on `addReadingSession`. Errors show a failure Snackbar instead of silently dropping. Student only advances on success
+- **Public paths diverging (Q-3)**: Extracted `PUBLIC_PATHS` to `src/utils/constants.js` as single source of truth — worker.js and tenant.js now import from the same array (also unified a `/api/logout` entry that only existed in worker.js)
+- **Deprecated `onKeyPress` (A-9)**: Replaced with `onKeyDown` in ReadingPreferences and StudentProfile
+
+### Added
+- **Database indexes (P-5)**: Migration `0028_additional_indexes.sql` adds `idx_students_class_id`, `idx_reading_sessions_student_date`, and `idx_reading_sessions_org_date`
+- **Book cover cache eviction (P-8)**: Cache now caps at 500 entries with LRU-style eviction by `fetchedAt` timestamp
+
+### Accessibility
+- **Color-only status indicators (A-1)**: Status dots in StudentCard now have `role="img"` + `aria-label`. StudentTable rows and QuickEntry cards include status name in their `aria-label`
+- **IconButton aria-labels (A-3)**: Added explicit `aria-label` to all IconButtons across StudentCard, QuickEntry, SessionNotes, PrioritizedStudentsList, and ReadingPreferences
+- **Landmark roles (A-4)**: AppBar renders as `<header>`, BottomNavigation wraps in `<nav aria-label="Main navigation">`
+- **Login error announcements (A-5)**: Error messages now use `<Alert severity="error" role="alert">` for screen reader announcement
+- **SessionNotes keyboard access (A-7)**: Collapsed notes box now has `role="button"`, `tabIndex={0}`, and `onKeyDown` for Enter/Space
+- **StudentTable keyboard access (A-8)**: Clickable rows now have `tabIndex={0}`, `aria-label`, and `onKeyDown` for Enter/Space
+
+### Performance
+- **Wonde sync parallelization (P-6)**: `fetchAllStudents`, `fetchAllEmployees`, and `fetchDeletions` now run via `Promise.all` after classes are processed, reducing sync wall time
+
+### Changed
+- Cleaned debug `console.log` statements from email.js, googleBooksApi.js, openLibraryApi.js, hardcoverApi.js — converted "not provided" messages to `console.warn`, removed success noise
+- Provider selection logging in `data/index.js` retained (intentional operational logging)
+
 ## [3.7.5] - 2026-03-02
 
 ### Fixed

@@ -254,7 +254,7 @@ describe('wondeApi', () => {
       const [url] = global.fetch.mock.calls[0];
       const parsed = new URL(url);
       expect(parsed.pathname).toBe('/v1.0/schools/SCHOOL_ABC/students');
-      expect(parsed.searchParams.get('include')).toBe('education_details,extended_details,classes,year');
+      expect(parsed.searchParams.get('include')).toBe('education_details,classes,year');
       expect(parsed.searchParams.get('per_page')).toBe('200');
     });
 
@@ -553,7 +553,7 @@ describe('wondeApi', () => {
               pagination: {
                 more: true,
                 current_page: 1,
-                next: 'https://api.wonde.com/v1.0/schools/S1/students?page=2&include=education_details,extended_details,classes,year&per_page=200'
+                next: 'https://api.wonde.com/v1.0/schools/S1/students?page=2&include=education_details,classes,year&per_page=200'
               }
             }
           })

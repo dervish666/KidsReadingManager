@@ -362,7 +362,6 @@ booksRouter.get('/library-search', requireReadonly(), async (c) => {
     return c.json({
       books: formattedBooks,
       studentProfile: {
-        name: student.name,
         readingLevel: student.readingLevel,
         readingLevelMin: student.readingLevelMin,
         readingLevelMax: student.readingLevelMax,
@@ -477,7 +476,6 @@ booksRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
         return c.json({
           suggestions: enriched,
           studentProfile: {
-            name: profile.student.name,
             readingLevel: profile.student.readingLevel,
             favoriteGenres: profile.preferences.favoriteGenreNames,
             inferredGenres: profile.inferredGenres.map(g => g.name),
@@ -557,7 +555,6 @@ booksRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
     return c.json({
       suggestions: enrichedSuggestions,
       studentProfile: {
-        name: profile.student.name,
         readingLevel: profile.student.readingLevel,
         favoriteGenres: profile.preferences.favoriteGenreNames,
         inferredGenres: profile.inferredGenres.map(g => g.name),
@@ -613,10 +610,10 @@ booksRouter.post('/', requireTeacher(), async (c) => {
     ageRange: bookData.ageRange || null,
     description: bookData.description || null,
     isbn: bookData.isbn || null,
-    pageCount: bookData.pageCount || null,
+    pageCount: bookData.pageCount ?? null,
     seriesName: bookData.seriesName || null,
-    seriesNumber: bookData.seriesNumber || null,
-    publicationYear: bookData.publicationYear || null,
+    seriesNumber: bookData.seriesNumber ?? null,
+    publicationYear: bookData.publicationYear ?? null,
   };
 
   const provider = await createProvider(c.env);
@@ -782,10 +779,10 @@ booksRouter.post('/scan', requireTeacher(), async (c) => {
     ageRange: null,
     description: null,
     isbn: normalized,
-    pageCount: olBook?.pageCount || null,
+    pageCount: olBook?.pageCount ?? null,
     seriesName: olBook?.seriesName || null,
-    seriesNumber: olBook?.seriesNumber || null,
-    publicationYear: olBook?.publicationYear || null,
+    seriesNumber: olBook?.seriesNumber ?? null,
+    publicationYear: olBook?.publicationYear ?? null,
   };
 
   const provider = await createProvider(c.env);
@@ -960,10 +957,10 @@ booksRouter.post('/bulk', requireTeacher(), async (c) => {
       ageRange: book.ageRange || null,
       description: book.description || null,
       isbn: book.isbn || null,
-      pageCount: book.pageCount || null,
+      pageCount: book.pageCount ?? null,
       seriesName: book.seriesName || null,
-      seriesNumber: book.seriesNumber || null,
-      publicationYear: book.publicationYear || null,
+      seriesNumber: book.seriesNumber ?? null,
+      publicationYear: book.publicationYear ?? null,
     }));
 
   if (validBooks.length === 0) {

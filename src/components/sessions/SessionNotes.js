@@ -64,8 +64,9 @@ const SessionNotes = ({ value, onChange }) => {
         <Box sx={{ flexGrow: 1 }} />
         {speechRecognitionSupported && (
           <Tooltip title="Add notes using voice (if supported by your browser)">
-            <IconButton 
-              onClick={startSpeechRecognition} 
+            <IconButton
+              aria-label={isRecording ? "Stop voice input" : "Voice input"}
+              onClick={startSpeechRecognition}
               color={isRecording ? "error" : "default"}
               size="small"
             >
@@ -74,7 +75,7 @@ const SessionNotes = ({ value, onChange }) => {
           </Tooltip>
         )}
         <Tooltip title={expanded ? "Hide notes" : "Show notes"}>
-          <IconButton onClick={toggleExpanded} size="small">
+          <IconButton aria-label={expanded ? "Collapse notes" : "Expand notes"} onClick={toggleExpanded} size="small">
             {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
           </IconButton>
         </Tooltip>
@@ -93,12 +94,16 @@ const SessionNotes = ({ value, onChange }) => {
       </Collapse>
       
       {!expanded && (
-        <Box 
+        <Box
           onClick={toggleExpanded}
-          sx={{ 
-            p: 2, 
-            border: '1px dashed #ccc', 
-            borderRadius: 1, 
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleExpanded(); } }}
+          role="button"
+          tabIndex={0}
+          aria-label="Click to expand notes"
+          sx={{
+            p: 2,
+            border: '1px dashed #ccc',
+            borderRadius: 1,
             textAlign: 'center',
             cursor: 'pointer',
             '&:hover': {

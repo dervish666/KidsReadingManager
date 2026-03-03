@@ -186,7 +186,7 @@ const ReadingPreferences = ({ open, onClose, student }) => {
             <Typography variant="h6">
               {student?.name || 'Student'} - Reading Preferences
             </Typography>
-            <IconButton onClick={handleClose} size="large">
+            <IconButton aria-label="Close" onClick={handleClose} size="large">
               <CloseIcon />
             </IconButton>
           </Box>
@@ -326,7 +326,7 @@ const ReadingPreferences = ({ open, onClose, student }) => {
             value={newGenreName}
             onChange={(e) => setNewGenreName(e.target.value)}
             fullWidth
-            onKeyPress={(e) => e.key === 'Enter' && handleAddGenre()}
+            onKeyDown={(e) => e.key === 'Enter' && handleAddGenre()}
           />
         </DialogContent>
         <DialogActions>

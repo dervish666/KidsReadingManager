@@ -85,24 +85,29 @@ const QuickEntry = () => {
     setNotes(event.target.value);
   };
   
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!currentStudent) return;
-    
-    addReadingSession(currentStudent.id, {
-      assessment,
-      notes
-    });
-    
-    // Add to completed students list
-    setCompletedStudents([...completedStudents, currentStudent.id]);
-    
-    // Show success message
-    setSnackbarMessage(`Reading session saved for ${currentStudent.name}`);
-    setSnackbarOpen(true);
-    
-    // Move to next student automatically
-    if (currentIndex < prioritizedStudents.length - 1) {
-      handleNext();
+
+    try {
+      await addReadingSession(currentStudent.id, {
+        assessment,
+        notes
+      });
+
+      // Add to completed students list
+      setCompletedStudents([...completedStudents, currentStudent.id]);
+
+      // Show success message
+      setSnackbarMessage(`Reading session saved for ${currentStudent.name}`);
+      setSnackbarOpen(true);
+
+      // Move to next student automatically
+      if (currentIndex < prioritizedStudents.length - 1) {
+        handleNext();
+      }
+    } catch (err) {
+      setSnackbarMessage(`Failed to save session for ${currentStudent.name}`);
+      setSnackbarOpen(true);
     }
   };
   
@@ -164,6 +169,7 @@ const QuickEntry = () => {
           </Typography>
           <Box sx={{ flexGrow: 1 }} />
           <IconButton
+            aria-label="Settings"
             size="small"
             onClick={toggleSettingsDrawer}
             sx={{ mr: 1 }}
@@ -186,6 +192,8 @@ const QuickEntry = () => {
                 // mb: 3, // Margin now handled by Grid item
                 borderLeft: `4px solid ${statusColors[status]}`,
               }}
+              role="group"
+              aria-label={`${currentStudent.name}, status: ${{ recentlyRead: 'Recently read', needsAttention: 'Needs attention', notRead: 'Not read' }[status] || status}`}
             >
           <CardContent>
             <Typography variant="h5" component="h2" gutterBottom>

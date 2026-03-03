@@ -27,7 +27,7 @@ export async function checkGoogleBooksAvailability(apiKey, timeout = 3000) {
   }
   
   if (!apiKey) {
-    console.log('Google Books API key not provided');
+    console.warn('Google Books API key not provided');
     googleBooksAvailable = false;
     lastAvailabilityCheck = now;
     return false;
@@ -48,10 +48,10 @@ export async function checkGoogleBooksAvailability(apiKey, timeout = 3000) {
     googleBooksAvailable = response.ok;
     lastAvailabilityCheck = now;
     
-    console.log(`Google Books API availability check: ${googleBooksAvailable ? 'available' : 'unavailable'}`);
+    // Availability check succeeded — no need to log success
     return googleBooksAvailable;
   } catch (error) {
-    console.log('Google Books API availability check failed:', error.message);
+    console.warn('Google Books API availability check failed:', error.message);
     googleBooksAvailable = false;
     lastAvailabilityCheck = now;
     return false;

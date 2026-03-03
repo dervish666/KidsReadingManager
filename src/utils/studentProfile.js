@@ -128,7 +128,6 @@ export async function buildStudentReadingProfile(studentId, organizationId, db) 
   return {
     student: {
       id: student.id,
-      name: student.name,
       readingLevel: student.reading_level || null,
       readingLevelMin: student.reading_level_min ?? null,
       readingLevelMax: student.reading_level_max ?? null,

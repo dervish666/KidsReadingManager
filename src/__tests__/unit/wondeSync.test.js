@@ -59,14 +59,6 @@ describe('mapWondeStudent', () => {
           current_nc_year: '5'
         }
       },
-      extended_details: {
-        data: {
-          sen_status: 'SEN Support',
-          premium_pupil_indicator: true,
-          english_as_additional_language_status: 'EAL',
-          free_school_meals: true
-        }
-      },
       classes: {
         data: [
           { id: 'CLS_001' },
@@ -81,10 +73,6 @@ describe('mapWondeStudent', () => {
       wondeStudentId: 'A1234567890',
       name: 'Alice Smith',
       yearGroup: '5',
-      senStatus: 'SEN Support',
-      pupilPremium: 1,
-      ealStatus: 'EAL',
-      fsm: 1,
       wondeClassIds: ['CLS_001', 'CLS_002']
     });
   });
@@ -94,14 +82,6 @@ describe('mapWondeStudent', () => {
       id: 'B123',
       forename: 'Bob',
       surname: 'Jones',
-      extended_details: {
-        data: {
-          sen_status: null,
-          premium_pupil_indicator: false,
-          english_as_additional_language_status: null,
-          free_school_meals: false
-        }
-      },
       classes: { data: [] }
     };
 
@@ -111,7 +91,7 @@ describe('mapWondeStudent', () => {
     expect(result.name).toBe('Bob Jones');
   });
 
-  it('handles missing extended_details gracefully', () => {
+  it('handles missing classes gracefully', () => {
     const wondeStudent = {
       id: 'C123',
       forename: 'Charlie',
@@ -121,11 +101,8 @@ describe('mapWondeStudent', () => {
 
     const result = mapWondeStudent(wondeStudent);
 
-    expect(result.senStatus).toBeNull();
-    expect(result.pupilPremium).toBe(0);
-    expect(result.ealStatus).toBeNull();
-    expect(result.fsm).toBe(0);
     expect(result.wondeClassIds).toEqual([]);
+    expect(result.yearGroup).toBe('3');
   });
 
   it('handles completely empty student (only id and name)', () => {
@@ -141,10 +118,6 @@ describe('mapWondeStudent', () => {
       wondeStudentId: 'D123',
       name: 'Diana Lee',
       yearGroup: null,
-      senStatus: null,
-      pupilPremium: 0,
-      ealStatus: null,
-      fsm: 0,
       wondeClassIds: []
     });
   });
@@ -155,37 +128,13 @@ describe('mapWondeStudent', () => {
       forename: 'Eve',
       surname: 'Green',
       education_details: { data: null },
-      extended_details: { data: null },
       classes: { data: null }
     };
 
     const result = mapWondeStudent(wondeStudent);
 
     expect(result.yearGroup).toBeNull();
-    expect(result.senStatus).toBeNull();
-    expect(result.pupilPremium).toBe(0);
-    expect(result.ealStatus).toBeNull();
-    expect(result.fsm).toBe(0);
     expect(result.wondeClassIds).toEqual([]);
-  });
-
-  it('maps pupilPremium to 0 when indicator is falsy', () => {
-    const wondeStudent = {
-      id: 'F123',
-      forename: 'Fred',
-      surname: 'White',
-      extended_details: {
-        data: {
-          premium_pupil_indicator: false,
-          free_school_meals: 0
-        }
-      }
-    };
-
-    const result = mapWondeStudent(wondeStudent);
-
-    expect(result.pupilPremium).toBe(0);
-    expect(result.fsm).toBe(0);
   });
 });
 
@@ -284,14 +233,6 @@ describe('runFullSync', () => {
       forename: 'Alice',
       surname: 'Smith',
       education_details: { data: { current_nc_year: '3' } },
-      extended_details: {
-        data: {
-          sen_status: 'SEN Support',
-          premium_pupil_indicator: true,
-          english_as_additional_language_status: null,
-          free_school_meals: false
-        }
-      },
       classes: { data: [{ id: 'WCLS_1' }] }
     },
     {
@@ -299,7 +240,6 @@ describe('runFullSync', () => {
       forename: 'Bob',
       surname: 'Jones',
       education_details: { data: { current_nc_year: '4' } },
-      extended_details: { data: { sen_status: null, premium_pupil_indicator: false, english_as_additional_language_status: 'EAL', free_school_meals: true } },
       classes: { data: [{ id: 'WCLS_2' }] }
     }
   ];

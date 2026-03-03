@@ -4,6 +4,7 @@
  */
 
 import { verifyAccessToken, hasPermission, ROLES } from '../utils/crypto.js';
+import { PUBLIC_PATHS } from '../utils/constants.js';
 
 /**
  * JWT Authentication Middleware
@@ -20,26 +21,11 @@ import { verifyAccessToken, hasPermission, ROLES } from '../utils/crypto.js';
  * @returns {Function} Hono middleware
  */
 export function jwtAuthMiddleware() {
-  const publicPaths = [
-    '/api/auth/mode',
-    '/api/auth/login',
-    '/api/auth/register',
-    '/api/auth/refresh',
-    '/api/auth/forgot-password',
-    '/api/auth/reset-password',
-    '/api/health',
-    '/api/login', // Legacy endpoint for backward compatibility
-    '/api/signup',
-    '/api/auth/mylogin/login',
-    '/api/auth/mylogin/callback',
-    '/api/webhooks/wonde'
-  ];
-
   return async (c, next) => {
     const url = new URL(c.req.url);
 
     // Allow public endpoints
-    if (publicPaths.includes(url.pathname) || url.pathname.startsWith('/api/covers/')) {
+    if (PUBLIC_PATHS.includes(url.pathname) || url.pathname.startsWith('/api/covers/')) {
       return next();
     }
 
@@ -100,7 +86,16 @@ export function tenantMiddleware() {
     let targetOrgId = user.org;
 
     if (overrideOrgId && userRole === 'owner') {
-      targetOrgId = overrideOrgId;
+      // Verify the user still has owner role in DB (don't trust JWT claim alone)
+      const db = c.env.READING_MANAGER_DB;
+      if (db) {
+        const dbUser = await db.prepare(
+          'SELECT role FROM users WHERE id = ? AND is_active = 1'
+        ).bind(userId).first();
+        if (dbUser?.role === 'owner') {
+          targetOrgId = overrideOrgId;
+        }
+      }
     }
 
     // Verify organization exists and is active
@@ -125,7 +120,7 @@ export function tenantMiddleware() {
         }
       } catch (error) {
         console.error('Error verifying organization:', error);
-        // Continue if table doesn't exist yet (migration not applied)
+        return c.json({ error: 'Service temporarily unavailable' }, 503);
       }
     }
 
@@ -322,8 +317,8 @@ export function rateLimit(maxRequests = 100, windowMs = 60000) {
       const result = await db.prepare(`
         SELECT COUNT(*) as count FROM rate_limits
         WHERE key = ? AND endpoint = ?
-        AND created_at > datetime('now', '-${windowSeconds} seconds')
-      `).bind(key, endpoint).first();
+        AND created_at > datetime('now', ? || ' seconds')
+      `).bind(key, endpoint, -windowSeconds).first();
 
       const currentCount = result?.count || 0;
 
@@ -351,7 +346,7 @@ export function rateLimit(maxRequests = 100, windowMs = 60000) {
     } catch (error) {
       // If rate_limits table doesn't exist or other error, continue without rate limiting
       // This allows the app to function while migration is pending
-      console.error('Rate limiting error (continuing without limit):', error.message);
+      console.warn('Rate limiting bypassed due to error:', error.message);
     }
 
     return next();

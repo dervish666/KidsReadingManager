@@ -183,6 +183,8 @@ async function callOpenAI(prompt, apiKey, model = 'gpt-5-nano', baseUrl = 'https
  * @param {boolean} raw - If true, return raw text instead of parsed response
  */
 async function callGemini(prompt, apiKey, model = 'gemini-flash-latest', baseUrl = 'https://generativelanguage.googleapis.com/v1beta', raw = false) {
+  // Gemini API requires the key as a query parameter — this is a known API constraint.
+  // Mitigate: use a dedicated Gemini-only API key and rotate periodically.
   const url = `${baseUrl}/models/${model}:generateContent?key=${apiKey}`;
 
   const response = await fetch(url, {

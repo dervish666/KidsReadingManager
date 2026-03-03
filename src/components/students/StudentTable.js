@@ -265,6 +265,10 @@ const StudentTable = React.memo(({ students }) => {
                     // Add border-left for status indicator
                     borderLeft: `4px solid ${statusColor}`,
                   }}
+                  tabIndex={0}
+                  role="row"
+                  aria-label={`${student.name}, status: ${{ recentlyRead: 'Recently read', needsAttention: 'Needs attention', notRead: 'Not read' }[status] || status}`}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleRowClick(student); } }}
                 >
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>

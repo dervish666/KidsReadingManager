@@ -164,6 +164,7 @@ const StudentCard = React.memo(({ student }) => {
                 )}
                 <Tooltip title="Student Profile">
                   <IconButton
+                    aria-label="Student profile"
                     size="small"
                     onClick={(e) => {
                       e.preventDefault();
@@ -179,13 +180,17 @@ const StudentCard = React.memo(({ student }) => {
                     <PsychologyIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
-                <Box sx={{
-                  width: 12,
-                  height: 12,
-                  borderRadius: '50%',
-                  bgcolor: statusColor,
-                  boxShadow: 'inset 2px 2px 4px rgba(0,0,0,0.2), 2px 2px 4px rgba(255,255,255,0.5)'
-                }} />
+                <Box
+                  role="img"
+                  aria-label={`Status: ${{ recentlyRead: 'Recently read', needsAttention: 'Needs attention', notRead: 'Not read' }[status] || status}`}
+                  sx={{
+                    width: 12,
+                    height: 12,
+                    borderRadius: '50%',
+                    bgcolor: statusColor,
+                    boxShadow: 'inset 2px 2px 4px rgba(0,0,0,0.2), 2px 2px 4px rgba(255,255,255,0.5)'
+                  }}
+                />
               </Box>
             }
             sx={{ pb: 1 }}

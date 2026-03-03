@@ -90,7 +90,7 @@ If you didn't request this, you can safely ignore this email.
 
   // Try Cloudflare Email Routing binding
   if (env.EMAIL_SENDER) {
-    console.log('Using Cloudflare Email Routing to send email to:', recipientEmail);
+    // Cloudflare Email Routing selected
     return await sendWithCloudflareEmail(env.EMAIL_SENDER, env.EMAIL_FROM || 'hello@tallyreading.uk', recipientEmail, subject, textBody, htmlBody);
   }
 
@@ -130,7 +130,7 @@ async function sendWithResend(apiKey, from, to, subject, text, html) {
     }
 
     const result = await response.json();
-    console.log('Email sent successfully via Resend:', result.id);
+    // Resend email sent successfully
     return { success: true };
   } catch (error) {
     console.error('Resend send error:', error);
@@ -180,7 +180,7 @@ async function sendWithCloudflareEmail(emailBinding, from, to, subject, text, ht
     const message = new EmailMessage(from, to, rawEmail);
     await emailBinding.send(message);
 
-    console.log('Email sent successfully via Cloudflare Email Routing');
+    // Cloudflare Email sent successfully
     return { success: true };
   } catch (error) {
     console.error('Cloudflare Email send error:', error);

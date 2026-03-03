@@ -72,6 +72,7 @@ src/utils/bookMetadataApi.js - Unified metadata API with provider abstraction
 src/utils/csvParser.js - CSV parsing for book import
 src/utils/routeHelpers.js - Shared route helpers (getDB, requireDB, isMultiTenantMode, requireStudent)
 src/utils/rowMappers.js - Centralized row-to-object mappers (rowToBook, rowToStudent, rowToClass, rowToUser, rowToOrganization, rowToGenre)
+src/utils/constants.js - Shared constants (PUBLIC_PATHS for auth bypass)
 src/utils/wondeApi.js - Wonde REST API client for school data sync
 
 <!-- Contexts & Hooks -->

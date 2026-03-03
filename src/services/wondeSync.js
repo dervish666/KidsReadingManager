@@ -28,17 +28,12 @@ import {
  */
 export function mapWondeStudent(wondeStudent) {
   const educationData = wondeStudent.education_details?.data;
-  const extendedData = wondeStudent.extended_details?.data;
   const classesData = wondeStudent.classes?.data;
 
   return {
     wondeStudentId: wondeStudent.id,
     name: `${wondeStudent.forename} ${wondeStudent.surname}`,
     yearGroup: educationData?.current_nc_year ?? null,
-    senStatus: extendedData?.sen_status ?? null,
-    pupilPremium: extendedData?.premium_pupil_indicator ? 1 : 0,
-    ealStatus: extendedData?.english_as_additional_language_status ?? null,
-    fsm: extendedData?.free_school_meals ? 1 : 0,
     wondeClassIds: Array.isArray(classesData) ? classesData.map(c => c.id) : []
   };
 }
@@ -179,9 +174,14 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
     }
 
     // -----------------------------------------------------------------------
-    // Step 3: Fetch and upsert students
+    // Step 3: Fetch students, employees, and deletions in parallel
+    // (all independent of each other; only DB writes depend on classLookup)
     // -----------------------------------------------------------------------
-    const wondeStudents = await fetchAllStudents(schoolToken, wondeSchoolId, fetchOptions);
+    const [wondeStudents, wondeEmployees, deletions] = await Promise.all([
+      fetchAllStudents(schoolToken, wondeSchoolId, fetchOptions),
+      fetchAllEmployees(schoolToken, wondeSchoolId, fetchOptions),
+      fetchDeletions(schoolToken, wondeSchoolId, options.updatedAfter)
+    ]);
 
     // Batch-fetch existing students and GDPR erased list to avoid N+1 queries
     const [existingStudentsResult, erasedRows] = await db.batch([
@@ -217,13 +217,11 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
       if (existingId) {
         studentStatements.push(
           db.prepare(
-            `UPDATE students SET name = ?, class_id = ?, year_group = ?, sen_status = ?,
-             pupil_premium = ?, eal_status = ?, fsm = ?, is_active = 1,
+            `UPDATE students SET name = ?, class_id = ?, year_group = ?, is_active = 1,
              updated_at = datetime('now')
              WHERE id = ?`
           ).bind(
-            mapped.name, classId, mapped.yearGroup, mapped.senStatus,
-            mapped.pupilPremium, mapped.ealStatus, mapped.fsm,
+            mapped.name, classId, mapped.yearGroup,
             existingId
           )
         );
@@ -233,13 +231,11 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
         studentStatements.push(
           db.prepare(
             `INSERT INTO students (id, organization_id, name, class_id, wonde_student_id,
-             year_group, sen_status, pupil_premium, eal_status, fsm,
-             is_active, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'), datetime('now'))`
+             year_group, is_active, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, 1, datetime('now'), datetime('now'))`
           ).bind(
             studentId, orgId, mapped.name, classId, mapped.wondeStudentId,
-            mapped.yearGroup, mapped.senStatus, mapped.pupilPremium,
-            mapped.ealStatus, mapped.fsm
+            mapped.yearGroup
           )
         );
         counts.studentsCreated++;
@@ -252,10 +248,8 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
     }
 
     // -----------------------------------------------------------------------
-    // Step 4: Fetch and populate employee-class mappings
+    // Step 4: Populate employee-class mappings
     // -----------------------------------------------------------------------
-    const wondeEmployees = await fetchAllEmployees(schoolToken, wondeSchoolId, fetchOptions);
-
     // On full sync, delete existing mappings for org first
     await db.prepare(
       `DELETE FROM wonde_employee_classes WHERE organization_id = ?`
@@ -285,10 +279,8 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
     }
 
     // -----------------------------------------------------------------------
-    // Step 5: Fetch and process deletions
+    // Step 5: Process deletions (already fetched in parallel above)
     // -----------------------------------------------------------------------
-    const deletions = await fetchDeletions(schoolToken, wondeSchoolId, options.updatedAfter);
-
     for (const del of deletions) {
       // Only deactivate if not restored
       if (!del.restored_at) {

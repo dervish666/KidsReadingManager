@@ -236,10 +236,10 @@ const PrioritizedStudentsList = ({ defaultCount = 8, filterClassId = 'all' }) =>
         <Typography variant="h5" sx={{ flexGrow: 1, fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#4A4A4A' }}>
           Priority Reading List
         </Typography>
-        <IconButton onClick={handleResetList} size="small" title="Reset List" sx={{ color: '#6B8E6B', bgcolor: 'rgba(107, 142, 107, 0.1)', mr: 1, '&:hover': { bgcolor: 'rgba(107, 142, 107, 0.2)' } }}>
+        <IconButton onClick={handleResetList} size="small" aria-label="Reset list" title="Reset List" sx={{ color: '#6B8E6B', bgcolor: 'rgba(107, 142, 107, 0.1)', mr: 1, '&:hover': { bgcolor: 'rgba(107, 142, 107, 0.2)' } }}>
           <RefreshIcon />
         </IconButton>
-        <IconButton onClick={toggleExpanded} size="small" title={expanded ? 'Collapse' : 'Expand'} sx={{ color: '#7A7A7A', bgcolor: 'rgba(122, 122, 122, 0.1)', '&:hover': { bgcolor: 'rgba(122, 122, 122, 0.2)' } }}>
+        <IconButton onClick={toggleExpanded} size="small" aria-label={expanded ? 'Collapse list' : 'Expand list'} title={expanded ? 'Collapse' : 'Expand'} sx={{ color: '#7A7A7A', bgcolor: 'rgba(122, 122, 122, 0.1)', '&:hover': { bgcolor: 'rgba(122, 122, 122, 0.2)' } }}>
           {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
         </IconButton>
       </Box>

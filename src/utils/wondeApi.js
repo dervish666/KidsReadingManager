@@ -79,7 +79,7 @@ export async function wondeRequest(path, token, params = {}) {
  */
 export async function fetchAllStudents(token, schoolId, options = {}) {
   const params = {
-    include: 'education_details,extended_details,classes,year',
+    include: 'education_details,classes,year',
     per_page: '200'
   };
 

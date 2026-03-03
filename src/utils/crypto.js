@@ -563,10 +563,15 @@ export async function decryptSensitiveData(encryptedData, secret) {
  */
 export function generateTemporaryPassword(length = 12) {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-  const bytes = crypto.getRandomValues(new Uint8Array(length));
+  const maxValid = 256 - (256 % chars.length);
   let password = '';
-  for (let i = 0; i < bytes.length; i++) {
-    password += chars[bytes[i] % chars.length];
+  while (password.length < length) {
+    const bytes = crypto.getRandomValues(new Uint8Array(length - password.length));
+    for (let i = 0; i < bytes.length && password.length < length; i++) {
+      if (bytes[i] < maxValid) {
+        password += chars[bytes[i] % chars.length];
+      }
+    }
   }
   return password;
 }

@@ -181,10 +181,26 @@ function AppContent() {
       <BookshelfBorder side="left" />
       <BookshelfBorder side="right" />
 
+      <a
+        href="#main-content"
+        style={{
+          position: 'absolute',
+          left: '-9999px',
+          top: 'auto',
+          width: '1px',
+          height: '1px',
+          overflow: 'hidden',
+        }}
+        onFocus={(e) => { e.target.style.position = 'static'; e.target.style.width = 'auto'; e.target.style.height = 'auto'; }}
+        onBlur={(e) => { e.target.style.position = 'absolute'; e.target.style.width = '1px'; e.target.style.height = '1px'; }}
+      >
+        Skip to main content
+      </a>
       <Header />
       <DpaConsentModal />
 
       <Container
+        id="main-content"
         component="main"
         className="app-container"
         sx={{
@@ -248,6 +264,8 @@ function AppContent() {
       </Container>
 
       <Paper
+        component="nav"
+        aria-label="Main navigation"
         sx={{
           position: 'fixed',
           bottom: 0,

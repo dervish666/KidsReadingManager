@@ -298,6 +298,8 @@ export const AppProvider = ({ children }) => {
       if (typeof window !== 'undefined') {
         window.localStorage.removeItem(AUTH_STORAGE_KEY);
         window.localStorage.removeItem(USER_STORAGE_KEY);
+        window.localStorage.removeItem('bookCovers');
+        window.sessionStorage.clear();
         // Don't remove AUTH_MODE_KEY - preserve the server's detected auth mode
       }
     } catch {

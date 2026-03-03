@@ -14,7 +14,7 @@ import {
 // Import utilities
 import { validateStudent, validateBulkImport, validateReadingLevelRange } from '../utils/validation';
 import { notFoundError, badRequestError, forbiddenError } from '../middleware/errorHandler';
-import { requireRole, requireAdmin, auditLog } from '../middleware/tenant';
+import { requireRole, requireAdmin, requireTeacher, requireReadonly, auditLog } from '../middleware/tenant';
 import { permissions } from '../utils/crypto';
 import { getDB, isMultiTenantMode, safeJsonParse, requireStudent } from '../utils/routeHelpers';
 import { rowToStudent } from '../utils/rowMappers';
@@ -186,7 +186,7 @@ const updateStudentStreak = async (db, studentId, organizationId) => {
  * GET /api/students
  * Get all students
  */
-studentsRouter.get('/', async (c) => {
+studentsRouter.get('/', requireReadonly(), async (c) => {
   // Multi-tenant mode: use D1
   if (isMultiTenantMode(c)) {
     const db = getDB(c.env);
@@ -312,7 +312,7 @@ studentsRouter.get('/', async (c) => {
  * GET /api/students/:id
  * Get a single student by ID
  */
-studentsRouter.get('/:id', async (c) => {
+studentsRouter.get('/:id', requireReadonly(), async (c) => {
   const { id } = c.req.param();
 
   // Multi-tenant mode: use D1
@@ -617,7 +617,7 @@ studentsRouter.delete('/:id', auditLog('delete', 'student'), async (c) => {
  * PUT /api/students/:id/current-book
  * Update a student's current book
  */
-studentsRouter.put('/:id/current-book', async (c) => {
+studentsRouter.put('/:id/current-book', requireTeacher(), async (c) => {
   const { id } = c.req.param();
   const body = await c.req.json();
 
@@ -752,7 +752,7 @@ studentsRouter.post('/bulk', auditLog('import', 'student'), async (c) => {
  * POST /api/students/:id/sessions
  * Add a reading session to a student
  */
-studentsRouter.post('/:id/sessions', auditLog('create', 'session'), async (c) => {
+studentsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'session'), async (c) => {
   const { id } = c.req.param();
   const body = await c.req.json();
 
@@ -822,10 +822,10 @@ studentsRouter.post('/:id/sessions', auditLog('create', 'session'), async (c) =>
       body.bookId || null,
       body.bookTitle || null,
       body.bookAuthor || null,
-      body.pagesRead || null,
-      body.duration || null,
-      body.assessment || null,
-      body.notes || null,
+      body.pagesRead ?? null,
+      body.duration ?? null,
+      body.assessment ?? null,
+      body.notes ?? null,
       body.location || 'school',
       userId
     ).run();
@@ -896,7 +896,7 @@ studentsRouter.post('/:id/sessions', auditLog('create', 'session'), async (c) =>
  * DELETE /api/students/:id/sessions/:sessionId
  * Delete a reading session
  */
-studentsRouter.delete('/:id/sessions/:sessionId', auditLog('delete', 'session'), async (c) => {
+studentsRouter.delete('/:id/sessions/:sessionId', requireTeacher(), auditLog('delete', 'session'), async (c) => {
   const { id, sessionId } = c.req.param();
   
   // Multi-tenant mode: use D1
@@ -955,7 +955,7 @@ studentsRouter.delete('/:id/sessions/:sessionId', auditLog('delete', 'session'),
  * PUT /api/students/:id/sessions/:sessionId
  * Update a reading session
  */
-studentsRouter.put('/:id/sessions/:sessionId', async (c) => {
+studentsRouter.put('/:id/sessions/:sessionId', requireTeacher(), async (c) => {
   const { id, sessionId } = c.req.param();
   const body = await c.req.json();
   
@@ -989,13 +989,13 @@ studentsRouter.put('/:id/sessions/:sessionId', async (c) => {
       WHERE id = ?
     `).bind(
       body.date || new Date().toISOString().split('T')[0],
-      body.bookId || null,
-      body.bookTitle || null,
-      body.bookAuthor || null,
-      body.pagesRead || null,
-      body.duration || null,
-      body.assessment || null,
-      body.notes || null,
+      body.bookId ?? null,
+      body.bookTitle ?? null,
+      body.bookAuthor ?? null,
+      body.pagesRead ?? null,
+      body.duration ?? null,
+      body.assessment ?? null,
+      body.notes ?? null,
       sessionId
     ).run();
     
@@ -1047,7 +1047,7 @@ studentsRouter.put('/:id/sessions/:sessionId', async (c) => {
  * GET /api/students/:id/streak
  * Get streak details for a student
  */
-studentsRouter.get('/:id/streak', async (c) => {
+studentsRouter.get('/:id/streak', requireReadonly(), async (c) => {
   const { id } = c.req.param();
 
   // Multi-tenant mode: use D1

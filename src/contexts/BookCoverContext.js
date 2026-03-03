@@ -6,6 +6,7 @@ const BookCoverContext = createContext(null);
 // Constants
 const STORAGE_KEY = 'bookCovers';
 const CACHE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+const MAX_CACHE_ENTRIES = 500;
 
 /**
  * Generate a normalized cache key from title and author
@@ -125,6 +126,16 @@ export const BookCoverProvider = ({ children }) => {
         ...prevCache,
         [key]: newEntry,
       };
+
+      // Evict oldest entries if cache exceeds max size
+      const keys = Object.keys(newCache);
+      if (keys.length > MAX_CACHE_ENTRIES) {
+        const sorted = keys.sort((a, b) => (newCache[a].fetchedAt || 0) - (newCache[b].fetchedAt || 0));
+        const toRemove = sorted.slice(0, keys.length - MAX_CACHE_ENTRIES);
+        for (const k of toRemove) {
+          delete newCache[k];
+        }
+      }
 
       // Persist to localStorage
       saveCacheToStorage(newCache);

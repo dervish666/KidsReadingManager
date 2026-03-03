@@ -208,10 +208,7 @@ describe('Email Service', () => {
           defaultParams.baseUrl
         );
 
-        expect(consoleLogSpy).toHaveBeenCalledWith(
-          'Email sent successfully via Resend:',
-          'email-xyz-789'
-        );
+        // Email success is no longer logged to console
       });
     });
 
@@ -237,10 +234,7 @@ describe('Email Service', () => {
 
         expect(result.success).toBe(true);
         expect(mockEmailBinding.send).toHaveBeenCalledTimes(1);
-        expect(consoleLogSpy).toHaveBeenCalledWith(
-          'Using Cloudflare Email Routing to send email to:',
-          'user@example.com'
-        );
+        // Email routing selection is no longer logged to console
       });
 
       it('should use default EMAIL_FROM for Cloudflare when not configured', async () => {

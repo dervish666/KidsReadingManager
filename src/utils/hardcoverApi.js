@@ -92,7 +92,7 @@ export async function checkHardcoverAvailability(apiKey, timeout = 3000) {
   }
 
   if (!apiKey) {
-    console.log('Hardcover API key not provided');
+    console.warn('Hardcover API key not provided');
     return false;
   }
 
@@ -113,11 +113,11 @@ export async function checkHardcoverAvailability(apiKey, timeout = 3000) {
     hardcoverAvailable = true;
     lastAvailabilityCheck = now;
 
-    console.log('Hardcover API availability check: available');
+    // Availability check succeeded — no need to log success
     return true;
   } catch (error) {
     clearTimeout(timeoutId);
-    console.log('Hardcover API availability check failed:', error.message);
+    console.warn('Hardcover API availability check failed:', error.message);
     hardcoverAvailable = false;
     lastAvailabilityCheck = now;
     return false;

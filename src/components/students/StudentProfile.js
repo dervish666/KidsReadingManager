@@ -514,7 +514,7 @@ const StudentProfile = ({ open, onClose, student }) => {
             value={newGenreName}
             onChange={(e) => setNewGenreName(e.target.value)}
             fullWidth
-            onKeyPress={(e) => e.key === 'Enter' && handleAddGenre()}
+            onKeyDown={(e) => e.key === 'Enter' && handleAddGenre()}
           />
         </DialogContent>
         <DialogActions>

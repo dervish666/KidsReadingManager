@@ -405,7 +405,7 @@ organizationRouter.get('/audit-log', requireAdmin(), async (c) => {
       action: row.action,
       entityType: row.entity_type,
       entityId: row.entity_id,
-      details: row.details ? JSON.parse(row.details) : null,
+      details: (() => { try { return row.details ? JSON.parse(row.details) : null; } catch { return row.details; } })(),
       ipAddress: row.ip_address,
       userAgent: row.user_agent,
       createdAt: row.created_at,

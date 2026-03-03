@@ -612,9 +612,9 @@ const Login = ({ onBackToLanding } = {}) => {
         {view === 'reset' && renderResetPasswordForm()}
 
         {(localError || apiError) && (
-          <Typography sx={{ mt: 3, color: '#EF4444', fontWeight: 600 }}>
+          <Alert severity="error" role="alert" sx={{ mt: 3 }}>
             {localError || apiError}
-          </Typography>
+          </Alert>
         )}
       </Paper>
 
