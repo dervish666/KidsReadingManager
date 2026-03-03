@@ -140,7 +140,23 @@ describe('MyLogin OAuth Routes', () => {
       expect(location).toContain('state=');
     });
 
-    it('stores the state parameter in KV with a 5-minute TTL', async () => {
+    it('stores the state parameter in D1 for strong consistency', async () => {
+      await app.request('/api/auth/mylogin/login', { method: 'GET' }, env);
+
+      // Should have inserted state into D1 oauth_state table
+      const insertCall = env.READING_MANAGER_DB.prepare.mock.calls.find(
+        call => call[0].includes('INSERT INTO oauth_state')
+      );
+      expect(insertCall).toBeDefined();
+
+      // State should be a UUID
+      const state = env.READING_MANAGER_DB._statement.bind.mock.calls[0][0];
+      expect(state).toMatch(/^[0-9a-f]{8}-/);
+    });
+
+    it('falls back to KV when D1 is not available', async () => {
+      delete env.READING_MANAGER_DB;
+
       await app.request('/api/auth/mylogin/login', { method: 'GET' }, env);
 
       expect(env.READING_MANAGER_KV.put).toHaveBeenCalledTimes(1);
@@ -154,16 +170,16 @@ describe('MyLogin OAuth Routes', () => {
     it('uses a unique state parameter for CSRF protection', async () => {
       await app.request('/api/auth/mylogin/login', { method: 'GET' }, env);
 
-      const location1Key = env.READING_MANAGER_KV.put.mock.calls[0][0];
+      const state1 = env.READING_MANAGER_DB._statement.bind.mock.calls[0][0];
 
       vi.clearAllMocks();
 
       await app.request('/api/auth/mylogin/login', { method: 'GET' }, env);
 
-      const location2Key = env.READING_MANAGER_KV.put.mock.calls[0][0];
+      const state2 = env.READING_MANAGER_DB._statement.bind.mock.calls[0][0];
 
       // State values should be different between requests (UUIDs)
-      expect(location1Key).not.toBe(location2Key);
+      expect(state1).not.toBe(state2);
     });
   });
 
@@ -297,6 +313,24 @@ describe('MyLogin OAuth Routes', () => {
           };
         }
 
+        // Verify OAuth state from D1
+        if (sql.includes('oauth_state') && sql.includes('SELECT')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              first: vi.fn().mockResolvedValue({ state: 'valid-state' })
+            })
+          };
+        }
+
+        // Delete OAuth state from D1
+        if (sql.includes('oauth_state') && sql.includes('DELETE')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              run: vi.fn().mockResolvedValue({ success: true })
+            })
+          };
+        }
+
         // Default fallback
         return {
           bind: vi.fn().mockReturnValue({
@@ -333,11 +367,17 @@ describe('MyLogin OAuth Routes', () => {
       expect(res.status).toBe(302);
       expect(res.headers.get('Location')).toBe('/?auth=callback');
 
-      // Should have verified state from KV
-      expect(env.READING_MANAGER_KV.get).toHaveBeenCalledWith('oauth_state:test-state-param');
+      // Should have verified state from D1 (strongly consistent)
+      const stateSelect = env.READING_MANAGER_DB.prepare.mock.calls.find(
+        call => call[0].includes('SELECT') && call[0].includes('oauth_state')
+      );
+      expect(stateSelect).toBeDefined();
 
-      // Should have deleted state from KV
-      expect(env.READING_MANAGER_KV.delete).toHaveBeenCalledWith('oauth_state:test-state-param');
+      // Should have deleted state from D1 after verification
+      const stateDelete = env.READING_MANAGER_DB.prepare.mock.calls.find(
+        call => call[0].includes('DELETE') && call[0].includes('oauth_state')
+      );
+      expect(stateDelete).toBeDefined();
 
       // Should have exchanged code for token
       expect(global.fetch).toHaveBeenCalledWith(

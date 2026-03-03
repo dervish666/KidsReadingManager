@@ -65,9 +65,19 @@ function mapMyLoginTypeToRole(type) {
 myloginRouter.get('/login', async (c) => {
   // Generate random state for CSRF protection
   const state = crypto.randomUUID();
+  const db = c.env.READING_MANAGER_DB;
 
-  // Store state in KV with 5-minute TTL
-  await c.env.READING_MANAGER_KV.put(`oauth_state:${state}`, '1', { expirationTtl: 300 });
+  // Store state in D1 (strongly consistent, unlike KV which is eventually consistent)
+  if (db) {
+    await db.prepare('INSERT INTO oauth_state (state) VALUES (?)').bind(state).run();
+    // Clean up expired states (>5 minutes old) on ~10% of requests
+    if (Math.random() < 0.1) {
+      db.prepare("DELETE FROM oauth_state WHERE created_at < datetime('now', '-5 minutes')").run().catch(() => {});
+    }
+  } else {
+    // Fallback to KV if D1 not available
+    await c.env.READING_MANAGER_KV.put(`oauth_state:${state}`, '1', { expirationTtl: 300 });
+  }
 
   // Build MyLogin authorize URL
   const authorizeUrl = new URL('https://app.mylogin.com/oauth/authorize');
@@ -95,12 +105,27 @@ myloginRouter.get('/callback', async (c) => {
     if (!state) {
       return c.redirect('/?auth=error&reason=invalid_state');
     }
-    const stateValue = await c.env.READING_MANAGER_KV.get(`oauth_state:${state}`);
-    if (!stateValue) {
+
+    // Check D1 first (strongly consistent), fall back to KV
+    let stateValid = false;
+    if (db) {
+      const row = await db.prepare('SELECT state FROM oauth_state WHERE state = ?').bind(state).first();
+      if (row) {
+        stateValid = true;
+        await db.prepare('DELETE FROM oauth_state WHERE state = ?').bind(state).run();
+      }
+    }
+    if (!stateValid) {
+      // Fallback: check KV (for in-flight states stored before D1 migration)
+      const kvState = await c.env.READING_MANAGER_KV.get(`oauth_state:${state}`);
+      if (kvState) {
+        stateValid = true;
+        await c.env.READING_MANAGER_KV.delete(`oauth_state:${state}`);
+      }
+    }
+    if (!stateValid) {
       return c.redirect('/?auth=error&reason=invalid_state');
     }
-    // Delete state so it cannot be reused
-    await c.env.READING_MANAGER_KV.delete(`oauth_state:${state}`);
 
     // -----------------------------------------------------------------------
     // 2. Exchange authorization code for access token
