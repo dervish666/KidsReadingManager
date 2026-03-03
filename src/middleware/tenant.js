@@ -91,7 +91,7 @@ export function tenantMiddleware() {
       if (db) {
         const dbUser = await db.prepare(
           'SELECT role FROM users WHERE id = ? AND is_active = 1'
-        ).bind(userId).first();
+        ).bind(c.get('userId')).first();
         if (dbUser?.role === 'owner') {
           targetOrgId = overrideOrgId;
         }
