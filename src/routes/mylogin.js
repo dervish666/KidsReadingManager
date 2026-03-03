@@ -102,8 +102,13 @@ myloginRouter.get('/callback', async (c) => {
     // -----------------------------------------------------------------------
     // 1. Verify state (CSRF protection)
     // -----------------------------------------------------------------------
+    // If state is missing or unrecognised, redirect to start a proper
+    // SP-initiated flow. This handles IDP-initiated login (user clicking
+    // login on MyLogin's site) — the unverified code is discarded and a
+    // fresh OAuth flow begins with CSRF-safe state. MyLogin will
+    // auto-approve since the user already has an active session.
     if (!state) {
-      return c.redirect('/?auth=error&reason=invalid_state');
+      return c.redirect('/api/auth/mylogin/login');
     }
 
     // Check D1 first (strongly consistent), fall back to KV
@@ -124,7 +129,7 @@ myloginRouter.get('/callback', async (c) => {
       }
     }
     if (!stateValid) {
-      return c.redirect('/?auth=error&reason=invalid_state');
+      return c.redirect('/api/auth/mylogin/login');
     }
 
     // -----------------------------------------------------------------------

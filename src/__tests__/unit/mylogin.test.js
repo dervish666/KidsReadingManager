@@ -512,7 +512,7 @@ describe('MyLogin OAuth Routes', () => {
     // -----------------------------------------------------------------------
     // Invalid state
     // -----------------------------------------------------------------------
-    it('returns 302 to error page when state is invalid', async () => {
+    it('redirects to /login to start SP-initiated flow when state is invalid', async () => {
       env.READING_MANAGER_KV.get.mockResolvedValue(null);
 
       const res = await app.request(
@@ -521,15 +521,10 @@ describe('MyLogin OAuth Routes', () => {
         env
       );
 
-      // Should redirect to error page or return error
-      // We accept either a 400 error response or a redirect to an error page
-      const status = res.status;
-      if (status === 302) {
-        const location = res.headers.get('Location');
-        expect(location).toContain('error');
-      } else {
-        expect(status).toBe(400);
-      }
+      // Should redirect to /login to start a fresh SP-initiated flow
+      // (supports IDP-initiated login from MyLogin's site)
+      expect(res.status).toBe(302);
+      expect(res.headers.get('Location')).toBe('/api/auth/mylogin/login');
     });
 
     // -----------------------------------------------------------------------
