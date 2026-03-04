@@ -23,6 +23,9 @@ const BookRecommendations = React.lazy(() => import('./components/BookRecommenda
 const BookManager = React.lazy(() => import('./components/books/BookManager'));
 const SettingsPage = React.lazy(() => import('./components/SettingsPage'));
 
+// Lazy-load standalone pages (rendered outside auth)
+const PrivacyPolicy = React.lazy(() => import('./components/PrivacyPolicy'));
+
 // Import custom navigation icons
 import iconStudents from './assets/icon-students.png';
 import iconReading from './assets/icon-reading.png';
@@ -91,6 +94,19 @@ function AppContent() {
     const params = new URLSearchParams(window.location.search);
     return !!params.get('auth');
   });
+
+  // Standalone pages rendered outside of auth
+  if (window.location.pathname === '/privacy') {
+    return (
+      <Suspense fallback={
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          <CircularProgress sx={{ color: '#6B8E6B' }} />
+        </Box>
+      }>
+        <PrivacyPolicy />
+      </Suspense>
+    );
+  }
 
   if (!isAuthenticated) {
     if (showLogin) {
