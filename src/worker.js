@@ -373,6 +373,14 @@ export default {
         `DELETE FROM rate_limits WHERE created_at < datetime('now', '-1 hour')`
       ).run();
       console.log(`[Cron] Cleaned up ${oldRateLimits.meta?.changes || 0} stale rate limit records`);
+
+      // Clean up expired OAuth states (older than 5 minutes)
+      const expiredStates = await db.prepare(
+        `DELETE FROM oauth_state WHERE created_at < datetime('now', '-5 minutes')`
+      ).run();
+      if (expiredStates.meta?.changes > 0) {
+        console.log(`[Cron] Cleaned up ${expiredStates.meta.changes} expired OAuth states`);
+      }
     } catch (error) {
       console.error('[Cron] GDPR data retention cleanup failed:', error.message);
     }
@@ -444,7 +452,7 @@ export default {
     // Wonde daily delta sync
     try {
       const wondeOrgs = await db.prepare(
-        'SELECT id, wonde_school_id, wonde_school_token, wonde_last_sync_at FROM organizations WHERE wonde_school_id IS NOT NULL AND is_active = 1'
+        'SELECT id, wonde_school_id, wonde_school_token, wonde_last_sync_at FROM organizations WHERE wonde_school_id IS NOT NULL AND wonde_school_token IS NOT NULL AND is_active = 1'
       ).bind().all();
 
       for (const org of (wondeOrgs.results || [])) {

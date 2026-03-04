@@ -20,28 +20,13 @@ import {
 } from '../utils/crypto.js';
 import { generateId } from '../utils/helpers.js';
 import { syncUserClassAssignments } from '../utils/classAssignments.js';
+import { parseCookies } from './auth.js';
 
 export const myloginRouter = new Hono();
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-/**
- * Parse cookies from the Cookie header string.
- * Defined locally since the same helper in auth.js is not exported.
- */
-function parseCookies(cookieHeader) {
-  const cookies = {};
-  if (!cookieHeader) return cookies;
-  cookieHeader.split(';').forEach(cookie => {
-    const [name, ...rest] = cookie.trim().split('=');
-    if (name) {
-      cookies[name] = rest.join('=');
-    }
-  });
-  return cookies;
-}
 
 /**
  * Map MyLogin user type to Tally role.
@@ -166,6 +151,10 @@ myloginRouter.get('/callback', async (c) => {
     }
 
     const tokenData = await tokenRes.json();
+    if (tokenData.token_type?.toLowerCase() !== 'bearer') {
+      console.error('[MyLogin] Unexpected token_type:', tokenData.token_type);
+      return c.redirect('/?auth=error&reason=token_exchange_failed');
+    }
     const accessToken = tokenData.access_token;
 
     // -----------------------------------------------------------------------

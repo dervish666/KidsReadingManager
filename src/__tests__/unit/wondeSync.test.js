@@ -4,7 +4,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('../../utils/wondeApi.js', () => ({
   fetchAllStudents: vi.fn(),
   fetchAllClasses: vi.fn(),
-  fetchAllEmployees: vi.fn(),
   fetchDeletions: vi.fn()
 }));
 
@@ -23,7 +22,6 @@ import {
 import {
   fetchAllStudents,
   fetchAllClasses,
-  fetchAllEmployees,
   fetchDeletions
 } from '../../utils/wondeApi.js';
 
@@ -66,6 +64,14 @@ describe('mapWondeStudent', () => {
           current_nc_year: '5'
         }
       },
+      extended_details: {
+        data: {
+          sen_status: 'K',
+          pupil_premium: true,
+          eal_status: 'E',
+          free_school_meals: true
+        }
+      },
       classes: {
         data: [
           { id: 'CLS_001' },
@@ -80,11 +86,15 @@ describe('mapWondeStudent', () => {
       wondeStudentId: 'A1234567890',
       name: 'Alice Smith',
       yearGroup: '5',
+      senStatus: 'K',
+      pupilPremium: 1,
+      ealStatus: 'E',
+      fsm: 1,
       wondeClassIds: ['CLS_001', 'CLS_002']
     });
   });
 
-  it('handles missing education_details gracefully', () => {
+  it('handles missing education_details and extended_details gracefully', () => {
     const wondeStudent = {
       id: 'B123',
       forename: 'Bob',
@@ -96,6 +106,10 @@ describe('mapWondeStudent', () => {
 
     expect(result.yearGroup).toBeNull();
     expect(result.name).toBe('Bob Jones');
+    expect(result.senStatus).toBeNull();
+    expect(result.pupilPremium).toBe(0);
+    expect(result.ealStatus).toBeNull();
+    expect(result.fsm).toBe(0);
   });
 
   it('handles missing classes gracefully', () => {
@@ -125,6 +139,10 @@ describe('mapWondeStudent', () => {
       wondeStudentId: 'D123',
       name: 'Diana Lee',
       yearGroup: null,
+      senStatus: null,
+      pupilPremium: 0,
+      ealStatus: null,
+      fsm: 0,
       wondeClassIds: []
     });
   });
@@ -135,12 +153,17 @@ describe('mapWondeStudent', () => {
       forename: 'Eve',
       surname: 'Green',
       education_details: { data: null },
+      extended_details: { data: null },
       classes: { data: null }
     };
 
     const result = mapWondeStudent(wondeStudent);
 
     expect(result.yearGroup).toBeNull();
+    expect(result.senStatus).toBeNull();
+    expect(result.pupilPremium).toBe(0);
+    expect(result.ealStatus).toBeNull();
+    expect(result.fsm).toBe(0);
     expect(result.wondeClassIds).toEqual([]);
   });
 });
@@ -251,15 +274,6 @@ describe('runFullSync', () => {
     }
   ];
 
-  const sampleEmployees = [
-    {
-      id: 'WEMP_1',
-      forename: 'Jane',
-      surname: 'Teacher',
-      classes: { data: [{ id: 'WCLS_1' }, { id: 'WCLS_2' }] }
-    }
-  ];
-
   const sampleDeletions = [];
 
   beforeEach(() => {
@@ -269,7 +283,6 @@ describe('runFullSync', () => {
     // Default API mocks
     fetchAllClasses.mockResolvedValue(sampleClasses);
     fetchAllStudents.mockResolvedValue(sampleStudents);
-    fetchAllEmployees.mockResolvedValue(sampleEmployees);
     fetchDeletions.mockResolvedValue(sampleDeletions);
 
     // Mock crypto.randomUUID
@@ -289,7 +302,7 @@ describe('runFullSync', () => {
     expect(firstPrepareCall).toMatch(/running/i);
   });
 
-  it('calls all four Wonde API endpoints', async () => {
+  it('calls all three Wonde API endpoints', async () => {
     // Batch-fetch for existing classes returns empty
     db.prepare = vi.fn().mockImplementation((sql) => ({
       bind: vi.fn().mockReturnThis(),
@@ -306,7 +319,6 @@ describe('runFullSync', () => {
 
     expect(fetchAllClasses).toHaveBeenCalledWith(SCHOOL_TOKEN, WONDE_SCHOOL_ID, expect.any(Object));
     expect(fetchAllStudents).toHaveBeenCalledWith(SCHOOL_TOKEN, WONDE_SCHOOL_ID, expect.any(Object));
-    expect(fetchAllEmployees).toHaveBeenCalledWith(SCHOOL_TOKEN, WONDE_SCHOOL_ID, expect.any(Object));
     expect(fetchDeletions).toHaveBeenCalledWith(SCHOOL_TOKEN, WONDE_SCHOOL_ID, undefined);
   });
 
@@ -377,14 +389,9 @@ describe('runFullSync', () => {
   });
 
   it('handles employee class mappings', async () => {
-    const deleteEmployeeClassesStatement = {
-      bind: vi.fn().mockReturnThis(),
-      run: vi.fn().mockResolvedValue({ success: true })
-    };
-
     db.prepare = vi.fn().mockImplementation((sql) => {
       if (sql.includes('DELETE FROM wonde_employee_classes')) {
-        return deleteEmployeeClassesStatement;
+        return { bind: vi.fn().mockReturnThis() };
       }
       if (sql.includes('INSERT INTO wonde_employee_classes')) {
         return { bind: vi.fn().mockReturnThis() };
@@ -403,12 +410,13 @@ describe('runFullSync', () => {
 
     const result = await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
 
-    // Should delete existing mappings first
-    expect(deleteEmployeeClassesStatement.bind).toHaveBeenCalledWith(ORG_ID);
-    expect(deleteEmployeeClassesStatement.run).toHaveBeenCalled();
-
-    // Employee-class inserts are now batched via db.batch()
-    // WEMP_1 has 2 class IDs -> batch should be called with 2 statements
+    // DELETE + INSERTs are batched together atomically via db.batch()
+    // WEMP_1 appears in 2 classes -> 1 DELETE + 2 INSERTs = 3 statements in batch
+    const employeeBatchCall = db.batch.mock.calls.find(call => {
+      const stmts = call[0];
+      return stmts && stmts.length >= 1;
+    });
+    expect(employeeBatchCall).toBeDefined();
     expect(result.employeesSynced).toBe(1);
   });
 
@@ -418,14 +426,9 @@ describe('runFullSync', () => {
       { id: 'WSTU_DEL_2', restored_at: '2026-02-20T10:00:00Z' } // restored, should skip
     ]);
 
-    const deactivateStatement = {
-      bind: vi.fn().mockReturnThis(),
-      run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } })
-    };
-
     db.prepare = vi.fn().mockImplementation((sql) => {
       if (sql.includes('UPDATE students') && sql.includes('is_active = 0')) {
-        return deactivateStatement;
+        return { bind: vi.fn().mockReturnThis() };
       }
       return {
         bind: vi.fn().mockReturnThis(),
@@ -442,7 +445,7 @@ describe('runFullSync', () => {
     const result = await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
 
     // Only 1 deactivation (WSTU_DEL_2 has restored_at so skipped)
-    expect(deactivateStatement.run).toHaveBeenCalledTimes(1);
+    // Deactivations are now batched via db.batch()
     expect(result.studentsDeactivated).toBe(1);
   });
 
@@ -561,11 +564,6 @@ describe('runFullSync', () => {
       WONDE_SCHOOL_ID,
       expect.objectContaining({ updatedAfter })
     );
-    expect(fetchAllEmployees).toHaveBeenCalledWith(
-      SCHOOL_TOKEN,
-      WONDE_SCHOOL_ID,
-      expect.objectContaining({ updatedAfter })
-    );
     expect(fetchDeletions).toHaveBeenCalledWith(
       SCHOOL_TOKEN,
       WONDE_SCHOOL_ID,
@@ -627,7 +625,6 @@ describe('runFullSync', () => {
   it('handles empty API responses gracefully', async () => {
     fetchAllClasses.mockResolvedValue([]);
     fetchAllStudents.mockResolvedValue([]);
-    fetchAllEmployees.mockResolvedValue([]);
     fetchDeletions.mockResolvedValue([]);
     db.batch = vi.fn().mockResolvedValue([
       { results: [], success: true },

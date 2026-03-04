@@ -16,7 +16,6 @@
 import {
   fetchAllStudents,
   fetchAllClasses,
-  fetchAllEmployees,
   fetchDeletions
 } from '../utils/wondeApi.js';
 import { syncUserClassAssignments } from '../utils/classAssignments.js';
@@ -29,12 +28,17 @@ import { syncUserClassAssignments } from '../utils/classAssignments.js';
  */
 export function mapWondeStudent(wondeStudent) {
   const educationData = wondeStudent.education_details?.data;
+  const extendedData = wondeStudent.extended_details?.data;
   const classesData = wondeStudent.classes?.data;
 
   return {
     wondeStudentId: wondeStudent.id,
     name: `${wondeStudent.forename} ${wondeStudent.surname}`,
     yearGroup: educationData?.current_nc_year ?? null,
+    senStatus: extendedData?.sen_status ?? null,
+    pupilPremium: extendedData?.pupil_premium ? 1 : 0,
+    ealStatus: extendedData?.eal_status ?? null,
+    fsm: extendedData?.free_school_meals ? 1 : 0,
     wondeClassIds: Array.isArray(classesData) ? classesData.map(c => c.id) : []
   };
 }
@@ -175,12 +179,11 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
     }
 
     // -----------------------------------------------------------------------
-    // Step 3: Fetch students, employees, and deletions in parallel
-    // (all independent of each other; only DB writes depend on classLookup)
+    // Step 3: Fetch students and deletions in parallel
+    // (Employee-class mappings are built from wondeClasses in Step 4)
     // -----------------------------------------------------------------------
-    const [wondeStudents, wondeEmployees, deletions] = await Promise.all([
+    const [wondeStudents, deletions] = await Promise.all([
       fetchAllStudents(schoolToken, wondeSchoolId, fetchOptions),
-      fetchAllEmployees(schoolToken, wondeSchoolId, fetchOptions),
       fetchDeletions(schoolToken, wondeSchoolId, options.updatedAfter)
     ]);
 
@@ -218,11 +221,13 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
       if (existingId) {
         studentStatements.push(
           db.prepare(
-            `UPDATE students SET name = ?, class_id = ?, year_group = ?, is_active = 1,
-             updated_at = datetime('now')
+            `UPDATE students SET name = ?, class_id = ?, year_group = ?,
+             sen_status = ?, pupil_premium = ?, eal_status = ?, fsm = ?,
+             is_active = 1, updated_at = datetime('now')
              WHERE id = ?`
           ).bind(
             mapped.name, classId, mapped.yearGroup,
+            mapped.senStatus, mapped.pupilPremium, mapped.ealStatus, mapped.fsm,
             existingId
           )
         );
@@ -232,11 +237,13 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
         studentStatements.push(
           db.prepare(
             `INSERT INTO students (id, organization_id, name, class_id, wonde_student_id,
-             year_group, is_active, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, 1, datetime('now'), datetime('now'))`
+             year_group, sen_status, pupil_premium, eal_status, fsm,
+             is_active, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'), datetime('now'))`
           ).bind(
             studentId, orgId, mapped.name, classId, mapped.wondeStudentId,
-            mapped.yearGroup
+            mapped.yearGroup, mapped.senStatus, mapped.pupilPremium,
+            mapped.ealStatus, mapped.fsm
           )
         );
         counts.studentsCreated++;
@@ -253,11 +260,10 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
     // -----------------------------------------------------------------------
     // Build from classes data (which includes employees) — more reliable than
     // the employees endpoint which may not return classes.data consistently.
-    await db.prepare(
-      `DELETE FROM wonde_employee_classes WHERE organization_id = ?`
-    ).bind(orgId).run();
-
-    const employeeStatements = [];
+    // DELETE is included as the first batch statement for atomicity.
+    const employeeStatements = [
+      db.prepare(`DELETE FROM wonde_employee_classes WHERE organization_id = ?`).bind(orgId)
+    ];
     const seenEmployeeIds = new Set();
 
     for (const wc of wondeClasses) {
@@ -302,19 +308,21 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
     // -----------------------------------------------------------------------
     // Step 5: Process deletions (already fetched in parallel above)
     // -----------------------------------------------------------------------
+    const deactivateStatements = [];
     for (const del of deletions) {
-      // Only deactivate if not restored
       if (!del.restored_at) {
-        const result = await db.prepare(
-          `UPDATE students SET is_active = 0, updated_at = datetime('now')
-           WHERE wonde_student_id = ? AND organization_id = ?`
-        ).bind(del.id, orgId).run();
-
-        if (result.meta?.changes > 0) {
-          counts.studentsDeactivated++;
-        }
+        deactivateStatements.push(
+          db.prepare(
+            `UPDATE students SET is_active = 0, updated_at = datetime('now')
+             WHERE wonde_student_id = ? AND organization_id = ?`
+          ).bind(del.id, orgId)
+        );
       }
     }
+    for (let i = 0; i < deactivateStatements.length; i += 100) {
+      await db.batch(deactivateStatements.slice(i, i + 100));
+    }
+    counts.studentsDeactivated = deactivateStatements.length;
 
     // -----------------------------------------------------------------------
     // Step 6: Update organization last sync timestamp

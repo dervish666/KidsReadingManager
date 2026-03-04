@@ -115,7 +115,8 @@ function createMockDb(overrides = {}) {
   } = overrides;
 
   const db = {
-    prepare: vi.fn()
+    prepare: vi.fn(),
+    batch: vi.fn().mockResolvedValue([])
   };
 
   db.prepare.mockImplementation((sql) => {

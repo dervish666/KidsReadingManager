@@ -48,6 +48,9 @@ webhooksRouter.post('/wonde', async (c) => {
         return c.json({ error: 'Missing required fields for schoolApproved' }, 400);
       }
 
+      // Sanitise school name (from external webhook payload)
+      const schoolName = (body.school_name || '').trim().substring(0, 200);
+
       // Check for existing organization with same wonde_school_id
       const existing = await db.prepare(
         `SELECT id, is_active FROM organizations WHERE wonde_school_id = ?`
@@ -63,17 +66,17 @@ webhooksRouter.post('/wonde', async (c) => {
         await db.prepare(
           `UPDATE organizations SET is_active = 1, wonde_school_token = ?, name = ?, updated_at = datetime("now")
            WHERE id = ?`
-        ).bind(encryptedToken, body.school_name, orgId).run();
-        console.log(`[Webhook] School re-approved: ${body.school_name} (${body.school_id}), reactivated org ${orgId}`);
+        ).bind(encryptedToken, schoolName, orgId).run();
+        console.log(`[Webhook] School re-approved: ${schoolName} (${body.school_id}), reactivated org ${orgId}`);
       } else {
         orgId = crypto.randomUUID();
-        const slug = body.school_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        const slug = schoolName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
         await db.prepare(
           `INSERT INTO organizations (id, name, slug, wonde_school_id, wonde_school_token, is_active, created_at, updated_at)
            VALUES (?, ?, ?, ?, ?, 1, datetime("now"), datetime("now"))`
-        ).bind(orgId, body.school_name, slug, body.school_id, encryptedToken).run();
-        console.log(`[Webhook] School approved: ${body.school_name} (${body.school_id}), created org ${orgId}`);
+        ).bind(orgId, schoolName, slug, body.school_id, encryptedToken).run();
+        console.log(`[Webhook] School approved: ${schoolName} (${body.school_id}), created org ${orgId}`);
       }
 
       // Trigger full sync in background
@@ -111,6 +114,9 @@ webhooksRouter.post('/wonde', async (c) => {
     }
 
     case 'schoolMigration': {
+      // schoolMigration fires when a school changes MIS provider. The school
+      // token may change — a new schoolApproved webhook should follow with the
+      // updated token. Log for awareness; no action required here.
       console.log(`[Webhook] School migration: ${body.school_name} from ${body.migrate_from} to ${body.migrate_to}`);
       return c.json({ success: true });
     }

@@ -20,6 +20,7 @@ function createMockDB(selectResults = []) {
       stmts.push({ sql, stmt });
       return stmt;
     }),
+    batch: vi.fn().mockResolvedValue([]),
   };
   return { db, stmts };
 }
@@ -66,7 +67,7 @@ describe('syncUserClassAssignments', () => {
   // -------------------------------------------------------------------------
   // Delete + recreate flow with matching classes
   // -------------------------------------------------------------------------
-  it('deletes existing assignments, queries wonde mappings, and inserts new assignments', async () => {
+  it('deletes existing assignments, queries wonde mappings, and inserts new assignments via batch', async () => {
     const selectResults = [
       { class_id: 'tally-class-1' },
       { class_id: 'tally-class-2' },
@@ -95,20 +96,25 @@ describe('syncUserClassAssignments', () => {
     expect(selectStmt.stmt.bind).toHaveBeenCalledWith('org-1', 'wonde-emp-1');
     expect(selectStmt.stmt.all).toHaveBeenCalled();
 
-    // Third and fourth calls: INSERT for each class
+    // Third and fourth calls: INSERT statements prepared and batched
     const insert1 = stmts[2];
     expect(insert1.sql).toContain('INSERT OR IGNORE INTO class_assignments');
     expect(insert1.stmt.bind).toHaveBeenCalledWith(
       expect.any(String), 'tally-class-1', 'user-1'
     );
-    expect(insert1.stmt.run).toHaveBeenCalled();
 
     const insert2 = stmts[3];
     expect(insert2.sql).toContain('INSERT OR IGNORE INTO class_assignments');
     expect(insert2.stmt.bind).toHaveBeenCalledWith(
       expect.any(String), 'tally-class-2', 'user-1'
     );
-    expect(insert2.stmt.run).toHaveBeenCalled();
+
+    // INSERTs are executed via db.batch() instead of individual .run() calls
+    expect(db.batch).toHaveBeenCalledTimes(1);
+    expect(db.batch).toHaveBeenCalledWith(expect.arrayContaining([
+      expect.anything(),
+      expect.anything()
+    ]));
   });
 
   // -------------------------------------------------------------------------

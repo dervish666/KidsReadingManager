@@ -37,6 +37,7 @@ authRouter.get('/mode', async (c) => {
 
   return c.json({
     mode: isMultiTenant ? 'multitenant' : 'legacy',
+    ssoEnabled: Boolean(c.env.MYLOGIN_CLIENT_ID),
     features: {
       multiTenant: isMultiTenant,
       d1Database: hasD1,
@@ -421,7 +422,7 @@ authRouter.post('/login', async (c) => {
 /**
  * Helper to parse cookies from request
  */
-function parseCookies(cookieHeader) {
+export function parseCookies(cookieHeader) {
   const cookies = {};
   if (!cookieHeader) return cookies;
 

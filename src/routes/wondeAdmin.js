@@ -1,17 +1,12 @@
 import { Hono } from 'hono';
 import { decryptSensitiveData, encryptSensitiveData } from '../utils/crypto.js';
 import { runFullSync } from '../services/wondeSync.js';
+import { requireAdmin, requireOwner } from '../middleware/tenant.js';
 
 const wondeAdminRouter = new Hono();
 
 // POST /sync — Trigger manual Wonde sync (admin only)
-wondeAdminRouter.post('/sync', async (c) => {
-  // Check admin role
-  const userRole = c.get('userRole');
-  if (userRole !== 'admin' && userRole !== 'owner') {
-    return c.json({ error: 'Admin access required' }, 403);
-  }
-
+wondeAdminRouter.post('/sync', requireAdmin(), async (c) => {
   const orgId = c.get('organizationId');
   const db = c.env.READING_MANAGER_DB;
 
@@ -41,12 +36,7 @@ wondeAdminRouter.post('/sync', async (c) => {
 });
 
 // POST /token — Set the Wonde school token for the current org (owner only)
-wondeAdminRouter.post('/token', async (c) => {
-  const userRole = c.get('userRole');
-  if (userRole !== 'owner') {
-    return c.json({ error: 'Owner access required' }, 403);
-  }
-
+wondeAdminRouter.post('/token', requireOwner(), async (c) => {
   const db = c.env.READING_MANAGER_DB;
 
   const body = await c.req.json();
@@ -82,12 +72,7 @@ wondeAdminRouter.post('/token', async (c) => {
 });
 
 // GET /status — Get latest sync status (admin only)
-wondeAdminRouter.get('/status', async (c) => {
-  const userRole = c.get('userRole');
-  if (userRole !== 'admin' && userRole !== 'owner') {
-    return c.json({ error: 'Admin access required' }, 403);
-  }
-
+wondeAdminRouter.get('/status', requireAdmin(), async (c) => {
   const orgId = c.get('organizationId');
   const db = c.env.READING_MANAGER_DB;
 

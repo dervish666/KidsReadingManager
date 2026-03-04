@@ -1,5 +1,25 @@
 # Changelog
 
+## [3.10.3] - 2026-03-04
+
+### Fixed
+- **Wonde sync: remove unused employees fetch** — `fetchAllEmployees` was called but never used; employee-class mappings already built from classes endpoint
+- **Wonde sync: batch student deletions** — deactivation queries now batched via `db.batch()` instead of N+1 individual queries
+- **Class assignments: batch INSERTs** — `syncUserClassAssignments` now uses `db.batch()` instead of individual INSERT loops
+- **Employee-class atomicity** — DELETE + INSERT for `wonde_employee_classes` now execute in a single batch for atomicity
+- **Cron sync null guard** — added `AND wonde_school_token IS NOT NULL` to prevent crashes on orgs without tokens
+- **Webhook school name sanitisation** — sanitise and truncate `school_name` from external webhook payloads
+- **MyLogin token_type validation** — verify `token_type` is `Bearer` after token exchange
+- **OAuth state cleanup** — expired `oauth_state` rows now cleaned up in the daily GDPR cron job
+- **Duplicate `parseCookies`** — removed copy from `mylogin.js`, now imports from `auth.js`
+
+### Changed
+- **Role guards in wondeAdmin** — replaced inline role checks with `requireAdmin()`/`requireOwner()` middleware
+- **SSO button conditional** — MyLogin SSO button only shown when `ssoEnabled` is true from `/api/auth/mode`
+- **Populate SEN/PP/EAL/FSM from Wonde** — student sync now extracts `sen_status`, `pupil_premium`, `eal_status`, `fsm` from Wonde `extended_details`
+- **`rowToStudent` mapper** — added `senStatus`, `pupilPremium`, `ealStatus`, `fsm` fields
+- **`fetchAllStudents` includes** — added `extended_details` to Wonde API include parameter
+
 ## [3.10.2] - 2026-03-04
 
 ### Added

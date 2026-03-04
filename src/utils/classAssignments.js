@@ -29,11 +29,14 @@ export async function syncUserClassAssignments(db, userId, wondeEmployeeId, orgI
 
   if (!results || results.length === 0) return 0;
 
-  // 3. Insert new assignments
-  for (const row of results) {
-    await db.prepare(
+  // 3. Insert new assignments (batched)
+  const statements = results.map(row =>
+    db.prepare(
       'INSERT OR IGNORE INTO class_assignments (id, class_id, user_id, created_at) VALUES (?, ?, ?, datetime("now"))'
-    ).bind(crypto.randomUUID(), row.class_id, userId).run();
+    ).bind(crypto.randomUUID(), row.class_id, userId)
+  );
+  if (statements.length > 0) {
+    await db.batch(statements);
   }
 
   return results.length;

@@ -50,6 +50,8 @@ export const AppProvider = ({ children }) => {
   
   // Track if server auth mode has been detected
   const [serverAuthModeDetected, setServerAuthModeDetected] = useState(false);
+  // Track if SSO (MyLogin) is enabled on the server
+  const [ssoEnabled, setSsoEnabled] = useState(false);
   
   // Multi-tenant auth state - initially null until detected from server
   const [authMode, setAuthMode] = useState(() => {
@@ -152,6 +154,9 @@ export const AppProvider = ({ children }) => {
         const response = await fetch(`${API_URL}/auth/mode`);
         if (response.ok) {
           const data = await response.json();
+
+          // Update SSO availability from server
+          setSsoEnabled(Boolean(data.ssoEnabled));
 
           // Update auth mode based on server response
           if (data.mode === 'multitenant') {
@@ -1845,6 +1850,7 @@ export const AppProvider = ({ children }) => {
     userRole,
     authMode,
     serverAuthModeDetected,
+    ssoEnabled,
     isMultiTenantMode,
     loginWithEmail,
     register,
@@ -1877,7 +1883,7 @@ export const AppProvider = ({ children }) => {
     getReadingStatus, addRecentlyAccessedStudent, updatePriorityStudentCount,
     prioritizedStudents, markedPriorityStudentIds,
     markStudentAsPriorityHandled, resetPriorityList,
-    user, organization, userRole, authMode, serverAuthModeDetected, isMultiTenantMode,
+    user, organization, userRole, authMode, serverAuthModeDetected, ssoEnabled, isMultiTenantMode,
     loginWithEmail, register, forgotPassword, resetPassword,
     canManageUsers, canManageStudents, canManageClasses, canManageSettings,
     availableOrganizations, activeOrganizationId,
