@@ -631,8 +631,7 @@ describe('Books API Routes', () => {
         const data = await response.json();
 
         expect(response.status).toBe(403);
-        expect(data.error).toContain('Insufficient permissions');
-        expect(data.required).toBe('teacher');
+        expect(data.error).toBe('Forbidden');
       });
 
       it('should allow requests from teachers', async () => {
@@ -777,8 +776,7 @@ describe('Books API Routes', () => {
         const data = await response.json();
 
         expect(response.status).toBe(403);
-        expect(data.error).toContain('Insufficient permissions');
-        expect(data.required).toBe('teacher');
+        expect(data.error).toBe('Forbidden');
       });
 
       it('should allow requests from teachers', async () => {
@@ -906,8 +904,7 @@ describe('Books API Routes', () => {
         const data = await response.json();
 
         expect(response.status).toBe(403);
-        expect(data.error).toContain('Insufficient permissions');
-        expect(data.required).toBe('teacher');
+        expect(data.error).toBe('Forbidden');
       });
 
       it('should allow requests from teachers', async () => {
@@ -1000,8 +997,7 @@ describe('Books API Routes', () => {
         const data = await response.json();
 
         expect(response.status).toBe(403);
-        expect(data.error).toContain('Insufficient permissions');
-        expect(data.required).toBe('teacher');
+        expect(data.error).toBe('Forbidden');
       });
 
       it('should allow requests from teachers', async () => {

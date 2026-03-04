@@ -166,6 +166,7 @@ const Header = () => {
                 value={globalClassFilter}
                 onChange={handleClassFilterChange}
                 displayEmpty
+                aria-label="Filter by class"
                 renderValue={() => getFilterDisplayName()}
                 sx={{
                   fontSize: { xs: '0.875rem', sm: '0.9rem' },

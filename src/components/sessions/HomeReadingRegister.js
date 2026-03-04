@@ -632,9 +632,10 @@ const HomeReadingRegister = () => {
     switch (status) {
       case READING_STATUS.READ:
         return (
-          <TableCell 
-            sx={{ 
-              ...cellStyle, 
+          <TableCell
+            aria-label="Read"
+            sx={{
+              ...cellStyle,
               backgroundColor: isSelected ? 'primary.light' : 'success.light',
               color: 'success.dark'
             }}
@@ -645,9 +646,10 @@ const HomeReadingRegister = () => {
         );
       case READING_STATUS.MULTIPLE:
         return (
-          <TableCell 
-            sx={{ 
-              ...cellStyle, 
+          <TableCell
+            aria-label={`${count} reading sessions`}
+            sx={{
+              ...cellStyle,
               backgroundColor: isSelected ? 'primary.light' : 'success.main',
               color: 'white'
             }}
@@ -658,9 +660,10 @@ const HomeReadingRegister = () => {
         );
       case READING_STATUS.ABSENT:
         return (
-          <TableCell 
-            sx={{ 
-              ...cellStyle, 
+          <TableCell
+            aria-label="Absent"
+            sx={{
+              ...cellStyle,
               backgroundColor: isSelected ? 'primary.light' : 'warning.light',
               color: 'warning.dark'
             }}
@@ -671,9 +674,10 @@ const HomeReadingRegister = () => {
         );
       case READING_STATUS.NO_RECORD:
         return (
-          <TableCell 
-            sx={{ 
-              ...cellStyle, 
+          <TableCell
+            aria-label="No reading record"
+            sx={{
+              ...cellStyle,
               backgroundColor: isSelected ? 'primary.light' : 'grey.200',
               color: 'grey.600'
             }}
@@ -792,6 +796,7 @@ const HomeReadingRegister = () => {
                       variant="contained"
                       color="success"
                       size="large"
+                      aria-label="Mark as read"
                       onClick={() => handleRecordReading(READING_STATUS.READ)}
                       sx={{ minWidth: 80, fontSize: '1.5rem', py: 1.5 }}
                     >
@@ -804,6 +809,7 @@ const HomeReadingRegister = () => {
                       variant="contained"
                       color="primary"
                       size="large"
+                      aria-label="Multiple reading sessions"
                       onClick={handleMultipleClick}
                       sx={{ minWidth: 80, fontSize: '1.2rem', py: 1.5 }}
                     >
@@ -816,6 +822,7 @@ const HomeReadingRegister = () => {
                       variant="contained"
                       color="warning"
                       size="large"
+                      aria-label="Mark as absent"
                       onClick={() => handleRecordReading(READING_STATUS.ABSENT)}
                       sx={{ minWidth: 80, fontSize: '1.5rem', py: 1.5 }}
                     >
@@ -828,6 +835,7 @@ const HomeReadingRegister = () => {
                       variant="outlined"
                       color="inherit"
                       size="large"
+                      aria-label="No reading record"
                       onClick={() => handleRecordReading(READING_STATUS.NO_RECORD)}
                       sx={{ minWidth: 80, fontSize: '1.5rem', py: 1.5 }}
                     >

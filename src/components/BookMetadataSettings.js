@@ -67,15 +67,17 @@ const BookMetadataSettings = () => {
   const attemptedBookIdsRef = useRef(new Set());
   const [refreshedBookIds, setRefreshedBookIds] = useState(new Set());
 
-  // Track whether the Hardcover key exists on the server (never returned in full)
+  // Track whether API keys exist on the server (never returned in full)
   const [hasStoredHardcoverKey, setHasStoredHardcoverKey] = useState(false);
+  const [hasStoredGoogleKey, setHasStoredGoogleKey] = useState(false);
 
   // Load existing settings
   useEffect(() => {
     if (settings?.bookMetadata) {
       setProvider(settings.bookMetadata.provider || METADATA_PROVIDERS.OPEN_LIBRARY);
-      setGoogleBooksApiKey(settings.bookMetadata.googleBooksApiKey || '');
-      // Hardcover key is never returned by the API — use boolean flag
+      // API keys are never returned by the API — use boolean flags
+      setHasStoredGoogleKey(Boolean(settings.bookMetadata.hasGoogleBooksApiKey));
+      setGoogleBooksApiKey('');
       setHasStoredHardcoverKey(Boolean(settings.bookMetadata.hasHardcoverApiKey));
       setHardcoverApiKey('');
       setBatchSize(settings.bookMetadata.batchSize || 50);
@@ -91,14 +93,19 @@ const BookMetadataSettings = () => {
     try {
       const bookMetadata = {
         provider,
-        googleBooksApiKey,
         batchSize,
         speedPreset,
         autoFallback
       };
 
-      // Only send hardcoverApiKey if the user typed a new value.
-      // Otherwise pass hasHardcoverApiKey so the backend preserves the existing key.
+      // Only send API keys if the user typed a new value.
+      // Otherwise pass boolean flag so the backend preserves the existing key.
+      if (googleBooksApiKey.trim()) {
+        bookMetadata.googleBooksApiKey = googleBooksApiKey;
+      } else {
+        bookMetadata.hasGoogleBooksApiKey = hasStoredGoogleKey;
+      }
+
       if (hardcoverApiKey.trim()) {
         bookMetadata.hardcoverApiKey = hardcoverApiKey;
       } else {
@@ -554,7 +561,7 @@ const BookMetadataSettings = () => {
   }
 
   const showApiKeyField = provider === METADATA_PROVIDERS.GOOGLE_BOOKS;
-  const isGoogleBooksWithoutKey = provider === METADATA_PROVIDERS.GOOGLE_BOOKS && !googleBooksApiKey.trim();
+  const isGoogleBooksWithoutKey = provider === METADATA_PROVIDERS.GOOGLE_BOOKS && !googleBooksApiKey.trim() && !hasStoredGoogleKey;
   const showHardcoverApiKeyField = provider === METADATA_PROVIDERS.HARDCOVER;
   const isHardcoverWithoutKey = provider === METADATA_PROVIDERS.HARDCOVER && !hardcoverApiKey.trim() && !hasStoredHardcoverKey;
 
@@ -625,6 +632,7 @@ const BookMetadataSettings = () => {
               type="password"
               value={googleBooksApiKey}
               onChange={(e) => setGoogleBooksApiKey(e.target.value)}
+              placeholder={hasStoredGoogleKey ? 'API key configured (enter new value to change)' : ''}
               helperText="Your API key is stored securely. Get one from the Google Cloud Console."
               sx={{ mb: 3 }}
               error={isGoogleBooksWithoutKey}

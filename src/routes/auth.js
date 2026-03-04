@@ -11,7 +11,9 @@ import {
   createAccessToken,
   createRefreshToken,
   createJWTPayload,
-  hashToken
+  hashToken,
+  buildRefreshCookie,
+  buildClearRefreshCookie
 } from '../utils/crypto.js';
 import { authRateLimit } from '../middleware/tenant.js';
 import { sendPasswordResetEmail } from '../utils/email.js';
@@ -91,9 +93,12 @@ authRouter.post('/register', async (c) => {
       return c.json({ error: 'Invalid email format' }, 400);
     }
 
-    // Validate password strength
+    // Validate password strength (8+ chars, uppercase, lowercase, number)
     if (password.length < 8) {
       return c.json({ error: 'Password must be at least 8 characters' }, 400);
+    }
+    if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+      return c.json({ error: 'Password must contain at least one uppercase letter, one lowercase letter, and one number' }, 400);
     }
 
     // Check if email already exists (among active users)
@@ -163,16 +168,7 @@ authRouter.post('/register', async (c) => {
 
     // Set refresh token as httpOnly cookie
     const isProduction = c.env.ENVIRONMENT !== 'development';
-    const cookieOptions = [
-      `refresh_token=${refreshTokenData.token}`,
-      'HttpOnly',
-      'Path=/api/auth',
-      `Max-Age=${7 * 24 * 60 * 60}`,
-      'SameSite=Strict',
-      isProduction ? 'Secure' : ''
-    ].filter(Boolean).join('; ');
-
-    c.header('Set-Cookie', cookieOptions);
+    c.header('Set-Cookie', buildRefreshCookie(refreshTokenData.token, isProduction));
 
     return c.json({
       message: 'Registration successful',
@@ -292,12 +288,12 @@ authRouter.post('/login', async (c) => {
       }, 429);
     }
 
-    // Find user by email
+    // Find user by email (only active users in active orgs)
     const user = await db.prepare(`
       SELECT u.*, o.name as org_name, o.slug as org_slug, o.is_active as org_active
       FROM users u
       INNER JOIN organizations o ON u.organization_id = o.id
-      WHERE u.email = ?
+      WHERE u.email = ? AND u.is_active = 1 AND o.is_active = 1
     `).bind(email.toLowerCase()).first();
 
     if (!user) {
@@ -305,18 +301,6 @@ authRouter.post('/login', async (c) => {
       await hashPassword(password);
       await recordLoginAttempt(db, email, ipAddress, userAgent, false);
       return c.json({ error: 'Invalid email or password' }, 401);
-    }
-
-    // Check if user is active
-    if (!user.is_active) {
-      await recordLoginAttempt(db, email, ipAddress, userAgent, false);
-      return c.json({ error: 'Account is deactivated' }, 403);
-    }
-
-    // Check if organization is active
-    if (!user.org_active) {
-      await recordLoginAttempt(db, email, ipAddress, userAgent, false);
-      return c.json({ error: 'Organization is inactive' }, 403);
     }
 
     // Verify password (supports both old 100k and new 600k iterations)
@@ -384,18 +368,8 @@ authRouter.post('/login', async (c) => {
     `).bind(refreshTokenId, user.id, refreshTokenData.hash, refreshTokenData.expiresAt).run();
 
     // Set refresh token as httpOnly cookie for enhanced security
-    // This prevents XSS attacks from stealing the refresh token
     const isProduction = c.env.ENVIRONMENT !== 'development';
-    const cookieOptions = [
-      `refresh_token=${refreshTokenData.token}`,
-      'HttpOnly',                           // Not accessible via JavaScript
-      'Path=/api/auth',                     // Only sent to auth endpoints
-      `Max-Age=${7 * 24 * 60 * 60}`,        // 7 days in seconds
-      'SameSite=Strict',                    // CSRF protection
-      isProduction ? 'Secure' : ''          // HTTPS only in production
-    ].filter(Boolean).join('; ');
-
-    c.header('Set-Cookie', cookieOptions);
+    c.header('Set-Cookie', buildRefreshCookie(refreshTokenData.token, isProduction));
 
     return c.json({
       accessToken,
@@ -536,16 +510,7 @@ authRouter.post('/refresh', async (c) => {
 
     // Set new refresh token as httpOnly cookie
     const isProduction = c.env.ENVIRONMENT !== 'development';
-    const cookieOptions = [
-      `refresh_token=${newRefreshTokenData.token}`,
-      'HttpOnly',
-      'Path=/api/auth',
-      `Max-Age=${7 * 24 * 60 * 60}`,
-      'SameSite=Strict',
-      isProduction ? 'Secure' : ''
-    ].filter(Boolean).join('; ');
-
-    c.header('Set-Cookie', cookieOptions);
+    c.header('Set-Cookie', buildRefreshCookie(newRefreshTokenData.token, isProduction));
 
     return c.json({
       accessToken,
@@ -601,16 +566,7 @@ authRouter.post('/logout', async (c) => {
 
     // Clear the refresh token cookie
     const isProduction = c.env.ENVIRONMENT !== 'development';
-    const clearCookieOptions = [
-      'refresh_token=',
-      'HttpOnly',
-      'Path=/api/auth',
-      'Max-Age=0',  // Expire immediately
-      'SameSite=Strict',
-      isProduction ? 'Secure' : ''
-    ].filter(Boolean).join('; ');
-
-    c.header('Set-Cookie', clearCookieOptions);
+    c.header('Set-Cookie', buildClearRefreshCookie(isProduction));
 
     return c.json({ message: 'Logged out successfully' });
 
@@ -723,9 +679,12 @@ authRouter.post('/reset-password', async (c) => {
       return c.json({ error: 'Token and password required' }, 400);
     }
 
-    // Validate password strength
+    // Validate password strength (8+ chars, uppercase, lowercase, number)
     if (password.length < 8) {
       return c.json({ error: 'Password must be at least 8 characters' }, 400);
+    }
+    if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+      return c.json({ error: 'Password must contain at least one uppercase letter, one lowercase letter, and one number' }, 400);
     }
 
     // Find reset token

@@ -187,7 +187,7 @@ const Login = ({ onBackToLanding } = {}) => {
         fullWidth
         type="password"
         value={password}
-        placeholder="Password"
+        label="Password"
         onChange={(e) => setPassword(e.target.value)}
         autoFocus
         sx={{ mb: 3 }}
@@ -246,7 +246,7 @@ const Login = ({ onBackToLanding } = {}) => {
           fullWidth
           type="email"
           value={email}
-          placeholder="Email"
+          label="Email"
           onChange={(e) => setEmail(e.target.value)}
           autoFocus
           sx={{ mb: 2 }}
@@ -259,7 +259,7 @@ const Login = ({ onBackToLanding } = {}) => {
           fullWidth
           type="password"
           value={password}
-          placeholder="Password"
+          label="Password"
           onChange={(e) => setPassword(e.target.value)}
           sx={{ mb: 3 }}
           InputProps={{
@@ -351,7 +351,7 @@ const Login = ({ onBackToLanding } = {}) => {
           fullWidth
           type="email"
           value={email}
-          placeholder="Enter your email address"
+          label="Email address"
           onChange={(e) => setEmail(e.target.value)}
           autoFocus
           sx={{ mb: 3 }}
@@ -412,7 +412,7 @@ const Login = ({ onBackToLanding } = {}) => {
           fullWidth
           type="password"
           value={password}
-          placeholder="New password"
+          label="New password"
           onChange={(e) => setPassword(e.target.value)}
           autoFocus
           sx={{ mb: 2 }}
@@ -425,7 +425,7 @@ const Login = ({ onBackToLanding } = {}) => {
           fullWidth
           type="password"
           value={confirmPassword}
-          placeholder="Confirm new password"
+          label="Confirm new password"
           onChange={(e) => setConfirmPassword(e.target.value)}
           sx={{ mb: 3 }}
           InputProps={{

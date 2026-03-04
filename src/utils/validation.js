@@ -103,12 +103,21 @@ export function validateStudent(student) {
  * @param {Object} settings - Settings data to validate
  * @returns {Object} - Validation result with isValid and errors
  */
+const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
 export function validateSettings(settings) {
   const errors = [];
-  
+
   // Check required fields
   if (!settings) {
     return { isValid: false, errors: ['Settings data is required'] };
+  }
+
+  // Reject prototype pollution keys
+  for (const key of Object.keys(settings)) {
+    if (DANGEROUS_KEYS.has(key)) {
+      return { isValid: false, errors: [`Invalid settings key: ${key}`] };
+    }
   }
   
   // Validate reading status settings if provided

@@ -15,6 +15,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { prettyJSON } from 'hono/pretty-json';
+import { bodyLimit } from 'hono/body-limit';
 
 // Import route handlers
 import { studentsRouter, recalculateAllStreaks } from './routes/students';
@@ -47,6 +48,7 @@ const app = new Hono();
 // Apply middleware
 app.use('/api/*', logger());
 app.use('/api/*', prettyJSON());
+app.use('/api/*', bodyLimit({ maxSize: 1024 * 1024 })); // 1MB max request body
 
 // CORS configuration with explicit origin whitelist
 app.use('/api/*', cors({
@@ -221,17 +223,30 @@ app.route('/api/webhooks', webhooksRouter);
 app.route('/api/wonde', wondeAdminRouter);
 
 // API health check (public)
-app.get('/api/health', (c) => {
-  return c.json({
+app.get('/api/health', async (c) => {
+  const health = {
     status: 'ok',
     message: 'Tally Reading API is running',
-    version: '2.0.0',
+    version: '3.10.4',
     environment: c.env.ENVIRONMENT || 'unknown',
     features: {
       multiTenant: Boolean(c.env.JWT_SECRET),
       legacyAuth: Boolean(c.env.WORKER_ADMIN_PASSWORD && !c.env.JWT_SECRET)
     }
-  });
+  };
+
+  // Verify database connectivity
+  if (c.env.READING_MANAGER_DB) {
+    try {
+      await c.env.READING_MANAGER_DB.prepare('SELECT 1').first();
+      health.database = 'connected';
+    } catch {
+      health.status = 'degraded';
+      health.database = 'unreachable';
+    }
+  }
+
+  return c.json(health);
 });
 
 // Legacy login endpoint (for backward compatibility)

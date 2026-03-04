@@ -144,11 +144,7 @@ export function requireRole(requiredRole) {
     }
 
     if (!hasPermission(userRole, requiredRole)) {
-      return c.json({ 
-        error: 'Forbidden - Insufficient permissions',
-        required: requiredRole,
-        current: userRole
-      }, 403);
+      return c.json({ error: 'Forbidden' }, 403);
     }
 
     return next();

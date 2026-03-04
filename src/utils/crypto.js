@@ -232,6 +232,39 @@ export async function hashToken(token) {
   return arrayBufferToHex(new Uint8Array(hashBuffer));
 }
 
+/**
+ * Build a Set-Cookie header value for the refresh token.
+ * @param {string} token - The refresh token value
+ * @param {boolean} isProduction - Whether to set Secure flag
+ * @returns {string} - Cookie header value
+ */
+export function buildRefreshCookie(token, isProduction) {
+  return [
+    `refresh_token=${token}`,
+    'HttpOnly',
+    'Path=/api/auth',
+    `Max-Age=${7 * 24 * 60 * 60}`,
+    'SameSite=Strict',
+    isProduction ? 'Secure' : ''
+  ].filter(Boolean).join('; ');
+}
+
+/**
+ * Build a Set-Cookie header value to clear the refresh token cookie.
+ * @param {boolean} isProduction - Whether to set Secure flag
+ * @returns {string} - Cookie header value
+ */
+export function buildClearRefreshCookie(isProduction) {
+  return [
+    'refresh_token=',
+    'HttpOnly',
+    'Path=/api/auth',
+    'Max-Age=0',
+    'SameSite=Strict',
+    isProduction ? 'Secure' : ''
+  ].filter(Boolean).join('; ');
+}
+
 // ============================================================================
 // JWT Payload Types
 // ============================================================================
@@ -301,11 +334,12 @@ async function signHS256(data, secret) {
  * @returns {boolean} - True if equal
  */
 export function constantTimeEqual(a, b) {
-  if (a.length !== b.length) return false;
-
-  let result = 0;
-  for (let i = 0; i < a.length; i++) {
-    result |= a[i] ^ b[i];
+  // Compare at the length of the longer array to avoid leaking length via timing.
+  // Shorter array is padded with 0xFF (guaranteed mismatch) so XOR always differs.
+  const len = Math.max(a.length, b.length);
+  let result = a.length ^ b.length; // non-zero if lengths differ
+  for (let i = 0; i < len; i++) {
+    result |= (i < a.length ? a[i] : 0xFF) ^ (i < b.length ? b[i] : 0xFF);
   }
   return result === 0;
 }

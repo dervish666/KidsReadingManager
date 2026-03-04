@@ -6,7 +6,7 @@ const coversRouter = new Hono();
 const VALID_TYPES = new Set(['id', 'olid', 'isbn', 'ia']);
 
 // Key format: {identifier}-{S|M|L}.jpg
-const KEY_PATTERN = /^[A-Za-z0-9_]+-[SML]\.jpg$/;
+const KEY_PATTERN = /^[A-Za-z0-9_-]+-[SML]\.jpg$/;
 
 // Cache-Control: 30 days
 const CACHE_CONTROL = 'public, max-age=2592000';

@@ -16,7 +16,9 @@ import {
   createJWTPayload,
   createAccessToken,
   createRefreshToken,
-  hashToken
+  hashToken,
+  buildRefreshCookie,
+  buildClearRefreshCookie
 } from '../utils/crypto.js';
 import { generateId } from '../utils/helpers.js';
 import { syncUserClassAssignments } from '../utils/classAssignments.js';
@@ -285,16 +287,8 @@ myloginRouter.get('/callback', async (c) => {
       'INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at) VALUES (?, ?, ?, ?)'
     ).bind(generateId(), userId, refreshTokenData.hash, refreshTokenData.expiresAt).run();
 
-    // Set httpOnly cookie (same pattern as src/routes/auth.js:384-396)
+    // Set httpOnly cookie
     const isProduction = c.env.ENVIRONMENT !== 'development';
-    const cookieOptions = [
-      `refresh_token=${refreshTokenData.token}`,
-      'HttpOnly',
-      'Path=/api/auth',
-      `Max-Age=${7 * 24 * 60 * 60}`,
-      'SameSite=Strict',
-      isProduction ? 'Secure' : ''
-    ].filter(Boolean).join('; ');
 
     // -----------------------------------------------------------------------
     // 8. Redirect to app with access token
@@ -303,7 +297,7 @@ myloginRouter.get('/callback', async (c) => {
       status: 302,
       headers: {
         Location: '/?auth=callback',
-        'Set-Cookie': cookieOptions
+        'Set-Cookie': buildRefreshCookie(refreshTokenData.token, isProduction)
       }
     });
 
@@ -334,16 +328,7 @@ myloginRouter.post('/logout', async (c) => {
 
     // Clear the refresh token cookie
     const isProduction = c.env.ENVIRONMENT !== 'development';
-    const clearCookieOptions = [
-      'refresh_token=',
-      'HttpOnly',
-      'Path=/api/auth',
-      'Max-Age=0',
-      'SameSite=Strict',
-      isProduction ? 'Secure' : ''
-    ].filter(Boolean).join('; ');
-
-    c.header('Set-Cookie', clearCookieOptions);
+    c.header('Set-Cookie', buildClearRefreshCookie(isProduction));
 
     // Return MyLogin logout URL for the frontend to redirect to
     const logoutUrl = new URL('https://app.mylogin.com/oauth/logout');

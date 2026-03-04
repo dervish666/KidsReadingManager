@@ -24,9 +24,9 @@ const theme = createTheme({
       secondary: '#7A7A7A', // Warm Gray
     },
     status: {
-      notRead: '#C17E7E', // Muted Red
-      needsAttention: '#D4A574', // Warm Amber
-      recentlyRead: '#6B8E6B', // Sage Green
+      notRead: '#9E4B4B', // Darkened Red (AA on #F5F0E8)
+      needsAttention: '#9B6E3A', // Darkened Amber (AA on #F5F0E8)
+      recentlyRead: '#4A6E4A', // Darkened Green (AA on #F5F0E8)
     },
     success: {
       main: '#6B8E6B', // Sage Green

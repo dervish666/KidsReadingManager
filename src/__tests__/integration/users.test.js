@@ -111,8 +111,7 @@ describe('Users API Routes', () => {
         const data = await response.json();
 
         expect(response.status).toBe(403);
-        expect(data.error).toContain('Insufficient permissions');
-        expect(data.required).toBe('admin');
+        expect(data.error).toBe('Forbidden');
       });
 
       it('should reject requests from readonly users (requires admin)', async () => {
@@ -126,7 +125,7 @@ describe('Users API Routes', () => {
         const data = await response.json();
 
         expect(response.status).toBe(403);
-        expect(data.error).toContain('Insufficient permissions');
+        expect(data.error).toBe('Forbidden');
       });
 
       it('should allow requests from admins', async () => {
@@ -416,7 +415,7 @@ describe('Users API Routes', () => {
         const data = await response.json();
 
         expect(response.status).toBe(403);
-        expect(data.error).toContain('Insufficient permissions');
+        expect(data.error).toBe('Forbidden');
       });
 
       it('should allow admins to create users', async () => {
@@ -1001,7 +1000,7 @@ describe('Users API Routes', () => {
         const data = await response.json();
 
         expect(response.status).toBe(403);
-        expect(data.error).toContain('Insufficient permissions');
+        expect(data.error).toBe('Forbidden');
       });
 
       it('should allow admins to delete users', async () => {
@@ -1163,7 +1162,7 @@ describe('Users API Routes', () => {
         const data = await response.json();
 
         expect(response.status).toBe(403);
-        expect(data.error).toContain('Insufficient permissions');
+        expect(data.error).toBe('Forbidden');
       });
 
       it('should allow admins to reset passwords', async () => {

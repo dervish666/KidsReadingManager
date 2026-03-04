@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -66,8 +66,8 @@ const ReadingStats = () => {
     }
   };
   
-  // Calculate statistics
-  const calculateStats = () => {
+  // Calculate statistics (memoized to avoid recalculating on every render)
+  const stats = useMemo(() => {
     // Filter students based on global class filter and disabled classes
     const activeStudents = students.filter(student => {
       // First, filter by global class filter
@@ -241,9 +241,7 @@ const ReadingStats = () => {
       averageStreak,
       topStreaks
     };
-  };
-  
-  const stats = calculateStats();
+  }, [students, classes, getReadingStatus, globalClassFilter]);
   
   // Get students sorted by session count (least to most)
   const getStudentsBySessionCount = () => {

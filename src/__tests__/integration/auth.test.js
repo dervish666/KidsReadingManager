@@ -286,24 +286,15 @@ describe('Auth API Routes', () => {
   // 2. Login: Deactivated User and Inactive Org Rejection
   // ===========================================================================
   describe('POST /api/auth/login - Deactivated User / Inactive Org', () => {
-    it('should return 403 for deactivated user (is_active = 0)', async () => {
+    it('should return 401 for deactivated user (filtered by is_active = 1)', async () => {
       const mockDB = createMockDB((sql) => {
         if (sql.includes('login_attempts') && sql.includes('COUNT')) {
           return { count: 0 };
         }
+        // Login query now filters AND u.is_active = 1 AND o.is_active = 1,
+        // so deactivated users are not found
         if (sql.includes('users u') && sql.includes('organizations o')) {
-          return {
-            id: 'user-123',
-            email: 'deactivated@example.com',
-            password_hash: 'mocked-salt:mocked-hash',
-            name: 'Deactivated User',
-            role: 'teacher',
-            is_active: 0, // Deactivated
-            organization_id: 'org-456',
-            org_name: 'Test School',
-            org_slug: 'test-school',
-            org_active: 1
-          };
+          return null;
         }
         return null;
       });
@@ -316,28 +307,19 @@ describe('Auth API Routes', () => {
       });
       const data = await response.json();
 
-      expect(response.status).toBe(403);
-      expect(data.error).toBe('Account is deactivated');
+      expect(response.status).toBe(401);
+      expect(data.error).toBe('Invalid email or password');
     });
 
-    it('should return 403 for user in inactive organization (org_active = 0)', async () => {
+    it('should return 401 for user in inactive organization (filtered by o.is_active = 1)', async () => {
       const mockDB = createMockDB((sql) => {
         if (sql.includes('login_attempts') && sql.includes('COUNT')) {
           return { count: 0 };
         }
+        // Login query now filters AND u.is_active = 1 AND o.is_active = 1,
+        // so users in inactive orgs are not found
         if (sql.includes('users u') && sql.includes('organizations o')) {
-          return {
-            id: 'user-123',
-            email: 'user@example.com',
-            password_hash: 'mocked-salt:mocked-hash',
-            name: 'Active User',
-            role: 'teacher',
-            is_active: 1,
-            organization_id: 'org-456',
-            org_name: 'Inactive School',
-            org_slug: 'inactive-school',
-            org_active: 0 // Inactive org
-          };
+          return null;
         }
         return null;
       });
@@ -350,8 +332,8 @@ describe('Auth API Routes', () => {
       });
       const data = await response.json();
 
-      expect(response.status).toBe(403);
-      expect(data.error).toBe('Organization is inactive');
+      expect(response.status).toBe(401);
+      expect(data.error).toBe('Invalid email or password');
     });
 
     it('should succeed for active user in active organization', async () => {
@@ -768,7 +750,7 @@ describe('Auth API Routes', () => {
       const response = await makeRequest(app, 'POST', '/api/auth/register', {
         organizationName: 'New School',
         email: 'existing@example.com',
-        password: 'password123',
+        password: 'Password123',
         name: 'New User'
       });
       const data = await response.json();
@@ -796,7 +778,7 @@ describe('Auth API Routes', () => {
       const response = await makeRequest(app, 'POST', '/api/auth/register', {
         organizationName: 'Brand New School',
         email: 'newuser@example.com',
-        password: 'securepassword123',
+        password: 'SecurePassword123',
         name: 'New User'
       });
       const data = await response.json();
@@ -837,7 +819,7 @@ describe('Auth API Routes', () => {
       const response = await makeRequest(app, 'POST', '/api/auth/register', {
         organizationName: 'Test School',
         email: 'not-an-email',
-        password: 'password123',
+        password: 'Password123',
         name: 'Test User'
       });
       const data = await response.json();
@@ -878,7 +860,7 @@ describe('Auth API Routes', () => {
       const response = await makeRequest(app, 'POST', '/api/auth/register', {
         organizationName: 'Cookie School',
         email: 'cookie@example.com',
-        password: 'password123',
+        password: 'Password123',
         name: 'Cookie User'
       });
 
@@ -908,7 +890,7 @@ describe('Auth API Routes', () => {
       const response = await makeRequest(app, 'POST', '/api/auth/register', {
         organizationName: 'Duplicate School',
         email: 'newuser@example.com',
-        password: 'password123',
+        password: 'Password123',
         name: 'New User'
       });
 
@@ -1018,7 +1000,7 @@ describe('Auth API Routes', () => {
 
       const response = await makeRequest(app, 'POST', '/api/auth/reset-password', {
         token: 'valid-reset-token',
-        password: 'newpassword123'
+        password: 'NewPassword123'
       });
       const data = await response.json();
 
@@ -1047,7 +1029,7 @@ describe('Auth API Routes', () => {
 
       const response = await makeRequest(app, 'POST', '/api/auth/reset-password', {
         token: 'expired-token',
-        password: 'newpassword123'
+        password: 'NewPassword123'
       });
       const data = await response.json();
 
@@ -1068,7 +1050,7 @@ describe('Auth API Routes', () => {
 
       const response = await makeRequest(app, 'POST', '/api/auth/reset-password', {
         token: 'already-used-token',
-        password: 'newpassword123'
+        password: 'NewPassword123'
       });
       const data = await response.json();
 
@@ -1088,7 +1070,7 @@ describe('Auth API Routes', () => {
 
       const response = await makeRequest(app, 'POST', '/api/auth/reset-password', {
         token: 'totally-invalid-token',
-        password: 'newpassword123'
+        password: 'NewPassword123'
       });
       const data = await response.json();
 
@@ -1142,7 +1124,7 @@ describe('Auth API Routes', () => {
 
       await makeRequest(app, 'POST', '/api/auth/reset-password', {
         token: 'valid-token',
-        password: 'newpassword123'
+        password: 'NewPassword123'
       });
 
       // Verify batch was called
@@ -1218,7 +1200,7 @@ describe('Auth API Routes', () => {
 
       const response = await makeRequest(app, 'POST', '/api/auth/login', {
         email: 'user@example.com',
-        password: 'password123'
+        password: 'Password123'
       });
       const data = await response.json();
 
@@ -1236,7 +1218,7 @@ describe('Auth API Routes', () => {
       const response = await makeRequest(app, 'POST', '/api/auth/register', {
         organizationName: 'Test',
         email: 'test@example.com',
-        password: 'password123',
+        password: 'Password123',
         name: 'Test User'
       });
       const data = await response.json();
@@ -1286,7 +1268,7 @@ describe('Auth API Routes', () => {
 
       const response = await makeRequest(app, 'POST', '/api/auth/reset-password', {
         token: 'some-token',
-        password: 'newpassword123'
+        password: 'NewPassword123'
       });
       const data = await response.json();
 

@@ -329,11 +329,7 @@ describe('requireRole', () => {
     await middleware(c, next);
 
     expect(c.json).toHaveBeenCalledWith(
-      expect.objectContaining({
-        error: 'Forbidden - Insufficient permissions',
-        required: 'admin',
-        current: 'teacher'
-      }),
+      { error: 'Forbidden' },
       403
     );
   });
@@ -370,7 +366,7 @@ describe('convenience role middleware', () => {
     await requireOwner()(c, next);
 
     expect(c.json).toHaveBeenCalledWith(
-      expect.objectContaining({ required: 'owner' }),
+      { error: 'Forbidden' },
       403
     );
   });
@@ -383,7 +379,7 @@ describe('convenience role middleware', () => {
     await requireAdmin()(c, next);
 
     expect(c.json).toHaveBeenCalledWith(
-      expect.objectContaining({ required: 'admin' }),
+      { error: 'Forbidden' },
       403
     );
   });
@@ -396,7 +392,7 @@ describe('convenience role middleware', () => {
     await requireTeacher()(c, next);
 
     expect(c.json).toHaveBeenCalledWith(
-      expect.objectContaining({ required: 'teacher' }),
+      { error: 'Forbidden' },
       403
     );
   });

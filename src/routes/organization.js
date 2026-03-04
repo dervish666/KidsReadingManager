@@ -381,8 +381,8 @@ organizationRouter.get('/audit-log', requireAdmin(), async (c) => {
     const db = getDB(c.env);
     const organizationId = c.get('organizationId');
 
-    const page = parseInt(c.req.query('page') || '1');
-    const pageSize = parseInt(c.req.query('pageSize') || '50');
+    const page = Math.max(parseInt(c.req.query('page')) || 1, 1);
+    const pageSize = Math.min(Math.max(parseInt(c.req.query('pageSize')) || 50, 1), 200);
     const offset = (page - 1) * pageSize;
 
     // Get total count
@@ -574,7 +574,7 @@ organizationRouter.post('/create', requireOwner(), auditLog('create', 'organizat
 
     // Check if slug already exists
     const existing = await db.prepare(
-      'SELECT id FROM organizations WHERE slug = ?'
+      'SELECT id FROM organizations WHERE slug = ? AND is_active = 1'
     ).bind(orgSlug).first();
 
     if (existing) {

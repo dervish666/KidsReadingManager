@@ -11,7 +11,13 @@ vi.mock('../../utils/crypto.js', () => ({
   createJWTPayload: vi.fn(),
   createAccessToken: vi.fn(),
   createRefreshToken: vi.fn(),
-  hashToken: vi.fn()
+  hashToken: vi.fn(),
+  buildRefreshCookie: (token, isProduction) => {
+    return [`refresh_token=${token}`, 'HttpOnly', 'Path=/api/auth', `Max-Age=${7*24*60*60}`, 'SameSite=Strict', isProduction ? 'Secure' : ''].filter(Boolean).join('; ');
+  },
+  buildClearRefreshCookie: (isProduction) => {
+    return ['refresh_token=', 'HttpOnly', 'Path=/api/auth', 'Max-Age=0', 'SameSite=Strict', isProduction ? 'Secure' : ''].filter(Boolean).join('; ');
+  }
 }));
 
 vi.mock('../../utils/helpers.js', () => ({

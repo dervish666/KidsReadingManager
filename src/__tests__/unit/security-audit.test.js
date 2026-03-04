@@ -547,9 +547,11 @@ describe('Settings Prototype Pollution Guard', () => {
       expect(result.errors).toHaveLength(0);
     });
 
-    it('should document that validateSettings does NOT reject __proto__ keys (security gap)', () => {
-      // This test documents that the current validateSettings does not guard
-      // against prototype pollution keys. It should be addressed in a future fix.
+    it('should document that __proto__ in object literal does not appear as own key', () => {
+      // Note: __proto__ in object literal form sets the actual prototype,
+      // it does NOT become an own property. Object.keys() won't see it.
+      // The DANGEROUS_KEYS guard in validateSettings catches it when it IS an own key
+      // (e.g., from JSON.parse), but object literal syntax bypasses this.
       const malicious = {
         __proto__: { isAdmin: true },
         readingStatusSettings: {
@@ -560,13 +562,12 @@ describe('Settings Prototype Pollution Guard', () => {
 
       const result = validateSettings(malicious);
 
-      // Current behavior: validateSettings does not check for dangerous keys.
-      // This test passes to document the gap. A fix would reject __proto__,
-      // constructor, and prototype keys.
+      // __proto__ in object literal doesn't become an own key, so validation passes.
+      // This is safe because JSON.parse also doesn't set __proto__ as the prototype.
       expect(result.isValid).toBe(true);
     });
 
-    it('should document that validateSettings does NOT reject constructor keys (security gap)', () => {
+    it('should reject constructor keys in settings (prototype pollution guard)', () => {
       const malicious = {
         constructor: { prototype: { isAdmin: true } },
         readingStatusSettings: {
@@ -577,8 +578,9 @@ describe('Settings Prototype Pollution Guard', () => {
 
       const result = validateSettings(malicious);
 
-      // Current behavior: passes validation. Documenting as a known gap.
-      expect(result.isValid).toBe(true);
+      // validateSettings now rejects dangerous prototype pollution keys
+      expect(result.isValid).toBe(false);
+      expect(result.errors[0]).toContain('Invalid settings key');
     });
 
     it('should verify that Object.create(null) prevents prototype chain attacks', () => {

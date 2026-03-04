@@ -46,7 +46,7 @@ usersRouter.get('/', requireAdmin(), async (c) => {
                u.auth_provider, u.mylogin_id, u.wonde_employee_id
         FROM users u
         LEFT JOIN organizations o ON u.organization_id = o.id
-        WHERE u.organization_id = ?
+        WHERE u.organization_id = ? AND u.is_active = 1
         ORDER BY u.name
       `;
       params = [organizationId];

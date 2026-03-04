@@ -414,8 +414,8 @@ describe('HomeReadingRegister Component', () => {
       // Select a student first
       await user.click(screen.getByText('Alice Smith'));
 
-      // Click the Read button (checkmark)
-      const readButton = screen.getByRole('button', { name: /read/i });
+      // Click the Read button (checkmark) — use exact name to avoid matching "reading"
+      const readButton = screen.getByRole('button', { name: 'Mark as read' });
       await user.click(readButton);
 
       await waitFor(() => {
@@ -440,7 +440,7 @@ describe('HomeReadingRegister Component', () => {
       await user.click(screen.getByText('Alice Smith'));
 
       // Click the Absent button
-      const absentButton = screen.getByRole('button', { name: /absent/i });
+      const absentButton = screen.getByRole('button', { name: 'Mark as absent' });
       await user.click(absentButton);
 
       await waitFor(() => {
@@ -464,7 +464,7 @@ describe('HomeReadingRegister Component', () => {
       await user.click(screen.getByText('Alice Smith'));
 
       // Click the No Record button
-      const noRecordButton = screen.getByRole('button', { name: /no record/i });
+      const noRecordButton = screen.getByRole('button', { name: 'No reading record' });
       await user.click(noRecordButton);
 
       await waitFor(() => {
@@ -484,7 +484,7 @@ describe('HomeReadingRegister Component', () => {
       await user.click(screen.getByText('Alice Smith'));
 
       // Click the Multiple Sessions button
-      const multipleButton = screen.getByRole('button', { name: /multiple sessions/i });
+      const multipleButton = screen.getByRole('button', { name: 'Multiple reading sessions' });
       await user.click(multipleButton);
 
       // Dialog should appear
@@ -504,7 +504,7 @@ describe('HomeReadingRegister Component', () => {
       await user.click(screen.getByText('Alice Smith'));
 
       // Click the Multiple Sessions button
-      const multipleButton = screen.getByRole('button', { name: /multiple sessions/i });
+      const multipleButton = screen.getByRole('button', { name: 'Multiple reading sessions' });
       await user.click(multipleButton);
 
       // The dialog should now be open with default count of 2
@@ -538,7 +538,7 @@ describe('HomeReadingRegister Component', () => {
       expect(screen.getByText('Recording for: Alice Smith')).toBeInTheDocument();
 
       // Record reading
-      const readButton = screen.getByRole('button', { name: /read/i });
+      const readButton = screen.getByRole('button', { name: 'Mark as read' });
       await user.click(readButton);
 
       // Should advance to Bob (second student)
@@ -568,7 +568,7 @@ describe('HomeReadingRegister Component', () => {
       await user.click(screen.getByText('Only Student'));
 
       // Record reading
-      const readButton = screen.getByRole('button', { name: /read/i });
+      const readButton = screen.getByRole('button', { name: 'Mark as read' });
       await user.click(readButton);
 
       // Should clear selection and show default message
@@ -958,7 +958,7 @@ describe('HomeReadingRegister Component', () => {
 
       // Select and record
       await user.click(screen.getByText('Alice Smith'));
-      const readButton = screen.getByRole('button', { name: /read/i });
+      const readButton = screen.getByRole('button', { name: 'Mark as read' });
       await user.click(readButton);
 
       await waitFor(() => {
@@ -977,7 +977,7 @@ describe('HomeReadingRegister Component', () => {
 
       // Select and record
       await user.click(screen.getByText('Alice Smith'));
-      const readButton = screen.getByRole('button', { name: /read/i });
+      const readButton = screen.getByRole('button', { name: 'Mark as read' });
       await user.click(readButton);
 
       await waitFor(() => {

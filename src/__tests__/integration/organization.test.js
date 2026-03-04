@@ -206,9 +206,7 @@ describe('Organization Routes', () => {
       const data = await response.json();
 
       expect(response.status).toBe(403);
-      expect(data.error).toBe('Forbidden - Insufficient permissions');
-      expect(data.required).toBe('admin');
-      expect(data.current).toBe('teacher');
+      expect(data.error).toBe('Forbidden');
     });
 
     it('should reject access for readonly role', async () => {
@@ -219,7 +217,7 @@ describe('Organization Routes', () => {
       const data = await response.json();
 
       expect(response.status).toBe(403);
-      expect(data.error).toBe('Forbidden - Insufficient permissions');
+      expect(data.error).toBe('Forbidden');
     });
 
     it('should handle empty organization list', async () => {
@@ -256,8 +254,7 @@ describe('Organization Routes', () => {
       const data = await response.json();
 
       expect(response.status).toBe(403);
-      expect(data.error).toBe('Forbidden - Insufficient permissions');
-      expect(data.required).toBe('owner');
+      expect(data.error).toBe('Forbidden');
     });
 
     it('should return 404 for non-existent organization', async () => {
@@ -439,7 +436,7 @@ describe('Organization Routes', () => {
       const data = await response.json();
 
       expect(response.status).toBe(403);
-      expect(data.required).toBe('owner');
+      expect(data.error).toBe('Forbidden');
     });
 
     it('should return 404 for non-existent organization', async () => {
@@ -743,7 +740,7 @@ describe('Organization Routes', () => {
       const data = await response.json();
 
       expect(response.status).toBe(403);
-      expect(data.required).toBe('admin');
+      expect(data.error).toBe('Forbidden');
     });
 
     it('should ignore disallowed setting keys', async () => {

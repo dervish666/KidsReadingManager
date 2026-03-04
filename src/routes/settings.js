@@ -96,10 +96,12 @@ settingsRouter.get('/', async (c) => {
       if (jwtSecret) {
         settings.bookMetadata = await decryptBookMetadataKeys(settings.bookMetadata, jwtSecret);
       }
-      // Hardcover key is only used server-side (via /api/hardcover/graphql proxy).
-      // Replace with a boolean flag so it's never exposed to clients.
+      // API keys are only used server-side. Replace with boolean flags
+      // so they're never exposed to clients.
       settings.bookMetadata.hasHardcoverApiKey = Boolean(settings.bookMetadata.hardcoverApiKey);
       delete settings.bookMetadata.hardcoverApiKey;
+      settings.bookMetadata.hasGoogleBooksApiKey = Boolean(settings.bookMetadata.googleBooksApiKey);
+      delete settings.bookMetadata.googleBooksApiKey;
     }
 
     return c.json(settings);
@@ -158,19 +160,27 @@ settingsRouter.post('/', auditLog('update', 'settings'), async (c) => {
       if (key === 'bookMetadata' && typeof value === 'object') {
         const jwtSecret = c.env.JWT_SECRET;
         if (jwtSecret) {
-          // If hardcoverApiKey is absent but was previously stored, preserve it
-          if (!value.hardcoverApiKey && value.hasHardcoverApiKey) {
+          // If API keys are absent but were previously stored, preserve them
+          const needsPreserve = (!value.hardcoverApiKey && value.hasHardcoverApiKey) ||
+                                (!value.googleBooksApiKey && value.hasGoogleBooksApiKey);
+          if (needsPreserve) {
             const existing = await db.prepare(
               `SELECT setting_value FROM org_settings WHERE organization_id = ? AND setting_key = 'bookMetadata'`
             ).bind(organizationId).first();
             if (existing) {
               try {
                 const existingMeta = JSON.parse(existing.setting_value);
-                value.hardcoverApiKey = existingMeta.hardcoverApiKey || '';
+                if (!value.hardcoverApiKey && value.hasHardcoverApiKey) {
+                  value.hardcoverApiKey = existingMeta.hardcoverApiKey || '';
+                }
+                if (!value.googleBooksApiKey && value.hasGoogleBooksApiKey) {
+                  value.googleBooksApiKey = existingMeta.googleBooksApiKey || '';
+                }
               } catch { /* ignore */ }
             }
           }
           delete value.hasHardcoverApiKey;
+          delete value.hasGoogleBooksApiKey;
           processedValue = await encryptBookMetadataKeys(value, jwtSecret);
         }
       }

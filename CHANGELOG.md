@@ -1,5 +1,37 @@
 # Changelog
 
+## [3.10.4] - 2026-03-04
+
+### Security
+- **Login query hardened** — SQL now filters `is_active = 1` for both user and organization, preventing login for deactivated accounts (C1)
+- **Admin user listing** — added `is_active = 1` filter to prevent soft-deleted users appearing in admin panel (C2)
+- **Constant-time comparison** — fixed timing leak in `constantTimeEqual` by padding shorter array instead of early return (S6)
+- **Google Books API key redacted** — API key no longer sent to client; uses boolean flag pattern matching Hardcover (S7)
+- **403 responses stripped** — removed role and required-role fields from forbidden responses to prevent information leakage (S1)
+- **Body size limit** — added 1MB `bodyLimit` middleware on all `/api/*` routes (S2)
+- **Password complexity** — registration and password reset now require uppercase, lowercase, and number (S8)
+- **Org slug uniqueness** — slug check now filters `is_active = 1` to prevent conflicts with soft-deleted orgs (S5)
+- **Pagination bounds** — audit log endpoint validates page/pageSize parameters (S4)
+- **Prototype pollution** — `validateSettings` rejects `__proto__`, `constructor`, `prototype` keys (T3)
+
+### Fixed
+- **Cover KEY_PATTERN** — regex now accepts hyphenated ISBNs (B2)
+- **Token refresh data reload** — added `hasLoadedData` ref to prevent full `reloadDataFromServer` on every 15-minute token refresh (P4)
+- **Cookie duplication** — extracted `buildRefreshCookie`/`buildClearRefreshCookie` helpers in crypto.js, replacing 4 duplicate constructions across auth.js and mylogin.js (Q2)
+
+### Changed
+- **Login form accessibility** — changed `placeholder` to `label` on all TextFields (A1)
+- **Header class filter** — added `aria-label="Filter by class"` (A2)
+- **Home reading register** — added aria-labels to all status buttons and table cells (A3)
+- **Theme status colours** — darkened for WCAG AA contrast compliance (A4)
+- **Stats memoisation** — wrapped `calculateStats` in `useMemo` (P3)
+- **Health endpoint** — updated version to 3.10.4, added DB connectivity check (D2/D3)
+- **Storage type** — changed `STORAGE_TYPE` from `kv` to `d1` in wrangler.toml (D5)
+
+### DevOps
+- **CI runs tests** — added `npm test` step to GitHub Actions pipeline (C4)
+- **Deploy script hardened** — replaced destructive `rm -rf node_modules` with `npm ci`, removed stale `REACT_APP_API_BASE_URL`, added migration step before deploy (D1/D7)
+
 ## [3.10.3] - 2026-03-04
 
 ### Fixed

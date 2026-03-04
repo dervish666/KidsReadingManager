@@ -27,15 +27,13 @@ if [ "$ENVIRONMENT" == "dev" ]; then
   ENV_FLAG="--env=dev"
 fi
 
-# Step 1: Install dependencies
-echo -e "${YELLOW}Cleaning up previous dependencies...${NC}"
-rm -rf node_modules package-lock.json
+# Step 1: Install dependencies (using lockfile for reproducible builds)
 echo -e "${YELLOW}Installing dependencies...${NC}"
-npm install
+npm ci
 
 # Step 2: Build the React frontend
 echo -e "${YELLOW}Building React frontend...${NC}"
-REACT_APP_API_BASE_URL="https://kids-reading-manager.workers.dev/api" npm run build
+npm run build
 
 # Check if build was successful
 if [ ! -d "build" ]; then
@@ -61,7 +59,11 @@ if ! command -v wrangler &> /dev/null; then
   npm install -g wrangler
 fi
 
-# Step 5: Deploy to Cloudflare Workers
+# Step 5: Run database migrations
+echo -e "${YELLOW}Running database migrations...${NC}"
+npx wrangler d1 migrations apply reading-manager-db --remote $ENV_FLAG
+
+# Step 6: Deploy to Cloudflare Workers
 echo -e "${YELLOW}Deploying to Cloudflare Workers ($ENVIRONMENT environment)...${NC}"
 echo -e "${YELLOW}This will deploy both the API and the frontend...${NC}"
 wrangler deploy $ENV_FLAG

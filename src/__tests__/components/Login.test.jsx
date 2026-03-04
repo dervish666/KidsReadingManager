@@ -51,8 +51,8 @@ describe('Login Component', () => {
 
       render(<Login />, { wrapper: createWrapper(context) });
 
-      expect(screen.getByPlaceholderText('Password')).toBeInTheDocument();
-      expect(screen.queryByPlaceholderText('Email')).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Password')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Email')).not.toBeInTheDocument();
       expect(screen.getByText('Enter the access password to continue.')).toBeInTheDocument();
     });
 
@@ -71,7 +71,7 @@ describe('Login Component', () => {
 
       render(<Login />, { wrapper: createWrapper(context) });
 
-      const passwordInput = screen.getByPlaceholderText('Password');
+      const passwordInput = screen.getByLabelText('Password');
       await user.type(passwordInput, 'testpassword');
 
       const loginButton = screen.getByRole('button', { name: /login/i });
@@ -88,7 +88,7 @@ describe('Login Component', () => {
 
       render(<Login />, { wrapper: createWrapper(context) });
 
-      const passwordInput = screen.getByPlaceholderText('Password');
+      const passwordInput = screen.getByLabelText('Password');
       await user.type(passwordInput, 'testpassword');
 
       const loginButton = screen.getByRole('button', { name: /login/i });
@@ -107,7 +107,7 @@ describe('Login Component', () => {
 
       render(<Login />, { wrapper: createWrapper(context) });
 
-      const passwordInput = screen.getByPlaceholderText('Password');
+      const passwordInput = screen.getByLabelText('Password');
       await user.type(passwordInput, 'wrongpassword');
 
       const loginButton = screen.getByRole('button', { name: /login/i });
@@ -128,7 +128,7 @@ describe('Login Component', () => {
 
       render(<Login />, { wrapper: createWrapper(context) });
 
-      const passwordInput = screen.getByPlaceholderText('Password');
+      const passwordInput = screen.getByLabelText('Password');
       await user.type(passwordInput, 'testpassword');
 
       const loginButton = screen.getByRole('button', { name: /login/i });
@@ -146,7 +146,7 @@ describe('Login Component', () => {
 
       render(<Login />, { wrapper: createWrapper(context) });
 
-      const passwordInput = screen.getByPlaceholderText('Password');
+      const passwordInput = screen.getByLabelText('Password');
       await user.type(passwordInput, 'testpassword');
 
       const loginButton = screen.getByRole('button', { name: /login/i });
@@ -164,8 +164,8 @@ describe('Login Component', () => {
 
       render(<Login />, { wrapper: createWrapper(context) });
 
-      expect(screen.getByPlaceholderText('Email')).toBeInTheDocument();
-      expect(screen.getByPlaceholderText('Password')).toBeInTheDocument();
+      expect(screen.getByLabelText('Email')).toBeInTheDocument();
+      expect(screen.getByLabelText('Password')).toBeInTheDocument();
       expect(screen.getByText('Sign in to your account.')).toBeInTheDocument();
     });
 
@@ -192,8 +192,8 @@ describe('Login Component', () => {
 
       render(<Login />, { wrapper: createWrapper(context) });
 
-      const emailInput = screen.getByPlaceholderText('Email');
-      const passwordInput = screen.getByPlaceholderText('Password');
+      const emailInput = screen.getByLabelText('Email');
+      const passwordInput = screen.getByLabelText('Password');
 
       await user.type(emailInput, 'test@example.com');
       await user.type(passwordInput, 'password123');
@@ -212,8 +212,8 @@ describe('Login Component', () => {
 
       render(<Login />, { wrapper: createWrapper(context) });
 
-      const emailInput = screen.getByPlaceholderText('Email');
-      const passwordInput = screen.getByPlaceholderText('Password');
+      const emailInput = screen.getByLabelText('Email');
+      const passwordInput = screen.getByLabelText('Password');
 
       await user.type(emailInput, 'test@example.com');
       await user.type(passwordInput, 'password123');
@@ -230,7 +230,7 @@ describe('Login Component', () => {
 
       render(<Login />, { wrapper: createWrapper(context) });
 
-      const passwordInput = screen.getByPlaceholderText('Password');
+      const passwordInput = screen.getByLabelText('Password');
       await user.type(passwordInput, 'password123');
 
       // Button should still be disabled
@@ -269,7 +269,7 @@ describe('Login Component', () => {
 
       render(<Login />, { wrapper: createWrapper(context) });
 
-      const passwordInput = screen.getByPlaceholderText('Password');
+      const passwordInput = screen.getByLabelText('Password');
       await user.type(passwordInput, 'testpassword');
 
       const loginButton = screen.getByRole('button', { name: /login/i });

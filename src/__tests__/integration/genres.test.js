@@ -339,8 +339,7 @@ describe('Genres API Routes', () => {
         const data = await response.json();
 
         expect(response.status).toBe(403);
-        expect(data.error).toContain('Insufficient permissions');
-        expect(data.required).toBe('admin');
+        expect(data.error).toBe('Forbidden');
       });
 
       it('should reject requests from teachers', async () => {
@@ -352,8 +351,7 @@ describe('Genres API Routes', () => {
         const data = await response.json();
 
         expect(response.status).toBe(403);
-        expect(data.error).toContain('Insufficient permissions');
-        expect(data.required).toBe('admin');
+        expect(data.error).toBe('Forbidden');
       });
 
       it('should allow requests from admins', async () => {
@@ -595,8 +593,7 @@ describe('Genres API Routes', () => {
         const data = await response.json();
 
         expect(response.status).toBe(403);
-        expect(data.error).toContain('Insufficient permissions');
-        expect(data.required).toBe('admin');
+        expect(data.error).toBe('Forbidden');
       });
 
       it('should reject requests from teachers', async () => {
@@ -608,7 +605,7 @@ describe('Genres API Routes', () => {
         const data = await response.json();
 
         expect(response.status).toBe(403);
-        expect(data.error).toContain('Insufficient permissions');
+        expect(data.error).toBe('Forbidden');
       });
 
       it('should allow requests from admins', async () => {
@@ -822,8 +819,7 @@ describe('Genres API Routes', () => {
         const data = await response.json();
 
         expect(response.status).toBe(403);
-        expect(data.error).toContain('Insufficient permissions');
-        expect(data.required).toBe('admin');
+        expect(data.error).toBe('Forbidden');
       });
 
       it('should reject requests from teachers', async () => {
@@ -833,7 +829,7 @@ describe('Genres API Routes', () => {
         const data = await response.json();
 
         expect(response.status).toBe(403);
-        expect(data.error).toContain('Insufficient permissions');
+        expect(data.error).toBe('Forbidden');
       });
 
       it('should allow requests from admins', async () => {

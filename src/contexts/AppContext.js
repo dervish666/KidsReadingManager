@@ -91,6 +91,9 @@ export const AppProvider = ({ children }) => {
   // Track in-flight token refresh promise so concurrent callers share it
   const refreshingToken = useRef(null);
 
+  // Track whether initial data load has happened (avoids full reload on token refresh)
+  const hasLoadedData = useRef(false);
+
   // State for preferred number of priority students to display
   const [priorityStudentCount, setPriorityStudentCount] = useState(8);
   // State for reading status durations (in days)
@@ -785,11 +788,15 @@ export const AppProvider = ({ children }) => {
     }
   }, [user, reloadDataFromServer]);
 
-  // Initial load / auth-aware
+  // Initial load / auth-aware — only reload all data on first auth, not on token refresh
   useEffect(() => {
     if (authToken) {
-      reloadDataFromServer();
+      if (!hasLoadedData.current) {
+        hasLoadedData.current = true;
+        reloadDataFromServer();
+      }
     } else {
+      hasLoadedData.current = false;
       setLoading(false);
     }
   }, [authToken, reloadDataFromServer]);
