@@ -19,6 +19,7 @@ import {
   fetchAllEmployees,
   fetchDeletions
 } from '../utils/wondeApi.js';
+import { syncUserClassAssignments } from '../utils/classAssignments.js';
 
 /**
  * Maps a Wonde student object to Tally student fields.
@@ -276,6 +277,21 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
     // Execute employee-class inserts in batches of 100
     for (let i = 0; i < employeeStatements.length; i += 100) {
       await db.batch(employeeStatements.slice(i, i + 100));
+    }
+
+    // -----------------------------------------------------------------------
+    // Step 4b: Refresh class_assignments for users with wonde_employee_ids
+    // -----------------------------------------------------------------------
+    const usersWithWonde = await db.prepare(
+      'SELECT id, wonde_employee_id FROM users WHERE organization_id = ? AND wonde_employee_id IS NOT NULL AND is_active = 1'
+    ).bind(orgId).all();
+
+    for (const u of (usersWithWonde.results || [])) {
+      try {
+        await syncUserClassAssignments(db, u.id, u.wonde_employee_id, orgId);
+      } catch (err) {
+        console.warn(`[WondeSync] Could not sync class assignments for user ${u.id}:`, err.message);
+      }
     }
 
     // -----------------------------------------------------------------------

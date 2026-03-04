@@ -8,6 +8,11 @@ vi.mock('../../utils/wondeApi.js', () => ({
   fetchDeletions: vi.fn()
 }));
 
+// Mock classAssignments module
+vi.mock('../../utils/classAssignments.js', () => ({
+  syncUserClassAssignments: vi.fn().mockResolvedValue(0)
+}));
+
 import {
   mapWondeStudent,
   mapWondeClass,
@@ -21,6 +26,8 @@ import {
   fetchAllEmployees,
   fetchDeletions
 } from '../../utils/wondeApi.js';
+
+import { syncUserClassAssignments } from '../../utils/classAssignments.js';
 
 // ---------------------------------------------------------------------------
 // Helper: create a mock D1 database
@@ -674,5 +681,138 @@ describe('runFullSync', () => {
 
     expect(result.status).toBe('failed');
     expect(result.errorMessage).toContain('Student fetch failed');
+  });
+
+  it('refreshes class_assignments for users with wonde_employee_id after employee sync', async () => {
+    const usersWithWondeResults = [
+      { id: 'user-1', wonde_employee_id: 'WEMP_1' },
+      { id: 'user-2', wonde_employee_id: 'WEMP_2' }
+    ];
+
+    db.prepare = vi.fn().mockImplementation((sql) => {
+      if (sql.includes('SELECT id, wonde_employee_id FROM users')) {
+        return {
+          bind: vi.fn().mockReturnThis(),
+          all: vi.fn().mockResolvedValue({ results: usersWithWondeResults })
+        };
+      }
+      return {
+        bind: vi.fn().mockReturnThis(),
+        run: vi.fn().mockResolvedValue({ success: true }),
+        first: vi.fn().mockResolvedValue(null),
+        all: vi.fn().mockResolvedValue({ results: [] })
+      };
+    });
+    db.batch = vi.fn().mockResolvedValue([
+      { results: [], success: true },
+      { results: [], success: true }
+    ]);
+
+    syncUserClassAssignments.mockResolvedValue(2);
+
+    const result = await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
+
+    expect(result.status).toBe('completed');
+    expect(syncUserClassAssignments).toHaveBeenCalledTimes(2);
+    expect(syncUserClassAssignments).toHaveBeenCalledWith(db, 'user-1', 'WEMP_1', ORG_ID);
+    expect(syncUserClassAssignments).toHaveBeenCalledWith(db, 'user-2', 'WEMP_2', ORG_ID);
+  });
+
+  it('queries users with wonde_employee_id during sync', async () => {
+    const preparedStatements = [];
+    db.prepare = vi.fn().mockImplementation((sql) => {
+      preparedStatements.push(sql);
+      return {
+        bind: vi.fn().mockReturnThis(),
+        run: vi.fn().mockResolvedValue({ success: true }),
+        first: vi.fn().mockResolvedValue(null),
+        all: vi.fn().mockResolvedValue({ results: [] })
+      };
+    });
+    db.batch = vi.fn().mockResolvedValue([
+      { results: [], success: true },
+      { results: [], success: true }
+    ]);
+
+    await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
+
+    const userQuery = preparedStatements.find(sql =>
+      sql.includes('SELECT id, wonde_employee_id FROM users') &&
+      sql.includes('wonde_employee_id IS NOT NULL') &&
+      sql.includes('is_active = 1')
+    );
+    expect(userQuery).toBeDefined();
+  });
+
+  it('continues sync even if syncUserClassAssignments throws for one user', async () => {
+    const usersWithWondeResults = [
+      { id: 'user-fail', wonde_employee_id: 'WEMP_FAIL' },
+      { id: 'user-ok', wonde_employee_id: 'WEMP_OK' }
+    ];
+
+    db.prepare = vi.fn().mockImplementation((sql) => {
+      if (sql.includes('SELECT id, wonde_employee_id FROM users')) {
+        return {
+          bind: vi.fn().mockReturnThis(),
+          all: vi.fn().mockResolvedValue({ results: usersWithWondeResults })
+        };
+      }
+      return {
+        bind: vi.fn().mockReturnThis(),
+        run: vi.fn().mockResolvedValue({ success: true }),
+        first: vi.fn().mockResolvedValue(null),
+        all: vi.fn().mockResolvedValue({ results: [] })
+      };
+    });
+    db.batch = vi.fn().mockResolvedValue([
+      { results: [], success: true },
+      { results: [], success: true }
+    ]);
+
+    syncUserClassAssignments
+      .mockRejectedValueOnce(new Error('DB constraint error'))
+      .mockResolvedValueOnce(1);
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const result = await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
+
+    // Sync should still complete successfully
+    expect(result.status).toBe('completed');
+    // Both users should have been attempted
+    expect(syncUserClassAssignments).toHaveBeenCalledTimes(2);
+    // Warning should have been logged for the failed user
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('user-fail'),
+      expect.stringContaining('DB constraint error')
+    );
+
+    warnSpy.mockRestore();
+  });
+
+  it('skips class assignment refresh when no users have wonde_employee_id', async () => {
+    db.prepare = vi.fn().mockImplementation((sql) => {
+      if (sql.includes('SELECT id, wonde_employee_id FROM users')) {
+        return {
+          bind: vi.fn().mockReturnThis(),
+          all: vi.fn().mockResolvedValue({ results: [] })
+        };
+      }
+      return {
+        bind: vi.fn().mockReturnThis(),
+        run: vi.fn().mockResolvedValue({ success: true }),
+        first: vi.fn().mockResolvedValue(null),
+        all: vi.fn().mockResolvedValue({ results: [] })
+      };
+    });
+    db.batch = vi.fn().mockResolvedValue([
+      { results: [], success: true },
+      { results: [], success: true }
+    ]);
+
+    const result = await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
+
+    expect(result.status).toBe('completed');
+    expect(syncUserClassAssignments).not.toHaveBeenCalled();
   });
 });
