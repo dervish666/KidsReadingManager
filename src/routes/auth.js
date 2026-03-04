@@ -353,12 +353,22 @@ authRouter.post('/login', async (c) => {
       return c.json({ error: 'Server configuration error' }, 500);
     }
 
+    // Look up assigned class IDs
+    let assignedClassIds = [];
+    try {
+      const assignments = await db.prepare(
+        'SELECT class_id FROM class_assignments WHERE user_id = ?'
+      ).bind(user.id).all();
+      assignedClassIds = (assignments.results || []).map(r => r.class_id);
+    } catch { /* class_assignments table may not exist */ }
+
     const organization = { id: user.organization_id, slug: user.org_slug };
-    const userForPayload = { 
-      id: user.id, 
-      email: user.email, 
-      name: user.name, 
-      role: user.role 
+    const userForPayload = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      assignedClassIds,
     };
 
     const payload = createJWTPayload(userForPayload, organization);
@@ -392,7 +402,8 @@ authRouter.post('/login', async (c) => {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role
+        role: user.role,
+        assignedClassIds,
       },
       organization: {
         id: user.organization_id,
@@ -492,6 +503,15 @@ authRouter.post('/refresh', async (c) => {
       return c.json({ error: 'Server configuration error' }, 500);
     }
 
+    // Look up assigned class IDs
+    let assignedClassIds = [];
+    try {
+      const assignments = await db.prepare(
+        'SELECT class_id FROM class_assignments WHERE user_id = ?'
+      ).bind(storedToken.user_id).all();
+      assignedClassIds = (assignments.results || []).map(r => r.class_id);
+    } catch { /* class_assignments table may not exist */ }
+
     const organization = { id: storedToken.org_id, slug: storedToken.org_slug };
     const user = {
       id: storedToken.user_id,
@@ -499,6 +519,7 @@ authRouter.post('/refresh', async (c) => {
       name: storedToken.name,
       role: storedToken.role,
       authProvider: storedToken.auth_provider || 'local',
+      assignedClassIds,
     };
 
     const payload = createJWTPayload(user, organization);
@@ -533,6 +554,7 @@ authRouter.post('/refresh', async (c) => {
         name: storedToken.name,
         role: storedToken.role,
         authProvider: storedToken.auth_provider || 'local',
+        assignedClassIds,
       },
       organization: {
         id: storedToken.org_id,

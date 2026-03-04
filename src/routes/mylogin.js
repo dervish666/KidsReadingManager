@@ -268,11 +268,23 @@ myloginRouter.get('/callback', async (c) => {
     // -----------------------------------------------------------------------
     // 7. Issue Tally JWT (same pattern as src/routes/auth.js)
     // -----------------------------------------------------------------------
+
+    // Look up assigned class IDs for the JWT payload
+    let assignedClassIds = [];
+    try {
+      const assignments = await db.prepare(
+        'SELECT class_id FROM class_assignments WHERE user_id = ?'
+      ).bind(userId).all();
+      assignedClassIds = (assignments.results || []).map(r => r.class_id);
+    } catch { /* class_assignments table may not exist in legacy envs */ }
+
     const userForPayload = {
       id: userId,
       email,
       name,
-      role: existingUser ? existingUser.role : role
+      role: existingUser ? existingUser.role : role,
+      authProvider: 'mylogin',
+      assignedClassIds,
     };
 
     const payload = createJWTPayload(userForPayload, { id: org.id, slug: org.slug });

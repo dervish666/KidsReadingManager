@@ -255,7 +255,7 @@ export async function hashToken(token) {
  * @returns {Object} - JWT payload
  */
 export function createJWTPayload(user, organization) {
-  return {
+  const payload = {
     sub: user.id,
     email: user.email,
     name: user.name,
@@ -264,6 +264,10 @@ export function createJWTPayload(user, organization) {
     role: user.role,
     authProvider: user.authProvider || 'local',
   };
+  if (user.assignedClassIds && user.assignedClassIds.length > 0) {
+    payload.assignedClassIds = user.assignedClassIds;
+  }
+  return payload;
 }
 
 // ============================================================================
