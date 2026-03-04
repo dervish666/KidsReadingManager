@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.10.2] - 2026-03-04
+
+### Added
+- **Student search**: Text search field on the students page to filter by name (case-insensitive substring match) with clear button
+- **Reading status filter**: Clickable chip filters (All / Needs Attention / Not Read / Recently Read) to quickly narrow down students by reading status
+
 ## [3.10.1] - 2026-03-04
 
 ### Added

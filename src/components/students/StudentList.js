@@ -16,10 +16,14 @@ import {
   FormControl,
   InputLabel,
   Paper,
-  Pagination
+  Pagination,
+  Chip,
+  InputAdornment
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import SortIcon from '@mui/icons-material/Sort';
+import SearchIcon from '@mui/icons-material/Search';
+import ClearIcon from '@mui/icons-material/Clear';
 import { useAppContext } from '../../contexts/AppContext';
 import StudentTable from './StudentTable';
 import BulkImport from './BulkImport';
@@ -32,9 +36,10 @@ const StudentList = () => {
     apiError,
     addStudent,
     classes,
-    globalClassFilter
+    globalClassFilter,
+    getReadingStatus
   } = useAppContext();
-  
+
   const [newStudentName, setNewStudentName] = useState('');
   const [selectedClassId, setSelectedClassId] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
@@ -43,6 +48,8 @@ const StudentList = () => {
   const [sortMethod, setSortMethod] = useState('priority');
   const [sortDirection, setSortDirection] = useState('desc');
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const studentsPerPage = 25;
 
   const handleAddStudent = () => {
@@ -95,19 +102,31 @@ const StudentList = () => {
 
   const filteredAndSortedStudents = useMemo(() => {
     const disabledClassIds = classes.filter(cls => cls.disabled).map(cls => cls.id);
+    const query = searchQuery.trim().toLowerCase();
 
     const filteredStudents = students.filter(student => {
       if (student.classId && disabledClassIds.includes(student.classId)) {
         return false;
       }
 
-      if (globalClassFilter === 'all') {
-        return true;
+      if (globalClassFilter !== 'all') {
+        if (globalClassFilter === 'unassigned') {
+          if (student.classId) return false;
+        } else if (student.classId !== globalClassFilter) {
+          return false;
+        }
       }
-      if (globalClassFilter === 'unassigned') {
-        return !student.classId;
+
+      if (query && !student.name.toLowerCase().includes(query)) {
+        return false;
       }
-      return student.classId === globalClassFilter;
+
+      if (statusFilter !== 'all') {
+        const status = getReadingStatus(student);
+        if (status !== statusFilter) return false;
+      }
+
+      return true;
     });
 
     if (sortMethod === 'priority') {
@@ -143,12 +162,12 @@ const StudentList = () => {
 
       return sortDirection === 'asc' ? comparison : -comparison;
     });
-  }, [students, classes, globalClassFilter, sortMethod, sortDirection]);
+  }, [students, classes, globalClassFilter, sortMethod, sortDirection, searchQuery, statusFilter, getReadingStatus]);
 
   // Reset to page 1 when filters or sort change
   useEffect(() => {
     setCurrentPage(1);
-  }, [globalClassFilter, sortMethod, sortDirection]);
+  }, [globalClassFilter, sortMethod, sortDirection, searchQuery, statusFilter]);
 
   const totalPages = Math.ceil(filteredAndSortedStudents.length / studentsPerPage);
 
@@ -199,8 +218,79 @@ const StudentList = () => {
           gap: 2,
           flexWrap: 'wrap',
           width: { xs: '100%', sm: 'auto' },
-          justifyContent: { xs: 'stretch', sm: 'flex-end' }
+          justifyContent: { xs: 'stretch', sm: 'flex-end' },
+          alignItems: 'center'
         }}>
+          <TextField
+            size="small"
+            placeholder="Search students..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            sx={{
+              minWidth: { xs: '100%', sm: 180 },
+              flex: { xs: '1 1 100%', sm: 'none' },
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 4,
+                backgroundColor: '#ffffff',
+                boxShadow: 'inset 4px 4px 8px #d9d4e3, inset -4px -4px 8px #ffffff',
+                border: 'none',
+                '& fieldset': { border: 'none' },
+              }
+            }}
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ color: '#6B8E6B' }} fontSize="small" />
+                  </InputAdornment>
+                ),
+                endAdornment: searchQuery ? (
+                  <InputAdornment position="end">
+                    <ClearIcon
+                      sx={{ color: '#7A7A7A', cursor: 'pointer', fontSize: 18 }}
+                      onClick={() => setSearchQuery('')}
+                    />
+                  </InputAdornment>
+                ) : null,
+              }
+            }}
+          />
+          <Box sx={{
+            display: 'flex',
+            gap: 0.75,
+            flexWrap: 'wrap',
+            flex: { xs: '1 1 100%', sm: 'none' },
+            justifyContent: { xs: 'flex-start', sm: 'flex-end' }
+          }}>
+            {[
+              { value: 'all', label: 'All' },
+              { value: 'needsAttention', label: 'Needs Attention', color: 'warning' },
+              { value: 'notRead', label: 'Not Read', color: 'error' },
+              { value: 'recentlyRead', label: 'Recently Read', color: 'success' },
+            ].map((chip) => (
+              <Chip
+                key={chip.value}
+                label={chip.label}
+                size="small"
+                color={statusFilter === chip.value ? (chip.color || 'primary') : 'default'}
+                variant={statusFilter === chip.value ? 'filled' : 'outlined'}
+                onClick={() => setStatusFilter(chip.value)}
+                sx={{
+                  fontWeight: 600,
+                  fontFamily: '"DM Sans", sans-serif',
+                  cursor: 'pointer',
+                  ...(statusFilter !== chip.value && {
+                    borderColor: 'rgba(107, 142, 107, 0.3)',
+                    color: '#7A7A7A',
+                    '&:hover': {
+                      borderColor: '#6B8E6B',
+                      backgroundColor: 'rgba(107, 142, 107, 0.05)',
+                    }
+                  })
+                }}
+              />
+            ))}
+          </Box>
           <FormControl sx={{
             minWidth: { xs: '100%', sm: 200 },
             flex: { xs: '1 1 100%', sm: 'none' },
