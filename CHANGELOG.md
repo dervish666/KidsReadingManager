@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.9.0] - 2026-03-04
+
+### Added
+- **Enhanced User Management page**: Full-width table replacing side-by-side layout, with new Auth (SSO/Local) and Last Login (relative time) columns for visibility into Wonde/MyLogin users
+- **User search and filter**: Client-side search by name/email and All/SSO/Local auth provider toggle
+- **User detail dialog**: Shows full user profile including auth provider, Wonde Employee ID, and class assignments fetched from Wonde sync data
+- **GET /api/users/:id/classes endpoint**: Returns Wonde-synced class assignments for a user by joining `wonde_employee_classes` with `classes`
+- **Add User moved to dialog**: Form relocated from side panel to a dialog for cleaner layout
+
+### Fixed
+- **GET /api/users missing Wonde fields**: SQL queries now SELECT `auth_provider`, `mylogin_id`, and `wonde_employee_id` — the `rowToUser` mapper already handled them but the queries weren't fetching the columns
+- **Stale routes.yaml entries**: Removed non-existent `deactivate`/`reactivate` routes, added actual `erase`, `reset-password`, `export`, and `classes` endpoints
+
 ## [3.8.1] - 2026-03-03
 
 ### Added
