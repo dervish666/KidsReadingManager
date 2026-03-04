@@ -31,7 +31,8 @@ usersRouter.get('/', requireAdmin(), async (c) => {
     if (userRole === ROLES.OWNER) {
       query = `
         SELECT u.id, u.organization_id, o.name as organization_name, u.email, u.name, u.role,
-               u.is_active, u.last_login_at, u.created_at, u.updated_at
+               u.is_active, u.last_login_at, u.created_at, u.updated_at,
+               u.auth_provider, u.mylogin_id, u.wonde_employee_id
         FROM users u
         LEFT JOIN organizations o ON u.organization_id = o.id
         WHERE u.is_active = 1
@@ -41,7 +42,8 @@ usersRouter.get('/', requireAdmin(), async (c) => {
     } else {
       query = `
         SELECT u.id, u.organization_id, o.name as organization_name, u.email, u.name, u.role,
-               u.is_active, u.last_login_at, u.created_at, u.updated_at
+               u.is_active, u.last_login_at, u.created_at, u.updated_at,
+               u.auth_provider, u.mylogin_id, u.wonde_employee_id
         FROM users u
         LEFT JOIN organizations o ON u.organization_id = o.id
         WHERE u.organization_id = ?

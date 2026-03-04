@@ -280,6 +280,42 @@ describe('Users API Routes', () => {
         expect(data.users[0].isActive).toBe(true);
         expect(data.users[1].isActive).toBe(false);
       });
+
+      it('should include auth provider fields for SSO users', async () => {
+        const { app } = createTestApp({
+          userId: 'user-123',
+          organizationId: 'org-456',
+          userRole: ROLES.ADMIN
+        }, {
+          allResults: {
+            results: [
+              {
+                id: 'user-sso',
+                organization_id: 'org-456',
+                organization_name: 'Test School',
+                email: 'teacher@school.com',
+                name: 'SSO Teacher',
+                role: 'teacher',
+                is_active: 1,
+                last_login_at: '2024-03-01T09:00:00Z',
+                created_at: '2024-02-01',
+                updated_at: '2024-03-01',
+                auth_provider: 'mylogin',
+                mylogin_id: 'ml-12345',
+                wonde_employee_id: 'A1234567890'
+              }
+            ],
+            success: true
+          }
+        });
+
+        const response = await makeRequest(app, 'GET', '/api/users');
+        const data = await response.json();
+
+        expect(data.users[0].authProvider).toBe('mylogin');
+        expect(data.users[0].myloginId).toBe('ml-12345');
+        expect(data.users[0].wondeEmployeeId).toBe('A1234567890');
+      });
     });
   });
 
