@@ -326,12 +326,18 @@ files:
       - route: DELETE /api/users/:id
         description: Soft delete user
         requires: admin
-      - route: POST /api/users/:id/deactivate
-        description: Temporarily deactivate user
+      - route: GET /api/users/:id/classes
+        description: Get Wonde class assignments for a user
         requires: admin
-      - route: POST /api/users/:id/reactivate
-        description: Reactivate user
+      - route: DELETE /api/users/:id/erase
+        description: GDPR Article 17 hard delete user and data
         requires: admin
+      - route: POST /api/users/:id/reset-password
+        description: Reset user password (admin action)
+        requires: admin
+      - route: GET /api/users/:id/export
+        description: GDPR Article 15 subject access request export
+        requires: owner
     imports:
       - from: utils/crypto
         items: [hashPassword]
