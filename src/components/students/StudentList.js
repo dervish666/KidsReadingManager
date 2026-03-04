@@ -37,8 +37,11 @@ const StudentList = () => {
     addStudent,
     classes,
     globalClassFilter,
-    getReadingStatus
+    getReadingStatus,
+    user
   } = useAppContext();
+
+  const isLocalAuth = user?.authProvider !== 'mylogin';
 
   const [newStudentName, setNewStudentName] = useState('');
   const [selectedClassId, setSelectedClassId] = useState('');
@@ -320,47 +323,51 @@ const StudentList = () => {
               <MenuItem value="lastRead">Last Read</MenuItem>
             </Select>
           </FormControl>
-          <Button
-            variant="outlined"
-            onClick={handleOpenBulkDialog}
-            size="medium"
-            sx={{
-              flex: { xs: 1, sm: 'none' },
-              minWidth: { xs: 'auto', sm: 120 },
-              borderRadius: 4,
-              border: '2px solid rgba(107, 142, 107, 0.2)',
-              color: '#6B8E6B',
-              fontWeight: 700,
-              '&:hover': {
-                border: '2px solid #6B8E6B',
-                backgroundColor: 'rgba(107, 142, 107, 0.05)',
-              }
-            }}
-          >
-            <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Bulk Input</Box>
-            <Box sx={{ display: { xs: 'inline', sm: 'none' } }}>Input</Box>
-          </Button>
-          <Button
-            variant="outlined"
-            onClick={handleOpenDialog}
-            size="medium"
-            startIcon={<AddIcon />}
-            sx={{
-              flex: { xs: 1, sm: 'none' },
-              minWidth: { xs: 'auto', sm: 120 },
-              borderRadius: 4,
-              border: '2px solid rgba(107, 142, 107, 0.2)',
-              color: '#6B8E6B',
-              fontWeight: 700,
-              '&:hover': {
-                border: '2px solid #6B8E6B',
-                backgroundColor: 'rgba(107, 142, 107, 0.05)',
-              }
-            }}
-          >
-            <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Add Student</Box>
-            <Box sx={{ display: { xs: 'inline', sm: 'none' } }}>Add</Box>
-          </Button>
+          {isLocalAuth && (
+            <Button
+              variant="outlined"
+              onClick={handleOpenBulkDialog}
+              size="medium"
+              sx={{
+                flex: { xs: 1, sm: 'none' },
+                minWidth: { xs: 'auto', sm: 120 },
+                borderRadius: 4,
+                border: '2px solid rgba(107, 142, 107, 0.2)',
+                color: '#6B8E6B',
+                fontWeight: 700,
+                '&:hover': {
+                  border: '2px solid #6B8E6B',
+                  backgroundColor: 'rgba(107, 142, 107, 0.05)',
+                }
+              }}
+            >
+              <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Bulk Input</Box>
+              <Box sx={{ display: { xs: 'inline', sm: 'none' } }}>Input</Box>
+            </Button>
+          )}
+          {isLocalAuth && (
+            <Button
+              variant="outlined"
+              onClick={handleOpenDialog}
+              size="medium"
+              startIcon={<AddIcon />}
+              sx={{
+                flex: { xs: 1, sm: 'none' },
+                minWidth: { xs: 'auto', sm: 120 },
+                borderRadius: 4,
+                border: '2px solid rgba(107, 142, 107, 0.2)',
+                color: '#6B8E6B',
+                fontWeight: 700,
+                '&:hover': {
+                  border: '2px solid #6B8E6B',
+                  backgroundColor: 'rgba(107, 142, 107, 0.05)',
+                }
+              }}
+            >
+              <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Add Student</Box>
+              <Box sx={{ display: { xs: 'inline', sm: 'none' } }}>Add</Box>
+            </Button>
+          )}
         </Box>
       </Box>
 
@@ -375,24 +382,26 @@ const StudentList = () => {
           border: '1px dashed rgba(107, 142, 107, 0.3)'
         }}>
           <Typography variant="h6" sx={{ mb: 3, color: '#7A7A7A', fontFamily: '"Nunito", sans-serif' }}>
-            No students added yet. Add your first student to get started!
+            {isLocalAuth ? 'No students added yet. Add your first student to get started!' : 'No students found. Students are synced from your school system.'}
           </Typography>
-          <Button
-            variant="contained"
-            onClick={handleOpenDialog}
-            startIcon={<AddIcon />}
-            size="large"
-            sx={{
-              borderRadius: 4,
-              background: 'linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%)',
-              boxShadow: '12px 12px 24px rgba(107, 142, 107, 0.3), -8px -8px 16px rgba(255, 255, 255, 0.4)',
-              fontWeight: 700,
-              px: 4,
-              py: 1.5
-            }}
-          >
-            Add Student
-          </Button>
+          {isLocalAuth && (
+            <Button
+              variant="contained"
+              onClick={handleOpenDialog}
+              startIcon={<AddIcon />}
+              size="large"
+              sx={{
+                borderRadius: 4,
+                background: 'linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%)',
+                boxShadow: '12px 12px 24px rgba(107, 142, 107, 0.3), -8px -8px 16px rgba(255, 255, 255, 0.4)',
+                fontWeight: 700,
+                px: 4,
+                py: 1.5
+              }}
+            >
+              Add Student
+            </Button>
+          )}
         </Paper>
       ) : (
         <>

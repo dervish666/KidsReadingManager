@@ -251,28 +251,33 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
     // -----------------------------------------------------------------------
     // Step 4: Populate employee-class mappings
     // -----------------------------------------------------------------------
-    // On full sync, delete existing mappings for org first
+    // Build from classes data (which includes employees) — more reliable than
+    // the employees endpoint which may not return classes.data consistently.
     await db.prepare(
       `DELETE FROM wonde_employee_classes WHERE organization_id = ?`
     ).bind(orgId).run();
 
     const employeeStatements = [];
+    const seenEmployeeIds = new Set();
 
-    for (const we of wondeEmployees) {
-      const mapped = mapWondeEmployee(we);
+    for (const wc of wondeClasses) {
+      const employeesData = wc.employees?.data;
+      if (!Array.isArray(employeesData)) continue;
 
-      for (const wondeClassId of mapped.wondeClassIds) {
+      for (const emp of employeesData) {
         const mappingId = crypto.randomUUID();
+        const empName = `${emp.forename || ''} ${emp.surname || ''}`.trim();
         employeeStatements.push(
           db.prepare(
             `INSERT INTO wonde_employee_classes (id, organization_id, wonde_employee_id, wonde_class_id, employee_name)
              VALUES (?, ?, ?, ?, ?)`
-          ).bind(mappingId, orgId, mapped.wondeEmployeeId, wondeClassId, mapped.name)
+          ).bind(mappingId, orgId, emp.id, wc.id, empName)
         );
+        seenEmployeeIds.add(emp.id);
       }
-
-      counts.employeesSynced++;
     }
+
+    counts.employeesSynced = seenEmployeeIds.size;
 
     // Execute employee-class inserts in batches of 100
     for (let i = 0; i < employeeStatements.length; i += 100) {

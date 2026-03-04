@@ -230,8 +230,8 @@ describe('runFullSync', () => {
 
   // Sample Wonde API data
   const sampleClasses = [
-    { id: 'WCLS_1', name: 'Year 3 Red' },
-    { id: 'WCLS_2', name: 'Year 4 Blue' }
+    { id: 'WCLS_1', name: 'Year 3 Red', employees: { data: [{ id: 'WEMP_1', forename: 'Jane', surname: 'Teacher' }] } },
+    { id: 'WCLS_2', name: 'Year 4 Blue', employees: { data: [{ id: 'WEMP_1', forename: 'Jane', surname: 'Teacher' }] } }
   ];
 
   const sampleStudents = [
