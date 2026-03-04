@@ -19,6 +19,7 @@ import {
   hashToken
 } from '../utils/crypto.js';
 import { generateId } from '../utils/helpers.js';
+import { syncUserClassAssignments } from '../utils/classAssignments.js';
 
 export const myloginRouter = new Hono();
 
@@ -250,37 +251,17 @@ myloginRouter.get('/callback', async (c) => {
         placeholderHash
       ).run();
 
-      // For new teachers, look up their classes from wonde_employee_classes
-      if (role === 'teacher' && wondeEmployeeId) {
-        try {
-          const classResults = await db.prepare(
-            'SELECT wonde_class_id FROM wonde_employee_classes WHERE organization_id = ? AND wonde_employee_id = ?'
-          ).bind(org.id, wondeEmployeeId).all();
+    }
 
-          if (classResults.results && classResults.results.length > 0) {
-            console.log(`[MyLogin] Found ${classResults.results.length} class(es) for new teacher ${name}`);
-
-            // Attempt to assign classes via class_assignments table
-            for (const row of classResults.results) {
-              try {
-                const tallyClass = await db.prepare(
-                  'SELECT id FROM classes WHERE wonde_class_id = ? AND organization_id = ?'
-                ).bind(row.wonde_class_id, org.id).first();
-
-                if (tallyClass) {
-                  await db.prepare(
-                    'INSERT OR IGNORE INTO class_assignments (id, class_id, user_id, created_at) VALUES (?, ?, ?, datetime("now"))'
-                  ).bind(generateId(), tallyClass.id, userId).run();
-                }
-              } catch (classErr) {
-                // class_assignments table may not exist yet — graceful fallback
-                console.warn('[MyLogin] Could not assign class:', classErr.message);
-              }
-            }
-          }
-        } catch (empClassErr) {
-          console.warn('[MyLogin] Could not look up employee classes:', empClassErr.message);
+    // Sync class assignments for teachers (runs for both new and existing users)
+    if ((existingUser ? existingUser.role : role) === 'teacher' && wondeEmployeeId) {
+      try {
+        const assignedCount = await syncUserClassAssignments(db, userId, wondeEmployeeId, org.id);
+        if (assignedCount > 0) {
+          console.log(`[MyLogin] Synced ${assignedCount} class assignment(s) for ${name}`);
         }
+      } catch (err) {
+        console.warn('[MyLogin] Could not sync class assignments:', err.message);
       }
     }
 

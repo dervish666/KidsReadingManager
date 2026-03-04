@@ -18,9 +18,14 @@ vi.mock('../../utils/helpers.js', () => ({
   generateId: vi.fn()
 }));
 
+vi.mock('../../utils/classAssignments.js', () => ({
+  syncUserClassAssignments: vi.fn()
+}));
+
 import { myloginRouter } from '../../routes/mylogin.js';
 import { createJWTPayload, createAccessToken, createRefreshToken, hashToken } from '../../utils/crypto.js';
 import { generateId } from '../../utils/helpers.js';
+import { syncUserClassAssignments } from '../../utils/classAssignments.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -117,6 +122,7 @@ describe('MyLogin OAuth Routes', () => {
     });
     hashToken.mockResolvedValue('hashed-refresh-token');
     generateId.mockReturnValue('generated-id-1');
+    syncUserClassAssignments.mockResolvedValue(0);
   });
 
   afterEach(() => {
@@ -440,14 +446,13 @@ describe('MyLogin OAuth Routes', () => {
       expect(bindArgs).toContain('teacher');
     });
 
-    it('looks up wonde_employee_classes for new teachers', async () => {
+    it('syncs class assignments for new teachers via syncUserClassAssignments', async () => {
+      syncUserClassAssignments.mockResolvedValue(1);
+
       setupFetchMock(makeUserProfile({ type: 'employee' }));
       setupDbForCallback({
         orgFound: true,
-        existingUser: null,
-        employeeClasses: [
-          { wonde_class_id: 'wonde-class-A' }
-        ]
+        existingUser: null
       });
       env.READING_MANAGER_KV.get.mockResolvedValue('1');
 
@@ -457,11 +462,13 @@ describe('MyLogin OAuth Routes', () => {
         env
       );
 
-      // Should have queried wonde_employee_classes
-      const classLookup = env.READING_MANAGER_DB.prepare.mock.calls.find(
-        call => call[0].includes('wonde_employee_classes')
+      // Should have called the shared helper
+      expect(syncUserClassAssignments).toHaveBeenCalledWith(
+        env.READING_MANAGER_DB,
+        'generated-id-1',      // userId from generateId mock
+        'wonde-emp-456',       // wondeEmployeeId from profile
+        'org-id-1'             // org.id
       );
-      expect(classLookup).toBeDefined();
     });
 
     // -----------------------------------------------------------------------
@@ -507,6 +514,93 @@ describe('MyLogin OAuth Routes', () => {
         expect.objectContaining({ id: 'existing-user-id' }),
         expect.any(Object)
       );
+    });
+
+    // -----------------------------------------------------------------------
+    // Existing teacher: class assignment sync
+    // -----------------------------------------------------------------------
+    it('syncs class assignments for an existing teacher on login', async () => {
+      const existingTeacher = {
+        id: 'existing-teacher-id',
+        organization_id: 'org-id-1',
+        name: 'Jane Smith',
+        email: 'jane.smith@school.org',
+        role: 'teacher',
+        mylogin_id: 'ml-user-123'
+      };
+
+      syncUserClassAssignments.mockResolvedValue(2);
+
+      setupFetchMock();
+      setupDbForCallback({ orgFound: true, existingUser: existingTeacher });
+      env.READING_MANAGER_KV.get.mockResolvedValue('1');
+
+      const res = await app.request(
+        '/api/auth/mylogin/callback?code=code&state=state',
+        { method: 'GET' },
+        env
+      );
+
+      expect(res.status).toBe(302);
+      expect(res.headers.get('Location')).toBe('/?auth=callback');
+
+      // Should have called syncUserClassAssignments with the right args
+      expect(syncUserClassAssignments).toHaveBeenCalledWith(
+        env.READING_MANAGER_DB,
+        'existing-teacher-id',
+        'wonde-emp-456',
+        'org-id-1'
+      );
+    });
+
+    it('does not sync class assignments for non-teacher users', async () => {
+      const existingAdmin = {
+        id: 'existing-admin-id',
+        organization_id: 'org-id-1',
+        name: 'Admin User',
+        email: 'admin@school.org',
+        role: 'admin',
+        mylogin_id: 'ml-user-123'
+      };
+
+      setupFetchMock(makeUserProfile({ type: 'admin' }));
+      setupDbForCallback({ orgFound: true, existingUser: existingAdmin });
+      env.READING_MANAGER_KV.get.mockResolvedValue('1');
+
+      await app.request(
+        '/api/auth/mylogin/callback?code=code&state=state',
+        { method: 'GET' },
+        env
+      );
+
+      expect(syncUserClassAssignments).not.toHaveBeenCalled();
+    });
+
+    it('does not crash if class assignment sync fails', async () => {
+      const existingTeacher = {
+        id: 'existing-teacher-id',
+        organization_id: 'org-id-1',
+        name: 'Jane Smith',
+        email: 'jane.smith@school.org',
+        role: 'teacher',
+        mylogin_id: 'ml-user-123'
+      };
+
+      syncUserClassAssignments.mockRejectedValue(new Error('DB error'));
+
+      setupFetchMock();
+      setupDbForCallback({ orgFound: true, existingUser: existingTeacher });
+      env.READING_MANAGER_KV.get.mockResolvedValue('1');
+
+      const res = await app.request(
+        '/api/auth/mylogin/callback?code=code&state=state',
+        { method: 'GET' },
+        env
+      );
+
+      // Should still succeed — class sync error is non-fatal
+      expect(res.status).toBe(302);
+      expect(res.headers.get('Location')).toBe('/?auth=callback');
     });
 
     // -----------------------------------------------------------------------
