@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.10.0] - 2026-03-04
+
+### Added
+- **Class auto-assignment**: Teachers logging in via MyLogin SSO are automatically assigned to their Wonde-synced classes via the new `class_assignments` table (migration 0030)
+- **Auto-filter on login**: Frontend automatically sets the class filter to the teacher's first assigned class (alphabetically) on fresh SSO login
+- **Sync-time class refresh**: Wonde sync (overnight cron and manual sync) now refreshes `class_assignments` for all users with a `wonde_employee_id`
+- **`assignedClassIds` in JWT**: Class assignment IDs included in JWT payload and token refresh responses, enabling frontend auto-filter without extra API calls
+- **`syncUserClassAssignments` helper**: Shared utility (`src/utils/classAssignments.js`) used by both SSO login and Wonde sync to keep assignments current
+
+### Fixed
+- **Class assignments only for new users**: MyLogin callback previously only attempted class assignment for newly created users (and silently failed because the table didn't exist). Now runs for all teacher logins
+
 ## [3.9.0] - 2026-03-04
 
 ### Added
