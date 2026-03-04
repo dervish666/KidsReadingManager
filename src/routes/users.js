@@ -722,6 +722,62 @@ usersRouter.get('/:id/export', requireOwner(), async (c) => {
 });
 
 /**
+ * GET /api/users/:id/classes
+ * Get class assignments for a user (from Wonde employee-class mapping)
+ * Requires: admin role
+ */
+usersRouter.get('/:id/classes', requireAdmin(), async (c) => {
+  try {
+    const db = getDB(c.env);
+    const organizationId = c.get('organizationId');
+    const userRole = c.get('userRole');
+    const targetUserId = c.req.param('id');
+
+    // Fetch user - owners can see any user, admins only their org
+    let user;
+    if (userRole === ROLES.OWNER) {
+      user = await db.prepare(
+        'SELECT id, organization_id, wonde_employee_id FROM users WHERE id = ? AND is_active = 1'
+      ).bind(targetUserId).first();
+    } else {
+      user = await db.prepare(
+        'SELECT id, organization_id, wonde_employee_id FROM users WHERE id = ? AND organization_id = ? AND is_active = 1'
+      ).bind(targetUserId, organizationId).first();
+    }
+
+    if (!user) {
+      return c.json({ error: 'User not found' }, 404);
+    }
+
+    // If user has no Wonde employee ID, no class assignments to show
+    if (!user.wonde_employee_id) {
+      return c.json({ classes: [] });
+    }
+
+    // Fetch class assignments from wonde_employee_classes joined with classes
+    const result = await db.prepare(`
+      SELECT c.id as class_id, c.name as class_name, 'wonde' as source
+      FROM wonde_employee_classes wec
+      JOIN classes c ON c.wonde_class_id = wec.wonde_class_id AND c.organization_id = wec.organization_id
+      WHERE wec.wonde_employee_id = ? AND wec.organization_id = ?
+      ORDER BY c.name
+    `).bind(user.wonde_employee_id, user.organization_id).all();
+
+    const classes = (result.results || []).map(row => ({
+      classId: row.class_id,
+      className: row.class_name,
+      source: row.source
+    }));
+
+    return c.json({ classes });
+
+  } catch (error) {
+    console.error('Get user classes error:', error);
+    return c.json({ error: 'Failed to get user classes' }, 500);
+  }
+});
+
+/**
  * CSV helper: escape a value and wrap in quotes if needed
  */
 function csvRow(values) {

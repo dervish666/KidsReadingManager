@@ -1446,4 +1446,92 @@ describe('Users API Routes', () => {
       expect(data.error).toBe('Failed to reset password');
     });
   });
+
+  describe('GET /api/users/:id/classes', () => {
+    it('should reject requests from teachers', async () => {
+      const { app } = createTestApp({
+        userId: 'user-123',
+        organizationId: 'org-456',
+        userRole: ROLES.TEACHER
+      });
+
+      const response = await makeRequest(app, 'GET', '/api/users/user-1/classes');
+      expect(response.status).toBe(403);
+    });
+
+    it('should return Wonde class assignments for SSO user', async () => {
+      const mockDB = createMockDB();
+      let callCount = 0;
+      mockDB._chain.first.mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          return Promise.resolve({
+            id: 'user-1',
+            organization_id: 'org-456',
+            wonde_employee_id: 'A1234567890'
+          });
+        }
+        return Promise.resolve(null);
+      });
+      mockDB._chain.all.mockResolvedValue({
+        results: [
+          { class_id: 'class-1', class_name: 'Year 3 Elm', source: 'wonde' },
+          { class_id: 'class-2', class_name: 'Year 4 Oak', source: 'wonde' }
+        ],
+        success: true
+      });
+
+      const { app } = createTestApp({
+        userId: 'admin-1',
+        organizationId: 'org-456',
+        userRole: ROLES.ADMIN
+      }, mockDB);
+
+      const response = await makeRequest(app, 'GET', '/api/users/user-1/classes');
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.classes).toHaveLength(2);
+      expect(data.classes[0]).toEqual({
+        classId: 'class-1',
+        className: 'Year 3 Elm',
+        source: 'wonde'
+      });
+    });
+
+    it('should return empty array for local user with no Wonde ID', async () => {
+      const mockDB = createMockDB();
+      mockDB._chain.first.mockResolvedValue({
+        id: 'user-2',
+        organization_id: 'org-456',
+        wonde_employee_id: null
+      });
+
+      const { app } = createTestApp({
+        userId: 'admin-1',
+        organizationId: 'org-456',
+        userRole: ROLES.ADMIN
+      }, mockDB);
+
+      const response = await makeRequest(app, 'GET', '/api/users/user-2/classes');
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.classes).toEqual([]);
+    });
+
+    it('should return 404 for non-existent user', async () => {
+      const mockDB = createMockDB();
+      mockDB._chain.first.mockResolvedValue(null);
+
+      const { app } = createTestApp({
+        userId: 'admin-1',
+        organizationId: 'org-456',
+        userRole: ROLES.ADMIN
+      }, mockDB);
+
+      const response = await makeRequest(app, 'GET', '/api/users/nonexistent/classes');
+      expect(response.status).toBe(404);
+    });
+  });
 });
