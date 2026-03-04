@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.10.1] - 2026-03-04
+
+### Added
+- **Privacy policy page**: `/privacy` now renders the full GDPR privacy policy as a styled, standalone page (no login required). Fixes broken `/privacy` links in the DPA modal, login page, landing page, and settings page
+
 ## [3.10.0] - 2026-03-04
 
 ### Added
