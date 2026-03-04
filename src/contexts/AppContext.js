@@ -227,6 +227,12 @@ export const AppProvider = ({ children }) => {
                   window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(data.user));
                 }
               } catch { /* ignore */ }
+              // Auto-set class filter on fresh SSO login
+              if (data.user.assignedClassIds && data.user.assignedClassIds.length > 0) {
+                try {
+                  window.sessionStorage.setItem('pendingClassAutoFilter', JSON.stringify(data.user.assignedClassIds));
+                } catch { /* ignore */ }
+              }
             }
           } else {
             const errData = await response.json().catch(() => ({}));
@@ -678,12 +684,30 @@ export const AppProvider = ({ children }) => {
       setStudents(studentsWithClassId);
 
       // Classes (optional)
+      let fetchedClasses = [];
       if (classesResponse?.ok) {
         const classesData = await classesResponse.json();
+        fetchedClasses = classesData;
         setClasses(classesData);
       } else {
         setClasses([]);
       }
+
+      // After classes are loaded, check for pending auto-filter from SSO login
+      try {
+        const pending = window.sessionStorage.getItem('pendingClassAutoFilter');
+        if (pending) {
+          window.sessionStorage.removeItem('pendingClassAutoFilter');
+          const assignedIds = JSON.parse(pending);
+          // Find the first assigned class alphabetically by name
+          const assignedClasses = fetchedClasses
+            .filter(c => assignedIds.includes(c.id))
+            .sort((a, b) => a.name.localeCompare(b.name));
+          if (assignedClasses.length > 0) {
+            setGlobalClassFilter(assignedClasses[0].id);
+          }
+        }
+      } catch { /* ignore */ }
 
       // Books (optional)
       if (booksResponse?.ok) {
