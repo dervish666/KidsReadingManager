@@ -44,6 +44,7 @@ supportRouter.post('/', async (c) => {
 
   const ticketId = generateId();
   const organizationId = c.get('organizationId') || null;
+  const userId = c.get('userId') || user.sub || null;
 
   // Insert ticket
   await db.prepare(
@@ -52,14 +53,14 @@ supportRouter.post('/', async (c) => {
   ).bind(
     ticketId,
     organizationId,
-    user.id,
+    userId,
     user.name || 'Unknown',
     user.email || 'unknown',
     subject,
     message
   ).run();
 
-  // Send email notification (fire and forget — don't block the response)
+  // Send email notification (non-blocking — errors caught and logged)
   try {
     let organizationName = null;
     if (organizationId) {

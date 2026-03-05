@@ -61,7 +61,7 @@ describe('POST /api/support', () => {
       userId: 'user-1',
       organizationId: 'org-1',
       userRole: 'teacher',
-      user: { id: 'user-1', name: 'Jane Smith', email: 'jane@school.sch.uk' },
+      user: { sub: 'user-1', name: 'Jane Smith', email: 'jane@school.sch.uk' },
     });
 
     const res = await makeRequest(app, 'POST', '/api/support', {
@@ -84,7 +84,7 @@ describe('POST /api/support', () => {
       userId: 'user-1',
       organizationId: 'org-1',
       userRole: 'teacher',
-      user: { id: 'user-1', name: 'Jane', email: 'jane@test.com' },
+      user: { sub: 'user-1', name: 'Jane', email: 'jane@test.com' },
     });
 
     const res = await makeRequest(app, 'POST', '/api/support', {
@@ -101,7 +101,7 @@ describe('POST /api/support', () => {
       userId: 'user-1',
       organizationId: 'org-1',
       userRole: 'teacher',
-      user: { id: 'user-1', name: 'Jane', email: 'jane@test.com' },
+      user: { sub: 'user-1', name: 'Jane', email: 'jane@test.com' },
     });
 
     const res = await makeRequest(app, 'POST', '/api/support', {
@@ -118,7 +118,7 @@ describe('POST /api/support', () => {
       userId: 'user-1',
       organizationId: 'org-1',
       userRole: 'teacher',
-      user: { id: 'user-1', name: 'Jane', email: 'jane@test.com' },
+      user: { sub: 'user-1', name: 'Jane', email: 'jane@test.com' },
     });
 
     const res = await makeRequest(app, 'POST', '/api/support', {
@@ -136,7 +136,7 @@ describe('POST /api/support', () => {
       userId: 'user-1',
       organizationId: 'org-1',
       userRole: 'teacher',
-      user: { id: 'user-1', name: 'Jane', email: 'jane@test.com' },
+      user: { sub: 'user-1', name: 'Jane', email: 'jane@test.com' },
     });
 
     const res = await makeRequest(app, 'POST', '/api/support', {
@@ -165,7 +165,7 @@ describe('POST /api/support', () => {
       userId: 'user-1',
       organizationId: 'org-1',
       userRole: 'teacher',
-      user: { id: 'user-1', name: 'Jane', email: 'jane@test.com' },
+      user: { sub: 'user-1', name: 'Jane', email: 'jane@test.com' },
       env: {},
     });
 
@@ -184,7 +184,7 @@ describe('POST /api/support', () => {
       userId: 'user-1',
       organizationId: 'org-1',
       userRole: 'teacher',
-      user: { id: 'user-1', name: 'Jane', email: 'jane@test.com' },
+      user: { sub: 'user-1', name: 'Jane', email: 'jane@test.com' },
     });
 
     const res = await makeRequest(app, 'POST', '/api/support', {
