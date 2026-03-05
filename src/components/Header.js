@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { AppBar, Toolbar, Typography, Box, FormControl, Select, MenuItem, Button, Chip, Menu, CircularProgress } from '@mui/material';
+import { AppBar, Toolbar, Typography, Box, FormControl, Select, MenuItem, Button, Chip, Menu, CircularProgress, IconButton } from '@mui/material';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import TallyLogo from './TallyLogo';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SchoolOutlined from '@mui/icons-material/SchoolOutlined';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import packageJson from '../../package.json';
 import { useAppContext } from '../contexts/AppContext';
+import SupportModal from './SupportModal';
 
 const Header = () => {
   const {
@@ -24,6 +26,7 @@ const Header = () => {
 
   // State for school selector dropdown
   const [schoolAnchorEl, setSchoolAnchorEl] = useState(null);
+  const [supportOpen, setSupportOpen] = useState(false);
   const schoolMenuOpen = Boolean(schoolAnchorEl);
 
   const handleSchoolMenuClick = (event) => {
@@ -278,6 +281,18 @@ const Header = () => {
               </Box>
             )}
 
+            <IconButton
+              onClick={() => setSupportOpen(true)}
+              size="small"
+              aria-label="Contact support"
+              sx={{
+                color: '#6B8E6B',
+                '&:hover': { backgroundColor: 'rgba(107, 142, 107, 0.08)' },
+              }}
+            >
+              <HelpOutlineIcon sx={{ fontSize: 20 }} />
+            </IconButton>
+
             <Button
               variant="outlined"
               size="small"
@@ -303,6 +318,7 @@ const Header = () => {
           </Box>
         )}
       </Toolbar>
+      <SupportModal open={supportOpen} onClose={() => setSupportOpen(false)} />
     </AppBar>
   );
 };
