@@ -378,3 +378,21 @@ files:
         items: [decryptSensitiveData]
       - from: services/wondeSync
         items: [runFullSync]
+
+  support.js:
+    description: Support ticket submission endpoint
+    exports:
+      - name: supportRouter
+        kind: object
+        description: Hono router for support endpoints
+    endpoints:
+      - route: POST /api/support
+        description: Submit support ticket (rate limited 5/hour, requires auth)
+        requires: authenticated
+    imports:
+      - from: middleware/tenant
+        items: [rateLimit]
+      - from: utils/helpers
+        items: [generateId]
+      - from: utils/email
+        items: [sendSupportNotificationEmail]

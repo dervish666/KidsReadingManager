@@ -37,6 +37,22 @@ files:
         kind: component
         description: Student selector, Find in Library, AI Suggestions, focus mode toggle
 
+  SupportModal.js:
+    description: Support contact form modal (subject, message, email notification)
+    exports:
+      - name: SupportModal
+        kind: component
+        description: Dialog with subject/message form, success confirmation, auto-populated user context
+    props:
+      - open: boolean
+      - onClose: () => void
+    state: [subject, message, loading, error, success, ticketId]
+    imports:
+      - from: contexts/AppContext
+        items: [useAppContext]
+    api_calls:
+      - POST /api/support
+
   BookMetadataSettings.js:
     description: Metadata provider config and bulk operations (fill missing, refresh all)
     exports:

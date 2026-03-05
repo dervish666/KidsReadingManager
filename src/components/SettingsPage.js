@@ -6,7 +6,8 @@ import {
   Tabs,
   Tab,
   Chip,
-  Link
+  Link,
+  Button
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import PolicyIcon from '@mui/icons-material/Policy';
@@ -16,12 +17,14 @@ import SmartToyIcon from '@mui/icons-material/SmartToy';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import PeopleIcon from '@mui/icons-material/People';
 import SchoolIcon from '@mui/icons-material/School';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import Settings from './Settings';
 import DataManagement from './DataManagement';
 import AISettings from './AISettings';
 import BookMetadataSettings from './BookMetadataSettings';
 import UserManagement from './UserManagement';
 import SchoolManagement from './SchoolManagement';
+import SupportModal from './SupportModal';
 import { useAppContext } from '../contexts/AppContext';
 
 const SettingsPage = () => {
@@ -30,6 +33,7 @@ const SettingsPage = () => {
   
   // Only owners can manage schools
   const isOwner = user?.role === 'owner';
+  const [supportOpen, setSupportOpen] = useState(false);
 
   const handleTabChange = (event, newValue) => {
     setCurrentTab(newValue);
@@ -119,7 +123,45 @@ const SettingsPage = () => {
         </Box>
       </Box>
 
-      <Box sx={{ mt: 3, textAlign: 'center' }}>
+      <Box sx={{ mt: 3, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5 }}>
+        <Box
+          sx={{
+            backgroundColor: 'rgba(107, 142, 107, 0.06)',
+            borderRadius: '12px',
+            p: 2.5,
+            maxWidth: 400,
+            width: '100%',
+          }}
+        >
+          <Typography
+            variant="subtitle2"
+            sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: '#4A4A4A', mb: 0.5 }}
+          >
+            Need help?
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{ fontFamily: '"DM Sans", sans-serif', color: '#7A7A7A', mb: 1.5, fontSize: '0.85rem' }}
+          >
+            Get in touch and we'll help you get set up.
+          </Typography>
+          <Button
+            variant="outlined"
+            startIcon={<HelpOutlineIcon />}
+            onClick={() => setSupportOpen(true)}
+            sx={{
+              color: '#6B8E6B',
+              borderColor: 'rgba(107, 142, 107, 0.3)',
+              textTransform: 'none',
+              fontWeight: 600,
+              borderRadius: '10px',
+              '&:hover': { borderColor: '#6B8E6B', backgroundColor: 'rgba(107, 142, 107, 0.05)' },
+            }}
+          >
+            Contact support
+          </Button>
+        </Box>
+
         <Link
           href="/privacy"
           target="_blank"
@@ -138,6 +180,8 @@ const SettingsPage = () => {
           Privacy Policy
         </Link>
       </Box>
+
+      <SupportModal open={supportOpen} onClose={() => setSupportOpen(false)} />
     </Box>
   );
 };

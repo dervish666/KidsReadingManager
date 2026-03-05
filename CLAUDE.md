@@ -37,6 +37,7 @@ src/routes/data.js - GET/POST legacy data export/import
 src/routes/hardcover.js - POST Hardcover GraphQL API proxy
 src/routes/webhooks.js - POST Wonde webhook handler (schoolApproved, accessRevoked)
 src/routes/wondeAdmin.js - POST/GET manual Wonde sync and status
+src/routes/support.js - POST support ticket submission with D1 storage and email notification
 
 <!-- Middleware -->
 src/middleware/tenant.js - JWT auth, tenant isolation, role guards, audit logging, rate limiting
@@ -58,7 +59,7 @@ src/services/wondeSync.js - Wonde delta/full sync orchestration
 src/utils/crypto.js - PBKDF2 hashing, JWT, AES-GCM encryption, role constants
 src/utils/validation.js - Input validation for students, books, ranges
 src/utils/helpers.js - ID generation, reading status, student sorting
-src/utils/email.js - Password reset/welcome/signup emails (multi-provider)
+src/utils/email.js - Password reset/welcome/signup/support emails (multi-provider)
 src/utils/streakCalculator.js - Reading streak calculation with grace period
 src/utils/studentProfile.js - Build student reading profile for AI context
 src/utils/stringMatching.js - Levenshtein distance for book deduplication
@@ -92,6 +93,7 @@ src/components/TallyLogo.js - Shared tally mark SVG logo (4 vertical + 1 diagona
 src/components/TermsOfService.js - Terms of Service standalone page
 src/components/CookiePolicy.js - Cookie Policy standalone page
 src/components/BookRecommendations.js - AI recommendations with library search
+src/components/SupportModal.js - Support contact form modal (subject, message, email notification)
 src/components/BookMetadataSettings.js - Metadata provider config and bulk ops
 src/components/Settings.js - Reading status thresholds and streak settings
 src/components/SettingsPage.js - Settings hub with tabs
