@@ -308,3 +308,78 @@ ${loginUrl}
   console.warn('No email provider configured for welcome email.');
   return { success: false, error: 'Email service not configured' };
 }
+
+/**
+ * Send a notification email when a support ticket is submitted
+ * @param {Object} env - Cloudflare environment bindings
+ * @param {Object} ticket - Ticket details
+ * @param {string} ticket.ticketId - Ticket ID
+ * @param {string} ticket.userName - Submitter's name
+ * @param {string} ticket.userEmail - Submitter's email
+ * @param {string|null} ticket.organizationName - School name (may be null)
+ * @param {string} ticket.subject - Ticket subject
+ * @param {string} ticket.message - Ticket message
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export async function sendSupportNotificationEmail(env, ticket) {
+  const to = env.SUPPORT_EMAIL || env.EMAIL_FROM || 'hello@tallyreading.uk';
+  const from = env.EMAIL_FROM || 'hello@tallyreading.uk';
+  const subject = `[Tally Support] ${ticket.subject}`;
+  const timestamp = new Date().toISOString();
+
+  const textBody = `New support ticket from Tally Reading.
+
+Ticket ID: ${ticket.ticketId}
+From: ${ticket.userName} (${ticket.userEmail})
+School: ${ticket.organizationName || 'N/A'}
+Time: ${timestamp}
+
+Subject: ${ticket.subject}
+
+Message:
+${ticket.message}`;
+
+  const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%); padding: 30px; border-radius: 8px 8px 0 0;">
+    <h1 style="color: white; margin: 0; font-size: 24px;">Tally Reading — Support</h1>
+  </div>
+
+  <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+    <p style="font-size: 16px;">New support ticket submitted:</p>
+
+    <div style="background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 20px; margin: 20px 0;">
+      <p style="margin: 5px 0; font-family: monospace; background: #f3f4f6; padding: 8px; border-radius: 4px;">Ticket: ${escapeHtml(ticket.ticketId)}</p>
+      <p style="margin: 5px 0; font-family: monospace; background: #f3f4f6; padding: 8px; border-radius: 4px;">From: ${escapeHtml(ticket.userName)} (${escapeHtml(ticket.userEmail)})</p>
+      <p style="margin: 5px 0; font-family: monospace; background: #f3f4f6; padding: 8px; border-radius: 4px;">School: ${escapeHtml(ticket.organizationName || 'N/A')}</p>
+      <p style="margin: 5px 0; font-family: monospace; background: #f3f4f6; padding: 8px; border-radius: 4px;">Time: ${timestamp}</p>
+    </div>
+
+    <h3 style="margin-bottom: 8px;">${escapeHtml(ticket.subject)}</h3>
+    <div style="background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 20px; white-space: pre-wrap;">${escapeHtml(ticket.message)}</div>
+
+    <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+    <p style="color: #9ca3af; font-size: 12px; margin: 0;">Reply directly to ${escapeHtml(ticket.userEmail)}</p>
+  </div>
+</body>
+</html>`;
+
+  // Try Resend first
+  if (env.RESEND_API_KEY) {
+    return await sendWithResend(env.RESEND_API_KEY, from, to, subject, textBody, htmlBody);
+  }
+
+  // Try Cloudflare Email Routing binding
+  if (env.EMAIL_SENDER) {
+    return await sendWithCloudflareEmail(env.EMAIL_SENDER, from, to, subject, textBody, htmlBody);
+  }
+
+  console.warn('No email provider configured for support notification.');
+  return { success: false, error: 'Email service not configured' };
+}
