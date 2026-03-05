@@ -165,9 +165,6 @@ children's data:
    where applicable, recognising that children do not directly interact with
    the service.
 
-[TODO: Review against all 15 standards in the ICO Children's Code and
-document compliance or explain why each standard does not apply.]
-
 ---
 
 ## 5. Who we share data with

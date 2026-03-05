@@ -25,6 +25,8 @@ const SettingsPage = React.lazy(() => import('./components/SettingsPage'));
 
 // Lazy-load standalone pages (rendered outside auth)
 const PrivacyPolicy = React.lazy(() => import('./components/PrivacyPolicy'));
+const TermsOfService = React.lazy(() => import('./components/TermsOfService'));
+const CookiePolicy = React.lazy(() => import('./components/CookiePolicy'));
 
 // Import custom navigation icons
 import iconStudents from './assets/icon-students.png';
@@ -104,6 +106,30 @@ function AppContent() {
         </Box>
       }>
         <PrivacyPolicy />
+      </Suspense>
+    );
+  }
+
+  if (window.location.pathname === '/terms') {
+    return (
+      <Suspense fallback={
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          <CircularProgress sx={{ color: '#6B8E6B' }} />
+        </Box>
+      }>
+        <TermsOfService />
+      </Suspense>
+    );
+  }
+
+  if (window.location.pathname === '/cookies') {
+    return (
+      <Suspense fallback={
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          <CircularProgress sx={{ color: '#6B8E6B' }} />
+        </Box>
+      }>
+        <CookiePolicy />
       </Suspense>
     );
   }

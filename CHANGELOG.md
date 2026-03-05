@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.10.5] - 2026-03-05
+
+### Added
+- **Terms of Service page** — draft ToS at `/terms`, covering accounts, data ownership, AI recommendations, Wonde integration, liability, and subscription terms
+- **Cookie Policy page** — draft cookie policy at `/cookies`, documenting the single `refresh_token` cookie, browser storage usage, and explicit no-tracking statement
+- **Legal page links** — Login page now shows Privacy Policy, Terms, and Cookies links; landing page footer includes Cookies link
+
+### Documentation
+- **docs/terms-of-service.md** — 14-section Terms of Service draft for legal review
+- **docs/cookie-policy.md** — 9-section Cookie Policy draft for legal review
+
 ## [3.10.4] - 2026-03-04
 
 ### Security

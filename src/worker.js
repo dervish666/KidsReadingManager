@@ -227,7 +227,7 @@ app.get('/api/health', async (c) => {
   const health = {
     status: 'ok',
     message: 'Tally Reading API is running',
-    version: '3.10.4',
+    version: '3.10.5',
     environment: c.env.ENVIRONMENT || 'unknown',
     features: {
       multiTenant: Boolean(c.env.JWT_SECRET),

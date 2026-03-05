@@ -277,6 +277,7 @@ export default function LandingPage({ onSignIn }) {
             <ul className="lp-footer-links">
               <li><a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a></li>
               <li><a href="/terms" target="_blank" rel="noopener noreferrer">Terms</a></li>
+              <li><a href="/cookies" target="_blank" rel="noopener noreferrer">Cookies</a></li>
             </ul>
           </div>
         </footer>

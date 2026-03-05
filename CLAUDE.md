@@ -89,6 +89,8 @@ src/components/ErrorBoundary.js - React error boundary wrapper
 src/components/BookCover.js - Book cover image with placeholder fallback
 src/components/BookCoverPlaceholder.js - Gradient placeholder from title hash
 src/components/TallyLogo.js - Shared tally mark SVG logo (4 vertical + 1 diagonal line)
+src/components/TermsOfService.js - Terms of Service standalone page
+src/components/CookiePolicy.js - Cookie Policy standalone page
 src/components/BookRecommendations.js - AI recommendations with library search
 src/components/BookMetadataSettings.js - Metadata provider config and bulk ops
 src/components/Settings.js - Reading status thresholds and streak settings

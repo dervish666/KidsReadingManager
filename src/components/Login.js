@@ -628,6 +628,14 @@ const Login = ({ onBackToLanding } = {}) => {
         <Link href="/privacy" target="_blank" rel="noopener" sx={{ color: '#6B8E6B' }}>
           Privacy Policy
         </Link>
+        {' · '}
+        <Link href="/terms" target="_blank" rel="noopener" sx={{ color: '#6B8E6B' }}>
+          Terms
+        </Link>
+        {' · '}
+        <Link href="/cookies" target="_blank" rel="noopener" sx={{ color: '#6B8E6B' }}>
+          Cookies
+        </Link>
       </Typography>
     </Box>
   );
