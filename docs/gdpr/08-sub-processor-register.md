@@ -4,8 +4,6 @@
 
 **Last updated:** 2026-02-20
 
-> **DRAFT -- NOT YET LEGALLY REVIEWED**
->
 > This document is an internal draft prepared to record the sub-processors
 > engaged by Tally Reading in the delivery of its platform. It must be
 > reviewed and approved by a qualified data protection solicitor before
@@ -181,16 +179,3 @@ This register is reviewed:
 - Upon request by a controller school
 
 ---
-
-## Appendix: Outstanding Actions
-
-| # | Action | Priority |
-|---|---|---|
-| 1 | Download and countersign Cloudflare DPA from cloudflare.com/cloudflare-customer-dpa | Immediate |
-| 2 | Confirm D1 database location setting (EU/UK jurisdiction) in Cloudflare dashboard | Immediate |
-| 3 | Confirm international transfer mechanism for Cloudflare (IDTA or Data Localisation Suite) | Immediate |
-| ~~4~~ | ~~Remove student name from AI recommendation prompts~~ | **COMPLETED 2026-03-01** |
-| 5 | Obtain Resend DPA (if Resend is adopted as email provider) | Before adoption |
-| 6 | Insert privacy contact email address in Section 4.3 | Before launch |
-| 7 | Set next annual review date in Section 6 | Before launch |
-| 8 | Provide guidance to schools on obtaining their own DPAs with AI providers (Anthropic, OpenAI, Google) | Before AI feature is offered |

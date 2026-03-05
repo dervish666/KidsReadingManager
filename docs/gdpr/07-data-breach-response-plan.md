@@ -1,7 +1,6 @@
 # Data Breach Response Plan
 
 **Document Reference:** GDPR-07
-**Status:** DRAFT
 **Version:** 0.1
 **Last Updated:** 2026-02-20
 **Owner:** Sam Castillo (Director, Scratch IT LTD)

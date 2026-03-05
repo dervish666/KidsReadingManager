@@ -4,8 +4,6 @@
 
 **Last updated:** 2026-02-20
 
-> **DRAFT -- NOT YET LEGALLY REVIEWED**
->
 > This document is an internal working checklist tracking the actions
 > required to achieve and maintain UK GDPR compliance for the Tally
 > Reading platform. It must be reviewed by a qualified data protection
@@ -370,18 +368,3 @@ platform scales.
   demonstrates security maturity.
 
 ---
-
-## Cross-Reference: GDPR Document Suite
-
-| Document | File | Status |
-|---|---|---|
-| Privacy Policy | `docs/gdpr/01-privacy-policy.md` | Draft |
-| Data Processing Agreement | `docs/gdpr/02-data-processing-agreement.md` | Draft |
-| Data Protection Impact Assessment | `docs/gdpr/03-dpia.md` | Draft |
-| Records of Processing Activities | `docs/gdpr/04-ropa.md` | Draft |
-| Data Retention Policy | `docs/gdpr/05-data-retention-policy.md` | Draft |
-| Data Subject Rights Procedures | `docs/gdpr/06-data-subject-rights.md` | Draft |
-| Data Breach Response Plan | `docs/gdpr/07-data-breach-response-plan.md` | Draft |
-| Sub-Processor Register | `docs/gdpr/08-sub-processor-register.md` | Draft |
-| Technical Security Measures | `docs/gdpr/09-technical-security-measures.md` | Draft |
-| Compliance Checklist | `docs/gdpr/10-compliance-checklist.md` | Draft (this document) |

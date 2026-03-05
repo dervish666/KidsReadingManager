@@ -360,9 +360,6 @@ personal data, including:
 | **Minimal client-side data** | Only essential data is stored in the browser. Sensitive tokens use httpOnly cookies inaccessible to JavaScript. |
 | **Infrastructure security** | Hosted on Cloudflare's platform, which provides DDoS protection, Web Application Firewall (WAF), and is certified to ISO 27001, SOC 2 Type II, and PCI DSS. |
 
-[TODO: Obtain Cyber Essentials certification and reference it here. Budget:
-approximately GBP 320.]
-
 [TODO: Document incident response procedures and data breach notification
 process (Article 33: notify ICO within 72 hours; Article 34: notify data
 subjects if high risk).]
@@ -383,9 +380,6 @@ Tally, as required by Article 28 of UK GDPR. The DPA sets out:
 - Data breach notification obligations
 - Assistance with data subject rights requests
 - Data deletion or return upon termination
-
-[TODO: Draft and finalise the DPA as a separate document. Provide it to
-schools as part of the onboarding process.]
 
 ---
 
@@ -435,31 +429,3 @@ This privacy policy is made under and governed by:
 References to "UK GDPR" throughout this policy mean the UK General Data
 Protection Regulation as described above.
 
----
-
-## Appendix: TODO items requiring action before publication
-
-This section collates all outstanding items flagged with `[TODO]` throughout
-this document. All items must be resolved before this policy is published.
-
-| # | Section | Action required | Status |
-|---|---|---|---|
-| 1 | 1 | Insert registered company name, Companies House number, and registered address | **DONE** (2026-02-25) |
-| 2 | 1 | Appoint or document DPO (or document why one is not required under Article 37) | **DONE** (2026-02-25) |
-| 3 | 1 | Complete ICO registration and insert registration number | **DONE** (2026-03-01) |
-| 4 | 3 | Document Legitimate Interests Assessments (LIAs) for audit logging and rate limiting | Outstanding |
-| 5 | 4 | Review against all 15 standards of the ICO Children's Code and document findings | Outstanding |
-| 6 | 5.1 | Confirm whether Cloudflare Data Localisation Suite is enabled; document data residency | **DONE** (2026-03-01) — D1 in Western Europe (Germany), Cloudflare DPA v6.3, EU-US DPF certified |
-| 7 | 5.2 | Remove pupil name from AI prompts; update this section once complete | **DONE** (2026-02-25) |
-| 8 | 5.4 | Confirm email provider (Cloudflare Email Routing or Resend) | **DONE** (2026-02-25) |
-| 9 | 6 | Confirm international transfer mechanism for Cloudflare (IDTA/SCCs/Data Localisation) | **DONE** (2026-03-01) — Cloudflare DPA v6.3 with EU SCCs + UK IDTA; EU-US DPF certified |
-| 10 | 6 | Conduct and document Transfer Impact Assessments (TIAs) for each international transfer | **Partial** (2026-03-01) — Cloudflare covered by DPA; AI providers are BYOK (school's responsibility) |
-| 11 | 7 | Define and insert specific retention periods for pupil data and audit logs | **DONE** (2026-02-25) |
-| 12 | 7 | Implement automated data deletion routines (audit log purge, post-termination data deletion) | **Partial** — token/login/audit cleanup done; post-termination deletion outstanding |
-| 13 | 8 | Insert DPO/privacy contact email in all rights-exercise instructions | **DONE** (2026-02-25) |
-| 14 | 10 | Obtain Cyber Essentials certification | Outstanding |
-| 15 | 10 | Document incident response and data breach notification procedures | **DONE** — see GDPR-07 |
-| 16 | 11 | Draft and finalise the Data Processing Agreement | **DONE** (draft) — see GDPR-02. Legal review outstanding |
-| 17 | 12 | Effective date and last-updated date to be set at time of publication | Outstanding |
-| 18 | 13 | Insert all contact details | **DONE** (2026-02-25) |
-| 19 | -- | Commission qualified legal review of the complete policy before publication | Outstanding |

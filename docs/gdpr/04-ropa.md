@@ -1,6 +1,5 @@
 # Records of Processing Activities (ROPA)
 
-**DRAFT** -- Requires legal review before finalisation
 
 | | |
 |---|---|
@@ -273,21 +272,6 @@ This register must be reviewed:
 |---|---|---|
 | 2026-02-20 | Sam Castillo | Initial draft created |
 | 2026-02-25 | Sam Castillo | Company details added, AI prompt pseudonymisation confirmed, email provider confirmed as Cloudflare Email Routing, automated cleanup jobs implemented |
-
----
-
-## 7. Outstanding Actions
-
-| Item | Priority | Status |
-|---|---|---|
-| ~~Remove student name from AI recommendation prompts~~ | ~~High~~ | **COMPLETED 2026-02-25** |
-| ~~Confirm Cloudflare D1 data residency and encryption~~ | ~~High~~ | **COMPLETED 2026-03-01** — D1 in Western Europe (Germany), replication off, AES-256-GCM encryption at rest |
-| Complete Transfer Impact Assessments for US transfers | High | [TODO: TIA for Anthropic, OpenAI, Google, Cloudflare] |
-| ~~Confirm email sub-processor and transfer mechanism~~ | ~~Medium~~ | **COMPLETED 2026-02-25** — Cloudflare Email Routing confirmed |
-| Appoint DPO or document Article 37 exemption | Medium | [TODO: Legal assessment required] |
-| ~~Register with ICO~~ | ~~High~~ | **COMPLETED 2026-03-01** — ICO registration ZC098130 |
-| ~~Implement automated data retention cleanup jobs~~ | ~~High~~ | **COMPLETED 2026-02-25** — Daily cron cleanup for tokens, login attempts, audit log anonymisation |
-| ~~Document D1 backup and disaster recovery procedures~~ | ~~Medium~~ | **COMPLETED 2026-03-01** — Time Travel: 30-day PITR, minute granularity, automatic |
 
 ---
 

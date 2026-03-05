@@ -1,9 +1,5 @@
 # Data Processing Agreement
 
-**DRAFT -- This document requires review by a qualified legal professional before use.**
-
----
-
 **Data Processing Agreement**
 
 Between the School (as Controller) and Tally Reading (as Processor)
@@ -517,7 +513,3 @@ The following Sub-processors are approved by the Controller as at the date of th
 ---
 
 **END OF AGREEMENT**
-
----
-
-*IMPORTANT NOTICE: This document is provided as a draft template and does not constitute legal advice. It is intended as a starting point and must be reviewed, adapted, and approved by a qualified legal professional with expertise in UK data protection law before execution. The specific circumstances of each Controller and the nature of the processing should be taken into account during legal review. Scratch IT LTD accepts no liability for the use of this template without independent legal advice.*

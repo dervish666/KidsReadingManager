@@ -4,7 +4,6 @@
 
 | Field | Value |
 |---|---|
-| **Document Status** | DRAFT -- Requires DPO and legal review before finalisation |
 | **Version** | 0.1 |
 | **Date** | 2026-02-20 |
 | **Author** | Sam Castillo, Director, Scratch IT LTD |
@@ -678,5 +677,3 @@ The ICO's Age Appropriate Design Code applies to information society services li
 | **Geolocation** | Not collected. | N/A |
 
 ---
-
-*End of DPIA. This document is a DRAFT and must undergo DPO review, legal review, and sign-off before it is considered final. All items marked [TODO] must be completed before the DPIA can be approved.*

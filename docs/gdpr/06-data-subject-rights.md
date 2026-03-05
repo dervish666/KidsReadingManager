@@ -1,7 +1,6 @@
 # Data Subject Rights Procedures
 
 **Document Reference:** GDPR-06
-**Status:** DRAFT
 **Version:** 0.1
 **Last Updated:** 2026-02-20
 **Owner:** Sam Castillo (Director, Scratch IT LTD)

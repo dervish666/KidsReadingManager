@@ -4,8 +4,6 @@
 
 **Last updated:** 2026-02-20
 
-> **DRAFT -- NOT YET LEGALLY REVIEWED**
->
 > This document is an internal draft recording the technical and
 > organisational security measures implemented in the Tally Reading
 > platform. It is intended to satisfy the requirements of Article 32 of

@@ -1,7 +1,5 @@
 # Data Retention Policy
 
-**DRAFT** -- Requires legal review before finalisation
-
 | | |
 |---|---|
 | **Document Reference** | GDPR-05 |
@@ -64,47 +62,53 @@ This policy should be read alongside:
 
 ### 2.1 Current State vs Recommended Retention
 
-The table below documents both the current implementation (as of 2026-02-20) and the recommended retention periods. Where "Current Retention" differs from "Recommended Retention", implementation work is required.
+The table below documents the retention periods for all data categories. Updated 2026-03-05 to reflect current implementation status.
 
-| Data Category | Specific Data | Storage Location | Current Retention | Recommended Retention | Cleanup Method | Justification |
+| Data Category | Specific Data | Storage Location | Retention Period | Cleanup Method | Status | Justification |
 |---|---|---|---|---|---|---|
-| **Student records** | Name, reading level, reading level range, age range, class assignment, notes, preferences, last read date | D1 `students`, `student_preferences` | Indefinite (soft delete via `is_active`) | Subscription duration + 90 days, then hard delete | Automated daily job | Contract fulfilment. 90-day grace period allows school to renew or request data export. After grace period, data is no longer necessary for any processing purpose |
-| **Reading sessions** | Session date, duration, pages read, assessment, rating, notes, book reference, recorded-by user | D1 `reading_sessions` | Indefinite (no delete mechanism) | Subscription duration + 90 days, then hard delete | Automated daily job | Contract fulfilment. Sessions are the core service output and must be retained for the duration of service delivery. Cascade-deleted with student records |
-| **Reading streaks** | Current streak, longest streak, last read date, streak history | D1 `reading_streaks` | Indefinite | Subscription duration + 90 days, then hard delete | Automated daily job (cascade with student) | Contract fulfilment. Derived from session data. No value after student record deletion |
-| **User accounts** | Name, email, role, last login timestamp, active status | D1 `users` | Indefinite (soft delete via `is_active`) | Subscription duration + 90 days, then hard delete | Automated daily job | Contract fulfilment. Staff accounts needed for duration of school's use of the service |
-| **Password hashes** | PBKDF2 hash (100k iterations, 128-bit salt, 256-bit key) | D1 `users.password_hash` | Indefinite (persists with user record) | Until user account hard deletion | Deleted as part of user record deletion | Security. Hash has no value after account closure. Cannot be reversed to plaintext |
-| **Refresh tokens** | Token hash, user ID, expiry timestamp, revocation timestamp | D1 `refresh_tokens` | Indefinite (soft revoke via `revoked_at` timestamp, but rows never deleted) | 7 days after expiry, then hard delete | Automated daily job | Tokens expire after 7 days. Revoked or expired tokens serve no purpose. Retaining them increases database size without benefit |
-| **Password reset tokens** | Token hash, user ID, expiry timestamp, used timestamp | D1 `password_reset_tokens` | Indefinite (marked as used via `used_at`, but rows never deleted) | 24 hours after creation, then hard delete | Automated daily job | Tokens expire within 24 hours. Used or expired tokens serve no purpose and represent a (minimal) security liability if database is compromised |
-| **Login attempts** | Email, IP address, user-agent, success/failure, timestamp | D1 `login_attempts` | Indefinite (no cleanup implemented; migration comment suggests 24-hour cleanup but this is not automated) | 30 days, then hard delete | Automated daily job | Legitimate interests (security). 30-day window provides sufficient history for investigating suspicious patterns or account compromise while limiting unnecessary IP address retention |
-| **Audit logs** | User ID, organisation ID, IP address, user-agent, action, entity type/ID, timestamp | D1 `audit_log` | Indefinite (no cleanup implemented) | 2 years total. Anonymise IP address and user-agent after 90 days (replace with "anonymised"). Hard delete after 2 years | Automated daily job (two-phase: anonymise at 90 days, delete at 2 years) | Accountability (Article 5(2)). IP and user-agent needed short-term for security investigation. Anonymised logs retained for 2 years to support audit, dispute resolution, and regulatory compliance. 2-year period aligns with typical limitation periods |
-| **Rate limit entries** | IP address or user identifier, endpoint, timestamp | D1 `rate_limits` | Approximately 1 hour (probabilistic -- depends on when cleanup runs) | 1 hour (deterministic -- automated cleanup) | Automated cleanup (run with each request or via scheduled job) | Technical necessity only. Rate limit data has no value after the limiting window expires. Current probabilistic cleanup should be replaced with deterministic deletion |
-| **Book cover cache (client)** | Cover images stored as data URLs | Browser localStorage | 7 days (TTL-based expiry in client code) | 7 days (no change needed) | Client-side TTL expiry | Performance optimisation. Client-managed, not personal data. Current implementation is appropriate |
-| **Book cover cache (server)** | Cover images in R2 bucket | Cloudflare R2 `book-covers` | Indefinite (no R2 lifecycle rules configured) | 90 days via R2 lifecycle rule | R2 object lifecycle rule (auto-delete after 90 days) | Performance optimisation. Not personal data, but indefinite storage of cached third-party images is unnecessary. R2 lifecycle rules provide zero-maintenance cleanup |
-| **AI recommendation cache** | Hashed input (reading profile hash) mapped to AI response | Cloudflare KV `RECOMMENDATIONS_CACHE` | Indefinite (no TTL set on KV keys) | 7 days (KV TTL on write) | KV automatic expiry via `expirationTtl` | Performance and cost optimisation. Recommendations become stale as student reading progresses. 7-day TTL balances cache hit rate against freshness. Not directly identifiable (hashed key) |
-| **Session storage (client)** | UI state: selected student ID, filters, view preferences | Browser sessionStorage | Browser session (cleared on tab close) | Browser session (no change needed) | Auto-cleared by browser | Functional necessity. Not persisted beyond browser session. No action required |
-| **Organisation settings** | School name, timezone, reading status thresholds, AI provider config | D1 `org_settings`, `org_ai_config` | Indefinite | Subscription duration + 90 days, then hard delete | Automated daily job (cascade with organisation) | Contract fulfilment. Settings are part of the service configuration |
-| **AI API keys (encrypted)** | School-provided API keys, encrypted at rest | D1 `org_ai_config.api_key_encrypted` | Indefinite | Subscription duration + 90 days, then hard delete. Rotate encryption key annually | Automated daily job (cascade with organisation) | Contract fulfilment. Keys belong to the school and should be purged when the relationship ends |
-| **Classes** | Class name, year group, teacher assignment | D1 `classes` | Indefinite (soft delete via `is_active`) | Subscription duration + 90 days, then hard delete | Automated daily job (cascade with organisation) | Contract fulfilment |
-| **Book catalog** | Title, author, ISBN, page count, series, publication year, genre, description, cover ID | D1 `books` (global), `org_book_selections` (per-org links) | Indefinite | Books: indefinite (non-personal, shared catalog). Org-book links: subscription duration + 90 days | Automated daily job for org links. Books retained as shared resource | Books are non-personal bibliographic data. Only the org-specific link (which books a school has selected) needs deletion |
+| **Student records** | Name, reading level, reading level range, age range, class assignment, notes, preferences, last read date | D1 `students`, `student_preferences` | Subscription duration + 90 days, then hard delete | Automated daily job | Implemented (soft-deleted records auto hard-deleted after 90 days; individual hard delete via API) | Contract fulfilment. 90-day grace period allows school to renew or request data export |
+| **Reading sessions** | Session date, duration, pages read, assessment, rating, notes, book reference, recorded-by user | D1 `reading_sessions` | Subscription duration + 90 days, then hard delete | Cascade-deleted with student records | Implemented | Contract fulfilment. Cascade-deleted with student records |
+| **Reading streaks** | Current streak, longest streak, last read date, streak history | D1 `reading_streaks` | Subscription duration + 90 days, then hard delete | Cascade-deleted with student records | Implemented | Contract fulfilment. Derived from session data |
+| **User accounts** | Name, email, role, last login timestamp, active status | D1 `users` | Subscription duration + 90 days, then hard delete | Automated daily job | Implemented (soft-deleted records auto hard-deleted after 90 days; individual hard delete via API) | Contract fulfilment |
+| **Password hashes** | PBKDF2 hash (100k iterations, 128-bit salt, 256-bit key) | D1 `users.password_hash` | Until user account hard deletion | Deleted as part of user record | Implemented | Security. Cannot be reversed to plaintext |
+| **Refresh tokens** | Token hash, user ID, expiry timestamp, revocation timestamp | D1 `refresh_tokens` | Deleted on expiry or revocation | Automated daily job | Implemented | Expired/revoked tokens serve no purpose |
+| **Password reset tokens** | Token hash, user ID, expiry timestamp, used timestamp | D1 `password_reset_tokens` | Deleted on expiry or use | Automated daily job | Implemented | Expired/used tokens serve no purpose |
+| **Login attempts** | Email, IP address, user-agent, success/failure, timestamp | D1 `login_attempts` | 30 days, then hard delete | Automated daily job | Implemented | Legitimate interests (security). 30-day window for investigating suspicious patterns |
+| **Audit logs** | User ID, organisation ID, IP address, user-agent, action, entity type/ID, timestamp | D1 `audit_log` | Anonymise IP/user-agent after 90 days. Hard delete after 2 years | Automated daily job (two-phase) | Anonymisation: implemented. Hard delete at 2 years: **not yet implemented** | Accountability (Article 5(2)). 2-year period aligns with typical limitation periods |
+| **Rate limit entries** | IP address or user identifier, endpoint, timestamp | D1 `rate_limits` | 1 hour, then hard delete | Automated daily job | Implemented | Technical necessity only |
+| **Book cover cache (client)** | Cover images stored as data URLs | Browser localStorage | 7 days (TTL-based expiry) | Client-side TTL expiry | Implemented | Performance optimisation. Client-managed, not personal data |
+| **Book cover cache (server)** | Cover images in R2 bucket | Cloudflare R2 `book-covers` | 90 days via R2 lifecycle rule | R2 object lifecycle rule | **Not yet configured** | Performance optimisation. Not personal data |
+| **AI recommendation cache** | Hashed input (reading profile hash) mapped to AI response | Cloudflare KV `RECOMMENDATIONS_CACHE` | 7 days (KV TTL on write) | KV automatic expiry via `expirationTtl` | Implemented | Performance optimisation. Not directly identifiable (hashed key) |
+| **Session storage (client)** | UI state: selected student ID, filters, view preferences | Browser sessionStorage | Browser session (cleared on tab close) | Auto-cleared by browser | Implemented | Functional necessity |
+| **Organisation settings** | School name, timezone, reading status thresholds, AI provider config | D1 `org_settings`, `org_ai_config` | Subscription duration + 90 days, then hard delete | Cascade-deleted with organisation | Partially implemented (cascade with org hard delete not yet available) | Contract fulfilment |
+| **AI API keys (encrypted)** | School-provided API keys, encrypted at rest | D1 `org_ai_config.api_key_encrypted` | Subscription duration + 90 days, then hard delete | Cascade-deleted with organisation | Partially implemented (cascade with org hard delete not yet available) | Contract fulfilment. Keys belong to the school |
+| **Classes** | Class name, year group, teacher assignment | D1 `classes` | Subscription duration + 90 days, then hard delete | Cascade-deleted with organisation | Partially implemented (cascade with org hard delete not yet available) | Contract fulfilment |
+| **Book catalog** | Title, author, ISBN, page count, series, publication year, genre, description, cover ID | D1 `books` (global), `org_book_selections` (per-org links) | Books: indefinite (non-personal, shared catalog). Org-book links: subscription duration + 90 days | Automated daily job for org links | Partially implemented (org link cleanup depends on org hard delete) | Books are non-personal bibliographic data |
 
 ### 2.2 Summary of Implementation Gaps
 
-The following retention mechanisms do not yet exist and must be implemented:
+The following retention mechanisms have been implemented (via daily cron in `src/worker.js` and application code):
+
+- ~~Refresh token cleanup~~ -- Expired/revoked tokens deleted daily
+- ~~Password reset token cleanup~~ -- Expired/used tokens deleted daily
+- ~~Login attempt cleanup~~ -- Entries older than 30 days deleted daily
+- ~~Rate limit deterministic cleanup~~ -- Entries older than 1 hour deleted daily
+- ~~Audit log anonymisation~~ -- IP/user-agent anonymised after 90 days daily
+- ~~KV recommendation cache TTL~~ -- 7-day `expirationTtl` set on all cache writes
+- ~~Individual hard delete~~ -- Students and users can be permanently erased via API with cascade deletion
+
+The following gaps remain:
 
 | Gap | Current State | Required Implementation | Priority |
 |---|---|---|---|
 | Subscription expiry tracking | No subscription end date stored | Add `subscription_expires_at` column to `organizations` table | High |
-| Post-subscription hard delete | Soft delete only; no time-based purge | Scheduled Worker job: identify organisations where `subscription_expires_at + 90 days < now()`, cascade hard delete all org data | High |
-| Refresh token cleanup | Rows accumulate indefinitely | Scheduled Worker job: `DELETE FROM refresh_tokens WHERE expires_at < datetime('now', '-7 days')` | High |
-| Password reset token cleanup | Rows accumulate indefinitely | Scheduled Worker job: `DELETE FROM password_reset_tokens WHERE created_at < datetime('now', '-24 hours')` | High |
-| Login attempt cleanup | Rows accumulate indefinitely | Scheduled Worker job: `DELETE FROM login_attempts WHERE created_at < datetime('now', '-30 days')` | High |
-| Audit log anonymisation | No anonymisation mechanism | Scheduled Worker job: `UPDATE audit_log SET ip_address = 'anonymised', user_agent = 'anonymised' WHERE created_at < datetime('now', '-90 days') AND ip_address != 'anonymised'` | Medium |
-| Audit log hard delete | No deletion mechanism | Scheduled Worker job: `DELETE FROM audit_log WHERE created_at < datetime('now', '-2 years')` | Medium |
-| Rate limit deterministic cleanup | Probabilistic (comment in migration only) | Scheduled Worker job: `DELETE FROM rate_limits WHERE created_at < datetime('now', '-1 hour')` | Medium |
-| R2 cover cache lifecycle | No lifecycle rule | Configure R2 lifecycle rule: delete objects older than 90 days | Low |
-| KV recommendation cache TTL | No TTL on KV writes | Set `expirationTtl: 604800` (7 days) on all KV put operations for recommendation cache | Medium |
-
-[TODO: Create migration and scheduled worker implementation for the above. Consider adding all cleanup jobs to the existing daily cron trigger (02:00 UTC) in `wrangler.toml`.]
+| Organisation-level hard delete | Soft delete only (sets `is_active = 0`) | API endpoint to permanently delete an organisation and all associated data | High |
+| Audit log hard delete | No deletion mechanism for very old entries | Extend scheduled worker: `DELETE FROM audit_log WHERE created_at < datetime('now', '-2 years')` | High |
+| Post-subscription hard delete | No subscription-aware purge | Scheduled worker to cascade hard delete all data for orgs where `subscription_expires_at + 90 days < now()` | Medium |
+| R2 cover cache lifecycle | No lifecycle rule configured | Configure R2 lifecycle rule: delete objects older than 90 days | Medium |
+| Bulk data export | No multi-tenant export endpoint | API for controllers to export organisation data in CSV/JSON | Medium |
+| Legal hold mechanism | No legal hold flag | Add `legal_hold` column to organisations; exclude from automated cleanup | Low |
+| Retention monitoring | No visibility into retention job status | Admin dashboard showing data volumes, oldest records, cleanup job status | Low |
 
 ---
 
@@ -263,31 +267,33 @@ This policy must be reviewed:
 
 ## 8. Implementation Roadmap
 
-The following implementation work is required to bring the application into compliance with this policy. Items are ordered by priority.
+The following implementation work remains to bring the application into full compliance with this policy. Items are ordered by priority.
 
-### Phase 1: High Priority (implement before production launch)
+#### Completed
 
-1. **Add subscription expiry tracking** -- New D1 migration: add `subscription_expires_at` column to `organizations` table
-2. **Implement daily cleanup scheduled worker** -- Extend existing cron trigger (02:00 UTC) to run retention cleanup:
-   - Delete expired refresh tokens (older than 7 days past expiry)
-   - Delete expired password reset tokens (older than 24 hours)
-   - Delete old login attempts (older than 30 days)
-   - Delete old rate limit entries (older than 1 hour)
-3. **Set KV TTL on recommendation cache writes** -- Add `expirationTtl: 604800` to all `RECOMMENDATIONS_CACHE.put()` calls
-4. **Implement hard delete for controller erasure requests** -- API endpoint to permanently delete an organisation and all associated data
+The following items have been implemented:
 
-### Phase 2: Medium Priority (implement within 3 months)
+- **Daily cleanup scheduled worker** -- Cron trigger (02:00 UTC) runs retention cleanup: expired refresh tokens, expired password reset tokens, login attempts older than 30 days, rate limit entries older than 1 hour, expired OAuth states (`src/worker.js`)
+- **KV TTL on recommendation cache writes** -- `expirationTtl: 604800` (7 days) set on all `RECOMMENDATIONS_CACHE.put()` calls (`src/utils/recommendationCache.js`)
+- **Audit log anonymisation job** -- Scheduled worker anonymises IP/user-agent in audit logs older than 90 days (`src/worker.js`)
+- **Hard delete for individual erasure requests** -- Students and users can be permanently deleted via API with cascade deletion of associated data and audit log anonymisation (`src/routes/students.js`, `src/routes/users.js`)
+- **Auto hard-delete of soft-deleted records** -- Scheduled worker hard-deletes soft-deleted students, users, and empty organisations after 90-day retention period (`src/worker.js`)
 
-5. **Audit log anonymisation job** -- Extend scheduled worker to anonymise IP/user-agent in audit logs older than 90 days
-6. **Audit log hard delete job** -- Extend scheduled worker to delete audit log entries older than 2 years
-7. **Post-subscription grace period cleanup** -- Extend scheduled worker to hard delete all data for organisations whose subscription expired more than 90 days ago
-8. **Configure R2 lifecycle rule** -- Set 90-day auto-delete on the `book-covers` R2 bucket
+#### Remaining
 
-### Phase 3: Lower Priority (implement within 6 months)
+### Phase 1: High Priority
 
-9. **Bulk data export endpoint** -- API for controllers to export their organisation's data in CSV/JSON
-10. **Legal hold mechanism** -- Add `legal_hold` flag to organisations table; exclude from automated cleanup
-11. **Retention monitoring dashboard** -- Admin view showing data volumes, oldest records, and cleanup job status
+1. **Organisation-level hard delete endpoint** -- API endpoint to permanently delete an organisation and all associated data (students, users, sessions, classes, settings). Current organisation delete is soft-delete only
+2. **Audit log hard delete job** -- Extend scheduled worker to delete audit log entries older than 2 years
+
+### Phase 2: Medium Priority
+
+3. **Bulk data export endpoint** -- API for controllers to export their organisation's data in CSV/JSON (required for Article 20 data portability)
+
+### Phase 3: Lower Priority
+
+4. **Legal hold mechanism** -- Add `legal_hold` flag to organisations table; exclude from automated cleanup
+5. **Retention monitoring dashboard** -- Admin view showing data volumes, oldest records, and cleanup job status
 
 ---
 
