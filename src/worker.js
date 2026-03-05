@@ -33,6 +33,7 @@ import { hardcoverRouter } from './routes/hardcover';
 import { myloginRouter } from './routes/mylogin.js';
 import webhooksRouter from './routes/webhooks.js';
 import wondeAdminRouter from './routes/wondeAdmin.js';
+import { supportRouter } from './routes/support.js';
 import { runFullSync } from './services/wondeSync.js';
 import { decryptSensitiveData } from './utils/crypto.js';
 
@@ -221,6 +222,7 @@ app.route('/api/hardcover', hardcoverRouter);
 app.route('/api/auth/mylogin', myloginRouter);
 app.route('/api/webhooks', webhooksRouter);
 app.route('/api/wonde', wondeAdminRouter);
+app.route('/api/support', supportRouter);
 
 // API health check (public)
 app.get('/api/health', async (c) => {
