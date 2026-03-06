@@ -97,7 +97,6 @@ const BookRecommendations = () => {
   const [aiLoading, setAiLoading] = useState(false);
   const [resultType, setResultType] = useState(null); // 'library' or 'ai'
   const [studentProfile, setStudentProfile] = useState(null);
-  const [profileLoading, setProfileLoading] = useState(false);
 
   // State for preferences modal
   const [preferencesOpen, setPreferencesOpen] = useState(false);
@@ -203,20 +202,9 @@ const BookRecommendations = () => {
     setResultType(null);
     setError(null);
 
-    // Fetch the student profile for display
+    // Auto-trigger library search (which also loads the profile)
     if (studentId) {
-      setProfileLoading(true);
-      try {
-        const response = await fetchWithAuth(`/api/books/library-search?studentId=${studentId}`);
-        if (response.ok) {
-          const data = await response.json();
-          setStudentProfile(data.studentProfile);
-        }
-      } catch (err) {
-        // Profile loading failed silently
-      } finally {
-        setProfileLoading(false);
-      }
+      await triggerLibrarySearch(studentId);
     }
   };
 
@@ -523,12 +511,7 @@ const BookRecommendations = () => {
             </Button>
           </Box>
 
-          {profileLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-              <CircularProgress size={20} />
-            </Box>
-          ) : (
-            <Box sx={{
+          <Box sx={{
               display: 'grid',
               gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
               gap: 2
@@ -617,23 +600,12 @@ const BookRecommendations = () => {
                 )}
               </Box>
             </Box>
-          )}
         </Paper>
       )}
 
-      {/* Two Buttons Area */}
+      {/* Action Area - Focus mode and AI button */}
       {selectedStudentId && (
         <Box sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'center', flexWrap: 'wrap' }}>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleLibrarySearch}
-            disabled={!selectedStudentId || libraryLoading || aiLoading}
-            startIcon={libraryLoading ? <CircularProgress size={20} color="inherit" /> : <BookIcon />}
-          >
-            {libraryLoading ? 'Searching...' : 'Find in Library'}
-          </Button>
-
           <FormControl size="small" sx={{ minWidth: 150 }}>
             <InputLabel id="focus-mode-label">Focus</InputLabel>
             <Select
@@ -674,6 +646,33 @@ const BookRecommendations = () => {
         <Alert severity="error" sx={{ mb: 3 }}>
           {error}
         </Alert>
+      )}
+
+      {/* Loading skeleton */}
+      {(libraryLoading || aiLoading) && (
+        <Box data-testid="loading-skeleton" sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2, mb: 3 }}>
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} sx={{ p: 2, display: 'flex', gap: 2 }}>
+              <Box sx={{
+                width: isMobile ? 100 : 120,
+                height: isMobile ? 150 : 180,
+                borderRadius: 1,
+                bgcolor: 'rgba(139, 115, 85, 0.08)',
+                animation: 'pulse 1.5s ease-in-out infinite',
+                '@keyframes pulse': {
+                  '0%, 100%': { opacity: 0.4 },
+                  '50%': { opacity: 0.8 },
+                },
+                flexShrink: 0
+              }} />
+              <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1, py: 1 }}>
+                <Box sx={{ width: '70%', height: 20, borderRadius: 1, bgcolor: 'rgba(139, 115, 85, 0.08)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+                <Box sx={{ width: '40%', height: 16, borderRadius: 1, bgcolor: 'rgba(139, 115, 85, 0.06)', animation: 'pulse 1.5s ease-in-out 0.2s infinite' }} />
+                <Box sx={{ width: '90%', height: 14, borderRadius: 1, bgcolor: 'rgba(139, 115, 85, 0.05)', animation: 'pulse 1.5s ease-in-out 0.4s infinite', mt: 'auto' }} />
+              </Box>
+            </Card>
+          ))}
+        </Box>
       )}
 
       {/* Results Header */}
@@ -793,35 +792,15 @@ const BookRecommendations = () => {
         </Grid>
       )}
 
-      {/* No recommendations yet */}
-      {recommendations.length === 0 && selectedStudentId && !libraryLoading && !aiLoading && !error && (
-        <Paper sx={{ p: 3 }}>
-          <Typography variant="body1" color="text.secondary">
-            Click "Find in Library" to search your book collection, or "AI Suggestions" for personalized recommendations.
-          </Typography>
-        </Paper>
-      )}
-
       {/* Reading Preferences Modal */}
       {selectedStudent && (
         <StudentProfile
           open={preferencesOpen}
           onClose={async () => {
             setPreferencesOpen(false);
-            // Refresh student profile after closing preferences modal
+            // Re-run library search to refresh profile and results
             if (selectedStudentId) {
-              setProfileLoading(true);
-              try {
-                const response = await fetchWithAuth(`/api/books/library-search?studentId=${selectedStudentId}`);
-                if (response.ok) {
-                  const data = await response.json();
-                  setStudentProfile(data.studentProfile);
-                }
-              } catch (err) {
-                // Profile refresh failed silently
-              } finally {
-                setProfileLoading(false);
-              }
+              await triggerLibrarySearch(selectedStudentId);
             }
           }}
           student={selectedStudent}

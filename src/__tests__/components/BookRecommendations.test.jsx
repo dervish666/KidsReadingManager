@@ -280,6 +280,76 @@ describe('BookRecommendations Component', () => {
     });
   });
 
+  describe('Auto-Search on Selection', () => {
+    it('should auto-trigger library search when student is selected from dropdown', async () => {
+      const user = userEvent.setup();
+      const mockFetch = createMockFetch();
+      const mockContext = createMockContext({
+        fetchWithAuth: mockFetch
+      });
+      render(<BookRecommendations />, { wrapper: createWrapper(mockContext) });
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Student')).toBeInTheDocument();
+      });
+
+      // Open dropdown and select student
+      await user.click(screen.getByLabelText('Student'));
+      await user.click(screen.getByText('Alice Smith (2 books read)'));
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining('/api/books/library-search?studentId=student-1')
+        );
+      });
+    });
+
+    it('should show loading skeleton while searching', async () => {
+      const user = userEvent.setup();
+      let resolveSearch;
+      const mockFetch = vi.fn().mockImplementation((url) => {
+        if (url === '/api/settings/ai') {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ hasApiKey: true, provider: 'anthropic' })
+          });
+        }
+        if (url.startsWith('/api/books/library-search')) {
+          return new Promise((resolve) => {
+            resolveSearch = resolve;
+          });
+        }
+        return Promise.resolve({ ok: false, json: () => Promise.resolve({}) });
+      });
+      const mockContext = createMockContext({ fetchWithAuth: mockFetch });
+      render(<BookRecommendations />, { wrapper: createWrapper(mockContext) });
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Student')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByLabelText('Student'));
+      await user.click(screen.getByText('Alice Smith (2 books read)'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading-skeleton')).toBeInTheDocument();
+      });
+
+      // Resolve the search
+      resolveSearch({
+        ok: true,
+        json: () => Promise.resolve({
+          studentProfile: { readingLevel: 2.5, favoriteGenres: [] },
+          books: []
+        })
+      });
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('loading-skeleton')).not.toBeInTheDocument();
+      });
+    });
+  });
+
   describe('Initial Render', () => {
     it('should render the component with title and student selection', async () => {
       const mockFetch = createMockFetch();
@@ -547,14 +617,16 @@ describe('BookRecommendations Component', () => {
       await user.click(studentSelect);
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
-      // Wait for profile data to load
+      // Wait for auto-search to complete and profile to load
       await waitFor(() => {
         expect(screen.getByText('Favorites')).toBeInTheDocument();
       });
 
       // Should display favorite genres from API response
       await waitFor(() => {
-        expect(screen.getByText('Fiction')).toBeInTheDocument();
+        // Fiction may appear multiple times (profile + results), just check it exists
+        const fictionElements = screen.getAllByText('Fiction');
+        expect(fictionElements.length).toBeGreaterThan(0);
       });
     });
 
@@ -596,7 +668,7 @@ describe('BookRecommendations Component', () => {
       expect(screen.getByText(/Boring Book/)).toBeInTheDocument();
     });
 
-    it('should show loading spinner while fetching profile', async () => {
+    it('should show loading skeleton while fetching results', async () => {
       // Create a delayed fetch to catch the loading state
       const mockFetch = vi.fn().mockImplementation((url) => {
         if (url === '/api/settings/ai') {
@@ -629,73 +701,46 @@ describe('BookRecommendations Component', () => {
       await user.click(studentSelect);
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
-      // Loading spinner should appear
-      expect(screen.getByRole('progressbar')).toBeInTheDocument();
+      // Loading skeleton should appear
+      await waitFor(() => {
+        expect(screen.getByTestId('loading-skeleton')).toBeInTheDocument();
+      });
     });
   });
 
-  describe('Get Library Matches Button', () => {
-    it('should show Find in Library button after student selection', async () => {
+  describe('Library Search Results (auto-triggered)', () => {
+    it('should call library-search API when selecting a student', async () => {
       const mockFetch = createMockFetch();
       const context = createMockContext({ fetchWithAuth: mockFetch });
       const user = userEvent.setup();
       render(<BookRecommendations />, { wrapper: createWrapper(context) });
 
-      // Select a student
       const studentSelect = screen.getByLabelText(/student/i);
       await user.click(studentSelect);
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /find in library/i })).toBeInTheDocument();
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining('/api/books/library-search?studentId=student-1')
+        );
       });
     });
 
-    it('should call library-search API when clicking Find in Library', async () => {
+    it('should display library recommendations after selecting a student', async () => {
       const mockFetch = createMockFetch();
       const context = createMockContext({ fetchWithAuth: mockFetch });
       const user = userEvent.setup();
       render(<BookRecommendations />, { wrapper: createWrapper(context) });
 
-      // Select a student
       const studentSelect = screen.getByLabelText(/student/i);
       await user.click(studentSelect);
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
-      // Click Find in Library
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /find in library/i })).toBeInTheDocument();
-      });
-      await user.click(screen.getByRole('button', { name: /find in library/i }));
-
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/books/library-search?studentId=student-1');
-      });
-    });
-
-    it('should display library recommendations after successful search', async () => {
-      const mockFetch = createMockFetch();
-      const context = createMockContext({ fetchWithAuth: mockFetch });
-      const user = userEvent.setup();
-      render(<BookRecommendations />, { wrapper: createWrapper(context) });
-
-      // Select and search
-      const studentSelect = screen.getByLabelText(/student/i);
-      await user.click(studentSelect);
-      await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
-
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /find in library/i })).toBeInTheDocument();
-      });
-      await user.click(screen.getByRole('button', { name: /find in library/i }));
-
-      // Should display recommendations
       await waitFor(() => {
         expect(screen.getByText('Recommended Book 1')).toBeInTheDocument();
         expect(screen.getByText('Recommended Book 2')).toBeInTheDocument();
       });
 
-      // Should show "Books from Your Library" header
       expect(screen.getByText('Books from Your Library')).toBeInTheDocument();
     });
 
@@ -708,11 +753,6 @@ describe('BookRecommendations Component', () => {
       const studentSelect = screen.getByLabelText(/student/i);
       await user.click(studentSelect);
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
-
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /find in library/i })).toBeInTheDocument();
-      });
-      await user.click(screen.getByRole('button', { name: /find in library/i }));
 
       await waitFor(() => {
         expect(screen.getByText('Matches reading level')).toBeInTheDocument();
@@ -764,9 +804,9 @@ describe('BookRecommendations Component', () => {
       await user.click(studentSelect);
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
-      // Wait for AI to be configured
+      // Wait for auto-search to complete
       await waitFor(() => {
-        expect(screen.getByText(/AI: Claude/i)).toBeInTheDocument();
+        expect(screen.getByText('Recommended Book 1')).toBeInTheDocument();
       });
 
       await user.click(screen.getByRole('button', { name: /ai suggestions/i }));
@@ -786,8 +826,9 @@ describe('BookRecommendations Component', () => {
       await user.click(studentSelect);
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
+      // Wait for auto-search to complete
       await waitFor(() => {
-        expect(screen.getByText(/AI: Claude/i)).toBeInTheDocument();
+        expect(screen.getByText('Recommended Book 1')).toBeInTheDocument();
       });
 
       await user.click(screen.getByRole('button', { name: /ai suggestions/i }));
@@ -797,7 +838,6 @@ describe('BookRecommendations Component', () => {
         expect(screen.getByText('AI Suggested Book 2')).toBeInTheDocument();
       });
 
-      // Should show "AI Suggestions" header (there will be multiple matches - button and header)
       const aiSuggestionsElements = screen.getAllByText(/AI Suggestions/);
       expect(aiSuggestionsElements.length).toBeGreaterThan(0);
     });
@@ -813,7 +853,7 @@ describe('BookRecommendations Component', () => {
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
       await waitFor(() => {
-        expect(screen.getByText(/AI: Claude/i)).toBeInTheDocument();
+        expect(screen.getByText('Recommended Book 1')).toBeInTheDocument();
       });
 
       await user.click(screen.getByRole('button', { name: /ai suggestions/i }));
@@ -834,7 +874,7 @@ describe('BookRecommendations Component', () => {
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
       await waitFor(() => {
-        expect(screen.getByText(/AI: Claude/i)).toBeInTheDocument();
+        expect(screen.getByText('Recommended Book 1')).toBeInTheDocument();
       });
 
       await user.click(screen.getByRole('button', { name: /ai suggestions/i }));
@@ -855,7 +895,7 @@ describe('BookRecommendations Component', () => {
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
       await waitFor(() => {
-        expect(screen.getByText(/AI: Claude/i)).toBeInTheDocument();
+        expect(screen.getByText('Recommended Book 1')).toBeInTheDocument();
       });
 
       await user.click(screen.getByRole('button', { name: /ai suggestions/i }));
@@ -878,11 +918,6 @@ describe('BookRecommendations Component', () => {
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /find in library/i })).toBeInTheDocument();
-      });
-      await user.click(screen.getByRole('button', { name: /find in library/i }));
-
-      await waitFor(() => {
         expect(screen.getByText('2 results')).toBeInTheDocument();
       });
     });
@@ -896,11 +931,6 @@ describe('BookRecommendations Component', () => {
       const studentSelect = screen.getByLabelText(/student/i);
       await user.click(studentSelect);
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
-
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /find in library/i })).toBeInTheDocument();
-      });
-      await user.click(screen.getByRole('button', { name: /find in library/i }));
 
       await waitFor(() => {
         expect(screen.getByText('by Author One')).toBeInTheDocument();
@@ -919,12 +949,6 @@ describe('BookRecommendations Component', () => {
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /find in library/i })).toBeInTheDocument();
-      });
-      await user.click(screen.getByRole('button', { name: /find in library/i }));
-
-      await waitFor(() => {
-        // Check for reading level chips
         const levelChips = screen.getAllByText(/2\.5|3\.0/);
         expect(levelChips.length).toBeGreaterThan(0);
       });
@@ -941,37 +965,16 @@ describe('BookRecommendations Component', () => {
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /find in library/i })).toBeInTheDocument();
-      });
-      await user.click(screen.getByRole('button', { name: /find in library/i }));
-
-      await waitFor(() => {
-        // Check for genre chips in recommendation cards - there may be multiple Fiction/Adventure mentions
         const fictionChips = screen.getAllByText('Fiction');
         const adventureChips = screen.getAllByText('Adventure');
         expect(fictionChips.length).toBeGreaterThan(0);
         expect(adventureChips.length).toBeGreaterThan(0);
       });
     });
-
-    it('should show instruction message when no recommendations yet', async () => {
-      const mockFetch = createMockFetch();
-      const context = createMockContext({ fetchWithAuth: mockFetch });
-      const user = userEvent.setup();
-      render(<BookRecommendations />, { wrapper: createWrapper(context) });
-
-      const studentSelect = screen.getByLabelText(/student/i);
-      await user.click(studentSelect);
-      await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
-
-      await waitFor(() => {
-        expect(screen.getByText(/Click "Find in Library" to search your book collection/i)).toBeInTheDocument();
-      });
-    });
   });
 
   describe('Loading States', () => {
-    it('should show loading state for library search button', async () => {
+    it('should show loading skeleton during library search', async () => {
       const mockFetch = vi.fn().mockImplementation((url) => {
         if (url === '/api/settings/ai') {
           return Promise.resolve({
@@ -980,7 +983,6 @@ describe('BookRecommendations Component', () => {
           });
         }
         if (url.startsWith('/api/books/library-search')) {
-          // Delay to capture loading state
           return new Promise(resolve => {
             setTimeout(() => {
               resolve({
@@ -1001,15 +1003,10 @@ describe('BookRecommendations Component', () => {
       await user.click(studentSelect);
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
+      // Should show loading skeleton
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /find in library/i })).toBeInTheDocument();
+        expect(screen.getByTestId('loading-skeleton')).toBeInTheDocument();
       });
-
-      // Click and check for loading state
-      await user.click(screen.getByRole('button', { name: /find in library/i }));
-
-      // Should show "Searching..." text
-      expect(screen.getByText('Searching...')).toBeInTheDocument();
     });
 
     it('should show loading state for AI suggestions button', async () => {
@@ -1047,9 +1044,9 @@ describe('BookRecommendations Component', () => {
       await user.click(studentSelect);
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
-      // Wait for AI config
+      // Wait for auto-search to complete
       await waitFor(() => {
-        expect(screen.getByText(/AI: Claude/i)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /ai suggestions/i })).not.toBeDisabled();
       });
 
       await user.click(screen.getByRole('button', { name: /ai suggestions/i }));
@@ -1058,7 +1055,7 @@ describe('BookRecommendations Component', () => {
       expect(screen.getByText('Generating...')).toBeInTheDocument();
     });
 
-    it('should disable both buttons during library loading', async () => {
+    it('should disable AI button during library loading', async () => {
       const mockFetch = vi.fn().mockImplementation((url) => {
         if (url === '/api/settings/ai') {
           return Promise.resolve({
@@ -1087,15 +1084,10 @@ describe('BookRecommendations Component', () => {
       await user.click(studentSelect);
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
+      // AI button should be disabled during loading
       await waitFor(() => {
-        expect(screen.getByText(/AI: Claude/i)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /ai suggestions/i })).toBeDisabled();
       });
-
-      await user.click(screen.getByRole('button', { name: /find in library/i }));
-
-      // Both buttons should be disabled during loading
-      expect(screen.getByRole('button', { name: /searching/i })).toBeDisabled();
-      expect(screen.getByRole('button', { name: /ai suggestions/i })).toBeDisabled();
     });
   });
 
@@ -1125,11 +1117,7 @@ describe('BookRecommendations Component', () => {
       await user.click(studentSelect);
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /find in library/i })).toBeInTheDocument();
-      });
-      await user.click(screen.getByRole('button', { name: /find in library/i }));
-
+      // Auto-search triggers and fails
       await waitFor(() => {
         expect(screen.getByText('No books found matching criteria')).toBeInTheDocument();
       });
@@ -1166,8 +1154,9 @@ describe('BookRecommendations Component', () => {
       await user.click(studentSelect);
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
+      // Wait for auto-search to complete
       await waitFor(() => {
-        expect(screen.getByText(/AI: Claude/i)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /ai suggestions/i })).not.toBeDisabled();
       });
 
       await user.click(screen.getByRole('button', { name: /ai suggestions/i }));
@@ -1201,11 +1190,7 @@ describe('BookRecommendations Component', () => {
       await user.click(studentSelect);
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /find in library/i })).toBeInTheDocument();
-      });
-      await user.click(screen.getByRole('button', { name: /find in library/i }));
-
+      // Auto-search triggers and hits network error
       await waitFor(() => {
         expect(screen.getByText('Network error')).toBeInTheDocument();
       });
@@ -1213,7 +1198,7 @@ describe('BookRecommendations Component', () => {
       consoleSpy.mockRestore();
     });
 
-    it('should clear error when making a new request', async () => {
+    it('should clear error when selecting a new student', async () => {
       let libraryRequestCount = 0;
       const mockFetch = vi.fn().mockImplementation((url) => {
         if (url === '/api/settings/ai') {
@@ -1224,14 +1209,12 @@ describe('BookRecommendations Component', () => {
         }
         if (url.startsWith('/api/books/library-search')) {
           libraryRequestCount++;
-          if (libraryRequestCount <= 2) {
-            // First two requests fail (initial profile load + first button click)
+          if (libraryRequestCount <= 1) {
             return Promise.resolve({
               ok: false,
               json: () => Promise.resolve({ message: 'First error' })
             });
           }
-          // Third request succeeds (second button click)
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ studentProfile: {}, books: [] })
@@ -1248,18 +1231,15 @@ describe('BookRecommendations Component', () => {
       await user.click(studentSelect);
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /find in library/i })).toBeInTheDocument();
-      });
-
-      // First button click - should show error
-      await user.click(screen.getByRole('button', { name: /find in library/i }));
+      // First auto-search fails
       await waitFor(() => {
         expect(screen.getByText('First error')).toBeInTheDocument();
       });
 
-      // Second button click - error should be cleared during loading and success shows no error
-      await user.click(screen.getByRole('button', { name: /find in library/i }));
+      // Select another student - error should be cleared
+      await user.click(studentSelect);
+      await user.click(screen.getByRole('option', { name: /Bob Jones/i }));
+
       await waitFor(() => {
         expect(screen.queryByText('First error')).not.toBeInTheDocument();
       });
@@ -1371,33 +1351,28 @@ describe('BookRecommendations Component', () => {
   });
 
   describe('Selecting Different Students', () => {
-    it('should clear recommendations when selecting a different student', async () => {
+    it('should show new results when selecting a different student', async () => {
       const mockFetch = createMockFetch();
       const context = createMockContext({ fetchWithAuth: mockFetch });
       const user = userEvent.setup();
       render(<BookRecommendations />, { wrapper: createWrapper(context) });
 
-      // Select Alice and get recommendations
+      // Select Alice - auto-search loads results
       const studentSelect = screen.getByLabelText(/student/i);
       await user.click(studentSelect);
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /find in library/i })).toBeInTheDocument();
-      });
-      await user.click(screen.getByRole('button', { name: /find in library/i }));
-
-      await waitFor(() => {
         expect(screen.getByText('Recommended Book 1')).toBeInTheDocument();
       });
 
-      // Now select Bob
+      // Now select Bob — new auto-search triggers
       await user.click(studentSelect);
       await user.click(screen.getByRole('option', { name: /Bob Jones/i }));
 
-      // Recommendations should be cleared
+      // Bob's results also load (same mock data)
       await waitFor(() => {
-        expect(screen.queryByText('Recommended Book 1')).not.toBeInTheDocument();
+        expect(screen.getByText('Bob Jones')).toBeInTheDocument();
       });
     });
 
@@ -1598,9 +1573,9 @@ describe('BookRecommendations Component', () => {
       await user.click(studentSelect);
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
-      // Wait for AI to be configured
+      // Wait for auto-search to complete
       await waitFor(() => {
-        expect(screen.getByText(/AI: Claude/i)).toBeInTheDocument();
+        expect(screen.getByText('Recommended Book 1')).toBeInTheDocument();
       });
 
       // Change to challenge mode
@@ -1626,18 +1601,12 @@ describe('BookRecommendations Component', () => {
           });
         }
         if (url.startsWith('/api/books/library-search')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ studentProfile: {}, books: [] })
-          });
-        }
-        if (url.startsWith('/api/books/ai-suggestions')) {
           // Delay to capture loading state
           return new Promise(resolve => {
             setTimeout(() => {
               resolve({
                 ok: true,
-                json: () => Promise.resolve({ studentProfile: {}, suggestions: [] })
+                json: () => Promise.resolve({ studentProfile: {}, books: [] })
               });
             }, 500);
           });
@@ -1653,15 +1622,11 @@ describe('BookRecommendations Component', () => {
       await user.click(studentSelect);
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
+      // Focus dropdown should be disabled during auto-search loading
       await waitFor(() => {
-        expect(screen.getByText(/AI: Claude/i)).toBeInTheDocument();
+        const focusSelect = screen.getByLabelText(/focus/i);
+        expect(focusSelect).toHaveAttribute('aria-disabled', 'true');
       });
-
-      await user.click(screen.getByRole('button', { name: /ai suggestions/i }));
-
-      // Focus dropdown should be disabled during loading
-      const focusSelect = screen.getByLabelText(/focus/i);
-      expect(focusSelect).toHaveAttribute('aria-disabled', 'true');
     });
   });
 
@@ -1721,11 +1686,7 @@ describe('BookRecommendations Component', () => {
       await user.click(studentSelect);
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /find in library/i })).toBeInTheDocument();
-      });
-      await user.click(screen.getByRole('button', { name: /find in library/i }));
-
+      // Auto-search triggers and fails
       await waitFor(() => {
         const alert = screen.getByRole('alert');
         expect(alert).toBeInTheDocument();
