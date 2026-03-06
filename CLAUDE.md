@@ -108,6 +108,8 @@ src/components/BookCoverPlaceholder.js - Gradient placeholder from title hash
 src/components/TallyLogo.js - Shared tally mark SVG logo (4 vertical + 1 diagonal line)
 src/components/TermsOfService.js - Terms of Service standalone page
 src/components/CookiePolicy.js - Cookie Policy standalone page
+src/components/DpaConsentModal.js - DPA consent dialog for data processing agreement
+src/components/PrivacyPolicy.js - Privacy Policy standalone page
 src/components/BookRecommendations.js - AI recommendations with library search
 src/components/SupportModal.js - Support contact form modal (subject, message, email notification)
 src/components/SupportTicketManager.js - Owner-only support ticket list with detail panel, status management, internal notes
@@ -295,6 +297,7 @@ Permissions enforced via `requireOwner()`, `requireAdmin()`, `requireTeacher()`,
 - `books` - Global catalog with FTS5 search (`books_fts` virtual table)
 - `org_book_selections` - Links books to organizations (controls per-school visibility)
 - `classes`, `genres`, `organization_settings` - Organization-scoped
+- `term_dates` - Academic year term dates per organization (half-terms, holidays)
 
 ### Book Visibility Model
 
@@ -368,7 +371,7 @@ School data sync and SSO login via two external services:
 
 ### Adding a Database Migration
 
-1. Create `migrations/XXXX_description.sql` (next number after 0022)
+1. Create `migrations/XXXX_description.sql` (next sequential number in `migrations/`)
 2. Use `IF NOT EXISTS` for safety (migrations are forward-only, no down migrations)
 3. Test locally: `npx wrangler d1 migrations apply reading-manager-db --local`
 4. Deploy: `npx wrangler d1 migrations apply reading-manager-db --remote`

@@ -1,5 +1,26 @@
 # Changelog
 
+## [3.12.0] - 2026-03-06
+
+### Added
+- **Term dates management** — new Settings UI for managing academic year term dates (6 half-terms) with date validation, overlap detection, and per-organization storage
+- **Term dates API** — `GET /PUT /api/term-dates` endpoints with academic year filtering and admin-only write access
+- **Half-term filter on stats** — dropdown on the stats page to filter reading data by half-term period
+- **Recommendations empty state** — inline SVG book illustration with "Select a student" prompt when no student is selected
+- **Priority student quick-picks** — clickable student cards on recommendations page showing students who need attention, with reading status color dots
+- **AI suggestions banner** — contextual "Want personalised picks? Ask AI" banner appears below library results when AI is configured
+
+### Changed
+- **Recommendations auto-search** — selecting a student now immediately triggers library search (removed manual "Find in Library" button)
+- **Recommendations loading skeleton** — pulse-animated placeholder cards replace the old spinner during search
+- **Compact student profile bar** — replaced two-column profile layout with a horizontal bar and collapsible details section
+- **Larger book covers** — increased cover images to 120×180px desktop / 100×150px mobile on recommendation cards
+- **Pull-quote reasoning** — match reasons and AI reasoning now display with sage green left border accent
+- **"In library" badge** — moved from inline chip to overlay on book cover image for AI results
+
+### Fixed
+- **Duplicate ISBN scan button** — removed duplicate barcode scanner button from HomeReadingRegister
+
 ## [3.11.0] - 2026-03-06
 
 ### Changed

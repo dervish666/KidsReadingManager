@@ -1,5 +1,27 @@
 {
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$CLAUDE_TOOL_INPUT\" | grep -qE '\\.(env|dev\\.vars)$'; then echo '{\"ok\": false, \"reason\": \"Blocked: Cannot edit .env or .dev.vars files - these contain secrets.\"}'; else echo '{\"ok\": true}'; fi"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "FILE=$(echo \"$CLAUDE_TOOL_INPUT\" | grep -oE 'src/[^ \"]+\\.js' | head -1); if [ -n \"$FILE\" ] && [ -d \"src/__tests__\" ]; then npx vitest run --reporter=dot 2>&1 | tail -8; fi"
+          }
+        ]
+      }
+    ],
     "TaskCompleted": [
       {
         "hooks": [
