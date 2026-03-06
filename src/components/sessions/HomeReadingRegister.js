@@ -183,6 +183,37 @@ const HomeReadingRegister = () => {
 
   const dates = useMemo(() => getDateRange(startDate, endDate), [startDate, endDate]);
 
+  const dailyTotals = useMemo(() => {
+    return dates.map(date => {
+      const dateStr = formatDateISO(date);
+      let read = 0, multiple = 0, absent = 0, noRecord = 0, notEntered = 0, totalSessions = 0;
+
+      classStudents.forEach(student => {
+        const { status, count } = getStudentReadingStatus(student, dateStr);
+        switch (status) {
+          case READING_STATUS.READ:
+            read++;
+            totalSessions += 1;
+            break;
+          case READING_STATUS.MULTIPLE:
+            multiple++;
+            totalSessions += count;
+            break;
+          case READING_STATUS.ABSENT:
+            absent++;
+            break;
+          case READING_STATUS.NO_RECORD:
+            noRecord++;
+            break;
+          default:
+            notEntered++;
+        }
+      });
+
+      return { read, multiple, absent, noRecord, notEntered, totalSessions };
+    });
+  }, [dates, classStudents, getStudentReadingStatus]);
+
   // Ref to track if we've already auto-set the class filter (prevents infinite loop)
   const hasAutoSetClassFilter = useRef(false);
 
@@ -897,6 +928,75 @@ const HomeReadingRegister = () => {
                   </TableCell>
                 </TableRow>
               )}
+              {filteredStudents.length > 0 && (
+                <TableRow sx={{ backgroundColor: 'grey.50' }}>
+                  <TableCell
+                    sx={{
+                      fontWeight: 'bold',
+                      position: 'sticky',
+                      left: 0,
+                      backgroundColor: 'grey.50',
+                      zIndex: 3,
+                      borderTop: '2px solid',
+                      borderColor: 'grey.300',
+                      fontSize: isMobile ? '0.75rem' : '0.875rem'
+                    }}
+                  >
+                    Daily Totals
+                  </TableCell>
+                  {dailyTotals.map((totals, index) => {
+                    const isWeekend = dates[index].getDay() === 0 || dates[index].getDay() === 6;
+                    return (
+                      <TableCell
+                        key={index}
+                        sx={{
+                          textAlign: 'center',
+                          fontWeight: 'bold',
+                          padding: isMobile ? '4px 2px' : '8px 4px',
+                          backgroundColor: isWeekend ? 'grey.100' : 'grey.50',
+                          borderTop: '2px solid',
+                          borderColor: 'grey.300',
+                          fontSize: isMobile ? '0.7rem' : '0.8rem'
+                        }}
+                      >
+                        {totals.totalSessions > 0 && (
+                          <Tooltip title={`${totals.read} read, ${totals.multiple} multiple, ${totals.absent} absent, ${totals.noRecord} no record, ${totals.notEntered} not entered`}>
+                            <Box>
+                              <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                                {totals.totalSessions}
+                              </Typography>
+                              {totals.read > 0 && (
+                                <Typography variant="caption" sx={{ color: 'success.dark', fontSize: '0.6rem' }}>
+                                  {totals.read}✓
+                                </Typography>
+                              )}
+                              {totals.multiple > 0 && (
+                                <Typography variant="caption" sx={{ color: 'success.dark', fontSize: '0.6rem' }}>
+                                  +{totals.multiple}
+                                </Typography>
+                              )}
+                            </Box>
+                          </Tooltip>
+                        )}
+                      </TableCell>
+                    );
+                  })}
+                  <TableCell
+                    sx={{
+                      textAlign: 'center',
+                      fontWeight: 'bold',
+                      backgroundColor: 'primary.light',
+                      color: 'primary.contrastText',
+                      borderTop: '2px solid',
+                      borderColor: 'grey.300',
+                      fontSize: isMobile ? '0.8rem' : '0.9rem'
+                    }}
+                  >
+                    {dailyTotals.reduce((sum, day) => sum + day.totalSessions, 0)}
+                  </TableCell>
+                  <TableCell sx={{ borderTop: '2px solid', borderColor: 'grey.300', backgroundColor: 'grey.50' }} />
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </TableContainer>
@@ -946,6 +1046,37 @@ const HomeReadingRegister = () => {
           />
         </Box>
       </Paper>
+
+      {/* Legend */}
+      <Box sx={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 2,
+        mt: 2,
+        justifyContent: 'center',
+        fontSize: '0.75rem'
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Box sx={{ width: 20, height: 20, backgroundColor: 'success.light', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'success.dark', fontWeight: 'bold', fontSize: '0.7rem' }}>✓</Box>
+          <Typography variant="caption">Read</Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Box sx={{ width: 20, height: 20, backgroundColor: 'success.main', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '0.7rem' }}>2</Box>
+          <Typography variant="caption">Multiple</Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Box sx={{ width: 20, height: 20, backgroundColor: 'warning.light', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'warning.dark', fontWeight: 'bold', fontSize: '0.7rem' }}>A</Box>
+          <Typography variant="caption">Absent</Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Box sx={{ width: 20, height: 20, backgroundColor: 'grey.200', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'grey.600', fontWeight: 'bold', fontSize: '0.7rem' }}>•</Box>
+          <Typography variant="caption">No Record</Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Box sx={{ width: 20, height: 20, backgroundColor: 'background.paper', border: '1px solid', borderColor: 'grey.300', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'grey.400', fontWeight: 'bold', fontSize: '0.7rem' }}>-</Box>
+          <Typography variant="caption">Not Entered</Typography>
+        </Box>
+      </Box>
 
       {/* Multiple Count Dialog */}
       <Dialog open={multipleCountDialog} onClose={() => setMultipleCountDialog(false)}>
