@@ -183,37 +183,6 @@ const HomeReadingRegister = () => {
 
   const dates = useMemo(() => getDateRange(startDate, endDate), [startDate, endDate]);
 
-  const dailyTotals = useMemo(() => {
-    return dates.map(date => {
-      const dateStr = formatDateISO(date);
-      let read = 0, multiple = 0, absent = 0, noRecord = 0, notEntered = 0, totalSessions = 0;
-
-      classStudents.forEach(student => {
-        const { status, count } = getStudentReadingStatus(student, dateStr);
-        switch (status) {
-          case READING_STATUS.READ:
-            read++;
-            totalSessions += 1;
-            break;
-          case READING_STATUS.MULTIPLE:
-            multiple++;
-            totalSessions += count;
-            break;
-          case READING_STATUS.ABSENT:
-            absent++;
-            break;
-          case READING_STATUS.NO_RECORD:
-            noRecord++;
-            break;
-          default:
-            notEntered++;
-        }
-      });
-
-      return { read, multiple, absent, noRecord, notEntered, totalSessions };
-    });
-  }, [dates, classStudents, getStudentReadingStatus]);
-
   // Ref to track if we've already auto-set the class filter (prevents infinite loop)
   const hasAutoSetClassFilter = useRef(false);
 
@@ -321,6 +290,37 @@ const HomeReadingRegister = () => {
       return { status: READING_STATUS.MULTIPLE, count: totalCount, sessions: allSessions };
     }
   }, []);
+
+  const dailyTotals = useMemo(() => {
+    return dates.map(date => {
+      const dateStr = formatDateISO(date);
+      let read = 0, multiple = 0, absent = 0, noRecord = 0, notEntered = 0, totalSessions = 0;
+
+      classStudents.forEach(student => {
+        const { status, count } = getStudentReadingStatus(student, dateStr);
+        switch (status) {
+          case READING_STATUS.READ:
+            read++;
+            totalSessions += 1;
+            break;
+          case READING_STATUS.MULTIPLE:
+            multiple++;
+            totalSessions += count;
+            break;
+          case READING_STATUS.ABSENT:
+            absent++;
+            break;
+          case READING_STATUS.NO_RECORD:
+            noRecord++;
+            break;
+          default:
+            notEntered++;
+        }
+      });
+
+      return { read, multiple, absent, noRecord, notEntered, totalSessions };
+    });
+  }, [dates, classStudents, getStudentReadingStatus]);
 
   // Get the current book a student is reading (from database)
   const getStudentLastBook = useCallback((studentId) => {

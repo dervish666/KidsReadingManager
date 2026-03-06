@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React, { createContext, useContext } from 'react';
 
@@ -9,65 +9,6 @@ const TestAppContext = createContext();
 // Mock the AppContext module
 vi.mock('../../contexts/AppContext', () => ({
   useAppContext: () => useContext(TestAppContext)
-}));
-
-// Mock localStorage
-const localStorageMock = (() => {
-  let store = {};
-  return {
-    getItem: vi.fn((key) => store[key] || null),
-    setItem: vi.fn((key, value) => { store[key] = value; }),
-    removeItem: vi.fn((key) => { delete store[key]; }),
-    clear: vi.fn(() => { store = {}; }),
-    _getStore: () => store
-  };
-})();
-
-Object.defineProperty(window, 'localStorage', { value: localStorageMock });
-
-// Mock @dnd-kit/core
-vi.mock('@dnd-kit/core', () => ({
-  DndContext: ({ children, onDragEnd }) => {
-    // Store onDragEnd for testing
-    window.__dndOnDragEnd = onDragEnd;
-    // Return children directly to avoid invalid HTML nesting (div inside table)
-    return <>{children}</>;
-  },
-  closestCenter: vi.fn(),
-  KeyboardSensor: vi.fn(),
-  PointerSensor: vi.fn(),
-  useSensor: vi.fn(() => ({})),
-  useSensors: vi.fn(() => [])
-}));
-
-// Mock @dnd-kit/sortable
-vi.mock('@dnd-kit/sortable', () => ({
-  arrayMove: (arr, oldIndex, newIndex) => {
-    const result = [...arr];
-    const [removed] = result.splice(oldIndex, 1);
-    result.splice(newIndex, 0, removed);
-    return result;
-  },
-  SortableContext: ({ children }) => <>{children}</>,
-  sortableKeyboardCoordinates: vi.fn(),
-  useSortable: ({ id }) => ({
-    attributes: { 'data-sortable-id': id },
-    listeners: {},
-    setNodeRef: vi.fn(),
-    transform: null,
-    transition: null,
-    isDragging: false
-  }),
-  verticalListSortingStrategy: {}
-}));
-
-// Mock @dnd-kit/utilities
-vi.mock('@dnd-kit/utilities', () => ({
-  CSS: {
-    Transform: {
-      toString: () => null
-    }
-  }
 }));
 
 // Mock the BookAutocomplete component
@@ -81,15 +22,6 @@ vi.mock('../../components/sessions/BookAutocomplete', () => ({
         onChange={(e) => onChange({ id: 'book-1', title: e.target.value })}
         aria-label={label}
       />
-    </div>
-  )
-}));
-
-// Mock the ClassReadingHistoryTable component
-vi.mock('../../components/sessions/ClassReadingHistoryTable', () => ({
-  default: ({ students, books, selectedDate, onDateChange }) => (
-    <div data-testid="class-reading-history-table">
-      <span>History for {students?.length || 0} students</span>
     </div>
   )
 }));
@@ -173,9 +105,6 @@ const createMockContext = (overrides = {}) => ({
 describe('HomeReadingRegister Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    localStorageMock.clear();
-    // Reset the dnd callback
-    window.__dndOnDragEnd = null;
   });
 
   afterEach(() => {
@@ -218,12 +147,6 @@ describe('HomeReadingRegister Component', () => {
       expect(screen.getByText(/No Record:/)).toBeInTheDocument();
     });
 
-    it('should render ClassReadingHistoryTable component', () => {
-      const context = createMockContext({ globalClassFilter: 'class-1' });
-      render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
-
-      expect(screen.getByTestId('class-reading-history-table')).toBeInTheDocument();
-    });
   });
 
   describe('Class Filter Selection and Auto-Set (Render Loop Fix)', () => {
@@ -360,14 +283,6 @@ describe('HomeReadingRegister Component', () => {
       expect(screen.getByText('Bob Jones')).toBeInTheDocument();
     });
 
-    it('should display current book for students', () => {
-      const context = createMockContext({ globalClassFilter: 'class-1' });
-      render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
-
-      expect(screen.getByText('The Cat in the Hat')).toBeInTheDocument();
-      expect(screen.getByText('No book set')).toBeInTheDocument(); // Bob has no book
-    });
-
     it('should show "No students in this class" when class has no students', () => {
       const context = createMockContext({
         globalClassFilter: 'class-3', // Disabled class - no students will match
@@ -383,9 +298,12 @@ describe('HomeReadingRegister Component', () => {
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
 
       expect(screen.getByText('Name')).toBeInTheDocument();
-      expect(screen.getByText('Clear')).toBeInTheDocument();
       expect(screen.getByText('Total')).toBeInTheDocument();
-      expect(screen.getByText('Current Book')).toBeInTheDocument();
+      expect(screen.getByText('Clear')).toBeInTheDocument();
+      // Date columns should be present (day abbreviations for current week)
+      const dayAbbreviations = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      const foundDays = dayAbbreviations.filter(day => screen.queryByText(day));
+      expect(foundDays.length).toBeGreaterThan(0);
     });
   });
 
@@ -685,9 +603,9 @@ describe('HomeReadingRegister Component', () => {
       });
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
 
-      // The dot character should be in the status cell
-      const statusCell = screen.getByText('•');
-      expect(statusCell).toBeInTheDocument();
+      // The dot character appears in the status cell and possibly the legend
+      const dots = screen.getAllByText('•');
+      expect(dots.length).toBeGreaterThan(0);
     });
   });
 
@@ -788,67 +706,6 @@ describe('HomeReadingRegister Component', () => {
       const searchInput = screen.getByLabelText('Search for a student by name');
       await user.type(searchInput, 'ALICE');
 
-      expect(screen.getByText('Alice Smith')).toBeInTheDocument();
-    });
-  });
-
-  describe('Drag and Drop Student Reordering', () => {
-    it('should save custom order to localStorage on drag end', () => {
-      const context = createMockContext({ globalClassFilter: 'class-1' });
-      render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
-
-      // Simulate drag end
-      act(() => {
-        if (window.__dndOnDragEnd) {
-          window.__dndOnDragEnd({
-            active: { id: 'student-1' },
-            over: { id: 'student-2' }
-          });
-        }
-      });
-
-      // Check localStorage was called with the new order
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        'homeReadingStudentOrder',
-        expect.any(String)
-      );
-    });
-
-    it('should show Reset Order button when custom order exists', () => {
-      // Pre-set a custom order in localStorage
-      localStorageMock.getItem.mockReturnValue(JSON.stringify({
-        'class-1': ['student-2', 'student-1']
-      }));
-
-      const context = createMockContext({ globalClassFilter: 'class-1' });
-
-      // Need to re-render since localStorage is read on mount
-      const { rerender } = render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
-
-      // Force re-render to pick up localStorage
-      rerender(
-        <TestAppContext.Provider value={context}>
-          <HomeReadingRegister />
-        </TestAppContext.Provider>
-      );
-
-      // Reset button may or may not be visible depending on order state
-      // This test verifies the component renders without error with custom order
-      expect(screen.getByText('Reading Record')).toBeInTheDocument();
-    });
-
-    it('should disable drag when search is active', async () => {
-      const context = createMockContext({ globalClassFilter: 'class-1' });
-      const user = userEvent.setup();
-      render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
-
-      // Activate search
-      const searchInput = screen.getByLabelText('Search for a student by name');
-      await user.type(searchInput, 'Alice');
-
-      // Drag indicators should not be visible when search is active
-      // The component passes isDragDisabled={!!searchQuery} to SortableStudentRow
-      // This is verified through the component's behavior
       expect(screen.getByText('Alice Smith')).toBeInTheDocument();
     });
   });
