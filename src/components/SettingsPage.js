@@ -17,6 +17,7 @@ import SmartToyIcon from '@mui/icons-material/SmartToy';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import PeopleIcon from '@mui/icons-material/People';
 import SchoolIcon from '@mui/icons-material/School';
+import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import Settings from './Settings';
 import DataManagement from './DataManagement';
@@ -24,6 +25,7 @@ import AISettings from './AISettings';
 import BookMetadataSettings from './BookMetadataSettings';
 import UserManagement from './UserManagement';
 import SchoolManagement from './SchoolManagement';
+import SupportTicketManager from './SupportTicketManager';
 import SupportModal from './SupportModal';
 import { useAppContext } from '../contexts/AppContext';
 
@@ -110,6 +112,9 @@ const SettingsPage = () => {
             {isOwner && (
               <Tab icon={<SchoolIcon />} iconPosition="start" label="School Management" />
             )}
+            {isOwner && (
+              <Tab icon={<SupportAgentIcon />} iconPosition="start" label="Support Tickets" />
+            )}
           </Tabs>
         </Paper>
         
@@ -120,6 +125,7 @@ const SettingsPage = () => {
           {currentTab === 3 && <BookMetadataSettings />}
           {canManageUsers && currentTab === 4 && <UserManagement />}
           {isOwner && currentTab === (canManageUsers ? 5 : 4) && <SchoolManagement />}
+          {isOwner && currentTab === (canManageUsers ? 6 : 5) && <SupportTicketManager />}
         </Box>
       </Box>
 
