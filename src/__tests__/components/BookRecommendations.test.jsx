@@ -220,6 +220,20 @@ describe('BookRecommendations Component', () => {
     vi.restoreAllMocks();
   });
 
+  describe('Empty State', () => {
+    it('should display empty state illustration when no student selected', async () => {
+      const mockContext = createMockContext({
+        fetchWithAuth: createMockFetch()
+      });
+      render(<BookRecommendations />, { wrapper: createWrapper(mockContext) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('empty-state-illustration')).toBeInTheDocument();
+        expect(screen.getByText(/select a student to find their next great read/i)).toBeInTheDocument();
+      });
+    });
+  });
+
   describe('Initial Render', () => {
     it('should render the component with title and student selection', async () => {
       const mockFetch = createMockFetch();

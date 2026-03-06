@@ -39,6 +39,43 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import StudentProfile from './students/StudentProfile';
 import BookCover from './BookCover';
 
+const BookIllustration = () => (
+  <svg
+    data-testid="empty-state-illustration"
+    width="200"
+    height="160"
+    viewBox="0 0 200 160"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    {/* Open book */}
+    <path d="M40 120 L100 105 L160 120 L160 50 L100 35 L40 50 Z" fill="#8AAD8A" opacity="0.15" />
+    <path d="M40 120 L100 105 L100 35 L40 50 Z" fill="#6B8E6B" opacity="0.25" />
+    <path d="M100 105 L160 120 L160 50 L100 35 Z" fill="#8AAD8A" opacity="0.2" />
+    {/* Spine */}
+    <line x1="100" y1="35" x2="100" y2="105" stroke="#557055" strokeWidth="2" opacity="0.4" />
+    {/* Pages lines left */}
+    <line x1="55" y1="58" x2="92" y2="48" stroke="#6B8E6B" strokeWidth="1.5" opacity="0.2" />
+    <line x1="55" y1="68" x2="92" y2="58" stroke="#6B8E6B" strokeWidth="1.5" opacity="0.2" />
+    <line x1="55" y1="78" x2="92" y2="68" stroke="#6B8E6B" strokeWidth="1.5" opacity="0.2" />
+    <line x1="55" y1="88" x2="85" y2="80" stroke="#6B8E6B" strokeWidth="1.5" opacity="0.2" />
+    {/* Pages lines right */}
+    <line x1="108" y1="48" x2="148" y2="58" stroke="#8AAD8A" strokeWidth="1.5" opacity="0.2" />
+    <line x1="108" y1="58" x2="148" y2="68" stroke="#8AAD8A" strokeWidth="1.5" opacity="0.2" />
+    <line x1="108" y1="68" x2="148" y2="78" stroke="#8AAD8A" strokeWidth="1.5" opacity="0.2" />
+    <line x1="108" y1="78" x2="140" y2="85" stroke="#8AAD8A" strokeWidth="1.5" opacity="0.2" />
+    {/* Sparkles */}
+    <circle cx="75" cy="28" r="3" fill="#D4A574" opacity="0.6" />
+    <circle cx="130" cy="20" r="2" fill="#8B7355" opacity="0.4" />
+    <circle cx="110" cy="15" r="2.5" fill="#D4A574" opacity="0.5" />
+    <circle cx="85" cy="12" r="1.5" fill="#8AAD8A" opacity="0.5" />
+    <circle cx="145" cy="30" r="2" fill="#6B8E6B" opacity="0.4" />
+    {/* Star sparkles */}
+    <path d="M60 22 L62 18 L64 22 L68 20 L64 24 L62 28 L60 24 L56 20 Z" fill="#D4A574" opacity="0.5" />
+    <path d="M140 10 L141 7 L142 10 L145 9 L142 11 L141 14 L140 11 L137 9 Z" fill="#8B7355" opacity="0.4" />
+  </svg>
+);
+
 const BookRecommendations = () => {
   const {
     students, classes, books, apiError, fetchWithAuth, globalClassFilter,
@@ -364,6 +401,20 @@ const BookRecommendations = () => {
             ))}
           </Select>
         </FormControl>
+
+        {/* Empty state with illustration */}
+        {!selectedStudentId && (
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <BookIllustration />
+            <Typography
+              variant="h6"
+              color="text.secondary"
+              sx={{ mt: 2, fontFamily: '"Nunito", sans-serif', fontWeight: 600 }}
+            >
+              Select a student to find their next great read
+            </Typography>
+          </Box>
+        )}
       </Paper>
 
       {/* Student info and profile - simple two-column layout */}
