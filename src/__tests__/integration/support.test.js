@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { Hono } from 'hono';
 import { supportRouter } from '../../routes/support.js';
 
@@ -199,5 +199,176 @@ describe('POST /api/support', () => {
     expect(insertBind).toBeDefined();
     expect(insertBind[5]).toBe('Help me');
     expect(insertBind[6]).toBe('I need assistance.');
+  });
+});
+
+describe('GET /api/support', () => {
+  it('returns all tickets for owner', async () => {
+    const ticketRows = [
+      { id: 'ticket-1', organization_id: 'org-1', user_id: 'user-1', user_name: 'Jane', user_email: 'jane@test.com', subject: 'Help', message: 'Need help', status: 'open', created_at: '2026-03-05T10:00:00Z', updated_at: null, organization_name: 'Test School' },
+      { id: 'ticket-2', organization_id: 'org-2', user_id: 'user-2', user_name: 'Bob', user_email: 'bob@test.com', subject: 'Bug', message: 'Found bug', status: 'resolved', created_at: '2026-03-04T10:00:00Z', updated_at: '2026-03-05T10:00:00Z', organization_name: 'Other School' },
+    ];
+
+    const { app } = createTestApp(
+      { userId: 'owner-1', userRole: 'owner', user: { sub: 'owner-1', name: 'Owner', email: 'owner@test.com' } },
+      { allResults: { results: ticketRows, success: true } }
+    );
+
+    const res = await makeRequest(app, 'GET', '/api/support');
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.tickets).toHaveLength(2);
+    expect(data.tickets[0].id).toBe('ticket-1');
+    expect(data.tickets[0].organizationName).toBe('Test School');
+  });
+
+  it('rejects non-owner users', async () => {
+    const { app } = createTestApp({
+      userId: 'user-1', userRole: 'teacher',
+      user: { sub: 'user-1', name: 'Jane', email: 'jane@test.com' },
+    });
+
+    const res = await makeRequest(app, 'GET', '/api/support');
+    expect(res.status).toBe(403);
+  });
+
+  it('filters by status when query param provided', async () => {
+    const { app, mockDB } = createTestApp(
+      { userId: 'owner-1', userRole: 'owner', user: { sub: 'owner-1', name: 'Owner', email: 'owner@test.com' } },
+      { allResults: { results: [], success: true } }
+    );
+
+    await makeRequest(app, 'GET', '/api/support?status=open');
+    expect(mockDB.prepare).toHaveBeenCalledWith(expect.stringContaining('st.status = ?'));
+  });
+});
+
+describe('GET /api/support/:id', () => {
+  it('returns ticket with notes', async () => {
+    const ticketRow = { id: 'ticket-1', organization_id: 'org-1', user_id: 'user-1', user_name: 'Jane', user_email: 'jane@test.com', subject: 'Help', message: 'Need help', status: 'open', created_at: '2026-03-05T10:00:00Z', updated_at: null, organization_name: 'Test School' };
+    const noteRows = [
+      { id: 'note-1', ticket_id: 'ticket-1', user_id: 'owner-1', user_name: 'Owner', note: 'Looking into it', created_at: '2026-03-05T11:00:00Z' },
+    ];
+
+    const mockDB = createMockDB();
+    let callCount = 0;
+    mockDB.prepare = vi.fn().mockImplementation(() => ({
+      bind: vi.fn().mockReturnValue({
+        first: vi.fn().mockResolvedValue(callCount++ === 0 ? ticketRow : null),
+        all: vi.fn().mockResolvedValue({ results: noteRows, success: true }),
+      }),
+    }));
+
+    const app = new Hono();
+    app.use('*', async (c, next) => {
+      c.env = { READING_MANAGER_DB: mockDB };
+      c.set('userRole', 'owner');
+      c.set('userId', 'owner-1');
+      c.set('user', { sub: 'owner-1', name: 'Owner', email: 'owner@test.com' });
+      await next();
+    });
+    app.route('/api/support', supportRouter);
+
+    const res = await makeRequest(app, 'GET', '/api/support/ticket-1');
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.ticket.id).toBe('ticket-1');
+    expect(data.notes).toHaveLength(1);
+    expect(data.notes[0].note).toBe('Looking into it');
+  });
+
+  it('returns 404 for non-existent ticket', async () => {
+    const { app } = createTestApp(
+      { userId: 'owner-1', userRole: 'owner', user: { sub: 'owner-1', name: 'Owner', email: 'owner@test.com' } },
+      { firstResult: null }
+    );
+
+    const res = await makeRequest(app, 'GET', '/api/support/nonexistent');
+    expect(res.status).toBe(404);
+  });
+});
+
+describe('PATCH /api/support/:id', () => {
+  it('updates ticket status', async () => {
+    const { app, mockDB } = createTestApp(
+      { userId: 'owner-1', userRole: 'owner', user: { sub: 'owner-1', name: 'Owner', email: 'owner@test.com' } },
+      { firstResult: { id: 'ticket-1', status: 'open' } }
+    );
+
+    const res = await makeRequest(app, 'PATCH', '/api/support/ticket-1', { status: 'in-progress' });
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.success).toBe(true);
+
+    expect(mockDB.prepare).toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE support_tickets SET status')
+    );
+  });
+
+  it('rejects invalid status', async () => {
+    const { app } = createTestApp(
+      { userId: 'owner-1', userRole: 'owner', user: { sub: 'owner-1', name: 'Owner', email: 'owner@test.com' } },
+      { firstResult: { id: 'ticket-1', status: 'open' } }
+    );
+
+    const res = await makeRequest(app, 'PATCH', '/api/support/ticket-1', { status: 'deleted' });
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 404 for non-existent ticket', async () => {
+    const { app } = createTestApp(
+      { userId: 'owner-1', userRole: 'owner', user: { sub: 'owner-1', name: 'Owner', email: 'owner@test.com' } },
+      { firstResult: null }
+    );
+
+    const res = await makeRequest(app, 'PATCH', '/api/support/nonexistent', { status: 'resolved' });
+    expect(res.status).toBe(404);
+  });
+});
+
+describe('POST /api/support/:id/notes', () => {
+  it('adds a note to a ticket', async () => {
+    const { app, mockDB } = createTestApp(
+      { userId: 'owner-1', userRole: 'owner', user: { sub: 'owner-1', name: 'Owner', email: 'owner@test.com' } },
+      { firstResult: { id: 'ticket-1' } }
+    );
+
+    const res = await makeRequest(app, 'POST', '/api/support/ticket-1/notes', { note: 'Working on it' });
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.success).toBe(true);
+    expect(data.noteId).toBeDefined();
+
+    expect(mockDB.prepare).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO support_ticket_notes')
+    );
+  });
+
+  it('rejects empty note', async () => {
+    const { app } = createTestApp(
+      { userId: 'owner-1', userRole: 'owner', user: { sub: 'owner-1', name: 'Owner', email: 'owner@test.com' } },
+    );
+
+    const res = await makeRequest(app, 'POST', '/api/support/ticket-1/notes', { note: '' });
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects note exceeding 2000 characters', async () => {
+    const { app } = createTestApp(
+      { userId: 'owner-1', userRole: 'owner', user: { sub: 'owner-1', name: 'Owner', email: 'owner@test.com' } },
+    );
+
+    const res = await makeRequest(app, 'POST', '/api/support/ticket-1/notes', { note: 'x'.repeat(2001) });
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 404 for non-existent ticket', async () => {
+    const { app } = createTestApp(
+      { userId: 'owner-1', userRole: 'owner', user: { sub: 'owner-1', name: 'Owner', email: 'owner@test.com' } },
+      { firstResult: null }
+    );
+
+    const res = await makeRequest(app, 'POST', '/api/support/nonexistent/notes', { note: 'Test' });
+    expect(res.status).toBe(404);
   });
 });
