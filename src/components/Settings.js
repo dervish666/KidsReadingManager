@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -13,16 +13,38 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem
+  MenuItem,
+  CircularProgress
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import RestoreIcon from '@mui/icons-material/Restore';
 import WhatshotIcon from '@mui/icons-material/Whatshot';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { useAppContext } from '../contexts/AppContext';
 import ClassManager from './classes/ClassManager'; // Import ClassManager
 
+const TERM_NAMES = ['Autumn 1', 'Autumn 2', 'Spring 1', 'Spring 2', 'Summer 1', 'Summer 2'];
+
+const getCurrentAcademicYear = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  if (month >= 7) return `${year}/${String(year + 1).slice(2)}`;
+  return `${year - 1}/${String(year).slice(2)}`;
+};
+
+const getAcademicYearOptions = () => {
+  const current = getCurrentAcademicYear();
+  const startYear = parseInt(current.split('/')[0]);
+  return [
+    `${startYear - 1}/${String(startYear).slice(2)}`,
+    current,
+    `${startYear + 1}/${String(startYear + 2).slice(2)}`,
+  ];
+};
+
 const Settings = () => {
-  const { readingStatusSettings, settings, updateSettings } = useAppContext();
+  const { readingStatusSettings, settings, updateSettings, fetchWithAuth, canManageSettings } = useAppContext();
 
   // Local state for form values
   const [localSettings, setLocalSettings] = useState({
@@ -131,6 +153,82 @@ const Settings = () => {
   // Handle close snackbar
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
+  };
+
+  // Term dates state
+  const [selectedYear, setSelectedYear] = useState(getCurrentAcademicYear());
+  const [termDates, setTermDates] = useState(
+    TERM_NAMES.map((name, i) => ({ termName: name, termOrder: i + 1, startDate: '', endDate: '' }))
+  );
+  const [termDatesLoading, setTermDatesLoading] = useState(false);
+  const [termDatesSaving, setTermDatesSaving] = useState(false);
+
+  // Fetch term dates when selectedYear changes
+  useEffect(() => {
+    const fetchTermDates = async () => {
+      setTermDatesLoading(true);
+      try {
+        const res = await fetchWithAuth(`/api/term-dates?year=${encodeURIComponent(selectedYear)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.terms && data.terms.length > 0) {
+            const merged = TERM_NAMES.map((name, i) => {
+              const found = data.terms.find(t => t.termOrder === i + 1);
+              return found || { termName: name, termOrder: i + 1, startDate: '', endDate: '' };
+            });
+            setTermDates(merged);
+          } else {
+            setTermDates(TERM_NAMES.map((name, i) => ({ termName: name, termOrder: i + 1, startDate: '', endDate: '' })));
+          }
+        }
+      } catch {
+        // silently fail
+      } finally {
+        setTermDatesLoading(false);
+      }
+    };
+    fetchTermDates();
+  }, [selectedYear, fetchWithAuth]);
+
+  // Handle save term dates
+  const handleSaveTermDates = async () => {
+    const filledTerms = termDates.filter(t => t.startDate && t.endDate);
+    for (const t of filledTerms) {
+      if (t.startDate >= t.endDate) {
+        setSnackbar({ open: true, message: `Start date must be before end date for ${t.termName}`, severity: 'error' });
+        return;
+      }
+    }
+    const sorted = [...filledTerms].sort((a, b) => a.startDate.localeCompare(b.startDate));
+    for (let i = 1; i < sorted.length; i++) {
+      if (sorted[i].startDate <= sorted[i - 1].endDate) {
+        setSnackbar({ open: true, message: `Term dates overlap: ${sorted[i - 1].termName} and ${sorted[i].termName}`, severity: 'error' });
+        return;
+      }
+    }
+    setTermDatesSaving(true);
+    try {
+      const res = await fetchWithAuth('/api/term-dates', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ academicYear: selectedYear, terms: filledTerms }),
+      });
+      if (res.ok) {
+        setSnackbar({ open: true, message: 'Term dates saved', severity: 'success' });
+      } else {
+        const data = await res.json();
+        setSnackbar({ open: true, message: data.message || data.error || 'Failed to save term dates', severity: 'error' });
+      }
+    } catch (error) {
+      setSnackbar({ open: true, message: `Error: ${error.message}`, severity: 'error' });
+    } finally {
+      setTermDatesSaving(false);
+    }
+  };
+
+  // Handle term date field change
+  const handleTermDateChange = (index, field, value) => {
+    setTermDates(prev => prev.map((t, i) => i === index ? { ...t, [field]: value } : t));
   };
 
   return (
@@ -274,6 +372,82 @@ const Settings = () => {
         </Box>
 
         <Divider sx={{ my: 3 }} />
+
+        {canManageSettings && (
+          <>
+            <Box sx={{ mb: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                <CalendarMonthIcon sx={{ color: '#0EA5E9' }} />
+                <Typography variant="subtitle1">
+                  Term Dates
+                </Typography>
+              </Box>
+              <Typography variant="body2" color="text.secondary" paragraph>
+                Set the half-term dates for your school's academic year. These dates enable half-term filtering on the statistics page.
+              </Typography>
+
+              <FormControl sx={{ minWidth: 200, mb: 2 }}>
+                <InputLabel id="academic-year-label">Academic Year</InputLabel>
+                <Select
+                  labelId="academic-year-label"
+                  value={selectedYear}
+                  label="Academic Year"
+                  onChange={(e) => setSelectedYear(e.target.value)}
+                >
+                  {getAcademicYearOptions().map(year => (
+                    <MenuItem key={year} value={year}>{year}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {termDatesLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+                  <CircularProgress size={24} />
+                </Box>
+              ) : (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                  {termDates.map((term, index) => (
+                    <Box key={term.termOrder} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600, minWidth: 90 }}>
+                        {term.termName}
+                      </Typography>
+                      <TextField
+                        type="date"
+                        label="Start"
+                        value={term.startDate}
+                        onChange={(e) => handleTermDateChange(index, 'startDate', e.target.value)}
+                        size="small"
+                        slotProps={{ inputLabel: { shrink: true } }}
+                        sx={{ width: 160 }}
+                      />
+                      <TextField
+                        type="date"
+                        label="End"
+                        value={term.endDate}
+                        onChange={(e) => handleTermDateChange(index, 'endDate', e.target.value)}
+                        size="small"
+                        slotProps={{ inputLabel: { shrink: true } }}
+                        sx={{ width: 160 }}
+                      />
+                    </Box>
+                  ))}
+                </Box>
+              )}
+
+              <Button
+                variant="outlined"
+                startIcon={termDatesSaving ? <CircularProgress size={16} /> : <SaveIcon />}
+                onClick={handleSaveTermDates}
+                disabled={termDatesSaving || termDatesLoading}
+                sx={{ mt: 2 }}
+              >
+                {termDatesSaving ? 'Saving...' : 'Save Term Dates'}
+              </Button>
+            </Box>
+
+            <Divider sx={{ my: 3 }} />
+          </>
+        )}
 
         <Box sx={{ display: 'flex', gap: 2, mt: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
           <Button
