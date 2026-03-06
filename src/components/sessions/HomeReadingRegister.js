@@ -11,7 +11,6 @@ import {
   TableHead,
   TableRow,
   Button,
-  ButtonGroup,
   Chip,
   IconButton,
   Snackbar,
@@ -39,7 +38,6 @@ import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import { useAppContext } from '../../contexts/AppContext';
 import BookAutocomplete from './BookAutocomplete';
 import ScanBookFlow from '../books/ScanBookFlow';
-import ClassReadingHistoryTable from './ClassReadingHistoryTable';
 
 // Reading status types for home reading
 const READING_STATUS = {
@@ -65,16 +63,6 @@ const formatDateDisplay = (dateStr) => {
     day: 'numeric',
     month: 'short'
   });
-};
-
-// Get the week number and day of week for a date
-const getWeekInfo = (dateStr) => {
-  const date = new Date(dateStr);
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  return {
-    dayName: dayNames[date.getDay()],
-    dayOfWeek: date.getDay()
-  };
 };
 
 const DATE_PRESETS = {
@@ -149,7 +137,6 @@ const HomeReadingRegister = () => {
     addReadingSession,
     deleteReadingSession,
     updateStudentCurrentBook,
-    reloadDataFromServer,
     globalClassFilter,
     setGlobalClassFilter
   } = useAppContext();
@@ -479,117 +466,85 @@ const HomeReadingRegister = () => {
     setMultipleCount(2);
   };
 
-  // Render status cell content
-  const renderStatusCell = (student) => {
-    const { status, count } = getStudentReadingStatus(student, selectedDate);
-    
+  const renderDateStatusCell = (student, date) => {
+    const dateStr = formatDateISO(date);
+    const { status, count } = getStudentReadingStatus(student, dateStr);
+    const isSelectedDate = selectedDate === dateStr;
+    const isSelected = selectedStudent?.id === student.id;
+
     const cellStyle = {
       cursor: 'pointer',
       textAlign: 'center',
       fontWeight: 'bold',
-      fontSize: '1.2rem',
-      padding: '8px 4px',
-      minWidth: '40px',
+      fontSize: isMobile ? '0.75rem' : '1rem',
+      padding: isMobile ? '4px 2px' : '8px 4px',
+      minWidth: isMobile ? 30 : 40,
       transition: 'background-color 0.2s',
-      '&:hover': {
-        backgroundColor: 'action.hover'
-      }
+      outline: isSelectedDate ? '2px solid' : 'none',
+      outlineColor: 'primary.main',
+      outlineOffset: '-2px',
     };
 
-    const isSelected = selectedStudent?.id === student.id;
-    
+    let bgColor = 'transparent';
+    let color = 'grey.400';
+    let content = '-';
+
     switch (status) {
       case READING_STATUS.READ:
-        return (
-          <TableCell
-            aria-label="Read"
-            sx={{
-              ...cellStyle,
-              backgroundColor: isSelected ? 'primary.light' : 'success.light',
-              color: 'success.dark'
-            }}
-            onClick={() => setSelectedStudent(student)}
-          >
-            ✓
-          </TableCell>
-        );
+        bgColor = 'success.light';
+        color = 'success.dark';
+        content = '✓';
+        break;
       case READING_STATUS.MULTIPLE:
-        return (
-          <TableCell
-            aria-label={`${count} reading sessions`}
-            sx={{
-              ...cellStyle,
-              backgroundColor: isSelected ? 'primary.light' : 'success.main',
-              color: 'white'
-            }}
-            onClick={() => setSelectedStudent(student)}
-          >
-            {count}
-          </TableCell>
-        );
+        bgColor = 'success.main';
+        color = 'white';
+        content = count;
+        break;
       case READING_STATUS.ABSENT:
-        return (
-          <TableCell
-            aria-label="Absent"
-            sx={{
-              ...cellStyle,
-              backgroundColor: isSelected ? 'primary.light' : 'warning.light',
-              color: 'warning.dark'
-            }}
-            onClick={() => setSelectedStudent(student)}
-          >
-            A
-          </TableCell>
-        );
+        bgColor = 'warning.light';
+        color = 'warning.dark';
+        content = 'A';
+        break;
       case READING_STATUS.NO_RECORD:
-        return (
-          <TableCell
-            aria-label="No reading record"
-            sx={{
-              ...cellStyle,
-              backgroundColor: isSelected ? 'primary.light' : 'grey.200',
-              color: 'grey.600'
-            }}
-            onClick={() => setSelectedStudent(student)}
-          >
-            •
-          </TableCell>
-        );
+        bgColor = 'grey.200';
+        color = 'grey.600';
+        content = '•';
+        break;
       default:
-        return (
-          <TableCell 
-            sx={{ 
-              ...cellStyle, 
-              backgroundColor: isSelected ? 'primary.light' : 'transparent',
-              color: 'grey.400'
-            }}
-            onClick={() => setSelectedStudent(student)}
-          >
-            -
-          </TableCell>
-        );
+        break;
     }
+
+    if (isSelected && isSelectedDate) {
+      bgColor = 'primary.light';
+    }
+
+    return (
+      <TableCell
+        key={dateStr}
+        sx={{ ...cellStyle, backgroundColor: bgColor, color }}
+        onClick={() => {
+          setSelectedDate(dateStr);
+          setSelectedStudent(student);
+        }}
+      >
+        {content}
+      </TableCell>
+    );
   };
 
-  // Calculate student's total sessions for the current week/term
-  // Excludes absent and no_record markers - only counts actual reading sessions
-  // Respects [COUNT:N] markers for multiple sessions stored in a single record
-  const getStudentTotalSessions = (student) => {
+  const getStudentTotalInRange = useCallback((student) => {
     let total = 0;
-    student.readingSessions.forEach(s => {
-      if (s.location !== 'home') return;
-      if (s.notes?.includes('[ABSENT]') || s.notes?.includes('[NO_RECORD]')) return;
-      
-      // Check for count marker
-      const countMatch = s.notes?.match(/\[COUNT:(\d+)\]/);
-      if (countMatch) {
-        total += parseInt(countMatch[1], 10);
-      } else {
+    dates.forEach(date => {
+      const dateStr = formatDateISO(date);
+      const { status, count } = getStudentReadingStatus(student, dateStr);
+      if (status === READING_STATUS.READ) {
         total += 1;
+      } else if (status === READING_STATUS.MULTIPLE) {
+        total += count;
       }
     });
     return total;
-  };
+  }, [dates, getStudentReadingStatus]);
 
   return (
     <Box>
@@ -807,18 +762,66 @@ const HomeReadingRegister = () => {
           <Table stickyHeader size="small">
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 'bold', minWidth: 140 }}>Name</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', minWidth: 50 }}>
-                  {getWeekInfo(selectedDate).dayName}
+                <TableCell
+                  sx={{
+                    fontWeight: 'bold',
+                    minWidth: isMobile ? 80 : 140,
+                    position: 'sticky',
+                    left: 0,
+                    backgroundColor: 'background.paper',
+                    zIndex: 3
+                  }}
+                >
+                  Name
                 </TableCell>
-                <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', minWidth: 40 }}>Clear</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', minWidth: 60 }}>Total</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', minWidth: 150 }}>Current Book</TableCell>
+                {dates.map((date, index) => {
+                  const { day, date: dayNum } = formatDateHeader(date);
+                  const dateStr = formatDateISO(date);
+                  const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+                  const isSelectedDate = selectedDate === dateStr;
+                  return (
+                    <TableCell
+                      key={index}
+                      sx={{
+                        fontWeight: 'bold',
+                        textAlign: 'center',
+                        minWidth: isMobile ? 30 : 40,
+                        padding: isMobile ? '4px 2px' : '8px 4px',
+                        backgroundColor: isSelectedDate ? 'primary.main' : (isWeekend ? 'grey.100' : 'background.paper'),
+                        color: isSelectedDate ? 'primary.contrastText' : 'text.primary',
+                        cursor: 'pointer',
+                        '@media (hover: hover) and (pointer: fine)': {
+                          '&:hover': {
+                            backgroundColor: isSelectedDate ? 'primary.dark' : 'action.hover'
+                          },
+                        },
+                        transition: 'background-color 0.2s ease-in-out'
+                      }}
+                      onClick={() => setSelectedDate(dateStr)}
+                    >
+                      <Tooltip title={date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}>
+                        <Box>
+                          <Typography variant="caption" display="block" sx={{ fontSize: isMobile ? '0.6rem' : '0.7rem' }}>
+                            {day}
+                          </Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 'bold', fontSize: isMobile ? '0.75rem' : '0.85rem' }}>
+                            {dayNum}
+                          </Typography>
+                        </Box>
+                      </Tooltip>
+                    </TableCell>
+                  );
+                })}
+                <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', minWidth: isMobile ? 40 : 50, backgroundColor: 'primary.light', color: 'primary.contrastText' }}>
+                  Total
+                </TableCell>
+                <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', minWidth: 40 }}>
+                  Clear
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {filteredStudents.map(student => {
-                const lastBook = getStudentLastBook(student.id);
                 const isSelected = selectedStudent?.id === student.id;
                 const { status } = getStudentReadingStatus(student, selectedDate);
                 const hasEntry = status !== READING_STATUS.NONE;
@@ -830,18 +833,34 @@ const HomeReadingRegister = () => {
                     selected={isSelected}
                     sx={{
                       cursor: 'pointer',
-                      '&.Mui-selected': {
-                        backgroundColor: 'primary.light'
-                      }
+                      '&.Mui-selected': { backgroundColor: 'primary.light' }
                     }}
                   >
                     <TableCell
-                      sx={{ fontWeight: isSelected ? 'bold' : 'normal' }}
+                      sx={{
+                        fontWeight: isSelected ? 'bold' : 500,
+                        fontSize: isMobile ? '0.75rem' : '0.875rem',
+                        position: 'sticky',
+                        left: 0,
+                        backgroundColor: isSelected ? 'primary.light' : 'background.paper',
+                        zIndex: 1
+                      }}
                       onClick={() => setSelectedStudent(student)}
                     >
                       {student.name}
                     </TableCell>
-                    {renderStatusCell(student)}
+                    {dates.map(date => renderDateStatusCell(student, date))}
+                    <TableCell
+                      sx={{
+                        textAlign: 'center',
+                        fontWeight: 'bold',
+                        backgroundColor: 'primary.light',
+                        color: 'primary.contrastText',
+                        fontSize: isMobile ? '0.8rem' : '0.9rem'
+                      }}
+                    >
+                      {getStudentTotalInRange(student)}
+                    </TableCell>
                     <TableCell sx={{ textAlign: 'center', padding: '4px' }}>
                       {hasEntry && (
                         <Tooltip title="Clear entry">
@@ -866,28 +885,12 @@ const HomeReadingRegister = () => {
                         </Tooltip>
                       )}
                     </TableCell>
-                    <TableCell
-                      sx={{ textAlign: 'center', fontWeight: 'bold' }}
-                      onClick={() => setSelectedStudent(student)}
-                    >
-                      {getStudentTotalSessions(student)}
-                    </TableCell>
-                    <TableCell
-                      onClick={() => setSelectedStudent(student)}
-                      sx={{
-                        fontSize: '0.85rem',
-                        color: lastBook ? 'text.primary' : 'text.secondary',
-                        fontStyle: lastBook ? 'normal' : 'italic'
-                      }}
-                    >
-                      {lastBook ? lastBook.title : 'No book set'}
-                    </TableCell>
                   </TableRow>
                 );
               })}
               {filteredStudents.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} sx={{ textAlign: 'center', py: 4 }}>
+                  <TableCell colSpan={dates.length + 3} sx={{ textAlign: 'center', py: 4 }}>
                     <Typography color="text.secondary">
                       {searchQuery ? 'No students match your search' : 'No students in this class'}
                     </Typography>
@@ -964,14 +967,6 @@ const HomeReadingRegister = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Reading History Table */}
-      <ClassReadingHistoryTable 
-        students={classStudents} 
-        books={books}
-        selectedDate={selectedDate}
-        onDateChange={setSelectedDate}
-      />
 
       {/* ISBN Scanner Flow */}
       <ScanBookFlow
