@@ -102,6 +102,26 @@ const createMockContext = (overrides = {}) => ({
   apiError: null,
   fetchWithAuth: vi.fn(),
   globalClassFilter: 'all',
+  prioritizedStudents: [
+    {
+      id: 'student-1',
+      name: 'Alice Smith',
+      classId: 'class-1',
+      readingSessions: [
+        { id: 'session-1', bookId: 'book-1', date: '2024-06-01', assessment: 'independent' }
+      ],
+      lastReadDate: '2024-06-01'
+    },
+    {
+      id: 'student-2',
+      name: 'Bob Jones',
+      classId: 'class-1',
+      readingSessions: [],
+      lastReadDate: null
+    }
+  ],
+  getReadingStatus: vi.fn().mockReturnValue('attention'),
+  markStudentAsPriorityHandled: vi.fn(),
   ...overrides
 });
 

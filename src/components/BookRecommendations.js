@@ -15,8 +15,12 @@ import {
   Alert,
   Paper,
   Stack,
-  Tooltip
+  Tooltip,
+  Collapse,
+  IconButton
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import { useAppContext } from '../contexts/AppContext';
 import BookIcon from '@mui/icons-material/Book';
 import SchoolIcon from '@mui/icons-material/School';
@@ -30,11 +34,19 @@ import FavoriteIcon from '@mui/icons-material/Favorite';
 import HistoryIcon from '@mui/icons-material/History';
 import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import ThumbDownIcon from '@mui/icons-material/ThumbDown';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import StudentProfile from './students/StudentProfile';
 import BookCover from './BookCover';
 
 const BookRecommendations = () => {
-  const { students, classes, books, apiError, fetchWithAuth, globalClassFilter } = useAppContext();
+  const {
+    students, classes, books, apiError, fetchWithAuth, globalClassFilter,
+    prioritizedStudents, getReadingStatus, markStudentAsPriorityHandled
+  } = useAppContext();
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // State for selections and data
   const [selectedStudentId, setSelectedStudentId] = useState('');
@@ -171,9 +183,9 @@ const BookRecommendations = () => {
     }
   };
 
-  // Handler for library search
-  const handleLibrarySearch = async () => {
-    if (!selectedStudentId) return;
+  // Core library search function (reusable from multiple triggers)
+  const triggerLibrarySearch = async (studentId) => {
+    if (!studentId) return;
 
     setLibraryLoading(true);
     setError(null);
@@ -182,7 +194,7 @@ const BookRecommendations = () => {
     setIsCachedResult(false);
 
     try {
-      const response = await fetchWithAuth(`/api/books/library-search?studentId=${selectedStudentId}&focusMode=${focusMode}`);
+      const response = await fetchWithAuth(`/api/books/library-search?studentId=${studentId}&focusMode=${focusMode}`);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -198,6 +210,43 @@ const BookRecommendations = () => {
     } finally {
       setLibraryLoading(false);
     }
+  };
+
+  // Handler for library search (wrapper for button, if needed)
+  const handleLibrarySearch = async () => {
+    await triggerLibrarySearch(selectedStudentId);
+  };
+
+  // Handler for quick-pick card click
+  const handleQuickPick = async (studentId) => {
+    setSelectedStudentId(studentId);
+    const student = students.find(s => s.id === studentId);
+    if (student && student.readingSessions) {
+      const uniqueBooks = new Map();
+      student.readingSessions.forEach(session => {
+        if (session.bookId) {
+          uniqueBooks.set(session.bookId, {
+            id: session.bookId,
+            bookId: session.bookId,
+            dateRead: session.date,
+            assessment: session.assessment
+          });
+        }
+      });
+      setBooksRead(Array.from(uniqueBooks.values()));
+    } else {
+      setBooksRead([]);
+    }
+    setRecommendations([]);
+    setStudentProfile(null);
+    setResultType(null);
+    setError(null);
+
+    if (markStudentAsPriorityHandled) {
+      markStudentAsPriorityHandled(studentId);
+    }
+
+    await triggerLibrarySearch(studentId);
   };
 
   // Handler for AI suggestions
