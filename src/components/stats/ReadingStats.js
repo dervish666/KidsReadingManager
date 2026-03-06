@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -15,7 +15,11 @@ import {
   ListItemIcon,
   Chip,
   Alert,
-  CircularProgress
+  CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -40,7 +44,31 @@ const ReadingStats = () => {
   const { students, classes, exportToJson, getReadingStatus, globalClassFilter, fetchWithAuth, reloadDataFromServer } = useAppContext();
   const [currentTab, setCurrentTab] = useState(0);
   const [recalculating, setRecalculating] = useState(false);
-  
+  const [termDates, setTermDates] = useState([]);
+  const [selectedTerm, setSelectedTerm] = useState('all');
+
+  useEffect(() => {
+    const fetchTermDates = async () => {
+      try {
+        const res = await fetchWithAuth('/api/term-dates');
+        if (res.ok) {
+          const data = await res.json();
+          setTermDates(data.terms || []);
+        }
+      } catch {
+        // silently fail — no filter shown
+      }
+    };
+    fetchTermDates();
+  }, [fetchWithAuth]);
+
+  const termDateRange = useMemo(() => {
+    if (selectedTerm === 'all') return null;
+    const term = termDates.find(t => t.termOrder === selectedTerm);
+    if (!term) return null;
+    return { start: term.startDate, end: term.endDate };
+  }, [selectedTerm, termDates]);
+
   const handleTabChange = (event, newValue) => {
     setCurrentTab(newValue);
   };
@@ -134,7 +162,11 @@ const ReadingStats = () => {
 
     // Count sessions and new stats
     activeStudents.forEach(student => {
-      const sessionCount = student.readingSessions?.length || 0;
+      const allSessions = student.readingSessions || [];
+      const sessions = termDateRange
+        ? allSessions.filter(s => s.date >= termDateRange.start && s.date <= termDateRange.end)
+        : allSessions;
+      const sessionCount = sessions.length;
       totalSessions += sessionCount;
 
       if (sessionCount === 0) {
@@ -142,7 +174,7 @@ const ReadingStats = () => {
       }
 
       // Process each session for detailed stats
-      (student.readingSessions || []).forEach(session => {
+      sessions.forEach(session => {
         // Location distribution
         const location = session.location || 'school';
         if (locationCounts.hasOwnProperty(location)) {
@@ -241,7 +273,7 @@ const ReadingStats = () => {
       averageStreak,
       topStreaks
     };
-  }, [students, classes, getReadingStatus, globalClassFilter]);
+  }, [students, classes, getReadingStatus, globalClassFilter, termDateRange]);
   
   // Get students sorted by session count (least to most)
   const getStudentsBySessionCount = () => {
@@ -260,9 +292,15 @@ const ReadingStats = () => {
       const studentClass = classes.find(cls => cls.id === student.classId);
       return !studentClass || !studentClass.disabled;
     });
-    return [...activeStudents].sort((a, b) =>
-      a.readingSessions.length - b.readingSessions.length
-    );
+    return [...activeStudents].sort((a, b) => {
+      const aCount = termDateRange
+        ? (a.readingSessions || []).filter(s => s.date >= termDateRange.start && s.date <= termDateRange.end).length
+        : a.readingSessions.length;
+      const bCount = termDateRange
+        ? (b.readingSessions || []).filter(s => s.date >= termDateRange.start && s.date <= termDateRange.end).length
+        : b.readingSessions.length;
+      return aCount - bCount;
+    });
   };
   
   // Get all students with streak data, sorted by current streak
@@ -660,17 +698,21 @@ const ReadingStats = () => {
         
         <Paper sx={{ borderRadius: 4, overflow: 'hidden' }}>
           <List>
-            {sortedStudents.map(student => (
+            {sortedStudents.map(student => {
+              const sessionCount = termDateRange
+                ? (student.readingSessions || []).filter(s => s.date >= termDateRange.start && s.date <= termDateRange.end).length
+                : student.readingSessions.length;
+              return (
               <ListItem key={student.id} divider>
                 <ListItemIcon>
-                  <Box sx={{ 
-                    width: 40, 
-                    height: 40, 
-                    borderRadius: '50%', 
-                    bgcolor: '#E0E7FF', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center' 
+                  <Box sx={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: '50%',
+                    bgcolor: '#E0E7FF',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                   }}>
                     <PersonIcon sx={{ color: '#4F46E5' }} />
                   </Box>
@@ -686,17 +728,18 @@ const ReadingStats = () => {
                     : 'Never'}`}
                 />
                 <Chip
-                  label={`${student.readingSessions.length} sessions`}
-                  sx={{ 
-                    bgcolor: student.readingSessions.length === 0 ? '#FEE2E2' : '#E0E7FF', 
-                    color: student.readingSessions.length === 0 ? '#EF4444' : '#4F46E5',
+                  label={`${sessionCount} sessions`}
+                  sx={{
+                    bgcolor: sessionCount === 0 ? '#FEE2E2' : '#E0E7FF',
+                    color: sessionCount === 0 ? '#EF4444' : '#4F46E5',
                     fontWeight: 700,
                     borderRadius: 2
                   }}
                   size="small"
                 />
               </ListItem>
-            ))}
+              );
+            })}
           </List>
         </Paper>
       </Box>
@@ -866,23 +909,43 @@ const ReadingStats = () => {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
         <Typography variant="h4" component="h1" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#4A4A4A' }}>
           Reading Statistics
         </Typography>
-        <Button
-          variant="outlined"
-          startIcon={<DownloadIcon />}
-          onClick={handleExport}
-          sx={{ 
-            borderRadius: 3, 
-            fontWeight: 600,
-            borderWidth: 2,
-            '&:hover': { borderWidth: 2 }
-          }}
-        >
-          Export Data
-        </Button>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          {termDates.length > 0 && (
+            <FormControl size="small" sx={{ minWidth: 160 }}>
+              <InputLabel id="term-filter-label">Period</InputLabel>
+              <Select
+                labelId="term-filter-label"
+                value={selectedTerm}
+                label="Period"
+                onChange={(e) => setSelectedTerm(e.target.value)}
+              >
+                <MenuItem value="all">All Time</MenuItem>
+                {termDates.map(term => (
+                  <MenuItem key={term.termOrder} value={term.termOrder}>
+                    {term.termName}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+          <Button
+            variant="outlined"
+            startIcon={<DownloadIcon />}
+            onClick={handleExport}
+            sx={{
+              borderRadius: 3,
+              fontWeight: 600,
+              borderWidth: 2,
+              '&:hover': { borderWidth: 2 }
+            }}
+          >
+            Export Data
+          </Button>
+        </Box>
       </Box>
       
       <Box>
