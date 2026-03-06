@@ -1,5 +1,23 @@
 # Changelog
 
+## [3.10.7] - 2026-03-06
+
+### Added
+- **Support ticket management page** — owner-only "Support Tickets" tab in Settings with master-detail layout for viewing and managing user support requests
+- **Ticket status management** — update ticket status (open, in-progress, resolved) with optimistic UI updates and rollback on failure
+- **Internal notes** — add timestamped internal notes to tickets, displayed as a timeline with user attribution
+- **Status filtering** — filter ticket list by status with live count badges (All/Open/In Progress/Resolved)
+- **Mobile responsive** — full-width list on mobile with detail overlay and back button
+
+### Backend
+- `GET /api/support` — list all tickets with optional `?status=` filter, joins organization name (owner only)
+- `GET /api/support/:id` — single ticket detail with notes array (owner only)
+- `PATCH /api/support/:id` — update ticket status (owner only)
+- `POST /api/support/:id/notes` — add internal note with atomic batch insert (owner only)
+
+### Database
+- Migration 0032: `support_ticket_notes` table with ticket FK and created_at index; `updated_at` column on `support_tickets`
+
 ## [3.10.5] - 2026-03-05
 
 ### Added
