@@ -142,3 +142,34 @@ export const rowToGenre = (row) => {
     createdAt: row.created_at
   };
 };
+
+// ── Support Tickets ─────────────────────────────────────────────────────────
+
+export const rowToSupportTicket = (row) => {
+  if (!row) return null;
+  return {
+    id: row.id,
+    organizationId: row.organization_id || null,
+    organizationName: row.organization_name || null,
+    userId: row.user_id || null,
+    userName: row.user_name,
+    userEmail: row.user_email,
+    subject: row.subject,
+    message: row.message,
+    status: row.status,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at || null,
+  };
+};
+
+export const rowToSupportNote = (row) => {
+  if (!row) return null;
+  return {
+    id: row.id,
+    ticketId: row.ticket_id,
+    userId: row.user_id || null,
+    userName: row.user_name,
+    note: row.note,
+    createdAt: row.created_at,
+  };
+};
