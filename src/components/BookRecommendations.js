@@ -107,6 +107,9 @@ const BookRecommendations = () => {
   // State for cached result indicator
   const [isCachedResult, setIsCachedResult] = useState(false);
 
+  // State for collapsible profile details
+  const [showDetails, setShowDetails] = useState(false);
+
   // Load AI config on mount
   useEffect(() => {
     const loadAIConfig = async () => {
@@ -201,6 +204,7 @@ const BookRecommendations = () => {
     setStudentProfile(null);
     setResultType(null);
     setError(null);
+    setShowDetails(false);
 
     // Auto-trigger library search (which also loads the profile)
     if (studentId) {
@@ -266,6 +270,7 @@ const BookRecommendations = () => {
     setStudentProfile(null);
     setResultType(null);
     setError(null);
+    setShowDetails(false);
 
     if (markStudentAsPriorityHandled) {
       markStudentAsPriorityHandled(studentId);
@@ -484,39 +489,80 @@ const BookRecommendations = () => {
         )}
       </Paper>
 
-      {/* Student info and profile - simple two-column layout */}
+      {/* Compact student profile bar */}
       {selectedStudent && (
         <Paper sx={{ p: 2, mb: 3 }}>
-          {/* Header with student name and edit button */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <PersonIcon color="primary" />
-              <Typography variant="h6">{selectedStudent.name}</Typography>
-              {selectedClass && (
-                <Chip label={selectedClass.name} size="small" color="primary" />
-              )}
-              {(studentProfile?.readingLevelMin != null && studentProfile?.readingLevelMax != null) ? (
-                <Chip label={`Level: ${studentProfile.readingLevelMin} - ${studentProfile.readingLevelMax}`} size="small" variant="outlined" />
-              ) : studentProfile?.readingLevel && (
-                <Chip label={`Level: ${studentProfile.readingLevel}`} size="small" variant="outlined" />
-              )}
-            </Box>
-            <Button
-              variant="outlined"
+          {/* Compact bar */}
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+            flexWrap: 'wrap'
+          }}>
+            <PersonIcon color="primary" />
+            <Typography variant="h6" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
+              {selectedStudent.name}
+            </Typography>
+            {selectedClass && (
+              <Chip label={selectedClass.name} size="small" color="primary" />
+            )}
+            {(studentProfile?.readingLevelMin != null && studentProfile?.readingLevelMax != null) ? (
+              <Chip label={`Level: ${studentProfile.readingLevelMin} - ${studentProfile.readingLevelMax}`} size="small" variant="outlined" />
+            ) : studentProfile?.readingLevel && (
+              <Chip label={`Level: ${studentProfile.readingLevel}`} size="small" variant="outlined" />
+            )}
+            {studentProfile?.favoriteGenres?.map((genre, i) => (
+              <Chip key={i} label={genre} size="small" color="error" variant="outlined" />
+            ))}
+
+            {/* Focus mode - moved here from button area */}
+            <FormControl size="small" sx={{ minWidth: 130, ml: 'auto' }}>
+              <InputLabel id="focus-mode-label">Focus</InputLabel>
+              <Select
+                labelId="focus-mode-label"
+                id="focus-mode-select"
+                value={focusMode}
+                onChange={(e) => setFocusMode(e.target.value)}
+                label="Focus"
+                disabled={libraryLoading || aiLoading}
+              >
+                <MenuItem value="balanced">Balanced</MenuItem>
+                <MenuItem value="consolidation">Consolidation</MenuItem>
+                <MenuItem value="challenge">Challenge</MenuItem>
+              </Select>
+            </FormControl>
+
+            <IconButton
               size="small"
-              startIcon={<EditIcon />}
               onClick={() => setPreferencesOpen(true)}
+              aria-label="Edit preferences"
+              sx={{ color: 'primary.main' }}
             >
-              Edit Preferences
-            </Button>
+              <EditIcon />
+            </IconButton>
+
+            <IconButton
+              size="small"
+              onClick={() => setShowDetails(!showDetails)}
+              aria-label={showDetails ? 'Hide reading history' : 'Show reading history'}
+              sx={{ color: 'text.secondary' }}
+            >
+              {showDetails ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            </IconButton>
           </Box>
 
-          <Box sx={{
+          {/* Collapsible details */}
+          <Collapse in={showDetails}>
+            <Box sx={{
               display: 'grid',
               gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-              gap: 2
+              gap: 2,
+              mt: 2,
+              pt: 2,
+              borderTop: '1px solid',
+              borderColor: 'divider'
             }}>
-              {/* Left column: Books read */}
+              {/* Left: Books read */}
               <Box>
                 <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
                   <BookIcon fontSize="small" />
@@ -539,7 +585,7 @@ const BookRecommendations = () => {
                 )}
               </Box>
 
-              {/* Right column: Profile details */}
+              {/* Right: Genres, likes, dislikes */}
               <Box>
                 {/* Favorite Genres */}
                 <Box sx={{ mb: 1.5 }}>
@@ -550,7 +596,7 @@ const BookRecommendations = () => {
                   {studentProfile?.favoriteGenres?.length > 0 ? (
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                       {studentProfile.favoriteGenres.map((genre, i) => (
-                        <Chip key={i} label={genre} size="small" color="error" variant="outlined" />
+                        <Chip key={`fav-${i}`} label={genre} size="small" color="error" variant="outlined" />
                       ))}
                     </Box>
                   ) : (
@@ -600,28 +646,13 @@ const BookRecommendations = () => {
                 )}
               </Box>
             </Box>
+          </Collapse>
         </Paper>
       )}
 
-      {/* Action Area - Focus mode and AI button */}
+      {/* AI Suggestions button */}
       {selectedStudentId && (
         <Box sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'center', flexWrap: 'wrap' }}>
-          <FormControl size="small" sx={{ minWidth: 150 }}>
-            <InputLabel id="focus-mode-label">Focus</InputLabel>
-            <Select
-              labelId="focus-mode-label"
-              id="focus-mode-select"
-              value={focusMode}
-              onChange={(e) => setFocusMode(e.target.value)}
-              label="Focus"
-              disabled={libraryLoading || aiLoading}
-            >
-              <MenuItem value="balanced">Balanced</MenuItem>
-              <MenuItem value="consolidation">Consolidation</MenuItem>
-              <MenuItem value="challenge">Challenge</MenuItem>
-            </Select>
-          </FormControl>
-
           <Tooltip
             title={!hasActiveAI ? 'Configure AI in Settings to enable' : ''}
             placement="top"

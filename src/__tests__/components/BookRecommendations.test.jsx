@@ -551,6 +551,29 @@ describe('BookRecommendations Component', () => {
   });
 
   describe('Student Profile Display', () => {
+    it('should toggle reading history details on click', async () => {
+      const user = userEvent.setup();
+      const mockFetch = createMockFetch();
+      const mockContext = createMockContext({ fetchWithAuth: mockFetch });
+      render(<BookRecommendations />, { wrapper: createWrapper(mockContext) });
+
+      await waitFor(() => expect(screen.getByLabelText('Student')).toBeInTheDocument());
+      await user.click(screen.getByLabelText('Student'));
+      await user.click(screen.getByText('Alice Smith (2 books read)'));
+
+      // Wait for results to load
+      await waitFor(() => {
+        expect(screen.getByText('Recommended Book 1')).toBeInTheDocument();
+      });
+
+      // Click toggle to expand
+      fireEvent.click(screen.getByLabelText('Show reading history'));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Books Read/)).toBeVisible();
+      });
+    });
+
     it('should display student info after selection', async () => {
       const mockFetch = createMockFetch();
       const context = createMockContext({ fetchWithAuth: mockFetch });
@@ -571,7 +594,7 @@ describe('BookRecommendations Component', () => {
       expect(screen.getByText('Class 1A')).toBeInTheDocument();
     });
 
-    it('should display books read by selected student', async () => {
+    it('should display books read after expanding details', async () => {
       const mockFetch = createMockFetch();
       const context = createMockContext({ fetchWithAuth: mockFetch });
       const user = userEvent.setup();
@@ -581,18 +604,23 @@ describe('BookRecommendations Component', () => {
       await user.click(studentSelect);
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
+      // Wait for results to load
+      await waitFor(() => {
+        expect(screen.getByText('Recommended Book 1')).toBeInTheDocument();
+      });
+
+      // Expand details
+      fireEvent.click(screen.getByLabelText('Show reading history'));
+
       await waitFor(() => {
         expect(screen.getByText(/Books Read \(2\)/i)).toBeInTheDocument();
       });
 
-      // Should display book titles - there may be multiple matches (one in books list, one in likes)
-      await waitFor(() => {
-        const bookTitleElements = screen.getAllByText(/The Cat in the Hat/);
-        expect(bookTitleElements.length).toBeGreaterThan(0);
-      });
+      const bookTitleElements = screen.getAllByText(/The Cat in the Hat/);
+      expect(bookTitleElements.length).toBeGreaterThan(0);
     });
 
-    it('should display "No books recorded yet" for student with no reading history', async () => {
+    it('should display "No books recorded yet" after expanding details for student with no history', async () => {
       const mockFetch = createMockFetch();
       const context = createMockContext({ fetchWithAuth: mockFetch });
       const user = userEvent.setup();
@@ -602,12 +630,20 @@ describe('BookRecommendations Component', () => {
       await user.click(studentSelect);
       await user.click(screen.getByRole('option', { name: /Bob Jones/i }));
 
+      // Wait for results to load
+      await waitFor(() => {
+        expect(screen.getByText('Bob Jones')).toBeInTheDocument();
+      });
+
+      // Expand details
+      fireEvent.click(screen.getByLabelText('Show reading history'));
+
       await waitFor(() => {
         expect(screen.getByText('No books recorded yet')).toBeInTheDocument();
       });
     });
 
-    it('should display favorite genres from student profile', async () => {
+    it('should display favorite genres as chips on the compact bar', async () => {
       const mockFetch = createMockFetch();
       const context = createMockContext({ fetchWithAuth: mockFetch });
       const user = userEvent.setup();
@@ -617,20 +653,14 @@ describe('BookRecommendations Component', () => {
       await user.click(studentSelect);
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
-      // Wait for auto-search to complete and profile to load
+      // Wait for auto-search to complete - genre chips appear on the bar
       await waitFor(() => {
-        expect(screen.getByText('Favorites')).toBeInTheDocument();
-      });
-
-      // Should display favorite genres from API response
-      await waitFor(() => {
-        // Fiction may appear multiple times (profile + results), just check it exists
         const fictionElements = screen.getAllByText('Fiction');
         expect(fictionElements.length).toBeGreaterThan(0);
       });
     });
 
-    it('should display student likes when available', async () => {
+    it('should display student likes after expanding details', async () => {
       const mockFetch = createMockFetch();
       const context = createMockContext({ fetchWithAuth: mockFetch });
       const user = userEvent.setup();
@@ -641,16 +671,19 @@ describe('BookRecommendations Component', () => {
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
       await waitFor(() => {
-        expect(screen.getByText('Liked')).toBeInTheDocument();
+        expect(screen.getByText('Recommended Book 1')).toBeInTheDocument();
       });
 
-      // Should show likes from preferences - check for the text that includes the likes list
+      // Expand details
+      fireEvent.click(screen.getByLabelText('Show reading history'));
+
       await waitFor(() => {
+        expect(screen.getByText('Liked')).toBeInTheDocument();
         expect(screen.getByText(/The Cat in the Hat, Green Eggs and Ham/)).toBeInTheDocument();
       });
     });
 
-    it('should display student dislikes when available', async () => {
+    it('should display student dislikes after expanding details', async () => {
       const mockFetch = createMockFetch();
       const context = createMockContext({ fetchWithAuth: mockFetch });
       const user = userEvent.setup();
@@ -661,11 +694,16 @@ describe('BookRecommendations Component', () => {
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
       await waitFor(() => {
-        expect(screen.getByText('Disliked')).toBeInTheDocument();
+        expect(screen.getByText('Recommended Book 1')).toBeInTheDocument();
       });
 
-      // Should show dislikes from preferences
-      expect(screen.getByText(/Boring Book/)).toBeInTheDocument();
+      // Expand details
+      fireEvent.click(screen.getByLabelText('Show reading history'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Disliked')).toBeInTheDocument();
+        expect(screen.getByText(/Boring Book/)).toBeInTheDocument();
+      });
     });
 
     it('should show loading skeleton while fetching results', async () => {
@@ -1247,7 +1285,7 @@ describe('BookRecommendations Component', () => {
   });
 
   describe('Edit Preferences Button', () => {
-    it('should show Edit Preferences button after student selection', async () => {
+    it('should show Edit Preferences icon button after student selection', async () => {
       const mockFetch = createMockFetch();
       const context = createMockContext({ fetchWithAuth: mockFetch });
       const user = userEvent.setup();
@@ -1258,7 +1296,7 @@ describe('BookRecommendations Component', () => {
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /edit preferences/i })).toBeInTheDocument();
+        expect(screen.getByLabelText('Edit preferences')).toBeInTheDocument();
       });
     });
 
@@ -1273,12 +1311,11 @@ describe('BookRecommendations Component', () => {
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /edit preferences/i })).toBeInTheDocument();
+        expect(screen.getByLabelText('Edit preferences')).toBeInTheDocument();
       });
 
-      await user.click(screen.getByRole('button', { name: /edit preferences/i }));
+      await user.click(screen.getByLabelText('Edit preferences'));
 
-      // Should show the mocked StudentProfile modal
       expect(screen.getByTestId('student-profile-modal')).toBeInTheDocument();
       expect(screen.getByText('Student Profile: Alice Smith')).toBeInTheDocument();
     });
@@ -1293,14 +1330,15 @@ describe('BookRecommendations Component', () => {
       await user.click(studentSelect);
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
+      // Wait for auto-search to complete
+      await waitFor(() => {
+        expect(screen.getByText('Recommended Book 1')).toBeInTheDocument();
+      });
+
       // Clear mock calls to track new ones
       mockFetch.mockClear();
 
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /edit preferences/i })).toBeInTheDocument();
-      });
-
-      await user.click(screen.getByRole('button', { name: /edit preferences/i }));
+      await user.click(screen.getByLabelText('Edit preferences'));
 
       // Close the modal
       await user.click(screen.getByText('Close Profile'));
@@ -1388,12 +1426,26 @@ describe('BookRecommendations Component', () => {
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
       await waitFor(() => {
+        expect(screen.getByText('Recommended Book 1')).toBeInTheDocument();
+      });
+
+      // Expand details to see books read
+      fireEvent.click(screen.getByLabelText('Show reading history'));
+
+      await waitFor(() => {
         expect(screen.getByText(/Books Read \(2\)/i)).toBeInTheDocument();
       });
 
-      // Now select Bob (no books read)
+      // Now select Bob (no books read) - details collapse
       await user.click(studentSelect);
       await user.click(screen.getByRole('option', { name: /Bob Jones/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Bob Jones')).toBeInTheDocument();
+      });
+
+      // Expand details again
+      fireEvent.click(screen.getByLabelText('Show reading history'));
 
       await waitFor(() => {
         expect(screen.getByText('No books recorded yet')).toBeInTheDocument();
