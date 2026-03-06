@@ -34,6 +34,7 @@ import { myloginRouter } from './routes/mylogin.js';
 import webhooksRouter from './routes/webhooks.js';
 import wondeAdminRouter from './routes/wondeAdmin.js';
 import { supportRouter } from './routes/support.js';
+import { termDatesRouter } from './routes/termDates.js';
 import { runFullSync } from './services/wondeSync.js';
 import { decryptSensitiveData } from './utils/crypto.js';
 
@@ -223,6 +224,7 @@ app.route('/api/auth/mylogin', myloginRouter);
 app.route('/api/webhooks', webhooksRouter);
 app.route('/api/wonde', wondeAdminRouter);
 app.route('/api/support', supportRouter);
+app.route('/api/term-dates', termDatesRouter);
 
 // API health check (public)
 app.get('/api/health', async (c) => {
