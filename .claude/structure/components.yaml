@@ -51,6 +51,18 @@ files:
       - from: contexts/AppContext
         items: [useAppContext]
     api_calls:
+
+  SupportTicketManager.js:
+    description: Owner-only support ticket management with master-detail layout
+    exports:
+      - name: SupportTicketManager
+        kind: component
+        description: Master-detail view for listing, viewing, and managing support tickets with status changes and internal notes
+    state: [tickets, selectedTicketId, ticketDetail, notes, statusFilter, newNote, loading, detailLoading, noteSubmitting]
+    imports:
+      - from: contexts/AppContext
+        items: [useAppContext]
+    api_calls:
       - POST /api/support
 
   BookMetadataSettings.js:

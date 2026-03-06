@@ -37,7 +37,7 @@ src/routes/data.js - GET/POST legacy data export/import
 src/routes/hardcover.js - POST Hardcover GraphQL API proxy
 src/routes/webhooks.js - POST Wonde webhook handler (schoolApproved, accessRevoked)
 src/routes/wondeAdmin.js - POST/GET manual Wonde sync and status
-src/routes/support.js - POST support ticket submission with D1 storage and email notification
+src/routes/support.js - Support ticket submission, listing, detail, status management, internal notes (owner management endpoints)
 
 <!-- Middleware -->
 src/middleware/tenant.js - JWT auth, tenant isolation, role guards, audit logging, rate limiting
@@ -73,7 +73,7 @@ src/utils/bookMetadataApi.js - Unified metadata API with provider abstraction
 src/utils/csvParser.js - CSV parsing for book import
 src/utils/classAssignments.js - Sync class_assignments from wonde_employee_classes for a user
 src/utils/routeHelpers.js - Shared route helpers (getDB, requireDB, isMultiTenantMode, requireStudent)
-src/utils/rowMappers.js - Centralized row-to-object mappers (rowToBook, rowToStudent, rowToClass, rowToUser, rowToOrganization, rowToGenre)
+src/utils/rowMappers.js - Centralized row-to-object mappers (rowToBook, rowToStudent, rowToClass, rowToUser, rowToOrganization, rowToGenre, rowToSupportTicket, rowToSupportNote)
 src/utils/constants.js - Shared constants (PUBLIC_PATHS for auth bypass)
 src/utils/wondeApi.js - Wonde REST API client for school data sync
 
@@ -94,6 +94,7 @@ src/components/TermsOfService.js - Terms of Service standalone page
 src/components/CookiePolicy.js - Cookie Policy standalone page
 src/components/BookRecommendations.js - AI recommendations with library search
 src/components/SupportModal.js - Support contact form modal (subject, message, email notification)
+src/components/SupportTicketManager.js - Owner-only support ticket list with detail panel, status management, internal notes
 src/components/BookMetadataSettings.js - Metadata provider config and bulk ops
 src/components/Settings.js - Reading status thresholds and streak settings
 src/components/SettingsPage.js - Settings hub with tabs

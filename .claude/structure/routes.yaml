@@ -380,7 +380,7 @@ files:
         items: [runFullSync]
 
   support.js:
-    description: Support ticket submission endpoint
+    description: Support ticket submission and management endpoints
     exports:
       - name: supportRouter
         kind: object
@@ -389,10 +389,24 @@ files:
       - route: POST /api/support
         description: Submit support ticket (rate limited 5/hour, requires auth)
         requires: authenticated
+      - route: GET /api/support
+        description: List all support tickets with optional status filter
+        requires: owner
+      - route: GET /api/support/:id
+        description: Get single ticket with notes
+        requires: owner
+      - route: PATCH /api/support/:id
+        description: Update ticket status (open, in-progress, resolved)
+        requires: owner
+      - route: POST /api/support/:id/notes
+        description: Add internal note to a ticket
+        requires: owner
     imports:
       - from: middleware/tenant
-        items: [rateLimit]
+        items: [rateLimit, requireOwner]
       - from: utils/helpers
         items: [generateId]
+      - from: utils/rowMappers
+        items: [rowToSupportTicket, rowToSupportNote]
       - from: utils/email
         items: [sendSupportNotificationEmail]
