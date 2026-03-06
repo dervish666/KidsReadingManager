@@ -126,7 +126,9 @@ const StudentList = () => {
 
       if (statusFilter !== 'all') {
         const status = getReadingStatus(student);
-        if (status !== statusFilter) return false;
+        if (statusFilter === 'needsAttention' && status !== 'attention') return false;
+        if (statusFilter === 'notRead' && status !== 'never' && status !== 'overdue') return false;
+        if (statusFilter === 'recentlyRead' && status !== 'recent') return false;
       }
 
       return true;
@@ -224,105 +226,6 @@ const StudentList = () => {
           justifyContent: { xs: 'stretch', sm: 'flex-end' },
           alignItems: 'center'
         }}>
-          <TextField
-            size="small"
-            placeholder="Search students..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            sx={{
-              minWidth: { xs: '100%', sm: 180 },
-              flex: { xs: '1 1 100%', sm: 'none' },
-              '& .MuiOutlinedInput-root': {
-                borderRadius: 4,
-                backgroundColor: '#ffffff',
-                boxShadow: 'inset 4px 4px 8px #d9d4e3, inset -4px -4px 8px #ffffff',
-                border: 'none',
-                '& fieldset': { border: 'none' },
-              }
-            }}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon sx={{ color: '#6B8E6B' }} fontSize="small" />
-                  </InputAdornment>
-                ),
-                endAdornment: searchQuery ? (
-                  <InputAdornment position="end">
-                    <ClearIcon
-                      sx={{ color: '#7A7A7A', cursor: 'pointer', fontSize: 18 }}
-                      onClick={() => setSearchQuery('')}
-                    />
-                  </InputAdornment>
-                ) : null,
-              }
-            }}
-          />
-          <Box sx={{
-            display: 'flex',
-            gap: 0.75,
-            flexWrap: 'wrap',
-            flex: { xs: '1 1 100%', sm: 'none' },
-            justifyContent: { xs: 'flex-start', sm: 'flex-end' }
-          }}>
-            {[
-              { value: 'all', label: 'All' },
-              { value: 'needsAttention', label: 'Needs Attention', color: 'warning' },
-              { value: 'notRead', label: 'Not Read', color: 'error' },
-              { value: 'recentlyRead', label: 'Recently Read', color: 'success' },
-            ].map((chip) => (
-              <Chip
-                key={chip.value}
-                label={chip.label}
-                size="small"
-                color={statusFilter === chip.value ? (chip.color || 'primary') : 'default'}
-                variant={statusFilter === chip.value ? 'filled' : 'outlined'}
-                onClick={() => setStatusFilter(chip.value)}
-                sx={{
-                  fontWeight: 600,
-                  fontFamily: '"DM Sans", sans-serif',
-                  cursor: 'pointer',
-                  ...(statusFilter !== chip.value && {
-                    borderColor: 'rgba(107, 142, 107, 0.3)',
-                    color: '#7A7A7A',
-                    '&:hover': {
-                      borderColor: '#6B8E6B',
-                      backgroundColor: 'rgba(107, 142, 107, 0.05)',
-                    }
-                  })
-                }}
-              />
-            ))}
-          </Box>
-          <FormControl sx={{
-            minWidth: { xs: '100%', sm: 200 },
-            flex: { xs: '1 1 100%', sm: 'none' },
-            '& .MuiOutlinedInput-root': {
-              borderRadius: 4,
-              backgroundColor: '#ffffff',
-              boxShadow: 'inset 4px 4px 8px #d9d4e3, inset -4px -4px 8px #ffffff',
-              border: 'none',
-              '& fieldset': { border: 'none' },
-            }
-          }} size="small">
-            <InputLabel id="sort-select-label" sx={{ fontFamily: '"DM Sans", sans-serif' }}>Sort By</InputLabel>
-            <Select
-              labelId="sort-select-label"
-              id="sort-select"
-              value={sortMethod}
-              label="Sort By"
-              onChange={handleSortChange}
-              startAdornment={
-                <SortIcon sx={{ mr: 1, ml: -0.5, color: '#6B8E6B' }} fontSize="small" />
-              }
-              sx={{ pr: 4, fontFamily: '"DM Sans", sans-serif', fontWeight: 600 }}
-            >
-              <MenuItem value="priority">Reading Priority</MenuItem>
-              <MenuItem value="name">Name</MenuItem>
-              <MenuItem value="sessions">Total Sessions</MenuItem>
-              <MenuItem value="lastRead">Last Read</MenuItem>
-            </Select>
-          </FormControl>
           {isLocalAuth && (
             <Button
               variant="outlined"
@@ -405,10 +308,118 @@ const StudentList = () => {
         </Paper>
       ) : (
         <>
-          <Box mb={6}>
+          <Box mb={4}>
             <PrioritizedStudentsList filterClassId={globalClassFilter} />
           </Box>
-          
+
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
+            mb: 3,
+            flexWrap: 'wrap',
+            px: { xs: 0, sm: 1 }
+          }}>
+            <TextField
+              size="small"
+              placeholder="Search students..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              sx={{
+                minWidth: { xs: '100%', sm: 180 },
+                flex: { xs: '1 1 100%', sm: '0 1 auto' },
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 4,
+                  backgroundColor: '#ffffff',
+                  boxShadow: 'inset 4px 4px 8px #d9d4e3, inset -4px -4px 8px #ffffff',
+                  border: 'none',
+                  '& fieldset': { border: 'none' },
+                }
+              }}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ color: '#6B8E6B' }} fontSize="small" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: searchQuery ? (
+                    <InputAdornment position="end">
+                      <ClearIcon
+                        sx={{ color: '#7A7A7A', cursor: 'pointer', fontSize: 18 }}
+                        onClick={() => setSearchQuery('')}
+                      />
+                    </InputAdornment>
+                  ) : null,
+                }
+              }}
+            />
+            <Box sx={{
+              display: 'flex',
+              gap: 0.75,
+              flexWrap: 'wrap',
+              flex: { xs: '1 1 100%', sm: '1 1 auto' },
+            }}>
+              {[
+                { value: 'all', label: 'All' },
+                { value: 'needsAttention', label: 'Needs Attention', color: 'warning' },
+                { value: 'notRead', label: 'Not Read', color: 'error' },
+                { value: 'recentlyRead', label: 'Recently Read', color: 'success' },
+              ].map((chip) => (
+                <Chip
+                  key={chip.value}
+                  label={chip.label}
+                  size="small"
+                  color={statusFilter === chip.value ? (chip.color || 'primary') : 'default'}
+                  variant={statusFilter === chip.value ? 'filled' : 'outlined'}
+                  onClick={() => setStatusFilter(chip.value)}
+                  sx={{
+                    fontWeight: 600,
+                    fontFamily: '"DM Sans", sans-serif',
+                    cursor: 'pointer',
+                    ...(statusFilter !== chip.value && {
+                      borderColor: 'rgba(107, 142, 107, 0.3)',
+                      color: '#7A7A7A',
+                      '&:hover': {
+                        borderColor: '#6B8E6B',
+                        backgroundColor: 'rgba(107, 142, 107, 0.05)',
+                      }
+                    })
+                  }}
+                />
+              ))}
+            </Box>
+            <FormControl sx={{
+              minWidth: { xs: '100%', sm: 200 },
+              flex: { xs: '1 1 100%', sm: '0 0 auto' },
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 4,
+                backgroundColor: '#ffffff',
+                boxShadow: 'inset 4px 4px 8px #d9d4e3, inset -4px -4px 8px #ffffff',
+                border: 'none',
+                '& fieldset': { border: 'none' },
+              }
+            }} size="small">
+              <InputLabel id="sort-select-label" sx={{ fontFamily: '"DM Sans", sans-serif' }}>Sort By</InputLabel>
+              <Select
+                labelId="sort-select-label"
+                id="sort-select"
+                value={sortMethod}
+                label="Sort By"
+                onChange={handleSortChange}
+                startAdornment={
+                  <SortIcon sx={{ mr: 1, ml: -0.5, color: '#6B8E6B' }} fontSize="small" />
+                }
+                sx={{ pr: 4, fontFamily: '"DM Sans", sans-serif', fontWeight: 600 }}
+              >
+                <MenuItem value="priority">Reading Priority</MenuItem>
+                <MenuItem value="name">Name</MenuItem>
+                <MenuItem value="sessions">Total Sessions</MenuItem>
+                <MenuItem value="lastRead">Last Read</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+
           <StudentTable students={paginatedStudents} />
 
           {totalPages > 1 && (
