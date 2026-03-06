@@ -738,54 +738,85 @@ const BookRecommendations = () => {
 
       {/* Results Grid */}
       {recommendations.length > 0 && (
-        <Grid container spacing={2}>
+        <Grid container spacing={3}>
           {recommendations.map((book, index) => (
             <Grid item xs={12} md={6} key={book.id || index}>
-              <Card>
-                <CardContent>
-                  <Box sx={{ display: 'flex', gap: 2 }}>
-                    {/* Cover on left */}
-                    <BookCover title={book.title} author={book.author} width={80} height={120} />
+              <Card sx={{ height: '100%' }}>
+                <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+                  <Box sx={{ display: 'flex', gap: { xs: 2, md: 3 } }}>
+                    {/* Cover with optional "In library" badge */}
+                    <Box sx={{ position: 'relative', flexShrink: 0 }}>
+                      <BookCover
+                        title={book.title}
+                        author={book.author}
+                        width={isMobile ? 100 : 120}
+                        height={isMobile ? 150 : 180}
+                      />
+                      {resultType === 'ai' && book.inLibrary && (
+                        <Chip
+                          icon={<CheckCircleIcon />}
+                          label="In library"
+                          size="small"
+                          color="success"
+                          sx={{
+                            position: 'absolute',
+                            top: 4,
+                            right: -8,
+                            fontSize: '0.7rem',
+                            height: 22
+                          }}
+                        />
+                      )}
+                    </Box>
 
-                    {/* Content on right */}
+                    {/* Content */}
                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                      {/* Title with In Library chip for AI results */}
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <Typography variant="h6" component="div" sx={{ wordBreak: 'break-word' }}>
-                          {book.title}
-                        </Typography>
-                        {resultType === 'ai' && book.inLibrary && (
-                          <Chip
-                            icon={<CheckCircleIcon />}
-                            label="In your library"
-                            size="small"
-                            color="success"
-                            sx={{ ml: 1, flexShrink: 0 }}
-                          />
-                        )}
-                      </Box>
+                      <Typography
+                        variant="h6"
+                        component="div"
+                        sx={{
+                          fontFamily: 'Nunito, sans-serif',
+                          fontWeight: 700,
+                          wordBreak: 'break-word',
+                          lineHeight: 1.3,
+                          mb: 0.5
+                        }}
+                      >
+                        {book.title}
+                      </Typography>
 
-                      {/* Author */}
-                      <Typography color="text.secondary" gutterBottom>
+                      <Typography sx={{ color: 'text.secondary', mb: 1.5 }}>
                         by {book.author}
                       </Typography>
 
-                      {/* Level chips */}
-                      <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-                        <Chip label={book.readingLevel || book.level} size="small" variant="outlined" />
-                        {book.ageRange && <Chip label={book.ageRange} size="small" variant="outlined" />}
+                      {/* Metadata chips */}
+                      <Stack direction="row" spacing={0.5} sx={{ mb: 1.5, flexWrap: 'wrap', gap: 0.5 }}>
+                        <Chip
+                          label={book.readingLevel || book.level}
+                          size="small"
+                          variant="outlined"
+                          sx={{ color: 'text.secondary', borderColor: 'divider' }}
+                        />
+                        {book.ageRange && (
+                          <Chip
+                            label={book.ageRange}
+                            size="small"
+                            variant="outlined"
+                            sx={{ color: 'text.secondary', borderColor: 'divider' }}
+                          />
+                        )}
+                        {resultType === 'library' && book.genres && book.genres.map((genre, i) => (
+                          <Chip
+                            key={i}
+                            label={genre}
+                            size="small"
+                            variant="outlined"
+                            sx={{ color: 'text.secondary', borderColor: 'divider' }}
+                          />
+                        ))}
                       </Stack>
 
-                      {/* Genres for library results */}
-                      {resultType === 'library' && book.genres && (
-                        <Stack direction="row" spacing={0.5} sx={{ mb: 1, flexWrap: 'wrap', gap: 0.5 }}>
-                          {book.genres.map((genre, i) => (
-                            <Chip key={i} label={genre} size="small" color="primary" variant="outlined" />
-                          ))}
-                        </Stack>
-                      )}
-
-                      {/* Description for library results - truncated to 2 lines */}
+                      {/* Description for library results */}
                       {resultType === 'library' && book.description && (
                         <Typography
                           variant="body2"
@@ -796,17 +827,28 @@ const BookRecommendations = () => {
                             display: '-webkit-box',
                             WebkitLineClamp: 2,
                             WebkitBoxOrient: 'vertical',
-                            mb: 1
+                            mb: 1.5
                           }}
                         >
                           {book.description}
                         </Typography>
                       )}
 
-                      {/* Match reason or AI reasoning */}
-                      <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
-                        {resultType === 'library' ? book.matchReason : book.reason}
-                      </Typography>
+                      {/* Match reason / AI reasoning - pull quote style */}
+                      {(resultType === 'library' ? book.matchReason : book.reason) && (
+                        <Box sx={{
+                          borderLeft: '3px solid',
+                          borderColor: 'primary.light',
+                          bgcolor: 'rgba(107, 142, 107, 0.06)',
+                          pl: 1.5,
+                          py: 0.75,
+                          borderRadius: '0 4px 4px 0'
+                        }}>
+                          <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.secondary' }}>
+                            {resultType === 'library' ? book.matchReason : book.reason}
+                          </Typography>
+                        </Box>
+                      )}
 
                       {/* Where to find for AI results */}
                       {resultType === 'ai' && book.whereToFind && (

@@ -880,7 +880,7 @@ describe('BookRecommendations Component', () => {
       expect(aiSuggestionsElements.length).toBeGreaterThan(0);
     });
 
-    it('should display "In your library" chip for AI suggestions that are in library', async () => {
+    it('should display "In library" chip for AI suggestions that are in library', async () => {
       const mockFetch = createMockFetch();
       const context = createMockContext({ fetchWithAuth: mockFetch });
       const user = userEvent.setup();
@@ -897,7 +897,7 @@ describe('BookRecommendations Component', () => {
       await user.click(screen.getByRole('button', { name: /ai suggestions/i }));
 
       await waitFor(() => {
-        expect(screen.getByText('In your library')).toBeInTheDocument();
+        expect(screen.getByText('In library')).toBeInTheDocument();
       });
     });
 
@@ -989,6 +989,38 @@ describe('BookRecommendations Component', () => {
       await waitFor(() => {
         const levelChips = screen.getAllByText(/2\.5|3\.0/);
         expect(levelChips.length).toBeGreaterThan(0);
+      });
+    });
+
+    it('should render book covers at larger size', async () => {
+      const mockFetch = createMockFetch();
+      const context = createMockContext({ fetchWithAuth: mockFetch });
+      const user = userEvent.setup();
+      render(<BookRecommendations />, { wrapper: createWrapper(context) });
+
+      const studentSelect = screen.getByLabelText(/student/i);
+      await user.click(studentSelect);
+      await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
+
+      await waitFor(() => {
+        const covers = screen.getAllByTestId('book-cover');
+        expect(covers.length).toBeGreaterThan(0);
+        expect(covers[0]).toHaveStyle({ width: '120px', height: '180px' });
+      });
+    });
+
+    it('should display match reason in pull-quote style', async () => {
+      const mockFetch = createMockFetch();
+      const context = createMockContext({ fetchWithAuth: mockFetch });
+      const user = userEvent.setup();
+      render(<BookRecommendations />, { wrapper: createWrapper(context) });
+
+      const studentSelect = screen.getByLabelText(/student/i);
+      await user.click(studentSelect);
+      await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Matches reading level')).toBeInTheDocument();
       });
     });
 
