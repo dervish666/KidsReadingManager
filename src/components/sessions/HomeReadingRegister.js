@@ -34,10 +34,8 @@ import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import { useAppContext } from '../../contexts/AppContext';
 import BookAutocomplete from './BookAutocomplete';
-import ScanBookFlow from '../books/ScanBookFlow';
 
 // Reading status types for home reading
 const READING_STATUS = {
@@ -151,7 +149,7 @@ const HomeReadingRegister = () => {
   const [multipleCountDialog, setMultipleCountDialog] = useState(false);
   const [multipleCount, setMultipleCount] = useState(2);
   const [showInputPanel, setShowInputPanel] = useState(true);
-  const [scanOpen, setScanOpen] = useState(false);
+
   const [datePreset, setDatePreset] = useState(DATE_PRESETS.THIS_WEEK);
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
@@ -616,24 +614,12 @@ const HomeReadingRegister = () => {
               <Box sx={{ mt: 2 }}>
                 {/* Book Selection */}
                 <Box sx={{ mb: 2 }}>
-                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                    <Box sx={{ flex: 1 }}>
-                      <BookAutocomplete
-                        value={getStudentLastBook(selectedStudent.id)}
-                        onChange={handleBookChange}
-                        label="Current Book"
-                        placeholder="Select or search for book..."
-                      />
-                    </Box>
-                    <IconButton
-                      onClick={() => setScanOpen(true)}
-                      color="primary"
-                      title="Scan ISBN barcode"
-                      sx={{ mt: 1 }}
-                    >
-                      <QrCodeScannerIcon />
-                    </IconButton>
-                  </Box>
+                  <BookAutocomplete
+                    value={getStudentLastBook(selectedStudent.id)}
+                    onChange={handleBookChange}
+                    label="Current Book"
+                    placeholder="Select or search for book..."
+                  />
                   <Typography variant="caption" color="text.secondary">
                     Book will be saved and synced across devices
                   </Typography>
@@ -1098,16 +1084,6 @@ const HomeReadingRegister = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* ISBN Scanner Flow */}
-      <ScanBookFlow
-        open={scanOpen}
-        onClose={() => setScanOpen(false)}
-        onBookSelected={(book) => {
-          setScanOpen(false);
-          handleBookChange(book);
-        }}
-      />
 
       {/* Snackbar */}
       <Snackbar
