@@ -1,5 +1,19 @@
 # Changelog
 
+## [3.11.0] - 2026-03-06
+
+### Changed
+- **Unified reading register** — consolidated the separate register table and reading history table into a single multi-day table, halving the scroll needed for 30-pupil classes
+- **Multi-day date columns** — table now shows date columns for the selected range with color-coded status cells, clickable headers to change the recording date, and weekend tinting
+- **Date range presets** — new dropdown to switch between This Week, Last Week, Last Month, or a custom date range
+- **Daily totals footer** — summary row at the bottom of the table with per-day session totals and tooltip breakdown (read/multiple/absent/no record/not entered)
+- **Status legend** — visual key below the summary chips explaining the color-coded status symbols
+
+### Removed
+- **Drag-and-drop student reordering** — removed broken feature and `@dnd-kit` dependency (core, sortable, utilities)
+- **Current Book column** — removed from the table; book is now visible only in the input panel when a student is selected
+- **ClassReadingHistoryTable component** — functionality absorbed into the unified register
+
 ## [3.10.7] - 2026-03-06
 
 ### Added
