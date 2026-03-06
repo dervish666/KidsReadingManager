@@ -249,11 +249,11 @@ files:
   # ---- sessions/ ----
 
   sessions/HomeReadingRegister.js:
-    description: Class-wide register with drag-drop reordering and status buttons
+    description: "Unified register with multi-day date columns, date range presets, daily totals"
     exports:
       - name: HomeReadingRegister
         kind: component
-        description: "Uses @dnd-kit; status buttons: read/multiple/absent/no record"
+        description: "Status buttons: read/multiple/absent/no record; date presets: This Week/Last Week/Last Month/Custom"
 
   sessions/SessionForm.js:
     description: Reading session form - student, book, assessment, date, notes
@@ -302,12 +302,6 @@ files:
         kind: component
         props: [student]
 
-  sessions/ClassReadingHistoryTable.js:
-    description: Historical reading data table with date range selection
-    exports:
-      - name: ClassReadingHistoryTable
-        kind: component
-        props: [students, books, selectedDate, onDateChange]
 
   # ---- stats/ ----
 

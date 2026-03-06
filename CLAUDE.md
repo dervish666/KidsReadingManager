@@ -2,6 +2,21 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Terminal Multiplexer (cmux)
+
+This project uses **cmux** as the terminal multiplexer. Run `cmux help` or `cmux <command> --help` to discover available commands. Use cmux to maximise productivity:
+
+- `cmux read-screen` — read terminal output from other panes/surfaces
+- `cmux send` / `cmux send-key` — send commands or keystrokes to other panes
+- `cmux new-split` / `cmux new-pane` — create split panes for parallel tasks
+- `cmux list-panes` / `cmux list-workspaces` — see current layout
+- `cmux notify` — send desktop notifications (e.g. when long tasks complete)
+- `cmux set-status` / `cmux set-progress` — update sidebar status/progress indicators
+- `cmux log` — write to the sidebar log
+- `cmux browser *` — browser automation subcommands
+
+When unsure about a cmux capability, run `cmux help` or `cmux <command>` to check usage.
+
 ## Project Overview
 
 Tally Reading is a multi-tenant SaaS application for tracking student reading progress. Built with React 19 frontend and Cloudflare Workers backend (using Hono framework), it runs entirely on Cloudflare's edge infrastructure with D1 database and KV storage.
@@ -125,7 +140,7 @@ src/components/students/PrioritizedStudentsList.js - Priority-ordered student li
 src/components/students/BulkImport.js - CSV bulk student import
 
 <!-- Frontend Components - Sessions -->
-src/components/sessions/HomeReadingRegister.js - Class-wide register with drag-drop
+src/components/sessions/HomeReadingRegister.js - Unified reading register with multi-day history columns
 src/components/sessions/SessionForm.js - Reading session form
 src/components/sessions/QuickEntry.js - Fast session entry for priority students
 src/components/sessions/StudentSessions.js - Student session history
@@ -133,7 +148,6 @@ src/components/sessions/BookAutocomplete.js - Book search autocomplete
 src/components/sessions/AssessmentSelector.js - Assessment level radio group
 src/components/sessions/SessionNotes.js - Session notes text area
 src/components/sessions/StudentInfoCard.js - Student info during session entry
-src/components/sessions/ClassReadingHistoryTable.js - Class reading history table
 
 <!-- Frontend Components - Stats -->
 src/components/stats/ReadingStats.js - Stats dashboard with metrics and charts
@@ -302,7 +316,7 @@ Students have `readingLevelMin` to `readingLevelMax` (AR levels 1.0–13.0). UI:
 
 ### Home Reading Register
 
-Quick entry grid for class-wide reading: status buttons (read/multiple/absent/no record), student book persistence, drag-and-drop reordering (`@dnd-kit`), bulk session creation. See `src/components/sessions/HomeReadingRegister.js`.
+Unified register for class-wide home reading: status buttons (read/multiple/absent/no record), multi-day history with date range presets (This Week/Last Week/Last Month/Custom), daily totals footer, student book persistence, bulk session creation. See `src/components/sessions/HomeReadingRegister.js`.
 
 ### Book Cover System
 
