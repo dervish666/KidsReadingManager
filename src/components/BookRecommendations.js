@@ -402,7 +402,7 @@ const BookRecommendations = () => {
           </Select>
         </FormControl>
 
-        {/* Empty state with illustration */}
+        {/* Empty state with illustration and quick-picks */}
         {!selectedStudentId && (
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <BookIllustration />
@@ -413,6 +413,85 @@ const BookRecommendations = () => {
             >
               Select a student to find their next great read
             </Typography>
+
+            {/* Priority student quick-pick cards */}
+            {prioritizedStudents?.length > 0 && (
+              <Box sx={{ mt: 4, textAlign: 'left' }}>
+                <Typography
+                  variant="subtitle1"
+                  sx={{ mb: 2, fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: 'text.primary' }}
+                >
+                  Priority Students
+                </Typography>
+                <Box sx={{
+                  display: 'grid',
+                  gridTemplateColumns: {
+                    xs: 'repeat(2, 1fr)',
+                    sm: 'repeat(3, 1fr)',
+                    md: 'repeat(4, 1fr)'
+                  },
+                  gap: 2,
+                  ...(isMobile && {
+                    display: 'flex',
+                    overflowX: 'auto',
+                    gap: 2,
+                    pb: 1,
+                    '& > *': { minWidth: 160, flexShrink: 0 }
+                  })
+                }}>
+                  {prioritizedStudents.slice(0, 6).map((student) => {
+                    const status = getReadingStatus(student);
+                    const statusColors = theme.palette.status || {
+                      notRead: '#9E4B4B',
+                      needsAttention: '#9B6E3A',
+                      recentlyRead: '#4A6E4A'
+                    };
+                    const statusColor = status === 'never' || status === 'overdue'
+                      ? statusColors.notRead
+                      : status === 'attention'
+                        ? statusColors.needsAttention
+                        : statusColors.recentlyRead;
+                    const lastRead = student.lastReadDate
+                      ? `Last read ${Math.ceil(Math.abs(new Date() - new Date(student.lastReadDate)) / (1000 * 60 * 60 * 24))} days ago`
+                      : 'Never read';
+
+                    return (
+                      <Card
+                        key={student.id}
+                        onClick={() => handleQuickPick(student.id)}
+                        sx={{
+                          cursor: 'pointer',
+                          p: 2,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1.5,
+                        }}
+                      >
+                        <Box sx={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: '50%',
+                          bgcolor: statusColor,
+                          flexShrink: 0
+                        }} />
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography
+                            variant="body2"
+                            sx={{ fontWeight: 700, fontFamily: '"Nunito", sans-serif' }}
+                            noWrap
+                          >
+                            {student.name}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {lastRead}
+                          </Typography>
+                        </Box>
+                      </Card>
+                    );
+                  })}
+                </Box>
+              </Box>
+            )}
           </Box>
         )}
       </Paper>

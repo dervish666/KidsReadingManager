@@ -234,6 +234,52 @@ describe('BookRecommendations Component', () => {
     });
   });
 
+  describe('Priority Student Quick-Pick Cards', () => {
+    it('should display priority student quick-pick cards when no student selected', async () => {
+      const mockContext = createMockContext({
+        fetchWithAuth: createMockFetch()
+      });
+      render(<BookRecommendations />, { wrapper: createWrapper(mockContext) });
+
+      await waitFor(() => {
+        expect(screen.getByText('Alice Smith')).toBeInTheDocument();
+        expect(screen.getByText('Bob Jones')).toBeInTheDocument();
+      });
+    });
+
+    it('should select student and trigger library search when quick-pick card is clicked', async () => {
+      const mockFetch = createMockFetch();
+      const mockContext = createMockContext({
+        fetchWithAuth: mockFetch
+      });
+      render(<BookRecommendations />, { wrapper: createWrapper(mockContext) });
+
+      await waitFor(() => {
+        expect(screen.getByText('Alice Smith')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Alice Smith'));
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining('/api/books/library-search?studentId=student-1')
+        );
+      });
+    });
+
+    it('should hide quick-pick cards when no priority students exist', async () => {
+      const mockContext = createMockContext({
+        fetchWithAuth: createMockFetch(),
+        prioritizedStudents: []
+      });
+      render(<BookRecommendations />, { wrapper: createWrapper(mockContext) });
+
+      await waitFor(() => {
+        expect(screen.queryByText('Priority Students')).not.toBeInTheDocument();
+      });
+    });
+  });
+
   describe('Initial Render', () => {
     it('should render the component with title and student selection', async () => {
       const mockFetch = createMockFetch();
