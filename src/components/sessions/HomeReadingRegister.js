@@ -23,6 +23,10 @@ import {
   DialogActions,
   InputAdornment,
   Collapse,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
   useTheme,
   useMediaQuery
 } from '@mui/material';
@@ -73,6 +77,67 @@ const getWeekInfo = (dateStr) => {
   };
 };
 
+const DATE_PRESETS = {
+  THIS_WEEK: 'this_week',
+  LAST_WEEK: 'last_week',
+  LAST_MONTH: 'last_month',
+  CUSTOM: 'custom'
+};
+
+const getStartOfWeek = (date) => {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  d.setDate(diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+const getEndOfWeek = (date) => {
+  const start = getStartOfWeek(date);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6);
+  end.setHours(23, 59, 59, 999);
+  return end;
+};
+
+const getStartOfMonth = (date) => {
+  const d = new Date(date);
+  d.setDate(1);
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+const getEndOfMonth = (date) => {
+  const d = new Date(date);
+  d.setMonth(d.getMonth() + 1);
+  d.setDate(0);
+  d.setHours(23, 59, 59, 999);
+  return d;
+};
+
+const formatDateISO = (date) => {
+  return date.toISOString().split('T')[0];
+};
+
+const formatDateHeader = (date) => {
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  return {
+    day: dayNames[date.getDay()],
+    date: date.getDate()
+  };
+};
+
+const getDateRange = (start, end) => {
+  const dates = [];
+  const current = new Date(start);
+  while (current <= end) {
+    dates.push(new Date(current));
+    current.setDate(current.getDate() + 1);
+  }
+  return dates;
+};
+
 const HomeReadingRegister = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -100,6 +165,36 @@ const HomeReadingRegister = () => {
   const [multipleCount, setMultipleCount] = useState(2);
   const [showInputPanel, setShowInputPanel] = useState(true);
   const [scanOpen, setScanOpen] = useState(false);
+  const [datePreset, setDatePreset] = useState(DATE_PRESETS.THIS_WEEK);
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+
+  const { startDate, endDate } = useMemo(() => {
+    const today = new Date();
+    switch (datePreset) {
+      case DATE_PRESETS.THIS_WEEK:
+        return { startDate: getStartOfWeek(today), endDate: getEndOfWeek(today) };
+      case DATE_PRESETS.LAST_WEEK: {
+        const lastWeek = new Date(today);
+        lastWeek.setDate(lastWeek.getDate() - 7);
+        return { startDate: getStartOfWeek(lastWeek), endDate: getEndOfWeek(lastWeek) };
+      }
+      case DATE_PRESETS.LAST_MONTH: {
+        const lastMonth = new Date(today);
+        lastMonth.setMonth(lastMonth.getMonth() - 1);
+        return { startDate: getStartOfMonth(lastMonth), endDate: getEndOfMonth(lastMonth) };
+      }
+      case DATE_PRESETS.CUSTOM:
+        return {
+          startDate: customStartDate ? new Date(customStartDate) : getStartOfWeek(today),
+          endDate: customEndDate ? new Date(customEndDate) : getEndOfWeek(today)
+        };
+      default:
+        return { startDate: getStartOfWeek(today), endDate: getEndOfWeek(today) };
+    }
+  }, [datePreset, customStartDate, customEndDate]);
+
+  const dates = useMemo(() => getDateRange(startDate, endDate), [startDate, endDate]);
 
   // Ref to track if we've already auto-set the class filter (prevents infinite loop)
   const hasAutoSetClassFilter = useRef(false);
@@ -628,12 +723,7 @@ const HomeReadingRegister = () => {
 
         {/* Right Column - Date and Search Controls */}
         <Paper sx={{ p: 2, flex: isMobile ? 'none' : 1 }}>
-          <Box sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 2,
-            height: '100%'
-          }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, height: '100%' }}>
             {/* Date Picker */}
             <TextField
               label="Date"
@@ -642,10 +732,55 @@ const HomeReadingRegister = () => {
               onChange={(e) => setSelectedDate(e.target.value)}
               InputLabelProps={{ shrink: true }}
               fullWidth
-              inputProps={{
-                'aria-label': 'Select date for reading session'
-              }}
+              inputProps={{ 'aria-label': 'Select date for reading session' }}
             />
+
+            {/* Date Range Preset */}
+            <FormControl size="small" fullWidth>
+              <InputLabel id="date-preset-label">Date Range</InputLabel>
+              <Select
+                labelId="date-preset-label"
+                value={datePreset}
+                label="Date Range"
+                onChange={(e) => {
+                  const newPreset = e.target.value;
+                  setDatePreset(newPreset);
+                  if (newPreset === DATE_PRESETS.CUSTOM) {
+                    const today = new Date();
+                    setCustomStartDate(formatDateISO(getStartOfWeek(today)));
+                    setCustomEndDate(formatDateISO(getEndOfWeek(today)));
+                  }
+                }}
+              >
+                <MenuItem value={DATE_PRESETS.THIS_WEEK}>This Week</MenuItem>
+                <MenuItem value={DATE_PRESETS.LAST_WEEK}>Last Week</MenuItem>
+                <MenuItem value={DATE_PRESETS.LAST_MONTH}>Last Month</MenuItem>
+                <MenuItem value={DATE_PRESETS.CUSTOM}>Custom</MenuItem>
+              </Select>
+            </FormControl>
+
+            {datePreset === DATE_PRESETS.CUSTOM && (
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <TextField
+                  label="Start"
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                  size="small"
+                  sx={{ flex: 1 }}
+                />
+                <TextField
+                  label="End"
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                  size="small"
+                  sx={{ flex: 1 }}
+                />
+              </Box>
+            )}
 
             {/* Search */}
             <TextField
@@ -653,9 +788,7 @@ const HomeReadingRegister = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               fullWidth
-              inputProps={{
-                'aria-label': 'Search for a student by name'
-              }}
+              inputProps={{ 'aria-label': 'Search for a student by name' }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -664,15 +797,6 @@ const HomeReadingRegister = () => {
                 )
               }}
             />
-
-            {/* Date Display */}
-            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-              <Chip
-                label={formatDateDisplay(selectedDate)}
-                color="primary"
-                variant="outlined"
-              />
-            </Box>
           </Box>
         </Paper>
       </Box>
