@@ -410,3 +410,22 @@ files:
         items: [rowToSupportTicket, rowToSupportNote]
       - from: utils/email
         items: [sendSupportNotificationEmail]
+
+  termDates.js:
+    description: Term dates management - per-org half-term periods for academic year reporting
+    exports:
+      - name: termDatesRouter
+        kind: object
+        description: Hono router for term dates endpoints
+    endpoints:
+      - route: GET /api/term-dates
+        description: Get term dates for organization (optional ?year=YYYY/YY, defaults to current academic year)
+        requires: readonly
+      - route: PUT /api/term-dates
+        description: Batch upsert term dates for an academic year (DELETE + INSERT)
+        requires: admin
+    imports:
+      - from: middleware/tenant
+        items: [requireAdmin, requireReadonly]
+      - from: middleware/errorHandler
+        items: [badRequestError]

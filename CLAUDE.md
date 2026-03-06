@@ -53,6 +53,7 @@ src/routes/hardcover.js - POST Hardcover GraphQL API proxy
 src/routes/webhooks.js - POST Wonde webhook handler (schoolApproved, accessRevoked)
 src/routes/wondeAdmin.js - POST/GET manual Wonde sync and status
 src/routes/support.js - Support ticket submission, listing, detail, status management, internal notes (owner management endpoints)
+src/routes/termDates.js - GET/PUT term dates per organization and academic year
 
 <!-- Middleware -->
 src/middleware/tenant.js - JWT auth, tenant isolation, role guards, audit logging, rate limiting
