@@ -650,27 +650,6 @@ const BookRecommendations = () => {
         </Paper>
       )}
 
-      {/* AI Suggestions button */}
-      {selectedStudentId && (
-        <Box sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'center', flexWrap: 'wrap' }}>
-          <Tooltip
-            title={!hasActiveAI ? 'Configure AI in Settings to enable' : ''}
-            placement="top"
-          >
-            <span>
-              <Button
-                variant="outlined"
-                color="secondary"
-                onClick={() => handleAiSuggestions()}
-                disabled={!selectedStudentId || libraryLoading || aiLoading || !hasActiveAI}
-                startIcon={aiLoading ? <CircularProgress size={20} color="inherit" /> : <SmartToyIcon />}
-              >
-                {aiLoading ? 'Generating...' : 'AI Suggestions'}
-              </Button>
-            </span>
-          </Tooltip>
-        </Box>
-      )}
 
       {/* Error display */}
       {error && (
@@ -863,6 +842,43 @@ const BookRecommendations = () => {
             </Grid>
           ))}
         </Grid>
+      )}
+
+      {/* AI suggestion banner - shown after library results, when AI is configured */}
+      {resultType === 'library' && !libraryLoading && hasActiveAI && selectedStudentId && (
+        <Paper sx={{
+          p: 2,
+          mt: 3,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 1,
+          bgcolor: 'rgba(107, 142, 107, 0.06)',
+          border: '1px solid rgba(107, 142, 107, 0.15)'
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <SmartToyIcon sx={{ color: 'primary.main' }} />
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              Want personalised picks?
+            </Typography>
+            <Chip
+              label={getProviderDisplayName(activeProvider)}
+              size="small"
+              variant="outlined"
+              sx={{ fontSize: '0.7rem' }}
+            />
+          </Box>
+          <Button
+            variant="contained"
+            size="small"
+            onClick={() => handleAiSuggestions()}
+            disabled={aiLoading}
+            startIcon={aiLoading ? <CircularProgress size={16} color="inherit" /> : <SmartToyIcon />}
+          >
+            {aiLoading ? 'Generating...' : 'Ask AI'}
+          </Button>
+        </Paper>
       )}
 
       {/* Reading Preferences Modal */}

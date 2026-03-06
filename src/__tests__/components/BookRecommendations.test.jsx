@@ -798,8 +798,8 @@ describe('BookRecommendations Component', () => {
     });
   });
 
-  describe('Get AI Suggestions Button', () => {
-    it('should show AI Suggestions button after student selection', async () => {
+  describe('AI Suggestions Banner', () => {
+    it('should show AI suggestion banner after library results load', async () => {
       const mockFetch = createMockFetch();
       const context = createMockContext({ fetchWithAuth: mockFetch });
       const user = userEvent.setup();
@@ -810,11 +810,12 @@ describe('BookRecommendations Component', () => {
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /ai suggestions/i })).toBeInTheDocument();
+        expect(screen.getByText(/want personalised picks/i)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /ask ai/i })).toBeInTheDocument();
       });
     });
 
-    it('should disable AI Suggestions button when AI is not configured', async () => {
+    it('should not show AI banner when AI is not configured', async () => {
       const mockFetch = createMockFetch({
         aiConfig: { hasApiKey: false, keySource: null, provider: null }
       });
@@ -827,12 +828,12 @@ describe('BookRecommendations Component', () => {
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
       await waitFor(() => {
-        const aiButton = screen.getByRole('button', { name: /ai suggestions/i });
-        expect(aiButton).toBeDisabled();
+        expect(screen.getByText('Recommended Book 1')).toBeInTheDocument();
       });
+      expect(screen.queryByText(/want personalised picks/i)).not.toBeInTheDocument();
     });
 
-    it('should call ai-suggestions API when clicking AI Suggestions', async () => {
+    it('should call ai-suggestions API when clicking Ask AI', async () => {
       const mockFetch = createMockFetch();
       const context = createMockContext({ fetchWithAuth: mockFetch });
       const user = userEvent.setup();
@@ -847,7 +848,7 @@ describe('BookRecommendations Component', () => {
         expect(screen.getByText('Recommended Book 1')).toBeInTheDocument();
       });
 
-      await user.click(screen.getByRole('button', { name: /ai suggestions/i }));
+      await user.click(screen.getByRole('button', { name: /ask ai/i }));
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith('/api/books/ai-suggestions?studentId=student-1&focusMode=balanced');
@@ -869,7 +870,7 @@ describe('BookRecommendations Component', () => {
         expect(screen.getByText('Recommended Book 1')).toBeInTheDocument();
       });
 
-      await user.click(screen.getByRole('button', { name: /ai suggestions/i }));
+      await user.click(screen.getByRole('button', { name: /ask ai/i }));
 
       await waitFor(() => {
         expect(screen.getByText('AI Suggested Book 1')).toBeInTheDocument();
@@ -894,7 +895,7 @@ describe('BookRecommendations Component', () => {
         expect(screen.getByText('Recommended Book 1')).toBeInTheDocument();
       });
 
-      await user.click(screen.getByRole('button', { name: /ai suggestions/i }));
+      await user.click(screen.getByRole('button', { name: /ask ai/i }));
 
       await waitFor(() => {
         expect(screen.getByText('In library')).toBeInTheDocument();
@@ -915,7 +916,7 @@ describe('BookRecommendations Component', () => {
         expect(screen.getByText('Recommended Book 1')).toBeInTheDocument();
       });
 
-      await user.click(screen.getByRole('button', { name: /ai suggestions/i }));
+      await user.click(screen.getByRole('button', { name: /ask ai/i }));
 
       await waitFor(() => {
         expect(screen.getByText('Based on reading history')).toBeInTheDocument();
@@ -936,7 +937,7 @@ describe('BookRecommendations Component', () => {
         expect(screen.getByText('Recommended Book 1')).toBeInTheDocument();
       });
 
-      await user.click(screen.getByRole('button', { name: /ai suggestions/i }));
+      await user.click(screen.getByRole('button', { name: /ask ai/i }));
 
       await waitFor(() => {
         expect(screen.getByText('Available at local library')).toBeInTheDocument();
@@ -1079,7 +1080,7 @@ describe('BookRecommendations Component', () => {
       });
     });
 
-    it('should show loading state for AI suggestions button', async () => {
+    it('should hide AI banner after clicking Ask AI', async () => {
       const mockFetch = vi.fn().mockImplementation((url) => {
         if (url === '/api/settings/ai') {
           return Promise.resolve({
@@ -1114,18 +1115,20 @@ describe('BookRecommendations Component', () => {
       await user.click(studentSelect);
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
-      // Wait for auto-search to complete
+      // Wait for auto-search to complete and banner to appear
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /ai suggestions/i })).not.toBeDisabled();
+        expect(screen.getByRole('button', { name: /ask ai/i })).toBeInTheDocument();
       });
 
-      await user.click(screen.getByRole('button', { name: /ai suggestions/i }));
+      await user.click(screen.getByRole('button', { name: /ask ai/i }));
 
-      // Should show "Generating..." text
-      expect(screen.getByText('Generating...')).toBeInTheDocument();
+      // Banner should disappear as resultType switches to 'ai'
+      await waitFor(() => {
+        expect(screen.queryByText(/want personalised picks/i)).not.toBeInTheDocument();
+      });
     });
 
-    it('should disable AI button during library loading', async () => {
+    it('should not show AI banner during library loading', async () => {
       const mockFetch = vi.fn().mockImplementation((url) => {
         if (url === '/api/settings/ai') {
           return Promise.resolve({
@@ -1154,10 +1157,11 @@ describe('BookRecommendations Component', () => {
       await user.click(studentSelect);
       await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
 
-      // AI button should be disabled during loading
+      // AI banner should not be visible during loading
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /ai suggestions/i })).toBeDisabled();
+        expect(screen.getByTestId('loading-skeleton')).toBeInTheDocument();
       });
+      expect(screen.queryByText(/want personalised picks/i)).not.toBeInTheDocument();
     });
   });
 
@@ -1226,10 +1230,10 @@ describe('BookRecommendations Component', () => {
 
       // Wait for auto-search to complete
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /ai suggestions/i })).not.toBeDisabled();
+        expect(screen.getByRole('button', { name: /ask ai/i })).not.toBeDisabled();
       });
 
-      await user.click(screen.getByRole('button', { name: /ai suggestions/i }));
+      await user.click(screen.getByRole('button', { name: /ask ai/i }));
 
       await waitFor(() => {
         expect(screen.getByText('AI service unavailable')).toBeInTheDocument();
@@ -1668,7 +1672,7 @@ describe('BookRecommendations Component', () => {
       await user.click(screen.getByRole('option', { name: /challenge/i }));
 
       // Click AI Suggestions
-      await user.click(screen.getByRole('button', { name: /ai suggestions/i }));
+      await user.click(screen.getByRole('button', { name: /ask ai/i }));
 
       // Verify the API was called with focusMode
       await waitFor(() => {
