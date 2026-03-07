@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.13.0] - 2026-03-07
+
+### Added
+- **Quick multiple-read buttons** — replaced the "2+" button on the home reading register with individual 2, 3, 4 buttons for one-tap recording, plus a "+" button for custom counts
+- **Term date presets on register** — Current Term, School Year, and individual term options in the date range dropdown (when term dates are configured)
+- **Current Term / School Year stats filter** — new filter options on the stats page for quick term-based filtering
+
+### Changed
+- **Focus mode auto-refresh** — changing the focus mode on recommendations now immediately re-triggers the search with the new mode
+
 ## [3.12.0] - 2026-03-06
 
 ### Added

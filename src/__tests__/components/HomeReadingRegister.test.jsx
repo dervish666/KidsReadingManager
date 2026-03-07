@@ -393,7 +393,7 @@ describe('HomeReadingRegister Component', () => {
       });
     });
 
-    it('should open multiple count dialog when clicking 2+ button', async () => {
+    it('should open multiple count dialog when clicking + button', async () => {
       const context = createMockContext({ globalClassFilter: 'class-1' });
       const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
@@ -401,15 +401,15 @@ describe('HomeReadingRegister Component', () => {
       // Select a student first
       await user.click(screen.getByText('Alice Smith'));
 
-      // Click the Multiple Sessions button
-      const multipleButton = screen.getByRole('button', { name: 'Multiple reading sessions' });
-      await user.click(multipleButton);
+      // Click the + button for custom number of sessions
+      const plusButton = screen.getByRole('button', { name: 'Custom number of reading sessions' });
+      await user.click(plusButton);
 
       // Dialog should appear
       expect(screen.getByText('How many reading sessions?')).toBeInTheDocument();
     });
 
-    it('should record multiple sessions when confirming dialog', async () => {
+    it('should record multiple sessions directly with quick buttons', async () => {
       const mockAddReadingSession = vi.fn();
       const context = createMockContext({
         globalClassFilter: 'class-1',
@@ -421,20 +421,44 @@ describe('HomeReadingRegister Component', () => {
       // Select a student first
       await user.click(screen.getByText('Alice Smith'));
 
-      // Click the Multiple Sessions button
-      const multipleButton = screen.getByRole('button', { name: 'Multiple reading sessions' });
-      await user.click(multipleButton);
+      // Click the "2" quick button
+      const twoButton = screen.getByRole('button', { name: 'Read 2 times' });
+      await user.click(twoButton);
 
-      // The dialog should now be open with default count of 2
+      await waitFor(() => {
+        expect(mockAddReadingSession).toHaveBeenCalledWith('student-1', expect.objectContaining({
+          notes: '[COUNT:2]',
+          location: 'home'
+        }));
+      });
+    });
+
+    it('should record custom sessions when confirming dialog', async () => {
+      const mockAddReadingSession = vi.fn();
+      const context = createMockContext({
+        globalClassFilter: 'class-1',
+        addReadingSession: mockAddReadingSession
+      });
+      const user = userEvent.setup();
+      render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
+
+      // Select a student first
+      await user.click(screen.getByText('Alice Smith'));
+
+      // Click the + button for custom number
+      const plusButton = screen.getByRole('button', { name: 'Custom number of reading sessions' });
+      await user.click(plusButton);
+
+      // The dialog should now be open with default count of 5
       expect(screen.getByText('How many reading sessions?')).toBeInTheDocument();
 
-      // Find and click the confirm button (it shows "Record 2 Sessions" by default)
+      // Find and click the confirm button (it shows "Record 5 Sessions" by default)
       const confirmButton = screen.getByRole('button', { name: /record \d+ sessions/i });
       await user.click(confirmButton);
 
       await waitFor(() => {
         expect(mockAddReadingSession).toHaveBeenCalledWith('student-1', expect.objectContaining({
-          notes: '[COUNT:2]',
+          notes: '[COUNT:5]',
           location: 'home'
         }));
       });

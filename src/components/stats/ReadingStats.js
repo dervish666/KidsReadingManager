@@ -63,7 +63,18 @@ const ReadingStats = () => {
   }, [fetchWithAuth]);
 
   const termDateRange = useMemo(() => {
-    if (selectedTerm === 'all') return null;
+    if (selectedTerm === 'all' || termDates.length === 0) return null;
+    if (selectedTerm === 'current_term') {
+      const today = new Date().toISOString().split('T')[0];
+      const current = termDates.find(t => t.startDate <= today && t.endDate >= today);
+      if (!current) return null;
+      return { start: current.startDate, end: current.endDate };
+    }
+    if (selectedTerm === 'school_year') {
+      const starts = termDates.map(t => t.startDate).sort();
+      const ends = termDates.map(t => t.endDate).sort();
+      return { start: starts[0], end: ends[ends.length - 1] };
+    }
     const term = termDates.find(t => t.termOrder === selectedTerm);
     if (!term) return null;
     return { start: term.startDate, end: term.endDate };
@@ -924,6 +935,8 @@ const ReadingStats = () => {
                 onChange={(e) => setSelectedTerm(e.target.value)}
               >
                 <MenuItem value="all">All Time</MenuItem>
+                <MenuItem value="current_term">Current Term</MenuItem>
+                <MenuItem value="school_year">School Year</MenuItem>
                 {termDates.map(term => (
                   <MenuItem key={term.termOrder} value={term.termOrder}>
                     {term.termName}

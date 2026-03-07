@@ -213,9 +213,10 @@ const BookRecommendations = () => {
   };
 
   // Core library search function (reusable from multiple triggers)
-  const triggerLibrarySearch = async (studentId) => {
+  const triggerLibrarySearch = async (studentId, overrideFocusMode) => {
     if (!studentId) return;
 
+    const effectiveFocus = overrideFocusMode || focusMode;
     setLibraryLoading(true);
     setError(null);
     setRecommendations([]);
@@ -223,7 +224,7 @@ const BookRecommendations = () => {
     setIsCachedResult(false);
 
     try {
-      const response = await fetchWithAuth(`/api/books/library-search?studentId=${studentId}&focusMode=${focusMode}`);
+      const response = await fetchWithAuth(`/api/books/library-search?studentId=${studentId}&focusMode=${effectiveFocus}`);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -280,9 +281,10 @@ const BookRecommendations = () => {
   };
 
   // Handler for AI suggestions
-  const handleAiSuggestions = async (skipCache = false) => {
+  const handleAiSuggestions = async (skipCache = false, overrideFocusMode) => {
     if (!selectedStudentId) return;
 
+    const effectiveFocus = overrideFocusMode || focusMode;
     setAiLoading(true);
     setError(null);
     setRecommendations([]);
@@ -290,7 +292,7 @@ const BookRecommendations = () => {
     setIsCachedResult(false);
 
     try {
-      let url = `/api/books/ai-suggestions?studentId=${selectedStudentId}&focusMode=${focusMode}`;
+      let url = `/api/books/ai-suggestions?studentId=${selectedStudentId}&focusMode=${effectiveFocus}`;
       if (skipCache) {
         url += '&skipCache=true';
       }
@@ -522,7 +524,15 @@ const BookRecommendations = () => {
                 labelId="focus-mode-label"
                 id="focus-mode-select"
                 value={focusMode}
-                onChange={(e) => setFocusMode(e.target.value)}
+                onChange={(e) => {
+                  const newFocus = e.target.value;
+                  setFocusMode(newFocus);
+                  if (resultType === 'ai') {
+                    handleAiSuggestions(false, newFocus);
+                  } else {
+                    triggerLibrarySearch(selectedStudentId, newFocus);
+                  }
+                }}
                 label="Focus"
                 disabled={libraryLoading || aiLoading}
               >

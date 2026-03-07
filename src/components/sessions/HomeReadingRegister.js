@@ -67,6 +67,8 @@ const DATE_PRESETS = {
   THIS_WEEK: 'this_week',
   LAST_WEEK: 'last_week',
   LAST_MONTH: 'last_month',
+  CURRENT_TERM: 'current_term',
+  SCHOOL_YEAR: 'school_year',
   CUSTOM: 'custom'
 };
 
@@ -136,7 +138,8 @@ const HomeReadingRegister = () => {
     deleteReadingSession,
     updateStudentCurrentBook,
     globalClassFilter,
-    setGlobalClassFilter
+    setGlobalClassFilter,
+    fetchWithAuth
   } = useAppContext();
 
   // State
@@ -147,12 +150,28 @@ const HomeReadingRegister = () => {
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
   const [multipleCountDialog, setMultipleCountDialog] = useState(false);
-  const [multipleCount, setMultipleCount] = useState(2);
+  const [multipleCount, setMultipleCount] = useState(5);
   const [showInputPanel, setShowInputPanel] = useState(true);
 
   const [datePreset, setDatePreset] = useState(DATE_PRESETS.THIS_WEEK);
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
+  const [termDates, setTermDates] = useState([]);
+
+  useEffect(() => {
+    const fetchTermDates = async () => {
+      try {
+        const res = await fetchWithAuth('/api/term-dates');
+        if (res.ok) {
+          const data = await res.json();
+          setTermDates(data.terms || []);
+        }
+      } catch {
+        // silently fail — term options just won't appear
+      }
+    };
+    fetchTermDates();
+  }, [fetchWithAuth]);
 
   const { startDate, endDate } = useMemo(() => {
     const today = new Date();
@@ -169,15 +188,40 @@ const HomeReadingRegister = () => {
         lastMonth.setMonth(lastMonth.getMonth() - 1);
         return { startDate: getStartOfMonth(lastMonth), endDate: getEndOfMonth(lastMonth) };
       }
+      case DATE_PRESETS.CURRENT_TERM: {
+        const todayStr = today.toISOString().split('T')[0];
+        const current = termDates.find(t => t.startDate <= todayStr && t.endDate >= todayStr);
+        if (current) {
+          return { startDate: new Date(current.startDate), endDate: new Date(current.endDate) };
+        }
+        return { startDate: getStartOfWeek(today), endDate: getEndOfWeek(today) };
+      }
+      case DATE_PRESETS.SCHOOL_YEAR: {
+        if (termDates.length > 0) {
+          const starts = termDates.map(t => t.startDate).sort();
+          const ends = termDates.map(t => t.endDate).sort();
+          return { startDate: new Date(starts[0]), endDate: new Date(ends[ends.length - 1]) };
+        }
+        return { startDate: getStartOfWeek(today), endDate: getEndOfWeek(today) };
+      }
       case DATE_PRESETS.CUSTOM:
         return {
           startDate: customStartDate ? new Date(customStartDate) : getStartOfWeek(today),
           endDate: customEndDate ? new Date(customEndDate) : getEndOfWeek(today)
         };
-      default:
+      default: {
+        // Individual term preset (e.g. "term_1", "term_2")
+        const termOrder = datePreset.startsWith('term_') ? parseInt(datePreset.split('_')[1]) : null;
+        if (termOrder) {
+          const term = termDates.find(t => t.termOrder === termOrder);
+          if (term) {
+            return { startDate: new Date(term.startDate), endDate: new Date(term.endDate) };
+          }
+        }
         return { startDate: getStartOfWeek(today), endDate: getEndOfWeek(today) };
+      }
     }
-  }, [datePreset, customStartDate, customEndDate]);
+  }, [datePreset, customStartDate, customEndDate, termDates]);
 
   const dates = useMemo(() => getDateRange(startDate, endDate), [startDate, endDate]);
 
@@ -492,7 +536,7 @@ const HomeReadingRegister = () => {
   const handleMultipleConfirm = () => {
     handleRecordReading(READING_STATUS.MULTIPLE, multipleCount);
     setMultipleCountDialog(false);
-    setMultipleCount(2);
+    setMultipleCount(5);
   };
 
   const renderDateStatusCell = (student, date) => {
@@ -645,16 +689,55 @@ const HomeReadingRegister = () => {
                     </Button>
                   </Tooltip>
 
-                  <Tooltip title="Multiple Sessions">
+                  <Tooltip title="Read 2 times">
                     <Button
                       variant="contained"
                       color="primary"
                       size="large"
-                      aria-label="Multiple reading sessions"
-                      onClick={handleMultipleClick}
-                      sx={{ minWidth: 80, fontSize: '1.2rem', py: 1.5 }}
+                      aria-label="Read 2 times"
+                      onClick={() => handleRecordReading(READING_STATUS.MULTIPLE, 2)}
+                      sx={{ minWidth: 50, fontSize: '1.2rem', py: 1.5 }}
                     >
-                      2+
+                      2
+                    </Button>
+                  </Tooltip>
+
+                  <Tooltip title="Read 3 times">
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      size="large"
+                      aria-label="Read 3 times"
+                      onClick={() => handleRecordReading(READING_STATUS.MULTIPLE, 3)}
+                      sx={{ minWidth: 50, fontSize: '1.2rem', py: 1.5 }}
+                    >
+                      3
+                    </Button>
+                  </Tooltip>
+
+                  <Tooltip title="Read 4 times">
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      size="large"
+                      aria-label="Read 4 times"
+                      onClick={() => handleRecordReading(READING_STATUS.MULTIPLE, 4)}
+                      sx={{ minWidth: 50, fontSize: '1.2rem', py: 1.5 }}
+                    >
+                      4
+                    </Button>
+                  </Tooltip>
+
+                  <Tooltip title="Custom number of sessions">
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      size="large"
+                      aria-label="Custom number of reading sessions"
+                      onClick={handleMultipleClick}
+                      sx={{ minWidth: 50, fontSize: '1.2rem', py: 1.5 }}
+                    >
+                      +
                     </Button>
                   </Tooltip>
 
@@ -727,6 +810,13 @@ const HomeReadingRegister = () => {
                 <MenuItem value={DATE_PRESETS.THIS_WEEK}>This Week</MenuItem>
                 <MenuItem value={DATE_PRESETS.LAST_WEEK}>Last Week</MenuItem>
                 <MenuItem value={DATE_PRESETS.LAST_MONTH}>Last Month</MenuItem>
+                {termDates.length > 0 && <MenuItem value={DATE_PRESETS.CURRENT_TERM}>Current Term</MenuItem>}
+                {termDates.length > 0 && <MenuItem value={DATE_PRESETS.SCHOOL_YEAR}>School Year</MenuItem>}
+                {termDates.length > 0 && termDates.map(term => (
+                  <MenuItem key={term.termOrder} value={`term_${term.termOrder}`}>
+                    {term.termName}
+                  </MenuItem>
+                ))}
                 <MenuItem value={DATE_PRESETS.CUSTOM}>Custom</MenuItem>
               </Select>
             </FormControl>
@@ -1071,7 +1161,7 @@ const HomeReadingRegister = () => {
           <TextField
             type="number"
             value={multipleCount}
-            onChange={(e) => setMultipleCount(Math.max(2, parseInt(e.target.value) || 2))}
+            onChange={(e) => setMultipleCount(Math.max(2, parseInt(e.target.value) || 5))}
             inputProps={{ min: 2, max: 10 }}
             fullWidth
             sx={{ mt: 1 }}
