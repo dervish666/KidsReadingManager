@@ -1,5 +1,29 @@
 # Changelog
 
+## [3.14.0] - 2026-03-10
+
+### Added
+- **Fetch timeouts on all external calls** — new `fetchWithTimeout` helper enforces timeouts on AI providers (10s), Wonde API (8s), metadata APIs (5s), covers (5s), and email (5s)
+- **Server-side books pagination** — default GET /api/books now returns paginated response (50/page) with total count; frontend loads all pages in parallel on login
+- **Composite database indexes** — migration 0034 adds indexes on `org_book_selections(organization_id, book_id)` and `classes(organization_id, name)` for faster JOINs and sorts
+- **Audit log hard-delete** — daily cron now deletes audit entries older than 1 year (previously only anonymised at 90 days, never deleted)
+- **Wonde pagination safety limit** — max 100 pages per API request to prevent runaway pagination
+
+### Fixed
+- **Streak cron timeout at ~8 schools** — replaced sequential per-student processing with concurrent batches of 10; org settings fetched once per org instead of per student
+- **Wonde sync cron timeout at ~17 schools** — process orgs concurrently (batches of 5) via `Promise.allSettled` instead of sequentially
+- **Import preview Worker OOM** — replaced `SELECT * FROM books` (entire 18k+ catalog) with batch ISBN lookup + FTS5 title search
+- **GDPR hard-delete sequential bottleneck** — chunked into db.batch() calls of 33 records instead of one-at-a-time
+- **Hardcover rate limit blocking all users** — replaced module-level boolean flag with time-based auto-expiring check
+
+### Changed
+- **Removed redundant JS streak recalculation** — GET /api/students now returns pre-calculated streak values from DB (populated by daily cron) instead of recalculating per request
+- **O(1) book lookups in HomeReadingRegister** — replaced `books.find()` with `Map.get()` via useMemo
+- **Shared activeStudents filter in ReadingStats** — extracted duplicated filtering into single useMemo shared by stats, session sort, and streak sort
+- **Reduced metadata API delays** — OpenLibrary 500→100ms, Google Books 300→50ms, Hardcover 1000→200ms
+- **Increased book cover cache** — MAX_CACHE_ENTRIES from 500 to 2000 (4× fewer OpenLibrary API calls)
+- **Parallel class assignments in Wonde sync** — concurrent batches of 5 instead of sequential
+
 ## [3.13.0] - 2026-03-07
 
 ### Added
