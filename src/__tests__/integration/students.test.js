@@ -1,5 +1,56 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { Hono } from 'hono';
 import { rowToStudent } from '../../utils/rowMappers.js';
+import { studentsRouter } from '../../routes/students.js';
+
+vi.mock('../../middleware/tenant', () => ({
+  requireRole: () => (c, next) => next(),
+  requireAdmin: () => (c, next) => next(),
+  requireTeacher: () => (c, next) => next(),
+  requireReadonly: () => (c, next) => next(),
+  auditLog: () => (c, next) => next(),
+}));
+
+vi.mock('../../middleware/errorHandler', async () => {
+  const actual = await vi.importActual('../../middleware/errorHandler');
+  return actual;
+});
+
+vi.mock('../../utils/routeHelpers', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getDB: (env) => env.READING_MANAGER_DB,
+    isMultiTenantMode: () => true,
+    requireStudent: () => {},
+  };
+});
+
+vi.mock('../../utils/crypto', () => ({
+  permissions: { MANAGE_STUDENTS: 'manage_students' },
+}));
+
+vi.mock('../../utils/validation', () => ({
+  validateStudent: () => ({ isValid: true }),
+  validateBulkImport: () => ({ isValid: true }),
+  validateReadingLevelRange: () => ({ isValid: true }),
+}));
+
+vi.mock('../../services/kvService', () => ({
+  getStudents: vi.fn().mockResolvedValue([]),
+  getStudentById: vi.fn().mockResolvedValue(null),
+  saveStudent: vi.fn().mockResolvedValue({}),
+  deleteStudent: vi.fn().mockResolvedValue({}),
+  addStudents: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock('../../utils/helpers', () => ({
+  generateId: () => 'generated-id',
+}));
+
+vi.mock('../../utils/streakCalculator', () => ({
+  calculateStreak: () => ({ currentStreak: 0, longestStreak: 0, streakStartDate: null }),
+}));
 
 // Mock database helper
 const createMockDB = (overrides = {}) => {
@@ -17,6 +68,39 @@ const createMockDB = (overrides = {}) => {
     _prepareChain: prepareChain,
     ...overrides
   };
+};
+
+const createTestApp = (contextValues = {}, dbOverrides = {}) => {
+  const app = new Hono();
+  const mockDB = createMockDB(dbOverrides);
+
+  app.onError((error, c) => {
+    const status = error.status || 500;
+    return c.json({
+      status: 'error',
+      message: error.message || 'Internal Server Error',
+    }, status);
+  });
+
+  app.use('*', async (c, next) => {
+    c.env = {
+      READING_MANAGER_DB: mockDB,
+      ...contextValues.env,
+    };
+    if (contextValues.organizationId) c.set('organizationId', contextValues.organizationId);
+    if (contextValues.userId) c.set('userId', contextValues.userId);
+    if (contextValues.userRole) c.set('userRole', contextValues.userRole);
+    await next();
+  });
+
+  app.route('/api/students', studentsRouter);
+  return { app, mockDB };
+};
+
+const makeRequest = async (app, method, path, body = null) => {
+  const options = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) options.body = JSON.stringify(body);
+  return app.request(path, options);
 };
 
 describe('GET /api/students - Slim Response', () => {
@@ -266,5 +350,142 @@ describe('GET /api/students - Slim Response', () => {
       // reading_sessions only appears in the COUNT subquery, not as a JOIN
       expect(query).not.toMatch(/JOIN\s+reading_sessions/);
     });
+  });
+});
+
+describe('GET /api/students/sessions', () => {
+  it('should return sessions for a class within date range', async () => {
+    const sessionRows = [
+      {
+        id: 'sess-1',
+        student_id: 'student-1',
+        session_date: '2026-03-05',
+        book_id: 'book-1',
+        book_title: 'The Hobbit',
+        book_title_manual: null,
+        book_author: 'J.R.R. Tolkien',
+        book_author_manual: null,
+        pages_read: 20,
+        duration_minutes: 15,
+        assessment: 'independent',
+        notes: null,
+        location: 'home',
+        recorded_by: 'user-1',
+        student_name: 'Alice Smith',
+      },
+      {
+        id: 'sess-2',
+        student_id: 'student-2',
+        session_date: '2026-03-04',
+        book_id: null,
+        book_title: null,
+        book_title_manual: 'Unknown Book',
+        book_author: null,
+        book_author_manual: 'Unknown Author',
+        pages_read: 10,
+        duration_minutes: null,
+        assessment: null,
+        notes: 'Read at home',
+        location: null,
+        recorded_by: 'user-1',
+        student_name: 'Bob Jones',
+      },
+    ];
+
+    const { app } = createTestApp(
+      { organizationId: 'org-1', userId: 'user-1', userRole: 'teacher' },
+      { allResults: { results: sessionRows, success: true } }
+    );
+
+    const res = await makeRequest(
+      app,
+      'GET',
+      '/api/students/sessions?classId=class-1&startDate=2026-03-01&endDate=2026-03-07'
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+
+    expect(data).toHaveLength(2);
+
+    // First session — has book from catalog
+    expect(data[0].id).toBe('sess-1');
+    expect(data[0].studentId).toBe('student-1');
+    expect(data[0].date).toBe('2026-03-05');
+    expect(data[0].bookTitle).toBe('The Hobbit');
+    expect(data[0].bookAuthor).toBe('J.R.R. Tolkien');
+    expect(data[0].pagesRead).toBe(20);
+    expect(data[0].duration).toBe(15);
+    expect(data[0].assessment).toBe('independent');
+    expect(data[0].location).toBe('home');
+    expect(data[0].recordedBy).toBe('user-1');
+
+    // Second session — uses manual book title/author
+    expect(data[1].id).toBe('sess-2');
+    expect(data[1].bookTitle).toBe('Unknown Book');
+    expect(data[1].bookAuthor).toBe('Unknown Author');
+    expect(data[1].location).toBe('school'); // default when null
+  });
+
+  it('should require classId and startDate and endDate', async () => {
+    const { app } = createTestApp(
+      { organizationId: 'org-1', userId: 'user-1', userRole: 'teacher' }
+    );
+
+    // Missing all params
+    const res1 = await makeRequest(app, 'GET', '/api/students/sessions');
+    expect(res1.status).toBe(400);
+    const body1 = await res1.json();
+    expect(body1.message).toContain('classId');
+
+    // Missing startDate and endDate
+    const res2 = await makeRequest(app, 'GET', '/api/students/sessions?classId=class-1');
+    expect(res2.status).toBe(400);
+
+    // Missing endDate
+    const res3 = await makeRequest(
+      app,
+      'GET',
+      '/api/students/sessions?classId=class-1&startDate=2026-03-01'
+    );
+    expect(res3.status).toBe(400);
+  });
+
+  it('should scope sessions to the organization', async () => {
+    const { app, mockDB } = createTestApp(
+      { organizationId: 'org-42', userId: 'user-1', userRole: 'teacher' },
+      { allResults: { results: [], success: true } }
+    );
+
+    await makeRequest(
+      app,
+      'GET',
+      '/api/students/sessions?classId=class-1&startDate=2026-03-01&endDate=2026-03-07'
+    );
+
+    // Verify the SQL was called with the organization ID
+    const prepareCall = mockDB.prepare.mock.calls.find(
+      (call) => call[0].includes('reading_sessions') && call[0].includes('organization_id')
+    );
+    expect(prepareCall).toBeTruthy();
+
+    // Verify bind was called with org-42 as first parameter
+    const bindCall = mockDB._prepareChain.bind.mock.calls[mockDB._prepareChain.bind.mock.calls.length - 1];
+    expect(bindCall[0]).toBe('org-42');
+  });
+
+  it('should return empty array for no sessions in range', async () => {
+    const { app } = createTestApp(
+      { organizationId: 'org-1', userId: 'user-1', userRole: 'teacher' },
+      { allResults: { results: [], success: true } }
+    );
+
+    const res = await makeRequest(
+      app,
+      'GET',
+      '/api/students/sessions?classId=class-1&startDate=2026-01-01&endDate=2026-01-07'
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data).toEqual([]);
   });
 });

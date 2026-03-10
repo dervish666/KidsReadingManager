@@ -217,6 +217,52 @@ studentsRouter.get('/', requireReadonly(), async (c) => {
 });
 
 /**
+ * GET /api/students/sessions
+ * Get reading sessions for a class within a date range.
+ * Query params: classId, startDate, endDate (all required)
+ */
+studentsRouter.get('/sessions', requireReadonly(), async (c) => {
+  if (!isMultiTenantMode(c)) {
+    return c.json([]);
+  }
+  const db = getDB(c.env);
+  const organizationId = c.get('organizationId');
+  const { classId, startDate, endDate } = c.req.query();
+
+  if (!classId || !startDate || !endDate) {
+    throw badRequestError('classId, startDate, and endDate are required');
+  }
+
+  const result = await db.prepare(`
+    SELECT rs.*, s.name as student_name,
+           b.title as book_title, b.author as book_author
+    FROM reading_sessions rs
+    INNER JOIN students s ON rs.student_id = s.id
+    LEFT JOIN books b ON rs.book_id = b.id
+    WHERE s.organization_id = ? AND s.class_id = ? AND s.is_active = 1
+      AND rs.session_date >= ? AND rs.session_date <= ?
+    ORDER BY rs.session_date DESC
+  `).bind(organizationId, classId, startDate, endDate).all();
+
+  const sessions = (result.results || []).map(s => ({
+    id: s.id,
+    studentId: s.student_id,
+    date: s.session_date,
+    bookId: s.book_id,
+    bookTitle: s.book_title || s.book_title_manual,
+    bookAuthor: s.book_author || s.book_author_manual,
+    pagesRead: s.pages_read,
+    duration: s.duration_minutes,
+    assessment: s.assessment,
+    notes: s.notes,
+    location: s.location || 'school',
+    recordedBy: s.recorded_by
+  }));
+
+  return c.json(sessions);
+});
+
+/**
  * GET /api/students/:id
  * Get a single student by ID
  */
