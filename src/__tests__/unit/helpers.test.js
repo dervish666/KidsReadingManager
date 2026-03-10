@@ -169,9 +169,9 @@ describe('sortStudentsByPriority', () => {
 describe('getPrioritizedStudents', () => {
   it('should return top N students by priority', () => {
     const students = [
-      { name: 'A', lastReadDate: '2024-01-15', readingSessions: [] },
-      { name: 'B', lastReadDate: '2024-01-10', readingSessions: [] },
-      { name: 'C', lastReadDate: '2024-01-20', readingSessions: [] }
+      { name: 'A', lastReadDate: '2024-01-15', totalSessionCount: 0 },
+      { name: 'B', lastReadDate: '2024-01-10', totalSessionCount: 0 },
+      { name: 'C', lastReadDate: '2024-01-20', totalSessionCount: 0 }
     ];
 
     const prioritized = getPrioritizedStudents(students, 2);
@@ -182,7 +182,7 @@ describe('getPrioritizedStudents', () => {
   });
 
   it('should return all students if count exceeds length', () => {
-    const students = [{ name: 'A', lastReadDate: null, readingSessions: [] }];
+    const students = [{ name: 'A', lastReadDate: null, totalSessionCount: 0 }];
 
     const prioritized = getPrioritizedStudents(students, 5);
 
@@ -191,8 +191,8 @@ describe('getPrioritizedStudents', () => {
 
   it('should prioritize students without read date', () => {
     const students = [
-      { name: 'A', lastReadDate: '2024-01-15', readingSessions: [] },
-      { name: 'B', lastReadDate: null, readingSessions: [] }
+      { name: 'A', lastReadDate: '2024-01-15', totalSessionCount: 0 },
+      { name: 'B', lastReadDate: null, totalSessionCount: 0 }
     ];
 
     const prioritized = getPrioritizedStudents(students, 2);
@@ -202,8 +202,8 @@ describe('getPrioritizedStudents', () => {
 
   it('should use session count as tiebreaker', () => {
     const students = [
-      { name: 'A', lastReadDate: null, readingSessions: [1, 2, 3] },
-      { name: 'B', lastReadDate: null, readingSessions: [1] }
+      { name: 'A', lastReadDate: null, totalSessionCount: 3 },
+      { name: 'B', lastReadDate: null, totalSessionCount: 1 }
     ];
 
     const prioritized = getPrioritizedStudents(students, 2);
@@ -214,7 +214,7 @@ describe('getPrioritizedStudents', () => {
 
 describe('updateLastReadDate', () => {
   it('should return null lastReadDate when no sessions', () => {
-    const student = { name: 'Test', readingSessions: [] };
+    const student = { name: 'Test', totalSessionCount: 0 };
     const updated = updateLastReadDate(student);
 
     expect(updated.lastReadDate).toBeNull();

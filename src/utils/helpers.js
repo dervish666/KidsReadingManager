@@ -78,12 +78,12 @@ export function sortStudentsByPriority(students) {
 export function getPrioritizedStudents(students, count) {
   return [...students]
     .sort((a, b) => {
-      if (!a.lastReadDate && !b.lastReadDate) return a.readingSessions.length - b.readingSessions.length;
+      if (!a.lastReadDate && !b.lastReadDate) return (a.totalSessionCount || 0) - (b.totalSessionCount || 0);
       if (!a.lastReadDate) return -1;
       if (!b.lastReadDate) return 1;
       const dateComparison = new Date(a.lastReadDate) - new Date(b.lastReadDate);
       if (dateComparison !== 0) return dateComparison;
-      return a.readingSessions.length - b.readingSessions.length;
+      return (a.totalSessionCount || 0) - (b.totalSessionCount || 0);
     })
     .slice(0, count);
 }
