@@ -232,6 +232,10 @@ studentsRouter.get('/sessions', requireReadonly(), async (c) => {
   if (!classId || !startDate || !endDate) {
     throw badRequestError('classId, startDate, and endDate are required');
   }
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (!dateRegex.test(startDate) || !dateRegex.test(endDate) || isNaN(Date.parse(startDate)) || isNaN(Date.parse(endDate))) {
+    throw badRequestError('startDate and endDate must be valid YYYY-MM-DD format');
+  }
 
   const result = await db.prepare(`
     SELECT rs.*, s.name as student_name,
@@ -256,7 +260,8 @@ studentsRouter.get('/sessions', requireReadonly(), async (c) => {
     assessment: s.assessment,
     notes: s.notes,
     location: s.location || 'school',
-    recordedBy: s.recorded_by
+    recordedBy: s.recorded_by,
+    studentName: s.student_name
   }));
 
   return c.json(sessions);
