@@ -489,3 +489,212 @@ describe('GET /api/students/sessions', () => {
     expect(data).toEqual([]);
   });
 });
+
+// Helper: create a mock DB that returns different results for different queries
+const createSequenceMockDB = (queryResults) => {
+  // queryResults is an array of { match: string|RegExp, all?: result, first?: result }
+  const db = {
+    prepare: vi.fn().mockImplementation((sql) => {
+      const entry = queryResults.find((qr) => {
+        if (typeof qr.match === 'string') return sql.includes(qr.match);
+        return qr.match.test(sql);
+      });
+      const allResult = entry?.all || { results: [], success: true };
+      const firstResult = entry?.first !== undefined ? entry.first : null;
+      return {
+        bind: vi.fn().mockReturnValue({
+          all: vi.fn().mockResolvedValue(allResult),
+          first: vi.fn().mockResolvedValue(firstResult),
+          run: vi.fn().mockResolvedValue({ success: true }),
+        }),
+      };
+    }),
+    batch: vi.fn().mockResolvedValue([{ success: true }]),
+  };
+  return db;
+};
+
+const createStatsTestApp = (contextValues = {}, queryResults = []) => {
+  const app = new Hono();
+  const mockDB = createSequenceMockDB(queryResults);
+
+  app.onError((error, c) => {
+    const status = error.status || 500;
+    return c.json({
+      status: 'error',
+      message: error.message || 'Internal Server Error',
+    }, status);
+  });
+
+  app.use('*', async (c, next) => {
+    c.env = {
+      READING_MANAGER_DB: mockDB,
+      ...contextValues.env,
+    };
+    if (contextValues.organizationId) c.set('organizationId', contextValues.organizationId);
+    if (contextValues.userId) c.set('userId', contextValues.userId);
+    if (contextValues.userRole) c.set('userRole', contextValues.userRole);
+    await next();
+  });
+
+  app.route('/api/students', studentsRouter);
+  return { app, mockDB };
+};
+
+describe('GET /api/students/stats', () => {
+  it('should return aggregated stats for a class', async () => {
+    const today = new Date().toISOString().split('T')[0];
+    const studentRows = [
+      { id: 'student-1', last_read_date: today, current_streak: 5, longest_streak: 10, streak_start_date: '2026-02-20' },
+      { id: 'student-2', last_read_date: today, current_streak: 3, longest_streak: 8, streak_start_date: '2026-03-01' },
+      { id: 'student-3', last_read_date: null, current_streak: 0, longest_streak: 0, streak_start_date: null },
+    ];
+
+    const sessionRows = [
+      { session_date: today, location: 'home', book_title: 'The Hobbit' },
+      { session_date: today, location: 'school', book_title: 'The Hobbit' },
+      { session_date: today, location: 'home', book_title: 'Dune' },
+    ];
+
+    const { app } = createStatsTestApp(
+      { organizationId: 'org-1', userId: 'user-1', userRole: 'teacher' },
+      [
+        { match: 'FROM students s', all: { results: studentRows, success: true } },
+        { match: 'FROM reading_sessions rs', all: { results: sessionRows, success: true } },
+        { match: 'org_settings', first: { setting_value: JSON.stringify({ recentlyReadDays: 3, needsAttentionDays: 7 }) } },
+      ]
+    );
+
+    const res = await makeRequest(
+      app,
+      'GET',
+      '/api/students/stats?classId=class-1&startDate=2026-03-01&endDate=2026-03-10'
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+
+    expect(data.totalStudents).toBe(3);
+    expect(data.totalSessions).toBe(3);
+    expect(data.locationDistribution.home).toBe(2);
+    expect(data.locationDistribution.school).toBe(1);
+    expect(data.studentsWithNoSessions).toBe(1);
+    expect(data.studentsWithActiveStreak).toBe(2);
+    expect(data.longestCurrentStreak).toBe(5);
+    expect(data.longestEverStreak).toBe(10);
+    expect(data.averageSessionsPerStudent).toBe(1); // 3 sessions / 3 students
+    expect(data.statusDistribution.recentlyRead).toBe(2); // 2 students read today
+    expect(data.statusDistribution.notRead).toBe(1); // 1 student never read
+    expect(data.mostReadBooks).toHaveLength(2);
+    expect(data.mostReadBooks[0].title).toBe('The Hobbit');
+    expect(data.mostReadBooks[0].count).toBe(2);
+    expect(data.topStreaks).toHaveLength(2);
+    expect(data.topStreaks[0].currentStreak).toBe(5);
+  });
+
+  it('should filter by date range', async () => {
+    const studentRows = [
+      { id: 'student-1', last_read_date: '2026-03-01', current_streak: 2, longest_streak: 5, streak_start_date: '2026-02-28' },
+    ];
+
+    // Only sessions within the requested date range should be returned by the query
+    const sessionRows = [
+      { session_date: '2026-03-01', location: 'home', book_title: 'Book A' },
+      { session_date: '2026-03-02', location: 'school', book_title: 'Book B' },
+    ];
+
+    const { app, mockDB } = createStatsTestApp(
+      { organizationId: 'org-1', userId: 'user-1', userRole: 'teacher' },
+      [
+        { match: 'FROM students s', all: { results: studentRows, success: true } },
+        { match: 'FROM reading_sessions rs', all: { results: sessionRows, success: true } },
+        { match: 'org_settings', first: null },
+      ]
+    );
+
+    const res = await makeRequest(
+      app,
+      'GET',
+      '/api/students/stats?classId=class-1&startDate=2026-03-01&endDate=2026-03-05'
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+
+    expect(data.totalSessions).toBe(2);
+    expect(data.totalStudents).toBe(1);
+
+    // Verify the session query was called with start/end dates
+    const sessionPrepareCall = mockDB.prepare.mock.calls.find(
+      (call) => call[0].includes('reading_sessions')
+    );
+    expect(sessionPrepareCall).toBeTruthy();
+  });
+
+  it('should include streak stats from student rows', async () => {
+    const today = new Date().toISOString().split('T')[0];
+    const studentRows = [
+      { id: 'student-1', last_read_date: today, current_streak: 10, longest_streak: 15, streak_start_date: '2026-02-01' },
+      { id: 'student-2', last_read_date: today, current_streak: 7, longest_streak: 20, streak_start_date: '2026-02-15' },
+      { id: 'student-3', last_read_date: today, current_streak: 0, longest_streak: 5, streak_start_date: null },
+    ];
+
+    const { app } = createStatsTestApp(
+      { organizationId: 'org-1', userId: 'user-1', userRole: 'teacher' },
+      [
+        { match: 'FROM students s', all: { results: studentRows, success: true } },
+        { match: 'FROM reading_sessions rs', all: { results: [], success: true } },
+        { match: 'org_settings', first: null },
+      ]
+    );
+
+    const res = await makeRequest(
+      app,
+      'GET',
+      '/api/students/stats?classId=class-1&startDate=2026-03-01&endDate=2026-03-10'
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+
+    // 2 students have active streaks (current_streak > 0)
+    expect(data.studentsWithActiveStreak).toBe(2);
+    expect(data.totalActiveStreakDays).toBe(17); // 10 + 7
+    expect(data.longestCurrentStreak).toBe(10);
+    expect(data.longestEverStreak).toBe(20); // student-2's longest
+    expect(data.averageStreak).toBeCloseTo(8.5); // 17 / 2
+
+    // Top streaks leaderboard
+    expect(data.topStreaks).toHaveLength(3); // all 3 have cs > 0 or ls > 0
+    expect(data.topStreaks[0].id).toBe('student-1'); // highest current streak
+    expect(data.topStreaks[0].currentStreak).toBe(10);
+    expect(data.topStreaks[1].id).toBe('student-2');
+    expect(data.topStreaks[1].currentStreak).toBe(7);
+  });
+
+  it('should return zero stats for empty class', async () => {
+    const { app } = createStatsTestApp(
+      { organizationId: 'org-1', userId: 'user-1', userRole: 'teacher' },
+      [
+        { match: 'FROM students s', all: { results: [], success: true } },
+        { match: 'org_settings', first: null },
+      ]
+    );
+
+    const res = await makeRequest(
+      app,
+      'GET',
+      '/api/students/stats?classId=empty-class&startDate=2026-03-01&endDate=2026-03-10'
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+
+    expect(data.totalStudents).toBe(0);
+    expect(data.totalSessions).toBe(0);
+    expect(data.averageSessionsPerStudent).toBe(0);
+    expect(data.studentsWithNoSessions).toBe(0);
+    expect(data.studentsWithActiveStreak).toBe(0);
+    expect(data.longestCurrentStreak).toBe(0);
+    expect(data.longestEverStreak).toBe(0);
+    expect(data.averageStreak).toBe(0);
+    expect(data.topStreaks).toEqual([]);
+    expect(data.statusDistribution).toEqual({ notRead: 0, needsAttention: 0, recentlyRead: 0 });
+  });
+});
