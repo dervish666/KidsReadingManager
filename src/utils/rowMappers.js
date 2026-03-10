@@ -58,13 +58,7 @@ export const rowToStudent = (row) => {
     ealStatus: row.eal_status || null,
     fsm: Boolean(row.fsm),
     processingRestricted: Boolean(row.processing_restricted),
-    aiOptOut: Boolean(row.ai_opt_out),
-    readingSessions: [],
-    preferences: {
-      favoriteGenreIds: [],
-      likes: [],
-      dislikes: []
-    }
+    aiOptOut: Boolean(row.ai_opt_out)
   };
 };
 

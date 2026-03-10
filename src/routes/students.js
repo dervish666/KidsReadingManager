@@ -193,7 +193,8 @@ studentsRouter.get('/', requireReadonly(), async (c) => {
     const organizationId = c.get('organizationId');
 
     const result = await db.prepare(`
-      SELECT s.*, c.name as class_name, b.title as current_book_title, b.author as current_book_author
+      SELECT s.*, c.name as class_name, b.title as current_book_title, b.author as current_book_author,
+        (SELECT COUNT(*) FROM reading_sessions rs WHERE rs.student_id = s.id) as total_session_count
       FROM students s
       LEFT JOIN classes c ON s.class_id = c.id
       LEFT JOIN books b ON s.current_book_id = b.id
@@ -203,91 +204,9 @@ studentsRouter.get('/', requireReadonly(), async (c) => {
 
     const students = (result.results || []).map(row => ({
       ...rowToStudent(row),
-      className: row.class_name
+      className: row.class_name,
+      totalSessionCount: row.total_session_count || 0
     }));
-
-    // Batch-fetch all reading sessions for all students in this org
-    // D1 limits bind parameters to 100 per statement, so chunk large lists
-    const studentIds = students.map(s => s.id);
-    const BIND_LIMIT = 90; // Leave headroom under D1's 100-parameter limit
-
-    let allSessions = [];
-    let allPreferences = [];
-
-    if (studentIds.length > 0) {
-      for (let i = 0; i < studentIds.length; i += BIND_LIMIT) {
-        const chunk = studentIds.slice(i, i + BIND_LIMIT);
-        const placeholders = chunk.map(() => '?').join(',');
-
-        const sessionsResult = await db.prepare(`
-          SELECT rs.*, b.title as book_title, b.author as book_author
-          FROM reading_sessions rs
-          LEFT JOIN books b ON rs.book_id = b.id
-          WHERE rs.student_id IN (${placeholders})
-          ORDER BY rs.session_date DESC
-        `).bind(...chunk).all();
-        allSessions.push(...(sessionsResult.results || []));
-
-        const prefsResult = await db.prepare(`
-          SELECT sp.student_id, sp.genre_id, sp.preference_type, g.name as genre_name
-          FROM student_preferences sp
-          LEFT JOIN genres g ON sp.genre_id = g.id
-          WHERE sp.student_id IN (${placeholders})
-        `).bind(...chunk).all();
-        allPreferences.push(...(prefsResult.results || []));
-      }
-    }
-
-    // Group sessions and preferences by student_id
-    const sessionsByStudent = {};
-    for (const s of allSessions) {
-      if (!sessionsByStudent[s.student_id]) sessionsByStudent[s.student_id] = [];
-      sessionsByStudent[s.student_id].push(s);
-    }
-
-    const prefsByStudent = {};
-    for (const p of allPreferences) {
-      if (!prefsByStudent[p.student_id]) prefsByStudent[p.student_id] = [];
-      prefsByStudent[p.student_id].push(p);
-    }
-
-    // Map data to each student
-    for (const student of students) {
-      const sessions = sessionsByStudent[student.id] || [];
-      student.readingSessions = sessions.map(s => ({
-        id: s.id,
-        date: s.session_date,
-        bookTitle: s.book_title || s.book_title_manual,
-        bookAuthor: s.book_author || s.book_author_manual,
-        bookId: s.book_id,
-        pagesRead: s.pages_read,
-        duration: s.duration_minutes,
-        assessment: s.assessment,
-        notes: s.notes,
-        location: s.location || 'school',
-        recordedBy: s.recorded_by
-      }));
-
-      // Use pre-calculated streak from DB (updated by daily cron)
-      // currentStreak, longestStreak, streakStartDate already set by rowToStudent
-
-      // Build preferences from batch data
-      const prefs = prefsByStudent[student.id] || [];
-      student.preferences = {
-        favoriteGenreIds: [],
-        likes: student.likes || [],
-        dislikes: student.dislikes || []
-      };
-      for (const row of prefs) {
-        if (row.preference_type === 'favorite') {
-          student.preferences.favoriteGenreIds.push(row.genre_id);
-        } else if (row.preference_type === 'like') {
-          student.preferences.likes.push(row.genre_name || row.genre_id);
-        } else if (row.preference_type === 'dislike') {
-          student.preferences.dislikes.push(row.genre_name || row.genre_id);
-        }
-      }
-    }
 
     return c.json(students);
   }
