@@ -175,8 +175,13 @@ describe('Books API Routes', () => {
         const data = await response.json();
 
         expect(response.status).toBe(200);
-        expect(Array.isArray(data)).toBe(true);
-        expect(data).toHaveLength(2);
+        expect(data).toHaveProperty('books');
+        expect(Array.isArray(data.books)).toBe(true);
+        expect(data.books).toHaveLength(2);
+        expect(data).toHaveProperty('total');
+        expect(data).toHaveProperty('page', 1);
+        expect(data).toHaveProperty('pageSize', 50);
+        expect(data).toHaveProperty('totalPages');
       });
 
       it('should allow requests from teachers', async () => {
@@ -267,7 +272,7 @@ describe('Books API Routes', () => {
         expect(Array.isArray(data)).toBe(true);
       });
 
-      it('should return all books when no query params provided', async () => {
+      it('should return paginated books when no query params provided', async () => {
         const books = [
           createMockBookRow({ id: 'book-1' }),
           createMockBookRow({ id: 'book-2' })
@@ -281,7 +286,10 @@ describe('Books API Routes', () => {
         const data = await response.json();
 
         expect(response.status).toBe(200);
-        expect(data).toHaveLength(2);
+        expect(data.books).toHaveLength(2);
+        expect(data).toHaveProperty('total');
+        expect(data).toHaveProperty('page', 1);
+        expect(data).toHaveProperty('pageSize', 50);
       });
     });
 
@@ -307,11 +315,11 @@ describe('Books API Routes', () => {
         const response = await makeRequest(app, 'GET', '/api/books');
         const data = await response.json();
 
-        expect(data[0]).toHaveProperty('readingLevel', 'advanced');
-        expect(data[0]).toHaveProperty('ageRange', '12-16');
-        expect(data[0]).toHaveProperty('genreIds');
-        expect(data[0]).not.toHaveProperty('reading_level');
-        expect(data[0]).not.toHaveProperty('age_range');
+        expect(data.books[0]).toHaveProperty('readingLevel', 'advanced');
+        expect(data.books[0]).toHaveProperty('ageRange', '12-16');
+        expect(data.books[0]).toHaveProperty('genreIds');
+        expect(data.books[0]).not.toHaveProperty('reading_level');
+        expect(data.books[0]).not.toHaveProperty('age_range');
       });
     });
   });
@@ -1347,8 +1355,8 @@ describe('Books API Routes', () => {
       const prepareCall1 = mockDB1.prepare.mock.calls[0]?.[0];
       expect(prepareCall1).toContain('org_book_selections');
 
-      expect(data1).toHaveLength(1);
-      expect(data1[0].id).toBe('org-book');
+      expect(data1.books).toHaveLength(1);
+      expect(data1.books[0].id).toBe('org-book');
     });
   });
 });

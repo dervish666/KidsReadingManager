@@ -82,13 +82,13 @@ booksRouter.get('/', requireReadonly(), async (c) => {
       const size = parseInt(pageSize, 10) || 50;
       const offset = (pageNum - 1) * size;
       const countResult = await db.prepare(
-        'SELECT COUNT(*) as count FROM books b INNER JOIN org_book_selections obs ON b.id = obs.book_id WHERE obs.organization_id = ?'
+        'SELECT COUNT(*) as count FROM books b INNER JOIN org_book_selections obs ON b.id = obs.book_id WHERE obs.organization_id = ? AND obs.is_available = 1'
       ).bind(organizationId).first();
       const total = countResult?.count || 0;
       const result = await db.prepare(`
         SELECT b.* FROM books b
         INNER JOIN org_book_selections obs ON b.id = obs.book_id
-        WHERE obs.organization_id = ?
+        WHERE obs.organization_id = ? AND obs.is_available = 1
         ORDER BY b.title LIMIT ? OFFSET ?
       `).bind(organizationId, size, offset).all();
       return c.json({
@@ -98,15 +98,23 @@ booksRouter.get('/', requireReadonly(), async (c) => {
       });
     }
 
-    // Default: all org books with safety cap to prevent unbounded result sets
-    const MAX_DEFAULT_BOOKS = 5000;
+    // Default: paginated org books (page 1 if not specified)
+    const defaultPageSize = 50;
+    const countResult = await db.prepare(
+      'SELECT COUNT(*) as count FROM books b INNER JOIN org_book_selections obs ON b.id = obs.book_id WHERE obs.organization_id = ? AND obs.is_available = 1'
+    ).bind(organizationId).first();
+    const total = countResult?.count || 0;
     const result = await db.prepare(`
       SELECT b.* FROM books b
       INNER JOIN org_book_selections obs ON b.id = obs.book_id
       WHERE obs.organization_id = ? AND obs.is_available = 1
-      ORDER BY b.title LIMIT ?
-    `).bind(organizationId, MAX_DEFAULT_BOOKS).all();
-    return c.json((result.results || []).map(rowToBook));
+      ORDER BY b.title LIMIT ? OFFSET 0
+    `).bind(organizationId, defaultPageSize).all();
+    return c.json({
+      books: (result.results || []).map(rowToBook),
+      total, page: 1, pageSize: defaultPageSize,
+      totalPages: Math.ceil(total / defaultPageSize)
+    });
   }
 
   // Legacy mode: no org scoping
@@ -1039,10 +1047,6 @@ booksRouter.post('/import/preview', requireTeacher(), async (c) => {
     throw badRequestError('Multi-tenant mode required for import preview');
   }
 
-  // Get all existing books
-  const allBooksResult = await db.prepare('SELECT * FROM books').all();
-  const existingBooks = allBooksResult.results || [];
-
   // Get books already in this organization's library
   const orgBooksResult = await db.prepare(
     'SELECT book_id FROM org_book_selections WHERE organization_id = ? AND is_available = 1'
@@ -1056,47 +1060,76 @@ booksRouter.post('/import/preview', requireTeacher(), async (c) => {
   const conflicts = [];
   const alreadyInLibrary = [];
 
+  // Step 1: Batch ISBN lookup (avoids loading entire book catalog)
+  const importIsbns = importBooks.filter(b => b.isbn).map(b => b.isbn);
+  const isbnBookMap = new Map();
+  if (importIsbns.length > 0) {
+    const ISBN_BATCH = 50;
+    for (let i = 0; i < importIsbns.length; i += ISBN_BATCH) {
+      const batch = importIsbns.slice(i, i + ISBN_BATCH);
+      const placeholders = batch.map(() => '?').join(',');
+      const isbnResult = await db.prepare(
+        `SELECT * FROM books WHERE isbn IN (${placeholders})`
+      ).bind(...batch).all();
+      for (const book of (isbnResult.results || [])) {
+        isbnBookMap.set(book.isbn, book);
+      }
+    }
+  }
+
+  // Step 2: Process each imported book
   for (const importedBook of importBooks) {
     if (!importedBook.title || !importedBook.title.trim()) continue;
 
-    // ISBN exact match (most reliable dedup strategy)
-    if (importedBook.isbn) {
-      const isbnMatch = existingBooks.find(eb => eb.isbn === importedBook.isbn);
-      if (isbnMatch) {
-        if (orgBookIds.has(isbnMatch.id)) {
-          alreadyInLibrary.push({ importedBook, existingBook: isbnMatch });
+    // ISBN exact match (from batch lookup)
+    if (importedBook.isbn && isbnBookMap.has(importedBook.isbn)) {
+      const isbnMatch = isbnBookMap.get(importedBook.isbn);
+      if (orgBookIds.has(isbnMatch.id)) {
+        alreadyInLibrary.push({ importedBook, existingBook: isbnMatch });
+      } else {
+        const hasConflict = importedBook.readingLevel &&
+                            isbnMatch.reading_level &&
+                            importedBook.readingLevel !== isbnMatch.reading_level;
+        if (hasConflict) {
+          conflicts.push({ importedBook, existingBook: isbnMatch });
         } else {
-          const hasConflict = importedBook.readingLevel &&
-                              isbnMatch.reading_level &&
-                              importedBook.readingLevel !== isbnMatch.reading_level;
-          if (hasConflict) {
-            conflicts.push({ importedBook, existingBook: isbnMatch });
-          } else {
-            matched.push({ importedBook, existingBook: isbnMatch });
-          }
+          matched.push({ importedBook, existingBook: isbnMatch });
         }
-        continue;
       }
+      continue;
     }
 
-    // Check for exact title/author match (handles "Last, First" vs "First Last")
-    const exactMatch = existingBooks.find(existing =>
+    // FTS5 title search for exact and fuzzy matching candidates
+    let candidates = [];
+    try {
+      // Escape FTS5 special characters and search by title
+      const ftsQuery = importedBook.title.trim().replace(/['"*()]/g, '');
+      if (ftsQuery) {
+        const ftsResult = await db.prepare(
+          `SELECT b.* FROM books b
+           INNER JOIN books_fts fts ON b.id = fts.id
+           WHERE books_fts MATCH ? LIMIT 20`
+        ).bind(`"${ftsQuery}"`).all();
+        candidates = ftsResult.results || [];
+      }
+    } catch {
+      // FTS match failed (e.g. special chars) — skip to newBooks
+    }
+
+    // Check for exact title/author match in candidates
+    const exactMatch = candidates.find(existing =>
       isExactMatch(existing.title, importedBook.title) &&
       isAuthorMatch(existing.author, importedBook.author)
     );
 
     if (exactMatch) {
-      // Check if already in this org's library
       if (orgBookIds.has(exactMatch.id)) {
         alreadyInLibrary.push({ importedBook, existingBook: exactMatch });
         continue;
       }
-
-      // Check for metadata conflicts (reading level difference)
       const hasConflict = importedBook.readingLevel &&
                           exactMatch.reading_level &&
                           importedBook.readingLevel !== exactMatch.reading_level;
-
       if (hasConflict) {
         conflicts.push({ importedBook, existingBook: exactMatch });
       } else {
@@ -1105,8 +1138,8 @@ booksRouter.post('/import/preview', requireTeacher(), async (c) => {
       continue;
     }
 
-    // Check for fuzzy match
-    const fuzzyMatch = existingBooks.find(existing =>
+    // Check for fuzzy match in candidates
+    const fuzzyMatch = candidates.find(existing =>
       isFuzzyMatch(
         { title: importedBook.title, author: importedBook.author },
         { title: existing.title, author: existing.author }
