@@ -717,10 +717,35 @@ export const AppProvider = ({ children }) => {
         }
       } catch { /* ignore */ }
 
-      // Books (optional)
+      // Books (optional) — API returns paginated response, fetch all pages
       if (booksResponse?.ok) {
         const booksData = await booksResponse.json();
-        setBooks(booksData);
+        // Handle both paginated { books, total, totalPages } and legacy array format
+        if (Array.isArray(booksData)) {
+          setBooks(booksData);
+        } else {
+          let allBooks = booksData.books || [];
+          // Fetch remaining pages in parallel if more than one page
+          if (booksData.totalPages > 1) {
+            const pagePromises = [];
+            for (let p = 2; p <= booksData.totalPages; p++) {
+              pagePromises.push(
+                fetchWithAuth(`${API_URL}/books?page=${p}&pageSize=${booksData.pageSize}`)
+                  .then(r => r.ok ? r.json() : null)
+                  .catch(() => null)
+              );
+            }
+            const pageResults = await Promise.all(pagePromises);
+            for (const result of pageResults) {
+              if (result?.books) {
+                allBooks = allBooks.concat(result.books);
+              } else if (Array.isArray(result)) {
+                allBooks = allBooks.concat(result);
+              }
+            }
+          }
+          setBooks(allBooks);
+        }
       } else {
         setBooks([]);
       }
