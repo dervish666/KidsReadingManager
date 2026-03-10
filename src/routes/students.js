@@ -237,16 +237,30 @@ studentsRouter.get('/sessions', requireReadonly(), async (c) => {
     throw badRequestError('startDate and endDate must be valid YYYY-MM-DD format');
   }
 
+  // Build class filter clause based on classId value
+  let classClause;
+  let binds;
+  if (classId === 'all') {
+    classClause = '';
+    binds = [organizationId, startDate, endDate];
+  } else if (classId === 'unassigned') {
+    classClause = ' AND s.class_id IS NULL';
+    binds = [organizationId, startDate, endDate];
+  } else {
+    classClause = ' AND s.class_id = ?';
+    binds = [organizationId, classId, startDate, endDate];
+  }
+
   const result = await db.prepare(`
     SELECT rs.*, s.name as student_name,
            b.title as book_title, b.author as book_author
     FROM reading_sessions rs
     INNER JOIN students s ON rs.student_id = s.id
     LEFT JOIN books b ON rs.book_id = b.id
-    WHERE s.organization_id = ? AND s.class_id = ? AND s.is_active = 1
+    WHERE s.organization_id = ?${classClause} AND s.is_active = 1
       AND rs.session_date >= ? AND rs.session_date <= ?
     ORDER BY rs.session_date DESC
-  `).bind(organizationId, classId, startDate, endDate).all();
+  `).bind(...binds).all();
 
   const sessions = (result.results || []).map(s => ({
     id: s.id,
@@ -428,6 +442,58 @@ studentsRouter.get('/stats', requireReadonly(), async (c) => {
     averageStreak: studentsWithActiveStreak > 0 ? totalActiveStreakDays / studentsWithActiveStreak : 0,
     topStreaks
   });
+});
+
+/**
+ * GET /api/students/:id/sessions
+ * Get reading sessions for a single student.
+ * Query params: limit (optional, default all)
+ */
+studentsRouter.get('/:id/sessions', requireReadonly(), async (c) => {
+  const { id } = c.req.param();
+
+  if (!isMultiTenantMode(c)) {
+    return c.json([]);
+  }
+  const db = getDB(c.env);
+  const organizationId = c.get('organizationId');
+
+  // Verify student belongs to this organization
+  const student = await db.prepare(
+    'SELECT id FROM students WHERE id = ? AND organization_id = ? AND is_active = 1'
+  ).bind(id, organizationId).first();
+
+  if (!student) {
+    throw notFoundError(`Student with ID ${id} not found`);
+  }
+
+  const limitParam = c.req.query('limit');
+  const limitClause = limitParam ? ` LIMIT ${Math.max(1, Math.min(parseInt(limitParam, 10) || 1000, 1000))}` : '';
+
+  const result = await db.prepare(`
+    SELECT rs.*, b.title as book_title, b.author as book_author
+    FROM reading_sessions rs
+    LEFT JOIN books b ON rs.book_id = b.id
+    WHERE rs.student_id = ?
+    ORDER BY rs.session_date DESC${limitClause}
+  `).bind(id).all();
+
+  const sessions = (result.results || []).map(s => ({
+    id: s.id,
+    studentId: s.student_id,
+    date: s.session_date,
+    bookId: s.book_id,
+    bookTitle: s.book_title || s.book_title_manual,
+    bookAuthor: s.book_author || s.book_author_manual,
+    pagesRead: s.pages_read,
+    duration: s.duration_minutes,
+    assessment: s.assessment,
+    notes: s.notes,
+    location: s.location || 'school',
+    recordedBy: s.recorded_by
+  }));
+
+  return c.json(sessions);
 });
 
 /**

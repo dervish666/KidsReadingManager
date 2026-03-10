@@ -57,10 +57,7 @@ const createMockContext = (overrides = {}) => ({
       name: 'Alice Smith',
       classId: 'class-1',
       readingLevel: 2.5,
-      readingSessions: [
-        { id: 'session-1', bookId: 'book-1', date: '2024-06-01', assessment: 'independent' },
-        { id: 'session-2', bookId: 'book-2', date: '2024-06-02', assessment: 'guided' }
-      ],
+      totalSessionCount: 2,
       preferences: {
         favoriteGenreIds: ['genre-1'],
         likes: ['The Cat in the Hat', 'Green Eggs and Ham'],
@@ -72,7 +69,7 @@ const createMockContext = (overrides = {}) => ({
       name: 'Bob Jones',
       classId: 'class-1',
       readingLevel: 3.0,
-      readingSessions: [],
+      totalSessionCount: 0,
       preferences: {}
     },
     {
@@ -80,9 +77,7 @@ const createMockContext = (overrides = {}) => ({
       name: 'Charlie Brown',
       classId: 'class-2',
       readingLevel: 4.0,
-      readingSessions: [
-        { id: 'session-3', bookId: 'book-3', date: '2024-06-03', assessment: 'independent' }
-      ],
+      totalSessionCount: 1,
       preferences: {
         favoriteGenreIds: ['genre-2'],
         likes: [],
@@ -107,16 +102,14 @@ const createMockContext = (overrides = {}) => ({
       id: 'student-1',
       name: 'Alice Smith',
       classId: 'class-1',
-      readingSessions: [
-        { id: 'session-1', bookId: 'book-1', date: '2024-06-01', assessment: 'independent' }
-      ],
+      totalSessionCount: 2,
       lastReadDate: '2024-06-01'
     },
     {
       id: 'student-2',
       name: 'Bob Jones',
       classId: 'class-1',
-      readingSessions: [],
+      totalSessionCount: 0,
       lastReadDate: null
     }
   ],
@@ -124,6 +117,18 @@ const createMockContext = (overrides = {}) => ({
   markStudentAsPriorityHandled: vi.fn(),
   ...overrides
 });
+
+// Default session data for each student (used by fetchWithAuth mock)
+const defaultStudentSessions = {
+  'student-1': [
+    { id: 'session-1', bookId: 'book-1', date: '2024-06-01', assessment: 'independent' },
+    { id: 'session-2', bookId: 'book-2', date: '2024-06-02', assessment: 'guided' }
+  ],
+  'student-2': [],
+  'student-3': [
+    { id: 'session-3', bookId: 'book-3', date: '2024-06-03', assessment: 'independent' }
+  ]
+};
 
 // Helper to create mock fetch responses
 const createMockFetch = (responses = {}) => {
@@ -138,6 +143,17 @@ const createMockFetch = (responses = {}) => {
           provider: 'anthropic',
           modelPreference: 'claude-3-sonnet'
         })
+      });
+    }
+
+    // Student sessions endpoint
+    const sessionMatch = url.match(/\/api\/students\/([^/]+)\/sessions/);
+    if (sessionMatch) {
+      const studentId = sessionMatch[1];
+      const sessions = (responses.studentSessions || defaultStudentSessions)[studentId] || [];
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(sessions)
       });
     }
 
@@ -295,7 +311,7 @@ describe('BookRecommendations Component', () => {
 
       // Open dropdown and select student
       await user.click(screen.getByLabelText('Student'));
-      await user.click(screen.getByText('Alice Smith (2 books read)'));
+      await user.click(screen.getByText('Alice Smith (2 sessions)'));
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
@@ -329,7 +345,7 @@ describe('BookRecommendations Component', () => {
       });
 
       await user.click(screen.getByLabelText('Student'));
-      await user.click(screen.getByText('Alice Smith (2 books read)'));
+      await user.click(screen.getByText('Alice Smith (2 sessions)'));
 
       await waitFor(() => {
         expect(screen.getByTestId('loading-skeleton')).toBeInTheDocument();
@@ -377,9 +393,9 @@ describe('BookRecommendations Component', () => {
       await user.click(studentSelect);
 
       // Check that all students are in the dropdown
-      expect(screen.getByRole('option', { name: /Alice Smith \(2 books read\)/i })).toBeInTheDocument();
-      expect(screen.getByRole('option', { name: /Bob Jones \(0 books read\)/i })).toBeInTheDocument();
-      expect(screen.getByRole('option', { name: /Charlie Brown \(1 books read\)/i })).toBeInTheDocument();
+      expect(screen.getByRole('option', { name: /Alice Smith \(2 sessions\)/i })).toBeInTheDocument();
+      expect(screen.getByRole('option', { name: /Bob Jones \(0 sessions\)/i })).toBeInTheDocument();
+      expect(screen.getByRole('option', { name: /Charlie Brown \(1 sessions\)/i })).toBeInTheDocument();
     });
 
     it('should display API error from context when present', async () => {
@@ -532,8 +548,8 @@ describe('BookRecommendations Component', () => {
         fetchWithAuth: mockFetch,
         globalClassFilter: 'unassigned',
         students: [
-          { id: 'student-assigned', name: 'Assigned Student', classId: 'class-1', readingSessions: [] },
-          { id: 'student-unassigned', name: 'Unassigned Student', classId: null, readingSessions: [] }
+          { id: 'student-assigned', name: 'Assigned Student', classId: 'class-1', totalSessionCount: 0 },
+          { id: 'student-unassigned', name: 'Unassigned Student', classId: null, totalSessionCount: 0 }
         ]
       });
       const user = userEvent.setup();
@@ -559,7 +575,7 @@ describe('BookRecommendations Component', () => {
 
       await waitFor(() => expect(screen.getByLabelText('Student')).toBeInTheDocument());
       await user.click(screen.getByLabelText('Student'));
-      await user.click(screen.getByText('Alice Smith (2 books read)'));
+      await user.click(screen.getByText('Alice Smith (2 sessions)'));
 
       // Wait for results to load
       await waitFor(() => {
@@ -1490,12 +1506,14 @@ describe('BookRecommendations Component', () => {
   });
 
   describe('Edge Cases', () => {
-    it('should handle students with undefined readingSessions', async () => {
-      const mockFetch = createMockFetch();
+    it('should handle students with no sessions', async () => {
+      const mockFetch = createMockFetch({
+        studentSessions: { 'student-1': [] }
+      });
       const context = createMockContext({
         fetchWithAuth: mockFetch,
         students: [
-          { id: 'student-1', name: 'No Sessions', classId: 'class-1', readingSessions: undefined }
+          { id: 'student-1', name: 'No Sessions', classId: 'class-1', totalSessionCount: 0 }
         ]
       });
       const user = userEvent.setup();
@@ -1511,7 +1529,13 @@ describe('BookRecommendations Component', () => {
     });
 
     it('should handle book ID not found in books array', async () => {
-      const mockFetch = createMockFetch();
+      const mockFetch = createMockFetch({
+        studentSessions: {
+          'student-1': [
+            { id: 'session-1', bookId: 'non-existent-book', date: '2024-06-01' }
+          ]
+        }
+      });
       const context = createMockContext({
         fetchWithAuth: mockFetch,
         students: [
@@ -1519,9 +1543,7 @@ describe('BookRecommendations Component', () => {
             id: 'student-1',
             name: 'Unknown Book Student',
             classId: 'class-1',
-            readingSessions: [
-              { id: 'session-1', bookId: 'non-existent-book', date: '2024-06-01' }
-            ]
+            totalSessionCount: 1
           }
         ]
       });

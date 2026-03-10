@@ -168,25 +168,17 @@ const BookRecommendations = () => {
   };
 
   const getStudentBookCount = (student) => {
-    if (!student || !student.readingSessions) return 0;
-    const uniqueBooks = new Set();
-    student.readingSessions.forEach(session => {
-      if (session.bookId) {
-        uniqueBooks.add(session.bookId);
-      }
-    });
-    return uniqueBooks.size;
+    return student?.totalSessionCount || 0;
   };
 
-  const handleStudentChange = async (event) => {
-    const studentId = event.target.value;
-    setSelectedStudentId(studentId);
-
-    const student = students.find(s => s.id === studentId);
-    if (student && student.readingSessions) {
-      // Extract unique books read by this student (store bookId, resolve title at render time)
+  // Helper to fetch sessions and build booksRead list for a student
+  const loadStudentBooksRead = async (studentId) => {
+    if (!studentId) { setBooksRead([]); return; }
+    try {
+      const response = await fetchWithAuth(`/api/students/${studentId}/sessions`);
+      const sessions = response.ok ? await response.json() : [];
       const uniqueBooks = new Map();
-      student.readingSessions.forEach(session => {
+      sessions.forEach(session => {
         if (session.bookId) {
           uniqueBooks.set(session.bookId, {
             id: session.bookId,
@@ -197,18 +189,29 @@ const BookRecommendations = () => {
         }
       });
       setBooksRead(Array.from(uniqueBooks.values()));
-    } else {
+    } catch {
       setBooksRead([]);
     }
+  };
+
+  const handleStudentChange = async (event) => {
+    const studentId = event.target.value;
+    setSelectedStudentId(studentId);
+
     setRecommendations([]);
     setStudentProfile(null);
     setResultType(null);
     setError(null);
     setShowDetails(false);
 
-    // Auto-trigger library search (which also loads the profile)
+    // Fetch sessions and library search in parallel
     if (studentId) {
-      await triggerLibrarySearch(studentId);
+      await Promise.all([
+        loadStudentBooksRead(studentId),
+        triggerLibrarySearch(studentId)
+      ]);
+    } else {
+      setBooksRead([]);
     }
   };
 
@@ -250,23 +253,6 @@ const BookRecommendations = () => {
   // Handler for quick-pick card click
   const handleQuickPick = async (studentId) => {
     setSelectedStudentId(studentId);
-    const student = students.find(s => s.id === studentId);
-    if (student && student.readingSessions) {
-      const uniqueBooks = new Map();
-      student.readingSessions.forEach(session => {
-        if (session.bookId) {
-          uniqueBooks.set(session.bookId, {
-            id: session.bookId,
-            bookId: session.bookId,
-            dateRead: session.date,
-            assessment: session.assessment
-          });
-        }
-      });
-      setBooksRead(Array.from(uniqueBooks.values()));
-    } else {
-      setBooksRead([]);
-    }
     setRecommendations([]);
     setStudentProfile(null);
     setResultType(null);
@@ -277,7 +263,10 @@ const BookRecommendations = () => {
       markStudentAsPriorityHandled(studentId);
     }
 
-    await triggerLibrarySearch(studentId);
+    await Promise.all([
+      loadStudentBooksRead(studentId),
+      triggerLibrarySearch(studentId)
+    ]);
   };
 
   // Handler for AI suggestions
@@ -391,7 +380,7 @@ const BookRecommendations = () => {
             </MenuItem>
             {filteredStudents.map((student) => (
               <MenuItem key={student.id} value={student.id}>
-                {student.name} ({getStudentBookCount(student)} books read)
+                {student.name} ({getStudentBookCount(student)} sessions)
               </MenuItem>
             ))}
           </Select>

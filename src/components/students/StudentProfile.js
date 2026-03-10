@@ -77,14 +77,19 @@ const StudentProfile = ({ open, onClose, student }) => {
   const [addGenreOpen, setAddGenreOpen] = useState(false);
   const [newGenreName, setNewGenreName] = useState('');
 
-  // Get unique book IDs from student's reading sessions
+  // Fetch sessions to derive read book IDs for priority ordering in autocomplete
+  const [studentSessions, setStudentSessions] = useState([]);
+  useEffect(() => {
+    if (!student?.id || !open) return;
+    fetchWithAuth(`/api/students/${student.id}/sessions`)
+      .then(r => r.ok ? r.json() : [])
+      .then(setStudentSessions)
+      .catch(() => setStudentSessions([]));
+  }, [student?.id, open, fetchWithAuth]);
+
   const studentReadBookIds = React.useMemo(() => {
-    if (!student || !student.readingSessions) return [];
-    const bookIds = student.readingSessions
-      .map(session => session.bookId)
-      .filter(Boolean);
-    return [...new Set(bookIds)];
-  }, [student]);
+    return [...new Set(studentSessions.map(s => s.bookId).filter(Boolean))];
+  }, [studentSessions]);
 
   // Initialize all fields when student or dialog changes
   useEffect(() => {

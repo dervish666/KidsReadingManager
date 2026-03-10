@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -8,7 +8,8 @@ import {
   Select,
   MenuItem,
   Tooltip,
-  useMediaQuery
+  useMediaQuery,
+  CircularProgress
 } from '@mui/material';
 import { useAppContext } from '../../contexts/AppContext';
 import { useTheme } from '@mui/material/styles';
@@ -16,13 +17,13 @@ import { formatAssessmentDisplay } from '../../utils/helpers';
 
 const ReadingTimelineChart = () => {
   const theme = useTheme();
-  const { students, classes, globalClassFilter } = useAppContext();
+  const { students, classes, globalClassFilter, fetchWithAuth } = useAppContext();
 
   // Get IDs of disabled classes
   const disabledClassIds = classes.filter(cls => cls.disabled).map(cls => cls.id);
 
   // Filter students based on global class filter and disabled classes
-  const activeStudents = students.filter(student => {
+  const activeStudents = useMemo(() => students.filter(student => {
     // First, filter by global class filter
     if (globalClassFilter && globalClassFilter !== 'all') {
       if (globalClassFilter === 'unassigned') {
@@ -31,67 +32,99 @@ const ReadingTimelineChart = () => {
         if (student.classId !== globalClassFilter) return false;
       }
     }
-    
+
     // Then, filter out students from disabled classes
     return !student.classId || !disabledClassIds.includes(student.classId);
-  });
+  }), [students, globalClassFilter, disabledClassIds]);
+
   const [timeRange, setTimeRange] = useState('30'); // Default to 30 days
-  
+  const [fetchedSessions, setFetchedSessions] = useState([]);
+  const [loading, setLoading] = useState(false);
+
   const handleTimeRangeChange = (event) => {
     setTimeRange(event.target.value);
   };
-  
-  // Get the date range for the timeline
-  const getDateRange = () => {
+
+  // Compute date range from timeRange
+  const { startDateISO, endDateISO } = useMemo(() => {
     const endDate = new Date();
     const startDate = new Date();
-    
-    // Set start date based on selected time range
+
     if (timeRange === '7') {
-      startDate.setDate(endDate.getDate() - 7); // 1 week
+      startDate.setDate(endDate.getDate() - 7);
     } else if (timeRange === '30') {
-      startDate.setDate(endDate.getDate() - 30); // 30 days
+      startDate.setDate(endDate.getDate() - 30);
     } else if (timeRange === '90') {
-      startDate.setDate(endDate.getDate() - 90); // 90 days
+      startDate.setDate(endDate.getDate() - 90);
     } else {
-      startDate.setFullYear(endDate.getFullYear() - 1); // 1 year
+      startDate.setFullYear(endDate.getFullYear() - 1);
     }
-    
-    return { startDate, endDate };
+
+    return {
+      startDateISO: startDate.toISOString().split('T')[0],
+      endDateISO: endDate.toISOString().split('T')[0]
+    };
+  }, [timeRange]);
+
+  // Determine effective classId for the API call
+  const effectiveClassId = useMemo(() => {
+    if (!globalClassFilter || globalClassFilter === 'all') return 'all';
+    return globalClassFilter;
+  }, [globalClassFilter]);
+
+  // Fetch sessions from the API
+  useEffect(() => {
+    if (activeStudents.length === 0) {
+      setFetchedSessions([]);
+      return;
+    }
+    setLoading(true);
+    fetchWithAuth(`/api/students/sessions?classId=${effectiveClassId}&startDate=${startDateISO}&endDate=${endDateISO}`)
+      .then(r => r.ok ? r.json() : [])
+      .then(setFetchedSessions)
+      .catch(() => setFetchedSessions([]))
+      .finally(() => setLoading(false));
+  }, [effectiveClassId, startDateISO, endDateISO, fetchWithAuth, activeStudents.length]);
+
+  // Get the date range for the timeline
+  const getDateRange = () => {
+    return {
+      startDate: new Date(startDateISO),
+      endDate: new Date(endDateISO)
+    };
   };
-  
+
   // Generate dates for the timeline
   const generateTimelineDates = () => {
     const { startDate, endDate } = getDateRange();
     const dates = [];
     const currentDate = new Date(startDate);
-    
+
     while (currentDate <= endDate) {
       dates.push(new Date(currentDate));
       currentDate.setDate(currentDate.getDate() + 1);
     }
-    
+
     return dates;
   };
-  
-  // Get reading sessions within the date range
-  const getReadingSessions = () => {
-    const { startDate, endDate } = getDateRange();
 
-    return activeStudents.map(student => {
-      // Filter sessions within the date range
-      const sessionsInRange = student.readingSessions.filter(session => {
-        const sessionDate = new Date(session.date);
-        return sessionDate >= startDate && sessionDate <= endDate;
-      });
-      
-      return {
-        id: student.id,
-        name: student.name,
-        sessions: sessionsInRange,
-        lastReadDate: student.lastReadDate ? new Date(student.lastReadDate) : null
-      };
-    })
+  // Build per-student session data from fetched sessions
+  const studentSessions = useMemo(() => {
+    // Group fetched sessions by studentId
+    const sessionsByStudent = new Map();
+    fetchedSessions.forEach(session => {
+      if (!sessionsByStudent.has(session.studentId)) {
+        sessionsByStudent.set(session.studentId, []);
+      }
+      sessionsByStudent.get(session.studentId).push(session);
+    });
+
+    return activeStudents.map(student => ({
+      id: student.id,
+      name: student.name,
+      sessions: sessionsByStudent.get(student.id) || [],
+      lastReadDate: student.lastReadDate ? new Date(student.lastReadDate) : null
+    }))
     .sort((a, b) => {
       // Sort by most recent reading first
       if (!a.lastReadDate && !b.lastReadDate) return 0;
@@ -99,11 +132,10 @@ const ReadingTimelineChart = () => {
       if (!b.lastReadDate) return -1;
       return b.lastReadDate - a.lastReadDate;
     });
-  };
-  
+  }, [activeStudents, fetchedSessions]);
+
   const timelineDates = generateTimelineDates();
-  const studentSessions = getReadingSessions();
-  
+
   // Format date for display
   const formatDate = (date) => {
     return date.toLocaleDateString('en-GB', {
@@ -111,7 +143,7 @@ const ReadingTimelineChart = () => {
       month: 'short'
     });
   };
-  
+
   // Get assessment color
   const getAssessmentColor = (assessment) => {
     switch (assessment) {
@@ -125,7 +157,7 @@ const ReadingTimelineChart = () => {
         return theme.palette.primary.main;
     }
   };
-  
+
   // Check if a student has a session on a specific date
   const hasSessionOnDate = (student, date) => {
     return student.sessions.find(session => {
@@ -133,7 +165,7 @@ const ReadingTimelineChart = () => {
       return sessionDate.toDateString() === date.toDateString();
     });
   };
-  
+
   // Determine how many dates to show based on screen size
   const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
   const getVisibleDates = () => {
@@ -144,31 +176,31 @@ const ReadingTimelineChart = () => {
       if (timeRange === '90') return isSmall ? 8 : 12;
       return isSmall ? 10 : 14;
     })();
-    
+
     // If we have fewer dates than max, show all
     if (timelineDates.length <= maxDates) {
       return timelineDates;
     }
-    
+
     // Otherwise, sample dates evenly to fit the available columns
     const step = Math.ceil(timelineDates.length / maxDates);
     const sampledDates = [];
-    
+
     for (let i = 0; i < timelineDates.length; i += step) {
       sampledDates.push(timelineDates[i]);
     }
-    
+
     // Ensure last (most recent) date is included
     const lastDate = timelineDates[timelineDates.length - 1];
     if (sampledDates[sampledDates.length - 1].toDateString() !== lastDate.toDateString()) {
       sampledDates.push(lastDate);
     }
-    
+
     return sampledDates;
   };
-  
+
   const visibleDates = getVisibleDates();
-  
+
   return (
     <Paper sx={{ p: 3, mb: 3, pb: 'calc(env(safe-area-inset-bottom) + 16px)' }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexDirection: { xs: 'column', sm: 'row' }, gap: { xs: 1, sm: 0 } }}>
@@ -191,8 +223,12 @@ const ReadingTimelineChart = () => {
           </Select>
         </FormControl>
       </Box>
-      
-      {studentSessions.length === 0 ? (
+
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+          <CircularProgress size={32} />
+        </Box>
+      ) : studentSessions.length === 0 ? (
         <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 3 }}>
           No student data available.
         </Typography>
@@ -215,13 +251,13 @@ const ReadingTimelineChart = () => {
               </Box>
             ))}
           </Box>
-          
+
           {/* Student rows */}
           {studentSessions.map(student => (
-            <Box 
-              key={student.id} 
-              sx={{ 
-                display: 'flex', 
+            <Box
+              key={student.id}
+              sx={{
+                display: 'flex',
                 mb: 2,
                 alignItems: 'center',
                 '&:hover': {
@@ -235,12 +271,12 @@ const ReadingTimelineChart = () => {
                   {student.name}
                 </Typography>
               </Box>
-              
+
               {/* Timeline cells */}
               <Box sx={{ display: 'flex', flexGrow: 1 }}>
                 {visibleDates.map((date, index) => {
                   const session = hasSessionOnDate(student, date);
-                  
+
                   return (
                     <Box
                       key={index}
@@ -254,7 +290,7 @@ const ReadingTimelineChart = () => {
                       }}
                     >
                       {session && (
-                        <Tooltip 
+                        <Tooltip
                           title={
                             <Box>
                               <Typography variant="body2">{student.name}</Typography>
@@ -272,14 +308,14 @@ const ReadingTimelineChart = () => {
                             </Box>
                           }
                         >
-                          <Box 
-                            sx={{ 
-                              width: 20, 
+                          <Box
+                            sx={{
+                              width: 20,
                               height: 20,
                               borderRadius: 1,
                               bgcolor: getAssessmentColor(session.assessment),
                               cursor: 'pointer'
-                            }} 
+                            }}
                           />
                         </Tooltip>
                       )}
@@ -289,7 +325,7 @@ const ReadingTimelineChart = () => {
               </Box>
             </Box>
           ))}
-          
+
           {/* Legend */}
           <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3, flexWrap: 'wrap', gap: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>

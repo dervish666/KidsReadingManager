@@ -45,7 +45,7 @@ const DaysSinceReadingChart = () => {
         name: student.name,
         daysSinceReading,
         hasNeverRead: !student.lastReadDate,
-        totalSessions: student.readingSessions.length
+        totalSessions: student.totalSessionCount || 0
       };
     })
     .sort((a, b) => {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -37,7 +37,7 @@ import {
 } from '../../utils/bookMetadataApi';
 
 const SessionForm = () => {
-  const { students, addReadingSession, classes, recentlyAccessedStudents, books, globalClassFilter, settings, updateBook } = useAppContext();
+  const { students, addReadingSession, classes, recentlyAccessedStudents, books, globalClassFilter, settings, updateBook, fetchWithAuth } = useAppContext();
 
   // Helper function to get book display info
   const getBookInfo = (bookId) => {
@@ -71,6 +71,20 @@ const SessionForm = () => {
   const [selectedLocation, setSelectedLocation] = useState('school');
   const [isCreatingBook, setIsCreatingBook] = useState(false);
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
+
+  // Fetch recent sessions for the selected student
+  const [recentSessions, setRecentSessions] = useState([]);
+  const fetchRecentSessions = useCallback((studentId) => {
+    if (!studentId) { setRecentSessions([]); return; }
+    fetchWithAuth(`/api/students/${studentId}/sessions?limit=10`)
+      .then(r => r.ok ? r.json() : [])
+      .then(setRecentSessions)
+      .catch(() => setRecentSessions([]));
+  }, [fetchWithAuth]);
+
+  useEffect(() => {
+    fetchRecentSessions(selectedStudentId);
+  }, [selectedStudentId, fetchRecentSessions]);
 
   const handleBookChange = (book) => {
     const bookId = book ? book.id : '';
@@ -252,6 +266,8 @@ const SessionForm = () => {
       setSelectedLocation('school');
       setError('');
       setSnackbarOpen(true);
+      // Refresh the "Previous Sessions" list
+      fetchRecentSessions(selectedStudentId);
     } else {
       setError('Failed to save reading session. Please try again.');
     }
@@ -630,11 +646,10 @@ const SessionForm = () => {
                 Previous Sessions for {selectedStudent.name}
               </Typography>
               
-              {selectedStudent.readingSessions.length > 0 ? (
+              {recentSessions.length > 0 ? (
                 <>
                   <Grid container spacing={2}>
-                    {[...selectedStudent.readingSessions]
-                      .sort((a, b) => new Date(b.date) - new Date(a.date))
+                    {recentSessions
                       .slice(0, 3)
                       .map((session) => (
                         <Grid size={12} key={session.id}>
@@ -702,9 +717,9 @@ const SessionForm = () => {
                       ))
                     }
                   </Grid>
-                  {selectedStudent.readingSessions.length > 3 && (
+                  {recentSessions.length > 3 && (
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 2, fontStyle: 'italic', textAlign: 'center' }}>
-                      Showing 3 most recent sessions of {selectedStudent.readingSessions.length} total sessions.
+                      Showing 3 most recent of {selectedStudent.totalSessionCount || recentSessions.length} total sessions.
                     </Typography>
                   )}
                 </>

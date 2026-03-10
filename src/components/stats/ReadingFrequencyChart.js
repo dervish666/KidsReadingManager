@@ -34,12 +34,12 @@ const ReadingFrequencyChart = () => {
   
   // Sort students by reading session count (most to least)
   const sortedStudents = [...activeStudents].sort((a, b) =>
-    b.readingSessions.length - a.readingSessions.length
+    (b.totalSessionCount || 0) - (a.totalSessionCount || 0)
   );
 
   // Find the maximum number of sessions for scaling
   const maxSessions = Math.max(
-    ...activeStudents.map(s => s.readingSessions.length),
+    ...activeStudents.map(s => (s.totalSessionCount || 0)),
     5 // Minimum scale (at least 5 sessions)
   );
   
@@ -63,7 +63,7 @@ const ReadingFrequencyChart = () => {
       ) : (
         <Box sx={{ mt: 3 }}>
           {sortedStudents.map(student => {
-            const sessionCount = student.readingSessions.length;
+            const sessionCount = student.totalSessionCount || 0;
             const basePercent = Math.max((sessionCount / maxSessions) * 100, 3); // Base percent
             const adjustedPercent = isSmall ? Math.max(basePercent, 6) : basePercent; // Larger min on small screens
             const barWidth = `${Math.min(adjustedPercent, 100)}%`;

@@ -1,19 +1,32 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Typography } from '@mui/material';
 import WhatshotIcon from '@mui/icons-material/Whatshot';
+import { useAppContext } from '../../contexts/AppContext';
 
 /**
  * Displays student context information: reading level, streak, last session, recent books
  */
 const StudentInfoCard = ({ student }) => {
+  const { fetchWithAuth } = useAppContext();
+  const [recentSessions, setRecentSessions] = useState([]);
+
+  useEffect(() => {
+    if (!student?.id) {
+      setRecentSessions([]);
+      return;
+    }
+    fetchWithAuth(`/api/students/${student.id}/sessions?limit=5`)
+      .then(r => r.ok ? r.json() : [])
+      .then(setRecentSessions)
+      .catch(() => setRecentSessions([]));
+  }, [student?.id, fetchWithAuth]);
+
   if (!student) return null;
 
-  const { name, readingLevelMin, readingLevelMax, currentStreak, readingSessions = [] } = student;
+  const { name, readingLevelMin, readingLevelMax, currentStreak, lastReadDate, totalSessionCount = 0 } = student;
 
-  // Derive last session date and recent books from sessions (already sorted DESC)
-  const lastSession = readingSessions[0];
-  const lastReadDate = lastSession?.date;
-  const recentBooks = readingSessions
+  // Derive recent books from fetched sessions (already sorted DESC)
+  const recentBooks = recentSessions
     .filter(s => s.bookTitle)
     .slice(0, 3)
     .map(s => s.bookTitle);
@@ -47,7 +60,7 @@ const StudentInfoCard = ({ student }) => {
 
   const levelText = formatLevel();
   const lastReadText = formatLastRead(lastReadDate);
-  const hasHistory = readingSessions.length > 0;
+  const hasHistory = totalSessionCount > 0 || recentSessions.length > 0;
 
   // Empty state
   if (!hasHistory && !levelText) {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -43,12 +43,31 @@ const StudentSessions = ({ open, onClose, student: studentProp }) => {
     classes, // Get classes
     updateStudentClassId, // Get update function
     books, // Get books for display
-    students // Get students to find fresh data
+    students, // Get students to find fresh data
+    fetchWithAuth
   } = useAppContext();
 
-  // Get fresh student data from context to ensure we have the latest sessions
-  // This fixes the issue where deleting a session doesn't update the UI
+  // Get fresh student data from context for summary fields (name, class, streak)
   const student = students.find(s => s.id === studentProp?.id) || studentProp;
+
+  // Fetch sessions on demand
+  const [sessions, setSessions] = useState([]);
+  const refreshSessions = useCallback(() => {
+    if (!student?.id) { setSessions([]); return; }
+    fetchWithAuth(`/api/students/${student.id}/sessions`)
+      .then(r => r.ok ? r.json() : [])
+      .then(setSessions)
+      .catch(() => setSessions([]));
+  }, [student?.id, fetchWithAuth]);
+
+  useEffect(() => {
+    if (open && student?.id) {
+      refreshSessions();
+    }
+    if (!open) {
+      setSessions([]);
+    }
+  }, [open, student?.id, refreshSessions]);
 
   // Helper function to get book display info
   const getBookInfo = (bookId) => {
@@ -154,6 +173,7 @@ const StudentSessions = ({ open, onClose, student: studentProp }) => {
       setSnackbarSeverity('success');
       setSnackbarOpen(true);
       setEditingSession(null);
+      refreshSessions();
     } catch (error) {
       setSnackbarMessage(`Error updating session: ${error.message}`);
       setSnackbarSeverity('error');
@@ -171,11 +191,12 @@ const StudentSessions = ({ open, onClose, student: studentProp }) => {
   const handleDeleteConfirm = async () => {
     try {
       await deleteReadingSession(student.id, deletingSession.id);
-      
+
       setSnackbarMessage('Session deleted successfully');
       setSnackbarSeverity('success');
       setSnackbarOpen(true);
       setDeletingSession(null);
+      refreshSessions();
     } catch (error) {
       setSnackbarMessage(`Error deleting session: ${error.message}`);
       setSnackbarSeverity('error');
@@ -230,11 +251,9 @@ const StudentSessions = ({ open, onClose, student: studentProp }) => {
   };
 
   // Sort sessions by date (newest first), excluding absent/no_record entries
-  const sortedSessions = student?.readingSessions
-    ? [...student.readingSessions]
-        .filter(s => !s.notes?.includes('[ABSENT]') && !s.notes?.includes('[NO_RECORD]'))
-        .sort((a, b) => new Date(b.date) - new Date(a.date))
-    : [];
+  const sortedSessions = sessions
+    .filter(s => !s.notes?.includes('[ABSENT]') && !s.notes?.includes('[NO_RECORD]'))
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
 
   return (
     <>
