@@ -105,11 +105,9 @@ const ReadingStats = () => {
     }
   };
   
-  // Calculate statistics (memoized to avoid recalculating on every render)
-  const stats = useMemo(() => {
-    // Filter students based on global class filter and disabled classes
-    const activeStudents = students.filter(student => {
-      // First, filter by global class filter
+  // Shared active students filtered by class — used by stats, session sort, and streaks
+  const activeStudents = useMemo(() => {
+    return students.filter(student => {
       if (globalClassFilter && globalClassFilter !== 'all') {
         if (globalClassFilter === 'unassigned') {
           if (student.classId) return false;
@@ -117,13 +115,14 @@ const ReadingStats = () => {
           if (student.classId !== globalClassFilter) return false;
         }
       }
-
-      // Then, filter out students from disabled classes
-      if (!student.classId) return true; // Include students not assigned to any class
+      if (!student.classId) return true;
       const studentClass = classes.find(cls => cls.id === student.classId);
       return !studentClass || !studentClass.disabled;
     });
+  }, [students, classes, globalClassFilter]);
 
+  // Calculate statistics (memoized to avoid recalculating on every render)
+  const stats = useMemo(() => {
     // Calculate date boundaries
     const today = new Date();
     const startOfWeek = new Date(today);
@@ -284,25 +283,10 @@ const ReadingStats = () => {
       averageStreak,
       topStreaks
     };
-  }, [students, classes, getReadingStatus, globalClassFilter, termDateRange]);
+  }, [activeStudents, getReadingStatus, termDateRange]);
   
   // Get students sorted by session count (least to most)
   const getStudentsBySessionCount = () => {
-    const activeStudents = students.filter(student => {
-      // First, filter by global class filter
-      if (globalClassFilter && globalClassFilter !== 'all') {
-        if (globalClassFilter === 'unassigned') {
-          if (student.classId) return false;
-        } else {
-          if (student.classId !== globalClassFilter) return false;
-        }
-      }
-      
-      // Then, filter out students from disabled classes
-      if (!student.classId) return true;
-      const studentClass = classes.find(cls => cls.id === student.classId);
-      return !studentClass || !studentClass.disabled;
-    });
     return [...activeStudents].sort((a, b) => {
       const aCount = termDateRange
         ? (a.readingSessions || []).filter(s => s.date >= termDateRange.start && s.date <= termDateRange.end).length
@@ -316,22 +300,6 @@ const ReadingStats = () => {
   
   // Get all students with streak data, sorted by current streak
   const getStudentsWithStreaks = () => {
-    const activeStudents = students.filter(student => {
-      // First, filter by global class filter
-      if (globalClassFilter && globalClassFilter !== 'all') {
-        if (globalClassFilter === 'unassigned') {
-          if (student.classId) return false;
-        } else {
-          if (student.classId !== globalClassFilter) return false;
-        }
-      }
-
-      // Then, filter out students from disabled classes
-      if (!student.classId) return true;
-      const studentClass = classes.find(cls => cls.id === student.classId);
-      return !studentClass || !studentClass.disabled;
-    });
-
     return activeStudents
       .map(student => ({
         ...student,
