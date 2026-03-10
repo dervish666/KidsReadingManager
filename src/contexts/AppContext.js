@@ -874,7 +874,7 @@ export const AppProvider = ({ children }) => {
         id: uuidv4(),
         name,
         lastReadDate: null,
-        readingSessions: [],
+        totalSessionCount: 0,
         classId,
       };
 
@@ -920,7 +920,7 @@ export const AppProvider = ({ children }) => {
         name: name.trim(),
         classId: normalizedClassId,
         lastReadDate: null,
-        readingSessions: [],
+        totalSessionCount: 0,
         likes: [],
         dislikes: [],
       }));
@@ -1266,10 +1266,7 @@ export const AppProvider = ({ children }) => {
   // Reading session helpers
   const addReadingSession = useCallback(
     async (studentId, sessionData) => {
-      const date =
-        sessionData.date || new Date().toISOString().split('T')[0];
-      
-      // Prepare session data for API
+      const date = sessionData.date || new Date().toISOString().split('T')[0];
       const sessionPayload = {
         date,
         assessment: sessionData.assessment,
@@ -1282,46 +1279,7 @@ export const AppProvider = ({ children }) => {
         location: sessionData.location || 'school',
       };
 
-      const student = students.find((s) => s.id === studentId);
-      if (!student) {
-        return null;
-      }
-
-      // Optimistic update with temporary ID
-      const tempSession = {
-        id: uuidv4(),
-        ...sessionPayload,
-      };
-
-      const updatedReadingSessions = [tempSession, ...(student.readingSessions || [])];
-      let mostRecentDate = date;
-      for (const session of updatedReadingSessions) {
-        if (
-          session.date &&
-          new Date(session.date) > new Date(mostRecentDate)
-        ) {
-          mostRecentDate = session.date;
-        }
-      }
-      const updatedStudent = {
-        ...student,
-        lastReadDate: mostRecentDate,
-        readingSessions: updatedReadingSessions,
-        // Also update current book if one was provided
-        ...(sessionPayload.bookId && {
-          currentBookId: sessionPayload.bookId,
-          currentBookTitle: sessionPayload.bookTitle,
-          currentBookAuthor: sessionPayload.bookAuthor,
-        }),
-      };
-
-      const previousStudents = students;
-      setStudents((prev) =>
-        prev.map((s) => (s.id === studentId ? updatedStudent : s))
-      );
-
       try {
-        // Use dedicated session endpoint for multi-tenant mode
         const response = await fetchWithAuth(`${API_URL}/students/${studentId}/sessions`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1332,44 +1290,39 @@ export const AppProvider = ({ children }) => {
           const errorData = await response.json().catch(() => ({}));
           throw new Error(errorData.error || `API error: ${response.status}`);
         }
-        
-        // Get the actual session from the server (with real ID)
+
         const savedSession = await response.json();
 
-        // Update the student with the real session ID
+        // Update student summary fields (lastReadDate, currentBook, totalSessionCount)
         setStudents((prev) =>
           prev.map((s) => {
-            if (s.id === studentId) {
-              return {
-                ...s,
-                readingSessions: s.readingSessions.map((sess) =>
-                  sess.id === tempSession.id ? savedSession : sess
-                ),
-              };
-            }
-            return s;
+            if (s.id !== studentId) return s;
+            const newLastRead = !s.lastReadDate || date > s.lastReadDate ? date : s.lastReadDate;
+            return {
+              ...s,
+              lastReadDate: newLastRead,
+              totalSessionCount: (s.totalSessionCount || 0) + 1,
+              ...(sessionPayload.bookId && {
+                currentBookId: sessionPayload.bookId,
+                currentBookTitle: sessionPayload.bookTitle,
+                currentBookAuthor: sessionPayload.bookAuthor,
+              }),
+            };
           })
         );
-        
+
         setApiError(null);
         return savedSession;
       } catch (error) {
         setApiError(error.message);
-        setStudents(previousStudents);
         return null;
       }
     },
-    [students, fetchWithAuth]
+    [fetchWithAuth]
   );
 
   const editReadingSession = useCallback(
     async (studentId, sessionId, updatedSessionData) => {
-      const student = students.find((s) => s.id === studentId);
-      if (!student) {
-        return;
-      }
-
-      // Prepare session payload for API
       const sessionPayload = {
         date: updatedSessionData.date,
         bookId: updatedSessionData.bookId || null,
@@ -1381,34 +1334,7 @@ export const AppProvider = ({ children }) => {
         notes: updatedSessionData.notes || null,
       };
 
-      const updatedReadingSessions = student.readingSessions.map((session) =>
-        session.id === sessionId
-          ? { ...session, ...updatedSessionData }
-          : session
-      );
-      let mostRecentDate = null;
-      for (const session of updatedReadingSessions) {
-        if (
-          session.date &&
-          (!mostRecentDate ||
-            new Date(session.date) > new Date(mostRecentDate))
-        ) {
-          mostRecentDate = session.date;
-        }
-      }
-      const updatedStudent = {
-        ...student,
-        lastReadDate: mostRecentDate,
-        readingSessions: updatedReadingSessions,
-      };
-
-      const previousStudents = students;
-      setStudents((prev) =>
-        prev.map((s) => (s.id === studentId ? updatedStudent : s))
-      );
-
       try {
-        // Use dedicated session endpoint for multi-tenant mode
         const response = await fetchWithAuth(`${API_URL}/students/${studentId}/sessions/${sessionId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -1418,48 +1344,33 @@ export const AppProvider = ({ children }) => {
         if (!response.ok) {
           throw new Error(`API error: ${response.status}`);
         }
+
+        // Update student's current book info if the session has a book
+        setStudents((prev) =>
+          prev.map((s) => {
+            if (s.id !== studentId) return s;
+            return {
+              ...s,
+              ...(sessionPayload.bookId && {
+                currentBookId: sessionPayload.bookId,
+                currentBookTitle: sessionPayload.bookTitle,
+                currentBookAuthor: sessionPayload.bookAuthor,
+              }),
+            };
+          })
+        );
+
         setApiError(null);
       } catch (error) {
         setApiError(error.message);
-        setStudents(previousStudents);
       }
     },
-    [students, fetchWithAuth]
+    [fetchWithAuth]
   );
 
   const deleteReadingSession = useCallback(
     async (studentId, sessionId) => {
-      const student = students.find((s) => s.id === studentId);
-      if (!student) {
-        return;
-      }
-
-      const updatedReadingSessions = student.readingSessions.filter(
-        (session) => session.id !== sessionId
-      );
-      let mostRecentDate = null;
-      for (const session of updatedReadingSessions) {
-        if (
-          session.date &&
-          (!mostRecentDate ||
-            new Date(session.date) > new Date(mostRecentDate))
-        ) {
-          mostRecentDate = session.date;
-        }
-      }
-      const updatedStudent = {
-        ...student,
-        lastReadDate: mostRecentDate,
-        readingSessions: updatedReadingSessions,
-      };
-
-      const previousStudents = students;
-      setStudents((prev) =>
-        prev.map((s) => (s.id === studentId ? updatedStudent : s))
-      );
-
       try {
-        // Use dedicated session endpoint for multi-tenant mode
         const response = await fetchWithAuth(`${API_URL}/students/${studentId}/sessions/${sessionId}`, {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
@@ -1468,13 +1379,23 @@ export const AppProvider = ({ children }) => {
         if (!response.ok) {
           throw new Error(`API error: ${response.status}`);
         }
+
+        // Decrement session count on student summary
+        setStudents((prev) =>
+          prev.map((s) => {
+            if (s.id !== studentId) return s;
+            return { ...s, totalSessionCount: Math.max(0, (s.totalSessionCount || 0) - 1) };
+          })
+        );
+
         setApiError(null);
+        return true;
       } catch (error) {
         setApiError(error.message);
-        setStudents(previousStudents);
+        return false;
       }
     },
-    [students, fetchWithAuth]
+    [fetchWithAuth]
   );
 
   // Settings management
