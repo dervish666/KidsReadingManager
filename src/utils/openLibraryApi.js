@@ -363,7 +363,7 @@ export async function batchFindMissingAuthors(books, onProgress = null) {
     try {
       // Small delay to be respectful to the API
       if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
 
       // Use multi-candidate helper so UI can present choices
@@ -537,7 +537,7 @@ export async function batchFindMissingDescriptions(books, onProgress = null) {
     try {
       // Small delay to be respectful to the API
       if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
 
       const details = await getBookDetails(book.title, book.author || null);
@@ -708,7 +708,7 @@ export async function batchFindMissingGenres(books, onProgress = null) {
     try {
       // Small delay to be respectful to the API
       if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
 
       const foundGenres = await findGenresForBook(book.title, book.author || null);

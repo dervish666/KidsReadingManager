@@ -17,8 +17,7 @@ let hardcoverAvailable = null;
 let lastAvailabilityCheck = 0;
 const AVAILABILITY_CHECK_INTERVAL = 60000; // Re-check every 60 seconds
 
-// Rate limit state — module-level flag with cooldown
-let hardcoverRateLimited = false;
+// Rate limit state — time-based cooldown
 let rateLimitCooldownEnd = 0;
 const RATE_LIMIT_COOLDOWN_MS = 60000; // 60 second cooldown after rate limit detected
 
@@ -57,7 +56,6 @@ async function hardcoverQuery(query, variables, apiKey, options = {}) {
   if (!response.ok) {
     // Detect rate limiting from HTTP status
     if (response.status === 429) {
-      hardcoverRateLimited = true;
       rateLimitCooldownEnd = Date.now() + RATE_LIMIT_COOLDOWN_MS;
     }
     throw new Error(`Hardcover API error: ${response.status} ${response.statusText}`);
@@ -69,7 +67,6 @@ async function hardcoverQuery(query, variables, apiKey, options = {}) {
     const errorMsg = json.errors[0].message;
     // Detect rate limiting from GraphQL error messages
     if (/rate.?limit|too many requests/i.test(errorMsg)) {
-      hardcoverRateLimited = true;
       rateLimitCooldownEnd = Date.now() + RATE_LIMIT_COOLDOWN_MS;
     }
     throw new Error(`Hardcover GraphQL error: ${errorMsg}`);
@@ -149,24 +146,17 @@ export function getHardcoverStatus() {
 
 /**
  * Check if Hardcover is currently rate limited.
- * Returns true if the rate limit flag is set and the cooldown hasn't expired.
+ * Returns true if the cooldown period hasn't expired yet.
  * @returns {boolean}
  */
 export function isHardcoverRateLimited() {
-  if (!hardcoverRateLimited) return false;
-  if (Date.now() >= rateLimitCooldownEnd) {
-    // Cooldown expired, clear the flag
-    hardcoverRateLimited = false;
-    return false;
-  }
-  return true;
+  return Date.now() < rateLimitCooldownEnd;
 }
 
 /**
  * Reset the rate limit flag (for testing or manual recovery)
  */
 export function resetHardcoverRateLimitFlag() {
-  hardcoverRateLimited = false;
   rateLimitCooldownEnd = 0;
 }
 
@@ -744,7 +734,7 @@ export function getCoverUrl(bookData) {
  * Batch process multiple books to find missing authors.
  *
  * Iterates books without authors, calls findAuthorForBook for each with
- * 1000ms delay between requests (Hardcover has 60 req/min limit).
+ * 200ms delay between requests (Hardcover has 60 req/min limit).
  *
  * @param {Array} books - Array of book objects with title and author properties
  * @param {string} apiKey - Hardcover API key
@@ -771,9 +761,9 @@ export async function batchFindMissingAuthors(books, apiKey, onProgress = null) 
     const book = booksNeedingAuthors[i];
 
     try {
-      // 1000ms delay between requests (Hardcover 60 req/min limit)
+      // 200ms delay between requests (Hardcover 60 req/min limit)
       if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
 
       const foundAuthor = await findAuthorForBook(book.title, apiKey);
@@ -822,7 +812,7 @@ export async function batchFindMissingAuthors(books, apiKey, onProgress = null) 
  * Batch process multiple books to find missing descriptions.
  *
  * Iterates books without descriptions, calls getBookDetails for each with
- * 1000ms delay between requests.
+ * 200ms delay between requests.
  *
  * @param {Array} books - Array of book objects with title, author, and description
  * @param {string} apiKey - Hardcover API key
@@ -849,9 +839,9 @@ export async function batchFindMissingDescriptions(books, apiKey, onProgress = n
     const book = booksNeedingDescriptions[i];
 
     try {
-      // 1000ms delay between requests
+      // 200ms delay between requests
       if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
 
       const details = await getBookDetails(book.title, book.author || null, apiKey);
@@ -901,7 +891,7 @@ export async function batchFindMissingDescriptions(books, apiKey, onProgress = n
  * Batch process multiple books to find missing genres.
  *
  * Iterates books without genres (empty genreIds), calls findGenresForBook
- * for each with 1000ms delay between requests.
+ * for each with 200ms delay between requests.
  *
  * @param {Array} books - Array of book objects with title, author, and genreIds
  * @param {string} apiKey - Hardcover API key
@@ -928,9 +918,9 @@ export async function batchFindMissingGenres(books, apiKey, onProgress = null) {
     const book = booksNeedingGenres[i];
 
     try {
-      // 1000ms delay between requests
+      // 200ms delay between requests
       if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
 
       const foundGenres = await findGenresForBook(book.title, book.author || null, apiKey);
