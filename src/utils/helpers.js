@@ -167,3 +167,31 @@ export function parseGenreIds(value) {
   } catch { /* not JSON, fall through */ }
   return value.split(',').map(g => g.trim()).filter(Boolean);
 }
+
+/**
+ * Fetch with a timeout using AbortController.
+ * If the request doesn't complete within timeoutMs, it is aborted and a timeout error is thrown.
+ * @param {string} url - The URL to fetch
+ * @param {object} options - Standard fetch options (method, headers, body, etc.)
+ * @param {number} timeoutMs - Timeout in milliseconds (default 10000)
+ * @returns {Promise<Response>} The fetch response
+ */
+export async function fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    return response;
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new Error(`Request timed out after ${timeoutMs}ms: ${url.split('?')[0]}`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}

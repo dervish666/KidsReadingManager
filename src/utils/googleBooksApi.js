@@ -4,6 +4,8 @@
  * from the Google Books API
  */
 
+import { fetchWithTimeout } from './helpers.js';
+
 const GOOGLE_BOOKS_BASE_URL = 'https://www.googleapis.com/books/v1';
 const VOLUMES_API_URL = `${GOOGLE_BOOKS_BASE_URL}/volumes`;
 
@@ -34,17 +36,11 @@ export async function checkGoogleBooksAvailability(apiKey, timeout = 3000) {
   }
   
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
-    
     // Use a simple search request to check availability
-    const response = await fetch(`${VOLUMES_API_URL}?q=test&maxResults=1&key=${apiKey}`, {
+    const response = await fetchWithTimeout(`${VOLUMES_API_URL}?q=test&maxResults=1&key=${apiKey}`, {
       method: 'GET',
-      signal: controller.signal
-    });
-    
-    clearTimeout(timeoutId);
-    
+    }, timeout);
+
     googleBooksAvailable = response.ok;
     lastAvailabilityCheck = now;
     
@@ -102,7 +98,7 @@ export async function searchBooksByTitle(title, apiKey, limit = 5) {
       key: apiKey
     });
 
-    const response = await fetch(`${VOLUMES_API_URL}?${searchParams}`);
+    const response = await fetchWithTimeout(`${VOLUMES_API_URL}?${searchParams}`, {}, 5000);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -146,7 +142,7 @@ export async function searchBooks(title, author, apiKey, limit = 5) {
       key: apiKey
     });
 
-    const response = await fetch(`${VOLUMES_API_URL}?${searchParams}`);
+    const response = await fetchWithTimeout(`${VOLUMES_API_URL}?${searchParams}`, {}, 5000);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));

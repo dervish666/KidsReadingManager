@@ -8,6 +8,8 @@
  * Used by the sync service and webhook handler for school data provisioning.
  */
 
+import { fetchWithTimeout } from './helpers.js';
+
 const WONDE_BASE_URL = 'https://api.wonde.com/v1.0';
 
 /**
@@ -34,13 +36,20 @@ export async function wondeRequest(path, token, params = {}) {
   }
 
   let nextUrl = url.toString();
+  let pageCount = 0;
 
   while (nextUrl) {
-    const response = await fetch(nextUrl, {
+    pageCount++;
+    if (pageCount > 100) {
+      console.warn(`Wonde API pagination limit reached (100 pages) for ${path}`);
+      break;
+    }
+
+    const response = await fetchWithTimeout(nextUrl, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
-    });
+    }, 8000);
 
     if (!response.ok) {
       throw new Error(`Wonde API error: ${response.status} ${response.statusText}`);

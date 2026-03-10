@@ -3,6 +3,8 @@
  * Handles interactions with various AI providers for book recommendations
  */
 
+import { fetchWithTimeout } from '../utils/helpers.js';
+
 /**
  * Generate book recommendations using the configured AI provider
  * @param {Object} params - Parameters for recommendation generation
@@ -93,7 +95,8 @@ async function callAnthropic(prompt, apiKey, model = 'claude-haiku-4-5', baseUrl
 
   const anthropic = new Anthropic({
     apiKey: apiKey,
-    baseURL: baseUrl !== 'https://api.anthropic.com/v1' ? baseUrl : undefined
+    baseURL: baseUrl !== 'https://api.anthropic.com/v1' ? baseUrl : undefined,
+    timeout: 10000
   });
 
   const response = await anthropic.messages.create({
@@ -123,7 +126,7 @@ async function callAnthropic(prompt, apiKey, model = 'claude-haiku-4-5', baseUrl
 async function callOpenAI(prompt, apiKey, model = 'gpt-5-nano', baseUrl = 'https://api.openai.com/v1', raw = false) {
   const url = `${baseUrl}/chat/completions`;
 
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -144,7 +147,7 @@ async function callOpenAI(prompt, apiKey, model = 'gpt-5-nano', baseUrl = 'https
       temperature: 0.7,
       response_format: { type: "json_object" }
     })
-  });
+  }, 10000);
 
   if (!response.ok) {
     const errorData = await response.json();
@@ -187,7 +190,7 @@ async function callGemini(prompt, apiKey, model = 'gemini-flash-latest', baseUrl
   // Mitigate: use a dedicated Gemini-only API key and rotate periodically.
   const url = `${baseUrl}/models/${model}:generateContent?key=${apiKey}`;
 
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -203,7 +206,7 @@ async function callGemini(prompt, apiKey, model = 'gemini-flash-latest', baseUrl
         responseMimeType: "application/json"
       }
     })
-  });
+  }, 10000);
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));

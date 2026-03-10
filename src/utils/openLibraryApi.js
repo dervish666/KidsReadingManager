@@ -4,6 +4,8 @@
  * from the OpenLibrary.org API
  */
 
+import { fetchWithTimeout } from './helpers.js';
+
 const OPENLIBRARY_BASE_URL = 'https://openlibrary.org';
 const SEARCH_API_URL = `${OPENLIBRARY_BASE_URL}/search.json`;
 const COVERS_BASE_URL = '/api/covers';
@@ -31,13 +33,13 @@ export async function checkOpenLibraryAvailability(timeout = 3000) {
     const timeoutId = setTimeout(() => controller.abort(), timeout);
     
     // Use a simple HEAD request to check availability
-    const response = await fetch(`${OPENLIBRARY_BASE_URL}/search.json?q=test&limit=1`, {
+    const response = await fetchWithTimeout(`${OPENLIBRARY_BASE_URL}/search.json?q=test&limit=1`, {
       method: 'GET',
       signal: controller.signal,
       headers: {
         'User-Agent': 'TallyReading/1.0 (educational-app)'
       }
-    });
+    }, 5000);
     
     clearTimeout(timeoutId);
     
@@ -93,11 +95,11 @@ export async function searchBooksByTitle(title, limit = 5) {
       fields: 'key,title,author_name,author_key,first_publish_year,isbn,publisher,language'
     });
 
-    const response = await fetch(`${SEARCH_API_URL}?${searchParams}`, {
+    const response = await fetchWithTimeout(`${SEARCH_API_URL}?${searchParams}`, {
       headers: {
         'User-Agent': 'TallyReading/1.0 (educational-app)'
       }
-    });
+    }, 5000);
 
     if (!response.ok) {
       throw new Error(`OpenLibrary API error: ${response.status} ${response.statusText}`);
@@ -431,11 +433,11 @@ export async function getBookDetails(title, author = null) {
       searchParams.set('author', author.trim());
     }
 
-    const response = await fetch(`${SEARCH_API_URL}?${searchParams}`, {
+    const response = await fetchWithTimeout(`${SEARCH_API_URL}?${searchParams}`, {
       headers: {
         'User-Agent': 'TallyReading/1.0 (educational-app)'
       }
-    });
+    }, 5000);
 
     if (!response.ok) {
       throw new Error(`OpenLibrary API error: ${response.status} ${response.statusText}`);
@@ -461,11 +463,11 @@ export async function getBookDetails(title, author = null) {
 
     if (workKey && workKey.startsWith('/works/')) {
       try {
-        const workResponse = await fetch(`${OPENLIBRARY_BASE_URL}${workKey}.json`, {
+        const workResponse = await fetchWithTimeout(`${OPENLIBRARY_BASE_URL}${workKey}.json`, {
           headers: {
             'User-Agent': 'TallyReading/1.0 (educational-app)'
           }
-        });
+        }, 5000);
 
         if (workResponse.ok) {
           const workData = await workResponse.json();
@@ -599,11 +601,11 @@ export async function findGenresForBook(title, author = null) {
       searchParams.set('author', author.trim());
     }
 
-    const response = await fetch(`${SEARCH_API_URL}?${searchParams}`, {
+    const response = await fetchWithTimeout(`${SEARCH_API_URL}?${searchParams}`, {
       headers: {
         'User-Agent': 'TallyReading/1.0 (educational-app)'
       }
-    });
+    }, 5000);
 
     if (!response.ok) {
       throw new Error(`OpenLibrary API error: ${response.status} ${response.statusText}`);
@@ -771,11 +773,11 @@ export async function fetchAllMetadata(title, author = null) {
       searchParams.set('author', author.trim());
     }
 
-    const response = await fetch(`${SEARCH_API_URL}?${searchParams}`, {
+    const response = await fetchWithTimeout(`${SEARCH_API_URL}?${searchParams}`, {
       headers: {
         'User-Agent': 'TallyReading/1.0 (educational-app)'
       }
-    });
+    }, 5000);
 
     if (!response.ok) {
       throw new Error(`OpenLibrary API error: ${response.status} ${response.statusText}`);
@@ -812,11 +814,11 @@ export async function fetchAllMetadata(title, author = null) {
     const workKey = bestMatch.key;
     if (workKey && workKey.startsWith('/works/')) {
       try {
-        const workResponse = await fetch(`${OPENLIBRARY_BASE_URL}${workKey}.json`, {
+        const workResponse = await fetchWithTimeout(`${OPENLIBRARY_BASE_URL}${workKey}.json`, {
           headers: {
             'User-Agent': 'TallyReading/1.0 (educational-app)'
           }
-        });
+        }, 5000);
 
         if (workResponse.ok) {
           const workData = await workResponse.json();

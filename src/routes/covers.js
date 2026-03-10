@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { fetchWithTimeout } from '../utils/helpers.js';
 
 const coversRouter = new Hono();
 
@@ -63,9 +64,9 @@ coversRouter.get('/:type/:key', async (c) => {
 
   let originResponse;
   try {
-    originResponse = await fetch(originUrl, {
+    originResponse = await fetchWithTimeout(originUrl, {
       headers: { 'User-Agent': 'TallyReading/1.0 (educational-app)' }
-    });
+    }, 5000);
   } catch (err) {
     console.error('Origin fetch error:', err);
     return c.json({ message: 'Failed to fetch cover from origin' }, 502);

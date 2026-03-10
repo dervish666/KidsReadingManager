@@ -8,6 +8,8 @@
  * Access-Control-Allow-Origin headers).
  */
 
+import { fetchWithTimeout } from './helpers.js';
+
 const PROXY_URL = '/api/hardcover/graphql';
 
 // Cache for Hardcover availability status
@@ -45,12 +47,12 @@ async function hardcoverQuery(query, variables, apiKey, options = {}) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(PROXY_URL, {
+  const response = await fetchWithTimeout(PROXY_URL, {
     method: 'POST',
     headers,
     body: JSON.stringify({ query, variables, apiKey }),
     ...options
-  });
+  }, 5000);
 
   if (!response.ok) {
     // Detect rate limiting from HTTP status

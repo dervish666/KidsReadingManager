@@ -9,6 +9,8 @@
  * Falls back gracefully if no email provider is configured.
  */
 
+import { fetchWithTimeout } from './helpers.js';
+
 /** Escape user-controlled values for safe HTML interpolation */
 function escapeHtml(str) {
   if (!str) return '';
@@ -108,7 +110,7 @@ If you didn't request this, you can safely ignore this email.
  */
 async function sendWithResend(apiKey, from, to, subject, text, html) {
   try {
-    const response = await fetch('https://api.resend.com/emails', {
+    const response = await fetchWithTimeout('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -121,7 +123,7 @@ async function sendWithResend(apiKey, from, to, subject, text, html) {
         text,
         html,
       }),
-    });
+    }, 5000);
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
