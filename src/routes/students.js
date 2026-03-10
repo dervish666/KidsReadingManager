@@ -1496,10 +1496,28 @@ function csvRow(values) {
 }
 
 /**
- * Recalculate streaks for all students across all organizations
- * Used by scheduled cron job to keep database values up-to-date for reporting
+ * Process an array in batches with limited concurrency.
+ * @param {Array} items - Items to process
+ * @param {number} concurrency - Max concurrent promises
+ * @param {Function} fn - Async function to call for each item
+ * @returns {Promise<Array>} Results from Promise.allSettled for each batch
+ */
+async function processInBatches(items, concurrency, fn) {
+  const results = [];
+  for (let i = 0; i < items.length; i += concurrency) {
+    const batch = items.slice(i, i + concurrency);
+    const batchResults = await Promise.allSettled(batch.map(fn));
+    results.push(...batchResults);
+  }
+  return results;
+}
+
+/**
+ * Recalculate streaks for all students across all organizations.
+ * Optimised for cron: fetches org settings once per org, processes students
+ * in concurrent batches of 10 to stay within the 30s Worker CPU limit.
  * @param {D1Database} db - The D1 database instance
- * @returns {Object} Results summary { total, updated, errors }
+ * @returns {Object} Results summary { total, updated, errors, organizations }
  */
 const recalculateAllStreaks = async (db) => {
   const results = {
@@ -1509,34 +1527,70 @@ const recalculateAllStreaks = async (db) => {
     organizations: 0
   };
 
-  // Get all organizations
-  const orgs = await db.prepare(`
-    SELECT id FROM organizations
-  `).all();
+  // Get all active organizations
+  const orgs = await db.prepare(
+    `SELECT id FROM organizations WHERE is_active = 1`
+  ).all();
 
   results.organizations = orgs.results?.length || 0;
 
-  // Process each organization
+  // Process each organization sequentially (settings differ per org)
   for (const org of (orgs.results || [])) {
     const organizationId = org.id;
 
+    // Fetch org streak settings ONCE per org (not per student)
+    let orgSettings;
+    try {
+      orgSettings = await getOrgStreakSettings(db, organizationId, {});
+    } catch {
+      orgSettings = { gracePeriodDays: 1, timezone: 'UTC' };
+    }
+
     // Get all active students for this organization
-    const students = await db.prepare(`
-      SELECT id FROM students WHERE organization_id = ? AND is_active = 1
-    `).bind(organizationId).all();
+    const students = await db.prepare(
+      `SELECT id FROM students WHERE organization_id = ? AND is_active = 1`
+    ).bind(organizationId).all();
 
-    results.total += students.results?.length || 0;
+    const studentList = students.results || [];
+    results.total += studentList.length;
 
-    // Recalculate streak for each student
-    for (const student of (students.results || [])) {
-      try {
-        await updateStudentStreak(db, student.id, organizationId);
+    // Process students in concurrent batches of 10
+    const batchResults = await processInBatches(studentList, 10, async (student) => {
+      // Inline streak update: fetch sessions, calculate, update — avoids
+      // re-fetching org settings per student
+      const sessions = await db.prepare(`
+        SELECT session_date as date FROM reading_sessions
+        WHERE student_id = ?
+          AND (notes IS NULL OR (notes NOT LIKE '%[ABSENT]%' AND notes NOT LIKE '%[NO_RECORD]%'))
+        ORDER BY session_date DESC
+      `).bind(student.id).all();
+
+      const streakData = calculateStreak(sessions.results || [], orgSettings);
+
+      await db.prepare(`
+        UPDATE students SET
+          current_streak = ?,
+          longest_streak = ?,
+          streak_start_date = ?,
+          updated_at = datetime("now")
+        WHERE id = ?
+      `).bind(
+        streakData.currentStreak,
+        streakData.longestStreak,
+        streakData.streakStartDate,
+        student.id
+      ).run();
+    });
+
+    // Collect errors from settled promises
+    for (let i = 0; i < batchResults.length; i++) {
+      if (batchResults[i].status === 'fulfilled') {
         results.updated++;
-      } catch (error) {
+      } else {
         results.errors.push({
           organizationId,
-          studentId: student.id,
-          error: error.message
+          studentId: studentList[i].id,
+          error: batchResults[i].reason?.message || 'Unknown error'
         });
       }
     }

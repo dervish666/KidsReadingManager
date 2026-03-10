@@ -413,23 +413,27 @@ export default {
     }
 
     // Auto hard-delete soft-deleted records after 90-day retention period
+    // Uses chunked db.batch() (max 100 statements) instead of per-record sequential deletes
     try {
       // Hard-delete soft-deleted students (cascade: sessions → preferences → student)
       const staleStudents = await db.prepare(
         `SELECT id FROM students WHERE is_active = 0 AND updated_at < datetime('now', '-90 days')`
       ).bind().all();
 
-      let studentsDeleted = 0;
-      for (const student of (staleStudents.results || [])) {
-        await db.batch([
-          db.prepare('DELETE FROM reading_sessions WHERE student_id = ?').bind(student.id),
-          db.prepare('DELETE FROM student_preferences WHERE student_id = ?').bind(student.id),
-          db.prepare('DELETE FROM students WHERE id = ?').bind(student.id),
-        ]);
-        studentsDeleted++;
-      }
-      if (studentsDeleted > 0) {
-        console.log(`[Cron] Hard-deleted ${studentsDeleted} soft-deleted students past 90-day retention`);
+      const studentIds = (staleStudents.results || []).map(s => s.id);
+      if (studentIds.length > 0) {
+        // 3 statements per student; chunk at 33 students to stay under 100-statement D1 batch limit
+        const STUDENT_CHUNK = 33;
+        for (let i = 0; i < studentIds.length; i += STUDENT_CHUNK) {
+          const chunk = studentIds.slice(i, i + STUDENT_CHUNK);
+          const statements = chunk.flatMap(id => [
+            db.prepare('DELETE FROM reading_sessions WHERE student_id = ?').bind(id),
+            db.prepare('DELETE FROM student_preferences WHERE student_id = ?').bind(id),
+            db.prepare('DELETE FROM students WHERE id = ?').bind(id),
+          ]);
+          await db.batch(statements);
+        }
+        console.log(`[Cron] Hard-deleted ${studentIds.length} soft-deleted students past 90-day retention`);
       }
 
       // Hard-delete soft-deleted users (cascade: refresh_tokens → password_reset_tokens → user)
@@ -437,17 +441,20 @@ export default {
         `SELECT id FROM users WHERE is_active = 0 AND updated_at < datetime('now', '-90 days')`
       ).bind().all();
 
-      let usersDeleted = 0;
-      for (const user of (staleUsers.results || [])) {
-        await db.batch([
-          db.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').bind(user.id),
-          db.prepare('DELETE FROM password_reset_tokens WHERE user_id = ?').bind(user.id),
-          db.prepare('DELETE FROM users WHERE id = ?').bind(user.id),
-        ]);
-        usersDeleted++;
-      }
-      if (usersDeleted > 0) {
-        console.log(`[Cron] Hard-deleted ${usersDeleted} soft-deleted users past 90-day retention`);
+      const userIds = (staleUsers.results || []).map(u => u.id);
+      if (userIds.length > 0) {
+        // 3 statements per user; chunk at 33 users
+        const USER_CHUNK = 33;
+        for (let i = 0; i < userIds.length; i += USER_CHUNK) {
+          const chunk = userIds.slice(i, i + USER_CHUNK);
+          const statements = chunk.flatMap(id => [
+            db.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').bind(id),
+            db.prepare('DELETE FROM password_reset_tokens WHERE user_id = ?').bind(id),
+            db.prepare('DELETE FROM users WHERE id = ?').bind(id),
+          ]);
+          await db.batch(statements);
+        }
+        console.log(`[Cron] Hard-deleted ${userIds.length} soft-deleted users past 90-day retention`);
       }
 
       // Hard-delete inactive organizations (only if no active students or users remain)
