@@ -152,7 +152,7 @@ const StudentList = () => {
           break;
 
         case 'sessions':
-          comparison = b.readingSessions.length - a.readingSessions.length;
+          comparison = (b.totalSessionCount || 0) - (a.totalSessionCount || 0);
           break;
 
         case 'lastRead':

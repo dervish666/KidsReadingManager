@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import {
   Card,
   CardActionArea,
@@ -28,13 +28,7 @@ const StudentCard = React.memo(({ student }) => {
   const status = getReadingStatus(student);
   const statusColor = theme.palette.status?.[status] || theme.palette.primary.main;
 
-  const mostRecentReadDate = useMemo(() => {
-    if (!student?.readingSessions || student.readingSessions.length === 0) {
-      return student?.lastReadDate || null;
-    }
-    const sorted = [...student.readingSessions].sort((a, b) => new Date(b.date) - new Date(a.date));
-    return sorted[0].date;
-  }, [student]);
+  const mostRecentReadDate = student?.lastReadDate || null;
 
   const formatDate = (dateString) => {
     if (!dateString) return 'Never';
@@ -46,19 +40,18 @@ const StudentCard = React.memo(({ student }) => {
     });
   };
 
-  const daysSince = useMemo(() => {
-    const dateToUse = mostRecentReadDate || student?.lastReadDate;
-    if (!dateToUse) return 'Never read';
-    const diffTime = Math.max(0, new Date() - new Date(dateToUse));
+  const daysSince = (() => {
+    if (!mostRecentReadDate) return 'Never read';
+    const diffTime = Math.max(0, new Date() - new Date(mostRecentReadDate));
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
     return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
-  }, [mostRecentReadDate, student]);
+  })();
 
-  const className = useMemo(() => {
+  const className = (() => {
     if (!student?.classId || !classes || classes.length === 0) return 'Unassigned';
     const found = classes.find((c) => c.id === student.classId);
     return found ? found.name : 'Unknown';
-  }, [student?.classId, classes]);
+  })();
 
   return (
     <>
@@ -236,7 +229,7 @@ const StudentCard = React.memo(({ student }) => {
                   Sessions
                 </Typography>
                 <Chip
-                  label={student.readingSessions.length}
+                  label={student.totalSessionCount || 0}
                   size="small"
                   sx={{
                     height: 24,

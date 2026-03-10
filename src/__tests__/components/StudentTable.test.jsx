@@ -110,11 +110,7 @@ const createTestStudents = () => [
     lastReadDate: '2024-01-25', // Use fixed date
     currentStreak: 5,
     readingLevel: '3.5',
-    readingSessions: [
-      { id: 'session-1', date: '2024-01-25', bookId: 'book-1' },
-      { id: 'session-2', date: '2024-01-10', bookId: 'book-2' },
-      { id: 'session-3', date: '2024-01-09', bookId: 'book-1' },
-    ]
+    totalSessionCount: 3,
   },
   {
     id: 'student-2',
@@ -123,9 +119,7 @@ const createTestStudents = () => [
     lastReadDate: '2024-01-15',
     currentStreak: 0,
     readingLevel: '2.0',
-    readingSessions: [
-      { id: 'session-4', date: '2024-01-15', bookId: 'book-1' },
-    ]
+    totalSessionCount: 1,
   },
   {
     id: 'student-3',
@@ -134,7 +128,7 @@ const createTestStudents = () => [
     lastReadDate: null,
     currentStreak: 0,
     readingLevel: '1.5',
-    readingSessions: []
+    totalSessionCount: 0,
   },
   {
     id: 'student-4',
@@ -143,10 +137,7 @@ const createTestStudents = () => [
     lastReadDate: '2024-01-20',
     currentStreak: 3,
     readingLevel: '4.0',
-    readingSessions: [
-      { id: 'session-5', date: '2024-01-20', bookId: 'book-2' },
-      { id: 'session-6', date: '2024-01-19', bookId: 'book-1' },
-    ]
+    totalSessionCount: 2,
   }
 ];
 
@@ -220,7 +211,7 @@ describe('StudentTable Component', () => {
         classId: null,
         lastReadDate: null,
         currentStreak: 0,
-        readingSessions: []
+        totalSessionCount: 0,
       }];
       render(<StudentTable students={studentsWithNoClass} />, { wrapper: createWrapper(context) });
 
@@ -489,7 +480,7 @@ describe('StudentTable Component', () => {
         lastReadDate: '2024-01-10',
         currentStreak: 0,
         readingLevel: '2.0',
-        readingSessions: [{ id: 'session-1', date: '2024-01-10', bookId: 'book-1' }]
+        totalSessionCount: 1,
       }];
       render(<StudentTable students={studentsWithNoStreak} />, { wrapper: createWrapper(context) });
 
@@ -741,7 +732,7 @@ describe('StudentTable Component', () => {
         classId: 'non-existent-class',
         lastReadDate: null,
         currentStreak: 0,
-        readingSessions: []
+        totalSessionCount: 0,
       }];
       render(<StudentTable students={studentsWithInvalidClass} />, { wrapper: createWrapper(context) });
 
@@ -749,24 +740,20 @@ describe('StudentTable Component', () => {
       expect(screen.getAllByText('Unknown').length).toBeGreaterThan(0);
     });
 
-    it('should use most recent session date when available', () => {
+    it('should use lastReadDate for display', () => {
       const context = createMockContext();
-      const studentWithOlderLastRead = [{
+      const studentWithLastRead = [{
         id: 'student-sessions',
         name: 'Session Student',
         classId: 'class-1',
-        lastReadDate: '2024-01-01', // Old lastReadDate
+        lastReadDate: '2024-01-24',
         currentStreak: 1,
-        readingSessions: [
-          { id: 's1', date: '2024-01-24', bookId: 'b1' }, // More recent session
-          { id: 's2', date: '2024-01-20', bookId: 'b1' },
-        ]
+        totalSessionCount: 2,
       }];
-      render(<StudentTable students={studentWithOlderLastRead} />, { wrapper: createWrapper(context) });
+      render(<StudentTable students={studentWithLastRead} />, { wrapper: createWrapper(context) });
 
-      // Should show the session date (24 Jan), not lastReadDate (1 Jan)
+      // Should show the lastReadDate
       expect(screen.getByText('24 Jan 2024')).toBeInTheDocument();
-      expect(screen.queryByText('1 Jan 2024')).not.toBeInTheDocument();
     });
 
     it('should handle null markStudentAsPriorityHandled gracefully', () => {

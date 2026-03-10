@@ -46,17 +46,11 @@ const StudentTable = React.memo(({ students }) => {
     });
   };
 
-  // Pre-compute per-student derived data to avoid repeated array spreads/sorts
+  // Pre-compute per-student derived data to avoid repeated lookups
   const studentDerivedData = useMemo(() => {
     const map = new Map();
     for (const student of students) {
-      let mostRecentReadDate = student?.lastReadDate || null;
-      if (student?.readingSessions?.length > 0) {
-        mostRecentReadDate = student.readingSessions.reduce(
-          (latest, s) => (!latest || s.date > latest ? s.date : latest),
-          null
-        );
-      }
+      const mostRecentReadDate = student?.lastReadDate || null;
 
       let daysSince = 'Never read';
       if (mostRecentReadDate) {
@@ -132,8 +126,8 @@ const StudentTable = React.memo(({ students }) => {
           bValue = bValue ? new Date(bValue).getTime() : 0;
           break;
         case 'sessions':
-          aValue = a.readingSessions.length;
-          bValue = b.readingSessions.length;
+          aValue = a.totalSessionCount || 0;
+          bValue = b.totalSessionCount || 0;
           break;
         default:
           return 0;
@@ -337,7 +331,7 @@ const StudentTable = React.memo(({ students }) => {
                               whiteSpace: 'nowrap'
                             }}
                           >
-                            {student.name} ({student.readingSessions.length})
+                            {student.name} ({student.totalSessionCount || 0})
                           </Typography>
                           {student.currentStreak > 0 && (
                             <StreakBadge streak={student.currentStreak} size="small" />
@@ -388,9 +382,9 @@ const StudentTable = React.memo(({ students }) => {
                   </TableCell>
                   <TableCell align="center">
                     <Chip
-                      label={student.readingSessions.length}
+                      label={student.totalSessionCount || 0}
                       size="small"
-                      color={student.readingSessions.length === 0 ? 'default' : 'primary'}
+                      color={(student.totalSessionCount || 0) === 0 ? 'default' : 'primary'}
                       sx={{
                         height: { xs: 26, sm: 24 },
                         fontSize: { xs: '0.75rem', sm: '0.7rem' },

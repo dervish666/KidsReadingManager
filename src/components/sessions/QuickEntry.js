@@ -211,7 +211,7 @@ const QuickEntry = () => {
             </Typography>
             
             <Typography variant="body2" color="text.secondary">
-              Total sessions: {currentStudent.readingSessions.length}
+              Total sessions: {currentStudent.totalSessionCount || 0}
             </Typography>
           </CardContent>
           

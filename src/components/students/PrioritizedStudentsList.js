@@ -28,19 +28,7 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
     recentlyRead: theme.palette.status?.recentlyRead || '#6B8E6B'
   };
   
-  const getMostRecentReadDate = () => {
-    if (!student.readingSessions || student.readingSessions.length === 0) {
-      return null;
-    }
-    
-    const sortedSessions = [...student.readingSessions].sort((a, b) =>
-      new Date(b.date) - new Date(a.date)
-    );
-    
-    return sortedSessions[0].date;
-  };
-  
-  const mostRecentReadDate = getMostRecentReadDate();
+  const mostRecentReadDate = student.lastReadDate || null;
   
   const getDaysSinceReading = () => {
     const dateToUse = mostRecentReadDate || student.lastReadDate;
@@ -131,7 +119,7 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
             Total sessions:
           </Typography>
           <Chip 
-            label={student.readingSessions.length}
+            label={student.totalSessionCount || 0}
             size="small"
             sx={{
               height: 24,

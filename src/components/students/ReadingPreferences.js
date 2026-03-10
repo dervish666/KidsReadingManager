@@ -40,6 +40,7 @@ const ReadingPreferences = ({ open, onClose, student }) => {
     genres,
     updateStudent,
     addGenre,
+    fetchWithAuth,
   } = useAppContext();
 
   // Local state for preferences being edited
@@ -55,14 +56,21 @@ const ReadingPreferences = ({ open, onClose, student }) => {
   const [addGenreOpen, setAddGenreOpen] = useState(false);
   const [newGenreName, setNewGenreName] = useState('');
 
-  // Get unique book IDs from student's reading sessions
+  // Fetch sessions when dialog opens and derive read book IDs
+  const [studentSessions, setStudentSessions] = useState([]);
+
+  useEffect(() => {
+    if (student?.id && open) {
+      fetchWithAuth(`/api/students/${student.id}/sessions`)
+        .then(r => r.ok ? r.json() : [])
+        .then(setStudentSessions)
+        .catch(() => setStudentSessions([]));
+    }
+  }, [student?.id, open, fetchWithAuth]);
+
   const studentReadBookIds = React.useMemo(() => {
-    if (!student || !student.readingSessions) return [];
-    const bookIds = student.readingSessions
-      .map(session => session.bookId)
-      .filter(Boolean);
-    return [...new Set(bookIds)];
-  }, [student]);
+    return [...new Set(studentSessions.map(s => s.bookId).filter(Boolean))];
+  }, [studentSessions]);
 
   // Initialize preferences when student or dialog changes
   useEffect(() => {
