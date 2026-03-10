@@ -1,5 +1,21 @@
 # Changelog
 
+## [3.15.0] - 2026-03-10
+
+### Added
+- **GET /api/students/sessions endpoint** — class-scoped session fetching with date range filtering, date validation, and student name mapping
+- **GET /api/students/stats endpoint** — server-side stats aggregation (session counts, location distribution, weekly activity, reading-by-day, most read books, streak leaderboard) replacing 160-line frontend useMemo
+- **Loading skeletons** — ReadingStats and HomeReadingRegister show loading indicators during on-demand data fetching
+
+### Changed
+- **Lazy-load student sessions** — GET /api/students no longer returns embedded `readingSessions` or `preferences` arrays; response includes `totalSessionCount` via SQL subquery (~50KB vs ~2MB+ at scale)
+- **HomeReadingRegister fetches sessions on demand** — local state with class-scoped session fetch, `sessionsByStudent` O(1) lookup, auto-refresh after mutations
+- **ReadingStats uses server-side aggregation** — fetches from /api/students/stats instead of computing all stats client-side
+- **All session-dependent components migrated** — SessionForm, StudentProfile, BookRecommendations, StudentSessions, StudentInfoCard, chart components all fetch sessions on demand
+- **AppContext session mutations simplified** — addReadingSession/editReadingSession/deleteReadingSession are now API-call-only with summary field updates (no optimistic readingSessions array manipulation)
+- **StudentList/Card/Table use totalSessionCount** — replaced `readingSessions.length` references with server-provided count
+- **getPrioritizedStudents uses totalSessionCount** — updated sorting tiebreaker from `readingSessions.length`
+
 ## [3.14.0] - 2026-03-10
 
 ### Added
