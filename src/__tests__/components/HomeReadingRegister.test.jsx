@@ -45,62 +45,83 @@ const getYesterday = () => {
   return yesterday.toISOString().split('T')[0];
 };
 
+// Create a mock fetchWithAuth that returns session data for the sessions endpoint
+// and empty term dates for the term-dates endpoint
+const createMockFetchWithAuth = (sessions = []) => {
+  return vi.fn((url) => {
+    if (url.startsWith('/api/students/sessions')) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(sessions)
+      });
+    }
+    if (url.startsWith('/api/term-dates')) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ terms: [] })
+      });
+    }
+    return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+  });
+};
+
 // Default mock context values
-const createMockContext = (overrides = {}) => ({
-  students: [
-    {
-      id: 'student-1',
-      name: 'Alice Smith',
-      classId: 'class-1',
-      currentBookId: 'book-1',
-      currentBookTitle: 'The Cat in the Hat',
-      currentBookAuthor: 'Dr. Seuss',
-      readingSessions: []
-    },
-    {
-      id: 'student-2',
-      name: 'Bob Jones',
-      classId: 'class-1',
-      currentBookId: null,
-      currentBookTitle: null,
-      currentBookAuthor: null,
-      readingSessions: []
-    },
-    {
-      id: 'student-3',
-      name: 'Charlie Brown',
-      classId: 'class-2',
-      currentBookId: 'book-2',
-      currentBookTitle: 'Charlotte\'s Web',
-      currentBookAuthor: 'E.B. White',
-      readingSessions: []
-    }
-  ],
-  books: [
-    {
-      id: 'book-1',
-      title: 'The Cat in the Hat',
-      author: 'Dr. Seuss'
-    },
-    {
-      id: 'book-2',
-      title: 'Charlotte\'s Web',
-      author: 'E.B. White'
-    }
-  ],
-  classes: [
-    { id: 'class-1', name: 'Class 1A', disabled: false },
-    { id: 'class-2', name: 'Class 2B', disabled: false },
-    { id: 'class-3', name: 'Disabled Class', disabled: true }
-  ],
-  addReadingSession: vi.fn(),
-  deleteReadingSession: vi.fn(),
-  updateStudentCurrentBook: vi.fn(),
-  reloadDataFromServer: vi.fn(),
-  globalClassFilter: 'all',
-  setGlobalClassFilter: vi.fn(),
-  ...overrides
-});
+const createMockContext = (overrides = {}) => {
+  const { sessions = [], ...rest } = overrides;
+  return {
+    students: [
+      {
+        id: 'student-1',
+        name: 'Alice Smith',
+        classId: 'class-1',
+        currentBookId: 'book-1',
+        currentBookTitle: 'The Cat in the Hat',
+        currentBookAuthor: 'Dr. Seuss'
+      },
+      {
+        id: 'student-2',
+        name: 'Bob Jones',
+        classId: 'class-1',
+        currentBookId: null,
+        currentBookTitle: null,
+        currentBookAuthor: null
+      },
+      {
+        id: 'student-3',
+        name: 'Charlie Brown',
+        classId: 'class-2',
+        currentBookId: 'book-2',
+        currentBookTitle: 'Charlotte\'s Web',
+        currentBookAuthor: 'E.B. White'
+      }
+    ],
+    books: [
+      {
+        id: 'book-1',
+        title: 'The Cat in the Hat',
+        author: 'Dr. Seuss'
+      },
+      {
+        id: 'book-2',
+        title: 'Charlotte\'s Web',
+        author: 'E.B. White'
+      }
+    ],
+    classes: [
+      { id: 'class-1', name: 'Class 1A', disabled: false },
+      { id: 'class-2', name: 'Class 2B', disabled: false },
+      { id: 'class-3', name: 'Disabled Class', disabled: true }
+    ],
+    addReadingSession: vi.fn(),
+    deleteReadingSession: vi.fn(),
+    updateStudentCurrentBook: vi.fn(),
+    reloadDataFromServer: vi.fn(),
+    globalClassFilter: 'all',
+    setGlobalClassFilter: vi.fn(),
+    fetchWithAuth: createMockFetchWithAuth(sessions),
+    ...rest
+  };
+};
 
 describe('HomeReadingRegister Component', () => {
   beforeEach(() => {
@@ -112,7 +133,7 @@ describe('HomeReadingRegister Component', () => {
   });
 
   describe('Initial Render', () => {
-    it('should render the component with all required elements', () => {
+    it('should render the component with all required elements', async () => {
       const context = createMockContext({ globalClassFilter: 'class-1' });
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
 
@@ -147,6 +168,15 @@ describe('HomeReadingRegister Component', () => {
       expect(screen.getByText(/No Record:/)).toBeInTheDocument();
     });
 
+    it('should fetch sessions when class is selected', () => {
+      const context = createMockContext({ globalClassFilter: 'class-1' });
+      render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
+
+      // Should have called fetchWithAuth for sessions endpoint
+      expect(context.fetchWithAuth).toHaveBeenCalledWith(
+        expect.stringContaining('/api/students/sessions?classId=class-1')
+      );
+    });
   });
 
   describe('Class Filter Selection and Auto-Set (Render Loop Fix)', () => {
@@ -220,7 +250,7 @@ describe('HomeReadingRegister Component', () => {
       expect(mockSetGlobalClassFilter).toHaveBeenCalledTimes(1);
     });
 
-    it('should display students from the selected class only', () => {
+    it('should display students from the selected class only', async () => {
       const context = createMockContext({ globalClassFilter: 'class-1' });
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
 
@@ -498,8 +528,7 @@ describe('HomeReadingRegister Component', () => {
           {
             id: 'student-1',
             name: 'Only Student',
-            classId: 'class-1',
-            readingSessions: []
+            classId: 'class-1'
           }
         ]
       });
@@ -521,143 +550,160 @@ describe('HomeReadingRegister Component', () => {
   });
 
   describe('Reading Status Display', () => {
-    it('should display checkmark for students who have read', () => {
+    it('should display checkmark for students who have read', async () => {
       const context = createMockContext({
         globalClassFilter: 'class-1',
         students: [
           {
             id: 'student-1',
             name: 'Alice Smith',
-            classId: 'class-1',
-            readingSessions: [
-              {
-                id: 'session-1',
-                date: getYesterday(),
-                location: 'home',
-                assessment: 'independent',
-                notes: ''
-              }
-            ]
+            classId: 'class-1'
+          }
+        ],
+        sessions: [
+          {
+            id: 'session-1',
+            studentId: 'student-1',
+            date: getYesterday(),
+            location: 'home',
+            assessment: 'independent',
+            notes: ''
           }
         ]
       });
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
 
-      // Should display checkmark in the status cell
-      const table = screen.getByRole('table');
-      expect(within(table).getByText('✓')).toBeInTheDocument();
+      // Wait for sessions to load, then check for checkmark
+      await waitFor(() => {
+        const table = screen.getByRole('table');
+        expect(within(table).getByText('✓')).toBeInTheDocument();
+      });
     });
 
-    it('should display count for students with multiple sessions', () => {
+    it('should display count for students with multiple sessions', async () => {
       const context = createMockContext({
         globalClassFilter: 'class-1',
         students: [
           {
             id: 'student-1',
             name: 'Alice Smith',
-            classId: 'class-1',
-            readingSessions: [
-              {
-                id: 'session-1',
-                date: getYesterday(),
-                location: 'home',
-                assessment: 'independent',
-                notes: '[COUNT:5]'
-              }
-            ]
+            classId: 'class-1'
+          }
+        ],
+        sessions: [
+          {
+            id: 'session-1',
+            studentId: 'student-1',
+            date: getYesterday(),
+            location: 'home',
+            assessment: 'independent',
+            notes: '[COUNT:5]'
           }
         ]
       });
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
 
-      // Should display count of 5 in the status cell
-      // Using getAllByText since count appears in both status cell and total cell
-      const countElements = screen.getAllByText('5');
-      expect(countElements.length).toBeGreaterThan(0);
+      // Wait for sessions to load, then check for count
+      await waitFor(() => {
+        // Should display count of 5 in the status cell
+        // Using getAllByText since count appears in both status cell and total cell
+        const countElements = screen.getAllByText('5');
+        expect(countElements.length).toBeGreaterThan(0);
+      });
     });
 
-    it('should display A for absent students', () => {
+    it('should display A for absent students', async () => {
       const context = createMockContext({
         globalClassFilter: 'class-1',
         students: [
           {
             id: 'student-1',
             name: 'Zoe Absent',  // Use different name to avoid matching button labels
-            classId: 'class-1',
-            readingSessions: [
-              {
-                id: 'session-1',
-                date: getYesterday(),
-                location: 'home',
-                assessment: 'independent',
-                notes: '[ABSENT] Student was absent'
-              }
-            ]
+            classId: 'class-1'
+          }
+        ],
+        sessions: [
+          {
+            id: 'session-1',
+            studentId: 'student-1',
+            date: getYesterday(),
+            location: 'home',
+            assessment: 'independent',
+            notes: '[ABSENT] Student was absent'
           }
         ]
       });
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
 
-      // Should display A for absent in the status cell
-      // The A appears in a table cell with specific styling
-      const allAs = screen.getAllByText('A');
-      // At least one A should be in the table (status cell)
-      expect(allAs.length).toBeGreaterThan(0);
+      // Wait for sessions to load, then check for A
+      await waitFor(() => {
+        // Should display A for absent in the status cell
+        const allAs = screen.getAllByText('A');
+        // At least one A should be in the table (status cell)
+        expect(allAs.length).toBeGreaterThan(0);
+      });
     });
 
-    it('should display dot for no record students', () => {
+    it('should display dot for no record students', async () => {
       const context = createMockContext({
         globalClassFilter: 'class-1',
         students: [
           {
             id: 'student-1',
             name: 'Alice Smith',
-            classId: 'class-1',
-            readingSessions: [
-              {
-                id: 'session-1',
-                date: getYesterday(),
-                location: 'home',
-                assessment: 'independent',
-                notes: '[NO_RECORD] No reading record received'
-              }
-            ]
+            classId: 'class-1'
+          }
+        ],
+        sessions: [
+          {
+            id: 'session-1',
+            studentId: 'student-1',
+            date: getYesterday(),
+            location: 'home',
+            assessment: 'independent',
+            notes: '[NO_RECORD] No reading record received'
           }
         ]
       });
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
 
-      // The dot character appears in the status cell and possibly the legend
-      const dots = screen.getAllByText('•');
-      expect(dots.length).toBeGreaterThan(0);
+      // Wait for sessions to load, then check for dot
+      await waitFor(() => {
+        // The dot character appears in the status cell and possibly the legend
+        const dots = screen.getAllByText('•');
+        expect(dots.length).toBeGreaterThan(0);
+      });
     });
   });
 
   describe('Clear Entry Functionality', () => {
-    it('should show clear button for students with entries', () => {
+    it('should show clear button for students with entries', async () => {
       const context = createMockContext({
         globalClassFilter: 'class-1',
         students: [
           {
             id: 'student-1',
             name: 'Alice Smith',
-            classId: 'class-1',
-            readingSessions: [
-              {
-                id: 'session-1',
-                date: getYesterday(),
-                location: 'home',
-                assessment: 'independent',
-                notes: ''
-              }
-            ]
+            classId: 'class-1'
+          }
+        ],
+        sessions: [
+          {
+            id: 'session-1',
+            studentId: 'student-1',
+            date: getYesterday(),
+            location: 'home',
+            assessment: 'independent',
+            notes: ''
           }
         ]
       });
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
 
-      // Clear button should be visible
-      expect(screen.getByRole('button', { name: /clear entry/i })).toBeInTheDocument();
+      // Wait for sessions to load, then check for clear button
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /clear entry/i })).toBeInTheDocument();
+      });
     });
 
     it('should call deleteReadingSession when clearing entry', async () => {
@@ -669,23 +715,28 @@ describe('HomeReadingRegister Component', () => {
           {
             id: 'student-1',
             name: 'Alice Smith',
-            classId: 'class-1',
-            readingSessions: [
-              {
-                id: 'session-1',
-                date: getYesterday(),
-                location: 'home',
-                assessment: 'independent',
-                notes: ''
-              }
-            ]
+            classId: 'class-1'
+          }
+        ],
+        sessions: [
+          {
+            id: 'session-1',
+            studentId: 'student-1',
+            date: getYesterday(),
+            location: 'home',
+            assessment: 'independent',
+            notes: ''
           }
         ]
       });
       const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
 
-      // Click clear button
+      // Wait for sessions to load, then click clear button
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /clear entry/i })).toBeInTheDocument();
+      });
+
       const clearButton = screen.getByRole('button', { name: /clear entry/i });
       await user.click(clearButton);
 
@@ -735,60 +786,55 @@ describe('HomeReadingRegister Component', () => {
   });
 
   describe('Summary Statistics', () => {
-    it('should calculate correct totals for class', () => {
+    it('should calculate correct totals for class', async () => {
       const context = createMockContext({
         globalClassFilter: 'class-1',
         students: [
           {
             id: 'student-1',
             name: 'Alice Smith',
-            classId: 'class-1',
-            readingSessions: [
-              { id: 's1', date: getYesterday(), location: 'home', notes: '' }
-            ]
+            classId: 'class-1'
           },
           {
             id: 'student-2',
             name: 'Bob Jones',
-            classId: 'class-1',
-            readingSessions: [
-              { id: 's2', date: getYesterday(), location: 'home', notes: '[COUNT:2]' }
-            ]
+            classId: 'class-1'
           },
           {
             id: 'student-3',
             name: 'Charlie Absent',
-            classId: 'class-1',
-            readingSessions: [
-              { id: 's3', date: getYesterday(), location: 'home', notes: '[ABSENT]' }
-            ]
+            classId: 'class-1'
           },
           {
             id: 'student-4',
             name: 'Diana NoRecord',
-            classId: 'class-1',
-            readingSessions: [
-              { id: 's4', date: getYesterday(), location: 'home', notes: '[NO_RECORD]' }
-            ]
+            classId: 'class-1'
           },
           {
             id: 'student-5',
             name: 'Eve NotEntered',
-            classId: 'class-1',
-            readingSessions: []
+            classId: 'class-1'
           }
+        ],
+        sessions: [
+          { id: 's1', studentId: 'student-1', date: getYesterday(), location: 'home', notes: '' },
+          { id: 's2', studentId: 'student-2', date: getYesterday(), location: 'home', notes: '[COUNT:2]' },
+          { id: 's3', studentId: 'student-3', date: getYesterday(), location: 'home', notes: '[ABSENT]' },
+          { id: 's4', studentId: 'student-4', date: getYesterday(), location: 'home', notes: '[NO_RECORD]' }
         ]
       });
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
 
-      // Check totals
-      expect(screen.getByText('Total Students: 5')).toBeInTheDocument();
-      expect(screen.getByText('Read: 1')).toBeInTheDocument();
-      expect(screen.getByText('Multiple: 1')).toBeInTheDocument();
-      expect(screen.getByText('Absent: 1')).toBeInTheDocument();
-      expect(screen.getByText('No Record: 1')).toBeInTheDocument();
-      expect(screen.getByText('Not Entered: 1')).toBeInTheDocument();
-      expect(screen.getByText('Total Sessions: 3')).toBeInTheDocument(); // 1 + 2 = 3
+      // Wait for sessions to load, then check totals
+      await waitFor(() => {
+        expect(screen.getByText('Total Students: 5')).toBeInTheDocument();
+        expect(screen.getByText('Read: 1')).toBeInTheDocument();
+        expect(screen.getByText('Multiple: 1')).toBeInTheDocument();
+        expect(screen.getByText('Absent: 1')).toBeInTheDocument();
+        expect(screen.getByText('No Record: 1')).toBeInTheDocument();
+        expect(screen.getByText('Not Entered: 1')).toBeInTheDocument();
+        expect(screen.getByText('Total Sessions: 3')).toBeInTheDocument(); // 1 + 2 = 3
+      });
     });
   });
 
@@ -879,17 +925,17 @@ describe('HomeReadingRegister Component', () => {
       expect(screen.getByText('Reading Record')).toBeInTheDocument();
     });
 
-    it('should handle students with empty readingSessions array', () => {
+    it('should handle students with no sessions', () => {
       const context = createMockContext({
         globalClassFilter: 'class-1',
         students: [
           {
             id: 'student-1',
             name: 'No Sessions Student',
-            classId: 'class-1',
-            readingSessions: [] // Empty array instead of undefined
+            classId: 'class-1'
           }
-        ]
+        ],
+        sessions: [] // No sessions returned from API
       });
 
       // Component should render without crashing
@@ -897,27 +943,56 @@ describe('HomeReadingRegister Component', () => {
       expect(screen.getByText('No Sessions Student')).toBeInTheDocument();
     });
 
-    it('should include school reading sessions in count', () => {
+    it('should include school reading sessions in count', async () => {
       const context = createMockContext({
         globalClassFilter: 'class-1',
         students: [
           {
             id: 'student-1',
             name: 'Multi Session Student',
-            classId: 'class-1',
-            readingSessions: [
-              { id: 's1', date: getYesterday(), location: 'home', notes: '' },
-              { id: 's2', date: getYesterday(), location: 'school', notes: '' }
-            ]
+            classId: 'class-1'
           }
+        ],
+        sessions: [
+          { id: 's1', studentId: 'student-1', date: getYesterday(), location: 'home', notes: '' },
+          { id: 's2', studentId: 'student-1', date: getYesterday(), location: 'school', notes: '' }
         ]
       });
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
 
-      // Should show count of 2 (1 home + 1 school)
-      // There will be multiple '2's - one in status cell and one in total cell
-      const twoElements = screen.getAllByText('2');
-      expect(twoElements.length).toBeGreaterThan(0);
+      // Wait for sessions to load
+      await waitFor(() => {
+        // Should show count of 2 (1 home + 1 school)
+        // There will be multiple '2's - one in status cell and one in total cell
+        const twoElements = screen.getAllByText('2');
+        expect(twoElements.length).toBeGreaterThan(0);
+      });
+    });
+
+    it('should refresh sessions after recording', async () => {
+      const mockAddReadingSession = vi.fn();
+      const mockFetchWithAuth = createMockFetchWithAuth([]);
+      const context = createMockContext({
+        globalClassFilter: 'class-1',
+        addReadingSession: mockAddReadingSession,
+        fetchWithAuth: mockFetchWithAuth
+      });
+      const user = userEvent.setup();
+      render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
+
+      // Select a student and record
+      await user.click(screen.getByText('Alice Smith'));
+      const readButton = screen.getByRole('button', { name: 'Mark as read' });
+      await user.click(readButton);
+
+      // After recording, it should have called fetchWithAuth again for sessions (refresh)
+      await waitFor(() => {
+        const sessionCalls = mockFetchWithAuth.mock.calls.filter(
+          call => call[0].startsWith('/api/students/sessions')
+        );
+        // At least 2 calls: initial fetch + refresh after recording
+        expect(sessionCalls.length).toBeGreaterThanOrEqual(2);
+      });
     });
   });
 });

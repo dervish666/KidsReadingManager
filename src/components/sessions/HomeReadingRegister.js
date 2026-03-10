@@ -26,6 +26,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  CircularProgress,
   useTheme,
   useMediaQuery
 } from '@mui/material';
@@ -145,6 +146,10 @@ const HomeReadingRegister = () => {
   // O(1) book lookup by ID (avoids O(n) .find() per student)
   const booksMap = useMemo(() => new Map(books.map(b => [b.id, b])), [books]);
 
+  // Local session state — fetched on demand from the API
+  const [classSessions, setClassSessions] = useState([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+
   // State
   const [selectedDate, setSelectedDate] = useState(getYesterday());
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -228,6 +233,10 @@ const HomeReadingRegister = () => {
 
   const dates = useMemo(() => getDateRange(startDate, endDate), [startDate, endDate]);
 
+  // ISO date strings for the date range (used by fetch and refreshSessions)
+  const startDateISO = useMemo(() => formatDateISO(startDate), [startDate]);
+  const endDateISO = useMemo(() => formatDateISO(endDate), [endDate]);
+
   // Ref to track if we've already auto-set the class filter (prevents infinite loop)
   const hasAutoSetClassFilter = useRef(false);
 
@@ -264,6 +273,46 @@ const HomeReadingRegister = () => {
     }
   }, [globalClassFilter, activeClasses, setGlobalClassFilter]);
 
+  // Fetch sessions for the selected class and date range
+  useEffect(() => {
+    if (!effectiveClassId) {
+      setClassSessions([]);
+      return;
+    }
+    if (!startDateISO || !endDateISO) return;
+
+    setSessionsLoading(true);
+    fetchWithAuth(`/api/students/sessions?classId=${effectiveClassId}&startDate=${startDateISO}&endDate=${endDateISO}`)
+      .then(r => r.ok ? r.json() : [])
+      .then(sessions => {
+        setClassSessions(sessions);
+        setSessionsLoading(false);
+      })
+      .catch(() => {
+        setClassSessions([]);
+        setSessionsLoading(false);
+      });
+  }, [effectiveClassId, startDateISO, endDateISO, fetchWithAuth]);
+
+  // Refresh sessions after mutations (add/delete)
+  const refreshSessions = useCallback(() => {
+    if (!effectiveClassId) return;
+    fetchWithAuth(`/api/students/sessions?classId=${effectiveClassId}&startDate=${startDateISO}&endDate=${endDateISO}`)
+      .then(r => r.ok ? r.json() : [])
+      .then(setClassSessions)
+      .catch(() => {});
+  }, [effectiveClassId, startDateISO, endDateISO, fetchWithAuth]);
+
+  // Build a sessions-by-student lookup for O(1) access
+  const sessionsByStudent = useMemo(() => {
+    const map = {};
+    for (const s of classSessions) {
+      if (!map[s.studentId]) map[s.studentId] = [];
+      map[s.studentId].push(s);
+    }
+    return map;
+  }, [classSessions]);
+
   // Get students for selected class, sorted alphabetically
   const classStudents = useMemo(() => {
     if (!effectiveClassId) return [];
@@ -282,13 +331,15 @@ const HomeReadingRegister = () => {
   // Get reading status for a student on a specific date
   // Includes both home reading entries and school reading sessions in the count
   const getStudentReadingStatus = useCallback((student, date) => {
+    const studentSessions = sessionsByStudent[student.id] || [];
+
     // Get home reading entries (these have special markers like ABSENT, NO_RECORD, COUNT)
-    const homeSessions = student.readingSessions.filter(
+    const homeSessions = studentSessions.filter(
       s => s.date === date && s.location === 'home'
     );
 
     // Get school reading sessions (these are individual sessions from the Reading Page)
-    const schoolSessions = student.readingSessions.filter(
+    const schoolSessions = studentSessions.filter(
       s => s.date === date && s.location === 'school'
     );
 
@@ -334,7 +385,7 @@ const HomeReadingRegister = () => {
     } else {
       return { status: READING_STATUS.MULTIPLE, count: totalCount, sessions: allSessions };
     }
-  }, []);
+  }, [sessionsByStudent]);
 
   const dailyTotals = useMemo(() => {
     return dates.map(date => {
@@ -434,8 +485,9 @@ const HomeReadingRegister = () => {
     if (!student) return;
 
     try {
+      const studentSessions = sessionsByStudent[student.id] || [];
       // Only get home sessions to clear (preserve school reading sessions)
-      const homeSessions = student.readingSessions.filter(
+      const homeSessions = studentSessions.filter(
         s => s.date === selectedDate && s.location === 'home'
       );
 
@@ -444,6 +496,7 @@ const HomeReadingRegister = () => {
         await deleteReadingSession(student.id, session.id);
       }
 
+      refreshSessions();
       setSnackbarMessage(`Cleared home reading entry for ${student.name}`);
       setSnackbarSeverity('info');
       setSnackbarOpen(true);
@@ -461,7 +514,8 @@ const HomeReadingRegister = () => {
     try {
       // First, clear any existing HOME sessions for this date (allows changing state)
       // Note: We preserve school reading sessions - only clear home entries
-      const existingHomeSessions = selectedStudent.readingSessions.filter(
+      const studentSessions = sessionsByStudent[selectedStudent.id] || [];
+      const existingHomeSessions = studentSessions.filter(
         s => s.date === selectedDate && s.location === 'home'
       );
       for (const session of existingHomeSessions) {
@@ -500,6 +554,7 @@ const HomeReadingRegister = () => {
         });
       }
 
+      refreshSessions();
       setSnackbarMessage(`Recorded ${count > 1 ? count + ' sessions' : ''} for ${selectedStudent.name}`);
       setSnackbarSeverity('success');
       setSnackbarOpen(true);
@@ -867,7 +922,23 @@ const HomeReadingRegister = () => {
       </Box>
 
       {/* Register Table */}
-      <Paper sx={{ mb: 2 }}>
+      <Paper sx={{ mb: 2, position: 'relative' }}>
+        {sessionsLoading && (
+          <Box sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(255, 255, 255, 0.7)',
+            zIndex: 10
+          }}>
+            <CircularProgress size={40} />
+          </Box>
+        )}
         <TableContainer sx={{ maxHeight: { xs: 'clamp(250px, calc(100vh - 360px), 600px)', sm: 'clamp(300px, calc(100vh - 320px), 800px)' } }}>
           <Table stickyHeader size="small">
             <TableHead>
