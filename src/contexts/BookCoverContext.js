@@ -6,7 +6,7 @@ const BookCoverContext = createContext(null);
 // Constants
 const STORAGE_KEY = 'bookCovers';
 const CACHE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
-const MAX_CACHE_ENTRIES = 500;
+const MAX_CACHE_ENTRIES = 2000;
 
 /**
  * Generate a normalized cache key from title and author

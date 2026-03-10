@@ -192,9 +192,6 @@ studentsRouter.get('/', requireReadonly(), async (c) => {
     const db = getDB(c.env);
     const organizationId = c.get('organizationId');
 
-    // Get organization settings for streak calculation (KV cached, 1-hour TTL)
-    const { gracePeriodDays, timezone } = await getOrgStreakSettings(db, organizationId, c.env);
-
     const result = await db.prepare(`
       SELECT s.*, c.name as class_name, b.title as current_book_title, b.author as current_book_author
       FROM students s
@@ -271,16 +268,8 @@ studentsRouter.get('/', requireReadonly(), async (c) => {
         recordedBy: s.recorded_by
       }));
 
-      // Recalculate streak on-the-fly (exclude absent/no_record sessions)
-      const streakData = calculateStreak(
-        student.readingSessions
-          .filter(s => !s.notes?.includes('[ABSENT]') && !s.notes?.includes('[NO_RECORD]'))
-          .map(s => ({ date: s.date })),
-        { gracePeriodDays, timezone }
-      );
-      student.currentStreak = streakData.currentStreak;
-      student.longestStreak = Math.max(streakData.longestStreak, student.longestStreak);
-      student.streakStartDate = streakData.streakStartDate;
+      // Use pre-calculated streak from DB (updated by daily cron)
+      // currentStreak, longestStreak, streakStartDate already set by rowToStudent
 
       // Build preferences from batch data
       const prefs = prefsByStudent[student.id] || [];

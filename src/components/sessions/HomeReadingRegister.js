@@ -142,6 +142,9 @@ const HomeReadingRegister = () => {
     fetchWithAuth
   } = useAppContext();
 
+  // O(1) book lookup by ID (avoids O(n) .find() per student)
+  const booksMap = useMemo(() => new Map(books.map(b => [b.id, b])), [books]);
+
   // State
   const [selectedDate, setSelectedDate] = useState(getYesterday());
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -371,7 +374,7 @@ const HomeReadingRegister = () => {
 
     // Use the student's current book from the database
     if (student.currentBookId) {
-      const book = books.find(b => b.id === student.currentBookId);
+      const book = booksMap.get(student.currentBookId);
       if (book) return book;
       // If we have a title but no matching book, return a minimal book object
       if (student.currentBookTitle) {
@@ -384,7 +387,7 @@ const HomeReadingRegister = () => {
     }
 
     return null;
-  }, [books, students]);
+  }, [booksMap, students]);
 
   // Calculate totals for the register
   const registerTotals = useMemo(() => {

@@ -387,6 +387,14 @@ export default {
       ).run();
       console.log(`[Cron] Anonymised ${anonAudit.meta?.changes || 0} audit log entries older than 90 days`);
 
+      // Hard-delete audit log entries older than 1 year (anonymised at 90 days, fully removed at 365)
+      const oldAudit = await db.prepare(
+        `DELETE FROM audit_log WHERE created_at < datetime('now', '-365 days')`
+      ).run();
+      if (oldAudit.meta?.changes > 0) {
+        console.log(`[Cron] Deleted ${oldAudit.meta.changes} audit log entries older than 1 year`);
+      }
+
       // Clean up stale rate limit records (older than 1 hour)
       const oldRateLimits = await db.prepare(
         `DELETE FROM rate_limits WHERE created_at < datetime('now', '-1 hour')`
