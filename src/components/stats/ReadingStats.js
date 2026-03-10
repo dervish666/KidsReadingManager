@@ -3,7 +3,6 @@ import {
   Box,
   Typography,
   Paper,
-  Grid,
   Card,
   CardContent,
   Button,
@@ -19,7 +18,8 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem
+  MenuItem,
+  Skeleton
 } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -121,181 +121,46 @@ const ReadingStats = () => {
     });
   }, [students, classes, globalClassFilter]);
 
-  // Calculate statistics (memoized to avoid recalculating on every render)
-  const stats = useMemo(() => {
-    // Calculate date boundaries
-    const today = new Date();
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - today.getDay()); // Sunday
-    startOfWeek.setHours(0, 0, 0, 0);
+  // Fetch stats from server
+  const [stats, setStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(false);
 
-    const startOfLastWeek = new Date(startOfWeek);
-    startOfLastWeek.setDate(startOfLastWeek.getDate() - 7);
-
-    if (activeStudents.length === 0) {
-      return {
-        totalStudents: 0,
-        totalSessions: 0,
-        averageSessionsPerStudent: 0,
-        studentsWithNoSessions: 0,
-        statusDistribution: { notRead: 0, needsAttention: 0, recentlyRead: 0 },
-        locationDistribution: { home: 0, school: 0 },
-        weeklyActivity: { thisWeek: 0, lastWeek: 0 },
-        mostReadBooks: [],
-        readingByDay: { Sun: 0, Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0 },
-        // Streak stats
-        studentsWithActiveStreak: 0,
-        totalActiveStreakDays: 0,
-        longestCurrentStreak: 0,
-        longestEverStreak: 0,
-        averageStreak: 0,
-        topStreaks: []
-      };
+  useEffect(() => {
+    setStatsLoading(true);
+    const params = new URLSearchParams();
+    if (globalClassFilter && globalClassFilter !== 'all') {
+      params.set('classId', globalClassFilter);
     }
-
-    let totalSessions = 0;
-    let studentsWithNoSessions = 0;
-    let statusCounts = { notRead: 0, needsAttention: 0, recentlyRead: 0 };
-    let locationCounts = { home: 0, school: 0 };
-    let thisWeekSessions = 0;
-    let lastWeekSessions = 0;
-    const bookCounts = {};
-    const dayCounts = { Sun: 0, Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0 };
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-    // Streak tracking
-    let studentsWithActiveStreak = 0;
-    let totalActiveStreakDays = 0;
-    let longestCurrentStreak = 0;
-    let longestEverStreak = 0;
-    const streakData = [];
-
-    // Count sessions and new stats
-    activeStudents.forEach(student => {
-      const allSessions = student.readingSessions || [];
-      const sessions = termDateRange
-        ? allSessions.filter(s => s.date >= termDateRange.start && s.date <= termDateRange.end)
-        : allSessions;
-      const sessionCount = sessions.length;
-      totalSessions += sessionCount;
-
-      if (sessionCount === 0) {
-        studentsWithNoSessions++;
-      }
-
-      // Process each session for detailed stats
-      sessions.forEach(session => {
-        // Location distribution
-        const location = session.location || 'school';
-        if (locationCounts.hasOwnProperty(location)) {
-          locationCounts[location]++;
-        }
-
-        // Weekly activity
-        if (session.date) {
-          const sessionDate = new Date(session.date);
-          if (sessionDate >= startOfWeek) {
-            thisWeekSessions++;
-          } else if (sessionDate >= startOfLastWeek && sessionDate < startOfWeek) {
-            lastWeekSessions++;
-          }
-
-          // Reading by day of week
-          const dayOfWeek = sessionDate.getDay();
-          dayCounts[dayNames[dayOfWeek]]++;
-        }
-
-        // Most read books
-        if (session.bookTitle) {
-          const bookKey = session.bookTitle;
-          bookCounts[bookKey] = (bookCounts[bookKey] || 0) + 1;
-        }
-      });
-
-      // Count reading status
-      const status = getReadingStatus(student);
-      statusCounts[status]++;
-
-      // Streak tracking
-      const currentStreak = student.currentStreak || 0;
-      const longestStreak = student.longestStreak || 0;
-
-      if (currentStreak > 0) {
-        studentsWithActiveStreak++;
-        totalActiveStreakDays += currentStreak;
-        if (currentStreak > longestCurrentStreak) {
-          longestCurrentStreak = currentStreak;
-        }
-      }
-
-      if (longestStreak > longestEverStreak) {
-        longestEverStreak = longestStreak;
-      }
-
-      // Collect streak data for leaderboard
-      if (currentStreak > 0 || longestStreak > 0) {
-        streakData.push({
-          id: student.id,
-          name: student.name,
-          currentStreak,
-          longestStreak,
-          streakStartDate: student.streakStartDate
-        });
-      }
-    });
-
-    // Get top 5 most read books
-    const mostReadBooks = Object.entries(bookCounts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([title, count]) => ({ title, count }));
-
-    // Get top streaks (sorted by current streak, then longest streak)
-    const topStreaks = streakData
-      .sort((a, b) => {
-        if (b.currentStreak !== a.currentStreak) {
-          return b.currentStreak - a.currentStreak;
-        }
-        return b.longestStreak - a.longestStreak;
+    if (termDateRange) {
+      params.set('startDate', termDateRange.start);
+      params.set('endDate', termDateRange.end);
+    }
+    fetchWithAuth(`/api/students/stats?${params}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        setStats(data);
+        setStatsLoading(false);
       })
-      .slice(0, 5);
+      .catch(() => {
+        setStats(null);
+        setStatsLoading(false);
+      });
+  }, [globalClassFilter, termDateRange, fetchWithAuth]);
 
-    // Calculate average streak for students with active streaks
-    const averageStreak = studentsWithActiveStreak > 0
-      ? totalActiveStreakDays / studentsWithActiveStreak
-      : 0;
-
-    return {
-      totalStudents: activeStudents.length,
-      totalSessions,
-      averageSessionsPerStudent: activeStudents.length > 0 ? totalSessions / activeStudents.length : 0,
-      studentsWithNoSessions,
-      statusDistribution: statusCounts,
-      locationDistribution: locationCounts,
-      weeklyActivity: { thisWeek: thisWeekSessions, lastWeek: lastWeekSessions },
-      mostReadBooks,
-      readingByDay: dayCounts,
-      // Streak stats
-      studentsWithActiveStreak,
-      totalActiveStreakDays,
-      longestCurrentStreak,
-      longestEverStreak,
-      averageStreak,
-      topStreaks
-    };
-  }, [activeStudents, getReadingStatus, termDateRange]);
+  // Enrich topStreaks with student names from local data
+  const enrichedTopStreaks = useMemo(() => {
+    if (!stats?.topStreaks) return [];
+    return stats.topStreaks.map(s => {
+      const student = activeStudents.find(st => st.id === s.id);
+      return { ...s, name: student?.name || 'Unknown' };
+    });
+  }, [stats, activeStudents]);
   
   // Get students sorted by session count (least to most)
   const getStudentsBySessionCount = () => {
-    return [...activeStudents].sort((a, b) => {
-      const aCount = termDateRange
-        ? (a.readingSessions || []).filter(s => s.date >= termDateRange.start && s.date <= termDateRange.end).length
-        : a.readingSessions.length;
-      const bCount = termDateRange
-        ? (b.readingSessions || []).filter(s => s.date >= termDateRange.start && s.date <= termDateRange.end).length
-        : b.readingSessions.length;
-      return aCount - bCount;
-    });
+    return [...activeStudents].sort((a, b) =>
+      (a.totalSessionCount || 0) - (b.totalSessionCount || 0)
+    );
   };
   
   // Get all students with streak data, sorted by current streak
@@ -335,6 +200,40 @@ const ReadingStats = () => {
     return activeStudents.filter(student => getReadingStatus(student) === 'notRead');
   };
   
+  const renderStatsLoading = () => (
+    <Box>
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+        gap: 2,
+        mb: 3
+      }}>
+        {[1, 2, 3, 4].map(i => (
+          <Card key={i} sx={{ borderRadius: 3 }}>
+            <CardContent sx={{ textAlign: 'center', py: 2, px: 1 }}>
+              <Skeleton variant="text" width="60%" sx={{ mx: 'auto' }} />
+              <Skeleton variant="text" width="40%" height={40} sx={{ mx: 'auto' }} />
+            </CardContent>
+          </Card>
+        ))}
+      </Box>
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', sm: 'repeat(auto-fit, minmax(280px, 1fr))' },
+        gap: 2
+      }}>
+        {[1, 2, 3, 4].map(i => (
+          <Card key={i} sx={{ borderRadius: 3 }}>
+            <CardContent sx={{ py: 2 }}>
+              <Skeleton variant="text" width="50%" />
+              <Skeleton variant="rectangular" height={60} sx={{ mt: 1, borderRadius: 1 }} />
+            </CardContent>
+          </Card>
+        ))}
+      </Box>
+    </Box>
+  );
+
   const renderOverviewTab = () => (
     <Box>
       {/* Summary stats - responsive grid */}
@@ -571,13 +470,13 @@ const ReadingStats = () => {
                 Streak Leaders
               </Typography>
             </Box>
-            {stats.topStreaks.length === 0 ? (
+            {enrichedTopStreaks.length === 0 ? (
               <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
                 No active streaks
               </Typography>
             ) : (
               <Box>
-                {stats.topStreaks.slice(0, 4).map((student, index) => (
+                {enrichedTopStreaks.slice(0, 4).map((student, index) => (
                   <Box key={student.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
                     <Box sx={{
                       width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
@@ -678,9 +577,7 @@ const ReadingStats = () => {
         <Paper sx={{ borderRadius: 4, overflow: 'hidden' }}>
           <List>
             {sortedStudents.map(student => {
-              const sessionCount = termDateRange
-                ? (student.readingSessions || []).filter(s => s.date >= termDateRange.start && s.date <= termDateRange.end).length
-                : student.readingSessions.length;
+              const sessionCount = student.totalSessionCount || 0;
               return (
               <ListItem key={student.id} divider>
                 <ListItemIcon>
@@ -973,7 +870,7 @@ const ReadingStats = () => {
                   No data available yet. Add students and record reading sessions to see statistics.
                 </Typography>
               </Paper>
-            ) : renderOverviewTab()
+            ) : (statsLoading || !stats) ? renderStatsLoading() : renderOverviewTab()
           )}
           {currentTab === 1 && (
             students.length === 0 ? (
@@ -982,7 +879,7 @@ const ReadingStats = () => {
                   No data available yet. Add students and record reading sessions to see statistics.
                 </Typography>
               </Paper>
-            ) : renderStreaksTab()
+            ) : (statsLoading || !stats) ? renderStatsLoading() : renderStreaksTab()
           )}
           {currentTab === 2 && (
             students.length === 0 ? (

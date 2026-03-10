@@ -305,22 +305,26 @@ studentsRouter.get('/stats', requireReadonly(), async (c) => {
 
   // Session aggregation query
   let sessionStats = { totalSessions: 0, locationDistribution: { home: 0, school: 0 },
-    weeklyActivity: { thisWeek: 0, lastWeek: 0 }, readingByDay: {}, mostReadBooks: [] };
+    weeklyActivity: { thisWeek: 0, lastWeek: 0 },
+    readingByDay: { Sun: 0, Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0 }, mostReadBooks: [] };
 
-  if (studentIds.length > 0 && startDate && endDate) {
+  if (studentIds.length > 0) {
     // Aggregate sessions in SQL
     const BIND_LIMIT = 90;
     let allSessionRows = [];
     for (let i = 0; i < studentIds.length; i += BIND_LIMIT) {
       const chunk = studentIds.slice(i, i + BIND_LIMIT);
       const placeholders = chunk.map(() => '?').join(',');
+      const dateFilter = (startDate && endDate)
+        ? ' AND rs.session_date >= ? AND rs.session_date <= ?'
+        : '';
+      const binds = (startDate && endDate) ? [...chunk, startDate, endDate] : [...chunk];
       const sessResult = await db.prepare(`
         SELECT rs.session_date, rs.location, b.title as book_title
         FROM reading_sessions rs
         LEFT JOIN books b ON rs.book_id = b.id
-        WHERE rs.student_id IN (${placeholders})
-          AND rs.session_date >= ? AND rs.session_date <= ?
-      `).bind(...chunk, startDate, endDate).all();
+        WHERE rs.student_id IN (${placeholders})${dateFilter}
+      `).bind(...binds).all();
       allSessionRows.push(...(sessResult.results || []));
     }
 
