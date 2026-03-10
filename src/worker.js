@@ -483,21 +483,30 @@ export default {
       console.error('[Cron] Retention auto-deletion failed:', error.message);
     }
 
-    // Wonde daily delta sync
+    // Wonde daily delta sync — process orgs concurrently (batches of 5)
     try {
       const wondeOrgs = await db.prepare(
         'SELECT id, wonde_school_id, wonde_school_token, wonde_last_sync_at FROM organizations WHERE wonde_school_id IS NOT NULL AND wonde_school_token IS NOT NULL AND is_active = 1'
       ).bind().all();
 
-      for (const org of (wondeOrgs.results || [])) {
-        try {
+      const orgList = wondeOrgs.results || [];
+      const SYNC_CONCURRENCY = 5;
+      for (let i = 0; i < orgList.length; i += SYNC_CONCURRENCY) {
+        const batch = orgList.slice(i, i + SYNC_CONCURRENCY);
+        const results = await Promise.allSettled(batch.map(async (org) => {
           const schoolToken = await decryptSensitiveData(org.wonde_school_token, env.JWT_SECRET);
           await runFullSync(org.id, schoolToken, org.wonde_school_id, db, {
             updatedAfter: org.wonde_last_sync_at,
           });
-          console.log(`[Cron] Wonde sync complete for org ${org.id}`);
-        } catch (err) {
-          console.error(`[Cron] Wonde sync failed for org ${org.id}:`, err.message);
+          return org.id;
+        }));
+
+        for (const result of results) {
+          if (result.status === 'fulfilled') {
+            console.log(`[Cron] Wonde sync complete for org ${result.value}`);
+          } else {
+            console.error(`[Cron] Wonde sync failed:`, result.reason?.message);
+          }
         }
       }
     } catch (error) {

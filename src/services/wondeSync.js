@@ -297,11 +297,18 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
       'SELECT id, wonde_employee_id FROM users WHERE organization_id = ? AND wonde_employee_id IS NOT NULL AND is_active = 1'
     ).bind(orgId).all();
 
-    for (const u of (usersWithWonde.results || [])) {
-      try {
-        await syncUserClassAssignments(db, u.id, u.wonde_employee_id, orgId);
-      } catch (err) {
-        console.warn(`[WondeSync] Could not sync class assignments for user ${u.id}:`, err.message);
+    // Process class assignments concurrently in batches of 5
+    const wondeUsers = usersWithWonde.results || [];
+    const ASSIGN_CONCURRENCY = 5;
+    for (let i = 0; i < wondeUsers.length; i += ASSIGN_CONCURRENCY) {
+      const batch = wondeUsers.slice(i, i + ASSIGN_CONCURRENCY);
+      const results = await Promise.allSettled(
+        batch.map(u => syncUserClassAssignments(db, u.id, u.wonde_employee_id, orgId))
+      );
+      for (let j = 0; j < results.length; j++) {
+        if (results[j].status === 'rejected') {
+          console.warn(`[WondeSync] Could not sync class assignments for user ${batch[j].id}:`, results[j].reason?.message);
+        }
       }
     }
 
