@@ -126,8 +126,8 @@ describe('SessionForm Component', () => {
       expect(screen.getByLabelText('Student')).toBeInTheDocument();
       // Date picker is now in header without a label - find by type
       expect(screen.getByDisplayValue(new Date().toISOString().split('T')[0])).toBeInTheDocument();
-      expect(screen.getByText('Location')).toBeInTheDocument();
-      expect(screen.getByText('Assessment:')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^school$/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^home$/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /save reading session/i })).toBeInTheDocument();
     });
 
@@ -145,8 +145,8 @@ describe('SessionForm Component', () => {
       const context = createMockContext();
       render(<SessionForm />, { wrapper: createWrapper(context) });
 
-      const schoolRadio = screen.getByLabelText('School');
-      expect(schoolRadio).toBeChecked();
+      const schoolButton = screen.getByRole('button', { name: /^school$/i });
+      expect(schoolButton).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('should handle empty students array gracefully', () => {
@@ -278,11 +278,11 @@ describe('SessionForm Component', () => {
       const user = userEvent.setup();
       render(<SessionForm />, { wrapper: createWrapper(context) });
 
-      const homeRadio = screen.getByLabelText('Home');
-      await user.click(homeRadio);
+      const homeButton = screen.getByRole('button', { name: /^home$/i });
+      await user.click(homeButton);
 
-      expect(homeRadio).toBeChecked();
-      expect(screen.getByLabelText('School')).not.toBeChecked();
+      expect(homeButton).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByRole('button', { name: /^school$/i })).toHaveAttribute('aria-pressed', 'false');
     });
   });
 
@@ -455,8 +455,8 @@ describe('SessionForm Component', () => {
       await user.click(screen.getByText('Bob Jones'));
 
       // Change location to home
-      const homeRadio = screen.getByLabelText('Home');
-      await user.click(homeRadio);
+      const homeButton = screen.getByRole('button', { name: /^home$/i });
+      await user.click(homeButton);
 
       // Submit the form
       const submitButton = screen.getByRole('button', { name: /save reading session/i });

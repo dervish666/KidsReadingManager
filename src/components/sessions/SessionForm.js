@@ -11,10 +11,8 @@ import {
   Paper,
   Alert,
   Snackbar,
-  RadioGroup,
-  Radio,
-  FormControlLabel,
-  FormLabel,
+  ToggleButton,
+  ToggleButtonGroup,
   Chip,
   Popover,
   IconButton
@@ -197,10 +195,6 @@ const SessionForm = () => {
     setDate(event.target.value);
   };
 
-
-  const handleLocationChange = (event) => {
-    setSelectedLocation(event.target.value);
-  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -527,33 +521,42 @@ const SessionForm = () => {
                 )}
               </Box>
 
-              {/* Row 3: Location radio + Assessment */}
-              <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                <FormControl component="fieldset" sx={{
-                  p: 2,
-                  borderRadius: 4,
-                  border: '1px solid rgba(0,0,0,0.05)',
-                  backgroundColor: 'rgba(255,255,255,0.3)'
-                }}>
-                  <FormLabel component="legend" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: '#4A4A4A', mb: 1 }}>Location</FormLabel>
-                  <RadioGroup
-                    aria-label="location"
-                    value={selectedLocation}
-                    onChange={handleLocationChange}
-                    row
+              {/* Row 3: Location toggle + Assessment */}
+              <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+                <ToggleButtonGroup
+                  value={selectedLocation}
+                  exclusive
+                  onChange={(e, val) => { if (val !== null) setSelectedLocation(val); }}
+                  size="small"
+                  sx={{ flexShrink: 0 }}
+                >
+                  <ToggleButton value="school" aria-label="School"
+                    sx={{
+                      px: 2,
+                      borderRadius: '8px 0 0 8px',
+                      textTransform: 'none',
+                      '&.Mui-selected': { bgcolor: '#6B8E6B', color: '#fff', '&:hover': { bgcolor: '#5A7D5A' } }
+                    }}
                   >
-                    <FormControlLabel value="school" control={<Radio sx={{ color: '#6B8E6B', '&.Mui-checked': { color: '#6B8E6B' } }} />} label="School" />
-                    <FormControlLabel value="home" control={<Radio sx={{ color: '#6B8E6B', '&.Mui-checked': { color: '#6B8E6B' } }} />} label="Home" />
-                  </RadioGroup>
-                </FormControl>
-                <Box>
-                  <Typography variant="subtitle1" gutterBottom sx={{ mb: 1, fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: '#4A4A4A' }}>
-                    Assessment:
-                  </Typography>
+                    School
+                  </ToggleButton>
+                  <ToggleButton value="home" aria-label="Home"
+                    sx={{
+                      px: 2,
+                      borderRadius: '0 8px 8px 0',
+                      textTransform: 'none',
+                      '&.Mui-selected': { bgcolor: '#6B8E6B', color: '#fff', '&:hover': { bgcolor: '#5A7D5A' } }
+                    }}
+                  >
+                    Home
+                  </ToggleButton>
+                </ToggleButtonGroup>
+
+                <Box sx={{ flex: 1, minWidth: 250 }}>
                   <AssessmentSelector
                     value={assessment}
                     onChange={handleAssessmentChange}
-                    direction="column"
+                    direction="row"
                   />
                 </Box>
               </Box>
