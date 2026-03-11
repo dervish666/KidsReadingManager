@@ -1,35 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Box, Typography } from '@mui/material';
+import React from 'react';
+import { Box, Chip, Typography } from '@mui/material';
 import WhatshotIcon from '@mui/icons-material/Whatshot';
-import { useAppContext } from '../../contexts/AppContext';
 
 /**
- * Displays student context information: reading level, streak, last session, recent books
+ * Compact inline chip bar showing student reading context:
+ * [Last read: 6 days ago] [streak icon 3 day streak] [Level 2.0-4.5]
  */
 const StudentInfoCard = ({ student }) => {
-  const { fetchWithAuth } = useAppContext();
-  const [recentSessions, setRecentSessions] = useState([]);
-
-  useEffect(() => {
-    if (!student?.id) {
-      setRecentSessions([]);
-      return;
-    }
-    fetchWithAuth(`/api/students/${student.id}/sessions?limit=5`)
-      .then(r => r.ok ? r.json() : [])
-      .then(setRecentSessions)
-      .catch(() => setRecentSessions([]));
-  }, [student?.id, fetchWithAuth]);
-
   if (!student) return null;
 
   const { name, readingLevelMin, readingLevelMax, currentStreak, lastReadDate, totalSessionCount = 0 } = student;
-
-  // Derive recent books from fetched sessions (already sorted DESC)
-  const recentBooks = recentSessions
-    .filter(s => s.bookTitle)
-    .slice(0, 3)
-    .map(s => s.bookTitle);
 
   // Format last read date as relative time
   const formatLastRead = (dateStr) => {
@@ -53,28 +33,22 @@ const StudentInfoCard = ({ student }) => {
   const formatLevel = () => {
     if (readingLevelMin == null && readingLevelMax == null) return null;
     if (readingLevelMin === readingLevelMax) return `Level ${readingLevelMin}`;
-    if (readingLevelMin == null) return `Level ≤${readingLevelMax}`;
+    if (readingLevelMin == null) return `Level \u2264${readingLevelMax}`;
     if (readingLevelMax == null) return `Level ${readingLevelMin}+`;
     return `Level ${readingLevelMin}-${readingLevelMax}`;
   };
 
   const levelText = formatLevel();
   const lastReadText = formatLastRead(lastReadDate);
-  const hasHistory = totalSessionCount > 0 || recentSessions.length > 0;
+  const hasHistory = totalSessionCount > 0;
 
-  // Empty state
+  // Empty state: single-line italic text
   if (!hasHistory && !levelText) {
     return (
       <Box
         role="region"
         aria-label={`Reading information for ${name || 'student'}`}
-        sx={{
-          p: 2,
-          borderRadius: 4,
-          backgroundColor: 'rgba(255,255,255,0.5)',
-          border: '1px solid rgba(255,255,255,0.6)',
-          boxShadow: 'inset 2px 2px 4px rgba(139, 115, 85, 0.1), inset -2px -2px 4px rgba(255, 255, 255, 0.8)',
-        }}
+        sx={{ display: 'flex', alignItems: 'center', minHeight: 32 }}
       >
         <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
           No reading history yet
@@ -87,60 +61,29 @@ const StudentInfoCard = ({ student }) => {
     <Box
       role="region"
       aria-label={`Reading information for ${name || 'student'}`}
-      sx={{
-        p: 2,
-        borderRadius: 4,
-        backgroundColor: 'rgba(255,255,255,0.5)',
-        border: '1px solid rgba(255,255,255,0.6)',
-        boxShadow: 'inset 2px 2px 4px rgba(139, 115, 85, 0.1), inset -2px -2px 4px rgba(255, 255, 255, 0.8)',
-      }}
+      sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap', minHeight: 32 }}
     >
-      {/* Line 1: Level and Streak */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-        {levelText && (
-          <Typography variant="body2" sx={{ fontWeight: 600, color: '#4A4A4A' }}>
-            {levelText}
-          </Typography>
-        )}
-        {levelText && currentStreak > 0 && (
-          <Typography variant="body2" color="text.secondary" aria-hidden="true">·</Typography>
-        )}
-        {currentStreak > 0 && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <WhatshotIcon aria-hidden="true" sx={{ fontSize: 16, color: '#F59E0B' }} />
-            <Typography variant="body2" sx={{ fontWeight: 600, color: '#F59E0B' }}>
-              {currentStreak} {currentStreak === 1 ? 'day' : 'days'} reading streak
-            </Typography>
-          </Box>
-        )}
-      </Box>
-
-      {/* Line 2: Last read date */}
       {lastReadText && (
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-          Last read: {lastReadText}
-        </Typography>
+        <Chip
+          label={`Last read: ${lastReadText}`}
+          size="small"
+          variant="outlined"
+        />
       )}
-
-      {/* Line 3+: Recent books */}
-      {recentBooks.length > 0 && (
-        <Box sx={{ mt: 1.5 }}>
-          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-            Recent:
-          </Typography>
-          <Box component="ul" sx={{ m: 0, pl: 2, mt: 0.5 }}>
-            {recentBooks.map((title, idx) => (
-              <Typography
-                key={idx}
-                component="li"
-                variant="body2"
-                sx={{ color: '#4A4A4A', fontSize: '0.85rem' }}
-              >
-                {title}
-              </Typography>
-            ))}
-          </Box>
-        </Box>
+      {currentStreak > 0 && (
+        <Chip
+          icon={<WhatshotIcon sx={{ fontSize: 16, color: '#F59E0B' }} />}
+          label={`${currentStreak} ${currentStreak === 1 ? 'day' : 'days'} streak`}
+          size="small"
+          variant="outlined"
+        />
+      )}
+      {levelText && (
+        <Chip
+          label={levelText}
+          size="small"
+          variant="outlined"
+        />
       )}
     </Box>
   );
