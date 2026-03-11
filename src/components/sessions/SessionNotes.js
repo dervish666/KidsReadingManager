@@ -12,7 +12,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 
 const SessionNotes = ({ value, onChange, defaultExpanded = false }) => {
-  const [expanded, setExpanded] = useState(defaultExpanded || false);
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const [isRecording, setIsRecording] = useState(false);
   const [speechRecognitionSupported] = useState(
     'SpeechRecognition' in window || 'webkitSpeechRecognition' in window
