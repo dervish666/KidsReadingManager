@@ -37,6 +37,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { useAppContext } from '../../contexts/AppContext';
 import BookAutocomplete from './BookAutocomplete';
+import BookCover from '../BookCover';
 
 // Reading status types for home reading
 const READING_STATUS = {
@@ -62,6 +63,25 @@ const formatDateDisplay = (dateStr) => {
     day: 'numeric',
     month: 'short'
   });
+};
+
+// Format assessment for display
+const formatAssessment = (assessment) => {
+  switch (assessment) {
+    case 'struggling': return 'Needing Help';
+    case 'needs-help': return 'Moderate Help';
+    case 'independent': return 'Independent';
+    default: return null;
+  }
+};
+
+const getAssessmentColor = (assessment) => {
+  switch (assessment) {
+    case 'struggling': return 'error';
+    case 'needs-help': return 'warning';
+    case 'independent': return 'success';
+    default: return 'default';
+  }
 };
 
 const DATE_PRESETS = {
@@ -160,6 +180,9 @@ const HomeReadingRegister = () => {
   const [multipleCountDialog, setMultipleCountDialog] = useState(false);
   const [multipleCount, setMultipleCount] = useState(5);
   const [showInputPanel, setShowInputPanel] = useState(true);
+  const [studentHistory, setStudentHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyRefresh, setHistoryRefresh] = useState(0);
 
   const [datePreset, setDatePreset] = useState(DATE_PRESETS.THIS_WEEK);
   const [customStartDate, setCustomStartDate] = useState('');
@@ -302,6 +325,29 @@ const HomeReadingRegister = () => {
       .then(setClassSessions)
       .catch(() => {});
   }, [effectiveClassId, startDateISO, endDateISO, fetchWithAuth]);
+
+  // Fetch selected student's full reading history
+  useEffect(() => {
+    if (!selectedStudent?.id) {
+      setStudentHistory([]);
+      return;
+    }
+    setHistoryLoading(true);
+    fetchWithAuth(`/api/students/${selectedStudent.id}/sessions`)
+      .then(r => r.ok ? r.json() : [])
+      .then(sessions => {
+        // Filter out absent/no_record markers, sort newest first
+        const real = sessions
+          .filter(s => !s.notes?.includes('[ABSENT]') && !s.notes?.includes('[NO_RECORD]') && !s.notes?.includes('[COUNT:'))
+          .sort((a, b) => new Date(b.date) - new Date(a.date));
+        setStudentHistory(real);
+        setHistoryLoading(false);
+      })
+      .catch(() => {
+        setStudentHistory([]);
+        setHistoryLoading(false);
+      });
+  }, [selectedStudent?.id, fetchWithAuth, historyRefresh]);
 
   // Build a sessions-by-student lookup for O(1) access
   const sessionsByStudent = useMemo(() => {
@@ -497,6 +543,7 @@ const HomeReadingRegister = () => {
       }
 
       refreshSessions();
+      setHistoryRefresh(c => c + 1);
       setSnackbarMessage(`Cleared home reading entry for ${student.name}`);
       setSnackbarSeverity('info');
       setSnackbarOpen(true);
@@ -555,6 +602,7 @@ const HomeReadingRegister = () => {
       }
 
       refreshSessions();
+      setHistoryRefresh(c => c + 1);
       setSnackbarMessage(`Recorded ${count > 1 ? count + ' sessions' : ''} for ${selectedStudent.name}`);
       setSnackbarSeverity('success');
       setSnackbarOpen(true);
@@ -1158,81 +1206,110 @@ const HomeReadingRegister = () => {
         </TableContainer>
       </Paper>
 
-      {/* Totals Summary */}
-      <Paper sx={{ p: 2 }}>
-        <Typography variant="h6" gutterBottom>
-          Summary for {formatDateDisplay(selectedDate)}
-        </Typography>
-        <Box sx={{ 
-          display: 'flex', 
-          flexWrap: 'wrap', 
-          gap: 2,
-          justifyContent: 'center'
-        }}>
-          <Chip 
-            label={`Total Students: ${registerTotals.totalStudents}`}
-            variant="outlined"
-          />
-          <Chip 
-            label={`Read: ${registerTotals.read}`}
-            color="success"
-            icon={<CheckIcon />}
-          />
-          <Chip 
-            label={`Multiple: ${registerTotals.multipleSessions}`}
-            color="primary"
-          />
-          <Chip 
-            label={`Absent: ${registerTotals.absent}`}
-            color="warning"
-          />
-          <Chip 
-            label={`No Record: ${registerTotals.noRecord}`}
-            color="default"
-          />
-          <Chip 
-            label={`Not Entered: ${registerTotals.notEntered}`}
-            variant="outlined"
-            color="error"
-          />
-          <Chip 
-            label={`Total Sessions: ${registerTotals.totalSessions}`}
-            color="secondary"
-            sx={{ fontWeight: 'bold' }}
-          />
-        </Box>
-      </Paper>
-
-      {/* Legend */}
-      <Box sx={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: 2,
-        mt: 2,
-        justifyContent: 'center',
-        fontSize: '0.75rem'
-      }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box sx={{ width: 20, height: 20, backgroundColor: 'success.light', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'success.dark', fontWeight: 'bold', fontSize: '0.7rem' }}>✓</Box>
-          <Typography variant="caption">Read</Typography>
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box sx={{ width: 20, height: 20, backgroundColor: 'success.main', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '0.7rem' }}>2</Box>
-          <Typography variant="caption">Multiple</Typography>
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box sx={{ width: 20, height: 20, backgroundColor: 'warning.light', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'warning.dark', fontWeight: 'bold', fontSize: '0.7rem' }}>A</Box>
-          <Typography variant="caption">Absent</Typography>
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box sx={{ width: 20, height: 20, backgroundColor: 'grey.200', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'grey.600', fontWeight: 'bold', fontSize: '0.7rem' }}>•</Box>
-          <Typography variant="caption">No Record</Typography>
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box sx={{ width: 20, height: 20, backgroundColor: 'background.paper', border: '1px solid', borderColor: 'grey.300', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'grey.400', fontWeight: 'bold', fontSize: '0.7rem' }}>-</Box>
-          <Typography variant="caption">Not Entered</Typography>
-        </Box>
+      {/* Summary chips + Legend — compact single row */}
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <Chip label={`${registerTotals.read} Read`} color="success" size="small" icon={<CheckIcon />} />
+        <Chip label={`${registerTotals.multipleSessions} Multiple`} color="primary" size="small" />
+        <Chip label={`${registerTotals.absent} Absent`} color="warning" size="small" />
+        <Chip label={`${registerTotals.noRecord} No Record`} size="small" />
+        <Chip label={`${registerTotals.notEntered} Not Entered`} variant="outlined" color="error" size="small" />
+        <Chip label={`${registerTotals.totalSessions} Total`} color="secondary" size="small" sx={{ fontWeight: 'bold' }} />
       </Box>
+
+      {/* Student Reading History */}
+      {selectedStudent && (
+        <Paper sx={{ p: 2 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1.5 }}>
+            Reading History — {selectedStudent.name}
+          </Typography>
+          {historyLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+              <CircularProgress size={28} />
+            </Box>
+          ) : studentHistory.length === 0 ? (
+            <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+              No reading sessions recorded yet
+            </Typography>
+          ) : (
+            <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 1 }}>
+              {studentHistory.slice(0, 20).map((session) => {
+                const book = session.bookId ? booksMap.get(session.bookId) : null;
+                const assessment = formatAssessment(session.assessment);
+                const sessionDate = new Date(session.date);
+                const dateLabel = sessionDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                return (
+                  <Box
+                    key={session.id}
+                    sx={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      minWidth: 90,
+                      maxWidth: 90,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <BookCover
+                      title={book?.title || 'Unknown'}
+                      author={book?.author}
+                      width={70}
+                      height={100}
+                    />
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        mt: 0.5,
+                        fontWeight: 600,
+                        textAlign: 'center',
+                        lineHeight: 1.2,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        fontSize: '0.7rem',
+                        width: '100%',
+                      }}
+                    >
+                      {book?.title || 'No book'}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+                      {dateLabel}
+                    </Typography>
+                    {assessment && (
+                      <Chip
+                        label={assessment}
+                        color={getAssessmentColor(session.assessment)}
+                        size="small"
+                        sx={{ height: 18, fontSize: '0.6rem', mt: 0.25 }}
+                      />
+                    )}
+                    {session.notes && !session.notes.startsWith('[') && (
+                      <Tooltip title={session.notes}>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{
+                            fontSize: '0.6rem',
+                            fontStyle: 'italic',
+                            textAlign: 'center',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 1,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                            width: '100%',
+                          }}
+                        >
+                          {session.notes}
+                        </Typography>
+                      </Tooltip>
+                    )}
+                  </Box>
+                );
+              })}
+            </Box>
+          )}
+        </Paper>
+      )}
 
       {/* Multiple Count Dialog */}
       <Dialog open={multipleCountDialog} onClose={() => setMultipleCountDialog(false)}>

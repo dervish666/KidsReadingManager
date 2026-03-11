@@ -161,11 +161,10 @@ describe('HomeReadingRegister Component', () => {
       const context = createMockContext({ globalClassFilter: 'class-1' });
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
 
-      // Find summary chips
-      expect(screen.getByText(/Total Students:/)).toBeInTheDocument();
-      expect(screen.getByText(/Read:/)).toBeInTheDocument();
-      expect(screen.getByText(/Absent:/)).toBeInTheDocument();
-      expect(screen.getByText(/No Record:/)).toBeInTheDocument();
+      // Find summary chips (format: "N Label")
+      expect(screen.getByText(/\d+ Read/)).toBeInTheDocument();
+      expect(screen.getByText(/\d+ Absent/)).toBeInTheDocument();
+      expect(screen.getByText(/\d+ No Record/)).toBeInTheDocument();
     });
 
     it('should fetch sessions when class is selected', () => {
@@ -297,10 +296,8 @@ describe('HomeReadingRegister Component', () => {
       const context = createMockContext({ globalClassFilter: 'class-1' });
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
 
-      // The chip should show the formatted date (weekday, day, month)
-      // The summary section title includes the formatted date
-      const summarySection = screen.getByText(/Summary for/i);
-      expect(summarySection).toBeInTheDocument();
+      // Summary chips should be rendered
+      expect(screen.getByText(/\d+ Read/)).toBeInTheDocument();
     });
   });
 
@@ -825,15 +822,14 @@ describe('HomeReadingRegister Component', () => {
       });
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
 
-      // Wait for sessions to load, then check totals
+      // Wait for sessions to load, then check totals (format: "N Label")
       await waitFor(() => {
-        expect(screen.getByText('Total Students: 5')).toBeInTheDocument();
-        expect(screen.getByText('Read: 1')).toBeInTheDocument();
-        expect(screen.getByText('Multiple: 1')).toBeInTheDocument();
-        expect(screen.getByText('Absent: 1')).toBeInTheDocument();
-        expect(screen.getByText('No Record: 1')).toBeInTheDocument();
-        expect(screen.getByText('Not Entered: 1')).toBeInTheDocument();
-        expect(screen.getByText('Total Sessions: 3')).toBeInTheDocument(); // 1 + 2 = 3
+        expect(screen.getByText('1 Read')).toBeInTheDocument();
+        expect(screen.getByText('1 Multiple')).toBeInTheDocument();
+        expect(screen.getByText('1 Absent')).toBeInTheDocument();
+        expect(screen.getByText('1 No Record')).toBeInTheDocument();
+        expect(screen.getByText('1 Not Entered')).toBeInTheDocument();
+        expect(screen.getByText('3 Total')).toBeInTheDocument(); // 1 + 2 = 3
       });
     });
   });

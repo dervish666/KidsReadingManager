@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.17.0] - 2026-03-11
+
+### Added
+- **Student reading history panel** — horizontal scrollable strip below the register table showing selected student's recent sessions with book covers, titles, dates, assessment chips, and notes
+
+### Changed
+- **Summary chips compacted** — totals section condensed from full Paper with heading to a single row of small chips
+
 ## [3.16.1] - 2026-03-11
 
 ### Changed
