@@ -101,6 +101,12 @@ const createMockContext = (overrides = {}) => ({
   ...overrides
 });
 
+// Helper to open the book edit popover (clicks the edit icon button)
+const openBookEditPopover = async (user) => {
+  const editButton = screen.getByRole('button', { name: /edit book details/i });
+  await user.click(editButton);
+};
+
 describe('SessionForm Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -311,7 +317,7 @@ describe('SessionForm Component', () => {
       expect(screen.getByLabelText(/book/i)).toBeInTheDocument();
     });
 
-    it('should show book details panel when a book is selected', async () => {
+    it('should show compact book display when a book is selected', async () => {
       const context = createMockContext();
       const user = userEvent.setup();
       render(<SessionForm />, { wrapper: createWrapper(context) });
@@ -324,8 +330,28 @@ describe('SessionForm Component', () => {
       const option = await screen.findByText(/the cat in the hat/i);
       await user.click(option);
 
-      // Book details panel should appear
-      expect(screen.getByText('Selected Book Details')).toBeInTheDocument();
+      // Compact display should appear with title, author, Change button, and edit icon
+      // Title appears in both BookCover mock and compact text, so use getAllByText
+      expect(screen.getAllByText('The Cat in the Hat').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText('by Dr. Seuss')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /change/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /edit book details/i })).toBeInTheDocument();
+    });
+
+    it('should open book edit popover when edit icon is clicked', async () => {
+      const context = createMockContext();
+      const user = userEvent.setup();
+      render(<SessionForm />, { wrapper: createWrapper(context) });
+
+      const bookInput = screen.getByLabelText(/book/i);
+      await user.type(bookInput, 'Cat in');
+      const option = await screen.findByText(/the cat in the hat/i);
+      await user.click(option);
+
+      await openBookEditPopover(user);
+
+      // Popover should show book detail fields
+      expect(screen.getByText('Edit Book Details')).toBeInTheDocument();
       expect(screen.getByLabelText('Author')).toBeInTheDocument();
       expect(screen.getByLabelText('Reading Level')).toBeInTheDocument();
       expect(screen.getByLabelText('Age Range')).toBeInTheDocument();
@@ -341,6 +367,8 @@ describe('SessionForm Component', () => {
 
       const option = await screen.findByText(/the cat in the hat/i);
       await user.click(option);
+
+      await openBookEditPopover(user);
 
       // Check that fields are populated with book data
       expect(screen.getByLabelText('Author')).toHaveValue('Dr. Seuss');
@@ -482,7 +510,7 @@ describe('SessionForm Component', () => {
   });
 
   describe('Get Book Details Button', () => {
-    it('should show Get Details button when book is selected', async () => {
+    it('should show Get Details button when book is selected and popover is open', async () => {
       const context = createMockContext();
       const user = userEvent.setup();
       render(<SessionForm />, { wrapper: createWrapper(context) });
@@ -491,6 +519,8 @@ describe('SessionForm Component', () => {
       await user.type(bookInput, 'Cat');
       const option = await screen.findByText(/the cat in the hat/i);
       await user.click(option);
+
+      await openBookEditPopover(user);
 
       expect(screen.getByRole('button', { name: /get details/i })).toBeInTheDocument();
     });
@@ -504,6 +534,8 @@ describe('SessionForm Component', () => {
       await user.type(bookInput, 'Cat');
       const option = await screen.findByText(/the cat in the hat/i);
       await user.click(option);
+
+      await openBookEditPopover(user);
 
       const getDetailsButton = screen.getByRole('button', { name: /get details/i });
       await user.click(getDetailsButton);
@@ -531,6 +563,8 @@ describe('SessionForm Component', () => {
       const option = await screen.findByText(/the cat in the hat/i);
       await user.click(option);
 
+      await openBookEditPopover(user);
+
       const getDetailsButton = screen.getByRole('button', { name: /get details/i });
       await user.click(getDetailsButton);
 
@@ -553,6 +587,8 @@ describe('SessionForm Component', () => {
       await user.type(bookInput, 'Cat');
       const option = await screen.findByText(/the cat in the hat/i);
       await user.click(option);
+
+      await openBookEditPopover(user);
 
       const getDetailsButton = screen.getByRole('button', { name: /get details/i });
       await user.click(getDetailsButton);
@@ -577,6 +613,8 @@ describe('SessionForm Component', () => {
       const option = await screen.findByText(/the cat in the hat/i);
       await user.click(option);
 
+      await openBookEditPopover(user);
+
       const getDetailsButton = screen.getByRole('button', { name: /get details/i });
       await user.click(getDetailsButton);
 
@@ -594,6 +632,8 @@ describe('SessionForm Component', () => {
       await user.type(bookInput, 'Cat');
       const option = await screen.findByText(/the cat in the hat/i);
       await user.click(option);
+
+      await openBookEditPopover(user);
 
       const getDetailsButton = screen.getByRole('button', { name: /get details/i });
       await user.click(getDetailsButton);
@@ -615,6 +655,8 @@ describe('SessionForm Component', () => {
       const option = await screen.findByText(/the cat in the hat/i);
       await user.click(option);
 
+      await openBookEditPopover(user);
+
       const getDetailsButton = screen.getByRole('button', { name: /get details/i });
       await user.click(getDetailsButton);
 
@@ -625,7 +667,7 @@ describe('SessionForm Component', () => {
   });
 
   describe('Update Book Button', () => {
-    it('should show Update Book button when book is selected', async () => {
+    it('should show Update Book button when book is selected and popover is open', async () => {
       const context = createMockContext();
       const user = userEvent.setup();
       render(<SessionForm />, { wrapper: createWrapper(context) });
@@ -634,6 +676,8 @@ describe('SessionForm Component', () => {
       await user.type(bookInput, 'Cat');
       const option = await screen.findByText(/the cat in the hat/i);
       await user.click(option);
+
+      await openBookEditPopover(user);
 
       expect(screen.getByRole('button', { name: /update book/i })).toBeInTheDocument();
     });
@@ -648,6 +692,8 @@ describe('SessionForm Component', () => {
       await user.type(bookInput, 'Cat');
       const option = await screen.findByText(/the cat in the hat/i);
       await user.click(option);
+
+      await openBookEditPopover(user);
 
       // Edit the author field
       const authorInput = screen.getByLabelText('Author');
@@ -678,6 +724,8 @@ describe('SessionForm Component', () => {
       const option = await screen.findByText(/the cat in the hat/i);
       await user.click(option);
 
+      await openBookEditPopover(user);
+
       const updateButton = screen.getByRole('button', { name: /update book/i });
       await user.click(updateButton);
 
@@ -697,6 +745,8 @@ describe('SessionForm Component', () => {
       const option = await screen.findByText(/the cat in the hat/i);
       await user.click(option);
 
+      await openBookEditPopover(user);
+
       const updateButton = screen.getByRole('button', { name: /update book/i });
       await user.click(updateButton);
 
@@ -710,7 +760,7 @@ describe('SessionForm Component', () => {
       const context = createMockContext();
       render(<SessionForm />, { wrapper: createWrapper(context) });
 
-      // Update Book button should not be visible
+      // Update Book button should not be visible (no book selected, no popover)
       expect(screen.queryByRole('button', { name: /update book/i })).not.toBeInTheDocument();
     });
 
@@ -724,6 +774,8 @@ describe('SessionForm Component', () => {
       await user.type(bookInput, 'Cat');
       const option = await screen.findByText(/the cat in the hat/i);
       await user.click(option);
+
+      await openBookEditPopover(user);
 
       // Edit the author field with whitespace
       const authorInput = screen.getByLabelText('Author');
@@ -754,6 +806,8 @@ describe('SessionForm Component', () => {
       await user.type(bookInput, 'Cat');
       const option = await screen.findByText(/the cat in the hat/i);
       await user.click(option);
+
+      await openBookEditPopover(user);
 
       // Edit the author field
       const authorInput = screen.getByLabelText('Author');
@@ -789,6 +843,8 @@ describe('SessionForm Component', () => {
       const option = await screen.findByText(/the cat in the hat/i);
       await user.click(option);
 
+      await openBookEditPopover(user);
+
       const getDetailsButton = screen.getByRole('button', { name: /get details/i });
       await user.click(getDetailsButton);
 
@@ -816,6 +872,8 @@ describe('SessionForm Component', () => {
       const option = await screen.findByText(/the cat in the hat/i);
       await user.click(option);
 
+      await openBookEditPopover(user);
+
       // validateProviderConfig should handle undefined settings
       const getDetailsButton = screen.getByRole('button', { name: /get details/i });
       await user.click(getDetailsButton);
@@ -827,7 +885,7 @@ describe('SessionForm Component', () => {
   });
 
   describe('Genre Selection', () => {
-    it('should display genre selector in book details panel', async () => {
+    it('should display genre selector in book details popover', async () => {
       const context = createMockContext();
       const user = userEvent.setup();
       render(<SessionForm />, { wrapper: createWrapper(context) });
@@ -836,6 +894,8 @@ describe('SessionForm Component', () => {
       await user.type(bookInput, 'Cat');
       const option = await screen.findByText(/the cat in the hat/i);
       await user.click(option);
+
+      await openBookEditPopover(user);
 
       expect(screen.getByLabelText('Genres')).toBeInTheDocument();
     });

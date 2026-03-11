@@ -16,10 +16,13 @@ import {
   Radio,
   FormControlLabel,
   FormLabel,
-  Chip
+  Chip,
+  Popover,
+  IconButton
 } from '@mui/material';
 import StarIcon from '@mui/icons-material/Star';
 import DownloadIcon from '@mui/icons-material/Download';
+import EditIcon from '@mui/icons-material/Edit';
 import { useAppContext } from '../../contexts/AppContext';
 import BookCover from '../BookCover';
 import AssessmentSelector from './AssessmentSelector';
@@ -50,6 +53,8 @@ const SessionForm = () => {
   const [selectedLocation, setSelectedLocation] = useState('school');
   const [isCreatingBook, setIsCreatingBook] = useState(false);
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
+  const [bookEditAnchor, setBookEditAnchor] = useState(null);
+  const bookEditOpen = Boolean(bookEditAnchor);
 
   const handleBookChange = (book) => {
     const bookId = book ? book.id : '';
@@ -379,59 +384,43 @@ const SessionForm = () => {
               <Grid container item size={12} spacing={3}>
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <Box sx={{ mb: 1 }}>
-                    {/* Book selection with autocomplete */}
-                    <BookAutocomplete
-                      value={books.find(book => book.id === selectedBookId) || null}
-                      onChange={handleBookChange}
-                      onBookCreated={handleBookChange}
-                      onBookCreationStart={handleBookCreationStart}
-                    />
-                  </Box>
-                  {/* Location Radio Buttons */}
-                  <FormControl component="fieldset" sx={{
-                    width: '100%',
-                    p: 2,
-                    borderRadius: 4,
-                    border: '1px solid rgba(0,0,0,0.05)',
-                    backgroundColor: 'rgba(255,255,255,0.3)'
-                  }}>
-                    <FormLabel component="legend" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: '#4A4A4A', mb: 1 }}>Location</FormLabel>
-                    <RadioGroup
-                      aria-label="location"
-                      value={selectedLocation}
-                      onChange={handleLocationChange}
-                      row
-                    >
-                      <FormControlLabel value="school" control={<Radio sx={{ color: '#6B8E6B', '&.Mui-checked': { color: '#6B8E6B' } }} />} label="School" />
-                      <FormControlLabel value="home" control={<Radio sx={{ color: '#6B8E6B', '&.Mui-checked': { color: '#6B8E6B' } }} />} label="Home" />
-                    </RadioGroup>
-                  </FormControl>
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  {/* Editable selected book details with explicit Update button */}
-                  {selectedBookId && (
-                    <Box sx={{
-                      p: 3,
-                      borderRadius: 4,
-                      backgroundColor: 'rgba(255,255,255,0.5)',
-                      border: '1px solid rgba(255,255,255,0.6)',
-                      boxShadow: 'inset 2px 2px 4px rgba(139, 115, 85, 0.1), inset -2px -2px 4px rgba(255, 255, 255, 0.8)',
-                      height: '100%'
-                    }}>
-                      <Typography variant="subtitle2" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: '#4A4A4A' }}>
-                        Selected Book Details
-                      </Typography>
-                      <Box sx={{ display: 'flex', gap: 2 }}>
-                        <Box sx={{ flexShrink: 0 }}>
-                          <BookCover
-                            title={books.find(b => b.id === selectedBookId)?.title || ''}
-                            author={bookAuthor || null}
-                            width={80}
-                            height={120}
-                          />
+                    {/* Compact book display when selected, autocomplete when not */}
+                    {selectedBookId ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <BookCover
+                          title={books.find(b => b.id === selectedBookId)?.title || ''}
+                          author={bookAuthor || null}
+                          width={40}
+                          height={60}
+                        />
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="body1" noWrap sx={{ fontWeight: 600, color: '#4A4A4A' }}>
+                            {books.find(b => b.id === selectedBookId)?.title || ''}
+                          </Typography>
+                          {bookAuthor && (
+                            <Typography variant="body2" color="text.secondary" noWrap>
+                              by {bookAuthor}
+                            </Typography>
+                          )}
                         </Box>
-                        <Grid container spacing={2} sx={{ flex: 1 }}>
-                          <Grid size={12}>
+                        <Button size="small" variant="outlined" onClick={() => handleBookChange(null)} sx={{ borderRadius: 3, flexShrink: 0 }}>
+                          Change
+                        </Button>
+                        <IconButton size="small" onClick={(e) => setBookEditAnchor(e.currentTarget)} aria-label="Edit book details">
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                        <Popover
+                          open={bookEditOpen}
+                          anchorEl={bookEditAnchor}
+                          onClose={() => setBookEditAnchor(null)}
+                          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                          slotProps={{ paper: { sx: { p: 3, borderRadius: 4, maxWidth: 400, width: '90vw' } } }}
+                        >
+                          <Typography variant="subtitle2" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: '#4A4A4A' }}>
+                            Edit Book Details
+                          </Typography>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                             <TextField
                               label="Author"
                               value={bookAuthor}
@@ -440,8 +429,6 @@ const SessionForm = () => {
                               size="small"
                               InputProps={{ sx: { borderRadius: 3, backgroundColor: '#fff' } }}
                             />
-                          </Grid>
-                          <Grid size={12}>
                             <TextField
                               label="Reading Level"
                               value={bookReadingLevel}
@@ -451,8 +438,6 @@ const SessionForm = () => {
                               placeholder="e.g. Blue, Level 4"
                               InputProps={{ sx: { borderRadius: 3, backgroundColor: '#fff' } }}
                             />
-                          </Grid>
-                          <Grid size={12}>
                             <TextField
                               label="Age Range"
                               value={bookAgeRange}
@@ -462,8 +447,6 @@ const SessionForm = () => {
                               placeholder="e.g. 6-8"
                               InputProps={{ sx: { borderRadius: 3, backgroundColor: '#fff' } }}
                             />
-                          </Grid>
-                          <Grid size={12}>
                             <FormControl fullWidth size="small">
                               <InputLabel id="genre-select-label">Genres</InputLabel>
                               <Select
@@ -496,58 +479,86 @@ const SessionForm = () => {
                                 ))}
                               </Select>
                             </FormControl>
-                          </Grid>
-                        </Grid>
+                          </Box>
+                          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', gap: 1 }}>
+                            <Box>
+                              <Button
+                                variant="outlined"
+                                size="small"
+                                onClick={() => {
+                                  const current = books.find(b => b.id === selectedBookId);
+                                  setBookAuthor(current?.author || '');
+                                  setBookReadingLevel(current?.readingLevel || '');
+                                  setBookAgeRange(current?.ageRange || '');
+                                  setBookGenres(current?.genreIds || []);
+                                }}
+                                sx={{ borderRadius: 3, fontWeight: 600 }}
+                              >
+                                Reset
+                              </Button>
+                            </Box>
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                              <Button
+                                variant="outlined"
+                                size="small"
+                                onClick={handleGetBookDetails}
+                                disabled={isFetchingDetails}
+                                startIcon={<DownloadIcon />}
+                                sx={{ borderRadius: 3, fontWeight: 600 }}
+                              >
+                                {isFetchingDetails ? 'Fetching...' : 'Get Details'}
+                              </Button>
+                              <Button
+                                variant="contained"
+                                size="small"
+                                color="primary"
+                                onClick={handleUpdateBookWithDetails}
+                                sx={{
+                                  borderRadius: 3,
+                                  fontWeight: 600,
+                                  background: 'linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%)',
+                                  boxShadow: '4px 4px 8px rgba(107, 142, 107, 0.3)'
+                                }}
+                              >
+                                Update Book
+                              </Button>
+                            </Box>
+                          </Box>
+                          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block', fontStyle: 'italic' }}>
+                            Use "Get Details" to fetch author info from external APIs, then "Update Book" to save changes.
+                          </Typography>
+                        </Popover>
                       </Box>
-                      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', gap: 1 }}>
-                        <Box>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            onClick={() => {
-                              const current = books.find(b => b.id === selectedBookId);
-                              setBookAuthor(current?.author || '');
-                              setBookReadingLevel(current?.readingLevel || '');
-                              setBookAgeRange(current?.ageRange || '');
-                              setBookGenres(current?.genreIds || []);
-                            }}
-                            sx={{ borderRadius: 3, fontWeight: 600 }}
-                          >
-                            Reset
-                          </Button>
-                        </Box>
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            onClick={handleGetBookDetails}
-                            disabled={isFetchingDetails}
-                            startIcon={<DownloadIcon />}
-                            sx={{ borderRadius: 3, fontWeight: 600 }}
-                          >
-                            {isFetchingDetails ? 'Fetching...' : 'Get Details'}
-                          </Button>
-                          <Button
-                            variant="contained"
-                            size="small"
-                            color="primary"
-                            onClick={handleUpdateBookWithDetails}
-                            sx={{
-                              borderRadius: 3,
-                              fontWeight: 600,
-                              background: 'linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%)',
-                              boxShadow: '4px 4px 8px rgba(107, 142, 107, 0.3)'
-                            }}
-                          >
-                            Update Book
-                          </Button>
-                        </Box>
-                      </Box>
-                      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block', fontStyle: 'italic' }}>
-                        Use "Get Details" to fetch author info from external APIs, then "Update Book" to save changes.
-                      </Typography>
-                    </Box>
-                  )}
+                    ) : (
+                      <BookAutocomplete
+                        value={books.find(book => book.id === selectedBookId) || null}
+                        onChange={handleBookChange}
+                        onBookCreated={handleBookChange}
+                        onBookCreationStart={handleBookCreationStart}
+                      />
+                    )}
+                  </Box>
+                  {/* Location Radio Buttons */}
+                  <FormControl component="fieldset" sx={{
+                    width: '100%',
+                    p: 2,
+                    borderRadius: 4,
+                    border: '1px solid rgba(0,0,0,0.05)',
+                    backgroundColor: 'rgba(255,255,255,0.3)'
+                  }}>
+                    <FormLabel component="legend" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: '#4A4A4A', mb: 1 }}>Location</FormLabel>
+                    <RadioGroup
+                      aria-label="location"
+                      value={selectedLocation}
+                      onChange={handleLocationChange}
+                      row
+                    >
+                      <FormControlLabel value="school" control={<Radio sx={{ color: '#6B8E6B', '&.Mui-checked': { color: '#6B8E6B' } }} />} label="School" />
+                      <FormControlLabel value="home" control={<Radio sx={{ color: '#6B8E6B', '&.Mui-checked': { color: '#6B8E6B' } }} />} label="Home" />
+                    </RadioGroup>
+                  </FormControl>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
                 </Grid>
               </Grid>
 
