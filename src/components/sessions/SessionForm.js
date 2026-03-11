@@ -8,7 +8,6 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Grid,
   Paper,
   Alert,
   Snackbar,
@@ -319,252 +318,235 @@ const SessionForm = () => {
           )}
           
           <form onSubmit={handleSubmit}>
-            <Grid container spacing={3}>
-              {/* Student Selection Row - Two Columns */}
-              <Grid container item size={12} spacing={3}>
-                {/* Left column: Student dropdown */}
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <FormControl fullWidth>
-                    <InputLabel id="student-select-label" sx={{ fontFamily: '"DM Sans", sans-serif' }}>Student</InputLabel>
-                    <Select
-                      labelId="student-select-label"
-                      id="student-select"
-                      value={selectedStudentId}
-                      label="Student"
-                      onChange={handleStudentChange}
-                      sx={{
-                        borderRadius: 4,
-                        backgroundColor: '#EFEBF5',
-                        boxShadow: 'inset 4px 4px 8px #d9d4e3, inset -4px -4px 8px #ffffff',
-                        '& fieldset': { border: 'none' },
-                        '&.Mui-focused': { backgroundColor: '#ffffff', boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.2)' },
-                      }}
-                    >
-                      {sortedStudents.length === 0 ? (
-                        <MenuItem disabled>
-                          <Typography variant="body2" color="text.secondary">
-                            {globalClassFilter && globalClassFilter !== 'all' ? 'No students found in this class' : 'No active students available'}
-                          </Typography>
-                        </MenuItem>
-                      ) : (
-                        sortedStudents.map((student) => {
-                          const isRecentlyAccessed = recentlyAccessedStudents.includes(student.id);
-                          return (
-                            <MenuItem key={student.id} value={student.id}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                                {isRecentlyAccessed && (
-                                  <StarIcon sx={{ mr: 1, color: '#F59E0B', fontSize: '1rem' }} />
-                                )}
-                                <Typography variant="inherit" sx={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 500 }}>
-                                  {student.name}
-                                </Typography>
-                                {isRecentlyAccessed && (
-                                  <Typography variant="caption" sx={{ ml: 'auto', color: '#7A7A7A', fontStyle: 'italic' }}>
-                                    Recent
-                                  </Typography>
-                                )}
-                              </Box>
-                            </MenuItem>
-                          );
-                        })
-                      )}
-                    </Select>
-                  </FormControl>
-                </Grid>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
 
-                {/* Right column: Student Info Card (only shown when student selected) */}
-                <Grid size={{ xs: 12, md: 6 }}>
-                  {selectedStudent && (
-                    <StudentInfoCard student={selectedStudent} />
-                  )}
-                </Grid>
-              </Grid>
-
-              {/* Book and Location - Two Columns */}
-              <Grid container item size={12} spacing={3}>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Box sx={{ mb: 1 }}>
-                    {/* Compact book display when selected, autocomplete when not */}
-                    {selectedBookId ? (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <BookCover
-                          title={books.find(b => b.id === selectedBookId)?.title || ''}
-                          author={bookAuthor || null}
-                          width={40}
-                          height={60}
-                        />
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography variant="body1" noWrap sx={{ fontWeight: 600, color: '#4A4A4A' }}>
-                            {books.find(b => b.id === selectedBookId)?.title || ''}
-                          </Typography>
-                          {bookAuthor && (
-                            <Typography variant="body2" color="text.secondary" noWrap>
-                              by {bookAuthor}
-                            </Typography>
-                          )}
-                        </Box>
-                        <Button size="small" variant="outlined" onClick={() => handleBookChange(null)} sx={{ borderRadius: 3, flexShrink: 0 }}>
-                          Change
-                        </Button>
-                        <IconButton size="small" onClick={(e) => setBookEditAnchor(e.currentTarget)} aria-label="Edit book details">
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                        <Popover
-                          open={bookEditOpen}
-                          anchorEl={bookEditAnchor}
-                          onClose={() => setBookEditAnchor(null)}
-                          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                          slotProps={{ paper: { sx: { p: 3, borderRadius: 4, maxWidth: 400, width: '90vw' } } }}
-                        >
-                          <Typography variant="subtitle2" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: '#4A4A4A' }}>
-                            Edit Book Details
-                          </Typography>
-                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            <TextField
-                              label="Author"
-                              value={bookAuthor}
-                              onChange={(e) => setBookAuthor(e.target.value)}
-                              fullWidth
-                              size="small"
-                              InputProps={{ sx: { borderRadius: 3, backgroundColor: '#fff' } }}
-                            />
-                            <TextField
-                              label="Reading Level"
-                              value={bookReadingLevel}
-                              onChange={(e) => setBookReadingLevel(e.target.value)}
-                              fullWidth
-                              size="small"
-                              placeholder="e.g. Blue, Level 4"
-                              InputProps={{ sx: { borderRadius: 3, backgroundColor: '#fff' } }}
-                            />
-                            <TextField
-                              label="Age Range"
-                              value={bookAgeRange}
-                              onChange={(e) => setBookAgeRange(e.target.value)}
-                              fullWidth
-                              size="small"
-                              placeholder="e.g. 6-8"
-                              InputProps={{ sx: { borderRadius: 3, backgroundColor: '#fff' } }}
-                            />
-                            <FormControl fullWidth size="small">
-                              <InputLabel id="genre-select-label">Genres</InputLabel>
-                              <Select
-                                labelId="genre-select-label"
-                                multiple
-                                value={bookGenres}
-                                onChange={(e) => setBookGenres(e.target.value)}
-                                label="Genres"
-                                renderValue={(selected) => (
-                                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                                    {selected.map((value) => {
-                                      const genre = genres.find(g => g.id === value);
-                                      return (
-                                        <Chip
-                                          key={value}
-                                          label={genre?.name || value}
-                                          size="small"
-                                          sx={{ borderRadius: 1 }}
-                                        />
-                                      );
-                                    })}
-                                  </Box>
-                                )}
-                                sx={{ borderRadius: 3, backgroundColor: '#fff' }}
-                              >
-                                {genres.map((genre) => (
-                                  <MenuItem key={genre.id} value={genre.id}>
-                                    {genre.name}
-                                  </MenuItem>
-                                ))}
-                              </Select>
-                            </FormControl>
-                          </Box>
-                          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', gap: 1 }}>
-                            <Box>
-                              <Button
-                                variant="outlined"
-                                size="small"
-                                onClick={() => {
-                                  const current = books.find(b => b.id === selectedBookId);
-                                  setBookAuthor(current?.author || '');
-                                  setBookReadingLevel(current?.readingLevel || '');
-                                  setBookAgeRange(current?.ageRange || '');
-                                  setBookGenres(current?.genreIds || []);
-                                }}
-                                sx={{ borderRadius: 3, fontWeight: 600 }}
-                              >
-                                Reset
-                              </Button>
-                            </Box>
-                            <Box sx={{ display: 'flex', gap: 1 }}>
-                              <Button
-                                variant="outlined"
-                                size="small"
-                                onClick={handleGetBookDetails}
-                                disabled={isFetchingDetails}
-                                startIcon={<DownloadIcon />}
-                                sx={{ borderRadius: 3, fontWeight: 600 }}
-                              >
-                                {isFetchingDetails ? 'Fetching...' : 'Get Details'}
-                              </Button>
-                              <Button
-                                variant="contained"
-                                size="small"
-                                color="primary"
-                                onClick={handleUpdateBookWithDetails}
-                                sx={{
-                                  borderRadius: 3,
-                                  fontWeight: 600,
-                                  background: 'linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%)',
-                                  boxShadow: '4px 4px 8px rgba(107, 142, 107, 0.3)'
-                                }}
-                              >
-                                Update Book
-                              </Button>
-                            </Box>
-                          </Box>
-                          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block', fontStyle: 'italic' }}>
-                            Use "Get Details" to fetch author info from external APIs, then "Update Book" to save changes.
-                          </Typography>
-                        </Popover>
-                      </Box>
+              {/* Row 1: Student dropdown + Info chips inline */}
+              <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                <FormControl sx={{ flex: 1, minWidth: 200 }}>
+                  <InputLabel id="student-select-label" sx={{ fontFamily: '"DM Sans", sans-serif' }}>Student</InputLabel>
+                  <Select
+                    labelId="student-select-label"
+                    id="student-select"
+                    value={selectedStudentId}
+                    label="Student"
+                    onChange={handleStudentChange}
+                    sx={{
+                      borderRadius: 4,
+                      backgroundColor: '#EFEBF5',
+                      boxShadow: 'inset 4px 4px 8px #d9d4e3, inset -4px -4px 8px #ffffff',
+                      '& fieldset': { border: 'none' },
+                      '&.Mui-focused': { backgroundColor: '#ffffff', boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.2)' },
+                    }}
+                  >
+                    {sortedStudents.length === 0 ? (
+                      <MenuItem disabled>
+                        <Typography variant="body2" color="text.secondary">
+                          {globalClassFilter && globalClassFilter !== 'all' ? 'No students found in this class' : 'No active students available'}
+                        </Typography>
+                      </MenuItem>
                     ) : (
-                      <BookAutocomplete
-                        value={books.find(book => book.id === selectedBookId) || null}
-                        onChange={handleBookChange}
-                        onBookCreated={handleBookChange}
-                        onBookCreationStart={handleBookCreationStart}
-                      />
+                      sortedStudents.map((student) => {
+                        const isRecentlyAccessed = recentlyAccessedStudents.includes(student.id);
+                        return (
+                          <MenuItem key={student.id} value={student.id}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                              {isRecentlyAccessed && (
+                                <StarIcon sx={{ mr: 1, color: '#F59E0B', fontSize: '1rem' }} />
+                              )}
+                              <Typography variant="inherit" sx={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 500 }}>
+                                {student.name}
+                              </Typography>
+                              {isRecentlyAccessed && (
+                                <Typography variant="caption" sx={{ ml: 'auto', color: '#7A7A7A', fontStyle: 'italic' }}>
+                                  Recent
+                                </Typography>
+                              )}
+                            </Box>
+                          </MenuItem>
+                        );
+                      })
                     )}
-                  </Box>
-                  {/* Location Radio Buttons */}
-                  <FormControl component="fieldset" sx={{
-                    width: '100%',
-                    p: 2,
-                    borderRadius: 4,
-                    border: '1px solid rgba(0,0,0,0.05)',
-                    backgroundColor: 'rgba(255,255,255,0.3)'
-                  }}>
-                    <FormLabel component="legend" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: '#4A4A4A', mb: 1 }}>Location</FormLabel>
-                    <RadioGroup
-                      aria-label="location"
-                      value={selectedLocation}
-                      onChange={handleLocationChange}
-                      row
-                    >
-                      <FormControlLabel value="school" control={<Radio sx={{ color: '#6B8E6B', '&.Mui-checked': { color: '#6B8E6B' } }} />} label="School" />
-                      <FormControlLabel value="home" control={<Radio sx={{ color: '#6B8E6B', '&.Mui-checked': { color: '#6B8E6B' } }} />} label="Home" />
-                    </RadioGroup>
-                  </FormControl>
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                </Grid>
-              </Grid>
+                  </Select>
+                </FormControl>
+                {selectedStudent && <StudentInfoCard student={selectedStudent} />}
+              </Box>
 
-              {/* Assessment and Notes - Two Columns */}
-              <Grid container item size={12} spacing={3}>
-                <Grid size={{ xs: 12, sm: 4 }}>
+              {/* Row 2: Book (compact display or BookAutocomplete + Popover) */}
+              <Box>
+                {selectedBookId ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <BookCover
+                      title={books.find(b => b.id === selectedBookId)?.title || ''}
+                      author={bookAuthor || null}
+                      width={40}
+                      height={60}
+                    />
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography variant="body1" noWrap sx={{ fontWeight: 600, color: '#4A4A4A' }}>
+                        {books.find(b => b.id === selectedBookId)?.title || ''}
+                      </Typography>
+                      {bookAuthor && (
+                        <Typography variant="body2" color="text.secondary" noWrap>
+                          by {bookAuthor}
+                        </Typography>
+                      )}
+                    </Box>
+                    <Button size="small" variant="outlined" onClick={() => handleBookChange(null)} sx={{ borderRadius: 3, flexShrink: 0 }}>
+                      Change
+                    </Button>
+                    <IconButton size="small" onClick={(e) => setBookEditAnchor(e.currentTarget)} aria-label="Edit book details">
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                    <Popover
+                      open={bookEditOpen}
+                      anchorEl={bookEditAnchor}
+                      onClose={() => setBookEditAnchor(null)}
+                      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                      transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                      slotProps={{ paper: { sx: { p: 3, borderRadius: 4, maxWidth: 400, width: '90vw' } } }}
+                    >
+                      <Typography variant="subtitle2" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: '#4A4A4A' }}>
+                        Edit Book Details
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <TextField
+                          label="Author"
+                          value={bookAuthor}
+                          onChange={(e) => setBookAuthor(e.target.value)}
+                          fullWidth
+                          size="small"
+                          InputProps={{ sx: { borderRadius: 3, backgroundColor: '#fff' } }}
+                        />
+                        <TextField
+                          label="Reading Level"
+                          value={bookReadingLevel}
+                          onChange={(e) => setBookReadingLevel(e.target.value)}
+                          fullWidth
+                          size="small"
+                          placeholder="e.g. Blue, Level 4"
+                          InputProps={{ sx: { borderRadius: 3, backgroundColor: '#fff' } }}
+                        />
+                        <TextField
+                          label="Age Range"
+                          value={bookAgeRange}
+                          onChange={(e) => setBookAgeRange(e.target.value)}
+                          fullWidth
+                          size="small"
+                          placeholder="e.g. 6-8"
+                          InputProps={{ sx: { borderRadius: 3, backgroundColor: '#fff' } }}
+                        />
+                        <FormControl fullWidth size="small">
+                          <InputLabel id="genre-select-label">Genres</InputLabel>
+                          <Select
+                            labelId="genre-select-label"
+                            multiple
+                            value={bookGenres}
+                            onChange={(e) => setBookGenres(e.target.value)}
+                            label="Genres"
+                            renderValue={(selected) => (
+                              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                {selected.map((value) => {
+                                  const genre = genres.find(g => g.id === value);
+                                  return (
+                                    <Chip
+                                      key={value}
+                                      label={genre?.name || value}
+                                      size="small"
+                                      sx={{ borderRadius: 1 }}
+                                    />
+                                  );
+                                })}
+                              </Box>
+                            )}
+                            sx={{ borderRadius: 3, backgroundColor: '#fff' }}
+                          >
+                            {genres.map((genre) => (
+                              <MenuItem key={genre.id} value={genre.id}>
+                                {genre.name}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      </Box>
+                      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', gap: 1 }}>
+                        <Box>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => {
+                              const current = books.find(b => b.id === selectedBookId);
+                              setBookAuthor(current?.author || '');
+                              setBookReadingLevel(current?.readingLevel || '');
+                              setBookAgeRange(current?.ageRange || '');
+                              setBookGenres(current?.genreIds || []);
+                            }}
+                            sx={{ borderRadius: 3, fontWeight: 600 }}
+                          >
+                            Reset
+                          </Button>
+                        </Box>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={handleGetBookDetails}
+                            disabled={isFetchingDetails}
+                            startIcon={<DownloadIcon />}
+                            sx={{ borderRadius: 3, fontWeight: 600 }}
+                          >
+                            {isFetchingDetails ? 'Fetching...' : 'Get Details'}
+                          </Button>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            color="primary"
+                            onClick={handleUpdateBookWithDetails}
+                            sx={{
+                              borderRadius: 3,
+                              fontWeight: 600,
+                              background: 'linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%)',
+                              boxShadow: '4px 4px 8px rgba(107, 142, 107, 0.3)'
+                            }}
+                          >
+                            Update Book
+                          </Button>
+                        </Box>
+                      </Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block', fontStyle: 'italic' }}>
+                        Use "Get Details" to fetch author info from external APIs, then "Update Book" to save changes.
+                      </Typography>
+                    </Popover>
+                  </Box>
+                ) : (
+                  <BookAutocomplete
+                    value={books.find(book => book.id === selectedBookId) || null}
+                    onChange={handleBookChange}
+                    onBookCreated={handleBookChange}
+                    onBookCreationStart={handleBookCreationStart}
+                  />
+                )}
+              </Box>
+
+              {/* Row 3: Location radio + Assessment */}
+              <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                <FormControl component="fieldset" sx={{
+                  p: 2,
+                  borderRadius: 4,
+                  border: '1px solid rgba(0,0,0,0.05)',
+                  backgroundColor: 'rgba(255,255,255,0.3)'
+                }}>
+                  <FormLabel component="legend" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: '#4A4A4A', mb: 1 }}>Location</FormLabel>
+                  <RadioGroup
+                    aria-label="location"
+                    value={selectedLocation}
+                    onChange={handleLocationChange}
+                    row
+                  >
+                    <FormControlLabel value="school" control={<Radio sx={{ color: '#6B8E6B', '&.Mui-checked': { color: '#6B8E6B' } }} />} label="School" />
+                    <FormControlLabel value="home" control={<Radio sx={{ color: '#6B8E6B', '&.Mui-checked': { color: '#6B8E6B' } }} />} label="Home" />
+                  </RadioGroup>
+                </FormControl>
+                <Box>
                   <Typography variant="subtitle1" gutterBottom sx={{ mb: 1, fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: '#4A4A4A' }}>
                     Assessment:
                   </Typography>
@@ -573,44 +555,47 @@ const SessionForm = () => {
                     onChange={handleAssessmentChange}
                     direction="column"
                   />
-                </Grid>
-                <Grid size={{ xs: 12, sm: 8 }}>
+                </Box>
+              </Box>
+
+              {/* Row 4: Notes */}
+              <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                <Box sx={{ flex: 1 }}>
                   <SessionNotes
                     value={notes}
                     onChange={handleNotesChange}
                   />
-                </Grid>
-              </Grid>
-              
-              <Grid size={12}>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  color="primary"
-                  fullWidth
-                  size="large"
-                  sx={{
-                    mb: { xs: 2, sm: 0 },
-                    height: 56,
-                    borderRadius: 4,
-                    background: 'linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%)',
-                    boxShadow: '12px 12px 24px rgba(107, 142, 107, 0.3), -8px -8px 16px rgba(255, 255, 255, 0.4), inset 4px 4px 8px rgba(255, 255, 255, 0.4), inset -4px -4px 8px rgba(0, 0, 0, 0.1)',
-                    fontSize: '1.1rem',
-                    fontWeight: 700,
-                    textTransform: 'none',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                      boxShadow: '16px 16px 32px rgba(107, 142, 107, 0.4), -10px -10px 20px rgba(255, 255, 255, 0.5)',
-                    },
-                    '&:active': {
-                      transform: 'scale(0.96)',
-                    },
-                  }}
-                >
-                  Save Reading Session
-                </Button>
-              </Grid>
-            </Grid>
+                </Box>
+              </Box>
+
+              {/* Save button */}
+              <Button
+                type="submit"
+                variant="contained"
+                color="primary"
+                fullWidth
+                size="large"
+                sx={{
+                  mb: { xs: 2, sm: 0 },
+                  height: 56,
+                  borderRadius: 4,
+                  background: 'linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%)',
+                  boxShadow: '12px 12px 24px rgba(107, 142, 107, 0.3), -8px -8px 16px rgba(255, 255, 255, 0.4), inset 4px 4px 8px rgba(255, 255, 255, 0.4), inset -4px -4px 8px rgba(0, 0, 0, 0.1)',
+                  fontSize: '1.1rem',
+                  fontWeight: 700,
+                  textTransform: 'none',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: '16px 16px 32px rgba(107, 142, 107, 0.4), -10px -10px 20px rgba(255, 255, 255, 0.5)',
+                  },
+                  '&:active': {
+                    transform: 'scale(0.96)',
+                  },
+                }}
+              >
+                Save Reading Session
+              </Button>
+            </Box>
           </form>
         </Paper>
       <Snackbar
