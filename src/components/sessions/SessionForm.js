@@ -36,7 +36,7 @@ import {
 } from '../../utils/bookMetadataApi';
 
 const SessionForm = () => {
-  const { students, addReadingSession, classes, recentlyAccessedStudents, books, globalClassFilter, settings, updateBook } = useAppContext();
+  const { students, addReadingSession, classes, recentlyAccessedStudents, books, globalClassFilter, settings, updateBook, genres } = useAppContext();
 
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [assessment, setAssessment] = useState('independent');
@@ -82,8 +82,7 @@ const SessionForm = () => {
 
   const handleGetBookDetails = async () => {
     // Get the current book title from the books array or use form values
-    const currentBook = books.find(b => b.id === selectedBookId);
-    const title = currentBook?.title || '';
+    const title = selectedBook?.title || '';
     
     if (!title) {
       setSnackbarOpen(true);
@@ -199,7 +198,6 @@ const SessionForm = () => {
     setDate(event.target.value);
   };
 
-
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -272,9 +270,7 @@ const SessionForm = () => {
   const sortedStudents = [...recentStudents, ...otherStudents];
 
   const selectedStudent = students.find(s => s.id === selectedStudentId);
-
-  // Get available genres from context
-  const { genres } = useAppContext();
+  const selectedBook = books.find(b => b.id === selectedBookId);
 
   return (
     <Box>
@@ -301,7 +297,7 @@ const SessionForm = () => {
         />
       </Box>
       <Paper sx={{
-          p: 4,
+          p: 3,
           pb: 'calc(env(safe-area-inset-bottom) + 24px)',
           background: 'rgba(255, 255, 255, 0.6)',
           backdropFilter: 'blur(20px)',
@@ -374,14 +370,14 @@ const SessionForm = () => {
                 {selectedBookId ? (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                     <BookCover
-                      title={books.find(b => b.id === selectedBookId)?.title || ''}
+                      title={selectedBook?.title || ''}
                       author={bookAuthor || null}
                       width={40}
                       height={60}
                     />
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                       <Typography variant="body1" noWrap sx={{ fontWeight: 600, color: '#4A4A4A' }}>
-                        {books.find(b => b.id === selectedBookId)?.title || ''}
+                        {selectedBook?.title || ''}
                       </Typography>
                       {bookAuthor && (
                         <Typography variant="body2" color="text.secondary" noWrap>
@@ -472,11 +468,10 @@ const SessionForm = () => {
                             variant="outlined"
                             size="small"
                             onClick={() => {
-                              const current = books.find(b => b.id === selectedBookId);
-                              setBookAuthor(current?.author || '');
-                              setBookReadingLevel(current?.readingLevel || '');
-                              setBookAgeRange(current?.ageRange || '');
-                              setBookGenres(current?.genreIds || []);
+                              setBookAuthor(selectedBook?.author || '');
+                              setBookReadingLevel(selectedBook?.readingLevel || '');
+                              setBookAgeRange(selectedBook?.ageRange || '');
+                              setBookGenres(selectedBook?.genreIds || []);
                             }}
                             sx={{ borderRadius: 3, fontWeight: 600 }}
                           >
@@ -517,7 +512,7 @@ const SessionForm = () => {
                   </Box>
                 ) : (
                   <BookAutocomplete
-                    value={books.find(book => book.id === selectedBookId) || null}
+                    value={selectedBook || null}
                     onChange={handleBookChange}
                     onBookCreated={handleBookChange}
                     onBookCreationStart={handleBookCreationStart}
