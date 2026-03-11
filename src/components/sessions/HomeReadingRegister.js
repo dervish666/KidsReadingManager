@@ -607,9 +607,9 @@ const HomeReadingRegister = () => {
       cursor: 'pointer',
       textAlign: 'center',
       fontWeight: 'bold',
-      fontSize: isMobile ? '0.75rem' : '1rem',
-      padding: isMobile ? '4px 2px' : '8px 4px',
-      minWidth: isMobile ? 30 : 40,
+      fontSize: isMobile ? '0.75rem' : '0.85rem',
+      padding: isMobile ? '4px 2px' : '2px 4px',
+      minWidth: isMobile ? 30 : 36,
       transition: 'background-color 0.2s',
       outline: isSelectedDate ? '2px solid' : 'none',
       outlineColor: 'primary.main',
@@ -939,7 +939,7 @@ const HomeReadingRegister = () => {
             <CircularProgress size={40} />
           </Box>
         )}
-        <TableContainer sx={{ maxHeight: { xs: 'clamp(250px, calc(100vh - 360px), 600px)', sm: 'clamp(300px, calc(100vh - 320px), 800px)' } }}>
+        <TableContainer sx={{ maxHeight: { xs: 'calc(100vh - 340px)', sm: 'calc(100vh - 260px)' } }}>
           <Table stickyHeader size="small">
             <TableHead>
               <TableRow>
@@ -947,6 +947,7 @@ const HomeReadingRegister = () => {
                   sx={{
                     fontWeight: 'bold',
                     minWidth: isMobile ? 80 : 140,
+                    padding: isMobile ? '4px 2px' : '2px 8px',
                     position: 'sticky',
                     left: 0,
                     backgroundColor: 'background.paper',
@@ -966,8 +967,8 @@ const HomeReadingRegister = () => {
                       sx={{
                         fontWeight: 'bold',
                         textAlign: 'center',
-                        minWidth: isMobile ? 30 : 40,
-                        padding: isMobile ? '4px 2px' : '8px 4px',
+                        minWidth: isMobile ? 30 : 36,
+                        padding: isMobile ? '4px 2px' : '2px 4px',
                         backgroundColor: isSelectedDate ? 'primary.main' : (isWeekend ? 'grey.100' : 'background.paper'),
                         color: isSelectedDate ? 'primary.contrastText' : 'text.primary',
                         cursor: 'pointer',
@@ -993,10 +994,10 @@ const HomeReadingRegister = () => {
                     </TableCell>
                   );
                 })}
-                <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', minWidth: isMobile ? 40 : 50, backgroundColor: 'primary.light', color: 'primary.contrastText' }}>
+                <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', minWidth: isMobile ? 40 : 44, padding: isMobile ? '4px 2px' : '2px 4px', backgroundColor: 'primary.light', color: 'primary.contrastText' }}>
                   Total
                 </TableCell>
-                <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', minWidth: 40 }}>
+                <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', minWidth: 36, padding: isMobile ? '4px 2px' : '2px 4px' }}>
                   Clear
                 </TableCell>
               </TableRow>
@@ -1020,7 +1021,8 @@ const HomeReadingRegister = () => {
                     <TableCell
                       sx={{
                         fontWeight: isSelected ? 'bold' : 500,
-                        fontSize: isMobile ? '0.75rem' : '0.875rem',
+                        fontSize: isMobile ? '0.75rem' : '0.8rem',
+                        padding: isMobile ? '4px 2px' : '2px 8px',
                         position: 'sticky',
                         left: 0,
                         backgroundColor: isSelected ? 'primary.light' : 'background.paper',
@@ -1037,12 +1039,13 @@ const HomeReadingRegister = () => {
                         fontWeight: 'bold',
                         backgroundColor: 'primary.light',
                         color: 'primary.contrastText',
-                        fontSize: isMobile ? '0.8rem' : '0.9rem'
+                        fontSize: isMobile ? '0.8rem' : '0.85rem',
+                        padding: isMobile ? '4px 2px' : '2px 4px'
                       }}
                     >
                       {getStudentTotalInRange(student)}
                     </TableCell>
-                    <TableCell sx={{ textAlign: 'center', padding: '4px' }}>
+                    <TableCell sx={{ textAlign: 'center', padding: '2px' }}>
                       {hasEntry && (
                         <Tooltip title="Clear entry">
                           <IconButton
@@ -1053,8 +1056,9 @@ const HomeReadingRegister = () => {
                             }}
                             sx={{
                               color: 'error.main',
-                              minWidth: 44,
-                              minHeight: 44,
+                              minWidth: 28,
+                              minHeight: 28,
+                              padding: '2px',
                               '@media (hover: hover) and (pointer: fine)': {
                                 '&:hover': { backgroundColor: 'error.light' },
                               },
@@ -1089,7 +1093,8 @@ const HomeReadingRegister = () => {
                       zIndex: 3,
                       borderTop: '2px solid',
                       borderColor: 'grey.300',
-                      fontSize: isMobile ? '0.75rem' : '0.875rem'
+                      padding: isMobile ? '4px 2px' : '2px 8px',
+                      fontSize: isMobile ? '0.75rem' : '0.8rem'
                     }}
                   >
                     Daily Totals
@@ -1102,11 +1107,11 @@ const HomeReadingRegister = () => {
                         sx={{
                           textAlign: 'center',
                           fontWeight: 'bold',
-                          padding: isMobile ? '4px 2px' : '8px 4px',
+                          padding: isMobile ? '4px 2px' : '2px 4px',
                           backgroundColor: isWeekend ? 'grey.100' : 'grey.50',
                           borderTop: '2px solid',
                           borderColor: 'grey.300',
-                          fontSize: isMobile ? '0.7rem' : '0.8rem'
+                          fontSize: isMobile ? '0.7rem' : '0.75rem'
                         }}
                       >
                         {totals.totalSessions > 0 && (
@@ -1139,7 +1144,8 @@ const HomeReadingRegister = () => {
                       color: 'primary.contrastText',
                       borderTop: '2px solid',
                       borderColor: 'grey.300',
-                      fontSize: isMobile ? '0.8rem' : '0.9rem'
+                      padding: isMobile ? '4px 2px' : '2px 4px',
+                      fontSize: isMobile ? '0.8rem' : '0.85rem'
                     }}
                   >
                     {dailyTotals.reduce((sum, day) => sum + day.totalSessions, 0)}

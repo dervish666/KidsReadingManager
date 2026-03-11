@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.16.1] - 2026-03-11
+
+### Changed
+- **Home Reading Register compact table** — removed 800px max-height cap, reduced cell padding and font sizes so 35 students fit without internal scrolling on most screens
+
 ## [3.16.0] - 2026-03-11
 
 ### Changed
