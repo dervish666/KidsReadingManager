@@ -15,11 +15,13 @@ import {
   ToggleButtonGroup,
   Chip,
   Popover,
-  IconButton
+  IconButton,
+  Tooltip
 } from '@mui/material';
 import StarIcon from '@mui/icons-material/Star';
 import DownloadIcon from '@mui/icons-material/Download';
 import EditIcon from '@mui/icons-material/Edit';
+import NotesIcon from '@mui/icons-material/Notes';
 import { useAppContext } from '../../contexts/AppContext';
 import BookCover from '../BookCover';
 import AssessmentSelector from './AssessmentSelector';
@@ -52,6 +54,8 @@ const SessionForm = () => {
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
   const [bookEditAnchor, setBookEditAnchor] = useState(null);
   const bookEditOpen = Boolean(bookEditAnchor);
+  const [notesAnchor, setNotesAnchor] = useState(null);
+  const notesOpen = Boolean(notesAnchor);
 
   const handleBookChange = (book) => {
     const bookId = book ? book.id : '';
@@ -561,43 +565,67 @@ const SessionForm = () => {
                 </Box>
               </Box>
 
-              {/* Row 4: Notes */}
-              <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                <Box sx={{ flex: 1 }}>
-                  <SessionNotes
-                    value={notes}
-                    onChange={handleNotesChange}
-                  />
-                </Box>
+              {/* Notes icon + Save button on same row */}
+              <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                <Tooltip title={notes ? `Notes: ${notes.substring(0, 40)}${notes.length > 40 ? '...' : ''}` : 'Add notes'}>
+                  <IconButton
+                    onClick={(e) => setNotesAnchor(e.currentTarget)}
+                    aria-label="Add notes"
+                    sx={{
+                      color: notes ? '#6B8E6B' : 'text.secondary',
+                      border: notes ? '2px solid #6B8E6B' : '1px solid rgba(0,0,0,0.12)',
+                      borderRadius: 2,
+                      px: 1.5,
+                    }}
+                  >
+                    <NotesIcon fontSize="small" />
+                    {notes && (
+                      <Typography variant="caption" sx={{ ml: 0.5, fontWeight: 600, color: '#6B8E6B' }}>
+                        Notes
+                      </Typography>
+                    )}
+                  </IconButton>
+                </Tooltip>
+
+                {/* Save button takes remaining space */}
+                <Button
+                  type="submit"
+                  variant="contained"
+                  color="primary"
+                  fullWidth
+                  size="large"
+                  sx={{
+                    flex: 1,
+                    height: 48,
+                    borderRadius: 4,
+                    background: 'linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%)',
+                    boxShadow: '12px 12px 24px rgba(107, 142, 107, 0.3), -8px -8px 16px rgba(255, 255, 255, 0.4), inset 4px 4px 8px rgba(255, 255, 255, 0.4), inset -4px -4px 8px rgba(0, 0, 0, 0.1)',
+                    fontSize: '1.1rem',
+                    fontWeight: 700,
+                    textTransform: 'none',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: '16px 16px 32px rgba(107, 142, 107, 0.4), -10px -10px 20px rgba(255, 255, 255, 0.5)',
+                    },
+                    '&:active': {
+                      transform: 'scale(0.96)',
+                    },
+                  }}
+                >
+                  Save Reading Session
+                </Button>
               </Box>
 
-              {/* Save button */}
-              <Button
-                type="submit"
-                variant="contained"
-                color="primary"
-                fullWidth
-                size="large"
-                sx={{
-                  mb: { xs: 2, sm: 0 },
-                  height: 56,
-                  borderRadius: 4,
-                  background: 'linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%)',
-                  boxShadow: '12px 12px 24px rgba(107, 142, 107, 0.3), -8px -8px 16px rgba(255, 255, 255, 0.4), inset 4px 4px 8px rgba(255, 255, 255, 0.4), inset -4px -4px 8px rgba(0, 0, 0, 0.1)',
-                  fontSize: '1.1rem',
-                  fontWeight: 700,
-                  textTransform: 'none',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: '16px 16px 32px rgba(107, 142, 107, 0.4), -10px -10px 20px rgba(255, 255, 255, 0.5)',
-                  },
-                  '&:active': {
-                    transform: 'scale(0.96)',
-                  },
-                }}
+              <Popover
+                open={notesOpen}
+                anchorEl={notesAnchor}
+                onClose={() => setNotesAnchor(null)}
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+                transformOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                slotProps={{ paper: { sx: { p: 2, borderRadius: 4, width: 350, maxWidth: '90vw' } } }}
               >
-                Save Reading Session
-              </Button>
+                <SessionNotes value={notes} onChange={handleNotesChange} defaultExpanded />
+              </Popover>
             </Box>
           </form>
         </Paper>

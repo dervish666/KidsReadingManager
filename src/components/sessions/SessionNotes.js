@@ -11,8 +11,8 @@ import MicIcon from '@mui/icons-material/Mic';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 
-const SessionNotes = ({ value, onChange }) => {
-  const [expanded, setExpanded] = useState(false);
+const SessionNotes = ({ value, onChange, defaultExpanded = false }) => {
+  const [expanded, setExpanded] = useState(defaultExpanded || false);
   const [isRecording, setIsRecording] = useState(false);
   const [speechRecognitionSupported] = useState(
     'SpeechRecognition' in window || 'webkitSpeechRecognition' in window
