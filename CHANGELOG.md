@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.16.0] - 2026-03-11
+
+### Changed
+- **Session form iPad-optimized layout** — replaced two-column Grid with single-column Box stack, entire form fits on one iPad screen without scrolling
+- **StudentInfoCard converted to inline chips** — pure presentational component with Chip elements (last read, streak, level) instead of card with API calls
+- **Book metadata editing moved to Popover** — compact book display (cover + title + Change/Edit buttons) replaces large inline editing panel; metadata fields accessible via edit icon
+- **Location selector upgraded** — RadioGroup replaced with ToggleButtonGroup, combined with horizontal AssessmentSelector on one row
+- **Notes collapsed behind icon** — SessionNotes accessible via icon button + Popover instead of prominent inline area
+
+### Removed
+- **Previous Sessions section** — removed from session form (StudentInfoCard "Last read" info is sufficient)
+
 ## [3.15.0] - 2026-03-10
 
 ### Added
