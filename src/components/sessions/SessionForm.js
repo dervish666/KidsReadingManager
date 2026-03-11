@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Typography,
@@ -10,11 +10,8 @@ import {
   MenuItem,
   Grid,
   Paper,
-  Divider,
   Alert,
   Snackbar,
-  Card,
-  CardContent,
   RadioGroup,
   Radio,
   FormControlLabel,
@@ -37,26 +34,8 @@ import {
 } from '../../utils/bookMetadataApi';
 
 const SessionForm = () => {
-  const { students, addReadingSession, classes, recentlyAccessedStudents, books, globalClassFilter, settings, updateBook, fetchWithAuth } = useAppContext();
+  const { students, addReadingSession, classes, recentlyAccessedStudents, books, globalClassFilter, settings, updateBook } = useAppContext();
 
-  // Helper function to get book display info
-  const getBookInfo = (bookId) => {
-    if (!bookId) return null;
-    const book = books.find(b => b.id === bookId);
-    return book
-      ? {
-          title: book.title,
-          author: book.author || '',
-          readingLevel: book.readingLevel || '',
-          ageRange: book.ageRange || ''
-        }
-      : {
-          title: '',
-          author: '',
-          readingLevel: '',
-          ageRange: ''
-        };
-  };
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [assessment, setAssessment] = useState('independent');
   const [notes, setNotes] = useState('');
@@ -71,20 +50,6 @@ const SessionForm = () => {
   const [selectedLocation, setSelectedLocation] = useState('school');
   const [isCreatingBook, setIsCreatingBook] = useState(false);
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
-
-  // Fetch recent sessions for the selected student
-  const [recentSessions, setRecentSessions] = useState([]);
-  const fetchRecentSessions = useCallback((studentId) => {
-    if (!studentId) { setRecentSessions([]); return; }
-    fetchWithAuth(`/api/students/${studentId}/sessions?limit=10`)
-      .then(r => r.ok ? r.json() : [])
-      .then(setRecentSessions)
-      .catch(() => setRecentSessions([]));
-  }, [fetchWithAuth]);
-
-  useEffect(() => {
-    fetchRecentSessions(selectedStudentId);
-  }, [selectedStudentId, fetchRecentSessions]);
 
   const handleBookChange = (book) => {
     const bookId = book ? book.id : '';
@@ -266,8 +231,6 @@ const SessionForm = () => {
       setSelectedLocation('school');
       setError('');
       setSnackbarOpen(true);
-      // Refresh the "Previous Sessions" list
-      fetchRecentSessions(selectedStudentId);
     } else {
       setError('Failed to save reading session. Please try again.');
     }
@@ -638,98 +601,6 @@ const SessionForm = () => {
               </Grid>
             </Grid>
           </form>
-          
-          {selectedStudent && (
-            <Box sx={{ mt: 6 }}>
-              <Divider sx={{ mb: 4, borderColor: 'rgba(0,0,0,0.05)' }} />
-              <Typography variant="h5" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#4A4A4A' }}>
-                Previous Sessions for {selectedStudent.name}
-              </Typography>
-              
-              {recentSessions.length > 0 ? (
-                <>
-                  <Grid container spacing={2}>
-                    {recentSessions
-                      .slice(0, 3)
-                      .map((session) => (
-                        <Grid size={12} key={session.id}>
-                          <Card
-                            elevation={0}
-                            sx={{
-                              borderRadius: 4,
-                              backgroundColor: 'rgba(255,255,255,0.5)',
-                              border: '1px solid rgba(255,255,255,0.6)',
-                              boxShadow: '4px 4px 10px rgba(139, 115, 85, 0.1)'
-                            }}
-                          >
-                            <CardContent>
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                                <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600 }}>
-                                  {new Date(session.date).toLocaleDateString('en-GB', {
-                                    day: 'numeric',
-                                    month: 'short',
-                                    year: 'numeric'
-                                  })}
-                                </Typography>
-                                <Typography variant="caption" sx={{ 
-                                  bgcolor: session.location === 'home' ? '#DBEAFE' : '#F3E8FF', 
-                                  color: session.location === 'home' ? '#1E40AF' : '#6B21A8',
-                                  px: 1, 
-                                  py: 0.5, 
-                                  borderRadius: 2,
-                                  fontWeight: 700
-                                }}>
-                                  {session.location === 'school' ? 'School' : session.location === 'home' ? 'Home' : 'Unknown'}
-                                </Typography>
-                              </Box>
-                              
-                              <Typography variant="body1" sx={{ mt: 1, fontWeight: 700, color: '#4A4A4A' }}>
-                                {session.assessment.charAt(0).toUpperCase() + session.assessment.slice(1)}
-                              </Typography>
-
-                              {/* Book Information */}
-                              {session.bookId ? (
-                                <Box sx={{ mt: 1.5, p: 1.5, bgcolor: 'rgba(255,255,255,0.6)', borderRadius: 3 }}>
-                                  <Typography variant="body2" sx={{ fontWeight: 700, color: '#6B8E6B' }}>
-                                    "{getBookInfo(session.bookId)?.title}"
-                                  </Typography>
-                                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
-                                    by {getBookInfo(session.bookId)?.author}
-                                  </Typography>
-                                </Box>
-                              ) : (
-                                <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontStyle: 'italic' }}>
-                                  No book specified
-                                </Typography>
-                              )}
-
-                              {/* Notes */}
-                              {session.notes && (
-                                <Box sx={{ mt: 2, p: 1.5, bgcolor: '#F5F0E8', borderRadius: 3 }}>
-                                  <Typography variant="body2" color="text.secondary">
-                                    <strong>Notes:</strong> {session.notes}
-                                  </Typography>
-                                </Box>
-                              )}
-                            </CardContent>
-                          </Card>
-                        </Grid>
-                      ))
-                    }
-                  </Grid>
-                  {recentSessions.length > 3 && (
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 2, fontStyle: 'italic', textAlign: 'center' }}>
-                      Showing 3 most recent of {selectedStudent.totalSessionCount || recentSessions.length} total sessions.
-                    </Typography>
-                  )}
-                </>
-              ) : (
-                <Typography variant="body2" color="text.secondary">
-                  No previous reading sessions recorded.
-                </Typography>
-              )}
-            </Box>
-          )}
         </Paper>
       <Snackbar
         open={snackbarOpen}

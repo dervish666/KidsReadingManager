@@ -37,23 +37,6 @@ const createWrapper = (contextValue) => {
   );
 };
 
-// Helper to create a fetchWithAuth mock that routes student session requests
-const createMockFetchWithAuth = (sessionsMap = {}) => {
-  return vi.fn().mockImplementation((url) => {
-    // Match /api/students/:id/sessions
-    const sessionMatch = url.match(/\/api\/students\/([^/]+)\/sessions/);
-    if (sessionMatch) {
-      const studentId = sessionMatch[1];
-      const sessions = sessionsMap[studentId] || [];
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve(sessions)
-      });
-    }
-    return Promise.resolve({ ok: false, json: () => Promise.resolve([]) });
-  });
-};
-
 // Default mock context values
 const createMockContext = (overrides = {}) => ({
   students: [
@@ -114,18 +97,7 @@ const createMockContext = (overrides = {}) => ({
   addReadingSession: vi.fn(),
   updateBook: vi.fn(),
   findOrCreateBook: vi.fn(),
-  fetchWithAuth: createMockFetchWithAuth({
-    'student-1': [
-      {
-        id: 'session-1',
-        date: '2024-01-15',
-        assessment: 'independent',
-        notes: 'Great reading!',
-        bookId: 'book-1',
-        location: 'school'
-      }
-    ]
-  }),
+  fetchWithAuth: vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve([]) }),
   ...overrides
 });
 
@@ -276,20 +248,6 @@ describe('SessionForm Component', () => {
       });
     });
 
-    it('should display previous sessions after selecting student', async () => {
-      const context = createMockContext();
-      const user = userEvent.setup();
-      render(<SessionForm />, { wrapper: createWrapper(context) });
-
-      const studentSelect = screen.getByLabelText('Student');
-      await user.click(studentSelect);
-      await user.click(screen.getByText('Alice Smith'));
-
-      // Previous sessions section should appear
-      await waitFor(() => {
-        expect(screen.getByText(/previous sessions for alice smith/i)).toBeInTheDocument();
-      });
-    });
   });
 
   describe('Date Picker', () => {
@@ -883,40 +841,4 @@ describe('SessionForm Component', () => {
     });
   });
 
-  describe('Previous Sessions Display', () => {
-    it('should show previous sessions when student has them', async () => {
-      const context = createMockContext();
-      const user = userEvent.setup();
-      render(<SessionForm />, { wrapper: createWrapper(context) });
-
-      // Select Alice who has previous sessions
-      const studentSelect = screen.getByLabelText('Student');
-      await user.click(studentSelect);
-      await user.click(screen.getByText('Alice Smith'));
-
-      await waitFor(() => {
-        expect(screen.getByText(/previous sessions for alice smith/i)).toBeInTheDocument();
-        // Check that the session shows the book title from the session (resolved from books array)
-        expect(screen.getByText(/"the cat in the hat"/i)).toBeInTheDocument();
-        // Check that session notes are displayed
-        expect(screen.getByText(/great reading!/i)).toBeInTheDocument();
-      });
-    });
-
-    it('should show "no previous sessions" message for new students', async () => {
-      const context = createMockContext();
-      const user = userEvent.setup();
-      render(<SessionForm />, { wrapper: createWrapper(context) });
-
-      // Select Bob who has no sessions
-      const studentSelect = screen.getByLabelText('Student');
-      await user.click(studentSelect);
-      await user.click(screen.getByText('Bob Jones'));
-
-      await waitFor(() => {
-        expect(screen.getByText(/previous sessions for bob jones/i)).toBeInTheDocument();
-        expect(screen.getByText('No previous reading sessions recorded.')).toBeInTheDocument();
-      });
-    });
-  });
 });
