@@ -96,6 +96,7 @@ const createMockContext = (overrides = {}) => ({
   },
   addReadingSession: vi.fn(),
   updateBook: vi.fn(),
+  fetchWithAuth: vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve([]) })),
   ...overrides
 });
 

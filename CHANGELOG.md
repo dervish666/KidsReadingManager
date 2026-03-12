@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.18.0] - 2026-03-12
+
+### Added
+- **Reading history on school reading page** — SessionForm shows selected student's recent sessions with book covers, dates, assessment chips, and notes in a horizontal scrollable strip; refreshes after each new session is saved
+
 ## [3.17.0] - 2026-03-11
 
 ### Added

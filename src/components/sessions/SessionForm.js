@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -16,7 +16,8 @@ import {
   Chip,
   Popover,
   IconButton,
-  Tooltip
+  Tooltip,
+  CircularProgress
 } from '@mui/material';
 import StarIcon from '@mui/icons-material/Star';
 import DownloadIcon from '@mui/icons-material/Download';
@@ -36,7 +37,7 @@ import {
 } from '../../utils/bookMetadataApi';
 
 const SessionForm = () => {
-  const { students, addReadingSession, classes, recentlyAccessedStudents, books, globalClassFilter, settings, updateBook, genres } = useAppContext();
+  const { students, addReadingSession, classes, recentlyAccessedStudents, books, globalClassFilter, settings, updateBook, genres, fetchWithAuth } = useAppContext();
 
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [assessment, setAssessment] = useState('independent');
@@ -56,6 +57,34 @@ const SessionForm = () => {
   const bookEditOpen = Boolean(bookEditAnchor);
   const [notesAnchor, setNotesAnchor] = useState(null);
   const notesOpen = Boolean(notesAnchor);
+
+  // Student reading history
+  const [studentHistory, setStudentHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyRefresh, setHistoryRefresh] = useState(0);
+
+  const booksMap = useMemo(() => new Map(books.map(b => [b.id, b])), [books]);
+
+  useEffect(() => {
+    if (!selectedStudentId) {
+      setStudentHistory([]);
+      return;
+    }
+    setHistoryLoading(true);
+    fetchWithAuth(`/api/students/${selectedStudentId}/sessions`)
+      .then(r => r.ok ? r.json() : [])
+      .then(sessions => {
+        const real = sessions
+          .filter(s => !s.notes?.includes('[ABSENT]') && !s.notes?.includes('[NO_RECORD]') && !s.notes?.includes('[COUNT:'))
+          .sort((a, b) => new Date(b.date) - new Date(a.date));
+        setStudentHistory(real);
+        setHistoryLoading(false);
+      })
+      .catch(() => {
+        setStudentHistory([]);
+        setHistoryLoading(false);
+      });
+  }, [selectedStudentId, fetchWithAuth, historyRefresh]);
 
   const handleBookChange = (book) => {
     const bookId = book ? book.id : '';
@@ -231,6 +260,7 @@ const SessionForm = () => {
       setSelectedLocation('school');
       setError('');
       setSnackbarOpen(true);
+      setHistoryRefresh(c => c + 1);
     } else {
       setError('Failed to save reading session. Please try again.');
     }
@@ -624,6 +654,113 @@ const SessionForm = () => {
             </Box>
           </form>
         </Paper>
+      {/* Student Reading History */}
+      {selectedStudentId && (
+        <Paper sx={{
+          mt: 2,
+          p: 2,
+          background: 'rgba(255, 255, 255, 0.6)',
+          backdropFilter: 'blur(20px)',
+          borderRadius: 4,
+          boxShadow: '8px 8px 16px rgba(139, 115, 85, 0.15), -6px -6px 12px rgba(255, 255, 255, 0.8)',
+          border: '1px solid rgba(255, 255, 255, 0.4)',
+        }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, fontFamily: '"Nunito", sans-serif', color: '#4A4A4A', mb: 1.5 }}>
+            Reading History — {selectedStudent?.name}
+          </Typography>
+          {historyLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+              <CircularProgress size={28} />
+            </Box>
+          ) : studentHistory.length === 0 ? (
+            <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+              No reading sessions recorded yet
+            </Typography>
+          ) : (
+            <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 1 }}>
+              {studentHistory.slice(0, 20).map((session) => {
+                const book = session.bookId ? booksMap.get(session.bookId) : null;
+                const sessionDate = new Date(session.date);
+                const dateLabel = sessionDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                const assessmentLabel = session.assessment === 'struggling' ? 'Needing Help'
+                  : session.assessment === 'needs-help' ? 'Moderate Help'
+                  : session.assessment === 'independent' ? 'Independent' : null;
+                const assessmentColor = session.assessment === 'struggling' ? 'error'
+                  : session.assessment === 'needs-help' ? 'warning'
+                  : session.assessment === 'independent' ? 'success' : 'default';
+                return (
+                  <Box
+                    key={session.id}
+                    sx={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      minWidth: 90,
+                      maxWidth: 90,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <BookCover
+                      title={book?.title || 'Unknown'}
+                      author={book?.author}
+                      width={70}
+                      height={100}
+                    />
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        mt: 0.5,
+                        fontWeight: 600,
+                        textAlign: 'center',
+                        lineHeight: 1.2,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        fontSize: '0.7rem',
+                        width: '100%',
+                      }}
+                    >
+                      {book?.title || 'No book'}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+                      {dateLabel}
+                    </Typography>
+                    {assessmentLabel && (
+                      <Chip
+                        label={assessmentLabel}
+                        color={assessmentColor}
+                        size="small"
+                        sx={{ height: 18, fontSize: '0.6rem', mt: 0.25 }}
+                      />
+                    )}
+                    {session.notes && !session.notes.startsWith('[') && (
+                      <Tooltip title={session.notes}>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{
+                            fontSize: '0.6rem',
+                            fontStyle: 'italic',
+                            textAlign: 'center',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 1,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                            width: '100%',
+                          }}
+                        >
+                          {session.notes}
+                        </Typography>
+                      </Tooltip>
+                    )}
+                  </Box>
+                );
+              })}
+            </Box>
+          )}
+        </Paper>
+      )}
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={3000}
