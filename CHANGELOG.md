@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.18.1] - 2026-03-12
+
+### Changed
+- **Books Read replaces session history** — reading history panels on both school and home reading pages now group sessions by book, showing each book once with cover, author, session count, and last read date instead of listing every individual session
+
 ## [3.18.0] - 2026-03-12
 
 ### Added

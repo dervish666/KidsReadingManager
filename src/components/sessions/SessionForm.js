@@ -654,7 +654,7 @@ const SessionForm = () => {
             </Box>
           </form>
         </Paper>
-      {/* Student Reading History */}
+      {/* Student Books Read */}
       {selectedStudentId && (
         <Paper sx={{
           mt: 2,
@@ -666,7 +666,7 @@ const SessionForm = () => {
           border: '1px solid rgba(255, 255, 255, 0.4)',
         }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 700, fontFamily: '"Nunito", sans-serif', color: '#4A4A4A', mb: 1.5 }}>
-            Reading History — {selectedStudent?.name}
+            Books Read — {selectedStudent?.name}
           </Typography>
           {historyLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
@@ -676,89 +676,86 @@ const SessionForm = () => {
             <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
               No reading sessions recorded yet
             </Typography>
-          ) : (
-            <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 1 }}>
-              {studentHistory.slice(0, 20).map((session) => {
-                const book = session.bookId ? booksMap.get(session.bookId) : null;
-                const sessionDate = new Date(session.date);
-                const dateLabel = sessionDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-                const assessmentLabel = session.assessment === 'struggling' ? 'Needing Help'
-                  : session.assessment === 'needs-help' ? 'Moderate Help'
-                  : session.assessment === 'independent' ? 'Independent' : null;
-                const assessmentColor = session.assessment === 'struggling' ? 'error'
-                  : session.assessment === 'needs-help' ? 'warning'
-                  : session.assessment === 'independent' ? 'success' : 'default';
-                return (
-                  <Box
-                    key={session.id}
-                    sx={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      minWidth: 90,
-                      maxWidth: 90,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <BookCover
-                      title={book?.title || 'Unknown'}
-                      author={book?.author}
-                      width={70}
-                      height={100}
-                    />
-                    <Typography
-                      variant="caption"
+          ) : (() => {
+            const bookGroups = new Map();
+            for (const session of studentHistory) {
+              const key = session.bookId || `no-book-${session.id}`;
+              if (!bookGroups.has(key)) {
+                bookGroups.set(key, { bookId: session.bookId, sessions: [] });
+              }
+              bookGroups.get(key).sessions.push(session);
+            }
+            const booksRead = [...bookGroups.values()]
+              .filter(g => g.bookId)
+              .map(g => ({
+                ...g,
+                lastDate: g.sessions[0].date,
+                firstDate: g.sessions[g.sessions.length - 1].date,
+                count: g.sessions.length,
+              }));
+            if (booksRead.length === 0) return (
+              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                No books recorded yet
+              </Typography>
+            );
+            return (
+              <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 1 }}>
+                {booksRead.slice(0, 30).map((entry) => {
+                  const book = booksMap.get(entry.bookId);
+                  const lastDate = new Date(entry.lastDate);
+                  const dateLabel = lastDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                  return (
+                    <Box
+                      key={entry.bookId}
                       sx={{
-                        mt: 0.5,
-                        fontWeight: 600,
-                        textAlign: 'center',
-                        lineHeight: 1.2,
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                        fontSize: '0.7rem',
-                        width: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        minWidth: 90,
+                        maxWidth: 90,
+                        flexShrink: 0,
                       }}
                     >
-                      {book?.title || 'No book'}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
-                      {dateLabel}
-                    </Typography>
-                    {assessmentLabel && (
-                      <Chip
-                        label={assessmentLabel}
-                        color={assessmentColor}
-                        size="small"
-                        sx={{ height: 18, fontSize: '0.6rem', mt: 0.25 }}
+                      <BookCover
+                        title={book?.title || 'Unknown'}
+                        author={book?.author}
+                        width={70}
+                        height={100}
                       />
-                    )}
-                    {session.notes && !session.notes.startsWith('[') && (
-                      <Tooltip title={session.notes}>
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{
-                            fontSize: '0.6rem',
-                            fontStyle: 'italic',
-                            textAlign: 'center',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 1,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                            width: '100%',
-                          }}
-                        >
-                          {session.notes}
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          mt: 0.5,
+                          fontWeight: 600,
+                          textAlign: 'center',
+                          lineHeight: 1.2,
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                          fontSize: '0.7rem',
+                          width: '100%',
+                        }}
+                      >
+                        {book?.title || 'Unknown'}
+                      </Typography>
+                      {book?.author && (
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem', textAlign: 'center', lineHeight: 1.1 }} noWrap>
+                          {book.author}
                         </Typography>
-                      </Tooltip>
-                    )}
-                  </Box>
-                );
-              })}
-            </Box>
-          )}
+                      )}
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>
+                        {entry.count} {entry.count === 1 ? 'session' : 'sessions'}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>
+                        {dateLabel}
+                      </Typography>
+                    </Box>
+                  );
+                })}
+              </Box>
+            );
+          })()}
         </Paper>
       )}
       <Snackbar
