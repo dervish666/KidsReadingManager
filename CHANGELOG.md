@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.18.2] - 2026-03-12
+
+### Fixed
+- **Edit book modal button sizing** — buttons no longer wrap to two lines on narrow screens; added nowrap and auto min-width for consistent single-line layout
+
 ## [3.18.1] - 2026-03-12
 
 ### Changed

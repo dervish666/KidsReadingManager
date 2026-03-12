@@ -427,7 +427,7 @@ const SessionForm = () => {
                       onClose={() => setBookEditAnchor(null)}
                       anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                       transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                      slotProps={{ paper: { sx: { p: 3, borderRadius: 4, maxWidth: 400, width: '90vw' } } }}
+                      slotProps={{ paper: { sx: { p: 3, borderRadius: 4, maxWidth: 420, width: '90vw' } } }}
                     >
                       <Typography variant="subtitle2" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: '#4A4A4A' }}>
                         Edit Book Details
@@ -492,22 +492,20 @@ const SessionForm = () => {
                           </Select>
                         </FormControl>
                       </Box>
-                      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', gap: 1 }}>
-                        <Box>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            onClick={() => {
-                              setBookAuthor(selectedBook?.author || '');
-                              setBookReadingLevel(selectedBook?.readingLevel || '');
-                              setBookAgeRange(selectedBook?.ageRange || '');
-                              setBookGenres(selectedBook?.genreIds || []);
-                            }}
-                            sx={{ borderRadius: 3, fontWeight: 600 }}
-                          >
-                            Reset
-                          </Button>
-                        </Box>
+                      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={() => {
+                            setBookAuthor(selectedBook?.author || '');
+                            setBookReadingLevel(selectedBook?.readingLevel || '');
+                            setBookAgeRange(selectedBook?.ageRange || '');
+                            setBookGenres(selectedBook?.genreIds || []);
+                          }}
+                          sx={{ borderRadius: 3, fontWeight: 600, whiteSpace: 'nowrap', minWidth: 'auto' }}
+                        >
+                          Reset
+                        </Button>
                         <Box sx={{ display: 'flex', gap: 1 }}>
                           <Button
                             variant="outlined"
@@ -515,7 +513,7 @@ const SessionForm = () => {
                             onClick={handleGetBookDetails}
                             disabled={isFetchingDetails}
                             startIcon={<DownloadIcon />}
-                            sx={{ borderRadius: 3, fontWeight: 600 }}
+                            sx={{ borderRadius: 3, fontWeight: 600, whiteSpace: 'nowrap', minWidth: 'auto' }}
                           >
                             {isFetchingDetails ? 'Fetching...' : 'Get Details'}
                           </Button>
@@ -527,6 +525,8 @@ const SessionForm = () => {
                             sx={{
                               borderRadius: 3,
                               fontWeight: 600,
+                              whiteSpace: 'nowrap',
+                              minWidth: 'auto',
                               background: 'linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%)',
                               boxShadow: '4px 4px 8px rgba(107, 142, 107, 0.3)'
                             }}
