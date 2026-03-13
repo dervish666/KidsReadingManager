@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.18.3] - 2026-03-13
+
+### Fixed
+- **Home reading register touch targets** — increased row padding and made entire row clickable (not just the name cell) for easier student selection on touch devices
+
 ## [3.18.2] - 2026-03-12
 
 ### Fixed

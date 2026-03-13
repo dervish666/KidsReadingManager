@@ -656,7 +656,7 @@ const HomeReadingRegister = () => {
       textAlign: 'center',
       fontWeight: 'bold',
       fontSize: isMobile ? '0.75rem' : '0.85rem',
-      padding: isMobile ? '4px 2px' : '2px 4px',
+      padding: isMobile ? '6px 2px' : '4px 4px',
       minWidth: isMobile ? 30 : 36,
       transition: 'background-color 0.2s',
       outline: isSelectedDate ? '2px solid' : 'none',
@@ -1061,6 +1061,7 @@ const HomeReadingRegister = () => {
                     key={student.id}
                     hover
                     selected={isSelected}
+                    onClick={() => setSelectedStudent(student)}
                     sx={{
                       cursor: 'pointer',
                       '&.Mui-selected': { backgroundColor: 'primary.light' }
@@ -1070,13 +1071,12 @@ const HomeReadingRegister = () => {
                       sx={{
                         fontWeight: isSelected ? 'bold' : 500,
                         fontSize: isMobile ? '0.75rem' : '0.8rem',
-                        padding: isMobile ? '4px 2px' : '2px 8px',
+                        padding: isMobile ? '6px 2px' : '4px 8px',
                         position: 'sticky',
                         left: 0,
                         backgroundColor: isSelected ? 'primary.light' : 'background.paper',
                         zIndex: 1
                       }}
-                      onClick={() => setSelectedStudent(student)}
                     >
                       {student.name}
                     </TableCell>
@@ -1088,12 +1088,12 @@ const HomeReadingRegister = () => {
                         backgroundColor: 'primary.light',
                         color: 'primary.contrastText',
                         fontSize: isMobile ? '0.8rem' : '0.85rem',
-                        padding: isMobile ? '4px 2px' : '2px 4px'
+                        padding: isMobile ? '6px 2px' : '4px 4px'
                       }}
                     >
                       {getStudentTotalInRange(student)}
                     </TableCell>
-                    <TableCell sx={{ textAlign: 'center', padding: '2px' }}>
+                    <TableCell sx={{ textAlign: 'center', padding: isMobile ? '6px 2px' : '4px 2px' }}>
                       {hasEntry && (
                         <Tooltip title="Clear entry">
                           <IconButton
