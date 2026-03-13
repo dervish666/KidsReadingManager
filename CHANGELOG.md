@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.18.4] - 2026-03-13
+
+### Fixed
+- **Book change updates existing session** — selecting a book on the home reading register now updates the already-recorded session for that date, not just the student's current book
+- **Faster book saves** — reduced D1 database round-trips from 4 to 2 by combining existence and org-ownership checks into a single JOIN query and removing a redundant existence check in the provider
+
 ## [3.18.3] - 2026-03-13
 
 ### Fixed

@@ -156,6 +156,7 @@ const HomeReadingRegister = () => {
     classes,
     books,
     addReadingSession,
+    editReadingSession,
     deleteReadingSession,
     updateStudentCurrentBook,
     globalClassFilter,
@@ -632,6 +633,20 @@ const HomeReadingRegister = () => {
       book?.title || null,
       book?.author || null
     );
+
+    // Also update any existing home session for the selected date
+    const studentSessions = sessionsByStudent[selectedStudent.id] || [];
+    const existingHomeSession = studentSessions.find(
+      s => s.date === selectedDate && s.location === 'home'
+    );
+    if (existingHomeSession) {
+      editReadingSession(selectedStudent.id, existingHomeSession.id, {
+        ...existingHomeSession,
+        bookId: book?.id || null,
+        bookTitle: book?.title || null,
+        bookAuthor: book?.author || null
+      });
+    }
   };
 
   // Handle multiple count dialog

@@ -817,22 +817,25 @@ booksRouter.post('/scan', requireTeacher(), async (c) => {
 booksRouter.put('/:id', requireTeacher(), async (c) => {
   const { id } = c.req.param();
   const bookData = await c.req.json();
-
-  // Check if book exists
-  const provider = await createProvider(c.env);
-  const existingBook = await provider.getBookById(id);
-  if (!existingBook) {
-    throw notFoundError(`Book with ID ${id} not found`);
-  }
-
-  // In multi-tenant mode, verify the book belongs to this organization
   const organizationId = c.get('organizationId');
-  if (organizationId && c.env.READING_MANAGER_DB) {
-    const db = c.env.READING_MANAGER_DB;
-    const orgLink = await db.prepare(
-      'SELECT 1 FROM org_book_selections WHERE organization_id = ? AND book_id = ?'
-    ).bind(organizationId, id).first();
-    if (!orgLink) {
+  const db = c.env.READING_MANAGER_DB;
+
+  // Single query: check book exists and org ownership in one round-trip
+  let existingBook;
+  if (organizationId && db) {
+    const row = await db.prepare(
+      `SELECT b.* FROM books b
+       INNER JOIN org_book_selections obs ON obs.book_id = b.id
+       WHERE b.id = ? AND obs.organization_id = ?`
+    ).bind(id, organizationId).first();
+    if (!row) {
+      throw notFoundError(`Book with ID ${id} not found`);
+    }
+    existingBook = rowToBook(row);
+  } else {
+    const provider = await createProvider(c.env);
+    existingBook = await provider.getBookById(id);
+    if (!existingBook) {
       throw notFoundError(`Book with ID ${id} not found`);
     }
   }
@@ -860,8 +863,8 @@ booksRouter.put('/:id', requireTeacher(), async (c) => {
     throw badRequestError(bookValidation.errors.join('; '));
   }
 
-  const updateProvider = await createProvider(c.env);
-  const savedBook = await updateProvider.updateBook(id, updatedBook);
+  const provider = await createProvider(c.env);
+  const savedBook = await provider.updateBook(id, updatedBook);
   return c.json(savedBook);
 });
 

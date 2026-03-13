@@ -165,12 +165,6 @@ const updateBook = async (env, id, updatedBook) => {
       throw new Error('D1 database not available');
     }
 
-    // Check if book exists
-    const existing = await getBookById(env, id);
-    if (!existing) {
-      throw new Error('Book not found');
-    }
-
     const row = bookToRow({ ...updatedBook, id });
     
     await db.prepare(`
