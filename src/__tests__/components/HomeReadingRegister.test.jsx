@@ -45,6 +45,10 @@ const getYesterday = () => {
   return yesterday.toISOString().split('T')[0];
 };
 
+// Get today's date — always falls within the "This Week" date range
+// Used for tests that check date column cell rendering (✓, A, •, count)
+const getToday = () => new Date().toISOString().split('T')[0];
+
 // Create a mock fetchWithAuth that returns session data for the sessions endpoint
 // and empty term dates for the term-dates endpoint
 const createMockFetchWithAuth = (sessions = []) => {
@@ -548,6 +552,7 @@ describe('HomeReadingRegister Component', () => {
 
   describe('Reading Status Display', () => {
     it('should display checkmark for students who have read', async () => {
+      // Use today's date — always within the "This Week" date columns
       const context = createMockContext({
         globalClassFilter: 'class-1',
         students: [
@@ -561,7 +566,7 @@ describe('HomeReadingRegister Component', () => {
           {
             id: 'session-1',
             studentId: 'student-1',
-            date: getYesterday(),
+            date: getToday(),
             location: 'home',
             assessment: 'independent',
             notes: ''
@@ -591,7 +596,7 @@ describe('HomeReadingRegister Component', () => {
           {
             id: 'session-1',
             studentId: 'student-1',
-            date: getYesterday(),
+            date: getToday(),
             location: 'home',
             assessment: 'independent',
             notes: '[COUNT:5]'
@@ -623,7 +628,7 @@ describe('HomeReadingRegister Component', () => {
           {
             id: 'session-1',
             studentId: 'student-1',
-            date: getYesterday(),
+            date: getToday(),
             location: 'home',
             assessment: 'independent',
             notes: '[ABSENT] Student was absent'
@@ -655,7 +660,7 @@ describe('HomeReadingRegister Component', () => {
           {
             id: 'session-1',
             studentId: 'student-1',
-            date: getYesterday(),
+            date: getToday(),
             location: 'home',
             assessment: 'independent',
             notes: '[NO_RECORD] No reading record received'
@@ -950,8 +955,8 @@ describe('HomeReadingRegister Component', () => {
           }
         ],
         sessions: [
-          { id: 's1', studentId: 'student-1', date: getYesterday(), location: 'home', notes: '' },
-          { id: 's2', studentId: 'student-1', date: getYesterday(), location: 'school', notes: '' }
+          { id: 's1', studentId: 'student-1', date: getToday(), location: 'home', notes: '' },
+          { id: 's2', studentId: 'student-1', date: getToday(), location: 'school', notes: '' }
         ]
       });
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });

@@ -5,6 +5,8 @@ node_modules/
 
 # Testing
 coverage/
+test-results/
+playwright-report/
 
 # Production
 /dist/
@@ -46,3 +48,7 @@ Thumbs.db
 
 # Git worktrees
 .worktrees/
+
+# E2E tests
+e2e/.auth/
+.env.e2e

@@ -12,7 +12,6 @@ import {
   decryptSensitiveData
 } from '../../utils/crypto.js';
 import { validateSettings } from '../../utils/validation.js';
-import { parseCSV, detectColumnMapping } from '../../utils/csvParser.js';
 
 // ============================================================================
 // 1. Error Handler: 5xx Sanitization
@@ -451,160 +450,28 @@ describe('parseCookies Edge Cases', () => {
 // 5. CSV Column Detection Edge Cases
 // ============================================================================
 
-describe('CSV Column Detection Edge Cases', () => {
-  describe('ambiguous header matching', () => {
-    it('should detect "by" as an author column', () => {
-      const headers = ['Title', 'By', 'Level'];
-      const mapping = detectColumnMapping(headers);
-
-      expect(mapping.author).toBe(1);
-    });
-
-    it('should detect "Published by" and match it to author via "by" pattern', () => {
-      // "Published by" contains "by" which is in the author patterns
-      const headers = ['Title', 'Published by', 'Reading Level'];
-      const mapping = detectColumnMapping(headers);
-
-      // The findIndex logic: h.includes(pattern) || pattern.includes(h)
-      // For pattern "by": "published by".includes("by") => true, so index 1 matches author
-      expect(mapping.author).toBe(1);
-    });
-
-    it('should handle "Writer" as author column name', () => {
-      const headers = ['Book Name', 'Writer', 'Grade Level'];
-      const mapping = detectColumnMapping(headers);
-
-      expect(mapping.title).toBe(0);
-      expect(mapping.author).toBe(1);
-      expect(mapping.readingLevel).toBe(2);
-    });
-
-    it('should handle case-insensitive matching', () => {
-      const headers = ['TITLE', 'AUTHOR', 'READING LEVEL'];
-      const mapping = detectColumnMapping(headers);
-
-      expect(mapping.title).toBe(0);
-      expect(mapping.author).toBe(1);
-      expect(mapping.readingLevel).toBe(2);
-    });
-
-    it('should return null for all fields when headers are completely unrecognized', () => {
-      const headers = ['ISBN', 'Publisher', 'Year'];
-      const mapping = detectColumnMapping(headers);
-
-      expect(mapping.title).toBeNull();
-      // "Publisher" contains no author patterns, but let us verify
-      // "publisher".includes("author") => false, "author".includes("publisher") => false
-      // "publisher".includes("writer") => false, "publisher".includes("by") => false
-      // but "by" is short: "publisher".includes("by") => false (no "by" substring)
-      // Actually wait: does it? "pu-b-lisher" - no, "publisher" does not contain "by"
-      expect(mapping.author).toBeNull();
-      expect(mapping.readingLevel).toBeNull();
-    });
-  });
-
-  describe('empty and edge-case CSV handling', () => {
-    it('should throw on empty CSV input', () => {
-      expect(() => parseCSV('')).toThrow('CSV file is empty');
-    });
-
-    it('should throw on whitespace-only CSV input', () => {
-      expect(() => parseCSV('   \n   \n   ')).toThrow('CSV file is empty');
-    });
-
-    it('should handle CSV with headers only and no data rows', () => {
-      const result = parseCSV('Title,Author,Level');
-
-      expect(result.headers).toEqual(['Title', 'Author', 'Level']);
-      expect(result.rows).toHaveLength(0);
-    });
-
-    it('should handle CSV with Windows-style line endings (CRLF)', () => {
-      const csv = 'Title,Author\r\nThe BFG,Roald Dahl\r\nMatilda,Roald Dahl';
-      const result = parseCSV(csv);
-
-      expect(result.headers).toEqual(['Title', 'Author']);
-      expect(result.rows).toHaveLength(2);
-    });
-  });
-});
+// CSV Column Detection and CSV parsing edge cases removed —
+// fully covered by csvParser.test.js (column mapping, empty input, CRLF, headers-only)
 
 // ============================================================================
 // 6. Settings Prototype Pollution Guard
 // ============================================================================
 
 describe('Settings Prototype Pollution Guard', () => {
-  describe('validateSettings behavior with dangerous keys', () => {
-    it('should accept normal settings keys without errors', () => {
-      const result = validateSettings({
-        readingStatusSettings: {
-          recentlyReadDays: 3,
-          needsAttentionDays: 7
-        }
-      });
+  it('should reject constructor keys in settings (prototype pollution guard)', () => {
+    const malicious = {
+      constructor: { prototype: { isAdmin: true } },
+      readingStatusSettings: {
+        recentlyReadDays: 3,
+        needsAttentionDays: 7
+      }
+    };
 
-      expect(result.isValid).toBe(true);
-      expect(result.errors).toHaveLength(0);
-    });
+    const result = validateSettings(malicious);
 
-    it('should document that __proto__ in object literal does not appear as own key', () => {
-      // Note: __proto__ in object literal form sets the actual prototype,
-      // it does NOT become an own property. Object.keys() won't see it.
-      // The DANGEROUS_KEYS guard in validateSettings catches it when it IS an own key
-      // (e.g., from JSON.parse), but object literal syntax bypasses this.
-      const malicious = {
-        __proto__: { isAdmin: true },
-        readingStatusSettings: {
-          recentlyReadDays: 3,
-          needsAttentionDays: 7
-        }
-      };
-
-      const result = validateSettings(malicious);
-
-      // __proto__ in object literal doesn't become an own key, so validation passes.
-      // This is safe because JSON.parse also doesn't set __proto__ as the prototype.
-      expect(result.isValid).toBe(true);
-    });
-
-    it('should reject constructor keys in settings (prototype pollution guard)', () => {
-      const malicious = {
-        constructor: { prototype: { isAdmin: true } },
-        readingStatusSettings: {
-          recentlyReadDays: 3,
-          needsAttentionDays: 7
-        }
-      };
-
-      const result = validateSettings(malicious);
-
-      // validateSettings now rejects dangerous prototype pollution keys
-      expect(result.isValid).toBe(false);
-      expect(result.errors[0]).toContain('Invalid settings key');
-    });
-
-    it('should verify that Object.create(null) prevents prototype chain attacks', () => {
-      // Defensive pattern: using Object.create(null) for settings storage
-      // ensures no prototype chain pollution is possible
-      const safeObj = Object.create(null);
-      safeObj.recentlyReadDays = 3;
-      safeObj.needsAttentionDays = 7;
-
-      expect(safeObj.hasOwnProperty).toBeUndefined();
-      expect(safeObj.constructor).toBeUndefined();
-      expect(safeObj.recentlyReadDays).toBe(3);
-    });
-
-    it('should verify that JSON.parse does not carry __proto__ into object prototype', () => {
-      // When settings come from JSON body parsing, __proto__ in JSON does not
-      // actually set the prototype of the parsed object
-      const parsed = JSON.parse('{"__proto__": {"polluted": true}, "name": "test"}');
-
-      // The __proto__ key becomes an own property, not the actual prototype
-      expect(parsed.name).toBe('test');
-      // A clean object should not be polluted
-      const clean = {};
-      expect(clean.polluted).toBeUndefined();
-    });
+    expect(result.isValid).toBe(false);
+    expect(result.errors[0]).toContain('Invalid settings key');
   });
+  // Other validateSettings tests covered by validation.test.js
+  // JavaScript prototype/JSON.parse behavior tests removed (not testing production code)
 });
