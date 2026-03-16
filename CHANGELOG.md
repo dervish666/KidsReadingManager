@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.19.1] - 2026-03-16
+
+### Security
+- **undici vulnerability fix** — added npm override to force undici@7.24.4, resolving 6 high-severity CVEs (WebSocket overflow, HTTP smuggling, memory exhaustion, CRLF injection) in transitive dependency via miniflare/wrangler
+
 ## [3.19.0] - 2026-03-16
 
 ### Security
