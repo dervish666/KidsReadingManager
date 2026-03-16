@@ -19,7 +19,7 @@ import { useAppContext } from '../contexts/AppContext';
 const DPA_VERSION = '1.0';
 
 const DpaConsentModal = () => {
-  const { fetchWithAuth, user, handleLogout } = useAppContext();
+  const { fetchWithAuth, user, logout } = useAppContext();
   const [open, setOpen] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -144,7 +144,7 @@ const DpaConsentModal = () => {
 
       <DialogActions sx={{ px: 3, py: 2, justifyContent: 'space-between' }}>
         <Button
-          onClick={handleLogout}
+          onClick={logout}
           variant="outlined"
           color="inherit"
         >

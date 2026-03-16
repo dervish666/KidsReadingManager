@@ -18,6 +18,7 @@ import { useTheme } from '@mui/material/styles';
 import StudentSessions from '../sessions/StudentSessions';
 import StudentProfile from './StudentProfile';
 import StreakBadge from './StreakBadge';
+import { STATUS_TO_PALETTE } from '../../utils/helpers';
 
 const StudentCard = React.memo(({ student }) => {
   const theme = useTheme();
@@ -26,7 +27,8 @@ const StudentCard = React.memo(({ student }) => {
   const [openPreferencesDialog, setOpenPreferencesDialog] = useState(false);
 
   const status = getReadingStatus(student);
-  const statusColor = theme.palette.status?.[status] || theme.palette.primary.main;
+  const paletteKey = STATUS_TO_PALETTE[status] || 'notRead';
+  const statusColor = theme.palette.status?.[paletteKey] || theme.palette.primary.main;
 
   const mostRecentReadDate = student?.lastReadDate || null;
 
@@ -175,7 +177,7 @@ const StudentCard = React.memo(({ student }) => {
                 </Tooltip>
                 <Box
                   role="img"
-                  aria-label={`Status: ${{ recentlyRead: 'Recently read', needsAttention: 'Needs attention', notRead: 'Not read' }[status] || status}`}
+                  aria-label={`Status: ${{ recent: 'Recently read', attention: 'Needs attention', never: 'Not read', overdue: 'Overdue' }[status] || status}`}
                   sx={{
                     width: 12,
                     height: 12,
@@ -210,8 +212,8 @@ const StudentCard = React.memo(({ student }) => {
                     fontSize: '0.75rem',
                     fontWeight: 600,
                     borderRadius: '6px',
-                    backgroundColor: status === 'notRead' ? '#F5E1E1' : status === 'needsAttention' ? '#F5EBE0' : '#E5F0E5',
-                    color: status === 'notRead' ? '#C17E7E' : status === 'needsAttention' ? '#D4A574' : '#6B8E6B',
+                    backgroundColor: paletteKey === 'notRead' ? '#F5E1E1' : paletteKey === 'needsAttention' ? '#F5EBE0' : '#E5F0E5',
+                    color: paletteKey === 'notRead' ? '#C17E7E' : paletteKey === 'needsAttention' ? '#D4A574' : '#6B8E6B',
                     border: 'none'
                   }}
                 />

@@ -235,6 +235,8 @@ settingsRouter.post('/', auditLog('update', 'settings'), async (c) => {
       }
       settings.bookMetadata.hasHardcoverApiKey = Boolean(settings.bookMetadata.hardcoverApiKey);
       delete settings.bookMetadata.hardcoverApiKey;
+      settings.bookMetadata.hasGoogleBooksApiKey = Boolean(settings.bookMetadata.googleBooksApiKey);
+      delete settings.bookMetadata.googleBooksApiKey;
     }
 
     return c.json(settings);

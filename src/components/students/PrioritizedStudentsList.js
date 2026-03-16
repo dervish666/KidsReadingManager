@@ -16,17 +16,14 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useAppContext } from '../../contexts/AppContext';
 import { useTheme } from '@mui/material/styles';
+import { STATUS_TO_PALETTE } from '../../utils/helpers';
 
 const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
   const theme = useTheme();
   const { getReadingStatus } = useAppContext();
   
   const status = getReadingStatus(student);
-  const statusColors = {
-    notRead: theme.palette.status?.notRead || '#C17E7E',
-    needsAttention: theme.palette.status?.needsAttention || '#D4A574',
-    recentlyRead: theme.palette.status?.recentlyRead || '#6B8E6B'
-  };
+  const paletteKey = STATUS_TO_PALETTE[status] || 'notRead';
   
   const mostRecentReadDate = student.lastReadDate || null;
   
@@ -45,6 +42,14 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
   return (
     <Card
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      tabIndex={0}
+      role="button"
       sx={{
         position: 'relative',
         overflow: 'visible',
@@ -107,8 +112,8 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
               fontSize: '0.75rem',
               fontWeight: 700,
               borderRadius: 2,
-              backgroundColor: status === 'notRead' ? '#F5E1E1' : status === 'needsAttention' ? '#F5EBE0' : '#E5F0E5',
-              color: status === 'notRead' ? '#C17E7E' : status === 'needsAttention' ? '#D4A574' : '#6B8E6B',
+              backgroundColor: paletteKey === 'notRead' ? '#F5E1E1' : paletteKey === 'needsAttention' ? '#F5EBE0' : '#E5F0E5',
+              color: paletteKey === 'notRead' ? '#C17E7E' : paletteKey === 'needsAttention' ? '#D4A574' : '#6B8E6B',
               border: 'none'
             }}
           />
@@ -201,8 +206,6 @@ const PrioritizedStudentsList = ({ defaultCount = 8, filterClassId = 'all' }) =>
     setCount(newValue);
     if (typeof updatePriorityStudentCount === 'function') {
       updatePriorityStudentCount(newValue);
-    } else {
-      console.warn('[PrioritizedStudentsList] updatePriorityStudentCount is not a function');
     }
   };
   
@@ -265,7 +268,7 @@ const PrioritizedStudentsList = ({ defaultCount = 8, filterClassId = 'all' }) =>
         
         <Grid container spacing={3}>
           {prioritizedStudents.map((student, index) => (
-            <Grid item key={student.id} xs={12} sm={6} md={4}>
+            <Grid key={student.id} size={{ xs: 12, sm: 6, md: 4 }}>
               <StudentPriorityCard
                 student={student}
                 priorityRank={index + 1}

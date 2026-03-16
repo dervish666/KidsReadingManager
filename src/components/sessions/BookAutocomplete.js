@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Autocomplete,
   TextField,
@@ -20,9 +20,17 @@ const BookAutocomplete = ({
 }) => {
   const { books, findOrCreateBook } = useAppContext();
   const [inputValue, setInputValue] = useState('');
+  const [debouncedInputValue, setDebouncedInputValue] = useState('');
   const [selectedBook, setSelectedBook] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedInputValue(inputValue);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [inputValue]);
 
   // Sync internal selectedBook with external value
   useEffect(() => {
@@ -120,8 +128,8 @@ const BookAutocomplete = ({
   };
 
   // Build options: filtered books with priority books at the top
-  const computedOptions = React.useMemo(() => {
-    const term = inputValue.trim().toLowerCase();
+  const computedOptions = useMemo(() => {
+    const term = debouncedInputValue.trim().toLowerCase();
 
     const filteredBooks = books.filter(book => {
       const displayText = `${book.title}${book.author ? ` ${book.author}` : ''}`.toLowerCase();
@@ -142,7 +150,7 @@ const BookAutocomplete = ({
     });
 
     return sortedBooks;
-  }, [books, inputValue, priorityBookIds]);
+  }, [books, debouncedInputValue, priorityBookIds]);
 
   return (
     <>

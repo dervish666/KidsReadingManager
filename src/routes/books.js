@@ -1,9 +1,8 @@
 import { Hono } from 'hono';
+import { bodyLimit } from 'hono/body-limit';
 
 // Import data provider functions
 import { createProvider } from '../data/index.js';
-import { getBooksByOrganization } from '../data/d1Provider.js';
-
 // Import AI service
 import { generateBroadSuggestions } from '../services/aiService.js';
 
@@ -24,6 +23,9 @@ import { requireReadonly, requireTeacher, requireAdmin, auditLog } from '../midd
 
 // Create router
 const booksRouter = new Hono();
+
+// Override global 1MB body limit for import endpoints (CSV files can be large)
+booksRouter.use('/import/*', bodyLimit({ maxSize: 5 * 1024 * 1024 }));
 
 // Apply authentication middleware to all book routes
 // GET endpoints require at least readonly access
@@ -60,7 +62,7 @@ booksRouter.get('/', requireReadonly(), async (c) => {
           SELECT b.* FROM books b
           INNER JOIN org_book_selections obs ON b.id = obs.book_id
           INNER JOIN books_fts fts ON b.id = fts.id
-          WHERE obs.organization_id = ? AND books_fts MATCH ?
+          WHERE obs.organization_id = ? AND fts MATCH ?
           ORDER BY rank LIMIT ?
         `).bind(organizationId, ftsQuery, limit).all();
       } catch {
@@ -163,7 +165,7 @@ booksRouter.get('/search', requireReadonly(), async (c) => {
         SELECT b.* FROM books b
         INNER JOIN org_book_selections obs ON b.id = obs.book_id
         INNER JOIN books_fts fts ON b.id = fts.id
-        WHERE obs.organization_id = ? AND books_fts MATCH ?
+        WHERE obs.organization_id = ? AND fts MATCH ?
         ORDER BY rank LIMIT ?
       `).bind(organizationId, ftsQuery, maxResults).all();
     } catch {
@@ -895,7 +897,7 @@ booksRouter.delete('/clear-library', requireAdmin(), auditLog('clear', 'library'
   // Remove all org links and clean up orphaned books
   await db.batch([
     db.prepare('DELETE FROM org_book_selections WHERE organization_id = ?').bind(organizationId),
-    db.prepare('DELETE FROM books WHERE id NOT IN (SELECT book_id FROM org_book_selections)')
+    db.prepare('DELETE FROM books WHERE NOT EXISTS (SELECT 1 FROM org_book_selections WHERE org_book_selections.book_id = books.id)')
   ]);
 
   // Count remaining orphans deleted (approximate — we know the unlinked count)
@@ -978,36 +980,89 @@ booksRouter.post('/bulk', requireTeacher(), async (c) => {
     throw badRequestError('No valid books found in request');
   }
 
-  // Get existing books for duplicate detection
-  const provider = await createProvider(c.env);
-  const existingBooks = await provider.getAllBooks();
+  // Targeted duplicate detection — avoid loading entire book catalog
+  const db = c.env.READING_MANAGER_DB;
+  const existingByIsbn = new Map();
+  const existingByTitle = new Map();
 
-  // Filter out duplicates
-  const isDuplicate = (newBook, existingBooks) => {
-    const normalizeTitle = (title) => title.toLowerCase().trim().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ');
-    const normalizeAuthor = (author) => author ? author.toLowerCase().trim().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ') : '';
+  if (db) {
+    // 1. Batch ISBN lookup for books that have ISBNs
+    const isbns = validBooks.filter(b => b.isbn).map(b => b.isbn);
+    if (isbns.length > 0) {
+      const ISBN_BATCH = 50;
+      for (let i = 0; i < isbns.length; i += ISBN_BATCH) {
+        const batch = isbns.slice(i, i + ISBN_BATCH);
+        const placeholders = batch.map(() => '?').join(',');
+        const result = await db.prepare(
+          `SELECT id, isbn, title, author FROM books WHERE isbn IN (${placeholders})`
+        ).bind(...batch).all();
+        for (const book of (result.results || [])) {
+          if (book.isbn) existingByIsbn.set(book.isbn, book);
+        }
+      }
+    }
 
+    // 2. FTS5 title search for books without ISBNs (or as fallback)
+    for (const book of validBooks) {
+      if (book.isbn && existingByIsbn.has(book.isbn)) continue; // already matched by ISBN
+      const ftsQuery = book.title.trim().replace(/['"*()]/g, '');
+      if (!ftsQuery) continue;
+      try {
+        const ftsResult = await db.prepare(
+          `SELECT id, title, author FROM books
+           INNER JOIN books_fts fts ON books.id = fts.id
+           WHERE fts MATCH ? LIMIT 10`
+        ).bind(`"${ftsQuery}"`).all();
+        for (const match of (ftsResult.results || [])) {
+          const key = match.title.toLowerCase().trim();
+          if (!existingByTitle.has(key)) existingByTitle.set(key, match);
+        }
+      } catch {
+        // FTS match failed (e.g. special chars) — skip
+      }
+    }
+  } else {
+    // Legacy mode: fall back to provider
+    const provider = await createProvider(c.env);
+    const allBooks = await provider.getAllBooks();
+    for (const book of allBooks) {
+      if (book.isbn) existingByIsbn.set(book.isbn, book);
+      const key = book.title.toLowerCase().trim();
+      if (!existingByTitle.has(key)) existingByTitle.set(key, book);
+    }
+  }
+
+  // Filter out duplicates using the targeted lookup results
+  const normalizeTitle = (title) => title.toLowerCase().trim().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ');
+  const normalizeAuthor = (author) => author ? author.toLowerCase().trim().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ') : '';
+
+  const isDuplicate = (newBook) => {
+    // Check ISBN match first
+    if (newBook.isbn && existingByIsbn.has(newBook.isbn)) return true;
+
+    // Check title match
     const newTitle = normalizeTitle(newBook.title);
     const newAuthor = normalizeAuthor(newBook.author);
 
-    return existingBooks.some(existing => {
+    for (const [, existing] of existingByTitle) {
       const existingTitle = normalizeTitle(existing.title);
-      const existingAuthor = normalizeAuthor(existing.author);
-
       if (newTitle === existingTitle) {
+        const existingAuthor = normalizeAuthor(existing.author);
         if (newAuthor && existingAuthor) {
-          return newAuthor === existingAuthor;
+          if (newAuthor === existingAuthor) return true;
+        } else {
+          return true; // Same title, consider duplicate
         }
-        return true; // Same title, consider duplicate
       }
-      return false;
-    });
+    }
+    return false;
   };
 
-  const newBooks = validBooks.filter(book => !isDuplicate(book, existingBooks));
+  const newBooks = validBooks.filter(book => !isDuplicate(book));
   const duplicateCount = validBooks.length - newBooks.length;
 
   // Use batch operation for efficiency (only 2 KV operations total)
+  const provider = await createProvider(c.env);
   let savedBooks = [];
   if (newBooks.length > 0) {
     savedBooks = await provider.addBooksBatch(newBooks);
@@ -1111,7 +1166,7 @@ booksRouter.post('/import/preview', requireTeacher(), async (c) => {
         const ftsResult = await db.prepare(
           `SELECT b.* FROM books b
            INNER JOIN books_fts fts ON b.id = fts.id
-           WHERE books_fts MATCH ? LIMIT 20`
+           WHERE fts MATCH ? LIMIT 20`
         ).bind(`"${ftsQuery}"`).all();
         candidates = ftsResult.results || [];
       }

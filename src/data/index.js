@@ -27,28 +27,23 @@ async function createProvider(env = null) {
 
   // If D1 database is available, use it for books (preferred for large collections)
   if (env && env.READING_MANAGER_DB) {
-    console.log('Using D1 database for books (scalable SQL storage)');
     return createD1Provider(env);
   }
 
   if (storageType === 'kv') {
-    console.log('Using KV storage (explicitly set via STORAGE_TYPE)');
     return createKVProvider(env);
   }
 
   if (storageType === 'json') {
-    console.log('Using JSON storage (explicitly set via STORAGE_TYPE)');
     return await createJSONProvider();
   }
 
   // Auto-detect based on environment - fallback to KV if D1 not available
   if (env && env.READING_MANAGER_KV) {
-    console.log('Using KV storage (auto-detected Cloudflare Worker environment, D1 not available)');
     return createKVProvider(env);
   }
 
   // Default to JSON for local development
-  console.log('Using JSON storage (auto-detected local Node.js environment)');
   return await createJSONProvider();
 }
 

@@ -87,7 +87,18 @@ export default function LandingPage({ onSignIn }) {
       <div className="lp-body-offset">
         {/* NAV */}
         <nav className={`lp-nav${navScrolled ? ' scrolled' : ''}`}>
-          <span className="lp-nav-logo" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+          <span
+            className="lp-nav-logo"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }
+            }}
+            role="button"
+            tabIndex={0}
+          >
             <span className="lp-nav-logo-icon"><TallyLogo /></span>
             <span>Tally</span>
           </span>

@@ -53,6 +53,7 @@ export const rowToStudent = (row) => {
     currentStreak: row.current_streak || 0,
     longestStreak: row.longest_streak || 0,
     streakStartDate: row.streak_start_date || null,
+    yearGroup: row.year_group || null,
     senStatus: row.sen_status || null,
     pupilPremium: Boolean(row.pupil_premium),
     ealStatus: row.eal_status || null,

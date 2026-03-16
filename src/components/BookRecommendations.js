@@ -38,6 +38,7 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import StudentProfile from './students/StudentProfile';
 import BookCover from './BookCover';
+import { STATUS_TO_PALETTE } from '../utils/helpers';
 
 const BookIllustration = () => (
   <svg
@@ -119,8 +120,7 @@ const BookRecommendations = () => {
           const config = await response.json();
           setAiConfig(config);
         }
-      } catch (error) {
-        console.warn('Failed to load AI configuration:', error.message);
+      } catch {
         setAiConfig({ loadError: true });
       }
     };
@@ -430,11 +430,7 @@ const BookRecommendations = () => {
                       needsAttention: '#9B6E3A',
                       recentlyRead: '#4A6E4A'
                     };
-                    const statusColor = status === 'never' || status === 'overdue'
-                      ? statusColors.notRead
-                      : status === 'attention'
-                        ? statusColors.needsAttention
-                        : statusColors.recentlyRead;
+                    const statusColor = statusColors[STATUS_TO_PALETTE[status]] || statusColors.notRead;
                     const lastRead = student.lastReadDate
                       ? `Last read ${Math.ceil(Math.abs(new Date() - new Date(student.lastReadDate)) / (1000 * 60 * 60 * 24))} days ago`
                       : 'Never read';
@@ -443,6 +439,14 @@ const BookRecommendations = () => {
                       <Card
                         key={student.id}
                         onClick={() => handleQuickPick(student.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleQuickPick(student.id);
+                          }
+                        }}
+                        tabIndex={0}
+                        role="button"
                         sx={{
                           cursor: 'pointer',
                           p: 2,
@@ -718,7 +722,7 @@ const BookRecommendations = () => {
       {recommendations.length > 0 && (
         <Grid container spacing={3}>
           {recommendations.map((book, index) => (
-            <Grid item xs={12} md={6} key={book.id || index}>
+            <Grid size={{ xs: 12, md: 6 }} key={book.id || index}>
               <Card sx={{ height: '100%' }}>
                 <CardContent sx={{ p: { xs: 2, md: 3 } }}>
                   <Box sx={{ display: 'flex', gap: { xs: 2, md: 3 } }}>

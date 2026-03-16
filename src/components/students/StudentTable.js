@@ -24,6 +24,7 @@ import StreakBadge from './StreakBadge';
 import { useTheme } from '@mui/material/styles';
 import StudentSessions from '../sessions/StudentSessions';
 import StudentProfile from './StudentProfile';
+import { STATUS_TO_PALETTE } from '../../utils/helpers';
 
 const StudentTable = React.memo(({ students }) => {
   const theme = useTheme();
@@ -238,7 +239,8 @@ const StudentTable = React.memo(({ students }) => {
           <TableBody>
             {sortedStudents.map((student) => {
               const status = getReadingStatus(student);
-              const statusColor = theme.palette.status?.[status] || theme.palette.primary.main;
+              const paletteKey = STATUS_TO_PALETTE[status] || 'notRead';
+              const statusColor = theme.palette.status?.[paletteKey] || theme.palette.primary.main;
               const mostRecentReadDate = getMostRecentReadDate(student);
               
               return (
@@ -261,7 +263,7 @@ const StudentTable = React.memo(({ students }) => {
                   }}
                   tabIndex={0}
                   role="row"
-                  aria-label={`${student.name}, status: ${{ recentlyRead: 'Recently read', needsAttention: 'Needs attention', notRead: 'Not read' }[status] || status}`}
+                  aria-label={`${student.name}, status: ${{ recent: 'Recently read', attention: 'Needs attention', never: 'Not read', overdue: 'Overdue' }[status] || status}`}
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleRowClick(student); } }}
                 >
                   <TableCell>
@@ -360,7 +362,7 @@ const StudentTable = React.memo(({ students }) => {
                       <Chip
                         label={formatDate(mostRecentReadDate)}
                         size="small"
-                        color={status === 'notRead' ? 'error' : status === 'needsAttention' ? 'warning' : 'success'}
+                        color={paletteKey === 'notRead' ? 'error' : paletteKey === 'needsAttention' ? 'warning' : 'success'}
                         sx={{
                           height: { xs: 26, sm: 24 },
                           fontSize: { xs: '0.75rem', sm: '0.7rem' },

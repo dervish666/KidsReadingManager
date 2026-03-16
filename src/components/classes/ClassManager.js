@@ -256,7 +256,7 @@ const ClassManager = () => {
     <>
       <Box component="form" onSubmit={handleAddClass} sx={{ mt: 2 }}>
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={5}>
+          <Grid size={{ xs: 12, sm: 5 }}>
             <FormControl fullWidth size="small">
               <InputLabel id="new-class-year-label">Year Group</InputLabel>
               <Select
@@ -275,7 +275,7 @@ const ClassManager = () => {
             </FormControl>
           </Grid>
 
-          <Grid item xs={12} sm={5}>
+          <Grid size={{ xs: 12, sm: 5 }}>
             <TextField
               label="Teacher Name"
               value={newTeacherName}
@@ -285,7 +285,7 @@ const ClassManager = () => {
             />
           </Grid>
 
-          <Grid item xs={12} sm={2}>
+          <Grid size={{ xs: 12, sm: 2 }}>
             <Button
               type="submit"
               variant="contained"
@@ -298,7 +298,7 @@ const ClassManager = () => {
           </Grid>
 
           {error && (
-            <Grid item xs={12}>
+            <Grid size={12}>
               <Typography color="error" variant="body2">
                 {error}
               </Typography>
@@ -391,7 +391,7 @@ const ClassManager = () => {
         <DialogContent>
           <Box component="form" onSubmit={handleUpdateClass} sx={{ mt: 1 }}>
             <Grid container spacing={2}>
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <FormControl fullWidth size="small">
                   <InputLabel id="edit-class-year-label">Year Group</InputLabel>
                   <Select
@@ -409,7 +409,7 @@ const ClassManager = () => {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <TextField
                   label="Teacher Name"
                   value={editTeacherName}

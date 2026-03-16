@@ -43,14 +43,11 @@ hardcoverRouter.post('/graphql', requireTeacher(), async (c) => {
     }
   }
 
-  // Prefer the server-stored (encrypted) key. Fall back to request body key
-  // for availability checks before the key has been saved to settings.
-  const body = await c.req.json();
-  const effectiveApiKey = apiKey || body.apiKey;
-
-  if (!effectiveApiKey) {
-    return c.json({ error: 'Hardcover API key is not configured' }, 400);
+  if (!apiKey) {
+    return c.json({ error: 'Hardcover API key is not configured. Please configure it in Settings.' }, 400);
   }
+
+  const body = await c.req.json();
 
   const { query, variables } = body;
   if (!query) {
@@ -61,7 +58,7 @@ hardcoverRouter.post('/graphql', requireTeacher(), async (c) => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      authorization: effectiveApiKey
+      authorization: apiKey
     },
     body: JSON.stringify({ query, variables })
   });

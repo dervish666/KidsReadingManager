@@ -146,7 +146,7 @@ const getOrgStreakSettings = async (db, organizationId, env) => {
 /**
  * Recalculate and update streak for a student based on their reading sessions
  */
-const updateStudentStreak = async (db, studentId, organizationId) => {
+const updateStudentStreak = async (db, studentId, organizationId, env) => {
   // Fetch all sessions for the student, excluding absent/no_record entries
   const sessions = await db.prepare(`
     SELECT session_date as date FROM reading_sessions
@@ -156,7 +156,7 @@ const updateStudentStreak = async (db, studentId, organizationId) => {
   `).bind(studentId).all();
 
   // Get organization settings (from cache or D1)
-  const { gracePeriodDays, timezone } = await getOrgStreakSettings(db, organizationId, {});
+  const { gracePeriodDays, timezone } = await getOrgStreakSettings(db, organizationId, env || {});
 
   // Calculate streak
   const streakData = calculateStreak(sessions.results || [], {
@@ -468,15 +468,16 @@ studentsRouter.get('/:id/sessions', requireReadonly(), async (c) => {
   }
 
   const limitParam = c.req.query('limit');
-  const limitClause = limitParam ? ` LIMIT ${Math.max(1, Math.min(parseInt(limitParam, 10) || 1000, 1000))}` : '';
+  const limitValue = limitParam ? Math.max(1, Math.min(parseInt(limitParam, 10) || 1000, 1000)) : 1000;
 
   const result = await db.prepare(`
     SELECT rs.*, b.title as book_title, b.author as book_author
     FROM reading_sessions rs
     LEFT JOIN books b ON rs.book_id = b.id
     WHERE rs.student_id = ?
-    ORDER BY rs.session_date DESC${limitClause}
-  `).bind(id).all();
+    ORDER BY rs.session_date DESC
+    LIMIT ?
+  `).bind(id, limitValue).all();
 
   const sessions = (result.results || []).map(s => ({
     id: s.id,
@@ -1026,8 +1027,15 @@ studentsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
       `).bind(body.bookId, id).run();
     }
 
+    // Update student's last_read_date
+    const sessionDate = body.date || new Date().toISOString().split('T')[0];
+    await db.prepare(`
+      UPDATE students SET last_read_date = ?, updated_at = datetime("now")
+      WHERE id = ? AND organization_id = ?
+    `).bind(sessionDate, id, organizationId).run();
+
     // Update student's reading streak
-    const streakData = await updateStudentStreak(db, id, organizationId);
+    const streakData = await updateStudentStreak(db, id, organizationId, c.env);
 
     // Fetch the created session
     const session = await db.prepare(`
@@ -1109,7 +1117,14 @@ studentsRouter.delete('/:id/sessions/:sessionId', requireTeacher(), auditLog('de
     `).bind(sessionId).run();
 
     // Recalculate student's reading streak after deletion
-    await updateStudentStreak(db, id, organizationId);
+    await updateStudentStreak(db, id, organizationId, c.env);
+
+    // Recalculate last_read_date from remaining sessions
+    await db.prepare(`
+      UPDATE students SET last_read_date = (
+        SELECT MAX(session_date) FROM reading_sessions WHERE student_id = ?
+      ), updated_at = datetime("now") WHERE id = ? AND organization_id = ?
+    `).bind(id, id, organizationId).run();
 
     return c.json({ message: 'Session deleted successfully' });
   }
@@ -1119,23 +1134,23 @@ studentsRouter.delete('/:id/sessions/:sessionId', requireTeacher(), auditLog('de
   if (!student) {
     throw notFoundError(`Student with ID ${id} not found`);
   }
-  
+
   const sessionIndex = student.readingSessions?.findIndex(s => s.id === sessionId);
   if (sessionIndex === -1 || sessionIndex === undefined) {
     throw notFoundError(`Session with ID ${sessionId} not found`);
   }
-  
+
   student.readingSessions.splice(sessionIndex, 1);
-  
+
   // Update lastReadDate if needed
   if (student.readingSessions.length > 0) {
     student.lastReadDate = student.readingSessions[0].date;
   } else {
     student.lastReadDate = null;
   }
-  
+
   await saveStudentKV(c.env, student);
-  
+
   return c.json({ message: 'Session deleted successfully' });
 });
 
@@ -1143,10 +1158,42 @@ studentsRouter.delete('/:id/sessions/:sessionId', requireTeacher(), auditLog('de
  * PUT /api/students/:id/sessions/:sessionId
  * Update a reading session
  */
-studentsRouter.put('/:id/sessions/:sessionId', requireTeacher(), async (c) => {
+studentsRouter.put('/:id/sessions/:sessionId', requireTeacher(), auditLog('update', 'session'), async (c) => {
   const { id, sessionId } = c.req.param();
   const body = await c.req.json();
-  
+
+  // Validate reading session input
+  if (body.pagesRead !== undefined && body.pagesRead !== null) {
+    const pages = Number(body.pagesRead);
+    if (!Number.isFinite(pages) || pages < 0 || pages > 10000) {
+      throw badRequestError('pagesRead must be a number between 0 and 10000');
+    }
+    body.pagesRead = pages;
+  }
+  if (body.duration !== undefined && body.duration !== null) {
+    const dur = Number(body.duration);
+    if (!Number.isFinite(dur) || dur < 0 || dur > 1440) {
+      throw badRequestError('duration must be a number between 0 and 1440 minutes');
+    }
+    body.duration = dur;
+  }
+  if (body.date) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(body.date) || isNaN(Date.parse(body.date))) {
+      throw badRequestError('date must be a valid YYYY-MM-DD format');
+    }
+  }
+  if (body.notes && body.notes.length > 2000) {
+    throw badRequestError('notes must be 2000 characters or fewer');
+  }
+  const validAssessments = [null, undefined, '', 'independent', 'guided', 'struggled', 'read_aloud', 'not_assessed'];
+  if (body.assessment && !validAssessments.includes(body.assessment)) {
+    throw badRequestError('Invalid assessment value');
+  }
+  const validLocations = [null, undefined, '', 'school', 'home', 'library', 'other'];
+  if (body.location && !validLocations.includes(body.location)) {
+    throw badRequestError('Invalid location value');
+  }
+
   // Multi-tenant mode: use D1
   if (isMultiTenantMode(c)) {
     const db = getDB(c.env);
@@ -1186,7 +1233,10 @@ studentsRouter.put('/:id/sessions/:sessionId', requireTeacher(), async (c) => {
       body.notes ?? null,
       sessionId
     ).run();
-    
+
+    // Recalculate student's reading streak after update
+    await updateStudentStreak(db, id, organizationId, c.env);
+
     // Fetch the updated session
     const session = await db.prepare(`
       SELECT rs.*, b.title as book_title, b.author as book_author
@@ -1194,7 +1244,7 @@ studentsRouter.put('/:id/sessions/:sessionId', requireTeacher(), async (c) => {
       LEFT JOIN books b ON rs.book_id = b.id
       WHERE rs.id = ?
     `).bind(sessionId).first();
-    
+
     return c.json({
       id: session.id,
       date: session.session_date,
@@ -1315,7 +1365,7 @@ studentsRouter.post('/recalculate-streaks', async (c) => {
   // Recalculate streak for each student
   for (const student of (students.results || [])) {
     try {
-      await updateStudentStreak(db, student.id, organizationId);
+      await updateStudentStreak(db, student.id, organizationId, c.env);
       results.updated++;
     } catch (error) {
       results.errors.push({ studentId: student.id, error: error.message });
@@ -1713,8 +1763,8 @@ async function processInBatches(items, concurrency, fn) {
 
 /**
  * Recalculate streaks for all students across all organizations.
- * Optimised for cron: fetches org settings once per org, processes students
- * in concurrent batches of 10 to stay within the 30s Worker CPU limit.
+ * Optimised for cron: bulk-fetches students and sessions per org, calculates
+ * streaks in JS, and batch-updates D1 in chunks of 100.
  * @param {D1Database} db - The D1 database instance
  * @returns {Object} Results summary { total, updated, errors, organizations }
  */
@@ -1745,53 +1795,78 @@ const recalculateAllStreaks = async (db) => {
       orgSettings = { gracePeriodDays: 1, timezone: 'UTC' };
     }
 
-    // Get all active students for this organization
-    const students = await db.prepare(
+    // 1. Fetch ALL active students for this org in one query
+    const studentsResult = await db.prepare(
       `SELECT id FROM students WHERE organization_id = ? AND is_active = 1`
     ).bind(organizationId).all();
 
-    const studentList = students.results || [];
+    const studentList = studentsResult.results || [];
     results.total += studentList.length;
 
-    // Process students in concurrent batches of 10
-    const batchResults = await processInBatches(studentList, 10, async (student) => {
-      // Inline streak update: fetch sessions, calculate, update — avoids
-      // re-fetching org settings per student
-      const sessions = await db.prepare(`
-        SELECT session_date as date FROM reading_sessions
-        WHERE student_id = ?
+    if (studentList.length === 0) continue;
+
+    // 2. Fetch ALL sessions for all active students in one bulk query (last 90 days)
+    const studentIds = studentList.map(s => s.id);
+    const allSessions = [];
+    const SESSION_BATCH = 50; // chunk IN clauses to stay within D1 limits
+    for (let i = 0; i < studentIds.length; i += SESSION_BATCH) {
+      const batch = studentIds.slice(i, i + SESSION_BATCH);
+      const placeholders = batch.map(() => '?').join(',');
+      const sessionsResult = await db.prepare(`
+        SELECT student_id, session_date as date FROM reading_sessions
+        WHERE student_id IN (${placeholders})
+          AND session_date >= date('now', '-90 days')
           AND (notes IS NULL OR (notes NOT LIKE '%[ABSENT]%' AND notes NOT LIKE '%[NO_RECORD]%'))
         ORDER BY session_date DESC
-      `).bind(student.id).all();
+      `).bind(...batch).all();
+      allSessions.push(...(sessionsResult.results || []));
+    }
 
-      const streakData = calculateStreak(sessions.results || [], orgSettings);
-
-      await db.prepare(`
-        UPDATE students SET
-          current_streak = ?,
-          longest_streak = ?,
-          streak_start_date = ?,
-          updated_at = datetime("now")
-        WHERE id = ?
-      `).bind(
-        streakData.currentStreak,
-        streakData.longestStreak,
-        streakData.streakStartDate,
-        student.id
-      ).run();
-    });
-
-    // Collect errors from settled promises
-    for (let i = 0; i < batchResults.length; i++) {
-      if (batchResults[i].status === 'fulfilled') {
-        results.updated++;
-      } else {
-        results.errors.push({
-          organizationId,
-          studentId: studentList[i].id,
-          error: batchResults[i].reason?.message || 'Unknown error'
-        });
+    // 3. Group sessions by student_id in JavaScript
+    const sessionsByStudent = new Map();
+    for (const session of allSessions) {
+      if (!sessionsByStudent.has(session.student_id)) {
+        sessionsByStudent.set(session.student_id, []);
       }
+      sessionsByStudent.get(session.student_id).push(session);
+    }
+
+    // 4. Calculate streak for each student and build update statements
+    const updateStatements = [];
+    try {
+      for (const student of studentList) {
+        const studentSessions = sessionsByStudent.get(student.id) || [];
+        const streakData = calculateStreak(studentSessions, orgSettings);
+
+        updateStatements.push(
+          db.prepare(`
+            UPDATE students SET
+              current_streak = ?,
+              longest_streak = ?,
+              streak_start_date = ?,
+              updated_at = datetime("now")
+            WHERE id = ?
+          `).bind(
+            streakData.currentStreak,
+            streakData.longestStreak,
+            streakData.streakStartDate,
+            student.id
+          )
+        );
+      }
+
+      // 5. Batch UPDATE in chunks of 100 (D1 limit)
+      const BATCH_SIZE = 100;
+      for (let i = 0; i < updateStatements.length; i += BATCH_SIZE) {
+        const chunk = updateStatements.slice(i, i + BATCH_SIZE);
+        await db.batch(chunk);
+      }
+      results.updated += studentList.length;
+    } catch (err) {
+      results.errors.push({
+        organizationId,
+        error: err?.message || 'Batch streak update failed'
+      });
     }
   }
 

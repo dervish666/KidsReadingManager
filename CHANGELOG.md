@@ -1,5 +1,61 @@
 # Changelog
 
+## [3.19.0] - 2026-03-16
+
+### Security
+- **SQL LIMIT parameterized** — replaced sole string-interpolated LIMIT clause with parameterized bind in students sessions query
+- **Session PUT validation** — added input validation (pagesRead, duration, date, notes, assessment, location) matching POST handler, plus audit logging
+- **Password change complexity** — enforces uppercase + lowercase + number on password changes (matching registration/reset)
+- **Google API key POST redaction** — POST /api/settings now redacts googleBooksApiKey (previously only GET did)
+- **Hardcover proxy hardened** — removed client-supplied API key fallback; server key required
+- **Deactivated org filtered** — GET /api/organization now filters is_active
+- **auth/me checks is_active** — for both user and organization
+- **Slug uniqueness includes soft-deleted orgs** — prevents collision on reactivation
+- **Refresh token expiry checked in SQL** — added expires_at filter to refresh token lookup
+- **CSP headers on frontend** — static assets now include X-Frame-Options, X-Content-Type-Options, Referrer-Policy, HSTS
+- **Health endpoint reduced** — removed auth mode and environment details from public health response
+
+### Fixed
+- **DpaConsentModal crash** — "Decline and Log Out" button referenced non-existent `handleLogout` instead of `logout`, causing runtime crash
+- **last_read_date now written** — session creation updates student's last_read_date; session deletion recalculates from remaining sessions
+- **Status color mapping** — fixed mismatch between getReadingStatus return values and theme.palette.status keys across 5 components; all status indicators now show correct colors
+- **rowToStudent yearGroup** — Wonde year_group data no longer silently dropped from API responses
+- **SessionForm snackbar** — shows dynamic message instead of hardcoded "saved successfully" on all paths
+- **Session PUT recalculates streak** — changing a session date now triggers streak recalculation
+- **updateStudentStreak passes env** — KV cache for org streak settings now works (was receiving empty object)
+- **Classes GET role guards** — added requireReadonly() to all three GET endpoints
+- **Tenant isolation on classes/:id/students** — added organization_id filter for defense-in-depth
+- **FTS5 alias consistency** — WHERE clauses now use table alias matching JOIN alias
+- **Orphan book cleanup** — changed NOT IN to NOT EXISTS for better performance
+
+### Changed
+- **Cron routing** — streak/GDPR runs at 2 AM, Wonde sync at 3 AM (previously both ran everything twice)
+- **Deploy includes migrations** — `npm run go` now runs DB migrations before deploying
+- **Streak cron batched** — bulk-fetches sessions and batch-updates streaks instead of 2 queries per student
+- **BookAutocomplete debounced** — 150ms debounce on 18,000+ book filter prevents keystroke lag
+- **Chart components memoized** — useMemo on activeStudents in ReadingFrequencyChart, DaysSinceReadingChart, ReadingTimelineChart
+- **ReadingStats optimized** — getNeedsAttentionStudents uses outer memoized activeStudents instead of re-filtering
+- **books/bulk targeted lookups** — duplicate detection uses ISBN/FTS queries instead of loading all books
+- **Import body limit raised** — CSV import endpoints allow 5MB (global limit remains 1MB)
+- **prettyJSON removed** — eliminates 15-25% JSON response size overhead in production
+- **Provider logging removed** — createProvider no longer logs on every request
+- **MUI Grid v7 API** — standardized 4 components from legacy Grid item API to v7 size prop
+- **formatRelativeTime deduplicated** — extracted to shared utility from 2 components
+- **GitHub Actions updated** — checkout and setup-node actions updated from v3 to v4
+- **Health version constant** — version at top of worker.js, updated to 3.19.0
+
+### Added
+- **Composite database indexes** — students(org_id, class_id, is_active) and wonde_sync_log(org_id, started_at)
+- **STATUS_TO_PALETTE mapping** — shared constant mapping reading status values to theme palette keys
+- **.env.example** — documents all required and optional environment variables
+
+### Removed
+- **ReadingPreferences.js** — dead code superseded by StudentProfile.js
+- **VisualIndicators.js** — dead code replaced by server-side stats
+- **deploy.sh** — outdated script (build-and-deploy.sh is canonical)
+- **jsdom devDependency** — unused (tests use happy-dom)
+- **Unused exports** — removed getProviderStatus, isGoogleBooksConfigured, resetAvailabilityCache, addBookOptimized from utils/data layer
+
 ## [3.18.4] - 2026-03-13
 
 ### Fixed

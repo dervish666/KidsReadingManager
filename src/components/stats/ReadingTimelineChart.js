@@ -86,17 +86,10 @@ const ReadingTimelineChart = () => {
       .finally(() => setLoading(false));
   }, [effectiveClassId, startDateISO, endDateISO, fetchWithAuth, activeStudents.length]);
 
-  // Get the date range for the timeline
-  const getDateRange = () => {
-    return {
-      startDate: new Date(startDateISO),
-      endDate: new Date(endDateISO)
-    };
-  };
-
   // Generate dates for the timeline
-  const generateTimelineDates = () => {
-    const { startDate, endDate } = getDateRange();
+  const timelineDates = useMemo(() => {
+    const startDate = new Date(startDateISO);
+    const endDate = new Date(endDateISO);
     const dates = [];
     const currentDate = new Date(startDate);
 
@@ -106,7 +99,7 @@ const ReadingTimelineChart = () => {
     }
 
     return dates;
-  };
+  }, [startDateISO, endDateISO]);
 
   // Build per-student session data from fetched sessions
   const studentSessions = useMemo(() => {
@@ -133,8 +126,6 @@ const ReadingTimelineChart = () => {
       return b.lastReadDate - a.lastReadDate;
     });
   }, [activeStudents, fetchedSessions]);
-
-  const timelineDates = generateTimelineDates();
 
   // Format date for display
   const formatDate = (date) => {
@@ -168,7 +159,7 @@ const ReadingTimelineChart = () => {
 
   // Determine how many dates to show based on screen size
   const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
-  const getVisibleDates = () => {
+  const visibleDates = useMemo(() => {
     // Choose max visible columns based on timeRange and screen size
     const maxDates = (() => {
       if (timeRange === '7') return isSmall ? 7 : 7;
@@ -197,9 +188,7 @@ const ReadingTimelineChart = () => {
     }
 
     return sampledDates;
-  };
-
-  const visibleDates = getVisibleDates();
+  }, [timelineDates, timeRange, isSmall]);
 
   return (
     <Paper sx={{ p: 3, mb: 3, pb: 'calc(env(safe-area-inset-bottom) + 16px)' }}>

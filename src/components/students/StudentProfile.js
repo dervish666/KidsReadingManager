@@ -400,8 +400,10 @@ const StudentProfile = ({ open, onClose, student }) => {
                       </Alert>
                     ) : (
                       <FormControl fullWidth>
+                        <InputLabel id="genre-select-label">Favorite Genres</InputLabel>
                         <Select
                           multiple
+                          labelId="genre-select-label"
                           value={selectedGenres}
                           onChange={handleGenreChange}
                           input={<Input />}

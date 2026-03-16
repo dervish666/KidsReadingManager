@@ -121,7 +121,7 @@ authRouter.post('/register', async (c) => {
     let slugCounter = 1;
     while (true) {
       const existingOrg = await db.prepare(
-        'SELECT id FROM organizations WHERE slug = ? AND is_active = 1'
+        'SELECT id FROM organizations WHERE slug = ?'
       ).bind(finalSlug).first();
 
       if (!existingOrg) break;
@@ -445,7 +445,7 @@ authRouter.post('/refresh', async (c) => {
       FROM refresh_tokens rt
       INNER JOIN users u ON rt.user_id = u.id
       INNER JOIN organizations o ON u.organization_id = o.id
-      WHERE rt.token_hash = ? AND rt.revoked_at IS NULL
+      WHERE rt.token_hash = ? AND rt.revoked_at IS NULL AND rt.expires_at > datetime('now')
     `).bind(tokenHash).first();
 
     if (!storedToken) {
@@ -747,11 +747,11 @@ authRouter.get('/me', async (c) => {
     // Get full user and organization details
     const fullUser = await db.prepare(`
       SELECT u.id, u.email, u.name, u.role, u.last_login_at, u.created_at,
-             o.id as org_id, o.name as org_name, o.slug as org_slug, 
+             o.id as org_id, o.name as org_name, o.slug as org_slug,
              o.subscription_tier, o.max_students, o.max_teachers
       FROM users u
       INNER JOIN organizations o ON u.organization_id = o.id
-      WHERE u.id = ?
+      WHERE u.id = ? AND u.is_active = 1 AND o.is_active = 1
     `).bind(user.sub).first();
 
     if (!fullUser) {
@@ -812,6 +812,9 @@ authRouter.put('/password', async (c) => {
     // Validate new password strength
     if (newPassword.length < 8) {
       return c.json({ error: 'New password must be at least 8 characters' }, 400);
+    }
+    if (!/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+      return c.json({ error: 'Password must contain at least one uppercase letter, one lowercase letter, and one number' }, 400);
     }
 
     // Get current password hash

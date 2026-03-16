@@ -23,6 +23,7 @@ import TuneIcon from '@mui/icons-material/Tune';
 import { useAppContext } from '../../contexts/AppContext';
 import AssessmentSelector from './AssessmentSelector';
 import { useTheme } from '@mui/material/styles';
+import { STATUS_TO_PALETTE } from '../../utils/helpers';
 
 const QuickEntry = () => {
   const theme = useTheme();
@@ -159,6 +160,7 @@ const QuickEntry = () => {
     needsAttention: theme.palette.status?.needsAttention || '#F59E0B',
     recentlyRead: theme.palette.status?.recentlyRead || '#10B981'
   };
+  const paletteKey = STATUS_TO_PALETTE[status] || 'notRead';
   
   return (
     <Box>
@@ -190,10 +192,10 @@ const QuickEntry = () => {
             <Card
               sx={{
                 // mb: 3, // Margin now handled by Grid item
-                borderLeft: `4px solid ${statusColors[status]}`,
+                borderLeft: `4px solid ${statusColors[paletteKey]}`,
               }}
               role="group"
-              aria-label={`${currentStudent.name}, status: ${{ recentlyRead: 'Recently read', needsAttention: 'Needs attention', notRead: 'Not read' }[status] || status}`}
+              aria-label={`${currentStudent.name}, status: ${{ recent: 'Recently read', attention: 'Needs attention', never: 'Not read', overdue: 'Overdue' }[status] || status}`}
             >
           <CardContent>
             <Typography variant="h5" component="h2" gutterBottom>

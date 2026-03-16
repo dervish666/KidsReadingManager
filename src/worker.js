@@ -14,7 +14,7 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
-import { prettyJSON } from 'hono/pretty-json';
+
 import { bodyLimit } from 'hono/body-limit';
 
 // Import route handlers
@@ -44,12 +44,13 @@ import { authMiddleware, handleLogin } from './middleware/auth';
 import { jwtAuthMiddleware, tenantMiddleware } from './middleware/tenant';
 import { PUBLIC_PATHS } from './utils/constants.js';
 
+const APP_VERSION = '3.19.0';
+
 // Create Hono app for the API
 const app = new Hono();
 
 // Apply middleware
 app.use('/api/*', logger());
-app.use('/api/*', prettyJSON());
 app.use('/api/*', bodyLimit({ maxSize: 1024 * 1024 })); // 1MB max request body
 
 // CORS configuration with explicit origin whitelist
@@ -230,13 +231,7 @@ app.route('/api/term-dates', termDatesRouter);
 app.get('/api/health', async (c) => {
   const health = {
     status: 'ok',
-    message: 'Tally Reading API is running',
-    version: '3.10.7',
-    environment: c.env.ENVIRONMENT || 'unknown',
-    features: {
-      multiTenant: Boolean(c.env.JWT_SECRET),
-      legacyAuth: Boolean(c.env.WORKER_ADMIN_PASSWORD && !c.env.JWT_SECRET)
-    }
+    version: APP_VERSION,
   };
 
   // Verify database connectivity
@@ -321,7 +316,13 @@ export default {
 
     // Serve static assets (SPA fallback handled by not_found_handling in wrangler.toml)
     try {
-      return await env.ASSETS.fetch(request);
+      const assetResponse = await env.ASSETS.fetch(request);
+      const response = new Response(assetResponse.body, assetResponse);
+      response.headers.set('X-Frame-Options', 'DENY');
+      response.headers.set('X-Content-Type-Options', 'nosniff');
+      response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+      response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+      return response;
     } catch (e) {
       console.error(`ASSETS fetch failed: ${e.message}`);
       return new Response('Not Found', { status: 404 });
@@ -334,183 +335,190 @@ export default {
    * This keeps database values accurate for reporting purposes
    */
   async scheduled(event, env, ctx) {
-    console.log(`[Cron] Streak recalculation triggered at ${new Date().toISOString()}`);
+    console.log(`[Cron] Scheduled task triggered (${event.cron}) at ${new Date().toISOString()}`);
 
     // Only run if multi-tenant mode is enabled (D1 database required)
     if (!env.JWT_SECRET || !env.READING_MANAGER_DB) {
-      console.log('[Cron] Skipping streak recalculation - multi-tenant mode not enabled');
+      console.log('[Cron] Skipping scheduled task - multi-tenant mode not enabled');
       return;
     }
 
     const db = env.READING_MANAGER_DB;
 
-    try {
-      const results = await recalculateAllStreaks(db);
+    // Streaks + GDPR at 2 AM UTC
+    if (event.cron === '0 2 * * *') {
+      try {
+        const results = await recalculateAllStreaks(db);
 
-      console.log(`[Cron] Streak recalculation complete:`, {
-        organizations: results.organizations,
-        studentsProcessed: results.total,
-        studentsUpdated: results.updated,
-        errors: results.errors.length
-      });
+        console.log(`[Cron] Streak recalculation complete:`, {
+          organizations: results.organizations,
+          studentsProcessed: results.total,
+          studentsUpdated: results.updated,
+          errors: results.errors.length
+        });
 
-      if (results.errors.length > 0) {
-        console.error('[Cron] Streak recalculation errors:', results.errors.slice(0, 10)); // Log first 10 errors
-      }
-    } catch (error) {
-      console.error('[Cron] Streak recalculation failed:', error.message);
-    }
-
-    // GDPR data retention cleanup jobs
-    try {
-      // Clean up expired refresh tokens
-      const expiredRefresh = await db.prepare(
-        `DELETE FROM refresh_tokens WHERE expires_at < datetime('now') OR revoked_at IS NOT NULL`
-      ).run();
-      console.log(`[Cron] Cleaned up ${expiredRefresh.meta?.changes || 0} expired/revoked refresh tokens`);
-
-      // Clean up expired or used password reset tokens
-      const expiredReset = await db.prepare(
-        `DELETE FROM password_reset_tokens WHERE expires_at < datetime('now') OR used_at IS NOT NULL`
-      ).run();
-      console.log(`[Cron] Cleaned up ${expiredReset.meta?.changes || 0} expired/used password reset tokens`);
-
-      // Clean up login attempts older than 30 days (contains IP addresses - personal data)
-      const oldLogins = await db.prepare(
-        `DELETE FROM login_attempts WHERE created_at < datetime('now', '-30 days')`
-      ).run();
-      console.log(`[Cron] Cleaned up ${oldLogins.meta?.changes || 0} login attempts older than 30 days`);
-
-      // Anonymise IP addresses and user-agents in audit logs older than 90 days
-      const anonAudit = await db.prepare(
-        `UPDATE audit_log SET ip_address = 'anonymised', user_agent = 'anonymised' WHERE created_at < datetime('now', '-90 days') AND ip_address != 'anonymised' AND ip_address IS NOT NULL`
-      ).run();
-      console.log(`[Cron] Anonymised ${anonAudit.meta?.changes || 0} audit log entries older than 90 days`);
-
-      // Hard-delete audit log entries older than 1 year (anonymised at 90 days, fully removed at 365)
-      const oldAudit = await db.prepare(
-        `DELETE FROM audit_log WHERE created_at < datetime('now', '-365 days')`
-      ).run();
-      if (oldAudit.meta?.changes > 0) {
-        console.log(`[Cron] Deleted ${oldAudit.meta.changes} audit log entries older than 1 year`);
-      }
-
-      // Clean up stale rate limit records (older than 1 hour)
-      const oldRateLimits = await db.prepare(
-        `DELETE FROM rate_limits WHERE created_at < datetime('now', '-1 hour')`
-      ).run();
-      console.log(`[Cron] Cleaned up ${oldRateLimits.meta?.changes || 0} stale rate limit records`);
-
-      // Clean up expired OAuth states (older than 5 minutes)
-      const expiredStates = await db.prepare(
-        `DELETE FROM oauth_state WHERE created_at < datetime('now', '-5 minutes')`
-      ).run();
-      if (expiredStates.meta?.changes > 0) {
-        console.log(`[Cron] Cleaned up ${expiredStates.meta.changes} expired OAuth states`);
-      }
-    } catch (error) {
-      console.error('[Cron] GDPR data retention cleanup failed:', error.message);
-    }
-
-    // Auto hard-delete soft-deleted records after 90-day retention period
-    // Uses chunked db.batch() (max 100 statements) instead of per-record sequential deletes
-    try {
-      // Hard-delete soft-deleted students (cascade: sessions → preferences → student)
-      const staleStudents = await db.prepare(
-        `SELECT id FROM students WHERE is_active = 0 AND updated_at < datetime('now', '-90 days')`
-      ).bind().all();
-
-      const studentIds = (staleStudents.results || []).map(s => s.id);
-      if (studentIds.length > 0) {
-        // 3 statements per student; chunk at 33 students to stay under 100-statement D1 batch limit
-        const STUDENT_CHUNK = 33;
-        for (let i = 0; i < studentIds.length; i += STUDENT_CHUNK) {
-          const chunk = studentIds.slice(i, i + STUDENT_CHUNK);
-          const statements = chunk.flatMap(id => [
-            db.prepare('DELETE FROM reading_sessions WHERE student_id = ?').bind(id),
-            db.prepare('DELETE FROM student_preferences WHERE student_id = ?').bind(id),
-            db.prepare('DELETE FROM students WHERE id = ?').bind(id),
-          ]);
-          await db.batch(statements);
+        if (results.errors.length > 0) {
+          console.error('[Cron] Streak recalculation errors:', results.errors.slice(0, 10)); // Log first 10 errors
         }
-        console.log(`[Cron] Hard-deleted ${studentIds.length} soft-deleted students past 90-day retention`);
+      } catch (error) {
+        console.error('[Cron] Streak recalculation failed:', error.message);
       }
 
-      // Hard-delete soft-deleted users (cascade: refresh_tokens → password_reset_tokens → user)
-      const staleUsers = await db.prepare(
-        `SELECT id FROM users WHERE is_active = 0 AND updated_at < datetime('now', '-90 days')`
-      ).bind().all();
+      // GDPR data retention cleanup jobs
+      try {
+        // Clean up expired refresh tokens
+        const expiredRefresh = await db.prepare(
+          `DELETE FROM refresh_tokens WHERE expires_at < datetime('now') OR revoked_at IS NOT NULL`
+        ).run();
+        console.log(`[Cron] Cleaned up ${expiredRefresh.meta?.changes || 0} expired/revoked refresh tokens`);
 
-      const userIds = (staleUsers.results || []).map(u => u.id);
-      if (userIds.length > 0) {
-        // 3 statements per user; chunk at 33 users
-        const USER_CHUNK = 33;
-        for (let i = 0; i < userIds.length; i += USER_CHUNK) {
-          const chunk = userIds.slice(i, i + USER_CHUNK);
-          const statements = chunk.flatMap(id => [
-            db.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').bind(id),
-            db.prepare('DELETE FROM password_reset_tokens WHERE user_id = ?').bind(id),
-            db.prepare('DELETE FROM users WHERE id = ?').bind(id),
-          ]);
-          await db.batch(statements);
+        // Clean up expired or used password reset tokens
+        const expiredReset = await db.prepare(
+          `DELETE FROM password_reset_tokens WHERE expires_at < datetime('now') OR used_at IS NOT NULL`
+        ).run();
+        console.log(`[Cron] Cleaned up ${expiredReset.meta?.changes || 0} expired/used password reset tokens`);
+
+        // Clean up login attempts older than 30 days (contains IP addresses - personal data)
+        const oldLogins = await db.prepare(
+          `DELETE FROM login_attempts WHERE created_at < datetime('now', '-30 days')`
+        ).run();
+        console.log(`[Cron] Cleaned up ${oldLogins.meta?.changes || 0} login attempts older than 30 days`);
+
+        // Anonymise IP addresses and user-agents in audit logs older than 90 days
+        const anonAudit = await db.prepare(
+          `UPDATE audit_log SET ip_address = 'anonymised', user_agent = 'anonymised' WHERE created_at < datetime('now', '-90 days') AND ip_address != 'anonymised' AND ip_address IS NOT NULL`
+        ).run();
+        console.log(`[Cron] Anonymised ${anonAudit.meta?.changes || 0} audit log entries older than 90 days`);
+
+        // Hard-delete audit log entries older than 1 year (anonymised at 90 days, fully removed at 365)
+        const oldAudit = await db.prepare(
+          `DELETE FROM audit_log WHERE created_at < datetime('now', '-365 days')`
+        ).run();
+        if (oldAudit.meta?.changes > 0) {
+          console.log(`[Cron] Deleted ${oldAudit.meta.changes} audit log entries older than 1 year`);
         }
-        console.log(`[Cron] Hard-deleted ${userIds.length} soft-deleted users past 90-day retention`);
-      }
 
-      // Hard-delete inactive organizations (only if no active students or users remain)
-      const staleOrgs = await db.prepare(
-        `SELECT id FROM organizations WHERE is_active = 0 AND updated_at < datetime('now', '-90 days')`
-      ).bind().all();
+        // Clean up stale rate limit records (older than 1 hour)
+        const oldRateLimits = await db.prepare(
+          `DELETE FROM rate_limits WHERE created_at < datetime('now', '-1 hour')`
+        ).run();
+        console.log(`[Cron] Cleaned up ${oldRateLimits.meta?.changes || 0} stale rate limit records`);
 
-      let orgsDeleted = 0;
-      for (const org of (staleOrgs.results || [])) {
-        const activeStudents = await db.prepare(
-          'SELECT COUNT(*) as count FROM students WHERE organization_id = ? AND is_active = 1'
-        ).bind(org.id).first();
-        const activeUsers = await db.prepare(
-          'SELECT COUNT(*) as count FROM users WHERE organization_id = ? AND is_active = 1'
-        ).bind(org.id).first();
-
-        if ((activeStudents?.count || 0) === 0 && (activeUsers?.count || 0) === 0) {
-          await db.prepare('DELETE FROM organizations WHERE id = ?').bind(org.id).run();
-          orgsDeleted++;
+        // Clean up expired OAuth states (older than 5 minutes)
+        const expiredStates = await db.prepare(
+          `DELETE FROM oauth_state WHERE created_at < datetime('now', '-5 minutes')`
+        ).run();
+        if (expiredStates.meta?.changes > 0) {
+          console.log(`[Cron] Cleaned up ${expiredStates.meta.changes} expired OAuth states`);
         }
+      } catch (error) {
+        console.error('[Cron] GDPR data retention cleanup failed:', error.message);
       }
-      if (orgsDeleted > 0) {
-        console.log(`[Cron] Hard-deleted ${orgsDeleted} inactive organizations past 90-day retention`);
-      }
-    } catch (error) {
-      console.error('[Cron] Retention auto-deletion failed:', error.message);
-    }
 
-    // Wonde daily delta sync — process orgs concurrently (batches of 5)
-    try {
-      const wondeOrgs = await db.prepare(
-        'SELECT id, wonde_school_id, wonde_school_token, wonde_last_sync_at FROM organizations WHERE wonde_school_id IS NOT NULL AND wonde_school_token IS NOT NULL AND is_active = 1'
-      ).bind().all();
+      // Auto hard-delete soft-deleted records after 90-day retention period
+      // Uses chunked db.batch() (max 100 statements) instead of per-record sequential deletes
+      try {
+        // Hard-delete soft-deleted students (cascade: sessions → preferences → student)
+        const staleStudents = await db.prepare(
+          `SELECT id FROM students WHERE is_active = 0 AND updated_at < datetime('now', '-90 days')`
+        ).bind().all();
 
-      const orgList = wondeOrgs.results || [];
-      const SYNC_CONCURRENCY = 5;
-      for (let i = 0; i < orgList.length; i += SYNC_CONCURRENCY) {
-        const batch = orgList.slice(i, i + SYNC_CONCURRENCY);
-        const results = await Promise.allSettled(batch.map(async (org) => {
-          const schoolToken = await decryptSensitiveData(org.wonde_school_token, env.JWT_SECRET);
-          await runFullSync(org.id, schoolToken, org.wonde_school_id, db, {
-            updatedAfter: org.wonde_last_sync_at,
-          });
-          return org.id;
-        }));
+        const studentIds = (staleStudents.results || []).map(s => s.id);
+        if (studentIds.length > 0) {
+          // 3 statements per student; chunk at 33 students to stay under 100-statement D1 batch limit
+          const STUDENT_CHUNK = 33;
+          for (let i = 0; i < studentIds.length; i += STUDENT_CHUNK) {
+            const chunk = studentIds.slice(i, i + STUDENT_CHUNK);
+            const statements = chunk.flatMap(id => [
+              db.prepare('DELETE FROM reading_sessions WHERE student_id = ?').bind(id),
+              db.prepare('DELETE FROM student_preferences WHERE student_id = ?').bind(id),
+              db.prepare('DELETE FROM students WHERE id = ?').bind(id),
+            ]);
+            await db.batch(statements);
+          }
+          console.log(`[Cron] Hard-deleted ${studentIds.length} soft-deleted students past 90-day retention`);
+        }
 
-        for (const result of results) {
-          if (result.status === 'fulfilled') {
-            console.log(`[Cron] Wonde sync complete for org ${result.value}`);
-          } else {
-            console.error(`[Cron] Wonde sync failed:`, result.reason?.message);
+        // Hard-delete soft-deleted users (cascade: refresh_tokens → password_reset_tokens → user)
+        const staleUsers = await db.prepare(
+          `SELECT id FROM users WHERE is_active = 0 AND updated_at < datetime('now', '-90 days')`
+        ).bind().all();
+
+        const userIds = (staleUsers.results || []).map(u => u.id);
+        if (userIds.length > 0) {
+          // 3 statements per user; chunk at 33 users
+          const USER_CHUNK = 33;
+          for (let i = 0; i < userIds.length; i += USER_CHUNK) {
+            const chunk = userIds.slice(i, i + USER_CHUNK);
+            const statements = chunk.flatMap(id => [
+              db.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').bind(id),
+              db.prepare('DELETE FROM password_reset_tokens WHERE user_id = ?').bind(id),
+              db.prepare('DELETE FROM users WHERE id = ?').bind(id),
+            ]);
+            await db.batch(statements);
+          }
+          console.log(`[Cron] Hard-deleted ${userIds.length} soft-deleted users past 90-day retention`);
+        }
+
+        // Hard-delete inactive organizations (only if no active students or users remain)
+        const staleOrgs = await db.prepare(
+          `SELECT id FROM organizations WHERE is_active = 0 AND updated_at < datetime('now', '-90 days')`
+        ).bind().all();
+
+        let orgsDeleted = 0;
+        for (const org of (staleOrgs.results || [])) {
+          const activeStudents = await db.prepare(
+            'SELECT COUNT(*) as count FROM students WHERE organization_id = ? AND is_active = 1'
+          ).bind(org.id).first();
+          const activeUsers = await db.prepare(
+            'SELECT COUNT(*) as count FROM users WHERE organization_id = ? AND is_active = 1'
+          ).bind(org.id).first();
+
+          if ((activeStudents?.count || 0) === 0 && (activeUsers?.count || 0) === 0) {
+            await db.prepare('DELETE FROM organizations WHERE id = ?').bind(org.id).run();
+            orgsDeleted++;
           }
         }
+        if (orgsDeleted > 0) {
+          console.log(`[Cron] Hard-deleted ${orgsDeleted} inactive organizations past 90-day retention`);
+        }
+      } catch (error) {
+        console.error('[Cron] Retention auto-deletion failed:', error.message);
       }
-    } catch (error) {
-      console.error('[Cron] Wonde sync query failed:', error.message);
     }
+
+    // Wonde sync at 3 AM UTC
+    if (event.cron === '0 3 * * *') {
+      try {
+        const wondeOrgs = await db.prepare(
+          'SELECT id, wonde_school_id, wonde_school_token, wonde_last_sync_at FROM organizations WHERE wonde_school_id IS NOT NULL AND wonde_school_token IS NOT NULL AND is_active = 1'
+        ).bind().all();
+
+        const orgList = wondeOrgs.results || [];
+        const SYNC_CONCURRENCY = 5;
+        for (let i = 0; i < orgList.length; i += SYNC_CONCURRENCY) {
+          const batch = orgList.slice(i, i + SYNC_CONCURRENCY);
+          const results = await Promise.allSettled(batch.map(async (org) => {
+            const schoolToken = await decryptSensitiveData(org.wonde_school_token, env.JWT_SECRET);
+            await runFullSync(org.id, schoolToken, org.wonde_school_id, db, {
+              updatedAfter: org.wonde_last_sync_at,
+            });
+            return org.id;
+          }));
+
+          for (const result of results) {
+            if (result.status === 'fulfilled') {
+              console.log(`[Cron] Wonde sync complete for org ${result.value}`);
+            } else {
+              console.error(`[Cron] Wonde sync failed:`, result.reason?.message);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('[Cron] Wonde sync query failed:', error.message);
+      }
+    }
+
+    console.log(`[Cron] Scheduled task (${event.cron}) finished at ${new Date().toISOString()}`);
   },
 };

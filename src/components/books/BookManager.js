@@ -63,6 +63,7 @@ const BookManager = () => {
   const [editBookDescription, setEditBookDescription] = useState('');
   const [editBookGenreIds, setEditBookGenreIds] = useState([]);
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [confirmImport, setConfirmImport] = useState({ open: false, file: null, data: null });
   const [error, setError] = useState('');
@@ -239,6 +240,7 @@ const BookManager = () => {
       return;
     }
 
+    setIsSaving(true);
     try {
       // Use authenticated helper for consistency with protected API
       const response = await fetchWithAuth(`/api/books/${editingBook.id}`, {
@@ -270,6 +272,8 @@ const BookManager = () => {
       setError('');
     } catch (error) {
       setError('Failed to update book');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -827,6 +831,7 @@ const BookManager = () => {
             <TextField
               size="small"
               placeholder="Search books..."
+              aria-label="Search books"
               value={searchQuery}
               onChange={handleSearchQueryChange}
               sx={{ minWidth: 200 }}
@@ -1199,8 +1204,8 @@ const BookManager = () => {
           </Button>
           <Box sx={{ flex: 1 }} />
           <Button onClick={handleCancelEdit}>Cancel</Button>
-          <Button onClick={handleUpdateBook} variant="contained" color="primary">
-            Save
+          <Button onClick={handleUpdateBook} variant="contained" color="primary" disabled={isSaving}>
+            {isSaving ? 'Saving...' : 'Save'}
           </Button>
         </DialogActions>
       </Dialog>

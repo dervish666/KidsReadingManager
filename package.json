@@ -1,11 +1,11 @@
 {
   "name": "tally-reading",
-  "version": "3.18.4",
+  "version": "3.19.0",
   "description": "Cloudflare Workers implementation of Tally Reading API",
   "main": "src/index.js",
   "scripts": {
     "start": "rsbuild dev",
-    "go": "npm run build && npm run deploy",
+    "go": "npm run build && npx wrangler d1 migrations apply reading-manager-db --remote && npm run deploy",
     "start:dev": "npm run dev & npm run start",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
@@ -41,7 +41,6 @@
     "@vitejs/plugin-react": "^5.1.2",
     "@vitest/coverage-v8": "^4.0.16",
     "happy-dom": "^20.0.11",
-    "jsdom": "^27.4.0",
     "vitest": "^4.0.16",
     "wrangler": "^4.69.0"
   },

@@ -232,24 +232,6 @@ const updateBooksBatch = async (env, bookUpdates) => {
   }
 };
 
-/**
- * Enhanced addBook that can handle both single and batch operations
- * Automatically detects if we're in a batch context to optimize KV usage
- * @param {Object} env - Worker environment
- * @param {Object} newBook - Book object to add
- * @param {Object} options - Options including batch context
- * @returns {Object} Added book object
- */
-const addBookOptimized = async (env, newBook, options = {}) => {
-  // If this is part of a batch operation, use the batch method
-  if (options.batch && Array.isArray(options.batch)) {
-    return addBooksBatch(env, options.batch);
-  }
-  
-  // Otherwise use the original single-book method
-  return addBook(env, newBook);
-};
-
 export {
   getAllBooks,
   getBookById,
@@ -257,6 +239,5 @@ export {
   updateBook,
   deleteBook,
   addBooksBatch,
-  updateBooksBatch,
-  addBookOptimized
+  updateBooksBatch
 };

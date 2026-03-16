@@ -11,7 +11,7 @@ import {
 
 // Import utilities
 import { notFoundError, badRequestError, forbiddenError } from '../middleware/errorHandler';
-import { auditLog } from '../middleware/tenant';
+import { auditLog, requireReadonly } from '../middleware/tenant';
 import { permissions } from '../utils/crypto';
 import { getDB, isMultiTenantMode } from '../utils/routeHelpers';
 import { validateClass } from '../utils/validation';
@@ -24,7 +24,7 @@ const classesRouter = new Hono();
  * GET /api/classes
  * Get all classes
  */
-classesRouter.get('/', async (c) => {
+classesRouter.get('/', requireReadonly(), async (c) => {
   // Multi-tenant mode: use D1
   if (isMultiTenantMode(c)) {
     const db = getDB(c.env);
@@ -56,7 +56,7 @@ classesRouter.get('/', async (c) => {
  * GET /api/classes/:id
  * Get a class by ID
  */
-classesRouter.get('/:id', async (c) => {
+classesRouter.get('/:id', requireReadonly(), async (c) => {
   const { id } = c.req.param();
   
   // Multi-tenant mode: use D1
@@ -95,7 +95,7 @@ classesRouter.get('/:id', async (c) => {
  * GET /api/classes/:id/students
  * Get all students in a class
  */
-classesRouter.get('/:id/students', async (c) => {
+classesRouter.get('/:id/students', requireReadonly(), async (c) => {
   const { id } = c.req.param();
   
   // Multi-tenant mode: use D1
@@ -113,8 +113,8 @@ classesRouter.get('/:id/students', async (c) => {
     }
     
     const result = await db.prepare(`
-      SELECT * FROM students WHERE class_id = ? AND is_active = 1 ORDER BY name ASC
-    `).bind(id).all();
+      SELECT * FROM students WHERE class_id = ? AND organization_id = ? AND is_active = 1 ORDER BY name ASC
+    `).bind(id, organizationId).all();
     
     const students = (result.results || []).map(rowToStudent);
     

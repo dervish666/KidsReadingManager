@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -15,23 +15,24 @@ const DaysSinceReadingChart = () => {
   const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
   const { students, classes, globalClassFilter } = useAppContext();
 
-  // Get IDs of disabled classes
-  const disabledClassIds = classes.filter(cls => cls.disabled).map(cls => cls.id);
-
   // Filter students based on global class filter and disabled classes
-  const activeStudents = students.filter(student => {
-    // First, filter by global class filter
-    if (globalClassFilter && globalClassFilter !== 'all') {
-      if (globalClassFilter === 'unassigned') {
-        if (student.classId) return false;
-      } else {
-        if (student.classId !== globalClassFilter) return false;
+  const activeStudents = useMemo(() => {
+    const disabledClassIds = classes.filter(cls => cls.disabled).map(cls => cls.id);
+
+    return students.filter(student => {
+      // First, filter by global class filter
+      if (globalClassFilter && globalClassFilter !== 'all') {
+        if (globalClassFilter === 'unassigned') {
+          if (student.classId) return false;
+        } else {
+          if (student.classId !== globalClassFilter) return false;
+        }
       }
-    }
-    
-    // Then, filter out students from disabled classes
-    return !student.classId || !disabledClassIds.includes(student.classId);
-  });
+
+      // Then, filter out students from disabled classes
+      return !student.classId || !disabledClassIds.includes(student.classId);
+    });
+  }, [students, globalClassFilter, classes]);
   
   // Calculate days since last reading for each student
   const calculateDaysSinceReading = () => {

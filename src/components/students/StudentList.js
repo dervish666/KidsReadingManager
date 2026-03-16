@@ -323,6 +323,7 @@ const StudentList = () => {
             <TextField
               size="small"
               placeholder="Search students..."
+              aria-label="Search students"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               sx={{

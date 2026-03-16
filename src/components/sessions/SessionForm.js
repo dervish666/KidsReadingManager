@@ -44,6 +44,7 @@ const SessionForm = () => {
   const [notes, setNotes] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('Reading session saved successfully');
   const [error, setError] = useState('');
   const [selectedBookId, setSelectedBookId] = useState('');
   const [bookAuthor, setBookAuthor] = useState('');
@@ -114,7 +115,6 @@ const SessionForm = () => {
     const title = selectedBook?.title || '';
     
     if (!title) {
-      setSnackbarOpen(true);
       setError('Please select or create a book first');
       return;
     }
@@ -122,7 +122,6 @@ const SessionForm = () => {
     // Validate provider configuration
     const configValidation = validateProviderConfig(settings);
     if (!configValidation.valid) {
-      setSnackbarOpen(true);
       setError(configValidation.error);
       return;
     }
@@ -134,7 +133,6 @@ const SessionForm = () => {
     const isAvailable = await checkAvailability(settings, 3000);
     if (!isAvailable) {
       setIsFetchingDetails(false);
-      setSnackbarOpen(true);
       setError(`${providerName} is currently unavailable. Please try again later.`);
       return;
     }
@@ -148,16 +146,15 @@ const SessionForm = () => {
         if (details.author) {
           setBookAuthor(details.author);
         }
-        
+
+        setSnackbarMessage('Book details fetched successfully');
         setSnackbarOpen(true);
         setError(''); // Clear any previous errors
       } else {
-        setSnackbarOpen(true);
         setError(`No details found for this book on ${providerName}`);
       }
     } catch (err) {
       console.error('Error fetching book details:', err);
-      setSnackbarOpen(true);
       setError(`Failed to fetch details: ${err.message}`);
     } finally {
       setIsFetchingDetails(false);
@@ -166,7 +163,6 @@ const SessionForm = () => {
 
   const handleUpdateBookWithDetails = async () => {
     if (!selectedBookId) {
-      setSnackbarOpen(true);
       setError('Please select a book first');
       return;
     }
@@ -181,15 +177,14 @@ const SessionForm = () => {
       });
 
       if (result) {
+        setSnackbarMessage('Book updated successfully');
         setSnackbarOpen(true);
         setError('');
       } else {
-        setSnackbarOpen(true);
         setError('Failed to update book');
       }
     } catch (err) {
       console.error('Failed to update book from SessionForm:', err);
-      setSnackbarOpen(true);
       setError('Failed to update book');
     }
   };
@@ -259,6 +254,7 @@ const SessionForm = () => {
       setBookGenres([]);
       setSelectedLocation('school');
       setError('');
+      setSnackbarMessage('Reading session saved successfully');
       setSnackbarOpen(true);
       setHistoryRefresh(c => c + 1);
     } else {
@@ -762,7 +758,7 @@ const SessionForm = () => {
         open={snackbarOpen}
         autoHideDuration={3000}
         onClose={handleSnackbarClose}
-        message="Reading session saved successfully"
+        message={snackbarMessage}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         ContentProps={{
           sx: {

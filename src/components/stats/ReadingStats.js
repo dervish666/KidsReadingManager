@@ -182,21 +182,6 @@ const ReadingStats = () => {
 
   // Get students who haven't been read with recently
   const getNeedsAttentionStudents = () => {
-    const activeStudents = students.filter(student => {
-      // First, filter by global class filter
-      if (globalClassFilter && globalClassFilter !== 'all') {
-        if (globalClassFilter === 'unassigned') {
-          if (student.classId) return false;
-        } else {
-          if (student.classId !== globalClassFilter) return false;
-        }
-      }
-      
-      // Then, filter out students from disabled classes
-      if (!student.classId) return true;
-      const studentClass = classes.find(cls => cls.id === student.classId);
-      return !studentClass || !studentClass.disabled;
-    });
     return activeStudents.filter(student => getReadingStatus(student) === 'notRead');
   };
   

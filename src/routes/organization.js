@@ -21,7 +21,7 @@ organizationRouter.get('/', async (c) => {
     const organizationId = c.get('organizationId');
 
     const org = await db.prepare(`
-      SELECT * FROM organizations WHERE id = ?
+      SELECT * FROM organizations WHERE id = ? AND is_active = 1
     `).bind(organizationId).first();
 
     if (!org) {
@@ -572,9 +572,9 @@ organizationRouter.post('/create', requireOwner(), auditLog('create', 'organizat
     // Generate slug from name if not provided
     const orgSlug = slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
-    // Check if slug already exists
+    // Check if slug already exists (including soft-deleted orgs to prevent slug reuse)
     const existing = await db.prepare(
-      'SELECT id FROM organizations WHERE slug = ? AND is_active = 1'
+      'SELECT id FROM organizations WHERE slug = ?'
     ).bind(orgSlug).first();
 
     if (existing) {

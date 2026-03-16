@@ -67,41 +67,6 @@ export async function checkAvailability(settings, timeout = 3000) {
 }
 
 /**
- * Reset the availability cache for the configured provider
- * @param {Object} settings - Application settings object
- */
-export function resetAvailabilityCache(settings) {
-  const config = getMetadataConfig(settings);
-
-  if (config.provider === METADATA_PROVIDERS.GOOGLE_BOOKS) {
-    googleBooks.resetGoogleBooksAvailabilityCache();
-  } else if (config.provider === METADATA_PROVIDERS.HARDCOVER) {
-    hardcover.resetHardcoverAvailabilityCache();
-  } else {
-    openLibrary.resetOpenLibraryAvailabilityCache();
-  }
-}
-
-/**
- * Get the current cached availability status
- * @param {Object} settings - Application settings object
- * @returns {{available: boolean|null, lastCheck: number, stale: boolean}}
- */
-export function getProviderStatus(settings) {
-  const config = getMetadataConfig(settings);
-
-  if (config.provider === METADATA_PROVIDERS.GOOGLE_BOOKS) {
-    return googleBooks.getGoogleBooksStatus();
-  }
-
-  if (config.provider === METADATA_PROVIDERS.HARDCOVER) {
-    return hardcover.getHardcoverStatus();
-  }
-
-  return openLibrary.getOpenLibraryStatus();
-}
-
-/**
  * Get the display name for the current provider
  * @param {Object} settings - Application settings object
  * @returns {string}
@@ -388,16 +353,6 @@ export function getCoverUrl(bookData, settings) {
   }
 
   return openLibrary.getCoverUrl(bookData);
-}
-
-/**
- * Check if Google Books API is properly configured
- * @param {Object} settings - Application settings object
- * @returns {boolean}
- */
-export function isGoogleBooksConfigured(settings) {
-  const config = getMetadataConfig(settings);
-  return config.provider === METADATA_PROVIDERS.GOOGLE_BOOKS && !!config.apiKey;
 }
 
 /**
