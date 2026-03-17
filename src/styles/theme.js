@@ -114,9 +114,7 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           backgroundImage: 'none',
-          backgroundColor: 'rgba(255, 254, 249, 0.85)',
-          WebkitBackdropFilter: 'blur(20px)',
-          backdropFilter: 'blur(20px)',
+          backgroundColor: '#FFFEF9',
           borderRadius: 16,
           boxShadow: '0 8px 32px rgba(139, 115, 85, 0.08), 0 2px 8px rgba(0, 0, 0, 0.03)',
           border: '1px solid rgba(139, 115, 85, 0.1)',
@@ -130,9 +128,7 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 12,
-          backgroundColor: 'rgba(255, 254, 249, 0.95)',
-          WebkitBackdropFilter: 'blur(16px)',
-          backdropFilter: 'blur(16px)',
+          backgroundColor: '#FFFEF9',
           boxShadow: '0 4px 12px rgba(139, 115, 85, 0.1), 0 2px 4px rgba(0, 0, 0, 0.04)',
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           overflow: 'visible',
@@ -211,7 +207,7 @@ const theme = createTheme({
     MuiBottomNavigation: {
       styleOverrides: {
         root: {
-          height: 72,
+          height: '80px',
           backgroundColor: 'rgba(255, 254, 249, 0.98)',
           WebkitBackdropFilter: 'blur(20px)',
           backdropFilter: 'blur(20px)',
@@ -228,7 +224,6 @@ const theme = createTheme({
           paddingBottom: 'env(safe-area-inset-bottom)',
           overflow: 'hidden',
           zIndex: 1100,
-          height: '80px',
         },
       },
     },

@@ -1217,8 +1217,8 @@ describe('BookManager Component', () => {
       const context = createMockContext();
       render(<BookManager />, { wrapper: createWrapper(context) });
 
-      // Check for main heading
-      expect(screen.getByRole('heading', { level: 6, name: /manage books/i })).toBeInTheDocument();
+      // Check for main heading (renders as h1 for correct heading hierarchy)
+      expect(screen.getByRole('heading', { level: 1, name: /manage books/i })).toBeInTheDocument();
     });
 
     it('should have accessible delete buttons with aria-label', () => {

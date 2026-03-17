@@ -82,7 +82,7 @@ export default function LandingPage({ onSignIn }) {
 
   return (
     <div className="landing-page">
-      <div className="lp-bookshelf-edge" />
+      <div className="lp-bookshelf-edge" aria-hidden="true" />
 
       <div className="lp-body-offset">
         {/* NAV */}
@@ -112,6 +112,11 @@ export default function LandingPage({ onSignIn }) {
             </li>
             <li><a href="#contact" className="lp-btn lp-btn-primary">Stay updated</a></li>
           </ul>
+          <div className="lp-nav-links-mobile">
+            <button className="lp-btn lp-btn-signin" onClick={onSignIn}>
+              Sign in
+            </button>
+          </div>
         </nav>
 
         {/* HERO */}
@@ -162,7 +167,7 @@ export default function LandingPage({ onSignIn }) {
               { icon: '📊', title: 'Priority reading list', desc: "Automatically surfaces who needs a reading session most. See at a glance who's been waiting longest, so no child gets overlooked." },
               { icon: '🏫', title: 'Built for your school', desc: 'Import pupil lists from your MIS, organise by class or group, and manage reading volunteers — all from one place. No spreadsheets required.' },
               { icon: '📝', title: 'Session notes that matter', desc: "Record observations, track vocabulary, note enjoyment levels. Build a rich picture of each child's reading journey that teachers can actually use." },
-              { icon: '🔒', title: 'Safe & simple', desc: "GDPR-compliant, UK-hosted, and designed with children's data protection at its core. No ads, no tracking, no nonsense." },
+              { icon: '🔒', title: 'Safe & simple', desc: "GDPR-compliant, EU-hosted, and designed with children's data protection at its core. No ads, no tracking, no nonsense." },
             ].map((f, i) => (
               <div className="lp-feature-card lp-reveal" key={i} ref={addRevealRef}>
                 <div className="lp-feature-icon">{f.icon}</div>
@@ -236,7 +241,7 @@ export default function LandingPage({ onSignIn }) {
             </p>
             <div className="lp-trust-items">
               {[
-                { icon: '🇬🇧', label: 'UK-hosted data' },
+                { icon: '🇪🇺', label: 'EU-hosted data' },
                 { icon: '🔒', label: 'GDPR compliant' },
                 { icon: '🏫', label: 'MIS integration ready' },
                 { icon: '💬', label: 'Real human support' },

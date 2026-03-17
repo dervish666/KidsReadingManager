@@ -179,46 +179,6 @@ function AppContent() {
         },
       }}
     >
-      {/* Animated Background Blobs - Warm tones */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden -z-10">
-        <div style={{
-          position: 'fixed',
-          top: '-10%',
-          left: '-10%',
-          width: '60vh',
-          height: '60vh',
-          borderRadius: '50%',
-          filter: 'blur(80px)',
-          background: 'rgba(139, 115, 85, 0.08)',
-          zIndex: -1,
-          animation: 'clay-float 8s ease-in-out infinite'
-        }}></div>
-        <div style={{
-          position: 'fixed',
-          top: '20%',
-          right: '-10%',
-          width: '60vh',
-          height: '60vh',
-          borderRadius: '50%',
-          filter: 'blur(80px)',
-          background: 'rgba(107, 142, 107, 0.06)',
-          zIndex: -1,
-          animation: 'clay-float-delayed 10s ease-in-out infinite'
-        }}></div>
-        <div style={{
-          position: 'fixed',
-          bottom: '-10%',
-          left: '20%',
-          width: '60vh',
-          height: '60vh',
-          borderRadius: '50%',
-          filter: 'blur(80px)',
-          background: 'rgba(212, 165, 116, 0.06)',
-          zIndex: -1,
-          animation: 'clay-float 8s ease-in-out infinite'
-        }}></div>
-      </div>
-
       {/* Bookshelf Border Decorations */}
       <BookshelfBorder side="left" />
       <BookshelfBorder side="right" />
@@ -268,9 +228,7 @@ function AppContent() {
             overflow: 'auto',
             WebkitOverflowScrolling: 'touch',
             mb: 0,
-            backgroundColor: 'rgba(255, 254, 249, 0.85)',
-            WebkitBackdropFilter: 'blur(20px)',
-            backdropFilter: 'blur(20px)',
+            backgroundColor: '#FFFEF9',
             // Height: viewport minus header(72px) - bottomNav(80px) - vertical padding(~48px) - safe area
             // Use dvh with vh fallback for iOS Safari where 100vh includes address bar
             height: 'calc(100vh - 220px)',

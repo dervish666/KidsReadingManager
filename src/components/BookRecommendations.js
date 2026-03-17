@@ -453,6 +453,12 @@ const BookRecommendations = () => {
                           display: 'flex',
                           alignItems: 'center',
                           gap: 1.5,
+                          '@media (hover: hover) and (pointer: fine)': {
+                            '&:hover': {
+                              transform: 'translateY(-4px)',
+                              boxShadow: '0 8px 24px rgba(139, 115, 85, 0.15), 0 4px 8px rgba(0, 0, 0, 0.06)',
+                            },
+                          },
                         }}
                       >
                         <Box sx={{
@@ -671,17 +677,13 @@ const BookRecommendations = () => {
                 height: isMobile ? 150 : 180,
                 borderRadius: 1,
                 bgcolor: 'rgba(139, 115, 85, 0.08)',
-                animation: 'pulse 1.5s ease-in-out infinite',
-                '@keyframes pulse': {
-                  '0%, 100%': { opacity: 0.4 },
-                  '50%': { opacity: 0.8 },
-                },
+                animation: 'skeleton-pulse 1.5s ease-in-out infinite',
                 flexShrink: 0
               }} />
               <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1, py: 1 }}>
-                <Box sx={{ width: '70%', height: 20, borderRadius: 1, bgcolor: 'rgba(139, 115, 85, 0.08)', animation: 'pulse 1.5s ease-in-out infinite' }} />
-                <Box sx={{ width: '40%', height: 16, borderRadius: 1, bgcolor: 'rgba(139, 115, 85, 0.06)', animation: 'pulse 1.5s ease-in-out 0.2s infinite' }} />
-                <Box sx={{ width: '90%', height: 14, borderRadius: 1, bgcolor: 'rgba(139, 115, 85, 0.05)', animation: 'pulse 1.5s ease-in-out 0.4s infinite', mt: 'auto' }} />
+                <Box sx={{ width: '70%', height: 20, borderRadius: 1, bgcolor: 'rgba(139, 115, 85, 0.08)', animation: 'skeleton-pulse 1.5s ease-in-out infinite' }} />
+                <Box sx={{ width: '40%', height: 16, borderRadius: 1, bgcolor: 'rgba(139, 115, 85, 0.06)', animation: 'skeleton-pulse 1.5s ease-in-out 0.2s infinite' }} />
+                <Box sx={{ width: '90%', height: 14, borderRadius: 1, bgcolor: 'rgba(139, 115, 85, 0.05)', animation: 'skeleton-pulse 1.5s ease-in-out 0.4s infinite', mt: 'auto' }} />
               </Box>
             </Card>
           ))}

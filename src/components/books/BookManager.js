@@ -679,7 +679,7 @@ const BookManager = () => {
 
   return (
     <Paper sx={{ p: 3, mt: 3 }}>
-      <Typography variant="h6" gutterBottom>
+      <Typography variant="h6" component="h1" gutterBottom>
         <LibraryBooksIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
         Manage Books
       </Typography>

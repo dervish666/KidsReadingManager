@@ -280,8 +280,7 @@ const StudentList = () => {
           py: 8, 
           px: 4, 
           borderRadius: 8, 
-          backgroundColor: 'rgba(255,255,255,0.5)',
-          backdropFilter: 'blur(10px)',
+          backgroundColor: '#FFFEF9',
           border: '1px dashed rgba(107, 142, 107, 0.3)'
         }}>
           <Typography variant="h6" sx={{ mb: 3, color: '#7A7A7A', fontFamily: '"Nunito", sans-serif' }}>
@@ -330,11 +329,13 @@ const StudentList = () => {
                 minWidth: { xs: '100%', sm: 180 },
                 flex: { xs: '1 1 100%', sm: '0 1 auto' },
                 '& .MuiOutlinedInput-root': {
-                  borderRadius: 4,
-                  backgroundColor: '#ffffff',
-                  boxShadow: 'inset 4px 4px 8px #d9d4e3, inset -4px -4px 8px #ffffff',
-                  border: 'none',
+                  borderRadius: '10px',
+                  backgroundColor: '#FAF8F3',
+                  boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.03)',
+                  border: '1px solid rgba(139, 115, 85, 0.12)',
                   '& fieldset': { border: 'none' },
+                  '&:hover': { border: '1px solid rgba(107, 142, 107, 0.3)' },
+                  '&.Mui-focused': { backgroundColor: '#ffffff', border: '1px solid rgba(107, 142, 107, 0.5)', boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.12)' },
                 }
               }}
               slotProps={{
@@ -394,11 +395,13 @@ const StudentList = () => {
               minWidth: { xs: '100%', sm: 200 },
               flex: { xs: '1 1 100%', sm: '0 0 auto' },
               '& .MuiOutlinedInput-root': {
-                borderRadius: 4,
-                backgroundColor: '#ffffff',
-                boxShadow: 'inset 4px 4px 8px #d9d4e3, inset -4px -4px 8px #ffffff',
-                border: 'none',
+                borderRadius: '10px',
+                backgroundColor: '#FAF8F3',
+                boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.03)',
+                border: '1px solid rgba(139, 115, 85, 0.12)',
                 '& fieldset': { border: 'none' },
+                '&:hover': { border: '1px solid rgba(107, 142, 107, 0.3)' },
+                '&.Mui-focused': { backgroundColor: '#ffffff', border: '1px solid rgba(107, 142, 107, 0.5)', boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.12)' },
               }
             }} size="small">
               <InputLabel id="sort-select-label" sx={{ fontFamily: '"DM Sans", sans-serif' }}>Sort By</InputLabel>
@@ -444,9 +447,8 @@ const StudentList = () => {
         PaperProps={{
           sx: {
             borderRadius: 6,
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
-            backdropFilter: 'blur(20px)',
-            boxShadow: '20px 20px 60px rgba(139, 115, 85, 0.4)',
+            backgroundColor: '#FFFEF9',
+            boxShadow: '0 8px 32px rgba(139, 115, 85, 0.15), 0 2px 8px rgba(0, 0, 0, 0.05)',
             p: 2
           }
         }}
@@ -470,11 +472,13 @@ const StudentList = () => {
             helperText={error}
             InputProps={{
               sx: {
-                borderRadius: 4,
-                backgroundColor: '#EFEBF5',
-                boxShadow: 'inset 4px 4px 8px #d9d4e3, inset -4px -4px 8px #ffffff',
+                borderRadius: '10px',
+                backgroundColor: '#FAF8F3',
+                boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.03)',
+                border: '1px solid rgba(139, 115, 85, 0.12)',
                 '& fieldset': { border: 'none' },
-                '&.Mui-focused': { backgroundColor: '#ffffff', boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.2)' },
+                '&:hover': { border: '1px solid rgba(107, 142, 107, 0.3)' },
+                '&.Mui-focused': { backgroundColor: '#ffffff', border: '1px solid rgba(107, 142, 107, 0.5)', boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.12)' },
               }
             }}
             InputLabelProps={{
@@ -490,11 +494,13 @@ const StudentList = () => {
               label="Assign to Class (Optional)"
               onChange={(e) => setSelectedClassId(e.target.value)}
               sx={{
-                borderRadius: 4,
-                backgroundColor: '#EFEBF5',
-                boxShadow: 'inset 4px 4px 8px #d9d4e3, inset -4px -4px 8px #ffffff',
+                borderRadius: '10px',
+                backgroundColor: '#FAF8F3',
+                boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.03)',
+                border: '1px solid rgba(139, 115, 85, 0.12)',
                 '& fieldset': { border: 'none' },
-                '&.Mui-focused': { backgroundColor: '#ffffff', boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.2)' },
+                '&:hover': { border: '1px solid rgba(107, 142, 107, 0.3)' },
+                '&.Mui-focused': { backgroundColor: '#ffffff', border: '1px solid rgba(107, 142, 107, 0.5)', boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.12)' },
               }}
             >
               <MenuItem value="unassigned">

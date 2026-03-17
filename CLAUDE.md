@@ -424,3 +424,21 @@ The frontend dev server (port 3001) proxies `/api` requests to the worker (port 
 - **Routes sometimes bypass the data provider**: Some routes (especially `books.js`) call D1 directly for complex queries (FTS5, JOINs) instead of going through the provider abstraction. This is intentional when query complexity exceeds what the provider interface supports.
 - **Security headers applied after handler**: In `src/worker.js`, security headers are set in the `onResponse` callback, meaning they run after the route handler executes.
 - **Rate limiting uses D1**: Auth rate limiting stores attempts in the D1 `rate_limits` table, not Cloudflare's built-in rate limiting. See `authRateLimit()` in `src/middleware/tenant.js`.
+
+## Design Context
+
+Full design context is maintained in `.impeccable.md` at the project root. Key principles for quick reference:
+
+### Brand Personality
+**Warm, Practical, Caring** — like a trusted teaching assistant. Understated British voice: friendly but not patronising, helpful without being showy.
+
+### Aesthetic Direction
+"Cozy Bookshelf" theme: warm creams, sage greens, soft earth tones. Light mode only. Glassmorphism surfaces with warm shadows. The app should feel like a well-loved school library corner, not an enterprise dashboard.
+
+### Design Principles
+
+1. **Invisible until needed** — The interface disappears during reading sessions. Nothing distracts from the child and the book.
+2. **Big enough to tap without thinking** — Minimum 44px touch targets, prefer 48px+. Volunteers shouldn't concentrate on hitting a button while a child reads.
+3. **Warm, never clinical** — Cream over white, sage over blue, rounded over sharp. Every surface should feel cozy.
+4. **One glance, full picture** — Key info scannable without interaction. Colour, position, and size create natural hierarchy.
+5. **Trust through simplicity** — Schools trust tools that feel simple and safe. Every screen should feel manageable.

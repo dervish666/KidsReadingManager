@@ -1,5 +1,32 @@
 # Changelog
 
+## [3.20.0] - 2026-03-17
+
+### Added
+- **Design context system** — `.impeccable.md` and CLAUDE.md design principles for consistent UI decisions
+- **Reduced motion support** — `prefers-reduced-motion` media queries across all animations (global CSS, landing page reveals, hover effects)
+- **Keyboard focus indicators** — global `:focus-visible` ring in sage green for keyboard navigation
+- **Landing page mobile nav** — Sign In button now visible on mobile (was hidden with desktop nav links)
+- **Skeleton pulse keyframe** — shared `skeleton-pulse` animation in global CSS (was inline per-render)
+
+### Fixed
+- **Register touch targets** — table cells increased from 30–36px to 44–48px minimum; font sizes raised from 0.6rem to 0.7–0.85rem throughout
+- **Design language consistency** — replaced purple neumorphic inputs (`#EFEBF5`/`#d9d4e3`) in SessionForm and StudentList with theme-standard warm cream (`#FAF8F3`)
+- **SessionForm Save button** — replaced 4-layer neumorphic shadow with standard theme button; added `pointer-fine` hover guard
+- **Snackbar colour** — changed from off-palette Tailwind emerald (`#10B981`) to theme sage (`#6B8E6B`)
+- **Login dead Tailwind classes** — removed non-functional Tailwind `className` attributes (project doesn't use Tailwind)
+- **Heading hierarchy** — BookManager now renders `h1` semantic heading
+- **Landing page showcase** — floater repositioned below screenshot on tablet instead of hidden
+- **Priority card hover** — added missing `@media (hover: hover) and (pointer: fine)` guard
+- **Bottom nav duplicate height** — removed duplicate `height` property in theme
+- **Landing page bookshelf** — added `aria-hidden="true"` to decorative element
+- **Landing page text** — corrected "UK-hosted" to "EU-hosted" in two places
+
+### Changed
+- **Glassmorphism reduced** — `backdrop-filter: blur()` removed from 13 component instances; now only used on header and bottom nav (where scroll-behind is purposeful)
+- **Background blobs removed** — decorative floating gradient blobs removed from App.js and Login.js (pure decoration, iPad performance concern)
+- **Cards and papers opaque** — MUI Paper/Card defaults changed from translucent `rgba` to solid `#FFFEF9`
+
 ## [3.19.1] - 2026-03-16
 
 ### Security

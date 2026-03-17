@@ -79,9 +79,7 @@ const SettingsPage = () => {
           mb: 3,
           overflow: 'hidden',
           borderRadius: 4,
-          backgroundColor: 'rgba(255,255,255,0.6)',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255,255,255,0.4)'
+          backgroundColor: '#FFFEF9'
         }}>
           <Tabs
             value={currentTab}

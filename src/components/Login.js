@@ -531,18 +531,12 @@ const Login = ({ onBackToLanding } = {}) => {
       }}
     >
       {/* Animated Background Blobs */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden -z-10">
-        <div className="absolute h-[60vh] w-[60vh] rounded-full blur-3xl bg-[#6B8E6B]/10 -top-[10%] -left-[10%] animate-float" style={{ position: 'fixed', top: '-10%', left: '-10%', width: '60vh', height: '60vh', borderRadius: '50%', filter: 'blur(80px)', background: 'rgba(107, 142, 107, 0.1)', zIndex: -1, animation: 'clay-float 8s ease-in-out infinite' }}></div>
-        <div className="absolute h-[60vh] w-[60vh] rounded-full blur-3xl bg-[#D4A574]/10 top-[20%] -right-[10%] animate-float-delayed" style={{ position: 'fixed', top: '20%', right: '-10%', width: '60vh', height: '60vh', borderRadius: '50%', filter: 'blur(80px)', background: 'rgba(212, 165, 116, 0.1)', zIndex: -1, animation: 'clay-float-delayed 10s ease-in-out infinite' }}></div>
-      </div>
-
       <Paper
         elevation={0}
         sx={{
           p: 5,
           borderRadius: '20px',
-          backgroundColor: 'rgba(255, 255, 255, 0.85)',
-          backdropFilter: 'blur(20px)',
+          backgroundColor: '#FFFEF9',
           boxShadow: '0 8px 32px rgba(139, 115, 85, 0.15), 0 2px 8px rgba(0, 0, 0, 0.05)',
           maxWidth: 400,
           width: '90%',

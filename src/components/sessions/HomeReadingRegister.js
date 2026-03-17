@@ -670,9 +670,10 @@ const HomeReadingRegister = () => {
       cursor: 'pointer',
       textAlign: 'center',
       fontWeight: 'bold',
-      fontSize: isMobile ? '0.75rem' : '0.85rem',
-      padding: isMobile ? '6px 2px' : '4px 4px',
-      minWidth: isMobile ? 30 : 36,
+      fontSize: isMobile ? '0.85rem' : '0.9rem',
+      padding: isMobile ? '10px 4px' : '8px 6px',
+      minWidth: isMobile ? 44 : 48,
+      minHeight: 44,
       transition: 'background-color 0.2s',
       outline: isSelectedDate ? '2px solid' : 'none',
       outlineColor: 'primary.main',
@@ -1009,8 +1010,8 @@ const HomeReadingRegister = () => {
                 <TableCell
                   sx={{
                     fontWeight: 'bold',
-                    minWidth: isMobile ? 80 : 140,
-                    padding: isMobile ? '4px 2px' : '2px 8px',
+                    minWidth: isMobile ? 100 : 140,
+                    padding: isMobile ? '8px 6px' : '6px 8px',
                     position: 'sticky',
                     left: 0,
                     backgroundColor: 'background.paper',
@@ -1030,8 +1031,8 @@ const HomeReadingRegister = () => {
                       sx={{
                         fontWeight: 'bold',
                         textAlign: 'center',
-                        minWidth: isMobile ? 30 : 36,
-                        padding: isMobile ? '4px 2px' : '2px 4px',
+                        minWidth: isMobile ? 44 : 48,
+                        padding: isMobile ? '8px 4px' : '6px 6px',
                         backgroundColor: isSelectedDate ? 'primary.main' : (isWeekend ? 'grey.100' : 'background.paper'),
                         color: isSelectedDate ? 'primary.contrastText' : 'text.primary',
                         cursor: 'pointer',
@@ -1046,10 +1047,10 @@ const HomeReadingRegister = () => {
                     >
                       <Tooltip title={date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}>
                         <Box>
-                          <Typography variant="caption" display="block" sx={{ fontSize: isMobile ? '0.6rem' : '0.7rem' }}>
+                          <Typography variant="caption" display="block" sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
                             {day}
                           </Typography>
-                          <Typography variant="body2" sx={{ fontWeight: 'bold', fontSize: isMobile ? '0.75rem' : '0.85rem' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 'bold', fontSize: isMobile ? '0.8rem' : '0.85rem' }}>
                             {dayNum}
                           </Typography>
                         </Box>
@@ -1057,10 +1058,10 @@ const HomeReadingRegister = () => {
                     </TableCell>
                   );
                 })}
-                <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', minWidth: isMobile ? 40 : 44, padding: isMobile ? '4px 2px' : '2px 4px', backgroundColor: 'primary.light', color: 'primary.contrastText' }}>
+                <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', minWidth: 44, padding: isMobile ? '8px 4px' : '6px 6px', backgroundColor: 'primary.light', color: 'primary.contrastText' }}>
                   Total
                 </TableCell>
-                <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', minWidth: 36, padding: isMobile ? '4px 2px' : '2px 4px' }}>
+                <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', minWidth: 44, padding: isMobile ? '8px 4px' : '6px 6px' }}>
                   Clear
                 </TableCell>
               </TableRow>
@@ -1085,8 +1086,8 @@ const HomeReadingRegister = () => {
                     <TableCell
                       sx={{
                         fontWeight: isSelected ? 'bold' : 500,
-                        fontSize: isMobile ? '0.75rem' : '0.8rem',
-                        padding: isMobile ? '6px 2px' : '4px 8px',
+                        fontSize: isMobile ? '0.8rem' : '0.85rem',
+                        padding: isMobile ? '10px 6px' : '8px 8px',
                         position: 'sticky',
                         left: 0,
                         backgroundColor: isSelected ? 'primary.light' : 'background.paper',
@@ -1102,13 +1103,13 @@ const HomeReadingRegister = () => {
                         fontWeight: 'bold',
                         backgroundColor: 'primary.light',
                         color: 'primary.contrastText',
-                        fontSize: isMobile ? '0.8rem' : '0.85rem',
-                        padding: isMobile ? '6px 2px' : '4px 4px'
+                        fontSize: isMobile ? '0.85rem' : '0.9rem',
+                        padding: isMobile ? '10px 4px' : '8px 6px'
                       }}
                     >
                       {getStudentTotalInRange(student)}
                     </TableCell>
-                    <TableCell sx={{ textAlign: 'center', padding: isMobile ? '6px 2px' : '4px 2px' }}>
+                    <TableCell sx={{ textAlign: 'center', padding: isMobile ? '6px 4px' : '4px 4px' }}>
                       {hasEntry && (
                         <Tooltip title="Clear entry">
                           <IconButton
@@ -1119,9 +1120,9 @@ const HomeReadingRegister = () => {
                             }}
                             sx={{
                               color: 'error.main',
-                              minWidth: 28,
-                              minHeight: 28,
-                              padding: '2px',
+                              minWidth: 36,
+                              minHeight: 36,
+                              padding: '4px',
                               '@media (hover: hover) and (pointer: fine)': {
                                 '&:hover': { backgroundColor: 'error.light' },
                               },
@@ -1156,8 +1157,8 @@ const HomeReadingRegister = () => {
                       zIndex: 3,
                       borderTop: '2px solid',
                       borderColor: 'grey.300',
-                      padding: isMobile ? '4px 2px' : '2px 8px',
-                      fontSize: isMobile ? '0.75rem' : '0.8rem'
+                      padding: isMobile ? '8px 6px' : '6px 8px',
+                      fontSize: isMobile ? '0.8rem' : '0.85rem'
                     }}
                   >
                     Daily Totals
@@ -1170,11 +1171,11 @@ const HomeReadingRegister = () => {
                         sx={{
                           textAlign: 'center',
                           fontWeight: 'bold',
-                          padding: isMobile ? '4px 2px' : '2px 4px',
+                          padding: isMobile ? '8px 4px' : '6px 6px',
                           backgroundColor: isWeekend ? 'grey.100' : 'grey.50',
                           borderTop: '2px solid',
                           borderColor: 'grey.300',
-                          fontSize: isMobile ? '0.7rem' : '0.75rem'
+                          fontSize: isMobile ? '0.75rem' : '0.8rem'
                         }}
                       >
                         {totals.totalSessions > 0 && (
@@ -1184,12 +1185,12 @@ const HomeReadingRegister = () => {
                                 {totals.totalSessions}
                               </Typography>
                               {totals.read > 0 && (
-                                <Typography variant="caption" sx={{ color: 'success.dark', fontSize: '0.6rem' }}>
+                                <Typography variant="caption" sx={{ color: 'success.dark', fontSize: '0.7rem' }}>
                                   {totals.read}✓
                                 </Typography>
                               )}
                               {totals.multiple > 0 && (
-                                <Typography variant="caption" sx={{ color: 'success.dark', fontSize: '0.6rem' }}>
+                                <Typography variant="caption" sx={{ color: 'success.dark', fontSize: '0.7rem' }}>
                                   +{totals.multiple}
                                 </Typography>
                               )}

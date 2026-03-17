@@ -57,6 +57,11 @@ h1, h2, h3, h4, h5, h6 {
   50% { transform: scale(1.02); }
 }
 
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
 .animate-float {
   animation: clay-float 8s ease-in-out infinite;
 }
@@ -113,6 +118,18 @@ h1, h2, h3, h4, h5, h6 {
   outline: none;
 }
 
+/* Focus Visible — keyboard navigation indicator */
+*:focus-visible {
+  outline: 3px solid #6B8E6B;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Remove default focus ring for mouse/touch users */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 10px;
@@ -129,6 +146,42 @@ h1, h2, h3, h4, h5, h6 {
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(139, 115, 85, 0.35);
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-float-delayed,
+  .animate-breathe {
+    animation: none;
+  }
+
+  .clay-card,
+  .clay-button,
+  .clay-input {
+    transition: none;
+  }
+
+  .clay-card:hover {
+    transform: none;
+  }
+
+  .clay-button:hover {
+    transform: none;
+  }
+
+  .clay-button:active {
+    transform: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Mobile Adjustments */

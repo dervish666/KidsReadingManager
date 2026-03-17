@@ -312,11 +312,13 @@ const SessionForm = () => {
           inputProps={{ 'aria-label': 'Session date' }}
           InputProps={{
             sx: {
-              borderRadius: 3,
-              backgroundColor: '#EFEBF5',
-              boxShadow: 'inset 2px 2px 4px #d9d4e3, inset -2px -2px 4px #ffffff',
+              borderRadius: '10px',
+              backgroundColor: '#FAF8F3',
+              boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.03)',
+              border: '1px solid rgba(139, 115, 85, 0.12)',
               '& fieldset': { border: 'none' },
-              '&.Mui-focused': { backgroundColor: '#ffffff', boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.2)' },
+              '&:hover': { border: '1px solid rgba(107, 142, 107, 0.3)' },
+              '&.Mui-focused': { backgroundColor: '#ffffff', border: '1px solid rgba(107, 142, 107, 0.5)', boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.12)' },
               minWidth: 150
             }
           }}
@@ -325,11 +327,7 @@ const SessionForm = () => {
       <Paper sx={{
           p: 3,
           pb: 'calc(env(safe-area-inset-bottom) + 24px)',
-          background: 'rgba(255, 255, 255, 0.6)',
-          backdropFilter: 'blur(20px)',
-          borderRadius: 6,
-          boxShadow: '16px 16px 32px rgba(139, 115, 85, 0.2), -10px -10px 24px rgba(255, 255, 255, 0.9), inset 6px 6px 12px rgba(107, 142, 107, 0.03), inset -6px -6px 12px rgba(255, 255, 255, 1)',
-          border: '1px solid rgba(255, 255, 255, 0.4)',
+          borderRadius: '16px',
         }}>
           {error && (
             <Alert severity="error" sx={{ mb: 3, borderRadius: 4 }}>
@@ -351,11 +349,13 @@ const SessionForm = () => {
                     label="Student"
                     onChange={handleStudentChange}
                     sx={{
-                      borderRadius: 4,
-                      backgroundColor: '#EFEBF5',
-                      boxShadow: 'inset 4px 4px 8px #d9d4e3, inset -4px -4px 8px #ffffff',
+                      borderRadius: '10px',
+                      backgroundColor: '#FAF8F3',
+                      boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.03)',
+                      border: '1px solid rgba(139, 115, 85, 0.12)',
                       '& fieldset': { border: 'none' },
-                      '&.Mui-focused': { backgroundColor: '#ffffff', boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.2)' },
+                      '&:hover': { border: '1px solid rgba(107, 142, 107, 0.3)' },
+                      '&.Mui-focused': { backgroundColor: '#ffffff', border: '1px solid rgba(107, 142, 107, 0.5)', boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.12)' },
                     }}
                   >
                     {sortedStudents.length === 0 ? (
@@ -618,18 +618,20 @@ const SessionForm = () => {
                   sx={{
                     flex: 1,
                     height: 48,
-                    borderRadius: 4,
+                    borderRadius: '10px',
                     background: 'linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%)',
-                    boxShadow: '12px 12px 24px rgba(107, 142, 107, 0.3), -8px -8px 16px rgba(255, 255, 255, 0.4), inset 4px 4px 8px rgba(255, 255, 255, 0.4), inset -4px -4px 8px rgba(0, 0, 0, 0.1)',
+                    boxShadow: '0 4px 12px rgba(107, 142, 107, 0.2)',
                     fontSize: '1.1rem',
                     fontWeight: 700,
                     textTransform: 'none',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                      boxShadow: '16px 16px 32px rgba(107, 142, 107, 0.4), -10px -10px 20px rgba(255, 255, 255, 0.5)',
+                    '@media (hover: hover) and (pointer: fine)': {
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: '0 6px 20px rgba(107, 142, 107, 0.3)',
+                      },
                     },
                     '&:active': {
-                      transform: 'scale(0.96)',
+                      transform: 'scale(0.97)',
                     },
                   }}
                 >
@@ -655,11 +657,7 @@ const SessionForm = () => {
         <Paper sx={{
           mt: 2,
           p: 2,
-          background: 'rgba(255, 255, 255, 0.6)',
-          backdropFilter: 'blur(20px)',
-          borderRadius: 4,
-          boxShadow: '8px 8px 16px rgba(139, 115, 85, 0.15), -6px -6px 12px rgba(255, 255, 255, 0.8)',
-          border: '1px solid rgba(255, 255, 255, 0.4)',
+          borderRadius: '12px',
         }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 700, fontFamily: '"Nunito", sans-serif', color: '#4A4A4A', mb: 1.5 }}>
             Books Read — {selectedStudent?.name}
@@ -763,10 +761,10 @@ const SessionForm = () => {
         ContentProps={{
           sx: {
             borderRadius: 4,
-            bgcolor: '#10B981',
+            bgcolor: '#6B8E6B',
             color: '#fff',
             fontWeight: 600,
-            boxShadow: '0 10px 20px rgba(16, 185, 129, 0.3)'
+            boxShadow: '0 8px 20px rgba(107, 142, 107, 0.3)'
           }
         }}
       />

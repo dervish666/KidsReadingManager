@@ -66,8 +66,7 @@ const StudentCard = React.memo(({ student }) => {
           overflow: 'visible',
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           borderRadius: '12px',
-          backgroundColor: 'rgba(255, 255, 255, 0.85)',
-          backdropFilter: 'blur(16px)',
+          backgroundColor: '#FFFEF9',
           boxShadow: '0 4px 12px rgba(139, 115, 85, 0.15), 0 2px 4px rgba(0, 0, 0, 0.05)',
           border: '1px solid rgba(255, 255, 255, 0.6)',
           '&:hover': {
