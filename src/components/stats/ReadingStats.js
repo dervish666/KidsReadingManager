@@ -233,7 +233,7 @@ const ReadingStats = () => {
             <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
               Students
             </Typography>
-            <Typography variant="h4" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#6B8E6B' }}>
+            <Typography variant="h4" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'primary.main' }}>
               {stats.totalStudents}
             </Typography>
           </CardContent>
@@ -290,7 +290,7 @@ const ReadingStats = () => {
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around' }}>
               <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="h4" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#6B8E6B' }}>
+                <Typography variant="h4" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'primary.main' }}>
                   {stats.weeklyActivity.thisWeek}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
@@ -360,11 +360,11 @@ const ReadingStats = () => {
                         width: '80%',
                         maxWidth: 20,
                         height: height,
-                        bgcolor: count > 0 ? '#6B8E6B' : '#E5E7EB',
+                        bgcolor: count > 0 ? 'primary.main' : 'grey.200',
                         borderRadius: 0.5
                       }} />
                     </Box>
-                    <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#7A7A7A' }}>
+                    <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: 'text.secondary' }}>
                       {day.slice(0, 2)}
                     </Typography>
                   </Box>
@@ -401,7 +401,7 @@ const ReadingStats = () => {
                 </Typography>
               </Box>
               <Box sx={{ textAlign: 'center', p: 1, borderRadius: 2, bgcolor: 'rgba(107, 142, 107, 0.1)' }}>
-                <Typography variant="h5" sx={{ color: '#6B8E6B', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}>
+                <Typography variant="h5" sx={{ color: 'primary.main', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}>
                   {stats.averageStreak.toFixed(1)}
                 </Typography>
                 <Typography sx={{ color: '#5B21B6', fontWeight: 600, fontSize: '0.65rem' }}>
@@ -664,7 +664,7 @@ const ReadingStats = () => {
           <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
             <CardContent sx={{ textAlign: 'center', py: 2, px: 1 }}>
               <Box sx={{ fontSize: 24 }}>🏆</Box>
-              <Typography variant="h4" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#6B8E6B' }}>
+              <Typography variant="h4" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'primary.main' }}>
                 {stats.longestEverStreak}
               </Typography>
               <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
@@ -771,7 +771,7 @@ const ReadingStats = () => {
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
-        <Typography variant="h4" component="h1" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#4A4A4A' }}>
+        <Typography variant="h4" component="h1" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'text.primary' }}>
           Reading Statistics
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -816,7 +816,7 @@ const ReadingStats = () => {
           mb: 3, 
           overflow: 'hidden', 
           borderRadius: 4, 
-          backgroundColor: '#FFFEF9'
+          backgroundColor: 'background.paper'
         }}>
           <Tabs
             value={currentTab}

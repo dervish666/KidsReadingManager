@@ -240,9 +240,9 @@ const SupportTicketManager = () => {
                 fontFamily: '"DM Sans", sans-serif',
                 fontWeight: statusFilter === key ? 700 : 500,
                 fontSize: '0.8rem',
-                backgroundColor: statusFilter === key ? '#6B8E6B' : 'transparent',
-                color: statusFilter === key ? '#fff' : '#4A4A4A',
-                borderColor: statusFilter === key ? '#6B8E6B' : 'rgba(0,0,0,0.15)',
+                backgroundColor: statusFilter === key ? 'primary.main' : 'transparent',
+                color: statusFilter === key ? '#fff' : 'text.primary',
+                borderColor: statusFilter === key ? 'primary.main' : 'rgba(0,0,0,0.15)',
                 '&:hover': {
                   backgroundColor: statusFilter === key ? '#5A7D5A' : 'rgba(107, 142, 107, 0.08)',
                 },
@@ -258,13 +258,13 @@ const SupportTicketManager = () => {
       <Box sx={{ flex: 1, overflow: 'auto', p: 1 }}>
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 6 }}>
-            <CircularProgress size={32} sx={{ color: '#6B8E6B' }} />
+            <CircularProgress size={32} sx={{ color: 'primary.main' }} />
           </Box>
         ) : filteredTickets.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 6 }}>
             <InboxIcon sx={{ fontSize: 48, color: '#C0C0C0', mb: 1 }} />
             <Typography
-              sx={{ fontFamily: '"DM Sans", sans-serif', color: '#7A7A7A', fontSize: '0.9rem' }}
+              sx={{ fontFamily: '"DM Sans", sans-serif', color: 'text.secondary', fontSize: '0.9rem' }}
             >
               {statusFilter === 'all' ? 'No support tickets yet' : `No ${statusFilter} tickets`}
             </Typography>
@@ -305,7 +305,7 @@ const SupportTicketManager = () => {
                     fontFamily: '"Nunito", sans-serif',
                     fontWeight: 700,
                     fontSize: '0.9rem',
-                    color: '#4A4A4A',
+                    color: 'text.primary',
                     flex: 1,
                     mr: 1,
                     overflow: 'hidden',
@@ -322,7 +322,7 @@ const SupportTicketManager = () => {
                   sx={{
                     fontFamily: '"DM Sans", sans-serif',
                     fontSize: '0.8rem',
-                    color: '#7A7A7A',
+                    color: 'text.secondary',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
@@ -388,7 +388,7 @@ const SupportTicketManager = () => {
         </Box>
       ) : detailLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 6, flex: 1 }}>
-          <CircularProgress size={32} sx={{ color: '#6B8E6B' }} />
+          <CircularProgress size={32} sx={{ color: 'primary.main' }} />
         </Box>
       ) : ticketDetail ? (
         <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
@@ -404,7 +404,7 @@ const SupportTicketManager = () => {
               sx={{
                 fontFamily: '"Nunito", sans-serif',
                 fontWeight: 800,
-                color: '#4A4A4A',
+                color: 'text.primary',
                 mb: 1.5,
                 lineHeight: 1.3,
               }}
@@ -423,13 +423,13 @@ const SupportTicketManager = () => {
             >
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <PersonIcon sx={{ fontSize: 16, color: '#7A7A7A' }} />
-                  <Typography sx={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.85rem', color: '#4A4A4A' }}>
+                  <PersonIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                  <Typography sx={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.85rem', color: 'text.primary' }}>
                     {ticketDetail.userName}
                   </Typography>
                 </Box>
                 {ticketDetail.userEmail && (
-                  <Typography sx={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.85rem', color: '#7A7A7A' }}>
+                  <Typography sx={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.85rem', color: 'text.secondary' }}>
                     {ticketDetail.userEmail}
                   </Typography>
                 )}
@@ -467,7 +467,7 @@ const SupportTicketManager = () => {
                 sx={{
                   fontFamily: '"DM Sans", sans-serif',
                   fontSize: '0.9rem',
-                  color: '#4A4A4A',
+                  color: 'text.primary',
                   lineHeight: 1.7,
                   whiteSpace: 'pre-wrap',
                 }}
@@ -512,7 +512,7 @@ const SupportTicketManager = () => {
                 fontFamily: '"Nunito", sans-serif',
                 fontWeight: 700,
                 fontSize: '1rem',
-                color: '#4A4A4A',
+                color: 'text.primary',
                 mb: 2,
               }}
             >
@@ -547,7 +547,7 @@ const SupportTicketManager = () => {
                           fontFamily: '"DM Sans", sans-serif',
                           fontSize: '0.8rem',
                           fontWeight: 600,
-                          color: '#4A4A4A',
+                          color: 'text.primary',
                         }}
                       >
                         {note.userName}
@@ -623,7 +623,7 @@ const SupportTicketManager = () => {
                   )
                 }
                 sx={{
-                  backgroundColor: '#6B8E6B',
+                  backgroundColor: 'primary.main',
                   textTransform: 'none',
                   fontFamily: '"DM Sans", sans-serif',
                   fontWeight: 600,
@@ -642,7 +642,7 @@ const SupportTicketManager = () => {
       ) : (
         // Failed to load
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 6, flex: 1 }}>
-          <Typography sx={{ fontFamily: '"DM Sans", sans-serif', color: '#7A7A7A' }}>
+          <Typography sx={{ fontFamily: '"DM Sans", sans-serif', color: 'text.secondary' }}>
             Failed to load ticket details.
           </Typography>
         </Box>
@@ -658,7 +658,7 @@ const SupportTicketManager = () => {
           sx={{
             fontFamily: '"Nunito", sans-serif',
             fontWeight: 800,
-            color: '#4A4A4A',
+            color: 'text.primary',
           }}
         >
           Support Tickets
@@ -666,7 +666,7 @@ const SupportTicketManager = () => {
         <Typography
           sx={{
             fontFamily: '"DM Sans", sans-serif',
-            color: '#7A7A7A',
+            color: 'text.secondary',
             fontSize: '0.9rem',
             mt: 0.5,
           }}
@@ -681,7 +681,7 @@ const SupportTicketManager = () => {
           border: '1px solid rgba(0,0,0,0.08)',
           borderRadius: '16px',
           overflow: 'hidden',
-          backgroundColor: '#FFFEF9',
+          backgroundColor: 'background.paper',
           height: 600,
           display: 'flex',
           flexDirection: isMobile ? 'column' : 'row',

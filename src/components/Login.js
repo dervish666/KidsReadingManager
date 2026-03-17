@@ -302,7 +302,7 @@ const Login = ({ onBackToLanding } = {}) => {
               setSuccessMessage(null);
               setView('forgot');
             }}
-            sx={{ color: '#6B8E6B', fontSize: '0.875rem', cursor: 'pointer' }}
+            sx={{ color: 'primary.main', fontSize: '0.875rem', cursor: 'pointer' }}
           >
             Forgot your password?
           </Link>
@@ -395,7 +395,7 @@ const Login = ({ onBackToLanding } = {}) => {
               setSuccessMessage(null);
               setView('login');
             }}
-            sx={{ color: '#6B8E6B', fontSize: '0.875rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
+            sx={{ color: 'primary.main', fontSize: '0.875rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
           >
             <ArrowBackIcon sx={{ fontSize: 16 }} />
             Back to login
@@ -469,7 +469,7 @@ const Login = ({ onBackToLanding } = {}) => {
               setResetToken('');
               setView('login');
             }}
-            sx={{ color: '#6B8E6B', fontSize: '0.875rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
+            sx={{ color: 'primary.main', fontSize: '0.875rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
           >
             <ArrowBackIcon sx={{ fontSize: 16 }} />
             Back to login
@@ -505,13 +505,13 @@ const Login = ({ onBackToLanding } = {}) => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#F5F0E8',
+          backgroundColor: 'background.default',
           flexDirection: 'column',
           gap: 2,
         }}
       >
-        <CircularProgress sx={{ color: '#6B8E6B' }} />
-        <Typography variant="body1" sx={{ color: '#7A7A7A' }}>
+        <CircularProgress sx={{ color: 'primary.main' }} />
+        <Typography variant="body1" sx={{ color: 'text.secondary' }}>
           Loading...
         </Typography>
       </Box>
@@ -525,7 +525,7 @@ const Login = ({ onBackToLanding } = {}) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#F5F0E8',
+        backgroundColor: 'background.default',
         position: 'relative',
         overflow: 'hidden',
       }}
@@ -536,7 +536,7 @@ const Login = ({ onBackToLanding } = {}) => {
         sx={{
           p: 5,
           borderRadius: '20px',
-          backgroundColor: '#FFFEF9',
+          backgroundColor: 'background.paper',
           boxShadow: '0 8px 32px rgba(139, 115, 85, 0.15), 0 2px 8px rgba(0, 0, 0, 0.05)',
           maxWidth: 400,
           width: '90%',
@@ -556,7 +556,7 @@ const Login = ({ onBackToLanding } = {}) => {
               position: 'absolute',
               top: 16,
               left: 20,
-              color: '#6B8E6B',
+              color: 'primary.main',
               fontSize: '0.875rem',
               cursor: 'pointer',
               display: 'inline-flex',
@@ -585,11 +585,11 @@ const Login = ({ onBackToLanding } = {}) => {
           <TallyLogo size={36} />
         </Box>
 
-        <Typography variant="h4" sx={{ mb: 1, fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#4A4A4A' }}>
+        <Typography variant="h4" sx={{ mb: 1, fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'text.primary' }}>
           Tally Reading
         </Typography>
 
-        <Typography variant="body1" sx={{ mb: 4, color: '#7A7A7A' }}>
+        <Typography variant="body1" sx={{ mb: 4, color: 'text.secondary' }}>
           {view === 'forgot' && 'Enter your email to reset your password.'}
           {view === 'reset' && 'Enter your new password.'}
           {view === 'login' && (isMultiTenantMode
@@ -619,15 +619,15 @@ const Login = ({ onBackToLanding } = {}) => {
         variant="body2"
         sx={{ mt: 2, textAlign: 'center', color: 'rgba(74, 74, 74, 0.6)' }}
       >
-        <Link href="/privacy" target="_blank" rel="noopener" sx={{ color: '#6B8E6B' }}>
+        <Link href="/privacy" target="_blank" rel="noopener" sx={{ color: 'primary.main' }}>
           Privacy Policy
         </Link>
         {' · '}
-        <Link href="/terms" target="_blank" rel="noopener" sx={{ color: '#6B8E6B' }}>
+        <Link href="/terms" target="_blank" rel="noopener" sx={{ color: 'primary.main' }}>
           Terms
         </Link>
         {' · '}
-        <Link href="/cookies" target="_blank" rel="noopener" sx={{ color: '#6B8E6B' }}>
+        <Link href="/cookies" target="_blank" rel="noopener" sx={{ color: 'primary.main' }}>
           Cookies
         </Link>
       </Typography>

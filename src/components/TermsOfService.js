@@ -41,7 +41,7 @@ const PolicyTable = ({ headers, rows }) => (
                 key={i}
                 sx={{
                   fontWeight: 700,
-                  color: '#4A4A4A',
+                  color: 'text.primary',
                   borderBottom: '2px solid rgba(139, 115, 85, 0.15)',
                   whiteSpace: 'nowrap',
                   fontFamily: '"DM Sans", sans-serif',
@@ -68,7 +68,7 @@ const PolicyTable = ({ headers, rows }) => (
                 key={j}
                 sx={{
                   borderBottom: '1px solid rgba(139, 115, 85, 0.08)',
-                  color: '#4A4A4A',
+                  color: 'text.primary',
                   fontSize: '0.875rem',
                   lineHeight: 1.6,
                   verticalAlign: 'top',
@@ -92,7 +92,7 @@ const SectionHeading = ({ children }) => (
       mt: 5,
       mb: 2,
       fontSize: { xs: '1.3rem', sm: '1.5rem' },
-      color: '#4A4A4A',
+      color: 'text.primary',
     }}
   >
     {children}
@@ -107,7 +107,7 @@ const SubsectionHeading = ({ children }) => (
       mt: 3,
       mb: 1.5,
       fontSize: { xs: '1.1rem', sm: '1.2rem' },
-      color: '#557055',
+      color: 'primary.dark',
     }}
   >
     {children}
@@ -120,7 +120,7 @@ const BodyText = ({ children, sx = {} }) => (
     variant="body1"
     sx={{
       mb: 2,
-      color: '#4A4A4A',
+      color: 'text.primary',
       lineHeight: 1.75,
       ...sx,
     }}
@@ -134,7 +134,7 @@ const TermsOfService = () => {
     <Box
       sx={{
         minHeight: '100vh',
-        backgroundColor: '#F5F0E8',
+        backgroundColor: 'background.default',
         py: { xs: 2, sm: 4 },
         px: { xs: 1, sm: 2 },
       }}
@@ -149,7 +149,7 @@ const TermsOfService = () => {
               display: 'flex',
               alignItems: 'center',
               gap: 0.5,
-              color: '#6B8E6B',
+              color: 'primary.main',
               fontWeight: 600,
               fontFamily: '"DM Sans", sans-serif',
               fontSize: '0.95rem',
@@ -189,7 +189,7 @@ const TermsOfService = () => {
               variant="h3"
               sx={{
                 fontSize: { xs: '1.6rem', sm: '2rem' },
-                color: '#4A4A4A',
+                color: 'text.primary',
               }}
             >
               Terms of Service
@@ -204,7 +204,7 @@ const TermsOfService = () => {
           </Typography>
           <Typography
             variant="body2"
-            sx={{ color: '#7A7A7A', mb: 3, fontFamily: '"DM Sans", sans-serif' }}
+            sx={{ color: 'text.secondary', mb: 3, fontFamily: '"DM Sans", sans-serif' }}
           >
             Last updated: 5 March 2026
           </Typography>
@@ -246,37 +246,37 @@ const TermsOfService = () => {
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
               <ListItemText
                 primary="Track pupil reading progress and sessions"
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
               <ListItemText
                 primary="Manage book libraries with barcode scanning and metadata lookup"
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
               <ListItemText
                 primary="Generate AI-powered book recommendations (optional, requires API key)"
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
               <ListItemText
                 primary="Record home reading via a class register"
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
               <ListItemText
                 primary="Import pupil and class data via Wonde school integration"
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
               <ListItemText
                 primary="Export data for reporting purposes"
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
           </List>
@@ -284,7 +284,7 @@ const TermsOfService = () => {
           <BodyText>
             The Service is hosted on Cloudflare&rsquo;s edge infrastructure. Data is processed in
             accordance with our{' '}
-            <Link href="/privacy" sx={{ color: '#6B8E6B' }}>Privacy Policy</Link> and, where
+            <Link href="/privacy" sx={{ color: 'primary.main' }}>Privacy Policy</Link> and, where
             applicable, the Data Processing Agreement between us and your school.
           </BodyText>
 
@@ -312,25 +312,25 @@ const TermsOfService = () => {
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
               <ListItemText
                 primary={<span><strong>Owner</strong> — full system access across all organisations</span>}
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
               <ListItemText
                 primary={<span><strong>Admin</strong> — organisation-level management, user and teacher administration</span>}
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
               <ListItemText
                 primary={<span><strong>Teacher</strong> — manages students, classes, and reading sessions</span>}
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
               <ListItemText
                 primary={<span><strong>Read-only</strong> — view-only access to data within their organisation</span>}
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
           </List>
@@ -351,37 +351,37 @@ const TermsOfService = () => {
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
               <ListItemText
                 primary="Share login credentials with unauthorised individuals"
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
               <ListItemText
                 primary="Attempt to access data belonging to other organisations"
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
               <ListItemText
                 primary="Use the Service for any purpose other than school reading management"
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
               <ListItemText
                 primary="Interfere with or disrupt the operation of the Service"
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
               <ListItemText
                 primary="Reverse-engineer, decompile, or attempt to extract the source code of the Service"
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
               <ListItemText
                 primary="Upload malicious content, including viruses or harmful code"
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
           </List>
@@ -427,7 +427,7 @@ const TermsOfService = () => {
           <BodyText>
             Full details of how we collect, use, store, and protect personal data are set out in
             our{' '}
-            <Link href="/privacy" sx={{ color: '#6B8E6B' }}>Privacy Policy</Link>.
+            <Link href="/privacy" sx={{ color: 'primary.main' }}>Privacy Policy</Link>.
           </BodyText>
 
           <SubsectionHeading>4.5 Data export and deletion</SubsectionHeading>
@@ -469,19 +469,19 @@ const TermsOfService = () => {
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
               <ListItemText
                 primary="The pupil's reading level range and genre preferences"
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
               <ListItemText
                 primary="A selection of books from the school's library (titles, authors, levels)"
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
               <ListItemText
                 primary="The pupil's recent reading history (book titles only)"
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
           </List>
@@ -489,7 +489,7 @@ const TermsOfService = () => {
           <BodyText>
             <strong>No pupil names, dates of birth, or other identifying information are sent to AI
             providers.</strong> See our{' '}
-            <Link href="/privacy" sx={{ color: '#6B8E6B' }}>Privacy Policy</Link> and DPIA for full
+            <Link href="/privacy" sx={{ color: 'primary.main' }}>Privacy Policy</Link> and DPIA for full
             details.
           </BodyText>
 
@@ -544,7 +544,7 @@ const TermsOfService = () => {
 
           <BodyText>
             Support is available via email at{' '}
-            <Link href="mailto:sam@tallyreading.uk" sx={{ color: '#6B8E6B' }}>
+            <Link href="mailto:sam@tallyreading.uk" sx={{ color: 'primary.main' }}>
               sam@tallyreading.uk
             </Link>
             . We will make reasonable efforts to respond to support requests promptly.
@@ -664,7 +664,7 @@ const TermsOfService = () => {
           <BodyText>
             You may stop using the Service and request account deletion at any time by contacting
             us at{' '}
-            <Link href="mailto:sam@tallyreading.uk" sx={{ color: '#6B8E6B' }}>
+            <Link href="mailto:sam@tallyreading.uk" sx={{ color: 'primary.main' }}>
               sam@tallyreading.uk
             </Link>
             .
@@ -703,7 +703,7 @@ const TermsOfService = () => {
 
           <BodyText>
             These Terms, together with our{' '}
-            <Link href="/privacy" sx={{ color: '#6B8E6B' }}>Privacy Policy</Link> and any applicable
+            <Link href="/privacy" sx={{ color: 'primary.main' }}>Privacy Policy</Link> and any applicable
             Data Processing Agreement, constitute the entire agreement between you and us regarding
             your use of the Service.
           </BodyText>
@@ -738,11 +738,11 @@ const TermsOfService = () => {
             rows={[
               [
                 <strong>Email</strong>,
-                <Link href="mailto:sam@tallyreading.uk" sx={{ color: '#6B8E6B' }}>sam@tallyreading.uk</Link>,
+                <Link href="mailto:sam@tallyreading.uk" sx={{ color: 'primary.main' }}>sam@tallyreading.uk</Link>,
               ],
               [
                 <strong>Data Protection Officer</strong>,
-                <span>Sam Castillo (<Link href="mailto:sam@tallyreading.uk" sx={{ color: '#6B8E6B' }}>sam@tallyreading.uk</Link>)</span>,
+                <span>Sam Castillo (<Link href="mailto:sam@tallyreading.uk" sx={{ color: 'primary.main' }}>sam@tallyreading.uk</Link>)</span>,
               ],
               [
                 <strong>Postal address</strong>,
@@ -780,7 +780,7 @@ const TermsOfService = () => {
                 Tally Reading
               </Typography>
             </Box>
-            <Typography variant="body2" sx={{ color: '#7A7A7A', fontSize: '0.8rem' }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
               Scratch IT LTD &middot; Company 08151576 &middot; ICO ZC098130
             </Typography>
           </Box>

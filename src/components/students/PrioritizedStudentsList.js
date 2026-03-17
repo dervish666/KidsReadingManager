@@ -55,7 +55,7 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
         overflow: 'visible',
         cursor: 'pointer',
         borderRadius: '12px',
-        backgroundColor: '#FFFEF9',
+        backgroundColor: 'background.paper',
         boxShadow: '0 4px 12px rgba(139, 115, 85, 0.15), 0 2px 4px rgba(0, 0, 0, 0.05)',
         border: '1px solid rgba(255, 255, 255, 0.6)',
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -89,7 +89,7 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
         {priorityRank}
       </Box>
       <CardContent sx={{ pt: 3, pb: 2 }}>
-        <Typography variant="h6" component="h3" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#4A4A4A', ml: 1 }}>
+        <Typography variant="h6" component="h3" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'text.primary', ml: 1 }}>
           {student.name}
         </Typography>
         
@@ -112,7 +112,7 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
               fontWeight: 700,
               borderRadius: 2,
               backgroundColor: paletteKey === 'notRead' ? '#F5E1E1' : paletteKey === 'needsAttention' ? '#F5EBE0' : '#E5F0E5',
-              color: paletteKey === 'notRead' ? '#C17E7E' : paletteKey === 'needsAttention' ? '#D4A574' : '#6B8E6B',
+              color: paletteKey === 'notRead' ? 'error.main' : paletteKey === 'needsAttention' ? 'warning.main' : 'primary.main',
               border: 'none'
             }}
           />
@@ -131,7 +131,7 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
               fontWeight: 700,
               borderRadius: 2,
               backgroundColor: '#E5F0E5',
-              color: '#6B8E6B',
+              color: 'primary.main',
               border: 'none'
             }}
           />
@@ -217,18 +217,18 @@ const PrioritizedStudentsList = ({ defaultCount = 8, filterClassId = 'all' }) =>
       p: 3,
       mb: 4,
       borderRadius: '16px',
-      backgroundColor: '#FFFEF9',
+      backgroundColor: 'background.paper',
       boxShadow: '0 8px 32px rgba(139, 115, 85, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04)',
       border: '1px solid rgba(255, 255, 255, 0.5)',
     }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-        <Typography variant="h5" sx={{ flexGrow: 1, fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#4A4A4A' }}>
+        <Typography variant="h5" sx={{ flexGrow: 1, fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'text.primary' }}>
           Priority Reading List
         </Typography>
-        <IconButton onClick={handleResetList} size="small" aria-label="Reset list" title="Reset List" sx={{ color: '#6B8E6B', bgcolor: 'rgba(107, 142, 107, 0.1)', mr: 1, '&:hover': { bgcolor: 'rgba(107, 142, 107, 0.2)' } }}>
+        <IconButton onClick={handleResetList} size="small" aria-label="Reset list" title="Reset List" sx={{ color: 'primary.main', bgcolor: 'rgba(107, 142, 107, 0.1)', mr: 1, '&:hover': { bgcolor: 'rgba(107, 142, 107, 0.2)' } }}>
           <RefreshIcon />
         </IconButton>
-        <IconButton onClick={toggleExpanded} size="small" aria-label={expanded ? 'Collapse list' : 'Expand list'} title={expanded ? 'Collapse' : 'Expand'} sx={{ color: '#7A7A7A', bgcolor: 'rgba(122, 122, 122, 0.1)', '&:hover': { bgcolor: 'rgba(122, 122, 122, 0.2)' } }}>
+        <IconButton onClick={toggleExpanded} size="small" aria-label={expanded ? 'Collapse list' : 'Expand list'} title={expanded ? 'Collapse' : 'Expand'} sx={{ color: 'text.secondary', bgcolor: 'rgba(122, 122, 122, 0.1)', '&:hover': { bgcolor: 'rgba(122, 122, 122, 0.2)' } }}>
           {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
         </IconButton>
       </Box>
@@ -252,7 +252,7 @@ const PrioritizedStudentsList = ({ defaultCount = 8, filterClassId = 'all' }) =>
               valueLabelDisplay="auto"
               sx={{
                 width: '100%',
-                color: '#6B8E6B',
+                color: 'primary.main',
                 '& .MuiSlider-thumb': {
                   boxShadow: '0 4px 8px rgba(107, 142, 107, 0.4)',
                 },

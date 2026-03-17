@@ -41,7 +41,7 @@ const PolicyTable = ({ headers, rows }) => (
                 key={i}
                 sx={{
                   fontWeight: 700,
-                  color: '#4A4A4A',
+                  color: 'text.primary',
                   borderBottom: '2px solid rgba(139, 115, 85, 0.15)',
                   whiteSpace: 'nowrap',
                   fontFamily: '"DM Sans", sans-serif',
@@ -68,7 +68,7 @@ const PolicyTable = ({ headers, rows }) => (
                 key={j}
                 sx={{
                   borderBottom: '1px solid rgba(139, 115, 85, 0.08)',
-                  color: '#4A4A4A',
+                  color: 'text.primary',
                   fontSize: '0.875rem',
                   lineHeight: 1.6,
                   verticalAlign: 'top',
@@ -92,7 +92,7 @@ const SectionHeading = ({ children }) => (
       mt: 5,
       mb: 2,
       fontSize: { xs: '1.3rem', sm: '1.5rem' },
-      color: '#4A4A4A',
+      color: 'text.primary',
     }}
   >
     {children}
@@ -107,7 +107,7 @@ const SubsectionHeading = ({ children }) => (
       mt: 3,
       mb: 1.5,
       fontSize: { xs: '1.1rem', sm: '1.2rem' },
-      color: '#557055',
+      color: 'primary.dark',
     }}
   >
     {children}
@@ -120,7 +120,7 @@ const BodyText = ({ children, sx = {} }) => (
     variant="body1"
     sx={{
       mb: 2,
-      color: '#4A4A4A',
+      color: 'text.primary',
       lineHeight: 1.75,
       ...sx,
     }}
@@ -134,7 +134,7 @@ const PrivacyPolicy = () => {
     <Box
       sx={{
         minHeight: '100vh',
-        backgroundColor: '#F5F0E8',
+        backgroundColor: 'background.default',
         py: { xs: 2, sm: 4 },
         px: { xs: 1, sm: 2 },
       }}
@@ -149,7 +149,7 @@ const PrivacyPolicy = () => {
               display: 'flex',
               alignItems: 'center',
               gap: 0.5,
-              color: '#6B8E6B',
+              color: 'primary.main',
               fontWeight: 600,
               fontFamily: '"DM Sans", sans-serif',
               fontSize: '0.95rem',
@@ -189,7 +189,7 @@ const PrivacyPolicy = () => {
               variant="h3"
               sx={{
                 fontSize: { xs: '1.6rem', sm: '2rem' },
-                color: '#4A4A4A',
+                color: 'text.primary',
               }}
             >
               Privacy Policy
@@ -204,7 +204,7 @@ const PrivacyPolicy = () => {
           </Typography>
           <Typography
             variant="body2"
-            sx={{ color: '#7A7A7A', mb: 3, fontFamily: '"DM Sans", sans-serif' }}
+            sx={{ color: 'text.secondary', mb: 3, fontFamily: '"DM Sans", sans-serif' }}
           >
             Last updated: 23 February 2026
           </Typography>
@@ -227,11 +227,11 @@ const PrivacyPolicy = () => {
             headers={['Detail', 'Value']}
             rows={[
               [<strong>Product name</strong>, 'Tally (trading as Tally Reading)'],
-              [<strong>Website</strong>, <Link href="https://tallyreading.uk" target="_blank" rel="noopener" sx={{ color: '#6B8E6B' }}>https://tallyreading.uk</Link>],
+              [<strong>Website</strong>, <Link href="https://tallyreading.uk" target="_blank" rel="noopener" sx={{ color: 'primary.main' }}>https://tallyreading.uk</Link>],
               [<strong>Company name</strong>, 'Scratch IT LTD'],
               [<strong>Company number</strong>, '08151576'],
               [<strong>Registered address</strong>, '247 Bishopsworth Road, Bristol, BS13 7LH'],
-              [<strong>Data Protection Officer</strong>, <span>Sam Castillo (<Link href="mailto:sam@tallyreading.uk" sx={{ color: '#6B8E6B' }}>sam@tallyreading.uk</Link>)</span>],
+              [<strong>Data Protection Officer</strong>, <span>Sam Castillo (<Link href="mailto:sam@tallyreading.uk" sx={{ color: 'primary.main' }}>sam@tallyreading.uk</Link>)</span>],
               [<strong>ICO registration number</strong>, 'ZC098130'],
             ]}
           />
@@ -320,25 +320,25 @@ const PrivacyPolicy = () => {
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.5, pl: 1 }}>
               <ListItemText
                 primary="We do not use analytics or tracking scripts (such as Google Analytics, Facebook Pixel, or similar)."
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.5, pl: 1 }}>
               <ListItemText
                 primary="We do not serve advertising or share data with advertisers."
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.5, pl: 1 }}>
               <ListItemText
                 primary="We do not collect biometric data."
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.5, pl: 1 }}>
               <ListItemText
                 primary="We do not process special category data (as defined in Article 9 of UK GDPR) unless a school inadvertently enters such data into a free-text field."
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
           </List>
@@ -439,7 +439,7 @@ const PrivacyPolicy = () => {
                     dates of birth, home addresses, photographs, or any direct contact information.
                   </span>
                 }
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'decimal', py: 0, pl: 1 }}>
@@ -451,7 +451,7 @@ const PrivacyPolicy = () => {
                     (teachers and administrators). Children do not create accounts or log in to Tally.
                   </span>
                 }
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'decimal', py: 0, pl: 1 }}>
@@ -465,7 +465,7 @@ const PrivacyPolicy = () => {
                     schools) and for providing appropriate privacy information to parents and carers.
                   </span>
                 }
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'decimal', py: 0, pl: 1 }}>
@@ -478,7 +478,7 @@ const PrivacyPolicy = () => {
                     significant effects on children (Article 22 of UK GDPR).
                   </span>
                 }
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'decimal', py: 0, pl: 1 }}>
@@ -489,7 +489,7 @@ const PrivacyPolicy = () => {
                     purposes.
                   </span>
                 }
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'decimal', py: 0, pl: 1 }}>
@@ -501,7 +501,7 @@ const PrivacyPolicy = () => {
                     through organisational scoping and role-based access controls.
                   </span>
                 }
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'decimal', py: 0, pl: 1 }}>
@@ -514,7 +514,7 @@ const PrivacyPolicy = () => {
                     service.
                   </span>
                 }
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
           </List>
@@ -557,7 +557,7 @@ const PrivacyPolicy = () => {
             ]}
           />
 
-          <BodyText sx={{ fontStyle: 'italic', fontSize: '0.875rem', color: '#7A7A7A' }}>
+          <BodyText sx={{ fontStyle: 'italic', fontSize: '0.875rem', color: 'text.secondary' }}>
             Updated 25 February 2026: Student names have been removed from all AI prompts.
             Only pseudonymised reading profile data is now sent to AI providers.
           </BodyText>
@@ -703,7 +703,7 @@ const PrivacyPolicy = () => {
               [
                 <strong>Right of access</strong>,
                 'You have the right to obtain confirmation of whether we process your personal data and, if so, to receive a copy of that data. (Article 15)',
-                <span>Staff: contact <Link href="mailto:privacy@tallyreading.uk" sx={{ color: '#6B8E6B' }}>privacy@tallyreading.uk</Link>. Parents/carers: contact your child&rsquo;s school, which will liaise with Tally if needed.</span>,
+                <span>Staff: contact <Link href="mailto:privacy@tallyreading.uk" sx={{ color: 'primary.main' }}>privacy@tallyreading.uk</Link>. Parents/carers: contact your child&rsquo;s school, which will liaise with Tally if needed.</span>,
               ],
               [
                 <strong>Right to rectification</strong>,
@@ -713,22 +713,22 @@ const PrivacyPolicy = () => {
               [
                 <strong>Right to erasure</strong>,
                 'You have the right to request deletion of your personal data in certain circumstances. (Article 17)',
-                <span>Staff: contact <Link href="mailto:privacy@tallyreading.uk" sx={{ color: '#6B8E6B' }}>privacy@tallyreading.uk</Link>. Parents/carers: contact the school. Schools can delete pupil records directly within the platform.</span>,
+                <span>Staff: contact <Link href="mailto:privacy@tallyreading.uk" sx={{ color: 'primary.main' }}>privacy@tallyreading.uk</Link>. Parents/carers: contact the school. Schools can delete pupil records directly within the platform.</span>,
               ],
               [
                 <strong>Right to restriction</strong>,
                 'You have the right to request that we restrict processing of your personal data in certain circumstances. (Article 18)',
-                <span>Contact <Link href="mailto:privacy@tallyreading.uk" sx={{ color: '#6B8E6B' }}>privacy@tallyreading.uk</Link> or the school.</span>,
+                <span>Contact <Link href="mailto:privacy@tallyreading.uk" sx={{ color: 'primary.main' }}>privacy@tallyreading.uk</Link> or the school.</span>,
               ],
               [
                 <strong>Right to data portability</strong>,
                 'You have the right to receive your personal data in a structured, commonly used, and machine-readable format. (Article 20)',
-                <span>Schools can export pupil and reading data via CSV export from the platform. Staff can request their data by contacting <Link href="mailto:privacy@tallyreading.uk" sx={{ color: '#6B8E6B' }}>privacy@tallyreading.uk</Link>.</span>,
+                <span>Schools can export pupil and reading data via CSV export from the platform. Staff can request their data by contacting <Link href="mailto:privacy@tallyreading.uk" sx={{ color: 'primary.main' }}>privacy@tallyreading.uk</Link>.</span>,
               ],
               [
                 <strong>Right to object</strong>,
                 'You have the right to object to processing based on legitimate interests. (Article 21)',
-                <span>Contact <Link href="mailto:privacy@tallyreading.uk" sx={{ color: '#6B8E6B' }}>privacy@tallyreading.uk</Link>. We will cease processing unless we demonstrate compelling legitimate grounds.</span>,
+                <span>Contact <Link href="mailto:privacy@tallyreading.uk" sx={{ color: 'primary.main' }}>privacy@tallyreading.uk</Link>. We will cease processing unless we demonstrate compelling legitimate grounds.</span>,
               ],
               [
                 <strong>Rights related to automated decision-making</strong>,
@@ -769,24 +769,24 @@ const PrivacyPolicy = () => {
                 primary={
                   <span>
                     <strong>Website:</strong>{' '}
-                    <Link href="https://ico.org.uk/make-a-complaint/" target="_blank" rel="noopener" sx={{ color: '#6B8E6B' }}>
+                    <Link href="https://ico.org.uk/make-a-complaint/" target="_blank" rel="noopener" sx={{ color: 'primary.main' }}>
                       https://ico.org.uk/make-a-complaint/
                     </Link>
                   </span>
                 }
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
               <ListItemText
                 primary={<span><strong>Telephone:</strong> 0303 123 1113</span>}
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
               <ListItemText
                 primary={<span><strong>Post:</strong> Information Commissioner&rsquo;s Office, Wycliffe House, Water Lane, Wilmslow, Cheshire, SK9 5AF</span>}
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
           </List>
@@ -926,31 +926,31 @@ const PrivacyPolicy = () => {
 
           <List sx={{ pl: 2 }}>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
-              <ListItemText primary="The subject matter and duration of processing" primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }} />
+              <ListItemText primary="The subject matter and duration of processing" primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }} />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
-              <ListItemText primary="The nature and purpose of processing" primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }} />
+              <ListItemText primary="The nature and purpose of processing" primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }} />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
-              <ListItemText primary="The types of personal data processed" primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }} />
+              <ListItemText primary="The types of personal data processed" primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }} />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
-              <ListItemText primary="The categories of data subjects" primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }} />
+              <ListItemText primary="The categories of data subjects" primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }} />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
-              <ListItemText primary="The obligations and rights of the controller (school) and processor (Tally)" primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }} />
+              <ListItemText primary="The obligations and rights of the controller (school) and processor (Tally)" primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }} />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
-              <ListItemText primary="Sub-processor approval and notification arrangements" primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }} />
+              <ListItemText primary="Sub-processor approval and notification arrangements" primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }} />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
-              <ListItemText primary="Data breach notification obligations" primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }} />
+              <ListItemText primary="Data breach notification obligations" primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }} />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
-              <ListItemText primary="Assistance with data subject rights requests" primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }} />
+              <ListItemText primary="Assistance with data subject rights requests" primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }} />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
-              <ListItemText primary="Data deletion or return upon termination" primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }} />
+              <ListItemText primary="Data deletion or return upon termination" primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }} />
             </ListItem>
           </List>
 
@@ -971,19 +971,19 @@ const PrivacyPolicy = () => {
             <ListItem sx={{ display: 'list-item', listStyleType: 'decimal', py: 0.3, pl: 1 }}>
               <ListItemText
                 primary={'We will update the "Last updated" date at the top of this policy.'}
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'decimal', py: 0.3, pl: 1 }}>
               <ListItemText
                 primary="We will notify subscribing schools by email at least 14 days before material changes take effect."
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'decimal', py: 0.3, pl: 1 }}>
               <ListItemText
                 primary="We will make the previous version available upon request."
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
           </List>
@@ -1007,7 +1007,7 @@ const PrivacyPolicy = () => {
             rows={[
               [
                 <strong>Email</strong>,
-                <Link href="mailto:privacy@tallyreading.uk" sx={{ color: '#6B8E6B' }}>privacy@tallyreading.uk</Link>,
+                <Link href="mailto:privacy@tallyreading.uk" sx={{ color: 'primary.main' }}>privacy@tallyreading.uk</Link>,
               ],
               [
                 <strong>Post</strong>,
@@ -1015,7 +1015,7 @@ const PrivacyPolicy = () => {
               ],
               [
                 <strong>Data Protection Lead</strong>,
-                <span>Sam Castillo (<Link href="mailto:sam@tallyreading.uk" sx={{ color: '#6B8E6B' }}>sam@tallyreading.uk</Link>). Note: A formal DPO has not been appointed as Scratch IT LTD does not meet the mandatory appointment thresholds under Article 37 of UK GDPR. Sam Castillo acts as the named privacy contact for all data protection matters.</span>,
+                <span>Sam Castillo (<Link href="mailto:sam@tallyreading.uk" sx={{ color: 'primary.main' }}>sam@tallyreading.uk</Link>). Note: A formal DPO has not been appointed as Scratch IT LTD does not meet the mandatory appointment thresholds under Article 37 of UK GDPR. Sam Castillo acts as the named privacy contact for all data protection matters.</span>,
               ],
             ]}
           />
@@ -1046,19 +1046,19 @@ const PrivacyPolicy = () => {
                     Regulations 2019
                   </span>
                 }
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
               <ListItemText
                 primary={<span>The <strong>Data Protection Act 2018</strong></span>}
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
               <ListItemText
                 primary={<span>The <strong>Privacy and Electronic Communications Regulations 2003</strong> (PECR)</span>}
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
           </List>
@@ -1093,7 +1093,7 @@ const PrivacyPolicy = () => {
                 Tally Reading
               </Typography>
             </Box>
-            <Typography variant="body2" sx={{ color: '#7A7A7A', fontSize: '0.8rem' }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
               Scratch IT LTD &middot; Company 08151576 &middot; ICO ZC098130
             </Typography>
           </Box>

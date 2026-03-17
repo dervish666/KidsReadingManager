@@ -71,7 +71,7 @@ const SupportModal = ({ open, onClose }) => {
       PaperProps={{
         sx: {
           borderRadius: '16px',
-          backgroundColor: '#FFFEF9',
+          backgroundColor: 'background.paper',
         },
       }}
     >
@@ -82,7 +82,7 @@ const SupportModal = ({ open, onClose }) => {
           justifyContent: 'space-between',
           fontFamily: '"Nunito", sans-serif',
           fontWeight: 800,
-          color: '#4A4A4A',
+          color: 'text.primary',
           pb: 0,
         }}
       >
@@ -95,15 +95,15 @@ const SupportModal = ({ open, onClose }) => {
       <DialogContent sx={{ pt: 2 }}>
         {success ? (
           <Box sx={{ textAlign: 'center', py: 3 }}>
-            <CheckCircleOutlineIcon sx={{ fontSize: 56, color: '#6B8E6B', mb: 2 }} />
+            <CheckCircleOutlineIcon sx={{ fontSize: 56, color: 'primary.main', mb: 2 }} />
             <Typography
               variant="h6"
-              sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: '#4A4A4A', mb: 1 }}
+              sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: 'text.primary', mb: 1 }}
             >
               Message sent
             </Typography>
             <Typography
-              sx={{ fontFamily: '"DM Sans", sans-serif', color: '#7A7A7A', mb: 2 }}
+              sx={{ fontFamily: '"DM Sans", sans-serif', color: 'text.secondary', mb: 2 }}
             >
               We'll get back to you as soon as we can.
             </Typography>
@@ -171,11 +171,11 @@ const SupportModal = ({ open, onClose }) => {
             onClick={handleClose}
             variant="outlined"
             sx={{
-              color: '#6B8E6B',
+              color: 'primary.main',
               borderColor: 'rgba(107, 142, 107, 0.3)',
               textTransform: 'none',
               fontWeight: 600,
-              '&:hover': { borderColor: '#6B8E6B', backgroundColor: 'rgba(107, 142, 107, 0.05)' },
+              '&:hover': { borderColor: 'primary.main', backgroundColor: 'rgba(107, 142, 107, 0.05)' },
             }}
           >
             Close
@@ -185,7 +185,7 @@ const SupportModal = ({ open, onClose }) => {
             <Button
               onClick={handleClose}
               disabled={loading}
-              sx={{ color: '#7A7A7A', textTransform: 'none', fontWeight: 600 }}
+              sx={{ color: 'text.secondary', textTransform: 'none', fontWeight: 600 }}
             >
               Cancel
             </Button>
@@ -195,12 +195,12 @@ const SupportModal = ({ open, onClose }) => {
               disabled={!isValid || loading}
               startIcon={loading ? <CircularProgress size={16} color="inherit" /> : null}
               sx={{
-                backgroundColor: '#6B8E6B',
+                backgroundColor: 'primary.main',
                 textTransform: 'none',
                 fontWeight: 600,
                 borderRadius: '10px',
                 px: 3,
-                '&:hover': { backgroundColor: '#5A7D5A' },
+                '&:hover': { backgroundColor: 'primary.dark' },
                 '&.Mui-disabled': { backgroundColor: 'rgba(107, 142, 107, 0.3)' },
               }}
             >

@@ -301,7 +301,7 @@ const SessionForm = () => {
   return (
     <Box>
       <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-        <Typography variant="h4" component="h1" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#4A4A4A' }}>
+        <Typography variant="h4" component="h1" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'text.primary' }}>
           Record Reading Session
         </Typography>
         <TextField
@@ -377,7 +377,7 @@ const SessionForm = () => {
                                 {student.name}
                               </Typography>
                               {isRecentlyAccessed && (
-                                <Typography variant="caption" sx={{ ml: 'auto', color: '#7A7A7A', fontStyle: 'italic' }}>
+                                <Typography variant="caption" sx={{ ml: 'auto', color: 'text.secondary', fontStyle: 'italic' }}>
                                   Recent
                                 </Typography>
                               )}
@@ -402,7 +402,7 @@ const SessionForm = () => {
                       height={60}
                     />
                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography variant="body1" noWrap sx={{ fontWeight: 600, color: '#4A4A4A' }}>
+                      <Typography variant="body1" noWrap sx={{ fontWeight: 600, color: 'text.primary' }}>
                         {selectedBook?.title || ''}
                       </Typography>
                       {bookAuthor && (
@@ -425,7 +425,7 @@ const SessionForm = () => {
                       transformOrigin={{ vertical: 'top', horizontal: 'right' }}
                       slotProps={{ paper: { sx: { p: 3, borderRadius: 4, maxWidth: 420, width: '90vw' } } }}
                     >
-                      <Typography variant="subtitle2" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: '#4A4A4A' }}>
+                      <Typography variant="subtitle2" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: 'text.primary' }}>
                         Edit Book Details
                       </Typography>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -560,7 +560,7 @@ const SessionForm = () => {
                       px: 2,
                       borderRadius: '8px 0 0 8px',
                       textTransform: 'none',
-                      '&.Mui-selected': { bgcolor: '#6B8E6B', color: '#fff', '&:hover': { bgcolor: '#5A7D5A' } }
+                      '&.Mui-selected': { bgcolor: 'primary.main', color: '#fff', '&:hover': { bgcolor: '#5A7D5A' } }
                     }}
                   >
                     School
@@ -570,7 +570,7 @@ const SessionForm = () => {
                       px: 2,
                       borderRadius: '0 8px 8px 0',
                       textTransform: 'none',
-                      '&.Mui-selected': { bgcolor: '#6B8E6B', color: '#fff', '&:hover': { bgcolor: '#5A7D5A' } }
+                      '&.Mui-selected': { bgcolor: 'primary.main', color: '#fff', '&:hover': { bgcolor: '#5A7D5A' } }
                     }}
                   >
                     Home
@@ -593,7 +593,7 @@ const SessionForm = () => {
                     onClick={(e) => setNotesAnchor(e.currentTarget)}
                     aria-label="Add notes"
                     sx={{
-                      color: notes ? '#6B8E6B' : 'text.secondary',
+                      color: notes ? 'primary.main' : 'text.secondary',
                       border: notes ? '2px solid #6B8E6B' : '1px solid rgba(0,0,0,0.12)',
                       borderRadius: 2,
                       px: 1.5,
@@ -601,7 +601,7 @@ const SessionForm = () => {
                   >
                     <NotesIcon fontSize="small" />
                     {notes && (
-                      <Typography variant="caption" sx={{ ml: 0.5, fontWeight: 600, color: '#6B8E6B' }}>
+                      <Typography variant="caption" sx={{ ml: 0.5, fontWeight: 600, color: 'primary.main' }}>
                         Notes
                       </Typography>
                     )}
@@ -659,7 +659,7 @@ const SessionForm = () => {
           p: 2,
           borderRadius: '12px',
         }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, fontFamily: '"Nunito", sans-serif', color: '#4A4A4A', mb: 1.5 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, fontFamily: '"Nunito", sans-serif', color: 'text.primary', mb: 1.5 }}>
             Books Read — {selectedStudent?.name}
           </Typography>
           {historyLoading ? (
@@ -761,7 +761,7 @@ const SessionForm = () => {
         ContentProps={{
           sx: {
             borderRadius: 4,
-            bgcolor: '#6B8E6B',
+            bgcolor: 'primary.main',
             color: '#fff',
             fontWeight: 600,
             boxShadow: '0 8px 20px rgba(107, 142, 107, 0.3)'

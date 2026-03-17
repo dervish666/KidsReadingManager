@@ -52,7 +52,7 @@ const SettingsPage = () => {
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#4A4A4A' }}>
+        <Typography variant="h4" component="h1" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'text.primary' }}>
           Settings & Data
         </Typography>
         {user && (
@@ -65,9 +65,9 @@ const SettingsPage = () => {
               fontWeight: 600,
               fontSize: '0.8rem',
               borderColor: 'rgba(107, 142, 107, 0.3)',
-              color: '#4A4A4A',
+              color: 'text.primary',
               '& .MuiChip-icon': {
-                color: '#6B8E6B',
+                color: 'primary.main',
               },
             }}
           />
@@ -79,7 +79,7 @@ const SettingsPage = () => {
           mb: 3,
           overflow: 'hidden',
           borderRadius: 4,
-          backgroundColor: '#FFFEF9'
+          backgroundColor: 'background.paper'
         }}>
           <Tabs
             value={currentTab}
@@ -139,13 +139,13 @@ const SettingsPage = () => {
         >
           <Typography
             variant="subtitle2"
-            sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: '#4A4A4A', mb: 0.5 }}
+            sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: 'text.primary', mb: 0.5 }}
           >
             Need help?
           </Typography>
           <Typography
             variant="body2"
-            sx={{ fontFamily: '"DM Sans", sans-serif', color: '#7A7A7A', mb: 1.5, fontSize: '0.85rem' }}
+            sx={{ fontFamily: '"DM Sans", sans-serif', color: 'text.secondary', mb: 1.5, fontSize: '0.85rem' }}
           >
             Get in touch and we'll help you get set up.
           </Typography>
@@ -154,12 +154,12 @@ const SettingsPage = () => {
             startIcon={<HelpOutlineIcon />}
             onClick={() => setSupportOpen(true)}
             sx={{
-              color: '#6B8E6B',
+              color: 'primary.main',
               borderColor: 'rgba(107, 142, 107, 0.3)',
               textTransform: 'none',
               fontWeight: 600,
               borderRadius: '10px',
-              '&:hover': { borderColor: '#6B8E6B', backgroundColor: 'rgba(107, 142, 107, 0.05)' },
+              '&:hover': { borderColor: 'primary.main', backgroundColor: 'rgba(107, 142, 107, 0.05)' },
             }}
           >
             Contact support
@@ -177,7 +177,7 @@ const SettingsPage = () => {
             color: 'rgba(74, 74, 74, 0.5)',
             fontSize: '0.85rem',
             textDecoration: 'none',
-            '&:hover': { color: '#6B8E6B' },
+            '&:hover': { color: 'primary.main' },
           }}
         >
           <PolicyIcon sx={{ fontSize: 16 }} />

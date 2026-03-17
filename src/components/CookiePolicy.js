@@ -41,7 +41,7 @@ const PolicyTable = ({ headers, rows }) => (
                 key={i}
                 sx={{
                   fontWeight: 700,
-                  color: '#4A4A4A',
+                  color: 'text.primary',
                   borderBottom: '2px solid rgba(139, 115, 85, 0.15)',
                   whiteSpace: 'nowrap',
                   fontFamily: '"DM Sans", sans-serif',
@@ -68,7 +68,7 @@ const PolicyTable = ({ headers, rows }) => (
                 key={j}
                 sx={{
                   borderBottom: '1px solid rgba(139, 115, 85, 0.08)',
-                  color: '#4A4A4A',
+                  color: 'text.primary',
                   fontSize: '0.875rem',
                   lineHeight: 1.6,
                   verticalAlign: 'top',
@@ -92,7 +92,7 @@ const SectionHeading = ({ children }) => (
       mt: 5,
       mb: 2,
       fontSize: { xs: '1.3rem', sm: '1.5rem' },
-      color: '#4A4A4A',
+      color: 'text.primary',
     }}
   >
     {children}
@@ -107,7 +107,7 @@ const SubsectionHeading = ({ children }) => (
       mt: 3,
       mb: 1.5,
       fontSize: { xs: '1.1rem', sm: '1.2rem' },
-      color: '#557055',
+      color: 'primary.dark',
     }}
   >
     {children}
@@ -120,7 +120,7 @@ const BodyText = ({ children, sx = {} }) => (
     variant="body1"
     sx={{
       mb: 2,
-      color: '#4A4A4A',
+      color: 'text.primary',
       lineHeight: 1.75,
       ...sx,
     }}
@@ -134,7 +134,7 @@ const CookiePolicy = () => {
     <Box
       sx={{
         minHeight: '100vh',
-        backgroundColor: '#F5F0E8',
+        backgroundColor: 'background.default',
         py: { xs: 2, sm: 4 },
         px: { xs: 1, sm: 2 },
       }}
@@ -149,7 +149,7 @@ const CookiePolicy = () => {
               display: 'flex',
               alignItems: 'center',
               gap: 0.5,
-              color: '#6B8E6B',
+              color: 'primary.main',
               fontWeight: 600,
               fontFamily: '"DM Sans", sans-serif',
               fontSize: '0.95rem',
@@ -189,7 +189,7 @@ const CookiePolicy = () => {
               variant="h3"
               sx={{
                 fontSize: { xs: '1.6rem', sm: '2rem' },
-                color: '#4A4A4A',
+                color: 'text.primary',
               }}
             >
               Cookie Policy
@@ -204,7 +204,7 @@ const CookiePolicy = () => {
           </Typography>
           <Typography
             variant="body2"
-            sx={{ color: '#7A7A7A', mb: 3, fontFamily: '"DM Sans", sans-serif' }}
+            sx={{ color: 'text.secondary', mb: 3, fontFamily: '"DM Sans", sans-serif' }}
           >
             Last updated: 5 March 2026
           </Typography>
@@ -221,7 +221,7 @@ const CookiePolicy = () => {
             &ldquo;us&rdquo;), operated by Scratch IT LTD (company number 08151576), uses cookies
             and similar technologies when you use our platform
             at{' '}
-            <Link href="https://tallyreading.uk" target="_blank" rel="noopener" sx={{ color: '#6B8E6B' }}>
+            <Link href="https://tallyreading.uk" target="_blank" rel="noopener" sx={{ color: 'primary.main' }}>
               https://tallyreading.uk
             </Link>
             .
@@ -275,7 +275,7 @@ const CookiePolicy = () => {
                     cross-site scripting attacks)
                   </span>
                 }
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.5, pl: 1 }}>
@@ -285,7 +285,7 @@ const CookiePolicy = () => {
                     <strong>Secure</strong> — transmitted only over HTTPS in production
                   </span>
                 }
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.5, pl: 1 }}>
@@ -296,7 +296,7 @@ const CookiePolicy = () => {
                     against cross-site request forgery)
                   </span>
                 }
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.5, pl: 1 }}>
@@ -307,7 +307,7 @@ const CookiePolicy = () => {
                     other requests)
                   </span>
                 }
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.5, pl: 1 }}>
@@ -317,7 +317,7 @@ const CookiePolicy = () => {
                     <strong>Cleared on logout</strong> — the cookie is removed when you sign out
                   </span>
                 }
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
           </List>
@@ -417,7 +417,7 @@ const CookiePolicy = () => {
                     or any similar analytics service
                   </span>
                 }
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.5, pl: 1 }}>
@@ -428,7 +428,7 @@ const CookiePolicy = () => {
                     networks
                   </span>
                 }
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.5, pl: 1 }}>
@@ -439,7 +439,7 @@ const CookiePolicy = () => {
                     Insight Tag, or similar tracking technologies
                   </span>
                 }
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.5, pl: 1 }}>
@@ -450,7 +450,7 @@ const CookiePolicy = () => {
                     behaviour across other websites
                   </span>
                 }
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.5, pl: 1 }}>
@@ -461,7 +461,7 @@ const CookiePolicy = () => {
                     third-party advertisers
                   </span>
                 }
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
           </List>
@@ -484,7 +484,7 @@ const CookiePolicy = () => {
               href="https://www.cloudflare.com/cookie-policy/"
               target="_blank"
               rel="noopener"
-              sx={{ color: '#6B8E6B' }}
+              sx={{ color: 'primary.main' }}
             >
               Cloudflare&rsquo;s cookie policy
             </Link>
@@ -524,7 +524,7 @@ const CookiePolicy = () => {
                     See all cookies
                   </span>
                 }
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.5, pl: 1 }}>
@@ -534,7 +534,7 @@ const CookiePolicy = () => {
                     <strong>Safari:</strong> Preferences &gt; Privacy &gt; Manage Website Data
                   </span>
                 }
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.5, pl: 1 }}>
@@ -545,7 +545,7 @@ const CookiePolicy = () => {
                     Site Data
                   </span>
                 }
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.5, pl: 1 }}>
@@ -555,7 +555,7 @@ const CookiePolicy = () => {
                     <strong>Edge:</strong> Settings &gt; Cookies and site permissions &gt; Cookies
                   </span>
                 }
-                primaryTypographyProps={{ color: '#4A4A4A', lineHeight: 1.75 }}
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
           </List>
@@ -588,7 +588,7 @@ const CookiePolicy = () => {
             rows={[
               [
                 <strong>Email</strong>,
-                <Link href="mailto:sam@tallyreading.uk" sx={{ color: '#6B8E6B' }}>
+                <Link href="mailto:sam@tallyreading.uk" sx={{ color: 'primary.main' }}>
                   sam@tallyreading.uk
                 </Link>,
               ],
@@ -596,7 +596,7 @@ const CookiePolicy = () => {
                 <strong>Data Protection Officer</strong>,
                 <span>
                   Sam Castillo (
-                  <Link href="mailto:sam@tallyreading.uk" sx={{ color: '#6B8E6B' }}>
+                  <Link href="mailto:sam@tallyreading.uk" sx={{ color: 'primary.main' }}>
                     sam@tallyreading.uk
                   </Link>
                   )
@@ -611,7 +611,7 @@ const CookiePolicy = () => {
 
           <BodyText>
             For full details of how we handle personal data, please see our{' '}
-            <Link href="/privacy" sx={{ color: '#6B8E6B' }}>
+            <Link href="/privacy" sx={{ color: 'primary.main' }}>
               Privacy Policy
             </Link>
             .
@@ -642,7 +642,7 @@ const CookiePolicy = () => {
                 Tally Reading
               </Typography>
             </Box>
-            <Typography variant="body2" sx={{ color: '#7A7A7A', fontSize: '0.8rem' }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
               Scratch IT LTD &middot; Company 08151576 &middot; ICO ZC098130
             </Typography>
           </Box>

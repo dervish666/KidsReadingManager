@@ -192,7 +192,7 @@ const StudentList = () => {
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-        <CircularProgress sx={{ color: '#6B8E6B' }} />
+        <CircularProgress sx={{ color: 'primary.main' }} />
       </Box>
     );
   }
@@ -209,10 +209,10 @@ const StudentList = () => {
         px: { xs: 0, sm: 1 }
       }}>
         <Box>
-          <Typography variant="h4" component="h1" sx={{ mb: 0.5, fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#4A4A4A' }}>
+          <Typography variant="h4" component="h1" sx={{ mb: 0.5, fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'text.primary' }}>
             Students
           </Typography>
-          <Typography variant="body1" sx={{ color: '#7A7A7A', fontWeight: 500 }}>
+          <Typography variant="body1" sx={{ color: 'text.secondary', fontWeight: 500 }}>
             {filteredAndSortedStudents.length > studentsPerPage
               ? `Showing ${(currentPage - 1) * studentsPerPage + 1}–${Math.min(currentPage * studentsPerPage, filteredAndSortedStudents.length)} of ${filteredAndSortedStudents.length} students`
               : `${filteredAndSortedStudents.length} total`}
@@ -236,7 +236,7 @@ const StudentList = () => {
                 minWidth: { xs: 'auto', sm: 120 },
                 borderRadius: 4,
                 border: '2px solid rgba(107, 142, 107, 0.2)',
-                color: '#6B8E6B',
+                color: 'primary.main',
                 fontWeight: 700,
                 '&:hover': {
                   border: '2px solid #6B8E6B',
@@ -259,7 +259,7 @@ const StudentList = () => {
                 minWidth: { xs: 'auto', sm: 120 },
                 borderRadius: 4,
                 border: '2px solid rgba(107, 142, 107, 0.2)',
-                color: '#6B8E6B',
+                color: 'primary.main',
                 fontWeight: 700,
                 '&:hover': {
                   border: '2px solid #6B8E6B',
@@ -280,10 +280,10 @@ const StudentList = () => {
           py: 8, 
           px: 4, 
           borderRadius: 8, 
-          backgroundColor: '#FFFEF9',
+          backgroundColor: 'background.paper',
           border: '1px dashed rgba(107, 142, 107, 0.3)'
         }}>
-          <Typography variant="h6" sx={{ mb: 3, color: '#7A7A7A', fontFamily: '"Nunito", sans-serif' }}>
+          <Typography variant="h6" sx={{ mb: 3, color: 'text.secondary', fontFamily: '"Nunito", sans-serif' }}>
             {isLocalAuth ? 'No students added yet. Add your first student to get started!' : 'No students found. Students are synced from your school system.'}
           </Typography>
           {isLocalAuth && (
@@ -342,13 +342,13 @@ const StudentList = () => {
                 input: {
                   startAdornment: (
                     <InputAdornment position="start">
-                      <SearchIcon sx={{ color: '#6B8E6B' }} fontSize="small" />
+                      <SearchIcon sx={{ color: 'primary.main' }} fontSize="small" />
                     </InputAdornment>
                   ),
                   endAdornment: searchQuery ? (
                     <InputAdornment position="end">
                       <ClearIcon
-                        sx={{ color: '#7A7A7A', cursor: 'pointer', fontSize: 18 }}
+                        sx={{ color: 'text.secondary', cursor: 'pointer', fontSize: 18 }}
                         onClick={() => setSearchQuery('')}
                       />
                     </InputAdornment>
@@ -381,9 +381,9 @@ const StudentList = () => {
                     cursor: 'pointer',
                     ...(statusFilter !== chip.value && {
                       borderColor: 'rgba(107, 142, 107, 0.3)',
-                      color: '#7A7A7A',
+                      color: 'text.secondary',
                       '&:hover': {
-                        borderColor: '#6B8E6B',
+                        borderColor: 'primary.main',
                         backgroundColor: 'rgba(107, 142, 107, 0.05)',
                       }
                     })
@@ -412,7 +412,7 @@ const StudentList = () => {
                 label="Sort By"
                 onChange={handleSortChange}
                 startAdornment={
-                  <SortIcon sx={{ mr: 1, ml: -0.5, color: '#6B8E6B' }} fontSize="small" />
+                  <SortIcon sx={{ mr: 1, ml: -0.5, color: 'primary.main' }} fontSize="small" />
                 }
                 sx={{ pr: 4, fontFamily: '"DM Sans", sans-serif', fontWeight: 600 }}
               >
@@ -447,17 +447,17 @@ const StudentList = () => {
         PaperProps={{
           sx: {
             borderRadius: 6,
-            backgroundColor: '#FFFEF9',
+            backgroundColor: 'background.paper',
             boxShadow: '0 8px 32px rgba(139, 115, 85, 0.15), 0 2px 8px rgba(0, 0, 0, 0.05)',
             p: 2
           }
         }}
       >
-        <DialogTitle sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, fontSize: '1.5rem', color: '#4A4A4A' }}>
+        <DialogTitle sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, fontSize: '1.5rem', color: 'text.primary' }}>
           Add New Student
         </DialogTitle>
         <DialogContent>
-          <DialogContentText sx={{ mb: 2, color: '#7A7A7A' }}>
+          <DialogContentText sx={{ mb: 2, color: 'text.secondary' }}>
             Enter the student's name below:
           </DialogContentText>
           <TextField
@@ -515,7 +515,7 @@ const StudentList = () => {
           </FormControl>
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
-          <Button onClick={handleCloseDialog} sx={{ color: '#7A7A7A', fontWeight: 700, mr: 1 }}>
+          <Button onClick={handleCloseDialog} sx={{ color: 'text.secondary', fontWeight: 700, mr: 1 }}>
             Cancel
           </Button>
           <Button 

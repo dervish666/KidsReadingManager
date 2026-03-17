@@ -66,7 +66,7 @@ const StudentCard = React.memo(({ student }) => {
           overflow: 'visible',
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           borderRadius: '12px',
-          backgroundColor: '#FFFEF9',
+          backgroundColor: 'background.paper',
           boxShadow: '0 4px 12px rgba(139, 115, 85, 0.15), 0 2px 4px rgba(0, 0, 0, 0.05)',
           border: '1px solid rgba(255, 255, 255, 0.6)',
           '&:hover': {
@@ -114,7 +114,7 @@ const StudentCard = React.memo(({ student }) => {
                   fontFamily: '"Nunito", sans-serif',
                   fontWeight: 800,
                   fontSize: '1.125rem',
-                  color: '#4A4A4A',
+                  color: 'text.primary',
                   lineHeight: 1.2
                 }}
               >
@@ -127,7 +127,7 @@ const StudentCard = React.memo(({ student }) => {
                   variant="body2"
                   sx={{
                     fontFamily: '"DM Sans", sans-serif',
-                    color: '#7A7A7A',
+                    color: 'text.secondary',
                     fontSize: '0.875rem',
                   }}
                 >
@@ -166,7 +166,7 @@ const StudentCard = React.memo(({ student }) => {
                       setOpenPreferencesDialog(true);
                     }}
                     sx={{
-                      color: '#6B8E6B',
+                      color: 'primary.main',
                       backgroundColor: 'rgba(107, 142, 107, 0.1)',
                       '&:hover': { backgroundColor: 'rgba(107, 142, 107, 0.2)' }
                     }}
@@ -200,7 +200,7 @@ const StudentCard = React.memo(({ student }) => {
                 borderRadius: '8px',
                 backgroundColor: 'rgba(250, 248, 243, 0.8)',
               }}>
-                <Typography variant="body2" sx={{ color: '#7A7A7A', fontWeight: 600 }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
                   Last read
                 </Typography>
                 <Chip
@@ -212,7 +212,7 @@ const StudentCard = React.memo(({ student }) => {
                     fontWeight: 600,
                     borderRadius: '6px',
                     backgroundColor: paletteKey === 'notRead' ? '#F5E1E1' : paletteKey === 'needsAttention' ? '#F5EBE0' : '#E5F0E5',
-                    color: paletteKey === 'notRead' ? '#C17E7E' : paletteKey === 'needsAttention' ? '#D4A574' : '#6B8E6B',
+                    color: paletteKey === 'notRead' ? 'error.main' : paletteKey === 'needsAttention' ? 'warning.main' : 'primary.main',
                     border: 'none'
                   }}
                 />
@@ -226,7 +226,7 @@ const StudentCard = React.memo(({ student }) => {
                 borderRadius: '8px',
                 backgroundColor: 'rgba(250, 248, 243, 0.8)',
               }}>
-                <Typography variant="body2" sx={{ color: '#7A7A7A', fontWeight: 600 }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
                   Sessions
                 </Typography>
                 <Chip
@@ -237,8 +237,8 @@ const StudentCard = React.memo(({ student }) => {
                     fontSize: '0.75rem',
                     fontWeight: 600,
                     borderRadius: '6px',
-                    backgroundColor: '#E5F0E5',
-                    color: '#6B8E6B',
+                    backgroundColor: 'success.light',
+                    color: 'primary.main',
                     border: 'none'
                   }}
                 />
@@ -247,7 +247,7 @@ const StudentCard = React.memo(({ student }) => {
               <Typography
                 variant="caption"
                 sx={{
-                  color: '#7A7A7A',
+                  color: 'text.secondary',
                   fontStyle: 'italic',
                   textAlign: 'right',
                   mt: 0.5,

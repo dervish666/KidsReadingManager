@@ -102,7 +102,7 @@ function AppContent() {
     return (
       <Suspense fallback={
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-          <CircularProgress sx={{ color: '#6B8E6B' }} />
+          <CircularProgress sx={{ color: 'primary.main' }} />
         </Box>
       }>
         <PrivacyPolicy />
@@ -114,7 +114,7 @@ function AppContent() {
     return (
       <Suspense fallback={
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-          <CircularProgress sx={{ color: '#6B8E6B' }} />
+          <CircularProgress sx={{ color: 'primary.main' }} />
         </Box>
       }>
         <TermsOfService />
@@ -126,7 +126,7 @@ function AppContent() {
     return (
       <Suspense fallback={
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-          <CircularProgress sx={{ color: '#6B8E6B' }} />
+          <CircularProgress sx={{ color: 'primary.main' }} />
         </Box>
       }>
         <CookiePolicy />
@@ -170,7 +170,7 @@ function AppContent() {
         minHeight: '100vh',
         position: 'relative',
         overflow: 'hidden',
-        backgroundColor: '#F5F0E8',
+        backgroundColor: 'background.default',
         WebkitOverflowScrolling: 'touch',
         overscrollBehavior: 'none',
         pb: '80px',
@@ -228,7 +228,7 @@ function AppContent() {
             overflow: 'auto',
             WebkitOverflowScrolling: 'touch',
             mb: 0,
-            backgroundColor: '#FFFEF9',
+            backgroundColor: 'background.paper',
             // Height: viewport minus header(72px) - bottomNav(80px) - vertical padding(~48px) - safe area
             // Use dvh with vh fallback for iOS Safari where 100vh includes address bar
             height: 'calc(100vh - 220px)',
@@ -255,7 +255,7 @@ function AppContent() {
         >
           <Suspense fallback={
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-              <CircularProgress sx={{ color: '#6B8E6B' }} />
+              <CircularProgress sx={{ color: 'primary.main' }} />
             </Box>
           }>
             {renderTabContent()}

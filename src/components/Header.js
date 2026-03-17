@@ -110,7 +110,7 @@ const Header = () => {
             sx={{
               fontFamily: '"Nunito", sans-serif',
               fontWeight: 800,
-              color: '#4A4A4A',
+              color: 'text.primary',
               fontSize: { xs: '1.1rem', sm: '1.5rem' },
               mr: { xs: 1, sm: 3 },
               letterSpacing: '-0.025em',
@@ -130,7 +130,7 @@ const Header = () => {
             <FilterListIcon sx={{
               mr: 1,
               fontSize: { xs: '1rem', sm: '1.25rem' },
-              color: '#7A7A7A',
+              color: 'text.secondary',
               display: { xs: 'none', sm: 'block' }
             }} />
             <FormControl
@@ -156,12 +156,12 @@ const Header = () => {
                   },
                 },
                 '& .MuiSelect-select': {
-                  color: '#4A4A4A',
+                  color: 'text.primary',
                   fontWeight: 600,
                   fontFamily: '"DM Sans", sans-serif',
                 },
                 '& .MuiSelect-icon': {
-                  color: '#6B8E6B',
+                  color: 'primary.main',
                 },
               }}
             >
@@ -196,7 +196,7 @@ const Header = () => {
           sx={{
             fontFamily: '"DM Sans", sans-serif',
             fontWeight: 700,
-            color: '#6B8E6B',
+            color: 'primary.main',
             fontSize: { xs: '0.7rem', sm: '0.75rem' },
             ml: 2,
             backgroundColor: 'rgba(107, 142, 107, 0.1)',
@@ -224,13 +224,13 @@ const Header = () => {
                   label={organization?.name || 'Select School'}
                   onClick={handleSchoolMenuClick}
                   sx={{
-                    backgroundColor: '#6B8E6B',
+                    backgroundColor: 'primary.main',
                     color: 'white',
                     fontWeight: 600,
                     fontSize: '0.75rem',
                     cursor: 'pointer',
                     '&:hover': {
-                      backgroundColor: '#5A7D5A',
+                      backgroundColor: 'primary.dark',
                     },
                     '& .MuiChip-icon': {
                       color: 'white',
@@ -286,7 +286,7 @@ const Header = () => {
               size="small"
               aria-label="Contact support"
               sx={{
-                color: '#6B8E6B',
+                color: 'primary.main',
                 '&:hover': { backgroundColor: 'rgba(107, 142, 107, 0.08)' },
               }}
             >
@@ -299,7 +299,7 @@ const Header = () => {
               onClick={logout}
               startIcon={<LogoutIcon sx={{ fontSize: 16 }} />}
               sx={{
-                color: '#6B8E6B',
+                color: 'primary.main',
                 borderColor: 'rgba(107, 142, 107, 0.3)',
                 fontSize: '0.75rem',
                 fontWeight: 600,
@@ -308,7 +308,7 @@ const Header = () => {
                 py: 0.5,
                 minHeight: 32,
                 '&:hover': {
-                  borderColor: '#6B8E6B',
+                  borderColor: 'primary.main',
                   backgroundColor: 'rgba(107, 142, 107, 0.05)',
                 },
               }}
