@@ -101,6 +101,7 @@ src/hooks/useBookCover.js - Hook for book cover fetching with deduplication
 <!-- Frontend Components - Root -->
 src/components/Header.js - App bar with nav, class filter, school switcher
 src/components/LandingPage.js - Marketing landing page with email signup
+src/components/LandingPage.css - Landing page styles (scroll animations, floating blobs, responsive)
 src/components/Login.js - Auth UI (legacy, email/password, MyLogin SSO)
 src/components/ErrorBoundary.js - React error boundary wrapper
 src/components/BookCover.js - Book cover image with placeholder fallback
@@ -138,7 +139,6 @@ src/components/students/StudentProfile.js - Student settings and preferences mod
 src/components/students/StudentTable.js - Tabular student view
 src/components/students/StreakBadge.js - Flame icon streak counter
 src/components/students/ReadingLevelRangeInput.js - Dual-slider for AR level range
-src/components/students/ReadingPreferences.js - Genre preference selection
 src/components/students/PrioritizedStudentsList.js - Priority-ordered student list
 src/components/students/BulkImport.js - CSV bulk student import
 
@@ -157,7 +157,6 @@ src/components/stats/ReadingStats.js - Stats dashboard with metrics and charts
 src/components/stats/ReadingTimelineChart.js - Reading timeline line chart
 src/components/stats/ReadingFrequencyChart.js - Reading frequency bar chart
 src/components/stats/DaysSinceReadingChart.js - Days since reading indicator
-src/components/stats/VisualIndicators.js - Key metric cards with badges
 
 <!-- Styling -->
 src/styles/theme.js - Material-UI theme configuration
@@ -167,6 +166,7 @@ scripts/build-and-deploy.sh - Full rebuild + deploy pipeline
 scripts/deploy.sh - Deployment script
 scripts/migration.js - Data migration from old format
 scripts/reset-admin-password.js - Admin password reset utility
+scripts/test-api.js - API endpoint smoke tests
 
 ### Structure Detail Files
 
@@ -197,7 +197,7 @@ npm run dev        # Runs on http://localhost:8787
 ### Building & Deployment
 ```bash
 npm run build                 # Build React frontend (Rsbuild, outputs to build/)
-npm run go                    # Build + deploy to Cloudflare production
+npm run go                    # Build + migrate remote D1 + deploy to Cloudflare production
 npm run build:deploy:dev      # Build + deploy to dev environment
 ./scripts/build-and-deploy.sh # Full rebuild with clean install
 ```
@@ -216,9 +216,11 @@ npm run test:watch                                          # Watch mode
 npm run test:coverage                                       # With coverage
 npx vitest run src/__tests__/unit/validation.test.js        # Single file
 npx vitest run --testNamePattern="password"                 # Pattern match
+npm run test:e2e                                            # Playwright E2E tests
+npx playwright test e2e/tests/landing.spec.js               # Single E2E file
 ```
 
-Tests use Vitest with happy-dom environment. Setup file (`src/__tests__/setup.js`) mocks Web Crypto API, btoa/atob, and TextEncoder/TextDecoder. The vitest config (`vitest.config.mjs`) aliases `cloudflare:email` to a test mock. Test files live in `src/__tests__/unit/` and `src/__tests__/integration/`.
+Unit tests use Vitest with happy-dom environment. Setup file (`src/__tests__/setup.js`) mocks Web Crypto API, btoa/atob, and TextEncoder/TextDecoder. The vitest config (`vitest.config.mjs`) aliases `cloudflare:email` to a test mock. Test files live in `src/__tests__/unit/` and `src/__tests__/integration/`. E2E tests use Playwright and live in `e2e/tests/`.
 
 CI runs on push/PR to `main` via GitHub Actions (`.github/workflows/build.yml`): installs deps with `npm ci` and runs `npm run build`.
 
@@ -424,6 +426,7 @@ The frontend dev server (port 3001) proxies `/api` requests to the worker (port 
 - **Routes sometimes bypass the data provider**: Some routes (especially `books.js`) call D1 directly for complex queries (FTS5, JOINs) instead of going through the provider abstraction. This is intentional when query complexity exceeds what the provider interface supports.
 - **Security headers applied after handler**: In `src/worker.js`, security headers are set in the `onResponse` callback, meaning they run after the route handler executes.
 - **Rate limiting uses D1**: Auth rate limiting stores attempts in the D1 `rate_limits` table, not Cloudflare's built-in rate limiting. See `authRateLimit()` in `src/middleware/tenant.js`.
+- **Prettier**: Configured via `.prettierrc` (single quotes, trailing commas, 100 char width). Auto-runs on edited files via Claude Code hook. Run `npx prettier --write "src/**/*.js"` to format the full codebase.
 
 ## Design Context
 

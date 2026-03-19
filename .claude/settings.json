@@ -17,6 +17,10 @@
         "hooks": [
           {
             "type": "command",
+            "command": "FILE=$(echo \"$CLAUDE_TOOL_INPUT\" | grep -oE '\"file_path\":\\s*\"([^\"]+\\.jsx?)\"' | grep -oE '/[^\"]+' | head -1); if [ -n \"$FILE\" ] && [ -f \"$FILE\" ]; then npx prettier --write \"$FILE\" 2>/dev/null; fi"
+          },
+          {
+            "type": "command",
             "command": "FILE=$(echo \"$CLAUDE_TOOL_INPUT\" | grep -oE 'src/[^ \"]+\\.js' | head -1); if [ -n \"$FILE\" ] && [ -d \"src/__tests__\" ]; then npx vitest run --reporter=dot 2>&1 | tail -8; fi"
           }
         ]
