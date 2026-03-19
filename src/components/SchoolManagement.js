@@ -43,8 +43,6 @@ const SchoolManagement = () => {
   const [formData, setFormData] = useState({
     name: '',
     subscriptionTier: 'free',
-    maxStudents: 50,
-    maxTeachers: 3,
     wondeSchoolToken: '',
   });
   const [editingSchool, setEditingSchool] = useState(null);
@@ -61,7 +59,7 @@ const SchoolManagement = () => {
   const fetchSchools = async () => {
     try {
       const response = await fetchWithAuth('/api/organization/all');
-      
+
       if (response && typeof response.json === 'function') {
         const data = await response.json();
         setSchools(data.organizations || []);
@@ -77,16 +75,6 @@ const SchoolManagement = () => {
   const validateForm = () => {
     if (!formData.name) {
       setError('School name is required');
-      return false;
-    }
-
-    if (formData.maxStudents < 1) {
-      setError('Max students must be at least 1');
-      return false;
-    }
-
-    if (formData.maxTeachers < 1) {
-      setError('Max teachers must be at least 1');
       return false;
     }
 
@@ -112,8 +100,6 @@ const SchoolManagement = () => {
           body: JSON.stringify({
             name: formData.name,
             subscriptionTier: formData.subscriptionTier,
-            maxStudents: parseInt(formData.maxStudents),
-            maxTeachers: parseInt(formData.maxTeachers)
           }),
         });
 
@@ -136,8 +122,6 @@ const SchoolManagement = () => {
           body: JSON.stringify({
             name: formData.name,
             subscriptionTier: formData.subscriptionTier,
-            maxStudents: parseInt(formData.maxStudents),
-            maxTeachers: parseInt(formData.maxTeachers)
           }),
         });
 
@@ -158,8 +142,6 @@ const SchoolManagement = () => {
     setFormData({
       name: school.name,
       subscriptionTier: school.subscriptionTier,
-      maxStudents: school.maxStudents,
-      maxTeachers: school.maxTeachers,
       wondeSchoolToken: '',
     });
     setError(null);
@@ -188,8 +170,6 @@ const SchoolManagement = () => {
     setFormData({
       name: '',
       subscriptionTier: 'free',
-      maxStudents: 50,
-      maxTeachers: 3,
       wondeSchoolToken: '',
     });
     setEditingSchool(null);
@@ -197,7 +177,7 @@ const SchoolManagement = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const openDeleteDialog = (school) => {
@@ -207,10 +187,14 @@ const SchoolManagement = () => {
 
   const getTierColor = (tier) => {
     switch (tier) {
-      case 'premium': return 'primary';
-      case 'basic': return 'secondary';
-      case 'free': return 'default';
-      default: return 'default';
+      case 'premium':
+        return 'primary';
+      case 'basic':
+        return 'secondary';
+      case 'free':
+        return 'default';
+      default:
+        return 'default';
     }
   };
 
@@ -264,28 +248,6 @@ const SchoolManagement = () => {
                   <MenuItem value="premium">Premium</MenuItem>
                 </Select>
               </FormControl>
-              <TextField
-                fullWidth
-                label="Max Students"
-                name="maxStudents"
-                type="number"
-                value={formData.maxStudents}
-                onChange={handleInputChange}
-                margin="normal"
-                required
-                inputProps={{ min: 1 }}
-              />
-              <TextField
-                fullWidth
-                label="Max Teachers"
-                name="maxTeachers"
-                type="number"
-                value={formData.maxTeachers}
-                onChange={handleInputChange}
-                margin="normal"
-                required
-                inputProps={{ min: 1 }}
-              />
               {editingSchool?.wondeSchoolId && (
                 <TextField
                   fullWidth
@@ -305,16 +267,20 @@ const SchoolManagement = () => {
                   variant="contained"
                   fullWidth
                   disabled={loading}
-                  startIcon={loading ? <CircularProgress size={20} /> : editingSchool ? <EditIcon /> : <AddIcon />}
+                  startIcon={
+                    loading ? (
+                      <CircularProgress size={20} />
+                    ) : editingSchool ? (
+                      <EditIcon />
+                    ) : (
+                      <AddIcon />
+                    )
+                  }
                 >
                   {loading ? 'Saving...' : editingSchool ? 'Update School' : 'Create School'}
                 </Button>
                 {editingSchool && (
-                  <Button
-                    onClick={resetForm}
-                    variant="outlined"
-                    disabled={loading}
-                  >
+                  <Button onClick={resetForm} variant="outlined" disabled={loading}>
                     Cancel
                   </Button>
                 )}
@@ -335,8 +301,6 @@ const SchoolManagement = () => {
                     <TableCell>Name</TableCell>
                     <TableCell>Source</TableCell>
                     <TableCell>Tier</TableCell>
-                    <TableCell>Max Students</TableCell>
-                    <TableCell>Max Teachers</TableCell>
                     <TableCell>Actions</TableCell>
                   </TableRow>
                 </TableHead>
@@ -355,11 +319,13 @@ const SchoolManagement = () => {
                         <TableCell>{school.name}</TableCell>
                         <TableCell>
                           {school.wondeSchoolId ? (
-                            <Tooltip title={
-                              school.wondeLastSyncAt
-                                ? `Last synced: ${new Date(school.wondeLastSyncAt).toLocaleString()}`
-                                : 'Never synced'
-                            }>
+                            <Tooltip
+                              title={
+                                school.wondeLastSyncAt
+                                  ? `Last synced: ${new Date(school.wondeLastSyncAt).toLocaleString()}`
+                                  : 'Never synced'
+                              }
+                            >
                               <Chip
                                 icon={<LinkIcon />}
                                 label="Wonde"
@@ -385,17 +351,22 @@ const SchoolManagement = () => {
                               px: 1,
                               py: 0.5,
                               borderRadius: 1,
-                              bgcolor: getTierColor(school.subscriptionTier) === 'primary' ? 'primary.light' : 
-                                      getTierColor(school.subscriptionTier) === 'secondary' ? 'secondary.light' : 'grey.300',
-                              color: getTierColor(school.subscriptionTier) === 'default' ? 'text.primary' : 'white',
-                              fontSize: '0.875rem'
+                              bgcolor:
+                                getTierColor(school.subscriptionTier) === 'primary'
+                                  ? 'primary.light'
+                                  : getTierColor(school.subscriptionTier) === 'secondary'
+                                    ? 'secondary.light'
+                                    : 'grey.300',
+                              color:
+                                getTierColor(school.subscriptionTier) === 'default'
+                                  ? 'text.primary'
+                                  : 'white',
+                              fontSize: '0.875rem',
                             }}
                           >
                             {school.subscriptionTier}
                           </Box>
                         </TableCell>
-                        <TableCell>{school.maxStudents}</TableCell>
-                        <TableCell>{school.maxTeachers}</TableCell>
                         <TableCell>
                           <IconButton
                             color="primary"
@@ -423,20 +394,17 @@ const SchoolManagement = () => {
         </Grid>
       </Grid>
 
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={() => setDeleteDialogOpen(false)}
-      >
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to deactivate {schoolToDelete?.name}?
-            This will deactivate the school but not delete associated data.
+            Are you sure you want to deactivate {schoolToDelete?.name}? This will deactivate the
+            school but not delete associated data.
           </DialogContentText>
           {schoolToDelete?.wondeSchoolId && (
             <Alert severity="warning" sx={{ mt: 2 }}>
-              This school is managed by Wonde. It may be re-provisioned automatically
-              if a new webhook is received. Consider revoking access in the Wonde dashboard first.
+              This school is managed by Wonde. It may be re-provisioned automatically if a new
+              webhook is received. Consider revoking access in the Wonde dashboard first.
             </Alert>
           )}
         </DialogContent>

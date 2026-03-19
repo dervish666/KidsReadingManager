@@ -20,16 +20,20 @@ organizationRouter.get('/', async (c) => {
     const db = getDB(c.env);
     const organizationId = c.get('organizationId');
 
-    const org = await db.prepare(`
+    const org = await db
+      .prepare(
+        `
       SELECT * FROM organizations WHERE id = ? AND is_active = 1
-    `).bind(organizationId).first();
+    `
+      )
+      .bind(organizationId)
+      .first();
 
     if (!org) {
       return c.json({ error: 'Organization not found' }, 404);
     }
 
     return c.json({ organization: rowToOrganization(org) });
-
   } catch (error) {
     console.error('Get organization error:', error);
     return c.json({ error: 'Failed to get organization' }, 500);
@@ -54,22 +58,30 @@ organizationRouter.get('/all', requireAdmin(), async (c) => {
     // Only owners can see all organizations
     // Admins can only see their own organization
     if (userRole === 'owner') {
-      result = await db.prepare(`
+      result = await db
+        .prepare(
+          `
         SELECT * FROM organizations
         WHERE is_active = 1
         ORDER BY name
-      `).all();
+      `
+        )
+        .all();
     } else {
-      result = await db.prepare(`
+      result = await db
+        .prepare(
+          `
         SELECT * FROM organizations
         WHERE id = ? AND is_active = 1
-      `).bind(organizationId).all();
+      `
+        )
+        .bind(organizationId)
+        .all();
     }
 
     const organizations = (result.results || []).map(rowToOrganization);
 
     return c.json({ organizations });
-
   } catch (error) {
     console.error('List organizations error:', error);
     return c.json({ error: 'Failed to list organizations' }, 500);
@@ -89,32 +101,41 @@ organizationRouter.get('/stats', async (c) => {
     const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
 
     // Execute all stats queries in a single batch round-trip
-    const [org, userCount, studentCount, classCount, sessionCount, bookCount] = await db.batch([
-      db.prepare(`SELECT max_students, max_teachers FROM organizations WHERE id = ?`).bind(organizationId),
-      db.prepare(`SELECT COUNT(*) as count FROM users WHERE organization_id = ? AND is_active = 1`).bind(organizationId),
-      db.prepare(`SELECT COUNT(*) as count FROM students WHERE organization_id = ? AND is_active = 1`).bind(organizationId),
-      db.prepare(`SELECT COUNT(*) as count FROM classes WHERE organization_id = ? AND is_active = 1`).bind(organizationId),
-      db.prepare(`SELECT COUNT(*) as count FROM reading_sessions rs INNER JOIN students s ON rs.student_id = s.id WHERE s.organization_id = ? AND rs.session_date >= ?`).bind(organizationId, firstOfMonth),
-      db.prepare(`SELECT COUNT(*) as count FROM org_book_selections WHERE organization_id = ? AND is_available = 1`).bind(organizationId),
+    const [userCount, studentCount, classCount, sessionCount, bookCount] = await db.batch([
+      db
+        .prepare(`SELECT COUNT(*) as count FROM users WHERE organization_id = ? AND is_active = 1`)
+        .bind(organizationId),
+      db
+        .prepare(
+          `SELECT COUNT(*) as count FROM students WHERE organization_id = ? AND is_active = 1`
+        )
+        .bind(organizationId),
+      db
+        .prepare(
+          `SELECT COUNT(*) as count FROM classes WHERE organization_id = ? AND is_active = 1`
+        )
+        .bind(organizationId),
+      db
+        .prepare(
+          `SELECT COUNT(*) as count FROM reading_sessions rs INNER JOIN students s ON rs.student_id = s.id WHERE s.organization_id = ? AND rs.session_date >= ?`
+        )
+        .bind(organizationId, firstOfMonth),
+      db
+        .prepare(
+          `SELECT COUNT(*) as count FROM org_book_selections WHERE organization_id = ? AND is_available = 1`
+        )
+        .bind(organizationId),
     ]);
 
-    const orgRow = org.results?.[0];
     return c.json({
       stats: {
-        users: {
-          current: userCount.results?.[0]?.count || 0,
-          limit: orgRow?.max_teachers || 0
-        },
-        students: {
-          current: studentCount.results?.[0]?.count || 0,
-          limit: orgRow?.max_students || 0
-        },
+        users: userCount.results?.[0]?.count || 0,
+        students: studentCount.results?.[0]?.count || 0,
         classes: classCount.results?.[0]?.count || 0,
         sessionsThisMonth: sessionCount.results?.[0]?.count || 0,
-        selectedBooks: bookCount.results?.[0]?.count || 0
-      }
+        selectedBooks: bookCount.results?.[0]?.count || 0,
+      },
     });
-
   } catch (error) {
     console.error('Get organization stats error:', error);
     return c.json({ error: 'Failed to get organization stats' }, 500);
@@ -130,9 +151,14 @@ organizationRouter.get('/settings', async (c) => {
     const db = getDB(c.env);
     const organizationId = c.get('organizationId');
 
-    const result = await db.prepare(`
+    const result = await db
+      .prepare(
+        `
       SELECT setting_key, setting_value FROM org_settings WHERE organization_id = ?
-    `).bind(organizationId).all();
+    `
+      )
+      .bind(organizationId)
+      .all();
 
     // Convert to object
     const settings = {};
@@ -148,16 +174,15 @@ organizationRouter.get('/settings', async (c) => {
     const defaults = {
       readingStatusSettings: {
         recentlyReadDays: 3,
-        needsAttentionDays: 7
+        needsAttentionDays: 7,
       },
       timezone: 'UTC',
-      academicYear: new Date().getFullYear().toString()
+      academicYear: new Date().getFullYear().toString(),
     };
 
     return c.json({
-      settings: { ...defaults, ...settings }
+      settings: { ...defaults, ...settings },
     });
-
   } catch (error) {
     console.error('Get organization settings error:', error);
     return c.json({ error: 'Failed to get organization settings' }, 500);
@@ -186,7 +211,7 @@ organizationRouter.put('/settings', requireAdmin(), auditLog('update', 'settings
       'timezone',
       'academicYear',
       'defaultReadingLevel',
-      'schoolName'
+      'schoolName',
     ];
 
     const updates = [];
@@ -205,26 +230,21 @@ organizationRouter.put('/settings', requireAdmin(), auditLog('update', 'settings
 
     // Upsert settings
     const statements = updates.map(({ key, value }) => {
-      return db.prepare(`
+      return db
+        .prepare(
+          `
         INSERT INTO org_settings (id, organization_id, setting_key, setting_value, updated_by)
         VALUES (?, ?, ?, ?, ?)
         ON CONFLICT(organization_id, setting_key)
         DO UPDATE SET setting_value = ?, updated_by = ?, updated_at = datetime("now")
-      `).bind(
-        crypto.randomUUID(),
-        organizationId,
-        key,
-        value,
-        userId,
-        value,
-        userId
-      );
+      `
+        )
+        .bind(crypto.randomUUID(), organizationId, key, value, userId, value, userId);
     });
 
     await db.batch(statements);
 
     return c.json({ message: 'Settings updated successfully' });
-
   } catch (error) {
     console.error('Update organization settings error:', error);
     return c.json({ error: 'Failed to update organization settings' }, 500);
@@ -240,25 +260,31 @@ organizationRouter.get('/ai-config', async (c) => {
     const db = getDB(c.env);
     const organizationId = c.get('organizationId');
 
-    const config = await db.prepare(`
+    const config = await db
+      .prepare(
+        `
       SELECT provider, model_preference, is_enabled, (api_key_encrypted IS NOT NULL) as has_key
       FROM org_ai_config WHERE organization_id = ?
-    `).bind(organizationId).first();
+    `
+      )
+      .bind(organizationId)
+      .first();
 
     return c.json({
-      aiConfig: config ? {
-        provider: config.provider,
-        modelPreference: config.model_preference,
-        isEnabled: Boolean(config.is_enabled),
-        hasApiKey: Boolean(config.has_key)
-      } : {
-        provider: 'anthropic',
-        modelPreference: null,
-        isEnabled: false,
-        hasApiKey: false
-      }
+      aiConfig: config
+        ? {
+            provider: config.provider,
+            modelPreference: config.model_preference,
+            isEnabled: Boolean(config.is_enabled),
+            hasApiKey: Boolean(config.has_key),
+          }
+        : {
+            provider: 'anthropic',
+            modelPreference: null,
+            isEnabled: false,
+            hasApiKey: false,
+          },
     });
-
   } catch (error) {
     console.error('Get AI config error:', error);
     return c.json({ error: 'Failed to get AI configuration' }, 500);
@@ -293,9 +319,14 @@ organizationRouter.put('/ai-config', requireAdmin(), auditLog('update', 'ai-conf
     }
 
     // Check if config exists
-    const existing = await db.prepare(`
+    const existing = await db
+      .prepare(
+        `
       SELECT id FROM org_ai_config WHERE organization_id = ?
-    `).bind(organizationId).first();
+    `
+      )
+      .bind(organizationId)
+      .first();
 
     if (existing) {
       // Update existing config
@@ -334,9 +365,14 @@ organizationRouter.put('/ai-config', requireAdmin(), auditLog('update', 'ai-conf
         updates.push('updated_at = datetime("now")');
         params.push(organizationId);
 
-        await db.prepare(`
+        await db
+          .prepare(
+            `
           UPDATE org_ai_config SET ${updates.join(', ')} WHERE organization_id = ?
-        `).bind(...params).run();
+        `
+          )
+          .bind(...params)
+          .run();
       }
     } else {
       // Create new config
@@ -349,22 +385,26 @@ organizationRouter.put('/ai-config', requireAdmin(), auditLog('update', 'ai-conf
         encryptedApiKey = await encryptSensitiveData(apiKey, jwtSecret);
       }
 
-      await db.prepare(`
+      await db
+        .prepare(
+          `
         INSERT INTO org_ai_config (id, organization_id, provider, api_key_encrypted, model_preference, is_enabled, updated_by)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).bind(
-        crypto.randomUUID(),
-        organizationId,
-        provider || 'anthropic',
-        encryptedApiKey,
-        modelPreference || null,
-        isEnabled ? 1 : 0,
-        userId
-      ).run();
+      `
+        )
+        .bind(
+          crypto.randomUUID(),
+          organizationId,
+          provider || 'anthropic',
+          encryptedApiKey,
+          modelPreference || null,
+          isEnabled ? 1 : 0,
+          userId
+        )
+        .run();
     }
 
     return c.json({ message: 'AI configuration updated successfully' });
-
   } catch (error) {
     console.error('Update AI config error:', error);
     return c.json({ error: 'Failed to update AI configuration' }, 500);
@@ -386,34 +426,52 @@ organizationRouter.get('/audit-log', requireAdmin(), async (c) => {
     const offset = (page - 1) * pageSize;
 
     // Get total count
-    const countResult = await db.prepare(`
+    const countResult = await db
+      .prepare(
+        `
       SELECT COUNT(*) as count FROM audit_log WHERE organization_id = ?
-    `).bind(organizationId).first();
+    `
+      )
+      .bind(organizationId)
+      .first();
 
     // Get audit entries
-    const result = await db.prepare(`
+    const result = await db
+      .prepare(
+        `
       SELECT al.*, u.name as user_name, u.email as user_email
       FROM audit_log al
       LEFT JOIN users u ON al.user_id = u.id
       WHERE al.organization_id = ?
       ORDER BY al.created_at DESC
       LIMIT ? OFFSET ?
-    `).bind(organizationId, pageSize, offset).all();
+    `
+      )
+      .bind(organizationId, pageSize, offset)
+      .all();
 
-    const entries = (result.results || []).map(row => ({
+    const entries = (result.results || []).map((row) => ({
       id: row.id,
       action: row.action,
       entityType: row.entity_type,
       entityId: row.entity_id,
-      details: (() => { try { return row.details ? JSON.parse(row.details) : null; } catch { return row.details; } })(),
+      details: (() => {
+        try {
+          return row.details ? JSON.parse(row.details) : null;
+        } catch {
+          return row.details;
+        }
+      })(),
       ipAddress: row.ip_address,
       userAgent: row.user_agent,
       createdAt: row.created_at,
-      user: row.user_id ? {
-        id: row.user_id,
-        name: row.user_name,
-        email: row.user_email
-      } : null
+      user: row.user_id
+        ? {
+            id: row.user_id,
+            name: row.user_name,
+            email: row.user_email,
+          }
+        : null,
     }));
 
     return c.json({
@@ -422,10 +480,9 @@ organizationRouter.get('/audit-log', requireAdmin(), async (c) => {
         page,
         pageSize,
         total: countResult?.count || 0,
-        totalPages: Math.ceil((countResult?.count || 0) / pageSize)
-      }
+        totalPages: Math.ceil((countResult?.count || 0) / pageSize),
+      },
     });
-
   } catch (error) {
     console.error('Get audit log error:', error);
     return c.json({ error: 'Failed to get audit log' }, 500);
@@ -441,10 +498,15 @@ organizationRouter.get('/dpa-consent', async (c) => {
     const db = getDB(c.env);
     const organizationId = c.get('organizationId');
 
-    const org = await db.prepare(`
+    const org = await db
+      .prepare(
+        `
       SELECT consent_given_at, consent_version, consent_given_by
       FROM organizations WHERE id = ?
-    `).bind(organizationId).first();
+    `
+      )
+      .bind(organizationId)
+      .first();
 
     if (!org) {
       return c.json({ error: 'Organization not found' }, 404);
@@ -452,9 +514,10 @@ organizationRouter.get('/dpa-consent', async (c) => {
 
     let consentGivenByName = null;
     if (org.consent_given_by) {
-      const user = await db.prepare(
-        'SELECT name FROM users WHERE id = ?'
-      ).bind(org.consent_given_by).first();
+      const user = await db
+        .prepare('SELECT name FROM users WHERE id = ?')
+        .bind(org.consent_given_by)
+        .first();
       consentGivenByName = user?.name || null;
     }
 
@@ -464,9 +527,8 @@ organizationRouter.get('/dpa-consent', async (c) => {
         givenAt: org.consent_given_at || null,
         version: org.consent_version || null,
         givenBy: consentGivenByName,
-      }
+      },
     });
-
   } catch (error) {
     console.error('Get DPA consent error:', error);
     return c.json({ error: 'Failed to get DPA consent status' }, 500);
@@ -482,41 +544,50 @@ organizationRouter.get('/dpa-consent', async (c) => {
  *   version: string (e.g. "1.0")
  * }
  */
-organizationRouter.post('/dpa-consent', requireAdmin(), auditLog('consent', 'organization'), async (c) => {
-  try {
-    const db = getDB(c.env);
-    const organizationId = c.get('organizationId');
-    const userId = c.get('userId');
-    const body = await c.req.json();
+organizationRouter.post(
+  '/dpa-consent',
+  requireAdmin(),
+  auditLog('consent', 'organization'),
+  async (c) => {
+    try {
+      const db = getDB(c.env);
+      const organizationId = c.get('organizationId');
+      const userId = c.get('userId');
+      const body = await c.req.json();
 
-    const { version } = body;
-    if (!version) {
-      return c.json({ error: 'DPA version is required' }, 400);
-    }
+      const { version } = body;
+      if (!version) {
+        return c.json({ error: 'DPA version is required' }, 400);
+      }
 
-    await db.prepare(`
+      await db
+        .prepare(
+          `
       UPDATE organizations
       SET consent_given_at = datetime('now'),
           consent_version = ?,
           consent_given_by = ?,
           updated_at = datetime('now')
       WHERE id = ?
-    `).bind(version, userId, organizationId).run();
+    `
+        )
+        .bind(version, userId, organizationId)
+        .run();
 
-    return c.json({
-      message: 'DPA consent recorded successfully',
-      consent: {
-        given: true,
-        version,
-        givenAt: new Date().toISOString(),
-      }
-    });
-
-  } catch (error) {
-    console.error('Record DPA consent error:', error);
-    return c.json({ error: 'Failed to record DPA consent' }, 500);
+      return c.json({
+        message: 'DPA consent recorded successfully',
+        consent: {
+          given: true,
+          version,
+          givenAt: new Date().toISOString(),
+        },
+      });
+    } catch (error) {
+      console.error('Record DPA consent error:', error);
+      return c.json({ error: 'Failed to record DPA consent' }, 500);
+    }
   }
-});
+);
 
 /**
  * GET /api/organization/:id
@@ -528,16 +599,20 @@ organizationRouter.get('/:id', requireOwner(), async (c) => {
     const db = getDB(c.env);
     const orgId = c.req.param('id');
 
-    const org = await db.prepare(`
+    const org = await db
+      .prepare(
+        `
       SELECT * FROM organizations WHERE id = ? AND is_active = 1
-    `).bind(orgId).first();
+    `
+      )
+      .bind(orgId)
+      .first();
 
     if (!org) {
       return c.json({ error: 'Organization not found' }, 404);
     }
 
     return c.json({ organization: rowToOrganization(org) });
-
   } catch (error) {
     console.error('Get organization error:', error);
     return c.json({ error: 'Failed to get organization' }, 500);
@@ -552,62 +627,76 @@ organizationRouter.get('/:id', requireOwner(), async (c) => {
  * Body: {
  *   name: string,
  *   slug?: string (auto-generated from name if not provided),
- *   subscriptionTier?: string (default: 'free'),
- *   maxStudents?: number (default: 50),
- *   maxTeachers?: number (default: 3)
+ *   subscriptionTier?: string (default: 'free')
  * }
  */
-organizationRouter.post('/create', requireOwner(), auditLog('create', 'organization'), async (c) => {
-  try {
-    const db = getDB(c.env);
-    const body = await c.req.json();
-    const { generateId } = await import('../utils/helpers.js');
+organizationRouter.post(
+  '/create',
+  requireOwner(),
+  auditLog('create', 'organization'),
+  async (c) => {
+    try {
+      const db = getDB(c.env);
+      const body = await c.req.json();
+      const { generateId } = await import('../utils/helpers.js');
 
-    const { name, slug, subscriptionTier, maxStudents, maxTeachers } = body;
+      const { name, slug, subscriptionTier } = body;
 
-    if (!name) {
-      return c.json({ error: 'Organization name is required' }, 400);
-    }
+      if (!name) {
+        return c.json({ error: 'Organization name is required' }, 400);
+      }
 
-    // Generate slug from name if not provided
-    const orgSlug = slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      // Generate slug from name if not provided
+      const orgSlug =
+        slug ||
+        name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '');
 
-    // Check if slug already exists (including soft-deleted orgs to prevent slug reuse)
-    const existing = await db.prepare(
-      'SELECT id FROM organizations WHERE slug = ?'
-    ).bind(orgSlug).first();
+      // Check if slug already exists (including soft-deleted orgs to prevent slug reuse)
+      const existing = await db
+        .prepare('SELECT id FROM organizations WHERE slug = ?')
+        .bind(orgSlug)
+        .first();
 
-    if (existing) {
-      return c.json({ error: 'An organization with this slug already exists' }, 409);
-    }
+      if (existing) {
+        return c.json({ error: 'An organization with this slug already exists' }, 409);
+      }
 
-    const orgId = generateId();
-    await db.prepare(`
-      INSERT INTO organizations (id, name, slug, subscription_tier, max_students, max_teachers, is_active)
-      VALUES (?, ?, ?, ?, ?, ?, 1)
-    `).bind(
-      orgId,
-      name,
-      orgSlug,
-      subscriptionTier || 'free',
-      maxStudents || 50,
-      maxTeachers || 3
-    ).run();
+      const orgId = generateId();
+      await db
+        .prepare(
+          `
+      INSERT INTO organizations (id, name, slug, subscription_tier, is_active)
+      VALUES (?, ?, ?, ?, 1)
+    `
+        )
+        .bind(orgId, name, orgSlug, subscriptionTier || 'free')
+        .run();
 
-    const newOrg = await db.prepare(`
+      const newOrg = await db
+        .prepare(
+          `
       SELECT * FROM organizations WHERE id = ?
-    `).bind(orgId).first();
+    `
+        )
+        .bind(orgId)
+        .first();
 
-    return c.json({
-      message: 'Organization created successfully',
-      organization: rowToOrganization(newOrg)
-    }, 201);
-
-  } catch (error) {
-    console.error('Create organization error:', error);
-    return c.json({ error: 'Failed to create organization' }, 500);
+      return c.json(
+        {
+          message: 'Organization created successfully',
+          organization: rowToOrganization(newOrg),
+        },
+        201
+      );
+    } catch (error) {
+      console.error('Create organization error:', error);
+      return c.json({ error: 'Failed to create organization' }, 500);
+    }
   }
-});
+);
 
 /**
  * PUT /api/organization/:id
@@ -616,9 +705,7 @@ organizationRouter.post('/create', requireOwner(), auditLog('create', 'organizat
  *
  * Body: {
  *   name?: string,
- *   subscriptionTier?: string,
- *   maxStudents?: number,
- *   maxTeachers?: number
+ *   subscriptionTier?: string
  * }
  */
 organizationRouter.put('/:id', requireOwner(), auditLog('update', 'organization'), async (c) => {
@@ -627,12 +714,13 @@ organizationRouter.put('/:id', requireOwner(), auditLog('update', 'organization'
     const orgId = c.req.param('id');
     const body = await c.req.json();
 
-    const { name, subscriptionTier, maxStudents, maxTeachers } = body;
+    const { name, subscriptionTier } = body;
 
     // Check if organization exists (and is active)
-    const existing = await db.prepare(
-      'SELECT id FROM organizations WHERE id = ? AND is_active = 1'
-    ).bind(orgId).first();
+    const existing = await db
+      .prepare('SELECT id FROM organizations WHERE id = ? AND is_active = 1')
+      .bind(orgId)
+      .first();
 
     if (!existing) {
       return c.json({ error: 'Organization not found' }, 404);
@@ -652,16 +740,6 @@ organizationRouter.put('/:id', requireOwner(), auditLog('update', 'organization'
       params.push(subscriptionTier);
     }
 
-    if (maxStudents !== undefined) {
-      updates.push('max_students = ?');
-      params.push(maxStudents);
-    }
-
-    if (maxTeachers !== undefined) {
-      updates.push('max_teachers = ?');
-      params.push(maxTeachers);
-    }
-
     if (updates.length === 0) {
       return c.json({ error: 'No valid fields to update' }, 400);
     }
@@ -669,19 +747,28 @@ organizationRouter.put('/:id', requireOwner(), auditLog('update', 'organization'
     updates.push('updated_at = datetime("now")');
     params.push(orgId);
 
-    await db.prepare(`
+    await db
+      .prepare(
+        `
       UPDATE organizations SET ${updates.join(', ')} WHERE id = ?
-    `).bind(...params).run();
+    `
+      )
+      .bind(...params)
+      .run();
 
-    const updatedOrg = await db.prepare(`
+    const updatedOrg = await db
+      .prepare(
+        `
       SELECT * FROM organizations WHERE id = ?
-    `).bind(orgId).first();
+    `
+      )
+      .bind(orgId)
+      .first();
 
     return c.json({
       message: 'Organization updated successfully',
-      organization: rowToOrganization(updatedOrg)
+      organization: rowToOrganization(updatedOrg),
     });
-
   } catch (error) {
     console.error('Update organization error:', error);
     return c.json({ error: 'Failed to update organization' }, 500);
@@ -699,9 +786,10 @@ organizationRouter.delete('/:id', requireOwner(), auditLog('delete', 'organizati
     const orgId = c.req.param('id');
 
     // Check if organization exists (and is active)
-    const existing = await db.prepare(
-      'SELECT id FROM organizations WHERE id = ? AND is_active = 1'
-    ).bind(orgId).first();
+    const existing = await db
+      .prepare('SELECT id FROM organizations WHERE id = ? AND is_active = 1')
+      .bind(orgId)
+      .first();
 
     if (!existing) {
       return c.json({ error: 'Organization not found' }, 404);
@@ -710,24 +798,35 @@ organizationRouter.delete('/:id', requireOwner(), auditLog('delete', 'organizati
     // Soft delete (deactivate) organization and clean up user access
     await db.batch([
       // Deactivate the organization
-      db.prepare(`
+      db
+        .prepare(
+          `
         UPDATE organizations SET is_active = 0, updated_at = datetime("now") WHERE id = ?
-      `).bind(orgId),
+      `
+        )
+        .bind(orgId),
       // Deactivate all users in the organization
-      db.prepare(`
+      db
+        .prepare(
+          `
         UPDATE users SET is_active = 0, updated_at = datetime("now")
         WHERE organization_id = ? AND role != 'owner'
-      `).bind(orgId),
+      `
+        )
+        .bind(orgId),
       // Revoke all refresh tokens for users in the organization
-      db.prepare(`
+      db
+        .prepare(
+          `
         UPDATE refresh_tokens SET revoked_at = datetime("now")
         WHERE user_id IN (SELECT id FROM users WHERE organization_id = ?)
         AND revoked_at IS NULL
-      `).bind(orgId),
+      `
+        )
+        .bind(orgId),
     ]);
 
     return c.json({ message: 'Organization deactivated successfully' });
-
   } catch (error) {
     console.error('Delete organization error:', error);
     return c.json({ error: 'Failed to delete organization' }, 500);
@@ -738,7 +837,7 @@ organizationRouter.delete('/:id', requireOwner(), auditLog('delete', 'organizati
  * PUT /api/organization
  * Update organization details
  * Requires: owner role
- * 
+ *
  * Body: {
  *   name?: string
  * }
@@ -755,19 +854,28 @@ organizationRouter.put('/', requireOwner(), auditLog('update', 'organization'), 
       return c.json({ error: 'No valid fields to update' }, 400);
     }
 
-    await db.prepare(`
+    await db
+      .prepare(
+        `
       UPDATE organizations SET name = ?, updated_at = datetime("now") WHERE id = ?
-    `).bind(name, organizationId).run();
+    `
+      )
+      .bind(name, organizationId)
+      .run();
 
-    const updatedOrg = await db.prepare(`
+    const updatedOrg = await db
+      .prepare(
+        `
       SELECT * FROM organizations WHERE id = ?
-    `).bind(organizationId).first();
+    `
+      )
+      .bind(organizationId)
+      .first();
 
-    return c.json({ 
+    return c.json({
       message: 'Organization updated successfully',
-      organization: rowToOrganization(updatedOrg)
+      organization: rowToOrganization(updatedOrg),
     });
-
   } catch (error) {
     console.error('Update organization error:', error);
     return c.json({ error: 'Failed to update organization' }, 500);

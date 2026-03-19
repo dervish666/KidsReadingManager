@@ -66,8 +66,6 @@ const createMockOrganization = (overrides = {}) => ({
   name: 'Test School',
   slug: 'test-school',
   subscription_tier: 'pro',
-  max_students: 100,
-  max_teachers: 10,
   is_active: 1,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-15T00:00:00Z',
@@ -146,8 +144,6 @@ describe('Organization Routes', () => {
     it('should convert snake_case database fields to camelCase', async () => {
       const mockOrg = createMockOrganization({
         subscription_tier: 'enterprise',
-        max_students: 500,
-        max_teachers: 50,
         is_active: 1,
         created_at: '2024-01-01',
         updated_at: '2024-01-20'
@@ -159,8 +155,6 @@ describe('Organization Routes', () => {
       const data = await response.json();
 
       expect(data.organization.subscriptionTier).toBe('enterprise');
-      expect(data.organization.maxStudents).toBe(500);
-      expect(data.organization.maxTeachers).toBe(50);
       expect(data.organization.isActive).toBe(true);
       expect(data.organization.createdAt).toBe('2024-01-01');
       expect(data.organization.updatedAt).toBe('2024-01-20');
@@ -301,8 +295,7 @@ describe('Organization Routes', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: 'New School',
-          subscriptionTier: 'pro',
-          maxStudents: 200
+          subscriptionTier: 'pro'
         })
       });
       const data = await response.json();
@@ -567,7 +560,6 @@ describe('Organization Routes', () => {
 
       // Stats endpoint now uses db.batch() for all queries in one round-trip
       mockDb.batch = vi.fn().mockResolvedValue([
-        { results: [{ max_students: 100, max_teachers: 10 }], success: true },  // org limits
         { results: [{ count: 5 }], success: true },   // user count
         { results: [{ count: 45 }], success: true },   // student count
         { results: [{ count: 3 }], success: true },    // class count
@@ -582,10 +574,8 @@ describe('Organization Routes', () => {
 
       expect(response.status).toBe(200);
       expect(data.stats).toBeDefined();
-      expect(data.stats.users.current).toBe(5);
-      expect(data.stats.users.limit).toBe(10);
-      expect(data.stats.students.current).toBe(45);
-      expect(data.stats.students.limit).toBe(100);
+      expect(data.stats.users).toBe(5);
+      expect(data.stats.students).toBe(45);
       expect(data.stats.classes).toBe(3);
       expect(data.stats.sessionsThisMonth).toBe(120);
       expect(data.stats.selectedBooks).toBe(50);
@@ -598,9 +588,8 @@ describe('Organization Routes', () => {
         bind: vi.fn().mockReturnThis()
       });
 
-      // All queries return null/empty results
+      // All queries return zero counts
       mockDb.batch = vi.fn().mockResolvedValue([
-        { results: [], success: true },   // org limits (no org found)
         { results: [{ count: 0 }], success: true },
         { results: [{ count: 0 }], success: true },
         { results: [{ count: 0 }], success: true },
@@ -614,8 +603,8 @@ describe('Organization Routes', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.stats.users.current).toBe(0);
-      expect(data.stats.students.current).toBe(0);
+      expect(data.stats.users).toBe(0);
+      expect(data.stats.students).toBe(0);
     });
   });
 
@@ -1136,20 +1125,16 @@ describe('Organization Routes', () => {
       }
     });
 
-    it('should include limits in organization data', async () => {
-      const mockOrg = createMockOrganization({
-        subscription_tier: 'enterprise',
-        max_students: 1000,
-        max_teachers: 100
-      });
+    it('should not include limits in organization data', async () => {
+      const mockOrg = createMockOrganization();
       const mockDb = createMockDB({ firstResult: mockOrg });
       const app = createTestApp(mockDb, createUserContext());
 
       const response = await app.request('/api/organization');
       const data = await response.json();
 
-      expect(data.organization.maxStudents).toBe(1000);
-      expect(data.organization.maxTeachers).toBe(100);
+      expect(data.organization.maxStudents).toBeUndefined();
+      expect(data.organization.maxTeachers).toBeUndefined();
     });
   });
 

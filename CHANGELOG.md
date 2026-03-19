@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.20.1] - 2026-03-19
+
+### Removed
+- **Max students/teachers limits** — removed per-org student and teacher caps from backend, frontend, and API responses (charging per school, not per seat)
+- **User creation limit check** — removed 403 enforcement that blocked user creation when org hit `max_teachers` ceiling
+- **Org stats limit fields** — stats endpoint now returns flat counts instead of `{current, limit}` objects
+
 ## [3.20.0] - 2026-03-17
 
 ### Added

@@ -52,12 +52,14 @@ usersRouter.get('/', requireAdmin(), async (c) => {
       params = [organizationId];
     }
 
-    const result = await db.prepare(query).bind(...params).all();
+    const result = await db
+      .prepare(query)
+      .bind(...params)
+      .all();
 
     const users = (result.results || []).map(rowToUser);
 
     return c.json({ users });
-
   } catch (error) {
     console.error('List users error:', error);
     return c.json({ error: 'Failed to list users' }, 500);
@@ -82,18 +84,22 @@ usersRouter.get('/:id', async (c) => {
       return c.json({ error: 'Forbidden' }, 403);
     }
 
-    const user = await db.prepare(`
+    const user = await db
+      .prepare(
+        `
       SELECT id, organization_id, email, name, role, is_active, last_login_at, created_at, updated_at
       FROM users
       WHERE id = ? AND organization_id = ? AND is_active = 1
-    `).bind(requestedId, organizationId).first();
+    `
+      )
+      .bind(requestedId, organizationId)
+      .first();
 
     if (!user) {
       return c.json({ error: 'User not found' }, 404);
     }
 
     return c.json({ user: rowToUser(user) });
-
   } catch (error) {
     console.error('Get user error:', error);
     return c.json({ error: 'Failed to get user' }, 500);
@@ -104,7 +110,7 @@ usersRouter.get('/:id', async (c) => {
  * POST /api/users
  * Create a new user (invite)
  * Requires: admin role
- * 
+ *
  * Body: {
  *   email: string,
  *   name: string,
@@ -124,7 +130,7 @@ usersRouter.post('/', requireAdmin(), auditLog('create', 'user'), async (c) => {
     // Determine which organization to create user in
     // Owners can create users in any organization, admins only in their own
     let targetOrgId = organizationId || currentUserOrgId;
-    
+
     // Only owners can create users in different organizations
     if (targetOrgId !== currentUserOrgId && currentUserRole !== ROLES.OWNER) {
       return c.json({ error: 'Only owners can create users in other organizations' }, 403);
@@ -132,10 +138,13 @@ usersRouter.post('/', requireAdmin(), auditLog('create', 'user'), async (c) => {
 
     // Validate required fields
     if (!email || !name || !role) {
-      return c.json({ 
-        error: 'Missing required fields',
-        required: ['email', 'name', 'role']
-      }, 400);
+      return c.json(
+        {
+          error: 'Missing required fields',
+          required: ['email', 'name', 'role'],
+        },
+        400
+      );
     }
 
     // Validate email format
@@ -147,10 +156,13 @@ usersRouter.post('/', requireAdmin(), auditLog('create', 'user'), async (c) => {
     // Validate role
     const validRoles = ['admin', 'teacher', 'readonly'];
     if (!validRoles.includes(role)) {
-      return c.json({ 
-        error: 'Invalid role',
-        validRoles
-      }, 400);
+      return c.json(
+        {
+          error: 'Invalid role',
+          validRoles,
+        },
+        400
+      );
     }
 
     // Only owners can create admins
@@ -159,32 +171,23 @@ usersRouter.post('/', requireAdmin(), auditLog('create', 'user'), async (c) => {
     }
 
     // Check if email already exists (among active users)
-    const existingUser = await db.prepare(
-      'SELECT id FROM users WHERE email = ? AND is_active = 1'
-    ).bind(email.toLowerCase()).first();
+    const existingUser = await db
+      .prepare('SELECT id FROM users WHERE email = ? AND is_active = 1')
+      .bind(email.toLowerCase())
+      .first();
 
     if (existingUser) {
       return c.json({ error: 'Email already registered' }, 409);
     }
 
-    // Check organization limits
-    const org = await db.prepare(
-      'SELECT name, max_teachers FROM organizations WHERE id = ?'
-    ).bind(targetOrgId).first();
+    // Fetch organization name for welcome email
+    const org = await db
+      .prepare('SELECT name FROM organizations WHERE id = ? AND is_active = 1')
+      .bind(targetOrgId)
+      .first();
 
     if (!org) {
       return c.json({ error: 'Organization not found' }, 404);
-    }
-
-    const userCount = await db.prepare(
-      'SELECT COUNT(*) as count FROM users WHERE organization_id = ? AND is_active = 1'
-    ).bind(targetOrgId).first();
-
-    if (userCount.count >= org.max_teachers) {
-      return c.json({ 
-        error: 'Organization has reached maximum user limit',
-        limit: org.max_teachers
-      }, 403);
     }
 
     // Generate password if not provided
@@ -193,17 +196,20 @@ usersRouter.post('/', requireAdmin(), auditLog('create', 'user'), async (c) => {
 
     // Create user
     const userId = generateId();
-    await db.prepare(`
+    await db
+      .prepare(
+        `
       INSERT INTO users (id, organization_id, email, password_hash, name, role, is_active)
       VALUES (?, ?, ?, ?, ?, ?, 1)
-    `).bind(userId, targetOrgId, email.toLowerCase(), passwordHash, name, role).run();
+    `
+      )
+      .bind(userId, targetOrgId, email.toLowerCase(), passwordHash, name, role)
+      .run();
 
     // Send invitation email with temporary password
     // SECURITY: Never include temporary passwords in API responses
     // The password should only be sent via email to the user
-    const baseUrl = c.env.APP_URL ||
-                    c.req.header('origin') ||
-                    `https://${c.req.header('host')}`;
+    const baseUrl = c.env.APP_URL || c.req.header('origin') || `https://${c.req.header('host')}`;
 
     const emailResult = await sendWelcomeEmail(
       c.env,
@@ -218,20 +224,22 @@ usersRouter.post('/', requireAdmin(), auditLog('create', 'user'), async (c) => {
       console.warn('Failed to send welcome email:', emailResult.error);
     }
 
-    return c.json({
-      message: emailResult.success
-        ? 'User created successfully. An invitation email has been sent.'
-        : 'User created successfully. Note: invitation email could not be sent.',
-      user: {
-        id: userId,
-        email: email.toLowerCase(),
-        name,
-        role,
-        isActive: true
+    return c.json(
+      {
+        message: emailResult.success
+          ? 'User created successfully. An invitation email has been sent.'
+          : 'User created successfully. Note: invitation email could not be sent.',
+        user: {
+          id: userId,
+          email: email.toLowerCase(),
+          name,
+          role,
+          isActive: true,
+        },
+        emailSent: emailResult.success,
       },
-      emailSent: emailResult.success
-    }, 201);
-
+      201
+    );
   } catch (error) {
     console.error('Create user error:', error);
     return c.json({ error: 'Failed to create user' }, 500);
@@ -242,7 +250,7 @@ usersRouter.post('/', requireAdmin(), auditLog('create', 'user'), async (c) => {
  * PUT /api/users/:id
  * Update a user
  * Requires: admin role (or self for limited fields)
- * 
+ *
  * Body: {
  *   name?: string,
  *   role?: string (admin only),
@@ -268,13 +276,23 @@ usersRouter.put('/:id', auditLog('update', 'user'), async (c) => {
     // Check if user exists - owners can see any user, others must be same org
     let existingUser;
     if (isOwner) {
-      existingUser = await db.prepare(`
+      existingUser = await db
+        .prepare(
+          `
         SELECT * FROM users WHERE id = ? AND is_active = 1
-      `).bind(targetUserId).first();
+      `
+        )
+        .bind(targetUserId)
+        .first();
     } else {
-      existingUser = await db.prepare(`
+      existingUser = await db
+        .prepare(
+          `
         SELECT * FROM users WHERE id = ? AND organization_id = ? AND is_active = 1
-      `).bind(targetUserId, currentUserOrgId).first();
+      `
+        )
+        .bind(targetUserId, currentUserOrgId)
+        .first();
     }
 
     if (!existingUser) {
@@ -300,24 +318,13 @@ usersRouter.put('/:id', auditLog('update', 'user'), async (c) => {
       }
 
       // Validate organization exists
-      const targetOrg = await db.prepare(
-        'SELECT * FROM organizations WHERE id = ? AND is_active = 1'
-      ).bind(organizationId).first();
+      const targetOrg = await db
+        .prepare('SELECT * FROM organizations WHERE id = ? AND is_active = 1')
+        .bind(organizationId)
+        .first();
 
       if (!targetOrg) {
         return c.json({ error: 'Target organization not found' }, 404);
-      }
-
-      // Check target organization limits
-      const userCount = await db.prepare(
-        'SELECT COUNT(*) as count FROM users WHERE organization_id = ? AND is_active = 1'
-      ).bind(organizationId).first();
-
-      if (userCount.count >= targetOrg.max_teachers) {
-        return c.json({
-          error: 'Target organization has reached maximum user limit',
-          limit: targetOrg.max_teachers
-        }, 403);
       }
     }
 
@@ -380,24 +387,33 @@ usersRouter.put('/:id', auditLog('update', 'user'), async (c) => {
     updates.push('updated_at = datetime("now")');
     params.push(targetUserId);
 
-    await db.prepare(`
+    await db
+      .prepare(
+        `
       UPDATE users SET ${updates.join(', ')} WHERE id = ?
-    `).bind(...params).run();
+    `
+      )
+      .bind(...params)
+      .run();
 
     // Get updated user with organization name
-    const updatedUser = await db.prepare(`
+    const updatedUser = await db
+      .prepare(
+        `
       SELECT u.id, u.organization_id, o.name as organization_name, u.email, u.name, u.role,
              u.is_active, u.last_login_at, u.created_at, u.updated_at
       FROM users u
       LEFT JOIN organizations o ON u.organization_id = o.id
       WHERE u.id = ?
-    `).bind(targetUserId).first();
+    `
+      )
+      .bind(targetUserId)
+      .first();
 
     return c.json({
       message: 'User updated successfully',
-      user: rowToUser(updatedUser)
+      user: rowToUser(updatedUser),
     });
-
   } catch (error) {
     console.error('Update user error:', error);
     return c.json({ error: 'Failed to update user' }, 500);
@@ -417,9 +433,14 @@ usersRouter.delete('/:id', requireAdmin(), auditLog('delete', 'user'), async (c)
     const targetUserId = c.req.param('id');
 
     // Check if user exists and belongs to organization
-    const existingUser = await db.prepare(`
+    const existingUser = await db
+      .prepare(
+        `
       SELECT * FROM users WHERE id = ? AND organization_id = ?
-    `).bind(targetUserId, organizationId).first();
+    `
+      )
+      .bind(targetUserId, organizationId)
+      .first();
 
     if (!existingUser) {
       return c.json({ error: 'User not found' }, 404);
@@ -436,17 +457,26 @@ usersRouter.delete('/:id', requireAdmin(), auditLog('delete', 'user'), async (c)
     }
 
     // Soft delete (deactivate)
-    await db.prepare(`
+    await db
+      .prepare(
+        `
       UPDATE users SET is_active = 0, updated_at = datetime("now") WHERE id = ?
-    `).bind(targetUserId).run();
+    `
+      )
+      .bind(targetUserId)
+      .run();
 
     // Revoke all refresh tokens
-    await db.prepare(`
+    await db
+      .prepare(
+        `
       UPDATE refresh_tokens SET revoked_at = datetime("now") WHERE user_id = ? AND revoked_at IS NULL
-    `).bind(targetUserId).run();
+    `
+      )
+      .bind(targetUserId)
+      .run();
 
     return c.json({ message: 'User deactivated successfully' });
-
   } catch (error) {
     console.error('Delete user error:', error);
     return c.json({ error: 'Failed to delete user' }, 500);
@@ -471,9 +501,14 @@ usersRouter.delete('/:id/erase', requireAdmin(), auditLog('erase', 'user'), asyn
     }
 
     // Fetch the user (include inactive — erasure applies regardless)
-    const existingUser = await db.prepare(`
+    const existingUser = await db
+      .prepare(
+        `
       SELECT id, role FROM users WHERE id = ? AND organization_id = ?
-    `).bind(targetUserId, organizationId).first();
+    `
+      )
+      .bind(targetUserId, organizationId)
+      .first();
 
     if (!existingUser) {
       return c.json({ error: 'User not found' }, 404);
@@ -490,18 +525,23 @@ usersRouter.delete('/:id/erase', requireAdmin(), auditLog('erase', 'user'), asyn
     }
 
     // Count records for response summary
-    const tokenCount = await db.prepare(
-      'SELECT COUNT(*) as count FROM refresh_tokens WHERE user_id = ?'
-    ).bind(targetUserId).first();
+    const tokenCount = await db
+      .prepare('SELECT COUNT(*) as count FROM refresh_tokens WHERE user_id = ?')
+      .bind(targetUserId)
+      .first();
 
     // Log the erasure request BEFORE deleting
     const rightsLogId = generateId();
 
     await db.batch([
-      db.prepare(`
+      db
+        .prepare(
+          `
         INSERT INTO data_rights_log (id, organization_id, request_type, subject_type, subject_id, requested_by, status, completed_at)
         VALUES (?, ?, 'erasure', 'user', ?, ?, 'completed', datetime('now'))
-      `).bind(rightsLogId, organizationId, targetUserId, currentUserId),
+      `
+        )
+        .bind(rightsLogId, organizationId, targetUserId, currentUserId),
 
       // Delete in FK order: tokens → password resets → user
       db.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').bind(targetUserId),
@@ -509,10 +549,14 @@ usersRouter.delete('/:id/erase', requireAdmin(), auditLog('erase', 'user'), asyn
       db.prepare('DELETE FROM users WHERE id = ?').bind(targetUserId),
 
       // Anonymise audit log entries that reference this user
-      db.prepare(`
+      db
+        .prepare(
+          `
         UPDATE audit_log SET entity_id = 'erased', details = NULL
         WHERE entity_type = 'user' AND entity_id = ? AND organization_id = ?
-      `).bind(targetUserId, organizationId),
+      `
+        )
+        .bind(targetUserId, organizationId),
     ]);
 
     return c.json({
@@ -520,10 +564,9 @@ usersRouter.delete('/:id/erase', requireAdmin(), auditLog('erase', 'user'), asyn
       erased: {
         refreshTokens: tokenCount.count,
         userRecord: 1,
-        auditEntriesAnonymised: true
-      }
+        auditEntriesAnonymised: true,
+      },
     });
-
   } catch (error) {
     console.error('Erase user error:', error);
     return c.json({ error: 'Failed to erase user' }, 500);
@@ -542,12 +585,17 @@ usersRouter.post('/:id/reset-password', requireAdmin(), auditLog('update', 'user
     const targetUserId = c.req.param('id');
 
     // Check if user exists and belongs to organization, include org name for email
-    const existingUser = await db.prepare(`
+    const existingUser = await db
+      .prepare(
+        `
       SELECT u.*, o.name as organization_name
       FROM users u
       JOIN organizations o ON u.organization_id = o.id
       WHERE u.id = ? AND u.organization_id = ?
-    `).bind(targetUserId, organizationId).first();
+    `
+      )
+      .bind(targetUserId, organizationId)
+      .first();
 
     if (!existingUser) {
       return c.json({ error: 'User not found' }, 404);
@@ -558,21 +606,29 @@ usersRouter.post('/:id/reset-password', requireAdmin(), auditLog('update', 'user
     const passwordHash = await hashPassword(newPassword);
 
     // Update password
-    await db.prepare(`
+    await db
+      .prepare(
+        `
       UPDATE users SET password_hash = ?, updated_at = datetime("now") WHERE id = ?
-    `).bind(passwordHash, targetUserId).run();
+    `
+      )
+      .bind(passwordHash, targetUserId)
+      .run();
 
     // Revoke all refresh tokens (force re-login)
-    await db.prepare(`
+    await db
+      .prepare(
+        `
       UPDATE refresh_tokens SET revoked_at = datetime("now") WHERE user_id = ? AND revoked_at IS NULL
-    `).bind(targetUserId).run();
+    `
+      )
+      .bind(targetUserId)
+      .run();
 
     // Send email with new password
     // SECURITY: Never include passwords in API responses
     // The password should only be sent via email to the user
-    const baseUrl = c.env.APP_URL ||
-                    c.req.header('origin') ||
-                    `https://${c.req.header('host')}`;
+    const baseUrl = c.env.APP_URL || c.req.header('origin') || `https://${c.req.header('host')}`;
 
     const emailResult = await sendWelcomeEmail(
       c.env,
@@ -591,9 +647,8 @@ usersRouter.post('/:id/reset-password', requireAdmin(), auditLog('update', 'user
       message: emailResult.success
         ? 'Password reset successfully. The new password has been sent via email.'
         : 'Password reset successfully. Note: email notification could not be sent.',
-      emailSent: emailResult.success
+      emailSent: emailResult.success,
     });
-
   } catch (error) {
     console.error('Reset password error:', error);
     return c.json({ error: 'Failed to reset password' }, 500);
@@ -618,37 +673,52 @@ usersRouter.get('/:id/export', requireOwner(), async (c) => {
     }
 
     // Fetch user with organization name
-    const user = await db.prepare(`
+    const user = await db
+      .prepare(
+        `
       SELECT u.*, o.name as organization_name
       FROM users u
       LEFT JOIN organizations o ON u.organization_id = o.id
       WHERE u.id = ?
-    `).bind(targetUserId).first();
+    `
+      )
+      .bind(targetUserId)
+      .first();
 
     if (!user) {
       return c.json({ error: 'User not found' }, 404);
     }
 
     // Fetch audit log entries referencing this user
-    const auditEntries = await db.prepare(`
+    const auditEntries = await db
+      .prepare(
+        `
       SELECT action, entity_type, entity_id, details, created_at
       FROM audit_log
       WHERE user_id = ? OR (entity_type = 'user' AND entity_id = ?)
       ORDER BY created_at DESC
-    `).bind(targetUserId, targetUserId).all();
+    `
+      )
+      .bind(targetUserId, targetUserId)
+      .all();
 
     // Log the SAR in data_rights_log
-    await db.prepare(`
+    await db
+      .prepare(
+        `
       INSERT INTO data_rights_log (id, organization_id, request_type, subject_type, subject_id, requested_by, status, completed_at)
       VALUES (?, ?, 'access', 'user', ?, ?, 'completed', datetime('now'))
-    `).bind(generateId(), user.organization_id, targetUserId, currentUserId).run();
+    `
+      )
+      .bind(generateId(), user.organization_id, targetUserId, currentUserId)
+      .run();
 
     const exportData = {
       metadata: {
         exportDate: new Date().toISOString(),
         exportFormat: 'GDPR Article 15 Subject Access Request',
         organization: user.organization_name || user.organization_id,
-        dataController: 'Scratch IT LTD'
+        dataController: 'Scratch IT LTD',
       },
       user: {
         name: user.name,
@@ -659,15 +729,15 @@ usersRouter.get('/:id/export', requireOwner(), async (c) => {
         isActive: Boolean(user.is_active),
         lastLoginAt: user.last_login_at,
         createdAt: user.created_at,
-        updatedAt: user.updated_at
+        updatedAt: user.updated_at,
       },
-      auditTrail: (auditEntries.results || []).map(a => ({
+      auditTrail: (auditEntries.results || []).map((a) => ({
         action: a.action,
         entityType: a.entity_type,
         entityId: a.entity_id,
         details: a.details || null,
-        timestamp: a.created_at
-      }))
+        timestamp: a.created_at,
+      })),
     };
 
     if (format === 'csv') {
@@ -681,10 +751,19 @@ usersRouter.get('/:id/export', requireOwner(), async (c) => {
       lines.push('## User Profile');
       lines.push('Name,Email,Role,Organization,Auth Provider,Active,Last Login,Created,Updated');
       const u = exportData.user;
-      lines.push(csvRow([
-        u.name, u.email, u.role, u.organization, u.authProvider,
-        u.isActive, u.lastLoginAt, u.createdAt, u.updatedAt
-      ]));
+      lines.push(
+        csvRow([
+          u.name,
+          u.email,
+          u.role,
+          u.organization,
+          u.authProvider,
+          u.isActive,
+          u.lastLoginAt,
+          u.createdAt,
+          u.updatedAt,
+        ])
+      );
       lines.push('');
 
       if (exportData.auditTrail.length > 0) {
@@ -701,8 +780,8 @@ usersRouter.get('/:id/export', requireOwner(), async (c) => {
       return new Response(csv, {
         headers: {
           'Content-Type': 'text/csv; charset=utf-8',
-          'Content-Disposition': `attachment; filename="${filename}"`
-        }
+          'Content-Disposition': `attachment; filename="${filename}"`,
+        },
       });
     }
 
@@ -711,10 +790,9 @@ usersRouter.get('/:id/export', requireOwner(), async (c) => {
     return new Response(JSON.stringify(exportData, null, 2), {
       headers: {
         'Content-Type': 'application/json; charset=utf-8',
-        'Content-Disposition': `attachment; filename="${filename}"`
-      }
+        'Content-Disposition': `attachment; filename="${filename}"`,
+      },
     });
-
   } catch (error) {
     console.error('Export user error:', error);
     return c.json({ error: 'Failed to export user data' }, 500);
@@ -736,13 +814,19 @@ usersRouter.get('/:id/classes', requireAdmin(), async (c) => {
     // Fetch user - owners can see any user, admins only their org
     let user;
     if (userRole === ROLES.OWNER) {
-      user = await db.prepare(
-        'SELECT id, organization_id, wonde_employee_id FROM users WHERE id = ? AND is_active = 1'
-      ).bind(targetUserId).first();
+      user = await db
+        .prepare(
+          'SELECT id, organization_id, wonde_employee_id FROM users WHERE id = ? AND is_active = 1'
+        )
+        .bind(targetUserId)
+        .first();
     } else {
-      user = await db.prepare(
-        'SELECT id, organization_id, wonde_employee_id FROM users WHERE id = ? AND organization_id = ? AND is_active = 1'
-      ).bind(targetUserId, organizationId).first();
+      user = await db
+        .prepare(
+          'SELECT id, organization_id, wonde_employee_id FROM users WHERE id = ? AND organization_id = ? AND is_active = 1'
+        )
+        .bind(targetUserId, organizationId)
+        .first();
     }
 
     if (!user) {
@@ -755,22 +839,26 @@ usersRouter.get('/:id/classes', requireAdmin(), async (c) => {
     }
 
     // Fetch class assignments from wonde_employee_classes joined with classes
-    const result = await db.prepare(`
+    const result = await db
+      .prepare(
+        `
       SELECT c.id as class_id, c.name as class_name, 'wonde' as source
       FROM wonde_employee_classes wec
       JOIN classes c ON c.wonde_class_id = wec.wonde_class_id AND c.organization_id = wec.organization_id
       WHERE wec.wonde_employee_id = ? AND wec.organization_id = ?
       ORDER BY c.name
-    `).bind(user.wonde_employee_id, user.organization_id).all();
+    `
+      )
+      .bind(user.wonde_employee_id, user.organization_id)
+      .all();
 
-    const classes = (result.results || []).map(row => ({
+    const classes = (result.results || []).map((row) => ({
       classId: row.class_id,
       className: row.class_name,
-      source: row.source
+      source: row.source,
     }));
 
     return c.json({ classes });
-
   } catch (error) {
     console.error('Get user classes error:', error);
     return c.json({ error: 'Failed to get user classes' }, 500);
@@ -781,13 +869,14 @@ usersRouter.get('/:id/classes', requireAdmin(), async (c) => {
  * CSV helper: escape a value and wrap in quotes if needed
  */
 function csvRow(values) {
-  return values.map(v => {
-    if (v === null || v === undefined) return '';
-    const str = String(v);
-    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-      return `"${str.replace(/"/g, '""')}"`;
-    }
-    return str;
-  }).join(',');
+  return values
+    .map((v) => {
+      if (v === null || v === undefined) return '';
+      const str = String(v);
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    })
+    .join(',');
 }
-

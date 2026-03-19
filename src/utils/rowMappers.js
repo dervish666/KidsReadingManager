@@ -15,7 +15,13 @@ export const rowToBook = (row) => {
     id: row.id,
     title: row.title,
     author: row.author,
-    genreIds: (() => { try { return row.genre_ids ? JSON.parse(row.genre_ids) : []; } catch { return []; } })(),
+    genreIds: (() => {
+      try {
+        return row.genre_ids ? JSON.parse(row.genre_ids) : [];
+      } catch {
+        return [];
+      }
+    })(),
     readingLevel: row.reading_level,
     ageRange: row.age_range,
     description: row.description,
@@ -25,7 +31,7 @@ export const rowToBook = (row) => {
     seriesNumber: row.series_number ?? null,
     publicationYear: row.publication_year ?? null,
     createdAt: row.created_at,
-    updatedAt: row.updated_at
+    updatedAt: row.updated_at,
   };
 };
 
@@ -59,7 +65,7 @@ export const rowToStudent = (row) => {
     ealStatus: row.eal_status || null,
     fsm: Boolean(row.fsm),
     processingRestricted: Boolean(row.processing_restricted),
-    aiOptOut: Boolean(row.ai_opt_out)
+    aiOptOut: Boolean(row.ai_opt_out),
   };
 };
 
@@ -76,7 +82,7 @@ export const rowToClass = (row) => {
     disabled: Boolean(row.disabled),
     wondeClassId: row.wonde_class_id || null,
     createdAt: row.created_at,
-    updatedAt: row.updated_at
+    updatedAt: row.updated_at,
   };
 };
 
@@ -110,8 +116,6 @@ export const rowToOrganization = (row) => {
     name: row.name,
     slug: row.slug,
     subscriptionTier: row.subscription_tier,
-    maxStudents: row.max_students,
-    maxTeachers: row.max_teachers,
     isActive: Boolean(row.is_active),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -134,7 +138,7 @@ export const rowToGenre = (row) => {
     name: row.name,
     description: row.description,
     isPredefined: Boolean(row.is_predefined),
-    createdAt: row.created_at
+    createdAt: row.created_at,
   };
 };
 

@@ -430,8 +430,7 @@ describe('Users API Routes', () => {
         mockDB._chain.first.mockImplementation(() => {
           callIndex++;
           if (callIndex === 1) return Promise.resolve(null); // No existing user
-          if (callIndex === 2) return Promise.resolve({ name: 'Test Org', max_teachers: 10 }); // Organization
-          if (callIndex === 3) return Promise.resolve({ count: 2 }); // User count
+          if (callIndex === 2) return Promise.resolve({ name: 'Test Org' }); // Organization name
           return Promise.resolve(null);
         });
 
@@ -560,8 +559,7 @@ describe('Users API Routes', () => {
         mockDB._chain.first.mockImplementation(() => {
           callIndex++;
           if (callIndex === 1) return Promise.resolve(null); // No existing user
-          if (callIndex === 2) return Promise.resolve({ name: 'Test Org', max_teachers: 10 }); // Organization
-          if (callIndex === 3) return Promise.resolve({ count: 2 }); // User count
+          if (callIndex === 2) return Promise.resolve({ name: 'Test Org' }); // Organization name
           return Promise.resolve(null);
         });
 
@@ -577,35 +575,6 @@ describe('Users API Routes', () => {
       });
     });
 
-    describe('Organization limits', () => {
-      it('should reject when organization reaches user limit', async () => {
-        const { app, mockDB } = createTestApp({
-          userId: 'admin-user',
-          organizationId: 'org-456',
-          userRole: ROLES.ADMIN
-        });
-
-        let callIndex = 0;
-        mockDB._chain.first.mockImplementation(() => {
-          callIndex++;
-          if (callIndex === 1) return Promise.resolve(null); // No existing user
-          if (callIndex === 2) return Promise.resolve({ name: 'Test Org', max_teachers: 5 }); // Organization with limit
-          if (callIndex === 3) return Promise.resolve({ count: 5 }); // At max capacity
-          return Promise.resolve(null);
-        });
-
-        const response = await makeRequest(app, 'POST', '/api/users', {
-          email: 'new@example.com',
-          name: 'New User',
-          role: 'teacher'
-        });
-        const data = await response.json();
-
-        expect(response.status).toBe(403);
-        expect(data.error).toBe('Organization has reached maximum user limit');
-        expect(data.limit).toBe(5);
-      });
-    });
 
     describe('Cross-organization creation', () => {
       it('should prevent admins from creating users in other organizations', async () => {
@@ -640,8 +609,7 @@ describe('Users API Routes', () => {
         mockDB._chain.first.mockImplementation(() => {
           callIndex++;
           if (callIndex === 1) return Promise.resolve(null); // No existing user
-          if (callIndex === 2) return Promise.resolve({ name: 'Other Org', max_teachers: 10 }); // Target organization
-          if (callIndex === 3) return Promise.resolve({ count: 2 }); // User count
+          if (callIndex === 2) return Promise.resolve({ name: 'Other Org' }); // Organization name
           return Promise.resolve(null);
         });
 

@@ -13,7 +13,7 @@ import {
   createJWTPayload,
   hashToken,
   buildRefreshCookie,
-  buildClearRefreshCookie
+  buildClearRefreshCookie,
 } from '../utils/crypto.js';
 import { authRateLimit } from '../middleware/tenant.js';
 import { sendPasswordResetEmail } from '../utils/email.js';
@@ -43,8 +43,8 @@ authRouter.get('/mode', async (c) => {
     features: {
       multiTenant: isMultiTenant,
       d1Database: hasD1,
-      kvStorage: !!c.env.READING_MANAGER_KV
-    }
+      kvStorage: !!c.env.READING_MANAGER_KV,
+    },
   });
 });
 
@@ -64,7 +64,7 @@ function generateSlug(name) {
 /**
  * POST /api/auth/register
  * Register a new organization and owner account
- * 
+ *
  * Body: {
  *   organizationName: string,
  *   email: string,
@@ -81,10 +81,13 @@ authRouter.post('/register', async (c) => {
 
     // Validate required fields
     if (!organizationName || !email || !password || !name) {
-      return c.json({ 
-        error: 'Missing required fields',
-        required: ['organizationName', 'email', 'password', 'name']
-      }, 400);
+      return c.json(
+        {
+          error: 'Missing required fields',
+          required: ['organizationName', 'email', 'password', 'name'],
+        },
+        400
+      );
     }
 
     // Validate email format
@@ -98,17 +101,30 @@ authRouter.post('/register', async (c) => {
       return c.json({ error: 'Password must be at least 8 characters' }, 400);
     }
     if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
-      return c.json({ error: 'Password must contain at least one uppercase letter, one lowercase letter, and one number' }, 400);
+      return c.json(
+        {
+          error:
+            'Password must contain at least one uppercase letter, one lowercase letter, and one number',
+        },
+        400
+      );
     }
 
     // Check if email already exists (among active users)
-    const existingUser = await db.prepare(
-      'SELECT id FROM users WHERE email = ? AND is_active = 1'
-    ).bind(email.toLowerCase()).first();
+    const existingUser = await db
+      .prepare('SELECT id FROM users WHERE email = ? AND is_active = 1')
+      .bind(email.toLowerCase())
+      .first();
 
     if (existingUser) {
       // Return generic error that doesn't reveal email existence
-      return c.json({ error: 'Registration could not be completed. Please try a different email or contact support.' }, 400);
+      return c.json(
+        {
+          error:
+            'Registration could not be completed. Please try a different email or contact support.',
+        },
+        400
+      );
     }
 
     // Generate IDs
@@ -120,9 +136,10 @@ authRouter.post('/register', async (c) => {
     let finalSlug = slug;
     let slugCounter = 1;
     while (true) {
-      const existingOrg = await db.prepare(
-        'SELECT id FROM organizations WHERE slug = ?'
-      ).bind(finalSlug).first();
+      const existingOrg = await db
+        .prepare('SELECT id FROM organizations WHERE slug = ?')
+        .bind(finalSlug)
+        .first();
 
       if (!existingOrg) break;
       finalSlug = `${slug}-${slugCounter++}`;
@@ -134,16 +151,24 @@ authRouter.post('/register', async (c) => {
     // Create organization and user in a transaction
     await db.batch([
       // Create organization
-      db.prepare(`
-        INSERT INTO organizations (id, name, slug, subscription_tier, max_students, max_teachers, is_active)
-        VALUES (?, ?, ?, 'free', 50, 3, 1)
-      `).bind(orgId, organizationName, finalSlug),
+      db
+        .prepare(
+          `
+        INSERT INTO organizations (id, name, slug, subscription_tier, is_active)
+        VALUES (?, ?, ?, 'free', 1)
+      `
+        )
+        .bind(orgId, organizationName, finalSlug),
 
       // Create owner user
-      db.prepare(`
+      db
+        .prepare(
+          `
         INSERT INTO users (id, organization_id, email, password_hash, name, role, is_active)
         VALUES (?, ?, ?, ?, ?, 'owner', 1)
-      `).bind(userId, orgId, email.toLowerCase(), passwordHash, name)
+      `
+        )
+        .bind(userId, orgId, email.toLowerCase(), passwordHash, name),
     ]);
 
     // Create tokens
@@ -161,31 +186,38 @@ authRouter.post('/register', async (c) => {
 
     // Store refresh token
     const refreshTokenId = generateId();
-    await db.prepare(`
+    await db
+      .prepare(
+        `
       INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at)
       VALUES (?, ?, ?, ?)
-    `).bind(refreshTokenId, userId, refreshTokenData.hash, refreshTokenData.expiresAt).run();
+    `
+      )
+      .bind(refreshTokenId, userId, refreshTokenData.hash, refreshTokenData.expiresAt)
+      .run();
 
     // Set refresh token as httpOnly cookie
     const isProduction = c.env.ENVIRONMENT !== 'development';
     c.header('Set-Cookie', buildRefreshCookie(refreshTokenData.token, isProduction));
 
-    return c.json({
-      message: 'Registration successful',
-      accessToken,
-      user: {
-        id: userId,
-        email: email.toLowerCase(),
-        name,
-        role: 'owner'
+    return c.json(
+      {
+        message: 'Registration successful',
+        accessToken,
+        user: {
+          id: userId,
+          email: email.toLowerCase(),
+          name,
+          role: 'owner',
+        },
+        organization: {
+          id: orgId,
+          name: organizationName,
+          slug: finalSlug,
+        },
       },
-      organization: {
-        id: orgId,
-        name: organizationName,
-        slug: finalSlug
-      }
-    }, 201);
-
+      201
+    );
   } catch (error) {
     console.error('Registration error:', error);
     return c.json({ error: 'Registration failed' }, 500);
@@ -193,7 +225,7 @@ authRouter.post('/register', async (c) => {
 });
 
 // Account lockout configuration
-const MAX_LOGIN_ATTEMPTS = 5;        // Maximum failed attempts before lockout
+const MAX_LOGIN_ATTEMPTS = 5; // Maximum failed attempts before lockout
 const LOCKOUT_DURATION_MINUTES = 15; // Lockout duration in minutes
 
 /**
@@ -201,11 +233,16 @@ const LOCKOUT_DURATION_MINUTES = 15; // Lockout duration in minutes
  */
 async function isAccountLocked(db, email) {
   try {
-    const result = await db.prepare(`
+    const result = await db
+      .prepare(
+        `
       SELECT COUNT(*) as count FROM login_attempts
       WHERE email = ? AND success = 0
       AND created_at > datetime('now', '-${LOCKOUT_DURATION_MINUTES} minutes')
-    `).bind(email.toLowerCase()).first();
+    `
+      )
+      .bind(email.toLowerCase())
+      .first();
 
     return result && result.count >= MAX_LOGIN_ATTEMPTS;
   } catch (error) {
@@ -220,21 +257,30 @@ async function isAccountLocked(db, email) {
  */
 async function recordLoginAttempt(db, email, ipAddress, userAgent, success) {
   try {
-    await db.prepare(`
+    await db
+      .prepare(
+        `
       INSERT INTO login_attempts (id, email, ip_address, user_agent, success)
       VALUES (?, ?, ?, ?, ?)
-    `).bind(
-      generateId(),
-      email.toLowerCase(),
-      ipAddress || 'unknown',
-      userAgent || 'unknown',
-      success ? 1 : 0
-    ).run();
+    `
+      )
+      .bind(
+        generateId(),
+        email.toLowerCase(),
+        ipAddress || 'unknown',
+        userAgent || 'unknown',
+        success ? 1 : 0
+      )
+      .run();
 
     // Cleanup old attempts (older than 24 hours) - async, don't wait
-    db.prepare(`
+    db.prepare(
+      `
       DELETE FROM login_attempts WHERE created_at < datetime('now', '-24 hours')
-    `).run().catch(() => {});
+    `
+    )
+      .run()
+      .catch(() => {});
   } catch (error) {
     // Don't fail login if logging fails
     console.error('Error recording login attempt:', error);
@@ -246,9 +292,14 @@ async function recordLoginAttempt(db, email, ipAddress, userAgent, success) {
  */
 async function clearFailedAttempts(db, email) {
   try {
-    await db.prepare(`
+    await db
+      .prepare(
+        `
       DELETE FROM login_attempts WHERE email = ? AND success = 0
-    `).bind(email.toLowerCase()).run();
+    `
+      )
+      .bind(email.toLowerCase())
+      .run();
   } catch (error) {
     console.error('Error clearing failed attempts:', error);
   }
@@ -275,26 +326,34 @@ authRouter.post('/login', async (c) => {
     }
 
     // Get client info for logging
-    const ipAddress = c.req.header('cf-connecting-ip') ||
-                      c.req.header('x-forwarded-for') ||
-                      'unknown';
+    const ipAddress =
+      c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || 'unknown';
     const userAgent = c.req.header('user-agent') || 'unknown';
 
     // Check if account is locked due to too many failed attempts
     if (await isAccountLocked(db, email)) {
-      return c.json({
-        error: 'Account temporarily locked due to too many failed login attempts. Please try again later.',
-        retryAfter: LOCKOUT_DURATION_MINUTES * 60
-      }, 429);
+      return c.json(
+        {
+          error:
+            'Account temporarily locked due to too many failed login attempts. Please try again later.',
+          retryAfter: LOCKOUT_DURATION_MINUTES * 60,
+        },
+        429
+      );
     }
 
     // Find user by email (only active users in active orgs)
-    const user = await db.prepare(`
+    const user = await db
+      .prepare(
+        `
       SELECT u.*, o.name as org_name, o.slug as org_slug, o.is_active as org_active
       FROM users u
       INNER JOIN organizations o ON u.organization_id = o.id
       WHERE u.email = ? AND u.is_active = 1 AND o.is_active = 1
-    `).bind(email.toLowerCase()).first();
+    `
+      )
+      .bind(email.toLowerCase())
+      .first();
 
     if (!user) {
       // Perform a dummy hash to prevent timing-based email enumeration
@@ -318,9 +377,10 @@ authRouter.post('/login', async (c) => {
     if (passwordResult.needsRehash) {
       try {
         const newHash = await hashPassword(password);
-        await db.prepare(
-          'UPDATE users SET password_hash = ? WHERE id = ?'
-        ).bind(newHash, user.id).run();
+        await db
+          .prepare('UPDATE users SET password_hash = ? WHERE id = ?')
+          .bind(newHash, user.id)
+          .run();
       } catch (rehashError) {
         // Don't fail login if rehash fails, just log it
         console.error('Failed to upgrade password hash:', rehashError);
@@ -328,9 +388,10 @@ authRouter.post('/login', async (c) => {
     }
 
     // Update last login
-    await db.prepare(
-      'UPDATE users SET last_login_at = datetime("now") WHERE id = ?'
-    ).bind(user.id).run();
+    await db
+      .prepare('UPDATE users SET last_login_at = datetime("now") WHERE id = ?')
+      .bind(user.id)
+      .run();
 
     // Create tokens
     const jwtSecret = c.env.JWT_SECRET;
@@ -341,11 +402,14 @@ authRouter.post('/login', async (c) => {
     // Look up assigned class IDs
     let assignedClassIds = [];
     try {
-      const assignments = await db.prepare(
-        'SELECT class_id FROM class_assignments WHERE user_id = ?'
-      ).bind(user.id).all();
-      assignedClassIds = (assignments.results || []).map(r => r.class_id);
-    } catch { /* class_assignments table may not exist */ }
+      const assignments = await db
+        .prepare('SELECT class_id FROM class_assignments WHERE user_id = ?')
+        .bind(user.id)
+        .all();
+      assignedClassIds = (assignments.results || []).map((r) => r.class_id);
+    } catch {
+      /* class_assignments table may not exist */
+    }
 
     const organization = { id: user.organization_id, slug: user.org_slug };
     const userForPayload = {
@@ -362,10 +426,15 @@ authRouter.post('/login', async (c) => {
 
     // Store refresh token
     const refreshTokenId = generateId();
-    await db.prepare(`
+    await db
+      .prepare(
+        `
       INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at)
       VALUES (?, ?, ?, ?)
-    `).bind(refreshTokenId, user.id, refreshTokenData.hash, refreshTokenData.expiresAt).run();
+    `
+      )
+      .bind(refreshTokenId, user.id, refreshTokenData.hash, refreshTokenData.expiresAt)
+      .run();
 
     // Set refresh token as httpOnly cookie for enhanced security
     const isProduction = c.env.ENVIRONMENT !== 'development';
@@ -383,10 +452,9 @@ authRouter.post('/login', async (c) => {
       organization: {
         id: user.organization_id,
         name: user.org_name,
-        slug: user.org_slug
-      }
+        slug: user.org_slug,
+      },
     });
-
   } catch (error) {
     console.error('Login error:', error);
     return c.json({ error: 'Login failed' }, 500);
@@ -400,7 +468,7 @@ export function parseCookies(cookieHeader) {
   const cookies = {};
   if (!cookieHeader) return cookies;
 
-  cookieHeader.split(';').forEach(cookie => {
+  cookieHeader.split(';').forEach((cookie) => {
     const [name, ...rest] = cookie.trim().split('=');
     if (name) {
       cookies[name] = rest.join('=');
@@ -439,14 +507,19 @@ authRouter.post('/refresh', async (c) => {
     const tokenHash = await hashToken(refreshToken);
 
     // Find the refresh token
-    const storedToken = await db.prepare(`
+    const storedToken = await db
+      .prepare(
+        `
       SELECT rt.*, u.email, u.name, u.role, u.auth_provider, u.is_active as user_active,
              o.id as org_id, o.name as org_name, o.slug as org_slug, o.is_active as org_active
       FROM refresh_tokens rt
       INNER JOIN users u ON rt.user_id = u.id
       INNER JOIN organizations o ON u.organization_id = o.id
       WHERE rt.token_hash = ? AND rt.revoked_at IS NULL AND rt.expires_at > datetime('now')
-    `).bind(tokenHash).first();
+    `
+      )
+      .bind(tokenHash)
+      .first();
 
     if (!storedToken) {
       return c.json({ error: 'Invalid refresh token' }, 401);
@@ -468,9 +541,10 @@ authRouter.post('/refresh', async (c) => {
     }
 
     // Revoke old refresh token
-    await db.prepare(
-      'UPDATE refresh_tokens SET revoked_at = datetime("now") WHERE id = ?'
-    ).bind(storedToken.id).run();
+    await db
+      .prepare('UPDATE refresh_tokens SET revoked_at = datetime("now") WHERE id = ?')
+      .bind(storedToken.id)
+      .run();
 
     // Create new tokens
     const jwtSecret = c.env.JWT_SECRET;
@@ -481,11 +555,14 @@ authRouter.post('/refresh', async (c) => {
     // Look up assigned class IDs
     let assignedClassIds = [];
     try {
-      const assignments = await db.prepare(
-        'SELECT class_id FROM class_assignments WHERE user_id = ?'
-      ).bind(storedToken.user_id).all();
-      assignedClassIds = (assignments.results || []).map(r => r.class_id);
-    } catch { /* class_assignments table may not exist */ }
+      const assignments = await db
+        .prepare('SELECT class_id FROM class_assignments WHERE user_id = ?')
+        .bind(storedToken.user_id)
+        .all();
+      assignedClassIds = (assignments.results || []).map((r) => r.class_id);
+    } catch {
+      /* class_assignments table may not exist */
+    }
 
     const organization = { id: storedToken.org_id, slug: storedToken.org_slug };
     const user = {
@@ -503,10 +580,20 @@ authRouter.post('/refresh', async (c) => {
 
     // Store new refresh token
     const newRefreshTokenId = generateId();
-    await db.prepare(`
+    await db
+      .prepare(
+        `
       INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at)
       VALUES (?, ?, ?, ?)
-    `).bind(newRefreshTokenId, storedToken.user_id, newRefreshTokenData.hash, newRefreshTokenData.expiresAt).run();
+    `
+      )
+      .bind(
+        newRefreshTokenId,
+        storedToken.user_id,
+        newRefreshTokenData.hash,
+        newRefreshTokenData.expiresAt
+      )
+      .run();
 
     // Set new refresh token as httpOnly cookie
     const isProduction = c.env.ENVIRONMENT !== 'development';
@@ -525,10 +612,9 @@ authRouter.post('/refresh', async (c) => {
       organization: {
         id: storedToken.org_id,
         name: storedToken.org_name,
-        slug: storedToken.org_slug
-      }
+        slug: storedToken.org_slug,
+      },
     });
-
   } catch (error) {
     console.error('Token refresh error:', error);
     return c.json({ error: 'Token refresh failed' }, 500);
@@ -559,9 +645,10 @@ authRouter.post('/logout', async (c) => {
 
     if (refreshToken) {
       const tokenHash = await hashToken(refreshToken);
-      await db.prepare(
-        'UPDATE refresh_tokens SET revoked_at = datetime("now") WHERE token_hash = ?'
-      ).bind(tokenHash).run();
+      await db
+        .prepare('UPDATE refresh_tokens SET revoked_at = datetime("now") WHERE token_hash = ?')
+        .bind(tokenHash)
+        .run();
     }
 
     // Clear the refresh token cookie
@@ -569,7 +656,6 @@ authRouter.post('/logout', async (c) => {
     c.header('Set-Cookie', buildClearRefreshCookie(isProduction));
 
     return c.json({ message: 'Logged out successfully' });
-
   } catch (error) {
     console.error('Logout error:', error);
     return c.json({ error: 'Logout failed' }, 500);
@@ -579,7 +665,7 @@ authRouter.post('/logout', async (c) => {
 /**
  * POST /api/auth/forgot-password
  * Request password reset email
- * 
+ *
  * Body: {
  *   email: string
  * }
@@ -596,9 +682,10 @@ authRouter.post('/forgot-password', async (c) => {
     }
 
     // Find user
-    const user = await db.prepare(
-      'SELECT id, email, name FROM users WHERE email = ? AND is_active = 1'
-    ).bind(email.toLowerCase()).first();
+    const user = await db
+      .prepare('SELECT id, email, name FROM users WHERE email = ? AND is_active = 1')
+      .bind(email.toLowerCase())
+      .first();
 
     // Always return success to prevent email enumeration
     if (!user) {
@@ -608,7 +695,7 @@ authRouter.post('/forgot-password', async (c) => {
     // Generate reset token
     const tokenBytes = crypto.getRandomValues(new Uint8Array(32));
     const resetToken = Array.from(tokenBytes)
-      .map(b => b.toString(16).padStart(2, '0'))
+      .map((b) => b.toString(16).padStart(2, '0'))
       .join('');
     const tokenHash = await hashToken(resetToken);
 
@@ -616,22 +703,34 @@ authRouter.post('/forgot-password', async (c) => {
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
     // Invalidate any existing unused reset tokens for this user
-    await db.prepare(`
+    await db
+      .prepare(
+        `
       UPDATE password_reset_tokens SET used_at = datetime('now')
       WHERE user_id = ? AND used_at IS NULL
-    `).bind(user.id).run();
+    `
+      )
+      .bind(user.id)
+      .run();
 
     // Store new reset token
     const tokenId = generateId();
-    await db.prepare(`
+    await db
+      .prepare(
+        `
       INSERT INTO password_reset_tokens (id, user_id, token_hash, expires_at)
       VALUES (?, ?, ?, ?)
-    `).bind(tokenId, user.id, tokenHash, expiresAt).run();
+    `
+      )
+      .bind(tokenId, user.id, tokenHash, expiresAt)
+      .run();
 
     // Send password reset email
     const baseUrl = c.env.APP_URL;
     if (!baseUrl) {
-      console.error('APP_URL environment variable not configured - cannot send password reset email');
+      console.error(
+        'APP_URL environment variable not configured - cannot send password reset email'
+      );
       // Still return success to prevent email enumeration
       return c.json({ message: 'If the email exists, a reset link will be sent' });
     }
@@ -650,9 +749,8 @@ authRouter.post('/forgot-password', async (c) => {
     }
 
     return c.json({
-      message: 'If the email exists, a reset link will be sent'
+      message: 'If the email exists, a reset link will be sent',
     });
-
   } catch (error) {
     console.error('Forgot password error:', error);
     return c.json({ error: 'Password reset request failed' }, 500);
@@ -662,7 +760,7 @@ authRouter.post('/forgot-password', async (c) => {
 /**
  * POST /api/auth/reset-password
  * Reset password using token
- * 
+ *
  * Body: {
  *   token: string,
  *   password: string
@@ -684,15 +782,26 @@ authRouter.post('/reset-password', async (c) => {
       return c.json({ error: 'Password must be at least 8 characters' }, 400);
     }
     if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
-      return c.json({ error: 'Password must contain at least one uppercase letter, one lowercase letter, and one number' }, 400);
+      return c.json(
+        {
+          error:
+            'Password must contain at least one uppercase letter, one lowercase letter, and one number',
+        },
+        400
+      );
     }
 
     // Find reset token
     const tokenHash = await hashToken(token);
-    const resetToken = await db.prepare(`
+    const resetToken = await db
+      .prepare(
+        `
       SELECT * FROM password_reset_tokens 
       WHERE token_hash = ? AND used_at IS NULL
-    `).bind(tokenHash).first();
+    `
+      )
+      .bind(tokenHash)
+      .first();
 
     if (!resetToken) {
       return c.json({ error: 'Invalid or expired reset token' }, 400);
@@ -708,22 +817,23 @@ authRouter.post('/reset-password', async (c) => {
 
     // Update password and mark token as used
     await db.batch([
-      db.prepare(
-        'UPDATE users SET password_hash = ?, updated_at = datetime("now") WHERE id = ?'
-      ).bind(passwordHash, resetToken.user_id),
+      db
+        .prepare('UPDATE users SET password_hash = ?, updated_at = datetime("now") WHERE id = ?')
+        .bind(passwordHash, resetToken.user_id),
 
-      db.prepare(
-        'UPDATE password_reset_tokens SET used_at = datetime("now") WHERE id = ?'
-      ).bind(resetToken.id),
+      db
+        .prepare('UPDATE password_reset_tokens SET used_at = datetime("now") WHERE id = ?')
+        .bind(resetToken.id),
 
       // Revoke all refresh tokens for this user (force re-login)
-      db.prepare(
-        'UPDATE refresh_tokens SET revoked_at = datetime("now") WHERE user_id = ? AND revoked_at IS NULL'
-      ).bind(resetToken.user_id)
+      db
+        .prepare(
+          'UPDATE refresh_tokens SET revoked_at = datetime("now") WHERE user_id = ? AND revoked_at IS NULL'
+        )
+        .bind(resetToken.user_id),
     ]);
 
     return c.json({ message: 'Password reset successful' });
-
   } catch (error) {
     console.error('Reset password error:', error);
     return c.json({ error: 'Password reset failed' }, 500);
@@ -745,14 +855,19 @@ authRouter.get('/me', async (c) => {
     const db = getDB(c.env);
 
     // Get full user and organization details
-    const fullUser = await db.prepare(`
+    const fullUser = await db
+      .prepare(
+        `
       SELECT u.id, u.email, u.name, u.role, u.last_login_at, u.created_at,
              o.id as org_id, o.name as org_name, o.slug as org_slug,
-             o.subscription_tier, o.max_students, o.max_teachers
+             o.subscription_tier
       FROM users u
       INNER JOIN organizations o ON u.organization_id = o.id
       WHERE u.id = ? AND u.is_active = 1 AND o.is_active = 1
-    `).bind(user.sub).first();
+    `
+      )
+      .bind(user.sub)
+      .first();
 
     if (!fullUser) {
       return c.json({ error: 'User not found' }, 404);
@@ -765,18 +880,15 @@ authRouter.get('/me', async (c) => {
         name: fullUser.name,
         role: fullUser.role,
         lastLoginAt: fullUser.last_login_at,
-        createdAt: fullUser.created_at
+        createdAt: fullUser.created_at,
       },
       organization: {
         id: fullUser.org_id,
         name: fullUser.org_name,
         slug: fullUser.org_slug,
         subscriptionTier: fullUser.subscription_tier,
-        maxStudents: fullUser.max_students,
-        maxTeachers: fullUser.max_teachers
-      }
+      },
     });
-
   } catch (error) {
     console.error('Get user error:', error);
     return c.json({ error: 'Failed to get user info' }, 500);
@@ -786,7 +898,7 @@ authRouter.get('/me', async (c) => {
 /**
  * PUT /api/auth/password
  * Change password (requires authentication)
- * 
+ *
  * Body: {
  *   currentPassword: string,
  *   newPassword: string
@@ -814,13 +926,20 @@ authRouter.put('/password', async (c) => {
       return c.json({ error: 'New password must be at least 8 characters' }, 400);
     }
     if (!/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
-      return c.json({ error: 'Password must contain at least one uppercase letter, one lowercase letter, and one number' }, 400);
+      return c.json(
+        {
+          error:
+            'Password must contain at least one uppercase letter, one lowercase letter, and one number',
+        },
+        400
+      );
     }
 
     // Get current password hash
-    const dbUser = await db.prepare(
-      'SELECT password_hash FROM users WHERE id = ?'
-    ).bind(user.sub).first();
+    const dbUser = await db
+      .prepare('SELECT password_hash FROM users WHERE id = ?')
+      .bind(user.sub)
+      .first();
 
     if (!dbUser) {
       return c.json({ error: 'User not found' }, 404);
@@ -837,18 +956,19 @@ authRouter.put('/password', async (c) => {
 
     // Update password and revoke all existing refresh tokens (force re-login on other devices)
     await db.batch([
-      db.prepare(
-        'UPDATE users SET password_hash = ?, updated_at = datetime("now") WHERE id = ?'
-      ).bind(newPasswordHash, user.sub),
+      db
+        .prepare('UPDATE users SET password_hash = ?, updated_at = datetime("now") WHERE id = ?')
+        .bind(newPasswordHash, user.sub),
 
       // Revoke all refresh tokens for this user (security: invalidate existing sessions)
-      db.prepare(
-        'UPDATE refresh_tokens SET revoked_at = datetime("now") WHERE user_id = ? AND revoked_at IS NULL'
-      ).bind(user.sub)
+      db
+        .prepare(
+          'UPDATE refresh_tokens SET revoked_at = datetime("now") WHERE user_id = ? AND revoked_at IS NULL'
+        )
+        .bind(user.sub),
     ]);
 
     return c.json({ message: 'Password changed successfully' });
-
   } catch (error) {
     console.error('Change password error:', error);
     return c.json({ error: 'Password change failed' }, 500);
