@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.22.0] - 2026-03-19
+
+### Added
+- **Delete support tickets** — owner can delete tickets (and associated notes) via trash icon in ticket detail view, with confirmation dialog
+
+### Removed
+- **Support ticket rate limit** — removed rate limiting from support POST endpoint to simplify testing and usage
+
 ## [3.21.2] - 2026-03-19
 
 ### Fixed

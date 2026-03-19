@@ -20,6 +20,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import InboxIcon from '@mui/icons-material/Inbox';
 import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 import NoteAddIcon from '@mui/icons-material/NoteAdd';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import PersonIcon from '@mui/icons-material/Person';
 import { useAppContext } from '../contexts/AppContext';
 import { formatRelativeTime } from '../utils/helpers';
@@ -180,6 +181,30 @@ const SupportTicketManager = () => {
       setNoteSubmitting(false);
     }
   }, [selectedTicketId, newNote, fetchWithAuth, fetchTicketDetail]);
+
+  const handleDeleteTicket = useCallback(async () => {
+    if (!selectedTicketId) return;
+    if (!window.confirm('Delete this ticket and all its notes?')) return;
+    try {
+      const response = await fetchWithAuth(`/api/support/${selectedTicketId}`, {
+        method: 'DELETE',
+      });
+      let data;
+      if (response && typeof response.json === 'function') {
+        data = await response.json();
+      } else {
+        data = response;
+      }
+      if (data.success) {
+        setSelectedTicketId(null);
+        setTicketDetail(null);
+        setNotes([]);
+        fetchTickets();
+      }
+    } catch {
+      // Silently fail
+    }
+  }, [selectedTicketId, fetchWithAuth, fetchTickets]);
 
   const statusCounts = useMemo(() => {
     const counts = { all: tickets.length, open: 0, 'in-progress': 0, resolved: 0 };
@@ -513,6 +538,18 @@ const SupportTicketManager = () => {
                 </Select>
               </FormControl>
               <StatusChip status={ticketDetail.status} size="medium" />
+              <Box sx={{ flex: 1 }} />
+              <IconButton
+                onClick={handleDeleteTicket}
+                size="small"
+                aria-label="Delete ticket"
+                sx={{
+                  color: '#9A9A9A',
+                  '&:hover': { color: '#D32F2F', backgroundColor: 'rgba(211, 47, 47, 0.08)' },
+                }}
+              >
+                <DeleteOutlineIcon fontSize="small" />
+              </IconButton>
             </Box>
           </Box>
 

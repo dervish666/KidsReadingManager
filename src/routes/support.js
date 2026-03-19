@@ -1,12 +1,12 @@
 import { Hono } from 'hono';
-import { rateLimit, requireOwner } from '../middleware/tenant.js';
+import { requireOwner } from '../middleware/tenant.js';
 import { generateId } from '../utils/helpers.js';
 import { sendSupportNotificationEmail } from '../utils/email.js';
 import { rowToSupportTicket, rowToSupportNote } from '../utils/rowMappers.js';
 
 const supportRouter = new Hono();
 
-supportRouter.post('/', rateLimit(5, 3600000), async (c) => {
+supportRouter.post('/', async (c) => {
   // Require authentication
   const user = c.get('user');
   if (!user) {
@@ -218,6 +218,28 @@ supportRouter.post('/:id/notes', requireOwner(), async (c) => {
   ]);
 
   return c.json({ success: true, noteId });
+});
+
+// DELETE /api/support/:id — delete ticket and its notes (owner only)
+supportRouter.delete('/:id', requireOwner(), async (c) => {
+  const db = c.env.READING_MANAGER_DB;
+  if (!db) {
+    return c.json({ error: 'Database not available' }, 500);
+  }
+
+  const ticketId = c.req.param('id');
+
+  const existing = await db.prepare('SELECT id FROM support_tickets WHERE id = ?').bind(ticketId).first();
+  if (!existing) {
+    return c.json({ error: 'Ticket not found' }, 404);
+  }
+
+  await db.batch([
+    db.prepare('DELETE FROM support_ticket_notes WHERE ticket_id = ?').bind(ticketId),
+    db.prepare('DELETE FROM support_tickets WHERE id = ?').bind(ticketId),
+  ]);
+
+  return c.json({ success: true });
 });
 
 export { supportRouter };
