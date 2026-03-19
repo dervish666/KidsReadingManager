@@ -185,7 +185,7 @@ const SettingsPage = () => {
         </Link>
       </Box>
 
-      <SupportModal open={supportOpen} onClose={() => setSupportOpen(false)} />
+      <SupportModal open={supportOpen} onClose={() => setSupportOpen(false)} currentPage="Settings" />
     </Box>
   );
 };

@@ -198,7 +198,7 @@ function AppContent() {
       >
         Skip to main content
       </a>
-      <Header />
+      <Header currentTab={currentTab} />
       <DpaConsentModal />
 
       <Container

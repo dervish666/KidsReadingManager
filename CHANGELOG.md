@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.21.2] - 2026-03-19
+
+### Fixed
+- **Support ticket page context** — use active tab name (e.g. "Students", "Stats") instead of `window.location.pathname` which is always `/` in this SPA
+
 ## [3.21.1] - 2026-03-19
 
 ### Fixed

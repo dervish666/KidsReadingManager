@@ -9,7 +9,9 @@ import packageJson from '../../package.json';
 import { useAppContext } from '../contexts/AppContext';
 import SupportModal from './SupportModal';
 
-const Header = () => {
+const TAB_NAMES = ['Students', 'School Reading', 'Home Reading', 'Stats', 'Recommend', 'Books', 'Settings'];
+
+const Header = ({ currentTab }) => {
   const {
     classes,
     globalClassFilter,
@@ -318,7 +320,7 @@ const Header = () => {
           </Box>
         )}
       </Toolbar>
-      <SupportModal open={supportOpen} onClose={() => setSupportOpen(false)} />
+      <SupportModal open={supportOpen} onClose={() => setSupportOpen(false)} currentPage={TAB_NAMES[currentTab] || 'Unknown'} />
     </AppBar>
   );
 };

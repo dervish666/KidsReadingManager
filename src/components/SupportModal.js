@@ -16,7 +16,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { useAppContext } from '../contexts/AppContext';
 
-const SupportModal = ({ open, onClose }) => {
+const SupportModal = ({ open, onClose, currentPage }) => {
   const { user, fetchWithAuth } = useAppContext();
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
@@ -36,7 +36,7 @@ const SupportModal = ({ open, onClose }) => {
         body: JSON.stringify({
           subject: subject.trim(),
           message: message.trim(),
-          pageUrl: window.location.pathname,
+          pageUrl: currentPage || 'Unknown',
         }),
       });
 
