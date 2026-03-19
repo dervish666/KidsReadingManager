@@ -6,10 +6,7 @@ import { rowToSupportTicket, rowToSupportNote } from '../utils/rowMappers.js';
 
 const supportRouter = new Hono();
 
-// Rate limit: 5 per hour per user
-supportRouter.use('/', rateLimit(5, 3600000));
-
-supportRouter.post('/', async (c) => {
+supportRouter.post('/', rateLimit(5, 3600000), async (c) => {
   // Require authentication
   const user = c.get('user');
   if (!user) {

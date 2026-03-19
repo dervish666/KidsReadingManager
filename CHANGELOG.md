@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.21.1] - 2026-03-19
+
+### Fixed
+- **Support ticket rate limit** — rate limit was applied to all HTTP methods on `/api/support` (including owner GET to list tickets), now only applies to POST submissions
+
 ## [3.21.0] - 2026-03-19
 
 ### Added
