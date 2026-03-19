@@ -321,6 +321,7 @@ ${loginUrl}
  * @param {string|null} ticket.organizationName - School name (may be null)
  * @param {string} ticket.subject - Ticket subject
  * @param {string} ticket.message - Ticket message
+ * @param {string|null} ticket.pageUrl - Page the user was on when submitting
  * @returns {Promise<{success: boolean, error?: string}>}
  */
 export async function sendSupportNotificationEmail(env, ticket) {
@@ -334,6 +335,7 @@ export async function sendSupportNotificationEmail(env, ticket) {
 Ticket ID: ${ticket.ticketId}
 From: ${ticket.userName} (${ticket.userEmail})
 School: ${ticket.organizationName || 'N/A'}
+Page: ${ticket.pageUrl || 'N/A'}
 Time: ${timestamp}
 
 Subject: ${ticket.subject}
@@ -360,6 +362,7 @@ ${ticket.message}`;
       <p style="margin: 5px 0; font-family: monospace; background: #f3f4f6; padding: 8px; border-radius: 4px;">Ticket: ${escapeHtml(ticket.ticketId)}</p>
       <p style="margin: 5px 0; font-family: monospace; background: #f3f4f6; padding: 8px; border-radius: 4px;">From: ${escapeHtml(ticket.userName)} (${escapeHtml(ticket.userEmail)})</p>
       <p style="margin: 5px 0; font-family: monospace; background: #f3f4f6; padding: 8px; border-radius: 4px;">School: ${escapeHtml(ticket.organizationName || 'N/A')}</p>
+      <p style="margin: 5px 0; font-family: monospace; background: #f3f4f6; padding: 8px; border-radius: 4px;">Page: ${escapeHtml(ticket.pageUrl || 'N/A')}</p>
       <p style="margin: 5px 0; font-family: monospace; background: #f3f4f6; padding: 8px; border-radius: 4px;">Time: ${timestamp}</p>
     </div>
 

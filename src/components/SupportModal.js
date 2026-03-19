@@ -33,7 +33,11 @@ const SupportModal = ({ open, onClose }) => {
       const response = await fetchWithAuth('/api/support', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subject: subject.trim(), message: message.trim() }),
+        body: JSON.stringify({
+          subject: subject.trim(),
+          message: message.trim(),
+          pageUrl: window.location.pathname,
+        }),
       });
 
       if (!response.ok) {

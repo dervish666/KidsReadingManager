@@ -446,6 +446,19 @@ const SupportTicketManager = () => {
                     }}
                   />
                 )}
+                {ticketDetail.pageUrl && (
+                  <Chip
+                    label={ticketDetail.pageUrl}
+                    size="small"
+                    variant="outlined"
+                    sx={{
+                      fontFamily: '"DM Sans", sans-serif',
+                      fontSize: '0.75rem',
+                      borderColor: 'rgba(0,0,0,0.12)',
+                      color: '#5A5A5A',
+                    }}
+                  />
+                )}
                 <Typography sx={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.8rem', color: '#9A9A9A' }}>
                   {formatRelativeTime(ticketDetail.createdAt)}
                 </Typography>

@@ -23,6 +23,7 @@ supportRouter.post('/', async (c) => {
 
   const subject = typeof body.subject === 'string' ? body.subject.trim() : '';
   const message = typeof body.message === 'string' ? body.message.trim() : '';
+  const pageUrl = typeof body.pageUrl === 'string' ? body.pageUrl.trim().slice(0, 500) : null;
 
   // Validate
   if (!subject) {
@@ -49,8 +50,8 @@ supportRouter.post('/', async (c) => {
 
   // Insert ticket
   await db.prepare(
-    `INSERT INTO support_tickets (id, organization_id, user_id, user_name, user_email, subject, message)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO support_tickets (id, organization_id, user_id, user_name, user_email, subject, message, page_url)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     ticketId,
     organizationId,
@@ -58,7 +59,8 @@ supportRouter.post('/', async (c) => {
     user.name || 'Unknown',
     user.email || 'unknown',
     subject,
-    message
+    message,
+    pageUrl
   ).run();
 
   // Send email notification (non-blocking — errors caught and logged)
@@ -78,6 +80,7 @@ supportRouter.post('/', async (c) => {
       organizationName,
       subject,
       message,
+      pageUrl,
     });
   } catch (error) {
     console.error('Support notification email error:', error.message);

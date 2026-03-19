@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.21.0] - 2026-03-19
+
+### Added
+- **Support ticket page context** — captures and stores the page URL the user was on when submitting a support ticket; shown in ticket detail view and notification emails
+
+### Fixed
+- **Needs attention filter** — ReadingStats now includes students with `never`, `overdue`, and `attention` statuses (was only matching `notRead` which doesn't exist)
+
 ## [3.20.1] - 2026-03-19
 
 ### Removed

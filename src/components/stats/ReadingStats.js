@@ -182,7 +182,10 @@ const ReadingStats = () => {
 
   // Get students who haven't been read with recently
   const getNeedsAttentionStudents = () => {
-    return activeStudents.filter(student => getReadingStatus(student) === 'notRead');
+    return activeStudents.filter(student => {
+      const status = getReadingStatus(student);
+      return status === 'never' || status === 'overdue' || status === 'attention';
+    });
   };
   
   const renderStatsLoading = () => (

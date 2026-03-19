@@ -155,6 +155,7 @@ export const rowToSupportTicket = (row) => {
     userEmail: row.user_email,
     subject: row.subject,
     message: row.message,
+    pageUrl: row.page_url || null,
     status: row.status,
     createdAt: row.created_at,
     updatedAt: row.updated_at || null,
