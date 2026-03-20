@@ -137,16 +137,12 @@ const ReadingTimelineChart = () => {
 
   // Get assessment color
   const getAssessmentColor = (assessment) => {
-    switch (assessment) {
-      case 'struggling':
-        return theme.palette.error.main;
-      case 'needs-help':
-        return theme.palette.warning.main;
-      case 'independent':
-        return theme.palette.success.main;
-      default:
-        return theme.palette.primary.main;
+    if (typeof assessment === 'number') {
+      if (assessment <= 3) return theme.palette.error.main;
+      if (assessment <= 6) return theme.palette.warning.main;
+      return theme.palette.success.main;
     }
+    return theme.palette.primary.main;
   };
 
   // Check if a student has a session on a specific date
@@ -319,15 +315,15 @@ const ReadingTimelineChart = () => {
           <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3, flexWrap: 'wrap', gap: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <Box sx={{ width: 12, height: 12, borderRadius: 1, bgcolor: theme.palette.success.main, mr: 1 }} />
-              <Typography variant="caption">{formatAssessmentDisplay('independent')}</Typography>
+              <Typography variant="caption">Independent (8-10)</Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <Box sx={{ width: 12, height: 12, borderRadius: 1, bgcolor: theme.palette.warning.main, mr: 1 }} />
-              <Typography variant="caption">{formatAssessmentDisplay('needs_help')}</Typography>
+              <Typography variant="caption">Moderate (4-6)</Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <Box sx={{ width: 12, height: 12, borderRadius: 1, bgcolor: theme.palette.error.main, mr: 1 }} />
-              <Typography variant="caption">{formatAssessmentDisplay('struggling')}</Typography>
+              <Typography variant="caption">Needing Help (1-3)</Typography>
             </Box>
           </Box>
         </Box>

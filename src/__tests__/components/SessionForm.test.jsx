@@ -286,25 +286,29 @@ describe('SessionForm Component', () => {
   });
 
   describe('Assessment Selector', () => {
-    it('should render all assessment options', () => {
+    it('should render assessment slider with labels', () => {
       const context = createMockContext();
       render(<SessionForm />, { wrapper: createWrapper(context) });
 
-      expect(screen.getByRole('button', { name: /needing help/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /moderate help/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /independent/i })).toBeInTheDocument();
+      // The slider starts in unset state with prompt text
+      expect(screen.getByText(/tap to set reading assessment/i)).toBeInTheDocument();
+      // Labels should be visible
+      expect(screen.getByText('Needing Help')).toBeInTheDocument();
+      expect(screen.getByText('Independent')).toBeInTheDocument();
     });
 
-    it('should allow selecting different assessments', async () => {
+    it('should activate slider when clicked', async () => {
       const context = createMockContext();
-      const user = userEvent.setup();
       render(<SessionForm />, { wrapper: createWrapper(context) });
 
-      const needingHelpBtn = screen.getByRole('button', { name: /needing help/i });
-      await user.click(needingHelpBtn);
+      // Click the unset area to activate the slider
+      const promptText = screen.getByText(/tap to set reading assessment/i);
+      fireEvent.click(promptText.closest('[class*="MuiBox"]') || promptText.parentElement);
 
-      // Button should become contained variant (selected state)
-      expect(needingHelpBtn).toHaveClass('MuiButton-contained');
+      // After clicking, the slider should become active (prompt text disappears)
+      await waitFor(() => {
+        expect(screen.getByRole('slider')).toBeInTheDocument();
+      });
     });
   });
 
@@ -399,13 +403,24 @@ describe('SessionForm Component', () => {
       await user.click(studentSelect);
       await user.click(screen.getByText('Bob Jones'));
 
+      // Set assessment by clicking the unset slider area to activate it
+      const promptText = screen.getByText(/tap to set reading assessment/i);
+      fireEvent.click(promptText.closest('[class*="MuiBox"]') || promptText.parentElement);
+
+      // Wait for slider to appear and set a value
+      await waitFor(() => {
+        expect(screen.getByRole('slider')).toBeInTheDocument();
+      });
+      const slider = screen.getByRole('slider');
+      fireEvent.change(slider, { target: { value: 7 } });
+
       // Submit the form
       const submitButton = screen.getByRole('button', { name: /save reading session/i });
       await user.click(submitButton);
 
       expect(mockAddReadingSession).toHaveBeenCalledWith('student-2', {
         date: expect.any(String),
-        assessment: 'independent',
+        assessment: expect.any(Number),
         notes: '',
         bookId: null,
         location: 'school'
@@ -423,6 +438,15 @@ describe('SessionForm Component', () => {
       await user.click(studentSelect);
       await user.click(screen.getByText('Bob Jones'));
 
+      // Set assessment by clicking the unset slider area, then setting value
+      const promptText = screen.getByText(/tap to set reading assessment/i);
+      fireEvent.click(promptText.closest('[class*="MuiBox"]') || promptText.parentElement);
+      await waitFor(() => {
+        expect(screen.getByRole('slider')).toBeInTheDocument();
+      });
+      const slider = screen.getByRole('slider');
+      fireEvent.change(slider, { target: { value: 7 } });
+
       // Select a book
       const bookInput = screen.getByLabelText(/book/i);
       await user.type(bookInput, 'Cat');
@@ -435,7 +459,7 @@ describe('SessionForm Component', () => {
 
       expect(mockAddReadingSession).toHaveBeenCalledWith('student-2', {
         date: expect.any(String),
-        assessment: 'independent',
+        assessment: expect.any(Number),
         notes: '',
         bookId: 'book-1',
         location: 'school'
@@ -453,6 +477,15 @@ describe('SessionForm Component', () => {
       await user.click(studentSelect);
       await user.click(screen.getByText('Bob Jones'));
 
+      // Set assessment by clicking the unset slider area, then setting value
+      const promptText = screen.getByText(/tap to set reading assessment/i);
+      fireEvent.click(promptText.closest('[class*="MuiBox"]') || promptText.parentElement);
+      await waitFor(() => {
+        expect(screen.getByRole('slider')).toBeInTheDocument();
+      });
+      const slider = screen.getByRole('slider');
+      fireEvent.change(slider, { target: { value: 7 } });
+
       // Change location to home
       const homeButton = screen.getByRole('button', { name: /^home$/i });
       await user.click(homeButton);
@@ -463,7 +496,7 @@ describe('SessionForm Component', () => {
 
       expect(mockAddReadingSession).toHaveBeenCalledWith('student-2', {
         date: expect.any(String),
-        assessment: 'independent',
+        assessment: expect.any(Number),
         notes: '',
         bookId: null,
         location: 'home'
@@ -476,16 +509,27 @@ describe('SessionForm Component', () => {
       const user = userEvent.setup();
       render(<SessionForm />, { wrapper: createWrapper(context) });
 
-      // Select a student and submit
+      // Select a student
       const studentSelect = screen.getByLabelText('Student');
       await user.click(studentSelect);
       await user.click(screen.getByText('Bob Jones'));
 
+      // Set assessment by clicking the unset slider area, then setting value
+      const promptText = screen.getByText(/tap to set reading assessment/i);
+      fireEvent.click(promptText.closest('[class*="MuiBox"]') || promptText.parentElement);
+      await waitFor(() => {
+        expect(screen.getByRole('slider')).toBeInTheDocument();
+      });
+      const slider = screen.getByRole('slider');
+      fireEvent.change(slider, { target: { value: 7 } });
+
       const submitButton = screen.getByRole('button', { name: /save reading session/i });
       await user.click(submitButton);
 
-      // Form should be reset (assessment back to independent)
-      expect(screen.getByRole('button', { name: /independent/i })).toHaveClass('MuiButton-contained');
+      // Form should be reset (assessment back to unset state)
+      await waitFor(() => {
+        expect(screen.getByText(/tap to set reading assessment/i)).toBeInTheDocument();
+      });
     });
 
     it('should show snackbar after successful submission', async () => {
@@ -494,10 +538,19 @@ describe('SessionForm Component', () => {
       const user = userEvent.setup();
       render(<SessionForm />, { wrapper: createWrapper(context) });
 
-      // Select a student and submit
+      // Select a student
       const studentSelect = screen.getByLabelText('Student');
       await user.click(studentSelect);
       await user.click(screen.getByText('Bob Jones'));
+
+      // Set assessment by clicking the unset slider area, then setting value
+      const promptText = screen.getByText(/tap to set reading assessment/i);
+      fireEvent.click(promptText.closest('[class*="MuiBox"]') || promptText.parentElement);
+      await waitFor(() => {
+        expect(screen.getByRole('slider')).toBeInTheDocument();
+      });
+      const slider = screen.getByRole('slider');
+      fireEvent.change(slider, { target: { value: 7 } });
 
       const submitButton = screen.getByRole('button', { name: /save reading session/i });
       await user.click(submitButton);

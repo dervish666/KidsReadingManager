@@ -121,12 +121,12 @@ const createMockContext = (overrides = {}) => ({
 // Default session data for each student (used by fetchWithAuth mock)
 const defaultStudentSessions = {
   'student-1': [
-    { id: 'session-1', bookId: 'book-1', date: '2024-06-01', assessment: 'independent' },
-    { id: 'session-2', bookId: 'book-2', date: '2024-06-02', assessment: 'guided' }
+    { id: 'session-1', bookId: 'book-1', date: '2024-06-01', assessment: 8 },
+    { id: 'session-2', bookId: 'book-2', date: '2024-06-02', assessment: 5 }
   ],
   'student-2': [],
   'student-3': [
-    { id: 'session-3', bookId: 'book-3', date: '2024-06-03', assessment: 'independent' }
+    { id: 'session-3', bookId: 'book-3', date: '2024-06-03', assessment: 8 }
   ]
 };
 

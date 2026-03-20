@@ -25,7 +25,7 @@ describe('validateStudent', () => {
         name: 'Jane Doe',
         lastReadDate: '2024-01-15',
         readingSessions: [
-          { id: '1', date: '2024-01-15', assessment: 'independent' }
+          { id: '1', date: '2024-01-15', assessment: 8 }
         ]
       });
       expect(result.isValid).toBe(true);
@@ -98,7 +98,7 @@ describe('validateStudent', () => {
     it('should reject sessions without ID', () => {
       const result = validateStudent({
         name: 'John',
-        readingSessions: [{ date: '2024-01-15', assessment: 'independent' }]
+        readingSessions: [{ date: '2024-01-15', assessment: 8 }]
       });
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Session at index 0 is missing an ID');
@@ -107,7 +107,7 @@ describe('validateStudent', () => {
     it('should reject sessions without date', () => {
       const result = validateStudent({
         name: 'John',
-        readingSessions: [{ id: '1', assessment: 'independent' }]
+        readingSessions: [{ id: '1', assessment: 8 }]
       });
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Session at index 0 is missing a date');
@@ -126,7 +126,7 @@ describe('validateStudent', () => {
         name: 'John',
         readingSessions: [
           { id: '1', date: '2024-01-15' },
-          { assessment: 'independent' }
+          { assessment: 8 }
         ]
       });
       expect(result.isValid).toBe(false);

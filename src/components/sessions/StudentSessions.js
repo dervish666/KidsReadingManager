@@ -115,33 +115,21 @@ const StudentSessions = ({ open, onClose, student: studentProp }) => {
 
   // Format assessment for display
   const formatAssessment = (assessment) => {
-    if (!assessment) return 'Not assessed';
-
-    switch (assessment) {
-      case 'struggling':
-        return 'Needing Help';
-      case 'needs-help':
-        return 'Moderate Help';
-      case 'independent':
-        return 'Independent';
-      default:
-        const formatted = assessment.replace('-', ' ');
-        return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+    if (assessment === null || assessment === undefined) return 'Not assessed';
+    if (typeof assessment === 'number' && assessment >= 1 && assessment <= 10) {
+      return `${assessment}/10`;
     }
+    return 'Not assessed';
   };
 
   // Get color for assessment
   const getAssessmentColor = (assessment) => {
-    switch (assessment) {
-      case 'struggling':
-        return 'error.main';
-      case 'needs-help':
-        return 'warning.main';
-      case 'independent':
-        return 'success.main';
-      default:
-        return 'text.primary';
+    if (typeof assessment === 'number') {
+      if (assessment <= 3) return 'error.main';
+      if (assessment <= 6) return 'warning.main';
+      return 'success.main';
     }
+    return 'text.primary';
   };
 
   // Handle edit button click

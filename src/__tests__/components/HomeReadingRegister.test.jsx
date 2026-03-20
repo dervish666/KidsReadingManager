@@ -370,7 +370,7 @@ describe('HomeReadingRegister Component', () => {
       await waitFor(() => {
         expect(mockAddReadingSession).toHaveBeenCalledWith('student-1', expect.objectContaining({
           date: getYesterday(),
-          assessment: 'independent',
+          assessment: null,
           location: 'home'
         }));
       });
@@ -568,7 +568,7 @@ describe('HomeReadingRegister Component', () => {
             studentId: 'student-1',
             date: getToday(),
             location: 'home',
-            assessment: 'independent',
+            assessment: 8,
             notes: ''
           }
         ]
@@ -598,7 +598,7 @@ describe('HomeReadingRegister Component', () => {
             studentId: 'student-1',
             date: getToday(),
             location: 'home',
-            assessment: 'independent',
+            assessment: 8,
             notes: '[COUNT:5]'
           }
         ]
@@ -630,7 +630,7 @@ describe('HomeReadingRegister Component', () => {
             studentId: 'student-1',
             date: getToday(),
             location: 'home',
-            assessment: 'independent',
+            assessment: 8,
             notes: '[ABSENT] Student was absent'
           }
         ]
@@ -662,7 +662,7 @@ describe('HomeReadingRegister Component', () => {
             studentId: 'student-1',
             date: getToday(),
             location: 'home',
-            assessment: 'independent',
+            assessment: 8,
             notes: '[NO_RECORD] No reading record received'
           }
         ]
@@ -695,7 +695,7 @@ describe('HomeReadingRegister Component', () => {
             studentId: 'student-1',
             date: getYesterday(),
             location: 'home',
-            assessment: 'independent',
+            assessment: 8,
             notes: ''
           }
         ]
@@ -726,7 +726,7 @@ describe('HomeReadingRegister Component', () => {
             studentId: 'student-1',
             date: getYesterday(),
             location: 'home',
-            assessment: 'independent',
+            assessment: 8,
             notes: ''
           }
         ]

@@ -367,7 +367,7 @@ describe('GET /api/students/sessions', () => {
         book_author_manual: null,
         pages_read: 20,
         duration_minutes: 15,
-        assessment: 'independent',
+        assessment: 8,
         notes: null,
         location: 'home',
         recorded_by: 'user-1',
@@ -415,7 +415,7 @@ describe('GET /api/students/sessions', () => {
     expect(data[0].bookAuthor).toBe('J.R.R. Tolkien');
     expect(data[0].pagesRead).toBe(20);
     expect(data[0].duration).toBe(15);
-    expect(data[0].assessment).toBe('independent');
+    expect(data[0].assessment).toBe(8);
     expect(data[0].location).toBe('home');
     expect(data[0].recordedBy).toBe('user-1');
 
