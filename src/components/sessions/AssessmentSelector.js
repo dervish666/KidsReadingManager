@@ -1,76 +1,84 @@
 import React from 'react';
-import { Box, Button, Tooltip, Stack } from '@mui/material';
-import SentimentVeryDissatisfiedIcon from '@mui/icons-material/SentimentVeryDissatisfied';
-import SentimentNeutralIcon from '@mui/icons-material/SentimentNeutral';
-import SentimentSatisfiedAltIcon from '@mui/icons-material/SentimentSatisfiedAlt';
+import { Box, Slider, Typography } from '@mui/material';
 
-const AssessmentSelector = ({ value, onChange, direction = 'row' }) => {
-  const handleChange = (newValue) => {
+const marks = Array.from({ length: 10 }, (_, i) => ({ value: i + 1 }));
+
+const AssessmentSelector = ({ value, onChange }) => {
+  const isUnset = value === null || value === undefined;
+
+  const handleChange = (event, newValue) => {
     onChange(newValue);
   };
 
-  const isVertical = direction === 'column' || direction === 'vertical';
-
   return (
-    <Box sx={{ width: '100%' }}>
-      <Stack
-        direction={isVertical ? 'column' : 'row'}
-        spacing={isVertical ? 1 : 0}
-        sx={{
-          width: '100%',
-          '& > *': { flex: isVertical ? 'none' : 1 }
-        }}
-      >
-        <Tooltip title="Needing Help - Requires additional support">
-          <Button
-            onClick={() => handleChange('struggling')}
-            color="error"
-            variant={value === 'struggling' ? 'contained' : 'outlined'}
-            startIcon={<SentimentVeryDissatisfiedIcon />}
+    <Box sx={{ width: '100%', px: 1 }}>
+      {isUnset ? (
+        <Box
+          sx={{
+            position: 'relative',
+            cursor: 'pointer',
+          }}
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const ratio = x / rect.width;
+            const val = Math.round(ratio * 9) + 1;
+            onChange(Math.max(1, Math.min(10, val)));
+          }}
+        >
+          <Typography
+            variant="caption"
             sx={{
-              py: 1.5,
-              borderRadius: isVertical ? '8px' : '8px 0 0 8px',
-              width: '100%',
-              mb: isVertical ? 0.5 : 0
+              display: 'block',
+              textAlign: 'center',
+              color: 'text.secondary',
+              mb: 0.5,
+              fontStyle: 'italic',
             }}
           >
-            Needing Help
-          </Button>
-        </Tooltip>
-
-        <Tooltip title="Moderate Help - Benefits from some guidance">
-          <Button
-            onClick={() => handleChange('needs-help')}
-            color="warning"
-            variant={value === 'needs-help' ? 'contained' : 'outlined'}
-            startIcon={<SentimentNeutralIcon />}
+            Tap to set reading assessment
+          </Typography>
+          <Slider
+            value={5}
+            min={1}
+            max={10}
+            step={1}
+            marks={marks}
+            disabled
             sx={{
-              py: 1.5,
-              borderRadius: isVertical ? '8px' : 0,
-              width: '100%',
-              mb: isVertical ? 0.5 : 0
+              '& .MuiSlider-thumb': { display: 'none' },
+              '& .MuiSlider-track': { bgcolor: 'grey.300' },
+              '& .MuiSlider-rail': { bgcolor: 'grey.200' },
+              '& .MuiSlider-mark': { bgcolor: 'grey.300' },
+              pointerEvents: 'none',
             }}
-          >
-            Moderate Help
-          </Button>
-        </Tooltip>
-
-        <Tooltip title="Independent - Strong, self-directed reader">
-          <Button
-            onClick={() => handleChange('independent')}
-            color="success"
-            variant={value === 'independent' ? 'contained' : 'outlined'}
-            startIcon={<SentimentSatisfiedAltIcon />}
-            sx={{
-              py: 1.5,
-              borderRadius: isVertical ? '8px' : '0 8px 8px 0',
-              width: '100%'
-            }}
-          >
-            Independent
-          </Button>
-        </Tooltip>
-      </Stack>
+          />
+        </Box>
+      ) : (
+        <Slider
+          value={value}
+          onChange={handleChange}
+          min={1}
+          max={10}
+          step={1}
+          marks={marks}
+          valueLabelDisplay="auto"
+          sx={{
+            '& .MuiSlider-thumb': {
+              width: 24,
+              height: 24,
+            },
+          }}
+        />
+      )}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: -0.5 }}>
+        <Typography variant="caption" color="text.secondary">
+          Needing Help
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          Independent
+        </Typography>
+      </Box>
     </Box>
   );
 };
