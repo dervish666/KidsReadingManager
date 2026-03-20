@@ -45,6 +45,16 @@ export function validateReadingLevelRange(min, max) {
 }
 
 /**
+ * Validate an assessment value (integer 1-10, or null/undefined)
+ * @param {*} value - Assessment value to validate
+ * @returns {boolean} - Whether the value is valid
+ */
+export function isValidAssessment(value) {
+  if (value === null || value === undefined) return true;
+  return Number.isInteger(value) && value >= 1 && value <= 10;
+}
+
+/**
  * Validate student data
  * @param {Object} student - Student data to validate
  * @returns {Object} - Validation result with isValid and errors
@@ -84,9 +94,6 @@ export function validateStudent(student) {
         }
         if (!session.date) {
           errors.push(`Session at index ${index} is missing a date`);
-        }
-        if (!session.assessment) {
-          errors.push(`Session at index ${index} is missing an assessment`);
         }
       });
     }

@@ -136,20 +136,15 @@ export function formatErrorResponse(message, status = 400) {
 
 /**
  * Format assessment display label from stored value
- * @param {string} assessment - Assessment value ('struggling', 'needs_help', 'independent')
- * @returns {string} - Formatted display label
+ * @param {number|null|undefined} assessment - Assessment value (integer 1-10)
+ * @returns {string|null} - Formatted display label (e.g. '7/10') or null
  */
 export function formatAssessmentDisplay(assessment) {
-  switch (assessment) {
-    case 'struggling':
-      return 'Needing Help';
-    case 'needs_help':
-      return 'Moderate Help';
-    case 'independent':
-      return 'Independent';
-    default:
-      return assessment;
+  if (assessment === null || assessment === undefined) return null;
+  if (typeof assessment === 'number' && assessment >= 1 && assessment <= 10) {
+    return `${assessment}/10`;
   }
+  return null;
 }
 
 /**

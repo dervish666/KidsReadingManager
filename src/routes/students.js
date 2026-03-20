@@ -968,9 +968,14 @@ studentsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
   if (body.notes && body.notes.length > 2000) {
     throw badRequestError('notes must be 2000 characters or fewer');
   }
-  const validAssessments = [null, undefined, '', 'independent', 'guided', 'struggled', 'read_aloud', 'not_assessed'];
-  if (body.assessment && !validAssessments.includes(body.assessment)) {
-    throw badRequestError('Invalid assessment value');
+  if (body.assessment !== null && body.assessment !== undefined && body.assessment !== '') {
+    const assessmentNum = Number(body.assessment);
+    if (!Number.isInteger(assessmentNum) || assessmentNum < 1 || assessmentNum > 10) {
+      throw badRequestError('Assessment must be an integer between 1 and 10');
+    }
+    body.assessment = assessmentNum;
+  } else {
+    body.assessment = null;
   }
   const validLocations = [null, undefined, '', 'school', 'home', 'library', 'other'];
   if (body.location && !validLocations.includes(body.location)) {
@@ -982,7 +987,7 @@ studentsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
     const db = getDB(c.env);
     const organizationId = c.get('organizationId');
     const userId = c.get('userId');
-    
+
     // Check if student exists and belongs to organization
     const student = await db.prepare(`
       SELECT id, processing_restricted FROM students WHERE id = ? AND organization_id = ? AND is_active = 1
@@ -1185,9 +1190,14 @@ studentsRouter.put('/:id/sessions/:sessionId', requireTeacher(), auditLog('updat
   if (body.notes && body.notes.length > 2000) {
     throw badRequestError('notes must be 2000 characters or fewer');
   }
-  const validAssessments = [null, undefined, '', 'independent', 'guided', 'struggled', 'read_aloud', 'not_assessed'];
-  if (body.assessment && !validAssessments.includes(body.assessment)) {
-    throw badRequestError('Invalid assessment value');
+  if (body.assessment !== null && body.assessment !== undefined && body.assessment !== '') {
+    const assessmentNum = Number(body.assessment);
+    if (!Number.isInteger(assessmentNum) || assessmentNum < 1 || assessmentNum > 10) {
+      throw badRequestError('Assessment must be an integer between 1 and 10');
+    }
+    body.assessment = assessmentNum;
+  } else {
+    body.assessment = null;
   }
   const validLocations = [null, undefined, '', 'school', 'home', 'library', 'other'];
   if (body.location && !validLocations.includes(body.location)) {

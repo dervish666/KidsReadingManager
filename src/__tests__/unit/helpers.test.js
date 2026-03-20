@@ -304,23 +304,19 @@ describe('formatSuccessResponse', () => {
 });
 
 describe('formatAssessmentDisplay', () => {
-  it('should format struggling', () => {
-    expect(formatAssessmentDisplay('struggling')).toBe('Needing Help');
+  it('should format integer assessment as N/10', () => {
+    expect(formatAssessmentDisplay(7)).toBe('7/10');
   });
-
-  it('should format needs_help', () => {
-    expect(formatAssessmentDisplay('needs_help')).toBe('Moderate Help');
+  it('should format min assessment', () => {
+    expect(formatAssessmentDisplay(1)).toBe('1/10');
   });
-
-  it('should format independent', () => {
-    expect(formatAssessmentDisplay('independent')).toBe('Independent');
+  it('should format max assessment', () => {
+    expect(formatAssessmentDisplay(10)).toBe('10/10');
   });
-
-  it('should return unknown assessments as-is', () => {
-    expect(formatAssessmentDisplay('custom')).toBe('custom');
+  it('should return null for null', () => {
+    expect(formatAssessmentDisplay(null)).toBe(null);
   });
-
-  it('should handle undefined', () => {
-    expect(formatAssessmentDisplay(undefined)).toBe(undefined);
+  it('should return null for undefined', () => {
+    expect(formatAssessmentDisplay(undefined)).toBe(null);
   });
 });

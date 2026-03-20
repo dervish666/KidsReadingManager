@@ -7,7 +7,8 @@ import {
   validateReadingLevelRange,
   validateGenre,
   validateClass,
-  validateBook
+  validateBook,
+  isValidAssessment
 } from '../../utils/validation.js';
 
 describe('validateStudent', () => {
@@ -112,13 +113,12 @@ describe('validateStudent', () => {
       expect(result.errors).toContain('Session at index 0 is missing a date');
     });
 
-    it('should reject sessions without assessment', () => {
+    it('should accept sessions without assessment', () => {
       const result = validateStudent({
         name: 'John',
         readingSessions: [{ id: '1', date: '2024-01-15' }]
       });
-      expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('Session at index 0 is missing an assessment');
+      expect(result.isValid).toBe(true);
     });
 
     it('should report errors for multiple invalid sessions', () => {
@@ -130,7 +130,6 @@ describe('validateStudent', () => {
         ]
       });
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('Session at index 0 is missing an assessment');
       expect(result.errors).toContain('Session at index 1 is missing an ID');
       expect(result.errors).toContain('Session at index 1 is missing a date');
     });
@@ -562,5 +561,31 @@ describe('validateBook', () => {
     const result = validateBook({ title: 'Test', pageCount: -1 });
     expect(result.isValid).toBe(false);
     expect(result.errors[0]).toContain('non-negative');
+  });
+});
+
+describe('isValidAssessment', () => {
+  it('should accept null', () => {
+    expect(isValidAssessment(null)).toBe(true);
+  });
+  it('should accept undefined', () => {
+    expect(isValidAssessment(undefined)).toBe(true);
+  });
+  it('should accept integers 1-10', () => {
+    for (let i = 1; i <= 10; i++) {
+      expect(isValidAssessment(i)).toBe(true);
+    }
+  });
+  it('should reject 0', () => {
+    expect(isValidAssessment(0)).toBe(false);
+  });
+  it('should reject 11', () => {
+    expect(isValidAssessment(11)).toBe(false);
+  });
+  it('should reject strings', () => {
+    expect(isValidAssessment('independent')).toBe(false);
+  });
+  it('should reject floats', () => {
+    expect(isValidAssessment(5.5)).toBe(false);
   });
 });
