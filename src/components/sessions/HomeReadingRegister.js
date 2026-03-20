@@ -67,21 +67,19 @@ const formatDateDisplay = (dateStr) => {
 
 // Format assessment for display
 const formatAssessment = (assessment) => {
-  switch (assessment) {
-    case 'struggling': return 'Needing Help';
-    case 'needs-help': return 'Moderate Help';
-    case 'independent': return 'Independent';
-    default: return null;
-  }
+  if (assessment === null || assessment === undefined) return null;
+  if (typeof assessment === 'number') return `${assessment}/10`;
+  return null;
 };
 
 const getAssessmentColor = (assessment) => {
-  switch (assessment) {
-    case 'struggling': return 'error';
-    case 'needs-help': return 'warning';
-    case 'independent': return 'success';
-    default: return 'default';
+  if (assessment === null || assessment === undefined) return 'default';
+  if (typeof assessment === 'number') {
+    if (assessment <= 3) return 'error';
+    if (assessment <= 6) return 'warning';
+    return 'success';
   }
+  return 'default';
 };
 
 const DATE_PRESETS = {
@@ -577,7 +575,7 @@ const HomeReadingRegister = () => {
       if (status === READING_STATUS.ABSENT) {
         await addReadingSession(selectedStudent.id, {
           date: selectedDate,
-          assessment: 'independent',
+          assessment: null,
           notes: '[ABSENT] Student was absent',
           bookId: null,
           location: 'home'
@@ -585,7 +583,7 @@ const HomeReadingRegister = () => {
       } else if (status === READING_STATUS.NO_RECORD) {
         await addReadingSession(selectedStudent.id, {
           date: selectedDate,
-          assessment: 'independent',
+          assessment: null,
           notes: '[NO_RECORD] No reading record received',
           bookId: null,
           location: 'home'
@@ -595,7 +593,7 @@ const HomeReadingRegister = () => {
         // This avoids race conditions with multiple API calls
         await addReadingSession(selectedStudent.id, {
           date: selectedDate,
-          assessment: 'independent',
+          assessment: null,
           notes: count > 1 ? `[COUNT:${count}]` : '',
           bookId,
           location: 'home'
