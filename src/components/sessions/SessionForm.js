@@ -40,7 +40,7 @@ const SessionForm = () => {
   const { students, addReadingSession, classes, recentlyAccessedStudents, books, globalClassFilter, settings, updateBook, genres, fetchWithAuth } = useAppContext();
 
   const [selectedStudentId, setSelectedStudentId] = useState('');
-  const [assessment, setAssessment] = useState('independent');
+  const [assessment, setAssessment] = useState(null);
   const [notes, setNotes] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -230,6 +230,11 @@ const SessionForm = () => {
       return;
     }
 
+    if (assessment === null) {
+      setError('Please set a reading assessment');
+      return;
+    }
+
     if (isCreatingBook) {
       setError('Please wait for book creation to complete');
       return;
@@ -246,7 +251,7 @@ const SessionForm = () => {
     if (result) {
       // Reset form only on success
       setNotes('');
-      setAssessment('independent');
+      setAssessment(null);
       setSelectedBookId('');
       setBookAuthor('');
       setBookReadingLevel('');
