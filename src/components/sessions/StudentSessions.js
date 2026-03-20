@@ -33,6 +33,7 @@ import WhatshotIcon from '@mui/icons-material/Whatshot';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import { useAppContext } from '../../contexts/AppContext';
 import BookAutocomplete from './BookAutocomplete';
+import AssessmentSelector from './AssessmentSelector';
 import StreakBadge from '../students/StreakBadge';
 
 const StudentSessions = ({ open, onClose, student: studentProp }) => {
@@ -512,19 +513,15 @@ const StudentSessions = ({ open, onClose, student: studentProp }) => {
               </RadioGroup>
             </FormControl>
 
-            <FormControl fullWidth margin="normal">
-              <InputLabel id="edit-assessment-label">Assessment</InputLabel>
-              <Select
-                labelId="edit-assessment-label"
+            <Box sx={{ mt: 2, mb: 1 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                Assessment
+              </Typography>
+              <AssessmentSelector
                 value={editAssessment}
-                label="Assessment"
-                onChange={(e) => setEditAssessment(e.target.value)}
-              >
-                <MenuItem value="struggling">Needing Help</MenuItem>
-                <MenuItem value="needs-help">Moderate Help</MenuItem>
-                <MenuItem value="independent">Independent</MenuItem>
-              </Select>
-            </FormControl>
+                onChange={(val) => setEditAssessment(val)}
+              />
+            </Box>
 
             <TextField
               label="Notes"
