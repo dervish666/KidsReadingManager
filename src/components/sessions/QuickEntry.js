@@ -36,7 +36,7 @@ const QuickEntry = () => {
   } = useAppContext();
   
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [assessment, setAssessment] = useState('independent');
+  const [assessment, setAssessment] = useState(null);
   const [notes, setNotes] = useState('');
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
@@ -64,7 +64,7 @@ const QuickEntry = () => {
     if (currentIndex < prioritizedStudents.length - 1) {
       setCurrentIndex(currentIndex + 1);
       // Reset assessment and notes for the next student
-      setAssessment('independent');
+      setAssessment(null);
       setNotes('');
     }
   };
@@ -73,7 +73,7 @@ const QuickEntry = () => {
     if (currentIndex > 0) {
       setCurrentIndex(currentIndex - 1);
       // Reset assessment and notes for the previous student
-      setAssessment('independent');
+      setAssessment(null);
       setNotes('');
     }
   };
@@ -88,6 +88,12 @@ const QuickEntry = () => {
   
   const handleSave = async () => {
     if (!currentStudent) return;
+
+    if (assessment === null) {
+      setSnackbarMessage('Please set a reading assessment');
+      setSnackbarOpen(true);
+      return;
+    }
 
     try {
       await addReadingSession(currentStudent.id, {
