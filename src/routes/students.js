@@ -194,7 +194,7 @@ studentsRouter.get('/', requireReadonly(), async (c) => {
 
     const result = await db.prepare(`
       SELECT s.*, c.name as class_name, b.title as current_book_title, b.author as current_book_author,
-        (SELECT COUNT(*) FROM reading_sessions rs WHERE rs.student_id = s.id) as total_session_count
+        (SELECT COUNT(*) FROM reading_sessions rs WHERE rs.student_id = s.id AND (rs.notes IS NULL OR (rs.notes NOT LIKE '%[ABSENT]%' AND rs.notes NOT LIKE '%[NO_RECORD]%'))) as total_session_count
       FROM students s
       LEFT JOIN classes c ON s.class_id = c.id
       LEFT JOIN books b ON s.current_book_id = b.id
@@ -259,6 +259,7 @@ studentsRouter.get('/sessions', requireReadonly(), async (c) => {
     LEFT JOIN books b ON rs.book_id = b.id
     WHERE s.organization_id = ?${classClause} AND s.is_active = 1
       AND rs.session_date >= ? AND rs.session_date <= ?
+      AND (rs.notes IS NULL OR (rs.notes NOT LIKE '%[ABSENT]%' AND rs.notes NOT LIKE '%[NO_RECORD]%'))
     ORDER BY rs.session_date DESC
   `).bind(...binds).all();
 
@@ -321,6 +322,8 @@ studentsRouter.get('/stats', requireReadonly(), async (c) => {
   let sessionStats = { totalSessions: 0, locationDistribution: { home: 0, school: 0 },
     weeklyActivity: { thisWeek: 0, lastWeek: 0 },
     readingByDay: { Sun: 0, Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0 }, mostReadBooks: [] };
+  // Track per-student last read date from actual sessions (excludes markers)
+  const studentLastReadMap = new Map();
 
   if (studentIds.length > 0) {
     // Aggregate sessions in SQL
@@ -334,10 +337,11 @@ studentsRouter.get('/stats', requireReadonly(), async (c) => {
         : '';
       const binds = (startDate && endDate) ? [...chunk, startDate, endDate] : [...chunk];
       const sessResult = await db.prepare(`
-        SELECT rs.session_date, rs.location, b.title as book_title
+        SELECT rs.student_id, rs.session_date, rs.location, b.title as book_title
         FROM reading_sessions rs
         LEFT JOIN books b ON rs.book_id = b.id
         WHERE rs.student_id IN (${placeholders})${dateFilter}
+          AND (rs.notes IS NULL OR (rs.notes NOT LIKE '%[ABSENT]%' AND rs.notes NOT LIKE '%[NO_RECORD]%'))
       `).bind(...binds).all();
       allSessionRows.push(...(sessResult.results || []));
     }
@@ -363,6 +367,13 @@ studentsRouter.get('/stats', requireReadonly(), async (c) => {
       }
       if (row.book_title) {
         bookCounts[row.book_title] = (bookCounts[row.book_title] || 0) + 1;
+      }
+      // Track per-student last read date from actual reading sessions
+      if (row.student_id && row.session_date) {
+        const existing = studentLastReadMap.get(row.student_id);
+        if (!existing || row.session_date > existing) {
+          studentLastReadMap.set(row.student_id, row.session_date);
+        }
       }
     }
 
@@ -402,11 +413,13 @@ studentsRouter.get('/stats', requireReadonly(), async (c) => {
   const streakLeaderboard = [];
 
   for (const s of studentList) {
-    if (!s.last_read_date) {
+    // Use actual last read date from real sessions (not markers)
+    const actualLastRead = studentLastReadMap.get(s.id) || null;
+    if (!actualLastRead) {
       statusCounts.notRead++;
       studentsWithNoSessions++;
     } else {
-      const diffDays = Math.ceil((new Date() - new Date(s.last_read_date)) / 86400000);
+      const diffDays = Math.ceil((new Date() - new Date(actualLastRead)) / 86400000);
       if (diffDays <= recentlyReadDays) statusCounts.recentlyRead++;
       else if (diffDays <= needsAttentionDays) statusCounts.needsAttention++;
       else statusCounts.notRead++;
@@ -1032,12 +1045,15 @@ studentsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
       `).bind(body.bookId, id).run();
     }
 
-    // Update student's last_read_date
+    // Update student's last_read_date (skip for absent/no-record markers)
     const sessionDate = body.date || new Date().toISOString().split('T')[0];
-    await db.prepare(`
-      UPDATE students SET last_read_date = ?, updated_at = datetime("now")
-      WHERE id = ? AND organization_id = ?
-    `).bind(sessionDate, id, organizationId).run();
+    const isMarkerSession = body.notes && (body.notes.includes('[ABSENT]') || body.notes.includes('[NO_RECORD]'));
+    if (!isMarkerSession) {
+      await db.prepare(`
+        UPDATE students SET last_read_date = MAX(COALESCE(last_read_date, ''), ?), updated_at = datetime("now")
+        WHERE id = ? AND organization_id = ?
+      `).bind(sessionDate, id, organizationId).run();
+    }
 
     // Update student's reading streak
     const streakData = await updateStudentStreak(db, id, organizationId, c.env);
@@ -1124,10 +1140,11 @@ studentsRouter.delete('/:id/sessions/:sessionId', requireTeacher(), auditLog('de
     // Recalculate student's reading streak after deletion
     await updateStudentStreak(db, id, organizationId, c.env);
 
-    // Recalculate last_read_date from remaining sessions
+    // Recalculate last_read_date from remaining sessions (excluding markers)
     await db.prepare(`
       UPDATE students SET last_read_date = (
         SELECT MAX(session_date) FROM reading_sessions WHERE student_id = ?
+          AND (notes IS NULL OR (notes NOT LIKE '%[ABSENT]%' AND notes NOT LIKE '%[NO_RECORD]%'))
       ), updated_at = datetime("now") WHERE id = ? AND organization_id = ?
     `).bind(id, id, organizationId).run();
 
@@ -1372,10 +1389,18 @@ studentsRouter.post('/recalculate-streaks', async (c) => {
     errors: []
   };
 
-  // Recalculate streak for each student
+  // Recalculate streak and fix last_read_date for each student
   for (const student of (students.results || [])) {
     try {
       await updateStudentStreak(db, student.id, organizationId, c.env);
+      // Fix last_read_date: recalculate from actual sessions (excluding markers)
+      await db.prepare(`
+        UPDATE students SET last_read_date = (
+          SELECT MAX(session_date) FROM reading_sessions
+          WHERE student_id = ?
+            AND (notes IS NULL OR (notes NOT LIKE '%[ABSENT]%' AND notes NOT LIKE '%[NO_RECORD]%'))
+        ), updated_at = datetime("now") WHERE id = ? AND organization_id = ?
+      `).bind(student.id, student.id, organizationId).run();
       results.updated++;
     } catch (error) {
       results.errors.push({ studentId: student.id, error: error.message });

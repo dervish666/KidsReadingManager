@@ -551,9 +551,9 @@ describe('GET /api/students/stats', () => {
     ];
 
     const sessionRows = [
-      { session_date: today, location: 'home', book_title: 'The Hobbit' },
-      { session_date: today, location: 'school', book_title: 'The Hobbit' },
-      { session_date: today, location: 'home', book_title: 'Dune' },
+      { student_id: 'student-1', session_date: today, location: 'home', book_title: 'The Hobbit' },
+      { student_id: 'student-1', session_date: today, location: 'school', book_title: 'The Hobbit' },
+      { student_id: 'student-2', session_date: today, location: 'home', book_title: 'Dune' },
     ];
 
     const { app } = createStatsTestApp(
@@ -598,8 +598,8 @@ describe('GET /api/students/stats', () => {
 
     // Only sessions within the requested date range should be returned by the query
     const sessionRows = [
-      { session_date: '2026-03-01', location: 'home', book_title: 'Book A' },
-      { session_date: '2026-03-02', location: 'school', book_title: 'Book B' },
+      { student_id: 'student-1', session_date: '2026-03-01', location: 'home', book_title: 'Book A' },
+      { student_id: 'student-1', session_date: '2026-03-02', location: 'school', book_title: 'Book B' },
     ];
 
     const { app, mockDB } = createStatsTestApp(

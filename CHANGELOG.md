@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.23.2] - 2026-03-21
+
+### Fixed
+- **Stats exclude ABSENT/NO_RECORD markers** — "Never Read" count, total sessions, home/school split, reading by day, weekly activity, and session frequency now correctly exclude absent and no-record markers from the home reading register
+- **`last_read_date` not set by markers** — marking a student absent or no-record no longer sets their last read date; uses `MAX()` to avoid overwriting with backdated sessions
+- **`totalSessionCount` excludes markers** — the per-student session count subquery now filters out ABSENT/NO_RECORD entries
+- **Timeline chart excludes markers** — class sessions endpoint filters out marker entries
+- **Recalculate streaks fixes `last_read_date`** — the "Update Streaks" button now also recalculates `last_read_date` from actual sessions, fixing existing data
+
 ## [3.23.1] - 2026-03-21
 
 ### Fixed

@@ -1286,9 +1286,12 @@ export const AppProvider = ({ children }) => {
         const savedSession = await response.json();
 
         // Update student summary fields (lastReadDate, currentBook, totalSessionCount)
+        // Skip for absent/no-record markers — they aren't real reading sessions
+        const isMarker = sessionPayload.notes && (sessionPayload.notes.includes('[ABSENT]') || sessionPayload.notes.includes('[NO_RECORD]'));
         setStudents((prev) =>
           prev.map((s) => {
             if (s.id !== studentId) return s;
+            if (isMarker) return s;
             const newLastRead = !s.lastReadDate || date > s.lastReadDate ? date : s.lastReadDate;
             return {
               ...s,
