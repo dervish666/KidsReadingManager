@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.23.0] - 2026-03-21
+
+### Added
+- **Assessment slider** — replaced three-button assessment selector (Needing Help / Moderate / Independent) with a 1–10 integer slider on the Reading and Quick Entry pages; assessment removed from home reading entries; database migrated from TEXT to INTEGER
+- **Home reading backfill** — multiple-read buttons (2/3/4/+) now create individual sessions on consecutive previous days instead of a single COUNT marker, fixing streak calculation
+- **Sentry error tracking** — integrated Sentry for production error monitoring
+
+### Fixed
+- **Backfill with markers** — when backfilling through days with ABSENT/NO_RECORD markers, markers keep display priority while sessions are recorded for streak calculation; catch-up count shows on the selected date
+
+### Changed
+- **Assessment data model** — assessment stored as INTEGER (1–10, nullable) instead of TEXT strings; DB migration 0037 converts existing data (struggling→2, needs-help→5, independent→9)
+
 ## [3.22.0] - 2026-03-19
 
 ### Added
