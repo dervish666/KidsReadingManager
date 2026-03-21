@@ -405,30 +405,15 @@ const HomeReadingRegister = () => {
       return { status: READING_STATUS.NO_RECORD, count: 0, sessions: homeSessions };
     }
 
-    // Calculate total count from home sessions
-    let homeCount = 0;
-    const sessionWithCount = homeSessions.find(s => s.notes?.match(/\[COUNT:(\d+)\]/));
-    if (sessionWithCount) {
-      const match = sessionWithCount.notes.match(/\[COUNT:(\d+)\]/);
-      homeCount = parseInt(match[1], 10);
-    } else if (homeSessions.length > 0) {
-      // Legacy: count actual home sessions if no COUNT marker
-      homeCount = homeSessions.length;
-    }
-
-    // Add school sessions count (each school session = 1 read)
-    const schoolCount = schoolSessions.length;
-    const totalCount = homeCount + schoolCount;
-
-    // Combine all sessions for reference
-    const allSessions = [...homeSessions, ...schoolSessions];
+    // Count actual sessions (home + school)
+    const totalCount = homeSessions.length + schoolSessions.length;
 
     if (totalCount === 0) {
       return { status: READING_STATUS.NONE, count: 0, sessions: [] };
     } else if (totalCount === 1) {
-      return { status: READING_STATUS.READ, count: 1, sessions: allSessions };
+      return { status: READING_STATUS.READ, count: 1, sessions: [...homeSessions, ...schoolSessions] };
     } else {
-      return { status: READING_STATUS.MULTIPLE, count: totalCount, sessions: allSessions };
+      return { status: READING_STATUS.MULTIPLE, count: totalCount, sessions: [...homeSessions, ...schoolSessions] };
     }
   }, [sessionsByStudent]);
 
@@ -589,20 +574,27 @@ const HomeReadingRegister = () => {
           location: 'home'
         });
       } else {
-        // Record a single session with count stored in notes
-        // This avoids race conditions with multiple API calls
-        await addReadingSession(selectedStudent.id, {
-          date: selectedDate,
-          assessment: null,
-          notes: count > 1 ? `[COUNT:${count}]` : '',
-          bookId,
-          location: 'home'
-        });
+        // Create individual sessions on consecutive days going backward
+        for (let i = 0; i < count; i++) {
+          const sessionDate = new Date(selectedDate);
+          sessionDate.setDate(sessionDate.getDate() - i);
+          const dateStr = sessionDate.toISOString().split('T')[0];
+
+          // Only clear existing home sessions on the selected date (first iteration)
+          // Previous days keep their existing sessions (layering)
+          await addReadingSession(selectedStudent.id, {
+            date: dateStr,
+            assessment: null,
+            notes: '',
+            bookId,
+            location: 'home'
+          });
+        }
       }
 
       refreshSessions();
       setHistoryRefresh(c => c + 1);
-      setSnackbarMessage(`Recorded ${count > 1 ? count + ' sessions' : ''} for ${selectedStudent.name}`);
+      setSnackbarMessage(`Recorded ${count > 1 ? count + ' days' : ''} for ${selectedStudent.name}`);
       setSnackbarSeverity('success');
       setSnackbarOpen(true);
 
@@ -1328,15 +1320,15 @@ const HomeReadingRegister = () => {
         </Paper>
       )}
 
-      {/* Multiple Count Dialog */}
+      {/* Multiple Days Dialog */}
       <Dialog open={multipleCountDialog} onClose={() => setMultipleCountDialog(false)}>
-        <DialogTitle>How many reading sessions?</DialogTitle>
+        <DialogTitle>How many days of reading?</DialogTitle>
         <DialogContent>
           <TextField
             type="number"
             value={multipleCount}
             onChange={(e) => setMultipleCount(Math.max(2, parseInt(e.target.value) || 5))}
-            inputProps={{ min: 2, max: 10 }}
+            inputProps={{ min: 2, max: 14 }}
             fullWidth
             sx={{ mt: 1 }}
           />
@@ -1344,7 +1336,7 @@ const HomeReadingRegister = () => {
         <DialogActions>
           <Button onClick={() => setMultipleCountDialog(false)}>Cancel</Button>
           <Button onClick={handleMultipleConfirm} variant="contained" color="primary">
-            Record {multipleCount} Sessions
+            Record {multipleCount} Days
           </Button>
         </DialogActions>
       </Dialog>

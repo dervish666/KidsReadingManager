@@ -432,15 +432,15 @@ describe('HomeReadingRegister Component', () => {
       // Select a student first
       await user.click(screen.getByText('Alice Smith'));
 
-      // Click the + button for custom number of sessions
+      // Click the + button for custom number of days
       const plusButton = screen.getByRole('button', { name: 'Custom number of reading sessions' });
       await user.click(plusButton);
 
       // Dialog should appear
-      expect(screen.getByText('How many reading sessions?')).toBeInTheDocument();
+      expect(screen.getByText('How many days of reading?')).toBeInTheDocument();
     });
 
-    it('should record multiple sessions directly with quick buttons', async () => {
+    it('should record backfill sessions for quick buttons', async () => {
       const mockAddReadingSession = vi.fn();
       const context = createMockContext({
         globalClassFilter: 'class-1',
@@ -452,19 +452,22 @@ describe('HomeReadingRegister Component', () => {
       // Select a student first
       await user.click(screen.getByText('Alice Smith'));
 
-      // Click the "2" quick button
+      // Click the "2" quick button — should create 2 sessions on consecutive days
       const twoButton = screen.getByRole('button', { name: 'Read 2 times' });
       await user.click(twoButton);
 
       await waitFor(() => {
+        // Should be called twice (once per day)
+        expect(mockAddReadingSession).toHaveBeenCalledTimes(2);
+        // Both calls should be home sessions with no notes
         expect(mockAddReadingSession).toHaveBeenCalledWith('student-1', expect.objectContaining({
-          notes: '[COUNT:2]',
+          notes: '',
           location: 'home'
         }));
       });
     });
 
-    it('should record custom sessions when confirming dialog', async () => {
+    it('should record custom backfill days when confirming dialog', async () => {
       const mockAddReadingSession = vi.fn();
       const context = createMockContext({
         globalClassFilter: 'class-1',
@@ -481,17 +484,15 @@ describe('HomeReadingRegister Component', () => {
       await user.click(plusButton);
 
       // The dialog should now be open with default count of 5
-      expect(screen.getByText('How many reading sessions?')).toBeInTheDocument();
+      expect(screen.getByText('How many days of reading?')).toBeInTheDocument();
 
-      // Find and click the confirm button (it shows "Record 5 Sessions" by default)
-      const confirmButton = screen.getByRole('button', { name: /record \d+ sessions/i });
+      // Find and click the confirm button (it shows "Record 5 Days" by default)
+      const confirmButton = screen.getByRole('button', { name: /record \d+ days/i });
       await user.click(confirmButton);
 
       await waitFor(() => {
-        expect(mockAddReadingSession).toHaveBeenCalledWith('student-1', expect.objectContaining({
-          notes: '[COUNT:5]',
-          location: 'home'
-        }));
+        // Should create 5 individual sessions (one per day)
+        expect(mockAddReadingSession).toHaveBeenCalledTimes(5);
       });
     });
   });
@@ -583,6 +584,7 @@ describe('HomeReadingRegister Component', () => {
     });
 
     it('should display count for students with multiple sessions', async () => {
+      const today = getToday();
       const context = createMockContext({
         globalClassFilter: 'class-1',
         students: [
@@ -593,23 +595,17 @@ describe('HomeReadingRegister Component', () => {
           }
         ],
         sessions: [
-          {
-            id: 'session-1',
-            studentId: 'student-1',
-            date: getToday(),
-            location: 'home',
-            assessment: 8,
-            notes: '[COUNT:5]'
-          }
+          { id: 'session-1', studentId: 'student-1', date: today, location: 'home', notes: '' },
+          { id: 'session-2', studentId: 'student-1', date: today, location: 'home', notes: '' },
+          { id: 'session-3', studentId: 'student-1', date: today, location: 'school', notes: '' }
         ]
       });
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
 
       // Wait for sessions to load, then check for count
       await waitFor(() => {
-        // Should display count of 5 in the status cell
-        // Using getAllByText since count appears in both status cell and total cell
-        const countElements = screen.getAllByText('5');
+        // Should display count of 3 in the status cell (2 home + 1 school)
+        const countElements = screen.getAllByText('3');
         expect(countElements.length).toBeGreaterThan(0);
       });
     });
@@ -820,7 +816,8 @@ describe('HomeReadingRegister Component', () => {
         ],
         sessions: [
           { id: 's1', studentId: 'student-1', date: getYesterday(), location: 'home', notes: '' },
-          { id: 's2', studentId: 'student-2', date: getYesterday(), location: 'home', notes: '[COUNT:2]' },
+          { id: 's2a', studentId: 'student-2', date: getYesterday(), location: 'home', notes: '' },
+          { id: 's2b', studentId: 'student-2', date: getYesterday(), location: 'home', notes: '' },
           { id: 's3', studentId: 'student-3', date: getYesterday(), location: 'home', notes: '[ABSENT]' },
           { id: 's4', studentId: 'student-4', date: getYesterday(), location: 'home', notes: '[NO_RECORD]' }
         ]
