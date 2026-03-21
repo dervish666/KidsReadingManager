@@ -586,7 +586,6 @@ const SessionForm = () => {
                   <AssessmentSelector
                     value={assessment}
                     onChange={handleAssessmentChange}
-                    direction="row"
                   />
                 </Box>
               </Box>
