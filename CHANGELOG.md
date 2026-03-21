@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.23.3] - 2026-03-21
+
+### Fixed
+- **Home reading register markers visible again** — reverted marker filter on the shared class sessions endpoint which broke ABSENT/NO_RECORD display on the register grid; moved filtering to the timeline chart client-side instead
+
 ## [3.23.2] - 2026-03-21
 
 ### Fixed

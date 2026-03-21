@@ -259,7 +259,6 @@ studentsRouter.get('/sessions', requireReadonly(), async (c) => {
     LEFT JOIN books b ON rs.book_id = b.id
     WHERE s.organization_id = ?${classClause} AND s.is_active = 1
       AND rs.session_date >= ? AND rs.session_date <= ?
-      AND (rs.notes IS NULL OR (rs.notes NOT LIKE '%[ABSENT]%' AND rs.notes NOT LIKE '%[NO_RECORD]%'))
     ORDER BY rs.session_date DESC
   `).bind(...binds).all();
 

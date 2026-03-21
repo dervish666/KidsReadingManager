@@ -103,9 +103,9 @@ const ReadingTimelineChart = () => {
 
   // Build per-student session data from fetched sessions
   const studentSessions = useMemo(() => {
-    // Group fetched sessions by studentId
+    // Group fetched sessions by studentId (exclude absent/no-record markers)
     const sessionsByStudent = new Map();
-    fetchedSessions.forEach(session => {
+    fetchedSessions.filter(s => !s.notes?.includes('[ABSENT]') && !s.notes?.includes('[NO_RECORD]')).forEach(session => {
       if (!sessionsByStudent.has(session.studentId)) {
         sessionsByStudent.set(session.studentId, []);
       }
