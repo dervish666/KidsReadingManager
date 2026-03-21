@@ -39,61 +39,80 @@ const createWrapper = (contextValue) => {
 };
 
 // Default mock context values
-const createMockContext = (overrides = {}) => ({
-  books: [
-    {
-      id: 'book-1',
-      title: 'The Cat in the Hat',
-      author: 'Dr. Seuss',
-      readingLevel: '2.5',
-      ageRange: '4-8',
-      description: 'A classic children\'s book',
-      genreIds: ['genre-1']
-    },
-    {
-      id: 'book-2',
-      title: 'Charlotte\'s Web',
-      author: 'E.B. White',
-      readingLevel: '4.5',
-      ageRange: '8-12',
-      description: 'A story about friendship',
-      genreIds: ['genre-2']
-    },
-    {
-      id: 'book-3',
-      title: 'Harry Potter',
-      author: 'J.K. Rowling',
-      readingLevel: '5.5',
-      ageRange: '10-14',
-      description: null,
-      genreIds: ['genre-1', 'genre-2']
-    },
-    {
-      id: 'book-4',
-      title: 'Unknown Book',
-      author: null,
-      readingLevel: '3.0',
-      ageRange: null,
-      description: null,
-      genreIds: []
-    }
-  ],
-  genres: [
-    { id: 'genre-1', name: 'Fiction' },
-    { id: 'genre-2', name: 'Adventure' },
-    { id: 'genre-3', name: 'Fantasy' }
-  ],
-  settings: {
-    bookMetadata: {
-      provider: 'openlibrary',
-      googleBooksApiKey: null
-    }
+const defaultBooks = [
+  {
+    id: 'book-1',
+    title: 'The Cat in the Hat',
+    author: 'Dr. Seuss',
+    readingLevel: '2.5',
+    ageRange: '4-8',
+    description: 'A classic children\'s book',
+    genreIds: ['genre-1']
   },
-  addBook: vi.fn(),
-  reloadDataFromServer: vi.fn(),
-  fetchWithAuth: vi.fn(),
-  ...overrides
-});
+  {
+    id: 'book-2',
+    title: 'Charlotte\'s Web',
+    author: 'E.B. White',
+    readingLevel: '4.5',
+    ageRange: '8-12',
+    description: 'A story about friendship',
+    genreIds: ['genre-2']
+  },
+  {
+    id: 'book-3',
+    title: 'Harry Potter',
+    author: 'J.K. Rowling',
+    readingLevel: '5.5',
+    ageRange: '10-14',
+    description: null,
+    genreIds: ['genre-1', 'genre-2']
+  },
+  {
+    id: 'book-4',
+    title: 'Unknown Book',
+    author: null,
+    readingLevel: '3.0',
+    ageRange: null,
+    description: null,
+    genreIds: []
+  }
+];
+
+const createMockContext = (overrides = {}) => {
+  const books = overrides.books || defaultBooks;
+  const booksResponse = Promise.resolve({ ok: true, json: () => Promise.resolve(books) });
+  const userFetchWithAuth = overrides.fetchWithAuth;
+
+  // Wrap any provided fetchWithAuth to also handle the initial books load
+  const fetchWithAuth = userFetchWithAuth
+    ? vi.fn().mockImplementation((url, ...args) => {
+        if (url === '/api/books?all=true') return booksResponse;
+        return userFetchWithAuth(url, ...args);
+      })
+    : vi.fn().mockImplementation((url) => {
+        if (url === '/api/books?all=true') return booksResponse;
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+      });
+
+  return {
+    books,
+    genres: [
+      { id: 'genre-1', name: 'Fiction' },
+      { id: 'genre-2', name: 'Adventure' },
+      { id: 'genre-3', name: 'Fantasy' }
+    ],
+    settings: {
+      bookMetadata: {
+        provider: 'openlibrary',
+        googleBooksApiKey: null
+      }
+    },
+    addBook: vi.fn(),
+    reloadDataFromServer: vi.fn(),
+    ...overrides,
+    fetchWithAuth,
+  };
+};
 
 // Helper to create many books for pagination testing
 const createManyBooks = (count) => {

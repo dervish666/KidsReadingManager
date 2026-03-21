@@ -37,7 +37,7 @@ import {
 } from '../../utils/bookMetadataApi';
 
 const SessionForm = () => {
-  const { students, addReadingSession, classes, recentlyAccessedStudents, books, globalClassFilter, settings, updateBook, genres, fetchWithAuth } = useAppContext();
+  const { students, addReadingSession, classes, recentlyAccessedStudents, books, globalClassFilter, settings, updateBook, fetchBookDetails, genres, fetchWithAuth } = useAppContext();
 
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [assessment, setAssessment] = useState(null);
@@ -87,15 +87,26 @@ const SessionForm = () => {
       });
   }, [selectedStudentId, fetchWithAuth, historyRefresh]);
 
-  const handleBookChange = (book) => {
+  const handleBookChange = async (book) => {
     const bookId = book ? book.id : '';
     setSelectedBookId(bookId);
 
     if (book) {
       setBookAuthor(book.author || '');
+      // Set fields from what we have immediately
       setBookReadingLevel(book.readingLevel || '');
       setBookAgeRange(book.ageRange || '');
       setBookGenres(book.genreIds || []);
+      // If minimal book (no readingLevel field), fetch full details
+      if (!('readingLevel' in book)) {
+        const fullBook = await fetchBookDetails(book.id);
+        if (fullBook) {
+          setBookAuthor(fullBook.author || '');
+          setBookReadingLevel(fullBook.readingLevel || '');
+          setBookAgeRange(fullBook.ageRange || '');
+          setBookGenres(fullBook.genreIds || []);
+        }
+      }
     } else {
       setBookAuthor('');
       setBookReadingLevel('');

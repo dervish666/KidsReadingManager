@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.23.1] - 2026-03-21
+
+### Fixed
+- **N+1 book API calls** — replaced paginated book loading (one request per page of 50) with a single minimal-fields request on page load, reducing payload by ~77% and eliminating the N+1 pattern flagged by Sentry
+- **Lazy book detail loading** — BookManager and BookMetadataSettings fetch full book data only when visited; SessionForm fetches single book details on selection
+
+### Added
+- **GET /api/books/:id** — new endpoint to fetch full details for a single book
+- **Minimal fields mode** — `GET /api/books?all=true&fields=minimal` returns only id/title/author for autocomplete use
+
 ## [3.23.0] - 2026-03-21
 
 ### Added

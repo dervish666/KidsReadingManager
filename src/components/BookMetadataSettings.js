@@ -41,7 +41,23 @@ import {
 import BookCover from './BookCover';
 
 const BookMetadataSettings = () => {
-  const { settings, updateSettings, loading, books, genres, fetchWithAuth, reloadDataFromServer, canManageUsers } = useAppContext();
+  const { settings, updateSettings, loading, books: contextBooks, genres, fetchWithAuth, reloadDataFromServer, canManageUsers } = useAppContext();
+  const [fullBooks, setFullBooks] = useState(null);
+  const books = fullBooks || contextBooks;
+
+  // Fetch full book details when component mounts (context only has minimal data)
+  useEffect(() => {
+    let cancelled = false;
+    fetchWithAuth('/api/books?all=true')
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (!cancelled && data) {
+          setFullBooks(Array.isArray(data) ? data : (data.books || []));
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [fetchWithAuth]);
   const [provider, setProvider] = useState(METADATA_PROVIDERS.OPEN_LIBRARY);
   const [googleBooksApiKey, setGoogleBooksApiKey] = useState('');
   const [hardcoverApiKey, setHardcoverApiKey] = useState('');

@@ -38,6 +38,8 @@ booksRouter.use('/import/*', bodyLimit({ maxSize: 5 * 1024 * 1024 }));
  * - page: Page number (1-based, optional)
  * - pageSize: Items per page (default 50, optional)
  * - search: Search query for title/author (optional)
+ * - all: If 'true', return all books without pagination (for initial context load)
+ * - fields: If 'minimal', return only id/title/author (use with all=true for autocomplete)
  *
  * Requires authentication (at least readonly access)
  */
@@ -45,10 +47,25 @@ booksRouter.get('/', requireReadonly(), async (c) => {
   const provider = await createProvider(c.env);
   const organizationId = c.get('organizationId');
   const db = c.env.READING_MANAGER_DB;
-  const { page, pageSize, search } = c.req.query();
+  const { page, pageSize, search, all, fields } = c.req.query();
 
   // In multi-tenant mode, always scope to organization's books
   if (organizationId && db) {
+    // Return minimal book list for autocomplete (avoids N+1 paginated fetches)
+    if (all === 'true') {
+      const columns = fields === 'minimal' ? 'b.id, b.title, b.author' : 'b.*';
+      const result = await db.prepare(`
+        SELECT ${columns} FROM books b
+        INNER JOIN org_book_selections obs ON b.id = obs.book_id
+        WHERE obs.organization_id = ? AND obs.is_available = 1
+        ORDER BY b.title
+      `).bind(organizationId).all();
+      if (fields === 'minimal') {
+        return c.json((result.results || []).map(r => ({ id: r.id, title: r.title, author: r.author })));
+      }
+      return c.json((result.results || []).map(rowToBook));
+    }
+
     // Search with org scoping using FTS5 for performance
     if (search && search.trim()) {
       const limit = pageSize ? parseInt(pageSize, 10) : 50;
@@ -808,6 +825,37 @@ booksRouter.post('/scan', requireTeacher(), async (c) => {
   }
 
   return c.json({ action: 'created', book: savedBook }, 201);
+});
+
+/**
+ * GET /api/books/:id
+ * Get a single book by ID (full details)
+ *
+ * Requires authentication (at least readonly access)
+ */
+booksRouter.get('/:id', requireReadonly(), async (c) => {
+  const { id } = c.req.param();
+  const organizationId = c.get('organizationId');
+  const db = c.env.READING_MANAGER_DB;
+
+  let book;
+  if (organizationId && db) {
+    const row = await db.prepare(
+      `SELECT b.* FROM books b
+       INNER JOIN org_book_selections obs ON obs.book_id = b.id
+       WHERE b.id = ? AND obs.organization_id = ?`
+    ).bind(id, organizationId).first();
+    book = row ? rowToBook(row) : null;
+  } else {
+    const provider = await createProvider(c.env);
+    book = await provider.getBookById(id);
+  }
+
+  if (!book) {
+    throw notFoundError(`Book with ID ${id} not found`);
+  }
+
+  return c.json(book);
 });
 
 /**

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -50,7 +50,24 @@ import ScanBookFlow from './ScanBookFlow';
 import BookCover from '../BookCover';
 
 const BookManager = () => {
-  const { books, genres, addBook, reloadDataFromServer, fetchWithAuth, settings } = useAppContext();
+  const { books: contextBooks, genres, addBook, reloadDataFromServer, fetchWithAuth, settings } = useAppContext();
+  const [fullBooks, setFullBooks] = useState(null);
+  const books = fullBooks || contextBooks;
+
+  // Fetch full book details when BookManager mounts (context only has minimal data)
+  useEffect(() => {
+    let cancelled = false;
+    fetchWithAuth('/api/books?all=true')
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (!cancelled && data) {
+          setFullBooks(Array.isArray(data) ? data : (data.books || []));
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [fetchWithAuth]);
+
   const [newBookTitle, setNewBookTitle] = useState('');
   const [newBookAuthor, setNewBookAuthor] = useState('');
   const [newBookReadingLevel, setNewBookReadingLevel] = useState('');
