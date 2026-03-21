@@ -393,29 +393,19 @@ const HomeReadingRegister = () => {
       return { status: READING_STATUS.NONE, count: 0, sessions: [] };
     }
 
-    // Separate marker sessions from actual read sessions
-    const markerSessions = homeSessions.filter(s =>
-      s.notes?.includes('[ABSENT]') || s.notes?.includes('[NO_RECORD]')
-    );
-    const readHomeSessions = homeSessions.filter(s =>
-      !s.notes?.includes('[ABSENT]') && !s.notes?.includes('[NO_RECORD]')
-    );
-
-    // Count actual read sessions (non-marker home + school)
-    const totalCount = readHomeSessions.length + schoolSessions.length;
-
-    // If there are read sessions, they take priority over markers (backfill case)
-    // If there are only markers and no reads, show the marker status
-    if (totalCount === 0) {
-      const absentSession = markerSessions.find(s => s.notes?.includes('[ABSENT]'));
-      if (absentSession) {
-        return { status: READING_STATUS.ABSENT, count: 0, sessions: homeSessions };
-      }
-      const noRecordSession = markerSessions.find(s => s.notes?.includes('[NO_RECORD]'));
-      if (noRecordSession) {
-        return { status: READING_STATUS.NO_RECORD, count: 0, sessions: homeSessions };
-      }
+    // Markers (ABSENT/NO_RECORD) always take display priority
+    const absentSession = homeSessions.find(s => s.notes?.includes('[ABSENT]'));
+    if (absentSession) {
+      return { status: READING_STATUS.ABSENT, count: 0, sessions: homeSessions };
     }
+
+    const noRecordSession = homeSessions.find(s => s.notes?.includes('[NO_RECORD]'));
+    if (noRecordSession) {
+      return { status: READING_STATUS.NO_RECORD, count: 0, sessions: homeSessions };
+    }
+
+    // Count actual sessions (home + school)
+    const totalCount = homeSessions.length + schoolSessions.length;
 
     if (totalCount === 0) {
       return { status: READING_STATUS.NONE, count: 0, sessions: [] };
@@ -583,21 +573,51 @@ const HomeReadingRegister = () => {
           location: 'home'
         });
       } else {
-        // Create individual sessions on consecutive days going backward
+        // Create individual sessions on consecutive days going backward.
+        // If a previous day has an ABSENT or NO_RECORD marker, create that
+        // session on the selected date instead (so the marker stays visible
+        // and the selected date shows the catch-up count).
+        // Sessions are also created on the actual day for streak calculation.
+        const studentSessions = sessionsByStudent[selectedStudent.id] || [];
+
         for (let i = 0; i < count; i++) {
           const sessionDate = new Date(selectedDate);
           sessionDate.setDate(sessionDate.getDate() - i);
           const dateStr = sessionDate.toISOString().split('T')[0];
 
-          // Only clear existing home sessions on the selected date (first iteration)
-          // Previous days keep their existing sessions (layering)
-          await addReadingSession(selectedStudent.id, {
-            date: dateStr,
-            assessment: null,
-            notes: '',
-            bookId,
-            location: 'home'
-          });
+          // Check if this day has a marker
+          const dayHasMarker = i > 0 && studentSessions.some(
+            s => s.date === dateStr && s.location === 'home' &&
+              (s.notes?.includes('[ABSENT]') || s.notes?.includes('[NO_RECORD]'))
+          );
+
+          if (dayHasMarker) {
+            // Create session on the actual day (for streak calculation)
+            await addReadingSession(selectedStudent.id, {
+              date: dateStr,
+              assessment: null,
+              notes: '',
+              bookId,
+              location: 'home'
+            });
+            // Also create session on the selected date (for display count)
+            await addReadingSession(selectedStudent.id, {
+              date: selectedDate,
+              assessment: null,
+              notes: '',
+              bookId,
+              location: 'home'
+            });
+          } else {
+            // Normal day — create session on that day
+            await addReadingSession(selectedStudent.id, {
+              date: dateStr,
+              assessment: null,
+              notes: '',
+              bookId,
+              location: 'home'
+            });
+          }
         }
       }
 
@@ -728,6 +748,7 @@ const HomeReadingRegister = () => {
 
   const getStudentTotalInRange = useCallback((student) => {
     let total = 0;
+    const studentSessions = sessionsByStudent[student.id] || [];
     dates.forEach(date => {
       const dateStr = formatDateISO(date);
       const { status, count } = getStudentReadingStatus(student, dateStr);
@@ -735,10 +756,17 @@ const HomeReadingRegister = () => {
         total += 1;
       } else if (status === READING_STATUS.MULTIPLE) {
         total += count;
+      } else if (status === READING_STATUS.ABSENT || status === READING_STATUS.NO_RECORD) {
+        // Count any real read sessions hidden behind markers
+        const readSessions = studentSessions.filter(
+          s => s.date === dateStr &&
+            !s.notes?.includes('[ABSENT]') && !s.notes?.includes('[NO_RECORD]')
+        );
+        total += readSessions.length;
       }
     });
     return total;
-  }, [dates, getStudentReadingStatus]);
+  }, [dates, getStudentReadingStatus, sessionsByStudent]);
 
   return (
     <Box>
