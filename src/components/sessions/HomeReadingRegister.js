@@ -393,20 +393,29 @@ const HomeReadingRegister = () => {
       return { status: READING_STATUS.NONE, count: 0, sessions: [] };
     }
 
-    // Check for absent marker in home sessions - this takes priority
-    const absentSession = homeSessions.find(s => s.notes?.includes('[ABSENT]'));
-    if (absentSession) {
-      return { status: READING_STATUS.ABSENT, count: 0, sessions: homeSessions };
-    }
+    // Separate marker sessions from actual read sessions
+    const markerSessions = homeSessions.filter(s =>
+      s.notes?.includes('[ABSENT]') || s.notes?.includes('[NO_RECORD]')
+    );
+    const readHomeSessions = homeSessions.filter(s =>
+      !s.notes?.includes('[ABSENT]') && !s.notes?.includes('[NO_RECORD]')
+    );
 
-    // Check for no record marker in home sessions
-    const noRecordSession = homeSessions.find(s => s.notes?.includes('[NO_RECORD]'));
-    if (noRecordSession) {
-      return { status: READING_STATUS.NO_RECORD, count: 0, sessions: homeSessions };
-    }
+    // Count actual read sessions (non-marker home + school)
+    const totalCount = readHomeSessions.length + schoolSessions.length;
 
-    // Count actual sessions (home + school)
-    const totalCount = homeSessions.length + schoolSessions.length;
+    // If there are read sessions, they take priority over markers (backfill case)
+    // If there are only markers and no reads, show the marker status
+    if (totalCount === 0) {
+      const absentSession = markerSessions.find(s => s.notes?.includes('[ABSENT]'));
+      if (absentSession) {
+        return { status: READING_STATUS.ABSENT, count: 0, sessions: homeSessions };
+      }
+      const noRecordSession = markerSessions.find(s => s.notes?.includes('[NO_RECORD]'));
+      if (noRecordSession) {
+        return { status: READING_STATUS.NO_RECORD, count: 0, sessions: homeSessions };
+      }
+    }
 
     if (totalCount === 0) {
       return { status: READING_STATUS.NONE, count: 0, sessions: [] };
