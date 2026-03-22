@@ -35,8 +35,8 @@ export async function syncUserClassAssignments(db, userId, wondeEmployeeId, orgI
       'INSERT OR IGNORE INTO class_assignments (id, class_id, user_id, created_at) VALUES (?, ?, ?, datetime("now"))'
     ).bind(crypto.randomUUID(), row.class_id, userId)
   );
-  if (statements.length > 0) {
-    await db.batch(statements);
+  for (let i = 0; i < statements.length; i += 100) {
+    await db.batch(statements.slice(i, i + 100));
   }
 
   return results.length;

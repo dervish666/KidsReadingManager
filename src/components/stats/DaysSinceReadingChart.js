@@ -57,7 +57,7 @@ const DaysSinceReadingChart = () => {
     });
   };
   
-  const studentData = calculateDaysSinceReading();
+  const studentData = useMemo(() => calculateDaysSinceReading(), [activeStudents]);
   
   // Find the maximum days for scaling the bars
   const maxDays = Math.max(

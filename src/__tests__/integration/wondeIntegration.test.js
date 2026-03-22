@@ -317,7 +317,7 @@ describe('Wonde + MyLogin Integration', () => {
       // Response is successful
       expect(res.status).toBe(200);
       expect(json.success).toBe(true);
-      expect(json.organizationId).toBeDefined();
+      expect(json.success).toBe(true);
 
       // Token was encrypted
       expect(encryptSensitiveData).toHaveBeenCalledWith(
@@ -575,12 +575,13 @@ describe('Wonde + MyLogin Integration', () => {
       const webhookJson = await webhookRes.json();
       expect(webhookRes.status).toBe(200);
       expect(webhookJson.success).toBe(true);
-      const createdOrgId = webhookJson.organizationId;
-      expect(createdOrgId).toBeDefined();
 
       // Verify org was created and sync triggered
       expect(encryptSensitiveData).toHaveBeenCalled();
       expect(runFullSync).toHaveBeenCalledTimes(1);
+      // Get the org ID from the runFullSync call (first argument)
+      const createdOrgId = runFullSync.mock.calls[0][0];
+      expect(createdOrgId).toBeDefined();
 
       vi.clearAllMocks();
 

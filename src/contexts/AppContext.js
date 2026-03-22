@@ -7,7 +7,6 @@ import React, {
   useCallback,
   useRef,
 } from 'react';
-import { v4 as uuidv4 } from 'uuid';
 
 // Create context
 const AppContext = createContext();
@@ -846,7 +845,7 @@ export const AppProvider = ({ children }) => {
   const addStudent = useCallback(
     async (name, classId = null) => {
       const newStudent = {
-        id: uuidv4(),
+        id: crypto.randomUUID(),
         name,
         lastReadDate: null,
         totalSessionCount: 0,
@@ -891,7 +890,7 @@ export const AppProvider = ({ children }) => {
       const normalizedClassId = classId && classId.trim() !== '' ? classId : null;
 
       const newStudents = names.map((name) => ({
-        id: uuidv4(),
+        id: crypto.randomUUID(),
         name: name.trim(),
         classId: normalizedClassId,
         lastReadDate: null,
@@ -1177,7 +1176,7 @@ export const AppProvider = ({ children }) => {
   const addBook = useCallback(
     async (title, author = null) => {
       const newBook = {
-        id: uuidv4(),
+        id: crypto.randomUUID(),
         title,
         author,
         genreIds: [],
@@ -1443,7 +1442,7 @@ export const AppProvider = ({ children }) => {
   const addGenre = useCallback(
     async (genreData) => {
       const newGenre = {
-        id: uuidv4(),
+        id: crypto.randomUUID(),
         name: genreData.name,
         isPredefined: false,
       };
@@ -1480,7 +1479,7 @@ export const AppProvider = ({ children }) => {
   const addClass = useCallback(
     async (classData) => {
       const newClass = {
-        id: uuidv4(),
+        id: crypto.randomUUID(),
         name: classData.name,
         teacherName: classData.teacherName || '',
         disabled: false,

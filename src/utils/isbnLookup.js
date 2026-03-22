@@ -98,9 +98,11 @@ export async function lookupISBN(isbn, env) {
     headers: { 'User-Agent': USER_AGENT },
   };
 
-  const response = await fetch(
+  const { fetchWithTimeout } = await import('./helpers.js');
+  const response = await fetchWithTimeout(
     `https://openlibrary.org/isbn/${normalized}.json`,
-    fetchOptions
+    fetchOptions,
+    5000
   );
 
   if (!response.ok) {
@@ -125,9 +127,10 @@ export async function lookupISBN(isbn, env) {
   try {
     if (olData.authors && olData.authors.length > 0) {
       const authorKey = olData.authors[0].key;
-      const authorResponse = await fetch(
+      const authorResponse = await fetchWithTimeout(
         `https://openlibrary.org${authorKey}.json`,
-        fetchOptions
+        fetchOptions,
+        5000
       );
       if (authorResponse.ok) {
         const authorData = await authorResponse.json();

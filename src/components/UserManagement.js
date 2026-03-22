@@ -75,9 +75,33 @@ const UserManagement = () => {
   const [classesLoading, setClassesLoading] = useState(false);
 
   useEffect(() => {
-    fetchUsers();
-    fetchOrganizations();
-  }, []);
+    const loadData = async () => {
+      try {
+        const response = await fetchWithAuth('/api/users');
+        if (response && typeof response.json === 'function') {
+          const data = await response.json();
+          setUsers(data.users || data || []);
+        } else {
+          setUsers(response.users || response || []);
+        }
+      } catch (err) {
+        setError(err.message || 'Failed to load users');
+      }
+
+      try {
+        const response = await fetchWithAuth('/api/organization/all');
+        if (response && typeof response.json === 'function') {
+          const data = await response.json();
+          setOrganizations(data.organizations || []);
+        } else {
+          setOrganizations(response.organizations || []);
+        }
+      } catch {
+        // Non-critical
+      }
+    };
+    loadData();
+  }, [fetchWithAuth]);
 
   const fetchOrganizations = async () => {
     try {
@@ -136,7 +160,7 @@ const UserManagement = () => {
 
     setLoading(true);
     try {
-      const data = await fetchWithAuth('/api/users', {
+      const response = await fetchWithAuth('/api/users', {
         method: 'POST',
         body: JSON.stringify({
           name: formData.name,
@@ -145,6 +169,14 @@ const UserManagement = () => {
           role: formData.role
         }),
       });
+
+      // fetchWithAuth returns a Response object — check status
+      if (response && typeof response.json === 'function') {
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || `Registration failed (${response.status})`);
+        }
+      }
 
       setSuccess('User registered successfully');
       setAddDialogOpen(false);

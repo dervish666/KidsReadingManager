@@ -4,7 +4,7 @@
  */
 
 import { Hono } from 'hono';
-import { requireOwner, requireAdmin, auditLog } from '../middleware/tenant.js';
+import { requireOwner, requireAdmin, requireReadonly, auditLog } from '../middleware/tenant.js';
 import { encryptSensitiveData } from '../utils/crypto.js';
 import { requireDB as getDB } from '../utils/routeHelpers.js';
 import { rowToOrganization } from '../utils/rowMappers.js';
@@ -15,7 +15,7 @@ export const organizationRouter = new Hono();
  * GET /api/organization
  * Get current organization details
  */
-organizationRouter.get('/', async (c) => {
+organizationRouter.get('/', requireReadonly(), async (c) => {
   try {
     const db = getDB(c.env);
     const organizationId = c.get('organizationId');
@@ -92,7 +92,7 @@ organizationRouter.get('/all', requireAdmin(), async (c) => {
  * GET /api/organization/stats
  * Get organization usage statistics
  */
-organizationRouter.get('/stats', async (c) => {
+organizationRouter.get('/stats', requireReadonly(), async (c) => {
   try {
     const db = getDB(c.env);
     const organizationId = c.get('organizationId');
@@ -146,7 +146,7 @@ organizationRouter.get('/stats', async (c) => {
  * GET /api/organization/settings
  * Get all organization settings
  */
-organizationRouter.get('/settings', async (c) => {
+organizationRouter.get('/settings', requireReadonly(), async (c) => {
   try {
     const db = getDB(c.env);
     const organizationId = c.get('organizationId');
@@ -255,7 +255,7 @@ organizationRouter.put('/settings', requireAdmin(), auditLog('update', 'settings
  * GET /api/organization/ai-config
  * Get AI configuration (without exposing API key)
  */
-organizationRouter.get('/ai-config', async (c) => {
+organizationRouter.get('/ai-config', requireReadonly(), async (c) => {
   try {
     const db = getDB(c.env);
     const organizationId = c.get('organizationId');
@@ -304,111 +304,10 @@ organizationRouter.get('/ai-config', async (c) => {
  * }
  */
 organizationRouter.put('/ai-config', requireAdmin(), auditLog('update', 'ai-config'), async (c) => {
-  try {
-    const db = getDB(c.env);
-    const organizationId = c.get('organizationId');
-    const userId = c.get('userId');
-    const body = await c.req.json();
-
-    const { provider, apiKey, modelPreference, isEnabled } = body;
-
-    // Validate provider
-    const validProviders = ['anthropic', 'openai', 'google'];
-    if (provider && !validProviders.includes(provider)) {
-      return c.json({ error: 'Invalid AI provider' }, 400);
-    }
-
-    // Check if config exists
-    const existing = await db
-      .prepare(
-        `
-      SELECT id FROM org_ai_config WHERE organization_id = ?
-    `
-      )
-      .bind(organizationId)
-      .first();
-
-    if (existing) {
-      // Update existing config
-      const updates = [];
-      const params = [];
-
-      if (provider !== undefined) {
-        updates.push('provider = ?');
-        params.push(provider);
-      }
-
-      if (apiKey !== undefined) {
-        // Encrypt the API key before storing
-        const jwtSecret = c.env.JWT_SECRET;
-        if (!jwtSecret) {
-          return c.json({ error: 'Server configuration error - encryption not available' }, 500);
-        }
-        const encryptedApiKey = await encryptSensitiveData(apiKey, jwtSecret);
-        updates.push('api_key_encrypted = ?');
-        params.push(encryptedApiKey);
-      }
-
-      if (modelPreference !== undefined) {
-        updates.push('model_preference = ?');
-        params.push(modelPreference);
-      }
-
-      if (isEnabled !== undefined) {
-        updates.push('is_enabled = ?');
-        params.push(isEnabled ? 1 : 0);
-      }
-
-      if (updates.length > 0) {
-        updates.push('updated_by = ?');
-        params.push(userId);
-        updates.push('updated_at = datetime("now")');
-        params.push(organizationId);
-
-        await db
-          .prepare(
-            `
-          UPDATE org_ai_config SET ${updates.join(', ')} WHERE organization_id = ?
-        `
-          )
-          .bind(...params)
-          .run();
-      }
-    } else {
-      // Create new config
-      let encryptedApiKey = null;
-      if (apiKey) {
-        const jwtSecret = c.env.JWT_SECRET;
-        if (!jwtSecret) {
-          return c.json({ error: 'Server configuration error - encryption not available' }, 500);
-        }
-        encryptedApiKey = await encryptSensitiveData(apiKey, jwtSecret);
-      }
-
-      await db
-        .prepare(
-          `
-        INSERT INTO org_ai_config (id, organization_id, provider, api_key_encrypted, model_preference, is_enabled, updated_by)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `
-        )
-        .bind(
-          crypto.randomUUID(),
-          organizationId,
-          provider || 'anthropic',
-          encryptedApiKey,
-          modelPreference || null,
-          isEnabled ? 1 : 0,
-          userId
-        )
-        .run();
-    }
-
-    return c.json({ message: 'AI configuration updated successfully' });
-  } catch (error) {
-    console.error('Update AI config error:', error);
-    return c.json({ error: 'Failed to update AI configuration' }, 500);
-  }
+  // Delegate to the shared implementation in settings.js
+  // This endpoint is kept for backward compatibility but uses the same logic
+  const { upsertAiConfig } = await import('./settings.js');
+  return upsertAiConfig(c);
 });
 
 /**

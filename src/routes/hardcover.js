@@ -54,6 +54,13 @@ hardcoverRouter.post('/graphql', requireTeacher(), async (c) => {
     return c.json({ error: 'GraphQL query is required' }, 400);
   }
 
+  // Only allow read-only queries — reject mutations and subscriptions
+  const trimmed = query.replace(/^[\s\n]+/, '');
+  if (/^(mutation|subscription)\b/i.test(trimmed)) {
+    return c.json({ error: 'Only read-only GraphQL queries are allowed' }, 400);
+  }
+
+  let data;
   const response = await fetch(HARDCOVER_GRAPHQL_URL, {
     method: 'POST',
     headers: {
@@ -63,7 +70,11 @@ hardcoverRouter.post('/graphql', requireTeacher(), async (c) => {
     body: JSON.stringify({ query, variables })
   });
 
-  const data = await response.json();
+  try {
+    data = await response.json();
+  } catch {
+    return c.json({ error: 'Invalid response from Hardcover API' }, 502);
+  }
   return c.json(data, response.status);
 });
 

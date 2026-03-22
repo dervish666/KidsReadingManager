@@ -105,7 +105,7 @@ genresRouter.post('/', requireAdmin(), async (c) => {
       throw forbiddenError();
     }
 
-    const genreId = body.id || generateId();
+    const genreId = generateId();
     
     // Check if genre name already exists
     const existing = await db.prepare(`

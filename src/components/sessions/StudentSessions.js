@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -70,10 +70,13 @@ const StudentSessions = ({ open, onClose, student: studentProp }) => {
     }
   }, [open, student?.id, refreshSessions]);
 
+  // Build a lookup map for O(1) book access
+  const booksMap = useMemo(() => new Map(books.map(b => [b.id, b])), [books]);
+
   // Helper function to get book display info
   const getBookInfo = (bookId) => {
     if (!bookId) return null;
-    const book = books.find(b => b.id === bookId);
+    const book = booksMap.get(bookId);
     return book ? {
       title: book.title,
       author: book.author || 'Unknown Author'

@@ -27,6 +27,7 @@ export async function generateCacheKey(inputs) {
     readingLevelMax: inputs.readingLevelMax ?? '',
     readingLevelMin: inputs.readingLevelMin ?? '',
     recentBookIds: (inputs.recentBookIds || []).slice().sort(),
+    studentId: inputs.studentId || '',
   });
 
   const data = new TextEncoder().encode(normalised);

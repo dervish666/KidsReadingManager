@@ -96,9 +96,12 @@ authRouter.post('/register', async (c) => {
       return c.json({ error: 'Invalid email format' }, 400);
     }
 
-    // Validate password strength (8+ chars, uppercase, lowercase, number)
+    // Validate password strength (8–128 chars, uppercase, lowercase, number)
     if (password.length < 8) {
       return c.json({ error: 'Password must be at least 8 characters' }, 400);
+    }
+    if (password.length > 128) {
+      return c.json({ error: 'Password must be 128 characters or fewer' }, 400);
     }
     if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
       return c.json(
@@ -238,10 +241,10 @@ async function isAccountLocked(db, email) {
         `
       SELECT COUNT(*) as count FROM login_attempts
       WHERE email = ? AND success = 0
-      AND created_at > datetime('now', '-${LOCKOUT_DURATION_MINUTES} minutes')
+      AND created_at > datetime('now', ?)
     `
       )
-      .bind(email.toLowerCase())
+      .bind(email.toLowerCase(), `-${LOCKOUT_DURATION_MINUTES} minutes`)
       .first();
 
     return result && result.count >= MAX_LOGIN_ATTEMPTS;
@@ -522,6 +525,24 @@ authRouter.post('/refresh', async (c) => {
       .first();
 
     if (!storedToken) {
+      // Check if this is a revoked token (reuse detection)
+      const revokedToken = await db
+        .prepare(
+          `SELECT rt.user_id FROM refresh_tokens rt
+           WHERE rt.token_hash = ? AND rt.revoked_at IS NOT NULL`
+        )
+        .bind(tokenHash)
+        .first();
+
+      if (revokedToken) {
+        // Token reuse detected — revoke ALL tokens for this user (theft indicator)
+        console.warn(`[Auth] Refresh token reuse detected for user ${revokedToken.user_id} — revoking all tokens`);
+        await db
+          .prepare('UPDATE refresh_tokens SET revoked_at = datetime("now") WHERE user_id = ? AND revoked_at IS NULL')
+          .bind(revokedToken.user_id)
+          .run();
+      }
+
       return c.json({ error: 'Invalid refresh token' }, 401);
     }
 
@@ -777,9 +798,12 @@ authRouter.post('/reset-password', async (c) => {
       return c.json({ error: 'Token and password required' }, 400);
     }
 
-    // Validate password strength (8+ chars, uppercase, lowercase, number)
+    // Validate password strength (8–128 chars, uppercase, lowercase, number)
     if (password.length < 8) {
       return c.json({ error: 'Password must be at least 8 characters' }, 400);
+    }
+    if (password.length > 128) {
+      return c.json({ error: 'Password must be 128 characters or fewer' }, 400);
     }
     if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
       return c.json(

@@ -53,8 +53,22 @@ const SchoolManagement = () => {
   const [schoolToDelete, setSchoolToDelete] = useState(null);
 
   useEffect(() => {
-    fetchSchools();
-  }, []);
+    const loadSchools = async () => {
+      try {
+        const response = await fetchWithAuth('/api/organization/all');
+        if (response && typeof response.json === 'function') {
+          const data = await response.json();
+          setSchools(data.organizations || []);
+        } else {
+          setSchools(response.organizations || []);
+        }
+      } catch (err) {
+        console.error('Error fetching schools:', err);
+        setError('Failed to load schools');
+      }
+    };
+    loadSchools();
+  }, [fetchWithAuth]);
 
   const fetchSchools = async () => {
     try {

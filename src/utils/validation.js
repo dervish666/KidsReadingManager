@@ -120,11 +120,20 @@ export function validateSettings(settings) {
     return { isValid: false, errors: ['Settings data is required'] };
   }
 
-  // Reject prototype pollution keys
-  for (const key of Object.keys(settings)) {
-    if (DANGEROUS_KEYS.has(key)) {
-      return { isValid: false, errors: [`Invalid settings key: ${key}`] };
+  // Reject prototype pollution keys (recursively check nested objects)
+  const hasDangerousKeys = (obj) => {
+    for (const [key, value] of Object.entries(obj)) {
+      if (DANGEROUS_KEYS.has(key)) return key;
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        const found = hasDangerousKeys(value);
+        if (found) return found;
+      }
     }
+    return null;
+  };
+  const dangerousKey = hasDangerousKeys(settings);
+  if (dangerousKey) {
+    return { isValid: false, errors: [`Invalid settings key: ${dangerousKey}`] };
   }
   
   // Validate reading status settings if provided

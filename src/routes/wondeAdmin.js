@@ -24,7 +24,15 @@ wondeAdminRouter.post('/sync', requireAdmin(), async (c) => {
   }
 
   // Decrypt school token
-  const schoolToken = await decryptSensitiveData(org.wonde_school_token, c.env.JWT_SECRET);
+  if (!c.env.JWT_SECRET) {
+    return c.json({ error: 'Server encryption not configured' }, 500);
+  }
+  let schoolToken;
+  try {
+    schoolToken = await decryptSensitiveData(org.wonde_school_token, c.env.JWT_SECRET);
+  } catch (err) {
+    return c.json({ error: 'Failed to decrypt school token. Token may need to be re-set.' }, 500);
+  }
 
   // Run full sync
   const result = await runFullSync(orgId, schoolToken, org.wonde_school_id, db);
@@ -63,6 +71,9 @@ wondeAdminRouter.post('/token', requireOwner(), async (c) => {
   }
 
   // Encrypt and store
+  if (!c.env.JWT_SECRET) {
+    return c.json({ error: 'Server encryption not configured' }, 500);
+  }
   const encryptedToken = await encryptSensitiveData(schoolToken.trim(), c.env.JWT_SECRET);
   await db.prepare(
     'UPDATE organizations SET wonde_school_token = ?, updated_at = datetime("now") WHERE id = ?'
@@ -81,7 +92,7 @@ wondeAdminRouter.get('/status', requireAdmin(), async (c) => {
   ).bind(orgId).first();
 
   const org = await db.prepare(
-    'SELECT wonde_school_id, wonde_last_sync_at FROM organizations WHERE id = ?'
+    'SELECT wonde_school_id, wonde_last_sync_at FROM organizations WHERE id = ? AND is_active = 1'
   ).bind(orgId).first();
 
   return c.json({

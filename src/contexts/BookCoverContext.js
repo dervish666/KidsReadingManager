@@ -55,16 +55,20 @@ const loadCacheFromStorage = () => {
 };
 
 /**
- * Save cache to localStorage
- * @param {Object} cache - Cache object to persist
+ * Debounced save to localStorage — avoids repeated JSON.stringify on rapid updates.
+ * Writes at most once every 2 seconds.
  */
+let saveTimeout = null;
 const saveCacheToStorage = (cache) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(cache));
-  } catch (error) {
-    // Handle localStorage errors gracefully (e.g., quota exceeded)
-    // Silently fail - the cache will still work in memory
-  }
+  if (saveTimeout) clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(cache));
+    } catch (error) {
+      // Handle localStorage errors gracefully (e.g., quota exceeded)
+      // Silently fail - the cache will still work in memory
+    }
+  }, 2000);
 };
 
 /**

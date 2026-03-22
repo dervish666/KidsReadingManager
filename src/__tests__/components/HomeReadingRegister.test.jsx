@@ -183,7 +183,7 @@ describe('HomeReadingRegister Component', () => {
   });
 
   describe('Class Filter Selection and Auto-Set (Render Loop Fix)', () => {
-    it('should auto-set class filter when globalClassFilter is "all"', () => {
+    it('should NOT mutate global class filter when globalClassFilter is "all"', () => {
       const mockSetGlobalClassFilter = vi.fn();
       const context = createMockContext({
         globalClassFilter: 'all',
@@ -192,11 +192,11 @@ describe('HomeReadingRegister Component', () => {
 
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
 
-      // Should auto-set to first active class
-      expect(mockSetGlobalClassFilter).toHaveBeenCalledWith('class-1');
+      // HomeReadingRegister uses a local effectiveClassId — does NOT mutate global filter
+      expect(mockSetGlobalClassFilter).not.toHaveBeenCalled();
     });
 
-    it('should auto-set class filter when globalClassFilter is "unassigned"', () => {
+    it('should NOT mutate global class filter when globalClassFilter is "unassigned"', () => {
       const mockSetGlobalClassFilter = vi.fn();
       const context = createMockContext({
         globalClassFilter: 'unassigned',
@@ -205,11 +205,11 @@ describe('HomeReadingRegister Component', () => {
 
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
 
-      // Should auto-set to first active class
-      expect(mockSetGlobalClassFilter).toHaveBeenCalledWith('class-1');
+      // Should NOT call setGlobalClassFilter — uses local effectiveClassId instead
+      expect(mockSetGlobalClassFilter).not.toHaveBeenCalled();
     });
 
-    it('should NOT auto-set class filter when a specific class is selected', () => {
+    it('should NOT mutate global class filter when a specific class is selected', () => {
       const mockSetGlobalClassFilter = vi.fn();
       const context = createMockContext({
         globalClassFilter: 'class-1',
@@ -218,14 +218,12 @@ describe('HomeReadingRegister Component', () => {
 
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
 
-      // Should NOT call setGlobalClassFilter since a valid class is already selected
       expect(mockSetGlobalClassFilter).not.toHaveBeenCalled();
     });
 
-    it('should only auto-set class filter once (useRef guard prevents infinite loop)', () => {
+    it('should never mutate global class filter across re-renders', () => {
       const mockSetGlobalClassFilter = vi.fn();
 
-      // Create a wrapper that we can reuse
       const wrapper = ({ children }) => (
         <TestAppContext.Provider value={{
           ...createMockContext(),
@@ -236,21 +234,12 @@ describe('HomeReadingRegister Component', () => {
         </TestAppContext.Provider>
       );
 
-      // Initial render with globalClassFilter='all'
       const { rerender } = render(<HomeReadingRegister />, { wrapper });
-
-      // First auto-set should have been called
-      expect(mockSetGlobalClassFilter).toHaveBeenCalledTimes(1);
-      expect(mockSetGlobalClassFilter).toHaveBeenCalledWith('class-1');
-
-      // Simulate multiple re-renders (as would happen in an infinite loop scenario)
-      // The useRef guard should prevent additional calls
-      rerender(<HomeReadingRegister />);
       rerender(<HomeReadingRegister />);
       rerender(<HomeReadingRegister />);
 
-      // Should still only be called once due to useRef guard
-      expect(mockSetGlobalClassFilter).toHaveBeenCalledTimes(1);
+      // Global filter should never be mutated
+      expect(mockSetGlobalClassFilter).not.toHaveBeenCalled();
     });
 
     it('should display students from the selected class only', async () => {

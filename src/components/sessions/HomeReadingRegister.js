@@ -158,7 +158,6 @@ const HomeReadingRegister = () => {
     deleteReadingSession,
     updateStudentCurrentBook,
     globalClassFilter,
-    setGlobalClassFilter,
     fetchWithAuth
   } = useAppContext();
 
@@ -260,7 +259,7 @@ const HomeReadingRegister = () => {
   const endDateISO = useMemo(() => formatDateISO(endDate), [endDate]);
 
   // Ref to track if we've already auto-set the class filter (prevents infinite loop)
-  const hasAutoSetClassFilter = useRef(false);
+  // hasAutoSetClassFilter ref removed — no longer mutating global filter
 
   // Get active classes (non-disabled)
   const activeClasses = useMemo(() => {
@@ -280,20 +279,9 @@ const HomeReadingRegister = () => {
     return activeClasses.length > 0 ? activeClasses[0].id : '';
   }, [globalClassFilter, activeClasses]);
 
-  // Auto-select first class in global filter if 'all' or 'unassigned' is selected
-  // Uses a ref guard to prevent infinite render loops
-  useEffect(() => {
-    if ((globalClassFilter === 'all' || globalClassFilter === 'unassigned') && activeClasses.length > 0) {
-      // Only auto-set once per mount or when activeClasses changes significantly
-      if (!hasAutoSetClassFilter.current) {
-        hasAutoSetClassFilter.current = true;
-        setGlobalClassFilter(activeClasses[0].id);
-      }
-    } else if (globalClassFilter && globalClassFilter !== 'all' && globalClassFilter !== 'unassigned') {
-      // Reset the guard when a valid class is selected (allows re-triggering if user navigates away and back)
-      hasAutoSetClassFilter.current = false;
-    }
-  }, [globalClassFilter, activeClasses, setGlobalClassFilter]);
+  // Note: HomeReadingRegister uses effectiveClassId (derived from globalClassFilter)
+  // and does NOT mutate the global class filter. This avoids confusing side effects
+  // when the user switches between tabs.
 
   // Fetch sessions for the selected class and date range
   useEffect(() => {

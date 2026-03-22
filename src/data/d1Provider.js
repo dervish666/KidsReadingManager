@@ -30,16 +30,16 @@ const bookToRow = (book) => {
   return {
     id: book.id,
     title: book.title,
-    author: book.author || null,
+    author: book.author ?? null,
     genre_ids: book.genreIds ? JSON.stringify(book.genreIds) : null,
-    reading_level: book.readingLevel || null,
-    age_range: book.ageRange || null,
-    description: book.description || null,
-    isbn: book.isbn || null,
-    page_count: book.pageCount || null,
-    series_name: book.seriesName || null,
-    series_number: book.seriesNumber || null,
-    publication_year: book.publicationYear || null
+    reading_level: book.readingLevel ?? null,
+    age_range: book.ageRange ?? null,
+    description: book.description ?? null,
+    isbn: book.isbn ?? null,
+    page_count: book.pageCount ?? null,
+    series_name: book.seriesName ?? null,
+    series_number: book.seriesNumber ?? null,
+    publication_year: book.publicationYear ?? null
   };
 };
 
@@ -555,7 +555,10 @@ const getFilteredBooksForRecommendations = async (env, options = {}) => {
       // Use LIKE for JSON array matching (works with SQLite)
       const genreConditions = favoriteGenreIds.map(() => 'genre_ids LIKE ?').join(' OR ');
       query += ` AND (${genreConditions})`;
-      params.push(...favoriteGenreIds.map(id => `%"${id}"%`));
+      params.push(...favoriteGenreIds.map(id => {
+        const escaped = String(id).replace(/%/g, '\\%').replace(/_/g, '\\_').replace(/"/g, '');
+        return `%"${escaped}"%`;
+      }));
     }
 
     // Add randomization and limit

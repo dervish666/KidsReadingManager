@@ -203,6 +203,7 @@ describe('Settings API Routes', () => {
 
         const { app } = createTestApp({
           userId: 'user-123',
+          userRole: ROLES.TEACHER,
           kv: mockKV,
           env: { JWT_SECRET: null }
         });
@@ -232,7 +233,7 @@ describe('Settings API Routes', () => {
         const data = await response.json();
 
         expect(response.status).toBe(403);
-        expect(data.error).toBe('Permission denied');
+        expect(data.error).toBe('Forbidden');
       });
 
       it('should reject requests from readonly users', async () => {
@@ -248,7 +249,7 @@ describe('Settings API Routes', () => {
         const data = await response.json();
 
         expect(response.status).toBe(403);
-        expect(data.error).toBe('Permission denied');
+        expect(data.error).toBe('Forbidden');
       });
 
       it('should allow requests from admins', async () => {
@@ -661,7 +662,7 @@ describe('Settings API Routes', () => {
         const data = await response.json();
 
         expect(response.status).toBe(403);
-        expect(data.error).toBe('Permission denied');
+        expect(data.error).toBe('Forbidden');
       });
 
       it('should reject requests from readonly users', async () => {
@@ -677,7 +678,7 @@ describe('Settings API Routes', () => {
         const data = await response.json();
 
         expect(response.status).toBe(403);
-        expect(data.error).toBe('Permission denied');
+        expect(data.error).toBe('Forbidden');
       });
 
       it('should allow requests from admins', async () => {
@@ -912,6 +913,7 @@ describe('Settings API Routes', () => {
       it('should reject AI config update in legacy mode', async () => {
         const { app } = createTestApp({
           userId: 'user-123',
+          userRole: ROLES.ADMIN,
           env: { JWT_SECRET: null }
         });
 

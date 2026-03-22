@@ -40,6 +40,7 @@ const QuickEntry = () => {
   const [notes, setNotes] = useState('');
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState('success');
   const [notesDrawerOpen, setNotesDrawerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [completedStudents, setCompletedStudents] = useState([]);
@@ -106,6 +107,7 @@ const QuickEntry = () => {
 
       // Show success message
       setSnackbarMessage(`Reading session saved for ${currentStudent.name}`);
+      setSnackbarSeverity('success');
       setSnackbarOpen(true);
 
       // Move to next student automatically
@@ -114,6 +116,7 @@ const QuickEntry = () => {
       }
     } catch (err) {
       setSnackbarMessage(`Failed to save session for ${currentStudent.name}`);
+      setSnackbarSeverity('error');
       setSnackbarOpen(true);
     }
   };
@@ -382,7 +385,7 @@ const QuickEntry = () => {
         autoHideDuration={2000}
         onClose={handleSnackbarClose}
       >
-        <Alert onClose={handleSnackbarClose} severity="success" sx={{ width: '100%' }}>
+        <Alert onClose={handleSnackbarClose} severity={snackbarSeverity} sx={{ width: '100%' }}>
           {snackbarMessage}
         </Alert>
       </Snackbar>

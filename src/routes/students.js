@@ -624,7 +624,7 @@ studentsRouter.post('/', auditLog('create', 'student'), async (c) => {
       throw badRequestError(rangeValidation.errors[0]);
     }
 
-    const studentId = body.id || generateId();
+    const studentId = generateId();
 
     await db.prepare(`
       INSERT INTO students (id, organization_id, name, class_id, reading_level_min, reading_level_max, likes, dislikes, notes, created_by)
@@ -1246,7 +1246,8 @@ studentsRouter.put('/:id/sessions/:sessionId', requireTeacher(), auditLog('updat
         pages_read = ?,
         duration_minutes = ?,
         assessment = ?,
-        notes = ?
+        notes = ?,
+        location = ?
       WHERE id = ?
     `).bind(
       body.date || new Date().toISOString().split('T')[0],
@@ -1257,11 +1258,20 @@ studentsRouter.put('/:id/sessions/:sessionId', requireTeacher(), auditLog('updat
       body.duration ?? null,
       body.assessment ?? null,
       body.notes ?? null,
+      body.location ?? 'school',
       sessionId
     ).run();
 
     // Recalculate student's reading streak after update
     await updateStudentStreak(db, id, organizationId, c.env);
+
+    // Recalculate last_read_date from sessions (excluding markers)
+    await db.prepare(`
+      UPDATE students SET last_read_date = (
+        SELECT MAX(session_date) FROM reading_sessions WHERE student_id = ?
+          AND (notes IS NULL OR (notes NOT LIKE '%[ABSENT]%' AND notes NOT LIKE '%[NO_RECORD]%'))
+      ), updated_at = datetime("now") WHERE id = ? AND organization_id = ?
+    `).bind(id, id, organizationId).run();
 
     // Fetch the updated session
     const session = await db.prepare(`
@@ -1377,33 +1387,76 @@ studentsRouter.post('/recalculate-streaks', async (c) => {
     throw forbiddenError();
   }
 
-  // Get all active students for this organization
+  // Bulk approach: fetch all students and all sessions in two queries instead of N+1
   const students = await db.prepare(`
     SELECT id FROM students WHERE organization_id = ? AND is_active = 1
   `).bind(organizationId).all();
 
-  const results = {
-    total: students.results?.length || 0,
-    updated: 0,
-    errors: []
-  };
+  const studentIds = (students.results || []).map(s => s.id);
 
-  // Recalculate streak and fix last_read_date for each student
-  for (const student of (students.results || [])) {
+  if (studentIds.length === 0) {
+    return c.json({ total: 0, updated: 0, errors: [] });
+  }
+
+  // Fetch ALL sessions for the entire org at once (excluding markers)
+  const allSessions = await db.prepare(`
+    SELECT student_id, session_date as date FROM reading_sessions
+    WHERE student_id IN (SELECT id FROM students WHERE organization_id = ? AND is_active = 1)
+      AND (notes IS NULL OR (notes NOT LIKE '%[ABSENT]%' AND notes NOT LIKE '%[NO_RECORD]%'))
+    ORDER BY session_date DESC
+  `).bind(organizationId).all();
+
+  // Group sessions by student
+  const sessionsByStudent = new Map();
+  for (const session of (allSessions.results || [])) {
+    if (!sessionsByStudent.has(session.student_id)) {
+      sessionsByStudent.set(session.student_id, []);
+    }
+    sessionsByStudent.get(session.student_id).push(session);
+  }
+
+  // Get org streak settings once
+  const { gracePeriodDays, timezone } = await getOrgStreakSettings(db, organizationId, c.env || {});
+
+  // Calculate streaks and build batch update statements
+  const updateStatements = [];
+  const results = { total: studentIds.length, updated: 0, errors: [] };
+
+  for (const studentId of studentIds) {
     try {
-      await updateStudentStreak(db, student.id, organizationId, c.env);
-      // Fix last_read_date: recalculate from actual sessions (excluding markers)
-      await db.prepare(`
-        UPDATE students SET last_read_date = (
-          SELECT MAX(session_date) FROM reading_sessions
-          WHERE student_id = ?
-            AND (notes IS NULL OR (notes NOT LIKE '%[ABSENT]%' AND notes NOT LIKE '%[NO_RECORD]%'))
-        ), updated_at = datetime("now") WHERE id = ? AND organization_id = ?
-      `).bind(student.id, student.id, organizationId).run();
+      const sessions = sessionsByStudent.get(studentId) || [];
+      const streakData = calculateStreak(sessions, { gracePeriodDays, timezone });
+
+      // Find last_read_date from sessions (already sorted DESC, first is most recent)
+      const lastReadDate = sessions.length > 0 ? sessions[0].date : null;
+
+      updateStatements.push(
+        db.prepare(`
+          UPDATE students SET
+            current_streak = ?,
+            longest_streak = ?,
+            streak_start_date = ?,
+            last_read_date = ?,
+            updated_at = datetime("now")
+          WHERE id = ? AND organization_id = ?
+        `).bind(
+          streakData.currentStreak,
+          streakData.longestStreak,
+          streakData.streakStartDate,
+          lastReadDate,
+          studentId,
+          organizationId
+        )
+      );
       results.updated++;
     } catch (error) {
-      results.errors.push({ studentId: student.id, error: error.message });
+      results.errors.push({ studentId, error: error.message });
     }
+  }
+
+  // Execute updates in batches of 100
+  for (let i = 0; i < updateStatements.length; i += 100) {
+    await db.batch(updateStatements.slice(i, i + 100));
   }
 
   return c.json(results);

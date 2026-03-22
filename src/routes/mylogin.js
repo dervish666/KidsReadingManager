@@ -216,12 +216,16 @@ myloginRouter.get('/callback', async (c) => {
     ).bind(String(myloginId)).first();
 
     if (existingUser) {
-      // Update existing user
+      // Update existing user — sync name, email, and role from IdP
       userId = existingUser.id;
+      const newRole = role; // mapped from MyLogin profile type
+      if (existingUser.role !== newRole) {
+        console.log(`[MyLogin] Role changed for ${name}: ${existingUser.role} → ${newRole}`);
+      }
       await db.prepare(
-        `UPDATE users SET name = ?, email = ?, last_login_at = datetime("now"), updated_at = datetime("now")
+        `UPDATE users SET name = ?, email = ?, role = ?, last_login_at = datetime("now"), updated_at = datetime("now")
          WHERE id = ?`
-      ).bind(name, email, userId).run();
+      ).bind(name, email, newRole, userId).run();
     } else {
       // Create new user
       userId = generateId();
@@ -245,7 +249,7 @@ myloginRouter.get('/callback', async (c) => {
     }
 
     // Sync class assignments for teachers (runs for both new and existing users)
-    if ((existingUser ? existingUser.role : role) === 'teacher' && wondeEmployeeId) {
+    if (role === 'teacher' && wondeEmployeeId) {
       try {
         const assignedCount = await syncUserClassAssignments(db, userId, wondeEmployeeId, org.id);
         if (assignedCount > 0) {
@@ -273,7 +277,7 @@ myloginRouter.get('/callback', async (c) => {
       id: userId,
       email,
       name,
-      role: existingUser ? existingUser.role : role,
+      role: role, // always use the freshly-mapped role from MyLogin profile
       authProvider: 'mylogin',
       assignedClassIds,
     };

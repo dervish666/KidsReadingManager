@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -42,6 +42,21 @@ const BookImportWizard = ({ open, onClose }) => {
   const [error, setError] = useState(null);
   const [importResult, setImportResult] = useState(null);
   const [importProgress, setImportProgress] = useState(null);
+
+  // Reset state when dialog reopens
+  useEffect(() => {
+    if (open) {
+      setActiveStep(0);
+      setCsvData(null);
+      setPreviewResults(null);
+      setSelectedConflicts({});
+      setSelectedPossibleMatches({});
+      setIsLoading(false);
+      setError(null);
+      setImportResult(null);
+      setImportProgress(null);
+    }
+  }, [open]);
 
   const handleFileUpload = useCallback((event) => {
     const file = event.target.files[0];

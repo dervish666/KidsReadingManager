@@ -68,7 +68,7 @@ If you didn't request this, you can safely ignore this email.
     <p>Click the button below to reset your password:</p>
 
     <div style="text-align: center; margin: 30px 0;">
-      <a href="${resetUrl}" style="background: #6B8E6B; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block;">Reset Password</a>
+      <a href="${escapeHtml(resetUrl)}" style="background: #6B8E6B; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block;">Reset Password</a>
     </div>
 
     <p style="color: #6b7280; font-size: 14px;">This link will expire in 1 hour.</p>
@@ -79,7 +79,7 @@ If you didn't request this, you can safely ignore this email.
 
     <p style="color: #9ca3af; font-size: 12px; margin: 0;">
       If the button doesn't work, copy and paste this link into your browser:<br>
-      <a href="${resetUrl}" style="color: #6B8E6B; word-break: break-all;">${resetUrl}</a>
+      <a href="${escapeHtml(resetUrl)}" style="color: #6B8E6B; word-break: break-all;">${escapeHtml(resetUrl)}</a>
     </p>
   </div>
 </body>
@@ -291,7 +291,7 @@ ${loginUrl}
     <p style="color: #dc2626; font-size: 14px;"><strong>Important:</strong> Please log in and change your password immediately.</p>
 
     <div style="text-align: center; margin: 30px 0;">
-      <a href="${loginUrl}" style="background: #6B8E6B; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block;">Log In Now</a>
+      <a href="${escapeHtml(loginUrl)}" style="background: #6B8E6B; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block;">Log In Now</a>
     </div>
   </div>
 </body>

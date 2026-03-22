@@ -88,7 +88,7 @@ webhooksRouter.post('/wonde', async (c) => {
         await syncPromise;
       }
 
-      return c.json({ success: true, organizationId: orgId });
+      return c.json({ success: true });
     }
 
     case 'accessRevoked':

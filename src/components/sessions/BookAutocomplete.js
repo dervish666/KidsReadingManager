@@ -149,7 +149,7 @@ const BookAutocomplete = ({
       return a.title.localeCompare(b.title);
     });
 
-    return sortedBooks;
+    return sortedBooks.slice(0, 100);
   }, [books, debouncedInputValue, priorityBookIds]);
 
   return (

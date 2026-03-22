@@ -170,121 +170,13 @@ export function resetHardcoverRateLimitFlag() {
  * @param {string} title
  * @returns {string}
  */
-function normalizeTitle(title) {
-  return title
-    .toLowerCase()
-    .replace(/[^\w\s]/g, '')  // Remove punctuation
-    .replace(/\s+/g, ' ')     // Normalize whitespace
-    .trim();
-}
+// Title matching utilities imported from shared module
+import { normalizeTitle, calculateTitleSimilarity, findBestTitleMatch as _findBestTitleMatch } from './titleMatching.js';
 
-/**
- * Calculate similarity between two titles using a fuzzy strategy tuned for
- * partial matches.
- *
- * Uses three signals (same approach as openLibraryApi.js):
- *   - Substring coverage (shorter fully contained in longer)
- *   - Word-overlap ratio
- *   - Character bigram Jaccard similarity
- *
- * @param {string} title1 - Normalized title
- * @param {string} title2 - Normalized title
- * @returns {number} Similarity between 0 and 1
- */
-function calculateTitleSimilarity(title1, title2) {
-  if (!title1 || !title2) return 0;
-
-  // Exact match
-  if (title1 === title2) return 1;
-
-  const words1 = title1.split(' ').filter(Boolean);
-  const words2 = title2.split(' ').filter(Boolean);
-
-  // Word overlap ratio
-  const set2 = new Set(words2);
-  let overlap = 0;
-  for (const w of words1) {
-    if (set2.has(w)) overlap++;
-  }
-  const wordScore = overlap / Math.max(words1.length, words2.length);
-
-  // Substring coverage: shorter fully contained in longer -> strong signal
-  const shorter = title1.length <= title2.length ? title1 : title2;
-  const longer = title1.length > title2.length ? title1 : title2;
-  const substringScore = longer.includes(shorter) ? shorter.length / longer.length : 0;
-
-  // Character bigram Jaccard for extra fuzziness tolerance
-  const bigrams = (s) => {
-    const res = [];
-    for (let i = 0; i < s.length - 1; i++) {
-      const bg = s.slice(i, i + 2);
-      if (bg.trim().length === 2) res.push(bg);
-    }
-    return res;
-  };
-
-  const b1 = bigrams(title1);
-  const b2 = bigrams(title2);
-  let charScore = 0;
-  if (b1.length && b2.length) {
-    const setB1 = new Set(b1);
-    const setB2 = new Set(b2);
-    let intersect = 0;
-    for (const bg of setB1) {
-      if (setB2.has(bg)) intersect++;
-    }
-    const union = setB1.size + setB2.size - intersect;
-    charScore = union > 0 ? intersect / union : 0;
-  }
-
-  // Weighted combination; emphasize partial/substring coverage
-  const combined =
-    0.5 * substringScore +
-    0.3 * wordScore +
-    0.2 * charScore;
-
-  return Math.max(0, Math.min(1, combined));
-}
-
-/**
- * Find the best matching book result based on title similarity.
- * Returns the best-scoring result that exceeds the similarity threshold.
- *
- * @param {string} searchTitle - The original search title
- * @param {Array} results - Formatted results from searchBooksByTitle
- * @returns {Object|null} The best matching result or null
- */
 function findBestTitleMatch(searchTitle, results) {
-  if (!results || results.length === 0) {
-    return null;
-  }
-
-  const normalizedSearchTitle = normalizeTitle(searchTitle);
-
-  const scoredResults = results.map(result => {
-    const normalizedResultTitle = normalizeTitle(result.title || '');
-    const similarity = calculateTitleSimilarity(normalizedSearchTitle, normalizedResultTitle);
-
-    return {
-      ...result,
-      similarity,
-      hasAuthor: !!result.author
-    };
+  return _findBestTitleMatch(searchTitle, results, {
+    hasAuthor: (r) => !!r.author,
   });
-
-  // Sort by similarity (descending), prefer results with authors
-  scoredResults.sort((a, b) => {
-    if (a.hasAuthor && !b.hasAuthor) return -1;
-    if (!a.hasAuthor && b.hasAuthor) return 1;
-    return b.similarity - a.similarity;
-  });
-
-  const bestMatch = scoredResults[0];
-  if (bestMatch && bestMatch.similarity > 0.3) {
-    return bestMatch;
-  }
-
-  return null;
 }
 
 // ---------------------------------------------------------------------------

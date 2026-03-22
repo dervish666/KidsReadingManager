@@ -608,6 +608,14 @@ booksRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
  * Requires authentication (at least readonly access)
  */
 booksRouter.get('/count', requireReadonly(), async (c) => {
+  const organizationId = c.get('organizationId');
+  const db = c.env.READING_MANAGER_DB;
+  if (organizationId && db) {
+    const result = await db.prepare(
+      'SELECT COUNT(*) as count FROM org_book_selections WHERE organization_id = ? AND is_available = 1'
+    ).bind(organizationId).first();
+    return c.json({ count: result?.count || 0 });
+  }
   const provider = await createProvider(c.env);
   const count = await provider.getBookCount();
   return c.json({ count });
@@ -645,6 +653,18 @@ booksRouter.post('/', requireTeacher(), async (c) => {
 
   const provider = await createProvider(c.env);
   const savedBook = await provider.addBook(newBook);
+
+  // Link book to the current organization
+  const organizationId = c.get('organizationId');
+  if (organizationId) {
+    const db = c.env.READING_MANAGER_DB;
+    if (db) {
+      await db.prepare(
+        'INSERT OR IGNORE INTO org_book_selections (id, organization_id, book_id, is_available) VALUES (?, ?, ?, 1)'
+      ).bind(crypto.randomUUID(), organizationId, savedBook.id).run();
+    }
+  }
+
   return c.json(savedBook, 201);
 });
 
@@ -1114,6 +1134,19 @@ booksRouter.post('/bulk', requireTeacher(), async (c) => {
   let savedBooks = [];
   if (newBooks.length > 0) {
     savedBooks = await provider.addBooksBatch(newBooks);
+  }
+
+  // Link new books to the current organization
+  const organizationId = c.get('organizationId');
+  if (organizationId && db && savedBooks.length > 0) {
+    const linkStatements = savedBooks.map(book =>
+      db.prepare(
+        'INSERT OR IGNORE INTO org_book_selections (id, organization_id, book_id, is_available) VALUES (?, ?, ?, 1)'
+      ).bind(crypto.randomUUID(), organizationId, book.id)
+    );
+    for (let i = 0; i < linkStatements.length; i += 100) {
+      await db.batch(linkStatements.slice(i, i + 100));
+    }
   }
 
   return c.json({

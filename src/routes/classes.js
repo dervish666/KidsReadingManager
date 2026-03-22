@@ -152,7 +152,7 @@ classesRouter.post('/', auditLog('create', 'class'), async (c) => {
         throw forbiddenError();
       }
 
-      const classId = body.id || generateId();
+      const classId = generateId();
       
       await db.prepare(`
         INSERT INTO classes (id, organization_id, name, teacher_name, academic_year, created_by)

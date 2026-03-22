@@ -97,7 +97,7 @@ describe('Wonde Webhook Handler', () => {
 
       expect(res.status).toBe(200);
       expect(json.success).toBe(true);
-      expect(json.organizationId).toBeDefined();
+      expect(json.success).toBe(true);
     });
 
     it('inserts the organization into D1 with correct fields', async () => {

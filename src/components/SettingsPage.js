@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -41,13 +41,23 @@ const SettingsPage = () => {
     setCurrentTab(newValue);
   };
 
-  // Calculate tab indices based on permissions
-  const getTabIndex = (baseIndex) => {
-    if (baseIndex <= 3) return baseIndex;
-    // User Management tab is only shown for owners/admins
-    if (baseIndex === 4 && !canManageUsers) return -1;
-    return baseIndex;
-  };
+  // Build tab configuration dynamically based on permissions
+  const tabs = useMemo(() => {
+    const allTabs = [
+      { label: 'Application Settings', icon: <SettingsIcon />, component: <Settings /> },
+      { label: 'Data Management', icon: <StorageIcon />, component: <DataManagement /> },
+      { label: 'AI Integration', icon: <SmartToyIcon />, component: <AISettings /> },
+      { label: 'Book Metadata', icon: <MenuBookIcon />, component: <BookMetadataSettings /> },
+    ];
+    if (canManageUsers) {
+      allTabs.push({ label: 'User Management', icon: <PeopleIcon />, component: <UserManagement /> });
+    }
+    if (isOwner) {
+      allTabs.push({ label: 'School Management', icon: <SchoolIcon />, component: <SchoolManagement /> });
+      allTabs.push({ label: 'Support Tickets', icon: <SupportAgentIcon />, component: <SupportTicketManager /> });
+    }
+    return allTabs;
+  }, [canManageUsers, isOwner]);
 
   return (
     <Box>
@@ -100,30 +110,14 @@ const SettingsPage = () => {
               }
             }}
           >
-            <Tab icon={<SettingsIcon />} iconPosition="start" label="Application Settings" />
-            <Tab icon={<StorageIcon />} iconPosition="start" label="Data Management" />
-            <Tab icon={<SmartToyIcon />} iconPosition="start" label="AI Integration" />
-            <Tab icon={<MenuBookIcon />} iconPosition="start" label="Book Metadata" />
-            {canManageUsers && (
-              <Tab icon={<PeopleIcon />} iconPosition="start" label="User Management" />
-            )}
-            {isOwner && (
-              <Tab icon={<SchoolIcon />} iconPosition="start" label="School Management" />
-            )}
-            {isOwner && (
-              <Tab icon={<SupportAgentIcon />} iconPosition="start" label="Support Tickets" />
-            )}
+            {tabs.map((tab, idx) => (
+              <Tab key={idx} icon={tab.icon} iconPosition="start" label={tab.label} />
+            ))}
           </Tabs>
         </Paper>
         
         <Box sx={{ p: 0 }}>
-          {currentTab === 0 && <Settings />}
-          {currentTab === 1 && <DataManagement />}
-          {currentTab === 2 && <AISettings />}
-          {currentTab === 3 && <BookMetadataSettings />}
-          {canManageUsers && currentTab === 4 && <UserManagement />}
-          {isOwner && currentTab === (canManageUsers ? 5 : 4) && <SchoolManagement />}
-          {isOwner && currentTab === (canManageUsers ? 6 : 5) && <SupportTicketManager />}
+          {tabs[currentTab]?.component}
         </Box>
       </Box>
 

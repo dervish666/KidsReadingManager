@@ -260,10 +260,9 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
     // -----------------------------------------------------------------------
     // Build from classes data (which includes employees) — more reliable than
     // the employees endpoint which may not return classes.data consistently.
-    // DELETE is included as the first batch statement for atomicity.
-    const employeeStatements = [
-      db.prepare(`DELETE FROM wonde_employee_classes WHERE organization_id = ?`).bind(orgId)
-    ];
+    // DELETE executed standalone, then INSERTs batched separately
+    await db.prepare(`DELETE FROM wonde_employee_classes WHERE organization_id = ?`).bind(orgId).run();
+    const employeeStatements = [];
     const seenEmployeeIds = new Set();
 
     for (const wc of wondeClasses) {

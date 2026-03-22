@@ -1,5 +1,58 @@
 # Changelog
 
+## [3.24.0] - 2026-03-22
+
+### Security
+- **MyLogin role synced on every login** — users demoted in MyLogin (e.g. admin → teacher) no longer retain elevated Tally privileges; role changes are logged
+- **Refresh token reuse detection** — if a revoked token is presented (indicating theft), all tokens for that user are immediately revoked
+- **Rate limiting fails closed** on auth endpoints when D1 is unavailable, preventing brute-force during outages
+- **Auth middleware added** to `GET /settings`, `POST /settings`, `POST /settings/ai`, `GET /organization`, `GET /organization/stats`, `GET /organization/settings`, `GET /organization/ai-config`
+- **Webhook response no longer leaks internal org ID** — returns `{ success: true }` only
+- **GraphQL proxy rejects mutations/subscriptions** — only read-only queries forwarded to Hardcover API
+- **HTML email URLs escaped** — `resetUrl` and `loginUrl` now use `escapeHtml()` in href attributes
+- **SQL lockout duration parameterized** — no longer uses template literal in SQL query
+- **Genre ID LIKE patterns escaped** — prevents wildcard injection via `%` and `_` characters
+- **Ownership check fails closed** (503) instead of silently allowing requests on DB error
+- **Deep prototype pollution check** — `validateSettings` now recursively checks nested objects
+- **Max password length enforced** (128 chars) on register and reset-password to prevent PBKDF2 DoS
+- **Server-generated IDs only** — `POST /students`, `/classes`, `/genres` no longer accept client-provided IDs
+
+### Fixed
+- **POST /books and /books/bulk now link to organization** — created books were invisible because `org_book_selections` records were missing
+- **Book count scoped to organization** — `GET /books/count` now queries `org_book_selections` in multi-tenant mode
+- **Session update includes `location` field** — PUT endpoint was omitting location from the UPDATE SQL
+- **Session update recalculates `last_read_date`** — changing a session date now correctly updates the student's last read date
+- **Class assignment batch limit** — `syncUserClassAssignments` now chunks >100 statements to respect D1 limit
+- **Wonde employee-class DELETE atomicity** — DELETE runs standalone before INSERT batches, preventing partial data on failure
+- **Recommendation cache key includes student ID** — two students with identical params no longer share cached results
+- **`daysBetween` DST fix** — dates parsed as UTC to avoid off-by-one errors at timezone boundaries
+- **`bookToRow` preserves falsy values** — `||` replaced with `??` so `pageCount: 0` is no longer silently converted to null
+- **ISBN lookup timeout** — external OpenLibrary fetches now use `fetchWithTimeout` (5s) instead of potentially hanging
+- **Wonde admin error handling** — `JWT_SECRET` guard and try/catch on decrypt with user-friendly error messages
+- **Wonde admin status filters `is_active`** on organization query
+- **UserManagement checks response status** — `handleRegister` no longer shows false success on API errors
+- **Stale closure fixed** in UserManagement and SchoolManagement `useEffect` — `fetchWithAuth` dependency now tracked
+- **SettingsPage tab indices fixed** — dynamic tab array eliminates broken content mapping for non-admin owners
+- **HomeReadingRegister no longer mutates global class filter** — uses local `effectiveClassId`, removing confusing cross-tab side effect
+- **QuickEntry snackbar shows correct severity** — errors now display as red, not green success
+- **BookImportWizard resets state on re-open** — previous import data no longer persists across dialog sessions
+- **CORS trailing slash** removed from workers.dev origin in `wrangler.toml`
+
+### Changed
+- **APP_VERSION and Sentry release synced** to actual package version (was stuck at 3.19.0)
+- **Sentry tracesSampleRate reduced** from 1.0 to 0.1 in both worker and frontend
+- **AI config deduplicated** — `PUT /organization/ai-config` now delegates to shared `upsertAiConfig()` in settings.js
+- **Title matching extracted** to shared `src/utils/titleMatching.js` — OpenLibrary, Google Books, and Hardcover APIs all import from one module
+- **N+1 streak recalculation eliminated** — bulk fetches all sessions in one query, batch-updates students in groups of 100
+- **`uuid` dependency removed** — replaced with native `crypto.randomUUID()` in AppContext
+- **ErrorBoundary reports to Sentry** via `Sentry.captureException()`
+- **Redundant AbortController removed** from OpenLibrary availability check
+- **Unicode-aware string normalization** — `normalizeString` now preserves accented characters
+- **BookAutocomplete results capped at 100** to prevent jank with 18K+ books
+- **StudentSessions uses O(1) book lookup** via `booksMap` instead of O(n) `.find()`
+- **DaysSinceReadingChart memoized** — no longer recalculates on every render
+- **BookCoverContext debounces localStorage writes** (2s) to avoid repeated serialization
+
 ## [3.23.3] - 2026-03-21
 
 ### Fixed

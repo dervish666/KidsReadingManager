@@ -879,7 +879,7 @@ describe('Classes API Routes', () => {
         expect(data.teacherName).toBeNull();
       });
 
-      it('should use provided ID if given', async () => {
+      it('should always generate server-side ID (ignoring client-provided id)', async () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
@@ -894,7 +894,10 @@ describe('Classes API Routes', () => {
         });
 
         const bindArgs = mockDB._chain.bind.mock.calls[0];
-        expect(bindArgs[0]).toBe('custom-id');
+        // Server should generate its own ID, not use client-provided one
+        expect(bindArgs[0]).not.toBe('custom-id');
+        expect(typeof bindArgs[0]).toBe('string');
+        expect(bindArgs[0].length).toBeGreaterThan(0);
       });
     });
   });

@@ -391,7 +391,7 @@ describe('runFullSync', () => {
   it('handles employee class mappings', async () => {
     db.prepare = vi.fn().mockImplementation((sql) => {
       if (sql.includes('DELETE FROM wonde_employee_classes')) {
-        return { bind: vi.fn().mockReturnThis() };
+        return { bind: vi.fn().mockReturnValue({ run: vi.fn().mockResolvedValue({ success: true }) }) };
       }
       if (sql.includes('INSERT INTO wonde_employee_classes')) {
         return { bind: vi.fn().mockReturnThis() };
@@ -410,13 +410,11 @@ describe('runFullSync', () => {
 
     const result = await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
 
-    // DELETE + INSERTs are batched together atomically via db.batch()
-    // WEMP_1 appears in 2 classes -> 1 DELETE + 2 INSERTs = 3 statements in batch
-    const employeeBatchCall = db.batch.mock.calls.find(call => {
-      const stmts = call[0];
-      return stmts && stmts.length >= 1;
-    });
-    expect(employeeBatchCall).toBeDefined();
+    // DELETE runs standalone, then INSERTs are batched separately
+    const deleteCall = db.prepare.mock.calls.find(call =>
+      call[0].includes('DELETE FROM wonde_employee_classes')
+    );
+    expect(deleteCall).toBeDefined();
     expect(result.employeesSynced).toBe(1);
   });
 

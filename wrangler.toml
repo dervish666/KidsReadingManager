@@ -48,7 +48,7 @@ run_worker_first = ["/api/*"]
 [vars]
 ENVIRONMENT = "production"
 STORAGE_TYPE = "d1"
-ALLOWED_ORIGINS = "https://kids-reading-manager.brisflix.workers.dev/,https://reading.brisflix.com,https://tallyreading.uk"
+ALLOWED_ORIGINS = "https://kids-reading-manager.brisflix.workers.dev,https://reading.brisflix.com,https://tallyreading.uk"
 EMAIL_FROM = "hello@tallyreading.uk"
 
 # MyLogin OAuth2 SSO (set via `wrangler secret put`)

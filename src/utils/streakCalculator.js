@@ -45,8 +45,8 @@ export function getUniqueReadingDates(sessions, timezone = 'UTC') {
  * @returns {number} Number of days between dates (absolute value)
  */
 export function daysBetween(date1, date2) {
-  const d1 = new Date(date1);
-  const d2 = new Date(date2);
+  const d1 = new Date(date1 + 'T00:00:00Z');
+  const d2 = new Date(date2 + 'T00:00:00Z');
   const diffTime = Math.abs(d2 - d1);
   return Math.floor(diffTime / (1000 * 60 * 60 * 24));
 }

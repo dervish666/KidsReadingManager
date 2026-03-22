@@ -214,7 +214,7 @@ export function requireOrgOwnership(tableName, idParam = 'id') {
       }
     } catch (error) {
       console.error(`Error checking ownership for ${tableName}:`, error);
-      // Continue if table doesn't exist yet
+      return c.json({ error: 'Service temporarily unavailable' }, 503);
     }
 
     return next();
@@ -293,8 +293,12 @@ export function rateLimit(maxRequests = 100, windowMs = 60000) {
   return async (c, next) => {
     const db = c.env.READING_MANAGER_DB;
 
-    // If no database, skip rate limiting (graceful degradation)
+    // If no database, fail closed for sensitive auth endpoints, skip for others
     if (!db) {
+      const sensitiveAuthPaths = ['/api/auth/login', '/api/auth/register', '/api/auth/reset-password', '/api/auth/forgot-password'];
+      if (sensitiveAuthPaths.some(p => c.req.path.startsWith(p))) {
+        return c.json({ error: 'Service temporarily unavailable' }, 503);
+      }
       return next();
     }
 
@@ -340,9 +344,12 @@ export function rateLimit(maxRequests = 100, windowMs = 60000) {
       }
 
     } catch (error) {
-      // If rate_limits table doesn't exist or other error, continue without rate limiting
-      // This allows the app to function while migration is pending
-      console.warn('Rate limiting bypassed due to error:', error.message);
+      // If rate_limits table doesn't exist or other error, fail closed for auth paths
+      console.warn('Rate limiting error:', error.message);
+      const sensitiveAuthPaths = ['/api/auth/login', '/api/auth/register', '/api/auth/reset-password', '/api/auth/forgot-password'];
+      if (sensitiveAuthPaths.some(p => c.req.path.startsWith(p))) {
+        return c.json({ error: 'Service temporarily unavailable' }, 503);
+      }
     }
 
     return next();
