@@ -51,10 +51,10 @@ STORAGE_TYPE = "d1"
 ALLOWED_ORIGINS = "https://kids-reading-manager.brisflix.workers.dev,https://reading.brisflix.com,https://tallyreading.uk"
 EMAIL_FROM = "hello@tallyreading.uk"
 
-# Stripe billing (price IDs from Stripe Dashboard — test mode)
-STRIPE_MONTHLY_PRICE_ID = "price_1TEVis5Ht78WeYZ8u5Qy8Mq5"
-STRIPE_TERMLY_PRICE_ID = "price_1TEVit5Ht78WeYZ8BDIt3jTr"
-STRIPE_ANNUAL_PRICE_ID = "price_1TEViu5Ht78WeYZ8UvnZzvuH"
+# Stripe billing (price IDs from Stripe Dashboard)
+STRIPE_MONTHLY_PRICE_ID = "price_1TEYdAFvBYcaukPXJ0EaqNNX"
+STRIPE_TERMLY_PRICE_ID = "price_1TEYd9FvBYcaukPXZPZ2lUjI"
+STRIPE_ANNUAL_PRICE_ID = "price_1TEYd8FvBYcaukPXwLnIiDdp"
 STRIPE_AI_ADDON_PRICE_ID = "price_1TEbkYFvBYcaukPXPNfBZrre"
 
 # MyLogin OAuth2 SSO (set via `wrangler secret put`)
