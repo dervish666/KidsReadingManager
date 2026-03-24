@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.25.2] - 2026-03-24
+
+### Added
+- **Wonde sync button** on school management table — triggers data sync and fetches school contact details (owner only, Wonde-connected schools)
+- **Start Trial button** on school management table — provisions Stripe customer and 30-day trial for schools without a subscription
+- **Billing status column** on school management table — shows subscription status chip per school
+- **Owner-only sync endpoint** — `POST /api/wonde/sync/:orgId` syncs data and updates school contact fields from Wonde
+
 ## [3.25.1] - 2026-03-24
 
 ### Added

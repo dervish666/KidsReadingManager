@@ -47,7 +47,7 @@ import { authMiddleware, handleLogin } from './middleware/auth';
 import { jwtAuthMiddleware, tenantMiddleware } from './middleware/tenant';
 import { PUBLIC_PATHS } from './utils/constants.js';
 
-const APP_VERSION = '3.25.1';
+const APP_VERSION = '3.25.2';
 
 // Create Hono app for the API
 const app = new Hono();
