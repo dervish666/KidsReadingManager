@@ -18,6 +18,7 @@ import MenuBookIcon from '@mui/icons-material/MenuBook';
 import PeopleIcon from '@mui/icons-material/People';
 import SchoolIcon from '@mui/icons-material/School';
 import SupportAgentIcon from '@mui/icons-material/SupportAgent';
+import PaymentIcon from '@mui/icons-material/Payment';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import Settings from './Settings';
 import DataManagement from './DataManagement';
@@ -26,6 +27,7 @@ import BookMetadataSettings from './BookMetadataSettings';
 import UserManagement from './UserManagement';
 import SchoolManagement from './SchoolManagement';
 import SupportTicketManager from './SupportTicketManager';
+import BillingDashboard from './BillingDashboard';
 import SupportModal from './SupportModal';
 import { useAppContext } from '../contexts/AppContext';
 
@@ -54,6 +56,7 @@ const SettingsPage = () => {
     }
     if (isOwner) {
       allTabs.push({ label: 'School Management', icon: <SchoolIcon />, component: <SchoolManagement /> });
+      allTabs.push({ label: 'Billing', icon: <PaymentIcon />, component: <BillingDashboard /> });
       allTabs.push({ label: 'Support Tickets', icon: <SupportAgentIcon />, component: <SupportTicketManager /> });
     }
     return allTabs;

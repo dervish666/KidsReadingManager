@@ -5,10 +5,6 @@ import {
   Typography,
   TextField,
   Button,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Alert,
   CircularProgress,
   Paper,
@@ -42,7 +38,6 @@ const SchoolManagement = () => {
   const [schools, setSchools] = useState([]);
   const [formData, setFormData] = useState({
     name: '',
-    subscriptionTier: 'free',
     wondeSchoolToken: '',
   });
   const [editingSchool, setEditingSchool] = useState(null);
@@ -113,7 +108,6 @@ const SchoolManagement = () => {
           method: 'PUT',
           body: JSON.stringify({
             name: formData.name,
-            subscriptionTier: formData.subscriptionTier,
           }),
         });
 
@@ -135,7 +129,6 @@ const SchoolManagement = () => {
           method: 'POST',
           body: JSON.stringify({
             name: formData.name,
-            subscriptionTier: formData.subscriptionTier,
           }),
         });
 
@@ -155,7 +148,6 @@ const SchoolManagement = () => {
     setEditingSchool(school);
     setFormData({
       name: school.name,
-      subscriptionTier: school.subscriptionTier,
       wondeSchoolToken: '',
     });
     setError(null);
@@ -183,7 +175,6 @@ const SchoolManagement = () => {
   const resetForm = () => {
     setFormData({
       name: '',
-      subscriptionTier: 'free',
       wondeSchoolToken: '',
     });
     setEditingSchool(null);
@@ -197,19 +188,6 @@ const SchoolManagement = () => {
   const openDeleteDialog = (school) => {
     setSchoolToDelete(school);
     setDeleteDialogOpen(true);
-  };
-
-  const getTierColor = (tier) => {
-    switch (tier) {
-      case 'premium':
-        return 'primary';
-      case 'basic':
-        return 'secondary';
-      case 'free':
-        return 'default';
-      default:
-        return 'default';
-    }
   };
 
   return (
@@ -249,19 +227,6 @@ const SchoolManagement = () => {
                 margin="normal"
                 required
               />
-              <FormControl fullWidth margin="normal">
-                <InputLabel>Subscription Tier</InputLabel>
-                <Select
-                  name="subscriptionTier"
-                  value={formData.subscriptionTier}
-                  onChange={handleInputChange}
-                  label="Subscription Tier"
-                >
-                  <MenuItem value="free">Free</MenuItem>
-                  <MenuItem value="basic">Basic</MenuItem>
-                  <MenuItem value="premium">Premium</MenuItem>
-                </Select>
-              </FormControl>
               {editingSchool?.wondeSchoolId && (
                 <TextField
                   fullWidth
@@ -314,7 +279,6 @@ const SchoolManagement = () => {
                   <TableRow>
                     <TableCell>Name</TableCell>
                     <TableCell>Source</TableCell>
-                    <TableCell>Tier</TableCell>
                     <TableCell>Actions</TableCell>
                   </TableRow>
                 </TableHead>
@@ -356,30 +320,6 @@ const SchoolManagement = () => {
                               variant="outlined"
                             />
                           )}
-                        </TableCell>
-                        <TableCell>
-                          <Box
-                            component="span"
-                            sx={{
-                              textTransform: 'capitalize',
-                              px: 1,
-                              py: 0.5,
-                              borderRadius: 1,
-                              bgcolor:
-                                getTierColor(school.subscriptionTier) === 'primary'
-                                  ? 'primary.light'
-                                  : getTierColor(school.subscriptionTier) === 'secondary'
-                                    ? 'secondary.light'
-                                    : 'grey.300',
-                              color:
-                                getTierColor(school.subscriptionTier) === 'default'
-                                  ? 'text.primary'
-                                  : 'white',
-                              fontSize: '0.875rem',
-                            }}
-                          >
-                            {school.subscriptionTier}
-                          </Box>
                         </TableCell>
                         <TableCell>
                           <IconButton

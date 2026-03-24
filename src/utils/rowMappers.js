@@ -126,6 +126,15 @@ export const rowToOrganization = (row) => {
     consentGivenAt: row.consent_given_at || null,
     consentVersion: row.consent_version || null,
     consentGivenBy: row.consent_given_by || null,
+    // Billing fields (synced from Stripe via webhooks)
+    stripeCustomerId: row.stripe_customer_id || null,
+    stripeSubscriptionId: row.stripe_subscription_id || null,
+    subscriptionStatus: row.subscription_status || 'none',
+    subscriptionPlan: row.subscription_plan || null,
+    aiAddonActive: Boolean(row.ai_addon_active),
+    trialEndsAt: row.trial_ends_at || null,
+    currentPeriodEnd: row.current_period_end || null,
+    billingEmail: row.billing_email || null,
   };
 };
 

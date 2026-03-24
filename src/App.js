@@ -11,6 +11,7 @@ import { BookCoverProvider } from './contexts/BookCoverContext';
 import Login from './components/Login';
 import LandingPage from './components/LandingPage';
 import DpaConsentModal from './components/DpaConsentModal';
+import BillingBanner from './components/BillingBanner';
 
 // Eagerly load Students (default tab, always visible first)
 import StudentList from './components/students/StudentList';
@@ -200,6 +201,7 @@ function AppContent() {
       </a>
       <Header currentTab={currentTab} />
       <DpaConsentModal />
+      <BillingBanner />
 
       <Container
         id="main-content"
