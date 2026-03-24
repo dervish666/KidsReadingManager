@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.25.1] - 2026-03-24
+
+### Added
+- **School contact/address fields** — contact email, billing email, phone, address (line 1, line 2, town, postcode) on organizations
+- **Wonde auto-population** — school details fetched from Wonde API during `schoolApproved` webhook and stored on the organization
+- **SchoolManagement form** — all contact and address fields viewable and editable by owner
+- **Stripe customer address** — billing setup passes school address and phone to Stripe for UK invoice compliance
+- **Email fallback chain** — billing email resolves: explicit → org billing_email → org contact_email → admin user email
+
 ## [3.25.0] - 2026-03-24
 
 ### Added
