@@ -29,7 +29,18 @@ function buildLineItems(plan, includeAiAddon, env) {
  */
 billingRouter.post('/setup', requireAdmin(), async (c) => {
   const db = c.env.READING_MANAGER_DB;
-  const organizationId = c.get('organizationId');
+  const userRole = c.get('userRole');
+
+  // Allow owners to provision billing for any org via body.organizationId
+  const body = await c.req.json().catch(() => ({}));
+  const organizationId = (userRole === 'owner' && body.organizationId)
+    ? body.organizationId
+    : c.get('organizationId');
+
+  if (!c.env.STRIPE_SECRET_KEY) {
+    return c.json({ error: 'Stripe is not configured' }, 503);
+  }
+
   const stripe = getStripe(c.env);
 
   // Fetch org to check if already set up
@@ -46,7 +57,6 @@ billingRouter.post('/setup', requireAdmin(), async (c) => {
     return c.json({ error: 'Billing already configured for this organization' }, 400);
   }
 
-  const body = await c.req.json().catch(() => ({}));
   const plan = body.plan || 'monthly';
   const includeAiAddon = Boolean(body.includeAiAddon);
   const billingEmail = typeof body.billingEmail === 'string' ? body.billingEmail.trim() : null;
@@ -70,73 +80,78 @@ billingRouter.post('/setup', requireAdmin(), async (c) => {
     email = adminUser?.email;
   }
 
-  // 1. Create Stripe Customer with address for invoicing
-  const customerData = {
-    name: org.name,
-    email: email || undefined,
-    metadata: {
-      organization_id: org.id,
-      wonde_school_id: org.wonde_school_id || '',
-    },
-  };
-
-  // Add address if available (for UK invoice compliance)
-  if (org.address_line_1) {
-    customerData.address = {
-      line1: org.address_line_1,
-      line2: org.address_line_2 || undefined,
-      city: org.town || undefined,
-      postal_code: org.postcode || undefined,
-      country: 'GB',
+  try {
+    // 1. Create Stripe Customer with address for invoicing
+    const customerData = {
+      name: org.name,
+      email: email || undefined,
+      metadata: {
+        organization_id: org.id,
+        wonde_school_id: org.wonde_school_id || '',
+      },
     };
-  }
 
-  if (org.phone) {
-    customerData.phone = org.phone;
-  }
+    // Add address if available (for UK invoice compliance)
+    if (org.address_line_1) {
+      customerData.address = {
+        line1: org.address_line_1,
+        line2: org.address_line_2 || undefined,
+        city: org.town || undefined,
+        postal_code: org.postcode || undefined,
+        country: 'GB',
+      };
+    }
 
-  const customer = await stripe.customers.create(customerData);
+    if (org.phone) {
+      customerData.phone = org.phone;
+    }
 
-  // 2. Create Subscription with trial (base plan + optional AI add-on)
-  const subscription = await stripe.subscriptions.create({
-    customer: customer.id,
-    items: buildLineItems(plan, includeAiAddon, c.env),
-    trial_period_days: 30,
-    collection_method: 'send_invoice',
-    days_until_due: 30,
-    metadata: {
-      organization_id: org.id,
-    },
-  });
+    const customer = await stripe.customers.create(customerData);
 
-  // 3. Update organization record
-  await db
-    .prepare(
-      `UPDATE organizations SET
-        stripe_customer_id = ?,
-        stripe_subscription_id = ?,
-        subscription_status = 'trialing',
-        subscription_plan = ?,
-        trial_ends_at = ?,
-        billing_email = ?,
-        updated_at = datetime('now')
-      WHERE id = ?`
-    )
-    .bind(
-      customer.id,
-      subscription.id,
+    // 2. Create Subscription with trial (base plan + optional AI add-on)
+    const subscription = await stripe.subscriptions.create({
+      customer: customer.id,
+      items: buildLineItems(plan, includeAiAddon, c.env),
+      trial_period_days: 30,
+      collection_method: 'send_invoice',
+      days_until_due: 30,
+      metadata: {
+        organization_id: org.id,
+      },
+    });
+
+    // 3. Update organization record
+    await db
+      .prepare(
+        `UPDATE organizations SET
+          stripe_customer_id = ?,
+          stripe_subscription_id = ?,
+          subscription_status = 'trialing',
+          subscription_plan = ?,
+          trial_ends_at = ?,
+          billing_email = ?,
+          updated_at = datetime('now')
+        WHERE id = ?`
+      )
+      .bind(
+        customer.id,
+        subscription.id,
+        plan,
+        new Date(subscription.trial_end * 1000).toISOString(),
+        email || null,
+        org.id
+      )
+      .run();
+
+    return c.json({
+      status: 'trialing',
       plan,
-      new Date(subscription.trial_end * 1000).toISOString(),
-      email || null,
-      org.id
-    )
-    .run();
-
-  return c.json({
-    status: 'trialing',
-    plan,
-    trialEndsAt: new Date(subscription.trial_end * 1000).toISOString(),
-  });
+      trialEndsAt: new Date(subscription.trial_end * 1000).toISOString(),
+    });
+  } catch (err) {
+    console.error('[Billing] Setup failed:', err.message);
+    return c.json({ error: `Billing setup failed: ${err.message}` }, 500);
+  }
 });
 
 /**
