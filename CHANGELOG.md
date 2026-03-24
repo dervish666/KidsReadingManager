@@ -1,5 +1,19 @@
 # Changelog
 
+## [3.25.0] - 2026-03-24
+
+### Added
+- **Stripe billing integration** — webhook endpoint for subscription lifecycle events with signature verification and event deduplication
+- **Billing routes** — setup customer/subscription, billing status, Stripe Customer Portal redirect, plan change (monthly/termly/annual), owner billing overview
+- **BillingBanner component** — shows trial countdown, overdue warnings, and cancellation alerts for admin+ users
+- **BillingDashboard component** — owner-only tab on Settings page with filterable school billing table, AI add-on indicator, and Stripe dashboard links
+- **AI add-on support** — £20/month add-on tracked as second subscription line item, synced via webhooks
+- **Database migration (0038)** — billing columns on organizations, billing_events audit table with indexes
+
+### Changed
+- **Removed subscription tier UI** — legacy tier dropdown and display removed from SchoolManagement; column nulled in migration
+- **Stripe price IDs** added to wrangler.toml environment variables
+
 ## [3.24.0] - 2026-03-22
 
 ### Security

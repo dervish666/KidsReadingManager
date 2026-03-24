@@ -1,6 +1,6 @@
 {
   "name": "tally-reading",
-  "version": "3.24.0",
+  "version": "3.25.0",
   "description": "Cloudflare Workers implementation of Tally Reading API",
   "main": "src/index.js",
   "scripts": {
