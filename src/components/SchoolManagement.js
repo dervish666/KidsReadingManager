@@ -27,10 +27,11 @@ import {
 import {
   Delete as DeleteIcon,
   Edit as EditIcon,
-  School as SchoolIcon,
   Add as AddIcon,
   Link as LinkIcon,
   LinkOff as LinkOffIcon,
+  Sync as SyncIcon,
+  PlayArrow as PlayArrowIcon,
 } from '@mui/icons-material';
 
 const SchoolManagement = () => {
@@ -218,6 +219,46 @@ const SchoolManagement = () => {
     setDeleteDialogOpen(true);
   };
 
+  const handleWondeSync = async (school) => {
+    setError(null);
+    setSuccess(null);
+    try {
+      const res = await fetchWithAuth(`/api/wonde/sync/${school.id}`, { method: 'POST' });
+      const data = res && typeof res.json === 'function' ? await res.json() : res;
+      if (data.success) {
+        setSuccess(`Wonde sync completed for ${school.name}`);
+        fetchSchools();
+      } else {
+        setError(data.error || 'Wonde sync failed');
+      }
+    } catch (err) {
+      setError(err.message || 'Wonde sync failed');
+    }
+  };
+
+  const handleStartTrial = async (school) => {
+    setError(null);
+    setSuccess(null);
+    try {
+      const res = await fetchWithAuth('/api/billing/setup', {
+        method: 'POST',
+        headers: {
+          'X-Organization-Id': school.id,
+        },
+        body: JSON.stringify({ plan: 'monthly' }),
+      });
+      const data = res && typeof res.json === 'function' ? await res.json() : res;
+      if (data.status === 'trialing') {
+        setSuccess(`Trial started for ${school.name} (${data.plan})`);
+        fetchSchools();
+      } else {
+        setError(data.error || 'Failed to start trial');
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to start trial');
+    }
+  };
+
   return (
     <Box>
       <Typography variant="h4" gutterBottom>
@@ -368,6 +409,7 @@ const SchoolManagement = () => {
                   <TableRow>
                     <TableCell>Name</TableCell>
                     <TableCell>Source</TableCell>
+                    <TableCell>Billing</TableCell>
                     <TableCell>Actions</TableCell>
                   </TableRow>
                 </TableHead>
@@ -411,6 +453,45 @@ const SchoolManagement = () => {
                           )}
                         </TableCell>
                         <TableCell>
+                          {school.subscriptionStatus && school.subscriptionStatus !== 'none' ? (
+                            <Chip
+                              label={school.subscriptionStatus}
+                              size="small"
+                              color={
+                                school.subscriptionStatus === 'active' ? 'success'
+                                : school.subscriptionStatus === 'trialing' ? 'info'
+                                : school.subscriptionStatus === 'past_due' ? 'warning'
+                                : school.subscriptionStatus === 'cancelled' ? 'error'
+                                : 'default'
+                              }
+                            />
+                          ) : (
+                            <Tooltip title="Start 30-day free trial">
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                startIcon={<PlayArrowIcon />}
+                                onClick={() => handleStartTrial(school)}
+                                sx={{ textTransform: 'none' }}
+                              >
+                                Start Trial
+                              </Button>
+                            </Tooltip>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {school.wondeSchoolId && (
+                            <Tooltip title="Sync from Wonde">
+                              <IconButton
+                                color="secondary"
+                                onClick={() => handleWondeSync(school)}
+                                size="small"
+                                sx={{ mr: 1 }}
+                              >
+                                <SyncIcon />
+                              </IconButton>
+                            </Tooltip>
+                          )}
                           <IconButton
                             color="primary"
                             onClick={() => handleEdit(school)}

@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { decryptSensitiveData, encryptSensitiveData } from '../utils/crypto.js';
 import { runFullSync } from '../services/wondeSync.js';
+import { fetchSchoolDetails } from '../utils/wondeApi.js';
 import { requireAdmin, requireOwner } from '../middleware/tenant.js';
 
 const wondeAdminRouter = new Hono();
@@ -35,6 +36,72 @@ wondeAdminRouter.post('/sync', requireAdmin(), async (c) => {
   }
 
   // Run full sync
+  const result = await runFullSync(orgId, schoolToken, org.wonde_school_id, db);
+
+  return c.json({
+    success: result.status === 'completed',
+    ...result,
+  });
+});
+
+// POST /sync/:orgId — Trigger Wonde sync for a specific org (owner only)
+// Also fetches and updates school contact details from Wonde.
+wondeAdminRouter.post('/sync/:orgId', requireOwner(), async (c) => {
+  const orgId = c.req.param('orgId');
+  const db = c.env.READING_MANAGER_DB;
+
+  const org = await db.prepare(
+    'SELECT wonde_school_id, wonde_school_token FROM organizations WHERE id = ? AND is_active = 1'
+  ).bind(orgId).first();
+
+  if (!org || !org.wonde_school_id) {
+    return c.json({ error: 'Organization not connected to Wonde' }, 400);
+  }
+
+  if (!org.wonde_school_token) {
+    return c.json({ error: 'No Wonde school token configured' }, 400);
+  }
+
+  if (!c.env.JWT_SECRET) {
+    return c.json({ error: 'Server encryption not configured' }, 500);
+  }
+
+  let schoolToken;
+  try {
+    schoolToken = await decryptSensitiveData(org.wonde_school_token, c.env.JWT_SECRET);
+  } catch {
+    return c.json({ error: 'Failed to decrypt school token' }, 500);
+  }
+
+  // Fetch and update school contact details
+  try {
+    const details = await fetchSchoolDetails(schoolToken, org.wonde_school_id);
+    if (details) {
+      await db.prepare(
+        `UPDATE organizations SET
+          contact_email = COALESCE(?, contact_email),
+          phone = COALESCE(?, phone),
+          address_line_1 = COALESCE(?, address_line_1),
+          address_line_2 = COALESCE(?, address_line_2),
+          town = COALESCE(?, town),
+          postcode = COALESCE(?, postcode),
+          updated_at = datetime('now')
+        WHERE id = ?`
+      ).bind(
+        (details.email || '').trim() || null,
+        (details.phone_number || '').trim() || null,
+        (details.address?.address_line_1 || '').trim() || null,
+        (details.address?.address_line_2 || '').trim() || null,
+        (details.address?.address_town || '').trim() || null,
+        (details.address?.address_postcode || '').trim() || null,
+        orgId
+      ).run();
+    }
+  } catch (err) {
+    console.warn(`[WondeAdmin] Could not fetch school details for ${orgId}:`, err.message);
+  }
+
+  // Run full data sync (students, classes, employees)
   const result = await runFullSync(orgId, schoolToken, org.wonde_school_id, db);
 
   return c.json({
