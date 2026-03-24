@@ -74,6 +74,32 @@ export async function wondeRequest(path, token, params = {}) {
 }
 
 /**
+ * Fetch details for a single school from the Wonde API.
+ *
+ * Calls `GET /schools/{schoolId}` to retrieve school metadata including
+ * name, address, phone, email, URN, and establishment number.
+ *
+ * Unlike the list endpoints, this returns a single object (not paginated).
+ *
+ * @param {string} token - Wonde API bearer token
+ * @param {string} schoolId - Wonde school ID
+ * @returns {Promise<Object>} School detail object
+ */
+export async function fetchSchoolDetails(token, schoolId) {
+  const url = `${WONDE_BASE_URL}/schools/${schoolId}`;
+  const response = await fetchWithTimeout(url, {
+    headers: { Authorization: `Bearer ${token}` },
+  }, 8000);
+
+  if (!response.ok) {
+    throw new Error(`Wonde API error: ${response.status} ${response.statusText}`);
+  }
+
+  const json = await response.json();
+  return json.data || null;
+}
+
+/**
  * Fetch all students for a school from the Wonde API.
  *
  * Calls `/schools/{schoolId}/students` with includes for education details,

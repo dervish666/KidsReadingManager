@@ -58,8 +58,10 @@ billingRouter.post('/setup', requireAdmin(), async (c) => {
     return c.json({ error: 'Invalid plan. Must be monthly, termly, or annual.' }, 400);
   }
 
-  // Determine billing email: explicit input > admin user's email
+  // Determine billing email: explicit input > org billing_email > org contact_email > admin user's email
   let email = billingEmail;
+  if (!email) email = org.billing_email;
+  if (!email) email = org.contact_email;
   if (!email) {
     const adminUser = await db
       .prepare('SELECT email FROM users WHERE id = ? AND is_active = 1')
@@ -68,15 +70,32 @@ billingRouter.post('/setup', requireAdmin(), async (c) => {
     email = adminUser?.email;
   }
 
-  // 1. Create Stripe Customer
-  const customer = await stripe.customers.create({
+  // 1. Create Stripe Customer with address for invoicing
+  const customerData = {
     name: org.name,
     email: email || undefined,
     metadata: {
       organization_id: org.id,
       wonde_school_id: org.wonde_school_id || '',
     },
-  });
+  };
+
+  // Add address if available (for UK invoice compliance)
+  if (org.address_line_1) {
+    customerData.address = {
+      line1: org.address_line_1,
+      line2: org.address_line_2 || undefined,
+      city: org.town || undefined,
+      postal_code: org.postcode || undefined,
+      country: 'GB',
+    };
+  }
+
+  if (org.phone) {
+    customerData.phone = org.phone;
+  }
+
+  const customer = await stripe.customers.create(customerData);
 
   // 2. Create Subscription with trial (base plan + optional AI add-on)
   const subscription = await stripe.subscriptions.create({

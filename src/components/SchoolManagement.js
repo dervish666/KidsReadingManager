@@ -38,6 +38,13 @@ const SchoolManagement = () => {
   const [schools, setSchools] = useState([]);
   const [formData, setFormData] = useState({
     name: '',
+    contactEmail: '',
+    billingEmail: '',
+    phone: '',
+    addressLine1: '',
+    addressLine2: '',
+    town: '',
+    postcode: '',
     wondeSchoolToken: '',
   });
   const [editingSchool, setEditingSchool] = useState(null);
@@ -108,6 +115,13 @@ const SchoolManagement = () => {
           method: 'PUT',
           body: JSON.stringify({
             name: formData.name,
+            contactEmail: formData.contactEmail,
+            billingEmail: formData.billingEmail,
+            phone: formData.phone,
+            addressLine1: formData.addressLine1,
+            addressLine2: formData.addressLine2,
+            town: formData.town,
+            postcode: formData.postcode,
           }),
         });
 
@@ -148,6 +162,13 @@ const SchoolManagement = () => {
     setEditingSchool(school);
     setFormData({
       name: school.name,
+      contactEmail: school.contactEmail || '',
+      billingEmail: school.billingEmail || '',
+      phone: school.phone || '',
+      addressLine1: school.addressLine1 || '',
+      addressLine2: school.addressLine2 || '',
+      town: school.town || '',
+      postcode: school.postcode || '',
       wondeSchoolToken: '',
     });
     setError(null);
@@ -175,6 +196,13 @@ const SchoolManagement = () => {
   const resetForm = () => {
     setFormData({
       name: '',
+      contactEmail: '',
+      billingEmail: '',
+      phone: '',
+      addressLine1: '',
+      addressLine2: '',
+      town: '',
+      postcode: '',
       wondeSchoolToken: '',
     });
     setEditingSchool(null);
@@ -227,6 +255,67 @@ const SchoolManagement = () => {
                 margin="normal"
                 required
               />
+              <TextField
+                fullWidth
+                label="Contact Email"
+                name="contactEmail"
+                type="email"
+                value={formData.contactEmail}
+                onChange={handleInputChange}
+                margin="normal"
+              />
+              <TextField
+                fullWidth
+                label="Billing Email"
+                name="billingEmail"
+                type="email"
+                value={formData.billingEmail}
+                onChange={handleInputChange}
+                margin="normal"
+                helperText="Used for Stripe invoices. Falls back to contact email."
+              />
+              <TextField
+                fullWidth
+                label="Phone"
+                name="phone"
+                value={formData.phone}
+                onChange={handleInputChange}
+                margin="normal"
+              />
+              <TextField
+                fullWidth
+                label="Address Line 1"
+                name="addressLine1"
+                value={formData.addressLine1}
+                onChange={handleInputChange}
+                margin="normal"
+              />
+              <TextField
+                fullWidth
+                label="Address Line 2"
+                name="addressLine2"
+                value={formData.addressLine2}
+                onChange={handleInputChange}
+                margin="normal"
+              />
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <TextField
+                  label="Town"
+                  name="town"
+                  value={formData.town}
+                  onChange={handleInputChange}
+                  margin="normal"
+                  sx={{ flex: 2 }}
+                />
+                <TextField
+                  label="Postcode"
+                  name="postcode"
+                  value={formData.postcode}
+                  onChange={handleInputChange}
+                  margin="normal"
+                  sx={{ flex: 1 }}
+                />
+              </Box>
               {editingSchool?.wondeSchoolId && (
                 <TextField
                   fullWidth

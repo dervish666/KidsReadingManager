@@ -15,6 +15,7 @@
 import { Hono } from 'hono';
 import { encryptSensitiveData, constantTimeStringEqual } from '../utils/crypto.js';
 import { runFullSync } from '../services/wondeSync.js';
+import { fetchSchoolDetails } from '../utils/wondeApi.js';
 
 const webhooksRouter = new Hono();
 
@@ -59,23 +60,49 @@ webhooksRouter.post('/wonde', async (c) => {
       // Encrypt school token
       const encryptedToken = await encryptSensitiveData(body.school_token, c.env.JWT_SECRET);
 
+      // Fetch school contact details from Wonde (address, phone, email)
+      let schoolDetails = null;
+      try {
+        schoolDetails = await fetchSchoolDetails(body.school_token, body.school_id);
+      } catch (err) {
+        console.warn(`[Webhook] Could not fetch school details: ${err.message}`);
+      }
+
+      const contactEmail = (schoolDetails?.email || '').trim().substring(0, 200) || null;
+      const phone = (schoolDetails?.phone_number || '').trim().substring(0, 50) || null;
+      const addressLine1 = (schoolDetails?.address?.address_line_1 || '').trim().substring(0, 200) || null;
+      const addressLine2 = (schoolDetails?.address?.address_line_2 || '').trim().substring(0, 200) || null;
+      const town = (schoolDetails?.address?.address_town || '').trim().substring(0, 100) || null;
+      const postcode = (schoolDetails?.address?.address_postcode || '').trim().substring(0, 20) || null;
+
       let orgId;
       if (existing) {
         orgId = existing.id;
-        // Reactivate and update token if previously revoked
+        // Reactivate and update token + contact details if previously revoked
         await db.prepare(
-          `UPDATE organizations SET is_active = 1, wonde_school_token = ?, name = ?, updated_at = datetime("now")
+          `UPDATE organizations SET
+            is_active = 1, wonde_school_token = ?, name = ?,
+            contact_email = COALESCE(?, contact_email),
+            phone = COALESCE(?, phone),
+            address_line_1 = COALESCE(?, address_line_1),
+            address_line_2 = COALESCE(?, address_line_2),
+            town = COALESCE(?, town),
+            postcode = COALESCE(?, postcode),
+            updated_at = datetime("now")
            WHERE id = ?`
-        ).bind(encryptedToken, schoolName, orgId).run();
+        ).bind(encryptedToken, schoolName, contactEmail, phone, addressLine1, addressLine2, town, postcode, orgId).run();
         console.log(`[Webhook] School re-approved: ${schoolName} (${body.school_id}), reactivated org ${orgId}`);
       } else {
         orgId = crypto.randomUUID();
         const slug = schoolName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
         await db.prepare(
-          `INSERT INTO organizations (id, name, slug, wonde_school_id, wonde_school_token, is_active, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, 1, datetime("now"), datetime("now"))`
-        ).bind(orgId, schoolName, slug, body.school_id, encryptedToken).run();
+          `INSERT INTO organizations (id, name, slug, wonde_school_id, wonde_school_token,
+            contact_email, phone, address_line_1, address_line_2, town, postcode,
+            is_active, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime("now"), datetime("now"))`
+        ).bind(orgId, schoolName, slug, body.school_id, encryptedToken,
+          contactEmail, phone, addressLine1, addressLine2, town, postcode).run();
         console.log(`[Webhook] School approved: ${schoolName} (${body.school_id}), created org ${orgId}`);
       }
 

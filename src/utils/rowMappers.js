@@ -126,6 +126,13 @@ export const rowToOrganization = (row) => {
     consentGivenAt: row.consent_given_at || null,
     consentVersion: row.consent_version || null,
     consentGivenBy: row.consent_given_by || null,
+    // Contact/address fields
+    contactEmail: row.contact_email || null,
+    phone: row.phone || null,
+    addressLine1: row.address_line_1 || null,
+    addressLine2: row.address_line_2 || null,
+    town: row.town || null,
+    postcode: row.postcode || null,
     // Billing fields (synced from Stripe via webhooks)
     stripeCustomerId: row.stripe_customer_id || null,
     stripeSubscriptionId: row.stripe_subscription_id || null,

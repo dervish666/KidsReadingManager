@@ -604,7 +604,13 @@ organizationRouter.post(
  *
  * Body: {
  *   name?: string,
- *   subscriptionTier?: string
+ *   contactEmail?: string,
+ *   billingEmail?: string,
+ *   phone?: string,
+ *   addressLine1?: string,
+ *   addressLine2?: string,
+ *   town?: string,
+ *   postcode?: string,
  * }
  */
 organizationRouter.put('/:id', requireOwner(), auditLog('update', 'organization'), async (c) => {
@@ -613,7 +619,7 @@ organizationRouter.put('/:id', requireOwner(), auditLog('update', 'organization'
     const orgId = c.req.param('id');
     const body = await c.req.json();
 
-    const { name, subscriptionTier } = body;
+    const { name, contactEmail, billingEmail, phone, addressLine1, addressLine2, town, postcode } = body;
 
     // Check if organization exists (and is active)
     const existing = await db
@@ -634,9 +640,12 @@ organizationRouter.put('/:id', requireOwner(), auditLog('update', 'organization'
       params.push(name);
     }
 
-    if (subscriptionTier !== undefined) {
-      updates.push('subscription_tier = ?');
-      params.push(subscriptionTier);
+    const stringFields = { contact_email: contactEmail, billing_email: billingEmail, phone, address_line_1: addressLine1, address_line_2: addressLine2, town, postcode };
+    for (const [col, val] of Object.entries(stringFields)) {
+      if (val !== undefined) {
+        updates.push(`${col} = ?`);
+        params.push(typeof val === 'string' ? val.trim() : val);
+      }
     }
 
     if (updates.length === 0) {
