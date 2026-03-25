@@ -90,6 +90,10 @@ describe('mapWondeStudent', () => {
       pupilPremium: 1,
       ealStatus: 'E',
       fsm: 1,
+      dateOfBirth: null,
+      gender: null,
+      firstLanguage: null,
+      ealDetailedStatus: null,
       wondeClassIds: ['CLS_001', 'CLS_002']
     });
   });
@@ -143,6 +147,10 @@ describe('mapWondeStudent', () => {
       pupilPremium: 0,
       ealStatus: null,
       fsm: 0,
+      dateOfBirth: null,
+      gender: null,
+      firstLanguage: null,
+      ealDetailedStatus: null,
       wondeClassIds: []
     });
   });

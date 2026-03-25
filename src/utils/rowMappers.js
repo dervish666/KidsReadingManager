@@ -66,6 +66,10 @@ export const rowToStudent = (row) => {
     fsm: Boolean(row.fsm),
     processingRestricted: Boolean(row.processing_restricted),
     aiOptOut: Boolean(row.ai_opt_out),
+    dateOfBirth: row.date_of_birth || null,
+    gender: row.gender || null,
+    firstLanguage: row.first_language || null,
+    ealDetailedStatus: row.eal_detailed_status || null,
   };
 };
 
