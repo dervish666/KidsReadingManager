@@ -174,7 +174,15 @@ describe('Organization Routes', () => {
         createMockOrganization({ id: 'org-2', name: 'School B' }),
         createMockOrganization({ id: 'org-3', name: 'School C' }),
       ];
-      const mockDb = createMockDB({ allResults: { results: orgs } });
+      // Owner path issues count query (.first()) then data query (.all())
+      let callIndex = 0;
+      const mockDb = createMockDB();
+      mockDb.prepare = vi.fn().mockImplementation(() => ({
+        bind: vi.fn().mockReturnThis(),
+        first: vi.fn().mockResolvedValue(callIndex++ === 0 ? { count: 3 } : null),
+        all: vi.fn().mockResolvedValue({ results: orgs, success: true }),
+        run: vi.fn().mockResolvedValue({ success: true }),
+      }));
       const app = createTestApp(mockDb, createUserContext({ userRole: 'owner' }));
 
       const response = await app.request('/api/organization/all');
@@ -183,6 +191,8 @@ describe('Organization Routes', () => {
       expect(response.status).toBe(200);
       expect(data.organizations).toHaveLength(3);
       expect(data.organizations[0].name).toBe('School A');
+      expect(data.pagination.total).toBe(3);
+      expect(data.pagination.totalPages).toBe(1);
     });
 
     it('should return only own organization for admin role', async () => {
@@ -221,7 +231,14 @@ describe('Organization Routes', () => {
     });
 
     it('should handle empty organization list', async () => {
-      const mockDb = createMockDB({ allResults: { results: [] } });
+      let callIndex = 0;
+      const mockDb = createMockDB();
+      mockDb.prepare = vi.fn().mockImplementation(() => ({
+        bind: vi.fn().mockReturnThis(),
+        first: vi.fn().mockResolvedValue(callIndex++ === 0 ? { count: 0 } : null),
+        all: vi.fn().mockResolvedValue({ results: [], success: true }),
+        run: vi.fn().mockResolvedValue({ success: true }),
+      }));
       const app = createTestApp(mockDb, createUserContext({ userRole: 'owner' }));
 
       const response = await app.request('/api/organization/all');
@@ -229,6 +246,7 @@ describe('Organization Routes', () => {
 
       expect(response.status).toBe(200);
       expect(data.organizations).toEqual([]);
+      expect(data.pagination.total).toBe(0);
     });
   });
 

@@ -112,14 +112,14 @@ organizationRouter.get('/all', requireAdmin(), async (c) => {
 
     if (syncStatus === 'recent') {
       conditions.push(
-        "o.wonde_school_id IS NOT NULL AND o.wonde_last_sync_at > datetime('now', '-7 days')"
+        "(o.wonde_school_id IS NOT NULL AND o.wonde_last_sync_at > datetime('now', '-7 days'))"
       );
     } else if (syncStatus === 'stale') {
       conditions.push(
-        "o.wonde_school_id IS NOT NULL AND o.wonde_last_sync_at <= datetime('now', '-7 days')"
+        "(o.wonde_school_id IS NOT NULL AND o.wonde_last_sync_at <= datetime('now', '-7 days'))"
       );
     } else if (syncStatus === 'never') {
-      conditions.push('o.wonde_school_id IS NOT NULL AND o.wonde_last_sync_at IS NULL');
+      conditions.push('(o.wonde_school_id IS NOT NULL AND o.wonde_last_sync_at IS NULL)');
     }
 
     if (hasErrors) {
