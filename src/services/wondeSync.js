@@ -39,6 +39,12 @@ export function mapWondeStudent(wondeStudent) {
     pupilPremium: extendedData?.pupil_premium ? 1 : 0,
     ealStatus: extendedData?.eal_status ?? null,
     fsm: extendedData?.free_school_meals ? 1 : 0,
+    dateOfBirth: wondeStudent.date_of_birth?.date
+      ? wondeStudent.date_of_birth.date.split(' ')[0]
+      : null,
+    gender: wondeStudent.gender || null,
+    firstLanguage: extendedData?.first_language || extendedData?.home_language || null,
+    ealDetailedStatus: extendedData?.english_as_additional_language_status || null,
     wondeClassIds: Array.isArray(classesData) ? classesData.map(c => c.id) : []
   };
 }
@@ -223,11 +229,13 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
           db.prepare(
             `UPDATE students SET name = ?, class_id = ?, year_group = ?,
              sen_status = ?, pupil_premium = ?, eal_status = ?, fsm = ?,
+             date_of_birth = ?, gender = ?, first_language = ?, eal_detailed_status = ?,
              is_active = 1, updated_at = datetime('now')
              WHERE id = ?`
           ).bind(
             mapped.name, classId, mapped.yearGroup,
             mapped.senStatus, mapped.pupilPremium, mapped.ealStatus, mapped.fsm,
+            mapped.dateOfBirth, mapped.gender, mapped.firstLanguage, mapped.ealDetailedStatus,
             existingId
           )
         );
@@ -238,12 +246,14 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
           db.prepare(
             `INSERT INTO students (id, organization_id, name, class_id, wonde_student_id,
              year_group, sen_status, pupil_premium, eal_status, fsm,
+             date_of_birth, gender, first_language, eal_detailed_status,
              is_active, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'), datetime('now'))`
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'), datetime('now'))`
           ).bind(
             studentId, orgId, mapped.name, classId, mapped.wondeStudentId,
             mapped.yearGroup, mapped.senStatus, mapped.pupilPremium,
-            mapped.ealStatus, mapped.fsm
+            mapped.ealStatus, mapped.fsm,
+            mapped.dateOfBirth, mapped.gender, mapped.firstLanguage, mapped.ealDetailedStatus
           )
         );
         counts.studentsCreated++;
