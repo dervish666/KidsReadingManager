@@ -19,11 +19,15 @@ export const errorHandler = () => {
         ? 'Internal Server Error'
         : (error.message || 'An error occurred');
 
-      return c.json({
-        status: 'error',
-        message,
-        path: c.req.path
-      }, status);
+      return c.json(
+        {
+          status: 'error',
+          error: message,
+          message,
+          path: c.req.path,
+        },
+        status
+      );
     }
   };
 };

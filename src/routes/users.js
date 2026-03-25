@@ -10,6 +10,7 @@ import { requireAdmin, requireOwner, auditLog } from '../middleware/tenant.js';
 import { sendWelcomeEmail } from '../utils/email.js';
 import { requireDB as getDB } from '../utils/routeHelpers.js';
 import { rowToUser } from '../utils/rowMappers.js';
+import { notFoundError, badRequestError, forbiddenError, createError } from '../middleware/errorHandler.js';
 
 export const usersRouter = new Hono();
 
@@ -81,7 +82,7 @@ usersRouter.get('/:id', async (c) => {
 
     // Allow users to view their own profile, or admins to view any user
     if (requestedId !== userId && !hasPermission(userRole, ROLES.ADMIN)) {
-      return c.json({ error: 'Forbidden' }, 403);
+      throw forbiddenError();
     }
 
     const user = await db
@@ -96,11 +97,12 @@ usersRouter.get('/:id', async (c) => {
       .first();
 
     if (!user) {
-      return c.json({ error: 'User not found' }, 404);
+      throw notFoundError('User not found');
     }
 
     return c.json({ user: rowToUser(user) });
   } catch (error) {
+    if (error.status) throw error;
     console.error('Get user error:', error);
     return c.json({ error: 'Failed to get user' }, 500);
   }
@@ -133,7 +135,7 @@ usersRouter.post('/', requireAdmin(), auditLog('create', 'user'), async (c) => {
 
     // Only owners can create users in different organizations
     if (targetOrgId !== currentUserOrgId && currentUserRole !== ROLES.OWNER) {
-      return c.json({ error: 'Only owners can create users in other organizations' }, 403);
+      throw forbiddenError('Only owners can create users in other organizations');
     }
 
     // Validate required fields
@@ -150,7 +152,7 @@ usersRouter.post('/', requireAdmin(), auditLog('create', 'user'), async (c) => {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return c.json({ error: 'Invalid email format' }, 400);
+      throw badRequestError('Invalid email format');
     }
 
     // Validate role
@@ -167,7 +169,7 @@ usersRouter.post('/', requireAdmin(), auditLog('create', 'user'), async (c) => {
 
     // Only owners can create admins
     if (role === 'admin' && currentUserRole !== ROLES.OWNER) {
-      return c.json({ error: 'Only owners can create admin users' }, 403);
+      throw forbiddenError('Only owners can create admin users');
     }
 
     // Check if email already exists (among active users)
@@ -177,7 +179,7 @@ usersRouter.post('/', requireAdmin(), auditLog('create', 'user'), async (c) => {
       .first();
 
     if (existingUser) {
-      return c.json({ error: 'Email already registered' }, 409);
+      throw createError('Email already registered', 409);
     }
 
     // Fetch organization name for welcome email
@@ -187,7 +189,7 @@ usersRouter.post('/', requireAdmin(), auditLog('create', 'user'), async (c) => {
       .first();
 
     if (!org) {
-      return c.json({ error: 'Organization not found' }, 404);
+      throw notFoundError('Organization not found');
     }
 
     // Generate password if not provided
@@ -241,6 +243,7 @@ usersRouter.post('/', requireAdmin(), auditLog('create', 'user'), async (c) => {
       201
     );
   } catch (error) {
+    if (error.status) throw error;
     console.error('Create user error:', error);
     return c.json({ error: 'Failed to create user' }, 500);
   }
@@ -296,25 +299,25 @@ usersRouter.put('/:id', auditLog('update', 'user'), async (c) => {
     }
 
     if (!existingUser) {
-      return c.json({ error: 'User not found' }, 404);
+      throw notFoundError('User not found');
     }
 
     // Self can only update name
     if (isSelf && !isAdmin) {
       if (role !== undefined || isActive !== undefined || organizationId !== undefined) {
-        return c.json({ error: 'You can only update your own name' }, 403);
+        throw forbiddenError('You can only update your own name');
       }
     }
 
     // Non-admins can't update other users
     if (!isSelf && !isAdmin) {
-      return c.json({ error: 'Forbidden' }, 403);
+      throw forbiddenError();
     }
 
     // Check if updating organization - only owners can move users
     if (organizationId !== undefined) {
       if (!isOwner) {
-        return c.json({ error: 'Only owners can move users between organizations' }, 403);
+        throw forbiddenError('Only owners can move users between organizations');
       }
 
       // Validate organization exists
@@ -324,36 +327,36 @@ usersRouter.put('/:id', auditLog('update', 'user'), async (c) => {
         .first();
 
       if (!targetOrg) {
-        return c.json({ error: 'Target organization not found' }, 404);
+        throw notFoundError('Target organization not found');
       }
     }
 
     // Only owners can change roles to/from admin
     if (role !== undefined) {
       if ((role === 'admin' || existingUser.role === 'admin') && !isOwner) {
-        return c.json({ error: 'Only owners can modify admin roles' }, 403);
+        throw forbiddenError('Only owners can modify admin roles');
       }
 
       // Can't change owner role
       if (existingUser.role === 'owner') {
-        return c.json({ error: 'Cannot change owner role' }, 403);
+        throw forbiddenError('Cannot change owner role');
       }
 
       // Validate role
       const validRoles = ['admin', 'teacher', 'readonly'];
       if (!validRoles.includes(role)) {
-        return c.json({ error: 'Invalid role' }, 400);
+        throw badRequestError('Invalid role');
       }
     }
 
     // Can't deactivate yourself
     if (isSelf && isActive === false) {
-      return c.json({ error: 'Cannot deactivate your own account' }, 400);
+      throw badRequestError('Cannot deactivate your own account');
     }
 
     // Can't deactivate the owner
     if (existingUser.role === 'owner' && isActive === false) {
-      return c.json({ error: 'Cannot deactivate the organization owner' }, 400);
+      throw badRequestError('Cannot deactivate the organization owner');
     }
 
     // Build update query
@@ -381,7 +384,7 @@ usersRouter.put('/:id', auditLog('update', 'user'), async (c) => {
     }
 
     if (updates.length === 0) {
-      return c.json({ error: 'No valid fields to update' }, 400);
+      throw badRequestError('No valid fields to update');
     }
 
     updates.push('updated_at = datetime("now")');
@@ -415,6 +418,7 @@ usersRouter.put('/:id', auditLog('update', 'user'), async (c) => {
       user: rowToUser(updatedUser),
     });
   } catch (error) {
+    if (error.status) throw error;
     console.error('Update user error:', error);
     return c.json({ error: 'Failed to update user' }, 500);
   }
@@ -443,17 +447,17 @@ usersRouter.delete('/:id', requireAdmin(), auditLog('delete', 'user'), async (c)
       .first();
 
     if (!existingUser) {
-      return c.json({ error: 'User not found' }, 404);
+      throw notFoundError('User not found');
     }
 
     // Can't delete yourself
     if (targetUserId === currentUserId) {
-      return c.json({ error: 'Cannot delete your own account' }, 400);
+      throw badRequestError('Cannot delete your own account');
     }
 
     // Can't delete the owner
     if (existingUser.role === 'owner') {
-      return c.json({ error: 'Cannot delete the organization owner' }, 400);
+      throw badRequestError('Cannot delete the organization owner');
     }
 
     // Soft delete (deactivate)
@@ -478,6 +482,7 @@ usersRouter.delete('/:id', requireAdmin(), auditLog('delete', 'user'), async (c)
 
     return c.json({ message: 'User deactivated successfully' });
   } catch (error) {
+    if (error.status) throw error;
     console.error('Delete user error:', error);
     return c.json({ error: 'Failed to delete user' }, 500);
   }
@@ -497,7 +502,7 @@ usersRouter.delete('/:id/erase', requireAdmin(), auditLog('erase', 'user'), asyn
 
     const body = await c.req.json().catch(() => ({}));
     if (!body.confirm) {
-      return c.json({ error: 'Erasure requires { "confirm": true } in request body' }, 400);
+      throw badRequestError('Erasure requires { "confirm": true } in request body');
     }
 
     // Fetch the user (include inactive — erasure applies regardless)
@@ -511,17 +516,17 @@ usersRouter.delete('/:id/erase', requireAdmin(), auditLog('erase', 'user'), asyn
       .first();
 
     if (!existingUser) {
-      return c.json({ error: 'User not found' }, 404);
+      throw notFoundError('User not found');
     }
 
     // Cannot erase yourself
     if (targetUserId === currentUserId) {
-      return c.json({ error: 'Cannot erase your own account' }, 400);
+      throw badRequestError('Cannot erase your own account');
     }
 
     // Cannot erase the owner
     if (existingUser.role === 'owner') {
-      return c.json({ error: 'Cannot erase the organization owner' }, 400);
+      throw badRequestError('Cannot erase the organization owner');
     }
 
     // Count records for response summary
@@ -568,6 +573,7 @@ usersRouter.delete('/:id/erase', requireAdmin(), auditLog('erase', 'user'), asyn
       },
     });
   } catch (error) {
+    if (error.status) throw error;
     console.error('Erase user error:', error);
     return c.json({ error: 'Failed to erase user' }, 500);
   }
@@ -598,7 +604,7 @@ usersRouter.post('/:id/reset-password', requireAdmin(), auditLog('update', 'user
       .first();
 
     if (!existingUser) {
-      return c.json({ error: 'User not found' }, 404);
+      throw notFoundError('User not found');
     }
 
     // Generate new temporary password
@@ -650,6 +656,7 @@ usersRouter.post('/:id/reset-password', requireAdmin(), auditLog('update', 'user
       emailSent: emailResult.success,
     });
   } catch (error) {
+    if (error.status) throw error;
     console.error('Reset password error:', error);
     return c.json({ error: 'Failed to reset password' }, 500);
   }
@@ -669,7 +676,7 @@ usersRouter.get('/:id/export', requireOwner(), async (c) => {
     const format = (c.req.query('format') || 'json').toLowerCase();
 
     if (!['json', 'csv'].includes(format)) {
-      return c.json({ error: 'Unsupported format. Use ?format=json or ?format=csv' }, 400);
+      throw badRequestError('Unsupported format. Use ?format=json or ?format=csv');
     }
 
     // Fetch user with organization name
@@ -686,7 +693,7 @@ usersRouter.get('/:id/export', requireOwner(), async (c) => {
       .first();
 
     if (!user) {
-      return c.json({ error: 'User not found' }, 404);
+      throw notFoundError('User not found');
     }
 
     // Fetch audit log entries referencing this user
@@ -794,6 +801,7 @@ usersRouter.get('/:id/export', requireOwner(), async (c) => {
       },
     });
   } catch (error) {
+    if (error.status) throw error;
     console.error('Export user error:', error);
     return c.json({ error: 'Failed to export user data' }, 500);
   }
@@ -830,7 +838,7 @@ usersRouter.get('/:id/classes', requireAdmin(), async (c) => {
     }
 
     if (!user) {
-      return c.json({ error: 'User not found' }, 404);
+      throw notFoundError('User not found');
     }
 
     // If user has no Wonde employee ID, no class assignments to show
@@ -860,6 +868,7 @@ usersRouter.get('/:id/classes', requireAdmin(), async (c) => {
 
     return c.json({ classes });
   } catch (error) {
+    if (error.status) throw error;
     console.error('Get user classes error:', error);
     return c.json({ error: 'Failed to get user classes' }, 500);
   }

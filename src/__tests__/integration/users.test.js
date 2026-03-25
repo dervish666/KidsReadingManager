@@ -68,6 +68,13 @@ const createTestApp = (contextValues = {}, dbOverrides = {}) => {
 
   app.route('/api/users', usersRouter);
 
+  // Error handler (matches production onError in worker.js)
+  app.onError((err, c) => {
+    const status = err.status || 500;
+    const message = status >= 500 ? 'Internal Server Error' : (err.message || 'An error occurred');
+    return c.json({ status: 'error', error: message, message }, status);
+  });
+
   return { app, mockDB };
 };
 
@@ -378,7 +385,7 @@ describe('Users API Routes', () => {
       const data = await response.json();
 
       expect(response.status).toBe(403);
-      expect(data.error).toBe('Forbidden');
+      expect(data.error).toBe('Permission denied');
     });
 
     it('should return 404 for non-existent user', async () => {
@@ -950,7 +957,7 @@ describe('Users API Routes', () => {
         const data = await response.json();
 
         expect(response.status).toBe(403);
-        expect(data.error).toBe('Forbidden');
+        expect(data.error).toBe('Permission denied');
       });
     });
   });

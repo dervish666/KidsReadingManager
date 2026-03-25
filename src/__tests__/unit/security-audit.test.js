@@ -169,8 +169,9 @@ describe('Error Handler Middleware', () => {
       expect(mockContext.json).toHaveBeenCalledWith(
         {
           status: 'error',
+          error: 'Internal Server Error',
           message: 'Internal Server Error',
-          path: '/api/data'
+          path: '/api/data',
         },
         500
       );
@@ -192,8 +193,9 @@ describe('Error Handler Middleware', () => {
       expect(mockContext.json).toHaveBeenCalledWith(
         {
           status: 'error',
+          error: 'Book not found',
           message: 'Book not found',
-          path: '/api/books'
+          path: '/api/books',
         },
         404
       );
