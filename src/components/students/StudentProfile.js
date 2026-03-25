@@ -314,6 +314,51 @@ const StudentProfile = ({ open, onClose, student }) => {
                     helperText={!name.trim() ? 'Name is required' : ''}
                   />
 
+                  {/* Demographics (read-only, from Wonde sync) */}
+                  {(student.dateOfBirth || student.gender || student.firstLanguage || student.ealDetailedStatus) && (
+                    <Box sx={{
+                      p: 2,
+                      borderRadius: '8px',
+                      bgcolor: '#fafaf7',
+                      border: '1px solid',
+                      borderColor: 'divider',
+                    }}>
+                      <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                        Student Details
+                      </Typography>
+                      <Box sx={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 16px', fontSize: '0.875rem' }}>
+                        {student.dateOfBirth && (
+                          <>
+                            <Typography variant="body2" color="text.secondary">Age</Typography>
+                            <Typography variant="body2">
+                              {Math.floor((Date.now() - new Date(student.dateOfBirth).getTime()) / (365.25 * 24 * 60 * 60 * 1000))} years old
+                            </Typography>
+                          </>
+                        )}
+                        {student.gender && (
+                          <>
+                            <Typography variant="body2" color="text.secondary">Gender</Typography>
+                            <Typography variant="body2">
+                              {student.gender.charAt(0).toUpperCase() + student.gender.slice(1).toLowerCase()}
+                            </Typography>
+                          </>
+                        )}
+                        {student.firstLanguage && (
+                          <>
+                            <Typography variant="body2" color="text.secondary">First Language</Typography>
+                            <Typography variant="body2">{student.firstLanguage}</Typography>
+                          </>
+                        )}
+                        {student.ealDetailedStatus && student.ealDetailedStatus !== 'Not applicable' && (
+                          <>
+                            <Typography variant="body2" color="text.secondary">EAL Status</Typography>
+                            <Typography variant="body2">{student.ealDetailedStatus}</Typography>
+                          </>
+                        )}
+                      </Box>
+                    </Box>
+                  )}
+
                   {/* Class */}
                   <FormControl fullWidth>
                     <InputLabel id="class-select-label">Class</InputLabel>
