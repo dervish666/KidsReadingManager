@@ -9,7 +9,6 @@ import {
   Paper,
   Chip,
   Box,
-  IconButton,
   Tooltip,
   Typography,
   TableSortLabel,
@@ -18,19 +17,16 @@ import {
 } from '@mui/material';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import CheckIcon from '@mui/icons-material/Check';
-import PsychologyIcon from '@mui/icons-material/Psychology';
 import { useAppContext } from '../../contexts/AppContext';
 import StreakBadge from './StreakBadge';
 import { useTheme } from '@mui/material/styles';
-import StudentSessions from '../sessions/StudentSessions';
-import StudentProfile from './StudentProfile';
+import StudentDetailDrawer from './StudentDetailDrawer';
 import { STATUS_TO_PALETTE } from '../../utils/helpers';
 
 const StudentTable = React.memo(({ students }) => {
   const theme = useTheme();
   const { getReadingStatus, classes, markStudentAsPriorityHandled, markedPriorityStudentIds } = useAppContext();
-  const [openSessionsDialog, setOpenSessionsDialog] = useState(false);
-  const [openPreferencesDialog, setOpenPreferencesDialog] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [orderBy, setOrderBy] = useState('name');
   const [order, setOrder] = useState('asc');
@@ -77,7 +73,7 @@ const StudentTable = React.memo(({ students }) => {
 
   const handleRowClick = (student) => {
     setSelectedStudent(student);
-    setOpenSessionsDialog(true);
+    setDrawerOpen(true);
   };
 
   const handleIconClick = (e, student) => {
@@ -92,12 +88,6 @@ const StudentTable = React.memo(({ students }) => {
       // Clear the checkmark animation after a delay
       setTimeout(() => setMarkedStudentId(null), 1500);
     }
-  };
-
-  const handlePreferencesClick = (e, student) => {
-    e.stopPropagation();
-    setSelectedStudent(student);
-    setOpenPreferencesDialog(true);
   };
 
   const handleRequestSort = (property) => {
@@ -230,9 +220,6 @@ const StudentTable = React.memo(({ students }) => {
                 >
                   Sessions
                 </TableSortLabel>
-              </TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 600, textAlign: 'center', width: 80 }}>
-                Actions
               </TableCell>
             </TableRow>
           </TableHead>
@@ -395,30 +382,6 @@ const StudentTable = React.memo(({ students }) => {
                       }}
                     />
                   </TableCell>
-                  <TableCell align="center">
-                    <Tooltip title="Student Profile">
-                      <IconButton
-                        size="small"
-                        onClick={(e) => handlePreferencesClick(e, student)}
-                        aria-label={`View profile for ${student.name}`}
-                        sx={{
-                          // Touch-friendly size
-                          width: { xs: 44, sm: 40 },
-                          height: { xs: 44, sm: 40 },
-                          '&:hover': {
-                            bgcolor: 'action.hover',
-                          }
-                        }}
-                      >
-                        <PsychologyIcon
-                          sx={{
-                            fontSize: { xs: 22, sm: 20 },
-                            color: 'primary.main'
-                          }}
-                        />
-                      </IconButton>
-                    </Tooltip>
-                  </TableCell>
                 </TableRow>
               );
             })}
@@ -426,21 +389,13 @@ const StudentTable = React.memo(({ students }) => {
         </Table>
       </TableContainer>
 
-      <StudentSessions
-        open={openSessionsDialog}
+      <StudentDetailDrawer
+        open={drawerOpen}
+        student={selectedStudent}
         onClose={() => {
-          setOpenSessionsDialog(false);
+          setDrawerOpen(false);
           setSelectedStudent(null);
         }}
-        student={selectedStudent}
-      />
-      <StudentProfile
-        open={openPreferencesDialog}
-        onClose={() => {
-          setOpenPreferencesDialog(false);
-          setSelectedStudent(null);
-        }}
-        student={selectedStudent}
       />
 
       <Snackbar

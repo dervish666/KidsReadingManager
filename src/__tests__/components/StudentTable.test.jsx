@@ -12,24 +12,13 @@ vi.mock('../../contexts/AppContext', () => ({
   useAppContext: () => useContext(TestAppContext)
 }));
 
-// Mock the child dialog components to simplify testing
-vi.mock('../../components/sessions/StudentSessions', () => ({
+// Mock the StudentDetailDrawer component to simplify testing
+vi.mock('../../components/students/StudentDetailDrawer', () => ({
   default: ({ open, onClose, student }) => (
     open ? (
-      <div data-testid="student-sessions-dialog" role="dialog">
-        <span data-testid="sessions-student-name">{student?.name}</span>
-        <button onClick={onClose}>Close Sessions</button>
-      </div>
-    ) : null
-  )
-}));
-
-vi.mock('../../components/students/StudentProfile', () => ({
-  default: ({ open, onClose, student }) => (
-    open ? (
-      <div data-testid="student-profile-dialog" role="dialog">
-        <span data-testid="profile-student-name">{student?.name}</span>
-        <button onClick={onClose}>Close Profile</button>
+      <div data-testid="student-detail-drawer" role="dialog">
+        <span data-testid="drawer-student-name">{student?.name}</span>
+        <button onClick={onClose}>Close Drawer</button>
       </div>
     ) : null
   )
@@ -163,7 +152,6 @@ describe('StudentTable Component', () => {
       expect(screen.getByText('Class')).toBeInTheDocument();
       expect(screen.getByText('Last Read')).toBeInTheDocument();
       expect(screen.getByText('Sessions')).toBeInTheDocument();
-      expect(screen.getByText('Actions')).toBeInTheDocument();
     });
 
     it('should render all students from props', () => {
@@ -318,8 +306,8 @@ describe('StudentTable Component', () => {
     });
   });
 
-  describe('Student Row Click - Opens Sessions Dialog', () => {
-    it('should open StudentSessions dialog when clicking a student row', async () => {
+  describe('Student Row Click - Opens Detail Drawer', () => {
+    it('should open StudentDetailDrawer when clicking a student row', async () => {
       const context = createMockContext();
       const students = createTestStudents();
       render(<StudentTable students={students} />, { wrapper: createWrapper(context) });
@@ -328,75 +316,27 @@ describe('StudentTable Component', () => {
       const aliceRow = screen.getByText(/Alice Anderson/).closest('tr');
       fireEvent.click(aliceRow);
 
-      // Check that the sessions dialog is opened
-      expect(screen.getByTestId('student-sessions-dialog')).toBeInTheDocument();
-      expect(screen.getByTestId('sessions-student-name')).toHaveTextContent('Alice Anderson');
+      // Check that the drawer is opened
+      expect(screen.getByTestId('student-detail-drawer')).toBeInTheDocument();
+      expect(screen.getByTestId('drawer-student-name')).toHaveTextContent('Alice Anderson');
     });
 
-    it('should close StudentSessions dialog when close is triggered', async () => {
+    it('should close StudentDetailDrawer when close is triggered', async () => {
       const context = createMockContext();
       const students = createTestStudents();
       render(<StudentTable students={students} />, { wrapper: createWrapper(context) });
 
-      // Open the dialog
+      // Open the drawer
       const aliceRow = screen.getByText(/Alice Anderson/).closest('tr');
       fireEvent.click(aliceRow);
 
-      expect(screen.getByTestId('student-sessions-dialog')).toBeInTheDocument();
+      expect(screen.getByTestId('student-detail-drawer')).toBeInTheDocument();
 
-      // Close the dialog
-      const closeButton = screen.getByRole('button', { name: 'Close Sessions' });
+      // Close the drawer
+      const closeButton = screen.getByRole('button', { name: 'Close Drawer' });
       fireEvent.click(closeButton);
 
-      expect(screen.queryByTestId('student-sessions-dialog')).not.toBeInTheDocument();
-    });
-  });
-
-  describe('Student Profile Button - Opens Profile Dialog', () => {
-    it('should open StudentProfile dialog when clicking profile button', async () => {
-      const context = createMockContext();
-      const students = createTestStudents();
-      render(<StudentTable students={students} />, { wrapper: createWrapper(context) });
-
-      // Find and click the profile button for Alice
-      const profileButton = screen.getByRole('button', { name: /view profile for alice anderson/i });
-      fireEvent.click(profileButton);
-
-      // Check that the profile dialog is opened
-      expect(screen.getByTestId('student-profile-dialog')).toBeInTheDocument();
-      expect(screen.getByTestId('profile-student-name')).toHaveTextContent('Alice Anderson');
-    });
-
-    it('should not open sessions dialog when clicking profile button', async () => {
-      const context = createMockContext();
-      const students = createTestStudents();
-      render(<StudentTable students={students} />, { wrapper: createWrapper(context) });
-
-      // Click the profile button (should not trigger row click)
-      const profileButton = screen.getByRole('button', { name: /view profile for alice anderson/i });
-      fireEvent.click(profileButton);
-
-      // Only profile dialog should be open, not sessions dialog
-      expect(screen.getByTestId('student-profile-dialog')).toBeInTheDocument();
-      expect(screen.queryByTestId('student-sessions-dialog')).not.toBeInTheDocument();
-    });
-
-    it('should close StudentProfile dialog when close is triggered', async () => {
-      const context = createMockContext();
-      const students = createTestStudents();
-      render(<StudentTable students={students} />, { wrapper: createWrapper(context) });
-
-      // Open the profile dialog
-      const profileButton = screen.getByRole('button', { name: /view profile for alice anderson/i });
-      fireEvent.click(profileButton);
-
-      expect(screen.getByTestId('student-profile-dialog')).toBeInTheDocument();
-
-      // Close the dialog
-      const closeButton = screen.getByRole('button', { name: 'Close Profile' });
-      fireEvent.click(closeButton);
-
-      expect(screen.queryByTestId('student-profile-dialog')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('student-detail-drawer')).not.toBeInTheDocument();
     });
   });
 
@@ -442,7 +382,7 @@ describe('StudentTable Component', () => {
       expect(screen.getByRole('button', { name: /alice anderson marked as reading today/i })).toBeInTheDocument();
     });
 
-    it('should not open sessions dialog when clicking mark button', async () => {
+    it('should not open detail drawer when clicking mark button', async () => {
       const mockMarkStudent = vi.fn();
       const context = createMockContext({
         markStudentAsPriorityHandled: mockMarkStudent
@@ -453,8 +393,8 @@ describe('StudentTable Component', () => {
       const markButton = screen.getByRole('button', { name: /mark alice anderson as reading today/i });
       fireEvent.click(markButton);
 
-      // Sessions dialog should NOT be opened
-      expect(screen.queryByTestId('student-sessions-dialog')).not.toBeInTheDocument();
+      // Detail drawer should NOT be opened
+      expect(screen.queryByTestId('student-detail-drawer')).not.toBeInTheDocument();
     });
   });
 
@@ -628,18 +568,6 @@ describe('StudentTable Component', () => {
   });
 
   describe('Accessibility - ARIA Labels on Icon Buttons', () => {
-    it('should have aria-label on profile button for each student', () => {
-      const context = createMockContext();
-      const students = createTestStudents();
-      render(<StudentTable students={students} />, { wrapper: createWrapper(context) });
-
-      // Each student should have a profile button with descriptive aria-label
-      expect(screen.getByRole('button', { name: /view profile for alice anderson/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /view profile for bob brown/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /view profile for charlie chen/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /view profile for diana davis/i })).toBeInTheDocument();
-    });
-
     it('should have aria-label on mark as reading button for each student', () => {
       const context = createMockContext();
       const students = createTestStudents();
@@ -825,10 +753,10 @@ describe('StudentTable Component', () => {
       expect(screen.getByRole('table')).toBeInTheDocument();
       expect(screen.getAllByRole('row').length).toBeGreaterThan(1); // Header + data rows
 
-      // Header row has 5 columns: Student, Class (may be hidden), Last Read, Sessions, Actions
-      // But Class column is display:none on xs, so columnheader count may vary
+      // Header row has 4 columns: Student, Class (may be hidden), Last Read, Sessions
+      // But Class column is display:none on xs, so the accessibility tree may report fewer
       const columnHeaders = screen.getAllByRole('columnheader');
-      expect(columnHeaders.length).toBeGreaterThanOrEqual(4);
+      expect(columnHeaders.length).toBeGreaterThanOrEqual(3);
     });
 
     it('should have correct number of data rows for students', () => {
