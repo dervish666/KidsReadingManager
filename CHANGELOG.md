@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.27.0] - 2026-03-25
+
+### Added
+- **Student demographics from Wonde** — sync date of birth, gender, first language, and detailed EAL status (migration 0040)
+- **Student profile demographics** — read-only "Student Details" section showing age, gender, first language, and EAL status on the student profile modal
+- **AI recommendation context** — student age (calculated from DOB, not raw date for privacy), gender, first language, and EAL status included in recommendation prompts
+
+### Fixed
+- **School management filters** — selecting any filter then changing to another no longer gets stuck showing empty results. Fixed `hasErrors` filter (was treating all string values as truthy) and `syncStatus` value mismatch (`synced` → `recent`)
+
 ## [3.26.0] - 2026-03-25
 
 ### Added
