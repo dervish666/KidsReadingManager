@@ -1,5 +1,24 @@
 # Changelog
 
+## [3.28.0] - 2026-03-25
+
+### Added
+- **Unified student detail drawer** — replaces the two separate dialogs (sessions + profile) with a single slide-in drawer featuring a header bar with demographic chips, a preferences sidebar, and a compact session timeline
+- **StudentTimeline** — vertical timeline view of reading sessions with click-to-expand, inline edit/delete, and colour-coded assessment pills
+- **StudentReadView** — read-only sidebar showing favourite genres, liked/disliked books, and reading stats at a glance
+- **StudentEditForm** — reusable edit form (name, class, reading level, genres, likes/dislikes, AI opt-out) used in both the drawer and book recommendations
+- **calculateAge utility** — shared age calculation from date of birth for demographic display
+
+### Changed
+- **Student table** — removed Actions column; clicking a row now opens the detail drawer directly
+- **Student card** — removed profile icon button; card click opens the detail drawer
+- **Book recommendations** — preferences editing now uses the extracted StudentEditForm in a dialog
+
+### Removed
+- **StudentSessions dialog** — replaced by the drawer's session timeline panel
+- **StudentProfile dialog** — replaced by the drawer's read-only view and edit mode
+- **Delete student action** — removed as it's dangerous for Wonde-synced schools
+
 ## [3.27.0] - 2026-03-25
 
 ### Added
