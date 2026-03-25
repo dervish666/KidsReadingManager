@@ -1,260 +1,300 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import {
-  Box,
-  Typography,
-  TextField,
-  Button,
-  Alert,
-  CircularProgress,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
-  Grid,
-  Chip,
-  Tooltip,
-} from '@mui/material';
-import {
-  Delete as DeleteIcon,
-  Edit as EditIcon,
-  Add as AddIcon,
-  Link as LinkIcon,
-  LinkOff as LinkOffIcon,
-  Sync as SyncIcon,
-  PlayArrow as PlayArrowIcon,
-} from '@mui/icons-material';
+import { Box, Typography, Alert } from '@mui/material';
+import SchoolTable from './schools/SchoolTable';
+import SchoolDrawer from './schools/SchoolDrawer';
 
 const SchoolManagement = () => {
   const { fetchWithAuth } = useAppContext();
+
   const [schools, setSchools] = useState([]);
-  const [formData, setFormData] = useState({
-    name: '',
-    contactEmail: '',
-    billingEmail: '',
-    phone: '',
-    addressLine1: '',
-    addressLine2: '',
-    town: '',
-    postcode: '',
-    wondeSchoolToken: '',
+  const [pagination, setPagination] = useState({
+    page: 1,
+    pageSize: 50,
+    total: 0,
+    totalPages: 0,
   });
-  const [editingSchool, setEditingSchool] = useState(null);
+  const [filters, setFilters] = useState({
+    search: '',
+    source: '',
+    billing: '',
+    syncStatus: '',
+    hasErrors: false,
+  });
+  const [sort, setSort] = useState({ field: 'name', order: 'asc' });
+  const [selectedSchool, setSelectedSchool] = useState(null);
+  const [drawerMode, setDrawerMode] = useState('read'); // 'read' | 'edit' | 'add'
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [schoolToDelete, setSchoolToDelete] = useState(null);
 
-  useEffect(() => {
-    const loadSchools = async () => {
-      try {
-        const response = await fetchWithAuth('/api/organization/all');
-        if (response && typeof response.json === 'function') {
-          const data = await response.json();
-          setSchools(data.organizations || []);
-        } else {
-          setSchools(response.organizations || []);
-        }
-      } catch (err) {
-        console.error('Error fetching schools:', err);
-        setError('Failed to load schools');
-      }
-    };
-    loadSchools();
-  }, [fetchWithAuth]);
+  const [searchInput, setSearchInput] = useState('');
+  const searchTimerRef = useRef(null);
 
-  const fetchSchools = async () => {
-    try {
-      const response = await fetchWithAuth('/api/organization/all');
+  // --- Data Fetching ---
 
-      if (response && typeof response.json === 'function') {
-        const data = await response.json();
-        setSchools(data.organizations || []);
-      } else {
-        setSchools(response.organizations || []);
-      }
-    } catch (err) {
-      console.error('Error fetching schools:', err);
-      setError('Failed to load schools');
-    }
-  };
-
-  const validateForm = () => {
-    if (!formData.name) {
-      setError('School name is required');
-      return false;
-    }
-
-    setError(null);
-    return true;
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError(null);
-    setSuccess(null);
-
-    if (!validateForm()) {
-      return;
-    }
-
+  const fetchSchools = useCallback(async () => {
     setLoading(true);
     try {
-      if (editingSchool) {
-        // Update existing school
-        await fetchWithAuth(`/api/organization/${editingSchool.id}`, {
-          method: 'PUT',
-          body: JSON.stringify({
-            name: formData.name,
-            contactEmail: formData.contactEmail,
-            billingEmail: formData.billingEmail,
-            phone: formData.phone,
-            addressLine1: formData.addressLine1,
-            addressLine2: formData.addressLine2,
-            town: formData.town,
-            postcode: formData.postcode,
-          }),
-        });
+      const params = new URLSearchParams();
+      params.set('page', pagination.page);
+      params.set('pageSize', pagination.pageSize);
+      params.set('sort', sort.field);
+      params.set('order', sort.order);
+      if (filters.search) params.set('search', filters.search);
+      if (filters.source) params.set('source', filters.source);
+      if (filters.billing) params.set('billing', filters.billing);
+      if (filters.syncStatus) params.set('syncStatus', filters.syncStatus);
+      if (filters.hasErrors) params.set('hasErrors', 'true');
 
-        // Set Wonde token if provided and school has a wondeSchoolId
-        if (formData.wondeSchoolToken.trim() && editingSchool.wondeSchoolId) {
-          await fetchWithAuth('/api/wonde/token', {
-            method: 'POST',
-            body: JSON.stringify({
-              schoolToken: formData.wondeSchoolToken.trim(),
-              organizationId: editingSchool.id,
-            }),
-          });
-        }
-
-        setSuccess('School updated successfully');
-      } else {
-        // Create new school
-        await fetchWithAuth('/api/organization/create', {
-          method: 'POST',
-          body: JSON.stringify({
-            name: formData.name,
-          }),
-        });
-
-        setSuccess('School created successfully');
+      const res = await fetchWithAuth(`/api/organization/all?${params.toString()}`);
+      const data = await res.json();
+      const newSchools = data.organizations || [];
+      setSchools(newSchools);
+      if (data.pagination) {
+        setPagination((prev) => ({
+          ...prev,
+          total: data.pagination.total,
+          totalPages: data.pagination.totalPages,
+        }));
       }
-
-      resetForm();
-      fetchSchools();
+      return newSchools;
     } catch (err) {
-      setError(err.message || 'Operation failed');
+      setError('Failed to load schools');
+      return [];
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchWithAuth, filters, sort, pagination.page, pagination.pageSize]);
 
-  const handleEdit = (school) => {
-    setEditingSchool(school);
-    setFormData({
-      name: school.name,
-      contactEmail: school.contactEmail || '',
-      billingEmail: school.billingEmail || '',
-      phone: school.phone || '',
-      addressLine1: school.addressLine1 || '',
-      addressLine2: school.addressLine2 || '',
-      town: school.town || '',
-      postcode: school.postcode || '',
-      wondeSchoolToken: '',
-    });
-    setError(null);
-    setSuccess(null);
-  };
+  useEffect(() => {
+    fetchSchools();
+  }, [fetchSchools]);
 
-  const handleDeleteSchool = async () => {
-    if (!schoolToDelete) return;
+  // --- Search Debouncing ---
 
-    try {
-      await fetchWithAuth(`/api/organization/${schoolToDelete.id}`, {
-        method: 'DELETE',
-      });
+  useEffect(() => {
+    searchTimerRef.current = setTimeout(() => {
+      setFilters((prev) => ({ ...prev, search: searchInput }));
+    }, 300);
+    return () => clearTimeout(searchTimerRef.current);
+  }, [searchInput]);
 
-      setSuccess('School deactivated successfully');
-      fetchSchools();
-    } catch (err) {
-      setError('Failed to delete school');
-    } finally {
-      setDeleteDialogOpen(false);
-      setSchoolToDelete(null);
-    }
-  };
+  // --- Filter/Sort Handlers ---
 
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      contactEmail: '',
-      billingEmail: '',
-      phone: '',
-      addressLine1: '',
-      addressLine2: '',
-      town: '',
-      postcode: '',
-      wondeSchoolToken: '',
-    });
-    setEditingSchool(null);
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const openDeleteDialog = (school) => {
-    setSchoolToDelete(school);
-    setDeleteDialogOpen(true);
-  };
-
-  const handleWondeSync = async (school) => {
-    setError(null);
-    setSuccess(null);
-    try {
-      const res = await fetchWithAuth(`/api/wonde/sync/${school.id}`, { method: 'POST' });
-      const data = res && typeof res.json === 'function' ? await res.json() : res;
-      if (data.success) {
-        setSuccess(`Wonde sync completed for ${school.name}`);
-        fetchSchools();
-      } else {
-        setError(data.error || 'Wonde sync failed');
+  const handleFilterChange = useCallback(
+    (newFilters) => {
+      // Extract search changes — drive them through the debounce path
+      if (newFilters.search !== undefined && newFilters.search !== searchInput) {
+        setSearchInput(newFilters.search);
       }
+      // Apply all non-search filter changes immediately
+      const { search: _search, ...rest } = newFilters;
+      setFilters((prev) => {
+        const changed = Object.keys(rest).some((k) => rest[k] !== prev[k]);
+        if (!changed) return prev;
+        return { ...prev, ...rest };
+      });
+      setPagination((prev) => ({ ...prev, page: 1 }));
+      setSelectedSchool(null);
+    },
+    [searchInput]
+  );
+
+  const handleSortChange = useCallback((newSort) => {
+    setSort(newSort);
+  }, []);
+
+  const handlePageChange = useCallback((newPage) => {
+    setPagination((prev) => ({ ...prev, page: newPage }));
+  }, []);
+
+  // --- Drawer Handlers ---
+
+  const handleRowClick = useCallback((school) => {
+    setSelectedSchool(school);
+    setDrawerMode('read');
+  }, []);
+
+  const handleAddClick = useCallback(() => {
+    setSelectedSchool(null);
+    setDrawerMode('add');
+  }, []);
+
+  const handleEdit = useCallback(() => {
+    setDrawerMode('edit');
+  }, []);
+
+  const handleCloseDrawer = useCallback(() => {
+    setSelectedSchool(null);
+  }, []);
+
+  const handleCancel = useCallback(() => {
+    if (drawerMode === 'add') {
+      setSelectedSchool(null);
+    } else if (drawerMode === 'edit') {
+      setDrawerMode('read');
+    }
+  }, [drawerMode]);
+
+  // --- API Action Handlers ---
+
+  const handleSave = useCallback(
+    async (formData) => {
+      setSaving(true);
+      setError(null);
+      try {
+        if (drawerMode === 'add') {
+          const res = await fetchWithAuth('/api/organization/create', {
+            method: 'POST',
+            body: JSON.stringify({ name: formData.name }),
+          });
+          if (!res.ok) {
+            const data = await res.json();
+            throw new Error(data.error || 'Failed to create school');
+          }
+          setSelectedSchool(null);
+          await fetchSchools();
+          setSuccess('School created successfully');
+        } else if (drawerMode === 'edit') {
+          const res = await fetchWithAuth(`/api/organization/${selectedSchool.id}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+              name: formData.name,
+              contactEmail: formData.contactEmail,
+              billingEmail: formData.billingEmail,
+              phone: formData.phone,
+              addressLine1: formData.addressLine1,
+              addressLine2: formData.addressLine2,
+              town: formData.town,
+              postcode: formData.postcode,
+            }),
+          });
+          if (!res.ok) {
+            const data = await res.json();
+            throw new Error(data.error || 'Failed to update school');
+          }
+
+          if (formData.wondeSchoolToken?.trim() && selectedSchool.wondeSchoolId) {
+            await fetchWithAuth('/api/wonde/token', {
+              method: 'POST',
+              body: JSON.stringify({
+                schoolToken: formData.wondeSchoolToken.trim(),
+                organizationId: selectedSchool.id,
+              }),
+            });
+          }
+
+          const newSchools = await fetchSchools();
+          const updatedSchool = newSchools.find((s) => s.id === selectedSchool.id);
+          if (updatedSchool) setSelectedSchool(updatedSchool);
+          setDrawerMode('read');
+          setSuccess('School updated successfully');
+        }
+      } catch (err) {
+        setError(err.message || 'Save failed');
+      } finally {
+        setSaving(false);
+      }
+    },
+    [drawerMode, selectedSchool, fetchWithAuth, fetchSchools]
+  );
+
+  const handleSync = useCallback(async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetchWithAuth(`/api/wonde/sync/${selectedSchool.id}`, { method: 'POST' });
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.error || 'Wonde sync failed');
+      }
+      const newSchools = await fetchSchools();
+      const updatedSchool = newSchools.find((s) => s.id === selectedSchool.id);
+      if (updatedSchool) setSelectedSchool(updatedSchool);
+      setSuccess('Wonde sync completed');
     } catch (err) {
       setError(err.message || 'Wonde sync failed');
+    } finally {
+      setSaving(false);
     }
-  };
+  }, [selectedSchool, fetchWithAuth, fetchSchools]);
 
-  const handleStartTrial = async (school) => {
+  const handleStartTrial = useCallback(async () => {
+    setSaving(true);
     setError(null);
-    setSuccess(null);
     try {
       const res = await fetchWithAuth('/api/billing/setup', {
         method: 'POST',
-        body: JSON.stringify({ plan: 'monthly', organizationId: school.id }),
+        body: JSON.stringify({ plan: 'monthly', organizationId: selectedSchool.id }),
       });
-      const data = res && typeof res.json === 'function' ? await res.json() : res;
-      if (data.status === 'trialing') {
-        setSuccess(`Trial started for ${school.name} (${data.plan})`);
-        fetchSchools();
-      } else {
-        setError(data.error || 'Failed to start trial');
+      const data = await res.json();
+      if (data.status !== 'trialing') {
+        throw new Error(data.error || 'Failed to start trial');
       }
+      const newSchools = await fetchSchools();
+      const updatedSchool = newSchools.find((s) => s.id === selectedSchool.id);
+      if (updatedSchool) setSelectedSchool(updatedSchool);
+      setSuccess('Trial started');
     } catch (err) {
       setError(err.message || 'Failed to start trial');
+    } finally {
+      setSaving(false);
     }
-  };
+  }, [selectedSchool, fetchWithAuth, fetchSchools]);
+
+  const handleOpenPortal = useCallback(async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetchWithAuth('/api/billing/portal', {
+        method: 'POST',
+        body: JSON.stringify({ organizationId: selectedSchool.id }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.open(data.url, '_blank');
+      } else {
+        throw new Error(data.error || 'Failed to open billing portal');
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to open billing portal');
+    } finally {
+      setSaving(false);
+    }
+  }, [selectedSchool, fetchWithAuth]);
+
+  const handleDeactivate = useCallback(async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetchWithAuth(`/api/organization/${selectedSchool.id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to deactivate school');
+      }
+      setSelectedSchool(null);
+      await fetchSchools();
+      setSuccess('School deactivated successfully');
+    } catch (err) {
+      setError(err.message || 'Failed to deactivate school');
+    } finally {
+      setSaving(false);
+    }
+  }, [selectedSchool, fetchWithAuth, fetchSchools]);
+
+  // --- Success Auto-Dismiss ---
+
+  useEffect(() => {
+    if (!success) return;
+    const timer = setTimeout(() => setSuccess(null), 5000);
+    return () => clearTimeout(timer);
+  }, [success]);
+
+  // --- Render ---
 
   return (
     <Box>
@@ -262,280 +302,47 @@ const SchoolManagement = () => {
         School Management
       </Typography>
       <Typography variant="body1" color="text.secondary" paragraph>
-        Manage schools/organizations in the system. Only organization owners can access this page.
+        Manage schools and organizations in the system.
       </Typography>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
           {error}
         </Alert>
       )}
-
       {success && (
-        <Alert severity="success" sx={{ mb: 2 }}>
+        <Alert severity="success" onClose={() => setSuccess(null)} sx={{ mb: 2 }}>
           {success}
         </Alert>
       )}
 
-      <Grid container spacing={3}>
-        <Grid size={{ xs: 12, md: 4 }}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              {editingSchool ? 'Edit School' : 'Add New School'}
-            </Typography>
-            <form onSubmit={handleSubmit}>
-              <TextField
-                fullWidth
-                label="School Name"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                margin="normal"
-                required
-              />
-              <TextField
-                fullWidth
-                label="Contact Email"
-                name="contactEmail"
-                type="email"
-                value={formData.contactEmail}
-                onChange={handleInputChange}
-                margin="normal"
-              />
-              <TextField
-                fullWidth
-                label="Billing Email"
-                name="billingEmail"
-                type="email"
-                value={formData.billingEmail}
-                onChange={handleInputChange}
-                margin="normal"
-                helperText="Used for Stripe invoices. Falls back to contact email."
-              />
-              <TextField
-                fullWidth
-                label="Phone"
-                name="phone"
-                value={formData.phone}
-                onChange={handleInputChange}
-                margin="normal"
-              />
-              <TextField
-                fullWidth
-                label="Address Line 1"
-                name="addressLine1"
-                value={formData.addressLine1}
-                onChange={handleInputChange}
-                margin="normal"
-              />
-              <TextField
-                fullWidth
-                label="Address Line 2"
-                name="addressLine2"
-                value={formData.addressLine2}
-                onChange={handleInputChange}
-                margin="normal"
-              />
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <TextField
-                  label="Town"
-                  name="town"
-                  value={formData.town}
-                  onChange={handleInputChange}
-                  margin="normal"
-                  sx={{ flex: 2 }}
-                />
-                <TextField
-                  label="Postcode"
-                  name="postcode"
-                  value={formData.postcode}
-                  onChange={handleInputChange}
-                  margin="normal"
-                  sx={{ flex: 1 }}
-                />
-              </Box>
-              {editingSchool?.wondeSchoolId && (
-                <TextField
-                  fullWidth
-                  label="Wonde School Token"
-                  name="wondeSchoolToken"
-                  type="password"
-                  value={formData.wondeSchoolToken}
-                  onChange={handleInputChange}
-                  margin="normal"
-                  placeholder={editingSchool.hasWondeToken ? 'Token is set' : ''}
-                  helperText="Paste from Wonde dashboard. Encrypted at rest."
-                />
-              )}
-              <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  fullWidth
-                  disabled={loading}
-                  startIcon={
-                    loading ? (
-                      <CircularProgress size={20} />
-                    ) : editingSchool ? (
-                      <EditIcon />
-                    ) : (
-                      <AddIcon />
-                    )
-                  }
-                >
-                  {loading ? 'Saving...' : editingSchool ? 'Update School' : 'Create School'}
-                </Button>
-                {editingSchool && (
-                  <Button onClick={resetForm} variant="outlined" disabled={loading}>
-                    Cancel
-                  </Button>
-                )}
-              </Box>
-            </form>
-          </Paper>
-        </Grid>
+      <SchoolTable
+        schools={schools}
+        pagination={pagination}
+        filters={{ ...filters, search: searchInput }}
+        sort={sort}
+        loading={loading}
+        onFilterChange={handleFilterChange}
+        onSortChange={handleSortChange}
+        onPageChange={handlePageChange}
+        onRowClick={handleRowClick}
+        onAddClick={handleAddClick}
+      />
 
-        <Grid size={{ xs: 12, md: 8 }}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Existing Schools
-            </Typography>
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Name</TableCell>
-                    <TableCell>Source</TableCell>
-                    <TableCell>Billing</TableCell>
-                    <TableCell>Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {schools.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} align="center">
-                        <Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>
-                          No schools found. Create a new school to get started.
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    schools.map((school) => (
-                      <TableRow key={school.id}>
-                        <TableCell>{school.name}</TableCell>
-                        <TableCell>
-                          {school.wondeSchoolId ? (
-                            <Tooltip
-                              title={
-                                school.wondeLastSyncAt
-                                  ? `Last synced: ${new Date(school.wondeLastSyncAt).toLocaleString()}`
-                                  : 'Never synced'
-                              }
-                            >
-                              <Chip
-                                icon={<LinkIcon />}
-                                label="Wonde"
-                                size="small"
-                                color="success"
-                                variant="outlined"
-                              />
-                            </Tooltip>
-                          ) : (
-                            <Chip
-                              icon={<LinkOffIcon />}
-                              label="Manual"
-                              size="small"
-                              variant="outlined"
-                            />
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {school.subscriptionStatus && school.subscriptionStatus !== 'none' ? (
-                            <Chip
-                              label={school.subscriptionStatus}
-                              size="small"
-                              color={
-                                school.subscriptionStatus === 'active' ? 'success'
-                                : school.subscriptionStatus === 'trialing' ? 'info'
-                                : school.subscriptionStatus === 'past_due' ? 'warning'
-                                : school.subscriptionStatus === 'cancelled' ? 'error'
-                                : 'default'
-                              }
-                            />
-                          ) : (
-                            <Tooltip title="Start 30-day free trial">
-                              <Button
-                                size="small"
-                                variant="outlined"
-                                startIcon={<PlayArrowIcon />}
-                                onClick={() => handleStartTrial(school)}
-                                sx={{ textTransform: 'none' }}
-                              >
-                                Start Trial
-                              </Button>
-                            </Tooltip>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {school.wondeSchoolId && (
-                            <Tooltip title="Sync from Wonde">
-                              <IconButton
-                                color="secondary"
-                                onClick={() => handleWondeSync(school)}
-                                size="small"
-                                sx={{ mr: 1 }}
-                              >
-                                <SyncIcon />
-                              </IconButton>
-                            </Tooltip>
-                          )}
-                          <IconButton
-                            color="primary"
-                            onClick={() => handleEdit(school)}
-                            size="small"
-                            sx={{ mr: 1 }}
-                          >
-                            <EditIcon />
-                          </IconButton>
-                          <IconButton
-                            color="error"
-                            onClick={() => openDeleteDialog(school)}
-                            size="small"
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper>
-        </Grid>
-      </Grid>
-
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-        <DialogTitle>Confirm Delete</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Are you sure you want to deactivate {schoolToDelete?.name}? This will deactivate the
-            school but not delete associated data.
-          </DialogContentText>
-          {schoolToDelete?.wondeSchoolId && (
-            <Alert severity="warning" sx={{ mt: 2 }}>
-              This school is managed by Wonde. It may be re-provisioned automatically if a new
-              webhook is received. Consider revoking access in the Wonde dashboard first.
-            </Alert>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleDeleteSchool} color="error">
-            Deactivate
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <SchoolDrawer
+        open={selectedSchool !== null || drawerMode === 'add'}
+        school={selectedSchool}
+        mode={drawerMode}
+        loading={saving}
+        onClose={handleCloseDrawer}
+        onEdit={handleEdit}
+        onSave={handleSave}
+        onCancel={handleCancel}
+        onSync={handleSync}
+        onStartTrial={handleStartTrial}
+        onOpenPortal={handleOpenPortal}
+        onDeactivate={handleDeactivate}
+      />
     </Box>
   );
 };
