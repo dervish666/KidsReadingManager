@@ -142,6 +142,11 @@ export const rowToOrganization = (row) => {
     trialEndsAt: row.trial_ends_at || null,
     currentPeriodEnd: row.current_period_end || null,
     billingEmail: row.billing_email || null,
+    // Counts (only present when joined via subquery)
+    studentCount: row.student_count ?? null,
+    classCount: row.class_count ?? null,
+    // Sync error (only present when joined via subquery)
+    lastSyncError: row.last_sync_error || null,
   };
 };
 

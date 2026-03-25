@@ -15,7 +15,7 @@ const createMockDB = (overrides = {}) => {
       bind: vi.fn().mockReturnThis(),
       all: vi.fn().mockResolvedValue(overrides.allResults || defaultResults),
       first: vi.fn().mockResolvedValue(overrides.firstResult || null),
-      run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } })
+      run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } }),
     };
     return chainable;
   };
@@ -25,7 +25,7 @@ const createMockDB = (overrides = {}) => {
   return {
     prepare: mockPrepare,
     batch: vi.fn().mockResolvedValue([{ success: true }]),
-    ...overrides
+    ...overrides,
   };
 };
 
@@ -36,15 +36,15 @@ const createTestApp = (mockDb, contextValues = {}) => {
   // Middleware to set context values (simulating JWT auth)
   app.use('*', async (c, next) => {
     // Determine the actual DB to use
-    const actualDb = contextValues.env?.READING_MANAGER_DB !== undefined
-      ? contextValues.env.READING_MANAGER_DB
-      : mockDb;
+    const actualDb =
+      contextValues.env?.READING_MANAGER_DB !== undefined
+        ? contextValues.env.READING_MANAGER_DB
+        : mockDb;
 
     c.env = {
-      JWT_SECRET: contextValues.env?.JWT_SECRET !== undefined
-        ? contextValues.env.JWT_SECRET
-        : TEST_SECRET,
-      READING_MANAGER_DB: actualDb
+      JWT_SECRET:
+        contextValues.env?.JWT_SECRET !== undefined ? contextValues.env.JWT_SECRET : TEST_SECRET,
+      READING_MANAGER_DB: actualDb,
     };
 
     // Set context values that would normally be set by auth middleware
@@ -54,6 +54,12 @@ const createTestApp = (mockDb, contextValues = {}) => {
     if (contextValues.user) c.set('user', contextValues.user);
 
     await next();
+  });
+
+  app.onError((error, c) => {
+    const status = error.status || 500;
+    const message = status >= 500 ? 'Internal Server Error' : error.message || 'An error occurred';
+    return c.json({ status: 'error', error: message, message, path: c.req.path }, status);
   });
 
   app.route('/api/organization', organizationRouter);
@@ -69,7 +75,7 @@ const createMockOrganization = (overrides = {}) => ({
   is_active: 1,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-15T00:00:00Z',
-  ...overrides
+  ...overrides,
 });
 
 // Helper to create test user context
@@ -80,9 +86,9 @@ const createUserContext = (overrides = {}) => ({
   user: {
     sub: 'user-123',
     org: 'org-123',
-    role: 'admin'
+    role: 'admin',
   },
-  ...overrides
+  ...overrides,
 });
 
 describe('Organization Routes', () => {
@@ -130,7 +136,7 @@ describe('Organization Routes', () => {
       const mockDb = createMockDB();
       mockDb.prepare = vi.fn().mockReturnValue({
         bind: vi.fn().mockReturnThis(),
-        first: vi.fn().mockRejectedValue(new Error('DB connection failed'))
+        first: vi.fn().mockRejectedValue(new Error('DB connection failed')),
       });
       const app = createTestApp(mockDb, createUserContext());
 
@@ -146,7 +152,7 @@ describe('Organization Routes', () => {
         subscription_tier: 'enterprise',
         is_active: 1,
         created_at: '2024-01-01',
-        updated_at: '2024-01-20'
+        updated_at: '2024-01-20',
       });
       const mockDb = createMockDB({ firstResult: mockOrg });
       const app = createTestApp(mockDb, createUserContext());
@@ -166,7 +172,7 @@ describe('Organization Routes', () => {
       const orgs = [
         createMockOrganization({ id: 'org-1', name: 'School A' }),
         createMockOrganization({ id: 'org-2', name: 'School B' }),
-        createMockOrganization({ id: 'org-3', name: 'School C' })
+        createMockOrganization({ id: 'org-3', name: 'School C' }),
       ];
       const mockDb = createMockDB({ allResults: { results: orgs } });
       const app = createTestApp(mockDb, createUserContext({ userRole: 'owner' }));
@@ -226,6 +232,80 @@ describe('Organization Routes', () => {
     });
   });
 
+  describe('GET /api/organization/all (pagination & filters)', () => {
+    // Helper to create a mock DB that handles count + data queries for the owner path
+    const createPaginatedMockDB = ({ count = 0, rows = [] } = {}) => {
+      let callIndex = 0;
+      const mockDb = createMockDB();
+      mockDb.prepare = vi.fn().mockImplementation(() => {
+        const idx = callIndex++;
+        return {
+          bind: vi.fn().mockReturnThis(),
+          first: vi.fn().mockResolvedValue(idx === 0 ? { count } : null),
+          all: vi.fn().mockResolvedValue({ results: idx === 1 ? rows : [], success: true }),
+          run: vi.fn().mockResolvedValue({ success: true }),
+        };
+      });
+      return mockDb;
+    };
+
+    it('should return pagination metadata with defaults', async () => {
+      const mockDb = createPaginatedMockDB({
+        count: 1,
+        rows: [createMockOrganization()],
+      });
+
+      const app = createTestApp(mockDb, createUserContext({ userRole: 'owner' }));
+      const res = await app.request('/api/organization/all');
+      const data = await res.json();
+
+      expect(res.status).toBe(200);
+      expect(data.organizations).toBeDefined();
+      expect(data.pagination).toBeDefined();
+      expect(data.pagination.page).toBe(1);
+      expect(data.pagination.pageSize).toBe(50);
+      expect(data.pagination.total).toBe(1);
+    });
+
+    it('should respect page and pageSize params', async () => {
+      const mockDb = createPaginatedMockDB({ count: 120, rows: [] });
+
+      const app = createTestApp(mockDb, createUserContext({ userRole: 'owner' }));
+      const res = await app.request('/api/organization/all?page=3&pageSize=25');
+      const data = await res.json();
+
+      expect(data.pagination.page).toBe(3);
+      expect(data.pagination.pageSize).toBe(25);
+      expect(data.pagination.total).toBe(120);
+      expect(data.pagination.totalPages).toBe(5);
+    });
+
+    it('should clamp pageSize to max 100', async () => {
+      const mockDb = createPaginatedMockDB({ count: 0, rows: [] });
+
+      const app = createTestApp(mockDb, createUserContext({ userRole: 'owner' }));
+      const res = await app.request('/api/organization/all?pageSize=500');
+      const data = await res.json();
+
+      expect(data.pagination.pageSize).toBe(100);
+    });
+
+    it('should still work for admin role (single org, no pagination needed)', async () => {
+      // Admin path uses a single prepare().bind().all() call, not count+data
+      const mockDb = createMockDB({
+        allResults: { results: [createMockOrganization()], success: true },
+      });
+
+      const app = createTestApp(mockDb, createUserContext({ userRole: 'admin' }));
+      const res = await app.request('/api/organization/all');
+      const data = await res.json();
+
+      expect(res.status).toBe(200);
+      expect(data.organizations).toBeDefined();
+      expect(data.pagination).toBeDefined();
+    });
+  });
+
   describe('GET /api/organization/:id', () => {
     it('should return specific organization for owner role', async () => {
       const mockOrg = createMockOrganization({ id: 'org-456', name: 'Other School' });
@@ -266,7 +346,7 @@ describe('Organization Routes', () => {
   describe('POST /api/organization/create', () => {
     it('should create organization for owner role', async () => {
       const mockDb = createMockDB({
-        firstResult: null // No existing org with this slug
+        firstResult: null, // No existing org with this slug
       });
 
       // Override to return different results for different queries
@@ -279,13 +359,15 @@ describe('Organization Routes', () => {
           // First call: check if slug exists (return null)
           // Second call: return the created org
           if (callCount === 1) return Promise.resolve(null);
-          return Promise.resolve(createMockOrganization({
-            id: 'new-org-id',
-            name: 'New School',
-            slug: 'new-school'
-          }));
+          return Promise.resolve(
+            createMockOrganization({
+              id: 'new-org-id',
+              name: 'New School',
+              slug: 'new-school',
+            })
+          );
         }),
-        run: vi.fn().mockResolvedValue({ success: true })
+        run: vi.fn().mockResolvedValue({ success: true }),
       });
 
       const app = createTestApp(mockDb, createUserContext({ userRole: 'owner' }));
@@ -295,8 +377,8 @@ describe('Organization Routes', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: 'New School',
-          subscriptionTier: 'pro'
-        })
+          subscriptionTier: 'pro',
+        }),
       });
       const data = await response.json();
 
@@ -312,7 +394,7 @@ describe('Organization Routes', () => {
       const response = await app.request('/api/organization/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
+        body: JSON.stringify({}),
       });
       const data = await response.json();
 
@@ -322,14 +404,14 @@ describe('Organization Routes', () => {
 
     it('should reject duplicate slug', async () => {
       const mockDb = createMockDB({
-        firstResult: { id: 'existing-org' } // Slug already exists
+        firstResult: { id: 'existing-org' }, // Slug already exists
       });
       const app = createTestApp(mockDb, createUserContext({ userRole: 'owner' }));
 
       const response = await app.request('/api/organization/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: 'Test School' })
+        body: JSON.stringify({ name: 'Test School' }),
       });
       const data = await response.json();
 
@@ -344,7 +426,7 @@ describe('Organization Routes', () => {
       const response = await app.request('/api/organization/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: 'New School' })
+        body: JSON.stringify({ name: 'New School' }),
       });
       const data = await response.json();
 
@@ -361,11 +443,11 @@ describe('Organization Routes', () => {
           if (args.length > 2) capturedSlug = args[2];
           return {
             first: vi.fn().mockResolvedValue(null),
-            run: vi.fn().mockResolvedValue({ success: true })
+            run: vi.fn().mockResolvedValue({ success: true }),
           };
         }),
         first: vi.fn().mockResolvedValue(null),
-        run: vi.fn().mockResolvedValue({ success: true })
+        run: vi.fn().mockResolvedValue({ success: true }),
       });
 
       const app = createTestApp(mockDb, createUserContext({ userRole: 'owner' }));
@@ -373,7 +455,7 @@ describe('Organization Routes', () => {
       await app.request('/api/organization/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: 'My Amazing School!' })
+        body: JSON.stringify({ name: 'My Amazing School!' }),
       });
 
       // Verify the slug generation logic (tested via mocked capture)
@@ -395,10 +477,10 @@ describe('Organization Routes', () => {
           return Promise.resolve({
             ...mockOrg,
             name: 'Updated School',
-            subscription_tier: 'enterprise'
+            subscription_tier: 'enterprise',
           });
         }),
-        run: vi.fn().mockResolvedValue({ success: true })
+        run: vi.fn().mockResolvedValue({ success: true }),
       });
 
       const app = createTestApp(mockDb, createUserContext({ userRole: 'owner' }));
@@ -408,8 +490,8 @@ describe('Organization Routes', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: 'Updated School',
-          subscriptionTier: 'enterprise'
-        })
+          subscriptionTier: 'enterprise',
+        }),
       });
       const data = await response.json();
 
@@ -424,7 +506,7 @@ describe('Organization Routes', () => {
       const response = await app.request('/api/organization/org-123', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: 'Updated' })
+        body: JSON.stringify({ name: 'Updated' }),
       });
       const data = await response.json();
 
@@ -439,7 +521,7 @@ describe('Organization Routes', () => {
       const response = await app.request('/api/organization/nonexistent', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: 'Updated' })
+        body: JSON.stringify({ name: 'Updated' }),
       });
       const data = await response.json();
 
@@ -454,7 +536,7 @@ describe('Organization Routes', () => {
       const response = await app.request('/api/organization/org-123', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
+        body: JSON.stringify({}),
       });
       const data = await response.json();
 
@@ -475,10 +557,10 @@ describe('Organization Routes', () => {
           callCount++;
           return Promise.resolve({
             ...mockOrg,
-            name: callCount > 1 ? 'Updated Name' : mockOrg.name
+            name: callCount > 1 ? 'Updated Name' : mockOrg.name,
           });
         }),
-        run: vi.fn().mockResolvedValue({ success: true })
+        run: vi.fn().mockResolvedValue({ success: true }),
       });
 
       const app = createTestApp(mockDb, createUserContext({ userRole: 'owner' }));
@@ -486,7 +568,7 @@ describe('Organization Routes', () => {
       const response = await app.request('/api/organization', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: 'Updated Name' })
+        body: JSON.stringify({ name: 'Updated Name' }),
       });
       const data = await response.json();
 
@@ -501,7 +583,7 @@ describe('Organization Routes', () => {
       const response = await app.request('/api/organization', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
+        body: JSON.stringify({}),
       });
       const data = await response.json();
 
@@ -516,7 +598,7 @@ describe('Organization Routes', () => {
       const app = createTestApp(mockDb, createUserContext({ userRole: 'owner' }));
 
       const response = await app.request('/api/organization/org-123', {
-        method: 'DELETE'
+        method: 'DELETE',
       });
       const data = await response.json();
 
@@ -529,7 +611,7 @@ describe('Organization Routes', () => {
       const app = createTestApp(mockDb, createUserContext({ userRole: 'admin' }));
 
       const response = await app.request('/api/organization/org-123', {
-        method: 'DELETE'
+        method: 'DELETE',
       });
       const data = await response.json();
 
@@ -541,7 +623,7 @@ describe('Organization Routes', () => {
       const app = createTestApp(mockDb, createUserContext({ userRole: 'owner' }));
 
       const response = await app.request('/api/organization/nonexistent', {
-        method: 'DELETE'
+        method: 'DELETE',
       });
       const data = await response.json();
 
@@ -555,16 +637,16 @@ describe('Organization Routes', () => {
       const mockDb = createMockDB();
 
       mockDb.prepare = vi.fn().mockReturnValue({
-        bind: vi.fn().mockReturnThis()
+        bind: vi.fn().mockReturnThis(),
       });
 
       // Stats endpoint now uses db.batch() for all queries in one round-trip
       mockDb.batch = vi.fn().mockResolvedValue([
-        { results: [{ count: 5 }], success: true },   // user count
-        { results: [{ count: 45 }], success: true },   // student count
-        { results: [{ count: 3 }], success: true },    // class count
-        { results: [{ count: 120 }], success: true },  // sessions this month
-        { results: [{ count: 50 }], success: true },   // selected books
+        { results: [{ count: 5 }], success: true }, // user count
+        { results: [{ count: 45 }], success: true }, // student count
+        { results: [{ count: 3 }], success: true }, // class count
+        { results: [{ count: 120 }], success: true }, // sessions this month
+        { results: [{ count: 50 }], success: true }, // selected books
       ]);
 
       const app = createTestApp(mockDb, createUserContext());
@@ -585,7 +667,7 @@ describe('Organization Routes', () => {
       const mockDb = createMockDB();
 
       mockDb.prepare = vi.fn().mockReturnValue({
-        bind: vi.fn().mockReturnThis()
+        bind: vi.fn().mockReturnThis(),
       });
 
       // All queries return zero counts
@@ -613,13 +695,16 @@ describe('Organization Routes', () => {
       const settingsData = [
         { setting_key: 'timezone', setting_value: '"America/New_York"' },
         { setting_key: 'academicYear', setting_value: '"2024"' },
-        { setting_key: 'readingStatusSettings', setting_value: '{"recentlyReadDays":5,"needsAttentionDays":10}' }
+        {
+          setting_key: 'readingStatusSettings',
+          setting_value: '{"recentlyReadDays":5,"needsAttentionDays":10}',
+        },
       ];
 
       const mockDb = createMockDB();
       mockDb.prepare = vi.fn().mockImplementation(() => ({
         bind: vi.fn().mockReturnThis(),
-        all: vi.fn().mockResolvedValue({ results: settingsData })
+        all: vi.fn().mockResolvedValue({ results: settingsData }),
       }));
 
       const app = createTestApp(mockDb, createUserContext());
@@ -638,7 +723,7 @@ describe('Organization Routes', () => {
       const mockDb = createMockDB();
       mockDb.prepare = vi.fn().mockImplementation(() => ({
         bind: vi.fn().mockReturnThis(),
-        all: vi.fn().mockResolvedValue({ results: [] })
+        all: vi.fn().mockResolvedValue({ results: [] }),
       }));
 
       const app = createTestApp(mockDb, createUserContext());
@@ -654,14 +739,12 @@ describe('Organization Routes', () => {
     });
 
     it('should handle non-JSON setting values', async () => {
-      const settingsData = [
-        { setting_key: 'schoolName', setting_value: 'Plain text value' }
-      ];
+      const settingsData = [{ setting_key: 'schoolName', setting_value: 'Plain text value' }];
 
       const mockDb = createMockDB();
       mockDb.prepare = vi.fn().mockImplementation(() => ({
         bind: vi.fn().mockReturnThis(),
-        all: vi.fn().mockResolvedValue({ results: settingsData })
+        all: vi.fn().mockResolvedValue({ results: settingsData }),
       }));
 
       const app = createTestApp(mockDb, createUserContext());
@@ -679,7 +762,7 @@ describe('Organization Routes', () => {
       const mockDb = createMockDB();
       mockDb.prepare = vi.fn().mockImplementation(() => ({
         bind: vi.fn().mockReturnThis(),
-        run: vi.fn().mockResolvedValue({ success: true })
+        run: vi.fn().mockResolvedValue({ success: true }),
       }));
 
       const app = createTestApp(mockDb, createUserContext({ userRole: 'admin' }));
@@ -689,8 +772,8 @@ describe('Organization Routes', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           timezone: 'America/Los_Angeles',
-          academicYear: '2025'
-        })
+          academicYear: '2025',
+        }),
       });
       const data = await response.json();
 
@@ -703,7 +786,7 @@ describe('Organization Routes', () => {
       const mockDb = createMockDB();
       mockDb.prepare = vi.fn().mockImplementation(() => ({
         bind: vi.fn().mockReturnThis(),
-        run: vi.fn().mockResolvedValue({ success: true })
+        run: vi.fn().mockResolvedValue({ success: true }),
       }));
 
       const app = createTestApp(mockDb, createUserContext({ userRole: 'owner' }));
@@ -711,7 +794,7 @@ describe('Organization Routes', () => {
       const response = await app.request('/api/organization/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ timezone: 'Europe/London' })
+        body: JSON.stringify({ timezone: 'Europe/London' }),
       });
 
       expect(response.status).toBe(200);
@@ -724,7 +807,7 @@ describe('Organization Routes', () => {
       const response = await app.request('/api/organization/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ timezone: 'UTC' })
+        body: JSON.stringify({ timezone: 'UTC' }),
       });
       const data = await response.json();
 
@@ -741,8 +824,8 @@ describe('Organization Routes', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           dangerousKey: 'malicious value',
-          anotherBadKey: 'injection attempt'
-        })
+          anotherBadKey: 'injection attempt',
+        }),
       });
       const data = await response.json();
 
@@ -754,7 +837,7 @@ describe('Organization Routes', () => {
       const mockDb = createMockDB();
       mockDb.prepare = vi.fn().mockImplementation(() => ({
         bind: vi.fn().mockReturnThis(),
-        run: vi.fn().mockResolvedValue({ success: true })
+        run: vi.fn().mockResolvedValue({ success: true }),
       }));
 
       const app = createTestApp(mockDb, createUserContext({ userRole: 'admin' }));
@@ -767,8 +850,8 @@ describe('Organization Routes', () => {
           academicYear: '2025',
           defaultReadingLevel: 3,
           schoolName: 'Test School',
-          readingStatusSettings: { recentlyReadDays: 5, needsAttentionDays: 14 }
-        })
+          readingStatusSettings: { recentlyReadDays: 5, needsAttentionDays: 14 },
+        }),
       });
 
       expect(response.status).toBe(200);
@@ -784,8 +867,8 @@ describe('Organization Routes', () => {
           provider: 'anthropic',
           model_preference: 'claude-3-sonnet',
           is_enabled: 1,
-          has_key: 1
-        })
+          has_key: 1,
+        }),
       }));
 
       const app = createTestApp(mockDb, createUserContext());
@@ -807,7 +890,7 @@ describe('Organization Routes', () => {
       const mockDb = createMockDB();
       mockDb.prepare = vi.fn().mockImplementation(() => ({
         bind: vi.fn().mockReturnThis(),
-        first: vi.fn().mockResolvedValue(null)
+        first: vi.fn().mockResolvedValue(null),
       }));
 
       const app = createTestApp(mockDb, createUserContext());
@@ -828,7 +911,7 @@ describe('Organization Routes', () => {
       mockDb.prepare = vi.fn().mockImplementation(() => ({
         bind: vi.fn().mockReturnThis(),
         first: vi.fn().mockResolvedValue({ id: 'existing-config' }),
-        run: vi.fn().mockResolvedValue({ success: true })
+        run: vi.fn().mockResolvedValue({ success: true }),
       }));
 
       const app = createTestApp(mockDb, createUserContext({ userRole: 'admin' }));
@@ -839,8 +922,8 @@ describe('Organization Routes', () => {
         body: JSON.stringify({
           provider: 'openai',
           modelPreference: 'gpt-4',
-          isEnabled: true
-        })
+          isEnabled: true,
+        }),
       });
       const data = await response.json();
 
@@ -854,7 +937,7 @@ describe('Organization Routes', () => {
       mockDb.prepare = vi.fn().mockImplementation(() => ({
         bind: vi.fn().mockReturnThis(),
         first: vi.fn().mockResolvedValue(null),
-        run: vi.fn().mockResolvedValue({ success: true })
+        run: vi.fn().mockResolvedValue({ success: true }),
       }));
 
       const app = createTestApp(mockDb, createUserContext({ userRole: 'admin' }));
@@ -864,8 +947,8 @@ describe('Organization Routes', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           provider: 'google',
-          isEnabled: true
-        })
+          isEnabled: true,
+        }),
       });
 
       expect(response.status).toBe(200);
@@ -878,7 +961,7 @@ describe('Organization Routes', () => {
       const response = await app.request('/api/organization/ai-config', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider: 'invalid-provider' })
+        body: JSON.stringify({ provider: 'invalid-provider' }),
       });
 
       // badRequestError thrown by shared upsertAiConfig
@@ -892,7 +975,7 @@ describe('Organization Routes', () => {
       const response = await app.request('/api/organization/ai-config', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider: 'anthropic' })
+        body: JSON.stringify({ provider: 'anthropic' }),
       });
       const data = await response.json();
 
@@ -904,7 +987,7 @@ describe('Organization Routes', () => {
       mockDb.prepare = vi.fn().mockImplementation(() => ({
         bind: vi.fn().mockReturnThis(),
         first: vi.fn().mockResolvedValue({ id: 'existing-config' }),
-        run: vi.fn().mockResolvedValue({ success: true })
+        run: vi.fn().mockResolvedValue({ success: true }),
       }));
 
       const app = createTestApp(mockDb, createUserContext({ userRole: 'admin' }));
@@ -913,8 +996,8 @@ describe('Organization Routes', () => {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          apiKey: 'sk-test-key-12345'
-        })
+          apiKey: 'sk-test-key-12345',
+        }),
       });
 
       expect(response.status).toBe(200);
@@ -927,7 +1010,7 @@ describe('Organization Routes', () => {
       mockDb.prepare = vi.fn().mockImplementation(() => ({
         bind: vi.fn().mockReturnThis(),
         first: vi.fn().mockResolvedValue({ id: 'existing-config' }),
-        run: vi.fn().mockResolvedValue({ success: true })
+        run: vi.fn().mockResolvedValue({ success: true }),
       }));
 
       const app = createTestApp(mockDb, {
@@ -935,13 +1018,13 @@ describe('Organization Routes', () => {
         organizationId: 'org-123',
         userRole: 'admin',
         user: { sub: 'user-123', org: 'org-123', role: 'admin' },
-        env: { JWT_SECRET: null, READING_MANAGER_DB: mockDb }
+        env: { JWT_SECRET: null, READING_MANAGER_DB: mockDb },
       });
 
       const response = await app.request('/api/organization/ai-config', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey: 'sk-test-key' })
+        body: JSON.stringify({ apiKey: 'sk-test-key' }),
       });
       const data = await response.json();
 
@@ -964,8 +1047,8 @@ describe('Organization Routes', () => {
           created_at: '2024-01-15T10:00:00Z',
           user_id: 'user-123',
           user_name: 'John Teacher',
-          user_email: 'john@school.com'
-        }
+          user_email: 'john@school.com',
+        },
       ];
 
       const mockDb = createMockDB();
@@ -980,7 +1063,7 @@ describe('Organization Routes', () => {
             if (currentPrepareCall === 1) return Promise.resolve({ count: 1 });
             return Promise.resolve(null);
           }),
-          all: vi.fn().mockResolvedValue({ results: auditEntries })
+          all: vi.fn().mockResolvedValue({ results: auditEntries }),
         };
       });
 
@@ -1021,7 +1104,7 @@ describe('Organization Routes', () => {
             if (currentPrepareCall === 1) return Promise.resolve({ count: 100 });
             return Promise.resolve(null);
           }),
-          all: vi.fn().mockResolvedValue({ results: [] })
+          all: vi.fn().mockResolvedValue({ results: [] }),
         };
       });
 
@@ -1042,15 +1125,15 @@ describe('Organization Routes', () => {
           id: 'audit-1',
           action: 'update',
           entity_type: 'settings',
-          details: '{"timezone":"America/New_York","previousValue":"UTC"}'
-        }
+          details: '{"timezone":"America/New_York","previousValue":"UTC"}',
+        },
       ];
 
       const mockDb = createMockDB();
       mockDb.prepare = vi.fn().mockImplementation(() => ({
         bind: vi.fn().mockReturnThis(),
         first: vi.fn().mockResolvedValue({ count: 1 }),
-        all: vi.fn().mockResolvedValue({ results: auditEntries })
+        all: vi.fn().mockResolvedValue({ results: auditEntries }),
       }));
 
       const app = createTestApp(mockDb, createUserContext({ userRole: 'admin' }));
@@ -1074,9 +1157,9 @@ describe('Organization Routes', () => {
           capturedOrgId = args[0];
           return {
             first: vi.fn().mockResolvedValue(mockOrg),
-            all: vi.fn().mockResolvedValue({ results: [] })
+            all: vi.fn().mockResolvedValue({ results: [] }),
           };
-        })
+        }),
       });
 
       const app = createTestApp(mockDb, createUserContext({ organizationId: 'org-123' }));
@@ -1096,7 +1179,7 @@ describe('Organization Routes', () => {
             capturedOrgId = args[0];
             return chainable;
           }),
-          all: vi.fn().mockResolvedValue({ results: [] })
+          all: vi.fn().mockResolvedValue({ results: [] }),
         };
         return chainable;
       });
@@ -1141,9 +1224,27 @@ describe('Organization Routes', () => {
   describe('Role Hierarchy Tests', () => {
     const testCases = [
       { role: 'owner', canAccessAll: true, canAccessById: true, canUpdate: true, canDelete: true },
-      { role: 'admin', canAccessAll: true, canAccessById: false, canUpdate: false, canDelete: false },
-      { role: 'teacher', canAccessAll: false, canAccessById: false, canUpdate: false, canDelete: false },
-      { role: 'readonly', canAccessAll: false, canAccessById: false, canUpdate: false, canDelete: false }
+      {
+        role: 'admin',
+        canAccessAll: true,
+        canAccessById: false,
+        canUpdate: false,
+        canDelete: false,
+      },
+      {
+        role: 'teacher',
+        canAccessAll: false,
+        canAccessById: false,
+        canUpdate: false,
+        canDelete: false,
+      },
+      {
+        role: 'readonly',
+        canAccessAll: false,
+        canAccessById: false,
+        canUpdate: false,
+        canDelete: false,
+      },
     ];
 
     testCases.forEach(({ role, canAccessAll, canAccessById, canUpdate, canDelete }) => {
@@ -1184,14 +1285,14 @@ describe('Organization Routes', () => {
               callCount++;
               return Promise.resolve(callCount === 1 ? { id: 'org-123' } : mockOrg);
             }),
-            run: vi.fn().mockResolvedValue({ success: true })
+            run: vi.fn().mockResolvedValue({ success: true }),
           });
           const app = createTestApp(mockDb, createUserContext({ userRole: role }));
 
           const response = await app.request('/api/organization/org-123', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: 'Updated' })
+            body: JSON.stringify({ name: 'Updated' }),
           });
 
           if (canUpdate) {
@@ -1206,7 +1307,7 @@ describe('Organization Routes', () => {
           const app = createTestApp(mockDb, createUserContext({ userRole: role }));
 
           const response = await app.request('/api/organization/org-123', {
-            method: 'DELETE'
+            method: 'DELETE',
           });
 
           if (canDelete) {
@@ -1223,7 +1324,7 @@ describe('Organization Routes', () => {
     it('should handle database not available error', async () => {
       const app = createTestApp(null, {
         ...createUserContext(),
-        env: { JWT_SECRET: TEST_SECRET, READING_MANAGER_DB: null }
+        env: { JWT_SECRET: TEST_SECRET, READING_MANAGER_DB: null },
       });
 
       const response = await app.request('/api/organization');
@@ -1240,7 +1341,7 @@ describe('Organization Routes', () => {
       const response = await app.request('/api/organization/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: 'invalid-json'
+        body: 'invalid-json',
       });
 
       expect(response.status).toBe(500);

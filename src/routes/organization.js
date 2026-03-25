@@ -8,6 +8,7 @@ import { requireOwner, requireAdmin, requireReadonly, auditLog } from '../middle
 import { encryptSensitiveData } from '../utils/crypto.js';
 import { requireDB as getDB } from '../utils/routeHelpers.js';
 import { rowToOrganization } from '../utils/rowMappers.js';
+import { notFoundError, badRequestError, createError } from '../middleware/errorHandler.js';
 
 export const organizationRouter = new Hono();
 
@@ -30,11 +31,12 @@ organizationRouter.get('/', requireReadonly(), async (c) => {
       .first();
 
     if (!org) {
-      return c.json({ error: 'Organization not found' }, 404);
+      throw notFoundError('Organization not found');
     }
 
     return c.json({ organization: rowToOrganization(org) });
   } catch (error) {
+    if (error.status) throw error;
     console.error('Get organization error:', error);
     return c.json({ error: 'Failed to get organization' }, 500);
   }
@@ -53,36 +55,127 @@ organizationRouter.get('/all', requireAdmin(), async (c) => {
     const userRole = c.get('userRole');
     const organizationId = c.get('organizationId');
 
-    let result;
-
-    // Only owners can see all organizations
-    // Admins can only see their own organization
-    if (userRole === 'owner') {
-      result = await db
-        .prepare(
-          `
-        SELECT * FROM organizations
-        WHERE is_active = 1
-        ORDER BY name
-      `
-        )
-        .all();
-    } else {
-      result = await db
-        .prepare(
-          `
-        SELECT * FROM organizations
-        WHERE id = ? AND is_active = 1
-      `
-        )
+    // Admin: return just their own org, wrapped in pagination format
+    if (userRole !== 'owner') {
+      const result = await db
+        .prepare('SELECT * FROM organizations WHERE id = ? AND is_active = 1')
         .bind(organizationId)
         .all();
+      const organizations = (result.results || []).map(rowToOrganization);
+      return c.json({
+        organizations,
+        pagination: { page: 1, pageSize: 50, total: organizations.length, totalPages: 1 },
+      });
     }
+
+    // Owner: full pagination, search, filters, sorting
+    const page = Math.max(parseInt(c.req.query('page')) || 1, 1);
+    const pageSize = Math.min(Math.max(parseInt(c.req.query('pageSize')) || 50, 1), 100);
+    const search = c.req.query('search') || '';
+    const source = c.req.query('source') || '';
+    const billing = c.req.query('billing') || '';
+    const syncStatus = c.req.query('syncStatus') || '';
+    const hasErrors = c.req.query('hasErrors') === 'true';
+
+    const sortField = c.req.query('sort') || 'name';
+    const sortOrder = c.req.query('order') === 'desc' ? 'DESC' : 'ASC';
+
+    const sortMap = {
+      name: 'o.name',
+      billing: 'o.subscription_status',
+      lastSync: 'o.wonde_last_sync_at',
+      town: 'o.town',
+    };
+    const orderByCol = sortMap[sortField] || 'o.name';
+
+    // Build WHERE clauses
+    const conditions = ['o.is_active = 1'];
+    const params = [];
+
+    if (search) {
+      conditions.push('(o.name LIKE ? OR o.town LIKE ?)');
+      params.push(`%${search}%`, `%${search}%`);
+    }
+
+    if (source === 'wonde') {
+      conditions.push('o.wonde_school_id IS NOT NULL');
+    } else if (source === 'manual') {
+      conditions.push('o.wonde_school_id IS NULL');
+    }
+
+    if (billing === 'none') {
+      conditions.push("(o.subscription_status IS NULL OR o.subscription_status = 'none')");
+    } else if (['active', 'trialing', 'past_due', 'cancelled'].includes(billing)) {
+      conditions.push('o.subscription_status = ?');
+      params.push(billing);
+    }
+
+    if (syncStatus === 'recent') {
+      conditions.push(
+        "o.wonde_school_id IS NOT NULL AND o.wonde_last_sync_at > datetime('now', '-7 days')"
+      );
+    } else if (syncStatus === 'stale') {
+      conditions.push(
+        "o.wonde_school_id IS NOT NULL AND o.wonde_last_sync_at <= datetime('now', '-7 days')"
+      );
+    } else if (syncStatus === 'never') {
+      conditions.push('o.wonde_school_id IS NOT NULL AND o.wonde_last_sync_at IS NULL');
+    }
+
+    if (hasErrors) {
+      conditions.push(`(
+        o.subscription_status = 'past_due'
+        OR (o.wonde_school_id IS NOT NULL AND o.wonde_last_sync_at <= datetime('now', '-7 days'))
+        OR (o.wonde_school_id IS NOT NULL AND o.wonde_school_token IS NULL)
+        OR EXISTS (
+          SELECT 1 FROM wonde_sync_log wsl
+          WHERE wsl.organization_id = o.id AND wsl.status = 'error'
+          AND wsl.started_at = (
+            SELECT MAX(wsl2.started_at) FROM wonde_sync_log wsl2
+            WHERE wsl2.organization_id = o.id
+          )
+        )
+      )`);
+    }
+
+    const whereClause = conditions.join(' AND ');
+
+    // Count query
+    const countResult = await db
+      .prepare(`SELECT COUNT(*) as count FROM organizations o WHERE ${whereClause}`)
+      .bind(...params)
+      .first();
+    const total = countResult?.count || 0;
+    const totalPages = Math.ceil(total / pageSize);
+    const offset = (page - 1) * pageSize;
+
+    // Data query with subqueries for counts and last sync error
+    const dataQuery = `
+      SELECT o.*,
+        (SELECT COUNT(*) FROM students s WHERE s.organization_id = o.id AND s.is_active = 1) as student_count,
+        (SELECT COUNT(*) FROM classes c WHERE c.organization_id = o.id AND c.is_active = 1) as class_count,
+        (SELECT wsl.error_message FROM wonde_sync_log wsl
+         WHERE wsl.organization_id = o.id
+         ORDER BY wsl.started_at DESC LIMIT 1) as last_sync_error
+      FROM organizations o
+      WHERE ${whereClause}
+      ORDER BY ${orderByCol} ${sortOrder}
+      LIMIT ? OFFSET ?
+    `;
+
+    const result = await db
+      .prepare(dataQuery)
+      .bind(...params, pageSize, offset)
+      .all();
 
     const organizations = (result.results || []).map(rowToOrganization);
 
-    return c.json({ organizations });
+    return c.json({
+      organizations,
+      pagination: { page, pageSize, total, totalPages },
+    });
   } catch (error) {
+    if (error.status) throw error;
     console.error('List organizations error:', error);
     return c.json({ error: 'Failed to list organizations' }, 500);
   }
@@ -225,7 +318,7 @@ organizationRouter.put('/settings', requireAdmin(), auditLog('update', 'settings
     }
 
     if (updates.length === 0) {
-      return c.json({ error: 'No valid settings to update' }, 400);
+      throw badRequestError('No valid settings to update');
     }
 
     // Upsert settings
@@ -246,6 +339,7 @@ organizationRouter.put('/settings', requireAdmin(), auditLog('update', 'settings
 
     return c.json({ message: 'Settings updated successfully' });
   } catch (error) {
+    if (error.status) throw error;
     console.error('Update organization settings error:', error);
     return c.json({ error: 'Failed to update organization settings' }, 500);
   }
@@ -408,7 +502,7 @@ organizationRouter.get('/dpa-consent', async (c) => {
       .first();
 
     if (!org) {
-      return c.json({ error: 'Organization not found' }, 404);
+      throw notFoundError('Organization not found');
     }
 
     let consentGivenByName = null;
@@ -429,6 +523,7 @@ organizationRouter.get('/dpa-consent', async (c) => {
       },
     });
   } catch (error) {
+    if (error.status) throw error;
     console.error('Get DPA consent error:', error);
     return c.json({ error: 'Failed to get DPA consent status' }, 500);
   }
@@ -456,7 +551,7 @@ organizationRouter.post(
 
       const { version } = body;
       if (!version) {
-        return c.json({ error: 'DPA version is required' }, 400);
+        throw badRequestError('DPA version is required');
       }
 
       await db
@@ -482,6 +577,7 @@ organizationRouter.post(
         },
       });
     } catch (error) {
+      if (error.status) throw error;
       console.error('Record DPA consent error:', error);
       return c.json({ error: 'Failed to record DPA consent' }, 500);
     }
@@ -508,11 +604,12 @@ organizationRouter.get('/:id', requireOwner(), async (c) => {
       .first();
 
     if (!org) {
-      return c.json({ error: 'Organization not found' }, 404);
+      throw notFoundError('Organization not found');
     }
 
     return c.json({ organization: rowToOrganization(org) });
   } catch (error) {
+    if (error.status) throw error;
     console.error('Get organization error:', error);
     return c.json({ error: 'Failed to get organization' }, 500);
   }
@@ -542,7 +639,7 @@ organizationRouter.post(
       const { name, slug, subscriptionTier } = body;
 
       if (!name) {
-        return c.json({ error: 'Organization name is required' }, 400);
+        throw badRequestError('Organization name is required');
       }
 
       // Generate slug from name if not provided
@@ -560,7 +657,7 @@ organizationRouter.post(
         .first();
 
       if (existing) {
-        return c.json({ error: 'An organization with this slug already exists' }, 409);
+        throw createError('An organization with this slug already exists', 409);
       }
 
       const orgId = generateId();
@@ -591,6 +688,7 @@ organizationRouter.post(
         201
       );
     } catch (error) {
+      if (error.status) throw error;
       console.error('Create organization error:', error);
       return c.json({ error: 'Failed to create organization' }, 500);
     }
@@ -619,7 +717,8 @@ organizationRouter.put('/:id', requireOwner(), auditLog('update', 'organization'
     const orgId = c.req.param('id');
     const body = await c.req.json();
 
-    const { name, contactEmail, billingEmail, phone, addressLine1, addressLine2, town, postcode } = body;
+    const { name, contactEmail, billingEmail, phone, addressLine1, addressLine2, town, postcode } =
+      body;
 
     // Check if organization exists (and is active)
     const existing = await db
@@ -628,7 +727,7 @@ organizationRouter.put('/:id', requireOwner(), auditLog('update', 'organization'
       .first();
 
     if (!existing) {
-      return c.json({ error: 'Organization not found' }, 404);
+      throw notFoundError('Organization not found');
     }
 
     // Build update query
@@ -640,7 +739,15 @@ organizationRouter.put('/:id', requireOwner(), auditLog('update', 'organization'
       params.push(name);
     }
 
-    const stringFields = { contact_email: contactEmail, billing_email: billingEmail, phone, address_line_1: addressLine1, address_line_2: addressLine2, town, postcode };
+    const stringFields = {
+      contact_email: contactEmail,
+      billing_email: billingEmail,
+      phone,
+      address_line_1: addressLine1,
+      address_line_2: addressLine2,
+      town,
+      postcode,
+    };
     for (const [col, val] of Object.entries(stringFields)) {
       if (val !== undefined) {
         updates.push(`${col} = ?`);
@@ -649,7 +756,7 @@ organizationRouter.put('/:id', requireOwner(), auditLog('update', 'organization'
     }
 
     if (updates.length === 0) {
-      return c.json({ error: 'No valid fields to update' }, 400);
+      throw badRequestError('No valid fields to update');
     }
 
     updates.push('updated_at = datetime("now")');
@@ -678,6 +785,7 @@ organizationRouter.put('/:id', requireOwner(), auditLog('update', 'organization'
       organization: rowToOrganization(updatedOrg),
     });
   } catch (error) {
+    if (error.status) throw error;
     console.error('Update organization error:', error);
     return c.json({ error: 'Failed to update organization' }, 500);
   }
@@ -700,7 +808,7 @@ organizationRouter.delete('/:id', requireOwner(), auditLog('delete', 'organizati
       .first();
 
     if (!existing) {
-      return c.json({ error: 'Organization not found' }, 404);
+      throw notFoundError('Organization not found');
     }
 
     // Soft delete (deactivate) organization and clean up user access
@@ -736,6 +844,7 @@ organizationRouter.delete('/:id', requireOwner(), auditLog('delete', 'organizati
 
     return c.json({ message: 'Organization deactivated successfully' });
   } catch (error) {
+    if (error.status) throw error;
     console.error('Delete organization error:', error);
     return c.json({ error: 'Failed to delete organization' }, 500);
   }
@@ -759,7 +868,7 @@ organizationRouter.put('/', requireOwner(), auditLog('update', 'organization'), 
     const { name } = body;
 
     if (!name) {
-      return c.json({ error: 'No valid fields to update' }, 400);
+      throw badRequestError('No valid fields to update');
     }
 
     await db
@@ -785,6 +894,7 @@ organizationRouter.put('/', requireOwner(), auditLog('update', 'organization'), 
       organization: rowToOrganization(updatedOrg),
     });
   } catch (error) {
+    if (error.status) throw error;
     console.error('Update organization error:', error);
     return c.json({ error: 'Failed to update organization' }, 500);
   }
