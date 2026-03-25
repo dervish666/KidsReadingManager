@@ -1,5 +1,27 @@
 # Changelog
 
+## [3.26.0] - 2026-03-25
+
+### Added
+- **School Management redesign** — replaced form+table layout with full-width data table and side drawer, supporting thousands of schools
+- **Server-side pagination** on `GET /api/organization/all` — page, pageSize (max 100), search (name/town), source/billing/sync filters, column sorting, error aggregation
+- **Student/class counts** — subqueries on organization listing for drawer display
+- **Sync error detection** — last sync error surfaced from `wonde_sync_log` per organization
+- **SchoolTable component** — searchable, filterable, sortable data table with skeleton loading, pagination controls, and error row highlighting
+- **SchoolDrawer component** — read-only detail view (contact, address, billing, Wonde cards) with edit mode, deactivate dialog
+- **SchoolReadView component** — read-only cards for school detail display in drawer
+- **SchoolEditForm component** — edit/add form with sticky save bar and Wonde token field
+
+### Changed
+- **SchoolManagement.js** rewritten from 543-line monolith to container component orchestrating table + drawer
+- **Error responses** in `users.js` and `organization.js` converted from inline `c.json({ error })` to centralized error constructors (`notFoundError`, `badRequestError`, `forbiddenError`)
+- **Error handler** now includes backward-compatible `error` field alongside `message` in response
+
+### Fixed
+- **Stripe price IDs** — corrected to use production account (FvBYcaukPX) instead of sandbox
+- **Billing setup error handling** — added try/catch around Stripe API calls
+- **Owner org override** — uses `body.organizationId` instead of header which `fetchWithAuth` overwrites
+
 ## [3.25.2] - 2026-03-24
 
 ### Added
