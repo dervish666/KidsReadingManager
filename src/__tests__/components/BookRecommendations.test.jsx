@@ -11,16 +11,13 @@ vi.mock('../../contexts/AppContext', () => ({
   useAppContext: () => useContext(TestAppContext)
 }));
 
-// Mock the StudentProfile component
-vi.mock('../../components/students/StudentProfile', () => ({
-  default: ({ open, onClose, student }) => (
-    open ? (
-      <div data-testid="student-profile-modal" role="dialog">
-        <span>Student Profile: {student?.name}</span>
-        <button onClick={onClose}>Close Profile</button>
-      </div>
-    ) : null
-  )
+// Mock the StudentEditForm component
+vi.mock('../../components/students/StudentEditForm', () => ({
+  default: React.forwardRef(({ student, onSave, onCancel }, ref) => (
+    <div data-testid="student-edit-form">
+      <span>Edit Form: {student?.name}</span>
+    </div>
+  ))
 }));
 
 // Mock the BookCover component
@@ -115,6 +112,7 @@ const createMockContext = (overrides = {}) => ({
   ],
   getReadingStatus: vi.fn().mockReturnValue('attention'),
   markStudentAsPriorityHandled: vi.fn(),
+  updateStudent: vi.fn().mockResolvedValue({}),
   ...overrides
 });
 
@@ -1352,7 +1350,7 @@ describe('BookRecommendations Component', () => {
       });
     });
 
-    it('should open StudentProfile modal when clicking Edit Preferences', async () => {
+    it('should open StudentEditForm dialog when clicking Edit Preferences', async () => {
       const mockFetch = createMockFetch();
       const context = createMockContext({ fetchWithAuth: mockFetch });
       const user = userEvent.setup();
@@ -1368,11 +1366,11 @@ describe('BookRecommendations Component', () => {
 
       await user.click(screen.getByLabelText('Edit preferences'));
 
-      expect(screen.getByTestId('student-profile-modal')).toBeInTheDocument();
-      expect(screen.getByText('Student Profile: Alice Smith')).toBeInTheDocument();
+      expect(screen.getByTestId('student-edit-form')).toBeInTheDocument();
+      expect(screen.getByText('Edit Form: Alice Smith')).toBeInTheDocument();
     });
 
-    it('should refresh student profile when closing preferences modal', async () => {
+    it('should close preferences dialog when clicking Cancel', async () => {
       const mockFetch = createMockFetch();
       const context = createMockContext({ fetchWithAuth: mockFetch });
       const user = userEvent.setup();
@@ -1387,17 +1385,17 @@ describe('BookRecommendations Component', () => {
         expect(screen.getByText('Recommended Book 1')).toBeInTheDocument();
       });
 
-      // Clear mock calls to track new ones
-      mockFetch.mockClear();
-
       await user.click(screen.getByLabelText('Edit preferences'));
 
-      // Close the modal
-      await user.click(screen.getByText('Close Profile'));
+      // Verify dialog is open
+      expect(screen.getByTestId('student-edit-form')).toBeInTheDocument();
 
-      // Should have called library-search to refresh profile
+      // Close the modal via Cancel button
+      await user.click(screen.getByRole('button', { name: /cancel/i }));
+
+      // Dialog should be closed
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/api/books/library-search'));
+        expect(screen.queryByTestId('student-edit-form')).not.toBeInTheDocument();
       });
     });
   });

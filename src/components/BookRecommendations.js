@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -17,7 +17,11 @@ import {
   Stack,
   Tooltip,
   Collapse,
-  IconButton
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -36,7 +40,8 @@ import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import ThumbDownIcon from '@mui/icons-material/ThumbDown';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import StudentProfile from './students/StudentProfile';
+import CloseIcon from '@mui/icons-material/Close';
+import StudentEditForm from './students/StudentEditForm';
 import BookCover from './BookCover';
 import { STATUS_TO_PALETTE } from '../utils/helpers';
 
@@ -80,11 +85,13 @@ const BookIllustration = () => (
 const BookRecommendations = () => {
   const {
     students, classes, books, apiError, fetchWithAuth, globalClassFilter,
-    prioritizedStudents, getReadingStatus, markStudentAsPriorityHandled
+    prioritizedStudents, getReadingStatus, markStudentAsPriorityHandled, updateStudent
   } = useAppContext();
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
+  const editFormRef = useRef(null);
 
   // State for selections and data
   const [selectedStudentId, setSelectedStudentId] = useState('');
@@ -888,17 +895,36 @@ const BookRecommendations = () => {
 
       {/* Reading Preferences Modal */}
       {selectedStudent && (
-        <StudentProfile
+        <Dialog
           open={preferencesOpen}
-          onClose={async () => {
-            setPreferencesOpen(false);
-            // Re-run library search to refresh profile and results
-            if (selectedStudentId) {
-              await triggerLibrarySearch(selectedStudentId);
-            }
-          }}
-          student={selectedStudent}
-        />
+          onClose={() => setPreferencesOpen(false)}
+          fullWidth
+          maxWidth="md"
+          fullScreen={fullScreen}
+        >
+          <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="h6">{selectedStudent?.name} — Reading Preferences</Typography>
+            <IconButton onClick={() => setPreferencesOpen(false)}><CloseIcon /></IconButton>
+          </DialogTitle>
+          <DialogContent dividers>
+            <StudentEditForm
+              ref={editFormRef}
+              student={selectedStudent}
+              onSave={async (data) => {
+                await updateStudent(selectedStudent.id, data);
+                setPreferencesOpen(false);
+                if (selectedStudentId) {
+                  await triggerLibrarySearch(selectedStudentId);
+                }
+              }}
+              onCancel={() => setPreferencesOpen(false)}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setPreferencesOpen(false)}>Cancel</Button>
+            <Button onClick={() => editFormRef.current?.save()} variant="contained">Save</Button>
+          </DialogActions>
+        </Dialog>
       )}
     </Box>
   );
