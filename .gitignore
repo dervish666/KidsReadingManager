@@ -49,6 +49,9 @@ Thumbs.db
 # Git worktrees
 .worktrees/
 
+# Superpowers brainstorm mockups
+.superpowers/
+
 # E2E tests
 e2e/.auth/
 .env.e2e
