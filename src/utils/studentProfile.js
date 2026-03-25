@@ -19,7 +19,8 @@ import { parseGenreIds } from './helpers.js';
 export async function buildStudentReadingProfile(studentId, organizationId, db) {
   // 1. Get student basic info
   const student = await db.prepare(`
-    SELECT id, name, reading_level, reading_level_min, reading_level_max, age_range, likes, dislikes, notes
+    SELECT id, name, reading_level, reading_level_min, reading_level_max, age_range, likes, dislikes, notes,
+           date_of_birth, gender, first_language, eal_detailed_status
     FROM students
     WHERE id = ? AND organization_id = ?
   `).bind(studentId, organizationId).first();
@@ -132,7 +133,13 @@ export async function buildStudentReadingProfile(studentId, organizationId, db) 
       readingLevelMin: student.reading_level_min ?? null,
       readingLevelMax: student.reading_level_max ?? null,
       ageRange: student.age_range || null,
-      notes: student.notes
+      notes: student.notes,
+      age: student.date_of_birth
+        ? Math.floor((Date.now() - new Date(student.date_of_birth).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+        : null,
+      gender: student.gender || null,
+      firstLanguage: student.first_language || null,
+      ealDetailedStatus: student.eal_detailed_status || null,
     },
     preferences: {
       favoriteGenreIds,
