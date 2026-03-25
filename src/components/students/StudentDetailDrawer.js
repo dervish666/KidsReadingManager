@@ -313,6 +313,15 @@ const StudentDetailDrawer = ({ open, student, onClose }) => {
           />
         )}
 
+        {/* Year group */}
+        {displayStudent?.yearGroup && (
+          <Chip
+            label={`Year ${displayStudent.yearGroup}`}
+            size="small"
+            sx={{ bgcolor: '#E5F0E5', color: '#6B8E6B', height: 22, fontSize: '0.7rem' }}
+          />
+        )}
+
         {/* Reading level range */}
         {readingLevelLabel && (
           <Chip
