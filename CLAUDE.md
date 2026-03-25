@@ -299,7 +299,7 @@ Permissions enforced via `requireOwner()`, `requireAdmin()`, `requireTeacher()`,
 
 - `organizations` - Multi-tenant foundation (soft delete via `is_active`)
 - `users` - Accounts with roles and org FK (soft delete via `is_active`)
-- `students` - Organization-scoped, has `reading_level_min`/`reading_level_max` range
+- `students` - Organization-scoped, has `reading_level_min`/`reading_level_max` range, demographics from Wonde (`date_of_birth`, `gender`, `first_language`, `eal_detailed_status`)
 - `reading_sessions` - Session data linked to students (hard delete)
 - `books` - Global catalog with FTS5 search (`books_fts` virtual table)
 - `org_book_selections` - Links books to organizations (controls per-school visibility)
@@ -361,7 +361,7 @@ School data sync and SSO login via two external services:
 
 **MyLogin OAuth2 SSO** (`src/routes/mylogin.js`): OAuth2 Authorization Code flow. Login initiation stores state in KV, redirects to MyLogin. Callback exchanges code for token, fetches user profile, matches org by `wonde_school_id`, creates/updates user by `mylogin_id`, issues standard Tally JWT. Role mapping: MyLogin admin→admin, employee→teacher, student→readonly.
 
-**Key tables**: `wonde_sync_log` (sync tracking), `wonde_employee_classes` (teacher-class mapping from sync, used at first login). New columns on `organizations` (wonde_school_id, wonde_school_token, wonde_last_sync_at, mylogin_org_id), `users` (mylogin_id, wonde_employee_id, auth_provider), `students` (wonde_student_id, sen_status, pupil_premium, eal_status, fsm, year_group), `classes` (wonde_class_id). See `migrations/0024_wonde_mylogin_integration.sql`.
+**Key tables**: `wonde_sync_log` (sync tracking), `wonde_employee_classes` (teacher-class mapping from sync, used at first login). New columns on `organizations` (wonde_school_id, wonde_school_token, wonde_last_sync_at, mylogin_org_id), `users` (mylogin_id, wonde_employee_id, auth_provider), `students` (wonde_student_id, sen_status, pupil_premium, eal_status, fsm, year_group, date_of_birth, gender, first_language, eal_detailed_status), `classes` (wonde_class_id). See `migrations/0024_wonde_mylogin_integration.sql`.
 
 **Token security**: Wonde school tokens are AES-GCM encrypted in D1 using `encryptSensitiveData`/`decryptSensitiveData` from `src/utils/crypto.js`.
 
