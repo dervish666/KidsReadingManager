@@ -16,10 +16,10 @@ const SchoolManagement = () => {
   });
   const [filters, setFilters] = useState({
     search: '',
-    source: '',
-    billing: '',
-    syncStatus: '',
-    hasErrors: false,
+    source: 'all',
+    billing: 'all',
+    syncStatus: 'all',
+    hasErrors: 'all',
   });
   const [sort, setSort] = useState({ field: 'name', order: 'asc' });
   const [selectedSchool, setSelectedSchool] = useState(null);
@@ -43,10 +43,10 @@ const SchoolManagement = () => {
       params.set('sort', sort.field);
       params.set('order', sort.order);
       if (filters.search) params.set('search', filters.search);
-      if (filters.source) params.set('source', filters.source);
-      if (filters.billing) params.set('billing', filters.billing);
-      if (filters.syncStatus) params.set('syncStatus', filters.syncStatus);
-      if (filters.hasErrors) params.set('hasErrors', 'true');
+      if (filters.source && filters.source !== 'all') params.set('source', filters.source);
+      if (filters.billing && filters.billing !== 'all') params.set('billing', filters.billing);
+      if (filters.syncStatus && filters.syncStatus !== 'all') params.set('syncStatus', filters.syncStatus);
+      if (filters.hasErrors === 'yes') params.set('hasErrors', 'true');
 
       const res = await fetchWithAuth(`/api/organization/all?${params.toString()}`);
       const data = await res.json();

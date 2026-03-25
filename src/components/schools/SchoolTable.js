@@ -157,7 +157,7 @@ const SchoolTable = ({
             onChange={handleFilterChange('syncStatus')}
           >
             <MenuItem value="all">All</MenuItem>
-            <MenuItem value="synced">Synced</MenuItem>
+            <MenuItem value="recent">Recent</MenuItem>
             <MenuItem value="stale">Stale</MenuItem>
             <MenuItem value="never">Never</MenuItem>
           </Select>
