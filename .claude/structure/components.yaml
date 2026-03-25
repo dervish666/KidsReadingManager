@@ -100,11 +100,37 @@ files:
         props: [onBackToLanding]
 
   SchoolManagement.js:
-    description: Organization CRUD with Wonde integration status
+    description: School management container - state, API calls, table+drawer orchestration
     exports:
       - name: SchoolManagement
         kind: component
-        description: Owner-only school management with subscription tiers
+        description: Owner-only container managing SchoolTable and SchoolDrawer
+
+  schools/:
+    SchoolTable.js:
+      description: Data table with search, filters, sorting, pagination
+      exports:
+        - name: SchoolTable
+          kind: component
+          props: [schools, pagination, filters, sort, loading, onFilterChange, onSortChange, onPageChange, onRowClick, onAddClick]
+    SchoolDrawer.js:
+      description: Side drawer wrapper with read/edit/add modes and deactivate dialog
+      exports:
+        - name: SchoolDrawer
+          kind: component
+          props: [open, school, mode, loading, onClose, onEdit, onSave, onCancel, onSync, onStartTrial, onOpenPortal, onDeactivate]
+    SchoolReadView.js:
+      description: Read-only detail cards for contact, address, billing, wonde
+      exports:
+        - name: SchoolReadView
+          kind: component
+          props: [school, onEdit, onSync, onStartTrial, onOpenPortal, onDeactivate]
+    SchoolEditForm.js:
+      description: Edit form with save/cancel for school details
+      exports:
+        - name: SchoolEditForm
+          kind: component
+          props: [school, onSave, onCancel, loading]
 
   Settings.js:
     description: Reading status thresholds, streak grace period, class manager

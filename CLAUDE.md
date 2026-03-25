@@ -119,8 +119,13 @@ src/components/Settings.js - Reading status thresholds and streak settings
 src/components/SettingsPage.js - Settings hub with tabs
 src/components/AISettings.js - AI provider configuration
 src/components/UserManagement.js - User CRUD and role assignment
-src/components/SchoolManagement.js - Organization management with Wonde status
+src/components/SchoolManagement.js - School management container (state, API calls, table+drawer orchestration)
 src/components/DataManagement.js - Export/import and Wonde sync UI
+
+src/components/schools/SchoolTable.js - School data table with search, filters, sorting, pagination
+src/components/schools/SchoolDrawer.js - Side drawer wrapper (read/edit/add modes, deactivate dialog)
+src/components/schools/SchoolReadView.js - Read-only school detail cards (contact, address, billing, wonde)
+src/components/schools/SchoolEditForm.js - School edit form with save/cancel
 
 <!-- Frontend Components - Books -->
 src/components/books/BookManager.js - Book library with search, add, import, export
