@@ -7,24 +7,19 @@ import {
   Typography,
   Box,
   Chip,
-  IconButton,
-  Tooltip
 } from '@mui/material';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
-import PsychologyIcon from '@mui/icons-material/Psychology';
 import BlockIcon from '@mui/icons-material/Block';
 import { useAppContext } from '../../contexts/AppContext';
 import { useTheme } from '@mui/material/styles';
-import StudentSessions from '../sessions/StudentSessions';
-import StudentProfile from './StudentProfile';
+import StudentDetailDrawer from './StudentDetailDrawer';
 import StreakBadge from './StreakBadge';
 import { STATUS_TO_PALETTE } from '../../utils/helpers';
 
 const StudentCard = React.memo(({ student }) => {
   const theme = useTheme();
   const { getReadingStatus, classes } = useAppContext();
-  const [openSessionsDialog, setOpenSessionsDialog] = useState(false);
-  const [openPreferencesDialog, setOpenPreferencesDialog] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const status = getReadingStatus(student);
   const paletteKey = STATUS_TO_PALETTE[status] || 'notRead';
@@ -77,7 +72,7 @@ const StudentCard = React.memo(({ student }) => {
         }}
       >
         <CardActionArea
-          onClick={() => setOpenSessionsDialog(true)}
+          onClick={() => setDrawerOpen(true)}
           sx={{
             height: '100%',
             display: 'flex',
@@ -156,24 +151,6 @@ const StudentCard = React.memo(({ student }) => {
                 {student.currentStreak > 0 && (
                   <StreakBadge streak={student.currentStreak} size="small" />
                 )}
-                <Tooltip title="Student Profile">
-                  <IconButton
-                    aria-label="Student profile"
-                    size="small"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setOpenPreferencesDialog(true);
-                    }}
-                    sx={{
-                      color: 'primary.main',
-                      backgroundColor: 'rgba(107, 142, 107, 0.1)',
-                      '&:hover': { backgroundColor: 'rgba(107, 142, 107, 0.2)' }
-                    }}
-                  >
-                    <PsychologyIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
                 <Box
                   role="img"
                   aria-label={`Status: ${{ recent: 'Recently read', attention: 'Needs attention', never: 'Not read', overdue: 'Overdue' }[status] || status}`}
@@ -261,8 +238,11 @@ const StudentCard = React.memo(({ student }) => {
         </CardActionArea>
       </Card>
 
-      <StudentSessions open={openSessionsDialog} onClose={() => setOpenSessionsDialog(false)} student={student} />
-      <StudentProfile open={openPreferencesDialog} onClose={() => setOpenPreferencesDialog(false)} student={student} />
+      <StudentDetailDrawer
+        open={drawerOpen}
+        student={student}
+        onClose={() => setDrawerOpen(false)}
+      />
     </>
   );
 });
