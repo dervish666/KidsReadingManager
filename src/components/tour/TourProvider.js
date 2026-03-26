@@ -67,6 +67,7 @@ const TourProvider = ({ children }) => {
     <TourContext.Provider value={value}>
       {children}
       <Joyride
+        key={currentTourId || 'idle'}
         steps={steps}
         run={running}
         continuous
