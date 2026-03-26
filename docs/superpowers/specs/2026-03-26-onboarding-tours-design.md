@@ -1,7 +1,7 @@
 # Onboarding Tours Design
 
 **Date**: 2026-03-26
-**Status**: Draft
+**Status**: Approved
 
 ## Summary
 
@@ -190,7 +190,7 @@ The Tabs component renders above the tab content. Summary cards and weekly activ
 | 2 | `stats-summary-cards` | Grid container holding the 4 summary cards (inside Overview tab) | Key Numbers | Your key numbers: total students, sessions, averages, and who hasn't read yet. |
 | 3 | `stats-weekly-activity` | This Week's Activity Card (inside Overview tab) | Weekly Trend | See if reading is trending up or down compared to last week. |
 
-Note: Steps 2-3 depend on the Overview tab being active. The tour starts on first visit which defaults to Overview. If the user replays the tour from a different tab, `TourProvider` should switch to the Overview tab before starting (or the tour should only target the always-visible Tabs element).
+Note: Steps 2-3 depend on the Overview tab being active. The tour starts on first visit which defaults to Overview. If the user replays the tour from a different tab, `TourProvider` switches to the Overview tab (index 0) before starting, so all 3 steps are always visible.
 
 ## Integration Points
 
