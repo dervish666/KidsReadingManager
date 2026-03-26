@@ -40,16 +40,18 @@ CREATE TABLE user_tour_completions (
 );
 ```
 
-When a user completes or skips a tour, the row is upserted. On page load, the frontend checks: does a completion row exist for this `tour_id` at the current version? If not, auto-show the tour.
+When a user completes or skips a tour, upsert the row using `INSERT INTO user_tour_completions (user_id, tour_id, tour_version, completed_at) VALUES (?, ?, ?, ?) ON CONFLICT(user_id, tour_id) DO UPDATE SET tour_version = excluded.tour_version, completed_at = excluded.completed_at`. This handles version bumps — when a tour version increases, re-completion overwrites the old row.
 
 ### API
 
 New route file: `src/routes/tours.js`
 
-- `GET /api/tours/status` — Returns all completed tours for the authenticated user: `[{tourId, version}]`. Called once on login alongside existing settings fetch.
+- `GET /api/tours/status` — Returns all completed tours for the authenticated user: `[{tourId, version}]`. Called once on login, added to the existing parallel fetch batch in AppContext's auth initialization (alongside settings, students, etc.) to avoid an extra round trip.
 - `POST /api/tours/:tourId/complete` — Marks a tour as completed. Body: `{version}`. Upserts `user_tour_completions`.
 
 Both endpoints are scoped to the authenticated user (no org filtering needed — it's per-user). Requires `READONLY` or above (any authenticated user).
+
+**Row mapper:** Add `rowToTourCompletion` to `src/utils/rowMappers.js` to convert `snake_case` DB columns (`tour_id`, `tour_version`, `completed_at`) to `camelCase` response fields (`tourId`, `version`, `completedAt`). The `GET` response shape is `[{tourId: string, version: number}]`.
 
 ### Frontend State
 
@@ -85,7 +87,7 @@ Wraps the app inside `AppContext`. Provides tour context to all children.
 
 Floating replay button, rendered per-page.
 
-**Visual:** 40px circle, frosted glass background, `ExploreOutlined` icon in sage green. Positioned fixed, bottom-right, above the 80px bottom nav (approximately `bottom: 96px, right: 16px`).
+**Visual:** 40px circle, frosted glass background, `ExploreOutlined` icon in sage green. Positioned fixed, bottom-right, above the 80px bottom nav. Bottom offset must account for `env(safe-area-inset-bottom)` to avoid overlap on iPhones with home indicators: `bottom: calc(96px + env(safe-area-inset-bottom, 0px))`, `right: 16px`.
 
 **Behaviour:**
 - Gentle pulse animation when the page's tour hasn't been completed (first visit, or version bumped)
@@ -102,7 +104,7 @@ export const TOURS = {
   'students': {
     version: 1,
     steps: [
-      { target: '<selector>', title: '...', content: '...' },
+      { target: '[data-tour="students-priority-list"]', title: '...', content: '...' },
       // ...
     ]
   },
@@ -110,7 +112,9 @@ export const TOURS = {
 };
 ```
 
-Each step has: `target` (CSS selector for the element to highlight), `title`, `content`, and optional `placement` (tooltip position relative to target).
+Each step has: `target` (CSS selector using `data-tour` attributes), `title`, `content`, and optional `placement` (tooltip position relative to target).
+
+**Tour target convention:** Add `data-tour="<tourId>-<step-name>"` attributes to target elements in each page component. This keeps tour selectors decoupled from component structure and avoids reliance on fragile CSS class or DOM position selectors. See the Tour Content section below for the full mapping of `data-tour` attributes to component files.
 
 ### `src/components/tour/useTour.js`
 
@@ -123,47 +127,58 @@ useTour('students');
 **Behaviour:**
 - On mount, checks `completedTours` from context against `TOURS['students'].version`
 - If not completed at current version → calls `startTour('students')` after a short delay (500ms, to let the page render targets)
-- Returns `{ startTour, isTourAvailable }` for the TourButton to use
+- **Empty state guard:** Does not auto-start if the page is in an empty/loading state (e.g., Students page with no students shows an empty state and none of the tour target elements exist). The hook accepts an optional `ready` boolean that page components can pass to indicate tour targets are in the DOM. Defaults to `true` for pages that always render their targets.
+- Returns `{ startTour, isTourAvailable, TourButton }` for the page to use
 
-This keeps page components clean — they add one hook call and nothing else.
+This keeps page components clean — they add one hook call and render the TourButton.
 
 ## Tour Content (v1)
 
 ### Students Page (`students`)
 
-| Step | Target | Title | Content |
-|------|--------|-------|---------|
-| 1 | Status filter chips | Filter by Status | Filter students by reading status. Red means not read recently, orange needs attention, green is on track. |
-| 2 | Search bar | Search Students | Search for any student by name to find them quickly. |
-| 3 | Priority students list | Priority List | Tap a student here to bump them to the top of your list — great for tracking who needs attention today. |
-| 4 | Student row | Student Details | Tap any student to see their reading history, edit their profile, and adjust their preferences. |
+Steps ordered top-to-bottom matching the visual layout. Add `data-tour` attrs in `src/components/students/StudentList.js`.
+
+| Step | `data-tour` attribute | Target element | Title | Content |
+|------|----------------------|----------------|-------|---------|
+| 1 | `students-priority-list` | `PrioritizedStudentsList` container | Priority List | Tap a student here to bump them to the top of your list — great for tracking who needs attention today. |
+| 2 | `students-search` | Search TextField (`aria-label="Search students"`) | Search Students | Search for any student by name to find them quickly. |
+| 3 | `students-status-filters` | Box wrapping all status filter Chips | Filter by Status | Filter students by reading status. Red means not read recently, orange needs attention, green is on track. |
+| 4 | `students-row` | First `TableRow` in StudentTable body (or first `StudentCard`) | Student Details | Tap any student to see their reading history, edit their profile, and adjust their preferences. |
+
+**Empty state:** Pass `ready={students.length > 0}` to `useTour` — when no students exist, tour targets don't render.
 
 ### Session Form (`session-form`)
 
-| Step | Target | Title | Content |
-|------|--------|-------|---------|
-| 1 | Student selector | Pick a Student | Choose a student to record a reading session. Recently accessed students are starred. |
-| 2 | Book autocomplete | Find a Book | Search your school's book library, or type a new title to add it. |
-| 3 | Location toggle | Reading Location | Mark whether this was a school or home reading session. |
-| 4 | Assessment selector | Rate the Reading | Rate how the student read — this tracks their progress over time. |
-| 5 | Save button | Save Session | Save the session. You can always come back and edit or add notes. |
+Add `data-tour` attrs in `src/components/sessions/SessionForm.js`.
+
+| Step | `data-tour` attribute | Target element | Title | Content |
+|------|----------------------|----------------|-------|---------|
+| 1 | `session-student-select` | Student Select (`id="student-select"`) | Pick a Student | Choose a student to record a reading session. Recently accessed students are marked for quick access. |
+| 2 | `session-book-select` | BookAutocomplete container | Find a Book | Search your school's book library, or type a new title to add it. |
+| 3 | `session-location` | ToggleButtonGroup (School/Home) | Reading Location | Mark whether this was a school or home reading session. |
+| 4 | `session-assessment` | AssessmentSelector container | Rate the Reading | Rate how the student read — this tracks their progress over time. |
+| 5 | `session-save` | Save button (`type="submit"`) | Save Session | Save the session. You can always come back and edit or add notes. |
 
 ### Home Reading Register (`home-reading`)
 
-| Step | Target | Title | Content |
-|------|--------|-------|---------|
-| 1 | Date range presets | Choose Dates | Choose a date range — This Week is great for daily check-ins. |
-| 2 | Register table | The Register | Each cell is a student and date. Tap to record their reading for that day. |
-| 3 | Status buttons | Record Reading | Mark as Read, Multiple sessions, Absent, or No Record. Quick taps for the whole class. |
-| 4 | Daily totals footer | Daily Totals | See at a glance how many students read each day. |
+Add `data-tour` attrs in `src/components/sessions/HomeReadingRegister.js`.
+
+| Step | `data-tour` attribute | Target element | Title | Content |
+|------|----------------------|----------------|-------|---------|
+| 1 | `register-date-range` | Date preset FormControl/Select | Choose Dates | Choose a date range — This Week is great for daily check-ins. |
+| 2 | `register-table` | Main Table element | The Register | Each cell is a student and date. Tap to record their reading for that day. |
+| 3 | `register-status-buttons` | Status button group (Read/Multiple/Absent/No Record) | Record Reading | Mark as Read, Multiple sessions, Absent, or No Record. Quick taps for the whole class. |
+| 4 | `register-totals` | TableFooter / daily totals row | Daily Totals | See at a glance how many students read each day. |
 
 ### Reading Stats (`stats`)
 
-| Step | Target | Title | Content |
-|------|--------|-------|---------|
-| 1 | Summary cards | Key Numbers | Your key numbers: total students, sessions, averages, and who hasn't read yet. |
-| 2 | This Week's Activity card | Weekly Trend | See if reading is trending up or down compared to last week. |
-| 3 | Tabs | Explore More | Switch between Overview, Streaks, Books, and more for deeper insights. |
+Add `data-tour` attrs in `src/components/stats/ReadingStats.js`.
+
+| Step | `data-tour` attribute | Target element | Title | Content |
+|------|----------------------|----------------|-------|---------|
+| 1 | `stats-summary-cards` | Grid container holding the 4 summary cards | Key Numbers | Your key numbers: total students, sessions, averages, and who hasn't read yet. |
+| 2 | `stats-weekly-activity` | This Week's Activity Card | Weekly Trend | See if reading is trending up or down compared to last week. |
+| 3 | `stats-tabs` | Tabs component (Overview/Streaks/Books/etc.) | Explore More | Switch between Overview, Streaks, Books, and more for deeper insights. |
 
 ## Integration Points
 
@@ -190,7 +205,7 @@ New migration file: `migrations/XXXX_user_tour_completions.sql`
 
 ## Dependencies
 
-- **react-joyride** (npm) — guided tour library, ~15KB gzipped. Handles element highlighting, scroll-to-target, overlay, tooltip positioning, and step management.
+- **react-joyride** (npm) — guided tour library, ~15KB gzipped. Handles element highlighting, scroll-to-target, overlay, tooltip positioning, and step management. Should be lazy-loaded (`React.lazy`) since it's not needed for initial paint — only imported when a tour is about to start.
 
 ## Visual Design Summary
 
