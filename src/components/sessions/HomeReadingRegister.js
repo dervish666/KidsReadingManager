@@ -30,7 +30,8 @@ import {
   useTheme,
   useMediaQuery,
   ToggleButton,
-  ToggleButtonGroup
+  ToggleButtonGroup,
+  ClickAwayListener
 } from '@mui/material';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
@@ -188,6 +189,7 @@ const HomeReadingRegister = () => {
   const [historyRefresh, setHistoryRefresh] = useState(0);
   const [viewMode, setViewMode] = useState('quick');
   const [recordingStudents, setRecordingStudents] = useState(new Set());
+  const [editingBookStudentId, setEditingBookStudentId] = useState(null);
 
   const [datePreset, setDatePreset] = useState(DATE_PRESETS.THIS_WEEK);
   const [customStartDate, setCustomStartDate] = useState('');
@@ -993,16 +995,42 @@ const HomeReadingRegister = () => {
                         <TableCell sx={{ fontWeight: 500, fontSize: '0.9rem', whiteSpace: 'nowrap', padding: '4px 8px' }}>
                           {student.name}
                         </TableCell>
-                        <TableCell sx={{
-                          color: 'text.secondary',
-                          fontSize: '0.85rem',
-                          maxWidth: 200,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          padding: '4px 8px'
-                        }}>
-                          {book?.title || '\u2014'}
+                        <TableCell
+                          onClick={() => setEditingBookStudentId(student.id)}
+                          sx={{
+                            color: book ? 'text.secondary' : 'text.disabled',
+                            fontSize: '0.85rem',
+                            minWidth: editingBookStudentId === student.id ? 250 : 120,
+                            maxWidth: editingBookStudentId === student.id ? 350 : 200,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            padding: '4px 8px',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {editingBookStudentId === student.id ? (
+                            <ClickAwayListener onClickAway={() => setEditingBookStudentId(null)}>
+                              <Box onClick={(e) => e.stopPropagation()}>
+                                <BookAutocomplete
+                                  value={book}
+                                  onChange={(newBook) => {
+                                    updateStudentCurrentBook(
+                                      student.id,
+                                      newBook?.id || null,
+                                      newBook?.title || null,
+                                      newBook?.author || null
+                                    );
+                                    setEditingBookStudentId(null);
+                                  }}
+                                  label=""
+                                  placeholder="Search for book..."
+                                />
+                              </Box>
+                            </ClickAwayListener>
+                          ) : (
+                            book?.title || 'Tap to set book'
+                          )}
                         </TableCell>
                       </TableRow>
                     );
