@@ -8,11 +8,14 @@ export const useTour = (tourId, { ready = true } = {}) => {
   const isCompleted = isTourCompleted(tourId);
   const isAvailable = isTourAvailable(tourId);
 
+  // Auto-start tour on first visit if not completed.
+  // hasAutoStarted is set inside the timeout so that if deps change and the
+  // timer is cleared, a new timer can start on the next effect run.
   useEffect(() => {
     if (!ready || isCompleted || !isAvailable || hasAutoStarted.current || running) return;
 
-    hasAutoStarted.current = true;
     const timer = setTimeout(() => {
+      hasAutoStarted.current = true;
       startTour(tourId);
     }, 500);
 

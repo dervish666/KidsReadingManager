@@ -43,7 +43,8 @@ const StudentList = () => {
     user
   } = useAppContext();
 
-  const isLocalAuth = user?.authProvider !== 'mylogin';
+  const isWondeOrg = useMemo(() => classes.some(cls => cls.wondeClassId), [classes]);
+  const canManageStudents = user?.authProvider !== 'mylogin' && !isWondeOrg;
   const { tourButtonProps } = useTour('students', { ready: students.length > 0 });
 
   const [newStudentName, setNewStudentName] = useState('');
@@ -229,7 +230,7 @@ const StudentList = () => {
           justifyContent: { xs: 'stretch', sm: 'flex-end' },
           alignItems: 'center'
         }}>
-          {isLocalAuth && (
+          {canManageStudents && (
             <Button
               variant="outlined"
               onClick={handleOpenBulkDialog}
@@ -251,7 +252,7 @@ const StudentList = () => {
               <Box sx={{ display: { xs: 'inline', sm: 'none' } }}>Input</Box>
             </Button>
           )}
-          {isLocalAuth && (
+          {canManageStudents && (
             <Button
               variant="outlined"
               onClick={handleOpenDialog}
@@ -287,9 +288,9 @@ const StudentList = () => {
           border: '1px dashed rgba(107, 142, 107, 0.3)'
         }}>
           <Typography variant="h6" sx={{ mb: 3, color: 'text.secondary', fontFamily: '"Nunito", sans-serif' }}>
-            {isLocalAuth ? 'No students added yet. Add your first student to get started!' : 'No students found. Students are synced from your school system.'}
+            {canManageStudents ? 'No students added yet. Add your first student to get started!' : 'No students found. Students are synced from your school system.'}
           </Typography>
-          {isLocalAuth && (
+          {canManageStudents && (
             <Button
               variant="contained"
               onClick={handleOpenDialog}
@@ -310,7 +311,7 @@ const StudentList = () => {
         </Paper>
       ) : (
         <>
-          <Box mb={4} data-tour="students-priority-list">
+          <Box mb={4}>
             <PrioritizedStudentsList filterClassId={globalClassFilter} />
           </Box>
 

@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import { Joyride, STATUS } from 'react-joyride';
+import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
+import { useJoyride, EVENTS } from 'react-joyride';
 import { useAppContext } from '../../contexts/AppContext';
 import { TOURS } from './tourSteps';
 import TourTooltip from './TourTooltip';
@@ -13,6 +13,9 @@ const TourProvider = ({ children }) => {
   const [currentTourId, setCurrentTourId] = useState(null);
   const [running, setRunning] = useState(false);
 
+  // Use a ref to read current tourId/version in event handlers without stale closures
+  const tourRef = useRef({ tourId: null, version: null });
+
   const currentTour = currentTourId ? TOURS[currentTourId] : null;
   const steps = currentTour
     ? currentTour.steps.map((step) => ({
@@ -20,6 +23,46 @@ const TourProvider = ({ children }) => {
         skipBeacon: true,
       }))
     : [];
+
+  // Keep ref in sync
+  tourRef.current = {
+    tourId: currentTourId,
+    version: currentTour?.version ?? null,
+  };
+
+  const { Tour, on } = useJoyride({
+    steps,
+    run: running,
+    continuous: true,
+    showSkipButton: true,
+    scrollToFirstStep: true,
+    disableOverlayClose: true,
+    spotlightClicks: false,
+    tooltipComponent: TourTooltip,
+    styles: {
+      options: {
+        zIndex: 1200,
+        overlayColor: 'rgba(74, 74, 74, 0.45)',
+      },
+      spotlight: {
+        borderRadius: 12,
+      },
+    },
+  });
+
+  // Listen for tour end event
+  useEffect(() => {
+    const unsubscribe = on(EVENTS.TOUR_END, () => {
+      const { tourId, version } = tourRef.current;
+      setRunning(false);
+      setCurrentTourId(null);
+      if (tourId && version) {
+        markTourComplete(tourId, version);
+      }
+    });
+
+    return unsubscribe;
+  }, [on, markTourComplete]);
 
   const startTour = useCallback((tourId) => {
     if (!TOURS[tourId]) return;
@@ -40,21 +83,6 @@ const TourProvider = ({ children }) => {
     [completedTours]
   );
 
-  const handleJoyrideCallback = useCallback(
-    (data) => {
-      const { status } = data;
-
-      if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
-        setRunning(false);
-        if (currentTour && currentTourId) {
-          markTourComplete(currentTourId, currentTour.version);
-        }
-        setCurrentTourId(null);
-      }
-    },
-    [currentTourId, currentTour, markTourComplete]
-  );
-
   const value = {
     startTour,
     isTourAvailable,
@@ -66,27 +94,7 @@ const TourProvider = ({ children }) => {
   return (
     <TourContext.Provider value={value}>
       {children}
-      <Joyride
-        key={currentTourId || 'idle'}
-        steps={steps}
-        run={running}
-        continuous
-        showSkipButton
-        scrollToFirstStep
-        disableOverlayClose
-        spotlightClicks={false}
-        tooltipComponent={TourTooltip}
-        callback={handleJoyrideCallback}
-        styles={{
-          options: {
-            zIndex: 1200,
-            overlayColor: 'rgba(74, 74, 74, 0.45)',
-          },
-          spotlight: {
-            borderRadius: 12,
-          },
-        }}
-      />
+      {Tour}
     </TourContext.Provider>
   );
 };

@@ -772,17 +772,17 @@ export const AppProvider = ({ children }) => {
     }
   }, [fetchWithAuth]);
 
-  // Mark a tour as complete for the current user
+  // Mark a tour as complete for the current user.
+  // Update state optimistically before the API call so that
+  // auto-start hooks on other pages don't re-trigger the tour.
   const markTourComplete = useCallback(async (tourId, version) => {
+    setCompletedTours((prev) => ({ ...prev, [tourId]: version }));
     try {
-      const response = await fetchWithAuth(`/api/tours/${tourId}/complete`, {
+      await fetchWithAuth(`/api/tours/${tourId}/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ version }),
       });
-      if (response.ok) {
-        setCompletedTours((prev) => ({ ...prev, [tourId]: version }));
-      }
     } catch (err) {
       console.error('Failed to mark tour complete:', err);
     }
