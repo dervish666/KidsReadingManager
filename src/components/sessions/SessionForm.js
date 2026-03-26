@@ -24,6 +24,8 @@ import DownloadIcon from '@mui/icons-material/Download';
 import EditIcon from '@mui/icons-material/Edit';
 import NotesIcon from '@mui/icons-material/Notes';
 import { useAppContext } from '../../contexts/AppContext';
+import { useTour } from '../tour/useTour';
+import TourButton from '../tour/TourButton';
 import BookCover from '../BookCover';
 import AssessmentSelector from './AssessmentSelector';
 import SessionNotes from './SessionNotes';
@@ -38,6 +40,7 @@ import {
 
 const SessionForm = () => {
   const { students, addReadingSession, classes, recentlyAccessedStudents, books, globalClassFilter, settings, updateBook, fetchBookDetails, genres, fetchWithAuth } = useAppContext();
+  const { tourButtonProps } = useTour('session-form');
 
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [assessment, setAssessment] = useState(null);
@@ -356,7 +359,7 @@ const SessionForm = () => {
 
               {/* Row 1: Student dropdown + Info chips inline */}
               <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                <FormControl sx={{ flex: 1, minWidth: 200 }}>
+                <FormControl data-tour="session-student-select" sx={{ flex: 1, minWidth: 200 }}>
                   <InputLabel id="student-select-label" sx={{ fontFamily: '"DM Sans", sans-serif' }}>Student</InputLabel>
                   <Select
                     labelId="student-select-label"
@@ -408,7 +411,7 @@ const SessionForm = () => {
               </Box>
 
               {/* Row 2: Book (compact display or BookAutocomplete + Popover) */}
-              <Box>
+              <Box data-tour="session-book-select">
                 {selectedBookId ? (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                     <BookCover
@@ -565,6 +568,7 @@ const SessionForm = () => {
               {/* Row 3: Location toggle + Assessment */}
               <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
                 <ToggleButtonGroup
+                  data-tour="session-location"
                   value={selectedLocation}
                   exclusive
                   onChange={(e, val) => { if (val !== null) setSelectedLocation(val); }}
@@ -593,7 +597,7 @@ const SessionForm = () => {
                   </ToggleButton>
                 </ToggleButtonGroup>
 
-                <Box sx={{ flex: 1, minWidth: 250 }}>
+                <Box data-tour="session-assessment" sx={{ flex: 1, minWidth: 250 }}>
                   <AssessmentSelector
                     value={assessment}
                     onChange={handleAssessmentChange}
@@ -625,6 +629,7 @@ const SessionForm = () => {
 
                 {/* Save button takes remaining space */}
                 <Button
+                  data-tour="session-save"
                   type="submit"
                   variant="contained"
                   color="primary"
@@ -783,6 +788,7 @@ const SessionForm = () => {
           }
         }}
       />
+      <TourButton {...tourButtonProps} />
     </Box>
   );
 };
