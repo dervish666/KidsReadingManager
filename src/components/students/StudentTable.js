@@ -224,15 +224,16 @@ const StudentTable = React.memo(({ students }) => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {sortedStudents.map((student) => {
+            {sortedStudents.map((student, index) => {
               const status = getReadingStatus(student);
               const paletteKey = STATUS_TO_PALETTE[status] || 'notRead';
               const statusColor = theme.palette.status?.[paletteKey] || theme.palette.primary.main;
               const mostRecentReadDate = getMostRecentReadDate(student);
-              
+
               return (
                 <TableRow
                   key={student.id}
+                  data-tour={index === 0 ? 'students-row' : undefined}
                   onClick={() => handleRowClick(student)}
                   sx={{
                     cursor: 'pointer',

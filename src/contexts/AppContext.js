@@ -104,6 +104,9 @@ export const AppProvider = ({ children }) => {
   // State for general settings (including AI)
   const [settings, setSettings] = useState({});
 
+  // State for completed guided tours
+  const [completedTours, setCompletedTours] = useState({});
+
   // State for classes
   const [classes, setClasses] = useState([]);
   // Global class filter state (persisted in sessionStorage)
@@ -752,6 +755,39 @@ export const AppProvider = ({ children }) => {
     }
   }, [fetchWithAuth]);
 
+  // Fetch tour completion status for the current user
+  const fetchTourStatus = useCallback(async () => {
+    try {
+      const response = await fetchWithAuth('/api/tours/status');
+      if (response.ok) {
+        const tours = await response.json();
+        const tourMap = {};
+        tours.forEach((t) => {
+          tourMap[t.tourId] = t.version;
+        });
+        setCompletedTours(tourMap);
+      }
+    } catch (err) {
+      console.error('Failed to fetch tour status:', err);
+    }
+  }, [fetchWithAuth]);
+
+  // Mark a tour as complete for the current user.
+  // Update state optimistically before the API call so that
+  // auto-start hooks on other pages don't re-trigger the tour.
+  const markTourComplete = useCallback(async (tourId, version) => {
+    setCompletedTours((prev) => ({ ...prev, [tourId]: version }));
+    try {
+      await fetchWithAuth(`/api/tours/${tourId}/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ version }),
+      });
+    } catch (err) {
+      console.error('Failed to mark tour complete:', err);
+    }
+  }, [fetchWithAuth]);
+
   // Switch to a different organization (owners only)
   const switchOrganization = useCallback(async (orgId) => {
     if (user?.role !== 'owner') {
@@ -793,12 +829,13 @@ export const AppProvider = ({ children }) => {
       if (!hasLoadedData.current) {
         hasLoadedData.current = true;
         reloadDataFromServer();
+        fetchTourStatus();
       }
     } else {
       hasLoadedData.current = false;
       setLoading(false);
     }
-  }, [authToken, reloadDataFromServer]);
+  }, [authToken, reloadDataFromServer, fetchTourStatus]);
 
   // Fetch available organizations for owners after user is loaded
   useEffect(() => {
@@ -1815,6 +1852,9 @@ export const AppProvider = ({ children }) => {
     switchOrganization,
     switchingOrganization,
     fetchAvailableOrganizations,
+    // Tour state
+    completedTours,
+    markTourComplete,
   }), [
     students, classes, books, genres, loading, apiError,
     globalClassFilter, updateGlobalClassFilter,
@@ -1836,6 +1876,7 @@ export const AppProvider = ({ children }) => {
     canManageUsers, canManageStudents, canManageClasses, canManageSettings,
     availableOrganizations, activeOrganizationId,
     switchOrganization, switchingOrganization, fetchAvailableOrganizations,
+    completedTours, markTourComplete,
   ]);
 
   return (

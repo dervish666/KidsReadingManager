@@ -25,6 +25,8 @@ import SortIcon from '@mui/icons-material/Sort';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
 import { useAppContext } from '../../contexts/AppContext';
+import { useTour } from '../tour/useTour';
+import TourButton from '../tour/TourButton';
 import StudentTable from './StudentTable';
 import BulkImport from './BulkImport';
 import PrioritizedStudentsList from './PrioritizedStudentsList';
@@ -41,7 +43,9 @@ const StudentList = () => {
     user
   } = useAppContext();
 
-  const isLocalAuth = user?.authProvider !== 'mylogin';
+  const isWondeOrg = useMemo(() => classes.some(cls => cls.wondeClassId), [classes]);
+  const canManageStudents = user?.authProvider !== 'mylogin' && !isWondeOrg;
+  const { tourButtonProps } = useTour('students', { ready: students.length > 0 });
 
   const [newStudentName, setNewStudentName] = useState('');
   const [selectedClassId, setSelectedClassId] = useState('');
@@ -226,7 +230,7 @@ const StudentList = () => {
           justifyContent: { xs: 'stretch', sm: 'flex-end' },
           alignItems: 'center'
         }}>
-          {isLocalAuth && (
+          {canManageStudents && (
             <Button
               variant="outlined"
               onClick={handleOpenBulkDialog}
@@ -248,7 +252,7 @@ const StudentList = () => {
               <Box sx={{ display: { xs: 'inline', sm: 'none' } }}>Input</Box>
             </Button>
           )}
-          {isLocalAuth && (
+          {canManageStudents && (
             <Button
               variant="outlined"
               onClick={handleOpenDialog}
@@ -284,9 +288,9 @@ const StudentList = () => {
           border: '1px dashed rgba(107, 142, 107, 0.3)'
         }}>
           <Typography variant="h6" sx={{ mb: 3, color: 'text.secondary', fontFamily: '"Nunito", sans-serif' }}>
-            {isLocalAuth ? 'No students added yet. Add your first student to get started!' : 'No students found. Students are synced from your school system.'}
+            {canManageStudents ? 'No students added yet. Add your first student to get started!' : 'No students found. Students are synced from your school system.'}
           </Typography>
-          {isLocalAuth && (
+          {canManageStudents && (
             <Button
               variant="contained"
               onClick={handleOpenDialog}
@@ -320,6 +324,7 @@ const StudentList = () => {
             px: { xs: 0, sm: 1 }
           }}>
             <TextField
+              data-tour="students-search"
               size="small"
               placeholder="Search students..."
               aria-label="Search students"
@@ -356,7 +361,7 @@ const StudentList = () => {
                 }
               }}
             />
-            <Box sx={{
+            <Box data-tour="students-status-filters" sx={{
               display: 'flex',
               gap: 0.75,
               flexWrap: 'wrap',
@@ -534,11 +539,12 @@ const StudentList = () => {
         </DialogActions>
       </Dialog>
 
-      <BulkImport 
-        open={openBulkDialog} 
-        onClose={handleCloseBulkDialog} 
+      <BulkImport
+        open={openBulkDialog}
+        onClose={handleCloseBulkDialog}
       />
 
+      <TourButton {...tourButtonProps} />
     </Box>
   );
 };

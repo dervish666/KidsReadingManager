@@ -39,10 +39,20 @@ import StreakBadge from '../students/StreakBadge';
 import ReadingTimelineChart from './ReadingTimelineChart';
 import ReadingFrequencyChart from './ReadingFrequencyChart';
 import { useAppContext } from '../../contexts/AppContext';
+import { useTour } from '../tour/useTour';
+import TourButton from '../tour/TourButton';
 
 const ReadingStats = () => {
   const { students, classes, exportToJson, getReadingStatus, globalClassFilter, fetchWithAuth, reloadDataFromServer } = useAppContext();
   const [currentTab, setCurrentTab] = useState(0);
+  const { tourButtonProps } = useTour('stats');
+  const statsTourButtonProps = {
+    ...tourButtonProps,
+    onClick: () => {
+      setCurrentTab(0);
+      setTimeout(() => tourButtonProps.onClick(), 100);
+    },
+  };
   const [recalculating, setRecalculating] = useState(false);
   const [termDates, setTermDates] = useState([]);
   const [selectedTerm, setSelectedTerm] = useState('all');
@@ -225,7 +235,7 @@ const ReadingStats = () => {
   const renderOverviewTab = () => (
     <Box>
       {/* Summary stats - responsive grid */}
-      <Box sx={{
+      <Box data-tour="stats-summary-cards" sx={{
         display: 'grid',
         gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
         gap: 2,
@@ -286,7 +296,7 @@ const ReadingStats = () => {
         gap: 2
       }}>
         {/* This Week's Activity */}
-        <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
+        <Card data-tour="stats-weekly-activity" sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
           <CardContent sx={{ py: 2 }}>
             <Typography variant="subtitle2" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
               This Week's Activity
@@ -815,10 +825,10 @@ const ReadingStats = () => {
       </Box>
       
       <Box>
-        <Paper sx={{ 
-          mb: 3, 
-          overflow: 'hidden', 
-          borderRadius: 4, 
+        <Paper data-tour="stats-tabs" sx={{
+          mb: 3,
+          overflow: 'hidden',
+          borderRadius: 4,
           backgroundColor: 'background.paper'
         }}>
           <Tabs
@@ -903,6 +913,7 @@ const ReadingStats = () => {
           )}
         </Box>
       </Box>
+      <TourButton {...statsTourButtonProps} />
     </Box>
   );
 };

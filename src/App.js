@@ -8,6 +8,7 @@ import Header from './components/Header';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AppProvider, useAppContext } from './contexts/AppContext';
 import { BookCoverProvider } from './contexts/BookCoverContext';
+import TourProvider from './components/tour/TourProvider';
 import Login from './components/Login';
 import LandingPage from './components/LandingPage';
 import DpaConsentModal from './components/DpaConsentModal';
@@ -324,7 +325,9 @@ function App() {
         <CssBaseline />
         <AppProvider>
           <BookCoverProvider>
-            <AppContent />
+            <TourProvider>
+              <AppContent />
+            </TourProvider>
           </BookCoverProvider>
         </AppProvider>
       </ThemeProvider>

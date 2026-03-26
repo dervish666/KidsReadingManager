@@ -198,3 +198,16 @@ export const rowToSupportNote = (row) => {
     createdAt: row.created_at,
   };
 };
+
+// ── Tour Completions ────────────────────────────────────────────────────────
+
+export const rowToTourCompletion = (row) => {
+  if (!row) return null;
+  return {
+    id: row.id,
+    userId: row.user_id,
+    tourId: row.tour_id,
+    version: row.tour_version,
+    completedAt: row.completed_at,
+  };
+};

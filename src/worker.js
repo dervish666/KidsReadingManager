@@ -36,6 +36,7 @@ import webhooksRouter from './routes/webhooks.js';
 import wondeAdminRouter from './routes/wondeAdmin.js';
 import { supportRouter } from './routes/support.js';
 import { termDatesRouter } from './routes/termDates.js';
+import { toursRouter } from './routes/tours.js';
 import stripeWebhookRouter from './routes/stripeWebhook.js';
 import { billingRouter } from './routes/billing.js';
 import { runFullSync } from './services/wondeSync.js';
@@ -231,6 +232,7 @@ app.route('/api/support', supportRouter);
 app.route('/api/term-dates', termDatesRouter);
 app.route('/api/webhooks/stripe', stripeWebhookRouter);
 app.route('/api/billing', billingRouter);
+app.route('/api/tours', toursRouter);
 
 // API health check (public)
 app.get('/api/health', async (c) => {

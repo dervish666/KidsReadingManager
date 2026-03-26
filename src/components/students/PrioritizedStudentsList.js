@@ -69,75 +69,55 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
       <Box
         sx={{
           position: 'absolute',
-          top: -10,
-          left: -10,
+          top: -8,
+          left: -8,
           background: 'linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%)',
           color: 'white',
-          width: 36,
-          height: 36,
+          width: 28,
+          height: 28,
           borderRadius: '50%',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           fontWeight: 800,
-          fontSize: '1rem',
-          boxShadow: '4px 4px 8px rgba(107, 142, 107, 0.3), -4px -4px 8px rgba(255, 255, 255, 0.4)',
+          fontSize: '0.8rem',
+          boxShadow: '2px 2px 6px rgba(107, 142, 107, 0.3)',
           border: '2px solid white',
           fontFamily: '"Nunito", sans-serif'
         }}
       >
         {priorityRank}
       </Box>
-      <CardContent sx={{ pt: 3, pb: 2 }}>
-        <Typography variant="h6" component="h3" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'text.primary', ml: 1 }}>
+      <CardContent sx={{ pt: 2, pb: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
+        <Typography variant="body1" component="h3" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'text.primary', ml: 0.5, mb: 0.5, fontSize: '0.95rem' }}>
           {student.name}
         </Typography>
-        
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5, p: 1, borderRadius: 3, bgcolor: 'rgba(255,255,255,0.5)' }}>
-          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
             Last read:
           </Typography>
           <Chip
             label={(mostRecentReadDate || student.lastReadDate)
               ? new Date(mostRecentReadDate || student.lastReadDate).toLocaleDateString('en-GB', {
                   day: 'numeric',
-                  month: 'short',
-                  year: 'numeric'
+                  month: 'short'
                 })
               : 'Never'}
             size="small"
             sx={{
-              height: 24,
-              fontSize: '0.75rem',
+              height: 20,
+              fontSize: '0.7rem',
               fontWeight: 700,
-              borderRadius: 2,
+              borderRadius: 1.5,
               backgroundColor: paletteKey === 'notRead' ? '#F5E1E1' : paletteKey === 'needsAttention' ? '#F5EBE0' : '#E5F0E5',
               color: paletteKey === 'notRead' ? 'error.main' : paletteKey === 'needsAttention' ? 'warning.main' : 'primary.main',
               border: 'none'
             }}
           />
         </Box>
-        
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1, borderRadius: 3, bgcolor: 'rgba(255,255,255,0.5)' }}>
-          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
-            Total sessions:
-          </Typography>
-          <Chip 
-            label={student.totalSessionCount || 0}
-            size="small"
-            sx={{
-              height: 24,
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              borderRadius: 2,
-              backgroundColor: '#E5F0E5',
-              color: 'primary.main',
-              border: 'none'
-            }}
-          />
-        </Box>
-        
-        <Typography variant="caption" color="text.secondary" sx={{ mt: 1.5, display: 'block', textAlign: 'right', fontStyle: 'italic', fontWeight: 500 }}>
+
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'right', fontStyle: 'italic', fontWeight: 500, fontSize: '0.7rem' }}>
           {getDaysSinceReading()}
         </Typography>
       </CardContent>
@@ -221,7 +201,7 @@ const PrioritizedStudentsList = ({ defaultCount = 8, filterClassId = 'all' }) =>
       boxShadow: '0 8px 32px rgba(139, 115, 85, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04)',
       border: '1px solid rgba(255, 255, 255, 0.5)',
     }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+      <Box data-tour="students-priority-list" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
         <Typography variant="h5" sx={{ flexGrow: 1, fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'text.primary' }}>
           Priority Reading List
         </Typography>
@@ -233,7 +213,7 @@ const PrioritizedStudentsList = ({ defaultCount = 8, filterClassId = 'all' }) =>
         </IconButton>
       </Box>
       <Collapse in={expanded}>
-        <Box sx={{ mb: 4, px: 1 }}>
+        <Box sx={{ mb: 2, px: 1 }}>
           <Typography variant="body2" color="text.secondary" gutterBottom sx={{ fontWeight: 600 }}>
             Number of students to display: {count}
           </Typography>
@@ -264,9 +244,9 @@ const PrioritizedStudentsList = ({ defaultCount = 8, filterClassId = 'all' }) =>
           </Box>
         </Box>
         
-        <Grid container spacing={3}>
+        <Grid container spacing={2}>
           {prioritizedStudents.map((student, index) => (
-            <Grid key={student.id} size={{ xs: 12, sm: 6, md: 4 }}>
+            <Grid key={student.id} size={{ xs: 6, sm: 4, md: 3 }}>
               <StudentPriorityCard
                 student={student}
                 priorityRank={index + 1}

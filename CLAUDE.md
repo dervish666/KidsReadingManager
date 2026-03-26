@@ -54,6 +54,7 @@ src/routes/webhooks.js - POST Wonde webhook handler (schoolApproved, accessRevok
 src/routes/wondeAdmin.js - POST/GET manual Wonde sync and status
 src/routes/support.js - Support ticket submission, listing, detail, status management, internal notes (owner management endpoints)
 src/routes/termDates.js - GET/PUT term dates per organization and academic year
+src/routes/tours.js - GET/POST tour completion tracking per user
 
 <!-- Middleware -->
 src/middleware/tenant.js - JWT auth, tenant isolation, role guards, audit logging, rate limiting
@@ -136,6 +137,12 @@ src/components/books/ScanBookFlow.js - Scan-to-add workflow orchestrator
 
 <!-- Frontend Components - Classes -->
 src/components/classes/ClassManager.js - Class CRUD with year groups
+
+src/components/tour/TourProvider.js - Tour context provider with lazy-loaded react-joyride
+src/components/tour/TourButton.js - Floating compass replay button (fixed bottom-right)
+src/components/tour/TourTooltip.js - Glassmorphism custom tooltip for tour steps
+src/components/tour/tourSteps.js - Tour step definitions per page (targets, titles, content)
+src/components/tour/useTour.js - Hook for auto-start, ready guard, and button props
 
 <!-- Frontend Components - Students -->
 src/components/students/StudentList.js - Student listing with filters and sorting

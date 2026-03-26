@@ -24,6 +24,19 @@ vi.mock('../../components/BookCover', () => ({
   default: ({ title }) => <div data-testid="book-cover">{title}</div>
 }));
 
+// Mock tour hooks to avoid requiring TourProvider
+vi.mock('../../components/tour/useTour', () => ({
+  useTour: () => ({
+    tourButtonProps: { onClick: vi.fn(), shouldPulse: false },
+    startTour: vi.fn(),
+    isTourAvailable: false,
+  })
+}));
+
+vi.mock('../../components/tour/TourButton', () => ({
+  default: () => null
+}));
+
 // Import after mocking
 import SessionForm from '../../components/sessions/SessionForm';
 import * as bookMetadataApi from '../../utils/bookMetadataApi';

@@ -36,6 +36,8 @@ import SearchIcon from '@mui/icons-material/Search';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { useAppContext } from '../../contexts/AppContext';
+import { useTour } from '../tour/useTour';
+import TourButton from '../tour/TourButton';
 import BookAutocomplete from './BookAutocomplete';
 import BookCover from '../BookCover';
 
@@ -160,6 +162,7 @@ const HomeReadingRegister = () => {
     globalClassFilter,
     fetchWithAuth
   } = useAppContext();
+  const { tourButtonProps } = useTour('home-reading');
 
   // O(1) book lookup by ID (avoids O(n) .find() per student)
   const booksMap = useMemo(() => new Map(books.map(b => [b.id, b])), [books]);
@@ -928,7 +931,7 @@ const HomeReadingRegister = () => {
             />
 
             {/* Date Range Preset */}
-            <FormControl size="small" fullWidth>
+            <FormControl data-tour="register-date-range" size="small" fullWidth>
               <InputLabel id="date-preset-label">Date Range</InputLabel>
               <Select
                 labelId="date-preset-label"
@@ -1018,7 +1021,7 @@ const HomeReadingRegister = () => {
             <CircularProgress size={40} />
           </Box>
         )}
-        <TableContainer sx={{ maxHeight: { xs: 'calc(100vh - 340px)', sm: 'calc(100vh - 260px)' } }}>
+        <TableContainer data-tour="register-table" sx={{ maxHeight: { xs: 'calc(100vh - 340px)', sm: 'calc(100vh - 260px)' } }}>
           <Table stickyHeader size="small">
             <TableHead>
               <TableRow>
@@ -1162,7 +1165,7 @@ const HomeReadingRegister = () => {
                 </TableRow>
               )}
               {filteredStudents.length > 0 && (
-                <TableRow sx={{ backgroundColor: 'grey.50' }}>
+                <TableRow data-tour="register-totals" sx={{ backgroundColor: 'grey.50' }}>
                   <TableCell
                     sx={{
                       fontWeight: 'bold',
@@ -1380,6 +1383,7 @@ const HomeReadingRegister = () => {
           {snackbarMessage}
         </Alert>
       </Snackbar>
+      <TourButton {...tourButtonProps} />
     </Box>
   );
 };
