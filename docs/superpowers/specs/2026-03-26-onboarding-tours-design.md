@@ -46,7 +46,7 @@ When a user completes or skips a tour, upsert the row using `INSERT INTO user_to
 
 New route file: `src/routes/tours.js`
 
-- `GET /api/tours/status` — Returns all completed tours for the authenticated user: `[{tourId, version}]`. Called once on login, added to the existing parallel fetch batch in AppContext's auth initialization (alongside settings, students, etc.) to avoid an extra round trip.
+- `GET /api/tours/status` — Returns all completed tours for the authenticated user: `[{tourId, version}]`. Called once during initial auth setup (in the `useEffect` that runs after token validation), not in `reloadDataFromServer()` — tour status doesn't need re-fetching during org switching or data imports.
 - `POST /api/tours/:tourId/complete` — Marks a tour as completed. Body: `{version}`. Upserts `user_tour_completions`.
 
 Both endpoints are scoped to the authenticated user (no org filtering needed — it's per-user). Requires `READONLY` or above (any authenticated user).
@@ -128,9 +128,16 @@ useTour('students');
 - On mount, checks `completedTours` from context against `TOURS['students'].version`
 - If not completed at current version → calls `startTour('students')` after a short delay (500ms, to let the page render targets)
 - **Empty state guard:** Does not auto-start if the page is in an empty/loading state (e.g., Students page with no students shows an empty state and none of the tour target elements exist). The hook accepts an optional `ready` boolean that page components can pass to indicate tour targets are in the DOM. Defaults to `true` for pages that always render their targets.
-- Returns `{ startTour, isTourAvailable, TourButton }` for the page to use
+- Returns `{ startTour, isTourAvailable, tourButtonProps }` for the page to use
 
-This keeps page components clean — they add one hook call and render the TourButton.
+Page components call the hook and render the button:
+
+```js
+const { tourButtonProps } = useTour('students', { ready: students.length > 0 });
+// ... render <TourButton {...tourButtonProps} /> in the page
+```
+
+This keeps page components clean — one hook call and one button render.
 
 ## Tour Content (v1)
 
@@ -167,18 +174,23 @@ Add `data-tour` attrs in `src/components/sessions/HomeReadingRegister.js`.
 |------|----------------------|----------------|-------|---------|
 | 1 | `register-date-range` | Date preset FormControl/Select | Choose Dates | Choose a date range — This Week is great for daily check-ins. |
 | 2 | `register-table` | Main Table element | The Register | Each cell is a student and date. Tap to record their reading for that day. |
-| 3 | `register-status-buttons` | Status button group (Read/Multiple/Absent/No Record) | Record Reading | Mark as Read, Multiple sessions, Absent, or No Record. Quick taps for the whole class. |
-| 4 | `register-totals` | TableFooter / daily totals row | Daily Totals | See at a glance how many students read each day. |
+| 3 | `register-totals` | TableFooter / daily totals row | Daily Totals | See at a glance how many students read each day. |
+
+Note: The status buttons (Read/Multiple/Absent/No Record) only render when a student is selected, so they can't be a tour target on first visit. The table step (#2) covers the interaction concept. Status buttons could be added as a contextual tip in v2.
 
 ### Reading Stats (`stats`)
 
 Add `data-tour` attrs in `src/components/stats/ReadingStats.js`.
 
+The Tabs component renders above the tab content. Summary cards and weekly activity are inside the Overview tab content, so they only exist when `currentTab === 0`. Since the tour auto-starts on first visit (which defaults to Overview tab), this is safe. React-joyride's `scrollToFirstStep` ensures visibility.
+
 | Step | `data-tour` attribute | Target element | Title | Content |
 |------|----------------------|----------------|-------|---------|
-| 1 | `stats-summary-cards` | Grid container holding the 4 summary cards | Key Numbers | Your key numbers: total students, sessions, averages, and who hasn't read yet. |
-| 2 | `stats-weekly-activity` | This Week's Activity Card | Weekly Trend | See if reading is trending up or down compared to last week. |
-| 3 | `stats-tabs` | Tabs component (Overview/Streaks/Books/etc.) | Explore More | Switch between Overview, Streaks, Books, and more for deeper insights. |
+| 1 | `stats-tabs` | Tabs component (Overview/Streaks/Books/etc.) | Different Views | Switch between Overview, Streaks, Books, and more for deeper insights. |
+| 2 | `stats-summary-cards` | Grid container holding the 4 summary cards (inside Overview tab) | Key Numbers | Your key numbers: total students, sessions, averages, and who hasn't read yet. |
+| 3 | `stats-weekly-activity` | This Week's Activity Card (inside Overview tab) | Weekly Trend | See if reading is trending up or down compared to last week. |
+
+Note: Steps 2-3 depend on the Overview tab being active. The tour starts on first visit which defaults to Overview. If the user replays the tour from a different tab, `TourProvider` should switch to the Overview tab before starting (or the tour should only target the always-visible Tabs element).
 
 ## Integration Points
 
@@ -188,10 +200,10 @@ Wrap the main app content with `<TourProvider>` inside the existing `<AppContext
 
 ### Page Components
 
-Each page component adds one line:
+Each page component adds the hook and button:
 
 ```js
-const { tourButtonProps } = useTour('students');
+const { tourButtonProps } = useTour('students', { ready: students.length > 0 });
 // ... render <TourButton {...tourButtonProps} /> in the page
 ```
 
@@ -201,11 +213,11 @@ Register tour routes: `app.route('/api/tours', toursRoute)`. These are authentic
 
 ### Database Migration
 
-New migration file: `migrations/XXXX_user_tour_completions.sql`
+New migration file: `migrations/0041_user_tour_completions.sql`
 
 ## Dependencies
 
-- **react-joyride** (npm) — guided tour library, ~15KB gzipped. Handles element highlighting, scroll-to-target, overlay, tooltip positioning, and step management. Should be lazy-loaded (`React.lazy`) since it's not needed for initial paint — only imported when a tour is about to start.
+- **react-joyride** (npm) — guided tour library, ~15KB gzipped. Handles element highlighting, scroll-to-target, overlay, tooltip positioning, and step management. Should be lazy-loaded inside `TourProvider` using dynamic `import()` — the `<Joyride>` component is only rendered when a tour is actively running, so the module can be loaded on demand when `startTour` is called. This keeps react-joyride out of the initial bundle.
 
 ## Visual Design Summary
 
