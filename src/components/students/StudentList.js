@@ -25,6 +25,8 @@ import SortIcon from '@mui/icons-material/Sort';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
 import { useAppContext } from '../../contexts/AppContext';
+import { useTour } from '../tour/useTour';
+import TourButton from '../tour/TourButton';
 import StudentTable from './StudentTable';
 import BulkImport from './BulkImport';
 import PrioritizedStudentsList from './PrioritizedStudentsList';
@@ -42,6 +44,7 @@ const StudentList = () => {
   } = useAppContext();
 
   const isLocalAuth = user?.authProvider !== 'mylogin';
+  const { tourButtonProps } = useTour('students', { ready: students.length > 0 });
 
   const [newStudentName, setNewStudentName] = useState('');
   const [selectedClassId, setSelectedClassId] = useState('');
@@ -307,7 +310,7 @@ const StudentList = () => {
         </Paper>
       ) : (
         <>
-          <Box mb={4}>
+          <Box mb={4} data-tour="students-priority-list">
             <PrioritizedStudentsList filterClassId={globalClassFilter} />
           </Box>
 
@@ -320,6 +323,7 @@ const StudentList = () => {
             px: { xs: 0, sm: 1 }
           }}>
             <TextField
+              data-tour="students-search"
               size="small"
               placeholder="Search students..."
               aria-label="Search students"
@@ -356,7 +360,7 @@ const StudentList = () => {
                 }
               }}
             />
-            <Box sx={{
+            <Box data-tour="students-status-filters" sx={{
               display: 'flex',
               gap: 0.75,
               flexWrap: 'wrap',
@@ -534,11 +538,12 @@ const StudentList = () => {
         </DialogActions>
       </Dialog>
 
-      <BulkImport 
-        open={openBulkDialog} 
-        onClose={handleCloseBulkDialog} 
+      <BulkImport
+        open={openBulkDialog}
+        onClose={handleCloseBulkDialog}
       />
 
+      <TourButton {...tourButtonProps} />
     </Box>
   );
 };
