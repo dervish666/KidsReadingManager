@@ -10,7 +10,9 @@ import { useAppContext } from '../../contexts/AppContext';
 import { TOURS } from './tourSteps';
 import TourTooltip from './TourTooltip';
 
-const Joyride = lazy(() => import('react-joyride'));
+const Joyride = lazy(() =>
+  import('react-joyride').then((mod) => ({ default: mod.Joyride }))
+);
 
 const TourContext = createContext(null);
 
