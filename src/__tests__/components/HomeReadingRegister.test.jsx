@@ -140,6 +140,12 @@ const createMockContext = (overrides = {}) => {
   };
 };
 
+// Helper: switch from default quick view to full view
+const switchToFullView = async (user) => {
+  const fullButton = screen.getByRole('button', { name: 'Full' });
+  await user.click(fullButton);
+};
+
 describe('HomeReadingRegister Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -167,10 +173,12 @@ describe('HomeReadingRegister Component', () => {
       expect(dateInput).toHaveValue(getYesterday());
     });
 
-    it('should display "Select a student" message when no student is selected', () => {
+    it('should display "Select a student" message when no student is selected', async () => {
       const context = createMockContext({ globalClassFilter: 'class-1' });
+      const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
 
+      await switchToFullView(user);
       expect(screen.getByText('Select a student from the register')).toBeInTheDocument();
     });
 
@@ -326,10 +334,12 @@ describe('HomeReadingRegister Component', () => {
       expect(screen.getByText('No students in this class')).toBeInTheDocument();
     });
 
-    it('should display table headers correctly', () => {
+    it('should display table headers correctly', async () => {
       const context = createMockContext({ globalClassFilter: 'class-1' });
+      const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
 
+      await switchToFullView(user);
       expect(screen.getByText('Name')).toBeInTheDocument();
       expect(screen.getByText('Total')).toBeInTheDocument();
       expect(screen.getByText('Clear')).toBeInTheDocument();
@@ -345,6 +355,7 @@ describe('HomeReadingRegister Component', () => {
       const context = createMockContext({ globalClassFilter: 'class-1' });
       const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
+      await switchToFullView(user);
 
       // Click on Alice's name
       await user.click(screen.getByText('Alice Smith'));
@@ -361,6 +372,7 @@ describe('HomeReadingRegister Component', () => {
       });
       const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
+      await switchToFullView(user);
 
       // Select a student first
       await user.click(screen.getByText('Alice Smith'));
@@ -386,6 +398,7 @@ describe('HomeReadingRegister Component', () => {
       });
       const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
+      await switchToFullView(user);
 
       // Select a student first
       await user.click(screen.getByText('Alice Smith'));
@@ -410,6 +423,7 @@ describe('HomeReadingRegister Component', () => {
       });
       const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
+      await switchToFullView(user);
 
       // Select a student first
       await user.click(screen.getByText('Alice Smith'));
@@ -430,6 +444,7 @@ describe('HomeReadingRegister Component', () => {
       const context = createMockContext({ globalClassFilter: 'class-1' });
       const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
+      await switchToFullView(user);
 
       // Select a student first
       await user.click(screen.getByText('Alice Smith'));
@@ -450,6 +465,7 @@ describe('HomeReadingRegister Component', () => {
       });
       const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
+      await switchToFullView(user);
 
       // Select a student first
       await user.click(screen.getByText('Alice Smith'));
@@ -477,6 +493,7 @@ describe('HomeReadingRegister Component', () => {
       });
       const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
+      await switchToFullView(user);
 
       // Select a student first
       await user.click(screen.getByText('Alice Smith'));
@@ -508,6 +525,7 @@ describe('HomeReadingRegister Component', () => {
       });
       const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
+      await switchToFullView(user);
 
       // Select Alice (first student)
       await user.click(screen.getByText('Alice Smith'));
@@ -538,6 +556,7 @@ describe('HomeReadingRegister Component', () => {
       });
       const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
+      await switchToFullView(user);
 
       // Select the only student
       await user.click(screen.getByText('Only Student'));
@@ -843,6 +862,7 @@ describe('HomeReadingRegister Component', () => {
       const context = createMockContext({ globalClassFilter: 'class-1' });
       const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
+      await switchToFullView(user);
 
       // Select a student
       await user.click(screen.getByText('Alice Smith'));
@@ -858,6 +878,7 @@ describe('HomeReadingRegister Component', () => {
       });
       const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
+      await switchToFullView(user);
 
       // Select a student
       await user.click(screen.getByText('Alice Smith'));
@@ -882,6 +903,7 @@ describe('HomeReadingRegister Component', () => {
       });
       const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
+      await switchToFullView(user);
 
       // Select and record
       await user.click(screen.getByText('Alice Smith'));
@@ -901,6 +923,7 @@ describe('HomeReadingRegister Component', () => {
       });
       const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
+      await switchToFullView(user);
 
       // Select and record
       await user.click(screen.getByText('Alice Smith'));
@@ -979,6 +1002,7 @@ describe('HomeReadingRegister Component', () => {
       });
       const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
+      await switchToFullView(user);
 
       // Select a student and record
       await user.click(screen.getByText('Alice Smith'));

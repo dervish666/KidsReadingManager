@@ -28,7 +28,9 @@ import {
   MenuItem,
   CircularProgress,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  ToggleButton,
+  ToggleButtonGroup
 } from '@mui/material';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
@@ -184,6 +186,8 @@ const HomeReadingRegister = () => {
   const [studentHistory, setStudentHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyRefresh, setHistoryRefresh] = useState(0);
+  const [viewMode, setViewMode] = useState('quick');
+  const [recordingStudents, setRecordingStudents] = useState(new Set());
 
   const [datePreset, setDatePreset] = useState(DATE_PRESETS.THIS_WEEK);
   const [customStartDate, setCustomStartDate] = useState('');
@@ -528,6 +532,73 @@ const HomeReadingRegister = () => {
     }
   };
 
+  // Handle quick record (per-student inline buttons, no selection needed)
+  const handleQuickRecord = async (student, status, count = 1) => {
+    if (recordingStudents.has(student.id)) return;
+
+    setRecordingStudents(prev => new Set(prev).add(student.id));
+    try {
+      const studentSessions = sessionsByStudent[student.id] || [];
+      const existingHomeSessions = studentSessions.filter(
+        s => s.date === selectedDate && s.location === 'home'
+      );
+      for (const session of existingHomeSessions) {
+        await deleteReadingSession(student.id, session.id);
+      }
+
+      const bookId = student.currentBookId || null;
+
+      if (status === READING_STATUS.ABSENT) {
+        await addReadingSession(student.id, {
+          date: selectedDate, assessment: null,
+          notes: '[ABSENT] Student was absent', bookId: null, location: 'home'
+        });
+      } else if (status === READING_STATUS.NO_RECORD) {
+        await addReadingSession(student.id, {
+          date: selectedDate, assessment: null,
+          notes: '[NO_RECORD] No reading record received', bookId: null, location: 'home'
+        });
+      } else {
+        const allStudentSessions = sessionsByStudent[student.id] || [];
+        for (let i = 0; i < count; i++) {
+          const sessionDate = new Date(selectedDate);
+          sessionDate.setDate(sessionDate.getDate() - i);
+          const dateStr = sessionDate.toISOString().split('T')[0];
+
+          const dayHasMarker = i > 0 && allStudentSessions.some(
+            s => s.date === dateStr && s.location === 'home' &&
+              (s.notes?.includes('[ABSENT]') || s.notes?.includes('[NO_RECORD]'))
+          );
+
+          if (dayHasMarker) {
+            await addReadingSession(student.id, {
+              date: dateStr, assessment: null, notes: '', bookId, location: 'home'
+            });
+            await addReadingSession(student.id, {
+              date: selectedDate, assessment: null, notes: '', bookId, location: 'home'
+            });
+          } else {
+            await addReadingSession(student.id, {
+              date: dateStr, assessment: null, notes: '', bookId, location: 'home'
+            });
+          }
+        }
+      }
+
+      refreshSessions();
+    } catch (error) {
+      setSnackbarMessage('Failed to record reading');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    } finally {
+      setRecordingStudents(prev => {
+        const next = new Set(prev);
+        next.delete(student.id);
+        return next;
+      });
+    }
+  };
+
   // Handle recording a reading session
   const handleRecordReading = async (status, count = 1) => {
     if (!selectedStudent) return;
@@ -761,10 +832,199 @@ const HomeReadingRegister = () => {
 
   return (
     <Box>
-      <Typography variant="h5" component="h1" gutterBottom>
-        Reading Record
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h5" component="h1">
+          Reading Record
+        </Typography>
+        <ToggleButtonGroup value={viewMode} exclusive onChange={(e, v) => v && setViewMode(v)} size="small">
+          <ToggleButton value="quick">Quick</ToggleButton>
+          <ToggleButton value="full">Full</ToggleButton>
+        </ToggleButtonGroup>
+      </Box>
 
+      {/* Quick Entry View */}
+      {viewMode === 'quick' && (
+        <>
+          <Box sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+            <TextField
+              label="Date"
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              size="small"
+              sx={{ width: 180 }}
+              inputProps={{ 'aria-label': 'Select date for reading session' }}
+            />
+            <TextField
+              placeholder="Search student..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              size="small"
+              sx={{ flex: 1, minWidth: 150 }}
+              inputProps={{ 'aria-label': 'Search for a student by name' }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" />
+                  </InputAdornment>
+                )
+              }}
+            />
+            <Typography variant="body2" color="text.secondary">
+              {filteredStudents.length} students
+            </Typography>
+          </Box>
+
+          <Paper sx={{ mb: 2, position: 'relative' }}>
+            {sessionsLoading && (
+              <Box sx={{
+                position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                backgroundColor: 'rgba(255, 255, 255, 0.7)', zIndex: 10
+              }}>
+                <CircularProgress size={40} />
+              </Box>
+            )}
+            <TableContainer sx={{ maxHeight: 'calc(100vh - 260px)' }}>
+              <Table stickyHeader size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell
+                      sx={{
+                        fontWeight: 'bold',
+                        position: 'sticky',
+                        left: 0,
+                        backgroundColor: 'background.paper',
+                        zIndex: 3,
+                        padding: '6px 8px'
+                      }}
+                    >
+                      Record Reading
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', padding: '6px 8px' }}>Student</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', padding: '6px 8px' }}>Book</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {filteredStudents.map(student => {
+                    const { status, count } = getStudentReadingStatus(student, selectedDate);
+                    const book = getStudentLastBook(student.id);
+                    const isRecording = recordingStudents.has(student.id);
+                    const hasEntry = status !== READING_STATUS.NONE;
+
+                    const btnSx = { minWidth: 36, minHeight: 36, px: 0.5, borderRadius: 1.5 };
+                    const numBtnSx = { ...btnSx, minWidth: 32, fontSize: '0.9rem' };
+
+                    return (
+                      <TableRow key={student.id} hover>
+                        <TableCell
+                          sx={{
+                            position: 'sticky',
+                            left: 0,
+                            backgroundColor: 'background.paper',
+                            zIndex: 1,
+                            padding: '4px 8px',
+                            borderRight: '1px solid',
+                            borderRightColor: 'divider'
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+                            <Button
+                              size="small"
+                              variant={status === READING_STATUS.READ ? 'contained' : 'outlined'}
+                              color="success"
+                              disabled={isRecording}
+                              onClick={() => handleQuickRecord(student, READING_STATUS.READ)}
+                              sx={{ ...btnSx, fontSize: '1.1rem' }}
+                              aria-label={`Mark ${student.name} as read`}
+                            >
+                              ✓
+                            </Button>
+                            {[2, 3, 4].map(n => (
+                              <Button
+                                key={n}
+                                size="small"
+                                variant={status === READING_STATUS.MULTIPLE && (n < 4 ? count === n : count >= 4) ? 'contained' : 'outlined'}
+                                color="primary"
+                                disabled={isRecording}
+                                onClick={() => handleQuickRecord(student, READING_STATUS.MULTIPLE, n)}
+                                sx={numBtnSx}
+                                aria-label={`Mark ${student.name} as read ${n} times`}
+                              >
+                                {n < 4 ? n : (status === READING_STATUS.MULTIPLE && count >= 4 ? count : '4')}
+                              </Button>
+                            ))}
+                            <Button
+                              size="small"
+                              variant={status === READING_STATUS.ABSENT ? 'contained' : 'outlined'}
+                              color="warning"
+                              disabled={isRecording}
+                              onClick={() => handleQuickRecord(student, READING_STATUS.ABSENT)}
+                              sx={numBtnSx}
+                              aria-label={`Mark ${student.name} as absent`}
+                            >
+                              A
+                            </Button>
+                            <Button
+                              size="small"
+                              variant={status === READING_STATUS.NO_RECORD ? 'contained' : 'outlined'}
+                              disabled={isRecording}
+                              onClick={() => handleQuickRecord(student, READING_STATUS.NO_RECORD)}
+                              sx={{ ...numBtnSx, color: status === READING_STATUS.NO_RECORD ? undefined : 'grey.500' }}
+                              aria-label={`Mark ${student.name} as no record`}
+                            >
+                              •
+                            </Button>
+                            {hasEntry && (
+                              <IconButton
+                                size="small"
+                                disabled={isRecording}
+                                onClick={() => handleClearEntry(student)}
+                                sx={{ color: 'error.main', ml: 0.25 }}
+                                aria-label={`Clear entry for ${student.name}`}
+                              >
+                                <CloseIcon sx={{ fontSize: 18 }} />
+                              </IconButton>
+                            )}
+                            {isRecording && <CircularProgress size={16} sx={{ ml: 0.5 }} />}
+                          </Box>
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 500, fontSize: '0.9rem', whiteSpace: 'nowrap', padding: '4px 8px' }}>
+                          {student.name}
+                        </TableCell>
+                        <TableCell sx={{
+                          color: 'text.secondary',
+                          fontSize: '0.85rem',
+                          maxWidth: 200,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          padding: '4px 8px'
+                        }}>
+                          {book?.title || '\u2014'}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {filteredStudents.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={3} sx={{ textAlign: 'center', py: 4 }}>
+                        <Typography color="text.secondary">
+                          {searchQuery ? 'No students match your search' : 'No students in this class'}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
+        </>
+      )}
+
+      {/* Full Register View */}
+      {viewMode === 'full' && (<>
       {/* Two-column layout for Recording and Date sections */}
       <Box sx={{
         display: 'flex',
@@ -1239,6 +1499,7 @@ const HomeReadingRegister = () => {
           </Table>
         </TableContainer>
       </Paper>
+      </>)}
 
       {/* Summary chips + Legend — compact single row */}
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center', justifyContent: 'center' }}>
@@ -1250,8 +1511,8 @@ const HomeReadingRegister = () => {
         <Chip label={`${registerTotals.totalSessions} Total`} color="secondary" size="small" sx={{ fontWeight: 'bold' }} />
       </Box>
 
-      {/* Student Books Read */}
-      {selectedStudent && (
+      {/* Student Books Read (full view only) */}
+      {viewMode === 'full' && selectedStudent && (
         <Paper sx={{ p: 2 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1.5 }}>
             Books Read — {selectedStudent.name}

@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.30.0] - 2026-03-26
+
+### Added
+- **Quick Entry view** for Home Reading Register — per-row action buttons (read, 2/3/4 days, absent, no record, clear) next to each student name for fast daily recording without needing to select a student first
+- **View toggle** — Quick/Full toggle switches between the streamlined single-date view and the existing multi-day register
+
 ## [3.29.0] - 2026-03-26
 
 ### Added
