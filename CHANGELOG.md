@@ -1,5 +1,21 @@
 # Changelog
 
+## [3.29.0] - 2026-03-26
+
+### Added
+- **Per-page onboarding tours** — auto-show on first visit with 3-5 steps per page highlighting key UI elements (Students, Session Form, Home Reading Register, Reading Stats)
+- **Tour completion tracking** — server-side per-user tracking via `user_tour_completions` table (migration 0041) so tours don't repeat across devices
+- **Compass replay button** — floating `ExploreOutlined` icon (bottom-right) lets users replay page tours; pulses gently when tour unseen
+- **Glassmorphism tour tooltip** — frosted glass tooltip with sage green accents, progress dots, Back/Next/Skip/Done controls with 48px touch targets
+- **Tours API** — `GET /api/tours/status` and `POST /api/tours/:tourId/complete` for completion persistence with versioning support
+
+### Changed
+- **Priority reading cards** — smaller and more compact (4 columns, reduced padding, removed total sessions row, short date format)
+- **Priority List tour target** — spotlight targets the header row instead of the entire container
+
+### Fixed
+- **Bulk Input / Add Student buttons** — now hidden on Wonde-connected schools (detected via `classes.some(cls => cls.wondeClassId)`)
+
 ## [3.28.0] - 2026-03-25
 
 ### Added
