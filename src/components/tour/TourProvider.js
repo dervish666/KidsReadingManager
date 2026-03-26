@@ -1,18 +1,8 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  lazy,
-  Suspense,
-} from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
+import { Joyride, STATUS } from 'react-joyride';
 import { useAppContext } from '../../contexts/AppContext';
 import { TOURS } from './tourSteps';
 import TourTooltip from './TourTooltip';
-
-const Joyride = lazy(() =>
-  import('react-joyride').then((mod) => ({ default: mod.Joyride }))
-);
 
 const TourContext = createContext(null);
 
@@ -22,23 +12,19 @@ const TourProvider = ({ children }) => {
   const { completedTours, markTourComplete } = useAppContext();
   const [currentTourId, setCurrentTourId] = useState(null);
   const [running, setRunning] = useState(false);
-  const [stepIndex, setStepIndex] = useState(0);
-  const [joyrideLoaded, setJoyrideLoaded] = useState(false);
 
   const currentTour = currentTourId ? TOURS[currentTourId] : null;
   const steps = currentTour
     ? currentTour.steps.map((step) => ({
         ...step,
-        disableBeacon: true,
+        skipBeacon: true,
       }))
     : [];
 
   const startTour = useCallback((tourId) => {
     if (!TOURS[tourId]) return;
     setCurrentTourId(tourId);
-    setStepIndex(0);
     setRunning(true);
-    setJoyrideLoaded(true);
   }, []);
 
   const isTourAvailable = useCallback((tourId) => {
@@ -56,18 +42,14 @@ const TourProvider = ({ children }) => {
 
   const handleJoyrideCallback = useCallback(
     (data) => {
-      const { status, type, index } = data;
+      const { status } = data;
 
-      if (type === 'step:after') {
-        setStepIndex(index + 1);
-      }
-
-      if (status === 'finished' || status === 'skipped') {
+      if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
         setRunning(false);
-        setCurrentTourId(null);
-        if (currentTour) {
+        if (currentTour && currentTourId) {
           markTourComplete(currentTourId, currentTour.version);
         }
+        setCurrentTourId(null);
       }
     },
     [currentTourId, currentTour, markTourComplete]
@@ -84,34 +66,26 @@ const TourProvider = ({ children }) => {
   return (
     <TourContext.Provider value={value}>
       {children}
-      {joyrideLoaded && (
-        <Suspense fallback={null}>
-          <Joyride
-            steps={steps}
-            run={running}
-            stepIndex={stepIndex}
-            continuous
-            showSkipButton
-            scrollToFirstStep
-            disableOverlayClose
-            spotlightClicks={false}
-            tooltipComponent={TourTooltip}
-            callback={handleJoyrideCallback}
-            styles={{
-              options: {
-                zIndex: 1200,
-                overlayColor: 'rgba(74, 74, 74, 0.45)',
-              },
-              spotlight: {
-                borderRadius: 12,
-              },
-            }}
-            floaterProps={{
-              disableAnimation: true,
-            }}
-          />
-        </Suspense>
-      )}
+      <Joyride
+        steps={steps}
+        run={running}
+        continuous
+        showSkipButton
+        scrollToFirstStep
+        disableOverlayClose
+        spotlightClicks={false}
+        tooltipComponent={TourTooltip}
+        callback={handleJoyrideCallback}
+        styles={{
+          options: {
+            zIndex: 1200,
+            overlayColor: 'rgba(74, 74, 74, 0.45)',
+          },
+          spotlight: {
+            borderRadius: 12,
+          },
+        }}
+      />
     </TourContext.Provider>
   );
 };
