@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.31.0] - 2026-03-27
+
+### Added
+- **Live book search** — BookAutocomplete now searches OpenLibrary as you type (after 3+ characters), showing external results below local library matches with a "From OpenLibrary" separator
+- **External search API** — new `GET /api/books/search-external` endpoint proxies OpenLibrary title search server-side with normalized results (title, author, ISBN, publication year)
+- **Metadata pass-through** — selecting an external search result creates the book with author, ISBN, and publication year pre-populated, eliminating the need to fetch details later
+
 ## [3.30.0] - 2026-03-26
 
 ### Added

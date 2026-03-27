@@ -1209,9 +1209,9 @@ export const AppProvider = ({ children }) => {
     [updateBook]
   );
 
-  // Add a new book
+  // Add a new book (metadata: optional object with isbn, pageCount, publicationYear, etc.)
   const addBook = useCallback(
-    async (title, author = null) => {
+    async (title, author = null, metadata = {}) => {
       const newBook = {
         id: crypto.randomUUID(),
         title,
@@ -1220,6 +1220,7 @@ export const AppProvider = ({ children }) => {
         readingLevel: null,
         ageRange: null,
         description: null,
+        ...metadata,
       };
 
       // Optimistic update
@@ -1252,7 +1253,7 @@ export const AppProvider = ({ children }) => {
 
   // Find an existing book by title (case-insensitive) or create a new one
   const findOrCreateBook = useCallback(
-    async (title, author = null) => {
+    async (title, author = null, metadata = {}) => {
       // First, try to find an existing book with the same title (case-insensitive)
       const normalizedTitle = title.trim().toLowerCase();
       const existingBook = books.find(
@@ -1268,8 +1269,8 @@ export const AppProvider = ({ children }) => {
         return existingBook;
       }
 
-      // No existing book found, create a new one
-      return addBook(title, author);
+      // No existing book found, create a new one with any metadata from external search
+      return addBook(title, author, metadata);
     },
     [books, addBook, updateBook]
   );

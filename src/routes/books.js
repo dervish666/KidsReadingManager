@@ -622,6 +622,57 @@ booksRouter.get('/count', requireReadonly(), async (c) => {
 });
 
 /**
+ * GET /api/books/search-external
+ * Search external book databases (OpenLibrary) by title for typeahead suggestions.
+ * Returns normalized results with title, author, ISBN, and publication year.
+ *
+ * Query params:
+ * - q: Search query (required, min 3 chars)
+ * - limit: Max results (default 8, max 20)
+ *
+ * Requires authentication (at least readonly access)
+ */
+booksRouter.get('/search-external', requireReadonly(), async (c) => {
+  const { q, limit } = c.req.query();
+
+  if (!q || q.trim().length < 3) {
+    return c.json({ results: [] });
+  }
+
+  const maxResults = Math.min(parseInt(limit, 10) || 8, 20);
+  const searchTerm = q.trim();
+
+  try {
+    const params = new URLSearchParams({
+      q: searchTerm,
+      limit: String(maxResults),
+      fields: 'key,title,author_name,first_publish_year,isbn',
+    });
+
+    const response = await fetch(`https://openlibrary.org/search.json?${params}`, {
+      headers: { 'User-Agent': 'TallyReading/1.0 (educational-app)' },
+    });
+
+    if (!response.ok) {
+      return c.json({ results: [] });
+    }
+
+    const data = await response.json();
+    const results = (data.docs || []).map((doc) => ({
+      title: doc.title || '',
+      author: doc.author_name?.[0] || null,
+      isbn: doc.isbn?.[0] || null,
+      publicationYear: doc.first_publish_year || null,
+    }));
+
+    return c.json({ results });
+  } catch (error) {
+    console.error('External book search error:', error);
+    return c.json({ results: [] });
+  }
+});
+
+/**
  * POST /api/books
  * Add a new book
  *
