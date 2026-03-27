@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.32.2] - 2026-03-27
+
+### Fixed
+- **Touch hover states** — StudentCard and PrioritizedStudentsList hover transforms now guarded with `@media (hover: hover) and (pointer: fine)` to prevent sticky states on iPads
+- **Settings tab keys** — SettingsPage tabs use stable `tab.label` key instead of array index (prevents wrong tab after permission changes)
+- **Dialog sizing** — DataManagement confirmation dialogs now properly constrained with `maxWidth="sm" fullWidth`
+- **Stray prop** — removed empty `sx={{}}` on skip-to-content link
+
 ## [3.32.1] - 2026-03-27
 
 ### Changed
