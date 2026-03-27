@@ -13,7 +13,8 @@ import {
 } from '@mui/material';
 import BarcodeScanner from './BarcodeScanner';
 import BookCover from '../BookCover';
-import { useAppContext } from '../../contexts/AppContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { useData } from '../../contexts/DataContext';
 
 /**
  * ScanBookFlow — orchestrates the full scan-to-add flow:
@@ -34,7 +35,8 @@ const STEPS = {
 };
 
 const ScanBookFlow = ({ open, onClose, onBookSelected }) => {
-  const { fetchWithAuth, reloadDataFromServer } = useAppContext();
+  const { fetchWithAuth } = useAuth();
+  const { reloadDataFromServer } = useData();
 
   const [step, setStep] = useState(STEPS.SCANNING);
   const [isbn, setIsbn] = useState(null);

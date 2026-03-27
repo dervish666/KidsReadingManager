@@ -27,7 +27,8 @@ import {
   ThumbUp as ThumbUpIcon,
   ThumbDown as ThumbDownIcon,
 } from '@mui/icons-material';
-import { useAppContext } from '../../contexts/AppContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { useData } from '../../contexts/DataContext';
 import BookAutocomplete from '../sessions/BookAutocomplete';
 import ReadingLevelRangeInput from './ReadingLevelRangeInput';
 
@@ -43,7 +44,8 @@ import ReadingLevelRangeInput from './ReadingLevelRangeInput';
  *   onCancel     {Function} Called after state is reset to original values
  */
 const StudentEditForm = forwardRef(function StudentEditForm({ student, onSave, onCancel }, ref) {
-  const { genres, classes, addGenre, fetchWithAuth } = useAppContext();
+  const { fetchWithAuth } = useAuth();
+  const { genres, classes, addGenre } = useData();
 
   // Form state
   const [name, setName] = useState('');

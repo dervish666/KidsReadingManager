@@ -18,18 +18,12 @@ import DownloadIcon from '@mui/icons-material/Download';
 import UploadIcon from '@mui/icons-material/Upload';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import SyncIcon from '@mui/icons-material/Sync';
-import { useAppContext } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useData } from '../contexts/DataContext';
 
 const DataManagement = () => {
-  const {
-    exportToJson,
-    importFromJson,
-    reloadDataFromServer,
-    fetchWithAuth,
-    canManageUsers,
-    books,
-    user,
-  } = useAppContext();
+  const { fetchWithAuth, canManageUsers, user } = useAuth();
+  const { exportToJson, importFromJson, reloadDataFromServer, books } = useData();
   const fileInputRef = useRef(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const [confirmDialog, setConfirmDialog] = useState({ open: false, file: null });

@@ -25,13 +25,15 @@ import {
   Paper
 } from '@mui/material';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
-import { useAppContext } from '../../contexts/AppContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { useData } from '../../contexts/DataContext';
 import { parseCSV, detectColumnMapping, mapCSVToBooks } from '../../utils/csvParser';
 
 const steps = ['Upload CSV', 'Map Columns', 'Review Matches', 'Confirm Import'];
 
 const BookImportWizard = ({ open, onClose }) => {
-  const { fetchWithAuth, reloadDataFromServer } = useAppContext();
+  const { fetchWithAuth } = useAuth();
+  const { reloadDataFromServer } = useData();
   const [activeStep, setActiveStep] = useState(0);
   const [csvData, setCsvData] = useState(null);
   const [columnMapping, setColumnMapping] = useState({ title: null, author: null, readingLevel: null, isbn: null, description: null, pageCount: null, publicationYear: null, seriesName: null, seriesNumber: null });

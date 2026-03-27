@@ -9,10 +9,12 @@ import {
   Box,
   Typography
 } from '@mui/material';
-import { useAppContext } from '../../contexts/AppContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { useData } from '../../contexts/DataContext';
 
 const AddBookModal = ({ open, initialTitle = '', onClose, onBookCreated }) => {
-  const { findOrCreateBook, fetchWithAuth } = useAppContext();
+  const { fetchWithAuth } = useAuth();
+  const { findOrCreateBook } = useData();
   const [title, setTitle] = useState(initialTitle || '');
   const [author, setAuthor] = useState('');
   const [isbn, setIsbn] = useState('');

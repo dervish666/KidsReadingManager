@@ -19,10 +19,10 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
-import { useAppContext } from '../../contexts/AppContext';
+import { useData } from '../../contexts/DataContext';
 
 const BulkImport = ({ open, onClose }) => {
-   const { bulkImportStudents, students, classes } = useAppContext();
+   const { bulkImportStudents, students, classes } = useData();
    const theme = useTheme();
    const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
    const [namesText, setNamesText] = useState('');

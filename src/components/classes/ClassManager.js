@@ -34,13 +34,15 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import SyncIcon from '@mui/icons-material/Sync';
 import PeopleIcon from '@mui/icons-material/People';
-import { useAppContext } from '../../contexts/AppContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { useData } from '../../contexts/DataContext';
 
 // Year options for the dropdown (Year 1 to Year 11)
 const YEAR_OPTIONS = Array.from({ length: 11 }, (_, i) => `Year ${i + 1}`);
 
 const ClassManager = () => {
-  const { classes, addClass, updateClass, deleteClass, fetchWithAuth } = useAppContext();
+  const { fetchWithAuth } = useAuth();
+  const { classes, addClass, updateClass, deleteClass } = useData();
   const [newClassName, setNewClassName] = useState('');
   const [newTeacherName, setNewTeacherName] = useState('');
   const [editingClass, setEditingClass] = useState(null);

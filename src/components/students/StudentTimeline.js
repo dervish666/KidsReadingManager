@@ -21,7 +21,7 @@ import {
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { useAppContext } from '../../contexts/AppContext';
+import { useData } from '../../contexts/DataContext';
 import BookAutocomplete from '../sessions/BookAutocomplete';
 import AssessmentSelector from '../sessions/AssessmentSelector';
 
@@ -64,7 +64,7 @@ function isWithin7Days(dateString) {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 const StudentTimeline = ({ sessions, loading, studentId, onSessionChange }) => {
-  const { books, editReadingSession, deleteReadingSession } = useAppContext();
+  const { books, editReadingSession, deleteReadingSession } = useData();
 
   // O(1) lookup map for books
   const booksMap = useMemo(() => new Map(books.map((b) => [b.id, b])), [books]);

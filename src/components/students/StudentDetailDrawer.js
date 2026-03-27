@@ -15,7 +15,8 @@ import {
 import { Close as CloseIcon, Edit as EditIcon, Save as SaveIcon } from '@mui/icons-material';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
-import { useAppContext } from '../../contexts/AppContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { useData } from '../../contexts/DataContext';
 import { calculateAge } from '../../utils/calculateAge';
 import StreakBadge from './StreakBadge';
 import StudentReadView from './StudentReadView';
@@ -34,7 +35,8 @@ import StudentTimeline from './StudentTimeline';
 const StudentDetailDrawer = ({ open, student, onClose }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { classes, fetchWithAuth, updateStudent } = useAppContext();
+  const { fetchWithAuth } = useAuth();
+  const { classes, updateStudent } = useData();
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [fullStudent, setFullStudent] = useState(null);

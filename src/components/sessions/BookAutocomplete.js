@@ -9,7 +9,8 @@ import {
   Box,
 } from '@mui/material';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
-import { useAppContext } from '../../contexts/AppContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { useData } from '../../contexts/DataContext';
 import ScanBookFlow from '../books/ScanBookFlow';
 
 const BookAutocomplete = ({
@@ -21,7 +22,8 @@ const BookAutocomplete = ({
   placeholder = 'Select or type book title...',
   priorityBookIds = [],
 }) => {
-  const { books, findOrCreateBook, fetchWithAuth } = useAppContext();
+  const { fetchWithAuth } = useAuth();
+  const { books, findOrCreateBook } = useData();
   const [inputValue, setInputValue] = useState('');
   const [debouncedInputValue, setDebouncedInputValue] = useState('');
   const [selectedBook, setSelectedBook] = useState(null);

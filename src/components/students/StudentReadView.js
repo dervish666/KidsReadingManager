@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Typography, Chip } from '@mui/material';
-import { useAppContext } from '../../contexts/AppContext';
+import { useData } from '../../contexts/DataContext';
 
 const cardStyle = {
   bgcolor: 'rgba(250, 248, 243, 0.8)',
@@ -18,7 +18,7 @@ const NoneSet = () => (
 );
 
 const StudentReadView = ({ student, sessions }) => {
-  const { genres } = useAppContext();
+  const { genres } = useData();
 
   const preferences = student?.preferences || null;
   const favoriteGenreIds = preferences?.favoriteGenreIds || [];
