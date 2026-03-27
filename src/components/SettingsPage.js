@@ -1,14 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import {
-  Box,
-  Typography,
-  Paper,
-  Tabs,
-  Tab,
-  Chip,
-  Link,
-  Button
-} from '@mui/material';
+import { Box, Typography, Paper, Tabs, Tab, Chip, Link, Button } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import PolicyIcon from '@mui/icons-material/Policy';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -34,7 +25,7 @@ import { useAuth } from '../contexts/AuthContext';
 const SettingsPage = () => {
   const [currentTab, setCurrentTab] = useState(0);
   const { canManageUsers, user } = useAuth();
-  
+
   // Only owners can manage schools
   const isOwner = user?.role === 'owner';
   const [supportOpen, setSupportOpen] = useState(false);
@@ -52,12 +43,24 @@ const SettingsPage = () => {
       { label: 'Book Metadata', icon: <MenuBookIcon />, component: <BookMetadataSettings /> },
     ];
     if (canManageUsers) {
-      allTabs.push({ label: 'User Management', icon: <PeopleIcon />, component: <UserManagement /> });
+      allTabs.push({
+        label: 'User Management',
+        icon: <PeopleIcon />,
+        component: <UserManagement />,
+      });
     }
     if (isOwner) {
-      allTabs.push({ label: 'School Management', icon: <SchoolIcon />, component: <SchoolManagement /> });
+      allTabs.push({
+        label: 'School Management',
+        icon: <SchoolIcon />,
+        component: <SchoolManagement />,
+      });
       allTabs.push({ label: 'Billing', icon: <PaymentIcon />, component: <BillingDashboard /> });
-      allTabs.push({ label: 'Support Tickets', icon: <SupportAgentIcon />, component: <SupportTicketManager /> });
+      allTabs.push({
+        label: 'Support Tickets',
+        icon: <SupportAgentIcon />,
+        component: <SupportTicketManager />,
+      });
     }
     return allTabs;
   }, [canManageUsers, isOwner]);
@@ -65,7 +68,11 @@ const SettingsPage = () => {
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'text.primary' }}>
+        <Typography
+          variant="h4"
+          component="h1"
+          sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'text.primary' }}
+        >
           Settings & Data
         </Typography>
         {user && (
@@ -86,14 +93,16 @@ const SettingsPage = () => {
           />
         )}
       </Box>
-      
+
       <Box>
-        <Paper sx={{
-          mb: 3,
-          overflow: 'hidden',
-          borderRadius: 4,
-          backgroundColor: 'background.paper'
-        }}>
+        <Paper
+          sx={{
+            mb: 3,
+            overflow: 'hidden',
+            borderRadius: 4,
+            backgroundColor: 'background.paper',
+          }}
+        >
           <Tabs
             value={currentTab}
             onChange={handleTabChange}
@@ -109,22 +118,29 @@ const SettingsPage = () => {
                 fontWeight: 700,
                 textTransform: 'none',
                 fontSize: '1rem',
-                minHeight: 64
-              }
+                minHeight: 64,
+              },
             }}
           >
-            {tabs.map((tab, idx) => (
-              <Tab key={idx} icon={tab.icon} iconPosition="start" label={tab.label} />
+            {tabs.map((tab) => (
+              <Tab key={tab.label} icon={tab.icon} iconPosition="start" label={tab.label} />
             ))}
           </Tabs>
         </Paper>
-        
-        <Box sx={{ p: 0 }}>
-          {tabs[currentTab]?.component}
-        </Box>
+
+        <Box sx={{ p: 0 }}>{tabs[currentTab]?.component}</Box>
       </Box>
 
-      <Box sx={{ mt: 3, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5 }}>
+      <Box
+        sx={{
+          mt: 3,
+          textAlign: 'center',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 1.5,
+        }}
+      >
         <Box
           sx={{
             backgroundColor: 'rgba(107, 142, 107, 0.06)',
@@ -136,13 +152,23 @@ const SettingsPage = () => {
         >
           <Typography
             variant="subtitle2"
-            sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: 'text.primary', mb: 0.5 }}
+            sx={{
+              fontFamily: '"Nunito", sans-serif',
+              fontWeight: 700,
+              color: 'text.primary',
+              mb: 0.5,
+            }}
           >
             Need help?
           </Typography>
           <Typography
             variant="body2"
-            sx={{ fontFamily: '"DM Sans", sans-serif', color: 'text.secondary', mb: 1.5, fontSize: '0.85rem' }}
+            sx={{
+              fontFamily: '"DM Sans", sans-serif',
+              color: 'text.secondary',
+              mb: 1.5,
+              fontSize: '0.85rem',
+            }}
           >
             Get in touch and we'll help you get set up.
           </Typography>
@@ -156,7 +182,10 @@ const SettingsPage = () => {
               textTransform: 'none',
               fontWeight: 600,
               borderRadius: '10px',
-              '&:hover': { borderColor: 'primary.main', backgroundColor: 'rgba(107, 142, 107, 0.05)' },
+              '&:hover': {
+                borderColor: 'primary.main',
+                backgroundColor: 'rgba(107, 142, 107, 0.05)',
+              },
             }}
           >
             Contact support
@@ -182,7 +211,11 @@ const SettingsPage = () => {
         </Link>
       </Box>
 
-      <SupportModal open={supportOpen} onClose={() => setSupportOpen(false)} currentPage="Settings" />
+      <SupportModal
+        open={supportOpen}
+        onClose={() => setSupportOpen(false)}
+        currentPage="Settings"
+      />
     </Box>
   );
 };

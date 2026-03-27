@@ -330,7 +330,7 @@ const DataManagement = () => {
           </Alert>
         </Snackbar>
 
-        <Dialog open={confirmDialog.open} onClose={handleCloseDialog}>
+        <Dialog open={confirmDialog.open} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
           <DialogTitle>Confirm Import</DialogTitle>
           <DialogContent>
             <DialogContentText>
@@ -346,7 +346,12 @@ const DataManagement = () => {
           </DialogActions>
         </Dialog>
 
-        <Dialog open={clearLibraryDialog} onClose={() => setClearLibraryDialog(false)}>
+        <Dialog
+          open={clearLibraryDialog}
+          onClose={() => setClearLibraryDialog(false)}
+          maxWidth="sm"
+          fullWidth
+        >
           <DialogTitle>Clear Book Library</DialogTitle>
           <DialogContent>
             <DialogContentText>

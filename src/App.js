@@ -215,7 +215,6 @@ function AppContent() {
 
       <a
         href="#main-content"
-        sx={{}}
         style={{
           position: 'absolute',
           left: '-9999px',

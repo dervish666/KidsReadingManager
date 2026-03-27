@@ -60,10 +60,12 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
         boxShadow: '0 4px 12px rgba(139, 115, 85, 0.15), 0 2px 4px rgba(0, 0, 0, 0.05)',
         border: '1px solid rgba(255, 255, 255, 0.6)',
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: '0 8px 24px rgba(139, 115, 85, 0.2), 0 4px 8px rgba(0, 0, 0, 0.08)',
-          zIndex: 10,
+        '@media (hover: hover) and (pointer: fine)': {
+          '&:hover': {
+            transform: 'translateY(-4px)',
+            boxShadow: '0 8px 24px rgba(139, 115, 85, 0.2), 0 4px 8px rgba(0, 0, 0, 0.08)',
+            zIndex: 10,
+          },
         },
       }}
     >
