@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useAppContext } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
 import { formatRelativeTime } from '../utils/helpers';
 import {
   Box,
@@ -42,7 +42,7 @@ import {
 } from '@mui/icons-material';
 
 const UserManagement = () => {
-  const { fetchWithAuth, user } = useAppContext();
+  const { fetchWithAuth, user } = useAuth();
   const [users, setUsers] = useState([]);
   const [organizations, setOrganizations] = useState([]);
   const [formData, setFormData] = useState({

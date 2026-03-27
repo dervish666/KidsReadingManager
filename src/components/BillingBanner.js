@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Alert, AlertTitle, Button } from '@mui/material';
-import { useAppContext } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function BillingBanner() {
-  const { fetchWithAuth, user } = useAppContext();
+  const { fetchWithAuth, user } = useAuth();
   const [billing, setBilling] = useState(null);
 
   useEffect(() => {

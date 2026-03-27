@@ -19,12 +19,12 @@ import SmartToyIcon from '@mui/icons-material/SmartToy';
 import SaveIcon from '@mui/icons-material/Save';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
-import { useAppContext } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const API_URL = '/api';
 
 const AISettings = () => {
-  const { fetchWithAuth } = useAppContext();
+  const { fetchWithAuth } = useAuth();
   const [provider, setProvider] = useState('anthropic');
   const [apiKey, setApiKey] = useState('');
   const [modelPreference, setModelPreference] = useState('');

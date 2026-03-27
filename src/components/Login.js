@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAppContext } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
 import {
   Box,
   Typography,
@@ -26,7 +26,6 @@ import TallyLogo from './TallyLogo';
 const API_URL = '/api';
 
 const Login = ({ onBackToLanding } = {}) => {
-  const context = useAppContext();
   const {
     login,
     loginWithEmail,
@@ -35,7 +34,7 @@ const Login = ({ onBackToLanding } = {}) => {
     isMultiTenantMode,
     serverAuthModeDetected,
     ssoEnabled,
-  } = context;
+  } = useAuth();
 
   // Form state
   const [email, setEmail] = useState('');

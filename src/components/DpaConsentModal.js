@@ -14,12 +14,12 @@ import {
   Link,
 } from '@mui/material';
 import GavelIcon from '@mui/icons-material/Gavel';
-import { useAppContext } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const DPA_VERSION = '1.0';
 
 const DpaConsentModal = () => {
-  const { fetchWithAuth, user, logout } = useAppContext();
+  const { fetchWithAuth, user, logout } = useAuth();
   const [open, setOpen] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);

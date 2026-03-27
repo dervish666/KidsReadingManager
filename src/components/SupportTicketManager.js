@@ -22,7 +22,7 @@ import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 import NoteAddIcon from '@mui/icons-material/NoteAdd';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import PersonIcon from '@mui/icons-material/Person';
-import { useAppContext } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
 import { formatRelativeTime } from '../utils/helpers';
 
 const STATUS_CONFIG = {
@@ -61,7 +61,7 @@ const StatusChip = ({ status, size = 'small' }) => {
 };
 
 const SupportTicketManager = () => {
-  const { fetchWithAuth } = useAppContext();
+  const { fetchWithAuth } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 

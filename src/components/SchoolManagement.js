@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useAppContext } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
 import { Box, Typography, Alert } from '@mui/material';
 import SchoolTable from './schools/SchoolTable';
 import SchoolDrawer from './schools/SchoolDrawer';
 
 const SchoolManagement = () => {
-  const { fetchWithAuth } = useAppContext();
+  const { fetchWithAuth } = useAuth();
 
   const [schools, setSchools] = useState([]);
   const [pagination, setPagination] = useState({

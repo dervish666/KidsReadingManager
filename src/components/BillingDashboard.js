@@ -12,7 +12,7 @@ import {
   Box,
 } from '@mui/material';
 import { OpenInNew } from '@mui/icons-material';
-import { useAppContext } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const STATUS_COLOURS = {
   trialing: 'info',
@@ -23,7 +23,7 @@ const STATUS_COLOURS = {
 };
 
 export default function BillingDashboard() {
-  const { fetchWithAuth } = useAppContext();
+  const { fetchWithAuth } = useAuth();
   const [orgs, setOrgs] = useState([]);
   const [filter, setFilter] = useState('all');
 

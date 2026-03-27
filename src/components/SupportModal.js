@@ -14,10 +14,10 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import { useAppContext } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const SupportModal = ({ open, onClose, currentPage }) => {
-  const { user, fetchWithAuth } = useAppContext();
+  const { user, fetchWithAuth } = useAuth();
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
