@@ -95,7 +95,10 @@ src/utils/constants.js - Shared constants (PUBLIC_PATHS for auth bypass)
 src/utils/wondeApi.js - Wonde REST API client for school data sync
 
 <!-- Contexts & Hooks -->
-src/contexts/AppContext.js - Global app state (auth, students, classes, books, settings)
+src/contexts/AuthContext.js - Auth tokens, user, fetchWithAuth, login/logout, permissions, org switching
+src/contexts/DataContext.js - Students, classes, books, genres, settings, all CRUD operations
+src/contexts/UIContext.js - Class filter, priority list, reading status, tours
+src/contexts/AppContext.js - Composite provider (nests Auth > Data > UI), re-exports hooks
 src/contexts/BookCoverContext.js - Book cover URL caching (localStorage, 7-day TTL)
 src/hooks/useBookCover.js - Hook for book cover fetching with deduplication
 
@@ -265,7 +268,12 @@ JWT lifecycle: access tokens (15 min) + refresh tokens (7 days). Client auto-ref
 
 ### Frontend Architecture
 
-**State Management**: Single `AppContext` (`src/contexts/AppContext.js`) holds all global state (students, classes, books, sessions, auth, settings). All API calls go through `fetchWithAuth()` which auto-attaches JWT and handles 401 refresh. Concurrent requests share a single refresh promise to prevent thundering herd on token expiry.
+**State Management**: Three domain-specific contexts replace the former single `AppContext`:
+- `AuthContext` (`src/contexts/AuthContext.js`) — auth tokens, user, login/logout, `fetchWithAuth`, permissions, org switching. Changes rarely (login/logout/org switch only).
+- `DataContext` (`src/contexts/DataContext.js`) — students, classes, books, genres, settings, all CRUD operations. Re-renders when entity data changes.
+- `UIContext` (`src/contexts/UIContext.js`) — class filter, priority list, reading status, tours. Re-renders on filter/settings changes.
+
+Hooks: `useAuth()`, `useData()`, `useUI()`. The composite `AppProvider` in `src/contexts/AppContext.js` nests all three (`Auth > Data > UI`). All API calls go through `fetchWithAuth()` (from AuthContext) which auto-attaches JWT and handles 401 refresh. Concurrent requests share a single refresh promise to prevent thundering herd on token expiry.
 
 **Owner Organization Switching**: Owners can switch org context via `X-Organization-Id` header (set in `fetchWithAuth()` when `activeOrganizationId` is set). Backend validates this in `tenantMiddleware()` — only works for `owner` role.
 
