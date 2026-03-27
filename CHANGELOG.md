@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.32.3] - 2026-03-27
+
+### Changed
+- **Home Reading Quick view layout** — reordered columns to History | Student | Buttons | Book; added 3 previous-day history columns on the left so teachers can see recent reading context at a glance
+- **Recording buttons** — moved to right of student name for closer proximity; removed oversized sticky cell
+
+### Added
+- **Custom count button (+)** — restored the + button in Quick view for entering a custom number of reading sessions
+
+### Fixed
+- **BookRecommendations class filter** — prioritized students carousel now respects the global class filter
+
 ## [3.32.2] - 2026-03-27
 
 ### Fixed

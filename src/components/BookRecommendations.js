@@ -149,11 +149,12 @@ const BookRecommendations = () => {
   };
 
   // Filter students by global class filter
-  const filteredStudents = students.filter(student => {
+  const classFilter = (student) => {
     if (!globalClassFilter || globalClassFilter === 'all') return true;
     if (globalClassFilter === 'unassigned') return !student.classId;
     return student.classId === globalClassFilter;
-  });
+  };
+  const filteredStudents = students.filter(classFilter);
 
   const selectedStudent = students.find(s => s.id === selectedStudentId);
   const selectedClass = selectedStudent ? classes.find(c => c.id === selectedStudent.classId) : null;
@@ -431,7 +432,7 @@ const BookRecommendations = () => {
                     '& > *': { minWidth: 160, flexShrink: 0 }
                   })
                 }}>
-                  {prioritizedStudents.slice(0, 6).map((student) => {
+                  {prioritizedStudents.filter(classFilter).slice(0, 6).map((student) => {
                     const status = getReadingStatus(student);
                     const statusColors = theme.palette.status || {
                       notRead: '#9E4B4B',

@@ -184,6 +184,7 @@ const HomeReadingRegister = () => {
   const [viewMode, setViewMode] = useState('quick');
   const [recordingStudents, setRecordingStudents] = useState(new Set());
   const [editingBookStudentId, setEditingBookStudentId] = useState(null);
+  const [quickMultipleStudent, setQuickMultipleStudent] = useState(null);
 
   const [datePreset, setDatePreset] = useState(DATE_PRESETS.THIS_WEEK);
   const [customStartDate, setCustomStartDate] = useState('');
@@ -363,6 +364,20 @@ const HomeReadingRegister = () => {
     const query = searchQuery.toLowerCase();
     return classStudents.filter(s => s.name.toLowerCase().includes(query));
   }, [classStudents, searchQuery]);
+
+  // Previous 3 days relative to selectedDate (for Quick view history columns)
+  const previousDays = useMemo(() => {
+    if (!selectedDate) return [];
+    const base = new Date(selectedDate + 'T12:00:00');
+    if (isNaN(base.getTime())) return [];
+    const days = [];
+    for (let i = 3; i >= 1; i--) {
+      const d = new Date(base);
+      d.setDate(d.getDate() - i);
+      days.push(d);
+    }
+    return days;
+  }, [selectedDate]);
 
   // Get reading status for a student on a specific date
   // Includes both home reading entries and school reading sessions in the count
@@ -732,7 +747,12 @@ const HomeReadingRegister = () => {
   };
 
   const handleMultipleConfirm = () => {
-    handleRecordReading(READING_STATUS.MULTIPLE, multipleCount);
+    if (quickMultipleStudent) {
+      handleQuickRecord(quickMultipleStudent, READING_STATUS.MULTIPLE, multipleCount);
+      setQuickMultipleStudent(null);
+    } else {
+      handleRecordReading(READING_STATUS.MULTIPLE, multipleCount);
+    }
     setMultipleCountDialog(false);
     setMultipleCount(5);
   };
@@ -886,19 +906,37 @@ const HomeReadingRegister = () => {
               <Table stickyHeader size="small">
                 <TableHead>
                   <TableRow>
+                    {previousDays.map(date => {
+                      const { day, date: dayNum } = formatDateHeader(date);
+                      return (
+                        <TableCell
+                          key={formatDateISO(date)}
+                          sx={{
+                            fontWeight: 'bold',
+                            textAlign: 'center',
+                            padding: '4px',
+                            minWidth: 40,
+                            maxWidth: 48,
+                          }}
+                        >
+                          <Typography variant="caption" display="block" sx={{ fontSize: '0.7rem', lineHeight: 1.2, color: 'text.secondary' }}>
+                            {day}
+                          </Typography>
+                          <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.8rem' }}>
+                            {dayNum}
+                          </Typography>
+                        </TableCell>
+                      );
+                    })}
+                    <TableCell sx={{ fontWeight: 'bold', padding: '6px 8px' }}>Student</TableCell>
                     <TableCell
                       sx={{
                         fontWeight: 'bold',
-                        position: 'sticky',
-                        left: 0,
-                        backgroundColor: 'background.paper',
-                        zIndex: 3,
                         padding: '6px 8px'
                       }}
                     >
                       Record Reading
                     </TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', padding: '6px 8px' }}>Student</TableCell>
                     <TableCell sx={{ fontWeight: 'bold', padding: '6px 8px' }}>Book</TableCell>
                   </TableRow>
                 </TableHead>
@@ -914,18 +952,55 @@ const HomeReadingRegister = () => {
 
                     return (
                       <TableRow key={student.id} hover>
+                        {previousDays.map(date => {
+                          const dateStr = formatDateISO(date);
+                          const prevStatus = getStudentReadingStatus(student, dateStr);
+                          let content = '-';
+                          let cellColor = 'grey.400';
+                          let bgColor = 'transparent';
+                          switch (prevStatus.status) {
+                            case READING_STATUS.READ:
+                              content = '✓'; cellColor = 'success.dark'; bgColor = 'rgba(46, 125, 50, 0.1)'; break;
+                            case READING_STATUS.MULTIPLE:
+                              content = prevStatus.count; cellColor = 'success.dark'; bgColor = 'rgba(46, 125, 50, 0.15)'; break;
+                            case READING_STATUS.ABSENT:
+                              content = 'A'; cellColor = 'warning.dark'; bgColor = 'rgba(237, 108, 2, 0.1)'; break;
+                            case READING_STATUS.NO_RECORD:
+                              content = '•'; cellColor = 'grey.500'; bgColor = 'grey.100'; break;
+                            default: break;
+                          }
+                          return (
+                            <TableCell
+                              key={dateStr}
+                              sx={{
+                                textAlign: 'center',
+                                padding: '4px',
+                                fontSize: '0.85rem',
+                                fontWeight: 600,
+                                backgroundColor: bgColor,
+                                color: cellColor,
+                                minWidth: 36,
+                                maxWidth: 44,
+                              }}
+                            >
+                              {content}
+                            </TableCell>
+                          );
+                        })}
                         <TableCell
                           sx={{
-                            position: 'sticky',
-                            left: 0,
-                            backgroundColor: 'background.paper',
-                            zIndex: 1,
+                            fontWeight: 500,
+                            fontSize: '0.9rem',
+                            whiteSpace: 'nowrap',
                             padding: '4px 8px',
                             borderRight: '1px solid',
                             borderRightColor: 'divider'
                           }}
                         >
-                          <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+                          {student.name}
+                        </TableCell>
+                        <TableCell sx={{ padding: '4px 8px' }}>
+                          <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', justifyContent: 'flex-start' }}>
                             <Button
                               size="small"
                               variant={status === READING_STATUS.READ ? 'contained' : 'outlined'}
@@ -951,6 +1026,20 @@ const HomeReadingRegister = () => {
                                 {n < 4 ? n : (status === READING_STATUS.MULTIPLE && count >= 4 ? count : '4')}
                               </Button>
                             ))}
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="primary"
+                              disabled={isRecording}
+                              onClick={() => {
+                                setQuickMultipleStudent(student);
+                                setMultipleCountDialog(true);
+                              }}
+                              sx={numBtnSx}
+                              aria-label={`Custom reading count for ${student.name}`}
+                            >
+                              +
+                            </Button>
                             <Button
                               size="small"
                               variant={status === READING_STATUS.ABSENT ? 'contained' : 'outlined'}
@@ -985,9 +1074,6 @@ const HomeReadingRegister = () => {
                             )}
                             {isRecording && <CircularProgress size={16} sx={{ ml: 0.5 }} />}
                           </Box>
-                        </TableCell>
-                        <TableCell sx={{ fontWeight: 500, fontSize: '0.9rem', whiteSpace: 'nowrap', padding: '4px 8px' }}>
-                          {student.name}
                         </TableCell>
                         <TableCell
                           onClick={() => setEditingBookStudentId(student.id)}
@@ -1031,7 +1117,7 @@ const HomeReadingRegister = () => {
                   })}
                   {filteredStudents.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={3} sx={{ textAlign: 'center', py: 4 }}>
+                      <TableCell colSpan={6} sx={{ textAlign: 'center', py: 4 }}>
                         <Typography color="text.secondary">
                           {searchQuery ? 'No students match your search' : 'No students in this class'}
                         </Typography>
