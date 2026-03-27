@@ -236,10 +236,16 @@ const BookAutocomplete = ({
     const localOptions = sortedBooks.slice(0, 100);
 
     // Append external results that aren't already in local results
+    // Normalize titles for comparison: lowercase, collapse quotes/apostrophes, trim
+    const normalizeTitle = (t) =>
+      t
+        .toLowerCase()
+        .replace(/[\u2018\u2019\u201C\u201D'"`]/g, "'")
+        .trim();
     if (externalResults.length > 0 && term.length >= 3) {
-      const localTitles = new Set(localOptions.map((b) => b.title.toLowerCase()));
+      const localTitles = new Set(localOptions.map((b) => normalizeTitle(b.title)));
       const externalOptions = externalResults
-        .filter((r) => !localTitles.has(r.title.toLowerCase()))
+        .filter((r) => !localTitles.has(normalizeTitle(r.title)))
         .map((r, i) => ({
           ...r,
           id: `_ext_${i}_${r.title}`,

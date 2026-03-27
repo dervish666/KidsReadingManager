@@ -622,6 +622,25 @@ booksRouter.get('/count', requireReadonly(), async (c) => {
 });
 
 /**
+ * Normalize author name from "Surname, Firstname" to "Firstname Surname".
+ * OpenLibrary sometimes returns names in inverted format.
+ */
+function normalizeAuthorName(name) {
+  if (!name) return null;
+  const trimmed = name.trim();
+  // Match "Surname, Firstname" pattern (exactly one comma)
+  const parts = trimmed.split(',');
+  if (parts.length === 2) {
+    const surname = parts[0].trim();
+    const firstname = parts[1].trim();
+    if (firstname && surname) {
+      return `${firstname} ${surname}`;
+    }
+  }
+  return trimmed;
+}
+
+/**
  * GET /api/books/search-external
  * Search external book databases (OpenLibrary) by title for typeahead suggestions.
  * Returns normalized results with title, author, ISBN, and publication year.
@@ -660,7 +679,7 @@ booksRouter.get('/search-external', requireReadonly(), async (c) => {
     const data = await response.json();
     const results = (data.docs || []).map((doc) => ({
       title: doc.title || '',
-      author: doc.author_name?.[0] || null,
+      author: normalizeAuthorName(doc.author_name?.[0] || null),
       isbn: doc.isbn?.[0] || null,
       publicationYear: doc.first_publish_year || null,
     }));
