@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.32.1] - 2026-03-27
+
+### Changed
+- **AppContext split** — decomposed the monolithic 1888-line `AppContext.js` into three domain-specific contexts:
+  - `AuthContext` (744 lines) — auth tokens, user, login/logout, `fetchWithAuth`, permissions, org switching
+  - `DataContext` (1078 lines) — students, classes, books, genres, settings, all CRUD operations
+  - `UIContext` (243 lines) — class filter, priority list, reading status, tours
+- **All 38 components** migrated from `useAppContext()` to domain-specific hooks (`useAuth()`, `useData()`, `useUI()`)
+- **8 test files** updated with domain-specific mock patterns
+- **Re-render reduction** — auth changes no longer re-render data consumers; filter changes no longer re-render auth consumers; data mutations no longer re-render settings consumers
+
 ## [3.32.0] - 2026-03-27
 
 ### Changed
