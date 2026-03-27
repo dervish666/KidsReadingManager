@@ -106,7 +106,7 @@ const UserManagement = () => {
   const fetchOrganizations = async () => {
     try {
       const response = await fetchWithAuth('/api/organization/all');
-      
+
       if (response && typeof response.json === 'function') {
         const data = await response.json();
         setOrganizations(data.organizations || []);
@@ -166,7 +166,7 @@ const UserManagement = () => {
           name: formData.name,
           email: formData.email,
           password: formData.password,
-          role: formData.role
+          role: formData.role,
         }),
       });
 
@@ -185,9 +185,9 @@ const UserManagement = () => {
         email: '',
         password: '',
         confirmPassword: '',
-        role: 'teacher'
+        role: 'teacher',
       });
-      
+
       // Refresh user list
       fetchUsers();
     } catch (err) {
@@ -200,7 +200,7 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     try {
       const response = await fetchWithAuth('/api/users');
-      
+
       // Check if response is a Response object (not yet parsed)
       if (response && typeof response.json === 'function') {
         const data = await response.json();
@@ -234,17 +234,22 @@ const UserManagement = () => {
 
   const getRoleColor = (role) => {
     switch (role) {
-      case 'owner': return 'primary';
-      case 'admin': return 'secondary';
-      case 'teacher': return 'success';
-      case 'readonly': return 'default';
-      default: return 'default';
+      case 'owner':
+        return 'primary';
+      case 'admin':
+        return 'secondary';
+      case 'teacher':
+        return 'success';
+      case 'readonly':
+        return 'default';
+      default:
+        return 'default';
     }
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const openDeleteDialog = (user) => {
@@ -302,15 +307,17 @@ const UserManagement = () => {
 
   const handleEditInputChange = (e) => {
     const { name, value } = e.target;
-    setEditFormData(prev => ({ ...prev, [name]: value }));
+    setEditFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const filteredUsers = useMemo(() => {
-    return users.filter(u => {
-      const matchesSearch = !searchQuery ||
+    return users.filter((u) => {
+      const matchesSearch =
+        !searchQuery ||
         u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         u.email?.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesAuth = authFilter === 'all' ||
+      const matchesAuth =
+        authFilter === 'all' ||
         (authFilter === 'sso' && u.authProvider === 'mylogin') ||
         (authFilter === 'local' && (!u.authProvider || u.authProvider === 'local'));
       return matchesSearch && matchesAuth;
@@ -326,9 +333,8 @@ const UserManagement = () => {
       setClassesLoading(true);
       try {
         const response = await fetchWithAuth(`/api/users/${targetUser.id}/classes`);
-        const data = response && typeof response.json === 'function'
-          ? await response.json()
-          : response;
+        const data =
+          response && typeof response.json === 'function' ? await response.json() : response;
         setUserClasses(data.classes || []);
       } catch {
         // Non-critical — just show empty
@@ -354,8 +360,16 @@ const UserManagement = () => {
         Manage users in your organization.
       </Typography>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+      {success && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          {success}
+        </Alert>
+      )}
 
       {/* Search and filter bar */}
       <Box sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}>
@@ -367,7 +381,9 @@ const UserManagement = () => {
           sx={{ minWidth: 280 }}
           InputProps={{
             startAdornment: (
-              <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>
+              <InputAdornment position="start">
+                <SearchIcon fontSize="small" />
+              </InputAdornment>
             ),
           }}
         />
@@ -429,26 +445,46 @@ const UserManagement = () => {
                       />
                     </TableCell>
                     <TableCell>
-                      <Tooltip title={u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : 'Never logged in'}>
-                        <Typography variant="body2">
-                          {formatRelativeTime(u.lastLoginAt)}
-                        </Typography>
+                      <Tooltip
+                        title={
+                          u.lastLoginAt
+                            ? new Date(u.lastLoginAt).toLocaleString()
+                            : 'Never logged in'
+                        }
+                      >
+                        <Typography variant="body2">{formatRelativeTime(u.lastLoginAt)}</Typography>
                       </Tooltip>
                     </TableCell>
                     <TableCell>
                       <Tooltip title="View details">
-                        <IconButton size="small" onClick={() => openDetailDialog(u)} sx={{ mr: 0.5 }}>
+                        <IconButton
+                          size="small"
+                          onClick={() => openDetailDialog(u)}
+                          sx={{ mr: 0.5 }}
+                          aria-label={`View details for ${u.name}`}
+                        >
                           <InfoIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Edit user">
-                        <IconButton size="small" color="primary" onClick={() => openEditDialog(u)} sx={{ mr: 0.5 }}>
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={() => openEditDialog(u)}
+                          sx={{ mr: 0.5 }}
+                          aria-label={`Edit ${u.name}`}
+                        >
                           <EditIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
                       {u.role !== 'owner' && (
                         <Tooltip title="Delete user">
-                          <IconButton size="small" color="error" onClick={() => openDeleteDialog(u)}>
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => openDeleteDialog(u)}
+                            aria-label={`Delete ${u.name}`}
+                          >
                             <DeleteIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
@@ -466,10 +502,46 @@ const UserManagement = () => {
       <Dialog open={addDialogOpen} onClose={() => setAddDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Add New User</DialogTitle>
         <DialogContent>
-          <TextField fullWidth label="Full Name" name="name" value={formData.name} onChange={handleInputChange} margin="normal" required />
-          <TextField fullWidth label="Email Address" name="email" type="email" value={formData.email} onChange={handleInputChange} margin="normal" required />
-          <TextField fullWidth label="Password" name="password" type="password" value={formData.password} onChange={handleInputChange} margin="normal" required helperText="At least 8 characters" />
-          <TextField fullWidth label="Confirm Password" name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleInputChange} margin="normal" required />
+          <TextField
+            fullWidth
+            label="Full Name"
+            name="name"
+            value={formData.name}
+            onChange={handleInputChange}
+            margin="normal"
+            required
+          />
+          <TextField
+            fullWidth
+            label="Email Address"
+            name="email"
+            type="email"
+            value={formData.email}
+            onChange={handleInputChange}
+            margin="normal"
+            required
+          />
+          <TextField
+            fullWidth
+            label="Password"
+            name="password"
+            type="password"
+            value={formData.password}
+            onChange={handleInputChange}
+            margin="normal"
+            required
+            helperText="At least 8 characters"
+          />
+          <TextField
+            fullWidth
+            label="Confirm Password"
+            name="confirmPassword"
+            type="password"
+            value={formData.confirmPassword}
+            onChange={handleInputChange}
+            margin="normal"
+            required
+          />
           <FormControl fullWidth margin="normal">
             <InputLabel>Role</InputLabel>
             <Select name="role" value={formData.role} onChange={handleInputChange} label="Role">
@@ -481,10 +553,19 @@ const UserManagement = () => {
           {user?.role === 'owner' && organizations.length > 1 && (
             <FormControl fullWidth margin="normal">
               <InputLabel>School</InputLabel>
-              <Select name="organizationId" value={formData.organizationId} onChange={handleInputChange} label="School">
-                <MenuItem value=""><em>Select School</em></MenuItem>
+              <Select
+                name="organizationId"
+                value={formData.organizationId}
+                onChange={handleInputChange}
+                label="School"
+              >
+                <MenuItem value="">
+                  <em>Select School</em>
+                </MenuItem>
                 {organizations.map((org) => (
-                  <MenuItem key={org.id} value={org.id}>{org.name}</MenuItem>
+                  <MenuItem key={org.id} value={org.id}>
+                    {org.name}
+                  </MenuItem>
                 ))}
               </Select>
             </FormControl>
@@ -492,48 +573,87 @@ const UserManagement = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setAddDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleRegister} variant="contained" disabled={loading} startIcon={loading ? <CircularProgress size={20} /> : <PersonAddIcon />}>
+          <Button
+            onClick={handleRegister}
+            variant="contained"
+            disabled={loading}
+            startIcon={loading ? <CircularProgress size={20} /> : <PersonAddIcon />}
+          >
             {loading ? 'Creating...' : 'Create User'}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* User Detail Dialog */}
-      <Dialog open={detailDialogOpen} onClose={() => setDetailDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={detailDialogOpen}
+        onClose={() => setDetailDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>User Details</DialogTitle>
         <DialogContent>
           {detailUser && (
             <Box>
-              <Typography variant="h6" gutterBottom>{detailUser.name}</Typography>
+              <Typography variant="h6" gutterBottom>
+                {detailUser.name}
+              </Typography>
               <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, mb: 2 }}>
-                <Typography variant="body2" color="text.secondary">Email</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Email
+                </Typography>
                 <Typography variant="body2">{detailUser.email}</Typography>
 
-                <Typography variant="body2" color="text.secondary">Role</Typography>
-                <Typography variant="body2"><Chip label={detailUser.role} color={getRoleColor(detailUser.role)} size="small" /></Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Role
+                </Typography>
+                <Typography variant="body2">
+                  <Chip
+                    label={detailUser.role}
+                    color={getRoleColor(detailUser.role)}
+                    size="small"
+                  />
+                </Typography>
 
-                <Typography variant="body2" color="text.secondary">Auth Provider</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Auth Provider
+                </Typography>
                 <Typography variant="body2">
                   <Chip
                     icon={detailUser.authProvider === 'mylogin' ? <SyncIcon /> : <LockIcon />}
-                    label={detailUser.authProvider === 'mylogin' ? 'MyLogin SSO' : 'Local (email/password)'}
+                    label={
+                      detailUser.authProvider === 'mylogin'
+                        ? 'MyLogin SSO'
+                        : 'Local (email/password)'
+                    }
                     size="small"
                     variant="outlined"
                   />
                 </Typography>
 
-                <Typography variant="body2" color="text.secondary">School</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  School
+                </Typography>
                 <Typography variant="body2">{detailUser.organizationName || 'N/A'}</Typography>
 
-                <Typography variant="body2" color="text.secondary">Last Login</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Last Login
+                </Typography>
                 <Typography variant="body2">
-                  {detailUser.lastLoginAt ? new Date(detailUser.lastLoginAt).toLocaleString() : 'Never'}
+                  {detailUser.lastLoginAt
+                    ? new Date(detailUser.lastLoginAt).toLocaleString()
+                    : 'Never'}
                 </Typography>
 
                 {detailUser.wondeEmployeeId && (
                   <>
-                    <Typography variant="body2" color="text.secondary">Wonde Employee ID</Typography>
-                    <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Wonde Employee ID
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}
+                    >
                       {detailUser.wondeEmployeeId}
                     </Typography>
                   </>
@@ -579,26 +699,57 @@ const UserManagement = () => {
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to delete {userToDelete?.name} ({userToDelete?.email})?
-            This action cannot be undone.
+            Are you sure you want to delete {userToDelete?.name} ({userToDelete?.email})? This
+            action cannot be undone.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleDeleteUser} color="error">Delete</Button>
+          <Button onClick={handleDeleteUser} color="error">
+            Delete
+          </Button>
         </DialogActions>
       </Dialog>
 
       {/* Edit user dialog */}
-      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={editDialogOpen}
+        onClose={() => setEditDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>Edit User</DialogTitle>
         <DialogContent>
           <form onSubmit={handleEditSubmit}>
-            <TextField fullWidth label="Full Name" name="name" value={editFormData.name} onChange={handleEditInputChange} margin="normal" required />
-            <TextField fullWidth label="Email Address" name="email" type="email" value={editFormData.email} onChange={handleEditInputChange} margin="normal" required disabled helperText="Email cannot be changed" />
+            <TextField
+              fullWidth
+              label="Full Name"
+              name="name"
+              value={editFormData.name}
+              onChange={handleEditInputChange}
+              margin="normal"
+              required
+            />
+            <TextField
+              fullWidth
+              label="Email Address"
+              name="email"
+              type="email"
+              value={editFormData.email}
+              onChange={handleEditInputChange}
+              margin="normal"
+              required
+              disabled
+              helperText="Email cannot be changed"
+            />
             <FormControl fullWidth margin="normal">
               <InputLabel>Role</InputLabel>
-              <Select name="role" value={editFormData.role} onChange={handleEditInputChange} label="Role">
+              <Select
+                name="role"
+                value={editFormData.role}
+                onChange={handleEditInputChange}
+                label="Role"
+              >
                 <MenuItem value="teacher">Teacher</MenuItem>
                 <MenuItem value="admin">Admin</MenuItem>
                 <MenuItem value="readonly">Read Only</MenuItem>
@@ -607,9 +758,16 @@ const UserManagement = () => {
             {user?.role === 'owner' && organizations.length > 1 && (
               <FormControl fullWidth margin="normal">
                 <InputLabel>School</InputLabel>
-                <Select name="organizationId" value={editFormData.organizationId} onChange={handleEditInputChange} label="School">
+                <Select
+                  name="organizationId"
+                  value={editFormData.organizationId}
+                  onChange={handleEditInputChange}
+                  label="School"
+                >
                   {organizations.map((org) => (
-                    <MenuItem key={org.id} value={org.id}>{org.name}</MenuItem>
+                    <MenuItem key={org.id} value={org.id}>
+                      {org.name}
+                    </MenuItem>
                   ))}
                 </Select>
               </FormControl>

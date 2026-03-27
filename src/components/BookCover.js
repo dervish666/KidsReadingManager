@@ -55,11 +55,7 @@ const BookCover = React.memo(({ title, author = null, width = 80, height = 120 }
   if (!coverUrl) {
     return (
       <Box ref={containerRef}>
-        <BookCoverPlaceholder
-          title={title}
-          width={width}
-          height={height}
-        />
+        <BookCoverPlaceholder title={title} width={width} height={height} />
       </Box>
     );
   }
@@ -67,17 +63,12 @@ const BookCover = React.memo(({ title, author = null, width = 80, height = 120 }
   // Show the cover image with error fallback
   return (
     <Box ref={containerRef} sx={{ position: 'relative', width, height }}>
-      {imageError && (
-        <BookCoverPlaceholder
-          title={title}
-          width={width}
-          height={height}
-        />
-      )}
+      {imageError && <BookCoverPlaceholder title={title} width={width} height={height} />}
       <Box
         component="img"
         src={coverUrl}
         alt={`Cover of ${title}`}
+        loading="lazy"
         onError={handleImageError}
         sx={{
           width: `${width}px`,

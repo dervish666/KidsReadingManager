@@ -84,10 +84,11 @@ const PolicyTable = ({ headers, rows }) => (
   </TableContainer>
 );
 
-// Section heading component
+// Section heading component (renders as h2 for proper hierarchy under h1 page title)
 const SectionHeading = ({ children }) => (
   <Typography
     variant="h4"
+    component="h2"
     sx={{
       mt: 5,
       mb: 2,
@@ -99,10 +100,11 @@ const SectionHeading = ({ children }) => (
   </Typography>
 );
 
-// Subsection heading component
+// Subsection heading component (renders as h3)
 const SubsectionHeading = ({ children }) => (
   <Typography
     variant="h5"
+    component="h3"
     sx={{
       mt: 3,
       mb: 1.5,
@@ -187,6 +189,7 @@ const TermsOfService = () => {
             </Box>
             <Typography
               variant="h3"
+              component="h1"
               sx={{
                 fontSize: { xs: '1.6rem', sm: '2rem' },
                 color: 'text.primary',
@@ -219,9 +222,9 @@ const TermsOfService = () => {
           <BodyText>
             These Terms of Service (&ldquo;Terms&rdquo;) govern your access to and use of the Tally
             Reading platform (&ldquo;Tally&rdquo;, &ldquo;the Service&rdquo;), operated by Scratch
-            IT LTD (&ldquo;we&rdquo;, &ldquo;us&rdquo;, &ldquo;our&rdquo;), a company registered
-            in England and Wales (company number 08151576), with registered address at 247
-            Bishopsworth Road, Bristol, BS13 7LH.
+            IT LTD (&ldquo;we&rdquo;, &ldquo;us&rdquo;, &ldquo;our&rdquo;), a company registered in
+            England and Wales (company number 08151576), with registered address at 247 Bishopsworth
+            Road, Bristol, BS13 7LH.
           </BodyText>
 
           <BodyText>
@@ -284,8 +287,10 @@ const TermsOfService = () => {
           <BodyText>
             The Service is hosted on Cloudflare&rsquo;s edge infrastructure. Data is processed in
             accordance with our{' '}
-            <Link href="/privacy" sx={{ color: 'primary.main' }}>Privacy Policy</Link> and, where
-            applicable, the Data Processing Agreement between us and your school.
+            <Link href="/privacy" sx={{ color: 'primary.main' }}>
+              Privacy Policy
+            </Link>{' '}
+            and, where applicable, the Data Processing Agreement between us and your school.
           </BodyText>
 
           <Divider sx={{ borderColor: 'rgba(139, 115, 85, 0.15)', mt: 3 }} />
@@ -304,32 +309,47 @@ const TermsOfService = () => {
 
           <SubsectionHeading>3.2 User roles</SubsectionHeading>
 
-          <BodyText>
-            The Service provides four user roles with different levels of access:
-          </BodyText>
+          <BodyText>The Service provides four user roles with different levels of access:</BodyText>
 
           <List sx={{ pl: 2 }}>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
               <ListItemText
-                primary={<span><strong>Owner</strong> — full system access across all organisations</span>}
+                primary={
+                  <span>
+                    <strong>Owner</strong> — full system access across all organisations
+                  </span>
+                }
                 primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
               <ListItemText
-                primary={<span><strong>Admin</strong> — organisation-level management, user and teacher administration</span>}
+                primary={
+                  <span>
+                    <strong>Admin</strong> — organisation-level management, user and teacher
+                    administration
+                  </span>
+                }
                 primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
               <ListItemText
-                primary={<span><strong>Teacher</strong> — manages students, classes, and reading sessions</span>}
+                primary={
+                  <span>
+                    <strong>Teacher</strong> — manages students, classes, and reading sessions
+                  </span>
+                }
                 primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
               <ListItemText
-                primary={<span><strong>Read-only</strong> — view-only access to data within their organisation</span>}
+                primary={
+                  <span>
+                    <strong>Read-only</strong> — view-only access to data within their organisation
+                  </span>
+                }
                 primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
@@ -339,8 +359,9 @@ const TermsOfService = () => {
 
           <BodyText>
             Users sign in via MyLogin single sign-on (SSO) provided through the Wonde platform, or
-            via email and password. You are responsible for keeping your login credentials secure. You
-            must notify us immediately if you become aware of any unauthorised use of your account.
+            via email and password. You are responsible for keeping your login credentials secure.
+            You must notify us immediately if you become aware of any unauthorised use of your
+            account.
           </BodyText>
 
           <SubsectionHeading>3.4 Acceptable use</SubsectionHeading>
@@ -386,9 +407,7 @@ const TermsOfService = () => {
             </ListItem>
           </List>
 
-          <BodyText>
-            We may suspend or terminate your access if you breach these Terms.
-          </BodyText>
+          <BodyText>We may suspend or terminate your access if you breach these Terms.</BodyText>
 
           <Divider sx={{ borderColor: 'rgba(139, 115, 85, 0.15)', mt: 3 }} />
 
@@ -425,9 +444,11 @@ const TermsOfService = () => {
           <SubsectionHeading>4.4 Privacy Policy</SubsectionHeading>
 
           <BodyText>
-            Full details of how we collect, use, store, and protect personal data are set out in
-            our{' '}
-            <Link href="/privacy" sx={{ color: 'primary.main' }}>Privacy Policy</Link>.
+            Full details of how we collect, use, store, and protect personal data are set out in our{' '}
+            <Link href="/privacy" sx={{ color: 'primary.main' }}>
+              Privacy Policy
+            </Link>
+            .
           </BodyText>
 
           <SubsectionHeading>4.5 Data export and deletion</SubsectionHeading>
@@ -487,10 +508,15 @@ const TermsOfService = () => {
           </List>
 
           <BodyText>
-            <strong>No pupil names, dates of birth, or other identifying information are sent to AI
-            providers.</strong> See our{' '}
-            <Link href="/privacy" sx={{ color: 'primary.main' }}>Privacy Policy</Link> and DPIA for full
-            details.
+            <strong>
+              No pupil names, dates of birth, or other identifying information are sent to AI
+              providers.
+            </strong>{' '}
+            See our{' '}
+            <Link href="/privacy" sx={{ color: 'primary.main' }}>
+              Privacy Policy
+            </Link>{' '}
+            and DPIA for full details.
           </BodyText>
 
           <SubsectionHeading>5.3 AI provider terms</SubsectionHeading>
@@ -520,9 +546,9 @@ const TermsOfService = () => {
           <SubsectionHeading>6.2 Single sign-on</SubsectionHeading>
 
           <BodyText>
-            MyLogin SSO is provided by Wonde. When staff sign in via MyLogin, we receive their
-            name, email address, and role from MyLogin&rsquo;s OAuth2 profile. We do not receive or
-            store MyLogin passwords.
+            MyLogin SSO is provided by Wonde. When staff sign in via MyLogin, we receive their name,
+            email address, and role from MyLogin&rsquo;s OAuth2 profile. We do not receive or store
+            MyLogin passwords.
           </BodyText>
 
           <Divider sx={{ borderColor: 'rgba(139, 115, 85, 0.15)', mt: 3 }} />
@@ -598,8 +624,8 @@ const TermsOfService = () => {
           </BodyText>
 
           <BodyText>
-            Our total liability for any claim arising from or related to these Terms shall not exceed
-            the total fees paid by you to us in the twelve (12) months preceding the claim.
+            Our total liability for any claim arising from or related to these Terms shall not
+            exceed the total fees paid by you to us in the twelve (12) months preceding the claim.
           </BodyText>
 
           <SubsectionHeading>9.3 Exceptions</SubsectionHeading>
@@ -662,8 +688,8 @@ const TermsOfService = () => {
           <SubsectionHeading>12.1 By you</SubsectionHeading>
 
           <BodyText>
-            You may stop using the Service and request account deletion at any time by contacting
-            us at{' '}
+            You may stop using the Service and request account deletion at any time by contacting us
+            at{' '}
             <Link href="mailto:sam@tallyreading.uk" sx={{ color: 'primary.main' }}>
               sam@tallyreading.uk
             </Link>
@@ -703,9 +729,11 @@ const TermsOfService = () => {
 
           <BodyText>
             These Terms, together with our{' '}
-            <Link href="/privacy" sx={{ color: 'primary.main' }}>Privacy Policy</Link> and any applicable
-            Data Processing Agreement, constitute the entire agreement between you and us regarding
-            your use of the Service.
+            <Link href="/privacy" sx={{ color: 'primary.main' }}>
+              Privacy Policy
+            </Link>{' '}
+            and any applicable Data Processing Agreement, constitute the entire agreement between
+            you and us regarding your use of the Service.
           </BodyText>
 
           <SubsectionHeading>13.3 Severability</SubsectionHeading>
@@ -729,29 +757,32 @@ const TermsOfService = () => {
           {/* ============================================================ */}
           <SectionHeading>14. Contact us</SectionHeading>
 
-          <BodyText>
-            If you have any questions about these Terms, please contact us:
-          </BodyText>
+          <BodyText>If you have any questions about these Terms, please contact us:</BodyText>
 
           <PolicyTable
             headers={['Channel', 'Detail']}
             rows={[
               [
                 <strong>Email</strong>,
-                <Link href="mailto:sam@tallyreading.uk" sx={{ color: 'primary.main' }}>sam@tallyreading.uk</Link>,
+                <Link href="mailto:sam@tallyreading.uk" sx={{ color: 'primary.main' }}>
+                  sam@tallyreading.uk
+                </Link>,
               ],
               [
                 <strong>Data Protection Officer</strong>,
-                <span>Sam Castillo (<Link href="mailto:sam@tallyreading.uk" sx={{ color: 'primary.main' }}>sam@tallyreading.uk</Link>)</span>,
+                <span>
+                  Sam Castillo (
+                  <Link href="mailto:sam@tallyreading.uk" sx={{ color: 'primary.main' }}>
+                    sam@tallyreading.uk
+                  </Link>
+                  )
+                </span>,
               ],
               [
                 <strong>Postal address</strong>,
                 'Scratch IT LTD, 247 Bishopsworth Road, Bristol, BS13 7LH',
               ],
-              [
-                <strong>ICO registration</strong>,
-                'ZC098130',
-              ],
+              [<strong>ICO registration</strong>, 'ZC098130'],
             ]}
           />
 
@@ -759,7 +790,15 @@ const TermsOfService = () => {
           <Divider sx={{ borderColor: 'rgba(139, 115, 85, 0.15)', mt: 4, mb: 3 }} />
 
           <Box sx={{ textAlign: 'center' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 1,
+                mb: 1,
+              }}
+            >
               <Box
                 sx={{
                   width: 24,

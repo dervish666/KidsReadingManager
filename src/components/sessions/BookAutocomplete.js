@@ -343,7 +343,7 @@ const BookAutocomplete = ({
                       style={{
                         marginLeft: 8,
                         fontSize: '0.75rem',
-                        color: '#1976d2',
+                        color: 'info.main',
                         fontWeight: 'normal',
                       }}
                     >

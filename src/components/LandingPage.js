@@ -11,7 +11,13 @@ import TallyLogo from './TallyLogo';
 
 const ChevronRight = () => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-    <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path
+      d="M6 3l5 5-5 5"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 );
 
@@ -99,18 +105,28 @@ export default function LandingPage({ onSignIn }) {
             role="button"
             tabIndex={0}
           >
-            <span className="lp-nav-logo-icon"><TallyLogo /></span>
+            <span className="lp-nav-logo-icon">
+              <TallyLogo />
+            </span>
             <span>Tally</span>
           </span>
           <ul className="lp-nav-links lp-nav-links-desktop">
-            <li><a href="#features">Features</a></li>
-            <li><a href="#in-action">See it</a></li>
+            <li>
+              <a href="#features">Features</a>
+            </li>
+            <li>
+              <a href="#in-action">See it</a>
+            </li>
             <li>
               <button className="lp-btn lp-btn-signin" onClick={onSignIn}>
                 Sign in
               </button>
             </li>
-            <li><a href="#contact" className="lp-btn lp-btn-primary">Stay updated</a></li>
+            <li>
+              <a href="#contact" className="lp-btn lp-btn-primary">
+                Stay updated
+              </a>
+            </li>
           </ul>
           <div className="lp-nav-links-mobile">
             <button className="lp-btn lp-btn-signin" onClick={onSignIn}>
@@ -124,7 +140,9 @@ export default function LandingPage({ onSignIn }) {
           <div className="lp-hero-content">
             <div className="lp-hero-badge">Coming soon for UK primary schools</div>
             <h1>
-              Keep a <span className="lp-highlight">tally</span> of every<br />reading moment
+              Keep a <span className="lp-highlight">tally</span> of every
+              <br />
+              reading moment
             </h1>
             <p>
               A simple, thoughtful app that helps reading volunteers and teachers track sessions,
@@ -135,7 +153,9 @@ export default function LandingPage({ onSignIn }) {
                 Get notified at launch
                 <ChevronRight />
               </a>
-              <a href="#features" className="lp-btn lp-btn-outline">See what's coming</a>
+              <a href="#features" className="lp-btn lp-btn-outline">
+                See what's coming
+              </a>
             </div>
           </div>
         </section>
@@ -144,11 +164,14 @@ export default function LandingPage({ onSignIn }) {
         <section className="lp-showcase">
           <div className="lp-showcase-inner">
             <div className="lp-showcase-main">
-              <img src={screenshotStudents} alt="Tally Reading — Students view showing priority reading list" />
+              <img
+                src={screenshotStudents}
+                alt="Tally Reading — Students view showing priority reading list"
+              />
             </div>
             <div className="lp-showcase-floaters">
               <div className="lp-showcase-float-card">
-                <img src={screenshotRecommendations} alt="AI book recommendations" />
+                <img src={screenshotRecommendations} alt="AI book recommendations" loading="lazy" />
               </div>
             </div>
           </div>
@@ -157,17 +180,48 @@ export default function LandingPage({ onSignIn }) {
         {/* FEATURES */}
         <section className="lp-features" id="features">
           <div className="lp-section-header lp-reveal" ref={addRevealRef}>
-            <h2>Everything you need,<br />nothing you don't</h2>
-            <p>Designed around how reading volunteers and teachers actually work — on tablets, between sessions, one child at a time.</p>
+            <h2>
+              Everything you need,
+              <br />
+              nothing you don't
+            </h2>
+            <p>
+              Designed around how reading volunteers and teachers actually work — on tablets,
+              between sessions, one child at a time.
+            </p>
           </div>
           <div className="lp-feature-grid">
             {[
-              { icon: '📱', title: 'Scan & go', desc: 'Point your iPad at a barcode to instantly look up any book. No more typing titles or guessing authors — just scan the ISBN and start the session.' },
-              { icon: '✨', title: 'Smart recommendations', desc: "AI-powered book suggestions based on each child's reading level, interests, and what they've enjoyed before. The right book at the right time." },
-              { icon: '📊', title: 'Priority reading list', desc: "Automatically surfaces who needs a reading session most. See at a glance who's been waiting longest, so no child gets overlooked." },
-              { icon: '🏫', title: 'Built for your school', desc: 'Import pupil lists from your MIS, organise by class or group, and manage reading volunteers — all from one place. No spreadsheets required.' },
-              { icon: '📝', title: 'Session notes that matter', desc: "Record observations, track vocabulary, note enjoyment levels. Build a rich picture of each child's reading journey that teachers can actually use." },
-              { icon: '🔒', title: 'Safe & simple', desc: "GDPR-compliant, EU-hosted, and designed with children's data protection at its core. No ads, no tracking, no nonsense." },
+              {
+                icon: '📱',
+                title: 'Scan & go',
+                desc: 'Point your iPad at a barcode to instantly look up any book. No more typing titles or guessing authors — just scan the ISBN and start the session.',
+              },
+              {
+                icon: '✨',
+                title: 'Smart recommendations',
+                desc: "AI-powered book suggestions based on each child's reading level, interests, and what they've enjoyed before. The right book at the right time.",
+              },
+              {
+                icon: '📊',
+                title: 'Priority reading list',
+                desc: "Automatically surfaces who needs a reading session most. See at a glance who's been waiting longest, so no child gets overlooked.",
+              },
+              {
+                icon: '🏫',
+                title: 'Built for your school',
+                desc: 'Import pupil lists from your MIS, organise by class or group, and manage reading volunteers — all from one place. No spreadsheets required.',
+              },
+              {
+                icon: '📝',
+                title: 'Session notes that matter',
+                desc: "Record observations, track vocabulary, note enjoyment levels. Build a rich picture of each child's reading journey that teachers can actually use.",
+              },
+              {
+                icon: '🔒',
+                title: 'Safe & simple',
+                desc: "GDPR-compliant, EU-hosted, and designed with children's data protection at its core. No ads, no tracking, no nonsense.",
+              },
             ].map((f, i) => (
               <div className="lp-feature-card lp-reveal" key={i} ref={addRevealRef}>
                 <div className="lp-feature-icon">{f.icon}</div>
@@ -183,24 +237,69 @@ export default function LandingPage({ onSignIn }) {
           <div className="lp-app-showcase-content">
             <div className="lp-section-header lp-reveal" ref={addRevealRef}>
               <h2>See it in action</h2>
-              <p>Real screens from real reading sessions. This is what it actually looks like when you sit down with a child and a book.</p>
+              <p>
+                Real screens from real reading sessions. This is what it actually looks like when
+                you sit down with a child and a book.
+              </p>
             </div>
 
             {[
-              { tag: 'Reading sessions', tagClass: 'lp-tag-green', tagIcon: '📖', title: 'Record a session in seconds', desc: 'Pick a student, scan or search for the book, assess their reading level, and add notes. The whole thing takes less time than finding your pen used to.', img: screenshotReading, alt: 'Recording a reading session' },
-              { tag: 'Class register', tagClass: 'lp-tag-coral', tagIcon: '📋', title: 'The whole class at a glance', desc: "A simple register view showing who's been read with today, their current books, and running totals. Quick mark-off with one tap — tick, absent, or not seen.", img: screenshotRegister, alt: 'Reading record register view' },
-              { tag: 'AI recommendations', tagClass: 'lp-tag-amber', tagIcon: '✨', title: '"What should they read next?"', desc: "Personalised book suggestions that consider reading level, genre preferences, and what they've enjoyed before. With real covers, real reasons, and books you can actually find.", img: screenshotRecommendations, alt: 'AI-powered book recommendations' },
-              { tag: 'Reading stats', tagClass: 'lp-tag-green', tagIcon: '📊', title: 'See the bigger picture', desc: "Track reading patterns across your class with clear stats — sessions this week, streaks, home vs school reading, and who's leading the way. All at a glance.", img: screenshotStats, alt: 'Reading statistics dashboard' },
-              { tag: 'Book library', tagClass: 'lp-tag-coral', tagIcon: '📚', title: '2,000+ books and growing', desc: "A shared book library with covers, reading levels, and genres. Search, filter, scan barcodes, or import your whole collection from a CSV. No more guessing what's available.", img: screenshotBooks, alt: 'Book library management' },
+              {
+                tag: 'Reading sessions',
+                tagClass: 'lp-tag-green',
+                tagIcon: '📖',
+                title: 'Record a session in seconds',
+                desc: 'Pick a student, scan or search for the book, assess their reading level, and add notes. The whole thing takes less time than finding your pen used to.',
+                img: screenshotReading,
+                alt: 'Recording a reading session',
+              },
+              {
+                tag: 'Class register',
+                tagClass: 'lp-tag-coral',
+                tagIcon: '📋',
+                title: 'The whole class at a glance',
+                desc: "A simple register view showing who's been read with today, their current books, and running totals. Quick mark-off with one tap — tick, absent, or not seen.",
+                img: screenshotRegister,
+                alt: 'Reading record register view',
+              },
+              {
+                tag: 'AI recommendations',
+                tagClass: 'lp-tag-amber',
+                tagIcon: '✨',
+                title: '"What should they read next?"',
+                desc: "Personalised book suggestions that consider reading level, genre preferences, and what they've enjoyed before. With real covers, real reasons, and books you can actually find.",
+                img: screenshotRecommendations,
+                alt: 'AI-powered book recommendations',
+              },
+              {
+                tag: 'Reading stats',
+                tagClass: 'lp-tag-green',
+                tagIcon: '📊',
+                title: 'See the bigger picture',
+                desc: "Track reading patterns across your class with clear stats — sessions this week, streaks, home vs school reading, and who's leading the way. All at a glance.",
+                img: screenshotStats,
+                alt: 'Reading statistics dashboard',
+              },
+              {
+                tag: 'Book library',
+                tagClass: 'lp-tag-coral',
+                tagIcon: '📚',
+                title: '2,000+ books and growing',
+                desc: "A shared book library with covers, reading levels, and genres. Search, filter, scan barcodes, or import your whole collection from a CSV. No more guessing what's available.",
+                img: screenshotBooks,
+                alt: 'Book library management',
+              },
             ].map((row, i) => (
               <div className="lp-app-feature-row lp-reveal" key={i} ref={addRevealRef}>
                 <div className="lp-app-feature-text">
-                  <div className={`lp-app-feature-tag ${row.tagClass}`}>{row.tagIcon} {row.tag}</div>
+                  <div className={`lp-app-feature-tag ${row.tagClass}`}>
+                    {row.tagIcon} {row.tag}
+                  </div>
                   <h3>{row.title}</h3>
                   <p>{row.desc}</p>
                 </div>
                 <div className="lp-app-feature-image">
-                  <img src={row.img} alt={row.alt} />
+                  <img src={row.img} alt={row.alt} loading="lazy" />
                 </div>
               </div>
             ))}
@@ -216,9 +315,21 @@ export default function LandingPage({ onSignIn }) {
             </div>
             <div className="lp-steps">
               {[
-                { num: '1', title: 'Set up your school', desc: "Import your pupil list from a CSV or connect to your school's management system. Add your reading volunteers." },
-                { num: '2', title: 'Start reading', desc: 'Pick a pupil, scan or search for the book, and record the session. Notes, ratings, and vocabulary — all optional, all useful.' },
-                { num: '3', title: 'Watch them grow', desc: 'Track reading patterns over time. Get book recommendations. Share progress with teachers and celebrate every milestone.' },
+                {
+                  num: '1',
+                  title: 'Set up your school',
+                  desc: "Import your pupil list from a CSV or connect to your school's management system. Add your reading volunteers.",
+                },
+                {
+                  num: '2',
+                  title: 'Start reading',
+                  desc: 'Pick a pupil, scan or search for the book, and record the session. Notes, ratings, and vocabulary — all optional, all useful.',
+                },
+                {
+                  num: '3',
+                  title: 'Watch them grow',
+                  desc: 'Track reading patterns over time. Get book recommendations. Share progress with teachers and celebrate every milestone.',
+                },
               ].map((step, i) => (
                 <div className="lp-step lp-reveal" key={i} ref={addRevealRef}>
                   <div className="lp-step-number">{step.num}</div>
@@ -259,18 +370,42 @@ export default function LandingPage({ onSignIn }) {
         <section className="lp-cta" id="contact">
           <div className="lp-cta-box lp-reveal" ref={addRevealRef}>
             <h2>We're launching soon</h2>
-            <p>Leave your email and we'll let you know when Tally is ready. Early sign-ups get a free month to try it out.</p>
+            <p>
+              Leave your email and we'll let you know when Tally is ready. Early sign-ups get a free
+              month to try it out.
+            </p>
             <form className="lp-signup-form" onSubmit={handleSignup}>
               {!signupSubmitted ? (
                 <div className="lp-signup-fields">
                   <div className="lp-signup-input-row">
-                    <input type="email" placeholder="your.name@school.sch.uk" required className="lp-signup-input" disabled={signupLoading} />
-                    <button type="submit" className="lp-btn lp-btn-primary" disabled={signupLoading}>
+                    <input
+                      type="email"
+                      placeholder="your.name@school.sch.uk"
+                      required
+                      className="lp-signup-input"
+                      disabled={signupLoading}
+                    />
+                    <button
+                      type="submit"
+                      className="lp-btn lp-btn-primary"
+                      disabled={signupLoading}
+                    >
                       {signupLoading ? 'Sending...' : 'Keep me posted'}
                     </button>
                   </div>
                   {signupError && <p className="lp-signup-error">{signupError}</p>}
-                  <p className="lp-signup-note">No spam, just a heads-up when we're live. See our <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: '#6B8E6B' }}>Privacy Policy</a>.</p>
+                  <p className="lp-signup-note">
+                    No spam, just a heads-up when we're live. See our{' '}
+                    <a
+                      href="/privacy"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: '#6B8E6B' }}
+                    >
+                      Privacy Policy
+                    </a>
+                    .
+                  </p>
                 </div>
               ) : (
                 <div className="lp-signup-thanks">
@@ -285,15 +420,41 @@ export default function LandingPage({ onSignIn }) {
         {/* FOOTER */}
         <footer className="lp-footer">
           <div className="lp-footer-content">
-            <span className="lp-footer-logo" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-              <span className="lp-footer-logo-icon"><TallyLogo size={18} /></span>
+            <span
+              className="lp-footer-logo"
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              aria-label="Scroll to top"
+            >
+              <span className="lp-footer-logo-icon">
+                <TallyLogo size={18} />
+              </span>
               <span>Tally</span>
             </span>
             <span className="lp-footer-text">&copy; 2026 Tally Reading. Made in Bristol.</span>
             <ul className="lp-footer-links">
-              <li><a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a></li>
-              <li><a href="/terms" target="_blank" rel="noopener noreferrer">Terms</a></li>
-              <li><a href="/cookies" target="_blank" rel="noopener noreferrer">Cookies</a></li>
+              <li>
+                <a href="/privacy" target="_blank" rel="noopener noreferrer">
+                  Privacy Policy
+                </a>
+              </li>
+              <li>
+                <a href="/terms" target="_blank" rel="noopener noreferrer">
+                  Terms
+                </a>
+              </li>
+              <li>
+                <a href="/cookies" target="_blank" rel="noopener noreferrer">
+                  Cookies
+                </a>
+              </li>
             </ul>
           </div>
         </footer>

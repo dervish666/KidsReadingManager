@@ -1,6 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { Box, Typography, Button, TextField, Paper, Link, Tabs, Tab, Alert, CircularProgress } from '@mui/material';
+import {
+  Box,
+  Typography,
+  Button,
+  TextField,
+  Paper,
+  Link,
+  Tabs,
+  Tab,
+  Alert,
+  CircularProgress,
+} from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import TallyLogo from './TallyLogo';
 
@@ -16,7 +27,15 @@ const API_URL = '/api';
 
 const Login = ({ onBackToLanding } = {}) => {
   const context = useAppContext();
-  const { login, loginWithEmail, register, apiError, isMultiTenantMode, serverAuthModeDetected, ssoEnabled } = context;
+  const {
+    login,
+    loginWithEmail,
+    register,
+    apiError,
+    isMultiTenantMode,
+    serverAuthModeDetected,
+    ssoEnabled,
+  } = context;
 
   // Form state
   const [email, setEmail] = useState('');
@@ -125,7 +144,9 @@ const Login = ({ onBackToLanding } = {}) => {
         throw new Error(data.error || 'Failed to request password reset');
       }
 
-      setSuccessMessage('If an account exists with this email, you will receive a password reset link.');
+      setSuccessMessage(
+        'If an account exists with this email, you will receive a password reset link.'
+      );
       setEmail('');
     } catch (error) {
       setLocalError(error.message || 'Failed to request password reset');
@@ -205,9 +226,9 @@ const Login = ({ onBackToLanding } = {}) => {
             '&.Mui-focused': {
               backgroundColor: '#ffffff',
               border: '1px solid rgba(107, 142, 107, 0.5)',
-              boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.15)'
+              boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.15)',
             },
-          }
+          },
         }}
       />
 
@@ -251,7 +272,7 @@ const Login = ({ onBackToLanding } = {}) => {
           autoFocus
           sx={{ mb: 2 }}
           InputProps={{
-            sx: inputStyles
+            sx: inputStyles,
           }}
         />
 
@@ -263,7 +284,7 @@ const Login = ({ onBackToLanding } = {}) => {
           onChange={(e) => setPassword(e.target.value)}
           sx={{ mb: 3 }}
           InputProps={{
-            sx: inputStyles
+            sx: inputStyles,
           }}
         />
 
@@ -314,7 +335,9 @@ const Login = ({ onBackToLanding } = {}) => {
         <>
           <Box sx={{ display: 'flex', alignItems: 'center', my: 3 }}>
             <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(0,0,0,0.12)' }} />
-            <Typography variant="body2" sx={{ px: 2, color: '#999' }}>or</Typography>
+            <Typography variant="body2" sx={{ px: 2, color: 'text.secondary' }}>
+              or
+            </Typography>
             <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(0,0,0,0.12)' }} />
           </Box>
 
@@ -322,18 +345,20 @@ const Login = ({ onBackToLanding } = {}) => {
             fullWidth
             variant="outlined"
             size="large"
-            onClick={() => { window.location.href = '/api/auth/mylogin/login'; }}
+            onClick={() => {
+              window.location.href = '/api/auth/mylogin/login';
+            }}
             sx={{
               height: 52,
               borderRadius: '12px',
-              borderColor: '#00D37F',
-              color: '#333',
+              borderColor: 'rgba(107, 142, 107, 0.4)',
+              color: 'text.primary',
               fontSize: '1rem',
               fontWeight: 600,
               textTransform: 'none',
               '&:hover': {
-                borderColor: '#00B36B',
-                backgroundColor: 'rgba(0, 211, 127, 0.05)',
+                borderColor: 'primary.main',
+                backgroundColor: 'rgba(107, 142, 107, 0.05)',
               },
             }}
           >
@@ -356,7 +381,7 @@ const Login = ({ onBackToLanding } = {}) => {
           autoFocus
           sx={{ mb: 3 }}
           InputProps={{
-            sx: inputStyles
+            sx: inputStyles,
           }}
         />
 
@@ -395,7 +420,14 @@ const Login = ({ onBackToLanding } = {}) => {
               setSuccessMessage(null);
               setView('login');
             }}
-            sx={{ color: 'primary.main', fontSize: '0.875rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
+            sx={{
+              color: 'primary.main',
+              fontSize: '0.875rem',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 0.5,
+            }}
           >
             <ArrowBackIcon sx={{ fontSize: 16 }} />
             Back to login
@@ -417,7 +449,7 @@ const Login = ({ onBackToLanding } = {}) => {
           autoFocus
           sx={{ mb: 2 }}
           InputProps={{
-            sx: inputStyles
+            sx: inputStyles,
           }}
         />
 
@@ -429,7 +461,7 @@ const Login = ({ onBackToLanding } = {}) => {
           onChange={(e) => setConfirmPassword(e.target.value)}
           sx={{ mb: 3 }}
           InputProps={{
-            sx: inputStyles
+            sx: inputStyles,
           }}
         />
 
@@ -469,7 +501,14 @@ const Login = ({ onBackToLanding } = {}) => {
               setResetToken('');
               setView('login');
             }}
-            sx={{ color: 'primary.main', fontSize: '0.875rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
+            sx={{
+              color: 'primary.main',
+              fontSize: '0.875rem',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 0.5,
+            }}
           >
             <ArrowBackIcon sx={{ fontSize: 16 }} />
             Back to login
@@ -492,7 +531,7 @@ const Login = ({ onBackToLanding } = {}) => {
     '&.Mui-focused': {
       backgroundColor: '#ffffff',
       border: '1px solid rgba(107, 142, 107, 0.5)',
-      boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.15)'
+      boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.15)',
     },
   };
 
@@ -585,17 +624,20 @@ const Login = ({ onBackToLanding } = {}) => {
           <TallyLogo size={36} />
         </Box>
 
-        <Typography variant="h4" sx={{ mb: 1, fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'text.primary' }}>
+        <Typography
+          variant="h4"
+          sx={{ mb: 1, fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'text.primary' }}
+        >
           Tally Reading
         </Typography>
 
         <Typography variant="body1" sx={{ mb: 4, color: 'text.secondary' }}>
           {view === 'forgot' && 'Enter your email to reset your password.'}
           {view === 'reset' && 'Enter your new password.'}
-          {view === 'login' && (isMultiTenantMode
-            ? 'Sign in to your account.'
-            : 'Enter the access password to continue.'
-          )}
+          {view === 'login' &&
+            (isMultiTenantMode
+              ? 'Sign in to your account.'
+              : 'Enter the access password to continue.')}
         </Typography>
 
         {successMessage && (

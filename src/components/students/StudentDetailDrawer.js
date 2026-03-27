@@ -195,7 +195,7 @@ const StudentDetailDrawer = ({ open, student, onClose }) => {
         pb: 1.5,
         borderBottom: '1px solid',
         borderColor: 'divider',
-        bgcolor: '#fafaf7',
+        bgcolor: 'rgba(250, 248, 243, 0.8)',
         flexShrink: 0,
       }}
     >
@@ -213,7 +213,7 @@ const StudentDetailDrawer = ({ open, student, onClose }) => {
         <Typography
           variant="h6"
           noWrap
-          sx={{ flex: 1, minWidth: 0, fontWeight: 600, color: '#2d2a24' }}
+          sx={{ flex: 1, minWidth: 0, fontWeight: 600, color: 'text.primary' }}
         >
           {displayStudent?.name || ''}
         </Typography>
@@ -223,7 +223,12 @@ const StudentDetailDrawer = ({ open, student, onClose }) => {
           <Chip
             label={className}
             size="small"
-            sx={{ bgcolor: '#f0ece4', color: '#6b5e4a', fontWeight: 500, flexShrink: 0 }}
+            sx={{
+              bgcolor: 'rgba(139, 115, 85, 0.12)',
+              color: 'secondary.dark',
+              fontWeight: 500,
+              flexShrink: 0,
+            }}
           />
         )}
 
@@ -237,7 +242,12 @@ const StudentDetailDrawer = ({ open, student, onClose }) => {
           <Chip
             label="Restricted"
             size="small"
-            sx={{ bgcolor: '#FDE8E8', color: '#C53030', fontWeight: 500, flexShrink: 0 }}
+            sx={{
+              bgcolor: 'rgba(158, 75, 75, 0.1)',
+              color: 'status.notRead',
+              fontWeight: 500,
+              flexShrink: 0,
+            }}
           />
         )}
 
@@ -250,9 +260,9 @@ const StudentDetailDrawer = ({ open, student, onClose }) => {
             onClick={handleEditClick}
             sx={{
               flexShrink: 0,
-              borderColor: '#6B8E6B',
-              color: '#6B8E6B',
-              '&:hover': { borderColor: '#4a6e4a', bgcolor: 'rgba(107,142,107,0.06)' },
+              borderColor: 'primary.main',
+              color: 'primary.main',
+              '&:hover': { borderColor: 'primary.dark', bgcolor: 'rgba(107,142,107,0.06)' },
             }}
           >
             Edit
@@ -260,12 +270,7 @@ const StudentDetailDrawer = ({ open, student, onClose }) => {
         )}
         {mode === 'edit' && (
           <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={handleCancelClick}
-              disabled={saving}
-            >
+            <Button size="small" variant="outlined" onClick={handleCancelClick} disabled={saving}>
               Cancel
             </Button>
             <Button
@@ -275,8 +280,8 @@ const StudentDetailDrawer = ({ open, student, onClose }) => {
               onClick={handleSaveClick}
               disabled={saving}
               sx={{
-                bgcolor: '#6B8E6B',
-                '&:hover': { bgcolor: '#4a6e4a' },
+                bgcolor: 'primary.main',
+                '&:hover': { bgcolor: 'primary.dark' },
               }}
             >
               Save
@@ -297,7 +302,12 @@ const StudentDetailDrawer = ({ open, student, onClose }) => {
           <Chip
             label={`${age} years`}
             size="small"
-            sx={{ bgcolor: '#E5F0E5', color: '#6B8E6B', height: 22, fontSize: '0.7rem' }}
+            sx={{
+              bgcolor: 'rgba(107, 142, 107, 0.1)',
+              color: 'primary.main',
+              height: 22,
+              fontSize: '0.7rem',
+            }}
           />
         )}
 
@@ -309,7 +319,12 @@ const StudentDetailDrawer = ({ open, student, onClose }) => {
               displayStudent.gender.slice(1).toLowerCase()
             }
             size="small"
-            sx={{ bgcolor: '#E5F0E5', color: '#6B8E6B', height: 22, fontSize: '0.7rem' }}
+            sx={{
+              bgcolor: 'rgba(107, 142, 107, 0.1)',
+              color: 'primary.main',
+              height: 22,
+              fontSize: '0.7rem',
+            }}
           />
         )}
 
@@ -318,7 +333,12 @@ const StudentDetailDrawer = ({ open, student, onClose }) => {
           <Chip
             label={`Year ${displayStudent.yearGroup}`}
             size="small"
-            sx={{ bgcolor: '#E5F0E5', color: '#6B8E6B', height: 22, fontSize: '0.7rem' }}
+            sx={{
+              bgcolor: 'rgba(107, 142, 107, 0.1)',
+              color: 'primary.main',
+              height: 22,
+              fontSize: '0.7rem',
+            }}
           />
         )}
 
@@ -327,7 +347,12 @@ const StudentDetailDrawer = ({ open, student, onClose }) => {
           <Chip
             label={readingLevelLabel}
             size="small"
-            sx={{ bgcolor: '#E8EAF6', color: '#3949AB', height: 22, fontSize: '0.7rem' }}
+            sx={{
+              bgcolor: 'rgba(122, 158, 173, 0.12)',
+              color: 'info.main',
+              height: 22,
+              fontSize: '0.7rem',
+            }}
           />
         )}
 
@@ -337,7 +362,12 @@ const StudentDetailDrawer = ({ open, student, onClose }) => {
             <Chip
               label={displayStudent.firstLanguage}
               size="small"
-              sx={{ bgcolor: '#E5F0E5', color: '#6B8E6B', height: 22, fontSize: '0.7rem' }}
+              sx={{
+                bgcolor: 'rgba(107, 142, 107, 0.1)',
+                color: 'primary.main',
+                height: 22,
+                fontSize: '0.7rem',
+              }}
             />
           )}
 
@@ -347,7 +377,12 @@ const StudentDetailDrawer = ({ open, student, onClose }) => {
             <Chip
               label={displayStudent.ealDetailedStatus}
               size="small"
-              sx={{ bgcolor: '#FFF3E0', color: '#E65100', height: 22, fontSize: '0.7rem' }}
+              sx={{
+                bgcolor: 'rgba(155, 110, 58, 0.1)',
+                color: 'status.needsAttention',
+                height: 22,
+                fontSize: '0.7rem',
+              }}
             />
           )}
       </Box>

@@ -19,7 +19,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Skeleton
+  Skeleton,
 } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -43,7 +43,15 @@ import { useTour } from '../tour/useTour';
 import TourButton from '../tour/TourButton';
 
 const ReadingStats = () => {
-  const { students, classes, exportToJson, getReadingStatus, globalClassFilter, fetchWithAuth, reloadDataFromServer } = useAppContext();
+  const {
+    students,
+    classes,
+    exportToJson,
+    getReadingStatus,
+    globalClassFilter,
+    fetchWithAuth,
+    reloadDataFromServer,
+  } = useAppContext();
   const [currentTab, setCurrentTab] = useState(0);
   const { tourButtonProps } = useTour('stats');
   const statsTourButtonProps = {
@@ -76,16 +84,16 @@ const ReadingStats = () => {
     if (selectedTerm === 'all' || termDates.length === 0) return null;
     if (selectedTerm === 'current_term') {
       const today = new Date().toISOString().split('T')[0];
-      const current = termDates.find(t => t.startDate <= today && t.endDate >= today);
+      const current = termDates.find((t) => t.startDate <= today && t.endDate >= today);
       if (!current) return null;
       return { start: current.startDate, end: current.endDate };
     }
     if (selectedTerm === 'school_year') {
-      const starts = termDates.map(t => t.startDate).sort();
-      const ends = termDates.map(t => t.endDate).sort();
+      const starts = termDates.map((t) => t.startDate).sort();
+      const ends = termDates.map((t) => t.endDate).sort();
       return { start: starts[0], end: ends[ends.length - 1] };
     }
-    const term = termDates.find(t => t.termOrder === selectedTerm);
+    const term = termDates.find((t) => t.termOrder === selectedTerm);
     if (!term) return null;
     return { start: term.startDate, end: term.endDate };
   }, [selectedTerm, termDates]);
@@ -93,7 +101,7 @@ const ReadingStats = () => {
   const handleTabChange = (event, newValue) => {
     setCurrentTab(newValue);
   };
-  
+
   const handleExport = () => {
     exportToJson();
   };
@@ -103,7 +111,7 @@ const ReadingStats = () => {
     try {
       const API_URL = '/api';
       const response = await fetchWithAuth(`${API_URL}/students/recalculate-streaks`, {
-        method: 'POST'
+        method: 'POST',
       });
       if (response.ok) {
         await reloadDataFromServer();
@@ -114,10 +122,10 @@ const ReadingStats = () => {
       setRecalculating(false);
     }
   };
-  
+
   // Shared active students filtered by class — used by stats, session sort, and streaks
   const activeStudents = useMemo(() => {
-    return students.filter(student => {
+    return students.filter((student) => {
       if (globalClassFilter && globalClassFilter !== 'all') {
         if (globalClassFilter === 'unassigned') {
           if (student.classId) return false;
@@ -126,7 +134,7 @@ const ReadingStats = () => {
         }
       }
       if (!student.classId) return true;
-      const studentClass = classes.find(cls => cls.id === student.classId);
+      const studentClass = classes.find((cls) => cls.id === student.classId);
       return !studentClass || !studentClass.disabled;
     });
   }, [students, classes, globalClassFilter]);
@@ -146,8 +154,8 @@ const ReadingStats = () => {
       params.set('endDate', termDateRange.end);
     }
     fetchWithAuth(`/api/students/stats?${params}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
         setStats(data);
         setStatsLoading(false);
       })
@@ -160,26 +168,26 @@ const ReadingStats = () => {
   // Enrich topStreaks with student names from local data
   const enrichedTopStreaks = useMemo(() => {
     if (!stats?.topStreaks) return [];
-    return stats.topStreaks.map(s => {
-      const student = activeStudents.find(st => st.id === s.id);
+    return stats.topStreaks.map((s) => {
+      const student = activeStudents.find((st) => st.id === s.id);
       return { ...s, name: student?.name || 'Unknown' };
     });
   }, [stats, activeStudents]);
-  
+
   // Get students sorted by session count (least to most)
   const getStudentsBySessionCount = () => {
-    return [...activeStudents].sort((a, b) =>
-      (a.totalSessionCount || 0) - (b.totalSessionCount || 0)
+    return [...activeStudents].sort(
+      (a, b) => (a.totalSessionCount || 0) - (b.totalSessionCount || 0)
     );
   };
-  
+
   // Get all students with streak data, sorted by current streak
   const getStudentsWithStreaks = () => {
     return activeStudents
-      .map(student => ({
+      .map((student) => ({
         ...student,
         currentStreak: student.currentStreak || 0,
-        longestStreak: student.longestStreak || 0
+        longestStreak: student.longestStreak || 0,
       }))
       .sort((a, b) => {
         // Sort by current streak descending, then by longest streak descending
@@ -192,21 +200,23 @@ const ReadingStats = () => {
 
   // Get students who haven't been read with recently
   const getNeedsAttentionStudents = () => {
-    return activeStudents.filter(student => {
+    return activeStudents.filter((student) => {
       const status = getReadingStatus(student);
       return status === 'never' || status === 'overdue' || status === 'attention';
     });
   };
-  
+
   const renderStatsLoading = () => (
     <Box>
-      <Box sx={{
-        display: 'grid',
-        gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
-        gap: 2,
-        mb: 3
-      }}>
-        {[1, 2, 3, 4].map(i => (
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+          gap: 2,
+          mb: 3,
+        }}
+      >
+        {[1, 2, 3, 4].map((i) => (
           <Card key={i} sx={{ borderRadius: 3 }}>
             <CardContent sx={{ textAlign: 'center', py: 2, px: 1 }}>
               <Skeleton variant="text" width="60%" sx={{ mx: 'auto' }} />
@@ -215,12 +225,14 @@ const ReadingStats = () => {
           </Card>
         ))}
       </Box>
-      <Box sx={{
-        display: 'grid',
-        gridTemplateColumns: { xs: '1fr', sm: 'repeat(auto-fit, minmax(280px, 1fr))' },
-        gap: 2
-      }}>
-        {[1, 2, 3, 4].map(i => (
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', sm: 'repeat(auto-fit, minmax(280px, 1fr))' },
+          gap: 2,
+        }}
+      >
+        {[1, 2, 3, 4].map((i) => (
           <Card key={i} sx={{ borderRadius: 3 }}>
             <CardContent sx={{ py: 2 }}>
               <Skeleton variant="text" width="50%" />
@@ -235,18 +247,24 @@ const ReadingStats = () => {
   const renderOverviewTab = () => (
     <Box>
       {/* Summary stats - responsive grid */}
-      <Box data-tour="stats-summary-cards" sx={{
-        display: 'grid',
-        gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
-        gap: 2,
-        mb: 3
-      }}>
+      <Box
+        data-tour="stats-summary-cards"
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+          gap: 2,
+          mb: 3,
+        }}
+      >
         <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
           <CardContent sx={{ textAlign: 'center', py: 2, px: 1 }}>
             <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
               Students
             </Typography>
-            <Typography variant="h4" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'primary.main' }}>
+            <Typography
+              variant="h4"
+              sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'primary.main' }}
+            >
               {stats.totalStudents}
             </Typography>
           </CardContent>
@@ -257,7 +275,10 @@ const ReadingStats = () => {
             <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
               Sessions
             </Typography>
-            <Typography variant="h4" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#8B7355' }}>
+            <Typography
+              variant="h4"
+              sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'secondary.main' }}
+            >
               {stats.totalSessions}
             </Typography>
           </CardContent>
@@ -268,7 +289,10 @@ const ReadingStats = () => {
             <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
               Avg/Student
             </Typography>
-            <Typography variant="h4" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#0EA5E9' }}>
+            <Typography
+              variant="h4"
+              sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'info.main' }}
+            >
               {stats.averageSessionsPerStudent.toFixed(1)}
             </Typography>
           </CardContent>
@@ -279,7 +303,14 @@ const ReadingStats = () => {
             <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
               Never Read
             </Typography>
-            <Typography variant="h4" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#F59E0B' }}>
+            <Typography
+              variant="h4"
+              sx={{
+                fontFamily: '"Nunito", sans-serif',
+                fontWeight: 800,
+                color: 'status.needsAttention',
+              }}
+            >
               {stats.studentsWithNoSessions}
             </Typography>
           </CardContent>
@@ -287,23 +318,39 @@ const ReadingStats = () => {
       </Box>
 
       {/* Main content grid - auto-fill columns */}
-      <Box sx={{
-        display: 'grid',
-        gridTemplateColumns: {
-          xs: '1fr',
-          sm: 'repeat(auto-fit, minmax(280px, 1fr))'
-        },
-        gap: 2
-      }}>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: {
+            xs: '1fr',
+            sm: 'repeat(auto-fit, minmax(280px, 1fr))',
+          },
+          gap: 2,
+        }}
+      >
         {/* This Week's Activity */}
-        <Card data-tour="stats-weekly-activity" sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
+        <Card
+          data-tour="stats-weekly-activity"
+          sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}
+        >
           <CardContent sx={{ py: 2 }}>
-            <Typography variant="subtitle2" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
+            <Typography
+              variant="subtitle2"
+              gutterBottom
+              sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}
+            >
               This Week's Activity
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around' }}>
               <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="h4" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'primary.main' }}>
+                <Typography
+                  variant="h4"
+                  sx={{
+                    fontFamily: '"Nunito", sans-serif',
+                    fontWeight: 800,
+                    color: 'primary.main',
+                  }}
+                >
                   {stats.weeklyActivity.thisWeek}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
@@ -311,12 +358,19 @@ const ReadingStats = () => {
                 </Typography>
               </Box>
               {stats.weeklyActivity.thisWeek >= stats.weeklyActivity.lastWeek ? (
-                <TrendingUpIcon sx={{ fontSize: 28, color: '#10B981' }} />
+                <TrendingUpIcon sx={{ fontSize: 28, color: 'status.recentlyRead' }} />
               ) : (
-                <TrendingDownIcon sx={{ fontSize: 28, color: '#EF4444' }} />
+                <TrendingDownIcon sx={{ fontSize: 28, color: 'status.notRead' }} />
               )}
               <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="h4" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#9CA3AF' }}>
+                <Typography
+                  variant="h4"
+                  sx={{
+                    fontFamily: '"Nunito", sans-serif',
+                    fontWeight: 800,
+                    color: 'text.secondary',
+                  }}
+                >
                   {stats.weeklyActivity.lastWeek}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
@@ -330,25 +384,55 @@ const ReadingStats = () => {
         {/* Home vs School Reading */}
         <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
           <CardContent sx={{ py: 2 }}>
-            <Typography variant="subtitle2" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
+            <Typography
+              variant="subtitle2"
+              gutterBottom
+              sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}
+            >
               Home vs School
             </Typography>
             <Box sx={{ display: 'flex', justifyContent: 'space-around' }}>
-              <Box sx={{ textAlign: 'center', p: 1, borderRadius: 2, bgcolor: '#DBEAFE', minWidth: 80 }}>
-                <SchoolIcon sx={{ fontSize: 20, color: '#3B82F6' }} />
-                <Typography variant="h5" sx={{ color: '#3B82F6', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}>
+              <Box
+                sx={{
+                  textAlign: 'center',
+                  p: 1,
+                  borderRadius: 2,
+                  bgcolor: 'accent.schoolLight',
+                  minWidth: 80,
+                }}
+              >
+                <SchoolIcon sx={{ fontSize: 20, color: 'accent.school' }} />
+                <Typography
+                  variant="h5"
+                  sx={{
+                    color: 'accent.school',
+                    fontWeight: 800,
+                    fontFamily: '"Nunito", sans-serif',
+                  }}
+                >
                   {stats.locationDistribution.school}
                 </Typography>
-                <Typography variant="caption" sx={{ color: '#1D4ED8', fontWeight: 600 }}>
+                <Typography variant="caption" sx={{ color: 'accent.school', fontWeight: 600 }}>
                   School
                 </Typography>
               </Box>
-              <Box sx={{ textAlign: 'center', p: 1, borderRadius: 2, bgcolor: '#FCE7F3', minWidth: 80 }}>
-                <HomeIcon sx={{ fontSize: 20, color: '#EC4899' }} />
-                <Typography variant="h5" sx={{ color: '#EC4899', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}>
+              <Box
+                sx={{
+                  textAlign: 'center',
+                  p: 1,
+                  borderRadius: 2,
+                  bgcolor: 'accent.homeLight',
+                  minWidth: 80,
+                }}
+              >
+                <HomeIcon sx={{ fontSize: 20, color: 'accent.home' }} />
+                <Typography
+                  variant="h5"
+                  sx={{ color: 'accent.home', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}
+                >
                   {stats.locationDistribution.home}
                 </Typography>
-                <Typography variant="caption" sx={{ color: '#BE185D', fontWeight: 600 }}>
+                <Typography variant="caption" sx={{ color: 'accent.home', fontWeight: 600 }}>
                   Home
                 </Typography>
               </Box>
@@ -359,7 +443,11 @@ const ReadingStats = () => {
         {/* Reading by Day of Week */}
         <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
           <CardContent sx={{ py: 2 }}>
-            <Typography variant="subtitle2" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
+            <Typography
+              variant="subtitle2"
+              gutterBottom
+              sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}
+            >
               Reading by Day
             </Typography>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 0.25 }}>
@@ -368,16 +456,28 @@ const ReadingStats = () => {
                 const height = Math.max((count / maxCount) * 40, 3);
                 return (
                   <Box key={day} sx={{ textAlign: 'center', flex: 1 }}>
-                    <Box sx={{ height: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', mb: 0.25 }}>
-                      <Box sx={{
-                        width: '80%',
-                        maxWidth: 20,
-                        height: height,
-                        bgcolor: count > 0 ? 'primary.main' : 'grey.200',
-                        borderRadius: 0.5
-                      }} />
+                    <Box
+                      sx={{
+                        height: 50,
+                        display: 'flex',
+                        alignItems: 'flex-end',
+                        justifyContent: 'center',
+                        mb: 0.25,
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: '80%',
+                          maxWidth: 20,
+                          height: height,
+                          bgcolor: count > 0 ? 'primary.main' : 'grey.200',
+                          borderRadius: 0.5,
+                        }}
+                      />
                     </Box>
-                    <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: 'text.secondary' }}>
+                    <Typography
+                      sx={{ fontSize: '0.65rem', fontWeight: 600, color: 'text.secondary' }}
+                    >
                       {day.slice(0, 2)}
                     </Typography>
                   </Box>
@@ -391,33 +491,62 @@ const ReadingStats = () => {
         <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
           <CardContent sx={{ py: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-              <WhatshotIcon sx={{ color: '#FF6B35', fontSize: 20 }} />
-              <Typography variant="subtitle2" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
+              <WhatshotIcon sx={{ color: 'accent.streak', fontSize: 20 }} />
+              <Typography
+                variant="subtitle2"
+                sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}
+              >
                 Streaks
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-around' }}>
-              <Box sx={{ textAlign: 'center', p: 1, borderRadius: 2, bgcolor: 'rgba(255, 107, 53, 0.1)' }}>
-                <Typography variant="h5" sx={{ color: '#FF6B35', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}>
+              <Box
+                sx={{ textAlign: 'center', p: 1, borderRadius: 2, bgcolor: 'accent.streakLight' }}
+              >
+                <Typography
+                  variant="h5"
+                  sx={{
+                    color: 'accent.streak',
+                    fontWeight: 800,
+                    fontFamily: '"Nunito", sans-serif',
+                  }}
+                >
                   {stats.studentsWithActiveStreak}
                 </Typography>
-                <Typography sx={{ color: '#C2410C', fontWeight: 600, fontSize: '0.65rem' }}>
+                <Typography sx={{ color: 'accent.streak', fontWeight: 600, fontSize: '0.65rem' }}>
                   Active
                 </Typography>
               </Box>
-              <Box sx={{ textAlign: 'center', p: 1, borderRadius: 2, bgcolor: 'rgba(255, 215, 0, 0.15)' }}>
-                <Typography variant="h5" sx={{ color: '#B8860B', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}>
+              <Box sx={{ textAlign: 'center', p: 1, borderRadius: 2, bgcolor: 'accent.goldLight' }}>
+                <Typography
+                  variant="h5"
+                  sx={{ color: 'accent.gold', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}
+                >
                   {stats.longestCurrentStreak}
                 </Typography>
-                <Typography sx={{ color: '#92400E', fontWeight: 600, fontSize: '0.65rem' }}>
+                <Typography sx={{ color: 'accent.gold', fontWeight: 600, fontSize: '0.65rem' }}>
                   Best
                 </Typography>
               </Box>
-              <Box sx={{ textAlign: 'center', p: 1, borderRadius: 2, bgcolor: 'rgba(107, 142, 107, 0.1)' }}>
-                <Typography variant="h5" sx={{ color: 'primary.main', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}>
+              <Box
+                sx={{
+                  textAlign: 'center',
+                  p: 1,
+                  borderRadius: 2,
+                  bgcolor: 'rgba(107, 142, 107, 0.1)',
+                }}
+              >
+                <Typography
+                  variant="h5"
+                  sx={{
+                    color: 'primary.main',
+                    fontWeight: 800,
+                    fontFamily: '"Nunito", sans-serif',
+                  }}
+                >
                   {stats.averageStreak.toFixed(1)}
                 </Typography>
-                <Typography sx={{ color: '#5B21B6', fontWeight: 600, fontSize: '0.65rem' }}>
+                <Typography sx={{ color: 'secondary.main', fontWeight: 600, fontSize: '0.65rem' }}>
                   Avg
                 </Typography>
               </Box>
@@ -428,7 +557,11 @@ const ReadingStats = () => {
         {/* Most Read Books */}
         <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
           <CardContent sx={{ py: 2 }}>
-            <Typography variant="subtitle2" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
+            <Typography
+              variant="subtitle2"
+              gutterBottom
+              sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}
+            >
               Most Read Books
             </Typography>
             {stats.mostReadBooks.length === 0 ? (
@@ -438,20 +571,55 @@ const ReadingStats = () => {
             ) : (
               <Box>
                 {stats.mostReadBooks.slice(0, 4).map((book, index) => (
-                  <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
-                    <Box sx={{
-                      width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
-                      bgcolor: index === 0 ? '#FEF3C7' : '#F3F4F6',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center'
-                    }}>
-                      <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: index === 0 ? '#F59E0B' : '#6B7280' }}>
+                  <Box
+                    key={book.title || index}
+                    sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}
+                  >
+                    <Box
+                      sx={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: '50%',
+                        flexShrink: 0,
+                        bgcolor: index === 0 ? 'accent.goldLight' : 'rgba(139, 115, 85, 0.08)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          fontSize: '0.65rem',
+                          fontWeight: 700,
+                          color: index === 0 ? 'accent.gold' : 'text.secondary',
+                        }}
+                      >
                         {index + 1}
                       </Typography>
                     </Box>
-                    <Typography variant="body2" sx={{ fontWeight: 500, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.8rem' }}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 500,
+                        flex: 1,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        fontSize: '0.8rem',
+                      }}
+                    >
                       {book.title}
                     </Typography>
-                    <Chip label={book.count} size="small" sx={{ height: 20, fontSize: '0.65rem', bgcolor: '#E0E7FF', color: '#4F46E5' }} />
+                    <Chip
+                      label={book.count}
+                      size="small"
+                      sx={{
+                        height: 20,
+                        fontSize: '0.65rem',
+                        bgcolor: 'rgba(107, 142, 107, 0.12)',
+                        color: 'primary.dark',
+                      }}
+                    />
                   </Box>
                 ))}
               </Box>
@@ -463,8 +631,11 @@ const ReadingStats = () => {
         <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
           <CardContent sx={{ py: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-              <EmojiEventsIcon sx={{ color: '#FFD700', fontSize: 20 }} />
-              <Typography variant="subtitle2" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
+              <EmojiEventsIcon sx={{ color: 'accent.gold', fontSize: 20 }} />
+              <Typography
+                variant="subtitle2"
+                sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}
+              >
                 Streak Leaders
               </Typography>
             </Box>
@@ -475,17 +646,53 @@ const ReadingStats = () => {
             ) : (
               <Box>
                 {enrichedTopStreaks.slice(0, 4).map((student, index) => (
-                  <Box key={student.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
-                    <Box sx={{
-                      width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
-                      bgcolor: index === 0 ? '#FEF3C7' : index === 1 ? '#F3F4F6' : index === 2 ? '#FED7AA' : '#F3F4F6',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center'
-                    }}>
-                      <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: index === 0 ? '#F59E0B' : index === 1 ? '#6B7280' : index === 2 ? '#EA580C' : '#6B7280' }}>
+                  <Box
+                    key={student.id}
+                    sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}
+                  >
+                    <Box
+                      sx={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: '50%',
+                        flexShrink: 0,
+                        bgcolor:
+                          index === 0
+                            ? 'accent.goldLight'
+                            : index === 2
+                              ? 'accent.streakLight'
+                              : 'rgba(139, 115, 85, 0.08)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          fontSize: '0.65rem',
+                          fontWeight: 700,
+                          color:
+                            index === 0
+                              ? 'accent.gold'
+                              : index === 2
+                                ? 'accent.streak'
+                                : 'text.secondary',
+                        }}
+                      >
                         {index + 1}
                       </Typography>
                     </Box>
-                    <Typography variant="body2" sx={{ fontWeight: 500, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.8rem' }}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 500,
+                        flex: 1,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        fontSize: '0.8rem',
+                      }}
+                    >
                       {student.name}
                     </Typography>
                     <StreakBadge streak={student.currentStreak} size="small" />
@@ -498,16 +705,20 @@ const ReadingStats = () => {
       </Box>
     </Box>
   );
-  
+
   const renderNeedsAttentionTab = () => {
     const needsAttentionStudents = getNeedsAttentionStudents();
-    
+
     return (
       <Box>
-        <Typography variant="h6" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
+        <Typography
+          variant="h6"
+          gutterBottom
+          sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}
+        >
           Students Needing Attention
         </Typography>
-        
+
         {needsAttentionStudents.length === 0 ? (
           <Alert severity="success" sx={{ mt: 2, borderRadius: 4 }}>
             Great job! All students have been read with recently.
@@ -515,40 +726,48 @@ const ReadingStats = () => {
         ) : (
           <Paper sx={{ borderRadius: 4, overflow: 'hidden' }}>
             <List>
-              {needsAttentionStudents.map(student => (
+              {needsAttentionStudents.map((student) => (
                 <ListItem key={student.id} divider>
                   <ListItemIcon>
-                    <Box sx={{ 
-                      width: 40, 
-                      height: 40, 
-                      borderRadius: '50%', 
-                      bgcolor: '#FEE2E2', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center' 
-                    }}>
-                      <PersonIcon sx={{ color: '#EF4444' }} />
+                    <Box
+                      sx={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: '50%',
+                        bgcolor: 'rgba(158, 75, 75, 0.1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <PersonIcon sx={{ color: 'status.notRead' }} />
                     </Box>
                   </ListItemIcon>
                   <ListItemText
-                    primary={<Typography sx={{ fontWeight: 600, fontFamily: '"DM Sans", sans-serif' }}>{student.name}</Typography>}
-                    secondary={`Last read: ${student.lastReadDate 
-                      ? new Date(student.lastReadDate).toLocaleDateString('en-GB', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric'
-                        }) 
-                      : 'Never'}`}
+                    primary={
+                      <Typography sx={{ fontWeight: 600, fontFamily: '"DM Sans", sans-serif' }}>
+                        {student.name}
+                      </Typography>
+                    }
+                    secondary={`Last read: ${
+                      student.lastReadDate
+                        ? new Date(student.lastReadDate).toLocaleDateString('en-GB', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })
+                        : 'Never'
+                    }`}
                   />
-                  <Chip 
-                    label="Needs Reading" 
-                    sx={{ 
-                      bgcolor: '#FEE2E2', 
-                      color: '#EF4444', 
+                  <Chip
+                    label="Needs Reading"
+                    sx={{
+                      bgcolor: 'rgba(158, 75, 75, 0.1)',
+                      color: 'status.notRead',
                       fontWeight: 700,
-                      borderRadius: 2
+                      borderRadius: 2,
                     }}
-                    size="small" 
+                    size="small"
                   />
                 </ListItem>
               ))}
@@ -558,60 +777,73 @@ const ReadingStats = () => {
       </Box>
     );
   };
-  
+
   const renderFrequencyTab = () => {
     const sortedStudents = getStudentsBySessionCount();
-    
+
     return (
       <Box>
         {/* Bar Chart Visualization */}
         <ReadingFrequencyChart />
-        
+
         {/* List View */}
-        <Typography variant="h6" gutterBottom sx={{ mt: 4, fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
+        <Typography
+          variant="h6"
+          gutterBottom
+          sx={{ mt: 4, fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}
+        >
           Reading Frequency Details
         </Typography>
-        
+
         <Paper sx={{ borderRadius: 4, overflow: 'hidden' }}>
           <List>
-            {sortedStudents.map(student => {
+            {sortedStudents.map((student) => {
               const sessionCount = student.totalSessionCount || 0;
               return (
-              <ListItem key={student.id} divider>
-                <ListItemIcon>
-                  <Box sx={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: '50%',
-                    bgcolor: '#E0E7FF',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    <PersonIcon sx={{ color: '#4F46E5' }} />
-                  </Box>
-                </ListItemIcon>
-                <ListItemText
-                  primary={<Typography sx={{ fontWeight: 600, fontFamily: '"DM Sans", sans-serif' }}>{student.name}</Typography>}
-                  secondary={`Last read: ${student.lastReadDate
-                    ? new Date(student.lastReadDate).toLocaleDateString('en-GB', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric'
-                      })
-                    : 'Never'}`}
-                />
-                <Chip
-                  label={`${sessionCount} sessions`}
-                  sx={{
-                    bgcolor: sessionCount === 0 ? '#FEE2E2' : '#E0E7FF',
-                    color: sessionCount === 0 ? '#EF4444' : '#4F46E5',
-                    fontWeight: 700,
-                    borderRadius: 2
-                  }}
-                  size="small"
-                />
-              </ListItem>
+                <ListItem key={student.id} divider>
+                  <ListItemIcon>
+                    <Box
+                      sx={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: '50%',
+                        bgcolor: 'rgba(107, 142, 107, 0.1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <PersonIcon sx={{ color: 'primary.main' }} />
+                    </Box>
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={
+                      <Typography sx={{ fontWeight: 600, fontFamily: '"DM Sans", sans-serif' }}>
+                        {student.name}
+                      </Typography>
+                    }
+                    secondary={`Last read: ${
+                      student.lastReadDate
+                        ? new Date(student.lastReadDate).toLocaleDateString('en-GB', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })
+                        : 'Never'
+                    }`}
+                  />
+                  <Chip
+                    label={`${sessionCount} sessions`}
+                    sx={{
+                      bgcolor:
+                        sessionCount === 0 ? 'rgba(158, 75, 75, 0.1)' : 'rgba(107, 142, 107, 0.12)',
+                      color: sessionCount === 0 ? 'status.notRead' : 'primary.dark',
+                      fontWeight: 700,
+                      borderRadius: 2,
+                    }}
+                    size="small"
+                  />
+                </ListItem>
               );
             })}
           </List>
@@ -622,8 +854,8 @@ const ReadingStats = () => {
 
   const renderStreaksTab = () => {
     const studentsWithStreaks = getStudentsWithStreaks();
-    const studentsWithActiveStreaks = studentsWithStreaks.filter(s => s.currentStreak > 0);
-    const studentsWithNoStreak = studentsWithStreaks.filter(s => s.currentStreak === 0);
+    const studentsWithActiveStreaks = studentsWithStreaks.filter((s) => s.currentStreak > 0);
+    const studentsWithNoStreak = studentsWithStreaks.filter((s) => s.currentStreak === 0);
 
     return (
       <Box>
@@ -639,9 +871,13 @@ const ReadingStats = () => {
               borderRadius: 3,
               fontWeight: 600,
               borderWidth: 2,
-              borderColor: '#FF6B35',
-              color: '#FF6B35',
-              '&:hover': { borderWidth: 2, borderColor: '#E55A2B', bgcolor: 'rgba(255, 107, 53, 0.04)' }
+              borderColor: 'accent.streak',
+              color: 'accent.streak',
+              '&:hover': {
+                borderWidth: 2,
+                borderColor: 'accent.streak',
+                bgcolor: 'accent.streakLight',
+              },
             }}
           >
             {recalculating ? 'Updating...' : 'Update Streaks'}
@@ -649,11 +885,21 @@ const ReadingStats = () => {
         </Box>
 
         {/* Streak Summary Cards - responsive row */}
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 2, mb: 3 }}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+            gap: 2,
+            mb: 3,
+          }}
+        >
           <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
             <CardContent sx={{ textAlign: 'center', py: 2, px: 1 }}>
-              <WhatshotIcon sx={{ fontSize: 24, color: '#FF6B35' }} />
-              <Typography variant="h4" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#FF6B35' }}>
+              <WhatshotIcon sx={{ fontSize: 24, color: 'accent.streak' }} />
+              <Typography
+                variant="h4"
+                sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'accent.streak' }}
+              >
                 {stats.studentsWithActiveStreak}
               </Typography>
               <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
@@ -664,8 +910,11 @@ const ReadingStats = () => {
 
           <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
             <CardContent sx={{ textAlign: 'center', py: 2, px: 1 }}>
-              <EmojiEventsIcon sx={{ fontSize: 24, color: '#FFD700' }} />
-              <Typography variant="h4" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#B8860B' }}>
+              <EmojiEventsIcon sx={{ fontSize: 24, color: 'accent.gold' }} />
+              <Typography
+                variant="h4"
+                sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'accent.gold' }}
+              >
                 {stats.longestCurrentStreak}
               </Typography>
               <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
@@ -677,7 +926,10 @@ const ReadingStats = () => {
           <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
             <CardContent sx={{ textAlign: 'center', py: 2, px: 1 }}>
               <Box sx={{ fontSize: 24 }}>🏆</Box>
-              <Typography variant="h4" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'primary.main' }}>
+              <Typography
+                variant="h4"
+                sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'primary.main' }}
+              >
                 {stats.longestEverStreak}
               </Typography>
               <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
@@ -689,7 +941,10 @@ const ReadingStats = () => {
           <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
             <CardContent sx={{ textAlign: 'center', py: 2, px: 1 }}>
               <Box sx={{ fontSize: 24 }}>📊</Box>
-              <Typography variant="h4" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: '#0EA5E9' }}>
+              <Typography
+                variant="h4"
+                sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'info.main' }}
+              >
                 {stats.averageStreak.toFixed(1)}
               </Typography>
               <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
@@ -703,8 +958,18 @@ const ReadingStats = () => {
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
           {/* Active Streaks List */}
           <Box>
-            <Typography variant="subtitle1" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <WhatshotIcon sx={{ color: '#FF6B35', fontSize: 20 }} />
+            <Typography
+              variant="subtitle1"
+              gutterBottom
+              sx={{
+                fontFamily: '"Nunito", sans-serif',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5,
+              }}
+            >
+              <WhatshotIcon sx={{ color: 'accent.streak', fontSize: 20 }} />
               Active Streaks ({studentsWithActiveStreaks.length})
             </Typography>
 
@@ -715,18 +980,59 @@ const ReadingStats = () => {
             ) : (
               <Paper sx={{ borderRadius: 3, overflow: 'hidden' }}>
                 {studentsWithActiveStreaks.map((student, index) => (
-                  <Box key={student.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
-                    <Box sx={{
-                      width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
-                      bgcolor: index === 0 ? '#FEF3C7' : index === 1 ? '#F3F4F6' : index === 2 ? '#FED7AA' : 'rgba(255, 107, 53, 0.1)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center'
-                    }}>
-                      <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: index === 0 ? '#F59E0B' : index === 1 ? '#6B7280' : index === 2 ? '#EA580C' : '#FF6B35' }}>
+                  <Box
+                    key={student.id}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      p: 1.5,
+                      borderBottom: '1px solid',
+                      borderColor: 'divider',
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: '50%',
+                        flexShrink: 0,
+                        bgcolor:
+                          index === 0
+                            ? 'accent.goldLight'
+                            : index === 2
+                              ? 'accent.streakLight'
+                              : 'rgba(139, 115, 85, 0.08)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          color:
+                            index === 0
+                              ? 'accent.gold'
+                              : index === 2
+                                ? 'accent.streak'
+                                : 'text.secondary',
+                        }}
+                      >
                         {index + 1}
                       </Typography>
                     </Box>
                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 600,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
                         {student.name}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
@@ -742,8 +1048,18 @@ const ReadingStats = () => {
 
           {/* Students Without Streaks */}
           <Box>
-            <Typography variant="subtitle1" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <PersonIcon sx={{ color: '#9CA3AF', fontSize: 20 }} />
+            <Typography
+              variant="subtitle1"
+              gutterBottom
+              sx={{
+                fontFamily: '"Nunito", sans-serif',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5,
+              }}
+            >
+              <PersonIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
               No Streak ({studentsWithNoStreak.length})
             </Typography>
 
@@ -752,17 +1068,45 @@ const ReadingStats = () => {
                 All students have streaks!
               </Alert>
             ) : (
-              <Paper sx={{ borderRadius: 3, overflow: 'hidden', maxHeight: 300, overflowY: 'auto' }}>
-                {studentsWithNoStreak.map(student => (
-                  <Box key={student.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
-                    <Box sx={{
-                      width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
-                      bgcolor: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center'
-                    }}>
-                      <PersonIcon sx={{ color: '#9CA3AF', fontSize: 14 }} />
+              <Paper
+                sx={{ borderRadius: 3, overflow: 'hidden', maxHeight: 300, overflowY: 'auto' }}
+              >
+                {studentsWithNoStreak.map((student) => (
+                  <Box
+                    key={student.id}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      p: 1.5,
+                      borderBottom: '1px solid',
+                      borderColor: 'divider',
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: '50%',
+                        flexShrink: 0,
+                        bgcolor: 'rgba(139, 115, 85, 0.06)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <PersonIcon sx={{ color: 'text.secondary', fontSize: 14 }} />
                     </Box>
                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 600,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
                         {student.name}
                       </Typography>
                       {student.longestStreak > 0 && (
@@ -783,8 +1127,21 @@ const ReadingStats = () => {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
-        <Typography variant="h4" component="h1" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'text.primary' }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 3,
+          flexWrap: 'wrap',
+          gap: 1,
+        }}
+      >
+        <Typography
+          variant="h4"
+          component="h1"
+          sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'text.primary' }}
+        >
           Reading Statistics
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -800,7 +1157,7 @@ const ReadingStats = () => {
                 <MenuItem value="all">All Time</MenuItem>
                 <MenuItem value="current_term">Current Term</MenuItem>
                 <MenuItem value="school_year">School Year</MenuItem>
-                {termDates.map(term => (
+                {termDates.map((term) => (
                   <MenuItem key={term.termOrder} value={term.termOrder}>
                     {term.termName}
                   </MenuItem>
@@ -816,21 +1173,24 @@ const ReadingStats = () => {
               borderRadius: 3,
               fontWeight: 600,
               borderWidth: 2,
-              '&:hover': { borderWidth: 2 }
+              '&:hover': { borderWidth: 2 },
             }}
           >
             Export Data
           </Button>
         </Box>
       </Box>
-      
+
       <Box>
-        <Paper data-tour="stats-tabs" sx={{
-          mb: 3,
-          overflow: 'hidden',
-          borderRadius: 4,
-          backgroundColor: 'background.paper'
-        }}>
+        <Paper
+          data-tour="stats-tabs"
+          sx={{
+            mb: 3,
+            overflow: 'hidden',
+            borderRadius: 4,
+            backgroundColor: 'background.paper',
+          }}
+        >
           <Tabs
             value={currentTab}
             onChange={handleTabChange}
@@ -846,8 +1206,8 @@ const ReadingStats = () => {
                 fontWeight: 700,
                 textTransform: 'none',
                 fontSize: '1rem',
-                minHeight: 64
-              }
+                minHeight: 64,
+              },
             }}
           >
             <Tab icon={<AssessmentIcon />} iconPosition="start" label="Overview" />
@@ -857,46 +1217,54 @@ const ReadingStats = () => {
             <Tab icon={<TimelineIcon />} iconPosition="start" label="Reading Timeline" />
           </Tabs>
         </Paper>
-        
+
         <Box sx={{ p: 0 }}>
-          {currentTab === 0 && (
-            students.length === 0 ? (
+          {currentTab === 0 &&
+            (students.length === 0 ? (
               <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 4 }}>
                 <Typography variant="body1" color="text.secondary">
                   No data available yet. Add students and record reading sessions to see statistics.
                 </Typography>
               </Paper>
-            ) : (statsLoading || !stats) ? renderStatsLoading() : renderOverviewTab()
-          )}
-          {currentTab === 1 && (
-            students.length === 0 ? (
+            ) : statsLoading || !stats ? (
+              renderStatsLoading()
+            ) : (
+              renderOverviewTab()
+            ))}
+          {currentTab === 1 &&
+            (students.length === 0 ? (
               <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 4 }}>
                 <Typography variant="body1" color="text.secondary">
                   No data available yet. Add students and record reading sessions to see statistics.
                 </Typography>
               </Paper>
-            ) : (statsLoading || !stats) ? renderStatsLoading() : renderStreaksTab()
-          )}
-          {currentTab === 2 && (
-            students.length === 0 ? (
+            ) : statsLoading || !stats ? (
+              renderStatsLoading()
+            ) : (
+              renderStreaksTab()
+            ))}
+          {currentTab === 2 &&
+            (students.length === 0 ? (
               <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 4 }}>
                 <Typography variant="body1" color="text.secondary">
                   No data available yet. Add students and record reading sessions to see statistics.
                 </Typography>
               </Paper>
-            ) : renderNeedsAttentionTab()
-          )}
-          {currentTab === 3 && (
-            students.length === 0 ? (
+            ) : (
+              renderNeedsAttentionTab()
+            ))}
+          {currentTab === 3 &&
+            (students.length === 0 ? (
               <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 4 }}>
                 <Typography variant="body1" color="text.secondary">
                   No data available yet. Add students and record reading sessions to see statistics.
                 </Typography>
               </Paper>
-            ) : renderFrequencyTab()
-          )}
-          {currentTab === 4 && (
-            students.length === 0 ? (
+            ) : (
+              renderFrequencyTab()
+            ))}
+          {currentTab === 4 &&
+            (students.length === 0 ? (
               <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 4 }}>
                 <Typography variant="body1" color="text.secondary">
                   No data available yet. Add students and record reading sessions to see statistics.
@@ -909,8 +1277,7 @@ const ReadingStats = () => {
                   <ReadingTimelineChart />
                 </Box>
               </Box>
-            )
-          )}
+            ))}
         </Box>
       </Box>
       <TourButton {...statsTourButtonProps} />

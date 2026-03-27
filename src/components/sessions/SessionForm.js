@@ -17,7 +17,7 @@ import {
   Popover,
   IconButton,
   Tooltip,
-  CircularProgress
+  CircularProgress,
 } from '@mui/material';
 import StarIcon from '@mui/icons-material/Star';
 import DownloadIcon from '@mui/icons-material/Download';
@@ -35,11 +35,23 @@ import {
   getBookDetails,
   checkAvailability,
   getProviderDisplayName,
-  validateProviderConfig
+  validateProviderConfig,
 } from '../../utils/bookMetadataApi';
 
 const SessionForm = () => {
-  const { students, addReadingSession, classes, recentlyAccessedStudents, books, globalClassFilter, settings, updateBook, fetchBookDetails, genres, fetchWithAuth } = useAppContext();
+  const {
+    students,
+    addReadingSession,
+    classes,
+    recentlyAccessedStudents,
+    books,
+    globalClassFilter,
+    settings,
+    updateBook,
+    fetchBookDetails,
+    genres,
+    fetchWithAuth,
+  } = useAppContext();
   const { tourButtonProps } = useTour('session-form');
 
   const [selectedStudentId, setSelectedStudentId] = useState('');
@@ -67,7 +79,7 @@ const SessionForm = () => {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyRefresh, setHistoryRefresh] = useState(0);
 
-  const booksMap = useMemo(() => new Map(books.map(b => [b.id, b])), [books]);
+  const booksMap = useMemo(() => new Map(books.map((b) => [b.id, b])), [books]);
 
   useEffect(() => {
     if (!selectedStudentId) {
@@ -76,10 +88,15 @@ const SessionForm = () => {
     }
     setHistoryLoading(true);
     fetchWithAuth(`/api/students/${selectedStudentId}/sessions`)
-      .then(r => r.ok ? r.json() : [])
-      .then(sessions => {
+      .then((r) => (r.ok ? r.json() : []))
+      .then((sessions) => {
         const real = sessions
-          .filter(s => !s.notes?.includes('[ABSENT]') && !s.notes?.includes('[NO_RECORD]') && !s.notes?.includes('[COUNT:'))
+          .filter(
+            (s) =>
+              !s.notes?.includes('[ABSENT]') &&
+              !s.notes?.includes('[NO_RECORD]') &&
+              !s.notes?.includes('[COUNT:')
+          )
           .sort((a, b) => new Date(b.date) - new Date(a.date));
         setStudentHistory(real);
         setHistoryLoading(false);
@@ -127,7 +144,7 @@ const SessionForm = () => {
   const handleGetBookDetails = async () => {
     // Get the current book title from the books array or use form values
     const title = selectedBook?.title || '';
-    
+
     if (!title) {
       setError('Please select or create a book first');
       return;
@@ -142,7 +159,7 @@ const SessionForm = () => {
 
     setIsFetchingDetails(true);
     const providerName = getProviderDisplayName(settings);
-    
+
     // Check provider availability first with a quick timeout
     const isAvailable = await checkAvailability(settings, 3000);
     if (!isAvailable) {
@@ -150,11 +167,11 @@ const SessionForm = () => {
       setError(`${providerName} is currently unavailable. Please try again later.`);
       return;
     }
-    
+
     try {
       const author = bookAuthor || null;
       const details = await getBookDetails(title, author, settings);
-      
+
       if (details) {
         // Update form fields with fetched details
         if (details.author) {
@@ -209,9 +226,9 @@ const SessionForm = () => {
     setError('');
 
     // Pre-select the student's current book if they have one
-    const student = students.find(s => s.id === studentId);
+    const student = students.find((s) => s.id === studentId);
     if (student?.currentBookId) {
-      const book = books.find(b => b.id === student.currentBookId);
+      const book = books.find((b) => b.id === student.currentBookId);
       if (book) {
         handleBookChange(book);
       } else {
@@ -259,7 +276,7 @@ const SessionForm = () => {
       assessment,
       notes,
       bookId: selectedBookId || null,
-      location: selectedLocation || 'school'
+      location: selectedLocation || 'school',
     });
 
     if (result) {
@@ -275,7 +292,7 @@ const SessionForm = () => {
       setError('');
       setSnackbarMessage('Reading session saved successfully');
       setSnackbarOpen(true);
-      setHistoryRefresh(c => c + 1);
+      setHistoryRefresh((c) => c + 1);
     } else {
       setError('Failed to save reading session. Please try again.');
     }
@@ -286,10 +303,10 @@ const SessionForm = () => {
   };
 
   // Get IDs of disabled classes
-  const disabledClassIds = classes.filter(cls => cls.disabled).map(cls => cls.id);
+  const disabledClassIds = classes.filter((cls) => cls.disabled).map((cls) => cls.id);
 
   // Filter students based on global class filter and disabled classes
-  let filteredStudents = students.filter(student => {
+  let filteredStudents = students.filter((student) => {
     // First, filter by global class filter
     if (globalClassFilter && globalClassFilter !== 'all') {
       if (globalClassFilter === 'unassigned') {
@@ -298,29 +315,42 @@ const SessionForm = () => {
         if (student.classId !== globalClassFilter) return false;
       }
     }
-    
+
     // Then, filter out students from disabled classes
     return !student.classId || !disabledClassIds.includes(student.classId);
   });
 
   // Separate recently accessed students within the filtered list
-  const recentStudents = filteredStudents.filter(student =>
+  const recentStudents = filteredStudents.filter((student) =>
     recentlyAccessedStudents.includes(student.id)
   );
-  const otherStudents = filteredStudents.filter(student =>
-    !recentlyAccessedStudents.includes(student.id)
+  const otherStudents = filteredStudents.filter(
+    (student) => !recentlyAccessedStudents.includes(student.id)
   );
 
   // Combine with recently accessed students at the top
   const sortedStudents = [...recentStudents, ...otherStudents];
 
-  const selectedStudent = students.find(s => s.id === selectedStudentId);
-  const selectedBook = books.find(b => b.id === selectedBookId);
+  const selectedStudent = students.find((s) => s.id === selectedStudentId);
+  const selectedBook = books.find((b) => b.id === selectedBookId);
 
   return (
     <Box>
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-        <Typography variant="h4" component="h1" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'text.primary' }}>
+      <Box
+        sx={{
+          mb: 3,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 2,
+        }}
+      >
+        <Typography
+          variant="h4"
+          component="h1"
+          sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'text.primary' }}
+        >
           Record Reading Session
         </Typography>
         <TextField
@@ -337,349 +367,455 @@ const SessionForm = () => {
               border: '1px solid rgba(139, 115, 85, 0.12)',
               '& fieldset': { border: 'none' },
               '&:hover': { border: '1px solid rgba(107, 142, 107, 0.3)' },
-              '&.Mui-focused': { backgroundColor: '#ffffff', border: '1px solid rgba(107, 142, 107, 0.5)', boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.12)' },
-              minWidth: 150
-            }
+              '&.Mui-focused': {
+                backgroundColor: '#ffffff',
+                border: '1px solid rgba(107, 142, 107, 0.5)',
+                boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.12)',
+              },
+              minWidth: 150,
+            },
           }}
         />
       </Box>
-      <Paper sx={{
+      <Paper
+        sx={{
           p: 3,
           pb: 'calc(env(safe-area-inset-bottom) + 24px)',
           borderRadius: '16px',
-        }}>
-          {error && (
-            <Alert severity="error" sx={{ mb: 3, borderRadius: 4 }}>
-              {error}
-            </Alert>
-          )}
-          
-          <form onSubmit={handleSubmit}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+        }}
+      >
+        {error && (
+          <Alert severity="error" sx={{ mb: 3, borderRadius: 4 }}>
+            {error}
+          </Alert>
+        )}
 
-              {/* Row 1: Student dropdown + Info chips inline */}
-              <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                <FormControl data-tour="session-student-select" sx={{ flex: 1, minWidth: 200 }}>
-                  <InputLabel id="student-select-label" sx={{ fontFamily: '"DM Sans", sans-serif' }}>Student</InputLabel>
-                  <Select
-                    labelId="student-select-label"
-                    id="student-select"
-                    value={selectedStudentId}
-                    label="Student"
-                    onChange={handleStudentChange}
-                    sx={{
-                      borderRadius: '10px',
-                      backgroundColor: '#FAF8F3',
-                      boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.03)',
-                      border: '1px solid rgba(139, 115, 85, 0.12)',
-                      '& fieldset': { border: 'none' },
-                      '&:hover': { border: '1px solid rgba(107, 142, 107, 0.3)' },
-                      '&.Mui-focused': { backgroundColor: '#ffffff', border: '1px solid rgba(107, 142, 107, 0.5)', boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.12)' },
-                    }}
-                  >
-                    {sortedStudents.length === 0 ? (
-                      <MenuItem disabled>
-                        <Typography variant="body2" color="text.secondary">
-                          {globalClassFilter && globalClassFilter !== 'all' ? 'No students found in this class' : 'No active students available'}
-                        </Typography>
-                      </MenuItem>
-                    ) : (
-                      sortedStudents.map((student) => {
-                        const isRecentlyAccessed = recentlyAccessedStudents.includes(student.id);
-                        return (
-                          <MenuItem key={student.id} value={student.id}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                              {isRecentlyAccessed && (
-                                <StarIcon sx={{ mr: 1, color: '#F59E0B', fontSize: '1rem' }} />
-                              )}
-                              <Typography variant="inherit" sx={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 500 }}>
-                                {student.name}
-                              </Typography>
-                              {isRecentlyAccessed && (
-                                <Typography variant="caption" sx={{ ml: 'auto', color: 'text.secondary', fontStyle: 'italic' }}>
-                                  Recent
-                                </Typography>
-                              )}
-                            </Box>
-                          </MenuItem>
-                        );
-                      })
-                    )}
-                  </Select>
-                </FormControl>
-                {selectedStudent && <StudentInfoCard student={selectedStudent} />}
-              </Box>
-
-              {/* Row 2: Book (compact display or BookAutocomplete + Popover) */}
-              <Box data-tour="session-book-select">
-                {selectedBookId ? (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <BookCover
-                      title={selectedBook?.title || ''}
-                      author={bookAuthor || null}
-                      width={40}
-                      height={60}
-                    />
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography variant="body1" noWrap sx={{ fontWeight: 600, color: 'text.primary' }}>
-                        {selectedBook?.title || ''}
-                      </Typography>
-                      {bookAuthor && (
-                        <Typography variant="body2" color="text.secondary" noWrap>
-                          by {bookAuthor}
-                        </Typography>
-                      )}
-                    </Box>
-                    <Button size="small" variant="outlined" onClick={() => handleBookChange(null)} sx={{ borderRadius: 3, flexShrink: 0 }}>
-                      Change
-                    </Button>
-                    <IconButton size="small" onClick={(e) => setBookEditAnchor(e.currentTarget)} aria-label="Edit book details">
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                    <Popover
-                      open={bookEditOpen}
-                      anchorEl={bookEditAnchor}
-                      onClose={() => setBookEditAnchor(null)}
-                      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                      transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                      slotProps={{ paper: { sx: { p: 3, borderRadius: 4, maxWidth: 420, width: '90vw' } } }}
-                    >
-                      <Typography variant="subtitle2" gutterBottom sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: 'text.primary' }}>
-                        Edit Book Details
-                      </Typography>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <TextField
-                          label="Author"
-                          value={bookAuthor}
-                          onChange={(e) => setBookAuthor(e.target.value)}
-                          fullWidth
-                          size="small"
-                          InputProps={{ sx: { borderRadius: 3, backgroundColor: '#fff' } }}
-                        />
-                        <TextField
-                          label="Reading Level"
-                          value={bookReadingLevel}
-                          onChange={(e) => setBookReadingLevel(e.target.value)}
-                          fullWidth
-                          size="small"
-                          placeholder="e.g. Blue, Level 4"
-                          InputProps={{ sx: { borderRadius: 3, backgroundColor: '#fff' } }}
-                        />
-                        <TextField
-                          label="Age Range"
-                          value={bookAgeRange}
-                          onChange={(e) => setBookAgeRange(e.target.value)}
-                          fullWidth
-                          size="small"
-                          placeholder="e.g. 6-8"
-                          InputProps={{ sx: { borderRadius: 3, backgroundColor: '#fff' } }}
-                        />
-                        <FormControl fullWidth size="small">
-                          <InputLabel id="genre-select-label">Genres</InputLabel>
-                          <Select
-                            labelId="genre-select-label"
-                            multiple
-                            value={bookGenres}
-                            onChange={(e) => setBookGenres(e.target.value)}
-                            label="Genres"
-                            renderValue={(selected) => (
-                              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                                {selected.map((value) => {
-                                  const genre = genres.find(g => g.id === value);
-                                  return (
-                                    <Chip
-                                      key={value}
-                                      label={genre?.name || value}
-                                      size="small"
-                                      sx={{ borderRadius: 1 }}
-                                    />
-                                  );
-                                })}
-                              </Box>
-                            )}
-                            sx={{ borderRadius: 3, backgroundColor: '#fff' }}
-                          >
-                            {genres.map((genre) => (
-                              <MenuItem key={genre.id} value={genre.id}>
-                                {genre.name}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      </Box>
-                      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          onClick={() => {
-                            setBookAuthor(selectedBook?.author || '');
-                            setBookReadingLevel(selectedBook?.readingLevel || '');
-                            setBookAgeRange(selectedBook?.ageRange || '');
-                            setBookGenres(selectedBook?.genreIds || []);
-                          }}
-                          sx={{ borderRadius: 3, fontWeight: 600, whiteSpace: 'nowrap', minWidth: 'auto' }}
-                        >
-                          Reset
-                        </Button>
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            onClick={handleGetBookDetails}
-                            disabled={isFetchingDetails}
-                            startIcon={<DownloadIcon />}
-                            sx={{ borderRadius: 3, fontWeight: 600, whiteSpace: 'nowrap', minWidth: 'auto' }}
-                          >
-                            {isFetchingDetails ? 'Fetching...' : 'Get Details'}
-                          </Button>
-                          <Button
-                            variant="contained"
-                            size="small"
-                            color="primary"
-                            onClick={handleUpdateBookWithDetails}
-                            sx={{
-                              borderRadius: 3,
-                              fontWeight: 600,
-                              whiteSpace: 'nowrap',
-                              minWidth: 'auto',
-                              background: 'linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%)',
-                              boxShadow: '4px 4px 8px rgba(107, 142, 107, 0.3)'
-                            }}
-                          >
-                            Update Book
-                          </Button>
-                        </Box>
-                      </Box>
-                      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block', fontStyle: 'italic' }}>
-                        Use "Get Details" to fetch author info from external APIs, then "Update Book" to save changes.
-                      </Typography>
-                    </Popover>
-                  </Box>
-                ) : (
-                  <BookAutocomplete
-                    value={selectedBook || null}
-                    onChange={handleBookChange}
-                    onBookCreated={handleBookChange}
-                    onBookCreationStart={handleBookCreationStart}
-                  />
-                )}
-              </Box>
-
-              {/* Row 3: Location toggle + Assessment */}
-              <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-                <ToggleButtonGroup
-                  data-tour="session-location"
-                  value={selectedLocation}
-                  exclusive
-                  onChange={(e, val) => { if (val !== null) setSelectedLocation(val); }}
-                  size="small"
-                  sx={{ flexShrink: 0 }}
-                >
-                  <ToggleButton value="school" aria-label="School"
-                    sx={{
-                      px: 2,
-                      borderRadius: '8px 0 0 8px',
-                      textTransform: 'none',
-                      '&.Mui-selected': { bgcolor: 'primary.main', color: '#fff', '&:hover': { bgcolor: '#5A7D5A' } }
-                    }}
-                  >
-                    School
-                  </ToggleButton>
-                  <ToggleButton value="home" aria-label="Home"
-                    sx={{
-                      px: 2,
-                      borderRadius: '0 8px 8px 0',
-                      textTransform: 'none',
-                      '&.Mui-selected': { bgcolor: 'primary.main', color: '#fff', '&:hover': { bgcolor: '#5A7D5A' } }
-                    }}
-                  >
-                    Home
-                  </ToggleButton>
-                </ToggleButtonGroup>
-
-                <Box data-tour="session-assessment" sx={{ flex: 1, minWidth: 250 }}>
-                  <AssessmentSelector
-                    value={assessment}
-                    onChange={handleAssessmentChange}
-                  />
-                </Box>
-              </Box>
-
-              {/* Notes icon + Save button on same row */}
-              <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                <Tooltip title={notes ? `Notes: ${notes.substring(0, 40)}${notes.length > 40 ? '...' : ''}` : 'Add notes'}>
-                  <IconButton
-                    onClick={(e) => setNotesAnchor(e.currentTarget)}
-                    aria-label="Add notes"
-                    sx={{
-                      color: notes ? 'primary.main' : 'text.secondary',
-                      border: notes ? '2px solid #6B8E6B' : '1px solid rgba(0,0,0,0.12)',
-                      borderRadius: 2,
-                      px: 1.5,
-                    }}
-                  >
-                    <NotesIcon fontSize="small" />
-                    {notes && (
-                      <Typography variant="caption" sx={{ ml: 0.5, fontWeight: 600, color: 'primary.main' }}>
-                        Notes
-                      </Typography>
-                    )}
-                  </IconButton>
-                </Tooltip>
-
-                {/* Save button takes remaining space */}
-                <Button
-                  data-tour="session-save"
-                  type="submit"
-                  variant="contained"
-                  color="primary"
-                  fullWidth
-                  size="large"
+        <form onSubmit={handleSubmit}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+            {/* Row 1: Student dropdown + Info chips inline */}
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+              <FormControl data-tour="session-student-select" sx={{ flex: 1, minWidth: 200 }}>
+                <InputLabel id="student-select-label" sx={{ fontFamily: '"DM Sans", sans-serif' }}>
+                  Student
+                </InputLabel>
+                <Select
+                  labelId="student-select-label"
+                  id="student-select"
+                  value={selectedStudentId}
+                  label="Student"
+                  onChange={handleStudentChange}
                   sx={{
-                    flex: 1,
-                    height: 48,
                     borderRadius: '10px',
-                    background: 'linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%)',
-                    boxShadow: '0 4px 12px rgba(107, 142, 107, 0.2)',
-                    fontSize: '1.1rem',
-                    fontWeight: 700,
-                    textTransform: 'none',
-                    '@media (hover: hover) and (pointer: fine)': {
-                      '&:hover': {
-                        transform: 'translateY(-2px)',
-                        boxShadow: '0 6px 20px rgba(107, 142, 107, 0.3)',
-                      },
-                    },
-                    '&:active': {
-                      transform: 'scale(0.97)',
+                    backgroundColor: '#FAF8F3',
+                    boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.03)',
+                    border: '1px solid rgba(139, 115, 85, 0.12)',
+                    '& fieldset': { border: 'none' },
+                    '&:hover': { border: '1px solid rgba(107, 142, 107, 0.3)' },
+                    '&.Mui-focused': {
+                      backgroundColor: '#ffffff',
+                      border: '1px solid rgba(107, 142, 107, 0.5)',
+                      boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.12)',
                     },
                   }}
                 >
-                  Save Reading Session
-                </Button>
-              </Box>
-
-              <Popover
-                open={notesOpen}
-                anchorEl={notesAnchor}
-                onClose={() => setNotesAnchor(null)}
-                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-                transformOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-                slotProps={{ paper: { sx: { p: 2, borderRadius: 4, width: 350, maxWidth: '90vw' } } }}
-              >
-                <SessionNotes value={notes} onChange={handleNotesChange} defaultExpanded />
-              </Popover>
+                  {sortedStudents.length === 0 ? (
+                    <MenuItem disabled>
+                      <Typography variant="body2" color="text.secondary">
+                        {globalClassFilter && globalClassFilter !== 'all'
+                          ? 'No students found in this class'
+                          : 'No active students available'}
+                      </Typography>
+                    </MenuItem>
+                  ) : (
+                    sortedStudents.map((student) => {
+                      const isRecentlyAccessed = recentlyAccessedStudents.includes(student.id);
+                      return (
+                        <MenuItem key={student.id} value={student.id}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                            {isRecentlyAccessed && (
+                              <StarIcon
+                                sx={{ mr: 1, color: 'status.needsAttention', fontSize: '1rem' }}
+                              />
+                            )}
+                            <Typography
+                              variant="inherit"
+                              sx={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 500 }}
+                            >
+                              {student.name}
+                            </Typography>
+                            {isRecentlyAccessed && (
+                              <Typography
+                                variant="caption"
+                                sx={{ ml: 'auto', color: 'text.secondary', fontStyle: 'italic' }}
+                              >
+                                Recent
+                              </Typography>
+                            )}
+                          </Box>
+                        </MenuItem>
+                      );
+                    })
+                  )}
+                </Select>
+              </FormControl>
+              {selectedStudent && <StudentInfoCard student={selectedStudent} />}
             </Box>
-          </form>
-        </Paper>
+
+            {/* Row 2: Book (compact display or BookAutocomplete + Popover) */}
+            <Box data-tour="session-book-select">
+              {selectedBookId ? (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <BookCover
+                    title={selectedBook?.title || ''}
+                    author={bookAuthor || null}
+                    width={40}
+                    height={60}
+                  />
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography
+                      variant="body1"
+                      noWrap
+                      sx={{ fontWeight: 600, color: 'text.primary' }}
+                    >
+                      {selectedBook?.title || ''}
+                    </Typography>
+                    {bookAuthor && (
+                      <Typography variant="body2" color="text.secondary" noWrap>
+                        by {bookAuthor}
+                      </Typography>
+                    )}
+                  </Box>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => handleBookChange(null)}
+                    sx={{ borderRadius: 3, flexShrink: 0 }}
+                  >
+                    Change
+                  </Button>
+                  <IconButton
+                    size="small"
+                    onClick={(e) => setBookEditAnchor(e.currentTarget)}
+                    aria-label="Edit book details"
+                  >
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                  <Popover
+                    open={bookEditOpen}
+                    anchorEl={bookEditAnchor}
+                    onClose={() => setBookEditAnchor(null)}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                    transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                    slotProps={{
+                      paper: { sx: { p: 3, borderRadius: 4, maxWidth: 420, width: '90vw' } },
+                    }}
+                  >
+                    <Typography
+                      variant="subtitle2"
+                      gutterBottom
+                      sx={{
+                        fontFamily: '"Nunito", sans-serif',
+                        fontWeight: 700,
+                        color: 'text.primary',
+                      }}
+                    >
+                      Edit Book Details
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <TextField
+                        label="Author"
+                        value={bookAuthor}
+                        onChange={(e) => setBookAuthor(e.target.value)}
+                        fullWidth
+                        size="small"
+                        InputProps={{
+                          sx: { borderRadius: 3, backgroundColor: 'background.paper' },
+                        }}
+                      />
+                      <TextField
+                        label="Reading Level"
+                        value={bookReadingLevel}
+                        onChange={(e) => setBookReadingLevel(e.target.value)}
+                        fullWidth
+                        size="small"
+                        placeholder="e.g. Blue, Level 4"
+                        InputProps={{
+                          sx: { borderRadius: 3, backgroundColor: 'background.paper' },
+                        }}
+                      />
+                      <TextField
+                        label="Age Range"
+                        value={bookAgeRange}
+                        onChange={(e) => setBookAgeRange(e.target.value)}
+                        fullWidth
+                        size="small"
+                        placeholder="e.g. 6-8"
+                        InputProps={{
+                          sx: { borderRadius: 3, backgroundColor: 'background.paper' },
+                        }}
+                      />
+                      <FormControl fullWidth size="small">
+                        <InputLabel id="genre-select-label">Genres</InputLabel>
+                        <Select
+                          labelId="genre-select-label"
+                          multiple
+                          value={bookGenres}
+                          onChange={(e) => setBookGenres(e.target.value)}
+                          label="Genres"
+                          renderValue={(selected) => (
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                              {selected.map((value) => {
+                                const genre = genres.find((g) => g.id === value);
+                                return (
+                                  <Chip
+                                    key={value}
+                                    label={genre?.name || value}
+                                    size="small"
+                                    sx={{ borderRadius: 1 }}
+                                  />
+                                );
+                              })}
+                            </Box>
+                          )}
+                          sx={{ borderRadius: 3, backgroundColor: 'background.paper' }}
+                        >
+                          {genres.map((genre) => (
+                            <MenuItem key={genre.id} value={genre.id}>
+                              {genre.name}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Box>
+                    <Box
+                      sx={{
+                        mt: 2,
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: 1,
+                      }}
+                    >
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => {
+                          setBookAuthor(selectedBook?.author || '');
+                          setBookReadingLevel(selectedBook?.readingLevel || '');
+                          setBookAgeRange(selectedBook?.ageRange || '');
+                          setBookGenres(selectedBook?.genreIds || []);
+                        }}
+                        sx={{
+                          borderRadius: 3,
+                          fontWeight: 600,
+                          whiteSpace: 'nowrap',
+                          minWidth: 'auto',
+                        }}
+                      >
+                        Reset
+                      </Button>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={handleGetBookDetails}
+                          disabled={isFetchingDetails}
+                          startIcon={<DownloadIcon />}
+                          sx={{
+                            borderRadius: 3,
+                            fontWeight: 600,
+                            whiteSpace: 'nowrap',
+                            minWidth: 'auto',
+                          }}
+                        >
+                          {isFetchingDetails ? 'Fetching...' : 'Get Details'}
+                        </Button>
+                        <Button
+                          variant="contained"
+                          size="small"
+                          color="primary"
+                          onClick={handleUpdateBookWithDetails}
+                          sx={{
+                            borderRadius: 3,
+                            fontWeight: 600,
+                            whiteSpace: 'nowrap',
+                            minWidth: 'auto',
+                            background: 'linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%)',
+                            boxShadow: '4px 4px 8px rgba(107, 142, 107, 0.3)',
+                          }}
+                        >
+                          Update Book
+                        </Button>
+                      </Box>
+                    </Box>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ mt: 1, display: 'block', fontStyle: 'italic' }}
+                    >
+                      Use "Get Details" to fetch author info from external APIs, then "Update Book"
+                      to save changes.
+                    </Typography>
+                  </Popover>
+                </Box>
+              ) : (
+                <BookAutocomplete
+                  value={selectedBook || null}
+                  onChange={handleBookChange}
+                  onBookCreated={handleBookChange}
+                  onBookCreationStart={handleBookCreationStart}
+                />
+              )}
+            </Box>
+
+            {/* Row 3: Location toggle + Assessment */}
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+              <ToggleButtonGroup
+                data-tour="session-location"
+                value={selectedLocation}
+                exclusive
+                onChange={(e, val) => {
+                  if (val !== null) setSelectedLocation(val);
+                }}
+                size="small"
+                sx={{ flexShrink: 0 }}
+              >
+                <ToggleButton
+                  value="school"
+                  aria-label="School"
+                  sx={{
+                    px: 2,
+                    borderRadius: '8px 0 0 8px',
+                    textTransform: 'none',
+                    '&.Mui-selected': {
+                      bgcolor: 'primary.main',
+                      color: 'background.paper',
+                      '&:hover': { bgcolor: 'primary.dark' },
+                    },
+                  }}
+                >
+                  School
+                </ToggleButton>
+                <ToggleButton
+                  value="home"
+                  aria-label="Home"
+                  sx={{
+                    px: 2,
+                    borderRadius: '0 8px 8px 0',
+                    textTransform: 'none',
+                    '&.Mui-selected': {
+                      bgcolor: 'primary.main',
+                      color: 'background.paper',
+                      '&:hover': { bgcolor: 'primary.dark' },
+                    },
+                  }}
+                >
+                  Home
+                </ToggleButton>
+              </ToggleButtonGroup>
+
+              <Box data-tour="session-assessment" sx={{ flex: 1, minWidth: 250 }}>
+                <AssessmentSelector value={assessment} onChange={handleAssessmentChange} />
+              </Box>
+            </Box>
+
+            {/* Notes icon + Save button on same row */}
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+              <Tooltip
+                title={
+                  notes
+                    ? `Notes: ${notes.substring(0, 40)}${notes.length > 40 ? '...' : ''}`
+                    : 'Add notes'
+                }
+              >
+                <IconButton
+                  onClick={(e) => setNotesAnchor(e.currentTarget)}
+                  aria-label="Add notes"
+                  sx={{
+                    color: notes ? 'primary.main' : 'text.secondary',
+                    border: (theme) =>
+                      notes
+                        ? `2px solid ${theme.palette.primary.main}`
+                        : '1px solid rgba(0,0,0,0.12)',
+                    borderRadius: 2,
+                    px: 1.5,
+                  }}
+                >
+                  <NotesIcon fontSize="small" />
+                  {notes && (
+                    <Typography
+                      variant="caption"
+                      sx={{ ml: 0.5, fontWeight: 600, color: 'primary.main' }}
+                    >
+                      Notes
+                    </Typography>
+                  )}
+                </IconButton>
+              </Tooltip>
+
+              {/* Save button takes remaining space */}
+              <Button
+                data-tour="session-save"
+                type="submit"
+                variant="contained"
+                color="primary"
+                fullWidth
+                size="large"
+                sx={{
+                  flex: 1,
+                  height: 48,
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%)',
+                  boxShadow: '0 4px 12px rgba(107, 142, 107, 0.2)',
+                  fontSize: '1.1rem',
+                  fontWeight: 700,
+                  textTransform: 'none',
+                  '@media (hover: hover) and (pointer: fine)': {
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 6px 20px rgba(107, 142, 107, 0.3)',
+                    },
+                  },
+                  '&:active': {
+                    transform: 'scale(0.97)',
+                  },
+                }}
+              >
+                Save Reading Session
+              </Button>
+            </Box>
+
+            <Popover
+              open={notesOpen}
+              anchorEl={notesAnchor}
+              onClose={() => setNotesAnchor(null)}
+              anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+              transformOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+              slotProps={{ paper: { sx: { p: 2, borderRadius: 4, width: 350, maxWidth: '90vw' } } }}
+            >
+              <SessionNotes value={notes} onChange={handleNotesChange} defaultExpanded />
+            </Popover>
+          </Box>
+        </form>
+      </Paper>
       {/* Student Books Read */}
       {selectedStudentId && (
-        <Paper sx={{
-          mt: 2,
-          p: 2,
-          borderRadius: '12px',
-        }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, fontFamily: '"Nunito", sans-serif', color: 'text.primary', mb: 1.5 }}>
+        <Paper
+          sx={{
+            mt: 2,
+            p: 2,
+            borderRadius: '12px',
+          }}
+        >
+          <Typography
+            variant="subtitle1"
+            sx={{
+              fontWeight: 700,
+              fontFamily: '"Nunito", sans-serif',
+              color: 'text.primary',
+              mb: 1.5,
+            }}
+          >
             Books Read — {selectedStudent?.name}
           </Typography>
           {historyLoading ? (
@@ -690,86 +826,109 @@ const SessionForm = () => {
             <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
               No reading sessions recorded yet
             </Typography>
-          ) : (() => {
-            const bookGroups = new Map();
-            for (const session of studentHistory) {
-              const key = session.bookId || `no-book-${session.id}`;
-              if (!bookGroups.has(key)) {
-                bookGroups.set(key, { bookId: session.bookId, sessions: [] });
+          ) : (
+            (() => {
+              const bookGroups = new Map();
+              for (const session of studentHistory) {
+                const key = session.bookId || `no-book-${session.id}`;
+                if (!bookGroups.has(key)) {
+                  bookGroups.set(key, { bookId: session.bookId, sessions: [] });
+                }
+                bookGroups.get(key).sessions.push(session);
               }
-              bookGroups.get(key).sessions.push(session);
-            }
-            const booksRead = [...bookGroups.values()]
-              .filter(g => g.bookId)
-              .map(g => ({
-                ...g,
-                lastDate: g.sessions[0].date,
-                firstDate: g.sessions[g.sessions.length - 1].date,
-                count: g.sessions.length,
-              }));
-            if (booksRead.length === 0) return (
-              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
-                No books recorded yet
-              </Typography>
-            );
-            return (
-              <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 1 }}>
-                {booksRead.slice(0, 30).map((entry) => {
-                  const book = booksMap.get(entry.bookId);
-                  const lastDate = new Date(entry.lastDate);
-                  const dateLabel = lastDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-                  return (
-                    <Box
-                      key={entry.bookId}
-                      sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        minWidth: 90,
-                        maxWidth: 90,
-                        flexShrink: 0,
-                      }}
-                    >
-                      <BookCover
-                        title={book?.title || 'Unknown'}
-                        author={book?.author}
-                        width={70}
-                        height={100}
-                      />
-                      <Typography
-                        variant="caption"
+              const booksRead = [...bookGroups.values()]
+                .filter((g) => g.bookId)
+                .map((g) => ({
+                  ...g,
+                  lastDate: g.sessions[0].date,
+                  firstDate: g.sessions[g.sessions.length - 1].date,
+                  count: g.sessions.length,
+                }));
+              if (booksRead.length === 0)
+                return (
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ textAlign: 'center', py: 2 }}
+                  >
+                    No books recorded yet
+                  </Typography>
+                );
+              return (
+                <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 1 }}>
+                  {booksRead.slice(0, 30).map((entry) => {
+                    const book = booksMap.get(entry.bookId);
+                    const lastDate = new Date(entry.lastDate);
+                    const dateLabel = lastDate.toLocaleDateString('en-GB', {
+                      day: 'numeric',
+                      month: 'short',
+                    });
+                    return (
+                      <Box
+                        key={entry.bookId}
                         sx={{
-                          mt: 0.5,
-                          fontWeight: 600,
-                          textAlign: 'center',
-                          lineHeight: 1.2,
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                          fontSize: '0.7rem',
-                          width: '100%',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          minWidth: 90,
+                          maxWidth: 90,
+                          flexShrink: 0,
                         }}
                       >
-                        {book?.title || 'Unknown'}
-                      </Typography>
-                      {book?.author && (
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem', textAlign: 'center', lineHeight: 1.1 }} noWrap>
-                          {book.author}
+                        <BookCover
+                          title={book?.title || 'Unknown'}
+                          author={book?.author}
+                          width={70}
+                          height={100}
+                        />
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            mt: 0.5,
+                            fontWeight: 600,
+                            textAlign: 'center',
+                            lineHeight: 1.2,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                            fontSize: '0.7rem',
+                            width: '100%',
+                          }}
+                        >
+                          {book?.title || 'Unknown'}
                         </Typography>
-                      )}
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>
-                        {entry.count} {entry.count === 1 ? 'session' : 'sessions'}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>
-                        {dateLabel}
-                      </Typography>
-                    </Box>
-                  );
-                })}
-              </Box>
-            );
-          })()}
+                        {book?.author && (
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ fontSize: '0.6rem', textAlign: 'center', lineHeight: 1.1 }}
+                            noWrap
+                          >
+                            {book.author}
+                          </Typography>
+                        )}
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ fontSize: '0.6rem' }}
+                        >
+                          {entry.count} {entry.count === 1 ? 'session' : 'sessions'}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ fontSize: '0.6rem' }}
+                        >
+                          {dateLabel}
+                        </Typography>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              );
+            })()
+          )}
         </Paper>
       )}
       <Snackbar
@@ -782,10 +941,10 @@ const SessionForm = () => {
           sx: {
             borderRadius: 4,
             bgcolor: 'primary.main',
-            color: '#fff',
+            color: 'background.paper',
             fontWeight: 600,
-            boxShadow: '0 8px 20px rgba(107, 142, 107, 0.3)'
-          }
+            boxShadow: '0 8px 20px rgba(107, 142, 107, 0.3)',
+          },
         }}
       />
       <TourButton {...tourButtonProps} />

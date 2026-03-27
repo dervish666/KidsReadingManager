@@ -25,7 +25,7 @@ const formatDate = (isoDate) => {
 };
 
 const cardSx = {
-  bgcolor: '#fafaf7',
+  bgcolor: 'rgba(250, 248, 243, 0.8)',
   borderRadius: 2,
   p: 2,
   mb: 2,

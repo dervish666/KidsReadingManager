@@ -84,10 +84,11 @@ const PolicyTable = ({ headers, rows }) => (
   </TableContainer>
 );
 
-// Section heading component
+// Section heading component (renders as h2 for proper hierarchy under h1 page title)
 const SectionHeading = ({ children }) => (
   <Typography
     variant="h4"
+    component="h2"
     sx={{
       mt: 5,
       mb: 2,
@@ -99,10 +100,11 @@ const SectionHeading = ({ children }) => (
   </Typography>
 );
 
-// Subsection heading component
+// Subsection heading component (renders as h3)
 const SubsectionHeading = ({ children }) => (
   <Typography
     variant="h5"
+    component="h3"
     sx={{
       mt: 3,
       mb: 1.5,
@@ -187,6 +189,7 @@ const PrivacyPolicy = () => {
             </Box>
             <Typography
               variant="h3"
+              component="h1"
               sx={{
                 fontSize: { xs: '1.6rem', sm: '2rem' },
                 color: 'text.primary',
@@ -218,8 +221,8 @@ const PrivacyPolicy = () => {
 
           <BodyText>
             Tally Reading (&ldquo;Tally&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;,
-            &ldquo;our&rdquo;) provides a cloud-based reading management platform designed for
-            UK primary schools. Schools use Tally to track pupil reading progress, manage book
+            &ldquo;our&rdquo;) provides a cloud-based reading management platform designed for UK
+            primary schools. Schools use Tally to track pupil reading progress, manage book
             libraries, and optionally generate AI-powered book recommendations.
           </BodyText>
 
@@ -227,11 +230,30 @@ const PrivacyPolicy = () => {
             headers={['Detail', 'Value']}
             rows={[
               [<strong>Product name</strong>, 'Tally (trading as Tally Reading)'],
-              [<strong>Website</strong>, <Link href="https://tallyreading.uk" target="_blank" rel="noopener" sx={{ color: 'primary.main' }}>https://tallyreading.uk</Link>],
+              [
+                <strong>Website</strong>,
+                <Link
+                  href="https://tallyreading.uk"
+                  target="_blank"
+                  rel="noopener"
+                  sx={{ color: 'primary.main' }}
+                >
+                  https://tallyreading.uk
+                </Link>,
+              ],
               [<strong>Company name</strong>, 'Scratch IT LTD'],
               [<strong>Company number</strong>, '08151576'],
               [<strong>Registered address</strong>, '247 Bishopsworth Road, Bristol, BS13 7LH'],
-              [<strong>Data Protection Officer</strong>, <span>Sam Castillo (<Link href="mailto:sam@tallyreading.uk" sx={{ color: 'primary.main' }}>sam@tallyreading.uk</Link>)</span>],
+              [
+                <strong>Data Protection Officer</strong>,
+                <span>
+                  Sam Castillo (
+                  <Link href="mailto:sam@tallyreading.uk" sx={{ color: 'primary.main' }}>
+                    sam@tallyreading.uk
+                  </Link>
+                  )
+                </span>,
+              ],
               [<strong>ICO registration number</strong>, 'ZC098130'],
             ]}
           />
@@ -242,8 +264,8 @@ const PrivacyPolicy = () => {
             Under UK GDPR, each <strong>school</strong> that subscribes to Tally acts as the{' '}
             <strong>data controller</strong> for the personal data of its pupils, staff, and other
             users. Tally acts as a <strong>data processor</strong>, processing personal data on
-            behalf of and under the instructions of each school. This relationship is governed by
-            a separate Data Processing Agreement (DPA) between Tally and each subscribing school.
+            behalf of and under the instructions of each school. This relationship is governed by a
+            separate Data Processing Agreement (DPA) between Tally and each subscribing school.
           </BodyText>
 
           <BodyText>
@@ -273,13 +295,31 @@ const PrivacyPolicy = () => {
           <PolicyTable
             headers={['Category', 'Data fields']}
             rows={[
-              [<strong>Identity</strong>, 'First name, surname (or combined display name as entered by the school)'],
-              [<strong>Reading profile</strong>, 'Minimum and maximum reading level (Accelerated Reader levels 1.0 to 13.0), age range'],
-              [<strong>Preferences</strong>, 'Likes and dislikes (free-text lists), favourite genre preferences'],
-              [<strong>Reading sessions</strong>, 'Date, duration, number of pages read, location (school or home), teacher assessment notes (free text), enjoyment rating (1 to 5), book read'],
-              [<strong>Progress data</strong>, 'Current book, reading streak (current and longest), streak start date'],
+              [
+                <strong>Identity</strong>,
+                'First name, surname (or combined display name as entered by the school)',
+              ],
+              [
+                <strong>Reading profile</strong>,
+                'Minimum and maximum reading level (Accelerated Reader levels 1.0 to 13.0), age range',
+              ],
+              [
+                <strong>Preferences</strong>,
+                'Likes and dislikes (free-text lists), favourite genre preferences',
+              ],
+              [
+                <strong>Reading sessions</strong>,
+                'Date, duration, number of pages read, location (school or home), teacher assessment notes (free text), enjoyment rating (1 to 5), book read',
+              ],
+              [
+                <strong>Progress data</strong>,
+                'Current book, reading streak (current and longest), streak start date',
+              ],
               [<strong>Teacher notes</strong>, 'Free-text observations recorded by the teacher'],
-              [<strong>Class membership</strong>, 'Assignment to one or more classes within the school'],
+              [
+                <strong>Class membership</strong>,
+                'Assignment to one or more classes within the school',
+              ],
             ]}
           />
 
@@ -297,8 +337,14 @@ const PrivacyPolicy = () => {
             rows={[
               [<strong>Identity</strong>, 'Full name'],
               [<strong>Contact</strong>, 'Email address'],
-              [<strong>Authentication</strong>, 'Password (stored as a salted hash using PBKDF2 with 100,000 iterations; the plaintext password is never stored or logged)'],
-              [<strong>Role and organisation</strong>, 'Assigned role (owner, admin, teacher, or read-only), school/organisation membership'],
+              [
+                <strong>Authentication</strong>,
+                'Password (stored as a salted hash using PBKDF2 with 100,000 iterations; the plaintext password is never stored or logged)',
+              ],
+              [
+                <strong>Role and organisation</strong>,
+                'Assigned role (owner, admin, teacher, or read-only), school/organisation membership',
+              ],
               [<strong>Activity</strong>, 'Login timestamps, last-active timestamps'],
             ]}
           />
@@ -308,9 +354,18 @@ const PrivacyPolicy = () => {
           <PolicyTable
             headers={['Category', 'Data fields']}
             rows={[
-              [<strong>Audit logs</strong>, 'IP address (derived from the cf-connecting-ip header provided by Cloudflare), user-agent string, action performed, entity affected, timestamp'],
-              [<strong>Rate-limiting records</strong>, 'Hashed identifier, endpoint, timestamp (used to prevent brute-force attacks on authentication endpoints)'],
-              [<strong>Request logs</strong>, 'Standard HTTP request metadata processed by Cloudflare in the course of delivering the service'],
+              [
+                <strong>Audit logs</strong>,
+                'IP address (derived from the cf-connecting-ip header provided by Cloudflare), user-agent string, action performed, entity affected, timestamp',
+              ],
+              [
+                <strong>Rate-limiting records</strong>,
+                'Hashed identifier, endpoint, timestamp (used to prevent brute-force attacks on authentication endpoints)',
+              ],
+              [
+                <strong>Request logs</strong>,
+                'Standard HTTP request metadata processed by Cloudflare in the course of delivering the service',
+              ],
             ]}
           />
 
@@ -351,8 +406,8 @@ const PrivacyPolicy = () => {
           <SectionHeading>3. Why we collect it (lawful basis)</SectionHeading>
 
           <BodyText>
-            UK GDPR requires that every processing activity has a lawful basis. The table below
-            sets out the lawful basis we rely on for each purpose.
+            UK GDPR requires that every processing activity has a lawful basis. The table below sets
+            out the lawful basis we rely on for each purpose.
           </BodyText>
 
           <PolicyTable
@@ -373,7 +428,11 @@ const PrivacyPolicy = () => {
               [
                 'AI-powered book recommendations (optional)',
                 'Pupil reading level, preferences, likes/dislikes, books read, genre preferences',
-                <span><strong>Article 6(1)(b) — Contract</strong> with <strong>Article 6(1)(a) — Consent</strong> as a secondary basis at the school level</span>,
+                <span>
+                  <strong>Article 6(1)(b) — Contract</strong> with{' '}
+                  <strong>Article 6(1)(a) — Consent</strong> as a secondary basis at the school
+                  level
+                </span>,
                 'Schools actively opt in by configuring their own AI API keys. Individual recommendations are triggered by teacher action. See Section 5.2 for details.',
               ],
               [
@@ -410,10 +469,10 @@ const PrivacyPolicy = () => {
           />
 
           <BodyText>
-            Where we rely on legitimate interests (Article 6(1)(f)), we have conducted a
-            Legitimate Interests Assessment (LIA) and concluded that the processing is necessary
-            and proportionate, and that it does not override the rights and freedoms of data
-            subjects (including children).
+            Where we rely on legitimate interests (Article 6(1)(f)), we have conducted a Legitimate
+            Interests Assessment (LIA) and concluded that the processing is necessary and
+            proportionate, and that it does not override the rights and freedoms of data subjects
+            (including children).
           </BodyText>
 
           <Divider sx={{ borderColor: 'rgba(139, 115, 85, 0.15)', mt: 3 }} />
@@ -424,9 +483,8 @@ const PrivacyPolicy = () => {
           <SectionHeading>4. Children&rsquo;s data</SectionHeading>
 
           <BodyText>
-            Tally processes personal data relating to children (typically aged 4 to 11 in UK
-            primary schools). We take the following additional measures to protect children&rsquo;s
-            data:
+            Tally processes personal data relating to children (typically aged 4 to 11 in UK primary
+            schools). We take the following additional measures to protect children&rsquo;s data:
           </BodyText>
 
           <List component="ol" sx={{ pl: 2, '& > li': { mb: 1.5 } }}>
@@ -434,9 +492,10 @@ const PrivacyPolicy = () => {
               <ListItemText
                 primary={
                   <span>
-                    <strong>Data minimisation.</strong> We collect only the data necessary to provide
-                    the reading management service. We do not collect children&rsquo;s email addresses,
-                    dates of birth, home addresses, photographs, or any direct contact information.
+                    <strong>Data minimisation.</strong> We collect only the data necessary to
+                    provide the reading management service. We do not collect children&rsquo;s email
+                    addresses, dates of birth, home addresses, photographs, or any direct contact
+                    information.
                   </span>
                 }
                 primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
@@ -448,7 +507,8 @@ const PrivacyPolicy = () => {
                   <span>
                     <strong>No direct relationship with children.</strong> Tally has no direct
                     relationship with pupils. All pupil data is entered and managed by school staff
-                    (teachers and administrators). Children do not create accounts or log in to Tally.
+                    (teachers and administrators). Children do not create accounts or log in to
+                    Tally.
                   </span>
                 }
                 primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
@@ -462,7 +522,8 @@ const PrivacyPolicy = () => {
                     responsible for ensuring that it has a lawful basis for processing pupil data
                     (typically the public task basis under Article 6(1)(e) for maintained schools,
                     or legitimate interests under Article 6(1)(f) for academies and independent
-                    schools) and for providing appropriate privacy information to parents and carers.
+                    schools) and for providing appropriate privacy information to parents and
+                    carers.
                   </span>
                 }
                 primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
@@ -508,10 +569,10 @@ const PrivacyPolicy = () => {
               <ListItemText
                 primary={
                   <span>
-                    <strong>Age-appropriate considerations.</strong> We have designed the platform in
-                    accordance with the ICO&rsquo;s Age Appropriate Design Code (Children&rsquo;s Code)
-                    where applicable, recognising that children do not directly interact with the
-                    service.
+                    <strong>Age-appropriate considerations.</strong> We have designed the platform
+                    in accordance with the ICO&rsquo;s Age Appropriate Design Code (Children&rsquo;s
+                    Code) where applicable, recognising that children do not directly interact with
+                    the service.
                   </span>
                 }
                 primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
@@ -527,8 +588,8 @@ const PrivacyPolicy = () => {
           <SectionHeading>5. Who we share data with</SectionHeading>
 
           <BodyText>
-            We share personal data only with the third parties set out below, and only to the
-            extent necessary for the stated purpose.
+            We share personal data only with the third parties set out below, and only to the extent
+            necessary for the stated purpose.
           </BodyText>
 
           <SubsectionHeading>5.1 Infrastructure provider — Cloudflare, Inc.</SubsectionHeading>
@@ -536,30 +597,68 @@ const PrivacyPolicy = () => {
           <PolicyTable
             headers={['Detail', 'Value']}
             rows={[
-              [<strong>Provider</strong>, 'Cloudflare, Inc. (US-headquartered, with UK/EU data regions available)'],
-              [<strong>Services used</strong>, 'Workers (serverless compute), D1 (SQL database), KV (key-value storage), R2 (object storage), CDN, DNS, email routing'],
-              [<strong>Data shared</strong>, 'All data processed by the platform passes through Cloudflare infrastructure'],
-              [<strong>Safeguards</strong>, 'Cloudflare is certified under ISO 27001 and SOC 2 Type II. For international transfer safeguards, see Section 6.'],
-              [<strong>Data region</strong>, 'D1 database located in Western Europe (Germany) with location_hint=weur and replication off. Workers compute and CDN operate globally. Cloudflare DPA v6.3 covers international transfers (EU SCCs + UK IDTA). Cloudflare is certified under the EU-US Data Privacy Framework + UK Extension.'],
+              [
+                <strong>Provider</strong>,
+                'Cloudflare, Inc. (US-headquartered, with UK/EU data regions available)',
+              ],
+              [
+                <strong>Services used</strong>,
+                'Workers (serverless compute), D1 (SQL database), KV (key-value storage), R2 (object storage), CDN, DNS, email routing',
+              ],
+              [
+                <strong>Data shared</strong>,
+                'All data processed by the platform passes through Cloudflare infrastructure',
+              ],
+              [
+                <strong>Safeguards</strong>,
+                'Cloudflare is certified under ISO 27001 and SOC 2 Type II. For international transfer safeguards, see Section 6.',
+              ],
+              [
+                <strong>Data region</strong>,
+                'D1 database located in Western Europe (Germany) with location_hint=weur and replication off. Workers compute and CDN operate globally. Cloudflare DPA v6.3 covers international transfers (EU SCCs + UK IDTA). Cloudflare is certified under the EU-US Data Privacy Framework + UK Extension.',
+              ],
             ]}
           />
 
-          <SubsectionHeading>5.2 AI recommendation providers (optional, school-controlled)</SubsectionHeading>
+          <SubsectionHeading>
+            5.2 AI recommendation providers (optional, school-controlled)
+          </SubsectionHeading>
 
           <PolicyTable
             headers={['Detail', 'Value']}
             rows={[
-              [<strong>Providers</strong>, 'Anthropic (Claude), OpenAI, Google (Gemini) — at the school\'s choice'],
-              [<strong>Activation</strong>, 'Schools must actively opt in by providing their own API key (BYOK model). The feature is disabled by default.'],
-              [<strong>Data shared</strong>, <span>Pupil reading level, favourite genres, likes/dislikes, and a list of books previously read (title, author, genre). <strong>No directly identifying pupil data (such as names) is sent to AI providers.</strong></span>],
-              [<strong>Purpose</strong>, 'Generating personalised book recommendations for the teacher to review'],
-              [<strong>Safeguards</strong>, 'Each school controls whether to enable this feature and which provider to use. Schools provide their own API keys and are bound by their own agreements with the chosen AI provider.'],
+              [
+                <strong>Providers</strong>,
+                "Anthropic (Claude), OpenAI, Google (Gemini) — at the school's choice",
+              ],
+              [
+                <strong>Activation</strong>,
+                'Schools must actively opt in by providing their own API key (BYOK model). The feature is disabled by default.',
+              ],
+              [
+                <strong>Data shared</strong>,
+                <span>
+                  Pupil reading level, favourite genres, likes/dislikes, and a list of books
+                  previously read (title, author, genre).{' '}
+                  <strong>
+                    No directly identifying pupil data (such as names) is sent to AI providers.
+                  </strong>
+                </span>,
+              ],
+              [
+                <strong>Purpose</strong>,
+                'Generating personalised book recommendations for the teacher to review',
+              ],
+              [
+                <strong>Safeguards</strong>,
+                'Each school controls whether to enable this feature and which provider to use. Schools provide their own API keys and are bound by their own agreements with the chosen AI provider.',
+              ],
             ]}
           />
 
           <BodyText sx={{ fontStyle: 'italic', fontSize: '0.875rem', color: 'text.secondary' }}>
-            Updated 25 February 2026: Student names have been removed from all AI prompts.
-            Only pseudonymised reading profile data is now sent to AI providers.
+            Updated 25 February 2026: Student names have been removed from all AI prompts. Only
+            pseudonymised reading profile data is now sent to AI providers.
           </BodyText>
 
           <SubsectionHeading>5.3 OpenLibrary (Internet Archive)</SubsectionHeading>
@@ -568,8 +667,17 @@ const PrivacyPolicy = () => {
             headers={['Detail', 'Value']}
             rows={[
               [<strong>Provider</strong>, 'OpenLibrary / Internet Archive'],
-              [<strong>Data shared</strong>, <span>Book metadata only (ISBN, title, author). <strong>No personal data is sent.</strong></span>],
-              [<strong>Purpose</strong>, 'Looking up book cover images and supplementary book metadata (page count, publication year)'],
+              [
+                <strong>Data shared</strong>,
+                <span>
+                  Book metadata only (ISBN, title, author).{' '}
+                  <strong>No personal data is sent.</strong>
+                </span>,
+              ],
+              [
+                <strong>Purpose</strong>,
+                'Looking up book cover images and supplementary book metadata (page count, publication year)',
+              ],
             ]}
           />
 
@@ -578,9 +686,18 @@ const PrivacyPolicy = () => {
           <PolicyTable
             headers={['Detail', 'Value']}
             rows={[
-              [<strong>Provider</strong>, 'Cloudflare Email Routing (covered under Cloudflare DPA)'],
-              [<strong>Data shared</strong>, 'Staff user email addresses and email content (password-reset links, welcome messages)'],
-              [<strong>Purpose</strong>, 'Transactional emails only (password resets, account invitations). No marketing emails are sent.'],
+              [
+                <strong>Provider</strong>,
+                'Cloudflare Email Routing (covered under Cloudflare DPA)',
+              ],
+              [
+                <strong>Data shared</strong>,
+                'Staff user email addresses and email content (password-reset links, welcome messages)',
+              ],
+              [
+                <strong>Purpose</strong>,
+                'Transactional emails only (password resets, account invitations). No marketing emails are sent.',
+              ],
             ]}
           />
 
@@ -599,10 +716,10 @@ const PrivacyPolicy = () => {
           <SectionHeading>6. International data transfers</SectionHeading>
 
           <BodyText>
-            Tally&rsquo;s infrastructure is hosted on Cloudflare&rsquo;s global network.
-            Cloudflare, Inc. is headquartered in the United States. Where personal data is
-            transferred outside the United Kingdom, we rely on the following safeguards as
-            required by Articles 44 to 49 of UK GDPR:
+            Tally&rsquo;s infrastructure is hosted on Cloudflare&rsquo;s global network. Cloudflare,
+            Inc. is headquartered in the United States. Where personal data is transferred outside
+            the United Kingdom, we rely on the following safeguards as required by Articles 44 to 49
+            of UK GDPR:
           </BodyText>
 
           <PolicyTable
@@ -613,8 +730,10 @@ const PrivacyPolicy = () => {
                 'Cloudflare DPA v6.3 (auto-applies with service agreement), incorporating EU SCCs and UK IDTA (Version B1.0). Cloudflare is certified under the EU-US Data Privacy Framework and UK Extension. D1 database is located in Western Europe (Germany).',
               ],
               [
-                <span><strong>AI providers (US)</strong> — if enabled by the school</span>,
-                'Schools that enable AI recommendations are responsible for ensuring that their use of the chosen AI provider complies with their own data transfer obligations. Tally facilitates the school\'s BYOK configuration but does not itself hold a contract with the AI provider on the school\'s behalf.',
+                <span>
+                  <strong>AI providers (US)</strong> — if enabled by the school
+                </span>,
+                "Schools that enable AI recommendations are responsible for ensuring that their use of the chosen AI provider complies with their own data transfer obligations. Tally facilitates the school's BYOK configuration but does not itself hold a contract with the AI provider on the school's behalf.",
               ],
             ]}
           />
@@ -633,8 +752,8 @@ const PrivacyPolicy = () => {
           <SectionHeading>7. How long we keep data (retention)</SectionHeading>
 
           <BodyText>
-            We retain personal data only for as long as necessary for the purpose for which it
-            was collected, or as required by law.
+            We retain personal data only for as long as necessary for the purpose for which it was
+            collected, or as required by law.
           </BodyText>
 
           <PolicyTable
@@ -642,12 +761,12 @@ const PrivacyPolicy = () => {
             rows={[
               [
                 <strong>Pupil data</strong>,
-                'Retained while the school\'s subscription is active. Deleted within 90 days of subscription termination or upon school request.',
+                "Retained while the school's subscription is active. Deleted within 90 days of subscription termination or upon school request.",
                 'Necessary to provide the service. Schools may request earlier deletion at any time.',
               ],
               [
                 <strong>Staff user accounts</strong>,
-                'Retained while the school\'s subscription is active. Soft-deleted (deactivated) upon account removal; hard-deleted within 90 days of subscription termination.',
+                "Retained while the school's subscription is active. Soft-deleted (deactivated) upon account removal; hard-deleted within 90 days of subscription termination.",
                 'Necessary to provide access to the service.',
               ],
               [
@@ -677,8 +796,8 @@ const PrivacyPolicy = () => {
               ],
               [
                 <strong>Cloudflare request logs</strong>,
-                'Managed by Cloudflare in accordance with their data processing terms. Typically retained for a limited period (see Cloudflare\'s privacy policy).',
-                'Infrastructure-level logging outside Tally\'s direct control.',
+                "Managed by Cloudflare in accordance with their data processing terms. Typically retained for a limited period (see Cloudflare's privacy policy).",
+                "Infrastructure-level logging outside Tally's direct control.",
               ],
             ]}
           />
@@ -691,10 +810,9 @@ const PrivacyPolicy = () => {
           <SectionHeading>8. Your rights under UK GDPR</SectionHeading>
 
           <BodyText>
-            Under the UK General Data Protection Regulation and the Data Protection Act 2018,
-            data subjects have the following rights. The method for exercising each right depends
-            on whether you are a school staff member or a parent/carer acting on behalf of a
-            pupil.
+            Under the UK General Data Protection Regulation and the Data Protection Act 2018, data
+            subjects have the following rights. The method for exercising each right depends on
+            whether you are a school staff member or a parent/carer acting on behalf of a pupil.
           </BodyText>
 
           <PolicyTable
@@ -703,7 +821,14 @@ const PrivacyPolicy = () => {
               [
                 <strong>Right of access</strong>,
                 'You have the right to obtain confirmation of whether we process your personal data and, if so, to receive a copy of that data. (Article 15)',
-                <span>Staff: contact <Link href="mailto:privacy@tallyreading.uk" sx={{ color: 'primary.main' }}>privacy@tallyreading.uk</Link>. Parents/carers: contact your child&rsquo;s school, which will liaise with Tally if needed.</span>,
+                <span>
+                  Staff: contact{' '}
+                  <Link href="mailto:privacy@tallyreading.uk" sx={{ color: 'primary.main' }}>
+                    privacy@tallyreading.uk
+                  </Link>
+                  . Parents/carers: contact your child&rsquo;s school, which will liaise with Tally
+                  if needed.
+                </span>,
               ],
               [
                 <strong>Right to rectification</strong>,
@@ -713,22 +838,48 @@ const PrivacyPolicy = () => {
               [
                 <strong>Right to erasure</strong>,
                 'You have the right to request deletion of your personal data in certain circumstances. (Article 17)',
-                <span>Staff: contact <Link href="mailto:privacy@tallyreading.uk" sx={{ color: 'primary.main' }}>privacy@tallyreading.uk</Link>. Parents/carers: contact the school. Schools can delete pupil records directly within the platform.</span>,
+                <span>
+                  Staff: contact{' '}
+                  <Link href="mailto:privacy@tallyreading.uk" sx={{ color: 'primary.main' }}>
+                    privacy@tallyreading.uk
+                  </Link>
+                  . Parents/carers: contact the school. Schools can delete pupil records directly
+                  within the platform.
+                </span>,
               ],
               [
                 <strong>Right to restriction</strong>,
                 'You have the right to request that we restrict processing of your personal data in certain circumstances. (Article 18)',
-                <span>Contact <Link href="mailto:privacy@tallyreading.uk" sx={{ color: 'primary.main' }}>privacy@tallyreading.uk</Link> or the school.</span>,
+                <span>
+                  Contact{' '}
+                  <Link href="mailto:privacy@tallyreading.uk" sx={{ color: 'primary.main' }}>
+                    privacy@tallyreading.uk
+                  </Link>{' '}
+                  or the school.
+                </span>,
               ],
               [
                 <strong>Right to data portability</strong>,
                 'You have the right to receive your personal data in a structured, commonly used, and machine-readable format. (Article 20)',
-                <span>Schools can export pupil and reading data via CSV export from the platform. Staff can request their data by contacting <Link href="mailto:privacy@tallyreading.uk" sx={{ color: 'primary.main' }}>privacy@tallyreading.uk</Link>.</span>,
+                <span>
+                  Schools can export pupil and reading data via CSV export from the platform. Staff
+                  can request their data by contacting{' '}
+                  <Link href="mailto:privacy@tallyreading.uk" sx={{ color: 'primary.main' }}>
+                    privacy@tallyreading.uk
+                  </Link>
+                  .
+                </span>,
               ],
               [
                 <strong>Right to object</strong>,
                 'You have the right to object to processing based on legitimate interests. (Article 21)',
-                <span>Contact <Link href="mailto:privacy@tallyreading.uk" sx={{ color: 'primary.main' }}>privacy@tallyreading.uk</Link>. We will cease processing unless we demonstrate compelling legitimate grounds.</span>,
+                <span>
+                  Contact{' '}
+                  <Link href="mailto:privacy@tallyreading.uk" sx={{ color: 'primary.main' }}>
+                    privacy@tallyreading.uk
+                  </Link>
+                  . We will cease processing unless we demonstrate compelling legitimate grounds.
+                </span>,
               ],
               [
                 <strong>Rights related to automated decision-making</strong>,
@@ -741,11 +892,10 @@ const PrivacyPolicy = () => {
           <SubsectionHeading>Exercising rights for children</SubsectionHeading>
 
           <BodyText>
-            Because Tally does not have a direct relationship with pupils, requests concerning
-            pupil data should be directed to the school in the first instance. The school, as
-            data controller, is responsible for responding to data subject requests. Tally will
-            assist the school in fulfilling such requests in accordance with our Data Processing
-            Agreement.
+            Because Tally does not have a direct relationship with pupils, requests concerning pupil
+            data should be directed to the school in the first instance. The school, as data
+            controller, is responsible for responding to data subject requests. Tally will assist
+            the school in fulfilling such requests in accordance with our Data Processing Agreement.
           </BodyText>
 
           <SubsectionHeading>Response times</SubsectionHeading>
@@ -759,8 +909,8 @@ const PrivacyPolicy = () => {
           <SubsectionHeading>Right to complain</SubsectionHeading>
 
           <BodyText>
-            If you are dissatisfied with how your personal data has been handled, you have the
-            right to lodge a complaint with the Information Commissioner&rsquo;s Office (ICO):
+            If you are dissatisfied with how your personal data has been handled, you have the right
+            to lodge a complaint with the Information Commissioner&rsquo;s Office (ICO):
           </BodyText>
 
           <List sx={{ pl: 2 }}>
@@ -769,7 +919,12 @@ const PrivacyPolicy = () => {
                 primary={
                   <span>
                     <strong>Website:</strong>{' '}
-                    <Link href="https://ico.org.uk/make-a-complaint/" target="_blank" rel="noopener" sx={{ color: 'primary.main' }}>
+                    <Link
+                      href="https://ico.org.uk/make-a-complaint/"
+                      target="_blank"
+                      rel="noopener"
+                      sx={{ color: 'primary.main' }}
+                    >
                       https://ico.org.uk/make-a-complaint/
                     </Link>
                   </span>
@@ -779,13 +934,22 @@ const PrivacyPolicy = () => {
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
               <ListItemText
-                primary={<span><strong>Telephone:</strong> 0303 123 1113</span>}
+                primary={
+                  <span>
+                    <strong>Telephone:</strong> 0303 123 1113
+                  </span>
+                }
                 primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
               <ListItemText
-                primary={<span><strong>Post:</strong> Information Commissioner&rsquo;s Office, Wycliffe House, Water Lane, Wilmslow, Cheshire, SK9 5AF</span>}
+                primary={
+                  <span>
+                    <strong>Post:</strong> Information Commissioner&rsquo;s Office, Wycliffe House,
+                    Water Lane, Wilmslow, Cheshire, SK9 5AF
+                  </span>
+                }
                 primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
@@ -810,7 +974,16 @@ const PrivacyPolicy = () => {
             headers={['Name', 'Type', 'Purpose', 'Duration', 'Scope']}
             rows={[
               [
-                <code style={{ backgroundColor: 'rgba(139, 115, 85, 0.08)', padding: '2px 6px', borderRadius: '4px', fontSize: '0.85rem' }}>refresh_token</code>,
+                <code
+                  style={{
+                    backgroundColor: 'rgba(139, 115, 85, 0.08)',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  refresh_token
+                </code>,
                 'httpOnly, Secure (production), SameSite=Strict',
                 'Stores the refresh token for maintaining authenticated sessions. Not accessible to JavaScript.',
                 '7 days',
@@ -825,22 +998,58 @@ const PrivacyPolicy = () => {
             headers={['Key', 'Purpose', 'Duration']}
             rows={[
               [
-                <code style={{ backgroundColor: 'rgba(139, 115, 85, 0.08)', padding: '2px 6px', borderRadius: '4px', fontSize: '0.85rem' }}>krm_auth_token</code>,
+                <code
+                  style={{
+                    backgroundColor: 'rgba(139, 115, 85, 0.08)',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  krm_auth_token
+                </code>,
                 'Stores the short-lived JWT access token for API authentication.',
                 '15 minutes (token TTL; cleared on logout)',
               ],
               [
-                <code style={{ backgroundColor: 'rgba(139, 115, 85, 0.08)', padding: '2px 6px', borderRadius: '4px', fontSize: '0.85rem' }}>krm_user</code>,
+                <code
+                  style={{
+                    backgroundColor: 'rgba(139, 115, 85, 0.08)',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  krm_user
+                </code>,
                 'Stores non-sensitive user profile data (name, email, role, organisation name) for UI display.',
                 'Until logout',
               ],
               [
-                <code style={{ backgroundColor: 'rgba(139, 115, 85, 0.08)', padding: '2px 6px', borderRadius: '4px', fontSize: '0.85rem' }}>krm_auth_mode</code>,
+                <code
+                  style={{
+                    backgroundColor: 'rgba(139, 115, 85, 0.08)',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  krm_auth_mode
+                </code>,
                 'Records whether the instance uses multi-tenant or legacy authentication.',
                 'Until logout',
               ],
               [
-                <code style={{ backgroundColor: 'rgba(139, 115, 85, 0.08)', padding: '2px 6px', borderRadius: '4px', fontSize: '0.85rem' }}>bookCovers</code>,
+                <code
+                  style={{
+                    backgroundColor: 'rgba(139, 115, 85, 0.08)',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  bookCovers
+                </code>,
                 'Caches book cover image URLs to reduce network requests to the cover proxy.',
                 '7 days (entries expire individually)',
               ],
@@ -853,17 +1062,44 @@ const PrivacyPolicy = () => {
             headers={['Key', 'Purpose', 'Duration']}
             rows={[
               [
-                <code style={{ backgroundColor: 'rgba(139, 115, 85, 0.08)', padding: '2px 6px', borderRadius: '4px', fontSize: '0.85rem' }}>globalClassFilter</code>,
+                <code
+                  style={{
+                    backgroundColor: 'rgba(139, 115, 85, 0.08)',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  globalClassFilter
+                </code>,
                 'Remembers the currently selected class filter within the session.',
                 'Until the browser tab is closed',
               ],
               [
-                <code style={{ backgroundColor: 'rgba(139, 115, 85, 0.08)', padding: '2px 6px', borderRadius: '4px', fontSize: '0.85rem' }}>recentlyAccessedStudents</code>,
+                <code
+                  style={{
+                    backgroundColor: 'rgba(139, 115, 85, 0.08)',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  recentlyAccessedStudents
+                </code>,
                 'Tracks recently viewed students for quick navigation.',
                 'Until the browser tab is closed',
               ],
               [
-                <code style={{ backgroundColor: 'rgba(139, 115, 85, 0.08)', padding: '2px 6px', borderRadius: '4px', fontSize: '0.85rem' }}>markedPriorityStudents</code>,
+                <code
+                  style={{
+                    backgroundColor: 'rgba(139, 115, 85, 0.08)',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  markedPriorityStudents
+                </code>,
                 'Tracks students marked as priority within the current session.',
                 'Until the browser tab is closed',
               ],
@@ -892,23 +1128,53 @@ const PrivacyPolicy = () => {
           <SectionHeading>10. Data security</SectionHeading>
 
           <BodyText>
-            We implement appropriate technical and organisational measures to protect personal
-            data, including:
+            We implement appropriate technical and organisational measures to protect personal data,
+            including:
           </BodyText>
 
           <PolicyTable
             headers={['Measure', 'Detail']}
             rows={[
-              [<strong>Encryption in transit</strong>, 'All data transmitted between the user\'s browser and the Tally platform is encrypted using TLS (HTTPS).'],
-              [<strong>Password security</strong>, 'Passwords are hashed using PBKDF2 with 100,000 iterations and a unique salt per account. Plaintext passwords are never stored or logged.'],
-              [<strong>Token security</strong>, 'JWT access tokens have a 15-minute lifetime. Refresh tokens are stored in httpOnly cookies with Secure, SameSite=Strict, and Path-restricted attributes.'],
-              [<strong>Multi-tenant isolation</strong>, 'All database queries are scoped to the requesting organisation. Pupils and staff from one school cannot access data belonging to another school.'],
-              [<strong>Role-based access control</strong>, 'Four permission levels (owner, admin, teacher, read-only) restrict access to data and actions appropriate to each role.'],
-              [<strong>Audit logging</strong>, 'Sensitive operations (user creation, modification, deletion, settings changes) are recorded in an audit log with timestamp, actor, action, and IP address.'],
-              [<strong>Rate limiting</strong>, 'Authentication endpoints are rate-limited to mitigate brute-force and credential-stuffing attacks.'],
-              [<strong>Soft deletion</strong>, 'User and organisation records are soft-deleted (deactivated) rather than immediately removed, preventing accidental data loss while supporting eventual hard deletion.'],
-              [<strong>Minimal client-side data</strong>, 'Only essential data is stored in the browser. Sensitive tokens use httpOnly cookies inaccessible to JavaScript.'],
-              [<strong>Infrastructure security</strong>, 'Hosted on Cloudflare\'s platform, which provides DDoS protection, Web Application Firewall (WAF), and is certified to ISO 27001, SOC 2 Type II, and PCI DSS.'],
+              [
+                <strong>Encryption in transit</strong>,
+                "All data transmitted between the user's browser and the Tally platform is encrypted using TLS (HTTPS).",
+              ],
+              [
+                <strong>Password security</strong>,
+                'Passwords are hashed using PBKDF2 with 100,000 iterations and a unique salt per account. Plaintext passwords are never stored or logged.',
+              ],
+              [
+                <strong>Token security</strong>,
+                'JWT access tokens have a 15-minute lifetime. Refresh tokens are stored in httpOnly cookies with Secure, SameSite=Strict, and Path-restricted attributes.',
+              ],
+              [
+                <strong>Multi-tenant isolation</strong>,
+                'All database queries are scoped to the requesting organisation. Pupils and staff from one school cannot access data belonging to another school.',
+              ],
+              [
+                <strong>Role-based access control</strong>,
+                'Four permission levels (owner, admin, teacher, read-only) restrict access to data and actions appropriate to each role.',
+              ],
+              [
+                <strong>Audit logging</strong>,
+                'Sensitive operations (user creation, modification, deletion, settings changes) are recorded in an audit log with timestamp, actor, action, and IP address.',
+              ],
+              [
+                <strong>Rate limiting</strong>,
+                'Authentication endpoints are rate-limited to mitigate brute-force and credential-stuffing attacks.',
+              ],
+              [
+                <strong>Soft deletion</strong>,
+                'User and organisation records are soft-deleted (deactivated) rather than immediately removed, preventing accidental data loss while supporting eventual hard deletion.',
+              ],
+              [
+                <strong>Minimal client-side data</strong>,
+                'Only essential data is stored in the browser. Sensitive tokens use httpOnly cookies inaccessible to JavaScript.',
+              ],
+              [
+                <strong>Infrastructure security</strong>,
+                "Hosted on Cloudflare's platform, which provides DDoS protection, Web Application Firewall (WAF), and is certified to ISO 27001, SOC 2 Type II, and PCI DSS.",
+              ],
             ]}
           />
 
@@ -926,31 +1192,58 @@ const PrivacyPolicy = () => {
 
           <List sx={{ pl: 2 }}>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
-              <ListItemText primary="The subject matter and duration of processing" primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }} />
+              <ListItemText
+                primary="The subject matter and duration of processing"
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
+              />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
-              <ListItemText primary="The nature and purpose of processing" primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }} />
+              <ListItemText
+                primary="The nature and purpose of processing"
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
+              />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
-              <ListItemText primary="The types of personal data processed" primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }} />
+              <ListItemText
+                primary="The types of personal data processed"
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
+              />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
-              <ListItemText primary="The categories of data subjects" primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }} />
+              <ListItemText
+                primary="The categories of data subjects"
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
+              />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
-              <ListItemText primary="The obligations and rights of the controller (school) and processor (Tally)" primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }} />
+              <ListItemText
+                primary="The obligations and rights of the controller (school) and processor (Tally)"
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
+              />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
-              <ListItemText primary="Sub-processor approval and notification arrangements" primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }} />
+              <ListItemText
+                primary="Sub-processor approval and notification arrangements"
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
+              />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
-              <ListItemText primary="Data breach notification obligations" primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }} />
+              <ListItemText
+                primary="Data breach notification obligations"
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
+              />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
-              <ListItemText primary="Assistance with data subject rights requests" primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }} />
+              <ListItemText
+                primary="Assistance with data subject rights requests"
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
+              />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
-              <ListItemText primary="Data deletion or return upon termination" primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }} />
+              <ListItemText
+                primary="Data deletion or return upon termination"
+                primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
+              />
             </ListItem>
           </List>
 
@@ -962,9 +1255,8 @@ const PrivacyPolicy = () => {
           <SectionHeading>12. Changes to this policy</SectionHeading>
 
           <BodyText>
-            We may update this privacy policy from time to time to reflect changes in our
-            practices, technology, legal requirements, or other factors. When we make material
-            changes:
+            We may update this privacy policy from time to time to reflect changes in our practices,
+            technology, legal requirements, or other factors. When we make material changes:
           </BodyText>
 
           <List component="ol" sx={{ pl: 2 }}>
@@ -1007,23 +1299,30 @@ const PrivacyPolicy = () => {
             rows={[
               [
                 <strong>Email</strong>,
-                <Link href="mailto:privacy@tallyreading.uk" sx={{ color: 'primary.main' }}>privacy@tallyreading.uk</Link>,
+                <Link href="mailto:privacy@tallyreading.uk" sx={{ color: 'primary.main' }}>
+                  privacy@tallyreading.uk
+                </Link>,
               ],
-              [
-                <strong>Post</strong>,
-                'Scratch IT LTD, 247 Bishopsworth Road, Bristol, BS13 7LH',
-              ],
+              [<strong>Post</strong>, 'Scratch IT LTD, 247 Bishopsworth Road, Bristol, BS13 7LH'],
               [
                 <strong>Data Protection Lead</strong>,
-                <span>Sam Castillo (<Link href="mailto:sam@tallyreading.uk" sx={{ color: 'primary.main' }}>sam@tallyreading.uk</Link>). Note: A formal DPO has not been appointed as Scratch IT LTD does not meet the mandatory appointment thresholds under Article 37 of UK GDPR. Sam Castillo acts as the named privacy contact for all data protection matters.</span>,
+                <span>
+                  Sam Castillo (
+                  <Link href="mailto:sam@tallyreading.uk" sx={{ color: 'primary.main' }}>
+                    sam@tallyreading.uk
+                  </Link>
+                  ). Note: A formal DPO has not been appointed as Scratch IT LTD does not meet the
+                  mandatory appointment thresholds under Article 37 of UK GDPR. Sam Castillo acts as
+                  the named privacy contact for all data protection matters.
+                </span>,
               ],
             ]}
           />
 
           <BodyText>
             For requests concerning pupil data, parents and carers should contact their
-            child&rsquo;s school in the first instance. The school may then contact Tally to
-            assist with the request.
+            child&rsquo;s school in the first instance. The school may then contact Tally to assist
+            with the request.
           </BodyText>
 
           <Divider sx={{ borderColor: 'rgba(139, 115, 85, 0.15)', mt: 3 }} />
@@ -1040,10 +1339,10 @@ const PrivacyPolicy = () => {
               <ListItemText
                 primary={
                   <span>
-                    The <strong>UK General Data Protection Regulation</strong> (UK GDPR), as retained
-                    in UK law by the European Union (Withdrawal) Act 2018 and amended by the Data
-                    Protection, Privacy and Electronic Communications (Amendments etc.) (EU Exit)
-                    Regulations 2019
+                    The <strong>UK General Data Protection Regulation</strong> (UK GDPR), as
+                    retained in UK law by the European Union (Withdrawal) Act 2018 and amended by
+                    the Data Protection, Privacy and Electronic Communications (Amendments etc.) (EU
+                    Exit) Regulations 2019
                   </span>
                 }
                 primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
@@ -1051,13 +1350,22 @@ const PrivacyPolicy = () => {
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
               <ListItemText
-                primary={<span>The <strong>Data Protection Act 2018</strong></span>}
+                primary={
+                  <span>
+                    The <strong>Data Protection Act 2018</strong>
+                  </span>
+                }
                 primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
             <ListItem sx={{ display: 'list-item', listStyleType: 'disc', py: 0.3, pl: 1 }}>
               <ListItemText
-                primary={<span>The <strong>Privacy and Electronic Communications Regulations 2003</strong> (PECR)</span>}
+                primary={
+                  <span>
+                    The <strong>Privacy and Electronic Communications Regulations 2003</strong>{' '}
+                    (PECR)
+                  </span>
+                }
                 primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
               />
             </ListItem>
@@ -1072,7 +1380,15 @@ const PrivacyPolicy = () => {
           <Divider sx={{ borderColor: 'rgba(139, 115, 85, 0.15)', mt: 4, mb: 3 }} />
 
           <Box sx={{ textAlign: 'center' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 1,
+                mb: 1,
+              }}
+            >
               <Box
                 sx={{
                   width: 24,

@@ -21,12 +21,24 @@ const theme = createTheme({
     },
     text: {
       primary: '#4A4A4A', // Dark Gray
-      secondary: '#7A7A7A', // Warm Gray
+      secondary: '#666666', // Warm Gray — darkened for WCAG AA (4.7:1 on #F5F0E8)
     },
     status: {
       notRead: '#9E4B4B', // Darkened Red (AA on #F5F0E8)
       needsAttention: '#9B6E3A', // Darkened Amber (AA on #F5F0E8)
       recentlyRead: '#4A6E4A', // Darkened Green (AA on #F5F0E8)
+    },
+    // Semantic accent tokens for stats, streaks, and data displays
+    accent: {
+      streak: '#C2700A', // Warm orange for streak badges & icons (AA on cream)
+      streakLight: 'rgba(194, 112, 10, 0.1)', // Streak background tint
+      gold: '#A67C00', // Trophy/award accent (AA on cream)
+      goldLight: 'rgba(166, 124, 0, 0.12)', // Gold background tint
+      muted: '#999999', // Placeholder/disabled text
+      school: '#5A8A9E', // School location accent (muted teal variant)
+      schoolLight: 'rgba(90, 138, 158, 0.12)',
+      home: '#9E6B8A', // Home location accent (muted plum)
+      homeLight: 'rgba(158, 107, 138, 0.12)',
     },
     success: {
       main: '#6B8E6B', // Sage Green
@@ -90,12 +102,12 @@ const theme = createTheme({
     body1: {
       fontSize: '1rem',
       lineHeight: 1.625,
-      color: '#7A7A7A',
+      color: '#666666',
     },
     body2: {
       fontSize: '0.875rem',
       lineHeight: 1.5,
-      color: '#7A7A7A',
+      color: '#666666',
     },
   },
   shape: {
@@ -107,6 +119,15 @@ const theme = createTheme({
         body: {
           backgroundColor: '#F5F0E8',
           backgroundImage: 'none',
+        },
+        // Global reduced-motion: disable all transitions and animations
+        '@media (prefers-reduced-motion: reduce)': {
+          '*, *::before, *::after': {
+            animationDuration: '0.01ms !important',
+            animationIterationCount: '1 !important',
+            transitionDuration: '0.01ms !important',
+            scrollBehavior: 'auto !important',
+          },
         },
       },
     },
@@ -144,6 +165,11 @@ const theme = createTheme({
             transform: 'scale(0.98)',
             boxShadow: '0 2px 8px rgba(139, 115, 85, 0.1), 0 1px 3px rgba(0, 0, 0, 0.03)',
           },
+          '@media (prefers-reduced-motion: reduce)': {
+            transition: 'none',
+            '&:hover': { transform: 'none' },
+            '&:active': { transform: 'none' },
+          },
         },
       },
     },
@@ -166,6 +192,11 @@ const theme = createTheme({
           '&:active': {
             transform: 'scale(0.97)',
             boxShadow: '0 2px 8px rgba(107, 142, 107, 0.15)',
+          },
+          '@media (prefers-reduced-motion: reduce)': {
+            transition: 'none',
+            '&:hover': { transform: 'none' },
+            '&:active': { transform: 'none' },
           },
         },
         containedPrimary: {
@@ -230,7 +261,7 @@ const theme = createTheme({
     MuiBottomNavigationAction: {
       styleOverrides: {
         root: {
-          color: '#7A7A7A',
+          color: '#666666',
           minHeight: '60px',
           padding: '8px 4px',
           flex: 1,
@@ -240,6 +271,10 @@ const theme = createTheme({
           },
           '&:active': {
             transform: 'scale(0.95)',
+          },
+          '@media (prefers-reduced-motion: reduce)': {
+            '&.Mui-selected': { transform: 'none' },
+            '&:active': { transform: 'none' },
           },
         },
         label: {

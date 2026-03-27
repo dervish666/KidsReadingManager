@@ -102,11 +102,20 @@ function AppContent() {
   // Standalone pages rendered outside of auth
   if (window.location.pathname === '/privacy') {
     return (
-      <Suspense fallback={
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-          <CircularProgress sx={{ color: 'primary.main' }} />
-        </Box>
-      }>
+      <Suspense
+        fallback={
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              height: '100vh',
+            }}
+          >
+            <CircularProgress sx={{ color: 'primary.main' }} />
+          </Box>
+        }
+      >
         <PrivacyPolicy />
       </Suspense>
     );
@@ -114,11 +123,20 @@ function AppContent() {
 
   if (window.location.pathname === '/terms') {
     return (
-      <Suspense fallback={
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-          <CircularProgress sx={{ color: 'primary.main' }} />
-        </Box>
-      }>
+      <Suspense
+        fallback={
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              height: '100vh',
+            }}
+          >
+            <CircularProgress sx={{ color: 'primary.main' }} />
+          </Box>
+        }
+      >
         <TermsOfService />
       </Suspense>
     );
@@ -126,11 +144,20 @@ function AppContent() {
 
   if (window.location.pathname === '/cookies') {
     return (
-      <Suspense fallback={
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-          <CircularProgress sx={{ color: 'primary.main' }} />
-        </Box>
-      }>
+      <Suspense
+        fallback={
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              height: '100vh',
+            }}
+          >
+            <CircularProgress sx={{ color: 'primary.main' }} />
+          </Box>
+        }
+      >
         <CookiePolicy />
       </Suspense>
     );
@@ -187,6 +214,7 @@ function AppContent() {
 
       <a
         href="#main-content"
+        sx={{}}
         style={{
           position: 'absolute',
           left: '-9999px',
@@ -194,9 +222,33 @@ function AppContent() {
           width: '1px',
           height: '1px',
           overflow: 'hidden',
+          zIndex: 9999,
+          padding: '12px 24px',
+          backgroundColor: '#6B8E6B',
+          color: '#ffffff',
+          fontFamily: '"DM Sans", sans-serif',
+          fontWeight: 700,
+          fontSize: '0.9rem',
+          borderRadius: '0 0 10px 10px',
+          textDecoration: 'none',
+          boxShadow: '0 4px 12px rgba(107, 142, 107, 0.3)',
         }}
-        onFocus={(e) => { e.target.style.position = 'static'; e.target.style.width = 'auto'; e.target.style.height = 'auto'; }}
-        onBlur={(e) => { e.target.style.position = 'absolute'; e.target.style.width = '1px'; e.target.style.height = '1px'; }}
+        onFocus={(e) => {
+          e.target.style.position = 'fixed';
+          e.target.style.left = '50%';
+          e.target.style.top = '0';
+          e.target.style.transform = 'translateX(-50%)';
+          e.target.style.width = 'auto';
+          e.target.style.height = 'auto';
+        }}
+        onBlur={(e) => {
+          e.target.style.position = 'absolute';
+          e.target.style.left = '-9999px';
+          e.target.style.top = 'auto';
+          e.target.style.transform = 'none';
+          e.target.style.width = '1px';
+          e.target.style.height = '1px';
+        }}
       >
         Skip to main content
       </a>
@@ -256,11 +308,20 @@ function AppContent() {
             },
           }}
         >
-          <Suspense fallback={
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-              <CircularProgress sx={{ color: 'primary.main' }} />
-            </Box>
-          }>
+          <Suspense
+            fallback={
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  height: '100%',
+                }}
+              >
+                <CircularProgress sx={{ color: 'primary.main' }} />
+              </Box>
+            }
+          >
             {renderTabContent()}
           </Suspense>
         </Paper>
@@ -305,12 +366,30 @@ function AppContent() {
             pb: 'env(safe-area-inset-bottom)',
           }}
         >
-          <BottomNavigationAction label="Students" icon={<NavIcon src={iconStudents} alt="Students" selected={currentTab === 0} />} />
-          <BottomNavigationAction label="School Reading" icon={<NavIcon src={iconReading} alt="School Reading" selected={currentTab === 1} />} />
-          <BottomNavigationAction label="Home Reading" icon={<NavIcon src={iconRecord} alt="Home Reading" selected={currentTab === 2} />} />
-          <BottomNavigationAction label="Stats" icon={<NavIcon src={iconStats} alt="Stats" selected={currentTab === 3} />} />
-          <BottomNavigationAction label="Recommend" icon={<NavIcon src={iconRecommend} alt="Recommend" selected={currentTab === 4} />} />
-          <BottomNavigationAction label="Books" icon={<NavIcon src={iconBooks} alt="Books" selected={currentTab === 5} />} />
+          <BottomNavigationAction
+            label="Students"
+            icon={<NavIcon src={iconStudents} alt="Students" selected={currentTab === 0} />}
+          />
+          <BottomNavigationAction
+            label="School Reading"
+            icon={<NavIcon src={iconReading} alt="School Reading" selected={currentTab === 1} />}
+          />
+          <BottomNavigationAction
+            label="Home Reading"
+            icon={<NavIcon src={iconRecord} alt="Home Reading" selected={currentTab === 2} />}
+          />
+          <BottomNavigationAction
+            label="Stats"
+            icon={<NavIcon src={iconStats} alt="Stats" selected={currentTab === 3} />}
+          />
+          <BottomNavigationAction
+            label="Recommend"
+            icon={<NavIcon src={iconRecommend} alt="Recommend" selected={currentTab === 4} />}
+          />
+          <BottomNavigationAction
+            label="Books"
+            icon={<NavIcon src={iconBooks} alt="Books" selected={currentTab === 5} />}
+          />
           <BottomNavigationAction label="Settings" icon={<SettingsIcon />} />
         </BottomNavigation>
       </Paper>

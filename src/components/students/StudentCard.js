@@ -82,22 +82,24 @@ const StudentCard = React.memo(({ student }) => {
             p: 0,
             '&:hover': {
               backgroundColor: 'transparent',
-            }
+            },
           }}
         >
           <CardHeader
             avatar={
-              <Box sx={{
-                background: 'linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%)',
-                color: 'white',
-                width: 42,
-                height: 42,
-                borderRadius: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(107, 142, 107, 0.3)',
-              }}>
+              <Box
+                sx={{
+                  background: 'linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%)',
+                  color: 'white',
+                  width: 42,
+                  height: 42,
+                  borderRadius: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 12px rgba(107, 142, 107, 0.3)',
+                }}
+              >
                 <MenuBookIcon sx={{ fontSize: 22 }} />
               </Box>
             }
@@ -110,7 +112,7 @@ const StudentCard = React.memo(({ student }) => {
                   fontWeight: 800,
                   fontSize: '1.125rem',
                   color: 'text.primary',
-                  lineHeight: 1.2
+                  lineHeight: 1.2,
                 }}
               >
                 {student.name}
@@ -137,10 +139,10 @@ const StudentCard = React.memo(({ student }) => {
                       height: 20,
                       fontSize: '0.65rem',
                       fontWeight: 700,
-                      backgroundColor: '#FDE8E8',
-                      color: '#C53030',
-                      '& .MuiChip-icon': { color: '#C53030' },
-                      border: '1px solid #FEB2B2'
+                      backgroundColor: 'rgba(158, 75, 75, 0.1)',
+                      color: 'status.notRead',
+                      '& .MuiChip-icon': { color: 'status.notRead' },
+                      border: '1px solid rgba(158, 75, 75, 0.2)',
                     }}
                   />
                 )}
@@ -159,7 +161,8 @@ const StudentCard = React.memo(({ student }) => {
                     height: 12,
                     borderRadius: '50%',
                     bgcolor: statusColor,
-                    boxShadow: 'inset 2px 2px 4px rgba(0,0,0,0.2), 2px 2px 4px rgba(255,255,255,0.5)'
+                    boxShadow:
+                      'inset 2px 2px 4px rgba(0,0,0,0.2), 2px 2px 4px rgba(255,255,255,0.5)',
                   }}
                 />
               </Box>
@@ -169,14 +172,16 @@ const StudentCard = React.memo(({ student }) => {
 
           <CardContent sx={{ flexGrow: 1, pt: 1, pb: 3 }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Box sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                p: 1.5,
-                borderRadius: '8px',
-                backgroundColor: 'rgba(250, 248, 243, 0.8)',
-              }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  p: 1.5,
+                  borderRadius: '8px',
+                  backgroundColor: 'rgba(250, 248, 243, 0.8)',
+                }}
+              >
                 <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
                   Last read
                 </Typography>
@@ -188,21 +193,33 @@ const StudentCard = React.memo(({ student }) => {
                     fontSize: '0.75rem',
                     fontWeight: 600,
                     borderRadius: '6px',
-                    backgroundColor: paletteKey === 'notRead' ? '#F5E1E1' : paletteKey === 'needsAttention' ? '#F5EBE0' : '#E5F0E5',
-                    color: paletteKey === 'notRead' ? 'error.main' : paletteKey === 'needsAttention' ? 'warning.main' : 'primary.main',
-                    border: 'none'
+                    backgroundColor:
+                      paletteKey === 'notRead'
+                        ? 'rgba(158, 75, 75, 0.1)'
+                        : paletteKey === 'needsAttention'
+                          ? 'rgba(155, 110, 58, 0.1)'
+                          : 'rgba(74, 110, 74, 0.1)',
+                    color:
+                      paletteKey === 'notRead'
+                        ? 'error.main'
+                        : paletteKey === 'needsAttention'
+                          ? 'warning.main'
+                          : 'primary.main',
+                    border: 'none',
                   }}
                 />
               </Box>
 
-              <Box sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                p: 1.5,
-                borderRadius: '8px',
-                backgroundColor: 'rgba(250, 248, 243, 0.8)',
-              }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  p: 1.5,
+                  borderRadius: '8px',
+                  backgroundColor: 'rgba(250, 248, 243, 0.8)',
+                }}
+              >
                 <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
                   Sessions
                 </Typography>
@@ -216,7 +233,7 @@ const StudentCard = React.memo(({ student }) => {
                     borderRadius: '6px',
                     backgroundColor: 'success.light',
                     color: 'primary.main',
-                    border: 'none'
+                    border: 'none',
                   }}
                 />
               </Box>
@@ -228,7 +245,7 @@ const StudentCard = React.memo(({ student }) => {
                   fontStyle: 'italic',
                   textAlign: 'right',
                   mt: 0.5,
-                  fontWeight: 500
+                  fontWeight: 500,
                 }}
               >
                 {daysSince}

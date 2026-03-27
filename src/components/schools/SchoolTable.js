@@ -100,7 +100,7 @@ const SchoolTable = ({
   };
 
   return (
-    <Paper sx={{ bgcolor: '#fafaf7' }}>
+    <Paper sx={{ bgcolor: 'rgba(250, 248, 243, 0.8)' }}>
       {/* Toolbar */}
       <Box
         sx={{
@@ -256,7 +256,7 @@ const SchoolTable = ({
                       cursor: 'pointer',
                       transition: 'background-color 0.2s ease',
                       '&:hover': { bgcolor: 'action.hover' },
-                      ...(errorRow && { bgcolor: '#fff8f6' }),
+                      ...(errorRow && { bgcolor: 'rgba(255, 248, 246, 0.8)' }),
                     }}
                   >
                     {/* School name */}

@@ -84,10 +84,11 @@ const PolicyTable = ({ headers, rows }) => (
   </TableContainer>
 );
 
-// Section heading component
+// Section heading component (renders as h2 for proper hierarchy under h1 page title)
 const SectionHeading = ({ children }) => (
   <Typography
     variant="h4"
+    component="h2"
     sx={{
       mt: 5,
       mb: 2,
@@ -99,10 +100,11 @@ const SectionHeading = ({ children }) => (
   </Typography>
 );
 
-// Subsection heading component
+// Subsection heading component (renders as h3)
 const SubsectionHeading = ({ children }) => (
   <Typography
     variant="h5"
+    component="h3"
     sx={{
       mt: 3,
       mb: 1.5,
@@ -187,6 +189,7 @@ const CookiePolicy = () => {
             </Box>
             <Typography
               variant="h3"
+              component="h1"
               sx={{
                 fontSize: { xs: '1.6rem', sm: '2rem' },
                 color: 'text.primary',
@@ -219,9 +222,13 @@ const CookiePolicy = () => {
           <BodyText>
             This Cookie Policy explains how Tally Reading (&ldquo;Tally&rdquo;, &ldquo;we&rdquo;,
             &ldquo;us&rdquo;), operated by Scratch IT LTD (company number 08151576), uses cookies
-            and similar technologies when you use our platform
-            at{' '}
-            <Link href="https://tallyreading.uk" target="_blank" rel="noopener" sx={{ color: 'primary.main' }}>
+            and similar technologies when you use our platform at{' '}
+            <Link
+              href="https://tallyreading.uk"
+              target="_blank"
+              rel="noopener"
+              sx={{ color: 'primary.main' }}
+            >
               https://tallyreading.uk
             </Link>
             .
@@ -621,7 +628,15 @@ const CookiePolicy = () => {
           <Divider sx={{ borderColor: 'rgba(139, 115, 85, 0.15)', mt: 4, mb: 3 }} />
 
           <Box sx={{ textAlign: 'center' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 1,
+                mb: 1,
+              }}
+            >
               <Box
                 sx={{
                   width: 24,

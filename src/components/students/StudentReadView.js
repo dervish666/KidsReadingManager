@@ -3,7 +3,7 @@ import { Box, Typography, Chip } from '@mui/material';
 import { useAppContext } from '../../contexts/AppContext';
 
 const cardStyle = {
-  bgcolor: '#fafaf7',
+  bgcolor: 'rgba(250, 248, 243, 0.8)',
   border: '1px solid',
   borderColor: 'divider',
   borderRadius: '8px',
@@ -25,8 +25,7 @@ const StudentReadView = ({ student, sessions }) => {
   const likes = preferences?.likes || [];
   const dislikes = preferences?.dislikes || [];
 
-  const hasPreferences =
-    favoriteGenreIds.length > 0 || likes.length > 0 || dislikes.length > 0;
+  const hasPreferences = favoriteGenreIds.length > 0 || likes.length > 0 || dislikes.length > 0;
   const hasSessions = sessions && sessions.length > 0;
 
   if (!hasPreferences && !hasSessions) {

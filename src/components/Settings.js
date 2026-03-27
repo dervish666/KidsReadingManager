@@ -14,7 +14,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  CircularProgress
+  CircularProgress,
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import RestoreIcon from '@mui/icons-material/Restore';
@@ -44,27 +44,28 @@ const getAcademicYearOptions = () => {
 };
 
 const Settings = () => {
-  const { readingStatusSettings, settings, updateSettings, fetchWithAuth, canManageSettings } = useAppContext();
+  const { readingStatusSettings, settings, updateSettings, fetchWithAuth, canManageSettings } =
+    useAppContext();
 
   // Local state for form values
   const [localSettings, setLocalSettings] = useState({
     recentlyReadDays: readingStatusSettings.recentlyReadDays,
     needsAttentionDays: readingStatusSettings.needsAttentionDays,
-    streakGracePeriodDays: settings?.streakGracePeriodDays ?? 1
+    streakGracePeriodDays: settings?.streakGracePeriodDays ?? 1,
   });
 
   // State for snackbar
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
-    severity: 'success'
+    severity: 'success',
   });
 
   // Handle slider change
   const handleSliderChange = (name) => (event, newValue) => {
     setLocalSettings({
       ...localSettings,
-      [name]: newValue
+      [name]: newValue,
     });
   };
 
@@ -73,7 +74,7 @@ const Settings = () => {
     const value = event.target.value === '' ? '' : Number(event.target.value);
     setLocalSettings({
       ...localSettings,
-      [name]: value
+      [name]: value,
     });
   };
 
@@ -82,8 +83,8 @@ const Settings = () => {
     // Ensure value is treated as a number for comparison
     const numericValue = Number(localSettings[name]);
     if (isNaN(numericValue)) {
-        setLocalSettings({ ...localSettings, [name]: min }); // Reset if not a number
-        return;
+      setLocalSettings({ ...localSettings, [name]: min }); // Reset if not a number
+      return;
     }
     if (numericValue < min) {
       setLocalSettings({ ...localSettings, [name]: min });
@@ -99,7 +100,7 @@ const Settings = () => {
       setSnackbar({
         open: true,
         message: 'Needs Attention days must be greater than Recently Read days',
-        severity: 'error'
+        severity: 'error',
       });
       return;
     }
@@ -110,20 +111,20 @@ const Settings = () => {
         ...settings,
         readingStatusSettings: {
           recentlyReadDays: localSettings.recentlyReadDays,
-          needsAttentionDays: localSettings.needsAttentionDays
+          needsAttentionDays: localSettings.needsAttentionDays,
         },
-        streakGracePeriodDays: localSettings.streakGracePeriodDays
+        streakGracePeriodDays: localSettings.streakGracePeriodDays,
       });
       setSnackbar({
         open: true,
         message: 'Settings saved successfully',
-        severity: 'success'
+        severity: 'success',
       });
     } catch (error) {
       setSnackbar({
         open: true,
         message: `Error saving settings: ${error.message}`,
-        severity: 'error'
+        severity: 'error',
       });
     }
   };
@@ -133,12 +134,12 @@ const Settings = () => {
     setLocalSettings({
       recentlyReadDays: readingStatusSettings.recentlyReadDays,
       needsAttentionDays: readingStatusSettings.needsAttentionDays,
-      streakGracePeriodDays: settings?.streakGracePeriodDays ?? 1
+      streakGracePeriodDays: settings?.streakGracePeriodDays ?? 1,
     });
     setSnackbar({
       open: true,
       message: 'Settings reset to current values',
-      severity: 'info'
+      severity: 'info',
     });
   };
 
@@ -146,7 +147,7 @@ const Settings = () => {
   const handleStreakGracePeriodChange = (event) => {
     setLocalSettings({
       ...localSettings,
-      streakGracePeriodDays: event.target.value
+      streakGracePeriodDays: event.target.value,
     });
   };
 
@@ -173,12 +174,19 @@ const Settings = () => {
           const data = await res.json();
           if (data.terms && data.terms.length > 0) {
             const merged = TERM_NAMES.map((name, i) => {
-              const found = data.terms.find(t => t.termOrder === i + 1);
+              const found = data.terms.find((t) => t.termOrder === i + 1);
               return found || { termName: name, termOrder: i + 1, startDate: '', endDate: '' };
             });
             setTermDates(merged);
           } else {
-            setTermDates(TERM_NAMES.map((name, i) => ({ termName: name, termOrder: i + 1, startDate: '', endDate: '' })));
+            setTermDates(
+              TERM_NAMES.map((name, i) => ({
+                termName: name,
+                termOrder: i + 1,
+                startDate: '',
+                endDate: '',
+              }))
+            );
           }
         }
       } catch {
@@ -192,17 +200,25 @@ const Settings = () => {
 
   // Handle save term dates
   const handleSaveTermDates = async () => {
-    const filledTerms = termDates.filter(t => t.startDate && t.endDate);
+    const filledTerms = termDates.filter((t) => t.startDate && t.endDate);
     for (const t of filledTerms) {
       if (t.startDate >= t.endDate) {
-        setSnackbar({ open: true, message: `Start date must be before end date for ${t.termName}`, severity: 'error' });
+        setSnackbar({
+          open: true,
+          message: `Start date must be before end date for ${t.termName}`,
+          severity: 'error',
+        });
         return;
       }
     }
     const sorted = [...filledTerms].sort((a, b) => a.startDate.localeCompare(b.startDate));
     for (let i = 1; i < sorted.length; i++) {
       if (sorted[i].startDate <= sorted[i - 1].endDate) {
-        setSnackbar({ open: true, message: `Term dates overlap: ${sorted[i - 1].termName} and ${sorted[i].termName}`, severity: 'error' });
+        setSnackbar({
+          open: true,
+          message: `Term dates overlap: ${sorted[i - 1].termName} and ${sorted[i].termName}`,
+          severity: 'error',
+        });
         return;
       }
     }
@@ -217,7 +233,11 @@ const Settings = () => {
         setSnackbar({ open: true, message: 'Term dates saved', severity: 'success' });
       } else {
         const data = await res.json();
-        setSnackbar({ open: true, message: data.message || data.error || 'Failed to save term dates', severity: 'error' });
+        setSnackbar({
+          open: true,
+          message: data.message || data.error || 'Failed to save term dates',
+          severity: 'error',
+        });
       }
     } catch (error) {
       setSnackbar({ open: true, message: `Error: ${error.message}`, severity: 'error' });
@@ -228,7 +248,7 @@ const Settings = () => {
 
   // Handle term date field change
   const handleTermDateChange = (index, field, value) => {
-    setTermDates(prev => prev.map((t, i) => i === index ? { ...t, [field]: value } : t));
+    setTermDates((prev) => prev.map((t, i) => (i === index ? { ...t, [field]: value } : t)));
   };
 
   return (
@@ -241,14 +261,17 @@ const Settings = () => {
           Reading Status Durations
         </Typography>
         <Typography variant="body2" color="text.secondary" paragraph>
-          Configure how many days determine each reading status. These settings affect how students are prioritized and color-coded in the application.
+          Configure how many days determine each reading status. These settings affect how students
+          are prioritized and color-coded in the application.
         </Typography>
 
         <Box sx={{ mt: 4, mb: 4 }}>
           {/* Use outer Grid for overall layout */}
           <Grid container spacing={4}>
             {/* Section for Recently Read */}
-            <Grid size={12}> {/* Ensure full width */}
+            <Grid size={12}>
+              {' '}
+              {/* Ensure full width */}
               <Typography id="recently-read-days-slider" gutterBottom>
                 Recently Read (Green): 0-{localSettings.recentlyReadDays} days
               </Typography>
@@ -256,7 +279,11 @@ const Settings = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Slider
                   sx={{ flexGrow: 1 }} // Slider takes available space
-                  value={typeof localSettings.recentlyReadDays === 'number' ? localSettings.recentlyReadDays : 0}
+                  value={
+                    typeof localSettings.recentlyReadDays === 'number'
+                      ? localSettings.recentlyReadDays
+                      : 0
+                  }
                   onChange={handleSliderChange('recentlyReadDays')}
                   aria-labelledby="recently-read-days-slider"
                   valueLabelDisplay="auto"
@@ -266,7 +293,7 @@ const Settings = () => {
                     { value: 1, label: '1d' },
                     { value: 7, label: '7d' },
                     { value: 14, label: '14d' },
-                    { value: 30, label: '30d' }
+                    { value: 30, label: '30d' },
                   ]}
                 />
                 <TextField
@@ -287,15 +314,22 @@ const Settings = () => {
             </Grid>
 
             {/* Section for Needs Attention */}
-            <Grid size={12}> {/* Ensure full width */}
+            <Grid size={12}>
+              {' '}
+              {/* Ensure full width */}
               <Typography id="needs-attention-days-slider" gutterBottom>
-                Needs Attention (Yellow): {localSettings.recentlyReadDays + 1}-{localSettings.needsAttentionDays} days
+                Needs Attention (Yellow): {localSettings.recentlyReadDays + 1}-
+                {localSettings.needsAttentionDays} days
               </Typography>
               {/* Use Box with Flexbox for Slider + Input */}
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Slider
                   sx={{ flexGrow: 1 }} // Slider takes available space
-                  value={typeof localSettings.needsAttentionDays === 'number' ? localSettings.needsAttentionDays : 0}
+                  value={
+                    typeof localSettings.needsAttentionDays === 'number'
+                      ? localSettings.needsAttentionDays
+                      : 0
+                  }
                   onChange={handleSliderChange('needsAttentionDays')}
                   aria-labelledby="needs-attention-days-slider"
                   valueLabelDisplay="auto"
@@ -305,7 +339,7 @@ const Settings = () => {
                     { value: 14, label: '14d' },
                     { value: 30, label: '30d' },
                     { value: 45, label: '45d' },
-                    { value: 60, label: '60d' }
+                    { value: 60, label: '60d' },
                   ]}
                 />
                 <TextField
@@ -326,7 +360,9 @@ const Settings = () => {
             </Grid>
           </Grid>
 
-          <Box sx={{ mt: 4 }}> {/* Increased margin top */}
+          <Box sx={{ mt: 4 }}>
+            {' '}
+            {/* Increased margin top */}
             <Typography variant="body2" color="text.secondary">
               Needs Reading (Red): More than {localSettings.needsAttentionDays} days
             </Typography>
@@ -338,13 +374,12 @@ const Settings = () => {
         {/* Streak Settings Section */}
         <Box sx={{ mb: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-            <WhatshotIcon sx={{ color: '#FF6B35' }} />
-            <Typography variant="subtitle1">
-              Reading Streak Settings
-            </Typography>
+            <WhatshotIcon sx={{ color: 'accent.streak' }} />
+            <Typography variant="subtitle1">Reading Streak Settings</Typography>
           </Box>
           <Typography variant="body2" color="text.secondary" paragraph>
-            Configure how reading streaks are calculated. The grace period allows students to miss a day without breaking their streak.
+            Configure how reading streaks are calculated. The grace period allows students to miss a
+            day without breaking their streak.
           </Typography>
 
           <FormControl sx={{ minWidth: 200 }}>
@@ -366,8 +401,7 @@ const Settings = () => {
           <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
             {localSettings.streakGracePeriodDays === 0
               ? 'Students must read every day to maintain their streak.'
-              : `Students can miss up to ${localSettings.streakGracePeriodDays} day${localSettings.streakGracePeriodDays > 1 ? 's' : ''} without breaking their streak.`
-            }
+              : `Students can miss up to ${localSettings.streakGracePeriodDays} day${localSettings.streakGracePeriodDays > 1 ? 's' : ''} without breaking their streak.`}
           </Typography>
         </Box>
 
@@ -377,13 +411,12 @@ const Settings = () => {
           <>
             <Box sx={{ mb: 3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <CalendarMonthIcon sx={{ color: '#0EA5E9' }} />
-                <Typography variant="subtitle1">
-                  Term Dates
-                </Typography>
+                <CalendarMonthIcon sx={{ color: 'info.main' }} />
+                <Typography variant="subtitle1">Term Dates</Typography>
               </Box>
               <Typography variant="body2" color="text.secondary" paragraph>
-                Set the half-term dates for your school's academic year. These dates enable half-term filtering on the statistics page.
+                Set the half-term dates for your school's academic year. These dates enable
+                half-term filtering on the statistics page.
               </Typography>
 
               <FormControl sx={{ minWidth: 200, mb: 2 }}>
@@ -394,8 +427,10 @@ const Settings = () => {
                   label="Academic Year"
                   onChange={(e) => setSelectedYear(e.target.value)}
                 >
-                  {getAcademicYearOptions().map(year => (
-                    <MenuItem key={year} value={year}>{year}</MenuItem>
+                  {getAcademicYearOptions().map((year) => (
+                    <MenuItem key={year} value={year}>
+                      {year}
+                    </MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -407,7 +442,10 @@ const Settings = () => {
               ) : (
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                   {termDates.map((term, index) => (
-                    <Box key={term.termOrder} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                    <Box
+                      key={term.termOrder}
+                      sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}
+                    >
                       <Typography variant="body2" sx={{ fontWeight: 600, minWidth: 90 }}>
                         {term.termName}
                       </Typography>
@@ -460,7 +498,7 @@ const Settings = () => {
           >
             Save Settings
           </Button>
-  
+
           <Button
             variant="outlined"
             startIcon={<RestoreIcon />}
@@ -483,11 +521,7 @@ const Settings = () => {
         onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
-        >
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
           {snackbar.message}
         </Alert>
       </Snackbar>

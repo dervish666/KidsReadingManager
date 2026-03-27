@@ -25,15 +25,15 @@ import { useAppContext } from '../../contexts/AppContext';
 import BookAutocomplete from '../sessions/BookAutocomplete';
 import AssessmentSelector from '../sessions/AssessmentSelector';
 
-// ─── Colour constants ────────────────────────────────────────────────────────
-const DOT_RECENT = '#6B8E6B'; // within 7 days
-const DOT_OLDER = '#d4c9b8'; // older
-const LINE_COLOR = '#d4c9b8'; // vertical timeline line
+// ─── Colour constants (aligned with Cozy Bookshelf theme) ────────────────────
+const DOT_RECENT = '#6B8E6B'; // primary.main — within 7 days
+const DOT_OLDER = '#d4c9b8'; // warm neutral — older
+const LINE_COLOR = '#d4c9b8'; // warm neutral — vertical timeline line
 
-// Assessment pill colours
-const PILL_HIGH = { bg: '#E5F0E5', text: '#2E7D32' }; // 7–10 green
-const PILL_MID = { bg: '#FFF3E0', text: '#E65100' }; // 4–6 amber
-const PILL_LOW = { bg: '#F5E1E1', text: '#C62828' }; // 1–3 red
+// Assessment pill colours (theme-aligned)
+const PILL_HIGH = { bg: 'rgba(74, 110, 74, 0.1)', text: '#4A6E4A' }; // status.recentlyRead
+const PILL_MID = { bg: 'rgba(155, 110, 58, 0.1)', text: '#9B6E3A' }; // status.needsAttention
+const PILL_LOW = { bg: 'rgba(158, 75, 75, 0.1)', text: '#9E4B4B' }; // status.notRead
 
 function assessmentPillColors(value) {
   if (typeof value !== 'number') return null;
@@ -67,13 +67,13 @@ const StudentTimeline = ({ sessions, loading, studentId, onSessionChange }) => {
   const { books, editReadingSession, deleteReadingSession } = useAppContext();
 
   // O(1) lookup map for books
-  const booksMap = useMemo(() => new Map(books.map(b => [b.id, b])), [books]);
+  const booksMap = useMemo(() => new Map(books.map((b) => [b.id, b])), [books]);
 
   // Filter + sort sessions
   const sortedSessions = useMemo(
     () =>
       (sessions || [])
-        .filter(s => !s.notes?.includes('[ABSENT]') && !s.notes?.includes('[NO_RECORD]'))
+        .filter((s) => !s.notes?.includes('[ABSENT]') && !s.notes?.includes('[NO_RECORD]'))
         .sort((a, b) => new Date(b.date) - new Date(a.date)),
     [sessions]
   );
@@ -82,7 +82,7 @@ const StudentTimeline = ({ sessions, loading, studentId, onSessionChange }) => {
   const [expandedId, setExpandedId] = useState(null);
 
   const toggleExpand = (id) => {
-    setExpandedId(prev => (prev === id ? null : id));
+    setExpandedId((prev) => (prev === id ? null : id));
   };
 
   const handleRowKeyDown = (e, id) => {
@@ -204,168 +204,171 @@ const StudentTimeline = ({ sessions, loading, studentId, onSessionChange }) => {
           // duplicate text in the DOM (which would break getByText queries).
 
           return sortedSessions.map((session) => {
-          const book = session.bookId ? booksMap.get(session.bookId) : null;
-          const bookTitle = book?.title ?? (session.bookId ? 'Unknown Book' : null);
-          const isExpanded = expandedId === session.id;
-          const recentDot = isWithin7Days(session.date);
-          const pillColors = assessmentPillColors(session.assessment);
+            const book = session.bookId ? booksMap.get(session.bookId) : null;
+            const bookTitle = book?.title ?? (session.bookId ? 'Unknown Book' : null);
+            const isExpanded = expandedId === session.id;
+            const recentDot = isWithin7Days(session.date);
+            const pillColors = assessmentPillColors(session.assessment);
 
-          return (
-            <Box
-              key={session.id}
-              sx={{ position: 'relative', mb: 1 }}
-            >
-              {/* Dot */}
-              <Box
-                sx={{
-                  position: 'absolute',
-                  left: -18,
-                  top: 14,
-                  width: 10,
-                  height: 10,
-                  borderRadius: '50%',
-                  bgcolor: recentDot ? DOT_RECENT : DOT_OLDER,
-                  border: '2px solid #fff',
-                  zIndex: 1,
-                }}
-              />
-
-              {/* Row — clickable summary */}
-              <Box
-                role="button"
-                tabIndex={0}
-                aria-expanded={isExpanded}
-                onClick={() => toggleExpand(session.id)}
-                onKeyDown={(e) => handleRowKeyDown(e, session.id)}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1.5,
-                  px: 1.5,
-                  py: 1,
-                  borderRadius: 1.5,
-                  cursor: 'pointer',
-                  bgcolor: isExpanded ? 'rgba(107,142,107,0.06)' : 'transparent',
-                  '&:hover': { bgcolor: 'rgba(107,142,107,0.06)' },
-                  '&:focus-visible': {
-                    outline: '2px solid #6B8E6B',
-                    outlineOffset: 2,
-                  },
-                  transition: 'background-color 0.15s',
-                }}
-              >
-                {/* Date */}
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: 'text.secondary',
-                    minWidth: 52,
-                    flexShrink: 0,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}
-                >
-                  {formatShortDate(session.date)}
-                </Typography>
-
-                {/* Book title */}
-                <Typography
-                  variant="body2"
-                  sx={{
-                    flex: 1,
-                    fontWeight: bookTitle ? 500 : 400,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    color: bookTitle ? 'text.primary' : 'text.secondary',
-                    fontStyle: bookTitle ? 'normal' : 'italic',
-                  }}
-                >
-                  {bookTitle ?? 'No book'}
-                </Typography>
-
-                {/* Assessment pill */}
-                {pillColors && (
-                  <Box
-                    sx={{
-                      px: 1,
-                      py: 0.25,
-                      borderRadius: 1,
-                      bgcolor: pillColors.bg,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Typography
-                      variant="caption"
-                      sx={{ color: pillColors.text, fontWeight: 600, lineHeight: 1.4 }}
-                    >
-                      {session.assessment}/10
-                    </Typography>
-                  </Box>
-                )}
-              </Box>
-
-              {/* Expanded details */}
-              <Collapse in={isExpanded} unmountOnExit>
+            return (
+              <Box key={session.id} sx={{ position: 'relative', mb: 1 }}>
+                {/* Dot */}
                 <Box
                   sx={{
+                    position: 'absolute',
+                    left: -18,
+                    top: 14,
+                    width: 10,
+                    height: 10,
+                    borderRadius: '50%',
+                    bgcolor: recentDot ? DOT_RECENT : DOT_OLDER,
+                    border: '2px solid',
+                    borderColor: 'background.paper',
+                    zIndex: 1,
+                  }}
+                />
+
+                {/* Row — clickable summary */}
+                <Box
+                  role="button"
+                  tabIndex={0}
+                  aria-expanded={isExpanded}
+                  onClick={() => toggleExpand(session.id)}
+                  onKeyDown={(e) => handleRowKeyDown(e, session.id)}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.5,
                     px: 1.5,
-                    pb: 1.5,
-                    pt: 0.5,
-                    borderRadius: '0 0 8px 8px',
-                    bgcolor: 'rgba(107,142,107,0.04)',
+                    py: 1,
+                    borderRadius: 1.5,
+                    cursor: 'pointer',
+                    bgcolor: isExpanded ? 'rgba(107,142,107,0.06)' : 'transparent',
+                    '&:hover': { bgcolor: 'rgba(107,142,107,0.06)' },
+                    '&:focus-visible': {
+                      outline: '2px solid',
+                      outlineColor: 'primary.main',
+                      outlineOffset: 2,
+                    },
+                    transition: 'background-color 0.15s',
                   }}
                 >
-                  {/* Location */}
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                    {session.location === 'school'
-                      ? 'School'
-                      : session.location === 'home'
-                        ? 'Home'
-                        : 'Location not specified'}
+                  {/* Date */}
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: 'text.secondary',
+                      minWidth: 52,
+                      flexShrink: 0,
+                      fontVariantNumeric: 'tabular-nums',
+                    }}
+                  >
+                    {formatShortDate(session.date)}
                   </Typography>
 
-                  {/* Notes */}
-                  {session.notes && (
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
+                  {/* Book title */}
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      flex: 1,
+                      fontWeight: bookTitle ? 500 : 400,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      color: bookTitle ? 'text.primary' : 'text.secondary',
+                      fontStyle: bookTitle ? 'normal' : 'italic',
+                    }}
+                  >
+                    {bookTitle ?? 'No book'}
+                  </Typography>
+
+                  {/* Assessment pill */}
+                  {pillColors && (
+                    <Box
                       sx={{
-                        mb: 1,
                         px: 1,
-                        py: 0.5,
-                        bgcolor: 'rgba(0,0,0,0.03)',
+                        py: 0.25,
                         borderRadius: 1,
-                        fontSize: '0.8rem',
+                        bgcolor: pillColors.bg,
+                        flexShrink: 0,
                       }}
                     >
-                      {session.notes}
-                    </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{ color: pillColors.text, fontWeight: 600, lineHeight: 1.4 }}
+                      >
+                        {session.assessment}/10
+                      </Typography>
+                    </Box>
                   )}
-
-                  {/* Action buttons */}
-                  <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
-                    <IconButton
-                      size="small"
-                      aria-label="edit session"
-                      onClick={(e) => handleEditClick(e, session)}
-                      sx={{ color: 'text.secondary', '&:hover': { color: '#6B8E6B' } }}
-                    >
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      aria-label="delete session"
-                      onClick={(e) => handleDeleteClick(e, session)}
-                      sx={{ color: 'text.secondary', '&:hover': { color: '#C62828' } }}
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </Box>
                 </Box>
-              </Collapse>
-            </Box>
-          );
-        });
+
+                {/* Expanded details */}
+                <Collapse in={isExpanded} unmountOnExit>
+                  <Box
+                    sx={{
+                      px: 1.5,
+                      pb: 1.5,
+                      pt: 0.5,
+                      borderRadius: '0 0 8px 8px',
+                      bgcolor: 'rgba(107,142,107,0.04)',
+                    }}
+                  >
+                    {/* Location */}
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ display: 'block', mb: 0.5 }}
+                    >
+                      {session.location === 'school'
+                        ? 'School'
+                        : session.location === 'home'
+                          ? 'Home'
+                          : 'Location not specified'}
+                    </Typography>
+
+                    {/* Notes */}
+                    {session.notes && (
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{
+                          mb: 1,
+                          px: 1,
+                          py: 0.5,
+                          bgcolor: 'rgba(0,0,0,0.03)',
+                          borderRadius: 1,
+                          fontSize: '0.8rem',
+                        }}
+                      >
+                        {session.notes}
+                      </Typography>
+                    )}
+
+                    {/* Action buttons */}
+                    <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
+                      <IconButton
+                        size="small"
+                        aria-label="edit session"
+                        onClick={(e) => handleEditClick(e, session)}
+                        sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
+                      >
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        aria-label="delete session"
+                        onClick={(e) => handleDeleteClick(e, session)}
+                        sx={{ color: 'text.secondary', '&:hover': { color: 'error.dark' } }}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  </Box>
+                </Collapse>
+              </Box>
+            );
+          });
         })()}
       </Box>
 
@@ -391,7 +394,7 @@ const StudentTimeline = ({ sessions, loading, studentId, onSessionChange }) => {
 
             <Box sx={{ mt: 2 }}>
               <BookAutocomplete
-                value={books.find(b => b.id === editBookId) || null}
+                value={books.find((b) => b.id === editBookId) || null}
                 onChange={handleEditBookChange}
               />
             </Box>

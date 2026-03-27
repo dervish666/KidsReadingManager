@@ -102,7 +102,12 @@ const SupportModal = ({ open, onClose, currentPage }) => {
             <CheckCircleOutlineIcon sx={{ fontSize: 56, color: 'primary.main', mb: 2 }} />
             <Typography
               variant="h6"
-              sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: 'text.primary', mb: 1 }}
+              sx={{
+                fontFamily: '"Nunito", sans-serif',
+                fontWeight: 700,
+                color: 'text.primary',
+                mb: 1,
+              }}
             >
               Message sent
             </Typography>
@@ -113,7 +118,7 @@ const SupportModal = ({ open, onClose, currentPage }) => {
             </Typography>
             <Typography
               variant="caption"
-              sx={{ fontFamily: '"DM Sans", sans-serif', color: '#9A9A9A' }}
+              sx={{ fontFamily: '"DM Sans", sans-serif', color: 'text.secondary' }}
             >
               Reference: {ticketId?.slice(0, 8)}
             </Typography>
@@ -129,7 +134,10 @@ const SupportModal = ({ open, onClose, currentPage }) => {
                 mt: 1,
               }}
             >
-              <Typography variant="body2" sx={{ fontFamily: '"DM Sans", sans-serif', color: '#5A5A5A' }}>
+              <Typography
+                variant="body2"
+                sx={{ fontFamily: '"DM Sans", sans-serif', color: 'text.primary' }}
+              >
                 Sending as <strong>{user?.name}</strong> ({user?.email})
               </Typography>
             </Box>
@@ -179,7 +187,10 @@ const SupportModal = ({ open, onClose, currentPage }) => {
               borderColor: 'rgba(107, 142, 107, 0.3)',
               textTransform: 'none',
               fontWeight: 600,
-              '&:hover': { borderColor: 'primary.main', backgroundColor: 'rgba(107, 142, 107, 0.05)' },
+              '&:hover': {
+                borderColor: 'primary.main',
+                backgroundColor: 'rgba(107, 142, 107, 0.05)',
+              },
             }}
           >
             Close

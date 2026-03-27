@@ -12,7 +12,7 @@ import {
   DialogActions,
   Paper,
   Grid,
-  CircularProgress
+  CircularProgress,
 } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import UploadIcon from '@mui/icons-material/Upload';
@@ -21,7 +21,15 @@ import SyncIcon from '@mui/icons-material/Sync';
 import { useAppContext } from '../contexts/AppContext';
 
 const DataManagement = () => {
-  const { exportToJson, importFromJson, reloadDataFromServer, fetchWithAuth, canManageUsers, books, user } = useAppContext();
+  const {
+    exportToJson,
+    importFromJson,
+    reloadDataFromServer,
+    fetchWithAuth,
+    canManageUsers,
+    books,
+    user,
+  } = useAppContext();
   const fileInputRef = useRef(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const [confirmDialog, setConfirmDialog] = useState({ open: false, file: null });
@@ -58,7 +66,11 @@ const DataManagement = () => {
       const data = await response.json();
       if (response.ok) {
         setSyncResult(data);
-        setSnackbar({ open: true, message: 'School data sync completed successfully', severity: 'success' });
+        setSnackbar({
+          open: true,
+          message: 'School data sync completed successfully',
+          severity: 'success',
+        });
         // Refresh status
         const statusResponse = await fetchWithAuth('/api/wonde/status');
         if (statusResponse.ok) setWondeStatus(await statusResponse.json());
@@ -79,7 +91,7 @@ const DataManagement = () => {
     setSnackbar({
       open: true,
       message: 'Data exported successfully',
-      severity: 'success'
+      severity: 'success',
     });
   };
 
@@ -90,26 +102,26 @@ const DataManagement = () => {
   const handleFileChange = (event) => {
     const file = event.target.files[0];
     if (!file) return;
-    
+
     // Reset the file input
     event.target.value = null;
-    
+
     // Show confirmation dialog
     setConfirmDialog({
       open: true,
-      file
+      file,
     });
   };
 
   const handleImportConfirm = () => {
     const { file } = confirmDialog;
-    
+
     importFromJson(file)
       .then((count) => {
         setSnackbar({
           open: true,
           message: `Successfully imported data for ${count} students`,
-          severity: 'success'
+          severity: 'success',
         });
         setConfirmDialog({ open: false, file: null });
       })
@@ -117,7 +129,7 @@ const DataManagement = () => {
         setSnackbar({
           open: true,
           message: `Import failed: ${error.message}`,
-          severity: 'error'
+          severity: 'error',
         });
         setConfirmDialog({ open: false, file: null });
       });
@@ -135,25 +147,25 @@ const DataManagement = () => {
   const handleReloadData = async () => {
     try {
       const result = await reloadDataFromServer();
-      
+
       if (result.success) {
         setSnackbar({
           open: true,
           message: 'Data reloaded successfully from server',
-          severity: 'success'
+          severity: 'success',
         });
       } else {
         setSnackbar({
           open: true,
           message: `Failed to reload data: ${result.error}`,
-          severity: 'error'
+          severity: 'error',
         });
       }
     } catch (error) {
       setSnackbar({
         open: true,
         message: `Error reloading data: ${error.message}`,
-        severity: 'error'
+        severity: 'error',
       });
     }
   };
@@ -172,13 +184,13 @@ const DataManagement = () => {
       setSnackbar({
         open: true,
         message: result.message || 'Library cleared successfully',
-        severity: 'success'
+        severity: 'success',
       });
     } catch (error) {
       setSnackbar({
         open: true,
         message: `Failed to clear library: ${error.message}`,
-        severity: 'error'
+        severity: 'error',
       });
     } finally {
       setClearingLibrary(false);
@@ -200,27 +212,20 @@ const DataManagement = () => {
               Data Backup & Restore
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              Export your data to a JSON file for backup purposes, or restore data from a previously exported file.
-              This includes all students, classes, books, genres, and reading sessions.
+              Export your data to a JSON file for backup purposes, or restore data from a previously
+              exported file. This includes all students, classes, books, genres, and reading
+              sessions.
             </Typography>
-            
+
             <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
-              <Button
-                variant="contained"
-                startIcon={<DownloadIcon />}
-                onClick={handleExport}
-              >
+              <Button variant="contained" startIcon={<DownloadIcon />} onClick={handleExport}>
                 Export Data
               </Button>
-              
-              <Button
-                variant="contained"
-                startIcon={<UploadIcon />}
-                onClick={handleImportClick}
-              >
+
+              <Button variant="contained" startIcon={<UploadIcon />} onClick={handleImportClick}>
                 Import Data
               </Button>
-              
+
               <input
                 type="file"
                 accept=".json"
@@ -231,23 +236,19 @@ const DataManagement = () => {
             </Box>
           </Paper>
         </Grid>
-        
+
         <Grid size={12}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="subtitle1" gutterBottom>
               Server Synchronization
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              Force a reload of data from the server. This is useful if you've made changes on another device
-              and they aren't showing up here yet.
+              Force a reload of data from the server. This is useful if you've made changes on
+              another device and they aren't showing up here yet.
             </Typography>
-            
+
             <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
-              <Button
-                variant="outlined"
-                color="primary"
-                onClick={handleReloadData}
-              >
+              <Button variant="outlined" color="primary" onClick={handleReloadData}>
                 Reload Data from Server
               </Button>
             </Box>
@@ -261,24 +262,23 @@ const DataManagement = () => {
                 School Data Sync (Wonde)
               </Typography>
               <Typography variant="body2" color="text.secondary" paragraph>
-                Sync students, classes, and teacher data from your school's MIS via Wonde.
-                This runs automatically overnight but can be triggered manually.
+                Sync students, classes, and teacher data from your school's MIS via Wonde. This runs
+                automatically overnight but can be triggered manually.
               </Typography>
 
               {wondeStatus.lastSyncAt && (
-                <Typography variant="body2" sx={{ mb: 2, color: '#666' }}>
+                <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
                   Last synced: {new Date(wondeStatus.lastSyncAt).toLocaleString()}
                 </Typography>
               )}
 
               {syncResult && syncResult.status === 'completed' && (
                 <Alert severity="success" sx={{ mb: 2 }}>
-                  Sync complete: {syncResult.studentsCreated} students created,
-                  {' '}{syncResult.studentsUpdated} updated,
-                  {' '}{syncResult.studentsDeactivated} deactivated,
-                  {' '}{syncResult.classesCreated} classes created,
-                  {' '}{syncResult.classesUpdated} updated,
-                  {' '}{syncResult.employeesSynced} employees synced.
+                  Sync complete: {syncResult.studentsCreated} students created,{' '}
+                  {syncResult.studentsUpdated} updated, {syncResult.studentsDeactivated}{' '}
+                  deactivated, {syncResult.classesCreated} classes created,{' '}
+                  {syncResult.classesUpdated} updated, {syncResult.employeesSynced} employees
+                  synced.
                 </Alert>
               )}
 
@@ -304,9 +304,9 @@ const DataManagement = () => {
                 Clear Book Library
               </Typography>
               <Typography variant="body2" color="text.secondary" paragraph>
-                Remove all books from your school's library. This will unlink every book from your school
-                and delete any books not used by other schools. Reading session history is preserved.
-                You can reimport books afterwards.
+                Remove all books from your school's library. This will unlink every book from your
+                school and delete any books not used by other schools. Reading session history is
+                preserved. You can reimport books afterwards.
               </Typography>
 
               <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
@@ -324,61 +324,52 @@ const DataManagement = () => {
           </Grid>
         )}
 
-      {/* Snackbar and Dialog remain outside the main layout Grid */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert
+        {/* Snackbar and Dialog remain outside the main layout Grid */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
           onClose={handleCloseSnackbar}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+          <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
 
-      <Dialog
-        open={confirmDialog.open}
-        onClose={handleCloseDialog}
-      >
-        <DialogTitle>Confirm Import</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Importing this file will replace your current data. This action cannot be undone.
-            Are you sure you want to continue?
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button onClick={handleImportConfirm} color="primary" variant="contained">
-            Import
-          </Button>
-        </DialogActions>
-      </Dialog>
+        <Dialog open={confirmDialog.open} onClose={handleCloseDialog}>
+          <DialogTitle>Confirm Import</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Importing this file will replace your current data. This action cannot be undone. Are
+              you sure you want to continue?
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseDialog}>Cancel</Button>
+            <Button onClick={handleImportConfirm} color="primary" variant="contained">
+              Import
+            </Button>
+          </DialogActions>
+        </Dialog>
 
-      <Dialog
-        open={clearLibraryDialog}
-        onClose={() => setClearLibraryDialog(false)}
-      >
-        <DialogTitle>Clear Book Library</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            This will remove all {books?.length || 0} books from your school's library.
-            Books not used by any other school will be permanently deleted.
-            Reading session history will be preserved. This cannot be undone.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setClearLibraryDialog(false)}>Cancel</Button>
-          <Button onClick={handleClearLibrary} color="error" variant="contained">
-            Clear Library
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Grid> {/* Close Grid container */}
+        <Dialog open={clearLibraryDialog} onClose={() => setClearLibraryDialog(false)}>
+          <DialogTitle>Clear Book Library</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              This will remove all {books?.length || 0} books from your school's library. Books not
+              used by any other school will be permanently deleted. Reading session history will be
+              preserved. This cannot be undone.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setClearLibraryDialog(false)}>Cancel</Button>
+            <Button onClick={handleClearLibrary} color="error" variant="contained">
+              Clear Library
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Grid>{' '}
+      {/* Close Grid container */}
     </Box> /* Close main Box */
   );
 };

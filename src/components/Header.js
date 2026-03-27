@@ -1,5 +1,18 @@
 import React, { useState } from 'react';
-import { AppBar, Toolbar, Typography, Box, FormControl, Select, MenuItem, Button, Chip, Menu, CircularProgress, IconButton } from '@mui/material';
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Box,
+  FormControl,
+  Select,
+  MenuItem,
+  Button,
+  Chip,
+  Menu,
+  CircularProgress,
+  IconButton,
+} from '@mui/material';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import TallyLogo from './TallyLogo';
 import LogoutIcon from '@mui/icons-material/Logout';
@@ -9,7 +22,15 @@ import packageJson from '../../package.json';
 import { useAppContext } from '../contexts/AppContext';
 import SupportModal from './SupportModal';
 
-const TAB_NAMES = ['Students', 'School Reading', 'Home Reading', 'Stats', 'Recommend', 'Books', 'Settings'];
+const TAB_NAMES = [
+  'Students',
+  'School Reading',
+  'Home Reading',
+  'Stats',
+  'Recommend',
+  'Books',
+  'Settings',
+];
 
 const Header = ({ currentTab }) => {
   const {
@@ -45,12 +66,12 @@ const Header = ({ currentTab }) => {
   };
 
   // Get active (non-disabled) classes
-  const activeClasses = classes.filter(cls => !cls.disabled);
-  
+  const activeClasses = classes.filter((cls) => !cls.disabled);
+
   const handleClassFilterChange = (event) => {
     setGlobalClassFilter(event.target.value);
   };
-  
+
   // Format class name with teacher if available
   const formatClassName = (cls) => {
     if (cls.teacherName) {
@@ -63,7 +84,7 @@ const Header = ({ currentTab }) => {
   const getFilterDisplayName = () => {
     if (globalClassFilter === 'all') return 'All Classes';
     if (globalClassFilter === 'unassigned') return 'Unassigned';
-    const selectedClass = classes.find(cls => cls.id === globalClassFilter);
+    const selectedClass = classes.find((cls) => cls.id === globalClassFilter);
     return selectedClass ? formatClassName(selectedClass) : 'All Classes';
   };
 
@@ -104,7 +125,7 @@ const Header = ({ currentTab }) => {
         >
           <TallyLogo size={22} />
         </Box>
-        
+
         <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
           <Typography
             variant="h5"
@@ -121,20 +142,24 @@ const Header = ({ currentTab }) => {
           >
             Tally Reading
           </Typography>
-          
+
           {/* Global Class Filter Dropdown */}
-          <Box sx={{
-            display: 'flex',
-            alignItems: 'center',
-            mr: { xs: 1, sm: 2 },
-            ml: 'auto',
-          }}>
-            <FilterListIcon sx={{
-              mr: 1,
-              fontSize: { xs: '1rem', sm: '1.25rem' },
-              color: 'text.secondary',
-              display: { xs: 'none', sm: 'block' }
-            }} />
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              mr: { xs: 1, sm: 2 },
+              ml: 'auto',
+            }}
+          >
+            <FilterListIcon
+              sx={{
+                mr: 1,
+                fontSize: { xs: '1rem', sm: '1.25rem' },
+                color: 'text.secondary',
+                display: { xs: 'none', sm: 'block' },
+              }}
+            />
             <FormControl
               size="small"
               sx={{
@@ -181,17 +206,27 @@ const Header = ({ currentTab }) => {
                   },
                 }}
               >
-                <MenuItem value="all" sx={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 500 }}>All Classes</MenuItem>
-                <MenuItem value="unassigned" sx={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 500 }}>Unassigned</MenuItem>
+                <MenuItem value="all" sx={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 500 }}>
+                  All Classes
+                </MenuItem>
+                <MenuItem
+                  value="unassigned"
+                  sx={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 500 }}
+                >
+                  Unassigned
+                </MenuItem>
                 {activeClasses.map((cls) => (
-                  <MenuItem key={cls.id} value={cls.id} sx={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 500 }}>
+                  <MenuItem
+                    key={cls.id}
+                    value={cls.id}
+                    sx={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 500 }}
+                  >
                     {formatClassName(cls)}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
           </Box>
-          
         </Box>
         <Typography
           variant="caption"
@@ -210,7 +245,7 @@ const Header = ({ currentTab }) => {
         >
           v{packageJson.version}
         </Typography>
-        
+
         {/* Logout Section - only show when authenticated */}
         {isAuthenticated && (
           <Box sx={{ display: 'flex', alignItems: 'center', ml: 'auto', gap: 1 }}>
@@ -218,13 +253,17 @@ const Header = ({ currentTab }) => {
             {user?.role === 'owner' && availableOrganizations.length > 1 && (
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <Chip
-                  icon={switchingOrganization ? (
-                    <CircularProgress size={14} sx={{ color: 'white' }} />
-                  ) : (
-                    <SchoolOutlined sx={{ fontSize: 16 }} />
-                  )}
+                  icon={
+                    switchingOrganization ? (
+                      <CircularProgress size={14} sx={{ color: 'white' }} />
+                    ) : (
+                      <SchoolOutlined sx={{ fontSize: 16 }} />
+                    )
+                  }
                   label={organization?.name || 'Select School'}
                   onClick={handleSchoolMenuClick}
+                  aria-label={`Switch school, currently ${organization?.name || 'none selected'}`}
+                  aria-haspopup="true"
                   sx={{
                     backgroundColor: 'primary.main',
                     color: 'white',
@@ -264,7 +303,11 @@ const Header = ({ currentTab }) => {
                     <MenuItem
                       key={org.id}
                       onClick={() => handleSchoolSelect(org.id)}
-                      selected={activeOrganizationId ? org.id === activeOrganizationId : org.id === organization?.id}
+                      selected={
+                        activeOrganizationId
+                          ? org.id === activeOrganizationId
+                          : org.id === organization?.id
+                      }
                       sx={{
                         fontFamily: '"DM Sans", sans-serif',
                         fontWeight: 500,
@@ -320,7 +363,11 @@ const Header = ({ currentTab }) => {
           </Box>
         )}
       </Toolbar>
-      <SupportModal open={supportOpen} onClose={() => setSupportOpen(false)} currentPage={TAB_NAMES[currentTab] || 'Unknown'} />
+      <SupportModal
+        open={supportOpen}
+        onClose={() => setSupportOpen(false)}
+        currentPage={TAB_NAMES[currentTab] || 'Unknown'}
+      />
     </AppBar>
   );
 };

@@ -9,7 +9,14 @@ import WhatshotIcon from '@mui/icons-material/Whatshot';
 const StudentInfoCard = ({ student }) => {
   if (!student) return null;
 
-  const { name, readingLevelMin, readingLevelMax, currentStreak, lastReadDate, totalSessionCount = 0 } = student;
+  const {
+    name,
+    readingLevelMin,
+    readingLevelMax,
+    currentStreak,
+    lastReadDate,
+    totalSessionCount = 0,
+  } = student;
 
   // Format last read date as relative time
   const formatLastRead = (dateStr) => {
@@ -64,27 +71,17 @@ const StudentInfoCard = ({ student }) => {
       sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap', minHeight: 32 }}
     >
       {lastReadText && (
-        <Chip
-          label={`Last read: ${lastReadText}`}
-          size="small"
-          variant="outlined"
-        />
+        <Chip label={`Last read: ${lastReadText}`} size="small" variant="outlined" />
       )}
       {currentStreak > 0 && (
         <Chip
-          icon={<WhatshotIcon sx={{ fontSize: 16, color: '#F59E0B' }} />}
+          icon={<WhatshotIcon sx={{ fontSize: 16, color: 'accent.streak' }} />}
           label={`${currentStreak} ${currentStreak === 1 ? 'day' : 'days'} streak`}
           size="small"
           variant="outlined"
         />
       )}
-      {levelText && (
-        <Chip
-          label={levelText}
-          size="small"
-          variant="outlined"
-        />
-      )}
+      {levelText && <Chip label={levelText} size="small" variant="outlined" />}
     </Box>
   );
 };

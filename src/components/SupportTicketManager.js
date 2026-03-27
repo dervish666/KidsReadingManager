@@ -28,18 +28,18 @@ import { formatRelativeTime } from '../utils/helpers';
 const STATUS_CONFIG = {
   open: {
     label: 'Open',
-    backgroundColor: '#FFF3E0',
-    color: '#E65100',
+    backgroundColor: 'rgba(155, 110, 58, 0.1)',
+    color: 'status.needsAttention',
   },
   'in-progress': {
     label: 'In Progress',
-    backgroundColor: '#E3F2FD',
-    color: '#1565C0',
+    backgroundColor: 'rgba(122, 158, 173, 0.12)',
+    color: 'info.main',
   },
   resolved: {
     label: 'Resolved',
-    backgroundColor: '#E8F5E9',
-    color: '#2E7D32',
+    backgroundColor: 'rgba(74, 110, 74, 0.1)',
+    color: 'status.recentlyRead',
   },
 };
 
@@ -91,25 +91,28 @@ const SupportTicketManager = () => {
     }
   }, [fetchWithAuth]);
 
-  const fetchTicketDetail = useCallback(async (ticketId) => {
-    setDetailLoading(true);
-    try {
-      const response = await fetchWithAuth(`/api/support/${ticketId}`);
-      let data;
-      if (response && typeof response.json === 'function') {
-        data = await response.json();
-      } else {
-        data = response;
+  const fetchTicketDetail = useCallback(
+    async (ticketId) => {
+      setDetailLoading(true);
+      try {
+        const response = await fetchWithAuth(`/api/support/${ticketId}`);
+        let data;
+        if (response && typeof response.json === 'function') {
+          data = await response.json();
+        } else {
+          data = response;
+        }
+        setTicketDetail(data.ticket || null);
+        setNotes(data.notes || []);
+      } catch {
+        setTicketDetail(null);
+        setNotes([]);
+      } finally {
+        setDetailLoading(false);
       }
-      setTicketDetail(data.ticket || null);
-      setNotes(data.notes || []);
-    } catch {
-      setTicketDetail(null);
-      setNotes([]);
-    } finally {
-      setDetailLoading(false);
-    }
-  }, [fetchWithAuth]);
+    },
+    [fetchWithAuth]
+  );
 
   useEffect(() => {
     fetchTickets();
@@ -126,35 +129,38 @@ const SupportTicketManager = () => {
     setNewNote('');
   }, []);
 
-  const handleStatusChange = useCallback(async (newStatus) => {
-    if (!selectedTicketId || !ticketDetail) return;
-    const previousStatus = ticketDetail.status;
-    // Optimistic update
-    setTicketDetail((prev) => prev ? { ...prev, status: newStatus } : prev);
-    setTickets((prev) =>
-      prev.map((t) => (t.id === selectedTicketId ? { ...t, status: newStatus } : t))
-    );
-    try {
-      const response = await fetchWithAuth(`/api/support/${selectedTicketId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      if (response && typeof response.json === 'function') {
-        const data = await response.json();
-        if (!data.success) throw new Error('Failed');
-      }
-      // Refresh both to get accurate data
-      fetchTickets();
-      fetchTicketDetail(selectedTicketId);
-    } catch {
-      // Revert on failure
-      setTicketDetail((prev) => prev ? { ...prev, status: previousStatus } : prev);
+  const handleStatusChange = useCallback(
+    async (newStatus) => {
+      if (!selectedTicketId || !ticketDetail) return;
+      const previousStatus = ticketDetail.status;
+      // Optimistic update
+      setTicketDetail((prev) => (prev ? { ...prev, status: newStatus } : prev));
       setTickets((prev) =>
-        prev.map((t) => (t.id === selectedTicketId ? { ...t, status: previousStatus } : t))
+        prev.map((t) => (t.id === selectedTicketId ? { ...t, status: newStatus } : t))
       );
-    }
-  }, [selectedTicketId, ticketDetail, fetchWithAuth, fetchTickets, fetchTicketDetail]);
+      try {
+        const response = await fetchWithAuth(`/api/support/${selectedTicketId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newStatus }),
+        });
+        if (response && typeof response.json === 'function') {
+          const data = await response.json();
+          if (!data.success) throw new Error('Failed');
+        }
+        // Refresh both to get accurate data
+        fetchTickets();
+        fetchTicketDetail(selectedTicketId);
+      } catch {
+        // Revert on failure
+        setTicketDetail((prev) => (prev ? { ...prev, status: previousStatus } : prev));
+        setTickets((prev) =>
+          prev.map((t) => (t.id === selectedTicketId ? { ...t, status: previousStatus } : t))
+        );
+      }
+    },
+    [selectedTicketId, ticketDetail, fetchWithAuth, fetchTickets, fetchTicketDetail]
+  );
 
   const handleAddNote = useCallback(async () => {
     if (!selectedTicketId || !newNote.trim()) return;
@@ -266,10 +272,11 @@ const SupportTicketManager = () => {
                 fontWeight: statusFilter === key ? 700 : 500,
                 fontSize: '0.8rem',
                 backgroundColor: statusFilter === key ? 'primary.main' : 'transparent',
-                color: statusFilter === key ? '#fff' : 'text.primary',
+                color: statusFilter === key ? 'primary.contrastText' : 'text.primary',
                 borderColor: statusFilter === key ? 'primary.main' : 'rgba(0,0,0,0.15)',
                 '&:hover': {
-                  backgroundColor: statusFilter === key ? '#5A7D5A' : 'rgba(107, 142, 107, 0.08)',
+                  backgroundColor:
+                    statusFilter === key ? 'primary.dark' : 'rgba(107, 142, 107, 0.08)',
                 },
               }}
             />
@@ -287,9 +294,13 @@ const SupportTicketManager = () => {
           </Box>
         ) : filteredTickets.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 6 }}>
-            <InboxIcon sx={{ fontSize: 48, color: '#C0C0C0', mb: 1 }} />
+            <InboxIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
             <Typography
-              sx={{ fontFamily: '"DM Sans", sans-serif', color: 'text.secondary', fontSize: '0.9rem' }}
+              sx={{
+                fontFamily: '"DM Sans", sans-serif',
+                color: 'text.secondary',
+                fontSize: '0.9rem',
+              }}
             >
               {statusFilter === 'all' ? 'No support tickets yet' : `No ${statusFilter} tickets`}
             </Typography>
@@ -307,13 +318,9 @@ const SupportTicketManager = () => {
                 borderRadius: '12px',
                 border: '1px solid',
                 borderColor:
-                  selectedTicketId === ticket.id
-                    ? 'rgba(107, 142, 107, 0.4)'
-                    : 'rgba(0,0,0,0.06)',
+                  selectedTicketId === ticket.id ? 'rgba(107, 142, 107, 0.4)' : 'rgba(0,0,0,0.06)',
                 backgroundColor:
-                  selectedTicketId === ticket.id
-                    ? 'rgba(107, 142, 107, 0.08)'
-                    : '#fff',
+                  selectedTicketId === ticket.id ? 'rgba(107, 142, 107, 0.08)' : 'background.paper',
                 transition: 'all 0.15s ease',
                 '&:hover': {
                   borderColor: 'rgba(107, 142, 107, 0.3)',
@@ -324,7 +331,14 @@ const SupportTicketManager = () => {
                 },
               }}
             >
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 0.5 }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                  mb: 0.5,
+                }}
+              >
                 <Typography
                   sx={{
                     fontFamily: '"Nunito", sans-serif',
@@ -355,13 +369,14 @@ const SupportTicketManager = () => {
                     mr: 1,
                   }}
                 >
-                  {ticket.userName}{ticket.organizationName ? ` \u00B7 ${ticket.organizationName}` : ''}
+                  {ticket.userName}
+                  {ticket.organizationName ? ` \u00B7 ${ticket.organizationName}` : ''}
                 </Typography>
                 <Typography
                   sx={{
                     fontFamily: '"DM Sans", sans-serif',
                     fontSize: '0.75rem',
-                    color: '#9A9A9A',
+                    color: 'text.secondary',
                     whiteSpace: 'nowrap',
                   }}
                 >
@@ -399,20 +414,22 @@ const SupportTicketManager = () => {
             py: 6,
           }}
         >
-          <SupportAgentIcon sx={{ fontSize: 56, color: '#D0D0D0', mb: 2 }} />
+          <SupportAgentIcon sx={{ fontSize: 56, color: 'text.secondary', mb: 2 }} />
           <Typography
             sx={{
               fontFamily: '"Nunito", sans-serif',
               fontWeight: 700,
               fontSize: '1.1rem',
-              color: '#9A9A9A',
+              color: 'text.secondary',
             }}
           >
             Select a ticket to view details
           </Typography>
         </Box>
       ) : detailLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 6, flex: 1 }}>
+        <Box
+          sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 6, flex: 1 }}
+        >
           <CircularProgress size={32} sx={{ color: 'primary.main' }} />
         </Box>
       ) : ticketDetail ? (
@@ -420,7 +437,11 @@ const SupportTicketManager = () => {
           {/* Header */}
           <Box sx={{ p: 2.5, pb: 2 }}>
             {isMobile && (
-              <IconButton onClick={handleBack} sx={{ mr: 1, mb: 1, ml: -1 }} aria-label="Back to ticket list">
+              <IconButton
+                onClick={handleBack}
+                sx={{ mr: 1, mb: 1, ml: -1 }}
+                aria-label="Back to ticket list"
+              >
                 <ArrowBackIcon />
               </IconButton>
             )}
@@ -449,12 +470,24 @@ const SupportTicketManager = () => {
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                   <PersonIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                  <Typography sx={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.85rem', color: 'text.primary' }}>
+                  <Typography
+                    sx={{
+                      fontFamily: '"DM Sans", sans-serif',
+                      fontSize: '0.85rem',
+                      color: 'text.primary',
+                    }}
+                  >
                     {ticketDetail.userName}
                   </Typography>
                 </Box>
                 {ticketDetail.userEmail && (
-                  <Typography sx={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.85rem', color: 'text.secondary' }}>
+                  <Typography
+                    sx={{
+                      fontFamily: '"DM Sans", sans-serif',
+                      fontSize: '0.85rem',
+                      color: 'text.secondary',
+                    }}
+                  >
                     {ticketDetail.userEmail}
                   </Typography>
                 )}
@@ -467,7 +500,7 @@ const SupportTicketManager = () => {
                       fontFamily: '"DM Sans", sans-serif',
                       fontSize: '0.75rem',
                       borderColor: 'rgba(0,0,0,0.12)',
-                      color: '#5A5A5A',
+                      color: 'text.primary',
                     }}
                   />
                 )}
@@ -480,11 +513,17 @@ const SupportTicketManager = () => {
                       fontFamily: '"DM Sans", sans-serif',
                       fontSize: '0.75rem',
                       borderColor: 'rgba(0,0,0,0.12)',
-                      color: '#5A5A5A',
+                      color: 'text.primary',
                     }}
                   />
                 )}
-                <Typography sx={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.8rem', color: '#9A9A9A' }}>
+                <Typography
+                  sx={{
+                    fontFamily: '"DM Sans", sans-serif',
+                    fontSize: '0.8rem',
+                    color: 'text.secondary',
+                  }}
+                >
                   {formatRelativeTime(ticketDetail.createdAt)}
                 </Typography>
               </Box>
@@ -495,7 +534,7 @@ const SupportTicketManager = () => {
               elevation={0}
               sx={{
                 p: 2,
-                backgroundColor: '#fff',
+                backgroundColor: 'background.paper',
                 border: '1px solid rgba(0,0,0,0.08)',
                 borderRadius: '10px',
                 mb: 2,
@@ -517,11 +556,7 @@ const SupportTicketManager = () => {
             {/* Status control */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <FormControl size="small" sx={{ minWidth: 160 }}>
-                <InputLabel
-                  sx={{ fontFamily: '"DM Sans", sans-serif' }}
-                >
-                  Status
-                </InputLabel>
+                <InputLabel sx={{ fontFamily: '"DM Sans", sans-serif' }}>Status</InputLabel>
                 <Select
                   value={ticketDetail.status}
                   label="Status"
@@ -544,8 +579,8 @@ const SupportTicketManager = () => {
                 size="small"
                 aria-label="Delete ticket"
                 sx={{
-                  color: '#9A9A9A',
-                  '&:hover': { color: '#D32F2F', backgroundColor: 'rgba(211, 47, 47, 0.08)' },
+                  color: 'text.secondary',
+                  '&:hover': { color: 'error.dark', backgroundColor: 'rgba(166, 101, 101, 0.08)' },
                 }}
               >
                 <DeleteOutlineIcon fontSize="small" />
@@ -574,7 +609,7 @@ const SupportTicketManager = () => {
                 sx={{
                   fontFamily: '"DM Sans", sans-serif',
                   fontSize: '0.85rem',
-                  color: '#9A9A9A',
+                  color: 'text.secondary',
                   mb: 2,
                 }}
               >
@@ -606,7 +641,7 @@ const SupportTicketManager = () => {
                         sx={{
                           fontFamily: '"DM Sans", sans-serif',
                           fontSize: '0.75rem',
-                          color: '#9A9A9A',
+                          color: 'text.secondary',
                         }}
                       >
                         {formatRelativeTime(note.createdAt)}
@@ -616,7 +651,7 @@ const SupportTicketManager = () => {
                       sx={{
                         fontFamily: '"DM Sans", sans-serif',
                         fontSize: '0.85rem',
-                        color: '#5A5A5A',
+                        color: 'text.primary',
                         lineHeight: 1.6,
                         whiteSpace: 'pre-wrap',
                       }}
@@ -647,7 +682,7 @@ const SupportTicketManager = () => {
                   borderRadius: '10px',
                   fontFamily: '"DM Sans", sans-serif',
                   fontSize: '0.9rem',
-                  backgroundColor: '#fff',
+                  backgroundColor: 'background.paper',
                 },
               }}
             />
@@ -656,7 +691,7 @@ const SupportTicketManager = () => {
                 sx={{
                   fontFamily: '"DM Sans", sans-serif',
                   fontSize: '0.75rem',
-                  color: '#9A9A9A',
+                  color: 'text.secondary',
                 }}
               >
                 {newNote.length}/2000
@@ -666,11 +701,7 @@ const SupportTicketManager = () => {
                 onClick={handleAddNote}
                 disabled={!newNote.trim() || noteSubmitting}
                 startIcon={
-                  noteSubmitting ? (
-                    <CircularProgress size={16} color="inherit" />
-                  ) : (
-                    <NoteAddIcon />
-                  )
+                  noteSubmitting ? <CircularProgress size={16} color="inherit" /> : <NoteAddIcon />
                 }
                 sx={{
                   backgroundColor: 'primary.main',
@@ -680,7 +711,7 @@ const SupportTicketManager = () => {
                   fontSize: '0.85rem',
                   borderRadius: '10px',
                   px: 2.5,
-                  '&:hover': { backgroundColor: '#5A7D5A' },
+                  '&:hover': { backgroundColor: 'primary.dark' },
                   '&.Mui-disabled': { backgroundColor: 'rgba(107, 142, 107, 0.3)' },
                 }}
               >
@@ -691,7 +722,9 @@ const SupportTicketManager = () => {
         </Box>
       ) : (
         // Failed to load
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 6, flex: 1 }}>
+        <Box
+          sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 6, flex: 1 }}
+        >
           <Typography sx={{ fontFamily: '"DM Sans", sans-serif', color: 'text.secondary' }}>
             Failed to load ticket details.
           </Typography>

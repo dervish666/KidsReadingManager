@@ -18,7 +18,7 @@ import {
   Paper,
   Pagination,
   Chip,
-  InputAdornment
+  InputAdornment,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import SortIcon from '@mui/icons-material/Sort';
@@ -40,10 +40,10 @@ const StudentList = () => {
     classes,
     globalClassFilter,
     getReadingStatus,
-    user
+    user,
   } = useAppContext();
 
-  const isWondeOrg = useMemo(() => classes.some(cls => cls.wondeClassId), [classes]);
+  const isWondeOrg = useMemo(() => classes.some((cls) => cls.wondeClassId), [classes]);
   const canManageStudents = user?.authProvider !== 'mylogin' && !isWondeOrg;
   const { tourButtonProps } = useTour('students', { ready: students.length > 0 });
 
@@ -64,10 +64,11 @@ const StudentList = () => {
       setError('Please enter a student name');
       return;
     }
-    
-    const classIdToSend = selectedClassId === 'unassigned' || selectedClassId === '' ? null : selectedClassId;
+
+    const classIdToSend =
+      selectedClassId === 'unassigned' || selectedClassId === '' ? null : selectedClassId;
     addStudent(newStudentName.trim(), classIdToSend);
-    
+
     setNewStudentName('');
     setSelectedClassId('');
     setOpenDialog(false);
@@ -96,7 +97,7 @@ const StudentList = () => {
 
   const handleSortChange = (event) => {
     const newSortMethod = event.target.value;
-    
+
     if (newSortMethod === sortMethod) {
       const newDirection = sortDirection === 'asc' ? 'desc' : 'asc';
       setSortDirection(newDirection);
@@ -108,10 +109,10 @@ const StudentList = () => {
   };
 
   const filteredAndSortedStudents = useMemo(() => {
-    const disabledClassIds = classes.filter(cls => cls.disabled).map(cls => cls.id);
+    const disabledClassIds = classes.filter((cls) => cls.disabled).map((cls) => cls.id);
     const query = searchQuery.trim().toLowerCase();
 
-    const filteredStudents = students.filter(student => {
+    const filteredStudents = students.filter((student) => {
       if (student.classId && disabledClassIds.includes(student.classId)) {
         return false;
       }
@@ -140,9 +141,9 @@ const StudentList = () => {
 
     if (sortMethod === 'priority') {
       const sorted = [...filteredStudents].sort((a, b) => {
-         const dateA = a.lastReadDate ? new Date(a.lastReadDate) : new Date(0);
-         const dateB = b.lastReadDate ? new Date(b.lastReadDate) : new Date(0);
-         return sortDirection === 'asc' ? dateB - dateA : dateA - dateB;
+        const dateA = a.lastReadDate ? new Date(a.lastReadDate) : new Date(0);
+        const dateB = b.lastReadDate ? new Date(b.lastReadDate) : new Date(0);
+        return sortDirection === 'asc' ? dateB - dateA : dateA - dateB;
       });
       return sorted;
     }
@@ -171,7 +172,16 @@ const StudentList = () => {
 
       return sortDirection === 'asc' ? comparison : -comparison;
     });
-  }, [students, classes, globalClassFilter, sortMethod, sortDirection, searchQuery, statusFilter, getReadingStatus]);
+  }, [
+    students,
+    classes,
+    globalClassFilter,
+    sortMethod,
+    sortDirection,
+    searchQuery,
+    statusFilter,
+    getReadingStatus,
+  ]);
 
   // Reset to page 1 when filters or sort change
   useEffect(() => {
@@ -190,7 +200,11 @@ const StudentList = () => {
   };
 
   if (apiError) {
-    return <Alert severity="error" sx={{ borderRadius: 4 }}>Error loading student data: {apiError}</Alert>;
+    return (
+      <Alert severity="error" sx={{ borderRadius: 4 }}>
+        Error loading student data: {apiError}
+      </Alert>
+    );
   }
 
   if (loading) {
@@ -203,17 +217,28 @@ const StudentList = () => {
 
   return (
     <Box>
-      <Box sx={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        mb: 4,
-        flexWrap: 'wrap',
-        gap: 2,
-        px: { xs: 0, sm: 1 }
-      }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 4,
+          flexWrap: 'wrap',
+          gap: 2,
+          px: { xs: 0, sm: 1 },
+        }}
+      >
         <Box>
-          <Typography variant="h4" component="h1" sx={{ mb: 0.5, fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'text.primary' }}>
+          <Typography
+            variant="h4"
+            component="h1"
+            sx={{
+              mb: 0.5,
+              fontFamily: '"Nunito", sans-serif',
+              fontWeight: 800,
+              color: 'text.primary',
+            }}
+          >
             Students
           </Typography>
           <Typography variant="body1" sx={{ color: 'text.secondary', fontWeight: 500 }}>
@@ -222,14 +247,16 @@ const StudentList = () => {
               : `${filteredAndSortedStudents.length} total`}
           </Typography>
         </Box>
-        <Box sx={{
-          display: 'flex',
-          gap: 2,
-          flexWrap: 'wrap',
-          width: { xs: '100%', sm: 'auto' },
-          justifyContent: { xs: 'stretch', sm: 'flex-end' },
-          alignItems: 'center'
-        }}>
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 2,
+            flexWrap: 'wrap',
+            width: { xs: '100%', sm: 'auto' },
+            justifyContent: { xs: 'stretch', sm: 'flex-end' },
+            alignItems: 'center',
+          }}
+        >
           {canManageStudents && (
             <Button
               variant="outlined"
@@ -243,9 +270,11 @@ const StudentList = () => {
                 color: 'primary.main',
                 fontWeight: 700,
                 '&:hover': {
-                  border: '2px solid #6B8E6B',
+                  borderWidth: '2px',
+                  borderStyle: 'solid',
+                  borderColor: 'primary.main',
                   backgroundColor: 'rgba(107, 142, 107, 0.05)',
-                }
+                },
               }}
             >
               <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Bulk Input</Box>
@@ -266,9 +295,11 @@ const StudentList = () => {
                 color: 'primary.main',
                 fontWeight: 700,
                 '&:hover': {
-                  border: '2px solid #6B8E6B',
+                  borderWidth: '2px',
+                  borderStyle: 'solid',
+                  borderColor: 'primary.main',
                   backgroundColor: 'rgba(107, 142, 107, 0.05)',
-                }
+                },
               }}
             >
               <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Add Student</Box>
@@ -279,16 +310,23 @@ const StudentList = () => {
       </Box>
 
       {students.length === 0 ? (
-        <Paper sx={{ 
-          textAlign: 'center', 
-          py: 8, 
-          px: 4, 
-          borderRadius: 8, 
-          backgroundColor: 'background.paper',
-          border: '1px dashed rgba(107, 142, 107, 0.3)'
-        }}>
-          <Typography variant="h6" sx={{ mb: 3, color: 'text.secondary', fontFamily: '"Nunito", sans-serif' }}>
-            {canManageStudents ? 'No students added yet. Add your first student to get started!' : 'No students found. Students are synced from your school system.'}
+        <Paper
+          sx={{
+            textAlign: 'center',
+            py: 8,
+            px: 4,
+            borderRadius: 8,
+            backgroundColor: 'background.paper',
+            border: '1px dashed rgba(107, 142, 107, 0.3)',
+          }}
+        >
+          <Typography
+            variant="h6"
+            sx={{ mb: 3, color: 'text.secondary', fontFamily: '"Nunito", sans-serif' }}
+          >
+            {canManageStudents
+              ? 'No students added yet. Add your first student to get started!'
+              : 'No students found. Students are synced from your school system.'}
           </Typography>
           {canManageStudents && (
             <Button
@@ -299,10 +337,11 @@ const StudentList = () => {
               sx={{
                 borderRadius: 4,
                 background: 'linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%)',
-                boxShadow: '12px 12px 24px rgba(107, 142, 107, 0.3), -8px -8px 16px rgba(255, 255, 255, 0.4)',
+                boxShadow:
+                  '12px 12px 24px rgba(107, 142, 107, 0.3), -8px -8px 16px rgba(255, 255, 255, 0.4)',
                 fontWeight: 700,
                 px: 4,
-                py: 1.5
+                py: 1.5,
               }}
             >
               Add Student
@@ -315,14 +354,16 @@ const StudentList = () => {
             <PrioritizedStudentsList filterClassId={globalClassFilter} />
           </Box>
 
-          <Box sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 2,
-            mb: 3,
-            flexWrap: 'wrap',
-            px: { xs: 0, sm: 1 }
-          }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              mb: 3,
+              flexWrap: 'wrap',
+              px: { xs: 0, sm: 1 },
+            }}
+          >
             <TextField
               data-tour="students-search"
               size="small"
@@ -340,8 +381,12 @@ const StudentList = () => {
                   border: '1px solid rgba(139, 115, 85, 0.12)',
                   '& fieldset': { border: 'none' },
                   '&:hover': { border: '1px solid rgba(107, 142, 107, 0.3)' },
-                  '&.Mui-focused': { backgroundColor: '#ffffff', border: '1px solid rgba(107, 142, 107, 0.5)', boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.12)' },
-                }
+                  '&.Mui-focused': {
+                    backgroundColor: '#ffffff',
+                    border: '1px solid rgba(107, 142, 107, 0.5)',
+                    boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.12)',
+                  },
+                },
               }}
               slotProps={{
                 input: {
@@ -358,15 +403,18 @@ const StudentList = () => {
                       />
                     </InputAdornment>
                   ) : null,
-                }
+                },
               }}
             />
-            <Box data-tour="students-status-filters" sx={{
-              display: 'flex',
-              gap: 0.75,
-              flexWrap: 'wrap',
-              flex: { xs: '1 1 100%', sm: '1 1 auto' },
-            }}>
+            <Box
+              data-tour="students-status-filters"
+              sx={{
+                display: 'flex',
+                gap: 0.75,
+                flexWrap: 'wrap',
+                flex: { xs: '1 1 100%', sm: '1 1 auto' },
+              }}
+            >
               {[
                 { value: 'all', label: 'All' },
                 { value: 'needsAttention', label: 'Needs Attention', color: 'warning' },
@@ -377,7 +425,7 @@ const StudentList = () => {
                   key={chip.value}
                   label={chip.label}
                   size="small"
-                  color={statusFilter === chip.value ? (chip.color || 'primary') : 'default'}
+                  color={statusFilter === chip.value ? chip.color || 'primary' : 'default'}
                   variant={statusFilter === chip.value ? 'filled' : 'outlined'}
                   onClick={() => setStatusFilter(chip.value)}
                   sx={{
@@ -390,26 +438,35 @@ const StudentList = () => {
                       '&:hover': {
                         borderColor: 'primary.main',
                         backgroundColor: 'rgba(107, 142, 107, 0.05)',
-                      }
-                    })
+                      },
+                    }),
                   }}
                 />
               ))}
             </Box>
-            <FormControl sx={{
-              minWidth: { xs: '100%', sm: 200 },
-              flex: { xs: '1 1 100%', sm: '0 0 auto' },
-              '& .MuiOutlinedInput-root': {
-                borderRadius: '10px',
-                backgroundColor: '#FAF8F3',
-                boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.03)',
-                border: '1px solid rgba(139, 115, 85, 0.12)',
-                '& fieldset': { border: 'none' },
-                '&:hover': { border: '1px solid rgba(107, 142, 107, 0.3)' },
-                '&.Mui-focused': { backgroundColor: '#ffffff', border: '1px solid rgba(107, 142, 107, 0.5)', boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.12)' },
-              }
-            }} size="small">
-              <InputLabel id="sort-select-label" sx={{ fontFamily: '"DM Sans", sans-serif' }}>Sort By</InputLabel>
+            <FormControl
+              sx={{
+                minWidth: { xs: '100%', sm: 200 },
+                flex: { xs: '1 1 100%', sm: '0 0 auto' },
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '10px',
+                  backgroundColor: '#FAF8F3',
+                  boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.03)',
+                  border: '1px solid rgba(139, 115, 85, 0.12)',
+                  '& fieldset': { border: 'none' },
+                  '&:hover': { border: '1px solid rgba(107, 142, 107, 0.3)' },
+                  '&.Mui-focused': {
+                    backgroundColor: '#ffffff',
+                    border: '1px solid rgba(107, 142, 107, 0.5)',
+                    boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.12)',
+                  },
+                },
+              }}
+              size="small"
+            >
+              <InputLabel id="sort-select-label" sx={{ fontFamily: '"DM Sans", sans-serif' }}>
+                Sort By
+              </InputLabel>
               <Select
                 labelId="sort-select-label"
                 id="sort-select"
@@ -446,19 +503,26 @@ const StudentList = () => {
         </>
       )}
 
-      <Dialog 
-        open={openDialog} 
+      <Dialog
+        open={openDialog}
         onClose={handleCloseDialog}
         PaperProps={{
           sx: {
             borderRadius: 6,
             backgroundColor: 'background.paper',
             boxShadow: '0 8px 32px rgba(139, 115, 85, 0.15), 0 2px 8px rgba(0, 0, 0, 0.05)',
-            p: 2
-          }
+            p: 2,
+          },
         }}
       >
-        <DialogTitle sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, fontSize: '1.5rem', color: 'text.primary' }}>
+        <DialogTitle
+          sx={{
+            fontFamily: '"Nunito", sans-serif',
+            fontWeight: 800,
+            fontSize: '1.5rem',
+            color: 'text.primary',
+          }}
+        >
           Add New Student
         </DialogTitle>
         <DialogContent>
@@ -483,15 +547,21 @@ const StudentList = () => {
                 border: '1px solid rgba(139, 115, 85, 0.12)',
                 '& fieldset': { border: 'none' },
                 '&:hover': { border: '1px solid rgba(107, 142, 107, 0.3)' },
-                '&.Mui-focused': { backgroundColor: '#ffffff', border: '1px solid rgba(107, 142, 107, 0.5)', boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.12)' },
-              }
+                '&.Mui-focused': {
+                  backgroundColor: '#ffffff',
+                  border: '1px solid rgba(107, 142, 107, 0.5)',
+                  boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.12)',
+                },
+              },
             }}
             InputLabelProps={{
-              sx: { fontFamily: '"DM Sans", sans-serif' }
+              sx: { fontFamily: '"DM Sans", sans-serif' },
             }}
           />
           <FormControl fullWidth margin="dense" sx={{ mt: 3 }}>
-            <InputLabel id="add-student-class-label" sx={{ fontFamily: '"DM Sans", sans-serif' }}>Assign to Class (Optional)</InputLabel>
+            <InputLabel id="add-student-class-label" sx={{ fontFamily: '"DM Sans", sans-serif' }}>
+              Assign to Class (Optional)
+            </InputLabel>
             <Select
               labelId="add-student-class-label"
               id="add-student-class-select"
@@ -505,33 +575,43 @@ const StudentList = () => {
                 border: '1px solid rgba(139, 115, 85, 0.12)',
                 '& fieldset': { border: 'none' },
                 '&:hover': { border: '1px solid rgba(107, 142, 107, 0.3)' },
-                '&.Mui-focused': { backgroundColor: '#ffffff', border: '1px solid rgba(107, 142, 107, 0.5)', boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.12)' },
+                '&.Mui-focused': {
+                  backgroundColor: '#ffffff',
+                  border: '1px solid rgba(107, 142, 107, 0.5)',
+                  boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.12)',
+                },
               }}
             >
               <MenuItem value="unassigned">
                 <em>Unassigned</em>
               </MenuItem>
-              {classes.filter(cls => !cls.disabled).map((cls) => (
-                <MenuItem key={cls.id} value={cls.id}>
-                  {cls.teacherName ? `${cls.name} - ${cls.teacherName}` : cls.name}
-                </MenuItem>
-              ))}
+              {classes
+                .filter((cls) => !cls.disabled)
+                .map((cls) => (
+                  <MenuItem key={cls.id} value={cls.id}>
+                    {cls.teacherName ? `${cls.name} - ${cls.teacherName}` : cls.name}
+                  </MenuItem>
+                ))}
             </Select>
           </FormControl>
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
-          <Button onClick={handleCloseDialog} sx={{ color: 'text.secondary', fontWeight: 700, mr: 1 }}>
+          <Button
+            onClick={handleCloseDialog}
+            sx={{ color: 'text.secondary', fontWeight: 700, mr: 1 }}
+          >
             Cancel
           </Button>
-          <Button 
-            onClick={handleAddStudent} 
+          <Button
+            onClick={handleAddStudent}
             variant="contained"
             sx={{
               borderRadius: 3,
               background: 'linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%)',
-              boxShadow: '8px 8px 16px rgba(107, 142, 107, 0.3), -6px -6px 12px rgba(255, 255, 255, 0.4)',
+              boxShadow:
+                '8px 8px 16px rgba(107, 142, 107, 0.3), -6px -6px 12px rgba(255, 255, 255, 0.4)',
               fontWeight: 700,
-              px: 3
+              px: 3,
             }}
           >
             Add
@@ -539,10 +619,7 @@ const StudentList = () => {
         </DialogActions>
       </Dialog>
 
-      <BulkImport
-        open={openBulkDialog}
-        onClose={handleCloseBulkDialog}
-      />
+      <BulkImport open={openBulkDialog} onClose={handleCloseBulkDialog} />
 
       <TourButton {...tourButtonProps} />
     </Box>

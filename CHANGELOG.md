@@ -1,5 +1,29 @@
 # Changelog
 
+## [3.32.0] - 2026-03-27
+
+### Changed
+- **WCAG text contrast** — darkened `text.secondary` from `#7A7A7A` to `#666666` (4.7:1 ratio on cream background, AA compliant)
+- **Theme color normalization** — replaced 130+ hard-coded hex colors across 29 components with theme palette tokens; ReadingStats (48→0), SupportTicketManager (25→0), StudentDetailDrawer (15→0)
+- **On-brand stats page** — remapped Tailwind-style blues/pinks/oranges to Cozy Bookshelf palette (sage, warm brown, muted teal)
+- **MyLogin button** — replaced off-brand green (`#00D37F`) with sage green primary
+- **Status chip consistency** — all restricted/error/warning chips now use `status.*` and `rgba()` tints instead of arbitrary hex
+- **ErrorBoundary redesign** — branded card with reassuring copy, "Go to Home" button, and admin contact suggestion
+- **Skip-to-content link** — now appears as a styled branded pill centered at top of viewport on focus
+
+### Added
+- **Semantic accent tokens** — `palette.accent.*` for streaks (`streak`, `streakLight`), awards (`gold`, `goldLight`), school/home locations, and muted placeholder text
+- **Reduced motion support** — global `prefers-reduced-motion` override via `MuiCssBaseline`, plus specific overrides on `MuiCard`, `MuiButton`, `MuiBottomNavigationAction` hover/active transforms (WCAG 2.3.3)
+- **Focus indicators** — visible `focus-visible` outline rings on TourTooltip buttons (Back, Skip, Next, Close)
+- **Lazy loading** — `loading="lazy"` on BookCover images and landing page screenshots
+- **Aria-labels** — contextual labels on UserManagement action buttons, Header school-switcher chip, TourTooltip close button, landing page footer logo
+
+### Fixed
+- **Heading hierarchy** — TermsOfService, PrivacyPolicy, CookiePolicy now use proper h1→h2→h3 sequence via `component` prop
+- **Landing page keyboard access** — footer logo now has `role="button"`, `tabIndex`, `onKeyDown`, and `aria-label`
+- **Landing page touch targets** — sign-in button increased to 44px minimum height
+- **PrioritizedStudentsList performance** — filtering logic wrapped in `useMemo` to prevent re-computation on every render
+
 ## [3.31.0] - 2026-03-27
 
 ### Added
