@@ -3,23 +3,23 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React, { createContext, useContext } from 'react';
 
-// Create a test context to mock AppContext
-const TestAppContext = createContext();
+// Create a test context to mock AuthContext
+const TestAuthContext = createContext();
 
-// Mock the AppContext module
-vi.mock('../../contexts/AppContext', () => ({
-  useAppContext: () => useContext(TestAppContext)
+// Mock the AuthContext module (Login uses useAuth)
+vi.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => useContext(TestAuthContext)
 }));
 
 // Import Login after mocking
 import Login from '../../components/Login';
 
-// Mock AppContext provider wrapper
+// Mock AuthContext provider wrapper
 const createWrapper = (contextValue) => {
   return ({ children }) => (
-    <TestAppContext.Provider value={contextValue}>
+    <TestAuthContext.Provider value={contextValue}>
       {children}
-    </TestAppContext.Provider>
+    </TestAuthContext.Provider>
   );
 };
 

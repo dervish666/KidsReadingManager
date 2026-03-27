@@ -38,20 +38,16 @@ import DaysSinceReadingChart from './DaysSinceReadingChart';
 import StreakBadge from '../students/StreakBadge';
 import ReadingTimelineChart from './ReadingTimelineChart';
 import ReadingFrequencyChart from './ReadingFrequencyChart';
-import { useAppContext } from '../../contexts/AppContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { useData } from '../../contexts/DataContext';
+import { useUI } from '../../contexts/UIContext';
 import { useTour } from '../tour/useTour';
 import TourButton from '../tour/TourButton';
 
 const ReadingStats = () => {
-  const {
-    students,
-    classes,
-    exportToJson,
-    getReadingStatus,
-    globalClassFilter,
-    fetchWithAuth,
-    reloadDataFromServer,
-  } = useAppContext();
+  const { fetchWithAuth } = useAuth();
+  const { students, classes, exportToJson, reloadDataFromServer } = useData();
+  const { globalClassFilter, getReadingStatus } = useUI();
   const [currentTab, setCurrentTab] = useState(0);
   const { tourButtonProps } = useTour('stats');
   const statsTourButtonProps = {

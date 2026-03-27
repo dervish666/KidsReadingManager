@@ -3,12 +3,20 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import React, { createContext, useContext } from 'react';
 
-// Create a test context to mock AppContext
-const TestAppContext = createContext();
+// Create test contexts to mock AuthContext, DataContext, and UIContext
+const TestAuthContext = createContext();
+const TestDataContext = createContext();
+const TestUIContext = createContext();
 
-// Mock the AppContext module
-vi.mock('../../contexts/AppContext', () => ({
-  useAppContext: () => useContext(TestAppContext)
+// Mock the context modules (SessionForm uses useAuth, useData, useUI)
+vi.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => useContext(TestAuthContext)
+}));
+vi.mock('../../contexts/DataContext', () => ({
+  useData: () => useContext(TestDataContext)
+}));
+vi.mock('../../contexts/UIContext', () => ({
+  useUI: () => useContext(TestUIContext)
 }));
 
 // Mock the bookMetadataApi module
@@ -41,12 +49,17 @@ vi.mock('../../components/tour/TourButton', () => ({
 import SessionForm from '../../components/sessions/SessionForm';
 import * as bookMetadataApi from '../../utils/bookMetadataApi';
 
-// Mock AppContext provider wrapper
+// Mock context provider wrapper — splits values across Auth, Data, UI contexts
 const createWrapper = (contextValue) => {
+  const { fetchWithAuth, recentlyAccessedStudents, globalClassFilter, ...dataValues } = contextValue;
   return ({ children }) => (
-    <TestAppContext.Provider value={contextValue}>
-      {children}
-    </TestAppContext.Provider>
+    <TestAuthContext.Provider value={{ fetchWithAuth }}>
+      <TestDataContext.Provider value={dataValues}>
+        <TestUIContext.Provider value={{ recentlyAccessedStudents, globalClassFilter }}>
+          {children}
+        </TestUIContext.Provider>
+      </TestDataContext.Provider>
+    </TestAuthContext.Provider>
   );
 };
 

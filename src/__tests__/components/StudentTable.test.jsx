@@ -4,12 +4,16 @@ import userEvent from '@testing-library/user-event';
 import React, { createContext, useContext } from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 
-// Create a test context to mock AppContext
-const TestAppContext = createContext();
+// Create test contexts to mock DataContext and UIContext
+const TestDataContext = createContext();
+const TestUIContext = createContext();
 
-// Mock the AppContext module
-vi.mock('../../contexts/AppContext', () => ({
-  useAppContext: () => useContext(TestAppContext)
+// Mock the context modules (StudentTable uses useData and useUI)
+vi.mock('../../contexts/DataContext', () => ({
+  useData: () => useContext(TestDataContext)
+}));
+vi.mock('../../contexts/UIContext', () => ({
+  useUI: () => useContext(TestUIContext)
 }));
 
 // Mock the StudentDetailDrawer component to simplify testing
@@ -58,13 +62,16 @@ const createTestTheme = () => createTheme({
   },
 });
 
-// Mock AppContext provider wrapper with theme
+// Mock context provider wrapper with theme
 const createWrapper = (contextValue) => {
+  const { classes, ...uiValues } = contextValue;
   return ({ children }) => (
     <ThemeProvider theme={createTestTheme()}>
-      <TestAppContext.Provider value={contextValue}>
-        {children}
-      </TestAppContext.Provider>
+      <TestDataContext.Provider value={{ classes }}>
+        <TestUIContext.Provider value={uiValues}>
+          {children}
+        </TestUIContext.Provider>
+      </TestDataContext.Provider>
     </ThemeProvider>
   );
 };

@@ -29,11 +29,11 @@ import SchoolManagement from './SchoolManagement';
 import SupportTicketManager from './SupportTicketManager';
 import BillingDashboard from './BillingDashboard';
 import SupportModal from './SupportModal';
-import { useAppContext } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const SettingsPage = () => {
   const [currentTab, setCurrentTab] = useState(0);
-  const { canManageUsers, user } = useAppContext();
+  const { canManageUsers, user } = useAuth();
   
   // Only owners can manage schools
   const isOwner = user?.role === 'owner';

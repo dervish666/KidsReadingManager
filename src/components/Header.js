@@ -19,7 +19,9 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import SchoolOutlined from '@mui/icons-material/SchoolOutlined';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import packageJson from '../../package.json';
-import { useAppContext } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useData } from '../contexts/DataContext';
+import { useUI } from '../contexts/UIContext';
 import SupportModal from './SupportModal';
 
 const TAB_NAMES = [
@@ -34,9 +36,6 @@ const TAB_NAMES = [
 
 const Header = ({ currentTab }) => {
   const {
-    classes,
-    globalClassFilter,
-    setGlobalClassFilter,
     isAuthenticated,
     logout,
     user,
@@ -45,7 +44,9 @@ const Header = ({ currentTab }) => {
     switchOrganization,
     switchingOrganization,
     organization,
-  } = useAppContext();
+  } = useAuth();
+  const { classes } = useData();
+  const { globalClassFilter, setGlobalClassFilter } = useUI();
 
   // State for school selector dropdown
   const [schoolAnchorEl, setSchoolAnchorEl] = useState(null);

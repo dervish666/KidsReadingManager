@@ -23,7 +23,9 @@ import StarIcon from '@mui/icons-material/Star';
 import DownloadIcon from '@mui/icons-material/Download';
 import EditIcon from '@mui/icons-material/Edit';
 import NotesIcon from '@mui/icons-material/Notes';
-import { useAppContext } from '../../contexts/AppContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { useData } from '../../contexts/DataContext';
+import { useUI } from '../../contexts/UIContext';
 import { useTour } from '../tour/useTour';
 import TourButton from '../tour/TourButton';
 import BookCover from '../BookCover';
@@ -39,19 +41,9 @@ import {
 } from '../../utils/bookMetadataApi';
 
 const SessionForm = () => {
-  const {
-    students,
-    addReadingSession,
-    classes,
-    recentlyAccessedStudents,
-    books,
-    globalClassFilter,
-    settings,
-    updateBook,
-    fetchBookDetails,
-    genres,
-    fetchWithAuth,
-  } = useAppContext();
+  const { fetchWithAuth } = useAuth();
+  const { students, addReadingSession, classes, books, settings, updateBook, fetchBookDetails, genres } = useData();
+  const { globalClassFilter, recentlyAccessedStudents } = useUI();
   const { tourButtonProps } = useTour('session-form');
 
   const [selectedStudentId, setSelectedStudentId] = useState('');

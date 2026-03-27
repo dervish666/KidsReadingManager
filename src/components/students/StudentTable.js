@@ -17,7 +17,8 @@ import {
 } from '@mui/material';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import CheckIcon from '@mui/icons-material/Check';
-import { useAppContext } from '../../contexts/AppContext';
+import { useData } from '../../contexts/DataContext';
+import { useUI } from '../../contexts/UIContext';
 import StreakBadge from './StreakBadge';
 import { useTheme } from '@mui/material/styles';
 import StudentDetailDrawer from './StudentDetailDrawer';
@@ -25,7 +26,8 @@ import { STATUS_TO_PALETTE } from '../../utils/helpers';
 
 const StudentTable = React.memo(({ students }) => {
   const theme = useTheme();
-  const { getReadingStatus, classes, markStudentAsPriorityHandled, markedPriorityStudentIds } = useAppContext();
+  const { classes } = useData();
+  const { getReadingStatus, markStudentAsPriorityHandled, markedPriorityStudentIds } = useUI();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [orderBy, setOrderBy] = useState('name');

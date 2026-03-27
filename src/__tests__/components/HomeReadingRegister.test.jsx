@@ -3,12 +3,20 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React, { createContext, useContext } from 'react';
 
-// Create a test context to mock AppContext
-const TestAppContext = createContext();
+// Create test contexts to mock AuthContext, DataContext, and UIContext
+const TestAuthContext = createContext();
+const TestDataContext = createContext();
+const TestUIContext = createContext();
 
-// Mock the AppContext module
-vi.mock('../../contexts/AppContext', () => ({
-  useAppContext: () => useContext(TestAppContext)
+// Mock the context modules (HomeReadingRegister uses useAuth, useData, useUI)
+vi.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => useContext(TestAuthContext)
+}));
+vi.mock('../../contexts/DataContext', () => ({
+  useData: () => useContext(TestDataContext)
+}));
+vi.mock('../../contexts/UIContext', () => ({
+  useUI: () => useContext(TestUIContext)
 }));
 
 // Mock tour hooks to avoid requiring TourProvider
@@ -42,12 +50,17 @@ vi.mock('../../components/sessions/BookAutocomplete', () => ({
 // Import HomeReadingRegister after mocking
 import HomeReadingRegister from '../../components/sessions/HomeReadingRegister';
 
-// Mock AppContext provider wrapper
+// Mock context provider wrapper — splits values across Auth, Data, UI contexts
 const createWrapper = (contextValue) => {
+  const { fetchWithAuth, globalClassFilter, setGlobalClassFilter, ...dataValues } = contextValue;
   return ({ children }) => (
-    <TestAppContext.Provider value={contextValue}>
-      {children}
-    </TestAppContext.Provider>
+    <TestAuthContext.Provider value={{ fetchWithAuth }}>
+      <TestDataContext.Provider value={dataValues}>
+        <TestUIContext.Provider value={{ globalClassFilter, setGlobalClassFilter }}>
+          {children}
+        </TestUIContext.Provider>
+      </TestDataContext.Provider>
+    </TestAuthContext.Provider>
   );
 };
 
@@ -244,15 +257,17 @@ describe('HomeReadingRegister Component', () => {
 
     it('should never mutate global class filter across re-renders', () => {
       const mockSetGlobalClassFilter = vi.fn();
+      const baseContext = createMockContext();
+      const { fetchWithAuth, globalClassFilter: _gcf, setGlobalClassFilter: _sgcf, ...dataValues } = baseContext;
 
       const wrapper = ({ children }) => (
-        <TestAppContext.Provider value={{
-          ...createMockContext(),
-          globalClassFilter: 'all',
-          setGlobalClassFilter: mockSetGlobalClassFilter
-        }}>
-          {children}
-        </TestAppContext.Provider>
+        <TestAuthContext.Provider value={{ fetchWithAuth }}>
+          <TestDataContext.Provider value={dataValues}>
+            <TestUIContext.Provider value={{ globalClassFilter: 'all', setGlobalClassFilter: mockSetGlobalClassFilter }}>
+              {children}
+            </TestUIContext.Provider>
+          </TestDataContext.Provider>
+        </TestAuthContext.Provider>
       );
 
       const { rerender } = render(<HomeReadingRegister />, { wrapper });

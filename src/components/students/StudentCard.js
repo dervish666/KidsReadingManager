@@ -10,7 +10,8 @@ import {
 } from '@mui/material';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import BlockIcon from '@mui/icons-material/Block';
-import { useAppContext } from '../../contexts/AppContext';
+import { useData } from '../../contexts/DataContext';
+import { useUI } from '../../contexts/UIContext';
 import { useTheme } from '@mui/material/styles';
 import StudentDetailDrawer from './StudentDetailDrawer';
 import StreakBadge from './StreakBadge';
@@ -18,7 +19,8 @@ import { STATUS_TO_PALETTE } from '../../utils/helpers';
 
 const StudentCard = React.memo(({ student }) => {
   const theme = useTheme();
-  const { getReadingStatus, classes } = useAppContext();
+  const { classes } = useData();
+  const { getReadingStatus } = useUI();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const status = getReadingStatus(student);

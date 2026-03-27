@@ -29,7 +29,8 @@ import SaveIcon from '@mui/icons-material/Save';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import SyncIcon from '@mui/icons-material/Sync';
 import StopIcon from '@mui/icons-material/Stop';
-import { useAppContext } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useData } from '../contexts/DataContext';
 import {
   METADATA_PROVIDERS,
   batchFetchAllMetadata,
@@ -41,7 +42,8 @@ import {
 import BookCover from './BookCover';
 
 const BookMetadataSettings = () => {
-  const { settings, updateSettings, loading, books: contextBooks, genres, fetchWithAuth, reloadDataFromServer, canManageUsers } = useAppContext();
+  const { fetchWithAuth, canManageUsers } = useAuth();
+  const { settings, updateSettings, loading, books: contextBooks, genres, reloadDataFromServer } = useData();
   const [fullBooks, setFullBooks] = useState(null);
   const books = fullBooks || contextBooks;
 

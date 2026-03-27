@@ -3,12 +3,16 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import React, { createContext, useContext } from 'react';
 
-// Create a test context to mock AppContext
-const TestAppContext = createContext();
+// Create test contexts to mock AuthContext and DataContext
+const TestAuthContext = createContext();
+const TestDataContext = createContext();
 
-// Mock the AppContext module
-vi.mock('../../contexts/AppContext', () => ({
-  useAppContext: () => useContext(TestAppContext)
+// Mock the context modules (BookManager uses useAuth and useData)
+vi.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => useContext(TestAuthContext)
+}));
+vi.mock('../../contexts/DataContext', () => ({
+  useData: () => useContext(TestDataContext)
 }));
 
 // Mock BookCover to avoid needing BookCoverProvider
@@ -29,12 +33,15 @@ vi.mock('../../utils/bookMetadataApi', () => ({
 import BookManager from '../../components/books/BookManager';
 import * as bookMetadataApi from '../../utils/bookMetadataApi';
 
-// Mock AppContext provider wrapper
+// Mock context provider wrapper
 const createWrapper = (contextValue) => {
+  const { fetchWithAuth, ...dataValues } = contextValue;
   return ({ children }) => (
-    <TestAppContext.Provider value={contextValue}>
-      {children}
-    </TestAppContext.Provider>
+    <TestAuthContext.Provider value={{ fetchWithAuth }}>
+      <TestDataContext.Provider value={dataValues}>
+        {children}
+      </TestDataContext.Provider>
+    </TestAuthContext.Provider>
   );
 };
 
@@ -523,10 +530,13 @@ describe('BookManager Component', () => {
       expect(initialCount).toBeInTheDocument();
 
       // Re-render with same context should not cause issues
+      const { fetchWithAuth: fwa1, ...dataVals1 } = context;
       rerender(
-        <TestAppContext.Provider value={context}>
-          <BookManager />
-        </TestAppContext.Provider>
+        <TestAuthContext.Provider value={{ fetchWithAuth: fwa1 }}>
+          <TestDataContext.Provider value={dataVals1}>
+            <BookManager />
+          </TestDataContext.Provider>
+        </TestAuthContext.Provider>
       );
 
       // Should still show the same count (memoization working)
@@ -544,10 +554,13 @@ describe('BookManager Component', () => {
       const updatedBooks = createManyBooks(15);
       const updatedContext = createMockContext({ books: updatedBooks });
 
+      const { fetchWithAuth: fwa2, ...dataVals2 } = updatedContext;
       rerender(
-        <TestAppContext.Provider value={updatedContext}>
-          <BookManager />
-        </TestAppContext.Provider>
+        <TestAuthContext.Provider value={{ fetchWithAuth: fwa2 }}>
+          <TestDataContext.Provider value={dataVals2}>
+            <BookManager />
+          </TestDataContext.Provider>
+        </TestAuthContext.Provider>
       );
 
       expect(screen.getByText('Existing Books (15)')).toBeInTheDocument();

@@ -2,9 +2,9 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import StudentTimeline from '../../components/students/StudentTimeline';
 
-// Mock AppContext
-vi.mock('../../contexts/AppContext', () => ({
-  useAppContext: () => ({
+// Mock DataContext (StudentTimeline uses useData)
+vi.mock('../../contexts/DataContext', () => ({
+  useData: () => ({
     books: [
       { id: 'book-1', title: 'The Hobbit', author: 'J.R.R. Tolkien' },
       { id: 'book-2', title: 'Percy Jackson', author: 'Rick Riordan' },

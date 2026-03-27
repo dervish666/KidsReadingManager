@@ -11,13 +11,17 @@ import {
   useMediaQuery,
   CircularProgress
 } from '@mui/material';
-import { useAppContext } from '../../contexts/AppContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { useData } from '../../contexts/DataContext';
+import { useUI } from '../../contexts/UIContext';
 import { useTheme } from '@mui/material/styles';
 import { formatAssessmentDisplay } from '../../utils/helpers';
 
 const ReadingTimelineChart = () => {
   const theme = useTheme();
-  const { students, classes, globalClassFilter, fetchWithAuth } = useAppContext();
+  const { fetchWithAuth } = useAuth();
+  const { students, classes } = useData();
+  const { globalClassFilter } = useUI();
 
   // Get IDs of disabled classes
   const disabledClassIds = classes.filter(cls => cls.disabled).map(cls => cls.id);

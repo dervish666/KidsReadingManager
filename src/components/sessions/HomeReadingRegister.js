@@ -38,7 +38,9 @@ import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import { useAppContext } from '../../contexts/AppContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { useData } from '../../contexts/DataContext';
+import { useUI } from '../../contexts/UIContext';
 import { useTour } from '../tour/useTour';
 import TourButton from '../tour/TourButton';
 import BookAutocomplete from './BookAutocomplete';
@@ -154,17 +156,9 @@ const HomeReadingRegister = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
-  const {
-    students,
-    classes,
-    books,
-    addReadingSession,
-    editReadingSession,
-    deleteReadingSession,
-    updateStudentCurrentBook,
-    globalClassFilter,
-    fetchWithAuth
-  } = useAppContext();
+  const { fetchWithAuth } = useAuth();
+  const { students, classes, books, addReadingSession, editReadingSession, deleteReadingSession, updateStudentCurrentBook } = useData();
+  const { globalClassFilter } = useUI();
   const { tourButtonProps } = useTour('home-reading');
 
   // O(1) book lookup by ID (avoids O(n) .find() per student)

@@ -14,13 +14,14 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import { useAppContext } from '../../contexts/AppContext';
+import { useData } from '../../contexts/DataContext';
+import { useUI } from '../../contexts/UIContext';
 import { useTheme } from '@mui/material/styles';
 import { STATUS_TO_PALETTE } from '../../utils/helpers';
 
 const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
   const theme = useTheme();
-  const { getReadingStatus } = useAppContext();
+  const { getReadingStatus } = useUI();
 
   const status = getReadingStatus(student);
   const paletteKey = STATUS_TO_PALETTE[status] || 'notRead';
@@ -163,16 +164,15 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
 const PrioritizedStudentsList = ({ defaultCount = 8, filterClassId = 'all' }) => {
   const [expanded, setExpanded] = useState(true);
   const [count, setCount] = useState(defaultCount);
-  const ctx = useAppContext();
+  const { classes } = useData();
   const {
     prioritizedStudents: contextPrioritizedStudents,
     updatePriorityStudentCount,
     priorityStudentCount,
-    classes,
     markedPriorityStudentIds,
     markStudentAsPriorityHandled,
     resetPriorityList,
-  } = ctx || {};
+  } = useUI();
 
   const handleStudentClick = useCallback(
     (studentId) => {

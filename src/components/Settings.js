@@ -20,7 +20,8 @@ import SaveIcon from '@mui/icons-material/Save';
 import RestoreIcon from '@mui/icons-material/Restore';
 import WhatshotIcon from '@mui/icons-material/Whatshot';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import { useAppContext } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useData } from '../contexts/DataContext';
 import ClassManager from './classes/ClassManager'; // Import ClassManager
 
 const TERM_NAMES = ['Autumn 1', 'Autumn 2', 'Spring 1', 'Spring 2', 'Summer 1', 'Summer 2'];
@@ -44,8 +45,8 @@ const getAcademicYearOptions = () => {
 };
 
 const Settings = () => {
-  const { readingStatusSettings, settings, updateSettings, fetchWithAuth, canManageSettings } =
-    useAppContext();
+  const { fetchWithAuth, canManageSettings } = useAuth();
+  const { readingStatusSettings, settings, updateSettings } = useData();
 
   // Local state for form values
   const [localSettings, setLocalSettings] = useState({

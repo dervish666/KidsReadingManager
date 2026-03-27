@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import { useJoyride, EVENTS } from 'react-joyride';
-import { useAppContext } from '../../contexts/AppContext';
+import { useUI } from '../../contexts/UIContext';
 import { TOURS } from './tourSteps';
 import TourTooltip from './TourTooltip';
 
@@ -9,7 +9,7 @@ const TourContext = createContext(null);
 export const useTourContext = () => useContext(TourContext);
 
 const TourProvider = ({ children }) => {
-  const { completedTours, markTourComplete } = useAppContext();
+  const { completedTours, markTourComplete } = useUI();
   const [currentTourId, setCurrentTourId] = useState(null);
   const [running, setRunning] = useState(false);
 

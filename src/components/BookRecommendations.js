@@ -25,7 +25,9 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
-import { useAppContext } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useData } from '../contexts/DataContext';
+import { useUI } from '../contexts/UIContext';
 import BookIcon from '@mui/icons-material/Book';
 import SchoolIcon from '@mui/icons-material/School';
 import PersonIcon from '@mui/icons-material/Person';
@@ -83,10 +85,9 @@ const BookIllustration = () => (
 );
 
 const BookRecommendations = () => {
-  const {
-    students, classes, books, apiError, fetchWithAuth, globalClassFilter,
-    prioritizedStudents, getReadingStatus, markStudentAsPriorityHandled, updateStudent
-  } = useAppContext();
+  const { fetchWithAuth, apiError } = useAuth();
+  const { students, classes, books, updateStudent } = useData();
+  const { globalClassFilter, prioritizedStudents, getReadingStatus, markStudentAsPriorityHandled } = useUI();
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));

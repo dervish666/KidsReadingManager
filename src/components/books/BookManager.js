@@ -37,7 +37,8 @@ import InfoIcon from '@mui/icons-material/Info';
 import SearchIcon from '@mui/icons-material/Search';
 import ImportExportIcon from '@mui/icons-material/ImportExport';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
-import { useAppContext } from '../../contexts/AppContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { useData } from '../../contexts/DataContext';
 import {
   getBookDetails,
   findGenresForBook,
@@ -50,7 +51,8 @@ import ScanBookFlow from './ScanBookFlow';
 import BookCover from '../BookCover';
 
 const BookManager = () => {
-  const { books: contextBooks, genres, addBook, reloadDataFromServer, fetchWithAuth, settings } = useAppContext();
+  const { fetchWithAuth } = useAuth();
+  const { books: contextBooks, genres, addBook, reloadDataFromServer, settings } = useData();
   const [fullBooks, setFullBooks] = useState(null);
   const books = fullBooks || contextBooks;
 

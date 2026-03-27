@@ -20,20 +20,21 @@ import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import TuneIcon from '@mui/icons-material/Tune';
-import { useAppContext } from '../../contexts/AppContext';
+import { useData } from '../../contexts/DataContext';
+import { useUI } from '../../contexts/UIContext';
 import AssessmentSelector from './AssessmentSelector';
 import { useTheme } from '@mui/material/styles';
 import { STATUS_TO_PALETTE } from '../../utils/helpers';
 
 const QuickEntry = () => {
   const theme = useTheme();
+  const { addReadingSession } = useData();
   const {
-    prioritizedStudents: contextPrioritizedStudents, // Use the memoized array
+    prioritizedStudents: contextPrioritizedStudents,
     getReadingStatus,
-    addReadingSession,
     priorityStudentCount,
-    updatePriorityStudentCount
-  } = useAppContext();
+    updatePriorityStudentCount,
+  } = useUI();
   
   const [currentIndex, setCurrentIndex] = useState(0);
   const [assessment, setAssessment] = useState(null);

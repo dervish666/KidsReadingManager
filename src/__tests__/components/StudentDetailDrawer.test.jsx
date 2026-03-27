@@ -6,16 +6,18 @@ import StudentDetailDrawer from '../../components/students/StudentDetailDrawer';
 
 const mockFetchWithAuth = vi.fn();
 
-vi.mock('../../contexts/AppContext', () => ({
-  useAppContext: () => ({
-    classes: [{ id: 'c1', name: '8A/Gg' }],
-    genres: [{ id: 'g1', name: 'Fantasy' }],
-    books: [],
+// Mock AuthContext (StudentDetailDrawer uses useAuth for fetchWithAuth)
+vi.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => ({
     fetchWithAuth: mockFetchWithAuth,
+  }),
+}));
+
+// Mock DataContext (StudentDetailDrawer uses useData for classes, updateStudent)
+vi.mock('../../contexts/DataContext', () => ({
+  useData: () => ({
+    classes: [{ id: 'c1', name: '8A/Gg' }],
     updateStudent: vi.fn(),
-    editReadingSession: vi.fn(),
-    deleteReadingSession: vi.fn(),
-    addGenre: vi.fn(),
   }),
 }));
 

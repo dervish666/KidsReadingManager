@@ -6,7 +6,8 @@ import BottomNavigationAction from '@mui/material/BottomNavigationAction';
 import SettingsIcon from '@mui/icons-material/Settings';
 import Header from './components/Header';
 import ErrorBoundary from './components/ErrorBoundary';
-import { AppProvider, useAppContext } from './contexts/AppContext';
+import { AppProvider } from './contexts/AppContext';
+import { useAuth } from './contexts/AuthContext';
 import { BookCoverProvider } from './contexts/BookCoverContext';
 import TourProvider from './components/tour/TourProvider';
 import Login from './components/Login';
@@ -91,7 +92,7 @@ const BookshelfBorder = ({ side }) => (
 );
 
 function AppContent() {
-  const { isAuthenticated } = useAppContext();
+  const { isAuthenticated } = useAuth();
   const [currentTab, setCurrentTab] = useState(0);
   // Auto-show login page when returning from SSO (auth=callback or auth=error)
   const [showLogin, setShowLogin] = useState(() => {

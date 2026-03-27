@@ -5,14 +5,16 @@ import {
   Paper,
   Tooltip
 } from '@mui/material';
-import { useAppContext } from '../../contexts/AppContext';
+import { useData } from '../../contexts/DataContext';
+import { useUI } from '../../contexts/UIContext';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 
 const ReadingFrequencyChart = () => {
   const theme = useTheme();
   const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
-  const { students, classes, globalClassFilter } = useAppContext();
+  const { students, classes } = useData();
+  const { globalClassFilter } = useUI();
 
   // Filter students based on global class filter and disabled classes
   const activeStudents = useMemo(() => {

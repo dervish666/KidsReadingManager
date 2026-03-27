@@ -24,7 +24,9 @@ import AddIcon from '@mui/icons-material/Add';
 import SortIcon from '@mui/icons-material/Sort';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
-import { useAppContext } from '../../contexts/AppContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { useData } from '../../contexts/DataContext';
+import { useUI } from '../../contexts/UIContext';
 import { useTour } from '../tour/useTour';
 import TourButton from '../tour/TourButton';
 import StudentTable from './StudentTable';
@@ -32,16 +34,9 @@ import BulkImport from './BulkImport';
 import PrioritizedStudentsList from './PrioritizedStudentsList';
 
 const StudentList = () => {
-  const {
-    students,
-    loading,
-    apiError,
-    addStudent,
-    classes,
-    globalClassFilter,
-    getReadingStatus,
-    user,
-  } = useAppContext();
+  const { user, apiError } = useAuth();
+  const { students, loading, addStudent, classes } = useData();
+  const { globalClassFilter, getReadingStatus } = useUI();
 
   const isWondeOrg = useMemo(() => classes.some((cls) => cls.wondeClassId), [classes]);
   const canManageStudents = user?.authProvider !== 'mylogin' && !isWondeOrg;
