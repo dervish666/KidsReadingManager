@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.33.0] - 2026-03-30
+
+### Added
+- **Role-based tab visibility** — teachers and readonly users now see 5 tabs (Students, School Reading, Home Reading, Stats, Recommend); Books and Settings hidden for non-admin roles
+- **Welcome dialog** — one-time first-login dialog for teachers showing class name, student count, and feature overview; amber fallback variant when classes aren't linked yet
+- **Class assignment banner** — persistent warning banner for teachers with no linked classes; dismissible per session, reappears until classes are assigned
+
+### Changed
+- **Bottom navigation** — refactored from hardcoded tabs to data-driven `visibleTabs` array filtered by user role
+- **Header** — `currentTab` prop changed from numeric index to string label; removed `TAB_NAMES` constant
+
 ## [3.32.4] - 2026-03-29
 
 ### Changed
