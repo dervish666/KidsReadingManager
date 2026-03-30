@@ -144,14 +144,15 @@ export const AuthProvider = ({ children }) => {
 
       if (authParam === 'error') {
         // SSO failed — surface the reason to the user
-        const schoolId = urlParams.get('school_id');
         window.history.replaceState({}, '', window.location.pathname);
         const reasonMessages = {
           invalid_state: 'Login session expired. Please try again.',
           token_exchange_failed: 'Authentication failed. Please try again.',
           user_fetch_failed: 'Could not retrieve your account. Please try again.',
-          no_school: 'Your account is not linked to a school.',
-          school_not_found: `Your school has not been set up yet.${schoolId ? ` (Wonde ID: ${schoolId})` : ''} Please contact your administrator.`,
+          no_school:
+            "Your account isn't linked to a school. Please contact your school administrator.",
+          school_not_found:
+            "Your school hasn't been set up on Tally Reading yet. Please ask your school administrator to get in touch with us.",
           internal: 'An unexpected error occurred. Please try again.',
         };
         setApiError(

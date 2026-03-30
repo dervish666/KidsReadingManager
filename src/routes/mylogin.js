@@ -203,7 +203,7 @@ myloginRouter.get('/callback', async (c) => {
 
     if (!org) {
       console.error('[MyLogin] No org found for wonde_school_id:', wondeSchoolId, '- user:', email);
-      return c.redirect(`/?auth=error&reason=school_not_found&school_id=${encodeURIComponent(wondeSchoolId)}`);
+      return c.redirect('/?auth=error&reason=school_not_found');
     }
 
     // -----------------------------------------------------------------------

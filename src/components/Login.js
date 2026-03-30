@@ -261,6 +261,53 @@ const Login = ({ onBackToLanding } = {}) => {
 
   const renderMultiTenantForm = () => (
     <>
+      {/* SSO primary button (above email/password when SSO is configured) */}
+      {ssoEnabled && (
+        <>
+          <Button
+            fullWidth
+            variant="contained"
+            size="large"
+            onClick={() => {
+              window.location.href = '/api/auth/mylogin/login';
+            }}
+            sx={{
+              height: 52,
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%)',
+              boxShadow: '0 6px 20px rgba(107, 142, 107, 0.35)',
+              fontSize: '1rem',
+              fontWeight: 700,
+              textTransform: 'none',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: '0 8px 28px rgba(107, 142, 107, 0.45)',
+              },
+              '&:active': {
+                transform: 'scale(0.98)',
+              },
+            }}
+          >
+            Sign in with MyLogin
+          </Button>
+
+          <Typography
+            variant="body2"
+            sx={{ color: 'text.secondary', fontSize: '0.75rem', mt: 0.5, mb: 3, textAlign: 'center' }}
+          >
+            School staff — use your MyLogin account
+          </Typography>
+
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+            <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(0,0,0,0.08)' }} />
+            <Typography variant="body2" sx={{ px: 2, color: 'text.disabled', fontSize: '0.75rem' }}>
+              or sign in with email
+            </Typography>
+            <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(0,0,0,0.08)' }} />
+          </Box>
+        </>
+      )}
+
       <form onSubmit={handleSubmit}>
         <TextField
           fullWidth
@@ -268,10 +315,12 @@ const Login = ({ onBackToLanding } = {}) => {
           value={email}
           label="Email"
           onChange={(e) => setEmail(e.target.value)}
-          autoFocus
+          autoFocus={!ssoEnabled}
           sx={{ mb: 2 }}
           InputProps={{
-            sx: inputStyles,
+            sx: ssoEnabled
+              ? { ...inputStyles, border: '1px solid rgba(139, 115, 85, 0.1)' }
+              : inputStyles,
           }}
         />
 
@@ -283,7 +332,9 @@ const Login = ({ onBackToLanding } = {}) => {
           onChange={(e) => setPassword(e.target.value)}
           sx={{ mb: 3 }}
           InputProps={{
-            sx: inputStyles,
+            sx: ssoEnabled
+              ? { ...inputStyles, border: '1px solid rgba(139, 115, 85, 0.1)' }
+              : inputStyles,
           }}
         />
 
@@ -291,24 +342,40 @@ const Login = ({ onBackToLanding } = {}) => {
           fullWidth
           type="submit"
           disabled={submitting || !email || !password}
-          variant="contained"
+          variant={ssoEnabled ? 'outlined' : 'contained'}
           size="large"
-          sx={{
-            height: 52,
-            borderRadius: '12px',
-            background: 'linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%)',
-            boxShadow: '0 6px 20px rgba(107, 142, 107, 0.35)',
-            fontSize: '1rem',
-            fontWeight: 700,
-            textTransform: 'none',
-            '&:hover': {
-              transform: 'translateY(-2px)',
-              boxShadow: '0 8px 28px rgba(107, 142, 107, 0.45)',
-            },
-            '&:active': {
-              transform: 'scale(0.98)',
-            },
-          }}
+          sx={
+            ssoEnabled
+              ? {
+                  height: 44,
+                  borderRadius: '10px',
+                  borderColor: 'rgba(107, 142, 107, 0.3)',
+                  color: 'primary.main',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  '&:hover': {
+                    borderColor: 'primary.main',
+                    backgroundColor: 'rgba(107, 142, 107, 0.05)',
+                  },
+                }
+              : {
+                  height: 52,
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%)',
+                  boxShadow: '0 6px 20px rgba(107, 142, 107, 0.35)',
+                  fontSize: '1rem',
+                  fontWeight: 700,
+                  textTransform: 'none',
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 8px 28px rgba(107, 142, 107, 0.45)',
+                  },
+                  '&:active': {
+                    transform: 'scale(0.98)',
+                  },
+                }
+          }
         >
           {submitting ? 'Logging in...' : 'Login'}
         </Button>
@@ -328,43 +395,6 @@ const Login = ({ onBackToLanding } = {}) => {
           </Link>
         </Box>
       </form>
-
-      {/* SSO Divider + MyLogin Button (only when SSO is configured on server) */}
-      {ssoEnabled && (
-        <>
-          <Box sx={{ display: 'flex', alignItems: 'center', my: 3 }}>
-            <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(0,0,0,0.12)' }} />
-            <Typography variant="body2" sx={{ px: 2, color: 'text.secondary' }}>
-              or
-            </Typography>
-            <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(0,0,0,0.12)' }} />
-          </Box>
-
-          <Button
-            fullWidth
-            variant="outlined"
-            size="large"
-            onClick={() => {
-              window.location.href = '/api/auth/mylogin/login';
-            }}
-            sx={{
-              height: 52,
-              borderRadius: '12px',
-              borderColor: 'rgba(107, 142, 107, 0.4)',
-              color: 'text.primary',
-              fontSize: '1rem',
-              fontWeight: 600,
-              textTransform: 'none',
-              '&:hover': {
-                borderColor: 'primary.main',
-                backgroundColor: 'rgba(107, 142, 107, 0.05)',
-              },
-            }}
-          >
-            Sign in with MyLogin
-          </Button>
-        </>
-      )}
     </>
   );
 
