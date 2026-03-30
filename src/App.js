@@ -1,4 +1,4 @@
-import React, { useState, Suspense } from 'react';
+import React, { useState, Suspense, useMemo } from 'react';
 import { Box, Container, Paper, CssBaseline, ThemeProvider, CircularProgress } from '@mui/material';
 import theme from './styles/theme';
 import BottomNavigation from '@mui/material/BottomNavigation';
@@ -92,13 +92,58 @@ const BookshelfBorder = ({ side }) => (
 );
 
 function AppContent() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, userRole } = useAuth();
   const [currentTab, setCurrentTab] = useState(0);
   // Auto-show login page when returning from SSO (auth=callback or auth=error)
   const [showLogin, setShowLogin] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return !!params.get('auth');
   });
+
+  const ALL_TABS = useMemo(
+    () => [
+      {
+        key: 'students',
+        label: 'Students',
+        icon: iconStudents,
+        Component: StudentList,
+        adminOnly: false,
+      },
+      {
+        key: 'school-reading',
+        label: 'School Reading',
+        icon: iconReading,
+        Component: SessionForm,
+        adminOnly: false,
+      },
+      {
+        key: 'home-reading',
+        label: 'Home Reading',
+        icon: iconRecord,
+        Component: HomeReadingRegister,
+        adminOnly: false,
+      },
+      { key: 'stats', label: 'Stats', icon: iconStats, Component: ReadingStats, adminOnly: false },
+      {
+        key: 'recommend',
+        label: 'Recommend',
+        icon: iconRecommend,
+        Component: BookRecommendations,
+        adminOnly: false,
+      },
+      { key: 'books', label: 'Books', icon: iconBooks, Component: BookManager, adminOnly: true },
+      { key: 'settings', label: 'Settings', icon: null, Component: SettingsPage, adminOnly: true },
+    ],
+    [],
+  );
+
+  const visibleTabs = useMemo(() => {
+    const isAdmin = userRole === 'owner' || userRole === 'admin';
+    return isAdmin ? ALL_TABS : ALL_TABS.filter((t) => !t.adminOnly);
+  }, [ALL_TABS, userRole]);
+
+  const safeTab = currentTab >= visibleTabs.length ? 0 : currentTab;
+  const ActiveTab = visibleTabs[safeTab].Component;
 
   // Standalone pages rendered outside of auth
   if (window.location.pathname === '/privacy') {
@@ -171,27 +216,6 @@ function AppContent() {
     return <LandingPage onSignIn={() => setShowLogin(true)} />;
   }
 
-  const renderTabContent = () => {
-    switch (currentTab) {
-      case 0:
-        return <StudentList />;
-      case 1:
-        return <SessionForm />;
-      case 2:
-        return <HomeReadingRegister />;
-      case 3:
-        return <ReadingStats />;
-      case 4:
-        return <BookRecommendations />;
-      case 5:
-        return <BookManager />;
-      case 6:
-        return <SettingsPage />;
-      default:
-        return <StudentList />;
-    }
-  };
-
   return (
     <Box
       sx={{
@@ -252,7 +276,7 @@ function AppContent() {
       >
         Skip to main content
       </a>
-      <Header currentTab={currentTab} />
+      <Header currentTab={visibleTabs[safeTab]?.label || 'Students'} />
       <DpaConsentModal />
       <BillingBanner />
 
@@ -322,7 +346,7 @@ function AppContent() {
               </Box>
             }
           >
-            {renderTabContent()}
+            <ActiveTab />
           </Suspense>
         </Paper>
       </Container>
@@ -354,7 +378,7 @@ function AppContent() {
         elevation={0}
       >
         <BottomNavigation
-          value={currentTab}
+          value={safeTab}
           onChange={(event, newValue) => {
             setCurrentTab(newValue);
           }}
@@ -366,31 +390,19 @@ function AppContent() {
             pb: 'env(safe-area-inset-bottom)',
           }}
         >
-          <BottomNavigationAction
-            label="Students"
-            icon={<NavIcon src={iconStudents} alt="Students" selected={currentTab === 0} />}
-          />
-          <BottomNavigationAction
-            label="School Reading"
-            icon={<NavIcon src={iconReading} alt="School Reading" selected={currentTab === 1} />}
-          />
-          <BottomNavigationAction
-            label="Home Reading"
-            icon={<NavIcon src={iconRecord} alt="Home Reading" selected={currentTab === 2} />}
-          />
-          <BottomNavigationAction
-            label="Stats"
-            icon={<NavIcon src={iconStats} alt="Stats" selected={currentTab === 3} />}
-          />
-          <BottomNavigationAction
-            label="Recommend"
-            icon={<NavIcon src={iconRecommend} alt="Recommend" selected={currentTab === 4} />}
-          />
-          <BottomNavigationAction
-            label="Books"
-            icon={<NavIcon src={iconBooks} alt="Books" selected={currentTab === 5} />}
-          />
-          <BottomNavigationAction label="Settings" icon={<SettingsIcon />} />
+          {visibleTabs.map((tab, index) => (
+            <BottomNavigationAction
+              key={tab.key}
+              label={tab.label}
+              icon={
+                tab.icon ? (
+                  <NavIcon src={tab.icon} alt={tab.label} selected={safeTab === index} />
+                ) : (
+                  <SettingsIcon />
+                )
+              }
+            />
+          ))}
         </BottomNavigation>
       </Paper>
     </Box>

@@ -24,16 +24,6 @@ import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
 import SupportModal from './SupportModal';
 
-const TAB_NAMES = [
-  'Students',
-  'School Reading',
-  'Home Reading',
-  'Stats',
-  'Recommend',
-  'Books',
-  'Settings',
-];
-
 const Header = ({ currentTab }) => {
   const {
     isAuthenticated,
@@ -367,7 +357,7 @@ const Header = ({ currentTab }) => {
       <SupportModal
         open={supportOpen}
         onClose={() => setSupportOpen(false)}
-        currentPage={TAB_NAMES[currentTab] || 'Unknown'}
+        currentPage={currentTab}
       />
     </AppBar>
   );
