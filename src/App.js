@@ -14,6 +14,8 @@ import Login from './components/Login';
 import LandingPage from './components/LandingPage';
 import DpaConsentModal from './components/DpaConsentModal';
 import BillingBanner from './components/BillingBanner';
+import ClassAssignmentBanner from './components/ClassAssignmentBanner';
+import WelcomeDialog from './components/WelcomeDialog';
 
 // Eagerly load Students (default tab, always visible first)
 import StudentList from './components/students/StudentList';
@@ -279,6 +281,8 @@ function AppContent() {
       <Header currentTab={visibleTabs[safeTab]?.label || 'Students'} />
       <DpaConsentModal />
       <BillingBanner />
+      <ClassAssignmentBanner />
+      <WelcomeDialog />
 
       <Container
         id="main-content"
