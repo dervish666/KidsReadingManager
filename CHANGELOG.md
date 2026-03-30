@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.32.4] - 2026-03-29
+
+### Changed
+- **Landing page screenshots** — replaced all 6 screenshots with fresh captures from the live app (Learnalot School), now at iPad 4:3 aspect ratio (2048×1536 @2x retina)
+- **Home reading messaging** — renamed "Class register" showcase to "Home reading" with headline "Save 10 minutes per class, every day"; replaced "Priority reading list" feature card with "Home reading without the hassle" emphasising time savings
+- **Book count** — updated from "2,000+ books" to "2,400+ books" to reflect current library size
+
 ## [3.32.3] - 2026-03-27
 
 ### Changed
