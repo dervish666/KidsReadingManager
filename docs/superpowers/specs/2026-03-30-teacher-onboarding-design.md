@@ -60,7 +60,7 @@ A one-time dialog shown on a teacher's first login, providing context about thei
 
 **Trigger:** Shown when the `welcome` tour has not been completed for the current user. Reuses the existing `user_tour_completions` table and tour tracking infrastructure — no new table needed.
 
-**Timing:** Renders after `DataContext` has loaded (classes and students are available). Same lifecycle as existing guided tours. The dialog is rendered in `AppContent` alongside `DpaConsentModal` and `BillingBanner`.
+**Timing:** Renders when `!loading` from `useData()` (classes and students are available). The dialog is rendered in `AppContent` alongside `DpaConsentModal` and `BillingBanner`.
 
 **Two variants based on `user.assignedClassIds`:**
 
@@ -90,12 +90,12 @@ A one-time dialog shown on a teacher's first login, providing context about thei
 - Same "Here's what you can do" section
 - "Get Started" button
 
-**On dismiss:** Clicking "Get Started" calls `markTourComplete('welcome', 1)` from `useUI()` and closes the dialog. The existing guided tours then fire as normal.
+**On dismiss:** Clicking "Get Started" calls `markTourComplete('welcome', 1)` from `useUI()` and closes the dialog. The existing guided tours then fire as normal — there is no conflict because tour auto-start in `useTour.js` has a 500ms delay and checks different tour IDs (e.g. `students`, `session-form`). The optimistic `completedTours['welcome']` update does not affect page-specific tours.
 
 **Data sources — all from existing context:**
 
 - `user.name` — from `useAuth()`
-- `user.assignedClassIds` — from `useAuth()` (in JWT payload)
+- `user.assignedClassIds` — from `useAuth()` (set from login/refresh HTTP response, persisted in localStorage). May be `undefined`, `null`, or `[]` — all three mean "no classes". Both `WelcomeDialog` and `ClassAssignmentBanner` must treat these equivalently: `!user.assignedClassIds || user.assignedClassIds.length === 0`.
 - `classes` — from `useData()` (to resolve class names)
 - `students` — from `useData()` (to count students in the assigned class)
 
@@ -129,7 +129,7 @@ A persistent banner for teachers with zero assigned classes, shown below the hea
 | `src/App.js` | Role-filtered `visibleTabs` array, render `WelcomeDialog` and `ClassAssignmentBanner` |
 | `src/components/WelcomeDialog.js` | New component — first-login welcome dialog |
 | `src/components/ClassAssignmentBanner.js` | New component — persistent no-class banner |
-| `src/components/tour/tourSteps.js` | Add `welcome` tour entry (version 1, no steps — just used for completion tracking) |
+| ~~`src/components/tour/tourSteps.js`~~ | Not changed — the tour completion API accepts any arbitrary `tour_id` string, so `welcome` does not need to be added to the `TOURS` object. Adding it with empty steps would be a latent trap (TourProvider's `startTour` would misbehave if called with zero steps). |
 
 ## Files NOT Changed
 
@@ -148,6 +148,7 @@ A persistent banner for teachers with zero assigned classes, shown below the hea
 - Unit test: `ClassAssignmentBanner` hides for teachers with classes
 - Unit test: `ClassAssignmentBanner` hides for admins/owners regardless
 - Unit test: `ClassAssignmentBanner` respects sessionStorage dismissal
+- Unit test: `ClassAssignmentBanner` unmounts when `assignedClassIds` transitions from `[]` to populated
 - Unit test: Bottom nav shows 5 tabs for teacher role
 - Unit test: Bottom nav shows 7 tabs for admin/owner role
 - Manual test: Full SSO login flow with a test teacher account
