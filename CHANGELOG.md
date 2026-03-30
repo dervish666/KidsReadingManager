@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.33.1] - 2026-03-30
+
+### Fixed
+- **Login page SSO prominence** — MyLogin SSO button promoted to primary position above email/password when SSO is enabled; email/password fields demoted below divider with outlined Login button
+- **Error messages** — removed internal Wonde IDs from school-not-found error; friendlier wording for `no_school` and `school_not_found` cases
+
 ## [3.33.0] - 2026-03-30
 
 ### Added
