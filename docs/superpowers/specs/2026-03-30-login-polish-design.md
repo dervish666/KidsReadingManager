@@ -50,11 +50,12 @@ Forgot password?
 
 **Implementation details:**
 
-- Move the SSO block (`ssoEnabled && (...)`) from after the form to before it
+- Move the SSO block (`ssoEnabled && (...)`) from after the form to before it. SSO button remains outside the `<form>` element to avoid Enter key triggering form submission.
 - SSO button gets the filled gradient style: `background: linear-gradient(135deg, #8AAD8A, #6B8E6B)`, white text, full height (52px)
 - Add helper text below SSO button: `Typography` with `color: text.secondary`, `fontSize: 0.75rem`, `mb: 3`
 - Divider text changes from `"or"` to `"or sign in with email"`
-- Email/password `TextField` `InputProps.sx` get slightly smaller padding and lighter border (`rgba(139, 115, 85, 0.1)` instead of `0.15`)
+- Email field: set `autoFocus={!ssoEnabled}` — when SSO is primary, don't steal focus to the demoted email field
+- Email/password `TextField` `InputProps.sx` get slightly lighter border (`rgba(139, 115, 85, 0.1)` instead of `0.15`)
 - Login button becomes outlined: `variant="outlined"`, remove gradient background, add `borderColor: 'rgba(107, 142, 107, 0.3)'`, `color: 'primary.main'`, smaller height (44px)
 - When `ssoEnabled` is false, the form renders unchanged (email/password with filled Login button, no SSO section)
 
@@ -100,4 +101,6 @@ The Wonde school ID is already logged server-side at line 205 (`console.error`),
 - Unit test: Login renders SSO button before email fields when `ssoEnabled` is true
 - Unit test: Login renders email fields first when `ssoEnabled` is false (unchanged)
 - Unit test: SSO button has filled style, Login button has outlined style when SSO enabled
+- Note: Update `createMockContext()` in `Login.test.jsx` to include `ssoEnabled: false` as a default
+- Note: Existing tests should continue to pass without modification for the `ssoEnabled: false` / `undefined` case. Login button label remains "Login" in all cases.
 - Manual test: Verify error messages display correctly for `school_not_found` and `no_school` cases
