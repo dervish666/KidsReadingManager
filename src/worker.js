@@ -47,7 +47,7 @@ import { decryptSensitiveData } from './utils/crypto.js';
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
 import { authMiddleware, handleLogin } from './middleware/auth';
-import { jwtAuthMiddleware, tenantMiddleware } from './middleware/tenant';
+import { jwtAuthMiddleware, tenantMiddleware, subscriptionGate } from './middleware/tenant';
 import { PUBLIC_PATHS } from './utils/constants.js';
 
 const APP_VERSION = '3.25.2';
@@ -199,6 +199,22 @@ app.use('/api/*', async (c, next) => {
   // Only apply tenant middleware if JWT auth is enabled
   if (c.env.JWT_SECRET && c.get('user')) {
     return tenantMiddleware()(c, next);
+  }
+
+  return next();
+});
+
+// Apply subscription access control (must be after tenant middleware sets subscriptionStatus)
+app.use('/api/*', async (c, next) => {
+  // Skip for public endpoints (they bypass auth entirely and never reach here with user context)
+  const url = new URL(c.req.url);
+  if (PUBLIC_PATHS.includes(url.pathname) || url.pathname.startsWith('/api/covers/')) {
+    return next();
+  }
+
+  // Only apply if JWT auth is enabled and user is authenticated
+  if (c.env.JWT_SECRET && c.get('user')) {
+    return subscriptionGate()(c, next);
   }
 
   return next();
