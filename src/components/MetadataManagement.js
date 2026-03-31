@@ -184,6 +184,25 @@ const MetadataManagement = () => {
     loadJobs();
   }, [loadJobs]);
 
+  // ── Auto-resume polling for running jobs on mount ──
+  useEffect(() => {
+    if (jobs.length === 0 || isEnriching || pollRef.current) return;
+    const runningJob = jobs.find((j) => j.status === 'running' || j.status === 'pending');
+    if (runningJob) {
+      setIsEnriching(true);
+      setProgress({
+        jobId: runningJob.id,
+        status: runningJob.status,
+        totalBooks: runningJob.totalBooks,
+        processedBooks: runningJob.processedBooks,
+        enrichedBooks: runningJob.enrichedBooks,
+        errorCount: runningJob.errorCount,
+        done: false,
+      });
+      startPolling(runningJob.id);
+    }
+  }, [jobs]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Cleanup polling on unmount ──
   useEffect(() => {
     return () => {
