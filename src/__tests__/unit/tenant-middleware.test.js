@@ -8,7 +8,8 @@ import {
   requireTeacher,
   requireReadonly,
   requireOrgOwnership,
-  scopeToOrganization
+  scopeToOrganization,
+  subscriptionGate
 } from '../../middleware/tenant.js';
 import { createAccessToken } from '../../utils/crypto.js';
 
@@ -531,5 +532,64 @@ describe('scopeToOrganization', () => {
     const result = scopeToOrganization(c, 'SELECT * FROM students WHERE id = ?', ['id-1']);
 
     expect(result.query).toContain('AND organization_id');
+  });
+});
+
+describe('tenantMiddleware — subscription status', () => {
+  it('should set subscriptionStatus from org record', async () => {
+    const c = createMockContext({
+      env: {
+        JWT_SECRET: TEST_SECRET,
+        READING_MANAGER_DB: {
+          prepare: vi.fn(() => ({
+            bind: vi.fn(() => ({
+              first: vi.fn().mockResolvedValue({
+                id: 'org-1',
+                is_active: 1,
+                subscription_status: 'active',
+              }),
+            })),
+          })),
+        },
+      },
+    });
+    c.set('user', { org: 'org-1' });
+    c.set('userRole', 'teacher');
+    c.set('organizationId', 'org-1');
+
+    const next = vi.fn().mockResolvedValue('next');
+    const middleware = tenantMiddleware();
+    await middleware(c, next);
+
+    expect(c.set).toHaveBeenCalledWith('subscriptionStatus', 'active');
+    expect(next).toHaveBeenCalled();
+  });
+
+  it('should default subscriptionStatus to none when NULL', async () => {
+    const c = createMockContext({
+      env: {
+        JWT_SECRET: TEST_SECRET,
+        READING_MANAGER_DB: {
+          prepare: vi.fn(() => ({
+            bind: vi.fn(() => ({
+              first: vi.fn().mockResolvedValue({
+                id: 'org-1',
+                is_active: 1,
+                subscription_status: null,
+              }),
+            })),
+          })),
+        },
+      },
+    });
+    c.set('user', { org: 'org-1' });
+    c.set('userRole', 'teacher');
+    c.set('organizationId', 'org-1');
+
+    const next = vi.fn().mockResolvedValue('next');
+    const middleware = tenantMiddleware();
+    await middleware(c, next);
+
+    expect(c.set).toHaveBeenCalledWith('subscriptionStatus', 'none');
   });
 });

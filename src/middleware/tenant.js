@@ -103,7 +103,7 @@ export function tenantMiddleware() {
     if (db) {
       try {
         const org = await db.prepare(
-          'SELECT id, is_active FROM organizations WHERE id = ?'
+          'SELECT id, is_active, subscription_status FROM organizations WHERE id = ?'
         ).bind(targetOrgId).first();
 
         if (!org) {
@@ -113,6 +113,8 @@ export function tenantMiddleware() {
         if (!org.is_active) {
           return c.json({ error: 'Organization is inactive' }, 403);
         }
+
+        c.set('subscriptionStatus', org.subscription_status || 'none');
 
         // Update the organizationId in context if owner is switching
         if (overrideOrgId && userRole === 'owner' && org) {
@@ -128,10 +130,65 @@ export function tenantMiddleware() {
   };
 }
 
+// Paths exempt from subscription gating (separate from PUBLIC_PATHS which controls JWT auth)
+const SUBSCRIPTION_EXEMPT_PREFIXES = ['/api/auth/', '/api/billing/'];
+
+/**
+ * Subscription Access Control Middleware
+ * Gates app access based on organization subscription status.
+ *
+ * - Owner role: always exempt (godmode)
+ * - Allowed statuses: none, trialing, active — full access
+ * - past_due: read-only (GET/HEAD only)
+ * - cancelled / unknown: fully blocked
+ * - Exempt paths: auth, billing, support POST
+ *
+ * Must be used after tenantMiddleware (reads subscriptionStatus from context).
+ */
+export function subscriptionGate() {
+  return async (c, next) => {
+    // 1. Owner is always exempt
+    if (c.get('userRole') === 'owner') return next();
+
+    // 2. Check exempt paths
+    const path = c.req.path;
+    if (SUBSCRIPTION_EXEMPT_PREFIXES.some((prefix) => path.startsWith(prefix))) return next();
+    if (path === '/api/support' && c.req.method === 'POST') return next();
+
+    // 3. Read status (set by tenantMiddleware)
+    const status = c.get('subscriptionStatus') || 'none';
+
+    // 4. Allowlist — these statuses get full access
+    const ALLOWED = new Set(['none', 'trialing', 'active']);
+    if (ALLOWED.has(status)) return next();
+
+    // 5. past_due — read-only
+    if (status === 'past_due') {
+      if (c.req.method === 'GET' || c.req.method === 'HEAD') return next();
+      return c.json(
+        {
+          error: 'Your subscription payment is overdue. The app is in read-only mode until payment is resolved.',
+          code: 'SUBSCRIPTION_PAST_DUE',
+        },
+        403,
+      );
+    }
+
+    // 6. cancelled or any unknown status — fully blocked
+    return c.json(
+      {
+        error: 'Your subscription has been cancelled. Please contact support or reactivate via the billing portal.',
+        code: 'SUBSCRIPTION_CANCELLED',
+      },
+      403,
+    );
+  };
+}
+
 /**
  * Role-based Access Control Middleware
  * Restricts access based on user role
- * 
+ *
  * @param {string} requiredRole - Minimum required role
  * @returns {Function} Hono middleware
  */
