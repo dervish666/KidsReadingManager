@@ -52,4 +52,18 @@ tours.post('/:tourId/complete', requireReadonly(), async (c) => {
   return c.json({ success: true, tourId, version });
 });
 
+// DELETE /:tourId/complete - resets a tour so it can be replayed
+tours.delete('/:tourId/complete', requireReadonly(), async (c) => {
+  const userId = c.get('userId');
+  const tourId = c.req.param('tourId');
+  const db = c.env.READING_MANAGER_DB;
+
+  await db
+    .prepare('DELETE FROM user_tour_completions WHERE user_id = ? AND tour_id = ?')
+    .bind(userId, tourId)
+    .run();
+
+  return c.json({ success: true, tourId });
+});
+
 export { tours as toursRouter };

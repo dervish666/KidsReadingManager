@@ -68,7 +68,7 @@ export const TOURS = {
     ],
   },
   'home-reading': {
-    version: 1,
+    version: 2,
     steps: [
       {
         target: '[data-tour="register-date-range"]',
@@ -91,7 +91,7 @@ export const TOURS = {
     ],
   },
   recommendations: {
-    version: 1,
+    version: 2,
     steps: [
       {
         target: '[data-tour="recs-student-select"]',

@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.33.3] - 2026-03-31
+
+### Fixed
+- **Tour system: prevent false completions** — `startTour` now verifies all step targets exist in the DOM before starting; tours no longer silently cycle through missing targets and mark themselves as permanently complete
+- **Tour completion guard** — `TOUR_END` handler only marks a tour as complete if at least one tooltip was actually shown to the user
+- **Tour version bump** — home-reading and recommendations tours bumped to v2 so users who had them wrongly marked complete at v1 will see them again
+
+### Added
+- **Tour reset endpoint** — `DELETE /api/tours/:tourId/complete` allows resetting a tour so it can be replayed
+
 ## [3.33.2] - 2026-03-31
 
 ### Fixed

@@ -16,6 +16,9 @@ const TourProvider = ({ children }) => {
   // Use a ref to read current tourId/version in event handlers without stale closures
   const tourRef = useRef({ tourId: null, version: null });
 
+  // Track whether at least one step was actually shown (tooltip rendered)
+  const stepShownRef = useRef(false);
+
   const currentTour = currentTourId ? TOURS[currentTourId] : null;
   const steps = currentTour
     ? currentTour.steps.map((step) => ({
@@ -50,13 +53,23 @@ const TourProvider = ({ children }) => {
     },
   });
 
-  // Listen for tour end event
+  // Track when at least one tooltip is rendered (proves the user saw a step)
+  useEffect(() => {
+    return on(EVENTS.TOOLTIP, () => {
+      stepShownRef.current = true;
+    });
+  }, [on]);
+
+  // Listen for tour end event — only mark complete if a step was actually shown
   useEffect(() => {
     const unsubscribe = on(EVENTS.TOUR_END, () => {
       const { tourId, version } = tourRef.current;
+      const wasShown = stepShownRef.current;
+
       setRunning(false);
       setCurrentTourId(null);
-      if (tourId && version) {
+
+      if (tourId && version && wasShown) {
         markTourComplete(tourId, version);
       }
     });
@@ -65,7 +78,16 @@ const TourProvider = ({ children }) => {
   }, [on, markTourComplete]);
 
   const startTour = useCallback((tourId) => {
-    if (!TOURS[tourId]) return;
+    const tour = TOURS[tourId];
+    if (!tour) return;
+
+    // Don't start if any step's target is missing from the DOM —
+    // a partial tour (some targets found, some not) gives a broken
+    // experience and would wrongly mark the tour as complete.
+    const allTargetsExist = tour.steps.every((step) => document.querySelector(step.target));
+    if (!allTargetsExist) return;
+
+    stepShownRef.current = false;
     setCurrentTourId(tourId);
     setRunning(true);
   }, []);
