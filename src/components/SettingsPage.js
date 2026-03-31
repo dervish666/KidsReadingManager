@@ -15,6 +15,7 @@ import Settings from './Settings';
 import DataManagement from './DataManagement';
 import AISettings from './AISettings';
 import BookMetadataSettings from './BookMetadataSettings';
+import MetadataManagement from './MetadataManagement';
 import UserManagement from './UserManagement';
 import SchoolManagement from './SchoolManagement';
 import SupportTicketManager from './SupportTicketManager';
@@ -40,7 +41,11 @@ const SettingsPage = () => {
       { label: 'Application Settings', icon: <SettingsIcon />, component: <Settings /> },
       { label: 'Data Management', icon: <StorageIcon />, component: <DataManagement /> },
       { label: 'AI Integration', icon: <SmartToyIcon />, component: <AISettings /> },
-      { label: 'Book Metadata', icon: <MenuBookIcon />, component: <BookMetadataSettings /> },
+      {
+        label: 'Book Metadata',
+        icon: <MenuBookIcon />,
+        component: isOwner ? <MetadataManagement /> : <BookMetadataSettings />,
+      },
     ];
     if (canManageUsers) {
       allTabs.push({
