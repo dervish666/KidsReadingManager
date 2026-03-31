@@ -10,6 +10,15 @@ import { Hono } from 'hono';
 import { getStripe, getPlanFromPriceId, hasAiAddon } from '../utils/stripe.js';
 import { generateId } from '../utils/helpers.js';
 
+/**
+ * Normalize Stripe subscription status to consistent British spelling.
+ * Stripe uses 'canceled' (American); we store 'cancelled' (British).
+ */
+export function normalizeSubscriptionStatus(status) {
+  if (status === 'canceled') return 'cancelled';
+  return status;
+}
+
 const stripeWebhookRouter = new Hono();
 
 stripeWebhookRouter.post('/', async (c) => {
@@ -110,7 +119,7 @@ stripeWebhookRouter.post('/', async (c) => {
         ];
         const params = [
           obj.id,
-          obj.status,
+          normalizeSubscriptionStatus(obj.status),
           new Date(obj.current_period_end * 1000).toISOString(),
           obj.trial_end ? new Date(obj.trial_end * 1000).toISOString() : null,
           aiAddon ? 1 : 0,
