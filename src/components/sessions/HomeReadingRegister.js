@@ -190,7 +190,23 @@ const HomeReadingRegister = () => {
   const [viewMode, setViewMode] = useState('quick');
 
   // Tour — ready only in 'full' view where the data-tour targets exist
-  const { tourButtonProps } = useTour('home-reading', { ready: viewMode === 'full' });
+  const { tourButtonProps, startTour: startHomeTour } = useTour('home-reading', {
+    ready: viewMode === 'full',
+  });
+
+  // Wrap compass click: if in Quick view, switch to Full first so targets exist
+  const homeTourButtonProps = {
+    ...tourButtonProps,
+    onClick: () => {
+      if (viewMode === 'full') {
+        tourButtonProps.onClick();
+      } else {
+        setViewMode('full');
+        // Targets render after the state update; brief delay lets React commit the DOM
+        setTimeout(() => startHomeTour(), 600);
+      }
+    },
+  };
   const [recordingStudents, setRecordingStudents] = useState(new Set());
   const [editingBookStudentId, setEditingBookStudentId] = useState(null);
   const [quickMultipleStudent, setQuickMultipleStudent] = useState(null);
@@ -2003,7 +2019,7 @@ const HomeReadingRegister = () => {
           {snackbarMessage}
         </Alert>
       </Snackbar>
-      <TourButton {...tourButtonProps} />
+      <TourButton {...homeTourButtonProps} />
     </Box>
   );
 };

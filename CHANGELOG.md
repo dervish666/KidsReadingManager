@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.33.4] - 2026-03-31
+
+### Fixed
+- **Home reading tour compass in Quick view** — clicking the compass now auto-switches to Full view before starting the tour, so the tour always works regardless of which view mode is active
+
 ## [3.33.3] - 2026-03-31
 
 ### Fixed
