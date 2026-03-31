@@ -95,6 +95,9 @@ export const AuthProvider = ({ children }) => {
   // Loading state for organization switching
   const [switchingOrganization, setSwitchingOrganization] = useState(false);
 
+  // Subscription block state: null (ok), 'past_due' (read-only), 'cancelled' (fully blocked)
+  const [subscriptionBlock, setSubscriptionBlock] = useState(null);
+
   // Detect auth mode from server on startup
   useEffect(() => {
     const detectAuthMode = async () => {
@@ -332,6 +335,21 @@ export const AuthProvider = ({ children }) => {
         clearAuthState();
         setApiError('Authentication required. Please log in.');
         throw new Error('Unauthorized');
+      }
+
+      // Detect subscription blocks from 403 responses
+      if (response.status === 403) {
+        try {
+          const cloned = response.clone();
+          const body = await cloned.json();
+          if (body.code === 'SUBSCRIPTION_PAST_DUE') {
+            setSubscriptionBlock('past_due');
+          } else if (body.code === 'SUBSCRIPTION_CANCELLED') {
+            setSubscriptionBlock('cancelled');
+          }
+        } catch {
+          // Not a subscription error — ignore
+        }
       }
 
       return response;
@@ -640,6 +658,34 @@ export const AuthProvider = ({ children }) => {
     }
   }, [user, fetchAvailableOrganizations]);
 
+  // Proactively fetch subscription status on auth load (all roles except owner)
+  useEffect(() => {
+    if (!authToken || !user || user.role === 'owner') {
+      setSubscriptionBlock(null);
+      return;
+    }
+
+    const checkSubscriptionStatus = async () => {
+      try {
+        const response = await fetchWithAuth(`${API_URL}/billing/subscription-status`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.status === 'cancelled' || data.status === 'canceled') {
+            setSubscriptionBlock('cancelled');
+          } else if (data.status === 'past_due') {
+            setSubscriptionBlock('past_due');
+          } else {
+            setSubscriptionBlock(null);
+          }
+        }
+      } catch {
+        // Non-critical — reactive detection via fetchWithAuth is the fallback
+      }
+    };
+
+    checkSubscriptionStatus();
+  }, [authToken, user, fetchWithAuth]);
+
   // --- Derived auth state ---
   const isAuthenticated = !!authToken;
   const isMultiTenantMode = authMode === 'multitenant';
@@ -675,6 +721,8 @@ export const AuthProvider = ({ children }) => {
   const canManageClasses = userRole !== 'readonly';
   const canManageSettings = userRole === 'owner' || userRole === 'admin';
 
+  const isReadOnly = subscriptionBlock === 'past_due';
+
   // Provider value - memoized to prevent unnecessary re-renders
   const value = useMemo(
     () => ({
@@ -695,6 +743,9 @@ export const AuthProvider = ({ children }) => {
       canManageStudents,
       canManageClasses,
       canManageSettings,
+      // Subscription block
+      subscriptionBlock,
+      isReadOnly,
       // Organization switching
       availableOrganizations,
       activeOrganizationId,
@@ -726,6 +777,8 @@ export const AuthProvider = ({ children }) => {
       canManageStudents,
       canManageClasses,
       canManageSettings,
+      subscriptionBlock,
+      isReadOnly,
       availableOrganizations,
       activeOrganizationId,
       switchOrganization,
