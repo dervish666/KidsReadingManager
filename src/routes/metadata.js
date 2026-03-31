@@ -3,7 +3,7 @@ import { requireOwner, requireAdmin, auditLog } from '../middleware/tenant';
 import { badRequestError } from '../middleware/errorHandler';
 import { encryptSensitiveData, decryptSensitiveData } from '../utils/crypto';
 import { requireDB } from '../utils/routeHelpers';
-import { enrichBook, processBatch } from '../services/metadataService';
+import { processJobBatch } from '../services/metadataService';
 
 const metadataRouter = new Hono();
 
@@ -399,14 +399,16 @@ metadataRouter.post('/enrich', requireAdmin(), async (c) => {
     const totalBooks = countRow?.count || 0;
     const jobId = crypto.randomUUID();
 
+    const background = body.background ? 1 : 0;
+
     await db
       .prepare(
         `
-      INSERT INTO metadata_jobs (id, organization_id, job_type, status, total_books, include_covers, created_by)
-      VALUES (?, ?, ?, 'pending', ?, ?, ?)
+      INSERT INTO metadata_jobs (id, organization_id, job_type, status, total_books, include_covers, background, created_by)
+      VALUES (?, ?, ?, 'pending', ?, ?, ?, ?)
     `,
       )
-      .bind(jobId, organizationId, jobType, totalBooks, includeCovers ? 1 : 0, userId)
+      .bind(jobId, organizationId, jobType, totalBooks, includeCovers ? 1 : 0, background, userId)
       .run();
 
     return c.json({
@@ -436,363 +438,23 @@ metadataRouter.post('/enrich', requireAdmin(), async (c) => {
   if (!config) return c.json({ error: 'Metadata configuration not found' }, 500);
   config.fetchCovers = job.include_covers && config.fetchCovers;
 
-  // Cap effective batch size — each book hits multiple external APIs sequentially,
-  // so large batches risk exceeding the 30s Worker wall-clock limit.
-  // With 3 providers at ~2-3s each + delays, 5 books is a safe ceiling.
-  const maxSafeBatch = 5;
-  if (config.batchSize > maxSafeBatch) config.batchSize = maxSafeBatch;
-
-  // Fetch next batch of books
-  let booksQuery, booksBindings;
-  const cursor = job.last_book_id || '';
-
-  if (job.job_type === 'fill_missing') {
-    if (job.organization_id) {
-      booksQuery = `
-        SELECT b.id, b.title, b.author, b.isbn, b.description, b.page_count, b.publication_year, b.series_name
-        FROM books b
-        INNER JOIN org_book_selections obs ON b.id = obs.book_id
-        WHERE obs.organization_id = ? AND obs.is_available = 1
-          AND b.id > ?
-          AND (b.author IS NULL OR b.author = '' OR LOWER(b.author) = 'unknown'
-            OR b.description IS NULL OR b.description = ''
-            OR b.isbn IS NULL OR b.isbn = ''
-            OR b.page_count IS NULL
-            OR b.publication_year IS NULL
-            OR b.series_name IS NULL
-            OR b.genre_ids IS NULL OR b.genre_ids = '' OR b.genre_ids = '[]')
-        ORDER BY b.id LIMIT ?
-      `;
-      booksBindings = [job.organization_id, cursor, config.batchSize];
-    } else {
-      booksQuery = `
-        SELECT id, title, author, isbn, description, page_count, publication_year, series_name FROM books
-        WHERE id > ?
-          AND (author IS NULL OR author = '' OR LOWER(author) = 'unknown'
-            OR description IS NULL OR description = ''
-            OR isbn IS NULL OR isbn = ''
-            OR page_count IS NULL
-            OR publication_year IS NULL
-            OR series_name IS NULL
-            OR genre_ids IS NULL OR genre_ids = '' OR genre_ids = '[]')
-        ORDER BY id LIMIT ?
-      `;
-      booksBindings = [cursor, config.batchSize];
-    }
-  } else {
-    // refresh_all
-    if (job.organization_id) {
-      booksQuery = `
-        SELECT b.id, b.title, b.author, b.isbn FROM books b
-        INNER JOIN org_book_selections obs ON b.id = obs.book_id
-        WHERE obs.organization_id = ? AND obs.is_available = 1 AND b.id > ?
-        ORDER BY b.id LIMIT ?
-      `;
-      booksBindings = [job.organization_id, cursor, config.batchSize];
-    } else {
-      booksQuery = `SELECT id, title, author, isbn FROM books WHERE id > ? ORDER BY id LIMIT ?`;
-      booksBindings = [cursor, config.batchSize];
-    }
-  }
-
-  const booksResult = await db.prepare(booksQuery).bind(...booksBindings).all();
-  const books = (booksResult.results || []).map((row) => ({
-    id: row.id,
-    title: row.title,
-    author: row.author || '',
-    isbn: row.isbn || '',
-  }));
-
-  // No more books — job complete
-  if (books.length === 0) {
-    await db
-      .prepare(
-        "UPDATE metadata_jobs SET status = 'completed', updated_at = datetime('now') WHERE id = ?",
-      )
-      .bind(job.id)
-      .run();
+  try {
+    const result = await processJobBatch(db, job, config, {
+      r2Bucket: c.env.BOOK_COVERS,
+      waitUntil: c.executionCtx?.waitUntil?.bind(c.executionCtx),
+    });
 
     return c.json({
       jobId: job.id,
-      status: 'completed',
+      status: result.jobStatus,
       totalBooks: job.total_books,
-      processedBooks: job.processed_books,
-      enrichedBooks: job.enriched_books,
-      errorCount: job.error_count,
-      currentBook: null,
-      done: true,
+      processedBooks: result.processedBooks,
+      enrichedBooks: result.enrichedBooks,
+      errorCount: result.errorCount,
+      currentBook: result.currentBook,
+      done: result.done,
     });
-  }
-
-  // Mark job as running
-  if (job.status === 'pending') {
-    await db
-      .prepare(
-        "UPDATE metadata_jobs SET status = 'running', updated_at = datetime('now') WHERE id = ?",
-      )
-      .bind(job.id)
-      .run();
-  }
-
-  // Process the batch — wrapped in try/catch so Worker timeout or D1 errors
-  // return a useful response instead of a bare 500.
-  try {
-  const bookUpdates = [];
-  const logEntries = [];
-  let currentBook = '';
-
-  const progress = await processBatch(books, config, {
-    delayMs: config.rateLimitDelayMs,
-    onBookResult: (bookId, merged, log) => {
-      currentBook = books.find((b) => b.id === bookId)?.title || '';
-      if (Object.values(merged).some((v) => v != null)) {
-        bookUpdates.push({ bookId, merged });
-      }
-      for (const entry of log) {
-        logEntries.push({
-          bookId,
-          provider: entry.provider,
-          fields: entry.fields,
-          coverUrl: merged.coverUrl,
-        });
-      }
-    },
-  });
-
-  // --- Genre name-to-ID mapping ---
-  // Providers return genre names (e.g. ["Fiction", "Animals"]).
-  // The books table stores genre IDs (UUIDs) in genre_ids as JSON.
-  // We need to resolve names to IDs, creating new genres as needed.
-  // Genres are global (not org-scoped in the genres table).
-  const genreNameToId = {};
-  const existingGenres = await db.prepare('SELECT id, name FROM genres').all();
-  for (const g of existingGenres.results || []) {
-    genreNameToId[g.name.toLowerCase()] = g.id;
-  }
-
-  // Resolve genre names to IDs for each book, creating missing genres
-  const genreCreateStatements = [];
-  for (const { merged } of bookUpdates) {
-    if (!merged.genres?.length) continue;
-    const genreIds = [];
-    for (const name of merged.genres) {
-      const key = name.toLowerCase();
-      if (!genreNameToId[key]) {
-        const newId = crypto.randomUUID();
-        genreNameToId[key] = newId;
-        genreCreateStatements.push(
-          db.prepare('INSERT OR IGNORE INTO genres (id, name) VALUES (?, ?)').bind(newId, name),
-        );
-      }
-      genreIds.push(genreNameToId[key]);
-    }
-    // Replace genre names with resolved IDs
-    merged.genreIds = genreIds;
-  }
-
-  // Create new genres first (in batches of 100)
-  for (let i = 0; i < genreCreateStatements.length; i += 100) {
-    await db.batch(genreCreateStatements.slice(i, i + 100));
-  }
-
-  // --- Apply book updates and metadata log ---
-  const statements = [];
-
-  for (const { bookId, merged } of bookUpdates) {
-    if (job.job_type === 'fill_missing') {
-      // Only update fields that are currently empty
-      const conditionalSets = [];
-      const conditionalParams = [];
-
-      if (merged.author) {
-        conditionalSets.push(
-          "author = CASE WHEN author IS NULL OR author = '' OR LOWER(author) = 'unknown' THEN ? ELSE author END",
-        );
-        conditionalParams.push(merged.author);
-      }
-      if (merged.description) {
-        conditionalSets.push(
-          "description = CASE WHEN description IS NULL OR description = '' THEN ? ELSE description END",
-        );
-        conditionalParams.push(merged.description);
-      }
-      if (merged.isbn) {
-        conditionalSets.push(
-          "isbn = CASE WHEN isbn IS NULL OR isbn = '' THEN ? ELSE isbn END",
-        );
-        conditionalParams.push(merged.isbn);
-      }
-      if (merged.pageCount) {
-        conditionalSets.push(
-          'page_count = CASE WHEN page_count IS NULL THEN ? ELSE page_count END',
-        );
-        conditionalParams.push(merged.pageCount);
-      }
-      if (merged.publicationYear) {
-        conditionalSets.push(
-          'publication_year = CASE WHEN publication_year IS NULL THEN ? ELSE publication_year END',
-        );
-        conditionalParams.push(merged.publicationYear);
-      }
-      if (merged.seriesName) {
-        conditionalSets.push(
-          "series_name = CASE WHEN series_name IS NULL OR series_name = '' THEN ? ELSE series_name END",
-        );
-        conditionalParams.push(merged.seriesName);
-      }
-      if (merged.seriesNumber != null) {
-        conditionalSets.push(
-          'series_number = CASE WHEN series_number IS NULL THEN ? ELSE series_number END',
-        );
-        conditionalParams.push(merged.seriesNumber);
-      }
-      if (merged.genreIds?.length) {
-        conditionalSets.push(
-          "genre_ids = CASE WHEN genre_ids IS NULL OR genre_ids = '' OR genre_ids = '[]' THEN ? ELSE genre_ids END",
-        );
-        conditionalParams.push(JSON.stringify(merged.genreIds));
-      }
-
-      if (conditionalSets.length > 0) {
-        conditionalSets.push("updated_at = datetime('now')");
-        conditionalParams.push(bookId);
-        statements.push(
-          db
-            .prepare(`UPDATE books SET ${conditionalSets.join(', ')} WHERE id = ?`)
-            .bind(...conditionalParams),
-        );
-      }
-    } else {
-      // refresh_all: overwrite all fields
-      const setClauses = [];
-      const params = [];
-
-      if (merged.author) {
-        setClauses.push('author = ?');
-        params.push(merged.author);
-      }
-      if (merged.description) {
-        setClauses.push('description = ?');
-        params.push(merged.description);
-      }
-      if (merged.isbn) {
-        setClauses.push('isbn = ?');
-        params.push(merged.isbn);
-      }
-      if (merged.pageCount) {
-        setClauses.push('page_count = ?');
-        params.push(merged.pageCount);
-      }
-      if (merged.publicationYear) {
-        setClauses.push('publication_year = ?');
-        params.push(merged.publicationYear);
-      }
-      if (merged.seriesName) {
-        setClauses.push('series_name = ?');
-        params.push(merged.seriesName);
-      }
-      if (merged.seriesNumber != null) {
-        setClauses.push('series_number = ?');
-        params.push(merged.seriesNumber);
-      }
-      if (merged.genreIds?.length) {
-        setClauses.push('genre_ids = ?');
-        params.push(JSON.stringify(merged.genreIds));
-      }
-
-      if (setClauses.length > 0) {
-        setClauses.push("updated_at = datetime('now')");
-        params.push(bookId);
-        statements.push(
-          db
-            .prepare(`UPDATE books SET ${setClauses.join(', ')} WHERE id = ?`)
-            .bind(...params),
-        );
-      }
-    }
-  }
-
-  // Log entries
-  for (const entry of logEntries) {
-    statements.push(
-      db
-        .prepare(
-          'INSERT INTO book_metadata_log (id, book_id, provider, fields_updated, cover_url) VALUES (?, ?, ?, ?, ?)',
-        )
-        .bind(
-          crypto.randomUUID(),
-          entry.bookId,
-          entry.provider,
-          JSON.stringify(entry.fields),
-          entry.coverUrl || null,
-        ),
-    );
-  }
-
-  // Update job progress
-  const newProcessed = job.processed_books + progress.processedBooks;
-  const newEnriched = job.enriched_books + progress.enrichedBooks;
-  const newErrors = job.error_count + progress.errorCount;
-
-  statements.push(
-    db
-      .prepare(
-        `
-      UPDATE metadata_jobs
-      SET processed_books = ?, enriched_books = ?, error_count = ?, last_book_id = ?, updated_at = datetime('now')
-      WHERE id = ?
-    `,
-      )
-      .bind(newProcessed, newEnriched, newErrors, progress.lastBookId, job.id),
-  );
-
-  // Execute all statements in batches of 100 (D1 limit)
-  for (let i = 0; i < statements.length; i += 100) {
-    await db.batch(statements.slice(i, i + 100));
-  }
-
-  // Handle cover fetching via waitUntil (non-blocking)
-  if (config.fetchCovers && c.env.BOOK_COVERS && c.executionCtx?.waitUntil) {
-    const coverPromises = bookUpdates
-      .filter(({ merged }) => merged.coverUrl && merged.isbn)
-      .map(async ({ merged }) => {
-        try {
-          const res = await fetch(merged.coverUrl, {
-            headers: { 'User-Agent': 'TallyReading/1.0 (educational-app)' },
-          });
-          if (res.ok) {
-            const imageData = await res.arrayBuffer();
-            if (imageData.byteLength > 1000) {
-              const r2Key = `isbn/${merged.isbn}-M.jpg`;
-              await c.env.BOOK_COVERS.put(r2Key, imageData, {
-                httpMetadata: {
-                  contentType: res.headers.get('Content-Type') || 'image/jpeg',
-                },
-              });
-            }
-          }
-        } catch {
-          /* cover fetch failed — non-critical */
-        }
-      });
-
-    c.executionCtx.waitUntil(Promise.allSettled(coverPromises));
-  }
-
-  return c.json({
-    jobId: job.id,
-    status: 'running',
-    totalBooks: job.total_books,
-    processedBooks: newProcessed,
-    enrichedBooks: newEnriched,
-    errorCount: newErrors,
-    currentBook,
-    done: false,
-  });
-
   } catch (err) {
-    // If batch processing fails (e.g. Worker timeout, D1 error), mark the job
-    // as failed so the user gets a clear message instead of infinite 500s.
     console.error('Enrich batch error:', err);
     try {
       await db.prepare(

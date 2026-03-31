@@ -66,7 +66,8 @@ STRIPE_AI_ADDON_PRICE_ID = "price_1TEbkYFvBYcaukPXPNfBZrre"
 enabled = true
 
 # Cron triggers for scheduled tasks
+# Every minute - Background metadata enrichment (exits immediately if no job)
 # 2:00 AM UTC - Recalculate all student streaks
 # 3:00 AM UTC - Wonde daily delta sync
 [triggers]
-crons = ["0 2 * * *", "0 3 * * *"]
+crons = ["*/1 * * * *", "0 2 * * *", "0 3 * * *"]

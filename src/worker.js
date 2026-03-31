@@ -37,7 +37,8 @@ import wondeAdminRouter from './routes/wondeAdmin.js';
 import { supportRouter } from './routes/support.js';
 import { termDatesRouter } from './routes/termDates.js';
 import { toursRouter } from './routes/tours.js';
-import { metadataRouter } from './routes/metadata.js';
+import { metadataRouter, getConfigWithKeys } from './routes/metadata.js';
+import { processJobBatch } from './services/metadataService.js';
 import stripeWebhookRouter from './routes/stripeWebhook.js';
 import { billingRouter } from './routes/billing.js';
 import { runFullSync } from './services/wondeSync.js';
@@ -550,6 +551,56 @@ export default Sentry.withSentry(
         checkinMargin: 5,
         maxRuntime: 30,
       });
+    }
+
+    // ── Background metadata enrichment (every minute) ──
+    if (event.cron === '*/1 * * * *') {
+      const bgJob = await db.prepare(
+        "SELECT * FROM metadata_jobs WHERE background = 1 AND status IN ('pending', 'running') LIMIT 1"
+      ).first();
+
+      if (bgJob) {
+        console.log(`[Cron] Background enrichment: job ${bgJob.id}, ${bgJob.processed_books}/${bgJob.total_books} processed`);
+
+        const config = await getConfigWithKeys(db, env.JWT_SECRET);
+        if (config) {
+          config.fetchCovers = bgJob.include_covers && config.fetchCovers;
+
+          // Loop processing batches until the 20s wall-clock cutoff kicks in
+          const startTime = Date.now();
+          let lastResult;
+          try {
+            while (Date.now() - startTime < 25000) {
+              // Re-read job state to get updated cursor
+              const currentJob = await db.prepare(
+                'SELECT * FROM metadata_jobs WHERE id = ?'
+              ).bind(bgJob.id).first();
+
+              if (!currentJob || currentJob.status === 'completed' || currentJob.status === 'paused' || currentJob.status === 'failed') {
+                break;
+              }
+
+              lastResult = await processJobBatch(db, currentJob, config, {
+                r2Bucket: env.BOOK_COVERS,
+                waitUntil: ctx.waitUntil.bind(ctx),
+              });
+
+              if (lastResult.done) break;
+            }
+          } catch (err) {
+            console.error('[Cron] Background enrichment error:', err);
+            try {
+              await db.prepare(
+                "UPDATE metadata_jobs SET status = 'failed', updated_at = datetime('now') WHERE id = ?"
+              ).bind(bgJob.id).run();
+            } catch { /* best effort */ }
+          }
+
+          if (lastResult) {
+            console.log(`[Cron] Background enrichment: ${lastResult.processedBooks}/${bgJob.total_books} processed, ${lastResult.enrichedBooks} enriched, done=${lastResult.done}`);
+          }
+        }
+      }
     }
 
     console.log(`[Cron] Scheduled task (${event.cron}) finished at ${new Date().toISOString()}`);

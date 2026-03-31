@@ -109,6 +109,7 @@ const MetadataManagement = () => {
   const [schools, setSchools] = useState([]);
   const [selectedSchool, setSelectedSchool] = useState(null); // null = all schools
   const [isEnriching, setIsEnriching] = useState(false);
+  const [runInBackground, setRunInBackground] = useState(false);
   const [progress, setProgress] = useState(null);
   const pollRef = useRef(null);
 
@@ -323,7 +324,11 @@ const MetadataManagement = () => {
     setProgress(null);
 
     try {
-      const payload = { jobType, organizationId: selectedSchool || undefined };
+      const payload = {
+        jobType,
+        organizationId: selectedSchool || undefined,
+        background: runInBackground || undefined,
+      };
       const res = await fetchWithAuth('/api/metadata/enrich', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -341,6 +346,14 @@ const MetadataManagement = () => {
       if (data.done || data.status === 'completed') {
         setIsEnriching(false);
         showSnackbar('Enrichment complete', 'success');
+        loadJobs();
+        return;
+      }
+
+      // Background mode: don't poll, the cron will handle it
+      if (runInBackground) {
+        setIsEnriching(false);
+        showSnackbar('Enrichment started in background — check Job History for progress', 'success');
         loadJobs();
         return;
       }
@@ -609,7 +622,26 @@ const MetadataManagement = () => {
           </Select>
         </FormControl>
 
-        {/* Action buttons */}
+        {/* Background toggle + action buttons */}
+        <FormControlLabel
+          control={
+            <Switch
+              checked={runInBackground}
+              onChange={(e) => setRunInBackground(e.target.checked)}
+              disabled={isEnriching}
+            />
+          }
+          label="Run in background"
+          sx={{
+            mb: 1,
+            '& .MuiFormControlLabel-label': {
+              fontFamily: '"DM Sans", sans-serif',
+              fontSize: '0.9rem',
+              color: 'text.secondary',
+            },
+          }}
+        />
+
         <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
           <Button
             variant="contained"
