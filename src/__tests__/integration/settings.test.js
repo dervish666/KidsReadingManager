@@ -386,7 +386,6 @@ describe('Settings API Routes', () => {
           defaultReadingLevel: 3,
           schoolName: 'Test School',
           readingStatusSettings: { recentlyReadDays: 5, needsAttentionDays: 14 },
-          bookMetadata: { provider: 'openLibrary' },
           streakGracePeriodDays: 2
         });
 
