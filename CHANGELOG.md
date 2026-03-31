@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.34.0] - 2026-03-31
+
+### Added
+- **Centralised metadata ownership** — owner-only metadata config, multi-provider cascade engine (OpenLibrary, Google Books, Hardcover), batch enrichment with job tracking
+- **Background enrichment** — cron-triggered metadata enrichment at 4 AM UTC, processes up to 200 books per run with provider rate limiting
+- **Owner metadata management UI** — provider configuration, global enrichment controls, job history panel
+- **Simplified admin metadata view** — enrichment status display with Fill Missing button
+
+### Fixed
+- **DST clock-change bug in Home Reading Register** — multi-day session buttons (2/3/4/+) only recorded sessions for today and one previous day during BST; caused by `toISOString()` shifting dates when converting local midnight to UTC, and fetch range not covering backward days
+- **Worker timeout during metadata enrichment** — batch processing now respects wall-clock safety limits
+- **Enrichment polling auto-resume** — polling restarts when returning to the metadata page
+
 ## [3.33.5] - 2026-03-31
 
 ### Added

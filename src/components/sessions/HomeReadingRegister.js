@@ -55,11 +55,18 @@ const READING_STATUS = {
   NONE: 'none', // No entry yet
 };
 
+const formatDateISO = (date) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
 // Get yesterday's date in YYYY-MM-DD format
 const getYesterday = () => {
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
-  return yesterday.toISOString().split('T')[0];
+  return formatDateISO(yesterday);
 };
 
 // Format date for display
@@ -128,10 +135,6 @@ const getEndOfMonth = (date) => {
   d.setDate(0);
   d.setHours(23, 59, 59, 999);
   return d;
-};
-
-const formatDateISO = (date) => {
-  return date.toISOString().split('T')[0];
 };
 
 const formatDateHeader = (date) => {
@@ -229,7 +232,7 @@ const HomeReadingRegister = () => {
         return { startDate: getStartOfMonth(lastMonth), endDate: getEndOfMonth(lastMonth) };
       }
       case DATE_PRESETS.CURRENT_TERM: {
-        const todayStr = today.toISOString().split('T')[0];
+        const todayStr = formatDateISO(today);
         const current = termDates.find((t) => t.startDate <= todayStr && t.endDate >= todayStr);
         if (current) {
           return { startDate: new Date(current.startDate), endDate: new Date(current.endDate) };
@@ -268,6 +271,16 @@ const HomeReadingRegister = () => {
   const dates = useMemo(() => getDateRange(startDate, endDate), [startDate, endDate]);
 
   // ISO date strings for the date range (used by fetch and refreshSessions)
+  // Extend the fetch start to cover quick-view history columns and multi-day
+  // sessions that go backward from selectedDate (up to 14 days for the + button).
+  const fetchStartDateISO = useMemo(() => {
+    if (!selectedDate) return formatDateISO(startDate);
+    const backDate = new Date(selectedDate + 'T12:00:00');
+    backDate.setDate(backDate.getDate() - 14);
+    const presetStart = formatDateISO(startDate);
+    const backStr = formatDateISO(backDate);
+    return backStr < presetStart ? backStr : presetStart;
+  }, [startDate, selectedDate]);
   const startDateISO = useMemo(() => formatDateISO(startDate), [startDate]);
   const endDateISO = useMemo(() => formatDateISO(endDate), [endDate]);
 
@@ -302,11 +315,11 @@ const HomeReadingRegister = () => {
       setClassSessions([]);
       return;
     }
-    if (!startDateISO || !endDateISO) return;
+    if (!fetchStartDateISO || !endDateISO) return;
 
     setSessionsLoading(true);
     fetchWithAuth(
-      `/api/students/sessions?classId=${effectiveClassId}&startDate=${startDateISO}&endDate=${endDateISO}`
+      `/api/students/sessions?classId=${effectiveClassId}&startDate=${fetchStartDateISO}&endDate=${endDateISO}`
     )
       .then((r) => (r.ok ? r.json() : []))
       .then((sessions) => {
@@ -317,18 +330,18 @@ const HomeReadingRegister = () => {
         setClassSessions([]);
         setSessionsLoading(false);
       });
-  }, [effectiveClassId, startDateISO, endDateISO, fetchWithAuth]);
+  }, [effectiveClassId, fetchStartDateISO, endDateISO, fetchWithAuth]);
 
   // Refresh sessions after mutations (add/delete)
   const refreshSessions = useCallback(() => {
     if (!effectiveClassId) return;
     fetchWithAuth(
-      `/api/students/sessions?classId=${effectiveClassId}&startDate=${startDateISO}&endDate=${endDateISO}`
+      `/api/students/sessions?classId=${effectiveClassId}&startDate=${fetchStartDateISO}&endDate=${endDateISO}`
     )
       .then((r) => (r.ok ? r.json() : []))
       .then(setClassSessions)
       .catch(() => {});
-  }, [effectiveClassId, startDateISO, endDateISO, fetchWithAuth]);
+  }, [effectiveClassId, fetchStartDateISO, endDateISO, fetchWithAuth]);
 
   // Fetch selected student's full reading history
   useEffect(() => {
@@ -626,9 +639,9 @@ const HomeReadingRegister = () => {
       } else {
         const allStudentSessions = sessionsByStudent[student.id] || [];
         for (let i = 0; i < count; i++) {
-          const sessionDate = new Date(selectedDate);
+          const sessionDate = new Date(selectedDate + 'T12:00:00');
           sessionDate.setDate(sessionDate.getDate() - i);
-          const dateStr = sessionDate.toISOString().split('T')[0];
+          const dateStr = formatDateISO(sessionDate);
 
           const dayHasMarker =
             i > 0 &&
@@ -724,9 +737,9 @@ const HomeReadingRegister = () => {
         const studentSessions = sessionsByStudent[selectedStudent.id] || [];
 
         for (let i = 0; i < count; i++) {
-          const sessionDate = new Date(selectedDate);
+          const sessionDate = new Date(selectedDate + 'T12:00:00');
           sessionDate.setDate(sessionDate.getDate() - i);
-          const dateStr = sessionDate.toISOString().split('T')[0];
+          const dateStr = formatDateISO(sessionDate);
 
           // Check if this day has a marker
           const dayHasMarker =
