@@ -160,4 +160,72 @@ metadataRouter.put('/config', requireOwner(), auditLog('update', 'metadata_confi
   return c.json(config);
 });
 
+// --- Status Endpoint (Admin+) ---
+
+/**
+ * GET /api/metadata/status
+ * Enrichment status for caller's org.
+ * Returns enriched/total counts and last job info.
+ */
+metadataRouter.get('/status', requireAdmin(), async (c) => {
+  const db = requireDB(c.env);
+  const organizationId = c.get('organizationId');
+
+  // Count total books linked to this org
+  const totalRow = await db
+    .prepare(
+      'SELECT COUNT(*) as count FROM org_book_selections WHERE organization_id = ? AND is_available = 1',
+    )
+    .bind(organizationId)
+    .first();
+
+  // Count books with "complete enough" metadata (author + description + isbn all non-empty)
+  const enrichedRow = await db
+    .prepare(
+      `
+    SELECT COUNT(*) as count FROM books b
+    INNER JOIN org_book_selections obs ON b.id = obs.book_id
+    WHERE obs.organization_id = ? AND obs.is_available = 1
+      AND b.author IS NOT NULL AND b.author != '' AND LOWER(b.author) != 'unknown'
+      AND b.description IS NOT NULL AND b.description != ''
+      AND b.isbn IS NOT NULL AND b.isbn != ''
+  `,
+    )
+    .bind(organizationId)
+    .first();
+
+  // Last completed job for this org (or global)
+  const lastJob = await db
+    .prepare(
+      `
+    SELECT created_at, enriched_books, processed_books FROM metadata_jobs
+    WHERE (organization_id = ? OR organization_id IS NULL)
+      AND status = 'completed'
+    ORDER BY created_at DESC LIMIT 1
+  `,
+    )
+    .bind(organizationId)
+    .first();
+
+  // Active job for this org
+  const activeJob = await db
+    .prepare(
+      `
+    SELECT id FROM metadata_jobs
+    WHERE (organization_id = ? OR organization_id IS NULL)
+      AND status IN ('pending', 'running')
+    ORDER BY created_at DESC LIMIT 1
+  `,
+    )
+    .bind(organizationId)
+    .first();
+
+  return c.json({
+    totalBooks: totalRow?.count || 0,
+    enrichedBooks: enrichedRow?.count || 0,
+    lastJobDate: lastJob?.created_at || null,
+    activeJobId: activeJob?.id || null,
+  });
+});
+
 export { metadataRouter, getConfigWithKeys };
