@@ -90,6 +90,46 @@ export const TOURS = {
       },
     ],
   },
+  recommendations: {
+    version: 1,
+    steps: [
+      {
+        target: '[data-tour="recs-student-select"]',
+        title: 'Pick a Student',
+        content:
+          'Choose a student to find book recommendations matched to their reading level and interests.',
+        placement: 'bottom',
+      },
+      {
+        target: '[data-tour="recs-profile-bar"]',
+        title: 'Student Profile',
+        content:
+          'See their reading level, favourite genres, and focus mode at a glance. Tap the pencil to edit preferences.',
+        placement: 'bottom',
+      },
+      {
+        target: '[data-tour="recs-focus-mode"]',
+        title: 'Focus Mode',
+        content:
+          'Balanced finds a mix, Consolidation picks easier books to build confidence, and Challenge stretches them.',
+        placement: 'bottom',
+      },
+      {
+        target: '[data-tour="recs-results"]',
+        title: 'Library Matches',
+        content:
+          'Books from your school library that suit this student — matched by level, genre, and reading history.',
+        placement: 'top',
+      },
+      {
+        target: '[data-tour="recs-ai-banner"]',
+        title: 'Ask AI',
+        content:
+          'Want personalised picks beyond your library? Ask AI is available with an API key — ask your admin to set one up in Settings.',
+        placement: 'top',
+      },
+    ],
+  },
   stats: {
     version: 1,
     steps: [
@@ -102,8 +142,7 @@ export const TOURS = {
       {
         target: '[data-tour="stats-summary-cards"]',
         title: 'Key Numbers',
-        content:
-          "Your key numbers: total students, sessions, averages, and who hasn't read yet.",
+        content: "Your key numbers: total students, sessions, averages, and who hasn't read yet.",
         placement: 'bottom',
       },
       {

@@ -6,6 +6,7 @@ describe('TOURS', () => {
     expect(TOURS).toHaveProperty('students');
     expect(TOURS).toHaveProperty('session-form');
     expect(TOURS).toHaveProperty('home-reading');
+    expect(TOURS).toHaveProperty('recommendations');
     expect(TOURS).toHaveProperty('stats');
   });
 

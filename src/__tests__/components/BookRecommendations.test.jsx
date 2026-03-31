@@ -19,6 +19,17 @@ vi.mock('../../contexts/UIContext', () => ({
   useUI: () => useContext(TestUIContext)
 }));
 
+// Mock tour hooks to avoid requiring TourProvider
+vi.mock('../../components/tour/useTour', () => ({
+  useTour: () => ({
+    tourButtonProps: { onClick: vi.fn(), shouldPulse: false },
+  }),
+}));
+
+vi.mock('../../components/tour/TourButton', () => ({
+  default: () => null,
+}));
+
 // Mock the StudentEditForm component
 vi.mock('../../components/students/StudentEditForm', () => ({
   default: React.forwardRef(({ student, onSave, onCancel }, ref) => (

@@ -31,7 +31,7 @@ import {
   useMediaQuery,
   ToggleButton,
   ToggleButtonGroup,
-  ClickAwayListener
+  ClickAwayListener,
 } from '@mui/material';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
@@ -48,11 +48,11 @@ import BookCover from '../BookCover';
 
 // Reading status types for home reading
 const READING_STATUS = {
-  READ: 'read',           // ✓ - Child read
-  MULTIPLE: 'multiple',   // Number - Multiple reading sessions
-  ABSENT: 'absent',       // A - Absent
+  READ: 'read', // ✓ - Child read
+  MULTIPLE: 'multiple', // Number - Multiple reading sessions
+  ABSENT: 'absent', // A - Absent
   NO_RECORD: 'no_record', // • - No reading record received
-  NONE: 'none'            // No entry yet
+  NONE: 'none', // No entry yet
 };
 
 // Get yesterday's date in YYYY-MM-DD format
@@ -68,7 +68,7 @@ const formatDateDisplay = (dateStr) => {
   return date.toLocaleDateString('en-GB', {
     weekday: 'short',
     day: 'numeric',
-    month: 'short'
+    month: 'short',
   });
 };
 
@@ -95,7 +95,7 @@ const DATE_PRESETS = {
   LAST_MONTH: 'last_month',
   CURRENT_TERM: 'current_term',
   SCHOOL_YEAR: 'school_year',
-  CUSTOM: 'custom'
+  CUSTOM: 'custom',
 };
 
 const getStartOfWeek = (date) => {
@@ -138,7 +138,7 @@ const formatDateHeader = (date) => {
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   return {
     day: dayNames[date.getDay()],
-    date: date.getDate()
+    date: date.getDate(),
   };
 };
 
@@ -155,14 +155,20 @@ const getDateRange = (start, end) => {
 const HomeReadingRegister = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  
-  const { fetchWithAuth } = useAuth();
-  const { students, classes, books, addReadingSession, editReadingSession, deleteReadingSession, updateStudentCurrentBook } = useData();
-  const { globalClassFilter } = useUI();
-  const { tourButtonProps } = useTour('home-reading');
 
+  const { fetchWithAuth } = useAuth();
+  const {
+    students,
+    classes,
+    books,
+    addReadingSession,
+    editReadingSession,
+    deleteReadingSession,
+    updateStudentCurrentBook,
+  } = useData();
+  const { globalClassFilter } = useUI();
   // O(1) book lookup by ID (avoids O(n) .find() per student)
-  const booksMap = useMemo(() => new Map(books.map(b => [b.id, b])), [books]);
+  const booksMap = useMemo(() => new Map(books.map((b) => [b.id, b])), [books]);
 
   // Local session state — fetched on demand from the API
   const [classSessions, setClassSessions] = useState([]);
@@ -182,6 +188,9 @@ const HomeReadingRegister = () => {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyRefresh, setHistoryRefresh] = useState(0);
   const [viewMode, setViewMode] = useState('quick');
+
+  // Tour — ready only in 'full' view where the data-tour targets exist
+  const { tourButtonProps } = useTour('home-reading', { ready: viewMode === 'full' });
   const [recordingStudents, setRecordingStudents] = useState(new Set());
   const [editingBookStudentId, setEditingBookStudentId] = useState(null);
   const [quickMultipleStudent, setQuickMultipleStudent] = useState(null);
@@ -223,7 +232,7 @@ const HomeReadingRegister = () => {
       }
       case DATE_PRESETS.CURRENT_TERM: {
         const todayStr = today.toISOString().split('T')[0];
-        const current = termDates.find(t => t.startDate <= todayStr && t.endDate >= todayStr);
+        const current = termDates.find((t) => t.startDate <= todayStr && t.endDate >= todayStr);
         if (current) {
           return { startDate: new Date(current.startDate), endDate: new Date(current.endDate) };
         }
@@ -231,8 +240,8 @@ const HomeReadingRegister = () => {
       }
       case DATE_PRESETS.SCHOOL_YEAR: {
         if (termDates.length > 0) {
-          const starts = termDates.map(t => t.startDate).sort();
-          const ends = termDates.map(t => t.endDate).sort();
+          const starts = termDates.map((t) => t.startDate).sort();
+          const ends = termDates.map((t) => t.endDate).sort();
           return { startDate: new Date(starts[0]), endDate: new Date(ends[ends.length - 1]) };
         }
         return { startDate: getStartOfWeek(today), endDate: getEndOfWeek(today) };
@@ -240,13 +249,15 @@ const HomeReadingRegister = () => {
       case DATE_PRESETS.CUSTOM:
         return {
           startDate: customStartDate ? new Date(customStartDate) : getStartOfWeek(today),
-          endDate: customEndDate ? new Date(customEndDate) : getEndOfWeek(today)
+          endDate: customEndDate ? new Date(customEndDate) : getEndOfWeek(today),
         };
       default: {
         // Individual term preset (e.g. "term_1", "term_2")
-        const termOrder = datePreset.startsWith('term_') ? parseInt(datePreset.split('_')[1]) : null;
+        const termOrder = datePreset.startsWith('term_')
+          ? parseInt(datePreset.split('_')[1])
+          : null;
         if (termOrder) {
-          const term = termDates.find(t => t.termOrder === termOrder);
+          const term = termDates.find((t) => t.termOrder === termOrder);
           if (term) {
             return { startDate: new Date(term.startDate), endDate: new Date(term.endDate) };
           }
@@ -267,7 +278,7 @@ const HomeReadingRegister = () => {
 
   // Get active classes (non-disabled)
   const activeClasses = useMemo(() => {
-    return classes.filter(cls => !cls.disabled);
+    return classes.filter((cls) => !cls.disabled);
   }, [classes]);
 
   // Determine the effective class ID for this component
@@ -276,7 +287,7 @@ const HomeReadingRegister = () => {
     // If a specific class is selected in global filter, use it
     if (globalClassFilter && globalClassFilter !== 'all' && globalClassFilter !== 'unassigned') {
       // Verify the class exists and is active
-      const classExists = activeClasses.some(cls => cls.id === globalClassFilter);
+      const classExists = activeClasses.some((cls) => cls.id === globalClassFilter);
       if (classExists) return globalClassFilter;
     }
     // Otherwise, default to first active class
@@ -296,9 +307,11 @@ const HomeReadingRegister = () => {
     if (!startDateISO || !endDateISO) return;
 
     setSessionsLoading(true);
-    fetchWithAuth(`/api/students/sessions?classId=${effectiveClassId}&startDate=${startDateISO}&endDate=${endDateISO}`)
-      .then(r => r.ok ? r.json() : [])
-      .then(sessions => {
+    fetchWithAuth(
+      `/api/students/sessions?classId=${effectiveClassId}&startDate=${startDateISO}&endDate=${endDateISO}`
+    )
+      .then((r) => (r.ok ? r.json() : []))
+      .then((sessions) => {
         setClassSessions(sessions);
         setSessionsLoading(false);
       })
@@ -311,8 +324,10 @@ const HomeReadingRegister = () => {
   // Refresh sessions after mutations (add/delete)
   const refreshSessions = useCallback(() => {
     if (!effectiveClassId) return;
-    fetchWithAuth(`/api/students/sessions?classId=${effectiveClassId}&startDate=${startDateISO}&endDate=${endDateISO}`)
-      .then(r => r.ok ? r.json() : [])
+    fetchWithAuth(
+      `/api/students/sessions?classId=${effectiveClassId}&startDate=${startDateISO}&endDate=${endDateISO}`
+    )
+      .then((r) => (r.ok ? r.json() : []))
       .then(setClassSessions)
       .catch(() => {});
   }, [effectiveClassId, startDateISO, endDateISO, fetchWithAuth]);
@@ -325,11 +340,16 @@ const HomeReadingRegister = () => {
     }
     setHistoryLoading(true);
     fetchWithAuth(`/api/students/${selectedStudent.id}/sessions`)
-      .then(r => r.ok ? r.json() : [])
-      .then(sessions => {
+      .then((r) => (r.ok ? r.json() : []))
+      .then((sessions) => {
         // Filter out absent/no_record markers, sort newest first
         const real = sessions
-          .filter(s => !s.notes?.includes('[ABSENT]') && !s.notes?.includes('[NO_RECORD]') && !s.notes?.includes('[COUNT:'))
+          .filter(
+            (s) =>
+              !s.notes?.includes('[ABSENT]') &&
+              !s.notes?.includes('[NO_RECORD]') &&
+              !s.notes?.includes('[COUNT:')
+          )
           .sort((a, b) => new Date(b.date) - new Date(a.date));
         setStudentHistory(real);
         setHistoryLoading(false);
@@ -354,7 +374,7 @@ const HomeReadingRegister = () => {
   const classStudents = useMemo(() => {
     if (!effectiveClassId) return [];
     return students
-      .filter(s => s.classId === effectiveClassId)
+      .filter((s) => s.classId === effectiveClassId)
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [students, effectiveClassId]);
 
@@ -362,7 +382,7 @@ const HomeReadingRegister = () => {
   const filteredStudents = useMemo(() => {
     if (!searchQuery.trim()) return classStudents;
     const query = searchQuery.toLowerCase();
-    return classStudents.filter(s => s.name.toLowerCase().includes(query));
+    return classStudents.filter((s) => s.name.toLowerCase().includes(query));
   }, [classStudents, searchQuery]);
 
   // Previous 3 days relative to selectedDate (for Quick view history columns)
@@ -381,53 +401,67 @@ const HomeReadingRegister = () => {
 
   // Get reading status for a student on a specific date
   // Includes both home reading entries and school reading sessions in the count
-  const getStudentReadingStatus = useCallback((student, date) => {
-    const studentSessions = sessionsByStudent[student.id] || [];
+  const getStudentReadingStatus = useCallback(
+    (student, date) => {
+      const studentSessions = sessionsByStudent[student.id] || [];
 
-    // Get home reading entries (these have special markers like ABSENT, NO_RECORD, COUNT)
-    const homeSessions = studentSessions.filter(
-      s => s.date === date && s.location === 'home'
-    );
+      // Get home reading entries (these have special markers like ABSENT, NO_RECORD, COUNT)
+      const homeSessions = studentSessions.filter((s) => s.date === date && s.location === 'home');
 
-    // Get school reading sessions (these are individual sessions from the Reading Page)
-    const schoolSessions = studentSessions.filter(
-      s => s.date === date && s.location === 'school'
-    );
+      // Get school reading sessions (these are individual sessions from the Reading Page)
+      const schoolSessions = studentSessions.filter(
+        (s) => s.date === date && s.location === 'school'
+      );
 
-    // If no sessions at all, return NONE
-    if (homeSessions.length === 0 && schoolSessions.length === 0) {
-      return { status: READING_STATUS.NONE, count: 0, sessions: [] };
-    }
+      // If no sessions at all, return NONE
+      if (homeSessions.length === 0 && schoolSessions.length === 0) {
+        return { status: READING_STATUS.NONE, count: 0, sessions: [] };
+      }
 
-    // Markers (ABSENT/NO_RECORD) always take display priority
-    const absentSession = homeSessions.find(s => s.notes?.includes('[ABSENT]'));
-    if (absentSession) {
-      return { status: READING_STATUS.ABSENT, count: 0, sessions: homeSessions };
-    }
+      // Markers (ABSENT/NO_RECORD) always take display priority
+      const absentSession = homeSessions.find((s) => s.notes?.includes('[ABSENT]'));
+      if (absentSession) {
+        return { status: READING_STATUS.ABSENT, count: 0, sessions: homeSessions };
+      }
 
-    const noRecordSession = homeSessions.find(s => s.notes?.includes('[NO_RECORD]'));
-    if (noRecordSession) {
-      return { status: READING_STATUS.NO_RECORD, count: 0, sessions: homeSessions };
-    }
+      const noRecordSession = homeSessions.find((s) => s.notes?.includes('[NO_RECORD]'));
+      if (noRecordSession) {
+        return { status: READING_STATUS.NO_RECORD, count: 0, sessions: homeSessions };
+      }
 
-    // Count actual sessions (home + school)
-    const totalCount = homeSessions.length + schoolSessions.length;
+      // Count actual sessions (home + school)
+      const totalCount = homeSessions.length + schoolSessions.length;
 
-    if (totalCount === 0) {
-      return { status: READING_STATUS.NONE, count: 0, sessions: [] };
-    } else if (totalCount === 1) {
-      return { status: READING_STATUS.READ, count: 1, sessions: [...homeSessions, ...schoolSessions] };
-    } else {
-      return { status: READING_STATUS.MULTIPLE, count: totalCount, sessions: [...homeSessions, ...schoolSessions] };
-    }
-  }, [sessionsByStudent]);
+      if (totalCount === 0) {
+        return { status: READING_STATUS.NONE, count: 0, sessions: [] };
+      } else if (totalCount === 1) {
+        return {
+          status: READING_STATUS.READ,
+          count: 1,
+          sessions: [...homeSessions, ...schoolSessions],
+        };
+      } else {
+        return {
+          status: READING_STATUS.MULTIPLE,
+          count: totalCount,
+          sessions: [...homeSessions, ...schoolSessions],
+        };
+      }
+    },
+    [sessionsByStudent]
+  );
 
   const dailyTotals = useMemo(() => {
-    return dates.map(date => {
+    return dates.map((date) => {
       const dateStr = formatDateISO(date);
-      let read = 0, multiple = 0, absent = 0, noRecord = 0, notEntered = 0, totalSessions = 0;
+      let read = 0,
+        multiple = 0,
+        absent = 0,
+        noRecord = 0,
+        notEntered = 0,
+        totalSessions = 0;
 
-      classStudents.forEach(student => {
+      classStudents.forEach((student) => {
         const { status, count } = getStudentReadingStatus(student, dateStr);
         switch (status) {
           case READING_STATUS.READ:
@@ -454,26 +488,29 @@ const HomeReadingRegister = () => {
   }, [dates, classStudents, getStudentReadingStatus]);
 
   // Get the current book a student is reading (from database)
-  const getStudentLastBook = useCallback((studentId) => {
-    const student = students.find(s => s.id === studentId);
-    if (!student) return null;
+  const getStudentLastBook = useCallback(
+    (studentId) => {
+      const student = students.find((s) => s.id === studentId);
+      if (!student) return null;
 
-    // Use the student's current book from the database
-    if (student.currentBookId) {
-      const book = booksMap.get(student.currentBookId);
-      if (book) return book;
-      // If we have a title but no matching book, return a minimal book object
-      if (student.currentBookTitle) {
-        return {
-          id: student.currentBookId,
-          title: student.currentBookTitle,
-          author: student.currentBookAuthor || ''
-        };
+      // Use the student's current book from the database
+      if (student.currentBookId) {
+        const book = booksMap.get(student.currentBookId);
+        if (book) return book;
+        // If we have a title but no matching book, return a minimal book object
+        if (student.currentBookTitle) {
+          return {
+            id: student.currentBookId,
+            title: student.currentBookTitle,
+            author: student.currentBookAuthor || '',
+          };
+        }
       }
-    }
 
-    return null;
-  }, [booksMap, students]);
+      return null;
+    },
+    [booksMap, students]
+  );
 
   // Calculate totals for the register
   const registerTotals = useMemo(() => {
@@ -484,10 +521,10 @@ const HomeReadingRegister = () => {
       absent: 0,
       noRecord: 0,
       notEntered: 0,
-      totalSessions: 0
+      totalSessions: 0,
     };
 
-    classStudents.forEach(student => {
+    classStudents.forEach((student) => {
       const { status, count } = getStudentReadingStatus(student, selectedDate);
       switch (status) {
         case READING_STATUS.READ:
@@ -523,7 +560,7 @@ const HomeReadingRegister = () => {
       const studentSessions = sessionsByStudent[student.id] || [];
       // Only get home sessions to clear (preserve school reading sessions)
       const homeSessions = studentSessions.filter(
-        s => s.date === selectedDate && s.location === 'home'
+        (s) => s.date === selectedDate && s.location === 'home'
       );
 
       // Delete only home sessions for this date
@@ -532,7 +569,7 @@ const HomeReadingRegister = () => {
       }
 
       refreshSessions();
-      setHistoryRefresh(c => c + 1);
+      setHistoryRefresh((c) => c + 1);
       setSnackbarMessage(`Cleared home reading entry for ${student.name}`);
       setSnackbarSeverity('info');
       setSnackbarOpen(true);
@@ -547,11 +584,11 @@ const HomeReadingRegister = () => {
   const handleQuickRecord = async (student, status, count = 1) => {
     if (recordingStudents.has(student.id)) return;
 
-    setRecordingStudents(prev => new Set(prev).add(student.id));
+    setRecordingStudents((prev) => new Set(prev).add(student.id));
     try {
       const studentSessions = sessionsByStudent[student.id] || [];
       const existingHomeSessions = studentSessions.filter(
-        s => s.date === selectedDate && s.location === 'home'
+        (s) => s.date === selectedDate && s.location === 'home'
       );
       for (const session of existingHomeSessions) {
         await deleteReadingSession(student.id, session.id);
@@ -561,13 +598,19 @@ const HomeReadingRegister = () => {
 
       if (status === READING_STATUS.ABSENT) {
         await addReadingSession(student.id, {
-          date: selectedDate, assessment: null,
-          notes: '[ABSENT] Student was absent', bookId: null, location: 'home'
+          date: selectedDate,
+          assessment: null,
+          notes: '[ABSENT] Student was absent',
+          bookId: null,
+          location: 'home',
         });
       } else if (status === READING_STATUS.NO_RECORD) {
         await addReadingSession(student.id, {
-          date: selectedDate, assessment: null,
-          notes: '[NO_RECORD] No reading record received', bookId: null, location: 'home'
+          date: selectedDate,
+          assessment: null,
+          notes: '[NO_RECORD] No reading record received',
+          bookId: null,
+          location: 'home',
         });
       } else {
         const allStudentSessions = sessionsByStudent[student.id] || [];
@@ -576,21 +619,37 @@ const HomeReadingRegister = () => {
           sessionDate.setDate(sessionDate.getDate() - i);
           const dateStr = sessionDate.toISOString().split('T')[0];
 
-          const dayHasMarker = i > 0 && allStudentSessions.some(
-            s => s.date === dateStr && s.location === 'home' &&
-              (s.notes?.includes('[ABSENT]') || s.notes?.includes('[NO_RECORD]'))
-          );
+          const dayHasMarker =
+            i > 0 &&
+            allStudentSessions.some(
+              (s) =>
+                s.date === dateStr &&
+                s.location === 'home' &&
+                (s.notes?.includes('[ABSENT]') || s.notes?.includes('[NO_RECORD]'))
+            );
 
           if (dayHasMarker) {
             await addReadingSession(student.id, {
-              date: dateStr, assessment: null, notes: '', bookId, location: 'home'
+              date: dateStr,
+              assessment: null,
+              notes: '',
+              bookId,
+              location: 'home',
             });
             await addReadingSession(student.id, {
-              date: selectedDate, assessment: null, notes: '', bookId, location: 'home'
+              date: selectedDate,
+              assessment: null,
+              notes: '',
+              bookId,
+              location: 'home',
             });
           } else {
             await addReadingSession(student.id, {
-              date: dateStr, assessment: null, notes: '', bookId, location: 'home'
+              date: dateStr,
+              assessment: null,
+              notes: '',
+              bookId,
+              location: 'home',
             });
           }
         }
@@ -602,7 +661,7 @@ const HomeReadingRegister = () => {
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
     } finally {
-      setRecordingStudents(prev => {
+      setRecordingStudents((prev) => {
         const next = new Set(prev);
         next.delete(student.id);
         return next;
@@ -619,7 +678,7 @@ const HomeReadingRegister = () => {
       // Note: We preserve school reading sessions - only clear home entries
       const studentSessions = sessionsByStudent[selectedStudent.id] || [];
       const existingHomeSessions = studentSessions.filter(
-        s => s.date === selectedDate && s.location === 'home'
+        (s) => s.date === selectedDate && s.location === 'home'
       );
       for (const session of existingHomeSessions) {
         await deleteReadingSession(selectedStudent.id, session.id);
@@ -627,7 +686,7 @@ const HomeReadingRegister = () => {
 
       // Get the student's current book from the database
       const bookId = selectedStudent.currentBookId || null;
-      
+
       // Create a single session based on status
       if (status === READING_STATUS.ABSENT) {
         await addReadingSession(selectedStudent.id, {
@@ -635,7 +694,7 @@ const HomeReadingRegister = () => {
           assessment: null,
           notes: '[ABSENT] Student was absent',
           bookId: null,
-          location: 'home'
+          location: 'home',
         });
       } else if (status === READING_STATUS.NO_RECORD) {
         await addReadingSession(selectedStudent.id, {
@@ -643,7 +702,7 @@ const HomeReadingRegister = () => {
           assessment: null,
           notes: '[NO_RECORD] No reading record received',
           bookId: null,
-          location: 'home'
+          location: 'home',
         });
       } else {
         // Create individual sessions on consecutive days going backward.
@@ -659,10 +718,14 @@ const HomeReadingRegister = () => {
           const dateStr = sessionDate.toISOString().split('T')[0];
 
           // Check if this day has a marker
-          const dayHasMarker = i > 0 && studentSessions.some(
-            s => s.date === dateStr && s.location === 'home' &&
-              (s.notes?.includes('[ABSENT]') || s.notes?.includes('[NO_RECORD]'))
-          );
+          const dayHasMarker =
+            i > 0 &&
+            studentSessions.some(
+              (s) =>
+                s.date === dateStr &&
+                s.location === 'home' &&
+                (s.notes?.includes('[ABSENT]') || s.notes?.includes('[NO_RECORD]'))
+            );
 
           if (dayHasMarker) {
             // Create session on the actual day (for streak calculation)
@@ -671,7 +734,7 @@ const HomeReadingRegister = () => {
               assessment: null,
               notes: '',
               bookId,
-              location: 'home'
+              location: 'home',
             });
             // Also create session on the selected date (for display count)
             await addReadingSession(selectedStudent.id, {
@@ -679,7 +742,7 @@ const HomeReadingRegister = () => {
               assessment: null,
               notes: '',
               bookId,
-              location: 'home'
+              location: 'home',
             });
           } else {
             // Normal day — create session on that day
@@ -688,20 +751,22 @@ const HomeReadingRegister = () => {
               assessment: null,
               notes: '',
               bookId,
-              location: 'home'
+              location: 'home',
             });
           }
         }
       }
 
       refreshSessions();
-      setHistoryRefresh(c => c + 1);
-      setSnackbarMessage(`Recorded ${count > 1 ? count + ' days' : ''} for ${selectedStudent.name}`);
+      setHistoryRefresh((c) => c + 1);
+      setSnackbarMessage(
+        `Recorded ${count > 1 ? count + ' days' : ''} for ${selectedStudent.name}`
+      );
       setSnackbarSeverity('success');
       setSnackbarOpen(true);
 
       // Move to next student
-      const currentIndex = filteredStudents.findIndex(s => s.id === selectedStudent.id);
+      const currentIndex = filteredStudents.findIndex((s) => s.id === selectedStudent.id);
       if (currentIndex < filteredStudents.length - 1) {
         setSelectedStudent(filteredStudents[currentIndex + 1]);
       } else {
@@ -729,14 +794,14 @@ const HomeReadingRegister = () => {
     // Also update any existing home session for the selected date
     const studentSessions = sessionsByStudent[selectedStudent.id] || [];
     const existingHomeSession = studentSessions.find(
-      s => s.date === selectedDate && s.location === 'home'
+      (s) => s.date === selectedDate && s.location === 'home'
     );
     if (existingHomeSession) {
       editReadingSession(selectedStudent.id, existingHomeSession.id, {
         ...existingHomeSession,
         bookId: book?.id || null,
         bookTitle: book?.title || null,
-        bookAuthor: book?.author || null
+        bookAuthor: book?.author || null,
       });
     }
   };
@@ -824,27 +889,32 @@ const HomeReadingRegister = () => {
     );
   };
 
-  const getStudentTotalInRange = useCallback((student) => {
-    let total = 0;
-    const studentSessions = sessionsByStudent[student.id] || [];
-    dates.forEach(date => {
-      const dateStr = formatDateISO(date);
-      const { status, count } = getStudentReadingStatus(student, dateStr);
-      if (status === READING_STATUS.READ) {
-        total += 1;
-      } else if (status === READING_STATUS.MULTIPLE) {
-        total += count;
-      } else if (status === READING_STATUS.ABSENT || status === READING_STATUS.NO_RECORD) {
-        // Count any real read sessions hidden behind markers
-        const readSessions = studentSessions.filter(
-          s => s.date === dateStr &&
-            !s.notes?.includes('[ABSENT]') && !s.notes?.includes('[NO_RECORD]')
-        );
-        total += readSessions.length;
-      }
-    });
-    return total;
-  }, [dates, getStudentReadingStatus, sessionsByStudent]);
+  const getStudentTotalInRange = useCallback(
+    (student) => {
+      let total = 0;
+      const studentSessions = sessionsByStudent[student.id] || [];
+      dates.forEach((date) => {
+        const dateStr = formatDateISO(date);
+        const { status, count } = getStudentReadingStatus(student, dateStr);
+        if (status === READING_STATUS.READ) {
+          total += 1;
+        } else if (status === READING_STATUS.MULTIPLE) {
+          total += count;
+        } else if (status === READING_STATUS.ABSENT || status === READING_STATUS.NO_RECORD) {
+          // Count any real read sessions hidden behind markers
+          const readSessions = studentSessions.filter(
+            (s) =>
+              s.date === dateStr &&
+              !s.notes?.includes('[ABSENT]') &&
+              !s.notes?.includes('[NO_RECORD]')
+          );
+          total += readSessions.length;
+        }
+      });
+      return total;
+    },
+    [dates, getStudentReadingStatus, sessionsByStudent]
+  );
 
   return (
     <Box>
@@ -852,7 +922,12 @@ const HomeReadingRegister = () => {
         <Typography variant="h5" component="h1">
           Reading Record
         </Typography>
-        <ToggleButtonGroup value={viewMode} exclusive onChange={(e, v) => v && setViewMode(v)} size="small">
+        <ToggleButtonGroup
+          value={viewMode}
+          exclusive
+          onChange={(e, v) => v && setViewMode(v)}
+          size="small"
+        >
           <ToggleButton value="quick">Quick</ToggleButton>
           <ToggleButton value="full">Full</ToggleButton>
         </ToggleButtonGroup>
@@ -884,7 +959,7 @@ const HomeReadingRegister = () => {
                   <InputAdornment position="start">
                     <SearchIcon fontSize="small" />
                   </InputAdornment>
-                )
+                ),
               }}
             />
             <Typography variant="body2" color="text.secondary">
@@ -894,11 +969,20 @@ const HomeReadingRegister = () => {
 
           <Paper sx={{ mb: 2, position: 'relative' }}>
             {sessionsLoading && (
-              <Box sx={{
-                position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                backgroundColor: 'rgba(255, 255, 255, 0.7)', zIndex: 10
-              }}>
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                  zIndex: 10,
+                }}
+              >
                 <CircularProgress size={40} />
               </Box>
             )}
@@ -906,7 +990,7 @@ const HomeReadingRegister = () => {
               <Table stickyHeader size="small">
                 <TableHead>
                   <TableRow>
-                    {previousDays.map(date => {
+                    {previousDays.map((date) => {
                       const { day, date: dayNum } = formatDateHeader(date);
                       return (
                         <TableCell
@@ -919,10 +1003,17 @@ const HomeReadingRegister = () => {
                             maxWidth: 48,
                           }}
                         >
-                          <Typography variant="caption" display="block" sx={{ fontSize: '0.7rem', lineHeight: 1.2, color: 'text.secondary' }}>
+                          <Typography
+                            variant="caption"
+                            display="block"
+                            sx={{ fontSize: '0.7rem', lineHeight: 1.2, color: 'text.secondary' }}
+                          >
                             {day}
                           </Typography>
-                          <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.8rem' }}>
+                          <Typography
+                            variant="caption"
+                            sx={{ fontWeight: 'bold', fontSize: '0.8rem' }}
+                          >
                             {dayNum}
                           </Typography>
                         </TableCell>
@@ -932,7 +1023,7 @@ const HomeReadingRegister = () => {
                     <TableCell
                       sx={{
                         fontWeight: 'bold',
-                        padding: '6px 8px'
+                        padding: '6px 8px',
                       }}
                     >
                       Record Reading
@@ -941,7 +1032,7 @@ const HomeReadingRegister = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredStudents.map(student => {
+                  {filteredStudents.map((student) => {
                     const { status, count } = getStudentReadingStatus(student, selectedDate);
                     const book = getStudentLastBook(student.id);
                     const isRecording = recordingStudents.has(student.id);
@@ -952,7 +1043,7 @@ const HomeReadingRegister = () => {
 
                     return (
                       <TableRow key={student.id} hover>
-                        {previousDays.map(date => {
+                        {previousDays.map((date) => {
                           const dateStr = formatDateISO(date);
                           const prevStatus = getStudentReadingStatus(student, dateStr);
                           let content = '-';
@@ -960,14 +1051,27 @@ const HomeReadingRegister = () => {
                           let bgColor = 'transparent';
                           switch (prevStatus.status) {
                             case READING_STATUS.READ:
-                              content = '✓'; cellColor = 'success.dark'; bgColor = 'rgba(46, 125, 50, 0.1)'; break;
+                              content = '✓';
+                              cellColor = 'success.dark';
+                              bgColor = 'rgba(46, 125, 50, 0.1)';
+                              break;
                             case READING_STATUS.MULTIPLE:
-                              content = prevStatus.count; cellColor = 'success.dark'; bgColor = 'rgba(46, 125, 50, 0.15)'; break;
+                              content = prevStatus.count;
+                              cellColor = 'success.dark';
+                              bgColor = 'rgba(46, 125, 50, 0.15)';
+                              break;
                             case READING_STATUS.ABSENT:
-                              content = 'A'; cellColor = 'warning.dark'; bgColor = 'rgba(237, 108, 2, 0.1)'; break;
+                              content = 'A';
+                              cellColor = 'warning.dark';
+                              bgColor = 'rgba(237, 108, 2, 0.1)';
+                              break;
                             case READING_STATUS.NO_RECORD:
-                              content = '•'; cellColor = 'grey.500'; bgColor = 'grey.100'; break;
-                            default: break;
+                              content = '•';
+                              cellColor = 'grey.500';
+                              bgColor = 'grey.100';
+                              break;
+                            default:
+                              break;
                           }
                           return (
                             <TableCell
@@ -994,13 +1098,20 @@ const HomeReadingRegister = () => {
                             whiteSpace: 'nowrap',
                             padding: '4px 8px',
                             borderRight: '1px solid',
-                            borderRightColor: 'divider'
+                            borderRightColor: 'divider',
                           }}
                         >
                           {student.name}
                         </TableCell>
                         <TableCell sx={{ padding: '4px 8px' }}>
-                          <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', justifyContent: 'flex-start' }}>
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              gap: 0.5,
+                              alignItems: 'center',
+                              justifyContent: 'flex-start',
+                            }}
+                          >
                             <Button
                               size="small"
                               variant={status === READING_STATUS.READ ? 'contained' : 'outlined'}
@@ -1012,18 +1123,29 @@ const HomeReadingRegister = () => {
                             >
                               ✓
                             </Button>
-                            {[2, 3, 4].map(n => (
+                            {[2, 3, 4].map((n) => (
                               <Button
                                 key={n}
                                 size="small"
-                                variant={status === READING_STATUS.MULTIPLE && (n < 4 ? count === n : count >= 4) ? 'contained' : 'outlined'}
+                                variant={
+                                  status === READING_STATUS.MULTIPLE &&
+                                  (n < 4 ? count === n : count >= 4)
+                                    ? 'contained'
+                                    : 'outlined'
+                                }
                                 color="primary"
                                 disabled={isRecording}
-                                onClick={() => handleQuickRecord(student, READING_STATUS.MULTIPLE, n)}
+                                onClick={() =>
+                                  handleQuickRecord(student, READING_STATUS.MULTIPLE, n)
+                                }
                                 sx={numBtnSx}
                                 aria-label={`Mark ${student.name} as read ${n} times`}
                               >
-                                {n < 4 ? n : (status === READING_STATUS.MULTIPLE && count >= 4 ? count : '4')}
+                                {n < 4
+                                  ? n
+                                  : status === READING_STATUS.MULTIPLE && count >= 4
+                                    ? count
+                                    : '4'}
                               </Button>
                             ))}
                             <Button
@@ -1053,10 +1175,15 @@ const HomeReadingRegister = () => {
                             </Button>
                             <Button
                               size="small"
-                              variant={status === READING_STATUS.NO_RECORD ? 'contained' : 'outlined'}
+                              variant={
+                                status === READING_STATUS.NO_RECORD ? 'contained' : 'outlined'
+                              }
                               disabled={isRecording}
                               onClick={() => handleQuickRecord(student, READING_STATUS.NO_RECORD)}
-                              sx={{ ...numBtnSx, color: status === READING_STATUS.NO_RECORD ? undefined : 'grey.500' }}
+                              sx={{
+                                ...numBtnSx,
+                                color: status === READING_STATUS.NO_RECORD ? undefined : 'grey.500',
+                              }}
                               aria-label={`Mark ${student.name} as no record`}
                             >
                               •
@@ -1119,7 +1246,9 @@ const HomeReadingRegister = () => {
                     <TableRow>
                       <TableCell colSpan={6} sx={{ textAlign: 'center', py: 4 }}>
                         <Typography color="text.secondary">
-                          {searchQuery ? 'No students match your search' : 'No students in this class'}
+                          {searchQuery
+                            ? 'No students match your search'
+                            : 'No students in this class'}
                         </Typography>
                       </TableCell>
                     </TableRow>
@@ -1132,491 +1261,594 @@ const HomeReadingRegister = () => {
       )}
 
       {/* Full Register View */}
-      {viewMode === 'full' && (<>
-      {/* Two-column layout for Recording and Date sections */}
-      <Box sx={{
-        display: 'flex',
-        flexDirection: isMobile ? 'column' : 'row',
-        gap: 2,
-        mb: 2
-      }}>
-        {/* Left Column - Input Panel (Recording for) */}
-        <Paper sx={{ p: 2, flex: isMobile ? 'none' : 1 }}>
+      {viewMode === 'full' && (
+        <>
+          {/* Two-column layout for Recording and Date sections */}
           <Box
             sx={{
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              cursor: isMobile ? 'pointer' : 'default'
+              flexDirection: isMobile ? 'column' : 'row',
+              gap: 2,
+              mb: 2,
             }}
-            onClick={() => isMobile && setShowInputPanel(!showInputPanel)}
           >
-            <Typography variant="h6">
-              {selectedStudent ? `Recording for: ${selectedStudent.name}` : 'Select a student from the register'}
-            </Typography>
-            {isMobile && (
-              <IconButton size="small">
-                {showInputPanel ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-              </IconButton>
-            )}
+            {/* Left Column - Input Panel (Recording for) */}
+            <Paper sx={{ p: 2, flex: isMobile ? 'none' : 1 }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  cursor: isMobile ? 'pointer' : 'default',
+                }}
+                onClick={() => isMobile && setShowInputPanel(!showInputPanel)}
+              >
+                <Typography variant="h6">
+                  {selectedStudent
+                    ? `Recording for: ${selectedStudent.name}`
+                    : 'Select a student from the register'}
+                </Typography>
+                {isMobile && (
+                  <IconButton size="small">
+                    {showInputPanel ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                  </IconButton>
+                )}
+              </Box>
+
+              <Collapse in={showInputPanel || !isMobile}>
+                {selectedStudent ? (
+                  <Box sx={{ mt: 2 }}>
+                    {/* Book Selection */}
+                    <Box sx={{ mb: 2 }}>
+                      <BookAutocomplete
+                        value={getStudentLastBook(selectedStudent.id)}
+                        onChange={handleBookChange}
+                        label="Current Book"
+                        placeholder="Select or search for book..."
+                      />
+                      <Typography variant="caption" color="text.secondary">
+                        Book will be saved and synced across devices
+                      </Typography>
+                    </Box>
+
+                    {/* Quick Input Buttons */}
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        gap: 1,
+                        flexWrap: 'wrap',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Tooltip title="Read (✓)">
+                        <Button
+                          variant="contained"
+                          color="success"
+                          size="large"
+                          aria-label="Mark as read"
+                          onClick={() => handleRecordReading(READING_STATUS.READ)}
+                          sx={{ minWidth: 80, fontSize: '1.5rem', py: 1.5 }}
+                        >
+                          ✓
+                        </Button>
+                      </Tooltip>
+
+                      <Tooltip title="Read 2 times">
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          size="large"
+                          aria-label="Read 2 times"
+                          onClick={() => handleRecordReading(READING_STATUS.MULTIPLE, 2)}
+                          sx={{ minWidth: 50, fontSize: '1.2rem', py: 1.5 }}
+                        >
+                          2
+                        </Button>
+                      </Tooltip>
+
+                      <Tooltip title="Read 3 times">
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          size="large"
+                          aria-label="Read 3 times"
+                          onClick={() => handleRecordReading(READING_STATUS.MULTIPLE, 3)}
+                          sx={{ minWidth: 50, fontSize: '1.2rem', py: 1.5 }}
+                        >
+                          3
+                        </Button>
+                      </Tooltip>
+
+                      <Tooltip title="Read 4 times">
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          size="large"
+                          aria-label="Read 4 times"
+                          onClick={() => handleRecordReading(READING_STATUS.MULTIPLE, 4)}
+                          sx={{ minWidth: 50, fontSize: '1.2rem', py: 1.5 }}
+                        >
+                          4
+                        </Button>
+                      </Tooltip>
+
+                      <Tooltip title="Custom number of sessions">
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          size="large"
+                          aria-label="Custom number of reading sessions"
+                          onClick={handleMultipleClick}
+                          sx={{ minWidth: 50, fontSize: '1.2rem', py: 1.5 }}
+                        >
+                          +
+                        </Button>
+                      </Tooltip>
+
+                      <Tooltip title="Absent (A)">
+                        <Button
+                          variant="contained"
+                          color="warning"
+                          size="large"
+                          aria-label="Mark as absent"
+                          onClick={() => handleRecordReading(READING_STATUS.ABSENT)}
+                          sx={{ minWidth: 80, fontSize: '1.5rem', py: 1.5 }}
+                        >
+                          A
+                        </Button>
+                      </Tooltip>
+
+                      <Tooltip title="No Record (•)">
+                        <Button
+                          variant="outlined"
+                          color="inherit"
+                          size="large"
+                          aria-label="No reading record"
+                          onClick={() => handleRecordReading(READING_STATUS.NO_RECORD)}
+                          sx={{ minWidth: 80, fontSize: '1.5rem', py: 1.5 }}
+                        >
+                          •
+                        </Button>
+                      </Tooltip>
+                    </Box>
+                  </Box>
+                ) : (
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mt: 2, textAlign: 'center' }}
+                  >
+                    Click on a student in the register below to record their reading
+                  </Typography>
+                )}
+              </Collapse>
+            </Paper>
+
+            {/* Right Column - Date and Search Controls */}
+            <Paper sx={{ p: 2, flex: isMobile ? 'none' : 1 }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, height: '100%' }}>
+                {/* Date Picker */}
+                <TextField
+                  label="Date"
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                  fullWidth
+                  inputProps={{ 'aria-label': 'Select date for reading session' }}
+                />
+
+                {/* Date Range Preset */}
+                <FormControl data-tour="register-date-range" size="small" fullWidth>
+                  <InputLabel id="date-preset-label">Date Range</InputLabel>
+                  <Select
+                    labelId="date-preset-label"
+                    value={datePreset}
+                    label="Date Range"
+                    onChange={(e) => {
+                      const newPreset = e.target.value;
+                      setDatePreset(newPreset);
+                      if (newPreset === DATE_PRESETS.CUSTOM) {
+                        const today = new Date();
+                        setCustomStartDate(formatDateISO(getStartOfWeek(today)));
+                        setCustomEndDate(formatDateISO(getEndOfWeek(today)));
+                      }
+                    }}
+                  >
+                    <MenuItem value={DATE_PRESETS.THIS_WEEK}>This Week</MenuItem>
+                    <MenuItem value={DATE_PRESETS.LAST_WEEK}>Last Week</MenuItem>
+                    <MenuItem value={DATE_PRESETS.LAST_MONTH}>Last Month</MenuItem>
+                    {termDates.length > 0 && (
+                      <MenuItem value={DATE_PRESETS.CURRENT_TERM}>Current Term</MenuItem>
+                    )}
+                    {termDates.length > 0 && (
+                      <MenuItem value={DATE_PRESETS.SCHOOL_YEAR}>School Year</MenuItem>
+                    )}
+                    {termDates.length > 0 &&
+                      termDates.map((term) => (
+                        <MenuItem key={term.termOrder} value={`term_${term.termOrder}`}>
+                          {term.termName}
+                        </MenuItem>
+                      ))}
+                    <MenuItem value={DATE_PRESETS.CUSTOM}>Custom</MenuItem>
+                  </Select>
+                </FormControl>
+
+                {datePreset === DATE_PRESETS.CUSTOM && (
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <TextField
+                      label="Start"
+                      type="date"
+                      value={customStartDate}
+                      onChange={(e) => setCustomStartDate(e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                      size="small"
+                      sx={{ flex: 1 }}
+                    />
+                    <TextField
+                      label="End"
+                      type="date"
+                      value={customEndDate}
+                      onChange={(e) => setCustomEndDate(e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                      size="small"
+                      sx={{ flex: 1 }}
+                    />
+                  </Box>
+                )}
+
+                {/* Search */}
+                <TextField
+                  placeholder="Search student..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  fullWidth
+                  inputProps={{ 'aria-label': 'Search for a student by name' }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon fontSize="small" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Box>
+            </Paper>
           </Box>
 
-          <Collapse in={showInputPanel || !isMobile}>
-            {selectedStudent ? (
-              <Box sx={{ mt: 2 }}>
-                {/* Book Selection */}
-                <Box sx={{ mb: 2 }}>
-                  <BookAutocomplete
-                    value={getStudentLastBook(selectedStudent.id)}
-                    onChange={handleBookChange}
-                    label="Current Book"
-                    placeholder="Select or search for book..."
-                  />
-                  <Typography variant="caption" color="text.secondary">
-                    Book will be saved and synced across devices
-                  </Typography>
-                </Box>
-
-                {/* Quick Input Buttons */}
-                <Box sx={{
+          {/* Register Table */}
+          <Paper sx={{ mb: 2, position: 'relative' }}>
+            {sessionsLoading && (
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
                   display: 'flex',
-                  gap: 1,
-                  flexWrap: 'wrap',
-                  justifyContent: 'center'
-                }}>
-                  <Tooltip title="Read (✓)">
-                    <Button
-                      variant="contained"
-                      color="success"
-                      size="large"
-                      aria-label="Mark as read"
-                      onClick={() => handleRecordReading(READING_STATUS.READ)}
-                      sx={{ minWidth: 80, fontSize: '1.5rem', py: 1.5 }}
-                    >
-                      ✓
-                    </Button>
-                  </Tooltip>
-
-                  <Tooltip title="Read 2 times">
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      size="large"
-                      aria-label="Read 2 times"
-                      onClick={() => handleRecordReading(READING_STATUS.MULTIPLE, 2)}
-                      sx={{ minWidth: 50, fontSize: '1.2rem', py: 1.5 }}
-                    >
-                      2
-                    </Button>
-                  </Tooltip>
-
-                  <Tooltip title="Read 3 times">
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      size="large"
-                      aria-label="Read 3 times"
-                      onClick={() => handleRecordReading(READING_STATUS.MULTIPLE, 3)}
-                      sx={{ minWidth: 50, fontSize: '1.2rem', py: 1.5 }}
-                    >
-                      3
-                    </Button>
-                  </Tooltip>
-
-                  <Tooltip title="Read 4 times">
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      size="large"
-                      aria-label="Read 4 times"
-                      onClick={() => handleRecordReading(READING_STATUS.MULTIPLE, 4)}
-                      sx={{ minWidth: 50, fontSize: '1.2rem', py: 1.5 }}
-                    >
-                      4
-                    </Button>
-                  </Tooltip>
-
-                  <Tooltip title="Custom number of sessions">
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      size="large"
-                      aria-label="Custom number of reading sessions"
-                      onClick={handleMultipleClick}
-                      sx={{ minWidth: 50, fontSize: '1.2rem', py: 1.5 }}
-                    >
-                      +
-                    </Button>
-                  </Tooltip>
-
-                  <Tooltip title="Absent (A)">
-                    <Button
-                      variant="contained"
-                      color="warning"
-                      size="large"
-                      aria-label="Mark as absent"
-                      onClick={() => handleRecordReading(READING_STATUS.ABSENT)}
-                      sx={{ minWidth: 80, fontSize: '1.5rem', py: 1.5 }}
-                    >
-                      A
-                    </Button>
-                  </Tooltip>
-
-                  <Tooltip title="No Record (•)">
-                    <Button
-                      variant="outlined"
-                      color="inherit"
-                      size="large"
-                      aria-label="No reading record"
-                      onClick={() => handleRecordReading(READING_STATUS.NO_RECORD)}
-                      sx={{ minWidth: 80, fontSize: '1.5rem', py: 1.5 }}
-                    >
-                      •
-                    </Button>
-                  </Tooltip>
-                </Box>
-              </Box>
-            ) : (
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 2, textAlign: 'center' }}>
-                Click on a student in the register below to record their reading
-              </Typography>
-            )}
-          </Collapse>
-        </Paper>
-
-        {/* Right Column - Date and Search Controls */}
-        <Paper sx={{ p: 2, flex: isMobile ? 'none' : 1 }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, height: '100%' }}>
-            {/* Date Picker */}
-            <TextField
-              label="Date"
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              fullWidth
-              inputProps={{ 'aria-label': 'Select date for reading session' }}
-            />
-
-            {/* Date Range Preset */}
-            <FormControl data-tour="register-date-range" size="small" fullWidth>
-              <InputLabel id="date-preset-label">Date Range</InputLabel>
-              <Select
-                labelId="date-preset-label"
-                value={datePreset}
-                label="Date Range"
-                onChange={(e) => {
-                  const newPreset = e.target.value;
-                  setDatePreset(newPreset);
-                  if (newPreset === DATE_PRESETS.CUSTOM) {
-                    const today = new Date();
-                    setCustomStartDate(formatDateISO(getStartOfWeek(today)));
-                    setCustomEndDate(formatDateISO(getEndOfWeek(today)));
-                  }
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                  zIndex: 10,
                 }}
               >
-                <MenuItem value={DATE_PRESETS.THIS_WEEK}>This Week</MenuItem>
-                <MenuItem value={DATE_PRESETS.LAST_WEEK}>Last Week</MenuItem>
-                <MenuItem value={DATE_PRESETS.LAST_MONTH}>Last Month</MenuItem>
-                {termDates.length > 0 && <MenuItem value={DATE_PRESETS.CURRENT_TERM}>Current Term</MenuItem>}
-                {termDates.length > 0 && <MenuItem value={DATE_PRESETS.SCHOOL_YEAR}>School Year</MenuItem>}
-                {termDates.length > 0 && termDates.map(term => (
-                  <MenuItem key={term.termOrder} value={`term_${term.termOrder}`}>
-                    {term.termName}
-                  </MenuItem>
-                ))}
-                <MenuItem value={DATE_PRESETS.CUSTOM}>Custom</MenuItem>
-              </Select>
-            </FormControl>
-
-            {datePreset === DATE_PRESETS.CUSTOM && (
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <TextField
-                  label="Start"
-                  type="date"
-                  value={customStartDate}
-                  onChange={(e) => setCustomStartDate(e.target.value)}
-                  InputLabelProps={{ shrink: true }}
-                  size="small"
-                  sx={{ flex: 1 }}
-                />
-                <TextField
-                  label="End"
-                  type="date"
-                  value={customEndDate}
-                  onChange={(e) => setCustomEndDate(e.target.value)}
-                  InputLabelProps={{ shrink: true }}
-                  size="small"
-                  sx={{ flex: 1 }}
-                />
+                <CircularProgress size={40} />
               </Box>
             )}
-
-            {/* Search */}
-            <TextField
-              placeholder="Search student..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              fullWidth
-              inputProps={{ 'aria-label': 'Search for a student by name' }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon fontSize="small" />
-                  </InputAdornment>
-                )
-              }}
-            />
-          </Box>
-        </Paper>
-      </Box>
-
-      {/* Register Table */}
-      <Paper sx={{ mb: 2, position: 'relative' }}>
-        {sessionsLoading && (
-          <Box sx={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: 'rgba(255, 255, 255, 0.7)',
-            zIndex: 10
-          }}>
-            <CircularProgress size={40} />
-          </Box>
-        )}
-        <TableContainer data-tour="register-table" sx={{ maxHeight: { xs: 'calc(100vh - 340px)', sm: 'calc(100vh - 260px)' } }}>
-          <Table stickyHeader size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell
-                  sx={{
-                    fontWeight: 'bold',
-                    minWidth: isMobile ? 100 : 140,
-                    padding: isMobile ? '8px 6px' : '6px 8px',
-                    position: 'sticky',
-                    left: 0,
-                    backgroundColor: 'background.paper',
-                    zIndex: 3
-                  }}
-                >
-                  Name
-                </TableCell>
-                {dates.map((date, index) => {
-                  const { day, date: dayNum } = formatDateHeader(date);
-                  const dateStr = formatDateISO(date);
-                  const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-                  const isSelectedDate = selectedDate === dateStr;
-                  return (
+            <TableContainer
+              data-tour="register-table"
+              sx={{ maxHeight: { xs: 'calc(100vh - 340px)', sm: 'calc(100vh - 260px)' } }}
+            >
+              <Table stickyHeader size="small">
+                <TableHead>
+                  <TableRow>
                     <TableCell
-                      key={index}
                       sx={{
                         fontWeight: 'bold',
-                        textAlign: 'center',
-                        minWidth: isMobile ? 44 : 48,
-                        padding: isMobile ? '8px 4px' : '6px 6px',
-                        backgroundColor: isSelectedDate ? 'primary.main' : (isWeekend ? 'grey.100' : 'background.paper'),
-                        color: isSelectedDate ? 'primary.contrastText' : 'text.primary',
-                        cursor: 'pointer',
-                        '@media (hover: hover) and (pointer: fine)': {
-                          '&:hover': {
-                            backgroundColor: isSelectedDate ? 'primary.dark' : 'action.hover'
-                          },
-                        },
-                        transition: 'background-color 0.2s ease-in-out'
-                      }}
-                      onClick={() => setSelectedDate(dateStr)}
-                    >
-                      <Tooltip title={date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}>
-                        <Box>
-                          <Typography variant="caption" display="block" sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
-                            {day}
-                          </Typography>
-                          <Typography variant="body2" sx={{ fontWeight: 'bold', fontSize: isMobile ? '0.8rem' : '0.85rem' }}>
-                            {dayNum}
-                          </Typography>
-                        </Box>
-                      </Tooltip>
-                    </TableCell>
-                  );
-                })}
-                <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', minWidth: 44, padding: isMobile ? '8px 4px' : '6px 6px', backgroundColor: 'primary.light', color: 'primary.contrastText' }}>
-                  Total
-                </TableCell>
-                <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', minWidth: 44, padding: isMobile ? '8px 4px' : '6px 6px' }}>
-                  Clear
-                </TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredStudents.map(student => {
-                const isSelected = selectedStudent?.id === student.id;
-                const { status } = getStudentReadingStatus(student, selectedDate);
-                const hasEntry = status !== READING_STATUS.NONE;
-
-                return (
-                  <TableRow
-                    key={student.id}
-                    hover
-                    selected={isSelected}
-                    onClick={() => setSelectedStudent(student)}
-                    sx={{
-                      cursor: 'pointer',
-                      '&.Mui-selected': { backgroundColor: 'primary.light' }
-                    }}
-                  >
-                    <TableCell
-                      sx={{
-                        fontWeight: isSelected ? 'bold' : 500,
-                        fontSize: isMobile ? '0.8rem' : '0.85rem',
-                        padding: isMobile ? '10px 6px' : '8px 8px',
+                        minWidth: isMobile ? 100 : 140,
+                        padding: isMobile ? '8px 6px' : '6px 8px',
                         position: 'sticky',
                         left: 0,
-                        backgroundColor: isSelected ? 'primary.light' : 'background.paper',
-                        zIndex: 1
+                        backgroundColor: 'background.paper',
+                        zIndex: 3,
                       }}
                     >
-                      {student.name}
+                      Name
                     </TableCell>
-                    {dates.map(date => renderDateStatusCell(student, date))}
+                    {dates.map((date, index) => {
+                      const { day, date: dayNum } = formatDateHeader(date);
+                      const dateStr = formatDateISO(date);
+                      const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+                      const isSelectedDate = selectedDate === dateStr;
+                      return (
+                        <TableCell
+                          key={index}
+                          sx={{
+                            fontWeight: 'bold',
+                            textAlign: 'center',
+                            minWidth: isMobile ? 44 : 48,
+                            padding: isMobile ? '8px 4px' : '6px 6px',
+                            backgroundColor: isSelectedDate
+                              ? 'primary.main'
+                              : isWeekend
+                                ? 'grey.100'
+                                : 'background.paper',
+                            color: isSelectedDate ? 'primary.contrastText' : 'text.primary',
+                            cursor: 'pointer',
+                            '@media (hover: hover) and (pointer: fine)': {
+                              '&:hover': {
+                                backgroundColor: isSelectedDate ? 'primary.dark' : 'action.hover',
+                              },
+                            },
+                            transition: 'background-color 0.2s ease-in-out',
+                          }}
+                          onClick={() => setSelectedDate(dateStr)}
+                        >
+                          <Tooltip
+                            title={date.toLocaleDateString('en-GB', {
+                              weekday: 'long',
+                              day: 'numeric',
+                              month: 'short',
+                            })}
+                          >
+                            <Box>
+                              <Typography
+                                variant="caption"
+                                display="block"
+                                sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}
+                              >
+                                {day}
+                              </Typography>
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  fontWeight: 'bold',
+                                  fontSize: isMobile ? '0.8rem' : '0.85rem',
+                                }}
+                              >
+                                {dayNum}
+                              </Typography>
+                            </Box>
+                          </Tooltip>
+                        </TableCell>
+                      );
+                    })}
                     <TableCell
                       sx={{
-                        textAlign: 'center',
                         fontWeight: 'bold',
+                        textAlign: 'center',
+                        minWidth: 44,
+                        padding: isMobile ? '8px 4px' : '6px 6px',
                         backgroundColor: 'primary.light',
                         color: 'primary.contrastText',
-                        fontSize: isMobile ? '0.85rem' : '0.9rem',
-                        padding: isMobile ? '10px 4px' : '8px 6px'
                       }}
                     >
-                      {getStudentTotalInRange(student)}
+                      Total
                     </TableCell>
-                    <TableCell sx={{ textAlign: 'center', padding: isMobile ? '6px 4px' : '4px 4px' }}>
-                      {hasEntry && (
-                        <Tooltip title="Clear entry">
-                          <IconButton
-                            size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleClearEntry(student);
-                            }}
-                            sx={{
-                              color: 'error.main',
-                              minWidth: 36,
-                              minHeight: 36,
-                              padding: '4px',
-                              '@media (hover: hover) and (pointer: fine)': {
-                                '&:hover': { backgroundColor: 'error.light' },
-                              },
-                              '&:active': { backgroundColor: 'rgba(193, 126, 126, 0.2)' }
-                            }}
-                          >
-                            <CloseIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      )}
+                    <TableCell
+                      sx={{
+                        fontWeight: 'bold',
+                        textAlign: 'center',
+                        minWidth: 44,
+                        padding: isMobile ? '8px 4px' : '6px 6px',
+                      }}
+                    >
+                      Clear
                     </TableCell>
                   </TableRow>
-                );
-              })}
-              {filteredStudents.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={dates.length + 3} sx={{ textAlign: 'center', py: 4 }}>
-                    <Typography color="text.secondary">
-                      {searchQuery ? 'No students match your search' : 'No students in this class'}
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              )}
-              {filteredStudents.length > 0 && (
-                <TableRow data-tour="register-totals" sx={{ backgroundColor: 'grey.50' }}>
-                  <TableCell
-                    sx={{
-                      fontWeight: 'bold',
-                      position: 'sticky',
-                      left: 0,
-                      backgroundColor: 'grey.50',
-                      zIndex: 3,
-                      borderTop: '2px solid',
-                      borderColor: 'grey.300',
-                      padding: isMobile ? '8px 6px' : '6px 8px',
-                      fontSize: isMobile ? '0.8rem' : '0.85rem'
-                    }}
-                  >
-                    Daily Totals
-                  </TableCell>
-                  {dailyTotals.map((totals, index) => {
-                    const isWeekend = dates[index].getDay() === 0 || dates[index].getDay() === 6;
+                </TableHead>
+                <TableBody>
+                  {filteredStudents.map((student) => {
+                    const isSelected = selectedStudent?.id === student.id;
+                    const { status } = getStudentReadingStatus(student, selectedDate);
+                    const hasEntry = status !== READING_STATUS.NONE;
+
                     return (
+                      <TableRow
+                        key={student.id}
+                        hover
+                        selected={isSelected}
+                        onClick={() => setSelectedStudent(student)}
+                        sx={{
+                          cursor: 'pointer',
+                          '&.Mui-selected': { backgroundColor: 'primary.light' },
+                        }}
+                      >
+                        <TableCell
+                          sx={{
+                            fontWeight: isSelected ? 'bold' : 500,
+                            fontSize: isMobile ? '0.8rem' : '0.85rem',
+                            padding: isMobile ? '10px 6px' : '8px 8px',
+                            position: 'sticky',
+                            left: 0,
+                            backgroundColor: isSelected ? 'primary.light' : 'background.paper',
+                            zIndex: 1,
+                          }}
+                        >
+                          {student.name}
+                        </TableCell>
+                        {dates.map((date) => renderDateStatusCell(student, date))}
+                        <TableCell
+                          sx={{
+                            textAlign: 'center',
+                            fontWeight: 'bold',
+                            backgroundColor: 'primary.light',
+                            color: 'primary.contrastText',
+                            fontSize: isMobile ? '0.85rem' : '0.9rem',
+                            padding: isMobile ? '10px 4px' : '8px 6px',
+                          }}
+                        >
+                          {getStudentTotalInRange(student)}
+                        </TableCell>
+                        <TableCell
+                          sx={{ textAlign: 'center', padding: isMobile ? '6px 4px' : '4px 4px' }}
+                        >
+                          {hasEntry && (
+                            <Tooltip title="Clear entry">
+                              <IconButton
+                                size="small"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleClearEntry(student);
+                                }}
+                                sx={{
+                                  color: 'error.main',
+                                  minWidth: 36,
+                                  minHeight: 36,
+                                  padding: '4px',
+                                  '@media (hover: hover) and (pointer: fine)': {
+                                    '&:hover': { backgroundColor: 'error.light' },
+                                  },
+                                  '&:active': { backgroundColor: 'rgba(193, 126, 126, 0.2)' },
+                                }}
+                              >
+                                <CloseIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {filteredStudents.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={dates.length + 3} sx={{ textAlign: 'center', py: 4 }}>
+                        <Typography color="text.secondary">
+                          {searchQuery
+                            ? 'No students match your search'
+                            : 'No students in this class'}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {filteredStudents.length > 0 && (
+                    <TableRow data-tour="register-totals" sx={{ backgroundColor: 'grey.50' }}>
                       <TableCell
-                        key={index}
+                        sx={{
+                          fontWeight: 'bold',
+                          position: 'sticky',
+                          left: 0,
+                          backgroundColor: 'grey.50',
+                          zIndex: 3,
+                          borderTop: '2px solid',
+                          borderColor: 'grey.300',
+                          padding: isMobile ? '8px 6px' : '6px 8px',
+                          fontSize: isMobile ? '0.8rem' : '0.85rem',
+                        }}
+                      >
+                        Daily Totals
+                      </TableCell>
+                      {dailyTotals.map((totals, index) => {
+                        const isWeekend =
+                          dates[index].getDay() === 0 || dates[index].getDay() === 6;
+                        return (
+                          <TableCell
+                            key={index}
+                            sx={{
+                              textAlign: 'center',
+                              fontWeight: 'bold',
+                              padding: isMobile ? '8px 4px' : '6px 6px',
+                              backgroundColor: isWeekend ? 'grey.100' : 'grey.50',
+                              borderTop: '2px solid',
+                              borderColor: 'grey.300',
+                              fontSize: isMobile ? '0.75rem' : '0.8rem',
+                            }}
+                          >
+                            {totals.totalSessions > 0 && (
+                              <Tooltip
+                                title={`${totals.read} read, ${totals.multiple} multiple, ${totals.absent} absent, ${totals.noRecord} no record, ${totals.notEntered} not entered`}
+                              >
+                                <Box>
+                                  <Typography
+                                    variant="body2"
+                                    sx={{ fontWeight: 'bold', color: 'success.main' }}
+                                  >
+                                    {totals.totalSessions}
+                                  </Typography>
+                                  {totals.read > 0 && (
+                                    <Typography
+                                      variant="caption"
+                                      sx={{ color: 'success.dark', fontSize: '0.7rem' }}
+                                    >
+                                      {totals.read}✓
+                                    </Typography>
+                                  )}
+                                  {totals.multiple > 0 && (
+                                    <Typography
+                                      variant="caption"
+                                      sx={{ color: 'success.dark', fontSize: '0.7rem' }}
+                                    >
+                                      +{totals.multiple}
+                                    </Typography>
+                                  )}
+                                </Box>
+                              </Tooltip>
+                            )}
+                          </TableCell>
+                        );
+                      })}
+                      <TableCell
                         sx={{
                           textAlign: 'center',
                           fontWeight: 'bold',
-                          padding: isMobile ? '8px 4px' : '6px 6px',
-                          backgroundColor: isWeekend ? 'grey.100' : 'grey.50',
+                          backgroundColor: 'primary.light',
+                          color: 'primary.contrastText',
                           borderTop: '2px solid',
                           borderColor: 'grey.300',
-                          fontSize: isMobile ? '0.75rem' : '0.8rem'
+                          padding: isMobile ? '4px 2px' : '2px 4px',
+                          fontSize: isMobile ? '0.8rem' : '0.85rem',
                         }}
                       >
-                        {totals.totalSessions > 0 && (
-                          <Tooltip title={`${totals.read} read, ${totals.multiple} multiple, ${totals.absent} absent, ${totals.noRecord} no record, ${totals.notEntered} not entered`}>
-                            <Box>
-                              <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'success.main' }}>
-                                {totals.totalSessions}
-                              </Typography>
-                              {totals.read > 0 && (
-                                <Typography variant="caption" sx={{ color: 'success.dark', fontSize: '0.7rem' }}>
-                                  {totals.read}✓
-                                </Typography>
-                              )}
-                              {totals.multiple > 0 && (
-                                <Typography variant="caption" sx={{ color: 'success.dark', fontSize: '0.7rem' }}>
-                                  +{totals.multiple}
-                                </Typography>
-                              )}
-                            </Box>
-                          </Tooltip>
-                        )}
+                        {dailyTotals.reduce((sum, day) => sum + day.totalSessions, 0)}
                       </TableCell>
-                    );
-                  })}
-                  <TableCell
-                    sx={{
-                      textAlign: 'center',
-                      fontWeight: 'bold',
-                      backgroundColor: 'primary.light',
-                      color: 'primary.contrastText',
-                      borderTop: '2px solid',
-                      borderColor: 'grey.300',
-                      padding: isMobile ? '4px 2px' : '2px 4px',
-                      fontSize: isMobile ? '0.8rem' : '0.85rem'
-                    }}
-                  >
-                    {dailyTotals.reduce((sum, day) => sum + day.totalSessions, 0)}
-                  </TableCell>
-                  <TableCell sx={{ borderTop: '2px solid', borderColor: 'grey.300', backgroundColor: 'grey.50' }} />
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
-      </>)}
+                      <TableCell
+                        sx={{
+                          borderTop: '2px solid',
+                          borderColor: 'grey.300',
+                          backgroundColor: 'grey.50',
+                        }}
+                      />
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
+        </>
+      )}
 
       {/* Summary chips + Legend — compact single row */}
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <Chip label={`${registerTotals.read} Read`} color="success" size="small" icon={<CheckIcon />} />
+      <Box
+        sx={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Chip
+          label={`${registerTotals.read} Read`}
+          color="success"
+          size="small"
+          icon={<CheckIcon />}
+        />
         <Chip label={`${registerTotals.multipleSessions} Multiple`} color="primary" size="small" />
         <Chip label={`${registerTotals.absent} Absent`} color="warning" size="small" />
         <Chip label={`${registerTotals.noRecord} No Record`} size="small" />
-        <Chip label={`${registerTotals.notEntered} Not Entered`} variant="outlined" color="error" size="small" />
-        <Chip label={`${registerTotals.totalSessions} Total`} color="secondary" size="small" sx={{ fontWeight: 'bold' }} />
+        <Chip
+          label={`${registerTotals.notEntered} Not Entered`}
+          variant="outlined"
+          color="error"
+          size="small"
+        />
+        <Chip
+          label={`${registerTotals.totalSessions} Total`}
+          color="secondary"
+          size="small"
+          sx={{ fontWeight: 'bold' }}
+        />
       </Box>
 
       {/* Student Books Read (full view only) */}
@@ -1633,87 +1865,110 @@ const HomeReadingRegister = () => {
             <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
               No reading sessions recorded yet
             </Typography>
-          ) : (() => {
-            // Group sessions by bookId, ordered by most recent session
-            const bookGroups = new Map();
-            for (const session of studentHistory) {
-              const key = session.bookId || `no-book-${session.id}`;
-              if (!bookGroups.has(key)) {
-                bookGroups.set(key, { bookId: session.bookId, sessions: [] });
+          ) : (
+            (() => {
+              // Group sessions by bookId, ordered by most recent session
+              const bookGroups = new Map();
+              for (const session of studentHistory) {
+                const key = session.bookId || `no-book-${session.id}`;
+                if (!bookGroups.has(key)) {
+                  bookGroups.set(key, { bookId: session.bookId, sessions: [] });
+                }
+                bookGroups.get(key).sessions.push(session);
               }
-              bookGroups.get(key).sessions.push(session);
-            }
-            const booksRead = [...bookGroups.values()]
-              .filter(g => g.bookId) // exclude sessions with no book
-              .map(g => ({
-                ...g,
-                lastDate: g.sessions[0].date, // already sorted newest-first
-                firstDate: g.sessions[g.sessions.length - 1].date,
-                count: g.sessions.length,
-              }));
-            if (booksRead.length === 0) return (
-              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
-                No books recorded yet
-              </Typography>
-            );
-            return (
-              <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 1 }}>
-                {booksRead.slice(0, 30).map((entry) => {
-                  const book = booksMap.get(entry.bookId);
-                  const lastDate = new Date(entry.lastDate);
-                  const dateLabel = lastDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-                  return (
-                    <Box
-                      key={entry.bookId}
-                      sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        minWidth: 90,
-                        maxWidth: 90,
-                        flexShrink: 0,
-                      }}
-                    >
-                      <BookCover
-                        title={book?.title || 'Unknown'}
-                        author={book?.author}
-                        width={70}
-                        height={100}
-                      />
-                      <Typography
-                        variant="caption"
+              const booksRead = [...bookGroups.values()]
+                .filter((g) => g.bookId) // exclude sessions with no book
+                .map((g) => ({
+                  ...g,
+                  lastDate: g.sessions[0].date, // already sorted newest-first
+                  firstDate: g.sessions[g.sessions.length - 1].date,
+                  count: g.sessions.length,
+                }));
+              if (booksRead.length === 0)
+                return (
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ textAlign: 'center', py: 2 }}
+                  >
+                    No books recorded yet
+                  </Typography>
+                );
+              return (
+                <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 1 }}>
+                  {booksRead.slice(0, 30).map((entry) => {
+                    const book = booksMap.get(entry.bookId);
+                    const lastDate = new Date(entry.lastDate);
+                    const dateLabel = lastDate.toLocaleDateString('en-GB', {
+                      day: 'numeric',
+                      month: 'short',
+                    });
+                    return (
+                      <Box
+                        key={entry.bookId}
                         sx={{
-                          mt: 0.5,
-                          fontWeight: 600,
-                          textAlign: 'center',
-                          lineHeight: 1.2,
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                          fontSize: '0.7rem',
-                          width: '100%',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          minWidth: 90,
+                          maxWidth: 90,
+                          flexShrink: 0,
                         }}
                       >
-                        {book?.title || 'Unknown'}
-                      </Typography>
-                      {book?.author && (
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem', textAlign: 'center', lineHeight: 1.1 }} noWrap>
-                          {book.author}
+                        <BookCover
+                          title={book?.title || 'Unknown'}
+                          author={book?.author}
+                          width={70}
+                          height={100}
+                        />
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            mt: 0.5,
+                            fontWeight: 600,
+                            textAlign: 'center',
+                            lineHeight: 1.2,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                            fontSize: '0.7rem',
+                            width: '100%',
+                          }}
+                        >
+                          {book?.title || 'Unknown'}
                         </Typography>
-                      )}
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>
-                        {entry.count} {entry.count === 1 ? 'session' : 'sessions'}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>
-                        {dateLabel}
-                      </Typography>
-                    </Box>
-                  );
-                })}
-              </Box>
-            );
-          })()}
+                        {book?.author && (
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ fontSize: '0.6rem', textAlign: 'center', lineHeight: 1.1 }}
+                            noWrap
+                          >
+                            {book.author}
+                          </Typography>
+                        )}
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ fontSize: '0.6rem' }}
+                        >
+                          {entry.count} {entry.count === 1 ? 'session' : 'sessions'}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ fontSize: '0.6rem' }}
+                        >
+                          {dateLabel}
+                        </Typography>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              );
+            })()
+          )}
         </Paper>
       )}
 
@@ -1739,11 +1994,7 @@ const HomeReadingRegister = () => {
       </Dialog>
 
       {/* Snackbar */}
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={2000}
-        onClose={() => setSnackbarOpen(false)}
-      >
+      <Snackbar open={snackbarOpen} autoHideDuration={2000} onClose={() => setSnackbarOpen(false)}>
         <Alert
           onClose={() => setSnackbarOpen(false)}
           severity={snackbarSeverity}

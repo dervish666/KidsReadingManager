@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.33.2] - 2026-03-31
+
+### Fixed
+- **Home reading tour not triggering** — tour targets only exist in full register view; tour now waits for full view mode before auto-starting
+
+### Added
+- **Recommendations tour** — 5-step guided tour covering student selection, profile bar, focus mode, library results, and AI suggestions; auto-starts on first use once results load
+- **AI hint for unconfigured schools** — subtle banner shown after library results when no AI key is configured, letting teachers know the feature exists
+
 ## [3.33.1] - 2026-03-30
 
 ### Fixed

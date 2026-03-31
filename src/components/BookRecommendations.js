@@ -21,7 +21,7 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -46,6 +46,8 @@ import CloseIcon from '@mui/icons-material/Close';
 import StudentEditForm from './students/StudentEditForm';
 import BookCover from './BookCover';
 import { STATUS_TO_PALETTE } from '../utils/helpers';
+import { useTour } from './tour/useTour';
+import TourButton from './tour/TourButton';
 
 const BookIllustration = () => (
   <svg
@@ -79,15 +81,24 @@ const BookIllustration = () => (
     <circle cx="85" cy="12" r="1.5" fill="#8AAD8A" opacity="0.5" />
     <circle cx="145" cy="30" r="2" fill="#6B8E6B" opacity="0.4" />
     {/* Star sparkles */}
-    <path d="M60 22 L62 18 L64 22 L68 20 L64 24 L62 28 L60 24 L56 20 Z" fill="#D4A574" opacity="0.5" />
-    <path d="M140 10 L141 7 L142 10 L145 9 L142 11 L141 14 L140 11 L137 9 Z" fill="#8B7355" opacity="0.4" />
+    <path
+      d="M60 22 L62 18 L64 22 L68 20 L64 24 L62 28 L60 24 L56 20 Z"
+      fill="#D4A574"
+      opacity="0.5"
+    />
+    <path
+      d="M140 10 L141 7 L142 10 L145 9 L142 11 L141 14 L140 11 L137 9 Z"
+      fill="#8B7355"
+      opacity="0.4"
+    />
   </svg>
 );
 
 const BookRecommendations = () => {
   const { fetchWithAuth, apiError } = useAuth();
   const { students, classes, books, updateStudent } = useData();
-  const { globalClassFilter, prioritizedStudents, getReadingStatus, markStudentAsPriorityHandled } = useUI();
+  const { globalClassFilter, prioritizedStudents, getReadingStatus, markStudentAsPriorityHandled } =
+    useUI();
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -116,6 +127,9 @@ const BookRecommendations = () => {
   // State for cached result indicator
   const [isCachedResult, setIsCachedResult] = useState(false);
 
+  // Tour — ready once library results are showing so all targets exist in DOM
+  const { tourButtonProps } = useTour('recommendations', { ready: recommendations.length > 0 });
+
   // State for collapsible profile details
   const [showDetails, setShowDetails] = useState(false);
 
@@ -143,7 +157,7 @@ const BookRecommendations = () => {
     const names = {
       anthropic: 'Claude',
       openai: 'GPT',
-      google: 'Gemini'
+      google: 'Gemini',
     };
     return names[provider] || provider;
   };
@@ -156,11 +170,13 @@ const BookRecommendations = () => {
   };
   const filteredStudents = students.filter(classFilter);
 
-  const selectedStudent = students.find(s => s.id === selectedStudentId);
-  const selectedClass = selectedStudent ? classes.find(c => c.id === selectedStudent.classId) : null;
+  const selectedStudent = students.find((s) => s.id === selectedStudentId);
+  const selectedClass = selectedStudent
+    ? classes.find((c) => c.id === selectedStudent.classId)
+    : null;
 
   // Build a lookup Map for O(1) book lookups instead of O(n) find() per call
-  const bookMap = useMemo(() => new Map((books || []).map(b => [b.id, b])), [books]);
+  const bookMap = useMemo(() => new Map((books || []).map((b) => [b.id, b])), [books]);
 
   // Helper function to resolve book title from bookId
   const getBookTitle = (bookId) => {
@@ -182,18 +198,21 @@ const BookRecommendations = () => {
 
   // Helper to fetch sessions and build booksRead list for a student
   const loadStudentBooksRead = async (studentId) => {
-    if (!studentId) { setBooksRead([]); return; }
+    if (!studentId) {
+      setBooksRead([]);
+      return;
+    }
     try {
       const response = await fetchWithAuth(`/api/students/${studentId}/sessions`);
       const sessions = response.ok ? await response.json() : [];
       const uniqueBooks = new Map();
-      sessions.forEach(session => {
+      sessions.forEach((session) => {
         if (session.bookId) {
           uniqueBooks.set(session.bookId, {
             id: session.bookId,
             bookId: session.bookId,
             dateRead: session.date,
-            assessment: session.assessment
+            assessment: session.assessment,
           });
         }
       });
@@ -215,10 +234,7 @@ const BookRecommendations = () => {
 
     // Fetch sessions and library search in parallel
     if (studentId) {
-      await Promise.all([
-        loadStudentBooksRead(studentId),
-        triggerLibrarySearch(studentId)
-      ]);
+      await Promise.all([loadStudentBooksRead(studentId), triggerLibrarySearch(studentId)]);
     } else {
       setBooksRead([]);
     }
@@ -236,7 +252,9 @@ const BookRecommendations = () => {
     setIsCachedResult(false);
 
     try {
-      const response = await fetchWithAuth(`/api/books/library-search?studentId=${studentId}&focusMode=${effectiveFocus}`);
+      const response = await fetchWithAuth(
+        `/api/books/library-search?studentId=${studentId}&focusMode=${effectiveFocus}`
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -246,7 +264,6 @@ const BookRecommendations = () => {
       const data = await response.json();
       setStudentProfile(data.studentProfile);
       setRecommendations(data.books || []);
-
     } catch (err) {
       setError(err.message);
     } finally {
@@ -272,10 +289,7 @@ const BookRecommendations = () => {
       markStudentAsPriorityHandled(studentId);
     }
 
-    await Promise.all([
-      loadStudentBooksRead(studentId),
-      triggerLibrarySearch(studentId)
-    ]);
+    await Promise.all([loadStudentBooksRead(studentId), triggerLibrarySearch(studentId)]);
   };
 
   // Handler for AI suggestions
@@ -305,7 +319,6 @@ const BookRecommendations = () => {
       setStudentProfile(data.studentProfile);
       setRecommendations(data.suggestions || []);
       setIsCachedResult(data.cached === true);
-
     } catch (err) {
       setError(err.message);
     } finally {
@@ -324,8 +337,21 @@ const BookRecommendations = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 4, flexWrap: 'wrap', gap: 2 }}>
-        <Typography variant="h4" component="h1" sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          mb: 4,
+          flexWrap: 'wrap',
+          gap: 2,
+        }}
+      >
+        <Typography
+          variant="h4"
+          component="h1"
+          sx={{ display: 'flex', alignItems: 'center', gap: 2 }}
+        >
           <RecommendationsIcon color="primary" />
           Book Recommendations
         </Typography>
@@ -342,9 +368,7 @@ const BookRecommendations = () => {
             <Chip
               icon={hasActiveAI ? <SmartToyIcon /> : <WarningIcon />}
               label={
-                hasActiveAI
-                  ? `AI: ${getProviderDisplayName(activeProvider)}`
-                  : 'AI: Not configured'
+                hasActiveAI ? `AI: ${getProviderDisplayName(activeProvider)}` : 'AI: Not configured'
               }
               color={hasActiveAI ? 'success' : 'warning'}
               variant="outlined"
@@ -362,13 +386,18 @@ const BookRecommendations = () => {
 
       {aiConfig?.loadError && (
         <Alert severity="info" sx={{ mb: 3 }}>
-          Could not load AI configuration. Library search is still available, but AI suggestions may not work.
+          Could not load AI configuration. Library search is still available, but AI suggestions may
+          not work.
         </Alert>
       )}
 
       {/* Student selection */}
-      <Paper sx={{ p: 3, mb: 4 }}>
-        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Paper data-tour="recs-student-select" sx={{ p: 3, mb: 4 }}>
+        <Typography
+          variant="h6"
+          gutterBottom
+          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+        >
           <SchoolIcon />
           Select Student
         </Typography>
@@ -382,7 +411,7 @@ const BookRecommendations = () => {
             onChange={handleStudentChange}
             label="Student"
             disabled={filteredStudents.length === 0}
-            aria-describedby={filteredStudents.length === 0 ? "no-students-helper" : undefined}
+            aria-describedby={filteredStudents.length === 0 ? 'no-students-helper' : undefined}
           >
             <MenuItem value="">
               <em>Select a student</em>
@@ -412,86 +441,100 @@ const BookRecommendations = () => {
               <Box sx={{ mt: 4, textAlign: 'left' }}>
                 <Typography
                   variant="subtitle1"
-                  sx={{ mb: 2, fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: 'text.primary' }}
+                  sx={{
+                    mb: 2,
+                    fontFamily: '"Nunito", sans-serif',
+                    fontWeight: 700,
+                    color: 'text.primary',
+                  }}
                 >
                   Priority Students
                 </Typography>
-                <Box sx={{
-                  display: 'grid',
-                  gridTemplateColumns: {
-                    xs: 'repeat(2, 1fr)',
-                    sm: 'repeat(3, 1fr)',
-                    md: 'repeat(4, 1fr)'
-                  },
-                  gap: 2,
-                  ...(isMobile && {
-                    display: 'flex',
-                    overflowX: 'auto',
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: {
+                      xs: 'repeat(2, 1fr)',
+                      sm: 'repeat(3, 1fr)',
+                      md: 'repeat(4, 1fr)',
+                    },
                     gap: 2,
-                    pb: 1,
-                    '& > *': { minWidth: 160, flexShrink: 0 }
-                  })
-                }}>
-                  {prioritizedStudents.filter(classFilter).slice(0, 6).map((student) => {
-                    const status = getReadingStatus(student);
-                    const statusColors = theme.palette.status || {
-                      notRead: '#9E4B4B',
-                      needsAttention: '#9B6E3A',
-                      recentlyRead: '#4A6E4A'
-                    };
-                    const statusColor = statusColors[STATUS_TO_PALETTE[status]] || statusColors.notRead;
-                    const lastRead = student.lastReadDate
-                      ? `Last read ${Math.ceil(Math.abs(new Date() - new Date(student.lastReadDate)) / (1000 * 60 * 60 * 24))} days ago`
-                      : 'Never read';
+                    ...(isMobile && {
+                      display: 'flex',
+                      overflowX: 'auto',
+                      gap: 2,
+                      pb: 1,
+                      '& > *': { minWidth: 160, flexShrink: 0 },
+                    }),
+                  }}
+                >
+                  {prioritizedStudents
+                    .filter(classFilter)
+                    .slice(0, 6)
+                    .map((student) => {
+                      const status = getReadingStatus(student);
+                      const statusColors = theme.palette.status || {
+                        notRead: '#9E4B4B',
+                        needsAttention: '#9B6E3A',
+                        recentlyRead: '#4A6E4A',
+                      };
+                      const statusColor =
+                        statusColors[STATUS_TO_PALETTE[status]] || statusColors.notRead;
+                      const lastRead = student.lastReadDate
+                        ? `Last read ${Math.ceil(Math.abs(new Date() - new Date(student.lastReadDate)) / (1000 * 60 * 60 * 24))} days ago`
+                        : 'Never read';
 
-                    return (
-                      <Card
-                        key={student.id}
-                        onClick={() => handleQuickPick(student.id)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            handleQuickPick(student.id);
-                          }
-                        }}
-                        tabIndex={0}
-                        role="button"
-                        sx={{
-                          cursor: 'pointer',
-                          p: 2,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1.5,
-                          '@media (hover: hover) and (pointer: fine)': {
-                            '&:hover': {
-                              transform: 'translateY(-4px)',
-                              boxShadow: '0 8px 24px rgba(139, 115, 85, 0.15), 0 4px 8px rgba(0, 0, 0, 0.06)',
+                      return (
+                        <Card
+                          key={student.id}
+                          onClick={() => handleQuickPick(student.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              handleQuickPick(student.id);
+                            }
+                          }}
+                          tabIndex={0}
+                          role="button"
+                          sx={{
+                            cursor: 'pointer',
+                            p: 2,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1.5,
+                            '@media (hover: hover) and (pointer: fine)': {
+                              '&:hover': {
+                                transform: 'translateY(-4px)',
+                                boxShadow:
+                                  '0 8px 24px rgba(139, 115, 85, 0.15), 0 4px 8px rgba(0, 0, 0, 0.06)',
+                              },
                             },
-                          },
-                        }}
-                      >
-                        <Box sx={{
-                          width: 10,
-                          height: 10,
-                          borderRadius: '50%',
-                          bgcolor: statusColor,
-                          flexShrink: 0
-                        }} />
-                        <Box sx={{ minWidth: 0 }}>
-                          <Typography
-                            variant="body2"
-                            sx={{ fontWeight: 700, fontFamily: '"Nunito", sans-serif' }}
-                            noWrap
-                          >
-                            {student.name}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {lastRead}
-                          </Typography>
-                        </Box>
-                      </Card>
-                    );
-                  })}
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              width: 10,
+                              height: 10,
+                              borderRadius: '50%',
+                              bgcolor: statusColor,
+                              flexShrink: 0,
+                            }}
+                          />
+                          <Box sx={{ minWidth: 0 }}>
+                            <Typography
+                              variant="body2"
+                              sx={{ fontWeight: 700, fontFamily: '"Nunito", sans-serif' }}
+                              noWrap
+                            >
+                              {student.name}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {lastRead}
+                            </Typography>
+                          </Box>
+                        </Card>
+                      );
+                    })}
                 </Box>
               </Box>
             )}
@@ -501,32 +544,46 @@ const BookRecommendations = () => {
 
       {/* Compact student profile bar */}
       {selectedStudent && (
-        <Paper sx={{ p: 2, mb: 3 }}>
+        <Paper data-tour="recs-profile-bar" sx={{ p: 2, mb: 3 }}>
           {/* Compact bar */}
-          <Box sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1.5,
-            flexWrap: 'wrap'
-          }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              flexWrap: 'wrap',
+            }}
+          >
             <PersonIcon color="primary" />
             <Typography variant="h6" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}>
               {selectedStudent.name}
             </Typography>
-            {selectedClass && (
-              <Chip label={selectedClass.name} size="small" color="primary" />
-            )}
-            {(studentProfile?.readingLevelMin != null && studentProfile?.readingLevelMax != null) ? (
-              <Chip label={`Level: ${studentProfile.readingLevelMin} - ${studentProfile.readingLevelMax}`} size="small" variant="outlined" />
-            ) : studentProfile?.readingLevel && (
-              <Chip label={`Level: ${studentProfile.readingLevel}`} size="small" variant="outlined" />
+            {selectedClass && <Chip label={selectedClass.name} size="small" color="primary" />}
+            {studentProfile?.readingLevelMin != null && studentProfile?.readingLevelMax != null ? (
+              <Chip
+                label={`Level: ${studentProfile.readingLevelMin} - ${studentProfile.readingLevelMax}`}
+                size="small"
+                variant="outlined"
+              />
+            ) : (
+              studentProfile?.readingLevel && (
+                <Chip
+                  label={`Level: ${studentProfile.readingLevel}`}
+                  size="small"
+                  variant="outlined"
+                />
+              )
             )}
             {studentProfile?.favoriteGenres?.map((genre, i) => (
               <Chip key={i} label={genre} size="small" color="error" variant="outlined" />
             ))}
 
             {/* Focus mode - moved here from button area */}
-            <FormControl size="small" sx={{ minWidth: 130, ml: 'auto' }}>
+            <FormControl
+              data-tour="recs-focus-mode"
+              size="small"
+              sx={{ minWidth: 130, ml: 'auto' }}
+            >
               <InputLabel id="focus-mode-label">Focus</InputLabel>
               <Select
                 labelId="focus-mode-label"
@@ -571,35 +628,57 @@ const BookRecommendations = () => {
 
           {/* Collapsible details */}
           <Collapse in={showDetails}>
-            <Box sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-              gap: 2,
-              mt: 2,
-              pt: 2,
-              borderTop: '1px solid',
-              borderColor: 'divider'
-            }}>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+                gap: 2,
+                mt: 2,
+                pt: 2,
+                borderTop: '1px solid',
+                borderColor: 'divider',
+              }}
+            >
               {/* Left: Books read */}
               <Box>
-                <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+                <Typography
+                  variant="subtitle2"
+                  color="text.secondary"
+                  sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}
+                >
                   <BookIcon fontSize="small" />
                   Books Read ({booksRead.length})
                 </Typography>
                 {booksRead.length > 0 ? (
                   <Box sx={{ maxHeight: 150, overflow: 'auto', fontSize: '0.875rem' }}>
                     {booksRead.slice(0, 8).map((book, index) => (
-                      <Box key={book.id} sx={{ py: 0.5, borderBottom: index < Math.min(booksRead.length, 8) - 1 ? '1px solid' : 'none', borderColor: 'divider' }}>
-                        <Typography variant="body2" noWrap>{getBookTitle(book.bookId)}</Typography>
-                        <Typography variant="caption" color="text.secondary">{new Date(book.dateRead).toLocaleDateString()}</Typography>
+                      <Box
+                        key={book.id}
+                        sx={{
+                          py: 0.5,
+                          borderBottom:
+                            index < Math.min(booksRead.length, 8) - 1 ? '1px solid' : 'none',
+                          borderColor: 'divider',
+                        }}
+                      >
+                        <Typography variant="body2" noWrap>
+                          {getBookTitle(book.bookId)}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {new Date(book.dateRead).toLocaleDateString()}
+                        </Typography>
                       </Box>
                     ))}
                     {booksRead.length > 8 && (
-                      <Typography variant="caption" color="text.secondary">... and {booksRead.length - 8} more</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        ... and {booksRead.length - 8} more
+                      </Typography>
                     )}
                   </Box>
                 ) : (
-                  <Typography variant="body2" color="text.secondary">No books recorded yet</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    No books recorded yet
+                  </Typography>
                 )}
               </Box>
 
@@ -607,25 +686,41 @@ const BookRecommendations = () => {
               <Box>
                 {/* Favorite Genres */}
                 <Box sx={{ mb: 1.5 }}>
-                  <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                    sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}
+                  >
                     <FavoriteIcon fontSize="small" color="error" />
                     Favorites
                   </Typography>
                   {studentProfile?.favoriteGenres?.length > 0 ? (
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                       {studentProfile.favoriteGenres.map((genre, i) => (
-                        <Chip key={`fav-${i}`} label={genre} size="small" color="error" variant="outlined" />
+                        <Chip
+                          key={`fav-${i}`}
+                          label={genre}
+                          size="small"
+                          color="error"
+                          variant="outlined"
+                        />
                       ))}
                     </Box>
                   ) : (
-                    <Typography variant="body2" color="text.secondary" fontStyle="italic">None set</Typography>
+                    <Typography variant="body2" color="text.secondary" fontStyle="italic">
+                      None set
+                    </Typography>
                   )}
                 </Box>
 
                 {/* Inferred from history */}
                 {studentProfile?.inferredGenres?.length > 0 && (
                   <Box sx={{ mb: 1.5 }}>
-                    <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                    <Typography
+                      variant="subtitle2"
+                      color="text.secondary"
+                      sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}
+                    >
                       <HistoryIcon fontSize="small" />
                       From History
                     </Typography>
@@ -640,12 +735,18 @@ const BookRecommendations = () => {
                 {/* Likes */}
                 {selectedStudent.preferences?.likes?.length > 0 && (
                   <Box sx={{ mb: 1.5 }}>
-                    <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                    <Typography
+                      variant="subtitle2"
+                      color="text.secondary"
+                      sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}
+                    >
                       <ThumbUpIcon fontSize="small" color="success" />
                       Liked
                     </Typography>
                     <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
-                      {selectedStudent.preferences.likes.slice(0, 3).join(', ')}{selectedStudent.preferences.likes.length > 3 && ` +${selectedStudent.preferences.likes.length - 3} more`}
+                      {selectedStudent.preferences.likes.slice(0, 3).join(', ')}
+                      {selectedStudent.preferences.likes.length > 3 &&
+                        ` +${selectedStudent.preferences.likes.length - 3} more`}
                     </Typography>
                   </Box>
                 )}
@@ -653,12 +754,18 @@ const BookRecommendations = () => {
                 {/* Dislikes */}
                 {selectedStudent.preferences?.dislikes?.length > 0 && (
                   <Box sx={{ mb: 1.5 }}>
-                    <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                    <Typography
+                      variant="subtitle2"
+                      color="text.secondary"
+                      sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}
+                    >
                       <ThumbDownIcon fontSize="small" color="warning" />
                       Disliked
                     </Typography>
                     <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
-                      {selectedStudent.preferences.dislikes.slice(0, 3).join(', ')}{selectedStudent.preferences.dislikes.length > 3 && ` +${selectedStudent.preferences.dislikes.length - 3} more`}
+                      {selectedStudent.preferences.dislikes.slice(0, 3).join(', ')}
+                      {selectedStudent.preferences.dislikes.length > 3 &&
+                        ` +${selectedStudent.preferences.dislikes.length - 3} more`}
                     </Typography>
                   </Box>
                 )}
@@ -667,7 +774,6 @@ const BookRecommendations = () => {
           </Collapse>
         </Paper>
       )}
-
 
       {/* Error display */}
       {error && (
@@ -678,21 +784,51 @@ const BookRecommendations = () => {
 
       {/* Loading skeleton */}
       {(libraryLoading || aiLoading) && (
-        <Box data-testid="loading-skeleton" sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2, mb: 3 }}>
+        <Box
+          data-testid="loading-skeleton"
+          sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2, mb: 3 }}
+        >
           {[1, 2, 3, 4].map((i) => (
             <Card key={i} sx={{ p: 2, display: 'flex', gap: 2 }}>
-              <Box sx={{
-                width: isMobile ? 100 : 120,
-                height: isMobile ? 150 : 180,
-                borderRadius: 1,
-                bgcolor: 'rgba(139, 115, 85, 0.08)',
-                animation: 'skeleton-pulse 1.5s ease-in-out infinite',
-                flexShrink: 0
-              }} />
+              <Box
+                sx={{
+                  width: isMobile ? 100 : 120,
+                  height: isMobile ? 150 : 180,
+                  borderRadius: 1,
+                  bgcolor: 'rgba(139, 115, 85, 0.08)',
+                  animation: 'skeleton-pulse 1.5s ease-in-out infinite',
+                  flexShrink: 0,
+                }}
+              />
               <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1, py: 1 }}>
-                <Box sx={{ width: '70%', height: 20, borderRadius: 1, bgcolor: 'rgba(139, 115, 85, 0.08)', animation: 'skeleton-pulse 1.5s ease-in-out infinite' }} />
-                <Box sx={{ width: '40%', height: 16, borderRadius: 1, bgcolor: 'rgba(139, 115, 85, 0.06)', animation: 'skeleton-pulse 1.5s ease-in-out 0.2s infinite' }} />
-                <Box sx={{ width: '90%', height: 14, borderRadius: 1, bgcolor: 'rgba(139, 115, 85, 0.05)', animation: 'skeleton-pulse 1.5s ease-in-out 0.4s infinite', mt: 'auto' }} />
+                <Box
+                  sx={{
+                    width: '70%',
+                    height: 20,
+                    borderRadius: 1,
+                    bgcolor: 'rgba(139, 115, 85, 0.08)',
+                    animation: 'skeleton-pulse 1.5s ease-in-out infinite',
+                  }}
+                />
+                <Box
+                  sx={{
+                    width: '40%',
+                    height: 16,
+                    borderRadius: 1,
+                    bgcolor: 'rgba(139, 115, 85, 0.06)',
+                    animation: 'skeleton-pulse 1.5s ease-in-out 0.2s infinite',
+                  }}
+                />
+                <Box
+                  sx={{
+                    width: '90%',
+                    height: 14,
+                    borderRadius: 1,
+                    bgcolor: 'rgba(139, 115, 85, 0.05)',
+                    animation: 'skeleton-pulse 1.5s ease-in-out 0.4s infinite',
+                    mt: 'auto',
+                  }}
+                />
               </Box>
             </Card>
           ))}
@@ -701,7 +837,11 @@ const BookRecommendations = () => {
 
       {/* Results Header */}
       {recommendations.length > 0 && (
-        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Typography
+          variant="h6"
+          gutterBottom
+          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+        >
           {resultType === 'library' ? (
             <>
               <BookIcon /> Books from Your Library
@@ -719,11 +859,7 @@ const BookRecommendations = () => {
       {isCachedResult && resultType === 'ai' && recommendations.length > 0 && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
           <Chip label="Cached result" color="info" size="small" variant="outlined" />
-          <Button
-            size="small"
-            onClick={handleRefreshAiSuggestions}
-            disabled={aiLoading}
-          >
+          <Button size="small" onClick={handleRefreshAiSuggestions} disabled={aiLoading}>
             Get fresh suggestions
           </Button>
         </Box>
@@ -731,7 +867,7 @@ const BookRecommendations = () => {
 
       {/* Results Grid */}
       {recommendations.length > 0 && (
-        <Grid container spacing={3}>
+        <Grid data-tour="recs-results" container spacing={3}>
           {recommendations.map((book, index) => (
             <Grid size={{ xs: 12, md: 6 }} key={book.id || index}>
               <Card sx={{ height: '100%' }}>
@@ -756,7 +892,7 @@ const BookRecommendations = () => {
                             top: 4,
                             right: -8,
                             fontSize: '0.7rem',
-                            height: 22
+                            height: 22,
                           }}
                         />
                       )}
@@ -772,7 +908,7 @@ const BookRecommendations = () => {
                           fontWeight: 700,
                           wordBreak: 'break-word',
                           lineHeight: 1.3,
-                          mb: 0.5
+                          mb: 0.5,
                         }}
                       >
                         {book.title}
@@ -783,7 +919,11 @@ const BookRecommendations = () => {
                       </Typography>
 
                       {/* Metadata chips */}
-                      <Stack direction="row" spacing={0.5} sx={{ mb: 1.5, flexWrap: 'wrap', gap: 0.5 }}>
+                      <Stack
+                        direction="row"
+                        spacing={0.5}
+                        sx={{ mb: 1.5, flexWrap: 'wrap', gap: 0.5 }}
+                      >
                         <Chip
                           label={book.readingLevel || book.level}
                           size="small"
@@ -798,15 +938,17 @@ const BookRecommendations = () => {
                             sx={{ color: 'text.secondary', borderColor: 'divider' }}
                           />
                         )}
-                        {resultType === 'library' && book.genres && book.genres.map((genre, i) => (
-                          <Chip
-                            key={i}
-                            label={genre}
-                            size="small"
-                            variant="outlined"
-                            sx={{ color: 'text.secondary', borderColor: 'divider' }}
-                          />
-                        ))}
+                        {resultType === 'library' &&
+                          book.genres &&
+                          book.genres.map((genre, i) => (
+                            <Chip
+                              key={i}
+                              label={genre}
+                              size="small"
+                              variant="outlined"
+                              sx={{ color: 'text.secondary', borderColor: 'divider' }}
+                            />
+                          ))}
                       </Stack>
 
                       {/* Description for library results */}
@@ -820,7 +962,7 @@ const BookRecommendations = () => {
                             display: '-webkit-box',
                             WebkitLineClamp: 2,
                             WebkitBoxOrient: 'vertical',
-                            mb: 1.5
+                            mb: 1.5,
                           }}
                         >
                           {book.description}
@@ -829,15 +971,20 @@ const BookRecommendations = () => {
 
                       {/* Match reason / AI reasoning - pull quote style */}
                       {(resultType === 'library' ? book.matchReason : book.reason) && (
-                        <Box sx={{
-                          borderLeft: '3px solid',
-                          borderColor: 'primary.light',
-                          bgcolor: 'rgba(107, 142, 107, 0.06)',
-                          pl: 1.5,
-                          py: 0.75,
-                          borderRadius: '0 4px 4px 0'
-                        }}>
-                          <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.secondary' }}>
+                        <Box
+                          sx={{
+                            borderLeft: '3px solid',
+                            borderColor: 'primary.light',
+                            bgcolor: 'rgba(107, 142, 107, 0.06)',
+                            pl: 1.5,
+                            py: 0.75,
+                            borderRadius: '0 4px 4px 0',
+                          }}
+                        >
+                          <Typography
+                            variant="body2"
+                            sx={{ fontStyle: 'italic', color: 'text.secondary' }}
+                          >
                             {resultType === 'library' ? book.matchReason : book.reason}
                           </Typography>
                         </Box>
@@ -858,19 +1005,22 @@ const BookRecommendations = () => {
         </Grid>
       )}
 
-      {/* AI suggestion banner - shown after library results, when AI is configured */}
-      {resultType === 'library' && !libraryLoading && hasActiveAI && selectedStudentId && (
-        <Paper sx={{
-          p: 2,
-          mt: 3,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 1,
-          bgcolor: 'rgba(107, 142, 107, 0.06)',
-          border: '1px solid rgba(107, 142, 107, 0.15)'
-        }}>
+      {/* AI suggestion banner - shown after library results */}
+      {resultType === 'library' && !libraryLoading && selectedStudentId && hasActiveAI && (
+        <Paper
+          data-tour="recs-ai-banner"
+          sx={{
+            p: 2,
+            mt: 3,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 1,
+            bgcolor: 'rgba(107, 142, 107, 0.06)',
+            border: '1px solid rgba(107, 142, 107, 0.15)',
+          }}
+        >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <SmartToyIcon sx={{ color: 'primary.main' }} />
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -888,10 +1038,34 @@ const BookRecommendations = () => {
             size="small"
             onClick={() => handleAiSuggestions()}
             disabled={aiLoading}
-            startIcon={aiLoading ? <CircularProgress size={16} color="inherit" /> : <SmartToyIcon />}
+            startIcon={
+              aiLoading ? <CircularProgress size={16} color="inherit" /> : <SmartToyIcon />
+            }
           >
             {aiLoading ? 'Generating...' : 'Ask AI'}
           </Button>
+        </Paper>
+      )}
+
+      {/* AI hint when not configured — also serves as tour target */}
+      {resultType === 'library' && !libraryLoading && selectedStudentId && !hasActiveAI && (
+        <Paper
+          data-tour="recs-ai-banner"
+          sx={{
+            p: 2,
+            mt: 3,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            bgcolor: 'rgba(139, 115, 85, 0.04)',
+            border: '1px solid rgba(139, 115, 85, 0.12)',
+          }}
+        >
+          <SmartToyIcon sx={{ color: 'text.secondary' }} />
+          <Typography variant="body2" color="text.secondary">
+            AI-powered recommendations are available with an API key — ask your admin to configure
+            one in Settings.
+          </Typography>
         </Paper>
       )}
 
@@ -904,9 +1078,13 @@ const BookRecommendations = () => {
           maxWidth="md"
           fullScreen={fullScreen}
         >
-          <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <DialogTitle
+            sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+          >
             <Typography variant="h6">{selectedStudent?.name} — Reading Preferences</Typography>
-            <IconButton onClick={() => setPreferencesOpen(false)}><CloseIcon /></IconButton>
+            <IconButton onClick={() => setPreferencesOpen(false)}>
+              <CloseIcon />
+            </IconButton>
           </DialogTitle>
           <DialogContent dividers>
             <StudentEditForm
@@ -924,10 +1102,14 @@ const BookRecommendations = () => {
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setPreferencesOpen(false)}>Cancel</Button>
-            <Button onClick={() => editFormRef.current?.save()} variant="contained">Save</Button>
+            <Button onClick={() => editFormRef.current?.save()} variant="contained">
+              Save
+            </Button>
           </DialogActions>
         </Dialog>
       )}
+
+      <TourButton {...tourButtonProps} />
     </Box>
   );
 };
