@@ -67,6 +67,31 @@ export const TOURS = {
       },
     ],
   },
+  'home-reading-quick': {
+    version: 1,
+    steps: [
+      {
+        target: '[data-tour="quick-history"]',
+        title: 'Recent History',
+        content:
+          'These columns show the last few days so you can see at a glance who has been reading.',
+        placement: 'bottom',
+      },
+      {
+        target: '[data-tour="quick-buttons"]',
+        title: 'Record Reading',
+        content:
+          'Tap ✓ for one read, 2/3/4 for multiple, + for a custom number. A marks absent, • means no record.',
+        placement: 'bottom',
+      },
+      {
+        target: '[data-tour="quick-book"]',
+        title: 'Current Book',
+        content: 'Tap to change the book a student is reading. It stays set until you change it.',
+        placement: 'left',
+      },
+    ],
+  },
   'home-reading': {
     version: 2,
     steps: [

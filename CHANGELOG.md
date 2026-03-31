@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.33.5] - 2026-03-31
+
+### Added
+- **Quick view tour for Home Reading** — 3-step tour covering recent history columns, record reading buttons (✓/2/3/4/+/A/•), and the book selector; auto-starts when the Quick view loads with students
+- Compass button now shows the tour matching the current view mode (Quick or Full)
+
 ## [3.33.4] - 2026-03-31
 
 ### Fixed

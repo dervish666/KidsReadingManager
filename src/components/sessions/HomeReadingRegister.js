@@ -189,24 +189,6 @@ const HomeReadingRegister = () => {
   const [historyRefresh, setHistoryRefresh] = useState(0);
   const [viewMode, setViewMode] = useState('quick');
 
-  // Tour — ready only in 'full' view where the data-tour targets exist
-  const { tourButtonProps, startTour: startHomeTour } = useTour('home-reading', {
-    ready: viewMode === 'full',
-  });
-
-  // Wrap compass click: if in Quick view, switch to Full first so targets exist
-  const homeTourButtonProps = {
-    ...tourButtonProps,
-    onClick: () => {
-      if (viewMode === 'full') {
-        tourButtonProps.onClick();
-      } else {
-        setViewMode('full');
-        // Targets render after the state update; brief delay lets React commit the DOM
-        setTimeout(() => startHomeTour(), 600);
-      }
-    },
-  };
   const [recordingStudents, setRecordingStudents] = useState(new Set());
   const [editingBookStudentId, setEditingBookStudentId] = useState(null);
   const [quickMultipleStudent, setQuickMultipleStudent] = useState(null);
@@ -400,6 +382,19 @@ const HomeReadingRegister = () => {
     const query = searchQuery.toLowerCase();
     return classStudents.filter((s) => s.name.toLowerCase().includes(query));
   }, [classStudents, searchQuery]);
+
+  // Two tours: one for Quick view, one for Full view
+  const quickTour = useTour('home-reading-quick', {
+    ready: viewMode === 'quick' && filteredStudents.length > 0,
+  });
+  const fullTour = useTour('home-reading', { ready: viewMode === 'full' });
+
+  // Show the tour matching the current view; compass always works
+  const activeTour = viewMode === 'full' ? fullTour : quickTour;
+  const homeTourButtonProps = {
+    ...activeTour.tourButtonProps,
+    shouldPulse: quickTour.tourButtonProps.shouldPulse || fullTour.tourButtonProps.shouldPulse,
+  };
 
   // Previous 3 days relative to selectedDate (for Quick view history columns)
   const previousDays = useMemo(() => {
@@ -1006,11 +1001,12 @@ const HomeReadingRegister = () => {
               <Table stickyHeader size="small">
                 <TableHead>
                   <TableRow>
-                    {previousDays.map((date) => {
+                    {previousDays.map((date, i) => {
                       const { day, date: dayNum } = formatDateHeader(date);
                       return (
                         <TableCell
                           key={formatDateISO(date)}
+                          {...(i === 0 ? { 'data-tour': 'quick-history' } : {})}
                           sx={{
                             fontWeight: 'bold',
                             textAlign: 'center',
@@ -1048,11 +1044,12 @@ const HomeReadingRegister = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredStudents.map((student) => {
+                  {filteredStudents.map((student, studentIdx) => {
                     const { status, count } = getStudentReadingStatus(student, selectedDate);
                     const book = getStudentLastBook(student.id);
                     const isRecording = recordingStudents.has(student.id);
                     const hasEntry = status !== READING_STATUS.NONE;
+                    const isFirstRow = studentIdx === 0;
 
                     const btnSx = { minWidth: 36, minHeight: 36, px: 0.5, borderRadius: 1.5 };
                     const numBtnSx = { ...btnSx, minWidth: 32, fontSize: '0.9rem' };
@@ -1119,7 +1116,10 @@ const HomeReadingRegister = () => {
                         >
                           {student.name}
                         </TableCell>
-                        <TableCell sx={{ padding: '4px 8px' }}>
+                        <TableCell
+                          {...(isFirstRow ? { 'data-tour': 'quick-buttons' } : {})}
+                          sx={{ padding: '4px 8px' }}
+                        >
                           <Box
                             sx={{
                               display: 'flex',
@@ -1219,6 +1219,7 @@ const HomeReadingRegister = () => {
                           </Box>
                         </TableCell>
                         <TableCell
+                          {...(isFirstRow ? { 'data-tour': 'quick-book' } : {})}
                           onClick={() => setEditingBookStudentId(student.id)}
                           sx={{
                             color: book ? 'text.secondary' : 'text.disabled',
