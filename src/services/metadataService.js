@@ -98,8 +98,8 @@ export async function processBatch(books, config, options = {}) {
   const activeChain = [...config.providerChain];
 
   for (const book of books) {
-    // Safety: stop batch if we're approaching 25 seconds wall-clock
-    if (Date.now() - startTime > 25000) break;
+    // Safety: stop batch early to leave time for DB writes after processing
+    if (Date.now() - startTime > 20000) break;
 
     try {
       // Pass the active chain (may have providers removed due to rate limiting)

@@ -264,6 +264,7 @@ const MetadataManagement = () => {
   const startPolling = async (jobId) => {
     const controller = new AbortController();
     pollRef.current = controller;
+    let consecutiveErrors = 0;
 
     try {
       while (!controller.signal.aborted) {
@@ -274,7 +275,24 @@ const MetadataManagement = () => {
           signal: controller.signal,
         });
 
-        if (!res.ok) break;
+        if (!res.ok) {
+          consecutiveErrors++;
+          // Try to read error body for useful info
+          const errBody = await res.json().catch(() => ({}));
+          if (errBody.done || errBody.status === 'failed') {
+            showSnackbar(errBody.error || 'Enrichment failed', 'error');
+            break;
+          }
+          // Retry up to 3 times on transient 500s (e.g. Worker timeout)
+          if (consecutiveErrors >= 3) {
+            showSnackbar('Enrichment stopped after repeated errors — resume to continue', 'error');
+            break;
+          }
+          // Wait before retrying
+          await new Promise((r) => setTimeout(r, 2000));
+          continue;
+        }
+        consecutiveErrors = 0;
         const data = await res.json();
         setProgress(data);
 

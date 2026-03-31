@@ -436,6 +436,12 @@ metadataRouter.post('/enrich', requireAdmin(), async (c) => {
   if (!config) return c.json({ error: 'Metadata configuration not found' }, 500);
   config.fetchCovers = job.include_covers && config.fetchCovers;
 
+  // Cap effective batch size — each book hits multiple external APIs sequentially,
+  // so large batches risk exceeding the 30s Worker wall-clock limit.
+  // With 3 providers at ~2-3s each + delays, 5 books is a safe ceiling.
+  const maxSafeBatch = 5;
+  if (config.batchSize > maxSafeBatch) config.batchSize = maxSafeBatch;
+
   // Fetch next batch of books
   let booksQuery, booksBindings;
   const cursor = job.last_book_id || '';
@@ -528,7 +534,9 @@ metadataRouter.post('/enrich', requireAdmin(), async (c) => {
       .run();
   }
 
-  // Process the batch
+  // Process the batch — wrapped in try/catch so Worker timeout or D1 errors
+  // return a useful response instead of a bare 500.
+  try {
   const bookUpdates = [];
   const logEntries = [];
   let currentBook = '';
@@ -781,6 +789,18 @@ metadataRouter.post('/enrich', requireAdmin(), async (c) => {
     currentBook,
     done: false,
   });
+
+  } catch (err) {
+    // If batch processing fails (e.g. Worker timeout, D1 error), mark the job
+    // as failed so the user gets a clear message instead of infinite 500s.
+    console.error('Enrich batch error:', err);
+    try {
+      await db.prepare(
+        "UPDATE metadata_jobs SET status = 'failed', updated_at = datetime('now') WHERE id = ?"
+      ).bind(job.id).run();
+    } catch { /* best effort */ }
+    return c.json({ error: 'Batch processing failed: ' + (err.message || 'unknown error'), jobId: job.id, status: 'failed', done: true }, 500);
+  }
 });
 
 export { metadataRouter, getConfigWithKeys };
