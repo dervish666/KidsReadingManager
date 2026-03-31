@@ -228,4 +228,78 @@ metadataRouter.get('/status', requireAdmin(), async (c) => {
   });
 });
 
+// --- Jobs Endpoints (Admin+) ---
+
+/**
+ * GET /api/metadata/jobs
+ * List recent enrichment jobs.
+ * Owner sees all; admin sees own org only.
+ */
+metadataRouter.get('/jobs', requireAdmin(), async (c) => {
+  const db = requireDB(c.env);
+  const userRole = c.get('userRole');
+  const organizationId = c.get('organizationId');
+
+  let query, bindings;
+  if (userRole === 'owner') {
+    query = `SELECT * FROM metadata_jobs ORDER BY created_at DESC LIMIT 20`;
+    bindings = [];
+  } else {
+    query = `SELECT * FROM metadata_jobs WHERE organization_id = ? ORDER BY created_at DESC LIMIT 20`;
+    bindings = [organizationId];
+  }
+
+  const result = bindings.length
+    ? await db.prepare(query).bind(...bindings).all()
+    : await db.prepare(query).all();
+
+  const jobs = (result.results || []).map((row) => ({
+    id: row.id,
+    organizationId: row.organization_id,
+    jobType: row.job_type,
+    status: row.status,
+    totalBooks: row.total_books,
+    processedBooks: row.processed_books,
+    enrichedBooks: row.enriched_books,
+    errorCount: row.error_count,
+    includeCovers: Boolean(row.include_covers),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }));
+
+  return c.json({ jobs });
+});
+
+/**
+ * DELETE /api/metadata/jobs/:id
+ * Cancel a running job (set status to paused).
+ * Owner can cancel any job. Admin can only cancel jobs for their own org.
+ */
+metadataRouter.delete('/jobs/:id', requireAdmin(), async (c) => {
+  const db = requireDB(c.env);
+  const { id } = c.req.param();
+  const userRole = c.get('userRole');
+  const organizationId = c.get('organizationId');
+
+  // Admin: verify job belongs to their org
+  if (userRole !== 'owner') {
+    const job = await db
+      .prepare('SELECT organization_id FROM metadata_jobs WHERE id = ?')
+      .bind(id)
+      .first();
+    if (!job || job.organization_id !== organizationId) {
+      return c.json({ error: 'Job not found' }, 404);
+    }
+  }
+
+  await db
+    .prepare(
+      "UPDATE metadata_jobs SET status = 'paused', updated_at = datetime('now') WHERE id = ? AND status IN ('pending', 'running')",
+    )
+    .bind(id)
+    .run();
+
+  return c.json({ success: true });
+});
+
 export { metadataRouter, getConfigWithKeys };
