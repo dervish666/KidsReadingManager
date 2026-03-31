@@ -66,11 +66,18 @@ files:
       - POST /api/support
 
   BookMetadataSettings.js:
-    description: Metadata provider config and bulk operations (fill missing, refresh all)
+    description: Simplified admin view — enrichment status and Fill Missing button
     exports:
       - name: BookMetadataSettings
         kind: component
-        description: Provider selection, API keys, batch operations with progress
+        description: Shows enrichment status line, Fill Missing button with progress bar (admin only)
+
+  MetadataManagement.js:
+    description: Owner metadata management — provider config, global enrichment, job history
+    exports:
+      - name: MetadataManagement
+        kind: component
+        description: Full owner view with cascade provider configuration, enrichment controls, and job history table
 
   ErrorBoundary.js:
     description: React error boundary with refresh button

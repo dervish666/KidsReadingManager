@@ -429,3 +429,43 @@ files:
         items: [requireAdmin, requireReadonly]
       - from: middleware/errorHandler
         items: [badRequestError]
+
+  metadata.js:
+    description: Centralised metadata management - cascade config, enrichment jobs, status
+    exports:
+      - name: metadataRouter
+        kind: object
+        description: Hono router for metadata endpoints
+      - name: getConfigWithKeys
+        kind: function
+        description: Read metadata_config with decrypted API keys (internal use by enrich endpoint)
+    endpoints:
+      - route: GET /api/metadata/config
+        description: Read cascade configuration (API keys redacted to booleans)
+        requires: owner
+      - route: PUT /api/metadata/config
+        description: Update provider chain, API keys, rate limits, batch size, covers toggle
+        requires: owner
+      - route: GET /api/metadata/status
+        description: Enrichment status for caller's org (enriched/total counts, last job, active job)
+        requires: admin
+      - route: GET /api/metadata/jobs
+        description: List recent enrichment jobs (owner sees all, admin sees own org)
+        requires: admin
+      - route: DELETE /api/metadata/jobs/:id
+        description: Cancel a running job (admin can cancel own org, owner any)
+        requires: admin
+      - route: POST /api/metadata/enrich
+        description: Create or advance an enrichment job (admin restricted to own org + fill_missing)
+        requires: admin
+    imports:
+      - from: middleware/tenant
+        items: [requireOwner, requireAdmin, auditLog]
+      - from: middleware/errorHandler
+        items: [badRequestError]
+      - from: utils/crypto
+        items: [encryptSensitiveData, decryptSensitiveData]
+      - from: utils/routeHelpers
+        items: [requireDB]
+      - from: services/metadataService
+        items: [enrichBook, processBatch]
