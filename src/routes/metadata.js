@@ -373,6 +373,7 @@ metadataRouter.post('/enrich', requireAdmin(), async (c) => {
             OR page_count IS NULL
             OR publication_year IS NULL
             OR series_name IS NULL
+            OR genre_ids IS NULL OR genre_ids = '' OR genre_ids = '[]'
         `;
         countBindings = [];
       }
@@ -452,7 +453,8 @@ metadataRouter.post('/enrich', requireAdmin(), async (c) => {
             OR b.isbn IS NULL OR b.isbn = ''
             OR b.page_count IS NULL
             OR b.publication_year IS NULL
-            OR b.series_name IS NULL)
+            OR b.series_name IS NULL
+            OR b.genre_ids IS NULL OR b.genre_ids = '' OR b.genre_ids = '[]')
         ORDER BY b.id LIMIT ?
       `;
       booksBindings = [job.organization_id, cursor, config.batchSize];

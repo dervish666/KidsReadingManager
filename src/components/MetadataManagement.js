@@ -49,9 +49,9 @@ const PROVIDER_LABELS = {
 
 const getKeyStatus = (providerId, config) => {
   if (providerId === 'openlibrary') return { label: 'Free', color: 'success' };
-  if (providerId === 'hardcover' && config.hasHardcoverKey)
+  if (providerId === 'hardcover' && config.hasHardcoverApiKey)
     return { label: 'Key configured', color: 'success' };
-  if (providerId === 'googlebooks' && config.hasGoogleBooksKey)
+  if (providerId === 'googlebooks' && config.hasGoogleBooksApiKey)
     return { label: 'Key configured', color: 'success' };
   return { label: 'No key', color: 'warning' };
 };
@@ -94,8 +94,8 @@ const MetadataManagement = () => {
   // ── Config state ──
   const [config, setConfig] = useState({
     providerChain: ['hardcover', 'googlebooks', 'openlibrary'],
-    hasHardcoverKey: false,
-    hasGoogleBooksKey: false,
+    hasHardcoverApiKey: false,
+    hasGoogleBooksApiKey: false,
     rateLimitDelayMs: 1500,
     batchSize: 10,
     fetchCovers: true,
@@ -132,8 +132,8 @@ const MetadataManagement = () => {
           const data = await res.json();
           setConfig({
             providerChain: data.providerChain || ['hardcover', 'googlebooks', 'openlibrary'],
-            hasHardcoverKey: data.hasHardcoverKey || false,
-            hasGoogleBooksKey: data.hasGoogleBooksKey || false,
+            hasHardcoverApiKey: data.hasHardcoverApiKey || false,
+            hasGoogleBooksApiKey: data.hasGoogleBooksApiKey || false,
             rateLimitDelayMs: data.rateLimitDelayMs ?? 1500,
             batchSize: data.batchSize ?? 10,
             fetchCovers: data.fetchCovers ?? true,
@@ -227,8 +227,8 @@ const MetadataManagement = () => {
       const data = await res.json();
       setConfig((prev) => ({
         ...prev,
-        hasHardcoverKey: data.hasHardcoverKey ?? prev.hasHardcoverKey,
-        hasGoogleBooksKey: data.hasGoogleBooksKey ?? prev.hasGoogleBooksKey,
+        hasHardcoverApiKey: data.hasHardcoverApiKey ?? prev.hasHardcoverApiKey,
+        hasGoogleBooksApiKey: data.hasGoogleBooksApiKey ?? prev.hasGoogleBooksApiKey,
       }));
       setHardcoverKey('');
       setGoogleBooksKey('');
@@ -280,13 +280,13 @@ const MetadataManagement = () => {
     }
   };
 
-  const handleEnrich = async (mode) => {
+  const handleEnrich = async (jobType) => {
     if (isEnriching) return;
     setIsEnriching(true);
     setProgress(null);
 
     try {
-      const payload = { mode, organizationId: selectedSchool || undefined };
+      const payload = { jobType, organizationId: selectedSchool || undefined };
       const res = await fetchWithAuth('/api/metadata/enrich', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -446,7 +446,7 @@ const MetadataManagement = () => {
           type="password"
           value={hardcoverKey}
           onChange={(e) => setHardcoverKey(e.target.value)}
-          placeholder={config.hasHardcoverKey ? 'Key configured — enter new key to replace' : 'Enter API key'}
+          placeholder={config.hasHardcoverApiKey ? 'Key configured — enter new key to replace' : 'Enter API key'}
           helperText="Stored encrypted. Leave blank to keep existing key."
           sx={{ mb: 2 }}
           autoComplete="new-password"
@@ -458,7 +458,7 @@ const MetadataManagement = () => {
           type="password"
           value={googleBooksKey}
           onChange={(e) => setGoogleBooksKey(e.target.value)}
-          placeholder={config.hasGoogleBooksKey ? 'Key configured — enter new key to replace' : 'Enter API key'}
+          placeholder={config.hasGoogleBooksApiKey ? 'Key configured — enter new key to replace' : 'Enter API key'}
           helperText="Stored encrypted. Leave blank to keep existing key."
           sx={{ mb: 3 }}
           autoComplete="new-password"
@@ -577,7 +577,7 @@ const MetadataManagement = () => {
           <Button
             variant="contained"
             startIcon={isEnriching ? <CircularProgress size={18} color="inherit" /> : <PlayArrowIcon />}
-            onClick={() => handleEnrich('fill')}
+            onClick={() => handleEnrich('fill_missing')}
             disabled={isEnriching}
             sx={{
               textTransform: 'none',
@@ -591,7 +591,7 @@ const MetadataManagement = () => {
           <Button
             variant="outlined"
             startIcon={isEnriching ? <CircularProgress size={18} color="primary" /> : <RefreshIcon />}
-            onClick={() => handleEnrich('refresh')}
+            onClick={() => handleEnrich('refresh_all')}
             disabled={isEnriching}
             sx={{
               textTransform: 'none',
@@ -738,17 +738,17 @@ const MetadataManagement = () => {
                       <TableCell
                         sx={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.8rem', color: 'text.secondary' }}
                       >
-                        {formatDate(job.createdAt || job.startedAt)}
+                        {formatDate(job.createdAt)}
                       </TableCell>
                       <TableCell
                         sx={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.85rem' }}
                       >
-                        {job.organizationName || job.organizationId || 'All schools'}
+                        {job.organizationId || 'All schools'}
                       </TableCell>
                       <TableCell
                         sx={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.85rem', textTransform: 'capitalize' }}
                       >
-                        {job.mode || '—'}
+                        {job.jobType || '—'}
                       </TableCell>
                       <TableCell>
                         <Chip

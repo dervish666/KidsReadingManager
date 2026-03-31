@@ -40,7 +40,10 @@ export async function fetchMetadata(book) {
       TIMEOUT,
     );
 
-    if (!searchRes.ok) return empty;
+    if (!searchRes.ok) {
+      if (searchRes.status === 429) return { ...empty, rateLimited: true };
+      return empty;
+    }
     const searchData = await searchRes.json();
     const doc = searchData.docs?.[0];
     if (!doc) return empty;

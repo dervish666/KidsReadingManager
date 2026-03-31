@@ -41,13 +41,13 @@ const SettingsPage = () => {
       { label: 'Application Settings', icon: <SettingsIcon />, component: <Settings /> },
       { label: 'Data Management', icon: <StorageIcon />, component: <DataManagement /> },
       { label: 'AI Integration', icon: <SmartToyIcon />, component: <AISettings /> },
-      {
+    ];
+    if (canManageUsers) {
+      allTabs.push({
         label: 'Book Metadata',
         icon: <MenuBookIcon />,
         component: isOwner ? <MetadataManagement /> : <BookMetadataSettings />,
-      },
-    ];
-    if (canManageUsers) {
+      });
       allTabs.push({
         label: 'User Management',
         icon: <PeopleIcon />,
