@@ -501,3 +501,48 @@ files:
     imports:
       - from: utils/wondeApi
         items: [fetchAllStudents, fetchAllClasses, fetchAllEmployees, fetchDeletions]
+
+  services/metadataService.js:
+    description: Cascade engine for multi-provider book metadata enrichment
+    exports:
+      - name: enrichBook
+        kind: function
+        params: [{name: book, type: "{id, title, author?, isbn?}"}, {name: config, type: "{providerChain, hardcoverApiKey?, googleBooksApiKey?, fetchCovers}"}]
+        returns: "Promise<{merged, log, rateLimited}>"
+        description: Enrich a single book by calling providers in cascade order, merging best-of results per field
+      - name: processBatch
+        kind: function
+        params: [{name: books}, {name: config}, {name: options, type: "{onBookResult, delayMs?}"}]
+        returns: "Promise<{processedBooks, enrichedBooks, errorCount, rateLimitedProviders, lastBookId}>"
+        description: Process a batch of books with rate-limit adaptation and wall-clock safety cutoff
+    imports:
+      - from: services/providers/openLibraryProvider
+        items: [fetchMetadata]
+      - from: services/providers/googleBooksProvider
+        items: [fetchMetadata]
+      - from: services/providers/hardcoverProvider
+        items: [fetchMetadata]
+
+  services/providers/openLibraryProvider.js:
+    description: OpenLibrary server-side adapter — Search API + Works API for descriptions
+    exports:
+      - name: fetchMetadata
+        kind: function
+        params: [{name: book, type: "{title, author?, isbn?}"}]
+        returns: "Promise<{author, description, genres, isbn, pageCount, publicationYear, seriesName, seriesNumber, coverUrl}>"
+
+  services/providers/googleBooksProvider.js:
+    description: Google Books server-side adapter — requires API key
+    exports:
+      - name: fetchMetadata
+        kind: function
+        params: [{name: book, type: "{title, author?, isbn?}"}, {name: apiKey, type: "string|null"}]
+        returns: "Promise<{author, description, genres, isbn, pageCount, publicationYear, seriesName, seriesNumber, coverUrl, rateLimited?}>"
+
+  services/providers/hardcoverProvider.js:
+    description: Hardcover GraphQL server-side adapter — best for series data, requires API key
+    exports:
+      - name: fetchMetadata
+        kind: function
+        params: [{name: book, type: "{title, author?, isbn?}"}, {name: apiKey, type: "string|null"}]
+        returns: "Promise<{author, description, genres, isbn, pageCount, publicationYear, seriesName, seriesNumber, coverUrl, rateLimited?}>"

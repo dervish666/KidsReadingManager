@@ -55,6 +55,7 @@ src/routes/wondeAdmin.js - POST/GET manual Wonde sync and status
 src/routes/support.js - Support ticket submission, listing, detail, status management, internal notes (owner management endpoints)
 src/routes/termDates.js - GET/PUT term dates per organization and academic year
 src/routes/tours.js - GET/POST tour completion tracking per user
+src/routes/metadata.js - GET/PUT metadata config, GET status, GET/DELETE jobs, POST enrich
 
 <!-- Middleware -->
 src/middleware/tenant.js - JWT auth, tenant isolation, role guards, audit logging, rate limiting
@@ -71,6 +72,10 @@ src/data/jsonProvider.js - File-based JSON storage (dev only)
 src/services/aiService.js - AI recommendation generation (Anthropic/OpenAI/Google)
 src/services/kvService.js - KV storage operations (legacy)
 src/services/wondeSync.js - Wonde delta/full sync orchestration
+src/services/metadataService.js - Cascade engine (enrichBook, processBatch) for multi-provider metadata enrichment
+src/services/providers/openLibraryProvider.js - OpenLibrary server-side adapter (no API key)
+src/services/providers/googleBooksProvider.js - Google Books server-side adapter (requires API key)
+src/services/providers/hardcoverProvider.js - Hardcover GraphQL server-side adapter (requires API key, best series data)
 
 <!-- Utilities -->
 src/utils/crypto.js - PBKDF2 hashing, JWT, AES-GCM encryption, role constants
@@ -118,7 +123,8 @@ src/components/PrivacyPolicy.js - Privacy Policy standalone page
 src/components/BookRecommendations.js - AI recommendations with library search
 src/components/SupportModal.js - Support contact form modal (subject, message, email notification)
 src/components/SupportTicketManager.js - Owner-only support ticket list with detail panel, status management, internal notes
-src/components/BookMetadataSettings.js - Metadata provider config and bulk ops
+src/components/BookMetadataSettings.js - Simplified admin view: enrichment status + Fill Missing
+src/components/MetadataManagement.js - Owner metadata config, global enrichment, job history
 src/components/Settings.js - Reading status thresholds and streak settings
 src/components/SettingsPage.js - Settings hub with tabs
 src/components/AISettings.js - AI provider configuration

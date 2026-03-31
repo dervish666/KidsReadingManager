@@ -10,44 +10,7 @@ import {
 import { validateSettings } from '../utils/validation';
 import { badRequestError } from '../middleware/errorHandler';
 import { auditLog, requireReadonly, requireAdmin } from '../middleware/tenant';
-import { permissions, encryptSensitiveData, decryptSensitiveData } from '../utils/crypto';
-
-// Keys within bookMetadata that contain secrets and must be encrypted at rest
-const BOOK_METADATA_SECRET_KEYS = ['hardcoverApiKey', 'googleBooksApiKey'];
-
-/**
- * Encrypt API key fields within a bookMetadata object before storing.
- * Non-secret fields are left untouched.
- */
-async function encryptBookMetadataKeys(bookMetadata, jwtSecret) {
-  if (!bookMetadata || typeof bookMetadata !== 'object') return bookMetadata;
-  const result = { ...bookMetadata };
-  for (const key of BOOK_METADATA_SECRET_KEYS) {
-    if (result[key] && typeof result[key] === 'string' && result[key].trim()) {
-      result[key] = await encryptSensitiveData(result[key], jwtSecret);
-    }
-  }
-  return result;
-}
-
-/**
- * Decrypt API key fields within a bookMetadata object after reading.
- * Gracefully handles plaintext values (pre-encryption migration).
- */
-async function decryptBookMetadataKeys(bookMetadata, jwtSecret) {
-  if (!bookMetadata || typeof bookMetadata !== 'object') return bookMetadata;
-  const result = { ...bookMetadata };
-  for (const key of BOOK_METADATA_SECRET_KEYS) {
-    if (result[key] && typeof result[key] === 'string') {
-      try {
-        result[key] = await decryptSensitiveData(result[key], jwtSecret);
-      } catch {
-        // Value is still plaintext (pre-migration) — use as-is
-      }
-    }
-  }
-  return result;
-}
+import { permissions, encryptSensitiveData } from '../utils/crypto';
 
 import { getDB, isMultiTenantMode } from '../utils/routeHelpers';
 
@@ -90,20 +53,6 @@ settingsRouter.get('/', requireReadonly(), async (c) => {
       }
     }
 
-    // Decrypt API keys in bookMetadata and redact server-only keys
-    if (settings.bookMetadata) {
-      const jwtSecret = c.env.JWT_SECRET;
-      if (jwtSecret) {
-        settings.bookMetadata = await decryptBookMetadataKeys(settings.bookMetadata, jwtSecret);
-      }
-      // API keys are only used server-side. Replace with boolean flags
-      // so they're never exposed to clients.
-      settings.bookMetadata.hasHardcoverApiKey = Boolean(settings.bookMetadata.hardcoverApiKey);
-      delete settings.bookMetadata.hardcoverApiKey;
-      settings.bookMetadata.hasGoogleBooksApiKey = Boolean(settings.bookMetadata.googleBooksApiKey);
-      delete settings.bookMetadata.googleBooksApiKey;
-    }
-
     return c.json(settings);
   }
 
@@ -144,7 +93,6 @@ settingsRouter.post('/', requireAdmin(), auditLog('update', 'settings'), async (
       'academicYear',
       'defaultReadingLevel',
       'schoolName',
-      'bookMetadata',
       'streakGracePeriodDays'
     ];
     
@@ -154,38 +102,7 @@ settingsRouter.post('/', requireAdmin(), auditLog('update', 'settings'), async (
         continue;
       }
 
-      let processedValue = value;
-
-      // Encrypt API keys within bookMetadata before storing
-      if (key === 'bookMetadata' && typeof value === 'object') {
-        const jwtSecret = c.env.JWT_SECRET;
-        if (jwtSecret) {
-          // If API keys are absent but were previously stored, preserve them
-          const needsPreserve = (!value.hardcoverApiKey && value.hasHardcoverApiKey) ||
-                                (!value.googleBooksApiKey && value.hasGoogleBooksApiKey);
-          if (needsPreserve) {
-            const existing = await db.prepare(
-              `SELECT setting_value FROM org_settings WHERE organization_id = ? AND setting_key = 'bookMetadata'`
-            ).bind(organizationId).first();
-            if (existing) {
-              try {
-                const existingMeta = JSON.parse(existing.setting_value);
-                if (!value.hardcoverApiKey && value.hasHardcoverApiKey) {
-                  value.hardcoverApiKey = existingMeta.hardcoverApiKey || '';
-                }
-                if (!value.googleBooksApiKey && value.hasGoogleBooksApiKey) {
-                  value.googleBooksApiKey = existingMeta.googleBooksApiKey || '';
-                }
-              } catch { /* ignore */ }
-            }
-          }
-          delete value.hasHardcoverApiKey;
-          delete value.hasGoogleBooksApiKey;
-          processedValue = await encryptBookMetadataKeys(value, jwtSecret);
-        }
-      }
-
-      const settingValue = typeof processedValue === 'object' ? JSON.stringify(processedValue) : String(processedValue);
+      const settingValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
       updates.push({ key, value: settingValue });
     }
     
@@ -225,18 +142,6 @@ settingsRouter.post('/', requireAdmin(), auditLog('update', 'settings'), async (
       } catch {
         settings[row.setting_key] = row.setting_value;
       }
-    }
-
-    // Decrypt and redact bookMetadata keys in response (same as GET)
-    if (settings.bookMetadata) {
-      const jwtSecret2 = c.env.JWT_SECRET;
-      if (jwtSecret2) {
-        settings.bookMetadata = await decryptBookMetadataKeys(settings.bookMetadata, jwtSecret2);
-      }
-      settings.bookMetadata.hasHardcoverApiKey = Boolean(settings.bookMetadata.hardcoverApiKey);
-      delete settings.bookMetadata.hardcoverApiKey;
-      settings.bookMetadata.hasGoogleBooksApiKey = Boolean(settings.bookMetadata.googleBooksApiKey);
-      delete settings.bookMetadata.googleBooksApiKey;
     }
 
     return c.json(settings);
