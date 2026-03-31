@@ -155,6 +155,24 @@ billingRouter.post('/setup', requireAdmin(), async (c) => {
 });
 
 /**
+ * GET /api/billing/subscription-status
+ * Lightweight subscription status check for all authenticated users.
+ * No role restriction — used by frontend to detect subscription blocks proactively.
+ * Exempt from subscription gate (falls under /api/billing/* prefix).
+ */
+billingRouter.get('/subscription-status', async (c) => {
+  const db = c.env.READING_MANAGER_DB;
+  const organizationId = c.get('organizationId');
+
+  const org = await db
+    .prepare('SELECT subscription_status FROM organizations WHERE id = ?')
+    .bind(organizationId)
+    .first();
+
+  return c.json({ status: org?.subscription_status || 'none' });
+});
+
+/**
  * GET /api/billing/status
  * Returns current billing status for the organization.
  * Requires: admin role (teachers don't need billing details)
