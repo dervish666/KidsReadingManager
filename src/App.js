@@ -14,6 +14,7 @@ import Login from './components/Login';
 import LandingPage from './components/LandingPage';
 import DpaConsentModal from './components/DpaConsentModal';
 import BillingBanner from './components/BillingBanner';
+import SubscriptionBlockedScreen from './components/SubscriptionBlockedScreen';
 import ClassAssignmentBanner from './components/ClassAssignmentBanner';
 import WelcomeDialog from './components/WelcomeDialog';
 
@@ -94,7 +95,7 @@ const BookshelfBorder = ({ side }) => (
 );
 
 function AppContent() {
-  const { isAuthenticated, userRole } = useAuth();
+  const { isAuthenticated, userRole, subscriptionBlock } = useAuth();
   const [currentTab, setCurrentTab] = useState(0);
   // Auto-show login page when returning from SSO (auth=callback or auth=error)
   const [showLogin, setShowLogin] = useState(() => {
@@ -216,6 +217,10 @@ function AppContent() {
       return <Login onBackToLanding={() => setShowLogin(false)} />;
     }
     return <LandingPage onSignIn={() => setShowLogin(true)} />;
+  }
+
+  if (subscriptionBlock === 'cancelled') {
+    return <SubscriptionBlockedScreen />;
   }
 
   return (
