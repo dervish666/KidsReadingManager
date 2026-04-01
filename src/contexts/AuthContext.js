@@ -182,10 +182,17 @@ export const AuthProvider = ({ children }) => {
               /* ignore */
             }
             if (data.user) {
-              setUser(data.user);
+              // Merge organization info into user object
+              const userWithOrg = {
+                ...data.user,
+                organizationId: data.organization?.id || data.user.organizationId,
+                organizationName: data.organization?.name || data.user.organizationName,
+                organizationSlug: data.organization?.slug || data.user.organizationSlug,
+              };
+              setUser(userWithOrg);
               try {
                 if (typeof window !== 'undefined') {
-                  window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(data.user));
+                  window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userWithOrg));
                 }
               } catch {
                 /* ignore */
@@ -431,13 +438,23 @@ export const AuthProvider = ({ children }) => {
         throw new Error('No access token returned from server');
       }
 
+      // Merge organization info into user object
+      const userWithOrg = data.user
+        ? {
+            ...data.user,
+            organizationId: data.organization?.id || data.user.organizationId,
+            organizationName: data.organization?.name || data.user.organizationName,
+            organizationSlug: data.organization?.slug || data.user.organizationSlug,
+          }
+        : null;
+
       // Store tokens and user info
       try {
         if (typeof window !== 'undefined') {
           window.localStorage.setItem(AUTH_STORAGE_KEY, data.accessToken);
           window.localStorage.setItem(AUTH_MODE_KEY, 'multitenant');
-          if (data.user) {
-            window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(data.user));
+          if (userWithOrg) {
+            window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userWithOrg));
           }
         }
       } catch (storageErr) {
@@ -445,11 +462,11 @@ export const AuthProvider = ({ children }) => {
       }
 
       setAuthToken(data.accessToken);
-      setUser(data.user || null);
+      setUser(userWithOrg);
       setAuthMode('multitenant');
       setApiError(null);
 
-      return data.user;
+      return userWithOrg;
     } catch (err) {
       setApiError(err.message || 'Login failed');
       throw err;
@@ -484,13 +501,23 @@ export const AuthProvider = ({ children }) => {
         throw new Error('No access token returned from server');
       }
 
+      // Merge organization info into user object
+      const userWithOrg = data.user
+        ? {
+            ...data.user,
+            organizationId: data.organization?.id || data.user.organizationId,
+            organizationName: data.organization?.name || data.user.organizationName,
+            organizationSlug: data.organization?.slug || data.user.organizationSlug,
+          }
+        : null;
+
       // Store tokens and user info
       try {
         if (typeof window !== 'undefined') {
           window.localStorage.setItem(AUTH_STORAGE_KEY, data.accessToken);
           window.localStorage.setItem(AUTH_MODE_KEY, 'multitenant');
-          if (data.user) {
-            window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(data.user));
+          if (userWithOrg) {
+            window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userWithOrg));
           }
         }
       } catch (storageErr) {
@@ -498,11 +525,11 @@ export const AuthProvider = ({ children }) => {
       }
 
       setAuthToken(data.accessToken);
-      setUser(data.user || null);
+      setUser(userWithOrg);
       setAuthMode('multitenant');
       setApiError(null);
 
-      return data.user;
+      return userWithOrg;
     } catch (err) {
       setApiError(err.message || 'Registration failed');
       throw err;
