@@ -18,35 +18,24 @@ import {
   Chip,
   Alert,
   Snackbar,
-  CircularProgress,
   Pagination,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  Checkbox,
   InputAdornment,
-  Menu,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
 import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
-import DownloadIcon from '@mui/icons-material/Download';
-import UploadIcon from '@mui/icons-material/Upload';
-import InfoIcon from '@mui/icons-material/Info';
 import SearchIcon from '@mui/icons-material/Search';
-import ImportExportIcon from '@mui/icons-material/ImportExport';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
-import {
-  getBookDetails,
-  findGenresForBook,
-  checkAvailability,
-  getProviderDisplayName,
-  validateProviderConfig
-} from '../../utils/bookMetadataApi';
+import { parseCSV, isDuplicateBook } from './bookImportUtils';
 import BookImportWizard from './BookImportWizard';
+import BookExportMenu from './BookExportMenu';
+import BookEditDialog from './BookEditDialog';
 import ScanBookFlow from './ScanBookFlow';
 import BookCover from '../BookCover';
 
@@ -75,14 +64,6 @@ const BookManager = () => {
   const [newBookReadingLevel, setNewBookReadingLevel] = useState('');
   const [newBookAgeRange, setNewBookAgeRange] = useState('');
   const [editingBook, setEditingBook] = useState(null);
-  const [editBookTitle, setEditBookTitle] = useState('');
-  const [editBookAuthor, setEditBookAuthor] = useState('');
-  const [editBookReadingLevel, setEditBookReadingLevel] = useState('');
-  const [editBookAgeRange, setEditBookAgeRange] = useState('');
-  const [editBookDescription, setEditBookDescription] = useState('');
-  const [editBookGenreIds, setEditBookGenreIds] = useState([]);
-  const [isFetchingDetails, setIsFetchingDetails] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [confirmImport, setConfirmImport] = useState({ open: false, file: null, data: null });
   const [error, setError] = useState('');
@@ -96,7 +77,6 @@ const BookManager = () => {
   const [readingLevelFilter, setReadingLevelFilter] = useState('');
   const [levelRangeFilter, setLevelRangeFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [importExportMenuAnchor, setImportExportMenuAnchor] = useState(null);
   const [showImportWizard, setShowImportWizard] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
 
@@ -130,170 +110,6 @@ const BookManager = () => {
 
   const handleEditClick = (book) => {
     setEditingBook(book);
-    setEditBookTitle(book.title || '');
-    setEditBookAuthor(book.author || '');
-    setEditBookReadingLevel(book.readingLevel || '');
-    setEditBookAgeRange(book.ageRange || '');
-    setEditBookDescription(book.description || '');
-
-    setEditBookGenreIds(book.genreIds || []);
-    setError('');
-  };
-
-  const handleFetchBookDetails = async () => {
-    if (!editBookTitle.trim()) {
-      setSnackbar({
-        open: true,
-        message: 'Please enter a book title first',
-        severity: 'warning'
-      });
-      return;
-    }
-
-    // Validate provider configuration
-    const configValidation = validateProviderConfig(settings);
-    if (!configValidation.valid) {
-      setSnackbar({
-        open: true,
-        message: configValidation.error,
-        severity: 'error'
-      });
-      return;
-    }
-
-    setIsFetchingDetails(true);
-    const providerName = getProviderDisplayName(settings);
-    
-    // Check provider availability first with a quick timeout
-    const isAvailable = await checkAvailability(settings, 3000);
-    if (!isAvailable) {
-      setIsFetchingDetails(false);
-      setSnackbar({
-        open: true,
-        message: `${providerName} is currently unavailable. Please try again later.`,
-        severity: 'error'
-      });
-      return;
-    }
-    
-    try {
-      // Fetch book details (cover and description)
-      const details = await getBookDetails(editBookTitle, editBookAuthor || null, settings);
-
-      let foundCover = false;
-      let foundDescription = false;
-      let foundGenres = false;
-
-      if (details) {
-        if (details.coverUrl) {
-
-          foundCover = true;
-        }
-        if (details.description) {
-          setEditBookDescription(details.description);
-          foundDescription = true;
-        }
-      }
-
-      // Also fetch genres
-      try {
-        const genresResult = await findGenresForBook(editBookTitle, editBookAuthor || null, settings);
-        if (genresResult && genresResult.length > 0) {
-          // Create a map of genre name to ID
-          const genreNameToId = {};
-          for (const genre of genres) {
-            genreNameToId[genre.name.toLowerCase()] = genre.id;
-          }
-
-          // Map found genres to existing genre IDs (case-insensitive)
-          const matchedGenreIds = genresResult
-            .map(genreName => genreNameToId[genreName.toLowerCase()])
-            .filter(id => id);
-
-          if (matchedGenreIds.length > 0) {
-            // Merge with existing genres (avoid duplicates)
-            const updatedGenreIds = [...new Set([...editBookGenreIds, ...matchedGenreIds])];
-            setEditBookGenreIds(updatedGenreIds);
-            foundGenres = true;
-          }
-        }
-      } catch (genreError) {
-        // Don't fail the whole operation if genres fail
-      }
-
-      // Build success message
-      if (foundCover || foundDescription || foundGenres) {
-        const parts = [];
-        if (foundCover) parts.push('cover');
-        if (foundDescription) parts.push('description');
-        if (foundGenres) parts.push('genres');
-
-        setSnackbar({
-          open: true,
-          message: `Loaded ${parts.join(', ')} from ${providerName}`,
-          severity: 'success'
-        });
-      } else {
-        setSnackbar({
-          open: true,
-          message: `No details found for this book on ${providerName}`,
-          severity: 'warning'
-        });
-      }
-    } catch (error) {
-      setSnackbar({
-        open: true,
-        message: `Failed to fetch details: ${error.message}`,
-        severity: 'error'
-      });
-    } finally {
-      setIsFetchingDetails(false);
-    }
-  };
-
-  const handleUpdateBook = async (e) => {
-    e.preventDefault();
-    if (!editingBook) return;
-    if (!editBookTitle.trim()) {
-      setError('Please enter a book title.');
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      // Use authenticated helper for consistency with protected API
-      const response = await fetchWithAuth(`/api/books/${editingBook.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: editBookTitle.trim(),
-          author: editBookAuthor.trim() || null,
-          readingLevel: editBookReadingLevel.trim() || null,
-          ageRange: editBookAgeRange.trim() || null,
-          description: editBookDescription.trim() || null,
-          genreIds: editBookGenreIds,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      await reloadDataFromServer();
-      setEditingBook(null);
-      setEditBookTitle('');
-      setEditBookAuthor('');
-      setEditBookReadingLevel('');
-      setEditBookAgeRange('');
-      setEditBookDescription('');
-
-      setEditBookGenreIds([]);
-      setError('');
-    } catch (error) {
-      setError('Failed to update book');
-    } finally {
-      setIsSaving(false);
-    }
   };
 
   const handleDeleteClick = (book) => {
@@ -316,68 +132,6 @@ const BookManager = () => {
   };
 
   const handleCancelDelete = () => setConfirmDelete(null);
-
-  // Export functions
-  const handleExportJSON = () => {
-    try {
-      const dataStr = JSON.stringify(books, null, 2);
-      const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-
-      const exportFileDefaultName = `books_export_${new Date().toISOString().split('T')[0]}.json`;
-
-      const linkElement = document.createElement('a');
-      linkElement.setAttribute('href', dataUri);
-      linkElement.setAttribute('download', exportFileDefaultName);
-      linkElement.click();
-
-      setSnackbar({
-        open: true,
-        message: 'Books exported successfully',
-        severity: 'success'
-      });
-    } catch (error) {
-      setSnackbar({
-        open: true,
-        message: 'Export failed',
-        severity: 'error'
-      });
-    }
-  };
-
-  const handleExportCSV = () => {
-    try {
-      const headers = ['Title', 'Author', 'Reading Level', 'Age Range'];
-      const csvContent = [
-        headers.join(','),
-        ...books.map(book => [
-          `"${(book.title || '').replace(/"/g, '""')}"`,
-          `"${(book.author || '').replace(/"/g, '""')}"`,
-          `"${(book.readingLevel || '').replace(/"/g, '""')}"`,
-          `"${(book.ageRange || '').replace(/"/g, '""')}"`
-        ].join(','))
-      ].join('\n');
-
-      const dataUri = 'data:text/csv;charset=utf-8,'+ encodeURIComponent(csvContent);
-      const exportFileDefaultName = `books_export_${new Date().toISOString().split('T')[0]}.csv`;
-
-      const linkElement = document.createElement('a');
-      linkElement.setAttribute('href', dataUri);
-      linkElement.setAttribute('download', exportFileDefaultName);
-      linkElement.click();
-
-      setSnackbar({
-        open: true,
-        message: 'Books exported successfully',
-        severity: 'success'
-      });
-    } catch (error) {
-      setSnackbar({
-        open: true,
-        message: 'Export failed',
-        severity: 'error'
-      });
-    }
-  };
 
   // Import functions
   const handleImportClick = () => {
@@ -420,66 +174,6 @@ const BookManager = () => {
     reader.readAsText(file);
   };
 
-  const parseCSV = (csvText) => {
-    const lines = csvText.split('\n').filter(line => line.trim());
-    if (lines.length < 2) throw new Error('CSV file must have at least a header row and one data row');
-
-    const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
-    const expectedHeaders = ['Title', 'Author', 'Reading Level', 'Age Range'];
-
-    // Check if headers match expected format
-    const headerMatches = expectedHeaders.every(expected =>
-      headers.some(header => header.toLowerCase() === expected.toLowerCase())
-    );
-
-    if (!headerMatches) {
-      throw new Error('CSV headers must include: Title, Author, Reading Level, Age Range');
-    }
-
-    const books = [];
-    for (let i = 1; i < lines.length; i++) {
-      const values = parseCSVLine(lines[i]);
-      if (values.length >= 4) {
-        books.push({
-          title: values[0]?.trim() || '',
-          author: values[1]?.trim() || null,
-          readingLevel: values[2]?.trim() || null,
-          ageRange: values[3]?.trim() || null
-        });
-      }
-    }
-
-    if (books.length === 0) throw new Error('No valid books found in CSV file');
-
-    return books;
-  };
-
-  const parseCSVLine = (line) => {
-    const result = [];
-    let current = '';
-    let inQuotes = false;
-
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-      if (char === '"') {
-        if (inQuotes && line[i + 1] === '"') {
-          current += '"';
-          i++; // skip next quote
-        } else {
-          inQuotes = !inQuotes;
-        }
-      } else if (char === ',' && !inQuotes) {
-        result.push(current);
-        current = '';
-      } else {
-        current += char;
-      }
-    }
-
-    result.push(current);
-    return result;
-  };
-
   const handleImportConfirm = async () => {
     const { data } = confirmImport;
     let importedBooks = [];
@@ -512,7 +206,7 @@ const BookManager = () => {
       }
 
       const result = await response.json();
-      
+
       await reloadDataFromServer();
       setConfirmImport({ open: false, file: null, data: null });
 
@@ -542,48 +236,6 @@ const BookManager = () => {
 
   const handleCancelImport = () => {
     setConfirmImport({ open: false, file: null, data: null });
-  };
-
-  const handleCancelEdit = () => {
-    setEditingBook(null);
-    setEditBookTitle('');
-    setEditBookAuthor('');
-    setEditBookReadingLevel('');
-    setEditBookAgeRange('');
-    setEditBookDescription('');
-    setEditBookGenreIds([]);
-    setError('');
-  };
-
-  // Duplicate detection helper function
-  const isDuplicateBook = (newBook, existingBooks) => {
-    const normalizeTitle = (title) => {
-      return title.toLowerCase().trim().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ');
-    };
-
-    const normalizeAuthor = (author) => {
-      if (!author) return '';
-      return author.toLowerCase().trim().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ');
-    };
-
-    const newTitle = normalizeTitle(newBook.title || '');
-    const newAuthor = normalizeAuthor(newBook.author || '');
-
-    return existingBooks.some(existingBook => {
-      const existingTitle = normalizeTitle(existingBook.title || '');
-      const existingAuthor = normalizeAuthor(existingBook.author || '');
-
-      // Check for exact title match
-      if (newTitle === existingTitle) {
-        // If both have authors, they must match
-        if (newAuthor && existingAuthor) {
-          return newAuthor === existingAuthor;
-        }
-        // If one has no author, consider it a duplicate (same title)
-        return true;
-      }
-      return false;
-    });
   };
 
   // Pagination helper functions
@@ -771,49 +423,12 @@ const BookManager = () => {
               </Button>
 
               {/* Import/Export Button with Menu */}
-              <Button
-                variant="outlined"
-                startIcon={<ImportExportIcon />}
-                onClick={(e) => setImportExportMenuAnchor(e.currentTarget)}
-                size="small"
-              >
-                Import/Export
-              </Button>
-              <Menu
-                anchorEl={importExportMenuAnchor}
-                open={Boolean(importExportMenuAnchor)}
-                onClose={() => setImportExportMenuAnchor(null)}
-              >
-                <MenuItem
-                  onClick={() => {
-                    setImportExportMenuAnchor(null);
-                    setShowImportWizard(true);
-                  }}
-                >
-                  <UploadIcon fontSize="small" sx={{ mr: 1 }} />
-                  Import Books
-                </MenuItem>
-                <MenuItem
-                  onClick={() => {
-                    setImportExportMenuAnchor(null);
-                    handleExportJSON();
-                  }}
-                  disabled={books.length === 0}
-                >
-                  <DownloadIcon fontSize="small" sx={{ mr: 1 }} />
-                  Export JSON
-                </MenuItem>
-                <MenuItem
-                  onClick={() => {
-                    setImportExportMenuAnchor(null);
-                    handleExportCSV();
-                  }}
-                  disabled={books.length === 0}
-                >
-                  <DownloadIcon fontSize="small" sx={{ mr: 1 }} />
-                  Export CSV
-                </MenuItem>
-              </Menu>
+              <BookExportMenu
+                books={books}
+                genres={genres}
+                onImportClick={() => setShowImportWizard(true)}
+                onSnackbar={setSnackbar}
+              />
             </Box>
           </Box>
 
@@ -845,7 +460,7 @@ const BookManager = () => {
             <Typography variant="subtitle1">
               Existing Books ({(genreFilter || readingLevelFilter || searchQuery) ? `${filteredBooks.length} of ${books.length}` : books.length})
             </Typography>
-            
+
             {/* Search Box */}
             <TextField
               size="small"
@@ -862,7 +477,7 @@ const BookManager = () => {
                 ),
               }}
             />
-            
+
             {/* Genre Filter */}
             {genres.length > 0 && (
               <FormControl size="small" sx={{ minWidth: 150 }}>
@@ -879,7 +494,7 @@ const BookManager = () => {
                 </Select>
               </FormControl>
             )}
-            
+
             {/* Reading Level Filter */}
             {getUniqueReadingLevels().length > 0 && (
               <FormControl size="small" sx={{ minWidth: 150 }}>
@@ -896,7 +511,7 @@ const BookManager = () => {
                 </Select>
               </FormControl>
             )}
-            
+
             {/* Level Range Filter - only show when a level is selected */}
             {readingLevelFilter && (
               <FormControl size="small" sx={{ minWidth: 120 }}>
@@ -919,7 +534,7 @@ const BookManager = () => {
               </FormControl>
             )}
           </Box>
-          
+
           {books.length > 0 && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <FormControl size="small" sx={{ minWidth: 120 }}>
@@ -935,7 +550,7 @@ const BookManager = () => {
                   <MenuItem value={50}>50</MenuItem>
                 </Select>
               </FormControl>
-              
+
               <Typography variant="body2" color="text.secondary">
                 Showing {Math.min((currentPage - 1) * booksPerPage + 1, filteredBooks.length)}-{Math.min(currentPage * booksPerPage, filteredBooks.length)} of {filteredBooks.length}
               </Typography>
@@ -1045,7 +660,7 @@ const BookManager = () => {
                 </ListItem>
               ))}
             </List>
-            
+
             {filteredTotalPages > 1 && (
               <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
                 <Pagination
@@ -1063,171 +678,13 @@ const BookManager = () => {
       </Box>
 
       {/* Edit Book Dialog */}
-      <Dialog open={!!editingBook} onClose={handleCancelEdit} fullWidth maxWidth="md">
-        <DialogTitle>Edit Book</DialogTitle>
-        <DialogContent>
-          <Box component="form" onSubmit={handleUpdateBook} sx={{ mt: 1 }}>
-            {/* Cover, Description, and Genres Row */}
-            <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-              {/* Cover Image */}
-              <Box
-                sx={{
-                  flexShrink: 0,
-                  width: 140,
-                  display: 'flex',
-                  alignItems: 'flex-start'
-                }}
-              >
-                <BookCover title={editBookTitle} author={editBookAuthor} width={140} height={190} />
-              </Box>
-              
-              {/* Description beside cover */}
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <TextField
-                  label="Description"
-                  value={editBookDescription}
-                  onChange={(e) => setEditBookDescription(e.target.value)}
-                  fullWidth
-                  size="small"
-                  multiline
-                  rows={4}
-                  placeholder="Book description (can be fetched from OpenLibrary)"
-                />
-              </Box>
-              
-              {/* Genre Tags Section */}
-              <Box
-                sx={{
-                  flexShrink: 0,
-                  width: 200,
-                  display: 'flex',
-                  flexDirection: 'column'
-                }}
-              >
-                <Typography variant="caption" color="text.secondary" sx={{ mb: 1 }}>
-                  Genres
-                </Typography>
-                <Box
-                  sx={{
-                    flex: 1,
-                    border: '1px solid',
-                    borderColor: 'grey.300',
-                    borderRadius: 1,
-                    p: 1,
-                    minHeight: 100,
-                    maxHeight: 120,
-                    overflowY: 'auto',
-                    backgroundColor: 'grey.50'
-                  }}
-                >
-                  {/* Display selected genre chips */}
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
-                    {editBookGenreIds.map(genreId => {
-                      const genre = genres.find(g => g.id === genreId);
-                      return genre ? (
-                        <Chip
-                          key={genreId}
-                          label={genre.name}
-                          size="small"
-                          onDelete={() => setEditBookGenreIds(prev => prev.filter(id => id !== genreId))}
-                          sx={{ height: 24 }}
-                        />
-                      ) : null;
-                    })}
-                    {editBookGenreIds.length === 0 && (
-                      <Typography variant="caption" color="text.secondary">
-                        No genres selected
-                      </Typography>
-                    )}
-                  </Box>
-                </Box>
-                {/* Genre selector dropdown */}
-                <FormControl size="small" sx={{ mt: 1 }}>
-                  <InputLabel id="edit-genre-select-label">Add Genre</InputLabel>
-                  <Select
-                    labelId="edit-genre-select-label"
-                    value=""
-                    label="Add Genre"
-                    onChange={(e) => {
-                      const genreId = e.target.value;
-                      if (genreId && !editBookGenreIds.includes(genreId)) {
-                        setEditBookGenreIds(prev => [...prev, genreId]);
-                      }
-                    }}
-                  >
-                    {genres
-                      .filter(genre => !editBookGenreIds.includes(genre.id))
-                      .map(genre => (
-                        <MenuItem key={genre.id} value={genre.id}>
-                          {genre.name}
-                        </MenuItem>
-                      ))
-                    }
-                  </Select>
-                </FormControl>
-              </Box>
-            </Box>
-            
-            {/* Form Fields */}
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  label="Book Title"
-                  value={editBookTitle}
-                  onChange={(e) => setEditBookTitle(e.target.value)}
-                  fullWidth
-                  size="small"
-                  required
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  label="Author"
-                  value={editBookAuthor}
-                  onChange={(e) => setEditBookAuthor(e.target.value)}
-                  fullWidth
-                  size="small"
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Reading Level"
-                  value={editBookReadingLevel}
-                  onChange={(e) => setEditBookReadingLevel(e.target.value)}
-                  fullWidth
-                  size="small"
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Age Range"
-                  value={editBookAgeRange}
-                  onChange={(e) => setEditBookAgeRange(e.target.value)}
-                  fullWidth
-                  size="small"
-                  placeholder="e.g., 6-9"
-                />
-              </Grid>
-            </Grid>
-          </Box>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button
-            variant="outlined"
-            startIcon={isFetchingDetails ? <CircularProgress size={20} /> : <InfoIcon />}
-            onClick={handleFetchBookDetails}
-            disabled={isFetchingDetails || !editBookTitle.trim()}
-            size="small"
-          >
-            {isFetchingDetails ? 'Loading...' : 'Get Details'}
-          </Button>
-          <Box sx={{ flex: 1 }} />
-          <Button onClick={handleCancelEdit}>Cancel</Button>
-          <Button onClick={handleUpdateBook} variant="contained" color="primary" disabled={isSaving}>
-            {isSaving ? 'Saving...' : 'Save'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <BookEditDialog
+        book={editingBook}
+        onClose={() => setEditingBook(null)}
+        onSave={(message) => setSnackbar({ open: true, message, severity: 'success' })}
+        genres={genres}
+        settings={settings}
+      />
 
       {/* Delete Confirmation */}
       <Dialog open={!!confirmDelete} onClose={handleCancelDelete}>
@@ -1251,7 +708,7 @@ const BookManager = () => {
         <DialogContent>
           {(() => {
             if (!confirmImport.data) return null;
-            
+
             let importedBooks = [];
             if (Array.isArray(confirmImport.data)) {
               importedBooks = confirmImport.data;
@@ -1268,7 +725,7 @@ const BookManager = () => {
                 <DialogContentText sx={{ mb: 2 }}>
                   Import {validBooks.length} books from "{confirmImport.file?.name}"?
                 </DialogContentText>
-                
+
                 <Box sx={{ mb: 2 }}>
                   <Typography variant="body2" color="success.main">
                     • {newBooks} new books will be imported
