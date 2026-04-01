@@ -949,6 +949,9 @@ authRouter.put('/password', async (c) => {
     if (newPassword.length < 8) {
       return c.json({ error: 'New password must be at least 8 characters' }, 400);
     }
+    if (newPassword.length > 128) {
+      return c.json({ error: 'Password must be 128 characters or fewer' }, 400);
+    }
     if (!/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
       return c.json(
         {

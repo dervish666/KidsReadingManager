@@ -96,9 +96,8 @@ If you didn't request this, you can safely ignore this email.
     return await sendWithCloudflareEmail(env.EMAIL_SENDER, env.EMAIL_FROM || 'hello@tallyreading.uk', recipientEmail, subject, textBody, htmlBody);
   }
 
-  // No email provider configured - log available bindings for debugging
+  // No email provider configured
   console.warn('No email provider configured. Set RESEND_API_KEY or EMAIL_SENDER binding.');
-  console.warn('Available env keys:', Object.keys(env || {}).join(', '));
   return {
     success: false,
     error: 'Email service not configured'

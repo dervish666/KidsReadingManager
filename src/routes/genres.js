@@ -10,14 +10,13 @@ import {
 } from '../services/kvService';
 
 // Import utilities
-import { notFoundError, badRequestError, forbiddenError } from '../middleware/errorHandler';
-import { permissions } from '../utils/crypto';
+import { notFoundError, badRequestError } from '../middleware/errorHandler';
 import { getDB, isMultiTenantMode } from '../utils/routeHelpers';
 import { validateGenre } from '../utils/validation';
 import { rowToGenre } from '../utils/rowMappers';
 
 // Import middleware
-import { requireReadonly, requireAdmin } from '../middleware/tenant.js';
+import { requireReadonly, requireOwner } from '../middleware/tenant.js';
 
 // Create router
 const genresRouter = new Hono();
@@ -86,7 +85,7 @@ genresRouter.get('/:id', requireReadonly(), async (c) => {
  *
  * Requires authentication (at least admin access)
  */
-genresRouter.post('/', requireAdmin(), async (c) => {
+genresRouter.post('/', requireOwner(), async (c) => {
   const body = await c.req.json();
 
   // Validate genre data
@@ -99,12 +98,6 @@ genresRouter.post('/', requireAdmin(), async (c) => {
   if (isMultiTenantMode(c)) {
     const db = getDB(c.env);
     
-    // Check permission - only admins can create genres
-    const userRole = c.get('userRole');
-    if (!permissions.canManageSettings(userRole)) {
-      throw forbiddenError();
-    }
-
     const genreId = generateId();
     
     // Check if genre name already exists
@@ -151,7 +144,7 @@ genresRouter.post('/', requireAdmin(), async (c) => {
  *
  * Requires authentication (at least admin access)
  */
-genresRouter.put('/:id', requireAdmin(), async (c) => {
+genresRouter.put('/:id', requireOwner(), async (c) => {
   const { id } = c.req.param();
   const body = await c.req.json();
 
@@ -165,12 +158,6 @@ genresRouter.put('/:id', requireAdmin(), async (c) => {
   if (isMultiTenantMode(c)) {
     const db = getDB(c.env);
     
-    // Check permission - only admins can update genres
-    const userRole = c.get('userRole');
-    if (!permissions.canManageSettings(userRole)) {
-      throw forbiddenError();
-    }
-
     // Check if genre exists
     const existing = await db.prepare(`
       SELECT * FROM genres WHERE id = ?
@@ -228,19 +215,13 @@ genresRouter.put('/:id', requireAdmin(), async (c) => {
  *
  * Requires authentication (at least admin access)
  */
-genresRouter.delete('/:id', requireAdmin(), async (c) => {
+genresRouter.delete('/:id', requireOwner(), async (c) => {
   const { id } = c.req.param();
   
   // Multi-tenant mode: use D1
   if (isMultiTenantMode(c)) {
     const db = getDB(c.env);
     
-    // Check permission - only admins can delete genres
-    const userRole = c.get('userRole');
-    if (!permissions.canManageSettings(userRole)) {
-      throw forbiddenError();
-    }
-
     // Check if genre exists
     const existing = await db.prepare(`
       SELECT * FROM genres WHERE id = ?

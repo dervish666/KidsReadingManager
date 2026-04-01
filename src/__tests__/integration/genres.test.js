@@ -98,11 +98,11 @@ const createMockGenre = (overrides = {}) => ({
 const createUserContext = (overrides = {}) => ({
   userId: 'user-123',
   organizationId: 'org-456',
-  userRole: 'admin',
+  userRole: 'owner',
   user: {
     sub: 'user-123',
     org: 'org-456',
-    role: 'admin'
+    role: 'owner'
   },
   ...overrides
 });
@@ -354,24 +354,16 @@ describe('Genres API Routes', () => {
         expect(data.error).toBe('Forbidden');
       });
 
-      it('should allow requests from admins', async () => {
-        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'admin' }));
-
-        let callIndex = 0;
-        mockDB._chain.first.mockImplementation(() => {
-          callIndex++;
-          if (callIndex === 1) return Promise.resolve(null); // No existing genre with same name
-          return Promise.resolve(createMockGenre({ id: 'new-genre-id', name: 'New Genre' })); // Created genre
-        });
+      it('should reject requests from admins', async () => {
+        const { app } = createTestApp(createUserContext({ userRole: 'admin' }));
 
         const response = await makeRequest(app, 'POST', '/api/genres', {
-          name: 'New Genre',
-          description: 'A new custom genre'
+          name: 'New Genre'
         });
         const data = await response.json();
 
-        expect(response.status).toBe(201);
-        expect(data.name).toBe('New Genre');
+        expect(response.status).toBe(403);
+        expect(data.error).toBe('Forbidden');
       });
 
       it('should allow requests from owners', async () => {
@@ -396,7 +388,7 @@ describe('Genres API Routes', () => {
 
     describe('Input validation', () => {
       it('should reject missing genre name', async () => {
-        const { app } = createTestApp(createUserContext({ userRole: 'admin' }));
+        const { app } = createTestApp(createUserContext({ userRole: 'owner' }));
 
         const response = await makeRequest(app, 'POST', '/api/genres', {});
         const data = await response.json();
@@ -406,7 +398,7 @@ describe('Genres API Routes', () => {
       });
 
       it('should reject empty genre name', async () => {
-        const { app } = createTestApp(createUserContext({ userRole: 'admin' }));
+        const { app } = createTestApp(createUserContext({ userRole: 'owner' }));
 
         const response = await makeRequest(app, 'POST', '/api/genres', {
           name: ''
@@ -420,7 +412,7 @@ describe('Genres API Routes', () => {
 
     describe('Genre uniqueness validation', () => {
       it('should reject duplicate genre name (case insensitive)', async () => {
-        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'admin' }));
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'owner' }));
 
         // First query returns existing genre
         mockDB._chain.first.mockResolvedValue({ id: 'existing-genre' });
@@ -435,7 +427,7 @@ describe('Genres API Routes', () => {
       });
 
       it('should check for existing genre with case-insensitive comparison', async () => {
-        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'admin' }));
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'owner' }));
 
         mockDB._chain.first.mockResolvedValue({ id: 'existing-genre' });
 
@@ -448,7 +440,7 @@ describe('Genres API Routes', () => {
 
     describe('Genre creation', () => {
       it('should create genre with provided ID', async () => {
-        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'admin' }));
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'owner' }));
 
         let callIndex = 0;
         mockDB._chain.first.mockImplementation(() => {
@@ -468,7 +460,7 @@ describe('Genres API Routes', () => {
       });
 
       it('should generate ID if not provided', async () => {
-        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'admin' }));
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'owner' }));
 
         let callIndex = 0;
         mockDB._chain.first.mockImplementation(() => {
@@ -491,7 +483,7 @@ describe('Genres API Routes', () => {
       });
 
       it('should create genre with description', async () => {
-        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'admin' }));
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'owner' }));
 
         let callIndex = 0;
         mockDB._chain.first.mockImplementation(() => {
@@ -514,7 +506,7 @@ describe('Genres API Routes', () => {
       });
 
       it('should create genre without description', async () => {
-        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'admin' }));
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'owner' }));
 
         let callIndex = 0;
         mockDB._chain.first.mockImplementation(() => {
@@ -536,7 +528,7 @@ describe('Genres API Routes', () => {
       });
 
       it('should allow creating predefined genres (for system use)', async () => {
-        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'admin' }));
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'owner' }));
 
         let callIndex = 0;
         mockDB._chain.first.mockImplementation(() => {
@@ -559,7 +551,7 @@ describe('Genres API Routes', () => {
       });
 
       it('should default isPredefined to false', async () => {
-        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'admin' }));
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'owner' }));
 
         let callIndex = 0;
         mockDB._chain.first.mockImplementation(() => {
@@ -608,22 +600,16 @@ describe('Genres API Routes', () => {
         expect(data.error).toBe('Forbidden');
       });
 
-      it('should allow requests from admins', async () => {
-        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'admin' }));
-
-        let callIndex = 0;
-        mockDB._chain.first.mockImplementation(() => {
-          callIndex++;
-          if (callIndex === 1) return Promise.resolve(createMockGenre()); // Genre exists
-          if (callIndex === 2) return Promise.resolve(null); // No name conflict
-          return Promise.resolve(createMockGenre({ name: 'Updated Genre' })); // Updated genre
-        });
+      it('should reject requests from admins', async () => {
+        const { app } = createTestApp(createUserContext({ userRole: 'admin' }));
 
         const response = await makeRequest(app, 'PUT', '/api/genres/genre-123', {
           name: 'Updated Genre'
         });
+        const data = await response.json();
 
-        expect(response.status).toBe(200);
+        expect(response.status).toBe(403);
+        expect(data.error).toBe('Forbidden');
       });
 
       it('should allow requests from owners', async () => {
@@ -647,7 +633,7 @@ describe('Genres API Routes', () => {
 
     describe('Input validation', () => {
       it('should reject missing genre name', async () => {
-        const { app } = createTestApp(createUserContext({ userRole: 'admin' }));
+        const { app } = createTestApp(createUserContext({ userRole: 'owner' }));
 
         const response = await makeRequest(app, 'PUT', '/api/genres/genre-123', {});
         const data = await response.json();
@@ -657,7 +643,7 @@ describe('Genres API Routes', () => {
       });
 
       it('should reject empty genre name', async () => {
-        const { app } = createTestApp(createUserContext({ userRole: 'admin' }));
+        const { app } = createTestApp(createUserContext({ userRole: 'owner' }));
 
         const response = await makeRequest(app, 'PUT', '/api/genres/genre-123', {
           name: ''
@@ -671,7 +657,7 @@ describe('Genres API Routes', () => {
 
     describe('Genre existence check', () => {
       it('should return 404 for non-existent genre', async () => {
-        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'admin' }));
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'owner' }));
 
         mockDB._chain.first.mockResolvedValue(null);
 
@@ -687,7 +673,7 @@ describe('Genres API Routes', () => {
 
     describe('Genre uniqueness validation', () => {
       it('should reject update if new name conflicts with existing genre', async () => {
-        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'admin' }));
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'owner' }));
 
         let callIndex = 0;
         mockDB._chain.first.mockImplementation(() => {
@@ -706,7 +692,7 @@ describe('Genres API Routes', () => {
       });
 
       it('should allow update if name stays the same', async () => {
-        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'admin' }));
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'owner' }));
 
         let callIndex = 0;
         mockDB._chain.first.mockImplementation(() => {
@@ -725,7 +711,7 @@ describe('Genres API Routes', () => {
       });
 
       it('should exclude current genre when checking for name conflicts', async () => {
-        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'admin' }));
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'owner' }));
 
         let callIndex = 0;
         mockDB._chain.first.mockImplementation(() => {
@@ -747,7 +733,7 @@ describe('Genres API Routes', () => {
 
     describe('Genre update', () => {
       it('should update genre name', async () => {
-        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'admin' }));
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'owner' }));
 
         let callIndex = 0;
         mockDB._chain.first.mockImplementation(() => {
@@ -767,7 +753,7 @@ describe('Genres API Routes', () => {
       });
 
       it('should update genre description', async () => {
-        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'admin' }));
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'owner' }));
 
         let callIndex = 0;
         mockDB._chain.first.mockImplementation(() => {
@@ -788,7 +774,7 @@ describe('Genres API Routes', () => {
       });
 
       it('should clear description when set to null', async () => {
-        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'admin' }));
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'owner' }));
 
         let callIndex = 0;
         mockDB._chain.first.mockImplementation(() => {
@@ -832,16 +818,14 @@ describe('Genres API Routes', () => {
         expect(data.error).toBe('Forbidden');
       });
 
-      it('should allow requests from admins', async () => {
-        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'admin' }));
-
-        mockDB._chain.first.mockResolvedValue(createMockGenre({ is_predefined: 0 }));
+      it('should reject requests from admins', async () => {
+        const { app } = createTestApp(createUserContext({ userRole: 'admin' }));
 
         const response = await makeRequest(app, 'DELETE', '/api/genres/genre-123');
         const data = await response.json();
 
-        expect(response.status).toBe(200);
-        expect(data.message).toBe('Genre deleted successfully');
+        expect(response.status).toBe(403);
+        expect(data.error).toBe('Forbidden');
       });
 
       it('should allow requests from owners', async () => {
@@ -857,7 +841,7 @@ describe('Genres API Routes', () => {
 
     describe('Genre existence check', () => {
       it('should return 404 for non-existent genre', async () => {
-        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'admin' }));
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'owner' }));
 
         mockDB._chain.first.mockResolvedValue(null);
 
@@ -871,7 +855,7 @@ describe('Genres API Routes', () => {
 
     describe('Predefined genre protection', () => {
       it('should reject deletion of predefined genres', async () => {
-        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'admin' }));
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'owner' }));
 
         mockDB._chain.first.mockResolvedValue(createMockGenre({
           id: 'genre-123',
@@ -887,7 +871,7 @@ describe('Genres API Routes', () => {
       });
 
       it('should allow deletion of custom genres', async () => {
-        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'admin' }));
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'owner' }));
 
         mockDB._chain.first.mockResolvedValue(createMockGenre({
           id: 'genre-123',
@@ -905,7 +889,7 @@ describe('Genres API Routes', () => {
 
     describe('Genre deletion', () => {
       it('should delete genre from database', async () => {
-        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'admin' }));
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'owner' }));
 
         mockDB._chain.first.mockResolvedValue(createMockGenre({ is_predefined: 0 }));
 
@@ -924,9 +908,9 @@ describe('Genres API Routes', () => {
     const endpoints = [
       { method: 'GET', path: '/api/genres', minRole: 'readonly' },
       { method: 'GET', path: '/api/genres/genre-123', minRole: 'readonly' },
-      { method: 'POST', path: '/api/genres', minRole: 'admin', body: { name: 'Test' } },
-      { method: 'PUT', path: '/api/genres/genre-123', minRole: 'admin', body: { name: 'Test' } },
-      { method: 'DELETE', path: '/api/genres/genre-123', minRole: 'admin' }
+      { method: 'POST', path: '/api/genres', minRole: 'owner', body: { name: 'Test' } },
+      { method: 'PUT', path: '/api/genres/genre-123', minRole: 'owner', body: { name: 'Test' } },
+      { method: 'DELETE', path: '/api/genres/genre-123', minRole: 'owner' }
     ];
 
     const roles = ['readonly', 'teacher', 'admin', 'owner'];
@@ -1016,7 +1000,7 @@ describe('Genres API Routes', () => {
     });
 
     it('should handle database errors on create', async () => {
-      const { app, mockDB } = createTestApp(createUserContext({ userRole: 'admin' }));
+      const { app, mockDB } = createTestApp(createUserContext({ userRole: 'owner' }));
 
       mockDB._chain.first.mockResolvedValue(null);
       mockDB._chain.run.mockRejectedValue(new Error('Insert failed'));
@@ -1029,7 +1013,7 @@ describe('Genres API Routes', () => {
     });
 
     it('should handle database errors on update', async () => {
-      const { app, mockDB } = createTestApp(createUserContext({ userRole: 'admin' }));
+      const { app, mockDB } = createTestApp(createUserContext({ userRole: 'owner' }));
 
       let callIndex = 0;
       mockDB._chain.first.mockImplementation(() => {
@@ -1047,7 +1031,7 @@ describe('Genres API Routes', () => {
     });
 
     it('should handle database errors on delete', async () => {
-      const { app, mockDB } = createTestApp(createUserContext({ userRole: 'admin' }));
+      const { app, mockDB } = createTestApp(createUserContext({ userRole: 'owner' }));
 
       mockDB._chain.first.mockResolvedValue(createMockGenre({ is_predefined: 0 }));
       mockDB._chain.run.mockRejectedValue(new Error('Delete failed'));

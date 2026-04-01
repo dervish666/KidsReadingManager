@@ -1,5 +1,21 @@
 # Changelog
 
+## [3.35.1] - 2026-04-01
+
+### Security
+- **Webhook secret moved to header** — Wonde webhook auth now uses `X-Webhook-Secret` header instead of URL query parameter, preventing secret leakage in logs and analytics
+- **Custom request logger** — replaced Hono `logger()` with custom middleware that only logs pathname, stripping query parameters from log output
+- **Password change max length** — added 128-character limit on password change endpoint, matching register and reset endpoints
+- **Environment key disclosure removed** — email utility no longer logs environment variable names when no provider is configured
+- **AI response log truncation** — raw AI response error logs now truncated to 200 characters to prevent sensitive data leakage
+- **SELECT \* eliminated** — user update endpoint now uses explicit column list, no longer loading password hashes into memory
+- **Genre mutations restricted to owner** — POST/PUT/DELETE genre operations now require owner role instead of admin, preventing cross-org genre pollution
+
+### Fixed
+- **Owner cross-org user lookup** — `GET /api/users/:id` now correctly bypasses organization filter for owner role, matching the PUT handler behaviour
+- **Organization slug auto-increment** — org creation now auto-increments slug on collision instead of returning 409, matching registration behaviour
+- **MyLogin logout null guard** — logout endpoint no longer crashes if D1 binding is unavailable
+
 ## [3.35.0] - 2026-04-01
 
 ### Added

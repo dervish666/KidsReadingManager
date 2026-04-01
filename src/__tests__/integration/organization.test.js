@@ -420,9 +420,22 @@ describe('Organization Routes', () => {
       expect(data.error).toBe('Organization name is required');
     });
 
-    it('should reject duplicate slug', async () => {
+    it('should auto-increment slug on collision', async () => {
+      let callCount = 0;
       const mockDb = createMockDB({
-        firstResult: { id: 'existing-org' }, // Slug already exists
+        firstResult: null,
+      });
+      // First slug check returns existing, second returns null (incremented slug is free)
+      mockDb.prepare = vi.fn().mockReturnValue({
+        bind: vi.fn().mockReturnValue({
+          first: vi.fn().mockImplementation(() => {
+            callCount++;
+            if (callCount === 1) return Promise.resolve({ id: 'existing-org' });
+            return Promise.resolve(null);
+          }),
+          run: vi.fn().mockResolvedValue({ success: true }),
+          all: vi.fn().mockResolvedValue({ results: [] }),
+        }),
       });
       const app = createTestApp(mockDb, createUserContext({ userRole: 'owner' }));
 
@@ -431,10 +444,9 @@ describe('Organization Routes', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: 'Test School' }),
       });
-      const data = await response.json();
 
-      expect(response.status).toBe(409);
-      expect(data.error).toBe('An organization with this slug already exists');
+      // Should succeed by auto-incrementing the slug instead of rejecting
+      expect(response.status).not.toBe(409);
     });
 
     it('should reject creation for non-owner roles', async () => {

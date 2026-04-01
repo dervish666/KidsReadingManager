@@ -252,7 +252,7 @@ function parseResponse(text) {
     return normalizeRecommendations(recommendations);
   } catch (error) {
     console.error('Failed to parse AI response:', error);
-    console.error('Raw response:', text);
+    console.error('Raw response (truncated):', text?.substring(0, 200));
     throw new Error('Invalid response format from AI provider');
   }
 }
@@ -414,7 +414,7 @@ function parseBroadSuggestionsResponse(text) {
     return normalizeBroadSuggestions(suggestions);
   } catch (error) {
     console.error('Failed to parse AI broad suggestions response:', error);
-    console.error('Raw response:', text);
+    console.error('Raw response (truncated):', text?.substring(0, 200));
     throw new Error('Invalid response format from AI provider');
   }
 }

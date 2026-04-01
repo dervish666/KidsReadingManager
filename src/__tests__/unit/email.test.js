@@ -319,7 +319,7 @@ describe('Email Service', () => {
         );
       });
 
-      it('should log available env keys for debugging', async () => {
+      it('should not log environment variable names', async () => {
         const env = { SOME_VAR: 'value', ANOTHER_VAR: 'test' };
 
         await sendPasswordResetEmail(
@@ -330,9 +330,10 @@ describe('Email Service', () => {
           defaultParams.baseUrl
         );
 
-        expect(consoleWarnSpy).toHaveBeenCalledWith(
-          'Available env keys:',
-          'SOME_VAR, ANOTHER_VAR'
+        // Env keys should NOT be logged (information disclosure fix)
+        expect(consoleWarnSpy).not.toHaveBeenCalledWith(
+          expect.stringContaining('Available env keys'),
+          expect.anything()
         );
       });
 

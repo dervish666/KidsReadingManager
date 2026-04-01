@@ -642,22 +642,26 @@ organizationRouter.post(
         throw badRequestError('Organization name is required');
       }
 
-      // Generate slug from name if not provided
-      const orgSlug =
+      // Generate slug from name if not provided, auto-incrementing on collision
+      const baseSlug =
         slug ||
         name
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, '-')
           .replace(/^-|-$/g, '');
 
-      // Check if slug already exists (including soft-deleted orgs to prevent slug reuse)
-      const existing = await db
-        .prepare('SELECT id FROM organizations WHERE slug = ?')
-        .bind(orgSlug)
-        .first();
-
-      if (existing) {
-        throw createError('An organization with this slug already exists', 409);
+      let orgSlug = baseSlug;
+      let slugCounter = 1;
+      while (slugCounter <= 100) {
+        const existing = await db
+          .prepare('SELECT id FROM organizations WHERE slug = ?')
+          .bind(orgSlug)
+          .first();
+        if (!existing) break;
+        orgSlug = `${baseSlug}-${slugCounter++}`;
+      }
+      if (slugCounter > 100) {
+        throw badRequestError('Unable to generate a unique slug for this organization name');
       }
 
       const orgId = generateId();

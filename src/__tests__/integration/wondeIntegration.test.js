@@ -301,9 +301,9 @@ describe('Wonde + MyLogin Integration', () => {
     it('creates an organization, encrypts the token, and triggers sync', async () => {
       const env = createMockEnv();
 
-      const res = await app.request(`/api/webhooks/wonde?secret=${WEBHOOK_SECRET}`, {
+      const res = await app.request(`/api/webhooks/wonde`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Webhook-Secret': WEBHOOK_SECRET },
         body: JSON.stringify({
           payload_type: 'schoolApproved',
           school_id: WONDE_SCHOOL_ID,
@@ -521,9 +521,9 @@ describe('Wonde + MyLogin Integration', () => {
         orgByWondeId: { id: 'org-id-1', slug: 'furlong-school', name: SCHOOL_NAME }
       });
 
-      const res = await app.request(`/api/webhooks/wonde?secret=${WEBHOOK_SECRET}`, {
+      const res = await app.request(`/api/webhooks/wonde`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Webhook-Secret': WEBHOOK_SECRET },
         body: JSON.stringify({
           payload_type: 'accessRevoked',
           school_id: WONDE_SCHOOL_ID,
@@ -561,9 +561,9 @@ describe('Wonde + MyLogin Integration', () => {
     it('processes a complete school lifecycle correctly', async () => {
       // Step 1: School approves via webhook
       const step1Env = createMockEnv();
-      const webhookRes = await app.request(`/api/webhooks/wonde?secret=${WEBHOOK_SECRET}`, {
+      const webhookRes = await app.request(`/api/webhooks/wonde`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Webhook-Secret': WEBHOOK_SECRET },
         body: JSON.stringify({
           payload_type: 'schoolApproved',
           school_id: WONDE_SCHOOL_ID,
@@ -654,9 +654,9 @@ describe('Wonde + MyLogin Integration', () => {
         orgByWondeId: { id: createdOrgId }
       });
 
-      const revokeRes = await app.request(`/api/webhooks/wonde?secret=${WEBHOOK_SECRET}`, {
+      const revokeRes = await app.request(`/api/webhooks/wonde`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Webhook-Secret': WEBHOOK_SECRET },
         body: JSON.stringify({
           payload_type: 'accessRevoked',
           school_id: WONDE_SCHOOL_ID,

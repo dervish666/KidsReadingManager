@@ -323,7 +323,7 @@ myloginRouter.post('/logout', async (c) => {
     const cookies = parseCookies(c.req.header('cookie'));
     const refreshToken = cookies.refresh_token;
 
-    if (refreshToken) {
+    if (refreshToken && db) {
       const tokenHash = await hashToken(refreshToken);
       await db.prepare(
         'UPDATE refresh_tokens SET revoked_at = datetime("now") WHERE token_hash = ?'

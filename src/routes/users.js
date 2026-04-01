@@ -85,16 +85,31 @@ usersRouter.get('/:id', async (c) => {
       throw forbiddenError();
     }
 
-    const user = await db
-      .prepare(
-        `
-      SELECT id, organization_id, email, name, role, is_active, last_login_at, created_at, updated_at
-      FROM users
-      WHERE id = ? AND organization_id = ? AND is_active = 1
-    `
-      )
-      .bind(requestedId, organizationId)
-      .first();
+    // Owners can view users in any organization
+    let user;
+    if (userRole === ROLES.OWNER) {
+      user = await db
+        .prepare(
+          `
+        SELECT id, organization_id, email, name, role, is_active, last_login_at, created_at, updated_at
+        FROM users
+        WHERE id = ? AND is_active = 1
+      `
+        )
+        .bind(requestedId)
+        .first();
+    } else {
+      user = await db
+        .prepare(
+          `
+        SELECT id, organization_id, email, name, role, is_active, last_login_at, created_at, updated_at
+        FROM users
+        WHERE id = ? AND organization_id = ? AND is_active = 1
+      `
+        )
+        .bind(requestedId, organizationId)
+        .first();
+    }
 
     if (!user) {
       throw notFoundError('User not found');
@@ -282,7 +297,9 @@ usersRouter.put('/:id', auditLog('update', 'user'), async (c) => {
       existingUser = await db
         .prepare(
           `
-        SELECT * FROM users WHERE id = ? AND is_active = 1
+        SELECT id, organization_id, email, name, role, is_active, last_login_at,
+               created_at, updated_at, auth_provider, mylogin_id, wonde_employee_id
+        FROM users WHERE id = ? AND is_active = 1
       `
         )
         .bind(targetUserId)
@@ -291,7 +308,9 @@ usersRouter.put('/:id', auditLog('update', 'user'), async (c) => {
       existingUser = await db
         .prepare(
           `
-        SELECT * FROM users WHERE id = ? AND organization_id = ? AND is_active = 1
+        SELECT id, organization_id, email, name, role, is_active, last_login_at,
+               created_at, updated_at, auth_provider, mylogin_id, wonde_employee_id
+        FROM users WHERE id = ? AND organization_id = ? AND is_active = 1
       `
         )
         .bind(targetUserId, currentUserOrgId)

@@ -14,8 +14,6 @@
 import * as Sentry from '@sentry/cloudflare';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { logger } from 'hono/logger';
-
 import { bodyLimit } from 'hono/body-limit';
 
 // Import route handlers
@@ -56,7 +54,14 @@ const APP_VERSION = '3.35.0';
 const app = new Hono();
 
 // Apply middleware
-app.use('/api/*', logger());
+app.use('/api/*', async (c, next) => {
+  const start = Date.now();
+  await next();
+  const ms = Date.now() - start;
+  const { method } = c.req;
+  const url = new URL(c.req.url);
+  console.log(`  <-- ${method} ${url.pathname} ${c.res.status} ${ms}ms`);
+});
 app.use('/api/*', bodyLimit({ maxSize: 1024 * 1024 })); // 1MB max request body
 
 // CORS configuration with explicit origin whitelist

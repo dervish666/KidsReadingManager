@@ -29,8 +29,7 @@ webhooksRouter.post('/wonde', async (c) => {
     return c.json({ error: 'Webhook authentication not configured' }, 503);
   }
 
-  const url = new URL(c.req.url);
-  const providedSecret = url.searchParams.get('secret') || '';
+  const providedSecret = c.req.header('X-Webhook-Secret') || '';
   if (!providedSecret || !constantTimeStringEqual(providedSecret, webhookSecret)) {
     console.warn('[Webhook] Invalid or missing webhook secret');
     return c.json({ error: 'Unauthorized' }, 401);

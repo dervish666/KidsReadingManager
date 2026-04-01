@@ -49,12 +49,13 @@ function createApp() {
 // Helper: send a POST request to the webhook endpoint
 // ---------------------------------------------------------------------------
 async function postWebhook(app, body, env, { secret = 'test-webhook-secret' } = {}) {
-  const url = secret
-    ? `/api/webhooks/wonde?secret=${secret}`
-    : '/api/webhooks/wonde';
-  return app.request(url, {
+  const headers = { 'Content-Type': 'application/json' };
+  if (secret) {
+    headers['X-Webhook-Secret'] = secret;
+  }
+  return app.request('/api/webhooks/wonde', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(body)
   }, env);
 }
