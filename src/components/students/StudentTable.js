@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -34,6 +34,16 @@ const StudentTable = React.memo(({ students }) => {
   const [order, setOrder] = useState('asc');
   const [snackbar, setSnackbar] = useState({ open: false, message: '' });
   const [markedStudentId, setMarkedStudentId] = useState(null);
+  const markedStudentTimerRef = useRef(null);
+
+  // Clean up the animation timeout on unmount to prevent state updates on unmounted component
+  useEffect(() => {
+    return () => {
+      if (markedStudentTimerRef.current) {
+        clearTimeout(markedStudentTimerRef.current);
+      }
+    };
+  }, []);
 
   const formatDate = (dateString) => {
     if (!dateString) return 'Never';
@@ -88,7 +98,10 @@ const StudentTable = React.memo(({ students }) => {
         message: `${student.name} added to reading list`
       });
       // Clear the checkmark animation after a delay
-      setTimeout(() => setMarkedStudentId(null), 1500);
+      if (markedStudentTimerRef.current) {
+        clearTimeout(markedStudentTimerRef.current);
+      }
+      markedStudentTimerRef.current = setTimeout(() => setMarkedStudentId(null), 1500);
     }
   };
 
