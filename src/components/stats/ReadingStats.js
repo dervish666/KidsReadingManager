@@ -28,13 +28,14 @@ import FrequencyTab from './FrequencyTab';
 import StreaksTab from './StreaksTab';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
+import { generateStatsPDF } from '../../utils/statsExport';
 import { useUI } from '../../contexts/UIContext';
 import { useTour } from '../tour/useTour';
 import TourButton from '../tour/TourButton';
 
 const ReadingStats = () => {
-  const { fetchWithAuth } = useAuth();
-  const { students, classes, exportToJson, reloadDataFromServer } = useData();
+  const { fetchWithAuth, organization } = useAuth();
+  const { students, classes, reloadDataFromServer } = useData();
   const { globalClassFilter, getReadingStatus } = useUI();
   const [currentTab, setCurrentTab] = useState(0);
   const { tourButtonProps } = useTour('stats');
@@ -87,7 +88,29 @@ const ReadingStats = () => {
   };
 
   const handleExport = () => {
-    exportToJson();
+    if (!stats) return;
+
+    const periodLabel =
+      selectedTerm === 'all'
+        ? 'All Time'
+        : selectedTerm === 'current_term'
+          ? 'Current Term'
+          : selectedTerm === 'school_year'
+            ? 'School Year'
+            : (termDates.find((t) => t.termOrder === selectedTerm)?.termName || 'Selected Period');
+
+    const dateRange = termDateRange
+      ? `${new Date(termDateRange.start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} — ${new Date(termDateRange.end).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
+      : null;
+
+    generateStatsPDF({
+      schoolName: organization?.name || 'School',
+      periodLabel,
+      dateRange,
+      stats,
+      topStreaks: enrichedTopStreaks,
+      needsAttention: getNeedsAttentionStudents(),
+    });
   };
 
   const handleRecalculateStreaks = async () => {
@@ -279,7 +302,7 @@ const ReadingStats = () => {
               '&:hover': { borderWidth: 2 },
             }}
           >
-            Export Data
+            Download Report
           </Button>
         </Box>
       </Box>

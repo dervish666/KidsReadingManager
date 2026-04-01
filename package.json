@@ -30,6 +30,7 @@
     "@sentry/react": "^10.45.0",
     "hono": "^4.7.7",
     "html5-qrcode": "^2.3.8",
+    "jspdf": "^4.2.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-joyride": "^3.0.0",
