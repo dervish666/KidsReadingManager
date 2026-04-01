@@ -103,8 +103,13 @@ const ReadingStats = () => {
       ? `${new Date(termDateRange.start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} — ${new Date(termDateRange.end).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
       : null;
 
+    const selectedClass = globalClassFilter && globalClassFilter !== 'all'
+      ? classes.find((c) => c.id === globalClassFilter)
+      : null;
+
     generateStatsPDF({
       schoolName: organization?.name || 'School',
+      className: selectedClass?.name || null,
       periodLabel,
       dateRange,
       stats,

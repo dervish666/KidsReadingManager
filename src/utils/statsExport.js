@@ -25,7 +25,7 @@ const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
  * @param {Array} params.topStreaks  – enriched with .name
  * @param {Array} params.needsAttention
  */
-export function generateStatsPDF({ schoolName, periodLabel, dateRange, stats, topStreaks, needsAttention }) {
+export function generateStatsPDF({ schoolName, className, periodLabel, dateRange, stats, topStreaks, needsAttention }) {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   let y = 0;
 
@@ -77,48 +77,63 @@ export function generateStatsPDF({ schoolName, periodLabel, dateRange, stats, to
     return typeof n === 'number' && !Number.isInteger(n) ? n.toFixed(1) : String(n);
   };
 
-  // ── 1. Header bar ────────────────────────────────────────
+  // ── 1. Header ─────────────────────────────────────────────
 
+  // Full-width sage green header block
   setFill(SAGE_GREEN);
-  doc.rect(0, 0, PAGE_WIDTH, 24, 'F');
+  doc.rect(0, 0, PAGE_WIDTH, 44, 'F');
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
-  setTextCol(WHITE);
-  doc.text('Tally Reading', MARGIN, 15);
+  // Darker accent strip at top
+  setFill(DARK_GREEN);
+  doc.rect(0, 0, PAGE_WIDTH, 3, 'F');
 
+  // "Tally Reading" branding — small, top-left
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(11);
-  doc.text(schoolName, PAGE_WIDTH - MARGIN, 15, { align: 'right' });
+  doc.setFontSize(9);
+  setTextCol([200, 220, 200]); // muted light green
+  doc.text('Tally Reading', MARGIN, 11);
 
-  y = 30;
-
-  // ── 2. Report info ───────────────────────────────────────
-
+  // School name — large and prominent
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(12);
-  setTextCol(TEXT_PRIMARY);
-  doc.text(periodLabel, MARGIN, y);
+  doc.setFontSize(22);
+  setTextCol(WHITE);
+  doc.text(schoolName, MARGIN, 26);
 
+  // Class name or "All Students" — below school name
+  const subtitle = className || 'All Students';
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(12);
+  setTextCol([220, 235, 220]); // light green
+  doc.text(subtitle, MARGIN, 36);
+
+  // Period label — right-aligned
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  setTextCol(WHITE);
+  doc.text(periodLabel, PAGE_WIDTH - MARGIN, 26, { align: 'right' });
+
+  // Date range — right-aligned below period
   if (dateRange) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
-    setTextCol(TEXT_SECONDARY);
-    doc.text(dateRange, MARGIN, y + 5);
-    y += 5;
+    setTextCol([220, 235, 220]);
+    doc.text(dateRange, PAGE_WIDTH - MARGIN, 36, { align: 'right' });
   }
 
+  y = 50;
+
+  // Generated date — subtle, below header
   const generatedDate = new Date().toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   });
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   setTextCol(TEXT_SECONDARY);
-  doc.text(`Generated on ${generatedDate}`, PAGE_WIDTH - MARGIN, y, { align: 'right' });
+  doc.text(`Generated ${generatedDate}`, PAGE_WIDTH - MARGIN, y, { align: 'right' });
 
-  y += 10;
+  y += 6;
 
   // ── 3. Summary metrics (4 boxes) ─────────────────────────
 
