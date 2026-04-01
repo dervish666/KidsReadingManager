@@ -1,5 +1,26 @@
 # Changelog
 
+## [3.35.0] - 2026-04-01
+
+### Added
+- **Subscription access control (Phase 7)** — `subscriptionGate()` middleware gates API access based on billing status: `past_due` schools get read-only access, `cancelled` schools are fully blocked with a branded full-screen message, owner role always exempt
+- **Subscription status endpoint** — `GET /api/billing/subscription-status` for all authenticated roles, enables proactive frontend detection of billing blocks
+- **SubscriptionBlockedScreen** — role-aware blocked screen (admins see "Manage Billing" button, teachers see "contact your administrator")
+- **PDF stats report** — "Download Report" button on Stats page generates a branded A4 PDF with summary metrics, activity breakdown, streaks, top readers, most read books, and needs-attention list
+- **Composite index** — `wonde_employee_classes(organization_id, wonde_employee_id)` for faster teacher login queries
+- **E2E tests** — 6 Playwright tests for subscription access control
+
+### Fixed
+- **Stripe status normalization** — webhook handler now normalises American spelling `canceled` to British `cancelled` for consistency
+- **setTimeout memory leak** — StudentTable.js timer now cleaned up on unmount
+- **Organization name missing for teachers** — auth responses now merge organization info into user state so `organization.name` is available for all roles
+- **Accessibility** — focus-visible outlines on priority cards, colour contrast fixes on StreakBadge and Header version badge, aria-live region for recommendations loading, heading semantics in WelcomeDialog, aria-label on StreakBadge
+
+### Changed
+- **ReadingStats split** — extracted OverviewTab, NeedsAttentionTab, FrequencyTab, StreaksTab (1,284 → 391 lines)
+- **BookManager split** — extracted BookEditDialog, BookExportMenu, bookImportUtils (1,349 → 807 lines)
+- **HomeReadingRegister split** — extracted QuickReadingView, FullReadingView, MultipleCountDialog, homeReadingUtils (2,041 → 954 lines)
+
 ## [3.34.0] - 2026-03-31
 
 ### Added
