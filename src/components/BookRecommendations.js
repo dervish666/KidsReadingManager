@@ -786,6 +786,8 @@ const BookRecommendations = () => {
       {(libraryLoading || aiLoading) && (
         <Box
           data-testid="loading-skeleton"
+          aria-live="polite"
+          aria-busy={libraryLoading || aiLoading}
           sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2, mb: 3 }}
         >
           {[1, 2, 3, 4].map((i) => (

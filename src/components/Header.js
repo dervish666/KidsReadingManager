@@ -224,10 +224,10 @@ const Header = ({ currentTab }) => {
           sx={{
             fontFamily: '"DM Sans", sans-serif',
             fontWeight: 700,
-            color: 'primary.main',
+            color: 'primary.dark',
             fontSize: { xs: '0.7rem', sm: '0.75rem' },
             ml: 2,
-            backgroundColor: 'rgba(107, 142, 107, 0.1)',
+            backgroundColor: 'rgba(107, 142, 107, 0.15)',
             px: 1.5,
             py: 0.5,
             borderRadius: '6px',

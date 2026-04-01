@@ -44,6 +44,7 @@ const StreakBadge = ({ streak, size = 'medium', showLabel = false }) => {
   return (
     <Tooltip title={tooltipText} arrow>
       <Box
+        aria-label={`${streak} day streak`}
         sx={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -52,7 +53,7 @@ const StreakBadge = ({ streak, size = 'medium', showLabel = false }) => {
           padding: config.padding,
           minWidth: config.minWidth,
           borderRadius: '12px',
-          background: 'linear-gradient(135deg, #FF6B35 0%, #F7931E 50%, #FFD700 100%)',
+          background: 'linear-gradient(135deg, #FF6B35 0%, #F7931E 50%, #D4950A 100%)',
           boxShadow: '0 2px 8px rgba(255, 107, 53, 0.3)',
           cursor: 'default',
           transition: 'transform 0.2s ease, box-shadow 0.2s ease',

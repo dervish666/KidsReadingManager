@@ -60,6 +60,7 @@ export default function WelcomeDialog() {
 
         <Typography
           variant="h5"
+          component="h2"
           sx={{
             fontFamily: '"Nunito", sans-serif',
             fontWeight: 800,

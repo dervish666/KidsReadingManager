@@ -51,6 +51,7 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
       }}
       tabIndex={0}
       role="button"
+      aria-label={`Open details for ${student.name}`}
       sx={{
         position: 'relative',
         overflow: 'visible',
@@ -66,6 +67,11 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
             boxShadow: '0 8px 24px rgba(139, 115, 85, 0.2), 0 4px 8px rgba(0, 0, 0, 0.08)',
             zIndex: 10,
           },
+        },
+        '&:focus-visible': {
+          outline: '2px solid',
+          outlineColor: 'primary.main',
+          outlineOffset: 2,
         },
       }}
     >
