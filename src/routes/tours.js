@@ -24,6 +24,11 @@ tours.get('/status', requireReadonly(), async (c) => {
 tours.post('/:tourId/complete', requireReadonly(), async (c) => {
   const userId = c.get('userId');
   const tourId = c.req.param('tourId');
+
+  if (!tourId || tourId.length > 50 || !/^[\w-]+$/.test(tourId)) {
+    return c.json({ error: 'Invalid tour ID' }, 400);
+  }
+
   const db = c.env.READING_MANAGER_DB;
 
   let body;

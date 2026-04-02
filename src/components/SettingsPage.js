@@ -38,33 +38,33 @@ const SettingsPage = () => {
   // Build tab configuration dynamically based on permissions
   const tabs = useMemo(() => {
     const allTabs = [
-      { label: 'Application Settings', icon: <SettingsIcon />, component: <Settings /> },
-      { label: 'Data Management', icon: <StorageIcon />, component: <DataManagement /> },
-      { label: 'AI Integration', icon: <SmartToyIcon />, component: <AISettings /> },
+      { label: 'Application Settings', icon: <SettingsIcon />, component: Settings },
+      { label: 'Data Management', icon: <StorageIcon />, component: DataManagement },
+      { label: 'AI Integration', icon: <SmartToyIcon />, component: AISettings },
     ];
     if (canManageUsers) {
       allTabs.push({
         label: 'Book Metadata',
         icon: <MenuBookIcon />,
-        component: isOwner ? <MetadataManagement /> : <BookMetadataSettings />,
+        component: isOwner ? MetadataManagement : BookMetadataSettings,
       });
       allTabs.push({
         label: 'User Management',
         icon: <PeopleIcon />,
-        component: <UserManagement />,
+        component: UserManagement,
       });
     }
     if (isOwner) {
       allTabs.push({
         label: 'School Management',
         icon: <SchoolIcon />,
-        component: <SchoolManagement />,
+        component: SchoolManagement,
       });
-      allTabs.push({ label: 'Billing', icon: <PaymentIcon />, component: <BillingDashboard /> });
+      allTabs.push({ label: 'Billing', icon: <PaymentIcon />, component: BillingDashboard });
       allTabs.push({
         label: 'Support Tickets',
         icon: <SupportAgentIcon />,
-        component: <SupportTicketManager />,
+        component: SupportTicketManager,
       });
     }
     return allTabs;
@@ -133,7 +133,9 @@ const SettingsPage = () => {
           </Tabs>
         </Paper>
 
-        <Box sx={{ p: 0 }}>{tabs[currentTab]?.component}</Box>
+        <Box sx={{ p: 0 }}>
+          {tabs[currentTab]?.component && React.createElement(tabs[currentTab].component)}
+        </Box>
       </Box>
 
       <Box

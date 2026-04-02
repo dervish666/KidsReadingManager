@@ -156,7 +156,9 @@ src/components/tour/useTour.js - Hook for auto-start, ready guard, and button pr
 <!-- Frontend Components - Students -->
 src/components/students/StudentList.js - Student listing with filters and sorting
 src/components/students/StudentCard.js - Student card with status and streak
-src/components/students/StudentProfile.js - Student settings and preferences modal
+src/components/students/StudentDetailDrawer.js - Student detail side drawer (read/edit modes)
+src/components/students/StudentEditForm.js - Student edit form with save/cancel
+src/components/students/StudentReadView.js - Read-only student detail cards
 src/components/students/StudentTable.js - Tabular student view
 src/components/students/StreakBadge.js - Flame icon streak counter
 src/components/students/ReadingLevelRangeInput.js - Dual-slider for AR level range
@@ -167,7 +169,6 @@ src/components/students/BulkImport.js - CSV bulk student import
 src/components/sessions/HomeReadingRegister.js - Unified reading register with multi-day history columns
 src/components/sessions/SessionForm.js - Reading session form
 src/components/sessions/QuickEntry.js - Fast session entry for priority students
-src/components/sessions/StudentSessions.js - Student session history
 src/components/sessions/BookAutocomplete.js - Book search autocomplete
 src/components/sessions/AssessmentSelector.js - Assessment level radio group
 src/components/sessions/SessionNotes.js - Session notes text area
@@ -427,6 +428,7 @@ The frontend dev server (port 3001) proxies `/api` requests to the worker (port 
 ### Environment Variables (Cloudflare)
 
 - `JWT_SECRET` - Enables multi-tenant JWT auth
+- `ENCRYPTION_KEY` - Optional separate key for AES-GCM encryption of sensitive data (Wonde tokens, API keys). Falls back to `JWT_SECRET` if not set. Recommended for defense-in-depth.
 - `WORKER_ADMIN_PASSWORD` - Legacy shared password auth
 - `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `GOOGLE_API_KEY` - AI recommendation providers
 - `ALLOWED_ORIGINS` - Comma-separated CORS whitelist
@@ -434,7 +436,10 @@ The frontend dev server (port 3001) proxies `/api` requests to the worker (port 
 - `MYLOGIN_CLIENT_ID` - MyLogin OAuth2 client ID
 - `MYLOGIN_CLIENT_SECRET` - MyLogin OAuth2 client secret
 - `MYLOGIN_REDIRECT_URI` - MyLogin OAuth2 callback URL (e.g. `https://tallyreading.uk/api/auth/mylogin/callback`)
-- `WONDE_WEBHOOK_SECRET` - Shared secret for Wonde webhook authentication (append `?secret=<value>` to the webhook URL in Wonde dashboard)
+- `WONDE_WEBHOOK_SECRET` - Shared secret for Wonde webhook authentication (send as `X-Webhook-Secret` header)
+- `SENTRY_DSN` - Sentry error tracking DSN
+- `STRIPE_SECRET_KEY` - Stripe API secret key (set via `wrangler secret put`)
+- `STRIPE_WEBHOOK_SECRET` - Stripe webhook signing secret (set via `wrangler secret put`)
 
 ### Wrangler Bindings (`wrangler.toml`)
 

@@ -1,6 +1,6 @@
 {
   "name": "tally-reading",
-  "version": "3.35.1",
+  "version": "3.36.0",
   "description": "Cloudflare Workers implementation of Tally Reading API",
   "main": "src/index.js",
   "scripts": {
@@ -34,8 +34,7 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-joyride": "^3.0.0",
-    "stripe": "^20.4.1",
-    "uuid": "11.1.0"
+    "stripe": "^20.4.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
@@ -49,7 +48,9 @@
     "@vitest/coverage-v8": "^4.0.16",
     "dotenv": "^17.3.1",
     "happy-dom": "^20.0.11",
+    "node-fetch": "^3.3.2",
     "prettier": "^3.8.1",
+    "uuid": "^13.0.0",
     "vitest": "^4.0.16",
     "wrangler": "^4.77.0"
   },

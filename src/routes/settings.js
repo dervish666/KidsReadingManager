@@ -10,7 +10,7 @@ import {
 import { validateSettings } from '../utils/validation';
 import { badRequestError } from '../middleware/errorHandler';
 import { auditLog, requireReadonly, requireAdmin } from '../middleware/tenant';
-import { permissions, encryptSensitiveData } from '../utils/crypto';
+import { permissions, encryptSensitiveData, getEncryptionSecret } from '../utils/crypto';
 
 import { getDB, isMultiTenantMode } from '../utils/routeHelpers';
 
@@ -250,11 +250,11 @@ export async function upsertAiConfig(c) {
     }
 
     if (apiKey !== undefined) {
-      const jwtSecret = c.env.JWT_SECRET;
-      if (!jwtSecret) {
+      const encSecret = getEncryptionSecret(c.env);
+      if (!encSecret) {
         return c.json({ error: 'Server configuration error - encryption not available' }, 500);
       }
-      const encryptedApiKey = await encryptSensitiveData(apiKey, jwtSecret);
+      const encryptedApiKey = await encryptSensitiveData(apiKey, encSecret);
       updates.push('api_key_encrypted = ?');
       params.push(encryptedApiKey);
     }
@@ -282,11 +282,11 @@ export async function upsertAiConfig(c) {
   } else {
     let encryptedApiKey = null;
     if (apiKey) {
-      const jwtSecret = c.env.JWT_SECRET;
-      if (!jwtSecret) {
+      const encSecret = getEncryptionSecret(c.env);
+      if (!encSecret) {
         return c.json({ error: 'Server configuration error - encryption not available' }, 500);
       }
-      encryptedApiKey = await encryptSensitiveData(apiKey, jwtSecret);
+      encryptedApiKey = await encryptSensitiveData(apiKey, encSecret);
     }
 
     await db.prepare(`

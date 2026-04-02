@@ -15,6 +15,7 @@ import {
   IconButton,
   useMediaQuery,
   useTheme,
+  Alert,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import InboxIcon from '@mui/icons-material/Inbox';
@@ -74,6 +75,7 @@ const SupportTicketManager = () => {
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [noteSubmitting, setNoteSubmitting] = useState(false);
+  const [error, setError] = useState(null);
 
   const fetchTickets = useCallback(async () => {
     try {
@@ -85,7 +87,7 @@ const SupportTicketManager = () => {
         setTickets(response?.tickets || []);
       }
     } catch {
-      // Silently fail — tickets list will remain empty
+      setError('Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -107,6 +109,7 @@ const SupportTicketManager = () => {
       } catch {
         setTicketDetail(null);
         setNotes([]);
+        setError('Something went wrong. Please try again.');
       } finally {
         setDetailLoading(false);
       }
@@ -157,6 +160,7 @@ const SupportTicketManager = () => {
         setTickets((prev) =>
           prev.map((t) => (t.id === selectedTicketId ? { ...t, status: previousStatus } : t))
         );
+        setError('Something went wrong. Please try again.');
       }
     },
     [selectedTicketId, ticketDetail, fetchWithAuth, fetchTickets, fetchTicketDetail]
@@ -182,7 +186,7 @@ const SupportTicketManager = () => {
         fetchTicketDetail(selectedTicketId);
       }
     } catch {
-      // Silently fail
+      setError('Something went wrong. Please try again.');
     } finally {
       setNoteSubmitting(false);
     }
@@ -208,7 +212,7 @@ const SupportTicketManager = () => {
         fetchTickets();
       }
     } catch {
-      // Silently fail
+      setError('Something went wrong. Please try again.');
     }
   }, [selectedTicketId, fetchWithAuth, fetchTickets]);
 
@@ -757,6 +761,12 @@ const SupportTicketManager = () => {
           View and manage support requests from users.
         </Typography>
       </Box>
+
+      {error && (
+        <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
 
       <Paper
         elevation={0}

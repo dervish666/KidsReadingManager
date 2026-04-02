@@ -55,11 +55,12 @@ const BulkImport = ({ open, onClose }) => {
       return;
     }
     
-    const names = namesText
+    let names = namesText
       .split('\n')
       .map(name => name.trim())
       .filter(name => name);
-    
+    names = [...new Set(names.map(n => n.trim()))].filter(Boolean);
+
     if (names.length === 0) {
       setError('Please enter at least one valid student name');
       return;

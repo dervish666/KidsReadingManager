@@ -70,7 +70,7 @@ describe('Book Import API', () => {
       ];
 
       const { app, mockDB } = createTestApp(
-        { organizationId: 'org-123', userRole: 'teacher' },
+        { organizationId: 'org-123', userRole: 'admin' },
         { allResults: { results: existingBooks } }
       );
 
@@ -128,7 +128,7 @@ describe('Book Import API', () => {
       ];
 
       const { app, mockDB } = createTestApp(
-        { organizationId: 'org-123', userRole: 'teacher' },
+        { organizationId: 'org-123', userRole: 'admin' },
         { allResults: { results: existingBooks } }
       );
 
@@ -187,7 +187,7 @@ describe('Book Import API', () => {
 
     it('should require array of books in request body', async () => {
       const { app, mockDB } = createTestApp(
-        { organizationId: 'org-123', userRole: 'teacher' },
+        { organizationId: 'org-123', userRole: 'admin' },
         {}
       );
 
@@ -206,7 +206,7 @@ describe('Book Import API', () => {
       const existingBooks = [];
 
       const { app, mockDB } = createTestApp(
-        { organizationId: 'org-123', userRole: 'teacher' },
+        { organizationId: 'org-123', userRole: 'admin' },
         { allResults: { results: existingBooks } }
       );
 
@@ -243,7 +243,7 @@ describe('Book Import API', () => {
       ];
 
       const { app, mockDB } = createTestApp(
-        { organizationId: 'org-123', userRole: 'teacher' },
+        { organizationId: 'org-123', userRole: 'admin' },
         { allResults: { results: existingBooks } }
       );
 
@@ -304,7 +304,7 @@ describe('Book Import API', () => {
 
     it('should require multi-tenant mode', async () => {
       const { app } = createTestApp(
-        { userRole: 'teacher' }, // no organizationId
+        { userRole: 'admin' }, // no organizationId
         {}
       );
 
@@ -323,7 +323,7 @@ describe('Book Import API', () => {
   describe('POST /api/books/import/confirm', () => {
     it('should link matched books to organization', async () => {
       const { app, mockDB } = createTestApp(
-        { organizationId: 'org-123', userRole: 'teacher' },
+        { organizationId: 'org-123', userRole: 'admin' },
         {}
       );
 
@@ -344,7 +344,7 @@ describe('Book Import API', () => {
 
     it('should create new books and link to organization', async () => {
       const { app, mockDB } = createTestApp(
-        { organizationId: 'org-123', userRole: 'teacher' },
+        { organizationId: 'org-123', userRole: 'admin' },
         {}
       );
 
@@ -368,7 +368,7 @@ describe('Book Import API', () => {
 
     it('should update books when conflicts are accepted', async () => {
       const { app, mockDB } = createTestApp(
-        { organizationId: 'org-123', userRole: 'teacher' },
+        { organizationId: 'org-123', userRole: 'admin' },
         {}
       );
 
@@ -426,7 +426,7 @@ describe('Book Import API', () => {
 
     it('should require multi-tenant mode', async () => {
       const { app } = createTestApp(
-        { userRole: 'teacher' }, // no organizationId
+        { userRole: 'admin' }, // no organizationId
         {}
       );
 

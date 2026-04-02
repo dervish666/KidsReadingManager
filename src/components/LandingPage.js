@@ -24,7 +24,7 @@ const ChevronRight = () => (
 export default function LandingPage({ onSignIn }) {
   const [navScrolled, setNavScrolled] = useState(false);
   const [signupSubmitted, setSignupSubmitted] = useState(false);
-  const revealRefs = useRef([]);
+  const revealRefs = useRef(new Set());
 
   useEffect(() => {
     const handleScroll = () => {
@@ -55,8 +55,8 @@ export default function LandingPage({ onSignIn }) {
   }, []);
 
   const addRevealRef = (el) => {
-    if (el && !revealRefs.current.includes(el)) {
-      revealRefs.current.push(el);
+    if (el) {
+      revealRefs.current.add(el);
     }
   };
 

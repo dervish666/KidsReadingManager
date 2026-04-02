@@ -8,7 +8,7 @@ import { generateBroadSuggestions } from '../services/aiService.js';
 
 // Import utilities
 import { notFoundError, badRequestError, serverError } from '../middleware/errorHandler';
-import { decryptSensitiveData, permissions } from '../utils/crypto.js';
+import { decryptSensitiveData, permissions, getEncryptionSecret } from '../utils/crypto.js';
 import { buildStudentReadingProfile } from '../utils/studentProfile.js';
 import { isExactMatch, isFuzzyMatch, isAuthorMatch, normalizeAuthorDisplay } from '../utils/stringMatching.js';
 import { getCachedRecommendations, cacheRecommendations } from '../utils/recommendationCache.js';
@@ -277,18 +277,23 @@ booksRouter.get('/library-search', requireReadonly(), async (c) => {
     }
     // If no range set, don't filter by level (return all books)
 
-    // Exclude already-read books
+    // Exclude already-read books (chunked to stay within SQLite bind limit of 999)
     if (readBookIds.length > 0) {
-      const placeholders = readBookIds.map(() => '?').join(',');
-      query += ` AND b.id NOT IN (${placeholders})`;
-      params.push(...readBookIds);
+      const CHUNK_SIZE = 400;
+      for (let i = 0; i < readBookIds.length; i += CHUNK_SIZE) {
+        const chunk = readBookIds.slice(i, i + CHUNK_SIZE);
+        const placeholders = chunk.map(() => '?').join(',');
+        query += ` AND b.id NOT IN (${placeholders})`;
+        params.push(...chunk);
+      }
     }
 
-    // Exclude disliked books (by title match)
+    // Exclude disliked books (by title match, with SQL wildcard escaping)
     if (preferences.dislikes.length > 0) {
       for (const disliked of preferences.dislikes) {
-        query += ` AND b.title NOT LIKE ?`;
-        params.push(`%${disliked}%`);
+        const escaped = disliked.replace(/%/g, '\\%').replace(/_/g, '\\_');
+        query += ` AND b.title NOT LIKE ? ESCAPE '\\'`;
+        params.push(`%${escaped}%`);
       }
     }
 
@@ -428,9 +433,9 @@ booksRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
 
     const organizationId = c.get('organizationId');
     const db = c.env.READING_MANAGER_DB;
-    const jwtSecret = c.env.JWT_SECRET;
+    const encSecret = getEncryptionSecret(c.env);
 
-    if (!organizationId || !db || !jwtSecret) {
+    if (!organizationId || !db || !encSecret) {
       throw badRequestError('Multi-tenant mode required for AI suggestions');
     }
 
@@ -526,7 +531,7 @@ booksRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
     // Decrypt API key
     let aiConfig;
     try {
-      const decryptedApiKey = await decryptSensitiveData(dbConfig.api_key_encrypted, jwtSecret);
+      const decryptedApiKey = await decryptSensitiveData(dbConfig.api_key_encrypted, encSecret);
       aiConfig = {
         provider: dbConfig.provider || 'anthropic',
         apiKey: decryptedApiKey,
@@ -1243,7 +1248,7 @@ booksRouter.post('/bulk', requireTeacher(), async (c) => {
  *
  * Requires authentication (at least teacher access)
  */
-booksRouter.post('/import/preview', requireTeacher(), async (c) => {
+booksRouter.post('/import/preview', requireAdmin(), async (c) => {
   const { books: importBooks } = await c.req.json();
   const organizationId = c.get('organizationId');
   const db = c.env.READING_MANAGER_DB;
@@ -1389,7 +1394,7 @@ booksRouter.post('/import/preview', requireTeacher(), async (c) => {
  *   conflicts: [{ existingBookId, updateReadingLevel, newReadingLevel }]
  * }
  */
-booksRouter.post('/import/confirm', requireTeacher(), auditLog('import', 'books'), async (c) => {
+booksRouter.post('/import/confirm', requireAdmin(), auditLog('import', 'books'), async (c) => {
   const { matched = [], newBooks = [], conflicts = [] } = await c.req.json();
   const organizationId = c.get('organizationId');
   const db = c.env.READING_MANAGER_DB;
@@ -1492,14 +1497,9 @@ booksRouter.post('/import/confirm', requireTeacher(), auditLog('import', 'books'
   for (let i = 0; i < statements.length; i += BATCH_SIZE) {
     const batch = statements.slice(i, i + BATCH_SIZE);
     try {
-      const results = await db.batch(batch.map(b => b.stmt));
-      results.forEach((result, idx) => {
-        if (result.success) {
-          batch[idx].onSuccess();
-        } else {
-          batch[idx].onError(result.error || 'Unknown error');
-        }
-      });
+      await db.batch(batch.map(b => b.stmt));
+      // D1 batches are all-or-nothing — if we get here, all succeeded
+      batch.forEach(b => b.onSuccess());
     } catch (error) {
       // If the entire batch fails, record errors for all items in it
       console.error(`Batch ${Math.floor(i / BATCH_SIZE) + 1} failed:`, error.message);

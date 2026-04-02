@@ -103,21 +103,6 @@ const UserManagement = () => {
     loadData();
   }, [fetchWithAuth]);
 
-  const fetchOrganizations = async () => {
-    try {
-      const response = await fetchWithAuth('/api/organization/all');
-
-      if (response && typeof response.json === 'function') {
-        const data = await response.json();
-        setOrganizations(data.organizations || []);
-      } else {
-        setOrganizations(response.organizations || []);
-      }
-    } catch (err) {
-      // Don't show error to user - non-critical fetch
-    }
-  };
-
   const validateForm = () => {
     if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
       setError('All fields are required');

@@ -45,7 +45,10 @@ const BookManager = () => {
   const [fullBooks, setFullBooks] = useState(null);
   const books = fullBooks || contextBooks;
 
-  // Fetch full book details when BookManager mounts (context only has minimal data)
+  // Fetch full book details when BookManager mounts.
+  // DataContext loads books with ?fields=minimal (id, title, author only).
+  // BookManager needs full details (readingLevel, genreIds, description, etc.)
+  // for filtering, display, and export — so this separate fetch is required.
   useEffect(() => {
     let cancelled = false;
     fetchWithAuth('/api/books?all=true')
@@ -259,7 +262,7 @@ const BookManager = () => {
   };
 
   // Get unique reading levels from books
-  const getUniqueReadingLevels = () => {
+  const readingLevels = useMemo(() => {
     const levels = new Set();
     books.forEach(book => {
       if (book.readingLevel) {
@@ -267,7 +270,7 @@ const BookManager = () => {
       }
     });
     return Array.from(levels).sort();
-  };
+  }, [books]);
 
   // Memoized filtered books to avoid recalculating on every render
   const filteredBooks = useMemo(() => {
@@ -432,12 +435,6 @@ const BookManager = () => {
             </Box>
           </Box>
 
-          {error && (
-            <Typography color="error" variant="body2" sx={{ mt: 1 }}>
-              {error}
-            </Typography>
-          )}
-
           <input
             type="file"
             accept=".json,.csv"
@@ -496,7 +493,7 @@ const BookManager = () => {
             )}
 
             {/* Reading Level Filter */}
-            {getUniqueReadingLevels().length > 0 && (
+            {readingLevels.length > 0 && (
               <FormControl size="small" sx={{ minWidth: 150 }}>
                 <InputLabel>Filter by Level</InputLabel>
                 <Select
@@ -505,7 +502,7 @@ const BookManager = () => {
                   onChange={handleReadingLevelFilterChange}
                 >
                   <MenuItem value="">All Levels</MenuItem>
-                  {getUniqueReadingLevels().map((level) => (
+                  {readingLevels.map((level) => (
                     <MenuItem key={level} value={level}>{level}</MenuItem>
                   ))}
                 </Select>

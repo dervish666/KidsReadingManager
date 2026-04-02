@@ -286,10 +286,6 @@ const theme = createTheme({
             fontSize: '0.75rem',
           },
         },
-        wrapper: {
-          flexDirection: 'column',
-          gap: '2px',
-        },
       },
     },
     MuiChip: {

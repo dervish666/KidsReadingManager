@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { requireTeacher } from '../middleware/tenant';
-import { decryptSensitiveData } from '../utils/crypto.js';
+import { decryptSensitiveData, getEncryptionSecret } from '../utils/crypto.js';
 
 const hardcoverRouter = new Hono();
 
@@ -29,7 +29,7 @@ hardcoverRouter.post('/graphql', requireTeacher(), async (c) => {
         const storedKey = bookMetadata.hardcoverApiKey || null;
         if (storedKey && c.env.JWT_SECRET) {
           try {
-            apiKey = await decryptSensitiveData(storedKey, c.env.JWT_SECRET);
+            apiKey = await decryptSensitiveData(storedKey, getEncryptionSecret(c.env));
           } catch {
             // Pre-migration plaintext value — use as-is
             apiKey = storedKey;
@@ -54,9 +54,12 @@ hardcoverRouter.post('/graphql', requireTeacher(), async (c) => {
     return c.json({ error: 'GraphQL query is required' }, 400);
   }
 
-  // Only allow read-only queries — reject mutations and subscriptions
-  const trimmed = query.replace(/^[\s\n]+/, '');
-  if (/^(mutation|subscription)\b/i.test(trimmed)) {
+  // Only allow read-only queries — reject mutations and subscriptions.
+  // Strip comments and whitespace first to prevent bypass via `# comment\nmutation { ... }`.
+  const cleaned = query
+    .replace(/#[^\n]*/g, '')   // strip single-line comments
+    .replace(/^[\s\n]+/, '');  // strip leading whitespace
+  if (/^(mutation|subscription)\b/i.test(cleaned)) {
     return c.json({ error: 'Only read-only GraphQL queries are allowed' }, 400);
   }
 

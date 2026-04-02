@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { requireOwner, requireAdmin, auditLog } from '../middleware/tenant';
 import { badRequestError } from '../middleware/errorHandler';
-import { encryptSensitiveData, decryptSensitiveData } from '../utils/crypto';
+import { encryptSensitiveData, decryptSensitiveData, getEncryptionSecret } from '../utils/crypto';
 import { requireDB } from '../utils/routeHelpers';
 import { processJobBatch } from '../services/metadataService';
 
@@ -9,11 +9,15 @@ const metadataRouter = new Hono();
 
 // --- Helpers ---
 
+const DEFAULT_PROVIDER_CHAIN = ['openlibrary', 'googlebooks', 'hardcover'];
+
 async function getConfig(db) {
   const row = await db.prepare('SELECT * FROM metadata_config WHERE id = ?').bind('default').first();
   if (!row) return null;
+  let providerChain;
+  try { providerChain = JSON.parse(row.provider_chain); } catch { providerChain = DEFAULT_PROVIDER_CHAIN; }
   return {
-    providerChain: JSON.parse(row.provider_chain),
+    providerChain,
     hasHardcoverApiKey: Boolean(row.hardcover_api_key_encrypted),
     hasGoogleBooksApiKey: Boolean(row.google_books_api_key_encrypted),
     rateLimitDelayMs: row.rate_limit_delay_ms,
@@ -44,8 +48,10 @@ async function getConfigWithKeys(db, jwtSecret) {
     }
   }
 
+  let providerChain;
+  try { providerChain = JSON.parse(row.provider_chain); } catch { providerChain = DEFAULT_PROVIDER_CHAIN; }
   return {
-    providerChain: JSON.parse(row.provider_chain),
+    providerChain,
     hardcoverApiKey,
     googleBooksApiKey,
     rateLimitDelayMs: row.rate_limit_delay_ms,
@@ -73,7 +79,7 @@ metadataRouter.get('/config', requireOwner(), async (c) => {
 metadataRouter.put('/config', requireOwner(), auditLog('update', 'metadata_config'), async (c) => {
   const db = requireDB(c.env);
   const body = await c.req.json();
-  const jwtSecret = c.env.JWT_SECRET;
+  const encSecret = getEncryptionSecret(c.env);
   const userId = c.get('userId');
 
   // Validate provider chain if provided
@@ -100,16 +106,16 @@ metadataRouter.put('/config', requireOwner(), auditLog('update', 'metadata_confi
 
   // Encrypt API keys if provided
   let hardcoverEncrypted = undefined;
-  if (body.hardcoverApiKey !== undefined && jwtSecret) {
+  if (body.hardcoverApiKey !== undefined && encSecret) {
     hardcoverEncrypted = body.hardcoverApiKey
-      ? await encryptSensitiveData(body.hardcoverApiKey, jwtSecret)
+      ? await encryptSensitiveData(body.hardcoverApiKey, encSecret)
       : null;
   }
 
   let googleEncrypted = undefined;
-  if (body.googleBooksApiKey !== undefined && jwtSecret) {
+  if (body.googleBooksApiKey !== undefined && encSecret) {
     googleEncrypted = body.googleBooksApiKey
-      ? await encryptSensitiveData(body.googleBooksApiKey, jwtSecret)
+      ? await encryptSensitiveData(body.googleBooksApiKey, encSecret)
       : null;
   }
 
@@ -315,7 +321,7 @@ metadataRouter.post('/enrich', requireAdmin(), async (c) => {
   const userRole = c.get('userRole');
   const callerOrgId = c.get('organizationId');
   const userId = c.get('userId');
-  const jwtSecret = c.env.JWT_SECRET;
+  const encSecret = getEncryptionSecret(c.env);
   const body = await c.req.json();
 
   // --- Permission enforcement ---
@@ -434,7 +440,7 @@ metadataRouter.post('/enrich', requireAdmin(), async (c) => {
   }
 
   // Load config with decrypted keys
-  const config = await getConfigWithKeys(db, jwtSecret);
+  const config = await getConfigWithKeys(db, encSecret);
   if (!config) return c.json({ error: 'Metadata configuration not found' }, 500);
   config.fetchCovers = job.include_covers && config.fetchCovers;
 

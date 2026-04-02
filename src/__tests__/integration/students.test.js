@@ -85,6 +85,7 @@ const createTestApp = (contextValues = {}, dbOverrides = {}) => {
   app.use('*', async (c, next) => {
     c.env = {
       READING_MANAGER_DB: mockDB,
+      JWT_SECRET: 'test-secret',
       ...contextValues.env,
     };
     if (contextValues.organizationId) c.set('organizationId', contextValues.organizationId);
@@ -529,6 +530,7 @@ const createStatsTestApp = (contextValues = {}, queryResults = []) => {
   app.use('*', async (c, next) => {
     c.env = {
       READING_MANAGER_DB: mockDB,
+      JWT_SECRET: 'test-secret',
       ...contextValues.env,
     };
     if (contextValues.organizationId) c.set('organizationId', contextValues.organizationId);

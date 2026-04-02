@@ -154,6 +154,9 @@ async function sendWithCloudflareEmail(emailBinding, from, to, subject, text, ht
     // Build MIME message manually (simpler than importing mimetext)
     const boundary = `----=_Part_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 
+    // Base64-encode HTML body to safely handle non-ASCII characters and long lines
+    const htmlBase64 = btoa(unescape(encodeURIComponent(html)));
+
     const rawEmail = [
       `From: ${from}`,
       `To: ${to}`,
@@ -171,9 +174,9 @@ async function sendWithCloudflareEmail(emailBinding, from, to, subject, text, ht
       ``,
       `--${boundary}`,
       `Content-Type: text/html; charset=utf-8`,
-      `Content-Transfer-Encoding: 7bit`,
+      `Content-Transfer-Encoding: base64`,
       ``,
-      html,
+      htmlBase64,
       ``,
       `--${boundary}--`,
     ].join('\r\n');
@@ -385,5 +388,70 @@ ${ticket.message}`;
   }
 
   console.warn('No email provider configured for support notification.');
+  return { success: false, error: 'Email service not configured' };
+}
+
+/**
+ * Send trial ending reminder email to a school admin.
+ * @param {Object} env - Worker environment (email provider bindings)
+ * @param {string} recipientEmail - Admin email address
+ * @param {string} recipientName - Admin name
+ * @param {string} organizationName - School/org name
+ * @param {number} daysRemaining - Days until trial expires
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export async function sendTrialEndingEmail(env, recipientEmail, recipientName, organizationName, daysRemaining) {
+  const from = env.EMAIL_FROM || 'hello@tallyreading.uk';
+  const subject = `Your Tally Reading trial ends in ${daysRemaining} days`;
+
+  const textBody = `Hi ${recipientName},
+
+Your free trial of Tally Reading for ${organizationName} will end in ${daysRemaining} days.
+
+To keep using Tally Reading without interruption, please subscribe from the Billing section in your settings.
+
+If you have any questions, reply to this email — we're happy to help.
+
+— The Tally Reading Team`;
+
+  const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%); padding: 30px; border-radius: 8px 8px 0 0;">
+    <h1 style="color: white; margin: 0; font-size: 24px;">Tally Reading</h1>
+  </div>
+
+  <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+    <p style="font-size: 16px;">Hi <strong>${escapeHtml(recipientName)}</strong>,</p>
+
+    <p>Your free trial of Tally Reading for <strong>${escapeHtml(organizationName)}</strong> will end in <strong>${daysRemaining} days</strong>.</p>
+
+    <p>To keep using Tally Reading without interruption, please subscribe from the Billing section in your settings.</p>
+
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="https://tallyreading.uk/settings" style="background: #6B8E6B; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block;">Go to Settings</a>
+    </div>
+
+    <p style="color: #6b7280; font-size: 14px;">If you have any questions, just reply to this email — we're happy to help.</p>
+
+    <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+    <p style="color: #9ca3af; font-size: 12px; margin: 0;">Tally Reading — Helping every child become a confident reader.</p>
+  </div>
+</body>
+</html>`;
+
+  if (env.RESEND_API_KEY) {
+    return await sendWithResend(env.RESEND_API_KEY, from, recipientEmail, subject, textBody, htmlBody);
+  }
+  if (env.EMAIL_SENDER) {
+    return await sendWithCloudflareEmail(env.EMAIL_SENDER, from, recipientEmail, subject, textBody, htmlBody);
+  }
+
+  console.warn('No email provider configured for trial reminder.');
   return { success: false, error: 'Email service not configured' };
 }

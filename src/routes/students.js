@@ -294,6 +294,19 @@ studentsRouter.get('/stats', requireReadonly(), async (c) => {
   const organizationId = c.get('organizationId');
   const { classId, startDate, endDate } = c.req.query();
 
+  // Fetch org timezone for accurate week/day calculations
+  let timezone = 'UTC';
+  try {
+    const tzRow = await db.prepare(
+      `SELECT setting_value FROM org_settings WHERE organization_id = ? AND setting_key = 'timezone'`
+    ).bind(organizationId).first();
+    if (tzRow?.setting_value) {
+      let parsed;
+      try { parsed = JSON.parse(tzRow.setting_value); } catch { parsed = tzRow.setting_value; }
+      if (typeof parsed === 'string' && parsed.length > 0) timezone = parsed;
+    }
+  } catch { /* use UTC */ }
+
   // Base student filter
   let studentWhere = 's.organization_id = ? AND s.is_active = 1';
   const studentBinds = [organizationId];
@@ -324,6 +337,12 @@ studentsRouter.get('/stats', requireReadonly(), async (c) => {
   // Track per-student last read date from actual sessions (excludes markers)
   const studentLastReadMap = new Map();
 
+  // Compute today's date in the org's timezone (used for week boundaries and diffDays)
+  let todayStr;
+  try { todayStr = new Date().toLocaleDateString('en-CA', { timeZone: timezone }); }
+  catch { todayStr = new Date().toISOString().split('T')[0]; }
+  const todayLocal = new Date(todayStr + 'T00:00:00Z');
+
   if (studentIds.length > 0) {
     // Aggregate sessions in SQL
     const BIND_LIMIT = 90;
@@ -350,9 +369,11 @@ studentsRouter.get('/stats', requireReadonly(), async (c) => {
     const dayCounts = { Sun: 0, Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0 };
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const bookCounts = {};
-    const now = new Date();
-    const startOfWeek = new Date(now); startOfWeek.setDate(now.getDate() - now.getDay()); startOfWeek.setHours(0,0,0,0);
-    const startOfLastWeek = new Date(startOfWeek); startOfLastWeek.setDate(startOfLastWeek.getDate() - 7);
+    // Compute week boundaries using the org-timezone-aware todayLocal
+    const startOfWeek = new Date(todayLocal); startOfWeek.setUTCDate(todayLocal.getUTCDate() - todayLocal.getUTCDay());
+    const startOfLastWeek = new Date(startOfWeek); startOfLastWeek.setUTCDate(startOfLastWeek.getUTCDate() - 7);
+    const startOfWeekStr = startOfWeek.toISOString().split('T')[0];
+    const startOfLastWeekStr = startOfLastWeek.toISOString().split('T')[0];
     let thisWeek = 0, lastWeek = 0;
 
     for (const row of allSessionRows) {
@@ -360,9 +381,10 @@ studentsRouter.get('/stats', requireReadonly(), async (c) => {
       if (locationCounts.hasOwnProperty(loc)) locationCounts[loc]++;
       if (row.session_date) {
         const d = new Date(row.session_date);
-        dayCounts[dayNames[d.getDay()]]++;
-        if (d >= startOfWeek) thisWeek++;
-        else if (d >= startOfLastWeek) lastWeek++;
+        dayCounts[dayNames[d.getUTCDay()]]++;
+        // Compare as date strings to avoid timezone skew
+        if (row.session_date >= startOfWeekStr) thisWeek++;
+        else if (row.session_date >= startOfLastWeekStr) lastWeek++;
       }
       if (row.book_title) {
         bookCounts[row.book_title] = (bookCounts[row.book_title] || 0) + 1;
@@ -418,7 +440,9 @@ studentsRouter.get('/stats', requireReadonly(), async (c) => {
       statusCounts.notRead++;
       studentsWithNoSessions++;
     } else {
-      const diffDays = Math.ceil((new Date() - new Date(actualLastRead)) / 86400000);
+      // Compare as date strings to avoid timezone skew (both are YYYY-MM-DD)
+      const lastReadDate = new Date(actualLastRead + 'T00:00:00Z');
+      const diffDays = Math.floor((todayLocal - lastReadDate) / 86400000);
       if (diffDays <= recentlyReadDays) statusCounts.recentlyRead++;
       else if (diffDays <= needsAttentionDays) statusCounts.needsAttention++;
       else statusCounts.notRead++;
@@ -476,7 +500,7 @@ studentsRouter.get('/:id/sessions', requireReadonly(), async (c) => {
   ).bind(id, organizationId).first();
 
   if (!student) {
-    throw notFoundError(`Student with ID ${id} not found`);
+    throw notFoundError('Student not found');
   }
 
   const limitParam = c.req.query('limit');
@@ -536,7 +560,7 @@ studentsRouter.get('/:id', requireReadonly(), async (c) => {
     const student = studentResult;
 
     if (!student) {
-      throw notFoundError(`Student with ID ${id} not found`);
+      throw notFoundError('Student not found');
     }
 
     const result = rowToStudent(student);
@@ -588,7 +612,7 @@ studentsRouter.get('/:id', requireReadonly(), async (c) => {
   // Legacy mode: use KV
   const student = await getStudentByIdKV(c.env, id);
   if (!student) {
-    throw notFoundError(`Student with ID ${id} not found`);
+    throw notFoundError('Student not found');
   }
   return c.json(student);
 });
@@ -763,7 +787,7 @@ studentsRouter.put('/:id', auditLog('update', 'student'), async (c) => {
   // Legacy mode: use KV
   const existingStudent = await getStudentByIdKV(c.env, id);
   if (!existingStudent) {
-    throw notFoundError(`Student with ID ${id} not found`);
+    throw notFoundError('Student not found');
   }
 
   const updatedStudent = {
@@ -808,7 +832,7 @@ studentsRouter.delete('/:id', auditLog('delete', 'student'), async (c) => {
   const success = await deleteStudentKV(c.env, id);
   
   if (!success) {
-    throw notFoundError(`Student with ID ${id} not found`);
+    throw notFoundError('Student not found');
   }
   
   return c.json({ message: 'Student deleted successfully' });
@@ -879,9 +903,18 @@ studentsRouter.post('/bulk', auditLog('import', 'student'), async (c) => {
       throw forbiddenError();
     }
 
+    // Deduplicate students by name
+    const seen = new Set();
+    const dedupedStudents = body.filter(s => {
+      const key = (s.name || '').trim().toLowerCase();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
     // Validate reading level range for each student
-    for (let i = 0; i < body.length; i++) {
-      const student = body[i];
+    for (let i = 0; i < dedupedStudents.length; i++) {
+      const student = dedupedStudents[i];
       const rangeValidation = validateReadingLevelRange(student.readingLevelMin, student.readingLevelMax);
       if (!rangeValidation.isValid) {
         throw badRequestError(`Student at index ${i}: ${rangeValidation.errors[0]}`);
@@ -889,7 +922,7 @@ studentsRouter.post('/bulk', auditLog('import', 'student'), async (c) => {
     }
 
     // Prepare batch insert (D1 batch limit is 100)
-    const students = body.map(student => {
+    const students = dedupedStudents.map(student => {
       const rangeValidation = validateReadingLevelRange(student.readingLevelMin, student.readingLevelMax);
       return {
         id: student.id || generateId(),
@@ -1006,12 +1039,22 @@ studentsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
     `).bind(id, organizationId).first();
 
     if (!student) {
-      throw notFoundError(`Student with ID ${id} not found`);
+      throw notFoundError('Student not found');
     }
 
     // GDPR Article 18: block session creation for restricted students
     if (student.processing_restricted) {
       return c.json({ error: 'Processing is restricted for this student. No new sessions can be recorded.' }, 403);
+    }
+
+    // Verify book belongs to this organization's library
+    if (body.bookId) {
+      const bookSelection = await db.prepare(
+        'SELECT 1 FROM org_book_selections WHERE book_id = ? AND organization_id = ? AND is_available = 1'
+      ).bind(body.bookId, organizationId).first();
+      if (!bookSelection) {
+        throw badRequestError('Book not found in this organization\'s library');
+      }
     }
 
     const sessionId = generateId();
@@ -1083,7 +1126,7 @@ studentsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
   // Legacy mode: use KV
   const student = await getStudentByIdKV(c.env, id);
   if (!student) {
-    throw notFoundError(`Student with ID ${id} not found`);
+    throw notFoundError('Student not found');
   }
 
   const newSession = {
@@ -1153,7 +1196,7 @@ studentsRouter.delete('/:id/sessions/:sessionId', requireTeacher(), auditLog('de
   // Legacy mode: use KV
   const student = await getStudentByIdKV(c.env, id);
   if (!student) {
-    throw notFoundError(`Student with ID ${id} not found`);
+    throw notFoundError('Student not found');
   }
 
   const sessionIndex = student.readingSessions?.findIndex(s => s.id === sessionId);
@@ -1297,7 +1340,7 @@ studentsRouter.put('/:id/sessions/:sessionId', requireTeacher(), auditLog('updat
   // Legacy mode: use KV
   const student = await getStudentByIdKV(c.env, id);
   if (!student) {
-    throw notFoundError(`Student with ID ${id} not found`);
+    throw notFoundError('Student not found');
   }
   
   const sessionIndex = student.readingSessions.findIndex(s => s.id === sessionId);
@@ -1336,7 +1379,7 @@ studentsRouter.get('/:id/streak', requireReadonly(), async (c) => {
     `).bind(id, organizationId).first();
 
     if (!student) {
-      throw notFoundError(`Student with ID ${id} not found`);
+      throw notFoundError('Student not found');
     }
 
     // Get the last read date from sessions
@@ -1358,7 +1401,7 @@ studentsRouter.get('/:id/streak', requireReadonly(), async (c) => {
   // Legacy mode: calculate from sessions
   const student = await getStudentByIdKV(c.env, id);
   if (!student) {
-    throw notFoundError(`Student with ID ${id} not found`);
+    throw notFoundError('Student not found');
   }
 
   const streakData = calculateStreak(student.readingSessions || [], {

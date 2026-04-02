@@ -18,6 +18,7 @@ import {
 import { authRateLimit } from '../middleware/tenant.js';
 import { sendPasswordResetEmail } from '../utils/email.js';
 import { requireDB as getDB } from '../utils/routeHelpers.js';
+import { badRequestError } from '../middleware/errorHandler.js';
 
 export const authRouter = new Hono();
 
@@ -138,7 +139,7 @@ authRouter.post('/register', async (c) => {
     // Check if slug is unique, append number if needed
     let finalSlug = slug;
     let slugCounter = 1;
-    while (true) {
+    while (slugCounter <= 100) {
       const existingOrg = await db
         .prepare('SELECT id FROM organizations WHERE slug = ?')
         .bind(finalSlug)
@@ -147,13 +148,16 @@ authRouter.post('/register', async (c) => {
       if (!existingOrg) break;
       finalSlug = `${slug}-${slugCounter++}`;
     }
+    if (slugCounter > 100) {
+      throw badRequestError('Unable to generate unique organization slug');
+    }
 
     // Hash password
     const passwordHash = await hashPassword(password);
 
-    // Create organization and user in a transaction
-    await db.batch([
-      // Create organization
+    // Create organization and user in a transaction.
+    // Retry on slug collision (TOCTOU race between the uniqueness check and INSERT).
+    const createBatch = async (slugToUse) => db.batch([
       db
         .prepare(
           `
@@ -161,7 +165,7 @@ authRouter.post('/register', async (c) => {
         VALUES (?, ?, ?, 'free', 1)
       `
         )
-        .bind(orgId, organizationName, finalSlug),
+        .bind(orgId, organizationName, slugToUse),
 
       // Create owner user
       db
@@ -173,6 +177,18 @@ authRouter.post('/register', async (c) => {
         )
         .bind(userId, orgId, email.toLowerCase(), passwordHash, name),
     ]);
+
+    try {
+      await createBatch(finalSlug);
+    } catch (batchErr) {
+      // If slug collision (UNIQUE constraint), retry with incremented slug
+      if (batchErr.message?.includes('UNIQUE') || batchErr.message?.includes('constraint')) {
+        finalSlug = `${slug}-${slugCounter++}`;
+        await createBatch(finalSlug);
+      } else {
+        throw batchErr;
+      }
+    }
 
     // Create tokens
     const jwtSecret = c.env.JWT_SECRET;
@@ -546,7 +562,7 @@ authRouter.post('/refresh', async (c) => {
       return c.json({ error: 'Invalid refresh token' }, 401);
     }
 
-    // Check if token is expired
+    // Defense-in-depth against D1/Worker clock skew
     if (new Date(storedToken.expires_at) < new Date()) {
       return c.json({ error: 'Refresh token expired' }, 401);
     }

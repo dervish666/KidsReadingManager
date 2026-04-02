@@ -425,6 +425,17 @@ export function authRateLimit() {
 }
 
 /**
+ * Rate limiting for cost-sensitive endpoints (AI suggestions, metadata enrichment, external proxies).
+ * Prevents abuse of paid external APIs by authenticated users.
+ *
+ * @param {number} maxRequests - Maximum requests per minute (default: 10)
+ * @returns {Function} Hono middleware
+ */
+export function costRateLimit(maxRequests = 10) {
+  return rateLimit(maxRequests, 60000);
+}
+
+/**
  * Helper to get organization-scoped query builder
  * Adds organization_id filter to queries
  * 

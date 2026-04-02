@@ -7,8 +7,6 @@ import {
   TextField,
   Paper,
   Link,
-  Tabs,
-  Tab,
   Alert,
   CircularProgress,
 } from '@mui/material';

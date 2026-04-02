@@ -479,25 +479,24 @@ usersRouter.delete('/:id', requireAdmin(), auditLog('delete', 'user'), async (c)
       throw badRequestError('Cannot delete the organization owner');
     }
 
-    // Soft delete (deactivate)
-    await db
-      .prepare(
-        `
-      UPDATE users SET is_active = 0, updated_at = datetime("now") WHERE id = ?
-    `
-      )
-      .bind(targetUserId)
-      .run();
-
-    // Revoke all refresh tokens
-    await db
-      .prepare(
-        `
-      UPDATE refresh_tokens SET revoked_at = datetime("now") WHERE user_id = ? AND revoked_at IS NULL
-    `
-      )
-      .bind(targetUserId)
-      .run();
+    // Soft delete (deactivate), revoke tokens, and clean up class assignments
+    await db.batch([
+      db
+        .prepare(
+          `UPDATE users SET is_active = 0, updated_at = datetime("now") WHERE id = ?`
+        )
+        .bind(targetUserId),
+      db
+        .prepare(
+          `UPDATE refresh_tokens SET revoked_at = datetime("now") WHERE user_id = ? AND revoked_at IS NULL`
+        )
+        .bind(targetUserId),
+      db
+        .prepare(
+          `DELETE FROM class_assignments WHERE user_id = ?`
+        )
+        .bind(targetUserId),
+    ]);
 
     return c.json({ message: 'User deactivated successfully' });
   } catch (error) {
@@ -715,17 +714,18 @@ usersRouter.get('/:id/export', requireOwner(), async (c) => {
       throw notFoundError('User not found');
     }
 
-    // Fetch audit log entries referencing this user
+    // Fetch audit log entries referencing this user (scoped to their organization)
     const auditEntries = await db
       .prepare(
         `
       SELECT action, entity_type, entity_id, details, created_at
       FROM audit_log
-      WHERE user_id = ? OR (entity_type = 'user' AND entity_id = ?)
+      WHERE (user_id = ? OR (entity_type = 'user' AND entity_id = ?))
+        AND organization_id = ?
       ORDER BY created_at DESC
     `
       )
-      .bind(targetUserId, targetUserId)
+      .bind(targetUserId, targetUserId, user.organization_id)
       .all();
 
     // Log the SAR in data_rights_log

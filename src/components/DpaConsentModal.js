@@ -84,6 +84,8 @@ const DpaConsentModal = () => {
       maxWidth="sm"
       fullWidth
       disableEscapeKeyDown
+      role="alertdialog"
+      aria-describedby="dpa-consent-description"
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
         <GavelIcon color="primary" />
@@ -93,7 +95,7 @@ const DpaConsentModal = () => {
       </DialogTitle>
 
       <DialogContent dividers>
-        <Typography variant="body1" paragraph>
+        <Typography variant="body1" paragraph id="dpa-consent-description">
           Before using Tally Reading with student data, your school must accept the
           Data Processing Agreement (DPA). This agreement outlines how we process
           personal data in compliance with UK GDPR.

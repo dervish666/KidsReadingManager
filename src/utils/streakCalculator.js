@@ -15,6 +15,7 @@ export function getDateString(date, timezone = 'UTC') {
     return d.toLocaleDateString('en-CA', { timeZone: timezone }); // en-CA gives YYYY-MM-DD format
   } catch {
     // Fallback if timezone is invalid
+    console.warn('Invalid timezone, falling back to UTC:', timezone);
     return d.toISOString().split('T')[0];
   }
 }

@@ -53,7 +53,7 @@ export async function fetchMetadata(book) {
     result.author = doc.author_name?.[0] || null;
     result.publicationYear = doc.first_publish_year || null;
     result.pageCount = doc.number_of_pages_median || null;
-    result.genres = doc.subject?.slice(0, 5) || null;
+    result.genres = doc.subject?.filter(s => s.length < 50 && !['Accessible book', 'Protected DAISY', 'Internet Archive Wishlist', 'Large type books', 'In library'].includes(s)).slice(0, 5) || null;
 
     // Pick the first ISBN-13 (13 digits) or first ISBN
     if (doc.isbn?.length) {

@@ -6,7 +6,9 @@
  * Parse CSV text into headers and rows
  */
 export const parseCSV = (csvText) => {
-  const lines = csvText.split(/\r?\n/).filter(line => line.trim());
+  // Strip UTF-8 BOM if present (common in Excel-generated CSVs)
+  const cleanText = csvText.replace(/^\uFEFF/, '');
+  const lines = cleanText.split(/\r?\n/).filter(line => line.trim());
   if (lines.length < 1) {
     throw new Error('CSV file is empty');
   }

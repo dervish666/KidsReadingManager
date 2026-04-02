@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -14,6 +14,7 @@ import MenuBookIcon from '@mui/icons-material/MenuBook';
 import StopIcon from '@mui/icons-material/Stop';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import { useAuth } from '../contexts/AuthContext';
+import { useEnrichmentPolling } from '../hooks/useEnrichmentPolling';
 
 const BookMetadataSettings = () => {
   const { fetchWithAuth } = useAuth();
@@ -24,8 +25,6 @@ const BookMetadataSettings = () => {
 
   // Enrichment job state
   const [isRunning, setIsRunning] = useState(false);
-  const [progress, setProgress] = useState(null); // { processedBooks, totalBooks, currentBook, enrichedBooks, jobId, status, done }
-  const pollRef = useRef(null);
 
   // Snackbar
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
@@ -36,44 +35,24 @@ const BookMetadataSettings = () => {
 
   // ── Polling ──────────────────────────────────────────────────────────────────
 
-  const startPolling = async (jobId) => {
-    const controller = new AbortController();
-    pollRef.current = controller;
+  const handlePollingComplete = useCallback(() => {
+    showSnackbar('Enrichment complete', 'success');
+  }, []);
 
-    try {
-      while (!controller.signal.aborted) {
-        const res = await fetchWithAuth('/api/metadata/enrich', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ jobId }),
-          signal: controller.signal,
-        });
+  const handlePollingError = useCallback((msg) => {
+    showSnackbar(msg, 'error');
+  }, []);
 
-        if (!res.ok) break;
-        const data = await res.json();
-        setProgress(data);
+  const handlePollingFinished = useCallback(() => {
+    setIsRunning(false);
+    loadStatus();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-        if (data.done || data.status === 'completed' || data.status === 'failed' || data.status === 'paused') {
-          if (data.status === 'completed' || data.done) {
-            showSnackbar('Enrichment complete', 'success');
-          } else if (data.status === 'failed') {
-            showSnackbar('Enrichment failed', 'error');
-          }
-          break;
-        }
-      }
-    } catch (err) {
-      if (err.name !== 'AbortError') {
-        console.error('Polling error', err);
-        showSnackbar('Enrichment polling encountered an error', 'error');
-      }
-    } finally {
-      pollRef.current = null;
-      setIsRunning(false);
-      // Refresh status after job completes
-      loadStatus();
-    }
-  };
+  const { progress, setProgress, startPolling, stopPolling } = useEnrichmentPolling(fetchWithAuth, {
+    onComplete: handlePollingComplete,
+    onError: handlePollingError,
+    onFinished: handlePollingFinished,
+  });
 
   // ── Load status ───────────────────────────────────────────────────────────────
 
@@ -106,7 +85,7 @@ const BookMetadataSettings = () => {
     init();
 
     return () => {
-      if (pollRef.current) pollRef.current.abort();
+      stopPolling();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -155,7 +134,7 @@ const BookMetadataSettings = () => {
   // ── Stop ──────────────────────────────────────────────────────────────────────
 
   const handleStop = async () => {
-    if (pollRef.current) pollRef.current.abort();
+    stopPolling();
     const jobId = progress?.jobId;
     if (jobId) {
       try {

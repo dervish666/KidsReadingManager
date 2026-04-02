@@ -40,7 +40,6 @@ const BookCoverPlaceholder = ({ title, width = 80, height = 120 }) => {
       sx={{
         width: `${width}px`,
         height: `${height}px`,
-        backgroundColor,
         borderRadius: 1,
         display: 'flex',
         flexDirection: 'column',

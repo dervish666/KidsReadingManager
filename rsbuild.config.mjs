@@ -17,9 +17,7 @@ export default defineConfig({
       index: './src/index.js',
     },
   },
-  define: {
-    'process.env.REACT_APP_API_BASE_URL': JSON.stringify(process.env.REACT_APP_API_BASE_URL),
-  },
+  define: {},
   output: {
     distPath: {
       root: 'build',

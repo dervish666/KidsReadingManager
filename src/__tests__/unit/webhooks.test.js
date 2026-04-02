@@ -4,7 +4,8 @@ import { Hono } from 'hono';
 // Mock crypto and sync modules before imports
 vi.mock('../../utils/crypto.js', () => ({
   encryptSensitiveData: vi.fn(),
-  constantTimeStringEqual: vi.fn((a, b) => a === b)
+  constantTimeStringEqual: vi.fn((a, b) => a === b),
+  getEncryptionSecret: vi.fn((env) => env.ENCRYPTION_KEY || env.JWT_SECRET)
 }));
 
 vi.mock('../../services/wondeSync.js', () => ({

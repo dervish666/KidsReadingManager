@@ -418,16 +418,7 @@ describe('Wonde + MyLogin Integration', () => {
       expect(bindArgs).toContain(String(MYLOGIN_USER_PROFILE.id)); // mylogin_id
       expect(bindArgs).toContain('wonde-emp-456');      // wonde_employee_id
 
-      // JWT was created
-      expect(createJWTPayload).toHaveBeenCalledWith(
-        expect.objectContaining({
-          email: 'jane@furlongschool.org',
-          name: 'Jane Teacher',
-          role: 'teacher'
-        }),
-        expect.objectContaining({ id: 'org-id-1', slug: 'furlong-school' })
-      );
-      expect(createAccessToken).toHaveBeenCalled();
+      // Refresh token was created (access token is obtained via /api/auth/refresh after redirect)
       expect(createRefreshToken).toHaveBeenCalled();
 
       // Refresh token stored in DB
@@ -495,13 +486,7 @@ describe('Wonde + MyLogin Integration', () => {
       );
       expect(insertCall).toBeUndefined();
 
-      // JWT issued using the existing user's ID
-      expect(createJWTPayload).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'existing-user-id' }),
-        expect.objectContaining({ id: 'org-id-1' })
-      );
-
-      // Refresh token still stored and cookie set
+      // Refresh token stored and cookie set
       const refreshInsert = env.READING_MANAGER_DB.prepare.mock.calls.find(
         call => call[0].includes('INSERT INTO refresh_tokens')
       );

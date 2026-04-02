@@ -1,9 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Box,
   Typography,
   Paper,
-  Tooltip
+  Tooltip,
+  Button
 } from '@mui/material';
 import { useData } from '../../contexts/DataContext';
 import { useUI } from '../../contexts/UIContext';
@@ -35,10 +36,14 @@ const ReadingFrequencyChart = () => {
     });
   }, [students, globalClassFilter, classes]);
   
+  const [showAll, setShowAll] = useState(false);
+
   // Sort students by reading session count (most to least)
   const sortedStudents = [...activeStudents].sort((a, b) =>
     (b.totalSessionCount || 0) - (a.totalSessionCount || 0)
   );
+
+  const displayStudents = showAll ? sortedStudents : sortedStudents.slice(0, 30);
 
   // Find the maximum number of sessions for scaling
   const maxSessions = Math.max(
@@ -65,7 +70,7 @@ const ReadingFrequencyChart = () => {
         </Typography>
       ) : (
         <Box sx={{ mt: 3 }}>
-          {sortedStudents.map(student => {
+          {displayStudents.map(student => {
             const sessionCount = student.totalSessionCount || 0;
             const basePercent = Math.max((sessionCount / maxSessions) * 100, 3); // Base percent
             const adjustedPercent = isSmall ? Math.max(basePercent, 6) : basePercent; // Larger min on small screens
@@ -105,7 +110,23 @@ const ReadingFrequencyChart = () => {
               </Box>
             );
           })}
-          
+
+          {sortedStudents.length > 30 && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+              <Button
+                size="small"
+                onClick={() => setShowAll((prev) => !prev)}
+                sx={{
+                  textTransform: 'none',
+                  fontFamily: '"DM Sans", sans-serif',
+                  fontWeight: 600,
+                }}
+              >
+                {showAll ? 'Show top 30' : `Show all ${sortedStudents.length} students`}
+              </Button>
+            </Box>
+          )}
+
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <Box sx={{ width: 12, height: 12, borderRadius: 1, bgcolor: theme.palette.primary.main, mr: 1 }} />

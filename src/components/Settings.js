@@ -55,6 +55,8 @@ const Settings = () => {
     streakGracePeriodDays: settings?.streakGracePeriodDays ?? 1,
   });
 
+  const [saving, setSaving] = useState(false);
+
   // State for snackbar
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -106,6 +108,7 @@ const Settings = () => {
       return;
     }
 
+    setSaving(true);
     try {
       // Merge with existing settings and update readingStatusSettings
       await updateSettings({
@@ -127,6 +130,8 @@ const Settings = () => {
         message: `Error saving settings: ${error.message}`,
         severity: 'error',
       });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -494,10 +499,11 @@ const Settings = () => {
             color="primary"
             startIcon={<SaveIcon />}
             onClick={handleSaveSettings}
+            disabled={saving}
             fullWidth
             sx={{ width: { xs: '100%', sm: 'auto' } }}
           >
-            Save Settings
+            {saving ? 'Saving...' : 'Save Settings'}
           </Button>
 
           <Button

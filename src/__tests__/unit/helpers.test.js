@@ -5,9 +5,6 @@ import {
   getReadingStatus,
   sortStudentsByPriority,
   getPrioritizedStudents,
-  updateLastReadDate,
-  formatErrorResponse,
-  formatSuccessResponse,
   formatAssessmentDisplay
 } from '../../utils/helpers.js';
 
@@ -209,97 +206,6 @@ describe('getPrioritizedStudents', () => {
     const prioritized = getPrioritizedStudents(students, 2);
 
     expect(prioritized[0].name).toBe('B'); // fewer sessions = higher priority
-  });
-});
-
-describe('updateLastReadDate', () => {
-  it('should return null lastReadDate when no sessions', () => {
-    const student = { name: 'Test', totalSessionCount: 0 };
-    const updated = updateLastReadDate(student);
-
-    expect(updated.lastReadDate).toBeNull();
-  });
-
-  it('should return null when readingSessions is undefined', () => {
-    const student = { name: 'Test' };
-    const updated = updateLastReadDate(student);
-
-    expect(updated.lastReadDate).toBeNull();
-  });
-
-  it('should find most recent session date', () => {
-    const student = {
-      name: 'Test',
-      readingSessions: [
-        { date: '2024-01-10' },
-        { date: '2024-01-20' },
-        { date: '2024-01-15' }
-      ]
-    };
-
-    const updated = updateLastReadDate(student);
-
-    expect(updated.lastReadDate).toBe('2024-01-20');
-  });
-
-  it('should skip sessions without date', () => {
-    const student = {
-      name: 'Test',
-      readingSessions: [
-        { date: '2024-01-10' },
-        { id: '1' }, // no date
-        { date: '2024-01-05' }
-      ]
-    };
-
-    const updated = updateLastReadDate(student);
-
-    expect(updated.lastReadDate).toBe('2024-01-10');
-  });
-
-  it('should not mutate original student', () => {
-    const student = {
-      name: 'Test',
-      readingSessions: [{ date: '2024-01-10' }]
-    };
-
-    const updated = updateLastReadDate(student);
-
-    expect(updated).not.toBe(student);
-    expect(student.lastReadDate).toBeUndefined();
-  });
-});
-
-describe('formatErrorResponse', () => {
-  it('should format error with default status', () => {
-    const response = formatErrorResponse('Something went wrong');
-
-    expect(response.status).toBe('error');
-    expect(response.message).toBe('Something went wrong');
-    expect(response.code).toBe(400);
-  });
-
-  it('should format error with custom status', () => {
-    const response = formatErrorResponse('Not found', 404);
-
-    expect(response.code).toBe(404);
-  });
-});
-
-describe('formatSuccessResponse', () => {
-  it('should format success with data and default message', () => {
-    const data = { id: 1 };
-    const response = formatSuccessResponse(data);
-
-    expect(response.status).toBe('success');
-    expect(response.message).toBe('Success');
-    expect(response.data).toEqual({ id: 1 });
-  });
-
-  it('should format success with custom message', () => {
-    const response = formatSuccessResponse({ id: 1 }, 'Created successfully');
-
-    expect(response.message).toBe('Created successfully');
   });
 });
 

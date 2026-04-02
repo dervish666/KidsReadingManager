@@ -13,12 +13,11 @@
 
 import { Hono } from 'hono';
 import {
-  createJWTPayload,
-  createAccessToken,
   createRefreshToken,
   hashToken,
   buildRefreshCookie,
-  buildClearRefreshCookie
+  buildClearRefreshCookie,
+  ROLE_HIERARCHY
 } from '../utils/crypto.js';
 import { generateId } from '../utils/helpers.js';
 import { syncUserClassAssignments } from '../utils/classAssignments.js';
@@ -58,10 +57,6 @@ myloginRouter.get('/login', async (c) => {
   // Store state in D1 (strongly consistent, unlike KV which is eventually consistent)
   if (db) {
     await db.prepare('INSERT INTO oauth_state (state) VALUES (?)').bind(state).run();
-    // Clean up expired states (>5 minutes old) on ~10% of requests
-    if (Math.random() < 0.1) {
-      db.prepare("DELETE FROM oauth_state WHERE created_at < datetime('now', '-5 minutes')").run().catch(() => {});
-    }
   } else {
     // Fallback to KV if D1 not available
     await c.env.READING_MANAGER_KV.put(`oauth_state:${state}`, '1', { expirationTtl: 300 });
@@ -216,16 +211,29 @@ myloginRouter.get('/callback', async (c) => {
     ).bind(String(myloginId)).first();
 
     if (existingUser) {
-      // Update existing user — sync name, email, and role from IdP
+      // Update existing user — sync name and email from IdP.
+      // Role: allow demotions and lateral moves, but never auto-elevate.
       userId = existingUser.id;
-      const newRole = role; // mapped from MyLogin profile type
-      if (existingUser.role !== newRole) {
-        console.log(`[MyLogin] Role changed for ${name}: ${existingUser.role} → ${newRole}`);
+      const idpRole = role; // mapped from MyLogin profile type
+      const currentLevel = ROLE_HIERARCHY[existingUser.role] || 0;
+      const idpLevel = ROLE_HIERARCHY[idpRole] || 0;
+      let effectiveRole = existingUser.role;
+
+      if (idpLevel <= currentLevel) {
+        // Same or lower privilege — safe to sync from IdP
+        effectiveRole = idpRole;
+      } else {
+        // IdP wants to elevate — keep existing role and log warning
+        console.warn(`[MyLogin] Blocked role elevation for ${name}: IdP wants ${idpRole} but user has ${existingUser.role}. Keeping existing role.`);
+      }
+
+      if (existingUser.role !== effectiveRole) {
+        console.log(`[MyLogin] Role changed for ${name}: ${existingUser.role} → ${effectiveRole}`);
       }
       await db.prepare(
         `UPDATE users SET name = ?, email = ?, role = ?, last_login_at = datetime("now"), updated_at = datetime("now")
          WHERE id = ?`
-      ).bind(name, email, newRole, userId).run();
+      ).bind(name, email, effectiveRole, userId).run();
     } else {
       // Create new user
       userId = generateId();
@@ -264,26 +272,8 @@ myloginRouter.get('/callback', async (c) => {
     // 7. Issue Tally JWT (same pattern as src/routes/auth.js)
     // -----------------------------------------------------------------------
 
-    // Look up assigned class IDs for the JWT payload
-    let assignedClassIds = [];
-    try {
-      const assignments = await db.prepare(
-        'SELECT class_id FROM class_assignments WHERE user_id = ?'
-      ).bind(userId).all();
-      assignedClassIds = (assignments.results || []).map(r => r.class_id);
-    } catch { /* class_assignments table may not exist in legacy envs */ }
-
-    const userForPayload = {
-      id: userId,
-      email,
-      name,
-      role: role, // always use the freshly-mapped role from MyLogin profile
-      authProvider: 'mylogin',
-      assignedClassIds,
-    };
-
-    const payload = createJWTPayload(userForPayload, { id: org.id, slug: org.slug });
-    const tallyAccessToken = await createAccessToken(payload, c.env.JWT_SECRET);
+    // Access token is obtained by the frontend via /api/auth/refresh after redirect.
+    // We only need to issue the refresh token here (delivered as httpOnly cookie).
     const refreshTokenData = await createRefreshToken(userId, c.env.JWT_SECRET);
 
     // Store refresh token hash

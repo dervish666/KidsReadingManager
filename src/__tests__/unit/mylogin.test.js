@@ -12,6 +12,7 @@ vi.mock('../../utils/crypto.js', () => ({
   createAccessToken: vi.fn(),
   createRefreshToken: vi.fn(),
   hashToken: vi.fn(),
+  ROLE_HIERARCHY: { owner: 4, admin: 3, teacher: 2, readonly: 1 },
   buildRefreshCookie: (token, isProduction) => {
     return [`refresh_token=${token}`, 'HttpOnly', 'Path=/api/auth', `Max-Age=${7*24*60*60}`, 'SameSite=Strict', isProduction ? 'Secure' : ''].filter(Boolean).join('; ');
   },
@@ -515,11 +516,8 @@ describe('MyLogin OAuth Routes', () => {
       );
       expect(insertCall).toBeUndefined();
 
-      // Should have used existing user ID for JWT
-      expect(createJWTPayload).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'existing-user-id' }),
-        expect.any(Object)
-      );
+      // Should have created a refresh token for the existing user
+      expect(createRefreshToken).toHaveBeenCalled();
     });
 
     // -----------------------------------------------------------------------

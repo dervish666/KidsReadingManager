@@ -270,8 +270,8 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
     // -----------------------------------------------------------------------
     // Build from classes data (which includes employees) — more reliable than
     // the employees endpoint which may not return classes.data consistently.
-    // DELETE executed standalone, then INSERTs batched separately
-    await db.prepare(`DELETE FROM wonde_employee_classes WHERE organization_id = ?`).bind(orgId).run();
+    // DELETE included in the first INSERT batch for atomicity
+    const deleteStmt = db.prepare(`DELETE FROM wonde_employee_classes WHERE organization_id = ?`).bind(orgId);
     const employeeStatements = [];
     const seenEmployeeIds = new Set();
 
@@ -294,9 +294,17 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
 
     counts.employeesSynced = seenEmployeeIds.size;
 
-    // Execute employee-class inserts in batches of 100
+    // Execute employee-class inserts in batches of 100.
+    // The DELETE is included in the first batch for atomicity — if the batch fails,
+    // neither the delete nor the inserts are applied.
     for (let i = 0; i < employeeStatements.length; i += 100) {
-      await db.batch(employeeStatements.slice(i, i + 100));
+      const batch = employeeStatements.slice(i, i + 100);
+      if (i === 0) batch.unshift(deleteStmt); // DELETE + first inserts are atomic
+      await db.batch(batch);
+    }
+    // If there are no employee statements, still run the DELETE to clear stale mappings
+    if (employeeStatements.length === 0) {
+      await deleteStmt.run();
     }
 
     // -----------------------------------------------------------------------

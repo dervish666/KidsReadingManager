@@ -187,10 +187,4 @@ function createKVProvider(env) {
   };
 }
 
-// Default export - for backwards compatibility, always uses JSON provider
-// This can be used when env is not available (like in tests or migrations)
-const defaultProvider = null;
-
-// For ES6 modules compatibility in Workers
-export default defaultProvider;
 export { createProvider };

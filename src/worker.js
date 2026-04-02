@@ -40,12 +40,12 @@ import { processJobBatch } from './services/metadataService.js';
 import stripeWebhookRouter from './routes/stripeWebhook.js';
 import { billingRouter } from './routes/billing.js';
 import { runFullSync } from './services/wondeSync.js';
-import { decryptSensitiveData } from './utils/crypto.js';
+import { decryptSensitiveData, getEncryptionSecret } from './utils/crypto.js';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
 import { authMiddleware, handleLogin } from './middleware/auth';
-import { jwtAuthMiddleware, tenantMiddleware, subscriptionGate } from './middleware/tenant';
+import { jwtAuthMiddleware, tenantMiddleware, subscriptionGate, costRateLimit } from './middleware/tenant';
 import { PUBLIC_PATHS } from './utils/constants.js';
 
 const APP_VERSION = '3.35.0';
@@ -68,7 +68,7 @@ app.use('/api/*', bodyLimit({ maxSize: 1024 * 1024 })); // 1MB max request body
 app.use('/api/*', cors({
   origin: (origin, c) => {
     // Allow requests with no origin (e.g., same-origin, mobile apps, curl)
-    if (!origin) return origin;
+    if (!origin) return null;
 
     // In development, allow localhost origins
     if (c.env.ENVIRONMENT === 'development') {
@@ -224,6 +224,13 @@ app.use('/api/*', async (c, next) => {
 
   return next();
 });
+
+// ============================================================================
+// Cost-sensitive endpoint rate limiting (AI APIs, external proxies)
+// ============================================================================
+app.use('/api/books/ai-suggestions', costRateLimit(10));   // 10/min — calls Anthropic/OpenAI/Google
+app.use('/api/metadata/enrich', costRateLimit(5));          // 5/min — bulk external API calls
+app.use('/api/hardcover/graphql', costRateLimit(30));       // 30/min — proxied to Hardcover API
 
 // ============================================================================
 // API Routes
@@ -546,7 +553,7 @@ export default Sentry.withSentry(
         for (let i = 0; i < orgList.length; i += SYNC_CONCURRENCY) {
           const batch = orgList.slice(i, i + SYNC_CONCURRENCY);
           const results = await Promise.allSettled(batch.map(async (org) => {
-            const schoolToken = await decryptSensitiveData(org.wonde_school_token, env.JWT_SECRET);
+            const schoolToken = await decryptSensitiveData(org.wonde_school_token, getEncryptionSecret(env));
             await runFullSync(org.id, schoolToken, org.wonde_school_id, db, {
               updatedAfter: org.wonde_last_sync_at,
             });

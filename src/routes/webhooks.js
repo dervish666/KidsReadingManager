@@ -13,7 +13,7 @@
  */
 
 import { Hono } from 'hono';
-import { encryptSensitiveData, constantTimeStringEqual } from '../utils/crypto.js';
+import { encryptSensitiveData, constantTimeStringEqual, getEncryptionSecret } from '../utils/crypto.js';
 import { runFullSync } from '../services/wondeSync.js';
 import { fetchSchoolDetails } from '../utils/wondeApi.js';
 
@@ -57,7 +57,7 @@ webhooksRouter.post('/wonde', async (c) => {
       ).bind(body.school_id).first();
 
       // Encrypt school token
-      const encryptedToken = await encryptSensitiveData(body.school_token, c.env.JWT_SECRET);
+      const encryptedToken = await encryptSensitiveData(body.school_token, getEncryptionSecret(c.env));
 
       // Fetch school contact details from Wonde (address, phone, email)
       let schoolDetails = null;

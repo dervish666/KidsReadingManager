@@ -1,17 +1,13 @@
 import { Hono } from 'hono';
-import { requireOwner } from '../middleware/tenant.js';
+import { requireOwner, requireReadonly } from '../middleware/tenant.js';
 import { generateId } from '../utils/helpers.js';
 import { sendSupportNotificationEmail } from '../utils/email.js';
 import { rowToSupportTicket, rowToSupportNote } from '../utils/rowMappers.js';
 
 const supportRouter = new Hono();
 
-supportRouter.post('/', async (c) => {
-  // Require authentication
+supportRouter.post('/', requireReadonly(), async (c) => {
   const user = c.get('user');
-  if (!user) {
-    return c.json({ error: 'Authentication required' }, 401);
-  }
 
   const body = await c.req.json().catch(() => null);
   if (!body) {

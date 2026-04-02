@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { decryptSensitiveData, encryptSensitiveData } from '../utils/crypto.js';
+import { decryptSensitiveData, encryptSensitiveData, getEncryptionSecret } from '../utils/crypto.js';
 import { runFullSync } from '../services/wondeSync.js';
 import { fetchSchoolDetails } from '../utils/wondeApi.js';
 import { requireAdmin, requireOwner } from '../middleware/tenant.js';
@@ -30,7 +30,7 @@ wondeAdminRouter.post('/sync', requireAdmin(), async (c) => {
   }
   let schoolToken;
   try {
-    schoolToken = await decryptSensitiveData(org.wonde_school_token, c.env.JWT_SECRET);
+    schoolToken = await decryptSensitiveData(org.wonde_school_token, getEncryptionSecret(c.env));
   } catch (err) {
     return c.json({ error: 'Failed to decrypt school token. Token may need to be re-set.' }, 500);
   }
@@ -68,7 +68,7 @@ wondeAdminRouter.post('/sync/:orgId', requireOwner(), async (c) => {
 
   let schoolToken;
   try {
-    schoolToken = await decryptSensitiveData(org.wonde_school_token, c.env.JWT_SECRET);
+    schoolToken = await decryptSensitiveData(org.wonde_school_token, getEncryptionSecret(c.env));
   } catch {
     return c.json({ error: 'Failed to decrypt school token' }, 500);
   }
@@ -141,7 +141,7 @@ wondeAdminRouter.post('/token', requireOwner(), async (c) => {
   if (!c.env.JWT_SECRET) {
     return c.json({ error: 'Server encryption not configured' }, 500);
   }
-  const encryptedToken = await encryptSensitiveData(schoolToken.trim(), c.env.JWT_SECRET);
+  const encryptedToken = await encryptSensitiveData(schoolToken.trim(), getEncryptionSecret(c.env));
   await db.prepare(
     'UPDATE organizations SET wonde_school_token = ?, updated_at = datetime("now") WHERE id = ?'
   ).bind(encryptedToken, orgId).run();

@@ -1,3 +1,4 @@
+// LEGACY: These routes are blocked in multi-tenant mode (JWT_SECRET set). Retained for KV-mode backward compatibility only.
 import { Hono } from 'hono';
 
 // Import services

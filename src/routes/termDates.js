@@ -71,7 +71,8 @@ termDatesRouter.put('/', requireAdmin(), async (c) => {
 
   const sorted = [...terms].sort((a, b) => a.startDate.localeCompare(b.startDate));
   for (let i = 1; i < sorted.length; i++) {
-    if (sorted[i].startDate <= sorted[i - 1].endDate) {
+    // Terms can be back-to-back (start === prev end) but not overlapping
+    if (sorted[i].startDate < sorted[i - 1].endDate) {
       throw badRequestError(`Term dates overlap: ${sorted[i - 1].termName} and ${sorted[i].termName}`);
     }
   }

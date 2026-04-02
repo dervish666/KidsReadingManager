@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -38,6 +38,7 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import StopIcon from '@mui/icons-material/Stop';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useAuth } from '../contexts/AuthContext';
+import { useEnrichmentPolling } from '../hooks/useEnrichmentPolling';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -110,8 +111,6 @@ const MetadataManagement = () => {
   const [selectedSchool, setSelectedSchool] = useState(null); // null = all schools
   const [isEnriching, setIsEnriching] = useState(false);
   const [runInBackground, setRunInBackground] = useState(false);
-  const [progress, setProgress] = useState(null);
-  const pollRef = useRef(null);
 
   // ── Job history state ──
   const [jobs, setJobs] = useState([]);
@@ -123,6 +122,26 @@ const MetadataManagement = () => {
   const showSnackbar = (message, severity = 'info') => {
     setSnackbar({ open: true, message, severity });
   };
+
+  // ── Polling hook ──
+  const handlePollingComplete = useCallback(() => {
+    showSnackbar('Enrichment complete', 'success');
+  }, []);
+
+  const handlePollingError = useCallback((msg) => {
+    showSnackbar(msg, 'error');
+  }, []);
+
+  const handlePollingFinished = useCallback(() => {
+    setIsEnriching(false);
+    loadJobs();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const { progress, setProgress, startPolling, stopPolling } = useEnrichmentPolling(fetchWithAuth, {
+    onComplete: handlePollingComplete,
+    onError: handlePollingError,
+    onFinished: handlePollingFinished,
+  });
 
   // ── Load config on mount ──
   useEffect(() => {
@@ -187,7 +206,7 @@ const MetadataManagement = () => {
 
   // ── Auto-resume polling for running jobs on mount ──
   useEffect(() => {
-    if (jobs.length === 0 || isEnriching || pollRef.current) return;
+    if (jobs.length === 0 || isEnriching) return;
     const runningJob = jobs.find((j) => j.status === 'running' || j.status === 'pending');
     if (runningJob) {
       setIsEnriching(true);
@@ -207,9 +226,9 @@ const MetadataManagement = () => {
   // ── Cleanup polling on unmount ──
   useEffect(() => {
     return () => {
-      if (pollRef.current) pollRef.current.abort();
+      stopPolling();
     };
-  }, []);
+  }, [stopPolling]);
 
   // ─── Section 1: Provider Configuration ────────────────────────────────────
 
@@ -261,62 +280,6 @@ const MetadataManagement = () => {
   };
 
   // ─── Section 2: Global Enrichment ─────────────────────────────────────────
-
-  const startPolling = async (jobId) => {
-    const controller = new AbortController();
-    pollRef.current = controller;
-    let consecutiveErrors = 0;
-
-    try {
-      while (!controller.signal.aborted) {
-        const res = await fetchWithAuth('/api/metadata/enrich', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ jobId }),
-          signal: controller.signal,
-        });
-
-        if (!res.ok) {
-          consecutiveErrors++;
-          // Try to read error body for useful info
-          const errBody = await res.json().catch(() => ({}));
-          if (errBody.done || errBody.status === 'failed') {
-            showSnackbar(errBody.error || 'Enrichment failed', 'error');
-            break;
-          }
-          // Retry up to 3 times on transient 500s (e.g. Worker timeout)
-          if (consecutiveErrors >= 3) {
-            showSnackbar('Enrichment stopped after repeated errors — resume to continue', 'error');
-            break;
-          }
-          // Wait before retrying
-          await new Promise((r) => setTimeout(r, 2000));
-          continue;
-        }
-        consecutiveErrors = 0;
-        const data = await res.json();
-        setProgress(data);
-
-        if (
-          data.done ||
-          data.status === 'completed' ||
-          data.status === 'failed' ||
-          data.status === 'paused'
-        ) {
-          break;
-        }
-      }
-    } catch (err) {
-      if (err.name !== 'AbortError') {
-        console.error('Polling error', err);
-        showSnackbar('Enrichment polling encountered an error', 'error');
-      }
-    } finally {
-      pollRef.current = null;
-      setIsEnriching(false);
-      loadJobs();
-    }
-  };
 
   const handleEnrich = async (jobType) => {
     if (isEnriching) return;
@@ -371,7 +334,7 @@ const MetadataManagement = () => {
   };
 
   const handleStop = async () => {
-    if (pollRef.current) pollRef.current.abort();
+    stopPolling();
     if (progress?.jobId) {
       try {
         await fetchWithAuth(`/api/metadata/jobs/${progress.jobId}`, { method: 'DELETE' });

@@ -521,9 +521,20 @@ async function deriveEncryptionKey(secret) {
 }
 
 /**
+ * Get the encryption secret from the environment.
+ * Prefers a dedicated ENCRYPTION_KEY (limiting blast radius if JWT_SECRET is compromised),
+ * falls back to JWT_SECRET for backward compatibility with existing encrypted data.
+ * @param {Object} env - Worker environment bindings
+ * @returns {string} - The encryption secret
+ */
+export function getEncryptionSecret(env) {
+  return env.ENCRYPTION_KEY || env.JWT_SECRET;
+}
+
+/**
  * Encrypt sensitive data (like API keys)
  * @param {string} plaintext - Data to encrypt
- * @param {string} secret - JWT secret (used to derive encryption key)
+ * @param {string} secret - Encryption secret (use getEncryptionSecret(env))
  * @returns {Promise<string>} - Encrypted data as base64 string (iv:ciphertext)
  */
 export async function encryptSensitiveData(plaintext, secret) {

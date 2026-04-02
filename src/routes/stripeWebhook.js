@@ -9,6 +9,7 @@
 import { Hono } from 'hono';
 import { getStripe, getPlanFromPriceId, hasAiAddon } from '../utils/stripe.js';
 import { generateId } from '../utils/helpers.js';
+import { sendTrialEndingEmail } from '../utils/email.js';
 
 /**
  * Normalize Stripe subscription status to consistent British spelling.
@@ -180,9 +181,27 @@ stripeWebhookRouter.post('/', async (c) => {
       }
 
       case 'customer.subscription.trial_will_end': {
-        // Fires 3 days before trial ends
-        // TODO: Send reminder email to school admin
-        console.log(`[Stripe Webhook] Trial ending soon for subscription ${obj.id}`);
+        // Fires 3 days before trial ends — notify the school admin
+        const trialCustomerId = obj.customer;
+        const trialDaysLeft = Math.max(1, Math.ceil((obj.trial_end * 1000 - Date.now()) / 86400000));
+        console.log(`[Stripe Webhook] Trial ending in ~${trialDaysLeft} days for subscription ${obj.id}`);
+        try {
+          const trialOrg = await db
+            .prepare('SELECT id, name FROM organizations WHERE stripe_customer_id = ? AND is_active = 1')
+            .bind(trialCustomerId)
+            .first();
+          if (trialOrg) {
+            const admin = await db
+              .prepare("SELECT email, name FROM users WHERE organization_id = ? AND role IN ('admin', 'owner') AND is_active = 1 ORDER BY role = 'admin' DESC LIMIT 1")
+              .bind(trialOrg.id)
+              .first();
+            if (admin?.email) {
+              await sendTrialEndingEmail(c.env, admin.email, admin.name || 'there', trialOrg.name, trialDaysLeft);
+            }
+          }
+        } catch (emailErr) {
+          console.error('[Stripe Webhook] Failed to send trial reminder:', emailErr.message);
+        }
         break;
       }
 

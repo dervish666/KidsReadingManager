@@ -1,10 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Box,
   Typography,
   Paper,
   Tooltip,
-  LinearProgress
+  LinearProgress,
+  Button
 } from '@mui/material';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useData } from '../../contexts/DataContext';
@@ -60,7 +61,10 @@ const DaysSinceReadingChart = () => {
   };
   
   const studentData = useMemo(() => calculateDaysSinceReading(), [activeStudents]);
-  
+
+  const [showAll, setShowAll] = useState(false);
+  const displayStudents = showAll ? studentData : studentData.slice(0, 30);
+
   // Find the maximum days for scaling the bars
   const maxDays = Math.max(
     ...studentData.map(s => s.daysSinceReading || 0),
@@ -95,7 +99,7 @@ const DaysSinceReadingChart = () => {
         </Typography>
       ) : (
         <Box sx={{ mt: 3 }}>
-          {studentData.map(student => (
+          {displayStudents.map(student => (
             <Box key={student.id} sx={{ mb: 2 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5, flexDirection: { xs: 'column', sm: 'row' }, gap: 1 }}>
                 <Typography variant="body2" sx={{ maxWidth: { xs: '100%', sm: '60%' }, wordBreak: 'break-word' }}>
@@ -127,7 +131,23 @@ const DaysSinceReadingChart = () => {
               </Tooltip>
             </Box>
           ))}
-          
+
+          {studentData.length > 30 && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+              <Button
+                size="small"
+                onClick={() => setShowAll((prev) => !prev)}
+                sx={{
+                  textTransform: 'none',
+                  fontFamily: '"DM Sans", sans-serif',
+                  fontWeight: 600,
+                }}
+              >
+                {showAll ? 'Show top 30' : `Show all ${studentData.length} students`}
+              </Button>
+            </Box>
+          )}
+
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: theme.palette.success.main, mr: 1 }} />

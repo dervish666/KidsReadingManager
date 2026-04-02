@@ -1,5 +1,60 @@
 # Changelog
 
+## [3.36.0] - 2026-04-02
+
+### Added
+- **Cost endpoint rate limiting** — AI suggestions (10/min), metadata enrichment (5/min), Hardcover proxy (30/min) now rate-limited to prevent abuse of paid external APIs
+- **Separate encryption key support** — new `ENCRYPTION_KEY` env var for AES-GCM encryption, decoupled from `JWT_SECRET` (backward compatible)
+- **Stripe trial ending email** — `customer.subscription.trial_will_end` webhook now emails the school admin 3 days before trial expiry
+- **Enrichment polling hook** — extracted `useEnrichmentPolling` shared hook from BookMetadataSettings and MetadataManagement, eliminating duplicate polling logic
+- **Chart student limits** — ReadingFrequencyChart and DaysSinceReadingChart now show top 30 students by default with "Show all" toggle
+
+### Security
+- **SSO role elevation blocked** — MyLogin callback no longer auto-elevates user roles from IdP; demotions allowed, elevations require manual admin action
+- **Hardcover GraphQL proxy hardened** — comments stripped before mutation/subscription check to prevent bypass
+- **CORS null origin fix** — `null` returned explicitly instead of `undefined` for no-origin requests
+- **Support ticket auth** — POST endpoint now uses `requireReadonly()` middleware instead of manual JWT check
+- **Book import restricted to admin** — import preview/confirm endpoints upgraded from `requireTeacher()` to `requireAdmin()`
+- **Audit log org-scoped** — GDPR export now filters audit entries by organization
+- **Student ID removed from errors** — generic "Student not found" messages prevent ID enumeration
+- **Tour ID validation** — max 50 chars, alphanumeric with hyphens enforced
+- **Session book org check** — reading session creation now verifies book belongs to the student's organization
+
+### Fixed
+- **SSO callback token waste** — removed dead access token generation; frontend retry with backoff on refresh
+- **SQLite bind limit** — AI suggestions and library search now chunk readBookIds in groups of 400
+- **Wonde sync atomicity** — employee-class DELETE included in first INSERT batch for atomic execution
+- **Registration slug race** — TOCTOU handled with retry on UNIQUE constraint violation, max 100 iterations
+- **D1 batch success check** — removed misleading per-item check; D1 batches are all-or-nothing
+- **Stats timezone** — week/day calculations now use org timezone from settings instead of UTC
+- **CSV BOM handling** — UTF-8 BOM stripped before parsing Excel-generated CSVs
+- **LIKE wildcard escaping** — `%` and `_` in book dislikes properly escaped
+- **Metadata JSON.parse** — guarded with try/catch and default fallback provider chain
+- **Term date overlap** — changed `<=` to `<` to allow back-to-back terms
+- **Org search min length** — 2-character minimum enforced to prevent expensive single-char LIKE queries
+- **Settings save state** — Save button disabled during save with "Saving..." label
+- **SupportTicketManager errors** — all catch blocks now surface errors via dismissible Alert
+- **DpaConsentModal ARIA** — added `role="alertdialog"` and `aria-describedby` for screen readers
+- **SettingsPage lazy rendering** — tab components now mount on demand instead of all 8 eagerly on page load
+- **Slug generation guard** — registration slug loop capped at 100 iterations
+- **Token expiry comment** — documented D1/Worker clock skew defense-in-depth
+- **OAuth state cleanup** — removed probabilistic `Math.random()` cleanup; cron is sufficient
+- **Streak timezone warning** — invalid timezone fallback now logged
+- **Batch student import dedup** — duplicate names within a single import batch now detected
+- **User deactivation cleanup** — class_assignments now deleted on soft-delete
+- **Email transfer encoding** — HTML part uses base64 instead of 7bit for safe non-ASCII handling
+
+### Changed
+- **LandingPage refs** — IntersectionObserver refs changed from array to Set for O(1) dedup
+- **BookManager reading levels** — `getUniqueReadingLevels()` wrapped in useMemo
+- **BookManager error display** — removed duplicate error Alert
+- **BulkImport self-dedup** — names deduplicated before import
+- **OpenLibrary subjects** — meta-subjects filtered out (Accessible book, Protected DAISY, etc.)
+- **Hardcover catch blocks** — empty catches now log debug messages
+- **Dead code removed** — `formatSuccessResponse`, `formatErrorResponse`, `updateLastReadDate`, `defaultProvider`, unused Login imports, dead `fetchOrganizations`, MUI v7 wrapper slot, unused Rsbuild define
+- **uuid moved to devDependencies**, node-fetch added as devDependency
+- **CLAUDE.md updated** — stale file refs fixed, `ENCRYPTION_KEY`/`SENTRY_DSN`/Stripe secrets documented
+
 ## [3.35.1] - 2026-04-01
 
 ### Security

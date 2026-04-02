@@ -164,60 +164,72 @@ export const AuthProvider = ({ children }) => {
       } else if (authParam === 'callback') {
         // Remove query param from URL (clean up)
         window.history.replaceState({}, '', window.location.pathname);
-        // Complete SSO login by refreshing token (callback set httpOnly cookie)
-        try {
-          const response = await fetch(`${API_URL}/auth/refresh`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-          });
-          if (response.ok) {
-            const data = await response.json();
-            setAuthToken(data.accessToken);
-            try {
-              if (typeof window !== 'undefined') {
-                window.localStorage.setItem(AUTH_STORAGE_KEY, data.accessToken);
-              }
-            } catch {
-              /* ignore */
+        // Complete SSO login by exchanging the httpOnly refresh cookie for an access token.
+        // Retry with backoff — the redirect sets the cookie, but the browser may not have
+        // persisted it by the time this runs (observed on slow connections).
+        const maxRetries = 3;
+        let lastError = null;
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+          try {
+            if (attempt > 0) {
+              await new Promise((r) => setTimeout(r, 500 * attempt));
             }
-            if (data.user) {
-              // Merge organization info into user object
-              const userWithOrg = {
-                ...data.user,
-                organizationId: data.organization?.id || data.user.organizationId,
-                organizationName: data.organization?.name || data.user.organizationName,
-                organizationSlug: data.organization?.slug || data.user.organizationSlug,
-              };
-              setUser(userWithOrg);
+            const response = await fetch(`${API_URL}/auth/refresh`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+            });
+            if (response.ok) {
+              const data = await response.json();
+              setAuthToken(data.accessToken);
               try {
                 if (typeof window !== 'undefined') {
-                  window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userWithOrg));
+                  window.localStorage.setItem(AUTH_STORAGE_KEY, data.accessToken);
                 }
               } catch {
                 /* ignore */
               }
-              // Auto-set class filter on fresh SSO login
-              if (data.user.assignedClassIds && data.user.assignedClassIds.length > 0) {
+              if (data.user) {
+                // Merge organization info into user object
+                const userWithOrg = {
+                  ...data.user,
+                  organizationId: data.organization?.id || data.user.organizationId,
+                  organizationName: data.organization?.name || data.user.organizationName,
+                  organizationSlug: data.organization?.slug || data.user.organizationSlug,
+                };
+                setUser(userWithOrg);
                 try {
-                  window.sessionStorage.setItem(
-                    'pendingClassAutoFilter',
-                    JSON.stringify(data.user.assignedClassIds)
-                  );
+                  if (typeof window !== 'undefined') {
+                    window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userWithOrg));
+                  }
                 } catch {
                   /* ignore */
                 }
+                // Auto-set class filter on fresh SSO login
+                if (data.user.assignedClassIds && data.user.assignedClassIds.length > 0) {
+                  try {
+                    window.sessionStorage.setItem(
+                      'pendingClassAutoFilter',
+                      JSON.stringify(data.user.assignedClassIds)
+                    );
+                  } catch {
+                    /* ignore */
+                  }
+                }
               }
+              lastError = null;
+              break; // success — stop retrying
+            } else {
+              const errData = await response.json().catch(() => ({}));
+              lastError = errData.error || 'could not complete sign-in';
             }
-          } else {
-            const errData = await response.json().catch(() => ({}));
-            setApiError(
-              `SSO login failed: ${errData.error || 'could not complete sign-in'}`
-            );
+          } catch (err) {
+            console.error(`SSO callback attempt ${attempt + 1} failed:`, err);
+            lastError = 'network error';
           }
-        } catch (err) {
-          console.error('SSO callback error:', err);
-          setApiError('SSO login failed: network error');
+        }
+        if (lastError) {
+          setApiError(`SSO login failed: ${lastError}`);
         }
       }
     };

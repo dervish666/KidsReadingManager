@@ -149,22 +149,22 @@ function AppContent() {
   const ActiveTab = visibleTabs[safeTab].Component;
 
   // Standalone pages rendered outside of auth
+  const PageFallback = () => (
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+      }}
+    >
+      <CircularProgress sx={{ color: 'primary.main' }} />
+    </Box>
+  );
+
   if (window.location.pathname === '/privacy') {
     return (
-      <Suspense
-        fallback={
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              height: '100vh',
-            }}
-          >
-            <CircularProgress sx={{ color: 'primary.main' }} />
-          </Box>
-        }
-      >
+      <Suspense fallback={<PageFallback />}>
         <PrivacyPolicy />
       </Suspense>
     );
@@ -172,20 +172,7 @@ function AppContent() {
 
   if (window.location.pathname === '/terms') {
     return (
-      <Suspense
-        fallback={
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              height: '100vh',
-            }}
-          >
-            <CircularProgress sx={{ color: 'primary.main' }} />
-          </Box>
-        }
-      >
+      <Suspense fallback={<PageFallback />}>
         <TermsOfService />
       </Suspense>
     );
@@ -193,20 +180,7 @@ function AppContent() {
 
   if (window.location.pathname === '/cookies') {
     return (
-      <Suspense
-        fallback={
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              height: '100vh',
-            }}
-          >
-            <CircularProgress sx={{ color: 'primary.main' }} />
-          </Box>
-        }
-      >
+      <Suspense fallback={<PageFallback />}>
         <CookiePolicy />
       </Suspense>
     );

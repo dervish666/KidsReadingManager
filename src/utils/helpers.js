@@ -89,26 +89,6 @@ export function getPrioritizedStudents(students, count) {
 }
 
 /**
- * Update the last read date for a student based on reading sessions
- * @param {Object} student - Student object
- * @returns {Object} - Updated student object
- */
-export function updateLastReadDate(student) {
-  if (!student.readingSessions || student.readingSessions.length === 0) {
-    return { ...student, lastReadDate: null };
-  }
-  
-  let mostRecentDate = null;
-  for (const session of student.readingSessions) {
-    if (session.date && (!mostRecentDate || new Date(session.date) > new Date(mostRecentDate))) {
-      mostRecentDate = session.date;
-    }
-  }
-  
-  return { ...student, lastReadDate: mostRecentDate };
-}
-
-/**
  * Maps status values returned by AppContext's getReadingStatus()
  * ('never', 'recent', 'attention', 'overdue')
  * to theme.palette.status keys ('notRead', 'needsAttention', 'recentlyRead').
@@ -121,20 +101,6 @@ export const STATUS_TO_PALETTE = {
 };
 
 /**
- * Format error response
- * @param {string} message - Error message
- * @param {number} status - HTTP status code
- * @returns {Object} - Formatted error response
- */
-export function formatErrorResponse(message, status = 400) {
-  return {
-    status: 'error',
-    message,
-    code: status
-  };
-}
-
-/**
  * Format assessment display label from stored value
  * @param {number|null|undefined} assessment - Assessment value (integer 1-10)
  * @returns {string|null} - Formatted display label (e.g. '7/10') or null
@@ -145,20 +111,6 @@ export function formatAssessmentDisplay(assessment) {
     return `${assessment}/10`;
   }
   return null;
-}
-
-/**
- * Format success response
- * @param {*} data - Response data
- * @param {string} message - Success message
- * @returns {Object} - Formatted success response
- */
-export function formatSuccessResponse(data, message = 'Success') {
-  return {
-    status: 'success',
-    message,
-    data
-  };
 }
 
 /**
@@ -175,14 +127,6 @@ export function parseGenreIds(value) {
   return value.split(',').map(g => g.trim()).filter(Boolean);
 }
 
-/**
- * Fetch with a timeout using AbortController.
- * If the request doesn't complete within timeoutMs, it is aborted and a timeout error is thrown.
- * @param {string} url - The URL to fetch
- * @param {object} options - Standard fetch options (method, headers, body, etc.)
- * @param {number} timeoutMs - Timeout in milliseconds (default 10000)
- * @returns {Promise<Response>} The fetch response
- */
 /**
  * Format a date string as a human-readable relative time (e.g., "3 hours ago")
  * @param {string} dateString - ISO date string
