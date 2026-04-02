@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.36.1] - 2026-04-02
+
+### Security
+- **CSP for frontend** — added Content-Security-Policy header on static asset responses to limit XSS blast radius
+- **AI inLibrary org-scoped** — recommendation "in library" checks now join `org_book_selections` so books from other orgs are not leaked across tenants
+- **Book endpoint limits clamped** — paginated list and search endpoints now enforce 1–100 range on page sizes
+
+### Fixed
+- **Webhook slug collision** — Wonde `schoolApproved` webhook now checks slug uniqueness and auto-increments, preventing onboarding failures for same-named schools
+
 ## [3.36.0] - 2026-04-02
 
 ### Added

@@ -13,7 +13,11 @@
  */
 
 import { Hono } from 'hono';
-import { encryptSensitiveData, constantTimeStringEqual, getEncryptionSecret } from '../utils/crypto.js';
+import {
+  encryptSensitiveData,
+  constantTimeStringEqual,
+  getEncryptionSecret,
+} from '../utils/crypto.js';
 import { runFullSync } from '../services/wondeSync.js';
 import { fetchSchoolDetails } from '../utils/wondeApi.js';
 
@@ -52,12 +56,16 @@ webhooksRouter.post('/wonde', async (c) => {
       const schoolName = (body.school_name || '').trim().substring(0, 200);
 
       // Check for existing organization with same wonde_school_id
-      const existing = await db.prepare(
-        `SELECT id, is_active FROM organizations WHERE wonde_school_id = ?`
-      ).bind(body.school_id).first();
+      const existing = await db
+        .prepare(`SELECT id, is_active FROM organizations WHERE wonde_school_id = ?`)
+        .bind(body.school_id)
+        .first();
 
       // Encrypt school token
-      const encryptedToken = await encryptSensitiveData(body.school_token, getEncryptionSecret(c.env));
+      const encryptedToken = await encryptSensitiveData(
+        body.school_token,
+        getEncryptionSecret(c.env)
+      );
 
       // Fetch school contact details from Wonde (address, phone, email)
       let schoolDetails = null;
@@ -69,17 +77,21 @@ webhooksRouter.post('/wonde', async (c) => {
 
       const contactEmail = (schoolDetails?.email || '').trim().substring(0, 200) || null;
       const phone = (schoolDetails?.phone_number || '').trim().substring(0, 50) || null;
-      const addressLine1 = (schoolDetails?.address?.address_line_1 || '').trim().substring(0, 200) || null;
-      const addressLine2 = (schoolDetails?.address?.address_line_2 || '').trim().substring(0, 200) || null;
+      const addressLine1 =
+        (schoolDetails?.address?.address_line_1 || '').trim().substring(0, 200) || null;
+      const addressLine2 =
+        (schoolDetails?.address?.address_line_2 || '').trim().substring(0, 200) || null;
       const town = (schoolDetails?.address?.address_town || '').trim().substring(0, 100) || null;
-      const postcode = (schoolDetails?.address?.address_postcode || '').trim().substring(0, 20) || null;
+      const postcode =
+        (schoolDetails?.address?.address_postcode || '').trim().substring(0, 20) || null;
 
       let orgId;
       if (existing) {
         orgId = existing.id;
         // Reactivate and update token + contact details if previously revoked
-        await db.prepare(
-          `UPDATE organizations SET
+        await db
+          .prepare(
+            `UPDATE organizations SET
             is_active = 1, wonde_school_token = ?, name = ?,
             contact_email = COALESCE(?, contact_email),
             phone = COALESCE(?, phone),
@@ -89,20 +101,64 @@ webhooksRouter.post('/wonde', async (c) => {
             postcode = COALESCE(?, postcode),
             updated_at = datetime("now")
            WHERE id = ?`
-        ).bind(encryptedToken, schoolName, contactEmail, phone, addressLine1, addressLine2, town, postcode, orgId).run();
-        console.log(`[Webhook] School re-approved: ${schoolName} (${body.school_id}), reactivated org ${orgId}`);
+          )
+          .bind(
+            encryptedToken,
+            schoolName,
+            contactEmail,
+            phone,
+            addressLine1,
+            addressLine2,
+            town,
+            postcode,
+            orgId
+          )
+          .run();
+        console.log(
+          `[Webhook] School re-approved: ${schoolName} (${body.school_id}), reactivated org ${orgId}`
+        );
       } else {
         orgId = crypto.randomUUID();
-        const slug = schoolName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        const baseSlug =
+          schoolName
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/(^-|-$)/g, '') || 'school';
+        let finalSlug = baseSlug;
+        let slugCounter = 1;
+        while (slugCounter <= 100) {
+          const existing2 = await db
+            .prepare('SELECT id FROM organizations WHERE slug = ?')
+            .bind(finalSlug)
+            .first();
+          if (!existing2) break;
+          finalSlug = `${baseSlug}-${slugCounter++}`;
+        }
 
-        await db.prepare(
-          `INSERT INTO organizations (id, name, slug, wonde_school_id, wonde_school_token,
+        await db
+          .prepare(
+            `INSERT INTO organizations (id, name, slug, wonde_school_id, wonde_school_token,
             contact_email, phone, address_line_1, address_line_2, town, postcode,
             is_active, created_at, updated_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime("now"), datetime("now"))`
-        ).bind(orgId, schoolName, slug, body.school_id, encryptedToken,
-          contactEmail, phone, addressLine1, addressLine2, town, postcode).run();
-        console.log(`[Webhook] School approved: ${schoolName} (${body.school_id}), created org ${orgId}`);
+          )
+          .bind(
+            orgId,
+            schoolName,
+            finalSlug,
+            body.school_id,
+            encryptedToken,
+            contactEmail,
+            phone,
+            addressLine1,
+            addressLine2,
+            town,
+            postcode
+          )
+          .run();
+        console.log(
+          `[Webhook] School approved: ${schoolName} (${body.school_id}), created org ${orgId}`
+        );
       }
 
       // Trigger full sync in background
@@ -123,14 +179,18 @@ webhooksRouter.post('/wonde', async (c) => {
         return c.json({ error: 'Missing school_id' }, 400);
       }
 
-      const org = await db.prepare(
-        'SELECT id FROM organizations WHERE wonde_school_id = ?'
-      ).bind(body.school_id).first();
+      const org = await db
+        .prepare('SELECT id FROM organizations WHERE wonde_school_id = ?')
+        .bind(body.school_id)
+        .first();
 
       if (org) {
-        await db.prepare(
-          'UPDATE organizations SET is_active = 0, updated_at = datetime("now") WHERE id = ?'
-        ).bind(org.id).run();
+        await db
+          .prepare(
+            'UPDATE organizations SET is_active = 0, updated_at = datetime("now") WHERE id = ?'
+          )
+          .bind(org.id)
+          .run();
 
         const reason = body.revoke_reason || body.decline_reason || 'No reason provided';
         console.log(`[Webhook] Access ${body.payload_type}: ${body.school_name} - ${reason}`);
@@ -143,7 +203,9 @@ webhooksRouter.post('/wonde', async (c) => {
       // schoolMigration fires when a school changes MIS provider. The school
       // token may change — a new schoolApproved webhook should follow with the
       // updated token. Log for awareness; no action required here.
-      console.log(`[Webhook] School migration: ${body.school_name} from ${body.migrate_from} to ${body.migrate_to}`);
+      console.log(
+        `[Webhook] School migration: ${body.school_name} from ${body.migrate_from} to ${body.migrate_to}`
+      );
       return c.json({ success: true });
     }
 

@@ -10,7 +10,12 @@ import { generateBroadSuggestions } from '../services/aiService.js';
 import { notFoundError, badRequestError, serverError } from '../middleware/errorHandler';
 import { decryptSensitiveData, permissions, getEncryptionSecret } from '../utils/crypto.js';
 import { buildStudentReadingProfile } from '../utils/studentProfile.js';
-import { isExactMatch, isFuzzyMatch, isAuthorMatch, normalizeAuthorDisplay } from '../utils/stringMatching.js';
+import {
+  isExactMatch,
+  isFuzzyMatch,
+  isAuthorMatch,
+  normalizeAuthorDisplay,
+} from '../utils/stringMatching.js';
 import { getCachedRecommendations, cacheRecommendations } from '../utils/recommendationCache.js';
 import { normalizeISBN } from '../utils/isbn.js';
 import { lookupISBN } from '../utils/isbnLookup.js';
@@ -54,14 +59,21 @@ booksRouter.get('/', requireReadonly(), async (c) => {
     // Return minimal book list for autocomplete (avoids N+1 paginated fetches)
     if (all === 'true') {
       const columns = fields === 'minimal' ? 'b.id, b.title, b.author' : 'b.*';
-      const result = await db.prepare(`
+      const result = await db
+        .prepare(
+          `
         SELECT ${columns} FROM books b
         INNER JOIN org_book_selections obs ON b.id = obs.book_id
         WHERE obs.organization_id = ? AND obs.is_available = 1
         ORDER BY b.title
-      `).bind(organizationId).all();
+      `
+        )
+        .bind(organizationId)
+        .all();
       if (fields === 'minimal') {
-        return c.json((result.results || []).map(r => ({ id: r.id, title: r.title, author: r.author })));
+        return c.json(
+          (result.results || []).map((r) => ({ id: r.id, title: r.title, author: r.author }))
+        );
       }
       return c.json((result.results || []).map(rowToBook));
     }
@@ -72,67 +84,102 @@ booksRouter.get('/', requireReadonly(), async (c) => {
       const searchTerm = search.trim();
       // Try FTS5 first (handles prefix matching and is much faster than LIKE on large tables)
       // Escape FTS5 special characters and add prefix matching
-      const ftsQuery = searchTerm.replace(/['"*()^]/g, '').split(/\s+/).filter(Boolean).map(t => `"${t}"*`).join(' ');
+      const ftsQuery = searchTerm
+        .replace(/['"*()^]/g, '')
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((t) => `"${t}"*`)
+        .join(' ');
       let result;
       try {
-        result = await db.prepare(`
+        result = await db
+          .prepare(
+            `
           SELECT b.* FROM books b
           INNER JOIN org_book_selections obs ON b.id = obs.book_id
           INNER JOIN books_fts fts ON b.id = fts.id
           WHERE obs.organization_id = ? AND fts MATCH ?
           ORDER BY rank LIMIT ?
-        `).bind(organizationId, ftsQuery, limit).all();
+        `
+          )
+          .bind(organizationId, ftsQuery, limit)
+          .all();
       } catch {
         // FTS5 may not be available or query may be invalid — fall back to LIKE
         const likeQuery = `%${searchTerm}%`;
-        result = await db.prepare(`
+        result = await db
+          .prepare(
+            `
           SELECT b.* FROM books b
           INNER JOIN org_book_selections obs ON b.id = obs.book_id
           WHERE obs.organization_id = ? AND (b.title LIKE ? OR b.author LIKE ?)
           ORDER BY b.title LIMIT ?
-        `).bind(organizationId, likeQuery, likeQuery, limit).all();
+        `
+          )
+          .bind(organizationId, likeQuery, likeQuery, limit)
+          .all();
       }
       return c.json((result.results || []).map(rowToBook));
     }
 
     // Pagination with org scoping
     if (page) {
-      const pageNum = parseInt(page, 10) || 1;
-      const size = parseInt(pageSize, 10) || 50;
+      const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+      const size = Math.min(Math.max(parseInt(pageSize, 10) || 50, 1), 100);
       const offset = (pageNum - 1) * size;
-      const countResult = await db.prepare(
-        'SELECT COUNT(*) as count FROM books b INNER JOIN org_book_selections obs ON b.id = obs.book_id WHERE obs.organization_id = ? AND obs.is_available = 1'
-      ).bind(organizationId).first();
+      const countResult = await db
+        .prepare(
+          'SELECT COUNT(*) as count FROM books b INNER JOIN org_book_selections obs ON b.id = obs.book_id WHERE obs.organization_id = ? AND obs.is_available = 1'
+        )
+        .bind(organizationId)
+        .first();
       const total = countResult?.count || 0;
-      const result = await db.prepare(`
+      const result = await db
+        .prepare(
+          `
         SELECT b.* FROM books b
         INNER JOIN org_book_selections obs ON b.id = obs.book_id
         WHERE obs.organization_id = ? AND obs.is_available = 1
         ORDER BY b.title LIMIT ? OFFSET ?
-      `).bind(organizationId, size, offset).all();
+      `
+        )
+        .bind(organizationId, size, offset)
+        .all();
       return c.json({
         books: (result.results || []).map(rowToBook),
-        total, page: pageNum, pageSize: size,
-        totalPages: Math.ceil(total / size)
+        total,
+        page: pageNum,
+        pageSize: size,
+        totalPages: Math.ceil(total / size),
       });
     }
 
     // Default: paginated org books (page 1 if not specified)
     const defaultPageSize = 50;
-    const countResult = await db.prepare(
-      'SELECT COUNT(*) as count FROM books b INNER JOIN org_book_selections obs ON b.id = obs.book_id WHERE obs.organization_id = ? AND obs.is_available = 1'
-    ).bind(organizationId).first();
+    const countResult = await db
+      .prepare(
+        'SELECT COUNT(*) as count FROM books b INNER JOIN org_book_selections obs ON b.id = obs.book_id WHERE obs.organization_id = ? AND obs.is_available = 1'
+      )
+      .bind(organizationId)
+      .first();
     const total = countResult?.count || 0;
-    const result = await db.prepare(`
+    const result = await db
+      .prepare(
+        `
       SELECT b.* FROM books b
       INNER JOIN org_book_selections obs ON b.id = obs.book_id
       WHERE obs.organization_id = ? AND obs.is_available = 1
       ORDER BY b.title LIMIT ? OFFSET 0
-    `).bind(organizationId, defaultPageSize).all();
+    `
+      )
+      .bind(organizationId, defaultPageSize)
+      .all();
     return c.json({
       books: (result.results || []).map(rowToBook),
-      total, page: 1, pageSize: defaultPageSize,
-      totalPages: Math.ceil(total / defaultPageSize)
+      total,
+      page: 1,
+      pageSize: defaultPageSize,
+      totalPages: Math.ceil(total / defaultPageSize),
     });
   }
 
@@ -168,32 +215,47 @@ booksRouter.get('/search', requireReadonly(), async (c) => {
     return c.json({ error: 'Search query (q) is required' }, 400);
   }
 
-  const maxResults = limit ? parseInt(limit, 10) : 50;
+  const maxResults = Math.min(Math.max(limit ? parseInt(limit, 10) : 50, 1), 100);
   const organizationId = c.get('organizationId');
   const db = c.env.READING_MANAGER_DB;
 
   // In multi-tenant mode, scope search to organization's books using FTS5
   if (organizationId && db) {
     const searchTerm = q.trim();
-    const ftsQuery = searchTerm.replace(/['"*()^]/g, '').split(/\s+/).filter(Boolean).map(t => `"${t}"*`).join(' ');
+    const ftsQuery = searchTerm
+      .replace(/['"*()^]/g, '')
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((t) => `"${t}"*`)
+      .join(' ');
     let result;
     try {
-      result = await db.prepare(`
+      result = await db
+        .prepare(
+          `
         SELECT b.* FROM books b
         INNER JOIN org_book_selections obs ON b.id = obs.book_id
         INNER JOIN books_fts fts ON b.id = fts.id
         WHERE obs.organization_id = ? AND fts MATCH ?
         ORDER BY rank LIMIT ?
-      `).bind(organizationId, ftsQuery, maxResults).all();
+      `
+        )
+        .bind(organizationId, ftsQuery, maxResults)
+        .all();
     } catch {
       // FTS5 fallback to LIKE
       const likeQuery = `%${searchTerm}%`;
-      result = await db.prepare(`
+      result = await db
+        .prepare(
+          `
         SELECT b.* FROM books b
         INNER JOIN org_book_selections obs ON b.id = obs.book_id
         WHERE obs.organization_id = ? AND (b.title LIKE ? OR b.author LIKE ?)
         ORDER BY b.title LIMIT ?
-      `).bind(organizationId, likeQuery, likeQuery, maxResults).all();
+      `
+        )
+        .bind(organizationId, likeQuery, likeQuery, maxResults)
+        .all();
     }
     const books = (result.results || []).map(rowToBook);
     return c.json({ query: q.trim(), count: books.length, books });
@@ -299,11 +361,14 @@ booksRouter.get('/library-search', requireReadonly(), async (c) => {
 
     query += ` LIMIT 100`; // Get more than we need for scoring
 
-    const booksResult = await db.prepare(query).bind(...params).all();
+    const booksResult = await db
+      .prepare(query)
+      .bind(...params)
+      .all();
     let books = booksResult.results || [];
 
     // Score and sort books by genre match
-    const scoredBooks = books.map(book => {
+    const scoredBooks = books.map((book) => {
       let score = 0;
       const matchReasons = [];
       const bookGenreIds = parseGenreIds(book.genre_ids);
@@ -313,7 +378,7 @@ booksRouter.get('/library-search', requireReadonly(), async (c) => {
         if (preferences.favoriteGenreIds.includes(genreId)) {
           score += 3; // Explicit favorite gets higher weight
           matchReasons.push('favorite genre');
-        } else if (inferredGenres.some(g => g.id === genreId)) {
+        } else if (inferredGenres.some((g) => g.id === genreId)) {
           score += 2; // Inferred favorite
           matchReasons.push('matches reading history');
         }
@@ -329,8 +394,13 @@ booksRouter.get('/library-search', requireReadonly(), async (c) => {
           // Bonus for books closer to the center of the target range
           if (targetHalf > 0 && distanceFromCenter <= targetHalf * 0.5) {
             score += 1;
-            matchReasons.push(focusMode === 'consolidation' ? 'consolidation level' :
-              focusMode === 'challenge' ? 'challenge level' : 'ideal level match');
+            matchReasons.push(
+              focusMode === 'consolidation'
+                ? 'consolidation level'
+                : focusMode === 'challenge'
+                  ? 'challenge level'
+                  : 'ideal level match'
+            );
           }
         }
       }
@@ -343,35 +413,38 @@ booksRouter.get('/library-search', requireReadonly(), async (c) => {
     const topBooks = scoredBooks.slice(0, 10);
 
     // Get genre names for display
-    const allGenreIds = [...new Set(topBooks.flatMap(b => parseGenreIds(b.genre_ids)))];
+    const allGenreIds = [...new Set(topBooks.flatMap((b) => parseGenreIds(b.genre_ids)))];
 
     let genreNameMap = {};
     if (allGenreIds.length > 0) {
       const placeholders = allGenreIds.map(() => '?').join(',');
-      const genresResult = await db.prepare(`
+      const genresResult = await db
+        .prepare(
+          `
         SELECT id, name FROM genres WHERE id IN (${placeholders})
-      `).bind(...allGenreIds).all();
+      `
+        )
+        .bind(...allGenreIds)
+        .all();
 
-      for (const row of (genresResult.results || [])) {
+      for (const row of genresResult.results || []) {
         genreNameMap[row.id] = row.name;
       }
     }
 
     // Format response
-    const formattedBooks = topBooks.map(book => {
+    const formattedBooks = topBooks.map((book) => {
       const genreIds = parseGenreIds(book.genre_ids);
       // Only include genres that have a name in the map (filter out invalid IDs)
-      const genres = genreIds
-        .filter(id => genreNameMap[id])
-        .map(id => genreNameMap[id]);
+      const genres = genreIds.filter((id) => genreNameMap[id]).map((id) => genreNameMap[id]);
 
       // Build match reason string
       let matchReason = 'Matches your reading level';
       if (book.matchReasons.includes('favorite genre')) {
-        const matchingGenre = genres.find(g => preferences.favoriteGenreNames.includes(g));
+        const matchingGenre = genres.find((g) => preferences.favoriteGenreNames.includes(g));
         matchReason = `Matches favorite genre: ${matchingGenre || genres[0] || 'General'}`;
       } else if (book.matchReasons.includes('matches reading history')) {
-        matchReason = 'Similar to books you\'ve enjoyed';
+        matchReason = "Similar to books you've enjoyed";
       }
 
       return {
@@ -387,7 +460,7 @@ booksRouter.get('/library-search', requireReadonly(), async (c) => {
         seriesNumber: book.series_number,
         publicationYear: book.publication_year,
         genres,
-        matchReason
+        matchReason,
       };
     });
 
@@ -398,9 +471,9 @@ booksRouter.get('/library-search', requireReadonly(), async (c) => {
         readingLevelMin: student.readingLevelMin,
         readingLevelMax: student.readingLevelMax,
         favoriteGenres: preferences.favoriteGenreNames,
-        inferredGenres: inferredGenres.map(g => g.name),
-        booksRead: profile.booksReadCount
-      }
+        inferredGenres: inferredGenres.map((g) => g.name),
+        booksRead: profile.booksReadCount,
+      },
     });
   } catch (error) {
     // Re-throw known errors (badRequestError, notFoundError)
@@ -440,20 +513,29 @@ booksRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
     }
 
     // GDPR: Check processing restriction and AI opt-out before generating recommendations
-    const studentFlags = await db.prepare(
-      'SELECT processing_restricted, ai_opt_out FROM students WHERE id = ? AND organization_id = ?'
-    ).bind(studentId, organizationId).first();
+    const studentFlags = await db
+      .prepare(
+        'SELECT processing_restricted, ai_opt_out FROM students WHERE id = ? AND organization_id = ?'
+      )
+      .bind(studentId, organizationId)
+      .first();
 
     if (!studentFlags) {
       throw notFoundError(`Student with ID ${studentId} not found`);
     }
 
     if (studentFlags.processing_restricted) {
-      return c.json({ suggestions: [], message: 'Processing is restricted for this student. AI recommendations are unavailable.' });
+      return c.json({
+        suggestions: [],
+        message: 'Processing is restricted for this student. AI recommendations are unavailable.',
+      });
     }
 
     if (studentFlags.ai_opt_out) {
-      return c.json({ suggestions: [], message: 'AI recommendations are disabled for this student.' });
+      return c.json({
+        suggestions: [],
+        message: 'AI recommendations are disabled for this student.',
+      });
     }
 
     // Build student profile
@@ -476,33 +558,40 @@ booksRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
     // Check cache (unless skipCache requested)
     if (skipCache !== 'true') {
       // Quick-read AI config just for provider name (for cache key)
-      const configRow = await db.prepare(
-        'SELECT provider FROM org_ai_config WHERE organization_id = ?'
-      ).bind(organizationId).first();
+      const configRow = await db
+        .prepare('SELECT provider FROM org_ai_config WHERE organization_id = ?')
+        .bind(organizationId)
+        .first();
       cacheInputs.provider = configRow?.provider || 'anthropic';
 
       const cached = await getCachedRecommendations(c.env, cacheInputs);
       if (cached) {
         // Library cross-check on cached suggestions
         const suggestionTitles = (cached.suggestions || [])
-          .filter(s => s && s.title)
-          .map(s => s.title.toLowerCase());
+          .filter((s) => s && s.title)
+          .map((s) => s.title.toLowerCase());
         let libraryMatches = {};
 
         if (suggestionTitles.length > 0) {
           const placeholders = suggestionTitles.map(() => '?').join(',');
-          const booksResult = await db.prepare(
-            `SELECT id, title FROM books WHERE LOWER(title) IN (${placeholders})`
-          ).bind(...suggestionTitles).all();
-          for (const book of (booksResult.results || [])) {
+          const booksResult = await db
+            .prepare(
+              `SELECT b.id, b.title FROM books b
+             INNER JOIN org_book_selections obs ON b.id = obs.book_id
+             WHERE obs.organization_id = ? AND obs.is_available = 1
+             AND LOWER(b.title) IN (${placeholders})`
+            )
+            .bind(organizationId, ...suggestionTitles)
+            .all();
+          for (const book of booksResult.results || []) {
             libraryMatches[book.title.toLowerCase()] = book.id;
           }
         }
 
-        const enriched = (cached.suggestions || []).map(s => ({
+        const enriched = (cached.suggestions || []).map((s) => ({
           ...s,
           inLibrary: s?.title ? !!libraryMatches[s.title.toLowerCase()] : false,
-          libraryBookId: s?.title ? (libraryMatches[s.title.toLowerCase()] || null) : null,
+          libraryBookId: s?.title ? libraryMatches[s.title.toLowerCase()] || null : null,
         }));
 
         return c.json({
@@ -510,8 +599,8 @@ booksRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
           studentProfile: {
             readingLevel: profile.student.readingLevel,
             favoriteGenres: profile.preferences.favoriteGenreNames,
-            inferredGenres: profile.inferredGenres.map(g => g.name),
-            recentReads: profile.recentReads.map(r => r.title),
+            inferredGenres: profile.inferredGenres.map((g) => g.name),
+            recentReads: profile.recentReads.map((r) => r.title),
           },
           cached: true,
         });
@@ -519,13 +608,20 @@ booksRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
     }
 
     // Get AI configuration
-    const dbConfig = await db.prepare(`
+    const dbConfig = await db
+      .prepare(
+        `
       SELECT provider, api_key_encrypted, model_preference, is_enabled
       FROM org_ai_config WHERE organization_id = ?
-    `).bind(organizationId).first();
+    `
+      )
+      .bind(organizationId)
+      .first();
 
     if (!dbConfig || !dbConfig.is_enabled || !dbConfig.api_key_encrypted) {
-      throw badRequestError('AI not configured. Please configure an AI provider in Settings to use AI suggestions.');
+      throw badRequestError(
+        'AI not configured. Please configure an AI provider in Settings to use AI suggestions.'
+      );
     }
 
     // Decrypt API key
@@ -535,7 +631,7 @@ booksRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
       aiConfig = {
         provider: dbConfig.provider || 'anthropic',
         apiKey: decryptedApiKey,
-        model: dbConfig.model_preference
+        model: dbConfig.model_preference,
       };
     } catch (decryptError) {
       console.error('Failed to decrypt API key:', decryptError.message);
@@ -550,9 +646,7 @@ booksRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
 
     // Cache the raw suggestions (non-blocking)
     if (c.executionCtx?.waitUntil) {
-      c.executionCtx.waitUntil(
-        cacheRecommendations(c.env, cacheInputs, { suggestions })
-      );
+      c.executionCtx.waitUntil(cacheRecommendations(c.env, cacheInputs, { suggestions }));
     } else {
       // Fallback for environments without waitUntil
       cacheRecommendations(c.env, cacheInputs, { suggestions }).catch(() => {});
@@ -561,27 +655,37 @@ booksRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
     // Check which suggestions are in the library
     // Add null safety in case AI returns malformed data
     const suggestionTitles = (suggestions || [])
-      .filter(s => s && s.title)
-      .map(s => s.title.toLowerCase());
+      .filter((s) => s && s.title)
+      .map((s) => s.title.toLowerCase());
     let libraryMatches = {};
 
     if (suggestionTitles.length > 0) {
-      // Search for title matches in library
+      // Search for title matches in this organization's library
       const placeholders = suggestionTitles.map(() => '?').join(',');
-      const booksResult = await db.prepare(`
-        SELECT id, title FROM books WHERE LOWER(title) IN (${placeholders})
-      `).bind(...suggestionTitles).all();
+      const booksResult = await db
+        .prepare(
+          `
+        SELECT b.id, b.title FROM books b
+        INNER JOIN org_book_selections obs ON b.id = obs.book_id
+        WHERE obs.organization_id = ? AND obs.is_available = 1
+        AND LOWER(b.title) IN (${placeholders})
+      `
+        )
+        .bind(organizationId, ...suggestionTitles)
+        .all();
 
-      for (const book of (booksResult.results || [])) {
+      for (const book of booksResult.results || []) {
         libraryMatches[book.title.toLowerCase()] = book.id;
       }
     }
 
     // Add inLibrary flag to each suggestion (with null safety)
-    const enrichedSuggestions = (suggestions || []).map(suggestion => ({
+    const enrichedSuggestions = (suggestions || []).map((suggestion) => ({
       ...suggestion,
       inLibrary: suggestion?.title ? !!libraryMatches[suggestion.title.toLowerCase()] : false,
-      libraryBookId: suggestion?.title ? (libraryMatches[suggestion.title.toLowerCase()] || null) : null
+      libraryBookId: suggestion?.title
+        ? libraryMatches[suggestion.title.toLowerCase()] || null
+        : null,
     }));
 
     return c.json({
@@ -589,12 +693,11 @@ booksRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
       studentProfile: {
         readingLevel: profile.student.readingLevel,
         favoriteGenres: profile.preferences.favoriteGenreNames,
-        inferredGenres: profile.inferredGenres.map(g => g.name),
-        recentReads: profile.recentReads.map(r => r.title)
+        inferredGenres: profile.inferredGenres.map((g) => g.name),
+        recentReads: profile.recentReads.map((r) => r.title),
       },
       cached: false,
     });
-
   } catch (error) {
     // Re-throw known errors (badRequestError, notFoundError, etc.)
     if (error.status) {
@@ -602,7 +705,9 @@ booksRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
     }
     // Log and handle AI service errors (use 500 for upstream failures)
     console.error('AI suggestions error:', error.message, error.stack);
-    throw serverError(`AI error: ${error.message || 'Unknown error'}. Try "Find in Library" instead.`);
+    throw serverError(
+      `AI error: ${error.message || 'Unknown error'}. Try "Find in Library" instead.`
+    );
   }
 });
 
@@ -616,9 +721,12 @@ booksRouter.get('/count', requireReadonly(), async (c) => {
   const organizationId = c.get('organizationId');
   const db = c.env.READING_MANAGER_DB;
   if (organizationId && db) {
-    const result = await db.prepare(
-      'SELECT COUNT(*) as count FROM org_book_selections WHERE organization_id = ? AND is_available = 1'
-    ).bind(organizationId).first();
+    const result = await db
+      .prepare(
+        'SELECT COUNT(*) as count FROM org_book_selections WHERE organization_id = ? AND is_available = 1'
+      )
+      .bind(organizationId)
+      .first();
     return c.json({ count: result?.count || 0 });
   }
   const provider = await createProvider(c.env);
@@ -734,9 +842,12 @@ booksRouter.post('/', requireTeacher(), async (c) => {
   if (organizationId) {
     const db = c.env.READING_MANAGER_DB;
     if (db) {
-      await db.prepare(
-        'INSERT OR IGNORE INTO org_book_selections (id, organization_id, book_id, is_available) VALUES (?, ?, ?, 1)'
-      ).bind(crypto.randomUUID(), organizationId, savedBook.id).run();
+      await db
+        .prepare(
+          'INSERT OR IGNORE INTO org_book_selections (id, organization_id, book_id, is_available) VALUES (?, ?, ?, 1)'
+        )
+        .bind(crypto.randomUUID(), organizationId, savedBook.id)
+        .run();
     }
   }
 
@@ -765,9 +876,12 @@ booksRouter.get('/isbn/:isbn', requireTeacher(), async (c) => {
     if (row) {
       let inLibrary = false;
       if (organizationId) {
-        const orgLink = await db.prepare(
-          'SELECT 1 FROM org_book_selections WHERE organization_id = ? AND book_id = ? AND is_available = 1'
-        ).bind(organizationId, row.id).first();
+        const orgLink = await db
+          .prepare(
+            'SELECT 1 FROM org_book_selections WHERE organization_id = ? AND book_id = ? AND is_available = 1'
+          )
+          .bind(organizationId, row.id)
+          .first();
         inLibrary = !!orgLink;
       }
       return c.json({ source: 'local', inLibrary, book: rowToBook(row) });
@@ -788,9 +902,11 @@ booksRouter.get('/isbn/:isbn', requireTeacher(), async (c) => {
   // Check if a matching book already exists locally by title+author (different edition/ISBN)
   if (olBook.title && db) {
     const titleQuery = `%${olBook.title.trim()}%`;
-    const candidates = await db.prepare('SELECT * FROM books WHERE title LIKE ? LIMIT 20')
-      .bind(titleQuery).all();
-    const match = (candidates.results || []).find(row =>
+    const candidates = await db
+      .prepare('SELECT * FROM books WHERE title LIKE ? LIMIT 20')
+      .bind(titleQuery)
+      .all();
+    const match = (candidates.results || []).find((row) =>
       isFuzzyMatch(
         { title: olBook.title, author: olBook.author },
         { title: row.title, author: row.author }
@@ -799,12 +915,19 @@ booksRouter.get('/isbn/:isbn', requireTeacher(), async (c) => {
     if (match) {
       let inLibrary = false;
       if (organizationId) {
-        const orgLink = await db.prepare(
-          'SELECT 1 FROM org_book_selections WHERE organization_id = ? AND book_id = ? AND is_available = 1'
-        ).bind(organizationId, match.id).first();
+        const orgLink = await db
+          .prepare(
+            'SELECT 1 FROM org_book_selections WHERE organization_id = ? AND book_id = ? AND is_available = 1'
+          )
+          .bind(organizationId, match.id)
+          .first();
         inLibrary = !!orgLink;
       }
-      return c.json({ source: 'local', inLibrary, book: { ...rowToBook(match), isbn: match.isbn || normalized } });
+      return c.json({
+        source: 'local',
+        inLibrary,
+        book: { ...rowToBook(match), isbn: match.isbn || normalized },
+      });
     }
   }
 
@@ -837,11 +960,16 @@ booksRouter.post('/scan', requireTeacher(), async (c) => {
   if (existingRow) {
     // Book exists — link to this org
     if (organizationId && db) {
-      await db.prepare(`
+      await db
+        .prepare(
+          `
         INSERT INTO org_book_selections (id, organization_id, book_id, is_available, created_at)
         VALUES (?, ?, ?, 1, datetime('now'))
         ON CONFLICT (organization_id, book_id) DO UPDATE SET is_available = 1, updated_at = datetime('now')
-      `).bind(crypto.randomUUID(), organizationId, existingRow.id).run();
+      `
+        )
+        .bind(crypto.randomUUID(), organizationId, existingRow.id)
+        .run();
     }
     return c.json({ action: 'linked', book: rowToBook(existingRow) });
   }
@@ -863,11 +991,16 @@ booksRouter.post('/scan', requireTeacher(), async (c) => {
   // OpenLibrary may return the same book under a different ISBN (different edition).
   if (olBook?.title && db) {
     const titleQuery = `%${olBook.title.trim()}%`;
-    const candidates = await db.prepare(`
+    const candidates = await db
+      .prepare(
+        `
       SELECT * FROM books WHERE title LIKE ? LIMIT 20
-    `).bind(titleQuery).all();
+    `
+      )
+      .bind(titleQuery)
+      .all();
 
-    const match = (candidates.results || []).find(row =>
+    const match = (candidates.results || []).find((row) =>
       isFuzzyMatch(
         { title: olBook.title, author: olBook.author },
         { title: row.title, author: row.author }
@@ -877,17 +1010,27 @@ booksRouter.post('/scan', requireTeacher(), async (c) => {
     if (match) {
       // Duplicate found — update its ISBN if missing, then link to org
       if (!match.isbn && normalized) {
-        await db.prepare('UPDATE books SET isbn = ?, updated_at = datetime("now") WHERE id = ?')
-          .bind(normalized, match.id).run();
+        await db
+          .prepare('UPDATE books SET isbn = ?, updated_at = datetime("now") WHERE id = ?')
+          .bind(normalized, match.id)
+          .run();
       }
       if (organizationId) {
-        await db.prepare(`
+        await db
+          .prepare(
+            `
           INSERT INTO org_book_selections (id, organization_id, book_id, is_available, created_at)
           VALUES (?, ?, ?, 1, datetime('now'))
           ON CONFLICT (organization_id, book_id) DO UPDATE SET is_available = 1, updated_at = datetime('now')
-        `).bind(crypto.randomUUID(), organizationId, match.id).run();
+        `
+          )
+          .bind(crypto.randomUUID(), organizationId, match.id)
+          .run();
       }
-      return c.json({ action: 'linked', book: { ...rowToBook(match), isbn: match.isbn || normalized } });
+      return c.json({
+        action: 'linked',
+        book: { ...rowToBook(match), isbn: match.isbn || normalized },
+      });
     }
   }
 
@@ -912,11 +1055,16 @@ booksRouter.post('/scan', requireTeacher(), async (c) => {
 
   // Link to org
   if (organizationId && db) {
-    await db.prepare(`
+    await db
+      .prepare(
+        `
       INSERT INTO org_book_selections (id, organization_id, book_id, is_available, created_at)
       VALUES (?, ?, ?, 1, datetime('now'))
       ON CONFLICT (organization_id, book_id) DO UPDATE SET is_available = 1, updated_at = datetime('now')
-    `).bind(crypto.randomUUID(), organizationId, savedBook.id).run();
+    `
+      )
+      .bind(crypto.randomUUID(), organizationId, savedBook.id)
+      .run();
   }
 
   return c.json({ action: 'created', book: savedBook }, 201);
@@ -935,11 +1083,14 @@ booksRouter.get('/:id', requireReadonly(), async (c) => {
 
   let book;
   if (organizationId && db) {
-    const row = await db.prepare(
-      `SELECT b.* FROM books b
+    const row = await db
+      .prepare(
+        `SELECT b.* FROM books b
        INNER JOIN org_book_selections obs ON obs.book_id = b.id
        WHERE b.id = ? AND obs.organization_id = ?`
-    ).bind(id, organizationId).first();
+      )
+      .bind(id, organizationId)
+      .first();
     book = row ? rowToBook(row) : null;
   } else {
     const provider = await createProvider(c.env);
@@ -968,11 +1119,14 @@ booksRouter.put('/:id', requireTeacher(), async (c) => {
   // Single query: check book exists and org ownership in one round-trip
   let existingBook;
   if (organizationId && db) {
-    const row = await db.prepare(
-      `SELECT b.* FROM books b
+    const row = await db
+      .prepare(
+        `SELECT b.* FROM books b
        INNER JOIN org_book_selections obs ON obs.book_id = b.id
        WHERE b.id = ? AND obs.organization_id = ?`
-    ).bind(id, organizationId).first();
+      )
+      .bind(id, organizationId)
+      .first();
     if (!row) {
       throw notFoundError(`Book with ID ${id} not found`);
     }
@@ -991,15 +1145,21 @@ booksRouter.put('/:id', requireTeacher(), async (c) => {
     title: bookData.title !== undefined ? bookData.title : existingBook.title,
     author: bookData.author !== undefined ? bookData.author : existingBook.author,
     genreIds: bookData.genreIds !== undefined ? bookData.genreIds : existingBook.genreIds,
-    readingLevel: bookData.readingLevel !== undefined ? bookData.readingLevel : existingBook.readingLevel,
+    readingLevel:
+      bookData.readingLevel !== undefined ? bookData.readingLevel : existingBook.readingLevel,
     ageRange: bookData.ageRange !== undefined ? bookData.ageRange : existingBook.ageRange,
-    description: bookData.description !== undefined ? bookData.description : existingBook.description,
+    description:
+      bookData.description !== undefined ? bookData.description : existingBook.description,
     isbn: bookData.isbn !== undefined ? bookData.isbn : existingBook.isbn,
     pageCount: bookData.pageCount !== undefined ? bookData.pageCount : existingBook.pageCount,
     seriesName: bookData.seriesName !== undefined ? bookData.seriesName : existingBook.seriesName,
-    seriesNumber: bookData.seriesNumber !== undefined ? bookData.seriesNumber : existingBook.seriesNumber,
-    publicationYear: bookData.publicationYear !== undefined ? bookData.publicationYear : existingBook.publicationYear,
-    id // Ensure ID doesn't change
+    seriesNumber:
+      bookData.seriesNumber !== undefined ? bookData.seriesNumber : existingBook.seriesNumber,
+    publicationYear:
+      bookData.publicationYear !== undefined
+        ? bookData.publicationYear
+        : existingBook.publicationYear,
+    id, // Ensure ID doesn't change
   };
 
   // Validate the merged book data
@@ -1028,9 +1188,10 @@ booksRouter.delete('/clear-library', requireAdmin(), auditLog('clear', 'library'
   const db = c.env.READING_MANAGER_DB;
 
   // Count books linked to this org
-  const countResult = await db.prepare(
-    'SELECT COUNT(*) as count FROM org_book_selections WHERE organization_id = ?'
-  ).bind(organizationId).first();
+  const countResult = await db
+    .prepare('SELECT COUNT(*) as count FROM org_book_selections WHERE organization_id = ?')
+    .bind(organizationId)
+    .first();
   const booksUnlinked = countResult?.count || 0;
 
   if (booksUnlinked === 0) {
@@ -1040,13 +1201,15 @@ booksRouter.delete('/clear-library', requireAdmin(), auditLog('clear', 'library'
   // Remove all org links and clean up orphaned books
   await db.batch([
     db.prepare('DELETE FROM org_book_selections WHERE organization_id = ?').bind(organizationId),
-    db.prepare('DELETE FROM books WHERE NOT EXISTS (SELECT 1 FROM org_book_selections WHERE org_book_selections.book_id = books.id)')
+    db.prepare(
+      'DELETE FROM books WHERE NOT EXISTS (SELECT 1 FROM org_book_selections WHERE org_book_selections.book_id = books.id)'
+    ),
   ]);
 
   // Count remaining orphans deleted (approximate — we know the unlinked count)
   return c.json({
     message: `Cleared ${booksUnlinked} books from library`,
-    booksUnlinked
+    booksUnlinked,
   });
 });
 
@@ -1057,34 +1220,36 @@ booksRouter.delete('/clear-library', requireAdmin(), auditLog('clear', 'library'
  * Requires authentication (at least teacher access)
  */
 booksRouter.delete('/:id', requireTeacher(), async (c) => {
-   const { id } = c.req.param();
+  const { id } = c.req.param();
 
-   // In multi-tenant mode, only remove the org's link to the book (not the global book)
-   const organizationId = c.get('organizationId');
-   if (organizationId && c.env.READING_MANAGER_DB) {
-     const db = c.env.READING_MANAGER_DB;
-     const orgLink = await db.prepare(
-       'SELECT 1 FROM org_book_selections WHERE organization_id = ? AND book_id = ?'
-     ).bind(organizationId, id).first();
-     if (!orgLink) {
-       throw notFoundError(`Book with ID ${id} not found`);
-     }
-     // Remove the org's link to the book rather than deleting the global book record
-     await db.prepare(
-       'DELETE FROM org_book_selections WHERE organization_id = ? AND book_id = ?'
-     ).bind(organizationId, id).run();
-     return c.json({ message: 'Book removed from organization successfully' });
-   }
+  // In multi-tenant mode, only remove the org's link to the book (not the global book)
+  const organizationId = c.get('organizationId');
+  if (organizationId && c.env.READING_MANAGER_DB) {
+    const db = c.env.READING_MANAGER_DB;
+    const orgLink = await db
+      .prepare('SELECT 1 FROM org_book_selections WHERE organization_id = ? AND book_id = ?')
+      .bind(organizationId, id)
+      .first();
+    if (!orgLink) {
+      throw notFoundError(`Book with ID ${id} not found`);
+    }
+    // Remove the org's link to the book rather than deleting the global book record
+    await db
+      .prepare('DELETE FROM org_book_selections WHERE organization_id = ? AND book_id = ?')
+      .bind(organizationId, id)
+      .run();
+    return c.json({ message: 'Book removed from organization successfully' });
+  }
 
-   // Legacy mode: delete the book directly
-   const provider = await createProvider(c.env);
-   const deletedBook = await provider.deleteBook(id);
+  // Legacy mode: delete the book directly
+  const provider = await createProvider(c.env);
+  const deletedBook = await provider.deleteBook(id);
 
-   if (!deletedBook) {
-     throw notFoundError(`Book with ID ${id} not found`);
-   }
+  if (!deletedBook) {
+    throw notFoundError(`Book with ID ${id} not found`);
+  }
 
-   return c.json({ message: 'Book deleted successfully' });
+  return c.json({ message: 'Book deleted successfully' });
 });
 
 /**
@@ -1103,8 +1268,8 @@ booksRouter.post('/bulk', requireTeacher(), async (c) => {
 
   // Filter valid books and prepare them
   const validBooks = booksData
-    .filter(book => book.title && book.title.trim())
-    .map(book => ({
+    .filter((book) => book.title && book.title.trim())
+    .map((book) => ({
       id: crypto.randomUUID(),
       title: book.title.trim(),
       author: book.author || null,
@@ -1130,16 +1295,17 @@ booksRouter.post('/bulk', requireTeacher(), async (c) => {
 
   if (db) {
     // 1. Batch ISBN lookup for books that have ISBNs
-    const isbns = validBooks.filter(b => b.isbn).map(b => b.isbn);
+    const isbns = validBooks.filter((b) => b.isbn).map((b) => b.isbn);
     if (isbns.length > 0) {
       const ISBN_BATCH = 50;
       for (let i = 0; i < isbns.length; i += ISBN_BATCH) {
         const batch = isbns.slice(i, i + ISBN_BATCH);
         const placeholders = batch.map(() => '?').join(',');
-        const result = await db.prepare(
-          `SELECT id, isbn, title, author FROM books WHERE isbn IN (${placeholders})`
-        ).bind(...batch).all();
-        for (const book of (result.results || [])) {
+        const result = await db
+          .prepare(`SELECT id, isbn, title, author FROM books WHERE isbn IN (${placeholders})`)
+          .bind(...batch)
+          .all();
+        for (const book of result.results || []) {
           if (book.isbn) existingByIsbn.set(book.isbn, book);
         }
       }
@@ -1151,12 +1317,15 @@ booksRouter.post('/bulk', requireTeacher(), async (c) => {
       const ftsQuery = book.title.trim().replace(/['"*()]/g, '');
       if (!ftsQuery) continue;
       try {
-        const ftsResult = await db.prepare(
-          `SELECT id, title, author FROM books
+        const ftsResult = await db
+          .prepare(
+            `SELECT id, title, author FROM books
            INNER JOIN books_fts fts ON books.id = fts.id
            WHERE fts MATCH ? LIMIT 10`
-        ).bind(`"${ftsQuery}"`).all();
-        for (const match of (ftsResult.results || [])) {
+          )
+          .bind(`"${ftsQuery}"`)
+          .all();
+        for (const match of ftsResult.results || []) {
           const key = match.title.toLowerCase().trim();
           if (!existingByTitle.has(key)) existingByTitle.set(key, match);
         }
@@ -1176,8 +1345,20 @@ booksRouter.post('/bulk', requireTeacher(), async (c) => {
   }
 
   // Filter out duplicates using the targeted lookup results
-  const normalizeTitle = (title) => title.toLowerCase().trim().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ');
-  const normalizeAuthor = (author) => author ? author.toLowerCase().trim().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ') : '';
+  const normalizeTitle = (title) =>
+    title
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s]/g, '')
+      .replace(/\s+/g, ' ');
+  const normalizeAuthor = (author) =>
+    author
+      ? author
+          .toLowerCase()
+          .trim()
+          .replace(/[^\w\s]/g, '')
+          .replace(/\s+/g, ' ')
+      : '';
 
   const isDuplicate = (newBook) => {
     // Check ISBN match first
@@ -1201,7 +1382,7 @@ booksRouter.post('/bulk', requireTeacher(), async (c) => {
     return false;
   };
 
-  const newBooks = validBooks.filter(book => !isDuplicate(book));
+  const newBooks = validBooks.filter((book) => !isDuplicate(book));
   const duplicateCount = validBooks.length - newBooks.length;
 
   // Use batch operation for efficiency (only 2 KV operations total)
@@ -1214,22 +1395,27 @@ booksRouter.post('/bulk', requireTeacher(), async (c) => {
   // Link new books to the current organization
   const organizationId = c.get('organizationId');
   if (organizationId && db && savedBooks.length > 0) {
-    const linkStatements = savedBooks.map(book =>
-      db.prepare(
-        'INSERT OR IGNORE INTO org_book_selections (id, organization_id, book_id, is_available) VALUES (?, ?, ?, 1)'
-      ).bind(crypto.randomUUID(), organizationId, book.id)
+    const linkStatements = savedBooks.map((book) =>
+      db
+        .prepare(
+          'INSERT OR IGNORE INTO org_book_selections (id, organization_id, book_id, is_available) VALUES (?, ?, ?, 1)'
+        )
+        .bind(crypto.randomUUID(), organizationId, book.id)
     );
     for (let i = 0; i < linkStatements.length; i += 100) {
       await db.batch(linkStatements.slice(i, i + 100));
     }
   }
 
-  return c.json({
-    imported: savedBooks.length,
-    duplicates: duplicateCount,
-    total: validBooks.length,
-    books: savedBooks
-  }, 201);
+  return c.json(
+    {
+      imported: savedBooks.length,
+      duplicates: duplicateCount,
+      total: validBooks.length,
+      books: savedBooks,
+    },
+    201
+  );
 });
 
 /**
@@ -1262,10 +1448,13 @@ booksRouter.post('/import/preview', requireAdmin(), async (c) => {
   }
 
   // Get books already in this organization's library
-  const orgBooksResult = await db.prepare(
-    'SELECT book_id FROM org_book_selections WHERE organization_id = ? AND is_available = 1'
-  ).bind(organizationId).all();
-  const orgBookIds = new Set((orgBooksResult.results || []).map(r => r.book_id));
+  const orgBooksResult = await db
+    .prepare(
+      'SELECT book_id FROM org_book_selections WHERE organization_id = ? AND is_available = 1'
+    )
+    .bind(organizationId)
+    .all();
+  const orgBookIds = new Set((orgBooksResult.results || []).map((r) => r.book_id));
 
   // Categorize imports
   const matched = [];
@@ -1275,17 +1464,18 @@ booksRouter.post('/import/preview', requireAdmin(), async (c) => {
   const alreadyInLibrary = [];
 
   // Step 1: Batch ISBN lookup (avoids loading entire book catalog)
-  const importIsbns = importBooks.filter(b => b.isbn).map(b => b.isbn);
+  const importIsbns = importBooks.filter((b) => b.isbn).map((b) => b.isbn);
   const isbnBookMap = new Map();
   if (importIsbns.length > 0) {
     const ISBN_BATCH = 50;
     for (let i = 0; i < importIsbns.length; i += ISBN_BATCH) {
       const batch = importIsbns.slice(i, i + ISBN_BATCH);
       const placeholders = batch.map(() => '?').join(',');
-      const isbnResult = await db.prepare(
-        `SELECT * FROM books WHERE isbn IN (${placeholders})`
-      ).bind(...batch).all();
-      for (const book of (isbnResult.results || [])) {
+      const isbnResult = await db
+        .prepare(`SELECT * FROM books WHERE isbn IN (${placeholders})`)
+        .bind(...batch)
+        .all();
+      for (const book of isbnResult.results || []) {
         isbnBookMap.set(book.isbn, book);
       }
     }
@@ -1301,9 +1491,10 @@ booksRouter.post('/import/preview', requireAdmin(), async (c) => {
       if (orgBookIds.has(isbnMatch.id)) {
         alreadyInLibrary.push({ importedBook, existingBook: isbnMatch });
       } else {
-        const hasConflict = importedBook.readingLevel &&
-                            isbnMatch.reading_level &&
-                            importedBook.readingLevel !== isbnMatch.reading_level;
+        const hasConflict =
+          importedBook.readingLevel &&
+          isbnMatch.reading_level &&
+          importedBook.readingLevel !== isbnMatch.reading_level;
         if (hasConflict) {
           conflicts.push({ importedBook, existingBook: isbnMatch });
         } else {
@@ -1319,11 +1510,14 @@ booksRouter.post('/import/preview', requireAdmin(), async (c) => {
       // Escape FTS5 special characters and search by title
       const ftsQuery = importedBook.title.trim().replace(/['"*()]/g, '');
       if (ftsQuery) {
-        const ftsResult = await db.prepare(
-          `SELECT b.* FROM books b
+        const ftsResult = await db
+          .prepare(
+            `SELECT b.* FROM books b
            INNER JOIN books_fts fts ON b.id = fts.id
            WHERE fts MATCH ? LIMIT 20`
-        ).bind(`"${ftsQuery}"`).all();
+          )
+          .bind(`"${ftsQuery}"`)
+          .all();
         candidates = ftsResult.results || [];
       }
     } catch {
@@ -1331,9 +1525,10 @@ booksRouter.post('/import/preview', requireAdmin(), async (c) => {
     }
 
     // Check for exact title/author match in candidates
-    const exactMatch = candidates.find(existing =>
-      isExactMatch(existing.title, importedBook.title) &&
-      isAuthorMatch(existing.author, importedBook.author)
+    const exactMatch = candidates.find(
+      (existing) =>
+        isExactMatch(existing.title, importedBook.title) &&
+        isAuthorMatch(existing.author, importedBook.author)
     );
 
     if (exactMatch) {
@@ -1341,9 +1536,10 @@ booksRouter.post('/import/preview', requireAdmin(), async (c) => {
         alreadyInLibrary.push({ importedBook, existingBook: exactMatch });
         continue;
       }
-      const hasConflict = importedBook.readingLevel &&
-                          exactMatch.reading_level &&
-                          importedBook.readingLevel !== exactMatch.reading_level;
+      const hasConflict =
+        importedBook.readingLevel &&
+        exactMatch.reading_level &&
+        importedBook.readingLevel !== exactMatch.reading_level;
       if (hasConflict) {
         conflicts.push({ importedBook, existingBook: exactMatch });
       } else {
@@ -1353,7 +1549,7 @@ booksRouter.post('/import/preview', requireAdmin(), async (c) => {
     }
 
     // Check for fuzzy match in candidates
-    const fuzzyMatch = candidates.find(existing =>
+    const fuzzyMatch = candidates.find((existing) =>
       isFuzzyMatch(
         { title: importedBook.title, author: importedBook.author },
         { title: existing.title, author: existing.author }
@@ -1379,8 +1575,8 @@ booksRouter.post('/import/preview', requireAdmin(), async (c) => {
       possibleMatches: possibleMatches.length,
       newBooks: newBooks.length,
       conflicts: conflicts.length,
-      alreadyInLibrary: alreadyInLibrary.length
-    }
+      alreadyInLibrary: alreadyInLibrary.length,
+    },
   });
 });
 
@@ -1414,13 +1610,21 @@ booksRouter.post('/import/confirm', requireAdmin(), auditLog('import', 'books'),
   // 1. Link matched books to organization
   for (const match of matched) {
     statements.push({
-      stmt: db.prepare(`
+      stmt: db
+        .prepare(
+          `
         INSERT INTO org_book_selections (id, organization_id, book_id, is_available, created_at)
         VALUES (?, ?, ?, 1, datetime('now'))
         ON CONFLICT (organization_id, book_id) DO UPDATE SET is_available = 1, updated_at = datetime('now')
-      `).bind(crypto.randomUUID(), organizationId, match.existingBookId),
-      onSuccess: () => { linked++; },
-      onError: (err) => { errors.push({ type: 'link', bookId: match.existingBookId, error: err }); }
+      `
+        )
+        .bind(crypto.randomUUID(), organizationId, match.existingBookId),
+      onSuccess: () => {
+        linked++;
+      },
+      onError: (err) => {
+        errors.push({ type: 'link', bookId: match.existingBookId, error: err });
+      },
     });
   }
 
@@ -1435,13 +1639,21 @@ booksRouter.post('/import/confirm', requireAdmin(), auditLog('import', 'books'),
     if (isbn && isbnToBookId.has(isbn)) {
       const existingBookId = isbnToBookId.get(isbn);
       statements.push({
-        stmt: db.prepare(`
+        stmt: db
+          .prepare(
+            `
           INSERT INTO org_book_selections (id, organization_id, book_id, is_available, created_at)
           VALUES (?, ?, ?, 1, datetime('now'))
           ON CONFLICT (organization_id, book_id) DO UPDATE SET is_available = 1, updated_at = datetime('now')
-        `).bind(crypto.randomUUID(), organizationId, existingBookId),
-        onSuccess: () => { linked++; },
-        onError: (err) => { errors.push({ type: 'link', title: book.title, error: err }); }
+        `
+          )
+          .bind(crypto.randomUUID(), organizationId, existingBookId),
+        onSuccess: () => {
+          linked++;
+        },
+        onError: (err) => {
+          errors.push({ type: 'link', title: book.title, error: err });
+        },
       });
       continue;
     }
@@ -1450,23 +1662,50 @@ booksRouter.post('/import/confirm', requireAdmin(), auditLog('import', 'books'),
     if (isbn) isbnToBookId.set(isbn, bookId);
 
     const pageCount = book.pageCount ? parseInt(book.pageCount, 10) || null : null;
-    const publicationYear = book.publicationYear ? parseInt(book.publicationYear, 10) || null : null;
+    const publicationYear = book.publicationYear
+      ? parseInt(book.publicationYear, 10) || null
+      : null;
     const seriesNumber = book.seriesNumber ? parseInt(book.seriesNumber, 10) || null : null;
     statements.push({
-      stmt: db.prepare(`
+      stmt: db
+        .prepare(
+          `
         INSERT INTO books (id, title, author, reading_level, isbn, description, page_count, publication_year, series_name, series_number, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-      `).bind(bookId, book.title, book.author || null, book.readingLevel || null, isbn, book.description || null, pageCount, publicationYear, book.seriesName || null, seriesNumber),
-      onSuccess: () => { created++; },
-      onError: (err) => { errors.push({ type: 'create', title: book.title, error: err }); }
+      `
+        )
+        .bind(
+          bookId,
+          book.title,
+          book.author || null,
+          book.readingLevel || null,
+          isbn,
+          book.description || null,
+          pageCount,
+          publicationYear,
+          book.seriesName || null,
+          seriesNumber
+        ),
+      onSuccess: () => {
+        created++;
+      },
+      onError: (err) => {
+        errors.push({ type: 'create', title: book.title, error: err });
+      },
     });
     statements.push({
-      stmt: db.prepare(`
+      stmt: db
+        .prepare(
+          `
         INSERT INTO org_book_selections (id, organization_id, book_id, is_available, created_at)
         VALUES (?, ?, ?, 1, datetime('now'))
-      `).bind(crypto.randomUUID(), organizationId, bookId),
+      `
+        )
+        .bind(crypto.randomUUID(), organizationId, bookId),
       onSuccess: () => {},
-      onError: (err) => { errors.push({ type: 'create', title: book.title, error: err }); }
+      onError: (err) => {
+        errors.push({ type: 'create', title: book.title, error: err });
+      },
     });
   }
 
@@ -1474,21 +1713,37 @@ booksRouter.post('/import/confirm', requireAdmin(), auditLog('import', 'books'),
   for (const conflict of conflicts) {
     if (conflict.updateReadingLevel) {
       statements.push({
-        stmt: db.prepare(`
+        stmt: db
+          .prepare(
+            `
           UPDATE books SET reading_level = ?, updated_at = datetime('now') WHERE id = ?
-        `).bind(conflict.newReadingLevel, conflict.existingBookId),
-        onSuccess: () => { updated++; },
-        onError: (err) => { errors.push({ type: 'conflict', bookId: conflict.existingBookId, error: err }); }
+        `
+          )
+          .bind(conflict.newReadingLevel, conflict.existingBookId),
+        onSuccess: () => {
+          updated++;
+        },
+        onError: (err) => {
+          errors.push({ type: 'conflict', bookId: conflict.existingBookId, error: err });
+        },
       });
     }
     statements.push({
-      stmt: db.prepare(`
+      stmt: db
+        .prepare(
+          `
         INSERT INTO org_book_selections (id, organization_id, book_id, is_available, created_at)
         VALUES (?, ?, ?, 1, datetime('now'))
         ON CONFLICT (organization_id, book_id) DO UPDATE SET is_available = 1, updated_at = datetime('now')
-      `).bind(crypto.randomUUID(), organizationId, conflict.existingBookId),
-      onSuccess: () => { linked++; },
-      onError: (err) => { errors.push({ type: 'conflict', bookId: conflict.existingBookId, error: err }); }
+      `
+        )
+        .bind(crypto.randomUUID(), organizationId, conflict.existingBookId),
+      onSuccess: () => {
+        linked++;
+      },
+      onError: (err) => {
+        errors.push({ type: 'conflict', bookId: conflict.existingBookId, error: err });
+      },
     });
   }
 
@@ -1497,13 +1752,13 @@ booksRouter.post('/import/confirm', requireAdmin(), auditLog('import', 'books'),
   for (let i = 0; i < statements.length; i += BATCH_SIZE) {
     const batch = statements.slice(i, i + BATCH_SIZE);
     try {
-      await db.batch(batch.map(b => b.stmt));
+      await db.batch(batch.map((b) => b.stmt));
       // D1 batches are all-or-nothing — if we get here, all succeeded
-      batch.forEach(b => b.onSuccess());
+      batch.forEach((b) => b.onSuccess());
     } catch (error) {
       // If the entire batch fails, record errors for all items in it
       console.error(`Batch ${Math.floor(i / BATCH_SIZE) + 1} failed:`, error.message);
-      batch.forEach(b => b.onError(error.message));
+      batch.forEach((b) => b.onError(error.message));
     }
   }
 
@@ -1512,7 +1767,7 @@ booksRouter.post('/import/confirm', requireAdmin(), auditLog('import', 'books'),
     created,
     updated,
     errors: errors.length > 0 ? errors : undefined,
-    success: errors.length === 0
+    success: errors.length === 0,
   });
 });
 
