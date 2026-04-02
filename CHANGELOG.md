@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.37.0] - 2026-04-02
+
+### Added
+- **Book feedback on recommendations** — "Read it?" thumbs up/down on recommendation tiles lets teachers record student likes and dislikes, feeding into future AI suggestions
+- **Student feedback endpoint** — dedicated `PUT /api/students/:id/feedback` for lightweight likes/dislikes updates without full student validation
+- **Wonde school listing** — owner-only `GET /api/wonde/schools` shows all Wonde schools (approved, pending, declined) with connection status
+- **Wonde sync-all** — `POST /api/wonde/sync-all` triggers full sync across all connected schools in one action
+- **Wonde approve school** — `POST /api/wonde/approve/:wondeId` onboards a pending school from the admin panel
+- **School table Wonde status** — school management table shows Wonde connection status with filter and sync-all button
+
+### Fixed
+- **Book rating 400 error** — thumbs up/down no longer sends full student object through reading level validation; uses dedicated feedback endpoint instead
+
 ## [3.36.1] - 2026-04-02
 
 ### Security

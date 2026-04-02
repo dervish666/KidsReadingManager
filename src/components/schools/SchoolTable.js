@@ -21,7 +21,13 @@ import {
   Skeleton,
   InputAdornment,
 } from '@mui/material';
-import { Add as AddIcon, Search as SearchIcon, Warning as WarningIcon } from '@mui/icons-material';
+import {
+  Add as AddIcon,
+  Search as SearchIcon,
+  Warning as WarningIcon,
+  HourglassEmpty as PendingIcon,
+  Block as DeclinedIcon,
+} from '@mui/icons-material';
 
 const formatRelativeTime = (isoDate) => {
   if (!isoDate) return '\u2014';
@@ -59,9 +65,16 @@ const formatBillingLabel = (status) => {
   return label.charAt(0).toUpperCase() + label.slice(1);
 };
 
+const WONDE_STATUS_CONFIG = {
+  approved: { label: 'Approved', color: 'success', Icon: null },
+  pending: { label: 'Pending', color: 'warning', Icon: PendingIcon },
+  declined: { label: 'Declined', color: 'error', Icon: DeclinedIcon },
+};
+
 const COLUMNS = [
   { id: 'name', label: 'School' },
   { id: 'source', label: 'Source', sortable: false },
+  { id: 'wondeStatus', label: 'Wonde Status', sortable: false },
   { id: 'subscriptionStatus', label: 'Billing' },
   { id: 'wondeLastSyncAt', label: 'Last Sync' },
   { id: 'town', label: 'Town' },
@@ -69,6 +82,7 @@ const COLUMNS = [
 
 const SchoolTable = ({
   schools,
+  wondeSchools = [],
   pagination,
   filters,
   sort,
@@ -79,6 +93,36 @@ const SchoolTable = ({
   onRowClick,
   onAddClick,
 }) => {
+  // Build set of wonde IDs already in D1 (approved schools that became orgs)
+  const existingWondeIds = new Set(
+    schools.filter((s) => s.wondeSchoolId).map((s) => s.wondeSchoolId)
+  );
+
+  // Pending/declined schools not yet in D1
+  const extraWondeSchools = wondeSchools
+    .filter((ws) => !existingWondeIds.has(ws.wondeId) && ws.wondeStatus !== 'approved')
+    .filter((ws) => {
+      if (!filters.search) return true;
+      const q = filters.search.toLowerCase();
+      return ws.name?.toLowerCase().includes(q) || ws.town?.toLowerCase().includes(q);
+    })
+    .filter((ws) => {
+      if (!filters.wondeStatus || filters.wondeStatus === 'all') return true;
+      return ws.wondeStatus === filters.wondeStatus;
+    });
+
+  // Annotate existing schools with their Wonde status
+  const wondeStatusMap = new Map(wondeSchools.map((ws) => [ws.wondeId, ws.wondeStatus]));
+
+  // Filter existing D1 schools by wondeStatus if set
+  const filteredSchools =
+    filters.wondeStatus && filters.wondeStatus !== 'all'
+      ? schools.filter((s) => {
+          if (!s.wondeSchoolId) return filters.wondeStatus === 'manual';
+          return wondeStatusMap.get(s.wondeSchoolId) === filters.wondeStatus;
+        })
+      : schools;
+
   const handleSearchChange = (e) => {
     onFilterChange({ ...filters, search: e.target.value });
   };
@@ -163,6 +207,20 @@ const SchoolTable = ({
           </Select>
         </FormControl>
 
+        <FormControl size="small" sx={{ minWidth: 140 }}>
+          <InputLabel>Wonde Status</InputLabel>
+          <Select
+            value={filters.wondeStatus}
+            label="Wonde Status"
+            onChange={handleFilterChange('wondeStatus')}
+          >
+            <MenuItem value="all">All</MenuItem>
+            <MenuItem value="approved">Approved</MenuItem>
+            <MenuItem value="pending">Pending</MenuItem>
+            <MenuItem value="declined">Declined</MenuItem>
+          </Select>
+        </FormControl>
+
         <FormControl size="small" sx={{ minWidth: 130 }}>
           <InputLabel>Errors</InputLabel>
           <Select
@@ -233,7 +291,7 @@ const SchoolTable = ({
                   ))}
                 </TableRow>
               ))
-            ) : schools.length === 0 ? (
+            ) : filteredSchools.length === 0 && extraWondeSchools.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={COLUMNS.length} align="center" sx={{ py: 6 }}>
                   <Typography variant="body1" color="text.secondary">
@@ -242,80 +300,176 @@ const SchoolTable = ({
                 </TableCell>
               </TableRow>
             ) : (
-              schools.map((school) => {
-                const errorRow = hasSchoolErrors(school);
-                const stale = isSyncStale(school);
-                const isWonde = Boolean(school.wondeSchoolId);
-                const billingColor = BILLING_CHIP_COLOR[school.subscriptionStatus] || 'default';
-
-                return (
-                  <TableRow
-                    key={school.id}
-                    onClick={() => onRowClick(school)}
-                    sx={{
-                      cursor: 'pointer',
-                      transition: 'background-color 0.2s ease',
-                      '&:hover': { bgcolor: 'action.hover' },
-                      ...(errorRow && { bgcolor: 'rgba(255, 248, 246, 0.8)' }),
-                    }}
-                  >
-                    {/* School name */}
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        {isWonde && school.lastSyncError && (
-                          <WarningIcon
-                            sx={{ fontSize: 18, color: 'warning.main', flexShrink: 0 }}
-                          />
-                        )}
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                          {school.name}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-
-                    {/* Source */}
-                    <TableCell>
-                      <Chip
-                        label={isWonde ? 'Wonde' : 'Manual'}
-                        size="small"
-                        color={isWonde ? 'success' : 'default'}
-                        sx={{ fontWeight: 600, fontSize: '0.75rem' }}
-                      />
-                    </TableCell>
-
-                    {/* Billing */}
-                    <TableCell>
-                      <Chip
-                        label={formatBillingLabel(school.subscriptionStatus)}
-                        size="small"
-                        color={billingColor}
-                        sx={{ fontWeight: 600, fontSize: '0.75rem' }}
-                      />
-                    </TableCell>
-
-                    {/* Last Sync */}
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        {stale && (
-                          <WarningIcon
-                            sx={{ fontSize: 16, color: 'warning.main', flexShrink: 0 }}
-                          />
-                        )}
+              <>
+                {/* Pending/declined Wonde schools (not yet in D1) */}
+                {extraWondeSchools.map((ws) => {
+                  const statusConfig = WONDE_STATUS_CONFIG[ws.wondeStatus] || {};
+                  return (
+                    <TableRow
+                      key={`wonde-${ws.wondeId}`}
+                      sx={{
+                        opacity: 0.85,
+                        bgcolor:
+                          ws.wondeStatus === 'pending'
+                            ? 'rgba(255, 244, 229, 0.5)'
+                            : 'rgba(255, 235, 238, 0.4)',
+                      }}
+                    >
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          {statusConfig.Icon && (
+                            <statusConfig.Icon
+                              sx={{
+                                fontSize: 18,
+                                color: `${statusConfig.color}.main`,
+                                flexShrink: 0,
+                              }}
+                            />
+                          )}
+                          <Typography
+                            variant="body2"
+                            sx={{ fontWeight: 600, color: 'text.primary' }}
+                          >
+                            {ws.name}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label="Wonde"
+                          size="small"
+                          color="success"
+                          sx={{ fontWeight: 600, fontSize: '0.75rem' }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={statusConfig.label}
+                          size="small"
+                          color={statusConfig.color}
+                          sx={{ fontWeight: 600, fontSize: '0.75rem' }}
+                        />
+                      </TableCell>
+                      <TableCell>
                         <Typography variant="body2" color="text.secondary">
-                          {formatRelativeTime(school.wondeLastSyncAt)}
+                          {'\u2014'}
                         </Typography>
-                      </Box>
-                    </TableCell>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="text.secondary">
+                          {'\u2014'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="text.secondary">
+                          {ws.town || '\u2014'}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
 
-                    {/* Town */}
-                    <TableCell>
-                      <Typography variant="body2" color="text.secondary">
-                        {school.town || '\u2014'}
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
+                {/* Existing D1 schools */}
+                {filteredSchools.map((school) => {
+                  const errorRow = hasSchoolErrors(school);
+                  const stale = isSyncStale(school);
+                  const isWonde = Boolean(school.wondeSchoolId);
+                  const billingColor = BILLING_CHIP_COLOR[school.subscriptionStatus] || 'default';
+                  const schoolWondeStatus = isWonde
+                    ? wondeStatusMap.get(school.wondeSchoolId) || 'approved'
+                    : null;
+                  const statusConfig = schoolWondeStatus
+                    ? WONDE_STATUS_CONFIG[schoolWondeStatus]
+                    : null;
+
+                  return (
+                    <TableRow
+                      key={school.id}
+                      onClick={() => onRowClick(school)}
+                      sx={{
+                        cursor: 'pointer',
+                        transition: 'background-color 0.2s ease',
+                        '&:hover': { bgcolor: 'action.hover' },
+                        ...(errorRow && { bgcolor: 'rgba(255, 248, 246, 0.8)' }),
+                      }}
+                    >
+                      {/* School name */}
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          {isWonde && school.lastSyncError && (
+                            <WarningIcon
+                              sx={{ fontSize: 18, color: 'warning.main', flexShrink: 0 }}
+                            />
+                          )}
+                          <Typography
+                            variant="body2"
+                            sx={{ fontWeight: 600, color: 'text.primary' }}
+                          >
+                            {school.name}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+
+                      {/* Source */}
+                      <TableCell>
+                        <Chip
+                          label={isWonde ? 'Wonde' : 'Manual'}
+                          size="small"
+                          color={isWonde ? 'success' : 'default'}
+                          sx={{ fontWeight: 600, fontSize: '0.75rem' }}
+                        />
+                      </TableCell>
+
+                      {/* Wonde Status */}
+                      <TableCell>
+                        {statusConfig ? (
+                          <Chip
+                            label={statusConfig.label}
+                            size="small"
+                            color={statusConfig.color}
+                            sx={{ fontWeight: 600, fontSize: '0.75rem' }}
+                          />
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">
+                            {'\u2014'}
+                          </Typography>
+                        )}
+                      </TableCell>
+
+                      {/* Billing */}
+                      <TableCell>
+                        <Chip
+                          label={formatBillingLabel(school.subscriptionStatus)}
+                          size="small"
+                          color={billingColor}
+                          sx={{ fontWeight: 600, fontSize: '0.75rem' }}
+                        />
+                      </TableCell>
+
+                      {/* Last Sync */}
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          {stale && (
+                            <WarningIcon
+                              sx={{ fontSize: 16, color: 'warning.main', flexShrink: 0 }}
+                            />
+                          )}
+                          <Typography variant="body2" color="text.secondary">
+                            {formatRelativeTime(school.wondeLastSyncAt)}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+
+                      {/* Town */}
+                      <TableCell>
+                        <Typography variant="body2" color="text.secondary">
+                          {school.town || '\u2014'}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </>
             )}
           </TableBody>
         </Table>

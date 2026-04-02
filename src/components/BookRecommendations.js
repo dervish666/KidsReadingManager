@@ -133,6 +133,9 @@ const BookRecommendations = () => {
   // State for collapsible profile details
   const [showDetails, setShowDetails] = useState(false);
 
+  // State for "Read it?" book ratings (maps book title to 'liked' | 'disliked')
+  const [bookRatings, setBookRatings] = useState({});
+
   // Load AI config on mount
   useEffect(() => {
     const loadAIConfig = async () => {
@@ -231,9 +234,22 @@ const BookRecommendations = () => {
     setResultType(null);
     setError(null);
     setShowDetails(false);
+    setBookRatings({});
 
     // Fetch sessions and library search in parallel
     if (studentId) {
+      // Pre-populate ratings from student's existing likes/dislikes
+      const student = students.find((s) => s.id === studentId);
+      if (student) {
+        const ratings = {};
+        (student.likes || []).forEach((title) => {
+          ratings[title] = 'liked';
+        });
+        (student.dislikes || []).forEach((title) => {
+          ratings[title] = 'disliked';
+        });
+        setBookRatings(ratings);
+      }
       await Promise.all([loadStudentBooksRead(studentId), triggerLibrarySearch(studentId)]);
     } else {
       setBooksRead([]);
@@ -285,6 +301,21 @@ const BookRecommendations = () => {
     setError(null);
     setShowDetails(false);
 
+    // Pre-populate ratings from student's existing likes/dislikes
+    const student = students.find((s) => s.id === studentId);
+    if (student) {
+      const ratings = {};
+      (student.likes || []).forEach((title) => {
+        ratings[title] = 'liked';
+      });
+      (student.dislikes || []).forEach((title) => {
+        ratings[title] = 'disliked';
+      });
+      setBookRatings(ratings);
+    } else {
+      setBookRatings({});
+    }
+
     if (markStudentAsPriorityHandled) {
       markStudentAsPriorityHandled(studentId);
     }
@@ -329,6 +360,65 @@ const BookRecommendations = () => {
   // Handler for refreshing AI suggestions (bypasses cache)
   const handleRefreshAiSuggestions = () => {
     handleAiSuggestions(true);
+  };
+
+  // Handler for "Read it?" thumbs up/down
+  const handleBookRating = async (bookTitle, rating) => {
+    if (!selectedStudentId || !bookTitle) return;
+
+    const currentRating = bookRatings[bookTitle];
+    const isToggleOff = currentRating === rating;
+
+    const student = students.find((s) => s.id === selectedStudentId);
+    if (!student) return;
+
+    const currentLikes = [...(student.likes || [])];
+    const currentDislikes = [...(student.dislikes || [])];
+
+    // Remove from both lists first
+    const newLikes = currentLikes.filter((t) => t !== bookTitle);
+    const newDislikes = currentDislikes.filter((t) => t !== bookTitle);
+
+    // Add to the appropriate list (unless toggling off)
+    if (!isToggleOff) {
+      if (rating === 'liked') {
+        newLikes.push(bookTitle);
+      } else {
+        newDislikes.push(bookTitle);
+      }
+    }
+
+    // Optimistic UI update
+    setBookRatings((prev) => {
+      const next = { ...prev };
+      if (isToggleOff) {
+        delete next[bookTitle];
+      } else {
+        next[bookTitle] = rating;
+      }
+      return next;
+    });
+
+    try {
+      const response = await fetchWithAuth(`/api/students/${selectedStudentId}/feedback`, {
+        method: 'PUT',
+        body: JSON.stringify({ likes: newLikes, dislikes: newDislikes }),
+      });
+      if (!response.ok) throw new Error('Failed to save');
+    } catch {
+      // Rollback optimistic UI
+      setBookRatings((prev) => {
+        const next = { ...prev };
+        if (isToggleOff) {
+          next[bookTitle] = rating;
+        } else if (currentRating) {
+          next[bookTitle] = currentRating;
+        } else {
+          delete next[bookTitle];
+        }
+        return next;
+      });
+    }
   };
 
   // Determine AI status
@@ -902,23 +992,89 @@ const BookRecommendations = () => {
 
                     {/* Content */}
                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography
-                        variant="h6"
-                        component="div"
+                      <Box
                         sx={{
-                          fontFamily: 'Nunito, sans-serif',
-                          fontWeight: 700,
-                          wordBreak: 'break-word',
-                          lineHeight: 1.3,
-                          mb: 0.5,
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                          gap: 1,
                         }}
                       >
-                        {book.title}
-                      </Typography>
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography
+                            variant="h6"
+                            component="div"
+                            sx={{
+                              fontFamily: 'Nunito, sans-serif',
+                              fontWeight: 700,
+                              wordBreak: 'break-word',
+                              lineHeight: 1.3,
+                              mb: 0.5,
+                            }}
+                          >
+                            {book.title}
+                          </Typography>
+                          <Typography sx={{ color: 'text.secondary', mb: 1.5 }}>
+                            by {book.author}
+                          </Typography>
+                        </Box>
 
-                      <Typography sx={{ color: 'text.secondary', mb: 1.5 }}>
-                        by {book.author}
-                      </Typography>
+                        {/* Read it? thumbs */}
+                        {selectedStudentId && (
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                color: 'text.secondary',
+                                fontSize: '0.65rem',
+                                lineHeight: 1.2,
+                                mb: 0.25,
+                              }}
+                            >
+                              Read it?
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 0.25 }}>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleBookRating(book.title, 'liked')}
+                                aria-label={`Mark "${book.title}" as liked`}
+                                sx={{
+                                  p: 0.5,
+                                  color:
+                                    bookRatings[book.title] === 'liked'
+                                      ? 'success.main'
+                                      : 'action.disabled',
+                                  '&:hover': { color: 'success.main' },
+                                }}
+                              >
+                                <ThumbUpIcon sx={{ fontSize: 16 }} />
+                              </IconButton>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleBookRating(book.title, 'disliked')}
+                                aria-label={`Mark "${book.title}" as disliked`}
+                                sx={{
+                                  p: 0.5,
+                                  color:
+                                    bookRatings[book.title] === 'disliked'
+                                      ? 'error.main'
+                                      : 'action.disabled',
+                                  '&:hover': { color: 'error.main' },
+                                }}
+                              >
+                                <ThumbDownIcon sx={{ fontSize: 16 }} />
+                              </IconButton>
+                            </Box>
+                          </Box>
+                        )}
+                      </Box>
 
                       {/* Metadata chips */}
                       <Stack

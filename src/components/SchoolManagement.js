@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Box, Typography, Alert } from '@mui/material';
+import { Box, Typography, Alert, Button, CircularProgress } from '@mui/material';
+import { Sync as SyncIcon } from '@mui/icons-material';
 import SchoolTable from './schools/SchoolTable';
 import SchoolDrawer from './schools/SchoolDrawer';
 
@@ -8,6 +9,7 @@ const SchoolManagement = () => {
   const { fetchWithAuth } = useAuth();
 
   const [schools, setSchools] = useState([]);
+  const [wondeSchools, setWondeSchools] = useState([]);
   const [pagination, setPagination] = useState({
     page: 1,
     pageSize: 50,
@@ -20,6 +22,7 @@ const SchoolManagement = () => {
     billing: 'all',
     syncStatus: 'all',
     hasErrors: 'all',
+    wondeStatus: 'all',
   });
   const [sort, setSort] = useState({ field: 'name', order: 'asc' });
   const [selectedSchool, setSelectedSchool] = useState(null);
@@ -45,7 +48,8 @@ const SchoolManagement = () => {
       if (filters.search) params.set('search', filters.search);
       if (filters.source && filters.source !== 'all') params.set('source', filters.source);
       if (filters.billing && filters.billing !== 'all') params.set('billing', filters.billing);
-      if (filters.syncStatus && filters.syncStatus !== 'all') params.set('syncStatus', filters.syncStatus);
+      if (filters.syncStatus && filters.syncStatus !== 'all')
+        params.set('syncStatus', filters.syncStatus);
       if (filters.hasErrors === 'yes') params.set('hasErrors', 'true');
 
       const res = await fetchWithAuth(`/api/organization/all?${params.toString()}`);
@@ -68,9 +72,22 @@ const SchoolManagement = () => {
     }
   }, [fetchWithAuth, filters, sort, pagination.page, pagination.pageSize]);
 
+  const fetchWondeSchools = useCallback(async () => {
+    try {
+      const res = await fetchWithAuth('/api/wonde/schools');
+      if (res.ok) {
+        const data = await res.json();
+        setWondeSchools(data.schools || []);
+      }
+    } catch {
+      // Non-critical — Wonde schools are supplementary
+    }
+  }, [fetchWithAuth]);
+
   useEffect(() => {
     fetchSchools();
-  }, [fetchSchools]);
+    fetchWondeSchools();
+  }, [fetchSchools, fetchWondeSchools]);
 
   // --- Search Debouncing ---
 
@@ -286,6 +303,33 @@ const SchoolManagement = () => {
     }
   }, [selectedSchool, fetchWithAuth, fetchSchools]);
 
+  const [syncingAll, setSyncingAll] = useState(false);
+
+  const handleSyncAllWonde = useCallback(async () => {
+    setSyncingAll(true);
+    setError(null);
+    try {
+      const res = await fetchWithAuth('/api/wonde/sync-all', { method: 'POST' });
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.error || 'Wonde sync failed');
+      }
+      await Promise.all([fetchSchools(), fetchWondeSchools()]);
+      const parts = [];
+      if (data.created) parts.push(`${data.created} new`);
+      if (data.updated) parts.push(`${data.updated} updated`);
+      setSuccess(
+        parts.length > 0
+          ? `Wonde sync complete: ${parts.join(', ')} (${data.total} total)`
+          : `Wonde sync complete: ${data.total} schools, all up to date`
+      );
+    } catch (err) {
+      setError(err.message || 'Wonde sync failed');
+    } finally {
+      setSyncingAll(false);
+    }
+  }, [fetchWithAuth, fetchSchools, fetchWondeSchools]);
+
   // --- Success Auto-Dismiss ---
 
   useEffect(() => {
@@ -301,9 +345,20 @@ const SchoolManagement = () => {
       <Typography variant="h4" gutterBottom>
         School Management
       </Typography>
-      <Typography variant="body1" color="text.secondary" paragraph>
-        Manage schools and organizations in the system.
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+        <Typography variant="body1" color="text.secondary">
+          Manage schools and organizations in the system.
+        </Typography>
+        <Button
+          variant="outlined"
+          startIcon={syncingAll ? <CircularProgress size={18} /> : <SyncIcon />}
+          onClick={handleSyncAllWonde}
+          disabled={syncingAll}
+          sx={{ minHeight: 44, whiteSpace: 'nowrap' }}
+        >
+          {syncingAll ? 'Syncing...' : 'Sync Wonde Schools'}
+        </Button>
+      </Box>
 
       {error && (
         <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
@@ -318,6 +373,7 @@ const SchoolManagement = () => {
 
       <SchoolTable
         schools={schools}
+        wondeSchools={wondeSchools}
         pagination={pagination}
         filters={{ ...filters, search: searchInput }}
         sort={sort}

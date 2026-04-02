@@ -45,11 +45,15 @@ export async function wondeRequest(path, token, params = {}) {
       break;
     }
 
-    const response = await fetchWithTimeout(nextUrl, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    }, 8000);
+    const response = await fetchWithTimeout(
+      nextUrl,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+      8000
+    );
 
     if (!response.ok) {
       throw new Error(`Wonde API error: ${response.status} ${response.statusText}`);
@@ -87,9 +91,13 @@ export async function wondeRequest(path, token, params = {}) {
  */
 export async function fetchSchoolDetails(token, schoolId) {
   const url = `${WONDE_BASE_URL}/schools/${schoolId}`;
-  const response = await fetchWithTimeout(url, {
-    headers: { Authorization: `Bearer ${token}` },
-  }, 8000);
+  const response = await fetchWithTimeout(
+    url,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    },
+    8000
+  );
 
   if (!response.ok) {
     throw new Error(`Wonde API error: ${response.status} ${response.statusText}`);
@@ -115,7 +123,7 @@ export async function fetchSchoolDetails(token, schoolId) {
 export async function fetchAllStudents(token, schoolId, options = {}) {
   const params = {
     include: 'education_details,extended_details,classes,year',
-    per_page: '200'
+    per_page: '200',
   };
 
   if (options.updatedAfter) {
@@ -142,7 +150,7 @@ export async function fetchAllClasses(token, schoolId, options = {}) {
   const params = {
     include: 'students,employees',
     has_students: 'true',
-    per_page: '200'
+    per_page: '200',
   };
 
   if (options.updatedAfter) {
@@ -169,7 +177,7 @@ export async function fetchAllEmployees(token, schoolId, options = {}) {
   const params = {
     include: 'classes,employment_details',
     has_class: 'true',
-    per_page: '200'
+    per_page: '200',
   };
 
   if (options.updatedAfter) {
@@ -191,9 +199,24 @@ export async function fetchAllEmployees(token, schoolId, options = {}) {
  * @param {string} [updatedAfter] - ISO date string for delta sync
  * @returns {Promise<Array>} Deletion records
  */
+/**
+ * Fetch schools from the Wonde application-level API.
+ *
+ * Calls one of: `/schools` (approved), `/schools/pending`, `/schools/declined`.
+ * Uses the application-level API token (not a school-specific token).
+ *
+ * @param {string} token - Wonde application API token
+ * @param {'approved'|'pending'|'declined'} [status='approved'] - School connection status
+ * @returns {Promise<Array>} All school records for the given status
+ */
+export async function fetchWondeSchools(token, status = 'approved') {
+  const path = status === 'approved' ? '/schools' : `/schools/${status}`;
+  return wondeRequest(path, token, { per_page: '200' });
+}
+
 export async function fetchDeletions(token, schoolId, updatedAfter = null) {
   const params = {
-    type: 'student'
+    type: 'student',
   };
 
   if (updatedAfter) {
