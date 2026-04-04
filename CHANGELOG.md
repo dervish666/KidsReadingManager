@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.38.1] - 2026-04-04
+
+### Fixed
+- **Stats tiles clickability** — Students and Sessions tiles are now plain (non-clickable) since they can't navigate cross-page; only Avg/Student and Never Read show click affordance
+
 ## [3.38.0] - 2026-04-04
 
 ### Added

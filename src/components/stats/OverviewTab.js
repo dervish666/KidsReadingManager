@@ -38,30 +38,35 @@ export default function OverviewTab({ stats, enrichedTopStreaks, onNavigate }) {
             color: 'status.needsAttention',
             tab: 2,
           },
-        ].map(({ label, value, color, tab }) => (
-          <Card
-            key={label}
-            sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}
-          >
-            <CardActionArea
-              onClick={tab != null && onNavigate ? () => onNavigate(tab) : undefined}
-              disabled={tab == null}
-              sx={{ height: '100%', '&.Mui-disabled': { opacity: 1 } }}
+        ].map(({ label, value, color, tab }) => {
+          const content = (
+            <CardContent sx={{ textAlign: 'center', py: 2, px: 1 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                {label}
+              </Typography>
+              <Typography
+                variant="h4"
+                sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color }}
+              >
+                {value}
+              </Typography>
+            </CardContent>
+          );
+          return (
+            <Card
+              key={label}
+              sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}
             >
-              <CardContent sx={{ textAlign: 'center', py: 2, px: 1 }}>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                  {label}
-                </Typography>
-                <Typography
-                  variant="h4"
-                  sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color }}
-                >
-                  {value}
-                </Typography>
-              </CardContent>
-            </CardActionArea>
-          </Card>
-        ))}
+              {tab != null && onNavigate ? (
+                <CardActionArea onClick={() => onNavigate(tab)} sx={{ height: '100%' }}>
+                  {content}
+                </CardActionArea>
+              ) : (
+                content
+              )}
+            </Card>
+          );
+        })}
       </Box>
 
       {/* Main content grid - auto-fill columns */}
