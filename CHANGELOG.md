@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.37.1] - 2026-04-04
+
+### Fixed
+- **UTC date defaults** — replaced `toISOString().split('T')[0]` with timezone-aware date helpers across session creation, session editing, stats filtering, and organisation stats; prevents wrong-day writes around BST/DST transitions
+- **Reading status drift** — `getReadingStatus()` in both helpers.js and UIContext now compares calendar date strings instead of raw timestamps, eliminating DST drift near midnight
+- **Version drift** — `APP_VERSION` synced with package.json; stale `subscription_tier` reads/writes removed from auth, organisation, and row mapper code
+- **Dialog heading hierarchy** — BookRecommendations preferences dialog no longer nests `<h6>` inside `<h2>`, fixing invalid HTML for screen readers
+
+### Changed
+- **Recommendation sampling** — replaced `ORDER BY RANDOM()` in D1 queries with two-phase ID sampling (fetch IDs, Fisher-Yates shuffle in JS, fetch full rows); eliminates full-table random sort as catalogue grows
+- **MUI Grid v2 migration** — BookManager and BookEditDialog migrated from deprecated `item`/`xs`/`sm` props to Grid v2 `size` prop
+
 ## [3.37.0] - 2026-04-02
 
 ### Added

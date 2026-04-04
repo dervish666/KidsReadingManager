@@ -161,8 +161,8 @@ authRouter.post('/register', async (c) => {
       db
         .prepare(
           `
-        INSERT INTO organizations (id, name, slug, subscription_tier, is_active)
-        VALUES (?, ?, ?, 'free', 1)
+        INSERT INTO organizations (id, name, slug, is_active)
+        VALUES (?, ?, ?, 1)
       `
         )
         .bind(orgId, organizationName, slugToUse),
@@ -899,8 +899,7 @@ authRouter.get('/me', async (c) => {
       .prepare(
         `
       SELECT u.id, u.email, u.name, u.role, u.last_login_at, u.created_at,
-             o.id as org_id, o.name as org_name, o.slug as org_slug,
-             o.subscription_tier
+             o.id as org_id, o.name as org_name, o.slug as org_slug
       FROM users u
       INNER JOIN organizations o ON u.organization_id = o.id
       WHERE u.id = ? AND u.is_active = 1 AND o.is_active = 1
@@ -926,7 +925,6 @@ authRouter.get('/me', async (c) => {
         id: fullUser.org_id,
         name: fullUser.org_name,
         slug: fullUser.org_slug,
-        subscriptionTier: fullUser.subscription_tier,
       },
     });
   } catch (error) {

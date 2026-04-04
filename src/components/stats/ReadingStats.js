@@ -68,7 +68,7 @@ const ReadingStats = () => {
   const termDateRange = useMemo(() => {
     if (selectedTerm === 'all' || termDates.length === 0) return null;
     if (selectedTerm === 'current_term') {
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toLocaleDateString('en-CA');
       const current = termDates.find((t) => t.startDate <= today && t.endDate >= today);
       if (!current) return null;
       return { start: current.startDate, end: current.endDate };

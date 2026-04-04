@@ -119,7 +119,6 @@ export const rowToOrganization = (row) => {
     id: row.id,
     name: row.name,
     slug: row.slug,
-    subscriptionTier: row.subscription_tier,
     isActive: Boolean(row.is_active),
     createdAt: row.created_at,
     updatedAt: row.updated_at,

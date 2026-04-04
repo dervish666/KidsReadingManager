@@ -369,35 +369,24 @@ const BookRecommendations = () => {
     const currentRating = bookRatings[bookTitle];
     const isToggleOff = currentRating === rating;
 
-    const student = students.find((s) => s.id === selectedStudentId);
-    if (!student) return;
-
-    const currentLikes = [...(student.likes || [])];
-    const currentDislikes = [...(student.dislikes || [])];
-
-    // Remove from both lists first
-    const newLikes = currentLikes.filter((t) => t !== bookTitle);
-    const newDislikes = currentDislikes.filter((t) => t !== bookTitle);
-
-    // Add to the appropriate list (unless toggling off)
-    if (!isToggleOff) {
-      if (rating === 'liked') {
-        newLikes.push(bookTitle);
-      } else {
-        newDislikes.push(bookTitle);
-      }
+    // Compute new ratings map from current bookRatings (source of truth)
+    const newRatings = { ...bookRatings };
+    if (isToggleOff) {
+      delete newRatings[bookTitle];
+    } else {
+      newRatings[bookTitle] = rating;
     }
 
+    // Derive full likes/dislikes from the ratings map
+    const newLikes = Object.entries(newRatings)
+      .filter(([, r]) => r === 'liked')
+      .map(([title]) => title);
+    const newDislikes = Object.entries(newRatings)
+      .filter(([, r]) => r === 'disliked')
+      .map(([title]) => title);
+
     // Optimistic UI update
-    setBookRatings((prev) => {
-      const next = { ...prev };
-      if (isToggleOff) {
-        delete next[bookTitle];
-      } else {
-        next[bookTitle] = rating;
-      }
-      return next;
-    });
+    setBookRatings(newRatings);
 
     try {
       const response = await fetchWithAuth(`/api/students/${selectedStudentId}/feedback`, {
@@ -407,17 +396,7 @@ const BookRecommendations = () => {
       if (!response.ok) throw new Error('Failed to save');
     } catch {
       // Rollback optimistic UI
-      setBookRatings((prev) => {
-        const next = { ...prev };
-        if (isToggleOff) {
-          next[bookTitle] = rating;
-        } else if (currentRating) {
-          next[bookTitle] = currentRating;
-        } else {
-          delete next[bookTitle];
-        }
-        return next;
-      });
+      setBookRatings(bookRatings);
     }
   };
 
@@ -1239,7 +1218,7 @@ const BookRecommendations = () => {
           <DialogTitle
             sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
           >
-            <Typography variant="h6">{selectedStudent?.name} — Reading Preferences</Typography>
+            <Typography variant="h6" component="span">{selectedStudent?.name} — Reading Preferences</Typography>
             <IconButton onClick={() => setPreferencesOpen(false)}>
               <CloseIcon />
             </IconButton>

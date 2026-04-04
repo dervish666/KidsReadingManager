@@ -446,7 +446,7 @@ const BookManager = () => {
       </Box>
 
       {error && (
-        <Grid item xs={12}>
+        <Grid size={12}>
           <Alert severity="error">{error}</Alert>
         </Grid>
       )}

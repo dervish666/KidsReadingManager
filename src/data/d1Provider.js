@@ -561,17 +561,35 @@ const getFilteredBooksForRecommendations = async (env, options = {}) => {
       }));
     }
 
-    // Add randomization and limit
-    query += ' ORDER BY RANDOM() LIMIT ?';
-    params.push(limit);
+    // Phase 1: Fetch candidate IDs only (lightweight — avoids full-row random sort)
+    const idQuery = query.replace('SELECT *', 'SELECT id');
+    const idResult = await db.prepare(idQuery).bind(...params).all();
+    let candidateIds = (idResult.results || []).map(r => r.id);
 
-    const result = await db.prepare(query).bind(...params).all();
-    let books = (result.results || []).map(rowToBook);
-
-    // If we had too many exclusions, filter them in JavaScript
+    // Filter large exclusion lists in JS
     if (excludeBookIds.length > 500) {
       const excludeSet = new Set(excludeBookIds);
-      books = books.filter(book => !excludeSet.has(book.id));
+      candidateIds = candidateIds.filter(id => !excludeSet.has(id));
+    }
+
+    // Phase 2: Fisher-Yates shuffle and take `limit` IDs
+    for (let i = candidateIds.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [candidateIds[i], candidateIds[j]] = [candidateIds[j], candidateIds[i]];
+    }
+    const selectedIds = candidateIds.slice(0, limit);
+
+    // Phase 3: Fetch full rows for selected IDs
+    let books;
+    if (selectedIds.length === 0) {
+      books = [];
+    } else {
+      const placeholders = selectedIds.map(() => '?').join(', ');
+      const fullResult = await db
+        .prepare(`SELECT * FROM books WHERE id IN (${placeholders})`)
+        .bind(...selectedIds)
+        .all();
+      books = (fullResult.results || []).map(rowToBook);
     }
 
     // If we got too few results, try a fallback query with relaxed filters
@@ -612,28 +630,40 @@ const getFilteredBooksForRecommendationsFallback = async (env, options = {}) => 
 
     const { excludeBookIds = [], limit = 100 } = options;
 
-    let query = 'SELECT * FROM books';
+    // Fetch candidate IDs only, then sample in JS
+    let idQuery = 'SELECT id FROM books';
     const params = [];
 
     if (excludeBookIds.length > 0 && excludeBookIds.length <= 500) {
       const excludePlaceholders = excludeBookIds.map(() => '?').join(', ');
-      query += ` WHERE id NOT IN (${excludePlaceholders})`;
+      idQuery += ` WHERE id NOT IN (${excludePlaceholders})`;
       params.push(...excludeBookIds);
     }
 
-    query += ' ORDER BY RANDOM() LIMIT ?';
-    params.push(limit);
+    const idResult = await db.prepare(idQuery).bind(...params).all();
+    let candidateIds = (idResult.results || []).map(r => r.id);
 
-    const result = await db.prepare(query).bind(...params).all();
-    let books = (result.results || []).map(rowToBook);
-
-    // Filter exclusions in JavaScript if needed
+    // Filter large exclusion lists in JS
     if (excludeBookIds.length > 500) {
       const excludeSet = new Set(excludeBookIds);
-      books = books.filter(book => !excludeSet.has(book.id));
+      candidateIds = candidateIds.filter(id => !excludeSet.has(id));
     }
 
-    return books;
+    // Fisher-Yates shuffle and take `limit`
+    for (let i = candidateIds.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [candidateIds[i], candidateIds[j]] = [candidateIds[j], candidateIds[i]];
+    }
+    const selectedIds = candidateIds.slice(0, limit);
+
+    if (selectedIds.length === 0) return [];
+
+    const placeholders = selectedIds.map(() => '?').join(', ');
+    const fullResult = await db
+      .prepare(`SELECT * FROM books WHERE id IN (${placeholders})`)
+      .bind(...selectedIds)
+      .all();
+    return (fullResult.results || []).map(rowToBook);
   } catch (error) {
     console.error('Error in fallback books query:', error);
     throw new Error('Failed to retrieve books for recommendations');

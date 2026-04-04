@@ -180,9 +180,12 @@ function createKVProvider(env) {
         }
       }
 
-      // Shuffle and limit results
-      const shuffled = filtered.sort(() => Math.random() - 0.5);
-      return shuffled.slice(0, limit);
+      // Fisher-Yates shuffle and limit results
+      for (let i = filtered.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
+      }
+      return filtered.slice(0, limit);
     }
   };
 }

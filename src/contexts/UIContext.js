@@ -116,15 +116,19 @@ export const UIProvider = ({ children }) => {
     }
   }, []);
 
-  // Helper: Get reading status for a student
+  // Helper: Get reading status for a student.
+  // Uses calendar-date comparison to avoid DST/timezone drift near midnight.
   const getReadingStatus = useCallback(
     (student) => {
       if (!student || !student.lastReadDate) {
         return 'never';
       }
 
-      const daysSinceLastRead = Math.floor(
-        (new Date() - new Date(student.lastReadDate)) / (1000 * 60 * 60 * 24)
+      const todayStr = new Date().toLocaleDateString('en-CA');
+      const [ty, tm, td] = todayStr.split('-').map(Number);
+      const [ly, lm, ld] = student.lastReadDate.split('-').map(Number);
+      const daysSinceLastRead = Math.round(
+        (Date.UTC(ty, tm - 1, td) - Date.UTC(ly, lm - 1, ld)) / 86400000
       );
 
       if (daysSinceLastRead <= readingStatusSettings.recentlyReadDays) {

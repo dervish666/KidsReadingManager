@@ -591,7 +591,7 @@ export const DataProvider = ({ children }) => {
 
   const addReadingSession = useCallback(
     async (studentId, sessionData) => {
-      const date = sessionData.date || new Date().toISOString().split('T')[0];
+      const date = sessionData.date || new Date().toLocaleDateString('en-CA');
       const sessionPayload = {
         date,
         assessment: sessionData.assessment,

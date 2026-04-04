@@ -49,7 +49,7 @@ const SessionForm = () => {
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [assessment, setAssessment] = useState(null);
   const [notes, setNotes] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(() => new Date().toLocaleDateString('en-CA'));
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('Reading session saved successfully');
   const [error, setError] = useState('');

@@ -71,7 +71,6 @@ const createMockOrganization = (overrides = {}) => ({
   id: 'org-123',
   name: 'Test School',
   slug: 'test-school',
-  subscription_tier: 'pro',
   is_active: 1,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-15T00:00:00Z',
@@ -117,7 +116,7 @@ describe('Organization Routes', () => {
       expect(data.organization).toBeDefined();
       expect(data.organization.id).toBe('org-123');
       expect(data.organization.name).toBe('Test School');
-      expect(data.organization.subscriptionTier).toBe('pro');
+      expect(data.organization.subscriptionTier).toBeUndefined();
       expect(data.organization.isActive).toBe(true);
     });
 
@@ -149,7 +148,6 @@ describe('Organization Routes', () => {
 
     it('should convert snake_case database fields to camelCase', async () => {
       const mockOrg = createMockOrganization({
-        subscription_tier: 'enterprise',
         is_active: 1,
         created_at: '2024-01-01',
         updated_at: '2024-01-20',
@@ -160,7 +158,7 @@ describe('Organization Routes', () => {
       const response = await app.request('/api/organization');
       const data = await response.json();
 
-      expect(data.organization.subscriptionTier).toBe('enterprise');
+      expect(data.organization.subscriptionTier).toBeUndefined();
       expect(data.organization.isActive).toBe(true);
       expect(data.organization.createdAt).toBe('2024-01-01');
       expect(data.organization.updatedAt).toBe('2024-01-20');
@@ -507,7 +505,6 @@ describe('Organization Routes', () => {
           return Promise.resolve({
             ...mockOrg,
             name: 'Updated School',
-            subscription_tier: 'enterprise',
           });
         }),
         run: vi.fn().mockResolvedValue({ success: true }),
@@ -667,7 +664,9 @@ describe('Organization Routes', () => {
       const mockDb = createMockDB();
 
       mockDb.prepare = vi.fn().mockReturnValue({
-        bind: vi.fn().mockReturnThis(),
+        bind: vi.fn().mockReturnValue({
+          first: vi.fn().mockResolvedValue(null),
+        }),
       });
 
       // Stats endpoint now uses db.batch() for all queries in one round-trip
@@ -697,7 +696,9 @@ describe('Organization Routes', () => {
       const mockDb = createMockDB();
 
       mockDb.prepare = vi.fn().mockReturnValue({
-        bind: vi.fn().mockReturnThis(),
+        bind: vi.fn().mockReturnValue({
+          first: vi.fn().mockResolvedValue(null),
+        }),
       });
 
       // All queries return zero counts
@@ -1222,23 +1223,8 @@ describe('Organization Routes', () => {
     });
   });
 
-  describe('Subscription Tier Handling', () => {
-    it('should return subscription tier in organization response', async () => {
-      const tiers = ['free', 'basic', 'pro', 'enterprise'];
-
-      for (const tier of tiers) {
-        const mockOrg = createMockOrganization({ subscription_tier: tier });
-        const mockDb = createMockDB({ firstResult: mockOrg });
-        const app = createTestApp(mockDb, createUserContext());
-
-        const response = await app.request('/api/organization');
-        const data = await response.json();
-
-        expect(data.organization.subscriptionTier).toBe(tier);
-      }
-    });
-
-    it('should not include limits in organization data', async () => {
+  describe('Organization Response Shape', () => {
+    it('should not include legacy subscription tier or limits in organization data', async () => {
       const mockOrg = createMockOrganization();
       const mockDb = createMockDB({ firstResult: mockOrg });
       const app = createTestApp(mockDb, createUserContext());
@@ -1246,6 +1232,7 @@ describe('Organization Routes', () => {
       const response = await app.request('/api/organization');
       const data = await response.json();
 
+      expect(data.organization.subscriptionTier).toBeUndefined();
       expect(data.organization.maxStudents).toBeUndefined();
       expect(data.organization.maxTeachers).toBeUndefined();
     });

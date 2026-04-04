@@ -336,7 +336,7 @@ const BookEditDialog = ({ book, onClose, onSave, genres, settings }) => {
 
           {/* Form Fields */}
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 label="Book Title"
                 value={editBookTitle}
@@ -346,7 +346,7 @@ const BookEditDialog = ({ book, onClose, onSave, genres, settings }) => {
                 required
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 label="Author"
                 value={editBookAuthor}
@@ -355,7 +355,7 @@ const BookEditDialog = ({ book, onClose, onSave, genres, settings }) => {
                 size="small"
               />
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={6}>
               <TextField
                 label="Reading Level"
                 value={editBookReadingLevel}
@@ -364,7 +364,7 @@ const BookEditDialog = ({ book, onClose, onSave, genres, settings }) => {
                 size="small"
               />
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={6}>
               <TextField
                 label="Age Range"
                 value={editBookAgeRange}

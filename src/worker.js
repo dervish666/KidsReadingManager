@@ -53,7 +53,7 @@ import {
 } from './middleware/tenant';
 import { PUBLIC_PATHS } from './utils/constants.js';
 
-const APP_VERSION = '3.36.1';
+const APP_VERSION = '3.37.1';
 
 // Create Hono app for the API
 const app = new Hono();

@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { generateId } from '../utils/helpers';
-import { calculateStreak } from '../utils/streakCalculator';
+import { calculateStreak, getDateString } from '../utils/streakCalculator';
 
 // Import services (legacy KV mode)
 import {
@@ -1233,6 +1233,10 @@ studentsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
     const organizationId = c.get('organizationId');
     const userId = c.get('userId');
 
+    // Fetch org timezone for accurate date defaults
+    const { timezone } = await getOrgStreakSettings(db, organizationId, c.env || {});
+    const sessionDate = body.date || getDateString(new Date(), timezone);
+
     // Check if student exists and belongs to organization
     const student = await db
       .prepare(
@@ -1282,7 +1286,7 @@ studentsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
       .bind(
         sessionId,
         id,
-        body.date || new Date().toISOString().split('T')[0],
+        sessionDate,
         body.bookId || null,
         body.bookTitle || null,
         body.bookAuthor || null,
@@ -1309,7 +1313,6 @@ studentsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
     }
 
     // Update student's last_read_date (skip for absent/no-record markers)
-    const sessionDate = body.date || new Date().toISOString().split('T')[0];
     const isMarkerSession =
       body.notes && (body.notes.includes('[ABSENT]') || body.notes.includes('[NO_RECORD]'));
     if (!isMarkerSession) {
@@ -1366,7 +1369,7 @@ studentsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
 
   const newSession = {
     id: generateId(),
-    date: body.date || new Date().toISOString().split('T')[0],
+    date: body.date || new Date().toLocaleDateString('en-CA'),
     bookTitle: body.bookTitle,
     bookAuthor: body.bookAuthor,
     bookId: body.bookId,
@@ -1527,6 +1530,9 @@ studentsRouter.put(
       const db = getDB(c.env);
       const organizationId = c.get('organizationId');
 
+      // Fetch org timezone for accurate date defaults
+      const { timezone } = await getOrgStreakSettings(db, organizationId, c.env || {});
+
       await requireStudent(db, id, organizationId);
 
       // Check if session exists
@@ -1561,7 +1567,7 @@ studentsRouter.put(
     `
         )
         .bind(
-          body.date || new Date().toISOString().split('T')[0],
+          body.date || getDateString(new Date(), timezone),
           body.bookId ?? null,
           body.bookTitle ?? null,
           body.bookAuthor ?? null,

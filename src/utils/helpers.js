@@ -25,31 +25,44 @@ export function generateId() {
 }
 
 /**
- * Get today's date in ISO format (YYYY-MM-DD)
+ * Get today's date in YYYY-MM-DD format, accounting for timezone.
+ * On the frontend (browser), omit timezone to use the user's local timezone.
+ * On the backend (Worker), pass the organisation's timezone.
+ * @param {string} [timezone] - IANA timezone (e.g. 'Europe/London'). Omit for browser local.
  * @returns {string} - Today's date
  */
-export function getTodayDate() {
-  return new Date().toISOString().split('T')[0];
+export function getTodayDate(timezone) {
+  const opts = timezone ? { timeZone: timezone } : undefined;
+  try {
+    return new Date().toLocaleDateString('en-CA', opts);
+  } catch {
+    return new Date().toISOString().split('T')[0];
+  }
 }
 
 /**
- * Calculate reading status based on last read date and settings
+ * Compute the number of calendar days between two YYYY-MM-DD date strings.
+ * Uses UTC parsing to avoid timezone/DST shifts in the arithmetic.
+ */
+function daysBetween(dateStrA, dateStrB) {
+  const [ay, am, ad] = dateStrA.split('-').map(Number);
+  const [by, bm, bd] = dateStrB.split('-').map(Number);
+  return Math.round((Date.UTC(ay, am - 1, ad) - Date.UTC(by, bm - 1, bd)) / 86400000);
+}
+
+/**
+ * Calculate reading status based on last read date and settings.
+ * Compares calendar dates rather than raw timestamps to avoid DST drift.
  * @param {Object} student - Student object
  * @param {Object} settings - Reading status settings
+ * @param {string} [timezone] - IANA timezone. Omit for browser local.
  * @returns {string} - Reading status: 'recentlyRead', 'needsAttention', or 'notRead'
  */
-export function getReadingStatus(student, settings) {
+export function getReadingStatus(student, settings, timezone) {
   if (!student?.lastReadDate) return 'notRead';
 
-  const lastReadDate = new Date(student.lastReadDate);
-  const today = new Date();
-  
-  // Ensure dates are compared at the start of the day for consistency
-  today.setHours(0, 0, 0, 0);
-  lastReadDate.setHours(0, 0, 0, 0);
-
-  const diffTime = today - lastReadDate;
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const todayStr = getTodayDate(timezone);
+  const diffDays = daysBetween(todayStr, student.lastReadDate);
 
   if (diffDays <= settings.readingStatusSettings.recentlyReadDays) return 'recentlyRead';
   if (diffDays <= settings.readingStatusSettings.needsAttentionDays) return 'needsAttention';

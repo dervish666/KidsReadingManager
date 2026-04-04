@@ -45,9 +45,14 @@ describe('getTodayDate', () => {
     expect(date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
-  it('should return current date', () => {
-    const expected = new Date().toISOString().split('T')[0];
+  it('should return current date in local timezone', () => {
+    const expected = new Date().toLocaleDateString('en-CA');
     expect(getTodayDate()).toBe(expected);
+  });
+
+  it('should respect explicit timezone', () => {
+    const result = getTodayDate('UTC');
+    expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 });
 

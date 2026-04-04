@@ -194,8 +194,23 @@ organizationRouter.get('/stats', requireReadonly(), async (c) => {
     const db = getDB(c.env);
     const organizationId = c.get('organizationId');
 
-    const now = new Date();
-    const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    // Use org timezone for accurate month boundary
+    const tzResult = await db
+      .prepare(
+        `SELECT setting_value FROM org_settings WHERE organization_id = ? AND setting_key = 'timezone'`
+      )
+      .bind(organizationId)
+      .first();
+    let timezone = 'UTC';
+    if (tzResult?.setting_value) {
+      try {
+        timezone = JSON.parse(tzResult.setting_value);
+      } catch {
+        timezone = tzResult.setting_value;
+      }
+    }
+    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: timezone });
+    const firstOfMonth = todayStr.slice(0, 8) + '01';
 
     // Execute all stats queries in a single batch round-trip
     const [userCount, studentCount, classCount, sessionCount, bookCount] = await db.batch([
@@ -640,7 +655,7 @@ organizationRouter.post(
       const body = await c.req.json();
       const { generateId } = await import('../utils/helpers.js');
 
-      const { name, slug, subscriptionTier } = body;
+      const { name, slug } = body;
 
       if (!name) {
         throw badRequestError('Organization name is required');
@@ -672,11 +687,11 @@ organizationRouter.post(
       await db
         .prepare(
           `
-      INSERT INTO organizations (id, name, slug, subscription_tier, is_active)
-      VALUES (?, ?, ?, ?, 1)
+      INSERT INTO organizations (id, name, slug, is_active)
+      VALUES (?, ?, ?, 1)
     `
         )
-        .bind(orgId, name, orgSlug, subscriptionTier || 'free')
+        .bind(orgId, name, orgSlug)
         .run();
 
       const newOrg = await db
