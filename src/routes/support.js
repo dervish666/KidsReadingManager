@@ -42,27 +42,31 @@ supportRouter.post('/', requireReadonly(), async (c) => {
   const userId = c.get('userId') || user.sub || null;
 
   // Insert ticket
-  await db.prepare(
-    `INSERT INTO support_tickets (id, organization_id, user_id, user_name, user_email, subject, message, page_url)
+  await db
+    .prepare(
+      `INSERT INTO support_tickets (id, organization_id, user_id, user_name, user_email, subject, message, page_url)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-  ).bind(
-    ticketId,
-    organizationId,
-    userId,
-    user.name || 'Unknown',
-    user.email || 'unknown',
-    subject,
-    message,
-    pageUrl
-  ).run();
+    )
+    .bind(
+      ticketId,
+      organizationId,
+      userId,
+      user.name || 'Unknown',
+      user.email || 'unknown',
+      subject,
+      message,
+      pageUrl
+    )
+    .run();
 
   // Send email notification (non-blocking — errors caught and logged)
   try {
     let organizationName = null;
     if (organizationId) {
-      const org = await db.prepare(
-        'SELECT name FROM organizations WHERE id = ? AND is_active = 1'
-      ).bind(organizationId).first();
+      const org = await db
+        .prepare('SELECT name FROM organizations WHERE id = ? AND is_active = 1')
+        .bind(organizationId)
+        .first();
       organizationName = org?.name || null;
     }
 
@@ -98,17 +102,21 @@ supportRouter.get('/', requireOwner(), async (c) => {
     SELECT st.*, o.name AS organization_name
     FROM support_tickets st
     LEFT JOIN organizations o ON st.organization_id = o.id
+    WHERE st.status IN ('open', 'in-progress', 'resolved')
   `;
   const binds = [];
 
   if (status && validStatuses.includes(status)) {
-    sql += ' WHERE st.status = ?';
+    sql += ' AND st.status = ?';
     binds.push(status);
   }
 
   sql += ' ORDER BY st.created_at DESC';
 
-  const result = await db.prepare(sql).bind(...binds).all();
+  const result = await db
+    .prepare(sql)
+    .bind(...binds)
+    .all();
   const tickets = (result.results || []).map(rowToSupportTicket);
 
   return c.json({ tickets });
@@ -123,20 +131,26 @@ supportRouter.get('/:id', requireOwner(), async (c) => {
 
   const ticketId = c.req.param('id');
 
-  const ticketRow = await db.prepare(`
+  const ticketRow = await db
+    .prepare(
+      `
     SELECT st.*, o.name AS organization_name
     FROM support_tickets st
     LEFT JOIN organizations o ON st.organization_id = o.id
     WHERE st.id = ?
-  `).bind(ticketId).first();
+  `
+    )
+    .bind(ticketId)
+    .first();
 
   if (!ticketRow) {
     return c.json({ error: 'Ticket not found' }, 404);
   }
 
-  const notesResult = await db.prepare(
-    'SELECT * FROM support_ticket_notes WHERE ticket_id = ? ORDER BY created_at ASC'
-  ).bind(ticketId).all();
+  const notesResult = await db
+    .prepare('SELECT * FROM support_ticket_notes WHERE ticket_id = ? ORDER BY created_at ASC')
+    .bind(ticketId)
+    .all();
 
   const ticket = rowToSupportTicket(ticketRow);
   const notes = (notesResult.results || []).map(rowToSupportNote);
@@ -162,14 +176,18 @@ supportRouter.patch('/:id', requireOwner(), async (c) => {
     return c.json({ error: 'Invalid status. Must be: open, in-progress, or resolved' }, 400);
   }
 
-  const existing = await db.prepare('SELECT id FROM support_tickets WHERE id = ?').bind(ticketId).first();
+  const existing = await db
+    .prepare('SELECT id FROM support_tickets WHERE id = ?')
+    .bind(ticketId)
+    .first();
   if (!existing) {
     return c.json({ error: 'Ticket not found' }, 404);
   }
 
-  await db.prepare(
-    "UPDATE support_tickets SET status = ?, updated_at = datetime('now') WHERE id = ?"
-  ).bind(body.status, ticketId).run();
+  await db
+    .prepare("UPDATE support_tickets SET status = ?, updated_at = datetime('now') WHERE id = ?")
+    .bind(body.status, ticketId)
+    .run();
 
   return c.json({ success: true });
 });
@@ -195,7 +213,10 @@ supportRouter.post('/:id/notes', requireOwner(), async (c) => {
     return c.json({ error: 'Note must be 2000 characters or less' }, 400);
   }
 
-  const existing = await db.prepare('SELECT id FROM support_tickets WHERE id = ?').bind(ticketId).first();
+  const existing = await db
+    .prepare('SELECT id FROM support_tickets WHERE id = ?')
+    .bind(ticketId)
+    .first();
   if (!existing) {
     return c.json({ error: 'Ticket not found' }, 404);
   }
@@ -205,12 +226,14 @@ supportRouter.post('/:id/notes', requireOwner(), async (c) => {
   const noteId = generateId();
 
   await db.batch([
-    db.prepare(
-      'INSERT INTO support_ticket_notes (id, ticket_id, user_id, user_name, note) VALUES (?, ?, ?, ?, ?)'
-    ).bind(noteId, ticketId, userId, user.name || 'Unknown', noteText),
-    db.prepare(
-      "UPDATE support_tickets SET updated_at = datetime('now') WHERE id = ?"
-    ).bind(ticketId),
+    db
+      .prepare(
+        'INSERT INTO support_ticket_notes (id, ticket_id, user_id, user_name, note) VALUES (?, ?, ?, ?, ?)'
+      )
+      .bind(noteId, ticketId, userId, user.name || 'Unknown', noteText),
+    db
+      .prepare("UPDATE support_tickets SET updated_at = datetime('now') WHERE id = ?")
+      .bind(ticketId),
   ]);
 
   return c.json({ success: true, noteId });
@@ -225,7 +248,10 @@ supportRouter.delete('/:id', requireOwner(), async (c) => {
 
   const ticketId = c.req.param('id');
 
-  const existing = await db.prepare('SELECT id FROM support_tickets WHERE id = ?').bind(ticketId).first();
+  const existing = await db
+    .prepare('SELECT id FROM support_tickets WHERE id = ?')
+    .bind(ticketId)
+    .first();
   if (!existing) {
     return c.json({ error: 'Ticket not found' }, 404);
   }

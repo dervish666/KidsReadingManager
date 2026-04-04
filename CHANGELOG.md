@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.37.3] - 2026-04-04
+
+### Fixed
+- **Support ticket tile counts** — ticket list API now filters out tickets with unexpected statuses (e.g. `closed` from direct DB edits), so "All" count matches the sum of Open + In Progress + Resolved
+
 ## [3.37.2] - 2026-04-04
 
 ### Changed
