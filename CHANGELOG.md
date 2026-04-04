@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.37.2] - 2026-04-04
+
+### Changed
+- **AI recommendations use year group** — when a student has no reading level set, the recommendation prompt now includes their UK year group (from Wonde sync) to derive approximate age, giving the AI meaningful context instead of fully generic suggestions
+
 ## [3.37.1] - 2026-04-04
 
 ### Fixed

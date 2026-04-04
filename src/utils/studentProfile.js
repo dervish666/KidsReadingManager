@@ -18,29 +18,39 @@ import { parseGenreIds } from './helpers.js';
  */
 export async function buildStudentReadingProfile(studentId, organizationId, db) {
   // 1. Get student basic info
-  const student = await db.prepare(`
+  const student = await db
+    .prepare(
+      `
     SELECT id, name, reading_level, reading_level_min, reading_level_max, age_range, likes, dislikes, notes,
-           date_of_birth, gender, first_language, eal_detailed_status
+           date_of_birth, gender, first_language, eal_detailed_status, year_group
     FROM students
     WHERE id = ? AND organization_id = ?
-  `).bind(studentId, organizationId).first();
+  `
+    )
+    .bind(studentId, organizationId)
+    .first();
 
   if (!student) {
     return null;
   }
 
   // 2. Get explicit preferences (favorite genres from student_preferences table)
-  const preferencesResult = await db.prepare(`
+  const preferencesResult = await db
+    .prepare(
+      `
     SELECT sp.genre_id, g.name as genre_name, sp.preference_type
     FROM student_preferences sp
     LEFT JOIN genres g ON sp.genre_id = g.id
     WHERE sp.student_id = ?
-  `).bind(studentId).all();
+  `
+    )
+    .bind(studentId)
+    .all();
 
   const favoriteGenreIds = [];
   const favoriteGenreNames = [];
 
-  for (const row of (preferencesResult.results || [])) {
+  for (const row of preferencesResult.results || []) {
     if (row.preference_type === 'favorite') {
       favoriteGenreIds.push(row.genre_id);
       if (row.genre_name) {
@@ -50,24 +60,29 @@ export async function buildStudentReadingProfile(studentId, organizationId, db) 
   }
 
   // 3. Get reading history with book details
-  const sessionsResult = await db.prepare(`
+  const sessionsResult = await db
+    .prepare(
+      `
     SELECT DISTINCT rs.book_id, b.title, b.author, b.genre_ids, rs.session_date
     FROM reading_sessions rs
     LEFT JOIN books b ON rs.book_id = b.id
     WHERE rs.student_id = ? AND rs.book_id IS NOT NULL
     ORDER BY rs.session_date DESC
-  `).bind(studentId).all();
+  `
+    )
+    .bind(studentId)
+    .all();
 
   const sessions = sessionsResult.results || [];
-  const readBookIds = sessions.map(s => s.book_id).filter(Boolean);
+  const readBookIds = sessions.map((s) => s.book_id).filter(Boolean);
 
   // Recent reads (last 5 with titles)
   const recentReads = sessions
-    .filter(s => s.title)
+    .filter((s) => s.title)
     .slice(0, 5)
-    .map(s => ({
+    .map((s) => ({
       title: s.title,
-      author: s.author
+      author: s.author,
     }));
 
   // 4. Infer favorite genres from reading history
@@ -91,12 +106,17 @@ export async function buildStudentReadingProfile(studentId, organizationId, db) 
   if (sortedGenres.length > 0) {
     const genreIds = sortedGenres.map(([id]) => id);
     const placeholders = genreIds.map(() => '?').join(',');
-    const genreNamesResult = await db.prepare(`
+    const genreNamesResult = await db
+      .prepare(
+        `
       SELECT id, name FROM genres WHERE id IN (${placeholders})
-    `).bind(...genreIds).all();
+    `
+      )
+      .bind(...genreIds)
+      .all();
 
     const genreNameMap = {};
-    for (const row of (genreNamesResult.results || [])) {
+    for (const row of genreNamesResult.results || []) {
       genreNameMap[row.id] = row.name;
     }
 
@@ -106,7 +126,7 @@ export async function buildStudentReadingProfile(studentId, organizationId, db) 
       .map(([id, count]) => ({
         id,
         name: genreNameMap[id],
-        count
+        count,
       }));
   }
 
@@ -135,21 +155,25 @@ export async function buildStudentReadingProfile(studentId, organizationId, db) 
       ageRange: student.age_range || null,
       notes: student.notes,
       age: student.date_of_birth
-        ? Math.floor((Date.now() - new Date(student.date_of_birth).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+        ? Math.floor(
+            (Date.now() - new Date(student.date_of_birth).getTime()) /
+              (365.25 * 24 * 60 * 60 * 1000)
+          )
         : null,
       gender: student.gender || null,
       firstLanguage: student.first_language || null,
       ealDetailedStatus: student.eal_detailed_status || null,
+      yearGroup: student.year_group || null,
     },
     preferences: {
       favoriteGenreIds,
       favoriteGenreNames,
       likes,
-      dislikes
+      dislikes,
     },
     inferredGenres,
     recentReads,
     readBookIds,
-    booksReadCount: readBookIds.length
+    booksReadCount: readBookIds.length,
   };
 }

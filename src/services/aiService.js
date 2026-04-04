@@ -39,21 +39,32 @@ export async function generateRecommendations({ studentProfile, availableBooks, 
  * Build the prompt for the AI model
  */
 function buildPrompt(studentProfile, availableBooks) {
-  const booksReadText = studentProfile.booksRead.length > 0
-    ? studentProfile.booksRead.map(book => `- ${book.title} by ${book.author} (${book.genre})`).join('\n')
-    : 'No books recorded yet';
+  const booksReadText =
+    studentProfile.booksRead.length > 0
+      ? studentProfile.booksRead
+          .map((book) => `- ${book.title} by ${book.author} (${book.genre})`)
+          .join('\n')
+      : 'No books recorded yet';
 
-  const availableBooksText = availableBooks.length > 0
-    ? availableBooks.map((book, index) => `${index + 1}. ${book.title} by ${book.author} (Genre: ${book.genre}, Age: ${book.ageRange}, Level: ${book.readingLevel})`).join('\n')
-    : 'No books currently available in the library system';
+  const availableBooksText =
+    availableBooks.length > 0
+      ? availableBooks
+          .map(
+            (book, index) =>
+              `${index + 1}. ${book.title} by ${book.author} (Genre: ${book.genre}, Age: ${book.ageRange}, Level: ${book.readingLevel})`
+          )
+          .join('\n')
+      : 'No books currently available in the library system';
 
-  const sourceInstruction = availableBooks.length > 0
-    ? 'From the available books list above'
-    : 'Well-known, high-quality children\'s books';
+  const sourceInstruction =
+    availableBooks.length > 0
+      ? 'From the available books list above'
+      : "Well-known, high-quality children's books";
 
-  const avoidDuplicatesInstruction = availableBooks.length > 0
-    ? ' Avoid books that are too similar to ones they\'ve already read.'
-    : '';
+  const avoidDuplicatesInstruction =
+    availableBooks.length > 0
+      ? " Avoid books that are too similar to ones they've already read."
+      : '';
 
   return `You are an expert children's librarian with decades of experience in book recommendations for young readers.
 
@@ -89,14 +100,20 @@ Ensure recommendations are age-appropriate and match the student's reading level
  * @param {string} baseUrl - Base URL for the API
  * @param {boolean} raw - If true, return raw text instead of parsed response
  */
-async function callAnthropic(prompt, apiKey, model = 'claude-haiku-4-5', baseUrl = 'https://api.anthropic.com/v1', raw = false) {
+async function callAnthropic(
+  prompt,
+  apiKey,
+  model = 'claude-haiku-4-5',
+  baseUrl = 'https://api.anthropic.com/v1',
+  raw = false
+) {
   // Use dynamic import for SDK to support Worker environment
   const { Anthropic } = await import('@anthropic-ai/sdk');
 
   const anthropic = new Anthropic({
     apiKey: apiKey,
     baseURL: baseUrl !== 'https://api.anthropic.com/v1' ? baseUrl : undefined,
-    timeout: 10000
+    timeout: 10000,
   });
 
   const response = await anthropic.messages.create({
@@ -106,9 +123,9 @@ async function callAnthropic(prompt, apiKey, model = 'claude-haiku-4-5', baseUrl
     messages: [
       {
         role: 'user',
-        content: prompt
-      }
-    ]
+        content: prompt,
+      },
+    ],
   });
 
   const text = response.content[0].text;
@@ -123,31 +140,41 @@ async function callAnthropic(prompt, apiKey, model = 'claude-haiku-4-5', baseUrl
  * @param {string} baseUrl - Base URL for the API
  * @param {boolean} raw - If true, return raw text instead of parsed response
  */
-async function callOpenAI(prompt, apiKey, model = 'gpt-5-nano', baseUrl = 'https://api.openai.com/v1', raw = false) {
+async function callOpenAI(
+  prompt,
+  apiKey,
+  model = 'gpt-5-nano',
+  baseUrl = 'https://api.openai.com/v1',
+  raw = false
+) {
   const url = `${baseUrl}/chat/completions`;
 
-  const response = await fetchWithTimeout(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
+  const response = await fetchWithTimeout(
+    url,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a helpful assistant that outputs JSON.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.7,
+        response_format: { type: 'json_object' },
+      }),
     },
-    body: JSON.stringify({
-      model: model,
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a helpful assistant that outputs JSON.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.7,
-      response_format: { type: "json_object" }
-    })
-  }, 10000);
+    10000
+  );
 
   if (!response.ok) {
     const errorData = await response.json();
@@ -167,7 +194,8 @@ async function callOpenAI(prompt, apiKey, model = 'gpt-5-nano', baseUrl = 'https
   try {
     const parsed = JSON.parse(content);
     if (Array.isArray(parsed)) return normalizeRecommendations(parsed);
-    if (parsed.recommendations && Array.isArray(parsed.recommendations)) return normalizeRecommendations(parsed.recommendations);
+    if (parsed.recommendations && Array.isArray(parsed.recommendations))
+      return normalizeRecommendations(parsed.recommendations);
     if (parsed.books && Array.isArray(parsed.books)) return normalizeRecommendations(parsed.books);
 
     // If we can't find an array, try to parse again with looser constraints
@@ -185,28 +213,42 @@ async function callOpenAI(prompt, apiKey, model = 'gpt-5-nano', baseUrl = 'https
  * @param {string} baseUrl - Base URL for the API
  * @param {boolean} raw - If true, return raw text instead of parsed response
  */
-async function callGemini(prompt, apiKey, model = 'gemini-flash-latest', baseUrl = 'https://generativelanguage.googleapis.com/v1beta', raw = false) {
+async function callGemini(
+  prompt,
+  apiKey,
+  model = 'gemini-flash-latest',
+  baseUrl = 'https://generativelanguage.googleapis.com/v1beta',
+  raw = false
+) {
   // Gemini API requires the key as a query parameter — this is a known API constraint.
   // Mitigate: use a dedicated Gemini-only API key and rotate periodically.
   const url = `${baseUrl}/models/${model}:generateContent?key=${apiKey}`;
 
-  const response = await fetchWithTimeout(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
+  const response = await fetchWithTimeout(
+    url,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: prompt + '\n\nIMPORTANT: Output ONLY valid JSON array.',
+              },
+            ],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.7,
+          responseMimeType: 'application/json',
+        },
+      }),
     },
-    body: JSON.stringify({
-      contents: [{
-        parts: [{
-          text: prompt + "\n\nIMPORTANT: Output ONLY valid JSON array."
-        }]
-      }],
-      generationConfig: {
-        temperature: 0.7,
-        responseMimeType: "application/json"
-      }
-    })
-  }, 10000);
+    10000
+  );
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -248,7 +290,7 @@ function parseResponse(text) {
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     const jsonText = jsonMatch ? jsonMatch[0] : text;
     const recommendations = JSON.parse(jsonText);
-    
+
     return normalizeRecommendations(recommendations);
   } catch (error) {
     console.error('Failed to parse AI response:', error);
@@ -265,12 +307,12 @@ function normalizeRecommendations(recommendations) {
     throw new Error('Recommendations must be an array');
   }
 
-  return recommendations.slice(0, 4).map(rec => ({
+  return recommendations.slice(0, 4).map((rec) => ({
     title: rec.title || 'Unknown Title',
     author: rec.author || 'Unknown Author',
     genre: rec.genre || 'Fiction',
     ageRange: rec.ageRange || '8-12',
-    reason: rec.reason || 'Recommended based on reading preferences'
+    reason: rec.reason || 'Recommended based on reading preferences',
   }));
 }
 
@@ -283,25 +325,35 @@ function normalizeRecommendations(recommendations) {
 export function buildBroadSuggestionsPrompt(studentProfile, focusMode = 'balanced') {
   const { student, preferences, inferredGenres, recentReads } = studentProfile;
 
-  const favoriteGenresText = preferences.favoriteGenreNames.length > 0
-    ? preferences.favoriteGenreNames.join(', ')
-    : 'Not specified';
+  const favoriteGenresText =
+    preferences.favoriteGenreNames.length > 0
+      ? preferences.favoriteGenreNames.join(', ')
+      : 'Not specified';
 
-  const inferredGenresText = inferredGenres.length > 0
-    ? inferredGenres.map(g => `${g.name} (read ${g.count} books)`).join(', ')
-    : 'No reading history yet';
+  const inferredGenresText =
+    inferredGenres.length > 0
+      ? inferredGenres.map((g) => `${g.name} (read ${g.count} books)`).join(', ')
+      : 'No reading history yet';
 
-  const likedBooksText = preferences.likes.length > 0
-    ? preferences.likes.join(', ')
-    : 'None specified';
+  const likedBooksText =
+    preferences.likes.length > 0 ? preferences.likes.join(', ') : 'None specified';
 
-  const dislikedBooksText = preferences.dislikes.length > 0
-    ? preferences.dislikes.join(', ')
-    : 'None specified';
+  const dislikedBooksText =
+    preferences.dislikes.length > 0 ? preferences.dislikes.join(', ') : 'None specified';
 
-  const recentReadsText = recentReads.length > 0
-    ? recentReads.map(b => `${b.title}${b.author ? ` by ${b.author}` : ''}`).join(', ')
-    : 'No recent books';
+  const recentReadsText =
+    recentReads.length > 0
+      ? recentReads.map((b) => `${b.title}${b.author ? ` by ${b.author}` : ''}`).join(', ')
+      : 'No recent books';
+
+  // Derive approximate age from year group (UK: Year N ≈ age N+4 to N+5)
+  let yearGroupContext = '';
+  const yearNum = student.yearGroup ? parseInt(student.yearGroup, 10) : NaN;
+  if (!isNaN(yearNum) && yearNum >= 0 && yearNum <= 13) {
+    const ageLow = yearNum + 4;
+    const ageHigh = yearNum + 5;
+    yearGroupContext = `- Year Group: Year ${yearNum} (approximately age ${ageLow}-${ageHigh})\n`;
+  }
 
   // Build reading level context with AR explanation
   let readingLevelContext = '';
@@ -334,6 +386,11 @@ TEACHER'S REQUEST: Balanced
 Recommend a mix across their ability range from ${min.toFixed(1)} to ${max.toFixed(1)}.
 `;
     }
+  } else if (yearGroupContext) {
+    readingLevelContext = `
+READING ABILITY:
+Reading level not formally assessed. However, this student is in Year ${yearNum} (approximately age ${yearNum + 4}-${yearNum + 5} in the UK school system). Recommend books suitable for this age group.
+`;
   } else {
     readingLevelContext = `
 READING ABILITY:
@@ -344,8 +401,8 @@ Reading level not assessed. Recommend age-appropriate books based on other facto
   return `You are an expert children's librarian recommending books for a young reader.
 
 STUDENT PROFILE:
-- Reading Level: ${student.readingLevel}
-- Age Range: ${student.ageRange || 'Not specified'}
+- Reading Level: ${student.readingLevel || 'Not assessed'}
+${yearGroupContext}- Age Range: ${student.ageRange || (student.age ? `approximately ${student.age} years old` : 'Not specified')}
 ${readingLevelContext}
 EXPLICIT PREFERENCES (teacher/parent provided):
 - Favorite Genres: ${favoriteGenresText}
@@ -391,13 +448,13 @@ function normalizeBroadSuggestions(suggestions) {
     throw new Error('Suggestions must be an array');
   }
 
-  return suggestions.slice(0, 5).map(rec => ({
+  return suggestions.slice(0, 5).map((rec) => ({
     title: rec.title || 'Unknown Title',
     author: rec.author || 'Unknown Author',
     ageRange: rec.ageRange || '8-12',
     readingLevel: rec.readingLevel || 'intermediate',
     reason: rec.reason || 'Recommended based on reading preferences',
-    whereToFind: rec.whereToFind || 'Available at most public libraries and bookstores'
+    whereToFind: rec.whereToFind || 'Available at most public libraries and bookstores',
   }));
 }
 
@@ -453,4 +510,3 @@ export async function generateBroadSuggestions(studentProfile, config, focusMode
 
   return parseBroadSuggestionsResponse(response);
 }
-
