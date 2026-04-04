@@ -1,14 +1,16 @@
 import React from 'react';
-import { Box, Typography, Card, CardContent, Chip } from '@mui/material';
+import { Box, Typography, Card, CardContent, CardActionArea, Chip } from '@mui/material';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import WhatshotIcon from '@mui/icons-material/Whatshot';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import HomeIcon from '@mui/icons-material/Home';
 import SchoolIcon from '@mui/icons-material/School';
+import ThumbUpIcon from '@mui/icons-material/ThumbUp';
+import ThumbDownIcon from '@mui/icons-material/ThumbDown';
 import StreakBadge from '../students/StreakBadge';
 
-export default function OverviewTab({ stats, enrichedTopStreaks }) {
+export default function OverviewTab({ stats, enrichedTopStreaks, onNavigate }) {
   return (
     <Box>
       {/* Summary stats - responsive grid */}
@@ -21,65 +23,45 @@ export default function OverviewTab({ stats, enrichedTopStreaks }) {
           mb: 3,
         }}
       >
-        <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
-          <CardContent sx={{ textAlign: 'center', py: 2, px: 1 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-              Students
-            </Typography>
-            <Typography
-              variant="h4"
-              sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'primary.main' }}
+        {[
+          { label: 'Students', value: stats.totalStudents, color: 'primary.main' },
+          { label: 'Sessions', value: stats.totalSessions, color: 'secondary.main' },
+          {
+            label: 'Avg/Student',
+            value: stats.averageSessionsPerStudent.toFixed(1),
+            color: 'info.main',
+            tab: 3,
+          },
+          {
+            label: 'Never Read',
+            value: stats.studentsWithNoSessions,
+            color: 'status.needsAttention',
+            tab: 2,
+          },
+        ].map(({ label, value, color, tab }) => (
+          <Card
+            key={label}
+            sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}
+          >
+            <CardActionArea
+              onClick={tab != null && onNavigate ? () => onNavigate(tab) : undefined}
+              disabled={tab == null}
+              sx={{ height: '100%', '&.Mui-disabled': { opacity: 1 } }}
             >
-              {stats.totalStudents}
-            </Typography>
-          </CardContent>
-        </Card>
-
-        <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
-          <CardContent sx={{ textAlign: 'center', py: 2, px: 1 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-              Sessions
-            </Typography>
-            <Typography
-              variant="h4"
-              sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'secondary.main' }}
-            >
-              {stats.totalSessions}
-            </Typography>
-          </CardContent>
-        </Card>
-
-        <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
-          <CardContent sx={{ textAlign: 'center', py: 2, px: 1 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-              Avg/Student
-            </Typography>
-            <Typography
-              variant="h4"
-              sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'info.main' }}
-            >
-              {stats.averageSessionsPerStudent.toFixed(1)}
-            </Typography>
-          </CardContent>
-        </Card>
-
-        <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
-          <CardContent sx={{ textAlign: 'center', py: 2, px: 1 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-              Never Read
-            </Typography>
-            <Typography
-              variant="h4"
-              sx={{
-                fontFamily: '"Nunito", sans-serif',
-                fontWeight: 800,
-                color: 'status.needsAttention',
-              }}
-            >
-              {stats.studentsWithNoSessions}
-            </Typography>
-          </CardContent>
-        </Card>
+              <CardContent sx={{ textAlign: 'center', py: 2, px: 1 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                  {label}
+                </Typography>
+                <Typography
+                  variant="h4"
+                  sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color }}
+                >
+                  {value}
+                </Typography>
+              </CardContent>
+            </CardActionArea>
+          </Card>
+        ))}
       </Box>
 
       {/* Main content grid - auto-fill columns */}
@@ -461,6 +443,158 @@ export default function OverviewTab({ stats, enrichedTopStreaks }) {
                       {student.name}
                     </Typography>
                     <StreakBadge streak={student.currentStreak} size="small" />
+                  </Box>
+                ))}
+              </Box>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Most Liked Books */}
+        <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
+          <CardContent sx={{ py: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+              <ThumbUpIcon sx={{ color: 'status.recentlyRead', fontSize: 20 }} />
+              <Typography
+                variant="subtitle2"
+                sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}
+              >
+                Most Liked
+              </Typography>
+            </Box>
+            {!stats.mostLikedBooks || stats.mostLikedBooks.length === 0 ? (
+              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
+                No feedback yet
+              </Typography>
+            ) : (
+              <Box>
+                {stats.mostLikedBooks.map((book, index) => (
+                  <Box
+                    key={book.title}
+                    sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}
+                  >
+                    <Box
+                      sx={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: '50%',
+                        flexShrink: 0,
+                        bgcolor:
+                          index === 0 ? 'rgba(74, 110, 74, 0.15)' : 'rgba(139, 115, 85, 0.08)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          fontSize: '0.65rem',
+                          fontWeight: 700,
+                          color: index === 0 ? 'status.recentlyRead' : 'text.secondary',
+                        }}
+                      >
+                        {index + 1}
+                      </Typography>
+                    </Box>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 500,
+                        flex: 1,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        fontSize: '0.8rem',
+                      }}
+                    >
+                      {book.title}
+                    </Typography>
+                    <Chip
+                      label={book.count}
+                      size="small"
+                      sx={{
+                        height: 20,
+                        fontSize: '0.65rem',
+                        bgcolor: 'rgba(74, 110, 74, 0.12)',
+                        color: 'primary.dark',
+                      }}
+                    />
+                  </Box>
+                ))}
+              </Box>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Least Liked Books */}
+        <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
+          <CardContent sx={{ py: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+              <ThumbDownIcon sx={{ color: 'status.needsAttention', fontSize: 20 }} />
+              <Typography
+                variant="subtitle2"
+                sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}
+              >
+                Least Liked
+              </Typography>
+            </Box>
+            {!stats.leastLikedBooks || stats.leastLikedBooks.length === 0 ? (
+              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
+                No feedback yet
+              </Typography>
+            ) : (
+              <Box>
+                {stats.leastLikedBooks.map((book, index) => (
+                  <Box
+                    key={book.title}
+                    sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}
+                  >
+                    <Box
+                      sx={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: '50%',
+                        flexShrink: 0,
+                        bgcolor:
+                          index === 0 ? 'rgba(158, 75, 75, 0.12)' : 'rgba(139, 115, 85, 0.08)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          fontSize: '0.65rem',
+                          fontWeight: 700,
+                          color: index === 0 ? 'status.needsAttention' : 'text.secondary',
+                        }}
+                      >
+                        {index + 1}
+                      </Typography>
+                    </Box>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 500,
+                        flex: 1,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        fontSize: '0.8rem',
+                      }}
+                    >
+                      {book.title}
+                    </Typography>
+                    <Chip
+                      label={book.count}
+                      size="small"
+                      sx={{
+                        height: 20,
+                        fontSize: '0.65rem',
+                        bgcolor: 'rgba(158, 75, 75, 0.1)',
+                        color: 'status.needsAttention',
+                      }}
+                    />
                   </Box>
                 ))}
               </Box>

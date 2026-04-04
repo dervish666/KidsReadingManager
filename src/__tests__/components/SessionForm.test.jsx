@@ -10,13 +10,13 @@ const TestUIContext = createContext();
 
 // Mock the context modules (SessionForm uses useAuth, useData, useUI)
 vi.mock('../../contexts/AuthContext', () => ({
-  useAuth: () => useContext(TestAuthContext)
+  useAuth: () => useContext(TestAuthContext),
 }));
 vi.mock('../../contexts/DataContext', () => ({
-  useData: () => useContext(TestDataContext)
+  useData: () => useContext(TestDataContext),
 }));
 vi.mock('../../contexts/UIContext', () => ({
-  useUI: () => useContext(TestUIContext)
+  useUI: () => useContext(TestUIContext),
 }));
 
 // Mock the bookMetadataApi module
@@ -24,12 +24,12 @@ vi.mock('../../utils/bookMetadataApi', () => ({
   getBookDetails: vi.fn(),
   checkAvailability: vi.fn(),
   getProviderDisplayName: vi.fn(),
-  validateProviderConfig: vi.fn()
+  validateProviderConfig: vi.fn(),
 }));
 
 // Mock BookCover to avoid requiring BookCoverProvider
 vi.mock('../../components/BookCover', () => ({
-  default: ({ title }) => <div data-testid="book-cover">{title}</div>
+  default: ({ title }) => <div data-testid="book-cover">{title}</div>,
 }));
 
 // Mock tour hooks to avoid requiring TourProvider
@@ -38,11 +38,11 @@ vi.mock('../../components/tour/useTour', () => ({
     tourButtonProps: { onClick: vi.fn(), shouldPulse: false },
     startTour: vi.fn(),
     isTourAvailable: false,
-  })
+  }),
 }));
 
 vi.mock('../../components/tour/TourButton', () => ({
-  default: () => null
+  default: () => null,
 }));
 
 // Import after mocking
@@ -51,7 +51,8 @@ import * as bookMetadataApi from '../../utils/bookMetadataApi';
 
 // Mock context provider wrapper — splits values across Auth, Data, UI contexts
 const createWrapper = (contextValue) => {
-  const { fetchWithAuth, recentlyAccessedStudents, globalClassFilter, ...dataValues } = contextValue;
+  const { fetchWithAuth, recentlyAccessedStudents, globalClassFilter, ...dataValues } =
+    contextValue;
   return ({ children }) => (
     <TestAuthContext.Provider value={{ fetchWithAuth }}>
       <TestDataContext.Provider value={dataValues}>
@@ -83,7 +84,7 @@ const createMockContext = (overrides = {}) => ({
       name: 'Charlie Brown',
       classId: 'class-2',
       totalSessionCount: 0,
-    }
+    },
   ],
   books: [
     {
@@ -92,38 +93,38 @@ const createMockContext = (overrides = {}) => ({
       author: 'Dr. Seuss',
       readingLevel: 'Blue',
       ageRange: '4-8',
-      genreIds: ['genre-1']
+      genreIds: ['genre-1'],
     },
     {
       id: 'book-2',
-      title: 'Charlotte\'s Web',
+      title: "Charlotte's Web",
       author: 'E.B. White',
       readingLevel: 'Green',
       ageRange: '8-12',
-      genreIds: ['genre-2']
-    }
+      genreIds: ['genre-2'],
+    },
   ],
   classes: [
     { id: 'class-1', name: 'Class 1A', disabled: false },
     { id: 'class-2', name: 'Class 2B', disabled: false },
-    { id: 'class-3', name: 'Disabled Class', disabled: true }
+    { id: 'class-3', name: 'Disabled Class', disabled: true },
   ],
   genres: [
     { id: 'genre-1', name: 'Fiction' },
-    { id: 'genre-2', name: 'Adventure' }
+    { id: 'genre-2', name: 'Adventure' },
   ],
   recentlyAccessedStudents: ['student-1'],
   globalClassFilter: null,
   settings: {
     bookMetadata: {
       provider: 'openlibrary',
-      googleBooksApiKey: null
-    }
+      googleBooksApiKey: null,
+    },
   },
   addReadingSession: vi.fn(),
   updateBook: vi.fn(),
   fetchWithAuth: vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve([]) })),
-  ...overrides
+  ...overrides,
 });
 
 // Helper to open the book edit popover (clicks the edit icon button)
@@ -151,8 +152,6 @@ describe('SessionForm Component', () => {
       expect(screen.getByLabelText('Student')).toBeInTheDocument();
       // Date picker is now in header without a label - find by type
       expect(screen.getByDisplayValue(new Date().toISOString().split('T')[0])).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /^school$/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /^home$/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /save reading session/i })).toBeInTheDocument();
     });
 
@@ -164,14 +163,6 @@ describe('SessionForm Component', () => {
       // Date picker is now in header without a label - find by display value
       const dateInput = screen.getByDisplayValue(today);
       expect(dateInput).toHaveValue(today);
-    });
-
-    it('should render with school as default location', () => {
-      const context = createMockContext();
-      render(<SessionForm />, { wrapper: createWrapper(context) });
-
-      const schoolButton = screen.getByRole('button', { name: /^school$/i });
-      expect(schoolButton).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('should handle empty students array gracefully', () => {
@@ -238,8 +229,13 @@ describe('SessionForm Component', () => {
       const context = createMockContext({
         students: [
           { id: 'student-1', name: 'Active Student', classId: 'class-1', totalSessionCount: 0 },
-          { id: 'student-disabled', name: 'Disabled Class Student', classId: 'class-3', totalSessionCount: 0 }
-        ]
+          {
+            id: 'student-disabled',
+            name: 'Disabled Class Student',
+            classId: 'class-3',
+            totalSessionCount: 0,
+          },
+        ],
       });
       const user = userEvent.setup();
       render(<SessionForm />, { wrapper: createWrapper(context) });
@@ -253,7 +249,7 @@ describe('SessionForm Component', () => {
 
     it('should show message when no students match filter', async () => {
       const context = createMockContext({
-        globalClassFilter: 'nonexistent-class'
+        globalClassFilter: 'nonexistent-class',
       });
       const user = userEvent.setup();
       render(<SessionForm />, { wrapper: createWrapper(context) });
@@ -278,7 +274,6 @@ describe('SessionForm Component', () => {
         expect(studentSelect).toHaveTextContent('Bob Jones');
       });
     });
-
   });
 
   describe('Date Picker', () => {
@@ -294,20 +289,6 @@ describe('SessionForm Component', () => {
       await user.type(dateInput, '2024-06-15');
 
       expect(dateInput).toHaveValue('2024-06-15');
-    });
-  });
-
-  describe('Location Selection', () => {
-    it('should allow changing location to home', async () => {
-      const context = createMockContext();
-      const user = userEvent.setup();
-      render(<SessionForm />, { wrapper: createWrapper(context) });
-
-      const homeButton = screen.getByRole('button', { name: /^home$/i });
-      await user.click(homeButton);
-
-      expect(homeButton).toHaveAttribute('aria-pressed', 'true');
-      expect(screen.getByRole('button', { name: /^school$/i })).toHaveAttribute('aria-pressed', 'false');
     });
   });
 
@@ -449,7 +430,7 @@ describe('SessionForm Component', () => {
         assessment: expect.any(Number),
         notes: '',
         bookId: null,
-        location: 'school'
+        location: 'school',
       });
     });
 
@@ -488,44 +469,7 @@ describe('SessionForm Component', () => {
         assessment: expect.any(Number),
         notes: '',
         bookId: 'book-1',
-        location: 'school'
-      });
-    });
-
-    it('should include home location in submission when selected', async () => {
-      const mockAddReadingSession = vi.fn();
-      const context = createMockContext({ addReadingSession: mockAddReadingSession });
-      const user = userEvent.setup();
-      render(<SessionForm />, { wrapper: createWrapper(context) });
-
-      // Select a student
-      const studentSelect = screen.getByLabelText('Student');
-      await user.click(studentSelect);
-      await user.click(screen.getByText('Bob Jones'));
-
-      // Set assessment by clicking the unset slider area, then setting value
-      const promptText = screen.getByText(/tap to set reading assessment/i);
-      fireEvent.click(promptText.closest('[class*="MuiBox"]') || promptText.parentElement);
-      await waitFor(() => {
-        expect(screen.getByRole('slider')).toBeInTheDocument();
-      });
-      const slider = screen.getByRole('slider');
-      fireEvent.change(slider, { target: { value: 7 } });
-
-      // Change location to home
-      const homeButton = screen.getByRole('button', { name: /^home$/i });
-      await user.click(homeButton);
-
-      // Submit the form
-      const submitButton = screen.getByRole('button', { name: /save reading session/i });
-      await user.click(submitButton);
-
-      expect(mockAddReadingSession).toHaveBeenCalledWith('student-2', {
-        date: expect.any(String),
-        assessment: expect.any(Number),
-        notes: '',
-        bookId: null,
-        location: 'home'
+        location: 'school',
       });
     });
 
@@ -623,7 +567,7 @@ describe('SessionForm Component', () => {
           'The Cat in the Hat',
           'Dr. Seuss',
           expect.objectContaining({
-            bookMetadata: expect.any(Object)
+            bookMetadata: expect.any(Object),
           })
         );
       });
@@ -654,7 +598,7 @@ describe('SessionForm Component', () => {
     it('should show error when provider config is invalid', async () => {
       bookMetadataApi.validateProviderConfig.mockReturnValue({
         valid: false,
-        error: 'Google Books API key is required'
+        error: 'Google Books API key is required',
       });
 
       const context = createMockContext();
@@ -679,7 +623,7 @@ describe('SessionForm Component', () => {
     it('should show fetching state while loading details', async () => {
       // Make getBookDetails take time to resolve
       bookMetadataApi.getBookDetails.mockImplementation(
-        () => new Promise(resolve => setTimeout(() => resolve({ author: 'New Author' }), 100))
+        () => new Promise((resolve) => setTimeout(() => resolve({ author: 'New Author' }), 100))
       );
 
       const context = createMockContext();
@@ -739,7 +683,9 @@ describe('SessionForm Component', () => {
       await user.click(getDetailsButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/no details found for this book on open library/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/no details found for this book on open library/i)
+        ).toBeInTheDocument();
       });
     });
   });
@@ -786,7 +732,7 @@ describe('SessionForm Component', () => {
           author: 'Updated Author',
           readingLevel: 'Blue',
           ageRange: '4-8',
-          genreIds: ['genre-1']
+          genreIds: ['genre-1'],
         });
       });
     });
@@ -868,7 +814,7 @@ describe('SessionForm Component', () => {
           author: 'Author With Spaces',
           readingLevel: 'Blue',
           ageRange: '4-8',
-          genreIds: ['genre-1']
+          genreIds: ['genre-1'],
         });
       });
     });
@@ -909,9 +855,9 @@ describe('SessionForm Component', () => {
         settings: {
           bookMetadata: {
             provider: 'googlebooks',
-            googleBooksApiKey: 'test-api-key'
-          }
-        }
+            googleBooksApiKey: 'test-api-key',
+          },
+        },
       });
       const user = userEvent.setup();
       render(<SessionForm />, { wrapper: createWrapper(context) });
@@ -931,8 +877,8 @@ describe('SessionForm Component', () => {
           expect.objectContaining({
             bookMetadata: {
               provider: 'googlebooks',
-              googleBooksApiKey: 'test-api-key'
-            }
+              googleBooksApiKey: 'test-api-key',
+            },
           })
         );
       });
@@ -978,5 +924,4 @@ describe('SessionForm Component', () => {
       expect(screen.getByLabelText('Genres')).toBeInTheDocument();
     });
   });
-
 });

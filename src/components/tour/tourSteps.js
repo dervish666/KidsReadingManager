@@ -48,12 +48,6 @@ export const TOURS = {
         placement: 'bottom',
       },
       {
-        target: '[data-tour="session-location"]',
-        title: 'Reading Location',
-        content: 'Mark whether this was a school or home reading session.',
-        placement: 'top',
-      },
-      {
         target: '[data-tour="session-assessment"]',
         title: 'Rate the Reading',
         content: 'Rate how the student read — this tracks their progress over time.',

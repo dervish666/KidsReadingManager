@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.38.0] - 2026-04-04
+
+### Added
+- **Most Liked / Least Liked book cards** on Stats overview — top 5 books ranked by student feedback count, aggregated from likes/dislikes across the organisation
+- **Clickable stats tiles** — Avg/Student navigates to Reading Frequency tab, Never Read navigates to Needs Attention tab
+
+### Fixed
+- **Stats threshold mismatch** — backend stats defaulted to 3/7 day thresholds vs frontend 14/21; aligned to 14/21 so Overview and Needs Attention counts agree
+
+### Removed
+- **School/Home location toggle** on School Reading session form — sessions now always record as school
+- **Sorting dropdown** on Students page — column headers already handle sorting
+
 ## [3.37.3] - 2026-04-04
 
 ### Fixed

@@ -21,7 +21,7 @@ import {
   InputAdornment,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import SortIcon from '@mui/icons-material/Sort';
+
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
 import { useAuth } from '../../contexts/AuthContext';
@@ -47,8 +47,6 @@ const StudentList = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [openBulkDialog, setOpenBulkDialog] = useState(false);
   const [error, setError] = useState('');
-  const [sortMethod, setSortMethod] = useState('priority');
-  const [sortDirection, setSortDirection] = useState('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -90,19 +88,6 @@ const StudentList = () => {
     setOpenBulkDialog(false);
   };
 
-  const handleSortChange = (event) => {
-    const newSortMethod = event.target.value;
-
-    if (newSortMethod === sortMethod) {
-      const newDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-      setSortDirection(newDirection);
-      setSortMethod(newSortMethod);
-    } else {
-      setSortDirection(newSortMethod === 'name' ? 'asc' : 'desc');
-      setSortMethod(newSortMethod);
-    }
-  };
-
   const filteredAndSortedStudents = useMemo(() => {
     const disabledClassIds = classes.filter((cls) => cls.disabled).map((cls) => cls.id);
     const query = searchQuery.trim().toLowerCase();
@@ -134,54 +119,13 @@ const StudentList = () => {
       return true;
     });
 
-    if (sortMethod === 'priority') {
-      const sorted = [...filteredStudents].sort((a, b) => {
-        const dateA = a.lastReadDate ? new Date(a.lastReadDate) : new Date(0);
-        const dateB = b.lastReadDate ? new Date(b.lastReadDate) : new Date(0);
-        return sortDirection === 'asc' ? dateB - dateA : dateA - dateB;
-      });
-      return sorted;
-    }
-
-    return [...filteredStudents].sort((a, b) => {
-      let comparison = 0;
-
-      switch (sortMethod) {
-        case 'name':
-          comparison = a.name.localeCompare(b.name);
-          break;
-
-        case 'sessions':
-          comparison = (b.totalSessionCount || 0) - (a.totalSessionCount || 0);
-          break;
-
-        case 'lastRead':
-          if (!a.lastReadDate) return sortDirection === 'asc' ? -1 : 1;
-          if (!b.lastReadDate) return sortDirection === 'asc' ? 1 : -1;
-          comparison = new Date(b.lastReadDate) - new Date(a.lastReadDate);
-          break;
-
-        default:
-          return 0;
-      }
-
-      return sortDirection === 'asc' ? comparison : -comparison;
-    });
-  }, [
-    students,
-    classes,
-    globalClassFilter,
-    sortMethod,
-    sortDirection,
-    searchQuery,
-    statusFilter,
-    getReadingStatus,
-  ]);
+    return filteredStudents;
+  }, [students, classes, globalClassFilter, searchQuery, statusFilter, getReadingStatus]);
 
   // Reset to page 1 when filters or sort change
   useEffect(() => {
     setCurrentPage(1);
-  }, [globalClassFilter, sortMethod, sortDirection, searchQuery, statusFilter]);
+  }, [globalClassFilter, searchQuery, statusFilter]);
 
   const totalPages = Math.ceil(filteredAndSortedStudents.length / studentsPerPage);
 
@@ -439,46 +383,6 @@ const StudentList = () => {
                 />
               ))}
             </Box>
-            <FormControl
-              sx={{
-                minWidth: { xs: '100%', sm: 200 },
-                flex: { xs: '1 1 100%', sm: '0 0 auto' },
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: '10px',
-                  backgroundColor: '#FAF8F3',
-                  boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.03)',
-                  border: '1px solid rgba(139, 115, 85, 0.12)',
-                  '& fieldset': { border: 'none' },
-                  '&:hover': { border: '1px solid rgba(107, 142, 107, 0.3)' },
-                  '&.Mui-focused': {
-                    backgroundColor: '#ffffff',
-                    border: '1px solid rgba(107, 142, 107, 0.5)',
-                    boxShadow: '0 0 0 3px rgba(107, 142, 107, 0.12)',
-                  },
-                },
-              }}
-              size="small"
-            >
-              <InputLabel id="sort-select-label" sx={{ fontFamily: '"DM Sans", sans-serif' }}>
-                Sort By
-              </InputLabel>
-              <Select
-                labelId="sort-select-label"
-                id="sort-select"
-                value={sortMethod}
-                label="Sort By"
-                onChange={handleSortChange}
-                startAdornment={
-                  <SortIcon sx={{ mr: 1, ml: -0.5, color: 'primary.main' }} fontSize="small" />
-                }
-                sx={{ pr: 4, fontFamily: '"DM Sans", sans-serif', fontWeight: 600 }}
-              >
-                <MenuItem value="priority">Reading Priority</MenuItem>
-                <MenuItem value="name">Name</MenuItem>
-                <MenuItem value="sessions">Total Sessions</MenuItem>
-                <MenuItem value="lastRead">Last Read</MenuItem>
-              </Select>
-            </FormControl>
           </Box>
 
           <StudentTable students={paginatedStudents} />

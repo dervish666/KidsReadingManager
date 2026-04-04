@@ -392,7 +392,7 @@ studentsRouter.get('/stats', requireReadonly(), async (c) => {
   const studentsResult = await db
     .prepare(
       `
-    SELECT s.id, s.last_read_date, s.current_streak, s.longest_streak, s.streak_start_date
+    SELECT s.id, s.last_read_date, s.current_streak, s.longest_streak, s.streak_start_date, s.likes, s.dislikes
     FROM students s
     LEFT JOIN classes c ON s.class_id = c.id
     WHERE ${studentWhere} AND (s.class_id IS NULL OR c.disabled = 0)
@@ -511,8 +511,8 @@ studentsRouter.get('/stats', requireReadonly(), async (c) => {
     .bind(organizationId)
     .first();
 
-  let recentlyReadDays = 3;
-  let needsAttentionDays = 7;
+  let recentlyReadDays = 14;
+  let needsAttentionDays = 21;
   if (settingsResult?.setting_value) {
     try {
       const parsed = JSON.parse(settingsResult.setting_value);
@@ -568,6 +568,38 @@ studentsRouter.get('/stats', requireReadonly(), async (c) => {
     .sort((a, b) => b.currentStreak - a.currentStreak || b.longestStreak - a.longestStreak)
     .slice(0, 5);
 
+  // Aggregate most liked/disliked books across all students
+  const likeCounts = {};
+  const dislikeCounts = {};
+  for (const s of studentList) {
+    try {
+      const likes = s.likes ? JSON.parse(s.likes) : [];
+      for (const title of likes) {
+        if (title) likeCounts[title] = (likeCounts[title] || 0) + 1;
+      }
+    } catch {
+      /* skip malformed */
+    }
+    try {
+      const dislikes = s.dislikes ? JSON.parse(s.dislikes) : [];
+      for (const title of dislikes) {
+        if (title) dislikeCounts[title] = (dislikeCounts[title] || 0) + 1;
+      }
+    } catch {
+      /* skip malformed */
+    }
+  }
+
+  const mostLikedBooks = Object.entries(likeCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([title, count]) => ({ title, count }));
+
+  const leastLikedBooks = Object.entries(dislikeCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([title, count]) => ({ title, count }));
+
   return c.json({
     totalStudents: studentList.length,
     ...sessionStats,
@@ -582,6 +614,8 @@ studentsRouter.get('/stats', requireReadonly(), async (c) => {
     averageStreak:
       studentsWithActiveStreak > 0 ? totalActiveStreakDays / studentsWithActiveStreak : 0,
     topStreaks,
+    mostLikedBooks,
+    leastLikedBooks,
   });
 });
 

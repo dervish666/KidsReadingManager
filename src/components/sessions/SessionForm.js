@@ -11,8 +11,6 @@ import {
   Paper,
   Alert,
   Snackbar,
-  ToggleButton,
-  ToggleButtonGroup,
   Chip,
   Popover,
   IconButton,
@@ -42,7 +40,16 @@ import {
 
 const SessionForm = () => {
   const { fetchWithAuth } = useAuth();
-  const { students, addReadingSession, classes, books, settings, updateBook, fetchBookDetails, genres } = useData();
+  const {
+    students,
+    addReadingSession,
+    classes,
+    books,
+    settings,
+    updateBook,
+    fetchBookDetails,
+    genres,
+  } = useData();
   const { globalClassFilter, recentlyAccessedStudents } = useUI();
   const { tourButtonProps } = useTour('session-form');
 
@@ -58,7 +65,6 @@ const SessionForm = () => {
   const [bookReadingLevel, setBookReadingLevel] = useState('');
   const [bookAgeRange, setBookAgeRange] = useState('');
   const [bookGenres, setBookGenres] = useState([]);
-  const [selectedLocation, setSelectedLocation] = useState('school');
   const [isCreatingBook, setIsCreatingBook] = useState(false);
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
   const [bookEditAnchor, setBookEditAnchor] = useState(null);
@@ -268,7 +274,7 @@ const SessionForm = () => {
       assessment,
       notes,
       bookId: selectedBookId || null,
-      location: selectedLocation || 'school',
+      location: 'school',
     });
 
     if (result) {
@@ -280,7 +286,6 @@ const SessionForm = () => {
       setBookReadingLevel('');
       setBookAgeRange('');
       setBookGenres([]);
-      setSelectedLocation('school');
       setError('');
       setSnackbarMessage('Reading session saved successfully');
       setSnackbarOpen(true);
@@ -660,55 +665,9 @@ const SessionForm = () => {
               )}
             </Box>
 
-            {/* Row 3: Location toggle + Assessment */}
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-              <ToggleButtonGroup
-                data-tour="session-location"
-                value={selectedLocation}
-                exclusive
-                onChange={(e, val) => {
-                  if (val !== null) setSelectedLocation(val);
-                }}
-                size="small"
-                sx={{ flexShrink: 0 }}
-              >
-                <ToggleButton
-                  value="school"
-                  aria-label="School"
-                  sx={{
-                    px: 2,
-                    borderRadius: '8px 0 0 8px',
-                    textTransform: 'none',
-                    '&.Mui-selected': {
-                      bgcolor: 'primary.main',
-                      color: 'background.paper',
-                      '&:hover': { bgcolor: 'primary.dark' },
-                    },
-                  }}
-                >
-                  School
-                </ToggleButton>
-                <ToggleButton
-                  value="home"
-                  aria-label="Home"
-                  sx={{
-                    px: 2,
-                    borderRadius: '0 8px 8px 0',
-                    textTransform: 'none',
-                    '&.Mui-selected': {
-                      bgcolor: 'primary.main',
-                      color: 'background.paper',
-                      '&:hover': { bgcolor: 'primary.dark' },
-                    },
-                  }}
-                >
-                  Home
-                </ToggleButton>
-              </ToggleButtonGroup>
-
-              <Box data-tour="session-assessment" sx={{ flex: 1, minWidth: 250 }}>
-                <AssessmentSelector value={assessment} onChange={handleAssessmentChange} />
-              </Box>
+            {/* Assessment */}
+            <Box data-tour="session-assessment">
+              <AssessmentSelector value={assessment} onChange={handleAssessmentChange} />
             </Box>
 
             {/* Notes icon + Save button on same row */}

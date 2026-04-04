@@ -97,15 +97,16 @@ const ReadingStats = () => {
           ? 'Current Term'
           : selectedTerm === 'school_year'
             ? 'School Year'
-            : (termDates.find((t) => t.termOrder === selectedTerm)?.termName || 'Selected Period');
+            : termDates.find((t) => t.termOrder === selectedTerm)?.termName || 'Selected Period';
 
     const dateRange = termDateRange
       ? `${new Date(termDateRange.start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} — ${new Date(termDateRange.end).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
       : null;
 
-    const selectedClass = globalClassFilter && globalClassFilter !== 'all'
-      ? classes.find((c) => c.id === globalClassFilter)
-      : null;
+    const selectedClass =
+      globalClassFilter && globalClassFilter !== 'all'
+        ? classes.find((c) => c.id === globalClassFilter)
+        : null;
 
     generateStatsPDF({
       schoolName: organization?.name || 'School',
@@ -360,7 +361,11 @@ const ReadingStats = () => {
             ) : statsLoading || !stats ? (
               renderStatsLoading()
             ) : (
-              <OverviewTab stats={stats} enrichedTopStreaks={enrichedTopStreaks} />
+              <OverviewTab
+                stats={stats}
+                enrichedTopStreaks={enrichedTopStreaks}
+                onNavigate={setCurrentTab}
+              />
             ))}
           {currentTab === 1 &&
             (students.length === 0 ? (
@@ -372,7 +377,12 @@ const ReadingStats = () => {
             ) : statsLoading || !stats ? (
               renderStatsLoading()
             ) : (
-              <StreaksTab stats={stats} studentsWithStreaks={getStudentsWithStreaks()} recalculating={recalculating} onRecalculate={handleRecalculateStreaks} />
+              <StreaksTab
+                stats={stats}
+                studentsWithStreaks={getStudentsWithStreaks()}
+                recalculating={recalculating}
+                onRecalculate={handleRecalculateStreaks}
+              />
             ))}
           {currentTab === 2 &&
             (students.length === 0 ? (
