@@ -719,6 +719,69 @@ describe('Organization Routes', () => {
       expect(data.stats.users).toBe(0);
       expect(data.stats.students).toBe(0);
     });
+
+    it('should fetch org timezone before computing stats', async () => {
+      const mockDb = createMockDB();
+
+      // Track the SQL queries made via prepare
+      const preparedQueries = [];
+      mockDb.prepare = vi.fn().mockImplementation((sql) => {
+        preparedQueries.push(sql);
+        return {
+          bind: vi.fn().mockReturnValue({
+            first: vi.fn().mockResolvedValue(
+              sql.includes('timezone')
+                ? { setting_value: '"Europe/London"' }
+                : null
+            ),
+          }),
+        };
+      });
+
+      mockDb.batch = vi.fn().mockResolvedValue([
+        { results: [{ count: 1 }], success: true },
+        { results: [{ count: 1 }], success: true },
+        { results: [{ count: 1 }], success: true },
+        { results: [{ count: 1 }], success: true },
+        { results: [{ count: 1 }], success: true },
+      ]);
+
+      const app = createTestApp(mockDb, createUserContext());
+      const response = await app.request('/api/organization/stats');
+
+      expect(response.status).toBe(200);
+
+      // Verify timezone was queried
+      const tzQuery = preparedQueries.find((q) => q.includes('timezone'));
+      expect(tzQuery).toBeTruthy();
+    });
+
+    it('should default to UTC when no timezone setting exists', async () => {
+      const mockDb = createMockDB();
+
+      mockDb.prepare = vi.fn().mockReturnValue({
+        bind: vi.fn().mockReturnValue({
+          // first() returns null — no timezone configured
+          first: vi.fn().mockResolvedValue(null),
+        }),
+      });
+
+      mockDb.batch = vi.fn().mockResolvedValue([
+        { results: [{ count: 0 }], success: true },
+        { results: [{ count: 0 }], success: true },
+        { results: [{ count: 0 }], success: true },
+        { results: [{ count: 0 }], success: true },
+        { results: [{ count: 0 }], success: true },
+      ]);
+
+      const app = createTestApp(mockDb, createUserContext());
+      const response = await app.request('/api/organization/stats');
+
+      // Should still succeed even without timezone config
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data.stats).toBeDefined();
+    });
   });
 
   describe('GET /api/organization/settings', () => {

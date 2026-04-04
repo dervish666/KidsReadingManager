@@ -50,6 +50,14 @@ vi.mock('../../utils/helpers', () => ({
 
 vi.mock('../../utils/streakCalculator', () => ({
   calculateStreak: () => ({ currentStreak: 0, longestStreak: 0, streakStartDate: null }),
+  getDateString: (date, timezone = 'UTC') => {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    try {
+      return d.toLocaleDateString('en-CA', { timeZone: timezone });
+    } catch {
+      return d.toISOString().split('T')[0];
+    }
+  },
 }));
 
 // Mock database helper
@@ -698,5 +706,117 @@ describe('GET /api/students/stats', () => {
     expect(data.averageStreak).toBe(0);
     expect(data.topStreaks).toEqual([]);
     expect(data.statusDistribution).toEqual({ notRead: 0, needsAttention: 0, recentlyRead: 0 });
+  });
+});
+
+describe('POST /api/students/:id/sessions - timezone-aware date defaults', () => {
+  it('should fetch org timezone and use it for session date when body.date is omitted', async () => {
+    const createdSession = {
+      id: 'generated-id',
+      session_date: '2026-04-04',
+      book_id: null,
+      book_title: null,
+      book_title_manual: 'The Hobbit',
+      book_author: null,
+      book_author_manual: null,
+      pages_read: null,
+      duration_minutes: null,
+      assessment: 5,
+      notes: null,
+      location: 'school',
+      recorded_by: 'user-1',
+    };
+    const { app, mockDB } = createStatsTestApp(
+      { organizationId: 'org-1', userId: 'user-1', userRole: 'teacher' },
+      [
+        // Student exists check
+        { match: 'FROM students WHERE', first: { id: 'student-1', processing_restricted: 0 } },
+        // Fetch created session (SELECT rs.* ... WHERE rs.id = ?)
+        { match: 'FROM reading_sessions rs', first: createdSession },
+        // Session listing for streak calc
+        { match: 'FROM reading_sessions\n', all: { results: [], success: true } },
+      ]
+    );
+
+    // getOrgStreakSettings uses db.batch(), so mock it to return timezone
+    mockDB.batch = vi.fn().mockResolvedValue([
+      { results: [{ setting_value: '1' }], success: true },
+      { results: [{ setting_value: '"Europe/London"' }], success: true },
+    ]);
+
+    const res = await makeRequest(app, 'POST', '/api/students/student-1/sessions', {
+      // No date field — should default to org-timezone-aware date
+      bookTitle: 'The Hobbit',
+      assessment: 5,
+    });
+
+    // The request should succeed (not 500 from missing timezone)
+    expect(res.status).toBe(201);
+
+    // Verify batch was called (timezone fetch via getOrgStreakSettings)
+    expect(mockDB.batch).toHaveBeenCalled();
+  });
+
+  it('should use provided body.date when present, ignoring timezone', async () => {
+    const createdSession = {
+      id: 'generated-id', session_date: '2026-04-01', book_id: null,
+      book_title: null, book_title_manual: 'The Hobbit', book_author: null,
+      book_author_manual: null, pages_read: null, duration_minutes: null,
+      assessment: 5, notes: null, location: 'school', recorded_by: 'user-1',
+    };
+    const { app, mockDB } = createStatsTestApp(
+      { organizationId: 'org-1', userId: 'user-1', userRole: 'teacher' },
+      [
+        { match: 'FROM students WHERE', first: { id: 'student-1', processing_restricted: 0 } },
+        { match: 'FROM reading_sessions rs', first: createdSession },
+        { match: 'FROM reading_sessions\n', all: { results: [], success: true } },
+      ]
+    );
+
+    mockDB.batch = vi.fn().mockResolvedValue([
+      { results: [{ setting_value: '1' }], success: true },
+      { results: [{ setting_value: '"Europe/London"' }], success: true },
+    ]);
+
+    const res = await makeRequest(app, 'POST', '/api/students/student-1/sessions', {
+      date: '2026-04-01',
+      bookTitle: 'The Hobbit',
+      assessment: 5,
+    });
+
+    expect(res.status).toBe(201);
+    const data = await res.json();
+    expect(data.date).toBe('2026-04-01');
+  });
+
+  it('should default to UTC when no timezone is configured for the org', async () => {
+    const createdSession = {
+      id: 'generated-id', session_date: '2026-04-04', book_id: null,
+      book_title: null, book_title_manual: 'Test Book', book_author: null,
+      book_author_manual: null, pages_read: null, duration_minutes: null,
+      assessment: 3, notes: null, location: 'school', recorded_by: 'user-1',
+    };
+    const { app, mockDB } = createStatsTestApp(
+      { organizationId: 'org-1', userId: 'user-1', userRole: 'teacher' },
+      [
+        { match: 'FROM students WHERE', first: { id: 'student-1', processing_restricted: 0 } },
+        { match: 'FROM reading_sessions rs', first: createdSession },
+        { match: 'FROM reading_sessions\n', all: { results: [], success: true } },
+      ]
+    );
+
+    // batch returns no settings — timezone defaults to UTC
+    mockDB.batch = vi.fn().mockResolvedValue([
+      { results: [], success: true },
+      { results: [], success: true },
+    ]);
+
+    const res = await makeRequest(app, 'POST', '/api/students/student-1/sessions', {
+      bookTitle: 'Test Book',
+      assessment: 3,
+    });
+
+    expect(res.status).toBe(201);
+    expect(mockDB.batch).toHaveBeenCalled();
   });
 });
