@@ -21,6 +21,8 @@ import StarIcon from '@mui/icons-material/Star';
 import DownloadIcon from '@mui/icons-material/Download';
 import EditIcon from '@mui/icons-material/Edit';
 import NotesIcon from '@mui/icons-material/Notes';
+import ThumbUpIcon from '@mui/icons-material/ThumbUp';
+import ThumbDownIcon from '@mui/icons-material/ThumbDown';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
 import { useUI } from '../../contexts/UIContext';
@@ -71,6 +73,7 @@ const SessionForm = () => {
   const bookEditOpen = Boolean(bookEditAnchor);
   const [notesAnchor, setNotesAnchor] = useState(null);
   const notesOpen = Boolean(notesAnchor);
+  const [bookEnjoyment, setBookEnjoyment] = useState(null); // null | 'liked' | 'disliked'
 
   // Student reading history
   const [studentHistory, setStudentHistory] = useState([]);
@@ -108,6 +111,7 @@ const SessionForm = () => {
   const handleBookChange = async (book) => {
     const bookId = book ? book.id : '';
     setSelectedBookId(bookId);
+    setBookEnjoyment(null);
 
     if (book) {
       setBookAuthor(book.author || '');
@@ -278,6 +282,28 @@ const SessionForm = () => {
     });
 
     if (result) {
+      // Save book enjoyment feedback (non-blocking)
+      if (bookEnjoyment && selectedBook?.title) {
+        const student = students.find((s) => s.id === selectedStudentId);
+        if (student) {
+          const currentLikes = student.likes || [];
+          const currentDislikes = student.dislikes || [];
+          const title = selectedBook.title;
+          const newLikes =
+            bookEnjoyment === 'liked'
+              ? [...new Set([...currentLikes, title])]
+              : currentLikes.filter((t) => t !== title);
+          const newDislikes =
+            bookEnjoyment === 'disliked'
+              ? [...new Set([...currentDislikes, title])]
+              : currentDislikes.filter((t) => t !== title);
+          fetchWithAuth(`/api/students/${selectedStudentId}/feedback`, {
+            method: 'PUT',
+            body: JSON.stringify({ likes: newLikes, dislikes: newDislikes }),
+          }).catch(() => {});
+        }
+      }
+
       // Reset form only on success
       setNotes('');
       setAssessment(null);
@@ -286,6 +312,7 @@ const SessionForm = () => {
       setBookReadingLevel('');
       setBookAgeRange('');
       setBookGenres([]);
+      setBookEnjoyment(null);
       setError('');
       setSnackbarMessage('Reading session saved successfully');
       setSnackbarOpen(true);
@@ -670,8 +697,8 @@ const SessionForm = () => {
               <AssessmentSelector value={assessment} onChange={handleAssessmentChange} />
             </Box>
 
-            {/* Notes icon + Save button on same row */}
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+            {/* Notes + Enjoyment + Save button on same row */}
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
               <Tooltip
                 title={
                   notes
@@ -703,6 +730,49 @@ const SessionForm = () => {
                   )}
                 </IconButton>
               </Tooltip>
+
+              {/* Book enjoyment thumbs — only visible when a book is selected */}
+              {selectedBookId && (
+                <Box sx={{ display: 'flex', gap: 0.5 }}>
+                  <Tooltip title="Enjoying it">
+                    <IconButton
+                      onClick={() => setBookEnjoyment(bookEnjoyment === 'liked' ? null : 'liked')}
+                      aria-label="Student is enjoying this book"
+                      size="small"
+                      sx={{
+                        color: bookEnjoyment === 'liked' ? 'success.main' : 'text.secondary',
+                        border:
+                          bookEnjoyment === 'liked' ? '2px solid' : '1px solid rgba(0,0,0,0.12)',
+                        borderColor: bookEnjoyment === 'liked' ? 'success.main' : undefined,
+                        borderRadius: 2,
+                        bgcolor: bookEnjoyment === 'liked' ? 'rgba(46, 125, 50, 0.08)' : undefined,
+                      }}
+                    >
+                      <ThumbUpIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Not enjoying it">
+                    <IconButton
+                      onClick={() =>
+                        setBookEnjoyment(bookEnjoyment === 'disliked' ? null : 'disliked')
+                      }
+                      aria-label="Student is not enjoying this book"
+                      size="small"
+                      sx={{
+                        color: bookEnjoyment === 'disliked' ? 'warning.main' : 'text.secondary',
+                        border:
+                          bookEnjoyment === 'disliked' ? '2px solid' : '1px solid rgba(0,0,0,0.12)',
+                        borderColor: bookEnjoyment === 'disliked' ? 'warning.main' : undefined,
+                        borderRadius: 2,
+                        bgcolor:
+                          bookEnjoyment === 'disliked' ? 'rgba(237, 108, 2, 0.08)' : undefined,
+                      }}
+                    >
+                      <ThumbDownIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              )}
 
               {/* Save button takes remaining space */}
               <Button

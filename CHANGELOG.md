@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.39.0] - 2026-04-04
+
+### Added
+- **Book enjoyment feedback on School Reading** — thumbs up/down buttons appear next to the notes icon when a book is selected; on save, the student's likes/dislikes are updated for AI recommendations
+
 ## [3.38.1] - 2026-04-04
 
 ### Fixed
