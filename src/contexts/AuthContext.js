@@ -343,16 +343,20 @@ export const AuthProvider = ({ children }) => {
       });
 
       if (response.status === 401) {
-        // In multi-tenant mode, try to refresh token once
+        // In multi-tenant mode, try to refresh token once (skip for demo — no refresh token)
         if (authMode === 'multitenant' && retryCount === 0) {
-          const newToken = await refreshAccessToken();
-          if (newToken) {
-            return fetchWithAuth(url, options, retryCount + 1);
+          if (user?.authProvider !== 'demo') {
+            const newToken = await refreshAccessToken();
+            if (newToken) {
+              return fetchWithAuth(url, options, retryCount + 1);
+            }
           }
         }
 
         clearAuthState();
-        setApiError('Authentication required. Please log in.');
+        if (user?.authProvider !== 'demo') {
+          setApiError('Authentication required. Please log in.');
+        }
         throw new Error('Unauthorized');
       }
 
