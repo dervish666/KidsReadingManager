@@ -498,6 +498,39 @@ booksRouter.get('/library-search', requireReadonly(), async (c) => {
  */
 booksRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
   try {
+    // Demo users: hard cap of 3 AI requests per hour
+    if (c.get('user')?.authProvider === 'demo') {
+      const demoDb = c.env.READING_MANAGER_DB;
+      const demoUserId = c.get('userId');
+      const count = await demoDb
+        .prepare(
+          `SELECT COUNT(*) as count FROM rate_limits
+           WHERE key = ? AND endpoint = '/api/books/ai-suggestions-demo'
+           AND created_at > datetime('now', '-3600 seconds')`
+        )
+        .bind(demoUserId)
+        .first();
+
+      if ((count?.count || 0) >= 3) {
+        return c.json(
+          {
+            error:
+              'Demo is limited to 3 AI recommendation requests. Sign up for unlimited access!',
+            code: 'DEMO_AI_LIMIT',
+          },
+          429
+        );
+      }
+
+      await demoDb
+        .prepare(
+          `INSERT INTO rate_limits (id, key, endpoint, created_at)
+           VALUES (?, ?, '/api/books/ai-suggestions-demo', datetime('now'))`
+        )
+        .bind(crypto.randomUUID(), demoUserId)
+        .run();
+    }
+
     const { studentId, focusMode = 'balanced', skipCache } = c.req.query();
 
     if (!studentId) {
