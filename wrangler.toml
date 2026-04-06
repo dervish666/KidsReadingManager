@@ -67,7 +67,8 @@ enabled = true
 
 # Cron triggers for scheduled tasks
 # Every minute - Background metadata enrichment (exits immediately if no job)
-# 2:00 AM UTC - Recalculate all student streaks
+# Every hour (minute 0) - Demo environment data reset
+# 2:00 AM UTC - Recalculate all student streaks + GDPR cleanup
 # 3:00 AM UTC - Wonde daily delta sync
 [triggers]
-crons = ["*/1 * * * *", "0 2 * * *", "0 3 * * *"]
+crons = ["*/1 * * * *", "0 * * * *", "0 2 * * *", "0 3 * * *"]

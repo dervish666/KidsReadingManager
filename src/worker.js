@@ -40,6 +40,7 @@ import { processJobBatch } from './services/metadataService.js';
 import stripeWebhookRouter from './routes/stripeWebhook.js';
 import { billingRouter } from './routes/billing.js';
 import { runFullSync } from './services/wondeSync.js';
+import { resetDemoData } from './services/demoReset.js';
 import { decryptSensitiveData, getEncryptionSecret } from './utils/crypto.js';
 
 // Import middleware
@@ -724,6 +725,16 @@ export default Sentry.withSentry(
               );
             }
           }
+        }
+      }
+
+      // Demo environment reset — every hour on the hour
+      if (event.cron === '0 * * * *') {
+        try {
+          await resetDemoData(env.READING_MANAGER_DB);
+          console.log('[Cron] Demo environment reset complete');
+        } catch (error) {
+          console.error('[Cron] Demo reset failed:', error.message);
         }
       }
 
