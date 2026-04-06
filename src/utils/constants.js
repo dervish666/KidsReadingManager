@@ -23,4 +23,5 @@ export const PUBLIC_PATHS = [
   '/api/auth/mylogin/callback',
   '/api/webhooks/wonde',
   '/api/webhooks/stripe',
+  '/api/auth/demo',
 ];
