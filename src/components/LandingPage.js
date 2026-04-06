@@ -24,7 +24,29 @@ const ChevronRight = () => (
 export default function LandingPage({ onSignIn }) {
   const [navScrolled, setNavScrolled] = useState(false);
   const [signupSubmitted, setSignupSubmitted] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
   const revealRefs = useRef(new Set());
+
+  const handleTryDemo = async () => {
+    setDemoLoading(true);
+    try {
+      const response = await fetch('/api/auth/demo', { method: 'POST' });
+      if (!response.ok) throw new Error('Demo unavailable');
+      const data = await response.json();
+      const userWithOrg = {
+        ...data.user,
+        organizationId: data.organization?.id,
+        organizationName: data.organization?.name,
+        organizationSlug: data.organization?.slug,
+      };
+      localStorage.setItem('krm_auth_token', data.accessToken);
+      localStorage.setItem('krm_user', JSON.stringify(userWithOrg));
+      localStorage.setItem('krm_auth_mode', 'multitenant');
+      window.location.href = '/';
+    } catch {
+      setDemoLoading(false);
+    }
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -149,12 +171,16 @@ export default function LandingPage({ onSignIn }) {
               discover books, and watch young readers grow — without the paperwork.
             </p>
             <div className="lp-hero-actions">
-              <a href="#contact" className="lp-btn lp-btn-primary">
-                Get notified at launch
-                <ChevronRight />
-              </a>
+              <button
+                className="lp-btn lp-btn-primary"
+                onClick={handleTryDemo}
+                disabled={demoLoading}
+              >
+                {demoLoading ? 'Loading demo...' : 'Try the demo'}
+                {!demoLoading && <ChevronRight />}
+              </button>
               <a href="#features" className="lp-btn lp-btn-outline">
-                See what's coming
+                Learn more
               </a>
             </div>
           </div>
