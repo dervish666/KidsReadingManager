@@ -58,6 +58,18 @@ authRouter.post('/demo', async (c) => {
     return c.json({ error: 'Server configuration error' }, 500);
   }
 
+  // Look up assigned class IDs (same as login endpoint)
+  let assignedClassIds = [];
+  try {
+    const assignments = await db
+      .prepare('SELECT class_id FROM class_assignments WHERE user_id = ?')
+      .bind(demoUser.id)
+      .all();
+    assignedClassIds = (assignments.results || []).map((r) => r.class_id);
+  } catch {
+    /* class_assignments table may not exist */
+  }
+
   const payload = createJWTPayload(
     {
       id: demoUser.id,
@@ -65,6 +77,7 @@ authRouter.post('/demo', async (c) => {
       name: demoUser.name,
       role: demoUser.role,
       authProvider: DEMO_AUTH_PROVIDER,
+      assignedClassIds,
     },
     { id: demoUser.org_id, slug: demoUser.org_slug }
   );
@@ -79,6 +92,7 @@ authRouter.post('/demo', async (c) => {
       name: demoUser.name,
       role: demoUser.role,
       authProvider: DEMO_AUTH_PROVIDER,
+      assignedClassIds,
     },
     organization: {
       id: demoUser.org_id,
