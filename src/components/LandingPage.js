@@ -42,6 +42,10 @@ export default function LandingPage({ onSignIn }) {
       localStorage.setItem('krm_auth_token', data.accessToken);
       localStorage.setItem('krm_user', JSON.stringify(userWithOrg));
       localStorage.setItem('krm_auth_mode', 'multitenant');
+      // Auto-select the demo teacher's assigned class
+      if (data.user.assignedClassIds?.length > 0) {
+        sessionStorage.setItem('pendingClassAutoFilter', JSON.stringify(data.user.assignedClassIds));
+      }
       window.location.href = '/';
     } catch {
       setDemoLoading(false);
