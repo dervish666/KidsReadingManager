@@ -67,12 +67,14 @@ src/data/index.js - Provider factory; auto-detects D1, KV, or JSON storage
 src/data/d1Provider.js - D1 SQL implementation with FTS5 search
 src/data/kvProvider.js - Cloudflare KV storage (legacy)
 src/data/jsonProvider.js - File-based JSON storage (dev only)
+src/data/demoSnapshot.js - Learnalot demo data snapshot (auto-generated, used by demoReset)
 
 <!-- Services -->
 src/services/aiService.js - AI recommendation generation (Anthropic/OpenAI/Google)
 src/services/kvService.js - KV storage operations (legacy)
 src/services/wondeSync.js - Wonde delta/full sync orchestration
 src/services/metadataService.js - Cascade engine (enrichBook, processBatch) for multi-provider metadata enrichment
+src/services/demoReset.js - Hourly demo environment reset (FK-safe delete + snapshot re-insert)
 src/services/providers/openLibraryProvider.js - OpenLibrary server-side adapter (no API key)
 src/services/providers/googleBooksProvider.js - Google Books server-side adapter (requires API key)
 src/services/providers/hardcoverProvider.js - Hardcover GraphQL server-side adapter (requires API key, best series data)
@@ -189,6 +191,7 @@ scripts/deploy.sh - Deployment script
 scripts/migration.js - Data migration from old format
 scripts/reset-admin-password.js - Admin password reset utility
 scripts/test-api.js - API endpoint smoke tests
+scripts/export-demo-snapshot.js - Export Learnalot data from remote D1 into demoSnapshot.js
 
 ### Structure Detail Files
 
@@ -373,7 +376,7 @@ Public paths are defined in `src/middleware/tenant.js` (jwtAuthMiddleware): `/ap
 
 ### Scheduled Tasks
 
-Cron triggers run daily: 2:00 AM UTC for streak recalculation (`src/utils/streakCalculator.js`), 3:00 AM UTC for Wonde delta sync (`src/services/wondeSync.js`). Both run in `src/worker.js` `scheduled` handler.
+Cron triggers: hourly demo environment reset (`src/services/demoReset.js`), 2:00 AM UTC for streak recalculation (`src/utils/streakCalculator.js`), 3:00 AM UTC for Wonde delta sync (`src/services/wondeSync.js`). All run in `src/worker.js` `scheduled` handler.
 
 ### Wonde + MyLogin Integration
 
