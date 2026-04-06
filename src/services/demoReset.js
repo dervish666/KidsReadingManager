@@ -11,22 +11,27 @@ const BATCH_LIMIT = 100;
 
 // Tables to delete in FK-safe order (children before parents)
 const DELETE_TABLES = [
-  { table: 'support_ticket_notes', where: `organization_id = '${DEMO_ORG_ID}'` },
+  {
+    table: 'support_ticket_notes',
+    where: `ticket_id IN (SELECT id FROM support_tickets WHERE organization_id = '${DEMO_ORG_ID}')`,
+  },
   { table: 'support_tickets', where: `organization_id = '${DEMO_ORG_ID}'` },
-  { table: 'reading_sessions', where: `organization_id = '${DEMO_ORG_ID}'` },
+  {
+    table: 'reading_sessions',
+    where: `student_id IN (SELECT id FROM students WHERE organization_id = '${DEMO_ORG_ID}')`,
+  },
   {
     table: 'student_preferences',
     where: `student_id IN (SELECT id FROM students WHERE organization_id = '${DEMO_ORG_ID}')`,
   },
   {
     table: 'class_assignments',
-    where: `student_id IN (SELECT id FROM students WHERE organization_id = '${DEMO_ORG_ID}')
-       OR class_id IN (SELECT id FROM classes WHERE organization_id = '${DEMO_ORG_ID}')`,
+    where: `class_id IN (SELECT id FROM classes WHERE organization_id = '${DEMO_ORG_ID}')`,
   },
   { table: 'students', where: `organization_id = '${DEMO_ORG_ID}'` },
   { table: 'classes', where: `organization_id = '${DEMO_ORG_ID}'` },
   { table: 'org_book_selections', where: `organization_id = '${DEMO_ORG_ID}'` },
-  { table: 'organization_settings', where: `organization_id = '${DEMO_ORG_ID}'` },
+  { table: 'org_settings', where: `organization_id = '${DEMO_ORG_ID}'` },
   { table: 'term_dates', where: `organization_id = '${DEMO_ORG_ID}'` },
   {
     table: 'refresh_tokens',
