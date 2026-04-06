@@ -26,6 +26,68 @@ export const authRouter = new Hono();
 // This provides an additional layer of protection beyond account lockout
 authRouter.use('*', authRateLimit());
 
+const DEMO_AUTH_PROVIDER = 'demo';
+const DEMO_TOKEN_TTL = 60 * 60 * 1000; // 1 hour
+
+/**
+ * POST /api/auth/demo
+ * Issue a demo JWT for the Learnalot School demo teacher.
+ * No credentials required. Rate limited via authRateLimit. No refresh token.
+ */
+authRouter.post('/demo', async (c) => {
+  const db = getDB(c.env);
+
+  const demoUser = await db
+    .prepare(
+      `SELECT u.id, u.email, u.name, u.role, u.auth_provider,
+              o.id as org_id, o.name as org_name, o.slug as org_slug
+       FROM users u
+       JOIN organizations o ON u.organization_id = o.id
+       WHERE u.auth_provider = ? AND u.is_active = 1 AND o.is_active = 1
+       LIMIT 1`
+    )
+    .bind(DEMO_AUTH_PROVIDER)
+    .first();
+
+  if (!demoUser) {
+    return c.json({ error: 'Demo not available' }, 503);
+  }
+
+  const jwtSecret = c.env.JWT_SECRET;
+  if (!jwtSecret) {
+    return c.json({ error: 'Server configuration error' }, 500);
+  }
+
+  const payload = createJWTPayload(
+    {
+      id: demoUser.id,
+      email: demoUser.email,
+      name: demoUser.name,
+      role: demoUser.role,
+      authProvider: DEMO_AUTH_PROVIDER,
+    },
+    { id: demoUser.org_id, slug: demoUser.org_slug }
+  );
+
+  const accessToken = await createAccessToken(payload, jwtSecret, DEMO_TOKEN_TTL);
+
+  return c.json({
+    accessToken,
+    user: {
+      id: demoUser.id,
+      email: demoUser.email,
+      name: demoUser.name,
+      role: demoUser.role,
+      authProvider: DEMO_AUTH_PROVIDER,
+    },
+    organization: {
+      id: demoUser.org_id,
+      name: demoUser.org_name,
+      slug: demoUser.org_slug,
+    },
+  });
+});
+
 /**
  * GET /api/auth/mode
  * Returns the authentication mode (legacy or multitenant)
