@@ -211,3 +211,43 @@ export const rowToTourCompletion = (row) => {
     completedAt: row.completed_at,
   };
 };
+
+// ── Badges ──────────────────────────────────────────────────────────────────
+
+export const rowToBadge = (row) => {
+  if (!row) return null;
+  return {
+    id: row.id,
+    studentId: row.student_id,
+    organizationId: row.organization_id,
+    badgeId: row.badge_id,
+    tier: row.tier,
+    earnedAt: row.earned_at,
+    notified: Boolean(row.notified),
+  };
+};
+
+// ── Reading Stats ───────────────────────────────────────────────────────────
+
+export const rowToReadingStats = (row) => {
+  if (!row) return null;
+  return {
+    studentId: row.student_id,
+    organizationId: row.organization_id,
+    totalBooks: row.total_books || 0,
+    totalSessions: row.total_sessions || 0,
+    totalMinutes: row.total_minutes || 0,
+    totalPages: row.total_pages || 0,
+    genresRead: safeJsonParse(row.genres_read, []),
+    uniqueAuthorsCount: row.unique_authors_count || 0,
+    fictionCount: row.fiction_count || 0,
+    nonfictionCount: row.nonfiction_count || 0,
+    poetryCount: row.poetry_count || 0,
+    daysReadThisWeek: row.days_read_this_week || 0,
+    daysReadThisTerm: row.days_read_this_term || 0,
+    daysReadThisMonth: row.days_read_this_month || 0,
+    weeksWith4PlusDays: row.weeks_with_4plus_days || 0,
+    weeksWithReading: row.weeks_with_reading || 0,
+    updatedAt: row.updated_at,
+  };
+};

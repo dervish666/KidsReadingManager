@@ -430,6 +430,31 @@ files:
       - from: middleware/errorHandler
         items: [badRequestError]
 
+  badges.js:
+    description: Badge collection and notification endpoints for student achievement system
+    exports:
+      - name: badgesRouter
+        kind: object
+        description: Hono router for badge endpoints
+    endpoints:
+      - route: GET /api/badges/students/:id
+        description: Full badge collection for a student (earned, progress, near-misses)
+        requires: readonly
+      - route: POST /api/badges/students/:id/notify
+        description: Mark new badges as notified (clears unread indicator)
+        requires: teacher
+    imports:
+      - from: middleware/tenant
+        items: [requireReadonly, requireTeacher]
+      - from: utils/routeHelpers
+        items: [requireDB]
+      - from: utils/rowMappers
+        items: [rowToBadge, rowToReadingStats]
+      - from: utils/badgeDefinitions
+        items: [BADGE_DEFINITIONS, resolveKeyStage]
+      - from: utils/badgeEngine
+        items: [calculateNearMisses]
+
   metadata.js:
     description: Centralised metadata management - cascade config, enrichment jobs, status
     exports:

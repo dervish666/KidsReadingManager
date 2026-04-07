@@ -15,6 +15,7 @@ import { useUI } from '../../contexts/UIContext';
 import { useTheme } from '@mui/material/styles';
 import StudentDetailDrawer from './StudentDetailDrawer';
 import StreakBadge from './StreakBadge';
+import BadgeIndicators from '../badges/BadgeIndicators';
 import { STATUS_TO_PALETTE } from '../../utils/helpers';
 
 const StudentCard = React.memo(({ student }) => {
@@ -156,6 +157,9 @@ const StudentCard = React.memo(({ student }) => {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 {student.currentStreak > 0 && (
                   <StreakBadge streak={student.currentStreak} size="small" />
+                )}
+                {student.badges && student.badges.length > 0 && (
+                  <BadgeIndicators badges={student.badges} />
                 )}
                 <Box
                   role="img"
