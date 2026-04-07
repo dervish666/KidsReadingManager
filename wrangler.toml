@@ -69,4 +69,4 @@ enabled = true
 # 2:00 AM UTC - Recalculate all student streaks + GDPR cleanup
 # 3:00 AM UTC - Wonde daily delta sync
 [triggers]
-crons = ["*/1 * * * *", "0 * * * *", "0 2 * * *", "0 3 * * *"]
+crons = ["*/1 * * * *", "0 * * * *", "0 2 * * *", "30 2 * * *", "0 3 * * *"]

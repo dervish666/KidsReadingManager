@@ -27,7 +27,8 @@ import {
 } from '../middleware/tenant';
 import { permissions } from '../utils/crypto';
 import { getDB, isMultiTenantMode, safeJsonParse, requireStudent } from '../utils/routeHelpers';
-import { rowToStudent } from '../utils/rowMappers';
+import { rowToStudent, rowToReadingStats } from '../utils/rowMappers';
+import { recalculateStats, evaluateRealTime, calculateNearMisses } from '../utils/badgeEngine.js';
 
 // Create router
 const studentsRouter = new Hono();
@@ -763,6 +764,28 @@ studentsRouter.get('/:id', requireReadonly(), async (c) => {
     result.preferences.likes = result.likes || [];
     result.preferences.dislikes = result.dislikes || [];
 
+    // Fetch badges and reading stats
+    const [badgesResult, statsRow] = await Promise.all([
+      db
+        .prepare('SELECT * FROM student_badges WHERE student_id = ? ORDER BY earned_at DESC')
+        .bind(id)
+        .all(),
+      db.prepare('SELECT * FROM student_reading_stats WHERE student_id = ?').bind(id).first(),
+    ]);
+    result.badges = (badgesResult.results || []).map((r) => ({
+      badgeId: r.badge_id,
+      tier: r.tier,
+      earnedAt: r.earned_at,
+      notified: Boolean(r.notified),
+    }));
+    if (statsRow) {
+      result.readingStats = rowToReadingStats(statsRow);
+    }
+    const earnedBadgeIds = new Set(result.badges.map((b) => b.badgeId));
+    result.nearMisses = statsRow
+      ? calculateNearMisses(rowToReadingStats(statsRow), student.year_group, earnedBadgeIds)
+      : [];
+
     return c.json(result);
   }
 
@@ -1275,7 +1298,7 @@ studentsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
     const student = await db
       .prepare(
         `
-      SELECT id, processing_restricted FROM students WHERE id = ? AND organization_id = ? AND is_active = 1
+      SELECT id, processing_restricted, year_group FROM students WHERE id = ? AND organization_id = ? AND is_active = 1
     `
       )
       .bind(id, organizationId)
@@ -1364,6 +1387,12 @@ studentsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
     // Update student's reading streak
     const streakData = await updateStudentStreak(db, id, organizationId, c.env);
 
+    // Update reading stats and evaluate badges
+    await recalculateStats(db, id, organizationId);
+    const newBadges = isMarkerSession
+      ? []
+      : await evaluateRealTime(db, id, organizationId, student.year_group);
+
     // Fetch the created session
     const session = await db
       .prepare(
@@ -1390,6 +1419,7 @@ studentsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
         notes: session.notes,
         location: session.location || 'school',
         recordedBy: session.recorded_by,
+        newBadges,
       },
       201
     );
@@ -1467,6 +1497,9 @@ studentsRouter.delete(
 
       // Recalculate student's reading streak after deletion
       await updateStudentStreak(db, id, organizationId, c.env);
+
+      // Recalculate reading stats (badges are not revoked on delete)
+      await recalculateStats(db, id, organizationId);
 
       // Recalculate last_read_date from remaining sessions (excluding markers)
       await db
@@ -1617,6 +1650,20 @@ studentsRouter.put(
       // Recalculate student's reading streak after update
       await updateStudentStreak(db, id, organizationId, c.env);
 
+      // Recalculate reading stats and evaluate badges
+      await recalculateStats(db, id, organizationId);
+      // Fetch year_group for badge evaluation
+      const studentForBadges = await db
+        .prepare('SELECT year_group FROM students WHERE id = ?')
+        .bind(id)
+        .first();
+      const newBadges = await evaluateRealTime(
+        db,
+        id,
+        organizationId,
+        studentForBadges?.year_group
+      );
+
       // Recalculate last_read_date from sessions (excluding markers)
       await db
         .prepare(
@@ -1653,6 +1700,7 @@ studentsRouter.put(
         duration: session.duration_minutes,
         assessment: session.assessment,
         notes: session.notes,
+        newBadges,
       });
     }
 

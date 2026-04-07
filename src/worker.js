@@ -37,6 +37,7 @@ import { contactRouter } from './routes/contact.js';
 import { termDatesRouter } from './routes/termDates.js';
 import { toursRouter } from './routes/tours.js';
 import { metadataRouter, getConfigWithKeys } from './routes/metadata.js';
+import badgesRouter from './routes/badges.js';
 import { processJobBatch } from './services/metadataService.js';
 import stripeWebhookRouter from './routes/stripeWebhook.js';
 import { billingRouter } from './routes/billing.js';
@@ -280,6 +281,7 @@ app.route('/api/webhooks/stripe', stripeWebhookRouter);
 app.route('/api/billing', billingRouter);
 app.route('/api/tours', toursRouter);
 app.route('/api/metadata', metadataRouter);
+app.route('/api/badges', badgesRouter);
 
 // API health check (public)
 app.get('/api/health', async (c) => {
@@ -608,6 +610,60 @@ export default Sentry.withSentry(
             maxRuntime: 30,
           }
         );
+      }
+
+      // Badge evaluation at 2:30 AM UTC (after streaks are recalculated)
+      if (event.cron === '30 2 * * *') {
+        try {
+          const { recalculateStats, evaluateBatch } = await import('./utils/badgeEngine.js');
+
+          // Get all active organizations
+          const orgs = await db
+            .prepare('SELECT id FROM organizations WHERE is_active = 1')
+            .bind()
+            .all();
+
+          let totalStudents = 0;
+          let totalNewBadges = 0;
+
+          for (const org of orgs.results || []) {
+            // Get active students with at least one session
+            const students = await db
+              .prepare(
+                `SELECT DISTINCT s.id, s.year_group
+                 FROM students s
+                 INNER JOIN reading_sessions rs ON rs.student_id = s.id
+                 WHERE s.organization_id = ? AND s.is_active = 1`
+              )
+              .bind(org.id)
+              .all();
+
+            for (const student of students.results || []) {
+              try {
+                await recalculateStats(db, student.id, org.id);
+                const newBadges = await evaluateBatch(
+                  db,
+                  student.id,
+                  org.id,
+                  student.year_group
+                );
+                totalNewBadges += newBadges.length;
+                totalStudents++;
+              } catch (err) {
+                console.error(
+                  `[Cron] Badge evaluation error for student ${student.id}:`,
+                  err.message
+                );
+              }
+            }
+          }
+
+          console.log(
+            `[Cron] Badge evaluation complete: ${totalStudents} students, ${totalNewBadges} new badges`
+          );
+        } catch (error) {
+          console.error('[Cron] Badge evaluation failed:', error.message);
+        }
       }
 
       // Wonde sync at 3 AM UTC
