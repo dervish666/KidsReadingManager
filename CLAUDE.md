@@ -56,6 +56,7 @@ src/routes/support.js - Support ticket submission, listing, detail, status manag
 src/routes/termDates.js - GET/PUT term dates per organization and academic year
 src/routes/tours.js - GET/POST tour completion tracking per user
 src/routes/metadata.js - GET/PUT metadata config, GET status, GET/DELETE jobs, POST enrich
+src/routes/badges.js - GET/POST badge collection and notify endpoints
 
 <!-- Middleware -->
 src/middleware/tenant.js - JWT auth, tenant isolation, role guards, audit logging, rate limiting
@@ -100,6 +101,8 @@ src/utils/routeHelpers.js - Shared route helpers (getDB, requireDB, isMultiTenan
 src/utils/rowMappers.js - Centralized row-to-object mappers (rowToBook, rowToStudent, rowToClass, rowToUser, rowToOrganization, rowToGenre, rowToSupportTicket, rowToSupportNote)
 src/utils/constants.js - Shared constants (PUBLIC_PATHS for auth bypass)
 src/utils/wondeApi.js - Wonde REST API client for school data sync
+src/utils/badgeDefinitions.js - Badge definitions with evaluate/progress functions, key stage resolution
+src/utils/badgeEngine.js - Stats calculation, real-time/batch evaluation, genre classification, near-miss calculation
 
 <!-- Contexts & Hooks -->
 src/contexts/AuthContext.js - Auth tokens, user, fetchWithAuth, login/logout, permissions, org switching
@@ -175,6 +178,13 @@ src/components/sessions/BookAutocomplete.js - Book search autocomplete
 src/components/sessions/AssessmentSelector.js - Assessment level radio group
 src/components/sessions/SessionNotes.js - Session notes text area
 src/components/sessions/StudentInfoCard.js - Student info during session entry
+
+<!-- Frontend Components - Badges -->
+src/components/badges/BadgeIcon.js - Single badge circle with tier gradient and category icon
+src/components/badges/GardenHeader.js - SVG garden header evolving through 4 stages (seedling→sprout→bloom→garden)
+src/components/badges/BadgeCollection.js - Grid of earned badges + near-miss progress bars
+src/components/badges/BadgeCelebration.js - Unlock celebration dialog shown after session save
+src/components/badges/BadgeIndicators.js - Mini badge count chip for StudentCard
 
 <!-- Frontend Components - Stats -->
 src/components/stats/ReadingStats.js - Stats dashboard with metrics and charts

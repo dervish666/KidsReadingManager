@@ -336,6 +336,47 @@ files:
         props: [student]
 
 
+  # ---- badges/ ----
+
+  badges/BadgeIcon.js:
+    description: Single badge circle with tier gradient and category emoji icon
+    exports:
+      - name: BadgeIcon
+        kind: component
+        props: [badge, size, showLabel]
+        description: "size: 'small'|'medium'|'large'; renders tier gradient circle with category icon"
+
+  badges/GardenHeader.js:
+    description: SVG garden header that evolves through 4 stages based on badge count
+    exports:
+      - name: GardenHeader
+        kind: component
+        props: [badgeCount, studentName]
+        description: "Stages: Seedling (0-2), Sprout (3-7), Bloom (8-15), Full Garden (16+)"
+
+  badges/BadgeCollection.js:
+    description: Grid of earned badges with garden header and near-miss progress bars
+    exports:
+      - name: BadgeCollection
+        kind: component
+        props: [studentName, badges, nearMisses, stats]
+
+  badges/BadgeCelebration.js:
+    description: Unlock celebration dialog shown after session save with new badges
+    exports:
+      - name: BadgeCelebration
+        kind: component
+        props: [badges, onClose]
+        description: Full-screen dialog showing first new badge with unlock message; returns null if badges empty
+
+  badges/BadgeIndicators.js:
+    description: Mini badge count chip for StudentCard showing garden emoji and total count
+    exports:
+      - name: BadgeIndicators
+        kind: component
+        props: [badges, maxVisible]
+        description: "Shows garden chip + up to maxVisible (default 4) badge icons; returns null if empty"
+
   # ---- stats/ ----
 
   stats/ReadingStats.js:

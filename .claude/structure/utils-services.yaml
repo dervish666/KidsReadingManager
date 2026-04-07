@@ -385,6 +385,62 @@ files:
       - from: ./googleBooksApi
       - from: ./hardcoverApi
 
+  utils/badgeDefinitions.js:
+    description: Badge definitions with evaluate/progress functions and key stage resolution
+    exports:
+      - name: resolveKeyStage
+        kind: function
+        params: [{name: yearGroup, type: string}]
+        returns: "'KS1'|'LowerKS2'|'UpperKS2'"
+        description: Map year group string to key stage constant
+      - name: BADGE_DEFINITIONS
+        kind: object
+        description: Array of all badge definitions (id, name, tier, category, evaluate, progress)
+      - name: getRealtimeBadges
+        kind: function
+        returns: Array
+        description: Filter BADGE_DEFINITIONS to real-time categories (volume, consistency_realtime, milestone)
+      - name: getBatchBadges
+        kind: function
+        returns: Array
+        description: Filter BADGE_DEFINITIONS to batch-only categories
+
+  utils/badgeEngine.js:
+    description: Stats calculation, real-time/batch badge evaluation, genre classification, near-miss calculation
+    exports:
+      - name: GENRE_CLASSIFICATION
+        kind: object
+        description: Mapping of genre name to fiction/nonfiction/poetry classification
+      - name: classifyGenre
+        kind: function
+        params: [{name: genreName, type: string}]
+        returns: "'fiction'|'nonfiction'|'poetry'"
+      - name: recalculateStats
+        kind: function
+        params: [{name: db}, {name: studentId, type: string}, {name: organizationId, type: string}]
+        returns: Promise<void>
+        description: Full rebuild of student_reading_stats from reading_sessions
+      - name: evaluateRealTime
+        kind: function
+        params: [{name: db}, {name: studentId, type: string}, {name: organizationId, type: string}, {name: yearGroup, type: string}]
+        returns: "Promise<Array>"
+        description: Check and insert newly earned real-time badges; returns array of new badge objects
+      - name: evaluateBatch
+        kind: function
+        params: [{name: db}, {name: studentId, type: string}, {name: organizationId, type: string}, {name: yearGroup, type: string}]
+        returns: "Promise<Array>"
+        description: Check and insert newly earned batch/exploration badges; returns array of new badge objects
+      - name: calculateNearMisses
+        kind: function
+        params: [{name: stats, type: object}, {name: yearGroup, type: string}, {name: earnedBadgeIds, type: "Set<string>"}]
+        returns: "Array<{id, name, icon, tier, current, target, pct}>"
+        description: Return up to 3 unearned badges closest to completion (>=50%)
+    imports:
+      - from: utils/helpers
+        items: [generateId]
+      - from: utils/badgeDefinitions
+        items: [resolveKeyStage, getRealtimeBadges, getBatchBadges, BADGE_DEFINITIONS]
+
   utils/wondeApi.js:
     description: Wonde REST API client for school data provisioning
     exports:
