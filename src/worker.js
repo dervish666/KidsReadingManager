@@ -615,7 +615,9 @@ export default Sentry.withSentry(
       // Badge evaluation at 2:30 AM UTC (after streaks are recalculated)
       if (event.cron === '30 2 * * *') {
         try {
-          const { recalculateStats, evaluateBatch } = await import('./utils/badgeEngine.js');
+          const { recalculateStats, evaluateRealTime, evaluateBatch } = await import(
+            './utils/badgeEngine.js'
+          );
 
           // Get all active organizations
           const orgs = await db
@@ -641,13 +643,19 @@ export default Sentry.withSentry(
             for (const student of students.results || []) {
               try {
                 await recalculateStats(db, student.id, org.id);
-                const newBadges = await evaluateBatch(
+                const rtBadges = await evaluateRealTime(
                   db,
                   student.id,
                   org.id,
                   student.year_group
                 );
-                totalNewBadges += newBadges.length;
+                const batchBadges = await evaluateBatch(
+                  db,
+                  student.id,
+                  org.id,
+                  student.year_group
+                );
+                totalNewBadges += rtBadges.length + batchBadges.length;
                 totalStudents++;
               } catch (err) {
                 console.error(
