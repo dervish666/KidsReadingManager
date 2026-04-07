@@ -211,8 +211,8 @@ const HomeReadingRegister = () => {
 
   // Refresh sessions after mutations (add/delete)
   const refreshSessions = useCallback(() => {
-    if (!effectiveClassId) return;
-    fetchWithAuth(
+    if (!effectiveClassId) return Promise.resolve();
+    return fetchWithAuth(
       `/api/students/sessions?classId=${effectiveClassId}&startDate=${fetchStartDateISO}&endDate=${endDateISO}`
     )
       .then((r) => (r.ok ? r.json() : []))
@@ -459,17 +459,20 @@ const HomeReadingRegister = () => {
 
     try {
       const studentSessions = sessionsByStudent[student.id] || [];
-      // Only get home sessions to clear (preserve school reading sessions)
-      const homeSessions = studentSessions.filter(
+      // Delete home sessions on selectedDate
+      const toDelete = studentSessions.filter(
         (s) => s.date === selectedDate && s.location === 'home'
       );
-
-      // Delete only home sessions for this date
-      for (const session of homeSessions) {
+      // Also delete any backfill sessions on previous days created by multi-day recording
+      const backfills = studentSessions.filter(
+        (s) => s.date !== selectedDate && s.location === 'home' && s.notes?.includes('[BACKFILL]')
+      );
+      toDelete.push(...backfills);
+      for (const session of toDelete) {
         await deleteReadingSession(student.id, session.id);
       }
 
-      refreshSessions();
+      await refreshSessions();
       setHistoryRefresh((c) => c + 1);
       setSnackbarMessage(`Cleared home reading entry for ${student.name}`);
       setSnackbarSeverity('info');
@@ -488,10 +491,16 @@ const HomeReadingRegister = () => {
     setRecordingStudents((prev) => new Set(prev).add(student.id));
     try {
       const studentSessions = sessionsByStudent[student.id] || [];
-      const existingHomeSessions = studentSessions.filter(
+      // Delete home sessions on selectedDate
+      const toDelete = studentSessions.filter(
         (s) => s.date === selectedDate && s.location === 'home'
       );
-      for (const session of existingHomeSessions) {
+      // Also delete any backfill sessions on previous days created by multi-day recording
+      const backfills = studentSessions.filter(
+        (s) => s.date !== selectedDate && s.location === 'home' && s.notes?.includes('[BACKFILL]')
+      );
+      toDelete.push(...backfills);
+      for (const session of toDelete) {
         await deleteReadingSession(student.id, session.id);
       }
 
@@ -533,7 +542,7 @@ const HomeReadingRegister = () => {
             await addReadingSession(student.id, {
               date: dateStr,
               assessment: null,
-              notes: '',
+              notes: i > 0 ? '[BACKFILL]' : '',
               bookId,
               location: 'home',
             });
@@ -548,7 +557,7 @@ const HomeReadingRegister = () => {
             await addReadingSession(student.id, {
               date: dateStr,
               assessment: null,
-              notes: '',
+              notes: i > 0 ? '[BACKFILL]' : '',
               bookId,
               location: 'home',
             });
@@ -556,7 +565,7 @@ const HomeReadingRegister = () => {
         }
       }
 
-      refreshSessions();
+      await refreshSessions();
     } catch (error) {
       setSnackbarMessage('Failed to record reading');
       setSnackbarSeverity('error');
@@ -575,13 +584,17 @@ const HomeReadingRegister = () => {
     if (!selectedStudent) return;
 
     try {
-      // First, clear any existing HOME sessions for this date (allows changing state)
-      // Note: We preserve school reading sessions - only clear home entries
+      // Clear existing HOME sessions for this date and any backfill sessions
       const studentSessions = sessionsByStudent[selectedStudent.id] || [];
-      const existingHomeSessions = studentSessions.filter(
+      const toDelete = studentSessions.filter(
         (s) => s.date === selectedDate && s.location === 'home'
       );
-      for (const session of existingHomeSessions) {
+      // Also delete any backfill sessions on previous days created by multi-day recording
+      const backfills = studentSessions.filter(
+        (s) => s.date !== selectedDate && s.location === 'home' && s.notes?.includes('[BACKFILL]')
+      );
+      toDelete.push(...backfills);
+      for (const session of toDelete) {
         await deleteReadingSession(selectedStudent.id, session.id);
       }
 
@@ -633,7 +646,7 @@ const HomeReadingRegister = () => {
             await addReadingSession(selectedStudent.id, {
               date: dateStr,
               assessment: null,
-              notes: '',
+              notes: i > 0 ? '[BACKFILL]' : '',
               bookId,
               location: 'home',
             });
@@ -650,7 +663,7 @@ const HomeReadingRegister = () => {
             await addReadingSession(selectedStudent.id, {
               date: dateStr,
               assessment: null,
-              notes: '',
+              notes: i > 0 ? '[BACKFILL]' : '',
               bookId,
               location: 'home',
             });
@@ -658,7 +671,7 @@ const HomeReadingRegister = () => {
         }
       }
 
-      refreshSessions();
+      await refreshSessions();
       setHistoryRefresh((c) => c + 1);
       setSnackbarMessage(
         `Recorded ${count > 1 ? count + ' days' : ''} for ${selectedStudent.name}`

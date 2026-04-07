@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.40.0] - 2026-04-07
+
+### Added
+- **Demo environment** — public "Try the demo" button on landing page with demo login, hourly data reset, capped AI recommendations (3/hr), and auto-class-select on login
+
+### Fixed
+- **Multi-day reading record cleanup** — changing a student's reading status (e.g. from "3 days" to "Absent") now correctly removes backfilled sessions on previous days; tagged with `[BACKFILL]` to avoid destroying independently recorded sessions
+
 ## [3.39.0] - 2026-04-04
 
 ### Added
