@@ -651,24 +651,58 @@ booksRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
       .bind(organizationId)
       .first();
 
-    if (!dbConfig || !dbConfig.is_enabled || !dbConfig.api_key_encrypted) {
-      throw badRequestError(
-        'AI not configured. Please configure an AI provider in Settings to use AI suggestions.'
-      );
-    }
-
-    // Decrypt API key
     let aiConfig;
-    try {
-      const decryptedApiKey = await decryptSensitiveData(dbConfig.api_key_encrypted, encSecret);
-      aiConfig = {
-        provider: dbConfig.provider || 'anthropic',
-        apiKey: decryptedApiKey,
-        model: dbConfig.model_preference,
+
+    if (dbConfig && dbConfig.is_enabled && dbConfig.api_key_encrypted) {
+      // Path 1: School has their own API key configured
+      try {
+        const decryptedApiKey = await decryptSensitiveData(dbConfig.api_key_encrypted, encSecret);
+        aiConfig = {
+          provider: dbConfig.provider || 'anthropic',
+          apiKey: decryptedApiKey,
+          model: dbConfig.model_preference,
+        };
+      } catch (decryptError) {
+        console.error('Failed to decrypt API key:', decryptError.message);
+        throw badRequestError('AI configuration error. Please check Settings.');
+      }
+    } else {
+      // Path 2: Check if org has the paid AI addon
+      const org = await db
+        .prepare('SELECT ai_addon_active FROM organizations WHERE id = ?')
+        .bind(organizationId)
+        .first();
+
+      if (!org?.ai_addon_active) {
+        throw Object.assign(
+          new Error('AI recommendations are not enabled for this organisation.'),
+          { status: 403 }
+        );
+      }
+
+      // Use environment API key
+      const envProvider = c.env.ANTHROPIC_API_KEY
+        ? 'anthropic'
+        : c.env.OPENAI_API_KEY
+          ? 'openai'
+          : c.env.GOOGLE_API_KEY
+            ? 'google'
+            : null;
+      const envKeyMap = {
+        anthropic: 'ANTHROPIC_API_KEY',
+        openai: 'OPENAI_API_KEY',
+        google: 'GOOGLE_API_KEY',
       };
-    } catch (decryptError) {
-      console.error('Failed to decrypt API key:', decryptError.message);
-      throw badRequestError('AI configuration error. Please check Settings.');
+
+      if (!envProvider) {
+        throw badRequestError('AI not configured. No API key available.');
+      }
+
+      aiConfig = {
+        provider: envProvider,
+        apiKey: c.env[envKeyMap[envProvider]],
+        model: null,
+      };
     }
 
     // Generate AI suggestions

@@ -497,19 +497,21 @@ describe('Books API Routes', () => {
       it('should allow readonly users to get AI suggestions', async () => {
         const { app, mockDB } = createTestApp(createUserContext({ userRole: 'readonly' }));
 
-        // Mock GDPR flags check, then student profile, then AI config
+        // Mock GDPR flags check, then student profile, then AI config, then org addon check
         mockDB._chain.first
           .mockResolvedValueOnce({ processing_restricted: 0, ai_opt_out: 0 })
           .mockResolvedValueOnce(createMockStudent())
           // Mock AI config - not enabled
-          .mockResolvedValueOnce(null);
+          .mockResolvedValueOnce(null)
+          // Organization: addon not active
+          .mockResolvedValueOnce({ ai_addon_active: 0 });
 
         mockDB._chain.all.mockResolvedValue({ results: [], success: true });
 
         const response = await makeRequest(app, 'GET', '/api/books/ai-suggestions?studentId=student-123');
 
-        // Should fail because AI not configured, not because of permissions
-        expect(response.status).toBe(400);
+        // Should fail because AI not enabled, not because of permissions
+        expect(response.status).toBe(403);
       });
     });
 
@@ -542,29 +544,31 @@ describe('Books API Routes', () => {
     });
 
     describe('AI configuration checks', () => {
-      it('should require AI to be configured', async () => {
+      it('should return 403 when AI not configured and addon not active', async () => {
         const { app, mockDB } = createTestApp(createUserContext({ userRole: 'readonly' }));
 
-        // Mock GDPR flags check, then student profile, then AI config
+        // Mock GDPR flags check, then student profile, then AI config, then org addon
         mockDB._chain.first
           .mockResolvedValueOnce({ processing_restricted: 0, ai_opt_out: 0 })
           .mockResolvedValueOnce(createMockStudent())
           // AI config not found
-          .mockResolvedValueOnce(null);
+          .mockResolvedValueOnce(null)
+          // Organization: addon not active
+          .mockResolvedValueOnce({ ai_addon_active: 0 });
 
         mockDB._chain.all.mockResolvedValue({ results: [], success: true });
 
         const response = await makeRequest(app, 'GET', '/api/books/ai-suggestions?studentId=student-123');
         const data = await response.json();
 
-        expect(response.status).toBe(400);
-        expect(data.message).toContain('AI not configured');
+        expect(response.status).toBe(403);
+        expect(data.message).toContain('not enabled');
       });
 
-      it('should require AI to be enabled', async () => {
+      it('should return 403 when AI disabled and addon not active', async () => {
         const { app, mockDB } = createTestApp(createUserContext({ userRole: 'readonly' }));
 
-        // Mock GDPR flags check, then student profile
+        // Mock GDPR flags check, then student profile, then AI config (disabled), then org addon
         mockDB._chain.first
           .mockResolvedValueOnce({ processing_restricted: 0, ai_opt_out: 0 })
           .mockResolvedValueOnce(createMockStudent())
@@ -573,15 +577,71 @@ describe('Books API Routes', () => {
             provider: 'anthropic',
             api_key_encrypted: 'encrypted-key',
             is_enabled: 0
-          });
+          })
+          // Organization: addon not active
+          .mockResolvedValueOnce({ ai_addon_active: 0 });
 
         mockDB._chain.all.mockResolvedValue({ results: [], success: true });
 
         const response = await makeRequest(app, 'GET', '/api/books/ai-suggestions?studentId=student-123');
         const data = await response.json();
 
-        expect(response.status).toBe(400);
-        expect(data.message).toContain('AI not configured');
+        expect(response.status).toBe(403);
+        expect(data.message).toContain('not enabled');
+      });
+
+      it('should return 403 when no org key and ai_addon_active is false', async () => {
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'readonly' }));
+
+        mockDB._chain.first
+          .mockResolvedValueOnce({ processing_restricted: 0, ai_opt_out: 0 })
+          .mockResolvedValueOnce(createMockStudent())
+          // AI config: no org key
+          .mockResolvedValueOnce(null)
+          // Organization: addon not active
+          .mockResolvedValueOnce({ ai_addon_active: 0 });
+
+        mockDB._chain.all.mockResolvedValue({ results: [], success: true });
+
+        const response = await makeRequest(
+          app,
+          'GET',
+          '/api/books/ai-suggestions?studentId=student-123'
+        );
+        expect(response.status).toBe(403);
+        const data = await response.json();
+        expect(data.message).toContain('not enabled');
+      });
+
+      it('should allow access when ai_addon_active is true and env key exists', async () => {
+        const { app, mockDB } = createTestApp({
+          ...createUserContext({ userRole: 'readonly' }),
+          env: { ANTHROPIC_API_KEY: 'env-test-key' },
+        });
+
+        mockDB._chain.first
+          // 1. GDPR flags
+          .mockResolvedValueOnce({ processing_restricted: 0, ai_opt_out: 0 })
+          // 2. buildStudentReadingProfile student query
+          .mockResolvedValueOnce(createMockStudent())
+          // 3. Cache check configRow
+          .mockResolvedValueOnce({ provider: 'anthropic' })
+          // 4. AI config: no org key
+          .mockResolvedValueOnce(null)
+          // 5. Organization: addon active
+          .mockResolvedValueOnce({ ai_addon_active: 1 });
+
+        // Mock remaining queries (sessions, books, genres for profile building)
+        mockDB._chain.all.mockResolvedValue({ results: [], success: true });
+
+        const response = await makeRequest(
+          app,
+          'GET',
+          '/api/books/ai-suggestions?studentId=student-123'
+        );
+        // Should proceed past config check (will fail later without AI service mock, but not 400/403)
+        expect(response.status).not.toBe(400);
+        expect(response.status).not.toBe(403);
       });
     });
   });
