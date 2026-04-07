@@ -24,4 +24,5 @@ export const PUBLIC_PATHS = [
   '/api/webhooks/wonde',
   '/api/webhooks/stripe',
   '/api/auth/demo',
+  '/api/contact',
 ];

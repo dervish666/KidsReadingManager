@@ -183,6 +183,7 @@ export const rowToSupportTicket = (row) => {
     status: row.status,
     createdAt: row.created_at,
     updatedAt: row.updated_at || null,
+    source: row.source || 'in_app',
   };
 };
 
