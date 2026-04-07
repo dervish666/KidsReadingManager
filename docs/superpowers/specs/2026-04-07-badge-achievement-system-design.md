@@ -178,7 +178,7 @@ Same for `PUT` and `DELETE` on sessions — recalculates stats and re-evaluates.
     { "badgeId": "bookworm_bronze", "tier": "bronze", "earnedAt": "2026-04-07T10:00:00Z", "notified": false }
   ],
   "readingStats": {
-    "totalBooks": 7, "totalMinutes": 340, "totalSessions": 12, "genresRead": ["fiction", "poetry"]
+    "totalBooks": 7, "totalMinutes": 340, "totalSessions": 12, "genresRead": ["genre-adventure", "genre-poetry", "genre-non-fiction"]
   },
   "nearMisses": [
     { "badgeId": "bookworm_silver", "name": "Bookworm", "tier": "silver", "current": 7, "target": 8, "remaining": 1 }
