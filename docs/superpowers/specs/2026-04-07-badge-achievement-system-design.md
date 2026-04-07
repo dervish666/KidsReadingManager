@@ -39,8 +39,10 @@ Per-student aggregated counters, updated on every session write. Organization-sc
 | `fiction_count` | INTEGER | Books where genre maps to fiction type (see genre classification below) |
 | `nonfiction_count` | INTEGER | Books where genre maps to nonfiction type |
 | `poetry_count` | INTEGER | Books where genre maps to poetry type |
+| `days_read_this_week` | INTEGER | Distinct session dates in current Mon–Sun week |
 | `days_read_this_term` | INTEGER | Distinct session dates in current term |
 | `days_read_this_month` | INTEGER | Distinct session dates in current calendar month |
+| `weeks_with_4plus_days` | INTEGER | Count of weeks in current month where student read 4+ days |
 | `weeks_with_reading` | INTEGER | Weeks (Mon–Sun) with at least one session, current term |
 | `updated_at` | TEXT | Last recalculation timestamp |
 
@@ -54,11 +56,13 @@ Per-student aggregated counters, updated on every session write. Organization-sc
 
 Genres are classified into fiction/nonfiction/poetry via a hardcoded mapping in `badgeEngine.js`. The mapping uses genre names from the `genres` table:
 
-- **Fiction**: Adventure, Fantasy, Science Fiction, Mystery, Horror, Romance, Historical Fiction, Realistic Fiction, Fairy Tales, Myths & Legends, Graphic Novels, Humour
-- **Nonfiction**: Non-Fiction, Biography, History, Science, Reference
+Based on the default genres in `migrations/0007_genres.sql`:
+
+- **Fiction**: Adventure, Fantasy, Mystery, Science Fiction, Realistic Fiction, Historical Fiction, Humor, Animal Stories, Fairy Tales, Graphic Novels, Horror/Scary, Sports
+- **Nonfiction**: Non-Fiction, Biography
 - **Poetry**: Poetry
 
-Unrecognised genre names default to fiction. Schools may create custom genres — these fall into the fiction default unless the mapping is updated. This is acceptable for MVP; a future wave could add a `genre_type` column to the `genres` table.
+Unrecognised genre names (from school-created custom genres) default to fiction. This is acceptable for MVP; a future wave could add a `genre_type` column to the `genres` table.
 
 ### New table: `student_badges`
 
@@ -115,7 +119,7 @@ The `evaluate` and `progress` functions receive:
 
 1. Update `student_reading_stats` within the same DB transaction
 2. Load student's existing `student_badges` rows
-3. Filter badge definitions to real-time categories: volume, milestone, basic consistency
+3. Filter badge definitions to real-time categories: volume, milestone, basic consistency (Steady Reader, Week Warrior use `days_read_this_week` from stats)
 4. Run `evaluate()` for each unevaluated badge
 5. Insert newly earned badges into `student_badges`
 6. Return newly earned badge IDs in the session API response
@@ -124,7 +128,7 @@ The `evaluate` and `progress` functions receive:
 
 1. For each active student with sessions, rebuild `student_reading_stats` via `recalculateStats()` (corrects any drift, recalculates monthly/term counters from source sessions)
 2. Load recent sessions for batch badges that need session-level data (e.g. Weekend Reader checks for Sat+Sun pairs)
-3. Evaluate batch-category badges: exploration (needs book genre joins), secret, challenge. Seasonal badges added in Wave 2
+3. Evaluate batch-category badges: exploration (needs book genre joins), Monthly Marvel (per-week breakdown), Series Finisher (per-author book counts), secret (Weekend Reader). Seasonal badges added in Wave 2
 4. Insert any newly earned badges
 5. Process students in chunks of 100 per `db.batch()` call (D1 batch limit)
 
@@ -136,9 +140,9 @@ The `evaluate` and `progress` functions receive:
 | Volume | Time Traveller | Bronze/Silver/Gold | 200/600/1500 min | 400/1200/3000 min | 600/1800/5000 min |
 | Consistency | Steady Reader | Single | 3 days in one week | 3 days in one week | 3 days in one week |
 | Consistency | Week Warrior | Single | Every day in one week | Every day in one week | Every day in one week |
-| Consistency | Monthly Marvel | Single | 4+ days/week for a month | 4+ days/week for a month | 4+ days/week for a month |
+| Consistency | Monthly Marvel | Single | 4+ days/week for every week in a month (batch, uses `weeks_with_4plus_days`) | same | same |
 | Milestone | First Finish | Single | First book with a session | First book with a session | First book with a session |
-| Milestone | Series Finisher | Single | 3+ books by same author | 3+ books by same author | 3+ books by same author |
+| Milestone | Series Finisher | Single | 3+ books by same author (batch, needs book join) | same | same |
 | Exploration | Genre Explorer | Bronze/Silver/Gold | 3/5/7 genres | 3/5/7 genres | 3/5/7 genres |
 | Exploration | Fiction & Fact | Single | Both fiction + nonfiction | Both fiction + nonfiction | Both fiction + nonfiction |
 | Secret | Bookworm Bonanza | Single | 3+ sessions in one day | 3+ sessions in one day | 3+ sessions in one day |
