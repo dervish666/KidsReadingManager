@@ -30,21 +30,35 @@ Per-student aggregated counters, updated on every session write. Organization-sc
 |--------|------|---------|
 | `student_id` | TEXT PK, FK → students | One row per student |
 | `organization_id` | TEXT FK → organizations | Tenant scoping |
-| `total_books` | INTEGER | Distinct books with completed sessions |
+| `total_books` | INTEGER | Distinct books with at least one reading session |
 | `total_sessions` | INTEGER | Total reading sessions logged |
 | `total_minutes` | INTEGER | Sum of `duration_minutes` |
 | `total_pages` | INTEGER | Sum of `pages_read` |
-| `genres_read` | TEXT (JSON) | Array of distinct genre IDs encountered |
-| `authors_read` | TEXT (JSON) | Array of distinct author names |
-| `fiction_count` | INTEGER | Books where genre is fiction-typed |
-| `nonfiction_count` | INTEGER | Books where genre is nonfiction-typed |
-| `poetry_count` | INTEGER | Books where genre is poetry-typed |
+| `genres_read` | TEXT (JSON) | Array of distinct genre IDs encountered (bounded by genre count, ~15 max) |
+| `unique_authors_count` | INTEGER | Count of distinct authors read |
+| `fiction_count` | INTEGER | Books where genre maps to fiction type (see genre classification below) |
+| `nonfiction_count` | INTEGER | Books where genre maps to nonfiction type |
+| `poetry_count` | INTEGER | Books where genre maps to poetry type |
 | `days_read_this_term` | INTEGER | Distinct session dates in current term |
 | `days_read_this_month` | INTEGER | Distinct session dates in current calendar month |
 | `weeks_with_reading` | INTEGER | Weeks (Mon–Sun) with at least one session, current term |
 | `updated_at` | TEXT | Last recalculation timestamp |
 
-**Update path**: Updated in the same DB transaction as session create/update/delete. A `recalculateStats(studentId)` function does a full rebuild from sessions — used by nightly cron and on-demand if drift is suspected.
+**Indexes**: `idx_reading_stats_org` on `organization_id` (nightly batch iterates per-org).
+
+**Update path**: Updated in the same DB transaction as session create/update/delete. A `recalculateStats(studentId)` function does a full rebuild from sessions — used by nightly cron and on-demand if drift is suspected. The nightly cron processes students in chunks of 100 per `db.batch()` call (D1 batch limit).
+
+**Monthly/term counter resets**: The nightly cron calls `recalculateStats()` which always rebuilds from source sessions — it does not zero-out and increment. If a student already logged a session on the 1st of the month before the 2:30 AM cron runs, the recalculation will correctly count it.
+
+### Genre classification
+
+Genres are classified into fiction/nonfiction/poetry via a hardcoded mapping in `badgeEngine.js`. The mapping uses genre names from the `genres` table:
+
+- **Fiction**: Adventure, Fantasy, Science Fiction, Mystery, Horror, Romance, Historical Fiction, Realistic Fiction, Fairy Tales, Myths & Legends, Graphic Novels, Humour
+- **Nonfiction**: Non-Fiction, Biography, History, Science, Reference
+- **Poetry**: Poetry
+
+Unrecognised genre names default to fiction. Schools may create custom genres — these fall into the fiction default unless the mapping is updated. This is acceptable for MVP; a future wave could add a `genre_type` column to the `genres` table.
 
 ### New table: `student_badges`
 
@@ -57,6 +71,8 @@ Per-student aggregated counters, updated on every session write. Organization-sc
 | `tier` | TEXT | `bronze`, `silver`, `gold`, `star` |
 | `earned_at` | TEXT | ISO timestamp when awarded |
 | `notified` | INTEGER | 0/1 — whether teacher has seen the unlock |
+
+**Indexes**: `idx_badges_student` on `(student_id)`, `idx_badges_org` on `(organization_id)`.
 
 **No changes to existing tables.** Reads from `students` (year_group, streaks), `reading_sessions`, `books` (genre), and `term_dates`.
 
@@ -83,7 +99,9 @@ Each badge is a JS object in `src/utils/badgeDefinitions.js`:
 
 The `evaluate` and `progress` functions receive:
 - `stats` — the `student_reading_stats` row (camelCase)
-- `context` — `{ keyStage, streak, termDates, currentDate, earnedBadgeIds }`
+- `context` — `{ keyStage, streak, termDates, currentDate, earnedBadgeIds, sessions }` (`sessions` is only populated for batch-evaluated badges that need session-level queries, e.g. Weekend Reader)
+
+**Near-miss threshold**: A badge is a "near miss" when progress is ≥60% of target and the badge is not yet earned. The `nearMisses` array in the API response is capped at 3 badges, sorted by closest to completion.
 
 ### Key stage resolution
 
@@ -104,10 +122,11 @@ The `evaluate` and `progress` functions receive:
 
 ### Nightly batch evaluation (cron at 2:30 AM UTC)
 
-1. For each active student with sessions, rebuild `student_reading_stats` (corrects drift)
-2. Evaluate batch-category badges: seasonal, exploration (needs book genre joins), secret, challenge
-3. Insert any newly earned badges
-4. Reset monthly counters if month boundary crossed
+1. For each active student with sessions, rebuild `student_reading_stats` via `recalculateStats()` (corrects any drift, recalculates monthly/term counters from source sessions)
+2. Load recent sessions for batch badges that need session-level data (e.g. Weekend Reader checks for Sat+Sun pairs)
+3. Evaluate batch-category badges: exploration (needs book genre joins), secret, challenge. Seasonal badges added in Wave 2
+4. Insert any newly earned badges
+5. Process students in chunks of 100 per `db.batch()` call (D1 batch limit)
 
 ## MVP Badge Set (~18 badges)
 
@@ -118,12 +137,12 @@ The `evaluate` and `progress` functions receive:
 | Consistency | Steady Reader | Single | 3 days in one week | 3 days in one week | 3 days in one week |
 | Consistency | Week Warrior | Single | Every day in one week | Every day in one week | Every day in one week |
 | Consistency | Monthly Marvel | Single | 4+ days/week for a month | 4+ days/week for a month | 4+ days/week for a month |
-| Milestone | First Finish | Single | First completed book | First completed book | First completed book |
-| Milestone | Series Finisher | Single | Complete a series | Complete a series | Complete a series |
+| Milestone | First Finish | Single | First book with a session | First book with a session | First book with a session |
+| Milestone | Series Finisher | Single | 3+ books by same author | 3+ books by same author | 3+ books by same author |
 | Exploration | Genre Explorer | Bronze/Silver/Gold | 3/5/7 genres | 3/5/7 genres | 3/5/7 genres |
 | Exploration | Fiction & Fact | Single | Both fiction + nonfiction | Both fiction + nonfiction | Both fiction + nonfiction |
-| Secret | Early Bird | Single | Session before 9am | Session before 9am | Session before 9am |
-| Secret | Weekend Reader | Single | Sat + Sun same weekend | Sat + Sun same weekend | Sat + Sun same weekend |
+| Secret | Bookworm Bonanza | Single | 3+ sessions in one day | 3+ sessions in one day | 3+ sessions in one day |
+| Secret | Weekend Reader | Single | Sat + Sun same weekend (batch, queries sessions) | Sat + Sun same weekend (batch, queries sessions) | Sat + Sun same weekend (batch, queries sessions) |
 
 ### Badge naming principles
 
@@ -178,6 +197,9 @@ No new public paths — all behind existing JWT auth.
 
 | File | Purpose |
 |------|---------|
+| `src/routes/badges.js` | `GET /api/students/:id/badges` and `POST /api/students/:id/badges/notify` |
+| `src/utils/badgeDefinitions.js` | All badge definitions with evaluate/progress functions |
+| `src/utils/badgeEngine.js` | `evaluateRealTime()`, `evaluateBatch()`, `recalculateStats()`, key stage resolution, genre classification mapping |
 | `src/components/badges/GardenHeader.js` | SVG garden evolving through 4 stages based on badge count |
 | `src/components/badges/BadgeCollection.js` | Grid of earned badges + near-miss progress bars |
 | `src/components/badges/BadgeIcon.js` | Single badge circle with tier gradient + category icon |
@@ -189,13 +211,14 @@ No new public paths — all behind existing JWT auth.
 | File | Change |
 |------|--------|
 | `src/worker.js` | Register badge routes, add badge cron at 2:30 AM |
-| `src/routes/students.js` | Include badges/stats/near-misses in GET student response |
-| `src/routes/books.js` | Call `evaluateRealTime()` after session CRUD, return `newBadges` |
+| `src/routes/students.js` | Include badges/stats/near-misses in GET student response. Call `evaluateRealTime()` after session create/update/delete (session handlers are in this file), return `newBadges` |
 | `src/utils/rowMappers.js` | Add `rowToBadge`, `rowToReadingStats` mappers |
 | `src/components/students/StudentCard.js` | Add `BadgeIndicators` + garden count |
 | `src/components/students/StudentDetailDrawer.js` | Add badges section with `GardenHeader` + `BadgeCollection` |
 | `src/components/sessions/SessionForm.js` | Handle `newBadges` in save response, show `BadgeCelebration` |
+| `src/components/sessions/HomeReadingRegister.js` | Handle `newBadges` from session responses. During bulk register entry, queue badge unlocks and show a single summary toast after saving (not per-session celebrations) |
 | `src/contexts/DataContext.js` | Expose badge data from student fetches |
+| `wrangler.toml` | Add `30 2 * * *` cron trigger for nightly badge evaluation |
 
 ### Garden evolution stages
 
