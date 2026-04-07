@@ -173,6 +173,11 @@ settingsRouter.get('/ai', async (c) => {
       SELECT provider, model_preference, is_enabled, api_key_encrypted FROM org_ai_config WHERE organization_id = ?
     `).bind(organizationId).first();
 
+    const org = await db.prepare(
+      'SELECT ai_addon_active FROM organizations WHERE id = ?'
+    ).bind(organizationId).first();
+    const aiAddonActive = Boolean(org?.ai_addon_active);
+
     const activeProvider = config?.provider || 'anthropic';
     const hasOrgKey = Boolean(config?.api_key_encrypted);
 
@@ -188,7 +193,8 @@ settingsRouter.get('/ai', async (c) => {
         google: hasOrgKey && activeProvider === 'google' ? true : envKeys.google
       },
       // Indicate the source of the active key
-      keySource: hasOrgKey ? 'organization' : (envKeys[activeProvider] ? 'environment' : 'none')
+      keySource: hasOrgKey ? 'organization' : (envKeys[activeProvider] ? 'environment' : 'none'),
+      aiAddonActive,
     });
   }
 
@@ -202,7 +208,8 @@ settingsRouter.get('/ai', async (c) => {
     isEnabled: hasAnyKey,
     hasApiKey: envKeys[activeProvider],
     availableProviders: envKeys,
-    keySource: hasAnyKey ? 'environment' : 'none'
+    keySource: hasAnyKey ? 'environment' : 'none',
+    aiAddonActive: true,
   });
 });
 

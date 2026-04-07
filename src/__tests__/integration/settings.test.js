@@ -597,6 +597,55 @@ describe('Settings API Routes', () => {
         expect(data.availableProviders.openai).toBe(true);
         expect(data.availableProviders.google).toBe(false);
       });
+
+      it('should include aiAddonActive from organization record', async () => {
+        const { app, mockDB } = createTestApp({
+          organizationId: 'org-123',
+          userRole: ROLES.TEACHER,
+          userId: 'user-123',
+          anthropicKey: 'test-key',
+        });
+
+        // First call: org_ai_config query
+        mockDB._chain.first.mockResolvedValueOnce({
+          provider: 'anthropic',
+          api_key_encrypted: 'encrypted-key',
+          model_preference: null,
+          is_enabled: 1,
+        });
+        // Second call: organization ai_addon_active query
+        mockDB._chain.first.mockResolvedValueOnce({ ai_addon_active: 1 });
+
+        const response = await makeRequest(app, 'GET', '/api/settings/ai');
+        const data = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(data.aiAddonActive).toBe(true);
+      });
+
+      it('should return aiAddonActive false when addon not active', async () => {
+        const { app, mockDB } = createTestApp({
+          organizationId: 'org-123',
+          userRole: ROLES.TEACHER,
+          userId: 'user-123',
+          anthropicKey: 'test-key',
+        });
+
+        mockDB._chain.first.mockResolvedValueOnce({
+          provider: 'anthropic',
+          api_key_encrypted: 'encrypted-key',
+          model_preference: null,
+          is_enabled: 1,
+        });
+        // Organization has ai_addon_active = 0
+        mockDB._chain.first.mockResolvedValueOnce({ ai_addon_active: 0 });
+
+        const response = await makeRequest(app, 'GET', '/api/settings/ai');
+        const data = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(data.aiAddonActive).toBe(false);
+      });
     });
 
     describe('Legacy mode', () => {
