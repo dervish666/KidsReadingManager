@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.41.1] - 2026-04-07
+
+### Added
+- **AI model dropdown** — AI settings now shows a dropdown of available models; entering an API key and moving focus automatically fetches the live model list from the provider. Returns to the live list when revisiting settings with a saved key.
+
+### Fixed
+- **Anthropic 401 → logout** — Anthropic SDK's `AuthenticationError` (status 401) was propagating to the client, causing `fetchWithAuth` to clear auth state and log the user out; replaced SDK with direct `fetch` so errors surface as 500 without triggering logout
+- **Gemini timeout** — AI recommendation requests using `gemini-2.5-flash` (a reasoning model) timed out after 10 s; timeout raised to 28 s (just under Cloudflare's 30 s subrequest cap)
+- **Null model passed to providers** — when `model_preference` is `null` in the database, explicit `null` bypasses JS default parameters; providers now resolve the model at runtime with `model || 'default'`
+- **Stale key when switching AI provider** — switching provider dropdown without entering a new key left the old key in the database (e.g. a Gemini key used for Anthropic requests); the backend now clears the stored key and disables AI when the provider changes without a new key being supplied
+
 ## [3.41.0] - 2026-04-07
 
 ### Added

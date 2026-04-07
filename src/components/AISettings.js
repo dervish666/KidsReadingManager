@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -13,7 +13,8 @@ import {
   CircularProgress,
   Divider,
   Chip,
-  Stack
+  Stack,
+  InputAdornment,
 } from '@mui/material';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import SaveIcon from '@mui/icons-material/Save';
@@ -22,6 +23,31 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import { useAuth } from '../contexts/AuthContext';
 
 const API_URL = '/api';
+
+// Curated fallback lists shown before / if the live fetch fails
+const STATIC_MODELS = {
+  anthropic: [
+    { id: 'claude-haiku-4-5', name: 'Claude Haiku 4.5 (Fast)' },
+    { id: 'claude-sonnet-4-5', name: 'Claude Sonnet 4.5 (Balanced)' },
+    { id: 'claude-opus-4-5', name: 'Claude Opus 4.5 (Most Capable)' },
+    { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku' },
+    { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet' },
+    { id: 'claude-3-haiku-20240307', name: 'Claude 3 Haiku' },
+  ],
+  openai: [
+    { id: 'gpt-4o-mini', name: 'GPT-4o Mini (Fast)' },
+    { id: 'gpt-4o', name: 'GPT-4o (Balanced)' },
+    { id: 'gpt-4-turbo', name: 'GPT-4 Turbo' },
+    { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo' },
+  ],
+  google: [
+    { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash (Fast)' },
+    { id: 'gemini-2.0-flash-lite', name: 'Gemini 2.0 Flash Lite' },
+    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro' },
+    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash' },
+    { id: 'gemini-1.0-pro', name: 'Gemini 1.0 Pro' },
+  ],
+};
 
 const AISettings = () => {
   const { fetchWithAuth } = useAuth();
@@ -34,20 +60,40 @@ const AISettings = () => {
   const [saveStatus, setSaveStatus] = useState(null); // 'success', 'error', or null
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchedModels, setFetchedModels] = useState(null); // null = not fetched yet
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
+  const [modelFetchError, setModelFetchError] = useState(null);
 
-  // Load existing AI config from /api/settings/ai
+  // Load existing AI config from /api/settings/ai, then fetch live model list if key exists
   useEffect(() => {
     const loadAIConfig = async () => {
       try {
         const response = await fetchWithAuth(`${API_URL}/settings/ai`);
         if (response.ok) {
           const config = await response.json();
-          setProvider(config.provider || 'anthropic');
-          setModelPreference(config.modelPreference || getDefaultModel(config.provider || 'anthropic'));
+          const loadedProvider = config.provider || 'anthropic';
+          setProvider(loadedProvider);
+          setModelPreference(
+            config.modelPreference || getDefaultModel(loadedProvider)
+          );
           setHasApiKey(config.hasApiKey || false);
           setAvailableProviders(config.availableProviders || {});
           setKeySource(config.keySource || 'none');
-          // Don't set apiKey - it's not returned from the server for security
+
+          // If a key is already saved, silently fetch the live model list
+          if (config.hasApiKey) {
+            try {
+              const modelsRes = await fetchWithAuth(`${API_URL}/settings/ai/models`);
+              if (modelsRes.ok) {
+                const { models: live } = await modelsRes.json();
+                if (live && live.length > 0) {
+                  setFetchedModels(live);
+                }
+              }
+            } catch {
+              // Non-fatal — static model list will be shown as fallback
+            }
+          }
         }
       } catch (error) {
         console.error('Error loading AI config:', error);
@@ -74,21 +120,70 @@ const AISettings = () => {
     }
   };
 
+  // Returns the model list to display: fetched > static fallback
+  const getDisplayModels = useCallback(
+    (providerKey) => {
+      const key = providerKey === 'gemini' ? 'google' : providerKey;
+      if (fetchedModels && fetchedModels.length > 0) return fetchedModels;
+      return STATIC_MODELS[key] || [];
+    },
+    [fetchedModels]
+  );
+
+  // Fetch live model list from the provider via our backend proxy
+  const fetchModels = useCallback(
+    async (keyToUse, providerToUse) => {
+      if (!keyToUse) return;
+      const backendProvider = providerToUse === 'gemini' ? 'google' : providerToUse;
+      setIsLoadingModels(true);
+      setModelFetchError(null);
+      try {
+        const response = await fetchWithAuth(`${API_URL}/settings/ai/models`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider: backendProvider, apiKey: keyToUse }),
+        });
+        if (!response.ok) {
+          const err = await response.json();
+          setModelFetchError(err.error || 'Could not verify key');
+          return;
+        }
+        const { models: live } = await response.json();
+        if (live && live.length > 0) {
+          setFetchedModels(live);
+          // Keep current selection if it exists in the live list, otherwise pick first
+          if (!live.find((m) => m.id === modelPreference)) {
+            setModelPreference(live[0].id);
+          }
+        }
+      } catch {
+        setModelFetchError('Could not reach provider API');
+      } finally {
+        setIsLoadingModels(false);
+      }
+    },
+    [fetchWithAuth, modelPreference]
+  );
+
+  const handleApiKeyBlur = () => {
+    if (apiKey) {
+      fetchModels(apiKey, displayProvider);
+    }
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
     setSaveStatus(null);
 
     try {
-      // Map 'gemini' to 'google' for the backend
       const backendProvider = provider === 'gemini' ? 'google' : provider;
 
       const payload = {
         provider: backendProvider,
         modelPreference,
-        isEnabled: true
+        isEnabled: true,
       };
 
-      // Only include apiKey if user entered one (don't send empty string)
       if (apiKey) {
         payload.apiKey = apiKey;
       }
@@ -96,7 +191,7 @@ const AISettings = () => {
       const response = await fetchWithAuth(`${API_URL}/settings/ai`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -108,7 +203,7 @@ const AISettings = () => {
       setHasApiKey(config.hasApiKey);
       setAvailableProviders(config.availableProviders || {});
       setKeySource(config.keySource || 'none');
-      setApiKey(''); // Clear the input after successful save
+      setApiKey('');
       setSaveStatus('success');
     } catch (error) {
       console.error('Error saving AI settings:', error);
@@ -122,7 +217,9 @@ const AISettings = () => {
     const newProvider = e.target.value;
     setProvider(newProvider);
     setModelPreference(getDefaultModel(newProvider));
-    setApiKey(''); // Clear API key when switching providers
+    setApiKey('');
+    setFetchedModels(null);
+    setModelFetchError(null);
   };
 
   if (isLoading) {
@@ -133,23 +230,27 @@ const AISettings = () => {
     );
   }
 
-  // Map backend 'google' to 'gemini' for display
   const displayProvider = provider === 'google' ? 'gemini' : provider;
   const providerLabel = displayProvider.charAt(0).toUpperCase() + displayProvider.slice(1);
 
-  // Helper to get provider display info
   const getProviderInfo = (providerKey) => {
     const names = {
       anthropic: 'Anthropic (Claude)',
       openai: 'OpenAI (GPT)',
-      google: 'Google (Gemini)'
+      google: 'Google (Gemini)',
     };
     return names[providerKey] || providerKey;
   };
 
-  // Check if current provider has a key
   const currentProviderKey = displayProvider === 'gemini' ? 'google' : displayProvider;
   const hasCurrentProviderKey = availableProviders[currentProviderKey] || false;
+
+  const displayModels = getDisplayModels(displayProvider);
+  // Ensure the currently-saved model appears even if it's not in the list
+  const modelOptions =
+    modelPreference && !displayModels.find((m) => m.id === modelPreference)
+      ? [{ id: modelPreference, name: modelPreference }, ...displayModels]
+      : displayModels;
 
   return (
     <Box>
@@ -160,8 +261,8 @@ const AISettings = () => {
         </Box>
 
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Configure the AI provider used for generating book recommendations.
-          You can choose between Anthropic (Claude), OpenAI (ChatGPT), or Google (Gemini).
+          Configure the AI provider used for generating book recommendations. You can choose between
+          Anthropic (Claude), OpenAI (ChatGPT), or Google (Gemini).
         </Typography>
 
         {/* Provider Status Overview */}
@@ -178,13 +279,13 @@ const AISettings = () => {
                   key={p}
                   icon={hasKey ? <CheckCircleIcon /> : <CancelIcon />}
                   label={getProviderInfo(p)}
-                  color={isActive ? 'primary' : (hasKey ? 'success' : 'default')}
+                  color={isActive ? 'primary' : hasKey ? 'success' : 'default'}
                   variant={isActive ? 'filled' : 'outlined'}
                   size="small"
                   sx={{
                     '& .MuiChip-icon': {
-                      color: hasKey ? (isActive ? 'inherit' : 'success.main') : 'text.disabled'
-                    }
+                      color: hasKey ? (isActive ? 'inherit' : 'success.main') : 'text.disabled',
+                    },
                   }}
                 />
               );
@@ -192,14 +293,16 @@ const AISettings = () => {
           </Stack>
           {keySource !== 'none' && (
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-              Active key source: {keySource === 'organization' ? 'Organization settings' : 'Environment variable'}
+              Active key source:{' '}
+              {keySource === 'organization' ? 'Organization settings' : 'Environment variable'}
             </Typography>
           )}
         </Paper>
 
         {!hasCurrentProviderKey && keySource === 'none' && (
           <Alert severity="warning" sx={{ mb: 2 }}>
-            No API key configured for {getProviderInfo(currentProviderKey)}. Book recommendations will use fallback suggestions.
+            No API key configured for {getProviderInfo(currentProviderKey)}. Book recommendations
+            will use fallback suggestions.
           </Alert>
         )}
 
@@ -235,9 +338,7 @@ const AISettings = () => {
               <MenuItem value="anthropic">
                 Anthropic (Claude) {availableProviders.anthropic && '✓'}
               </MenuItem>
-              <MenuItem value="openai">
-                OpenAI (GPT) {availableProviders.openai && '✓'}
-              </MenuItem>
+              <MenuItem value="openai">OpenAI (GPT) {availableProviders.openai && '✓'}</MenuItem>
               <MenuItem value="gemini">
                 Google (Gemini) {availableProviders.google && '✓'}
               </MenuItem>
@@ -249,20 +350,57 @@ const AISettings = () => {
             label={`${providerLabel} API Key`}
             type="password"
             value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
+            onChange={(e) => {
+              setApiKey(e.target.value);
+              // Clear fetched models when key is edited so they re-fetch on blur
+              if (fetchedModels) {
+                setFetchedModels(null);
+                setModelFetchError(null);
+              }
+            }}
+            onBlur={handleApiKeyBlur}
             placeholder={hasApiKey ? '••••••••••••••••' : 'Enter API key'}
-            helperText="Your API key is encrypted and stored securely."
+            helperText={
+              modelFetchError
+                ? modelFetchError
+                : fetchedModels
+                  ? `✓ Key verified — ${fetchedModels.length} models loaded`
+                  : hasApiKey
+                    ? 'Your API key is encrypted and stored securely.'
+                    : 'Enter your key — models will load automatically when you move focus away.'
+            }
+            error={Boolean(modelFetchError)}
             sx={{ mb: 3 }}
           />
 
-          <TextField
-            fullWidth
-            label="Model Name"
-            value={modelPreference}
-            onChange={(e) => setModelPreference(e.target.value)}
-            helperText="Specify the model version to use."
-            sx={{ mb: 3 }}
-          />
+          <FormControl fullWidth sx={{ mb: 3 }}>
+            <InputLabel id="model-label">Model</InputLabel>
+            <Select
+              labelId="model-label"
+              value={modelOptions.find((m) => m.id === modelPreference) ? modelPreference : ''}
+              label="Model"
+              onChange={(e) => setModelPreference(e.target.value)}
+              disabled={isLoadingModels}
+              endAdornment={
+                isLoadingModels ? (
+                  <InputAdornment position="end" sx={{ mr: 2 }}>
+                    <CircularProgress size={18} />
+                  </InputAdornment>
+                ) : null
+              }
+            >
+              {modelOptions.map((m) => (
+                <MenuItem key={m.id} value={m.id}>
+                  {m.name}
+                </MenuItem>
+              ))}
+            </Select>
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, ml: 1.75 }}>
+              {fetchedModels
+                ? 'Live model list from provider.'
+                : 'Showing common models. Enter an API key to load the full list.'}
+            </Typography>
+          </FormControl>
 
           <Button
             variant="contained"

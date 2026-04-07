@@ -103,32 +103,40 @@ Ensure recommendations are age-appropriate and match the student's reading level
 async function callAnthropic(
   prompt,
   apiKey,
-  model = 'claude-haiku-4-5',
+  model,
   baseUrl = 'https://api.anthropic.com/v1',
   raw = false
 ) {
-  // Use dynamic import for SDK to support Worker environment
-  const { Anthropic } = await import('@anthropic-ai/sdk');
+  // Use direct fetch instead of the SDK — the SDK's AuthenticationError carries
+  // status=401 which our error handler propagates to the client, triggering logout.
+  const resolvedModel = model || 'claude-haiku-4-5';
+  const url = `${baseUrl}/messages`;
 
-  const anthropic = new Anthropic({
-    apiKey: apiKey,
-    baseURL: baseUrl !== 'https://api.anthropic.com/v1' ? baseUrl : undefined,
-    timeout: 10000,
-  });
-
-  const response = await anthropic.messages.create({
-    model: model,
-    max_tokens: raw ? 1500 : 1000,
-    temperature: 0.7,
-    messages: [
-      {
-        role: 'user',
-        content: prompt,
+  const response = await fetchWithTimeout(
+    url,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
       },
-    ],
-  });
+      body: JSON.stringify({
+        model: resolvedModel,
+        max_tokens: raw ? 1500 : 1000,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    },
+    30000
+  );
 
-  const text = response.content[0].text;
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(`Anthropic API error: ${errorData.error?.message || response.statusText}`);
+  }
+
+  const data = await response.json();
+  const text = data.content[0].text;
   return raw ? text : parseResponse(text);
 }
 
@@ -143,10 +151,11 @@ async function callAnthropic(
 async function callOpenAI(
   prompt,
   apiKey,
-  model = 'gpt-5-nano',
+  model,
   baseUrl = 'https://api.openai.com/v1',
   raw = false
 ) {
+  const resolvedModel = model || 'gpt-4o-mini';
   const url = `${baseUrl}/chat/completions`;
 
   const response = await fetchWithTimeout(
@@ -158,7 +167,7 @@ async function callOpenAI(
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: model,
+        model: resolvedModel,
         messages: [
           {
             role: 'system',
@@ -216,13 +225,15 @@ async function callOpenAI(
 async function callGemini(
   prompt,
   apiKey,
-  model = 'gemini-flash-latest',
+  model,
   baseUrl = 'https://generativelanguage.googleapis.com/v1beta',
   raw = false
 ) {
+  // Null/undefined model bypasses default params; resolve explicitly.
+  const resolvedModel = model || 'gemini-2.0-flash';
   // Gemini API requires the key as a query parameter — this is a known API constraint.
   // Mitigate: use a dedicated Gemini-only API key and rotate periodically.
-  const url = `${baseUrl}/models/${model}:generateContent?key=${apiKey}`;
+  const url = `${baseUrl}/models/${resolvedModel}:generateContent?key=${apiKey}`;
 
   const response = await fetchWithTimeout(
     url,
@@ -247,7 +258,7 @@ async function callGemini(
         },
       }),
     },
-    10000
+    28000
   );
 
   if (!response.ok) {

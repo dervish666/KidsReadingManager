@@ -10,7 +10,12 @@ import {
 import { validateSettings } from '../utils/validation';
 import { badRequestError } from '../middleware/errorHandler';
 import { auditLog, requireReadonly, requireAdmin } from '../middleware/tenant';
-import { permissions, encryptSensitiveData, getEncryptionSecret } from '../utils/crypto';
+import {
+  permissions,
+  encryptSensitiveData,
+  decryptSensitiveData,
+  getEncryptionSecret,
+} from '../utils/crypto';
 
 import { getDB, isMultiTenantMode } from '../utils/routeHelpers';
 
@@ -244,16 +249,25 @@ export async function upsertAiConfig(c) {
 
   // Check if config exists
   const existing = await db.prepare(`
-    SELECT id FROM org_ai_config WHERE organization_id = ?
+    SELECT id, provider FROM org_ai_config WHERE organization_id = ?
   `).bind(organizationId).first();
 
   if (existing) {
     const updates = [];
     const params = [];
 
+    const providerChanging = provider !== undefined && provider !== existing.provider;
+
     if (provider !== undefined) {
       updates.push('provider = ?');
       params.push(provider);
+    }
+
+    // If the provider is changing and no new key was supplied, clear the old key
+    // so the stale key from a different provider is never sent to the wrong API.
+    if (providerChanging && apiKey === undefined) {
+      updates.push('api_key_encrypted = NULL');
+      updates.push('is_enabled = 0');
     }
 
     if (apiKey !== undefined) {
@@ -340,6 +354,120 @@ export async function upsertAiConfig(c) {
 
 settingsRouter.post('/ai', requireAdmin(), auditLog('update', 'ai_settings'), async (c) => {
   return upsertAiConfig(c);
+});
+
+/**
+ * Shared helper: call provider models API and return [{id, name}] list.
+ */
+async function fetchProviderModels(provider, apiKey) {
+  if (provider === 'anthropic') {
+    const res = await fetch('https://api.anthropic.com/v1/models', {
+      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return (data.data || []).map((m) => ({ id: m.id, name: m.display_name || m.id }));
+  }
+
+  if (provider === 'openai') {
+    const res = await fetch('https://api.openai.com/v1/models', {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return (data.data || [])
+      .filter((m) => /^(gpt-|o1|o3|o4)/.test(m.id))
+      .sort((a, b) => b.created - a.created)
+      .map((m) => ({ id: m.id, name: m.id }));
+  }
+
+  if (provider === 'google') {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    return (data.models || [])
+      .filter(
+        (m) =>
+          m.name.includes('gemini') && m.supportedGenerationMethods?.includes('generateContent')
+      )
+      .map((m) => ({
+        id: m.name.replace('models/', ''),
+        name: m.displayName || m.name.replace('models/', ''),
+      }));
+  }
+
+  return null;
+}
+
+/**
+ * GET /api/settings/ai/models
+ * Fetch available models using the organization's stored API key.
+ */
+settingsRouter.get('/ai/models', requireAdmin(), async (c) => {
+  if (!isMultiTenantMode(c)) {
+    return c.json({ models: [] });
+  }
+
+  const db = getDB(c.env);
+  const organizationId = c.get('organizationId');
+
+  const config = await db
+    .prepare('SELECT provider, api_key_encrypted FROM org_ai_config WHERE organization_id = ?')
+    .bind(organizationId)
+    .first();
+
+  if (!config?.api_key_encrypted) {
+    return c.json({ models: [] });
+  }
+
+  const encSecret = getEncryptionSecret(c.env);
+  if (!encSecret) {
+    return c.json({ models: [] });
+  }
+
+  let apiKey;
+  try {
+    apiKey = await decryptSensitiveData(config.api_key_encrypted, encSecret);
+  } catch {
+    return c.json({ models: [] });
+  }
+
+  try {
+    const models = await fetchProviderModels(config.provider || 'anthropic', apiKey);
+    return c.json({ models: models || [] });
+  } catch {
+    return c.json({ models: [] });
+  }
+});
+
+/**
+ * POST /api/settings/ai/models
+ * Fetch available models for a provider using the supplied API key.
+ * Acts as a backend proxy to avoid CORS issues and keep keys server-side.
+ */
+settingsRouter.post('/ai/models', requireAdmin(), async (c) => {
+  const { provider, apiKey } = await c.req.json();
+
+  if (!provider || !apiKey) {
+    throw badRequestError('provider and apiKey are required');
+  }
+
+  const validProviders = ['anthropic', 'openai', 'google'];
+  if (!validProviders.includes(provider)) {
+    throw badRequestError('Invalid provider');
+  }
+
+  try {
+    const models = await fetchProviderModels(provider, apiKey);
+    if (models === null) {
+      return c.json({ error: 'Invalid API key' }, 400);
+    }
+    return c.json({ models });
+  } catch {
+    return c.json({ error: 'Failed to reach provider API' }, 502);
+  }
 });
 
 export { settingsRouter };
