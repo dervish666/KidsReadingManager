@@ -738,60 +738,65 @@
   position: relative;
 }
 
-.lp-signup-input-row {
+.lp-contact-fields {
   display: flex;
-  gap: 0.75rem;
-  justify-content: center;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 12px;
   max-width: 480px;
   margin: 0 auto;
 }
 
-.lp-signup-input {
-  flex: 1;
-  min-width: 220px;
-  padding: 0.75rem 1.2rem;
-  border: 2px solid rgba(107, 143, 107, 0.25);
-  border-radius: 50px;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 0.95rem;
-  background: white;
-  color: var(--text-primary);
-  outline: none;
+.lp-contact-input,
+.lp-contact-textarea {
+  padding: 14px 18px;
+  border: 1.5px solid rgba(107, 142, 107, 0.25);
+  border-radius: 12px;
+  font-size: 1rem;
+  background: rgba(255, 255, 255, 0.7);
+  font-family: inherit;
+  color: #4a3728;
   transition: border-color 0.2s;
 }
 
-.lp-signup-input:focus {
-  border-color: var(--sage);
+.lp-contact-input:focus,
+.lp-contact-textarea:focus {
+  border-color: #6B8E6B;
+  outline: none;
 }
 
-.lp-signup-input::placeholder {
-  color: var(--text-light);
+.lp-contact-input::placeholder,
+.lp-contact-textarea::placeholder {
+  color: #a0937e;
 }
 
-.lp-signup-note {
+.lp-contact-textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.lp-contact-note {
   font-size: 0.82rem;
-  color: var(--text-light);
-  margin-top: 0.8rem;
+  color: #8b7d6b;
+  margin-top: 4px;
   text-align: center;
 }
 
-.lp-signup-error {
-  font-size: 0.85rem;
-  color: #dc2626;
-  margin-top: 0.6rem;
+.lp-contact-error {
+  color: #c0392b;
+  font-size: 0.9rem;
+  margin: 0;
   text-align: center;
 }
 
-.lp-signup-thanks p:first-child {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--sage-dark);
+.lp-contact-thanks p:first-child {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #6B8E6B;
+  margin-bottom: 8px;
 }
 
-.lp-signup-thanks p:last-child {
-  color: var(--text-secondary);
-  margin-top: 0.5rem;
+.lp-contact-thanks p:last-child {
+  color: #8b7d6b;
 }
 
 /* ---- FOOTER ---- */

@@ -23,7 +23,7 @@ const ChevronRight = () => (
 
 export default function LandingPage({ onSignIn }) {
   const [navScrolled, setNavScrolled] = useState(false);
-  const [signupSubmitted, setSignupSubmitted] = useState(false);
+  const [contactSubmitted, setContactSubmitted] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
   const revealRefs = useRef(new Set());
 
@@ -86,29 +86,32 @@ export default function LandingPage({ onSignIn }) {
     }
   };
 
-  const [signupLoading, setSignupLoading] = useState(false);
-  const [signupError, setSignupError] = useState(null);
+  const [contactLoading, setContactLoading] = useState(false);
+  const [contactError, setContactError] = useState(null);
 
-  const handleSignup = async (e) => {
+  const handleContact = async (e) => {
     e.preventDefault();
-    const email = e.target.querySelector('input[type="email"]').value;
-    setSignupLoading(true);
-    setSignupError(null);
+    const form = e.target;
+    const name = form.querySelector('input[name="name"]').value;
+    const email = form.querySelector('input[name="email"]').value;
+    const message = form.querySelector('textarea[name="message"]').value;
+    setContactLoading(true);
+    setContactError(null);
     try {
-      const res = await fetch('/api/signup', {
+      const res = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ name, email, message }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || 'Something went wrong');
       }
-      setSignupSubmitted(true);
+      setContactSubmitted(true);
     } catch (err) {
-      setSignupError(err.message);
+      setContactError(err.message);
     } finally {
-      setSignupLoading(false);
+      setContactLoading(false);
     }
   };
 
@@ -396,36 +399,53 @@ export default function LandingPage({ onSignIn }) {
           </div>
         </section>
 
-        {/* CTA */}
+        {/* Get in Touch */}
         <section className="lp-cta" id="contact">
           <div className="lp-cta-box lp-reveal" ref={addRevealRef}>
-            <h2>We're launching soon</h2>
+            <h2>Get in Touch</h2>
             <p>
-              Leave your email and we'll let you know when Tally is ready. Early sign-ups get a free
-              month to try it out.
+              Interested in Tally Reading for your school? Drop us a message and we'll get back to
+              you.
             </p>
-            <form className="lp-signup-form" onSubmit={handleSignup}>
-              {!signupSubmitted ? (
-                <div className="lp-signup-fields">
-                  <div className="lp-signup-input-row">
-                    <input
-                      type="email"
-                      placeholder="your.name@school.sch.uk"
-                      required
-                      className="lp-signup-input"
-                      disabled={signupLoading}
-                    />
-                    <button
-                      type="submit"
-                      className="lp-btn lp-btn-primary"
-                      disabled={signupLoading}
-                    >
-                      {signupLoading ? 'Sending...' : 'Keep me posted'}
-                    </button>
-                  </div>
-                  {signupError && <p className="lp-signup-error">{signupError}</p>}
-                  <p className="lp-signup-note">
-                    No spam, just a heads-up when we're live. See our{' '}
+            <form className="lp-contact-form" onSubmit={handleContact}>
+              {!contactSubmitted ? (
+                <div className="lp-contact-fields">
+                  <input
+                    type="text"
+                    name="name"
+                    placeholder="Your name"
+                    required
+                    maxLength={100}
+                    className="lp-contact-input"
+                    disabled={contactLoading}
+                  />
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="your.name@school.sch.uk"
+                    required
+                    className="lp-contact-input"
+                    disabled={contactLoading}
+                  />
+                  <textarea
+                    name="message"
+                    placeholder="How can we help?"
+                    required
+                    maxLength={5000}
+                    rows={4}
+                    className="lp-contact-textarea"
+                    disabled={contactLoading}
+                  />
+                  <button
+                    type="submit"
+                    className="lp-btn lp-btn-primary"
+                    disabled={contactLoading}
+                  >
+                    {contactLoading ? 'Sending...' : 'Send Message'}
+                  </button>
+                  {contactError && <p className="lp-contact-error">{contactError}</p>}
+                  <p className="lp-contact-note">
+                    We'll reply to your email within one working day. See our{' '}
                     <a
                       href="/privacy"
                       target="_blank"
@@ -438,9 +458,9 @@ export default function LandingPage({ onSignIn }) {
                   </p>
                 </div>
               ) : (
-                <div className="lp-signup-thanks">
-                  <p>You're on the list!</p>
-                  <p>We'll be in touch when Tally is ready.</p>
+                <div className="lp-contact-thanks">
+                  <p>Thanks for getting in touch!</p>
+                  <p>We'll reply to your email shortly.</p>
                 </div>
               )}
             </form>
