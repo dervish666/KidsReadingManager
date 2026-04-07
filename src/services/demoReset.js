@@ -118,7 +118,7 @@ export async function resetDemoData(db) {
   }
   console.log('[DemoReset] Deletes complete');
 
-  // Phase 2: Insert snapshot data in FK-safe order, batched
+  // Phase 2: Insert snapshot data in FK-safe order, batched per table
   for (const table of INSERT_ORDER) {
     const rows = SNAPSHOT[table] || [];
     if (rows.length === 0) continue;
@@ -126,10 +126,22 @@ export async function resetDemoData(db) {
     const statements = rows.map((row) => buildInsert(db, table, row));
     try {
       await batchExec(db, statements, table);
-      console.log(`[DemoReset] Inserted ${rows.length} rows into ${table}`);
+      console.log(`[DemoReset] ${table}: ${rows.length} rows inserted`);
     } catch (error) {
-      console.error(`[DemoReset] Insert into ${table} failed: ${error.message}`);
-      // Continue with other tables rather than aborting entirely
+      // Batch failed — try row-by-row to identify the problem
+      console.error(`[DemoReset] ${table} batch failed: ${error.message}`);
+      let inserted = 0;
+      for (const row of rows) {
+        try {
+          await buildInsert(db, table, row).run();
+          inserted++;
+        } catch (rowErr) {
+          if (inserted === 0) {
+            console.error(`[DemoReset] ${table} row error: ${rowErr.message}`);
+          }
+        }
+      }
+      console.log(`[DemoReset] ${table}: ${inserted}/${rows.length} rows via fallback`);
     }
   }
 
