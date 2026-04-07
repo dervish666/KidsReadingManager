@@ -82,17 +82,22 @@ const INSERT_ORDER = [
 function buildInsert(db, table, row) {
   const keys = Object.keys(row);
   const placeholders = keys.map(() => '?').join(', ');
-  const sql = `INSERT INTO ${table} (${keys.join(', ')}) VALUES (${placeholders})`;
+  const sql = `INSERT OR IGNORE INTO ${table} (${keys.join(', ')}) VALUES (${placeholders})`;
   return db.prepare(sql).bind(...keys.map((k) => row[k]));
 }
 
 /**
  * Execute statements in batches of BATCH_LIMIT.
  */
-async function batchExec(db, statements) {
+async function batchExec(db, statements, label) {
   for (let i = 0; i < statements.length; i += BATCH_LIMIT) {
     const chunk = statements.slice(i, i + BATCH_LIMIT);
-    await db.batch(chunk);
+    try {
+      await db.batch(chunk);
+    } catch (error) {
+      console.error(`[DemoReset] batch ${label} [${i}..${i + chunk.length}] failed:`, error.message);
+      throw error;
+    }
   }
 }
 
@@ -100,22 +105,33 @@ async function batchExec(db, statements) {
  * Reset all demo org data: delete everything, re-insert from snapshot.
  */
 export async function resetDemoData(db) {
-  // Phase 1: Delete all demo org data in FK-safe order
-  const deleteStatements = DELETE_TABLES.map(({ table, where }) =>
-    db.prepare(`DELETE FROM ${table} WHERE ${where}`)
-  );
-  await batchExec(db, deleteStatements);
+  console.log('[DemoReset] Starting reset...');
 
-  // Phase 2: Insert snapshot data in FK-safe order
-  const insertStatements = [];
+  // Phase 1: Delete all demo org data — run each delete individually
+  // so a missing table doesn't abort the entire process
+  for (const { table, where } of DELETE_TABLES) {
+    try {
+      await db.prepare(`DELETE FROM ${table} WHERE ${where}`).run();
+    } catch (error) {
+      console.warn(`[DemoReset] delete ${table} skipped: ${error.message}`);
+    }
+  }
+  console.log('[DemoReset] Deletes complete');
+
+  // Phase 2: Insert snapshot data in FK-safe order, batched
   for (const table of INSERT_ORDER) {
     const rows = SNAPSHOT[table] || [];
-    for (const row of rows) {
-      insertStatements.push(buildInsert(db, table, row));
+    if (rows.length === 0) continue;
+
+    const statements = rows.map((row) => buildInsert(db, table, row));
+    try {
+      await batchExec(db, statements, table);
+      console.log(`[DemoReset] Inserted ${rows.length} rows into ${table}`);
+    } catch (error) {
+      console.error(`[DemoReset] Insert into ${table} failed: ${error.message}`);
+      // Continue with other tables rather than aborting entirely
     }
   }
 
-  if (insertStatements.length > 0) {
-    await batchExec(db, insertStatements);
-  }
+  console.log('[DemoReset] Reset complete');
 }
