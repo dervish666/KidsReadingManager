@@ -244,7 +244,7 @@ const SchoolManagement = () => {
     try {
       const res = await fetchWithAuth('/api/billing/setup', {
         method: 'POST',
-        body: JSON.stringify({ plan: 'monthly', organizationId: selectedSchool.id }),
+        body: JSON.stringify({ organizationId: selectedSchool.id }),
       });
       const data = await res.json();
       if (data.status !== 'trialing') {

@@ -11,49 +11,47 @@ export function getStripe(env) {
   });
 }
 
+// Legacy price IDs for existing subscribers (old pricing structure)
+const LEGACY_MONTHLY_PRICE = 'price_1TEYdAFvBYcaukPXJ0EaqNNX';
+const LEGACY_TERMLY_PRICE = 'price_1TEYd9FvBYcaukPXZPZ2lUjI';
+const LEGACY_ANNUAL_PRICE = 'price_1TEYd8FvBYcaukPXwLnIiDdp';
+const LEGACY_AI_ADDON_PRICE = 'price_1TEbkYFvBYcaukPXPNfBZrre';
+
 /**
- * Map plan name to Stripe Price ID.
- * @param {string} plan - 'monthly', 'termly', or 'annual'
+ * Get the annual plan Stripe Price ID.
  * @param {object} env - Cloudflare Worker env bindings
  * @returns {string} Stripe Price ID
  */
-export function getPriceId(plan, env) {
-  const map = {
-    monthly: env.STRIPE_MONTHLY_PRICE_ID,
-    termly: env.STRIPE_TERMLY_PRICE_ID,
-    annual: env.STRIPE_ANNUAL_PRICE_ID,
-  };
-  const priceId = map[plan];
-  if (!priceId) {
-    throw new Error(`Unknown billing plan: ${plan}`);
-  }
-  return priceId;
+export function getPriceId(env) {
+  return env.STRIPE_ANNUAL_PRICE_ID;
 }
 
 /**
  * Reverse-map a Stripe Price ID back to a plan name.
- * Used by webhook handlers to keep subscription_plan in sync.
+ * Recognises both current and legacy price IDs so webhooks
+ * continue to work for existing subscribers on old plans.
  * @param {string} priceId - Stripe Price ID
  * @param {object} env - Cloudflare Worker env bindings
  * @returns {string|null} Plan name or null if not recognised
  */
 export function getPlanFromPriceId(priceId, env) {
-  if (priceId === env.STRIPE_MONTHLY_PRICE_ID) return 'monthly';
-  if (priceId === env.STRIPE_TERMLY_PRICE_ID) return 'termly';
   if (priceId === env.STRIPE_ANNUAL_PRICE_ID) return 'annual';
+  if (priceId === LEGACY_ANNUAL_PRICE) return 'annual';
+  if (priceId === LEGACY_MONTHLY_PRICE) return 'monthly';
+  if (priceId === LEGACY_TERMLY_PRICE) return 'termly';
   return null;
 }
 
 /**
  * Check whether a subscription includes the AI add-on.
- * Looks through all line items for the AI add-on price.
+ * Recognises both current and legacy AI add-on price IDs.
  * @param {object} subscription - Stripe Subscription object (with items expanded)
  * @param {object} env - Cloudflare Worker env bindings
  * @returns {boolean}
  */
 export function hasAiAddon(subscription, env) {
-  if (!env.STRIPE_AI_ADDON_PRICE_ID) return false;
-  return (subscription.items?.data || []).some(
-    (item) => item.price?.id === env.STRIPE_AI_ADDON_PRICE_ID
+  const addonPrices = [env.STRIPE_AI_ADDON_PRICE_ID, LEGACY_AI_ADDON_PRICE].filter(Boolean);
+  return (subscription.items?.data || []).some((item) =>
+    addonPrices.includes(item.price?.id)
   );
 }

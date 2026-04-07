@@ -13,8 +13,8 @@ export const billingRouter = new Hono();
 
 // ── Helper: build subscription line items ─────────────────────────────────
 
-function buildLineItems(plan, includeAiAddon, env) {
-  const items = [{ price: getPriceId(plan, env) }];
+function buildLineItems(includeAiAddon, env) {
+  const items = [{ price: getPriceId(env) }];
   if (includeAiAddon && env.STRIPE_AI_ADDON_PRICE_ID) {
     items.push({ price: env.STRIPE_AI_ADDON_PRICE_ID });
   }
@@ -57,16 +57,9 @@ billingRouter.post('/setup', requireAdmin(), async (c) => {
     return c.json({ error: 'Billing already configured for this organization' }, 400);
   }
 
-  const plan = body.plan || 'monthly';
+  const plan = 'annual';
   const includeAiAddon = Boolean(body.includeAiAddon);
   const billingEmail = typeof body.billingEmail === 'string' ? body.billingEmail.trim() : null;
-
-  // Validate plan
-  try {
-    getPriceId(plan, c.env);
-  } catch {
-    return c.json({ error: 'Invalid plan. Must be monthly, termly, or annual.' }, 400);
-  }
 
   // Determine billing email: explicit input > org billing_email > org contact_email > admin user's email
   let email = billingEmail;
@@ -111,7 +104,7 @@ billingRouter.post('/setup', requireAdmin(), async (c) => {
     // 2. Create Subscription with trial (base plan + optional AI add-on)
     const subscription = await stripe.subscriptions.create({
       customer: customer.id,
-      items: buildLineItems(plan, includeAiAddon, c.env),
+      items: buildLineItems(includeAiAddon, c.env),
       trial_period_days: 30,
       collection_method: 'send_invoice',
       days_until_due: 30,
@@ -249,7 +242,7 @@ billingRouter.post('/portal', requireAdmin(), async (c) => {
 
 /**
  * POST /api/billing/change-plan
- * Switch between monthly/termly/annual billing.
+ * Migrate existing subscribers to the current annual plan.
  * Requires: admin role
  */
 billingRouter.post('/change-plan', requireAdmin(), async (c) => {
@@ -267,18 +260,7 @@ billingRouter.post('/change-plan', requireAdmin(), async (c) => {
     return c.json({ error: 'No active subscription' }, 400);
   }
 
-  const body = await c.req.json().catch(() => null);
-  if (!body?.plan) {
-    return c.json({ error: 'plan is required' }, 400);
-  }
-
-  let priceId;
-  try {
-    priceId = getPriceId(body.plan, c.env);
-  } catch {
-    return c.json({ error: 'Invalid plan. Must be monthly, termly, or annual.' }, 400);
-  }
-
+  const priceId = getPriceId(c.env);
   const stripe = getStripe(c.env);
 
   // Get current subscription to find the item ID
@@ -289,7 +271,7 @@ billingRouter.post('/change-plan', requireAdmin(), async (c) => {
     return c.json({ error: 'Subscription has no items' }, 500);
   }
 
-  // Update the subscription to the new price
+  // Update the subscription to the current annual price
   await stripe.subscriptions.update(org.stripe_subscription_id, {
     items: [{ id: itemId, price: priceId }],
     proration_behavior: 'create_prorations',
@@ -298,12 +280,12 @@ billingRouter.post('/change-plan', requireAdmin(), async (c) => {
   // Update local record (webhook will also update, but this is faster for UX)
   await db
     .prepare(
-      "UPDATE organizations SET subscription_plan = ?, updated_at = datetime('now') WHERE id = ?"
+      "UPDATE organizations SET subscription_plan = 'annual', updated_at = datetime('now') WHERE id = ?"
     )
-    .bind(body.plan, organizationId)
+    .bind(organizationId)
     .run();
 
-  return c.json({ plan: body.plan, status: 'updated' });
+  return c.json({ plan: 'annual', status: 'updated' });
 });
 
 /**
