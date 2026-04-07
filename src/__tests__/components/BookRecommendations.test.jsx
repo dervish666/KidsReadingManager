@@ -161,9 +161,10 @@ const createMockFetch = (responses = {}) => {
         ok: true,
         json: () => Promise.resolve(responses.aiConfig || {
           hasApiKey: true,
-          keySource: 'settings',
+          keySource: 'organization',
           provider: 'anthropic',
-          modelPreference: 'claude-3-sonnet'
+          modelPreference: 'claude-3-sonnet',
+          aiAddonActive: false,
         })
       });
     }
@@ -349,7 +350,7 @@ describe('BookRecommendations Component', () => {
         if (url === '/api/settings/ai') {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ hasApiKey: true, provider: 'anthropic' })
+            json: () => Promise.resolve({ hasApiKey: true, keySource: 'organization', provider: 'anthropic' })
           });
         }
         if (url.startsWith('/api/books/library-search')) {
@@ -440,9 +441,10 @@ describe('BookRecommendations Component', () => {
       const mockFetch = createMockFetch({
         aiConfig: {
           hasApiKey: true,
-          keySource: 'settings',
+          keySource: 'organization',
           provider: 'anthropic',
-          modelPreference: 'claude-3-sonnet'
+          modelPreference: 'claude-3-sonnet',
+          aiAddonActive: false,
         }
       });
       const context = createMockContext({ fetchWithAuth: mockFetch });
@@ -750,7 +752,7 @@ describe('BookRecommendations Component', () => {
         if (url === '/api/settings/ai') {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ hasApiKey: true, provider: 'anthropic' })
+            json: () => Promise.resolve({ hasApiKey: true, keySource: 'organization', provider: 'anthropic' })
           });
         }
         if (url.startsWith('/api/books/library-search')) {
@@ -1088,7 +1090,7 @@ describe('BookRecommendations Component', () => {
         if (url === '/api/settings/ai') {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ hasApiKey: true, provider: 'anthropic' })
+            json: () => Promise.resolve({ hasApiKey: true, keySource: 'organization', provider: 'anthropic' })
           });
         }
         if (url.startsWith('/api/books/library-search')) {
@@ -1123,7 +1125,7 @@ describe('BookRecommendations Component', () => {
         if (url === '/api/settings/ai') {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ hasApiKey: true, provider: 'anthropic' })
+            json: () => Promise.resolve({ hasApiKey: true, keySource: 'organization', provider: 'anthropic' })
           });
         }
         if (url.startsWith('/api/books/library-search')) {
@@ -1171,7 +1173,7 @@ describe('BookRecommendations Component', () => {
         if (url === '/api/settings/ai') {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ hasApiKey: true, provider: 'anthropic' })
+            json: () => Promise.resolve({ hasApiKey: true, keySource: 'organization', provider: 'anthropic' })
           });
         }
         if (url.startsWith('/api/books/library-search')) {
@@ -1209,7 +1211,7 @@ describe('BookRecommendations Component', () => {
         if (url === '/api/settings/ai') {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ hasApiKey: true, provider: 'anthropic' })
+            json: () => Promise.resolve({ hasApiKey: true, keySource: 'organization', provider: 'anthropic' })
           });
         }
         if (url.startsWith('/api/books/library-search')) {
@@ -1240,7 +1242,7 @@ describe('BookRecommendations Component', () => {
         if (url === '/api/settings/ai') {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ hasApiKey: true, provider: 'anthropic' })
+            json: () => Promise.resolve({ hasApiKey: true, keySource: 'organization', provider: 'anthropic' })
           });
         }
         if (url.startsWith('/api/books/library-search')) {
@@ -1285,7 +1287,7 @@ describe('BookRecommendations Component', () => {
         if (url === '/api/settings/ai') {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ hasApiKey: true, provider: 'anthropic' })
+            json: () => Promise.resolve({ hasApiKey: true, keySource: 'organization', provider: 'anthropic' })
           });
         }
         if (url.startsWith('/api/books/library-search')) {
@@ -1316,7 +1318,7 @@ describe('BookRecommendations Component', () => {
         if (url === '/api/settings/ai') {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ hasApiKey: true, provider: 'anthropic' })
+            json: () => Promise.resolve({ hasApiKey: true, keySource: 'organization', provider: 'anthropic' })
           });
         }
         if (url.startsWith('/api/books/library-search')) {
@@ -1427,7 +1429,7 @@ describe('BookRecommendations Component', () => {
   describe('AI Provider Display', () => {
     it('should display Claude as provider name for anthropic', async () => {
       const mockFetch = createMockFetch({
-        aiConfig: { hasApiKey: true, provider: 'anthropic' }
+        aiConfig: { hasApiKey: true, keySource: 'organization', provider: 'anthropic' }
       });
       const context = createMockContext({ fetchWithAuth: mockFetch });
       render(<BookRecommendations />, { wrapper: createWrapper(context) });
@@ -1439,7 +1441,7 @@ describe('BookRecommendations Component', () => {
 
     it('should display GPT as provider name for openai', async () => {
       const mockFetch = createMockFetch({
-        aiConfig: { hasApiKey: true, provider: 'openai' }
+        aiConfig: { hasApiKey: true, keySource: 'organization', provider: 'openai' }
       });
       const context = createMockContext({ fetchWithAuth: mockFetch });
       render(<BookRecommendations />, { wrapper: createWrapper(context) });
@@ -1451,7 +1453,7 @@ describe('BookRecommendations Component', () => {
 
     it('should display Gemini as provider name for google', async () => {
       const mockFetch = createMockFetch({
-        aiConfig: { hasApiKey: true, provider: 'google' }
+        aiConfig: { hasApiKey: true, keySource: 'organization', provider: 'google' }
       });
       const context = createMockContext({ fetchWithAuth: mockFetch });
       render(<BookRecommendations />, { wrapper: createWrapper(context) });
@@ -1729,7 +1731,7 @@ describe('BookRecommendations Component', () => {
         if (url === '/api/settings/ai') {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ hasApiKey: true, provider: 'anthropic' })
+            json: () => Promise.resolve({ hasApiKey: true, keySource: 'organization', provider: 'anthropic' })
           });
         }
         if (url.startsWith('/api/books/library-search')) {
@@ -1798,7 +1800,7 @@ describe('BookRecommendations Component', () => {
         if (url === '/api/settings/ai') {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ hasApiKey: true, provider: 'anthropic' })
+            json: () => Promise.resolve({ hasApiKey: true, keySource: 'organization', provider: 'anthropic' })
           });
         }
         if (url.startsWith('/api/books/library-search')) {

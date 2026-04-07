@@ -401,7 +401,9 @@ const BookRecommendations = () => {
   };
 
   // Determine AI status
-  const hasActiveAI = aiConfig?.hasApiKey || aiConfig?.keySource === 'environment';
+  const hasActiveAI =
+    aiConfig?.keySource === 'organization' ||
+    (aiConfig?.keySource === 'environment' && aiConfig?.aiAddonActive);
   const activeProvider = aiConfig?.provider;
 
   return (
@@ -1200,8 +1202,8 @@ const BookRecommendations = () => {
         >
           <SmartToyIcon sx={{ color: 'text.secondary' }} />
           <Typography variant="body2" color="text.secondary">
-            AI-powered recommendations are available with an API key — ask your admin to configure
-            one in Settings.
+            AI recommendations require an API key. Your school admin can configure one in Settings,
+            or contact Tally Reading to enable the AI add-on.
           </Typography>
         </Paper>
       )}
