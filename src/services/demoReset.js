@@ -63,8 +63,8 @@ const DELETE_TABLES = [
 // Tables to insert in FK-safe order (parents before children)
 const INSERT_ORDER = [
   'users',
-  'students',
   'classes',
+  'students',
   'class_assignments',
   'reading_sessions',
   'student_preferences',
