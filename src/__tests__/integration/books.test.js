@@ -2,6 +2,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Hono } from 'hono';
 import { booksRouter } from '../../routes/books.js';
 
+vi.mock('../../routes/metadata.js', () => ({
+  getConfigWithKeys: vi.fn(),
+}));
+vi.mock('../../services/metadataService.js', () => ({
+  enrichBook: vi.fn(),
+}));
+
+import { getConfigWithKeys } from '../../routes/metadata.js';
+import { enrichBook } from '../../services/metadataService.js';
+
 const TEST_SECRET = 'test-jwt-secret-for-testing';
 
 /**
@@ -1417,6 +1427,118 @@ describe('Books API Routes', () => {
 
       expect(data1.books).toHaveLength(1);
       expect(data1.books[0].id).toBe('org-book');
+    });
+  });
+
+  describe('POST /api/books/:id/enrich', () => {
+    beforeEach(() => {
+      vi.resetAllMocks();
+    });
+
+    it('returns 404 when book not found', async () => {
+      const { app } = createTestApp(
+        createUserContext({ userRole: 'admin' }),
+        { firstResult: null }
+      );
+
+      const res = await makeRequest(app, 'POST', '/api/books/nonexistent/enrich');
+      expect(res.status).toBe(404);
+    });
+
+    it('returns enriched fields when book is found and providers return data', async () => {
+      const book = createMockBookRow({ id: 'book-1', isbn: '9780261102217', description: null });
+      const mockDB = createMockDB({ firstResult: book });
+      // metadata_config query comes second
+      mockDB._chain.first
+        .mockResolvedValueOnce(book)
+        .mockResolvedValueOnce({ provider_chain: '["openlibrary"]', hardcover_api_key_encrypted: null, google_books_api_key_encrypted: null, rate_limit_delay_ms: 1500, batch_size: 10, fetch_covers: 1 });
+
+      getConfigWithKeys.mockResolvedValue({
+        providerChain: ['openlibrary'],
+        hardcoverApiKey: null,
+        googleBooksApiKey: null,
+        fetchCovers: true,
+      });
+      enrichBook.mockResolvedValue({
+        merged: { description: 'There and back again.', coverUrl: null },
+        log: [{ provider: 'openlibrary', fields: ['description'] }],
+        rateLimited: [],
+      });
+
+      const { app } = createTestApp(
+        createUserContext({ userRole: 'admin' }),
+        {}
+      );
+      // Inject our controlled mockDB
+      const res = await app.request('/api/books/book-1/enrich', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        env: { READING_MANAGER_DB: mockDB },
+      });
+
+      // Can't inject env easily via request — use createTestApp with overrides instead
+      const { app: app2 } = createTestApp(
+        createUserContext({ userRole: 'admin' }),
+        { firstResult: book }
+      );
+      getConfigWithKeys.mockResolvedValue({
+        providerChain: ['openlibrary'],
+        hardcoverApiKey: null,
+        googleBooksApiKey: null,
+        fetchCovers: true,
+      });
+      enrichBook.mockResolvedValue({
+        merged: { description: 'There and back again.', coverUrl: null },
+        log: [{ provider: 'openlibrary', fields: ['description'] }],
+        rateLimited: [],
+      });
+
+      const res2 = await makeRequest(app2, 'POST', '/api/books/book-1/enrich');
+      expect(res2.status).toBe(200);
+      const data = await res2.json();
+      expect(data.description).toBe('There and back again.');
+      expect(data.coverStored).toBe(false);
+      expect(data.fieldsEnriched).toContain('description');
+    });
+
+    it('stores cover in R2 and reports coverStored true when ISBN present and coverUrl returned', async () => {
+      const book = createMockBookRow({ id: 'book-2', isbn: '9780261102217', description: null });
+      const mockR2 = { put: vi.fn().mockResolvedValue(undefined) };
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(5000)),
+        headers: { get: () => 'image/jpeg' },
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      getConfigWithKeys.mockResolvedValue({
+        providerChain: ['openlibrary'],
+        hardcoverApiKey: null,
+        googleBooksApiKey: null,
+        fetchCovers: true,
+      });
+      enrichBook.mockResolvedValue({
+        merged: { coverUrl: 'https://covers.openlibrary.org/b/isbn/9780261102217-M.jpg' },
+        log: [{ provider: 'openlibrary', fields: ['coverUrl'] }],
+        rateLimited: [],
+      });
+
+      const { app } = createTestApp(
+        createUserContext({ userRole: 'admin', env: { BOOK_COVERS: mockR2 } }),
+        { firstResult: book }
+      );
+
+      const res = await makeRequest(app, 'POST', '/api/books/book-2/enrich');
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.coverStored).toBe(true);
+      expect(mockR2.put).toHaveBeenCalledWith(
+        'isbn/9780261102217-M.jpg',
+        expect.any(ArrayBuffer),
+        expect.objectContaining({ httpMetadata: { contentType: 'image/jpeg' } })
+      );
+
+      vi.unstubAllGlobals();
     });
   });
 });

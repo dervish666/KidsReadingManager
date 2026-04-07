@@ -1,5 +1,24 @@
 # Changelog
 
+## [3.41.0] - 2026-04-07
+
+### Added
+- **Badge & achievement system** — 18 reading badges across 5 categories (Streak, Volume, Variety, Consistency, Milestone) with tier progression (Bronze/Silver/Gold/Platinum), garden-themed UI, celebration dialog on unlock, and near-miss progress bars
+- **Single-book metadata enrichment** — "Get Details" in the book edit dialog now calls the server-side cascade engine (Hardcover → Google Books → OpenLibrary), stores covers in R2, and returns description/genres; no longer makes direct browser-to-provider API calls
+- **Contact form on landing page** — replaces newsletter signup; submissions go to the support ticket system with `source: 'contact_form'`
+- **AI add-on gating** — AI book recommendations are gated behind either an active AI add-on subscription or a user-supplied API key; fallback message shown when neither is configured
+
+### Fixed
+- **Hardcover proxy key lookup** — `/api/hardcover/graphql` now reads the API key from `metadata_config` (encrypted) instead of the legacy `org_settings.bookMetadata` row
+- **Leaked API key in demo snapshot** — `demoSnapshot.js` had real Google Books and Hardcover API keys embedded; both scrubbed to empty strings
+- **Demo snapshot export strips API keys** — `export-demo-snapshot.js` now redacts `googleBooksApiKey` and `hardcoverApiKey` from `org_settings` rows before writing the snapshot
+
+### Security
+- **API key exposure remediation** — Google Books and Hardcover keys were committed in `demoSnapshot.js` (commit `2dde6e0`); keys rotated, snapshot scrubbed, export script patched
+
+### Changed
+- **Stripe pricing** — base plan updated to £199/yr, AI add-on £49/yr
+
 ## [3.40.0] - 2026-04-07
 
 ### Added

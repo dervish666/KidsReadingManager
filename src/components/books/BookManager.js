@@ -680,7 +680,6 @@ const BookManager = () => {
         onClose={() => setEditingBook(null)}
         onSave={(message) => setSnackbar({ open: true, message, severity: 'success' })}
         genres={genres}
-        settings={settings}
       />
 
       {/* Delete Confirmation */}

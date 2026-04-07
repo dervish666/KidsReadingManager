@@ -14,31 +14,19 @@ const HARDCOVER_GRAPHQL_URL = 'https://api.hardcover.app/v1/graphql';
  */
 hardcoverRouter.post('/graphql', requireTeacher(), async (c) => {
   const db = c.env.READING_MANAGER_DB;
-  const organizationId = c.get('organizationId');
 
-  // Read Hardcover API key from org settings and decrypt
+  // Read Hardcover API key from metadata_config (owner-managed, encrypted)
   let apiKey = null;
-  if (db && organizationId) {
+  if (db) {
     const row = await db.prepare(
-      `SELECT setting_value FROM org_settings WHERE organization_id = ? AND setting_key = 'bookMetadata'`
-    ).bind(organizationId).first();
+      `SELECT hardcover_api_key_encrypted FROM metadata_config WHERE id = 'default'`
+    ).first();
 
-    if (row) {
+    if (row?.hardcover_api_key_encrypted) {
       try {
-        const bookMetadata = JSON.parse(row.setting_value);
-        const storedKey = bookMetadata.hardcoverApiKey || null;
-        if (storedKey && c.env.JWT_SECRET) {
-          try {
-            apiKey = await decryptSensitiveData(storedKey, getEncryptionSecret(c.env));
-          } catch {
-            // Pre-migration plaintext value — use as-is
-            apiKey = storedKey;
-          }
-        } else {
-          apiKey = storedKey;
-        }
+        apiKey = await decryptSensitiveData(row.hardcover_api_key_encrypted, getEncryptionSecret(c.env));
       } catch {
-        // ignore parse errors
+        // ignore decrypt errors
       }
     }
   }

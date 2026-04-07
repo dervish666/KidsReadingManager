@@ -26,6 +26,10 @@ import { parseGenreIds } from '../utils/helpers.js';
 // Import middleware
 import { requireReadonly, requireTeacher, requireAdmin, auditLog } from '../middleware/tenant.js';
 
+// Import metadata cascade for single-book enrichment
+import { getConfigWithKeys } from './metadata.js';
+import { enrichBook } from '../services/metadataService.js';
+
 // Create router
 const booksRouter = new Hono();
 
@@ -1277,6 +1281,58 @@ booksRouter.delete('/clear-library', requireAdmin(), auditLog('clear', 'library'
   return c.json({
     message: `Cleared ${booksUnlinked} books from library`,
     booksUnlinked,
+  });
+});
+
+/**
+ * POST /api/books/:id/enrich
+ * Enrich a single book using the metadata cascade engine.
+ * Fetches description, genres, cover etc. from configured providers
+ * and stores any cover image in R2.
+ */
+booksRouter.post('/:id/enrich', requireAdmin(), async (c) => {
+  const { id } = c.req.param();
+  const db = c.env.READING_MANAGER_DB;
+  if (!db) throw notFoundError('Book not found');
+
+  const book = await db.prepare('SELECT * FROM books WHERE id = ?').bind(id).first();
+  if (!book) throw notFoundError('Book not found');
+
+  const encSecret = getEncryptionSecret(c.env);
+  const config = await getConfigWithKeys(db, encSecret);
+  if (!config) return c.json({ error: 'Metadata configuration not found' }, 500);
+  config.fetchCovers = Boolean(config.fetchCovers);
+
+  const { merged, log } = await enrichBook(
+    { id: book.id, title: book.title, author: book.author, isbn: book.isbn },
+    config,
+  );
+
+  const fieldsEnriched = log.flatMap((entry) => entry.fields);
+
+  // Store cover in R2 if a coverUrl was found and the book has an ISBN
+  let coverStored = false;
+  const r2 = c.env.BOOK_COVERS;
+  if (merged.coverUrl && book.isbn && r2) {
+    try {
+      const res = await fetch(merged.coverUrl, { headers: { 'User-Agent': 'TallyReading/1.0 (educational-app)' } });
+      if (res.ok) {
+        const imageData = await res.arrayBuffer();
+        if (imageData.byteLength > 1000) {
+          await r2.put(`isbn/${book.isbn}-M.jpg`, imageData, {
+            httpMetadata: { contentType: res.headers.get('Content-Type') || 'image/jpeg' },
+          });
+          coverStored = true;
+        }
+      }
+    } catch { /* non-critical */ }
+  }
+
+  return c.json({
+    description: merged.description || null,
+    genres: merged.genres || null,
+    coverStored,
+    fieldsEnriched,
   });
 });
 

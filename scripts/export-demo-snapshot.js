@@ -78,6 +78,27 @@ for (const table of TABLES) {
   }
 }
 
+// Strip API keys from org_settings before committing to snapshot
+const SENSITIVE_SETTING_KEYS = ['googleBooksApiKey', 'hardcoverApiKey'];
+if (snapshot.org_settings) {
+  snapshot.org_settings = snapshot.org_settings.map((row) => {
+    if (!row.setting_value) return row;
+    try {
+      const val = JSON.parse(row.setting_value);
+      let changed = false;
+      for (const key of SENSITIVE_SETTING_KEYS) {
+        if (val[key]) {
+          val[key] = '';
+          changed = true;
+        }
+      }
+      return changed ? { ...row, setting_value: JSON.stringify(val) } : row;
+    } catch {
+      return row;
+    }
+  });
+}
+
 // Always include empty arrays for tables with no data
 snapshot.user_tour_completions = [];
 

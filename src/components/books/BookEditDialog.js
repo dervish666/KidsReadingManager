@@ -19,16 +19,9 @@ import {
 import InfoIcon from '@mui/icons-material/Info';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
-import {
-  getBookDetails,
-  findGenresForBook,
-  checkAvailability,
-  getProviderDisplayName,
-  validateProviderConfig,
-} from '../../utils/bookMetadataApi';
 import BookCover from '../BookCover';
 
-const BookEditDialog = ({ book, onClose, onSave, genres, settings }) => {
+const BookEditDialog = ({ book, onClose, onSave, genres }) => {
   const { fetchWithAuth } = useAuth();
   const { reloadDataFromServer } = useData();
 
@@ -65,113 +58,44 @@ const BookEditDialog = ({ book, onClose, onSave, genres, settings }) => {
   }, [snackbar]);
 
   const handleFetchBookDetails = async () => {
-    if (!editBookTitle.trim()) {
-      setSnackbar({
-        open: true,
-        message: 'Please enter a book title first',
-        severity: 'warning',
-      });
-      return;
-    }
-
-    // Validate provider configuration
-    const configValidation = validateProviderConfig(settings);
-    if (!configValidation.valid) {
-      setSnackbar({
-        open: true,
-        message: configValidation.error,
-        severity: 'error',
-      });
-      return;
-    }
-
     setIsFetchingDetails(true);
-    const providerName = getProviderDisplayName(settings);
-
-    // Check provider availability first with a quick timeout
-    const isAvailable = await checkAvailability(settings, 3000);
-    if (!isAvailable) {
-      setIsFetchingDetails(false);
-      setSnackbar({
-        open: true,
-        message: `${providerName} is currently unavailable. Please try again later.`,
-        severity: 'error',
-      });
-      return;
-    }
-
     try {
-      // Fetch book details (cover and description)
-      const details = await getBookDetails(editBookTitle, editBookAuthor || null, settings);
+      const res = await fetchWithAuth(`/api/books/${book.id}/enrich`, { method: 'POST' });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to fetch details');
+      }
 
-      let foundCover = false;
-      let foundDescription = false;
-      let foundGenres = false;
+      const data = await res.json();
+      const parts = [];
 
-      if (details) {
-        if (details.coverUrl) {
-          foundCover = true;
-        }
-        if (details.description) {
-          setEditBookDescription(details.description);
-          foundDescription = true;
+      if (data.description) {
+        setEditBookDescription(data.description);
+        parts.push('description');
+      }
+
+      if (data.coverStored) {
+        parts.push('cover');
+      }
+
+      if (data.genres?.length > 0) {
+        const genreNameToId = Object.fromEntries(genres.map((g) => [g.name.toLowerCase(), g.id]));
+        const matchedIds = data.genres
+          .map((name) => genreNameToId[name.toLowerCase()])
+          .filter(Boolean);
+        if (matchedIds.length > 0) {
+          setEditBookGenreIds((prev) => [...new Set([...prev, ...matchedIds])]);
+          parts.push('genres');
         }
       }
 
-      // Also fetch genres
-      try {
-        const genresResult = await findGenresForBook(
-          editBookTitle,
-          editBookAuthor || null,
-          settings
-        );
-        if (genresResult && genresResult.length > 0) {
-          // Create a map of genre name to ID
-          const genreNameToId = {};
-          for (const genre of genres) {
-            genreNameToId[genre.name.toLowerCase()] = genre.id;
-          }
-
-          // Map found genres to existing genre IDs (case-insensitive)
-          const matchedGenreIds = genresResult
-            .map((genreName) => genreNameToId[genreName.toLowerCase()])
-            .filter((id) => id);
-
-          if (matchedGenreIds.length > 0) {
-            // Merge with existing genres (avoid duplicates)
-            setEditBookGenreIds((prev) => [...new Set([...prev, ...matchedGenreIds])]);
-            foundGenres = true;
-          }
-        }
-      } catch (genreError) {
-        // Don't fail the whole operation if genres fail
-      }
-
-      // Build success message
-      if (foundCover || foundDescription || foundGenres) {
-        const parts = [];
-        if (foundCover) parts.push('cover');
-        if (foundDescription) parts.push('description');
-        if (foundGenres) parts.push('genres');
-
-        setSnackbar({
-          open: true,
-          message: `Loaded ${parts.join(', ')} from ${providerName}`,
-          severity: 'success',
-        });
-      } else {
-        setSnackbar({
-          open: true,
-          message: `No details found for this book on ${providerName}`,
-          severity: 'warning',
-        });
-      }
-    } catch (error) {
       setSnackbar({
         open: true,
-        message: `Failed to fetch details: ${error.message}`,
-        severity: 'error',
+        message: parts.length > 0 ? `Loaded ${parts.join(', ')}` : 'No new details found',
+        severity: parts.length > 0 ? 'success' : 'warning',
       });
+    } catch (err) {
+      setSnackbar({ open: true, message: err.message, severity: 'error' });
     } finally {
       setIsFetchingDetails(false);
     }
@@ -382,7 +306,7 @@ const BookEditDialog = ({ book, onClose, onSave, genres, settings }) => {
           variant="outlined"
           startIcon={isFetchingDetails ? <CircularProgress size={20} /> : <InfoIcon />}
           onClick={handleFetchBookDetails}
-          disabled={isFetchingDetails || !editBookTitle.trim()}
+          disabled={isFetchingDetails}
           size="small"
         >
           {isFetchingDetails ? 'Loading...' : 'Get Details'}

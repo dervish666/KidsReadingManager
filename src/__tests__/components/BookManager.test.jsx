@@ -796,8 +796,18 @@ describe('BookManager Component', () => {
       consoleSpy.mockRestore();
     });
 
-    it('should fetch book details from API when Get Details button is clicked', async () => {
-      const context = createMockContext();
+    it('should call enrich endpoint when Get Details button is clicked', async () => {
+      const mockFetchWithAuth = vi.fn().mockImplementation((url) => {
+        if (url === '/api/books?all=true')
+          return Promise.resolve({ ok: true, json: () => Promise.resolve(defaultBooks) });
+        if (url.endsWith('/enrich'))
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ description: 'Enriched description', coverStored: true, genres: [], fieldsEnriched: ['description'] }),
+          });
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+      });
+      const context = createMockContext({ fetchWithAuth: mockFetchWithAuth });
       const user = userEvent.setup();
       render(<BookManager />, { wrapper: createWrapper(context) });
 
@@ -809,10 +819,9 @@ describe('BookManager Component', () => {
       await user.click(getDetailsButton);
 
       await waitFor(() => {
-        expect(bookMetadataApi.getBookDetails).toHaveBeenCalledWith(
-          'The Cat in the Hat',
-          'Dr. Seuss',
-          expect.any(Object)
+        expect(mockFetchWithAuth).toHaveBeenCalledWith(
+          expect.stringMatching(/\/api\/books\/.+\/enrich/),
+          { method: 'POST' }
         );
       });
     });

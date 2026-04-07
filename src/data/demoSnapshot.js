@@ -30927,7 +30927,7 @@ export const SNAPSHOT = {
       "id": "8770994b-8aab-4f32-9e06-ddd8ca9201ca",
       "organization_id": "3780f673-74e1-4252-91b5-777c9de2760d",
       "setting_key": "bookMetadata",
-      "setting_value": "{\"provider\":\"openlibrary\",\"googleBooksApiKey\":\"AIzaSyBQP4elD1TYYK5qa0qkPsimar5v6TzgdJw\",\"hardcoverApiKey\":\"Bearer eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJIYXJkY292ZXIiLCJ2ZXJzaW9uIjoiOCIsImp0aSI6IjhjMDRiYzBkLWVmOTgtNDQyNy05M2JhLWM3M2FkNDcwZmFkYiIsImFwcGxpY2F0aW9uSWQiOjIsInN1YiI6IjY5MjYzIiwiYXVkIjoiMSIsImlkIjoiNjkyNjMiLCJsb2dnZWRJbiI6dHJ1ZSwiaWF0IjoxNzcxODQ5ODQ2LCJleHAiOjE4MDMzODU4NDYsImh0dHBzOi8vaGFzdXJhLmlvL2p3dC9jbGFpbXMiOnsieC1oYXN1cmEtYWxsb3dlZC1yb2xlcyI6WyJ1c2VyIl0sIngtaGFzdXJhLWRlZmF1bHQtcm9sZSI6InVzZXIiLCJ4LWhhc3VyYS1yb2xlIjoidXNlciIsIlgtaGFzdXJhLXVzZXItaWQiOiI2OTI2MyJ9LCJ1c2VyIjp7ImlkIjo2OTI2M319.nCu7n5OF-rySO7wgBMJ-aaFJstr00EWGNgnF0ik5OdQ\",\"batchSize\":275,\"speedPreset\":\"normal\",\"autoFallback\":true}",
+      "setting_value": "{\"provider\":\"openlibrary\",\"googleBooksApiKey\":\"\",\"hardcoverApiKey\":\"\",\"batchSize\":275,\"speedPreset\":\"normal\",\"autoFallback\":true}",
       "updated_by": "bc3a54f9-f769-4b0b-86b8-e3f04da6f0ee",
       "updated_at": "2026-02-24 13:36:03",
       "created_at": "2025-12-27 19:45:32"
