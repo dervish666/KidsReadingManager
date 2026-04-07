@@ -17,6 +17,7 @@ import { useData } from '../../contexts/DataContext';
 import { useUI } from '../../contexts/UIContext';
 import { useTour } from '../tour/useTour';
 import TourButton from '../tour/TourButton';
+import BadgeCelebration from '../badges/BadgeCelebration';
 import QuickReadingView from './QuickReadingView';
 import FullReadingView from './FullReadingView';
 import MultipleCountDialog from './MultipleCountDialog';
@@ -69,6 +70,7 @@ const HomeReadingRegister = () => {
   const [historyRefresh, setHistoryRefresh] = useState(0);
   const [viewMode, setViewMode] = useState('quick');
 
+  const [celebrationBadges, setCelebrationBadges] = useState([]);
   const [recordingStudents, setRecordingStudents] = useState(new Set());
   const [editingBookStudentId, setEditingBookStudentId] = useState(null);
   const [quickMultipleStudent, setQuickMultipleStudent] = useState(null);
@@ -505,6 +507,7 @@ const HomeReadingRegister = () => {
       }
 
       const bookId = student.currentBookId || null;
+      const collectedBadges = [];
 
       if (status === READING_STATUS.ABSENT) {
         await addReadingSession(student.id, {
@@ -539,33 +542,37 @@ const HomeReadingRegister = () => {
             );
 
           if (dayHasMarker) {
-            await addReadingSession(student.id, {
+            const r1 = await addReadingSession(student.id, {
               date: dateStr,
               assessment: null,
               notes: i > 0 ? '[BACKFILL]' : '',
               bookId,
               location: 'home',
             });
-            await addReadingSession(student.id, {
+            if (r1?.newBadges?.length > 0) collectedBadges.push(...r1.newBadges);
+            const r2 = await addReadingSession(student.id, {
               date: selectedDate,
               assessment: null,
               notes: '',
               bookId,
               location: 'home',
             });
+            if (r2?.newBadges?.length > 0) collectedBadges.push(...r2.newBadges);
           } else {
-            await addReadingSession(student.id, {
+            const r = await addReadingSession(student.id, {
               date: dateStr,
               assessment: null,
               notes: i > 0 ? '[BACKFILL]' : '',
               bookId,
               location: 'home',
             });
+            if (r?.newBadges?.length > 0) collectedBadges.push(...r.newBadges);
           }
         }
       }
 
       await refreshSessions();
+      if (collectedBadges.length > 0) setCelebrationBadges(collectedBadges);
     } catch (error) {
       setSnackbarMessage('Failed to record reading');
       setSnackbarSeverity('error');
@@ -600,6 +607,7 @@ const HomeReadingRegister = () => {
 
       // Get the student's current book from the database
       const bookId = selectedStudent.currentBookId || null;
+      const collectedBadges = [];
 
       // Create a single session based on status
       if (status === READING_STATUS.ABSENT) {
@@ -643,35 +651,39 @@ const HomeReadingRegister = () => {
 
           if (dayHasMarker) {
             // Create session on the actual day (for streak calculation)
-            await addReadingSession(selectedStudent.id, {
+            const r1 = await addReadingSession(selectedStudent.id, {
               date: dateStr,
               assessment: null,
               notes: i > 0 ? '[BACKFILL]' : '',
               bookId,
               location: 'home',
             });
+            if (r1?.newBadges?.length > 0) collectedBadges.push(...r1.newBadges);
             // Also create session on the selected date (for display count)
-            await addReadingSession(selectedStudent.id, {
+            const r2 = await addReadingSession(selectedStudent.id, {
               date: selectedDate,
               assessment: null,
               notes: '',
               bookId,
               location: 'home',
             });
+            if (r2?.newBadges?.length > 0) collectedBadges.push(...r2.newBadges);
           } else {
             // Normal day — create session on that day
-            await addReadingSession(selectedStudent.id, {
+            const r = await addReadingSession(selectedStudent.id, {
               date: dateStr,
               assessment: null,
               notes: i > 0 ? '[BACKFILL]' : '',
               bookId,
               location: 'home',
             });
+            if (r?.newBadges?.length > 0) collectedBadges.push(...r.newBadges);
           }
         }
       }
 
       await refreshSessions();
+      if (collectedBadges.length > 0) setCelebrationBadges(collectedBadges);
       setHistoryRefresh((c) => c + 1);
       setSnackbarMessage(
         `Recorded ${count > 1 ? count + ' days' : ''} for ${selectedStudent.name}`
@@ -959,6 +971,7 @@ const HomeReadingRegister = () => {
           {snackbarMessage}
         </Alert>
       </Snackbar>
+      <BadgeCelebration badges={celebrationBadges} onClose={() => setCelebrationBadges([])} />
       <TourButton {...homeTourButtonProps} />
     </Box>
   );

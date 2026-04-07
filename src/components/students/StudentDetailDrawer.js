@@ -22,6 +22,10 @@ import StreakBadge from './StreakBadge';
 import StudentReadView from './StudentReadView';
 import StudentEditForm from './StudentEditForm';
 import StudentTimeline from './StudentTimeline';
+import BadgeCollection from '../badges/BadgeCollection';
+import { BADGE_DEFINITIONS } from '../../utils/badgeDefinitions';
+
+const BADGE_MAP = Object.fromEntries(BADGE_DEFINITIONS.map((b) => [b.id, b]));
 
 /**
  * StudentDetailDrawer — right-anchored drawer combining student header,
@@ -425,6 +429,22 @@ const StudentDetailDrawer = ({ open, student, onClose }) => {
     return (
       <Box sx={{ p: 2, overflow: 'auto', flex: 1 }}>
         <StudentReadView student={fullStudent || student} sessions={sessions} />
+        {fullStudent && (
+          <BadgeCollection
+            studentName={fullStudent.name?.split(' ')[0]}
+            badges={(fullStudent.badges || []).map((b) => {
+              const def = BADGE_MAP[b.badgeId];
+              return {
+                ...b,
+                name: def?.name || b.badgeId,
+                icon: def?.icon || 'bookworm',
+                description: def?.description,
+              };
+            })}
+            nearMisses={fullStudent.nearMisses || []}
+            stats={fullStudent.readingStats}
+          />
+        )}
       </Box>
     );
   };

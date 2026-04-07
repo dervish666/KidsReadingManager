@@ -33,6 +33,7 @@ import AssessmentSelector from './AssessmentSelector';
 import SessionNotes from './SessionNotes';
 import BookAutocomplete from './BookAutocomplete';
 import StudentInfoCard from './StudentInfoCard';
+import BadgeCelebration from '../badges/BadgeCelebration';
 import {
   getBookDetails,
   checkAvailability,
@@ -74,6 +75,7 @@ const SessionForm = () => {
   const [notesAnchor, setNotesAnchor] = useState(null);
   const notesOpen = Boolean(notesAnchor);
   const [bookEnjoyment, setBookEnjoyment] = useState(null); // null | 'liked' | 'disliked'
+  const [celebrationBadges, setCelebrationBadges] = useState([]);
 
   // Student reading history
   const [studentHistory, setStudentHistory] = useState([]);
@@ -282,6 +284,10 @@ const SessionForm = () => {
     });
 
     if (result) {
+      if (result?.newBadges?.length > 0) {
+        setCelebrationBadges(result.newBadges);
+      }
+
       // Save book enjoyment feedback (non-blocking)
       if (bookEnjoyment && selectedBook?.title) {
         const student = students.find((s) => s.id === selectedStudentId);
@@ -968,6 +974,7 @@ const SessionForm = () => {
           },
         }}
       />
+      <BadgeCelebration badges={celebrationBadges} onClose={() => setCelebrationBadges([])} />
       <TourButton {...tourButtonProps} />
     </Box>
   );
