@@ -76,6 +76,8 @@ const SessionForm = () => {
   const notesOpen = Boolean(notesAnchor);
   const [bookEnjoyment, setBookEnjoyment] = useState(null); // null | 'liked' | 'disliked'
   const [celebrationBadges, setCelebrationBadges] = useState([]);
+  const [pendingGoalCelebration, setPendingGoalCelebration] = useState(null);
+  const [completedGoals, setCompletedGoals] = useState([]);
 
   // Student reading history
   const [studentHistory, setStudentHistory] = useState([]);
@@ -83,6 +85,14 @@ const SessionForm = () => {
   const [historyRefresh, setHistoryRefresh] = useState(0);
 
   const booksMap = useMemo(() => new Map(books.map((b) => [b.id, b])), [books]);
+
+  // If there are no badges to show first, display goal celebration immediately
+  useEffect(() => {
+    if (pendingGoalCelebration && (!celebrationBadges || celebrationBadges.length === 0)) {
+      setCompletedGoals(pendingGoalCelebration);
+      setPendingGoalCelebration(null);
+    }
+  }, [pendingGoalCelebration, celebrationBadges]);
 
   useEffect(() => {
     if (!selectedStudentId) {
@@ -286,6 +296,9 @@ const SessionForm = () => {
     if (result) {
       if (result?.newBadges?.length > 0) {
         setCelebrationBadges(result.newBadges);
+      }
+      if (result.completedGoals?.length) {
+        setPendingGoalCelebration(result.completedGoals);
       }
 
       // Save book enjoyment feedback (non-blocking)
@@ -974,7 +987,27 @@ const SessionForm = () => {
           },
         }}
       />
-      <BadgeCelebration badges={celebrationBadges} onClose={() => setCelebrationBadges([])} />
+      <BadgeCelebration
+        badges={celebrationBadges}
+        onClose={() => {
+          setCelebrationBadges([]);
+          if (pendingGoalCelebration) {
+            setCompletedGoals(pendingGoalCelebration);
+            setPendingGoalCelebration(null);
+          }
+        }}
+      />
+      <Snackbar
+        open={completedGoals.length > 0}
+        autoHideDuration={5000}
+        onClose={() => setCompletedGoals([])}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        message={
+          completedGoals[0]
+            ? `Your class just hit ${completedGoals[0].target} ${completedGoals[0].metric}! 🎉`
+            : ''
+        }
+      />
       <TourButton {...tourButtonProps} />
     </Box>
   );
