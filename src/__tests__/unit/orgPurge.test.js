@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { Hono } from 'hono';
 import { hardDeleteOrganization } from '../../services/orgPurge.js';
+import { organizationRouter } from '../../routes/organization.js';
 
 // Track all SQL statements and their bind args
 let sqlLog = [];
@@ -175,5 +177,132 @@ describe('hardDeleteOrganization', () => {
     const deleteSqls = sqlLog.filter((e) => e.sql.startsWith('DELETE FROM'));
     // 25 DELETEs from DELETE_ORDER + 1 data_rights_log = 26 total attempted
     expect(deleteSqls).toHaveLength(26);
+  });
+});
+
+// ---------------------------------------------------------------
+// Endpoint tests for DELETE /api/organization/:id/purge
+// ---------------------------------------------------------------
+
+/**
+ * Build a Hono test app with the organization router mounted.
+ * Middleware injects env and context values with owner defaults.
+ */
+const createPurgeTestApp = (mockDb, contextValues = {}) => {
+  const app = new Hono();
+
+  app.use('*', async (c, next) => {
+    c.env = { JWT_SECRET: 'test-secret', READING_MANAGER_DB: mockDb };
+    c.set('userId', contextValues.userId || 'user-owner-1');
+    c.set('organizationId', contextValues.organizationId || ORG_ID);
+    c.set('userRole', contextValues.userRole || 'owner');
+    c.set(
+      'user',
+      contextValues.user || { id: 'user-owner-1', role: 'owner', organizationId: ORG_ID }
+    );
+    await next();
+  });
+
+  app.onError((error, c) => {
+    const status = error.status || 500;
+    return c.json({ error: error.message }, status);
+  });
+
+  app.route('/api/organization', organizationRouter);
+  return app;
+};
+
+describe('DELETE /api/organization/:id/purge', () => {
+  beforeEach(() => {
+    vi.stubGlobal('crypto', { randomUUID: vi.fn().mockReturnValue('purge-log-uuid') });
+  });
+
+  it('returns 400 when confirm name does not match', async () => {
+    const db = createMockDB({
+      firstResult: {
+        id: ORG_ID,
+        name: 'Actual School Name',
+        legal_hold: 0,
+        purged_at: null,
+      },
+    });
+
+    const app = createPurgeTestApp(db);
+    const res = await app.request(`/api/organization/${ORG_ID}/purge`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirm: 'Wrong Name' }),
+    });
+
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toMatch(/does not match/i);
+  });
+
+  it('returns 409 when org has legal_hold = 1', async () => {
+    const db = createMockDB({
+      firstResult: {
+        id: ORG_ID,
+        name: 'Test School',
+        legal_hold: 1,
+        purged_at: null,
+      },
+    });
+
+    const app = createPurgeTestApp(db);
+    const res = await app.request(`/api/organization/${ORG_ID}/purge`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirm: 'Test School' }),
+    });
+
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body.error).toMatch(/legal hold/i);
+  });
+
+  it('returns 409 when org is already purged', async () => {
+    const db = createMockDB({
+      firstResult: {
+        id: ORG_ID,
+        name: 'Test School',
+        legal_hold: 0,
+        purged_at: '2025-06-01T00:00:00Z',
+      },
+    });
+
+    const app = createPurgeTestApp(db);
+    const res = await app.request(`/api/organization/${ORG_ID}/purge`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirm: 'Test School' }),
+    });
+
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body.error).toMatch(/already been purged/i);
+  });
+
+  it('returns 200 with summary on successful purge', async () => {
+    const db = createMockDB({
+      firstResult: {
+        id: ORG_ID,
+        name: 'Test School',
+        legal_hold: 0,
+        purged_at: null,
+      },
+    });
+
+    const app = createPurgeTestApp(db);
+    const res = await app.request(`/api/organization/${ORG_ID}/purge`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirm: 'Test School' }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.orgId).toBe(ORG_ID);
+    expect(body.errors).toEqual([]);
   });
 });
