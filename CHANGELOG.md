@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.42.1] - 2026-04-08
+
+### Security
+- **Hono** updated to 4.12.12 — fixes cookie name bypass, IP matching, serveStatic middleware bypass, and path traversal in toSSG
+- **Vite** updated to 7.3.2 — fixes arbitrary file read via WebSocket, `server.fs.deny` bypass, and path traversal in optimized deps
+- **SQL LIKE escaping** — backslash characters now escaped before `%` and `_` wildcards in book recommendation and genre filter queries
+- **GitHub Actions** — added explicit `permissions: contents: read` to restrict GITHUB_TOKEN scope
+
 ## [3.42.0] - 2026-04-08
 
 ### Added

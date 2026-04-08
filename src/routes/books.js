@@ -357,7 +357,7 @@ booksRouter.get('/library-search', requireReadonly(), async (c) => {
     // Exclude disliked books (by title match, with SQL wildcard escaping)
     if (preferences.dislikes.length > 0) {
       for (const disliked of preferences.dislikes) {
-        const escaped = disliked.replace(/%/g, '\\%').replace(/_/g, '\\_');
+        const escaped = disliked.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
         query += ` AND b.title NOT LIKE ? ESCAPE '\\'`;
         params.push(`%${escaped}%`);
       }

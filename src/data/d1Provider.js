@@ -556,7 +556,7 @@ const getFilteredBooksForRecommendations = async (env, options = {}) => {
       const genreConditions = favoriteGenreIds.map(() => 'genre_ids LIKE ?').join(' OR ');
       query += ` AND (${genreConditions})`;
       params.push(...favoriteGenreIds.map(id => {
-        const escaped = String(id).replace(/%/g, '\\%').replace(/_/g, '\\_').replace(/"/g, '');
+        const escaped = String(id).replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_').replace(/"/g, '');
         return `%"${escaped}"%`;
       }));
     }
