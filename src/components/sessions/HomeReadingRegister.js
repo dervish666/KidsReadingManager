@@ -71,6 +71,8 @@ const HomeReadingRegister = () => {
   const [viewMode, setViewMode] = useState('quick');
 
   const [celebrationBadges, setCelebrationBadges] = useState([]);
+  const [goalCelebrationMessage, setGoalCelebrationMessage] = useState('');
+  const [goalSnackbarOpen, setGoalSnackbarOpen] = useState(false);
   const [recordingStudents, setRecordingStudents] = useState(new Set());
   const [editingBookStudentId, setEditingBookStudentId] = useState(null);
   const [quickMultipleStudent, setQuickMultipleStudent] = useState(null);
@@ -508,6 +510,7 @@ const HomeReadingRegister = () => {
 
       const bookId = student.currentBookId || null;
       const collectedBadges = [];
+      const collectedGoals = [];
 
       if (status === READING_STATUS.ABSENT) {
         await addReadingSession(student.id, {
@@ -550,6 +553,7 @@ const HomeReadingRegister = () => {
               location: 'home',
             });
             if (r1?.newBadges?.length > 0) collectedBadges.push(...r1.newBadges);
+            if (r1?.completedGoals?.length > 0) collectedGoals.push(...r1.completedGoals);
             const r2 = await addReadingSession(student.id, {
               date: selectedDate,
               assessment: null,
@@ -558,6 +562,7 @@ const HomeReadingRegister = () => {
               location: 'home',
             });
             if (r2?.newBadges?.length > 0) collectedBadges.push(...r2.newBadges);
+            if (r2?.completedGoals?.length > 0) collectedGoals.push(...r2.completedGoals);
           } else {
             const r = await addReadingSession(student.id, {
               date: dateStr,
@@ -567,12 +572,19 @@ const HomeReadingRegister = () => {
               location: 'home',
             });
             if (r?.newBadges?.length > 0) collectedBadges.push(...r.newBadges);
+            if (r?.completedGoals?.length > 0) collectedGoals.push(...r.completedGoals);
           }
         }
       }
 
       await refreshSessions();
       if (collectedBadges.length > 0) setCelebrationBadges(collectedBadges);
+      if (collectedGoals.length > 0) {
+        setGoalCelebrationMessage(
+          `Your class just hit ${collectedGoals[0].target} ${collectedGoals[0].metric}! 🎉`
+        );
+        setGoalSnackbarOpen(true);
+      }
     } catch (error) {
       setSnackbarMessage('Failed to record reading');
       setSnackbarSeverity('error');
@@ -608,6 +620,7 @@ const HomeReadingRegister = () => {
       // Get the student's current book from the database
       const bookId = selectedStudent.currentBookId || null;
       const collectedBadges = [];
+      const collectedGoals = [];
 
       // Create a single session based on status
       if (status === READING_STATUS.ABSENT) {
@@ -659,6 +672,7 @@ const HomeReadingRegister = () => {
               location: 'home',
             });
             if (r1?.newBadges?.length > 0) collectedBadges.push(...r1.newBadges);
+            if (r1?.completedGoals?.length > 0) collectedGoals.push(...r1.completedGoals);
             // Also create session on the selected date (for display count)
             const r2 = await addReadingSession(selectedStudent.id, {
               date: selectedDate,
@@ -668,6 +682,7 @@ const HomeReadingRegister = () => {
               location: 'home',
             });
             if (r2?.newBadges?.length > 0) collectedBadges.push(...r2.newBadges);
+            if (r2?.completedGoals?.length > 0) collectedGoals.push(...r2.completedGoals);
           } else {
             // Normal day — create session on that day
             const r = await addReadingSession(selectedStudent.id, {
@@ -678,12 +693,19 @@ const HomeReadingRegister = () => {
               location: 'home',
             });
             if (r?.newBadges?.length > 0) collectedBadges.push(...r.newBadges);
+            if (r?.completedGoals?.length > 0) collectedGoals.push(...r.completedGoals);
           }
         }
       }
 
       await refreshSessions();
       if (collectedBadges.length > 0) setCelebrationBadges(collectedBadges);
+      if (collectedGoals.length > 0) {
+        setGoalCelebrationMessage(
+          `Your class just hit ${collectedGoals[0].target} ${collectedGoals[0].metric}! 🎉`
+        );
+        setGoalSnackbarOpen(true);
+      }
       setHistoryRefresh((c) => c + 1);
       setSnackbarMessage(
         `Recorded ${count > 1 ? count + ' days' : ''} for ${selectedStudent.name}`
@@ -972,6 +994,13 @@ const HomeReadingRegister = () => {
         </Alert>
       </Snackbar>
       <BadgeCelebration badges={celebrationBadges} onClose={() => setCelebrationBadges([])} />
+      <Snackbar
+        open={goalSnackbarOpen}
+        autoHideDuration={5000}
+        onClose={() => setGoalSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        message={goalCelebrationMessage}
+      />
       <TourButton {...homeTourButtonProps} />
     </Box>
   );
