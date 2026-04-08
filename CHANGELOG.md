@@ -1,5 +1,19 @@
 # Changelog
 
+## [3.43.0] - 2026-04-08
+
+### Added
+- **Collaborative class goals** — teachers set class-wide reading targets (sessions, genres explored, unique books) with auto-generated defaults based on class size. Goals track collectively across the class per half-term.
+- **Classroom display mode** — fullscreen dark-theme projection view for interactive whiteboards with large progress bars, class garden illustration, and confetti celebrations when goals are reached. Auto-refreshes every 30 seconds.
+- **Class garden evolution** — garden stage (seedling, sprout, bloom, full garden) progresses as goals are completed, reusing the existing GardenHeader component with new stage/label props.
+- **Goal completion celebrations** — toast notifications with confetti when a reading session tips a class goal over its target, sequenced after badge celebrations.
+- **E2E test suite overhaul** — 62 Playwright tests (up from 25). New test files for landing page, school reading, student detail, stats page, and comprehensive quick reading view coverage. Fixed 8 stale tests caused by WelcomeDialog blocking and UI changes.
+
+### Changed
+- **GardenHeader** — accepts optional `stage` and `label` props, allowing reuse for class goals alongside individual student badges.
+- **Session API responses** — `POST` and `PUT` on sessions now return `completedGoals` array alongside existing `newBadges`.
+- **Nightly cron** — 2:30 AM job now recalculates class goal progress (drift correction) after badge evaluation.
+
 ## [3.42.2] - 2026-04-08
 
 ### Security
