@@ -1,5 +1,21 @@
 # Changelog
 
+## [3.42.0] - 2026-04-08
+
+### Added
+- **Organization cascade hard delete** — `DELETE /api/organization/:id/purge` endpoint permanently deletes all org data across 26 tables in FK-safe order, then anonymises the org row as a tombstone; requires owner role and org name confirmation
+- **Automated org purge in cron** — nightly 2 AM job now cascade-purges orgs inactive for 90+ days (replaces naive single-row delete that left orphaned data)
+- **Legal hold** — `legal_hold` column on organizations prevents both automated and manual data purging
+- **Achievements tab** — class-wide badge progress view with expandable per-student drill-down on the Stats page
+- **Badge summary endpoint** — `GET /api/badges/summary` returns class-wide badge counts and per-student breakdowns
+- **Badge indicators on student cards** — compact badge count chips displayed alongside streak badges
+
+### Fixed
+- **Audit log retention** — hard delete threshold corrected from 1 year to 2 years per GDPR retention policy
+
+### Changed
+- **GDPR retention policy** — updated to reflect org hard delete, audit log purge, and legal hold as implemented; fixed stale `reading_streaks` table reference
+
 ## [3.41.1] - 2026-04-07
 
 ### Added
