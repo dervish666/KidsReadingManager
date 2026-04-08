@@ -43,6 +43,7 @@ import stripeWebhookRouter from './routes/stripeWebhook.js';
 import { billingRouter } from './routes/billing.js';
 import { runFullSync } from './services/wondeSync.js';
 import { resetDemoData } from './services/demoReset.js';
+import { hardDeleteOrganization } from './services/orgPurge.js';
 import { decryptSensitiveData, getEncryptionSecret } from './utils/crypto.js';
 
 // Import middleware
@@ -490,11 +491,11 @@ export default Sentry.withSentry(
               );
 
               const oldAudit = await db
-                .prepare(`DELETE FROM audit_log WHERE created_at < datetime('now', '-365 days')`)
+                .prepare(`DELETE FROM audit_log WHERE created_at < datetime('now', '-730 days')`)
                 .run();
               if (oldAudit.meta?.changes > 0) {
                 console.log(
-                  `[Cron] Deleted ${oldAudit.meta.changes} audit log entries older than 1 year`
+                  `[Cron] Deleted ${oldAudit.meta.changes} audit log entries older than 2 years`
                 );
               }
 
@@ -566,37 +567,23 @@ export default Sentry.withSentry(
                 );
               }
 
+              // Cascade purge orgs past 90-day retention
               const staleOrgs = await db
                 .prepare(
-                  `SELECT id FROM organizations WHERE is_active = 0 AND updated_at < datetime('now', '-90 days')`
+                  `SELECT id FROM organizations WHERE is_active = 0 AND updated_at < datetime('now', '-90 days') AND legal_hold = 0 AND purged_at IS NULL`
                 )
                 .bind()
                 .all();
 
-              let orgsDeleted = 0;
               for (const org of staleOrgs.results || []) {
-                const activeStudents = await db
-                  .prepare(
-                    'SELECT COUNT(*) as count FROM students WHERE organization_id = ? AND is_active = 1'
-                  )
-                  .bind(org.id)
-                  .first();
-                const activeUsers = await db
-                  .prepare(
-                    'SELECT COUNT(*) as count FROM users WHERE organization_id = ? AND is_active = 1'
-                  )
-                  .bind(org.id)
-                  .first();
-
-                if ((activeStudents?.count || 0) === 0 && (activeUsers?.count || 0) === 0) {
-                  await db.prepare('DELETE FROM organizations WHERE id = ?').bind(org.id).run();
-                  orgsDeleted++;
+                try {
+                  const result = await hardDeleteOrganization(db, org.id);
+                  console.log(
+                    `[Cron] Purged org ${org.id}: ${result.tablesProcessed} tables, ${result.errors.length} errors`
+                  );
+                } catch (error) {
+                  console.error(`[Cron] Failed to purge org ${org.id}:`, error.message);
                 }
-              }
-              if (orgsDeleted > 0) {
-                console.log(
-                  `[Cron] Hard-deleted ${orgsDeleted} inactive organizations past 90-day retention`
-                );
               }
             } catch (error) {
               console.error('[Cron] Retention auto-deletion failed:', error.message);

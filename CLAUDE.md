@@ -45,7 +45,7 @@ src/routes/classes.js - GET/POST/PUT/DELETE class management
 src/routes/genres.js - GET/POST/PUT/DELETE genre management
 src/routes/covers.js - GET book covers from R2 cache + OpenLibrary fallback
 src/routes/users.js - GET/POST/PUT/DELETE user management (admin only)
-src/routes/organization.js - GET/POST/PUT/DELETE org settings, AI config, audit log
+src/routes/organization.js - GET/POST/PUT/DELETE org settings, AI config, audit log, purge (Article 17)
 src/routes/settings.js - GET/POST application settings and AI configuration
 src/routes/signup.js - POST email newsletter signup (rate limited)
 src/routes/data.js - GET/POST legacy data export/import
@@ -56,7 +56,7 @@ src/routes/support.js - Support ticket submission, listing, detail, status manag
 src/routes/termDates.js - GET/PUT term dates per organization and academic year
 src/routes/tours.js - GET/POST tour completion tracking per user
 src/routes/metadata.js - GET/PUT metadata config, GET status, GET/DELETE jobs, POST enrich
-src/routes/badges.js - GET/POST badge collection and notify endpoints
+src/routes/badges.js - GET/POST badge collection, notify, and class-wide summary endpoints
 
 <!-- Middleware -->
 src/middleware/tenant.js - JWT auth, tenant isolation, role guards, audit logging, rate limiting
@@ -76,6 +76,7 @@ src/services/kvService.js - KV storage operations (legacy)
 src/services/wondeSync.js - Wonde delta/full sync orchestration
 src/services/metadataService.js - Cascade engine (enrichBook, processBatch) for multi-provider metadata enrichment
 src/services/demoReset.js - Hourly demo environment reset (FK-safe delete + snapshot re-insert)
+src/services/orgPurge.js - Cascade hard-delete all org data (26 tables FK-safe), anonymise org row
 src/services/providers/openLibraryProvider.js - OpenLibrary server-side adapter (no API key)
 src/services/providers/googleBooksProvider.js - Google Books server-side adapter (requires API key)
 src/services/providers/hardcoverProvider.js - Hardcover GraphQL server-side adapter (requires API key, best series data)
@@ -191,6 +192,7 @@ src/components/stats/ReadingStats.js - Stats dashboard with metrics and charts
 src/components/stats/ReadingTimelineChart.js - Reading timeline line chart
 src/components/stats/ReadingFrequencyChart.js - Reading frequency bar chart
 src/components/stats/DaysSinceReadingChart.js - Days since reading indicator
+src/components/stats/AchievementsTab.js - Achievements tab: class-wide badge progress with expandable per-student drill-down
 
 <!-- Styling -->
 src/styles/theme.js - Material-UI theme configuration
@@ -332,7 +334,7 @@ Permissions enforced via `requireOwner()`, `requireAdmin()`, `requireTeacher()`,
 
 ### Key Tables
 
-- `organizations` - Multi-tenant foundation (soft delete via `is_active`)
+- `organizations` - Multi-tenant foundation (soft delete via `is_active`, `legal_hold` prevents automated purge, `purged_at` marks anonymised tombstones)
 - `users` - Accounts with roles and org FK (soft delete via `is_active`)
 - `students` - Organization-scoped, has `reading_level_min`/`reading_level_max` range, demographics from Wonde (`date_of_birth`, `gender`, `first_language`, `eal_detailed_status`)
 - `reading_sessions` - Session data linked to students (hard delete)
