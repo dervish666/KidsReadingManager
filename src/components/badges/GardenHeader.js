@@ -122,9 +122,13 @@ const SVG_COMPONENTS = {
   'Full Garden': FullGardenSvg,
 };
 
-export default function GardenHeader({ badgeCount = 0, studentName = '' }) {
-  const stage = getStage(badgeCount);
+export default function GardenHeader({ badgeCount = 0, studentName = '', stage: stageProp, label }) {
+  const stage = stageProp
+    ? STAGES.find((s) => s.name.toLowerCase().replace(/ /g, '_') === stageProp) || STAGES[0]
+    : getStage(badgeCount);
   const SvgComponent = SVG_COMPONENTS[stage.name];
+
+  const subtitle = label || (studentName ? `${studentName}'s Reading Garden` : 'Reading Garden');
 
   return (
     <Box
@@ -137,7 +141,7 @@ export default function GardenHeader({ badgeCount = 0, studentName = '' }) {
     >
       <SvgComponent />
       <Typography variant="subtitle2" sx={{ color: '#5D6B4A', fontWeight: 600, mt: 0.5 }}>
-        {studentName ? `${studentName}'s Reading Garden` : 'Reading Garden'}
+        {subtitle}
       </Typography>
       <Typography variant="caption" sx={{ color: '#7A8B66' }}>
         {badgeCount} badge{badgeCount !== 1 ? 's' : ''} earned · {stage.name} stage
