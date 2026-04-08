@@ -29,6 +29,7 @@ import { permissions } from '../utils/crypto';
 import { getDB, isMultiTenantMode, safeJsonParse, requireStudent } from '../utils/routeHelpers';
 import { rowToStudent, rowToReadingStats } from '../utils/rowMappers';
 import { recalculateStats, evaluateRealTime, calculateNearMisses } from '../utils/badgeEngine.js';
+import { updateClassGoalOnSession } from '../utils/classGoalsEngine.js';
 
 // Create router
 const studentsRouter = new Hono();
@@ -1395,6 +1396,11 @@ studentsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
       ? []
       : await evaluateRealTime(db, id, organizationId, student.year_group);
 
+    // Update class goals
+    const completedGoals = isMarkerSession
+      ? []
+      : await updateClassGoalOnSession(db, id, organizationId);
+
     // Fetch the created session
     const session = await db
       .prepare(
@@ -1422,6 +1428,7 @@ studentsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
         location: session.location || 'school',
         recordedBy: session.recorded_by,
         newBadges,
+        completedGoals,
       },
       201
     );
@@ -1502,6 +1509,9 @@ studentsRouter.delete(
 
       // Recalculate reading stats (badges are not revoked on delete)
       await recalculateStats(db, id, organizationId);
+
+      // Recalculate class goals (counters may decrease, never completes goals)
+      await updateClassGoalOnSession(db, id, organizationId);
 
       // Recalculate last_read_date from remaining sessions (excluding markers)
       await db
@@ -1665,6 +1675,7 @@ studentsRouter.put(
         organizationId,
         studentForBadges?.year_group
       );
+      const completedGoals = await updateClassGoalOnSession(db, id, organizationId);
 
       // Recalculate last_read_date from sessions (excluding markers)
       await db
@@ -1703,6 +1714,7 @@ studentsRouter.put(
         assessment: session.assessment,
         notes: session.notes,
         newBadges,
+        completedGoals,
       });
     }
 
