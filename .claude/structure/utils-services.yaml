@@ -38,6 +38,59 @@ files:
         params: [{name: data}, {name: message}]
         returns: object
 
+  utils/rowMappers.js:
+    description: Centralized snake_case→camelCase mappers for all DB tables
+    exports:
+      - name: rowToBook
+        kind: function
+        params: [{name: row}]
+        returns: object|null
+      - name: rowToStudent
+        kind: function
+        params: [{name: row}]
+        returns: object|null
+      - name: rowToClass
+        kind: function
+        params: [{name: row}]
+        returns: object|null
+      - name: rowToUser
+        kind: function
+        params: [{name: row}]
+        returns: object|null
+      - name: rowToOrganization
+        kind: function
+        params: [{name: row}]
+        returns: object|null
+      - name: rowToGenre
+        kind: function
+        params: [{name: row}]
+        returns: object|null
+      - name: rowToSupportTicket
+        kind: function
+        params: [{name: row}]
+        returns: object|null
+      - name: rowToSupportNote
+        kind: function
+        params: [{name: row}]
+        returns: object|null
+      - name: rowToTourCompletion
+        kind: function
+        params: [{name: row}]
+        returns: object|null
+      - name: rowToBadge
+        kind: function
+        params: [{name: row}]
+        returns: object|null
+      - name: rowToReadingStats
+        kind: function
+        params: [{name: row}]
+        returns: object|null
+      - name: rowToClassGoal
+        kind: function
+        params: [{name: row}]
+        returns: object|null
+        description: Maps class_goals DB row to camelCase object
+
   utils/crypto.js:
     description: Cryptographic utilities - passwords, JWT, AES-GCM encryption, roles
     exports:

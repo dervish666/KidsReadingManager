@@ -99,7 +99,7 @@ src/utils/bookMetadataApi.js - Unified metadata API with provider abstraction
 src/utils/csvParser.js - CSV parsing for book import
 src/utils/classAssignments.js - Sync class_assignments from wonde_employee_classes for a user
 src/utils/routeHelpers.js - Shared route helpers (getDB, requireDB, isMultiTenantMode, requireStudent)
-src/utils/rowMappers.js - Centralized row-to-object mappers (rowToBook, rowToStudent, rowToClass, rowToUser, rowToOrganization, rowToGenre, rowToSupportTicket, rowToSupportNote)
+src/utils/rowMappers.js - Centralized row-to-object mappers (rowToBook, rowToStudent, rowToClass, rowToUser, rowToOrganization, rowToGenre, rowToSupportTicket, rowToSupportNote, rowToTourCompletion, rowToBadge, rowToReadingStats, rowToClassGoal)
 src/utils/constants.js - Shared constants (PUBLIC_PATHS for auth bypass)
 src/utils/wondeApi.js - Wonde REST API client for school data sync
 src/utils/badgeDefinitions.js - Badge definitions with evaluate/progress functions, key stage resolution
