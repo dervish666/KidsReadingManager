@@ -68,7 +68,7 @@ The table below documents the retention periods for all data categories. Updated
 |---|---|---|---|---|---|---|
 | **Student records** | Name, reading level, reading level range, age range, class assignment, notes, preferences, last read date | D1 `students`, `student_preferences` | Subscription duration + 90 days, then hard delete | Automated daily job | Implemented (soft-deleted records auto hard-deleted after 90 days; individual hard delete via API) | Contract fulfilment. 90-day grace period allows school to renew or request data export |
 | **Reading sessions** | Session date, duration, pages read, assessment, rating, notes, book reference, recorded-by user | D1 `reading_sessions` | Subscription duration + 90 days, then hard delete | Cascade-deleted with student records | Implemented | Contract fulfilment. Cascade-deleted with student records |
-| **Reading streaks** | Current streak, longest streak, last read date, streak history | D1 `reading_streaks` | Subscription duration + 90 days, then hard delete | Cascade-deleted with student records | Implemented | Contract fulfilment. Derived from session data |
+| **Reading streaks** | Current streak, longest streak, last read date, streak history | D1 `students` columns (`current_streak`, `longest_streak`, `streak_start_date`) | Subscription duration + 90 days, then hard delete | Cascade-deleted with student records | Implemented | Contract fulfilment. Derived from session data |
 | **User accounts** | Name, email, role, last login timestamp, active status | D1 `users` | Subscription duration + 90 days, then hard delete | Automated daily job | Implemented (soft-deleted records auto hard-deleted after 90 days; individual hard delete via API) | Contract fulfilment |
 | **Password hashes** | PBKDF2 hash (100k iterations, 128-bit salt, 256-bit key) | D1 `users.password_hash` | Until user account hard deletion | Deleted as part of user record | Implemented | Security. Cannot be reversed to plaintext |
 | **Refresh tokens** | Token hash, user ID, expiry timestamp, revocation timestamp | D1 `refresh_tokens` | Deleted on expiry or revocation | Automated daily job | Implemented | Expired/revoked tokens serve no purpose |
@@ -96,18 +96,17 @@ The following retention mechanisms have been implemented (via daily cron in `src
 - ~~Audit log anonymisation~~ -- IP/user-agent anonymised after 90 days daily
 - ~~KV recommendation cache TTL~~ -- 7-day `expirationTtl` set on all cache writes
 - ~~Individual hard delete~~ -- Students and users can be permanently erased via API with cascade deletion
+- ~~Organisation-level hard delete~~ -- `DELETE /api/organization/:id/purge` cascade-deletes all 26 org-scoped tables, anonymises the org row as a tombstone. Requires owner role + org name confirmation. Also available via nightly cron (90 days after deactivation). See `src/services/orgPurge.js`
+- ~~Audit log hard delete~~ -- Scheduled worker deletes audit log entries older than 2 years (`DELETE FROM audit_log WHERE created_at < datetime('now', '-730 days')`)
+- ~~Legal hold mechanism~~ -- `legal_hold` column on organisations prevents both automated and manual purging
 
 The following gaps remain:
 
 | Gap | Current State | Required Implementation | Priority |
 |---|---|---|---|
 | Subscription expiry tracking | No subscription end date stored | Add `subscription_expires_at` column to `organizations` table | High |
-| Organisation-level hard delete | Soft delete only (sets `is_active = 0`) | API endpoint to permanently delete an organisation and all associated data | High |
-| Audit log hard delete | No deletion mechanism for very old entries | Extend scheduled worker: `DELETE FROM audit_log WHERE created_at < datetime('now', '-2 years')` | High |
-| Post-subscription hard delete | No subscription-aware purge | Scheduled worker to cascade hard delete all data for orgs where `subscription_expires_at + 90 days < now()` | Medium |
 | R2 cover cache lifecycle | No lifecycle rule configured | Configure R2 lifecycle rule: delete objects older than 90 days | Medium |
 | Bulk data export | No multi-tenant export endpoint | API for controllers to export organisation data in CSV/JSON | Medium |
-| Legal hold mechanism | No legal hold flag | Add `legal_hold` column to organisations; exclude from automated cleanup | Low |
 | Retention monitoring | No visibility into retention job status | Admin dashboard showing data volumes, oldest records, cleanup job status | Low |
 
 ---
@@ -278,22 +277,19 @@ The following items have been implemented:
 - **Audit log anonymisation job** -- Scheduled worker anonymises IP/user-agent in audit logs older than 90 days (`src/worker.js`)
 - **Hard delete for individual erasure requests** -- Students and users can be permanently deleted via API with cascade deletion of associated data and audit log anonymisation (`src/routes/students.js`, `src/routes/users.js`)
 - **Auto hard-delete of soft-deleted records** -- Scheduled worker hard-deletes soft-deleted students, users, and empty organisations after 90-day retention period (`src/worker.js`)
+- **Organisation-level cascade hard delete** -- `DELETE /api/organization/:id/purge` endpoint cascade-deletes all 26 org-scoped tables in FK-safe order, then anonymises the org row as a tombstone. Requires owner role + org name confirmation. Also runs automatically via nightly cron for orgs inactive 90+ days. Legal hold flag prevents purging. (`src/services/orgPurge.js`, `src/routes/organization.js`, `src/worker.js`)
+- **Audit log hard delete job** -- Scheduled worker deletes audit log entries older than 2 years (`src/worker.js`)
+- **Legal hold mechanism** -- `legal_hold` column on organisations table; checked by both manual purge endpoint and automated cron; prevents all data deletion when set (`migrations/0047_org_purge_columns.sql`)
 
 #### Remaining
 
-### Phase 1: High Priority
+### Phase 1: Medium Priority
 
-1. **Organisation-level hard delete endpoint** -- API endpoint to permanently delete an organisation and all associated data (students, users, sessions, classes, settings). Current organisation delete is soft-delete only
-2. **Audit log hard delete job** -- Extend scheduled worker to delete audit log entries older than 2 years
+1. **Bulk data export endpoint** -- API for controllers to export their organisation's data in CSV/JSON (required for Article 20 data portability)
 
-### Phase 2: Medium Priority
+### Phase 2: Lower Priority
 
-3. **Bulk data export endpoint** -- API for controllers to export their organisation's data in CSV/JSON (required for Article 20 data portability)
-
-### Phase 3: Lower Priority
-
-4. **Legal hold mechanism** -- Add `legal_hold` flag to organisations table; exclude from automated cleanup
-5. **Retention monitoring dashboard** -- Admin view showing data volumes, oldest records, and cleanup job status
+2. **Retention monitoring dashboard** -- Admin view showing data volumes, oldest records, and cleanup job status
 
 ---
 
