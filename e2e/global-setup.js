@@ -30,6 +30,16 @@ setup('authenticate', async ({ page }) => {
   // Wait for successful login — bottom nav appears
   await page.getByRole('navigation', { name: 'Main navigation' }).waitFor({ timeout: 15_000 });
 
+  // Dismiss WelcomeDialog if it appears (shown to teachers after data loads).
+  // Wait long enough for DataContext to finish fetching classes/students.
+  const getStarted = page.getByRole('button', { name: /get started/i });
+  if (await getStarted.isVisible({ timeout: 8_000 }).catch(() => false)) {
+    await getStarted.click();
+    await page.locator('.MuiDialog-root').waitFor({ state: 'hidden', timeout: 5_000 }).catch(() => {});
+    // Brief pause to let the markTourComplete API call complete
+    await page.waitForTimeout(1_000);
+  }
+
   // Save auth state (cookies + localStorage)
   await page.context().storageState({ path: authFile });
 });

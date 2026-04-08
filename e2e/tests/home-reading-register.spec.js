@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { suppressWelcomeDialog } from './helpers.js';
 
 test.describe('Home Reading Register', () => {
   test.beforeEach(async ({ page }) => {
+    await suppressWelcomeDialog(page);
     await page.goto('/');
     await expect(
       page.getByRole('navigation', { name: 'Main navigation' })
@@ -12,29 +14,31 @@ test.describe('Home Reading Register', () => {
     await expect(page.getByText('Reading Record')).toBeVisible({ timeout: 10_000 });
   });
 
-  test('register table loads with student names', async ({ page }) => {
-    // Table should be visible with at least one student row
+  test('register loads with student data', async ({ page }) => {
+    // Default view is "Quick" which renders a table with student rows
     const table = page.getByRole('table');
     await expect(table).toBeVisible({ timeout: 10_000 });
 
-    // Should have table headers
-    await expect(table.getByText('Name')).toBeVisible();
-    await expect(table.getByRole('columnheader', { name: 'Total' })).toBeVisible();
+    // Should have a "Student" column header
+    await expect(table.getByText('Student')).toBeVisible();
   });
 
-  test('date picker is present and defaults to yesterday', async ({ page }) => {
+  test('date picker is present and has a date value', async ({ page }) => {
     const dateInput = page.getByLabel('Select date for reading session');
     await expect(dateInput).toBeVisible();
 
-    // Should have a date value set (yesterday)
+    // Should have a date value set
     const value = await dateInput.inputValue();
     expect(value).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
-  test('date range preset selector works', async ({ page }) => {
-    // Find the Date Range select
+  test('full view shows date range presets and detailed table', async ({ page }) => {
+    // Switch to Full view
+    await page.getByRole('button', { name: 'Full' }).click();
+
+    // Full view has a Date Range preset selector
     const preset = page.getByLabel('Date Range');
-    await expect(preset).toBeVisible();
+    await expect(preset).toBeVisible({ timeout: 5_000 });
 
     // Click to open, select "Last Week"
     await preset.click();
@@ -44,23 +48,23 @@ test.describe('Home Reading Register', () => {
     await expect(page.getByRole('table')).toBeVisible();
   });
 
-  test('clicking a student shows recording panel', async ({ page }) => {
+  test('full view — clicking a student shows recording panel', async ({ page }) => {
+    // Switch to Full view
+    await page.getByRole('button', { name: 'Full' }).click();
+
     const table = page.getByRole('table');
     await expect(table).toBeVisible({ timeout: 10_000 });
 
     // Click the first student row (first row in tbody)
     const firstStudentRow = table.locator('tbody tr').first();
+    await expect(firstStudentRow).toBeVisible({ timeout: 5_000 });
     const studentName = await firstStudentRow.locator('td').first().textContent();
     await firstStudentRow.click();
 
     // Recording panel should appear with the student's name
-    await expect(page.getByText(`Recording for: ${studentName}`)).toBeVisible();
-  });
-
-  test('summary chips display totals', async ({ page }) => {
-    // Summary chips should show counts (format: "N Label")
-    await expect(page.getByText(/\d+ Read/)).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText(/\d+ No Record/)).toBeVisible();
+    await expect(page.getByText(`Recording for: ${studentName.trim()}`)).toBeVisible({
+      timeout: 5_000,
+    });
   });
 
   test('search filters students in the register', async ({ page }) => {

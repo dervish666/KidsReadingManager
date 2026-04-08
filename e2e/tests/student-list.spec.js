@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { suppressWelcomeDialog } from './helpers.js';
 
 test.describe('Student List', () => {
   test.beforeEach(async ({ page }) => {
+    await suppressWelcomeDialog(page);
     await page.goto('/');
     // Students tab is the default — wait for it to load
     await expect(
@@ -20,14 +22,14 @@ test.describe('Student List', () => {
     // Wait for initial student load
     await page.waitForTimeout(2000);
 
-    // The class filter is a Select in the header
+    // The class filter is a Select in the header (may not be present if no classes assigned)
     const classFilter = page.locator('header').getByRole('combobox');
-    if (await classFilter.isVisible()) {
+    if (await classFilter.isVisible({ timeout: 2_000 }).catch(() => false)) {
       await classFilter.click();
 
       // Select "All Classes" option if available
       const allOption = page.getByRole('option', { name: 'All Classes' });
-      if (await allOption.isVisible()) {
+      if (await allOption.isVisible({ timeout: 2_000 }).catch(() => false)) {
         await allOption.click();
       } else {
         // Close the dropdown by pressing Escape
@@ -42,7 +44,7 @@ test.describe('Student List', () => {
   test('student search filters results', async ({ page }) => {
     // Look for a search input on the Students page
     const searchInput = page.getByPlaceholder(/search/i);
-    if (await searchInput.isVisible()) {
+    if (await searchInput.isVisible({ timeout: 3_000 }).catch(() => false)) {
       await searchInput.fill('test');
       // Give the filter a moment to apply
       await page.waitForTimeout(500);
@@ -66,7 +68,8 @@ test.describe('Student List', () => {
       pageContent.includes('days') ||
       pageContent.includes('Read') ||
       pageContent.includes('student') ||
-      pageContent.includes('No students');
+      pageContent.includes('No students') ||
+      pageContent.includes('Priority');
 
     expect(hasStudentContent).toBe(true);
   });

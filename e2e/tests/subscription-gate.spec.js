@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { suppressWelcomeDialog } from './helpers.js';
 
 test.describe('Subscription Access Control', () => {
   test('subscription-status endpoint returns valid status', async ({ page }) => {
+    await suppressWelcomeDialog(page);
     await page.goto('/');
     await expect(
       page.getByRole('navigation', { name: 'Main navigation' }),
@@ -91,6 +93,7 @@ test.describe('Subscription Access Control', () => {
   });
 
   test('past_due subscription still shows the app (not blocked)', async ({ page }) => {
+    await suppressWelcomeDialog(page);
     // Intercept subscription-status to simulate past_due
     await page.route('**/api/billing/subscription-status', (route) =>
       route.fulfill({
@@ -102,12 +105,6 @@ test.describe('Subscription Access Control', () => {
 
     await page.goto('/');
 
-    // Dismiss welcome dialog if it appears
-    const getStarted = page.getByRole('button', { name: /get started/i });
-    if (await getStarted.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await getStarted.click();
-    }
-
     // Main navigation should still be visible (not fully blocked)
     await expect(
       page.getByRole('navigation', { name: 'Main navigation' }),
@@ -118,7 +115,7 @@ test.describe('Subscription Access Control', () => {
   });
 
   test('active subscription shows normal app with no warnings', async ({ page }) => {
-    // No route interception — use real endpoints
+    await suppressWelcomeDialog(page);
     await page.goto('/');
 
     // Main navigation should be visible

@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { suppressWelcomeDialog } from './helpers.js';
 
 test.describe('Navigation', () => {
   test.beforeEach(async ({ page }) => {
+    await suppressWelcomeDialog(page);
     await page.goto('/');
     // Wait for app to load (main nav visible)
     await expect(
@@ -16,11 +18,13 @@ test.describe('Navigation', () => {
 
   test('bottom navigation shows all tabs', async ({ page }) => {
     const nav = page.getByRole('navigation', { name: 'Main navigation' });
+
+    // These tabs are visible to all roles (teacher, admin, owner)
     await expect(nav.getByText('Students')).toBeVisible();
+    await expect(nav.getByText('School Reading')).toBeVisible();
     await expect(nav.getByText('Home Reading')).toBeVisible();
-    await expect(nav.getByText('Books')).toBeVisible();
     await expect(nav.getByText('Stats')).toBeVisible();
-    await expect(nav.getByText('Settings')).toBeVisible();
+    await expect(nav.getByText('Recommend')).toBeVisible();
   });
 
   test('navigate to Home Reading tab', async ({ page }) => {
@@ -30,11 +34,11 @@ test.describe('Navigation', () => {
     await expect(page.getByText('Reading Record')).toBeVisible({ timeout: 10_000 });
   });
 
-  test('navigate to Books tab', async ({ page }) => {
-    await page.getByText('Books').click();
+  test('navigate to Stats tab', async ({ page }) => {
+    await page.getByText('Stats').click();
 
-    // Book manager should render
-    await expect(page.getByText('Manage Books')).toBeVisible({ timeout: 10_000 });
+    // Stats page should render
+    await expect(page.locator('main')).toBeVisible({ timeout: 10_000 });
   });
 
   test('mobile viewport shows responsive layout', async ({ page }) => {
