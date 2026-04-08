@@ -251,3 +251,20 @@ export const rowToReadingStats = (row) => {
     updatedAt: row.updated_at,
   };
 };
+
+// ── Class Goals ─────────────────────────────────────────────────────────────
+
+export const rowToClassGoal = (row) => {
+  if (!row) return null;
+  return {
+    id: row.id,
+    organizationId: row.organization_id,
+    classId: row.class_id,
+    metric: row.metric,
+    target: row.target,
+    current: row.current,
+    term: row.term,
+    achievedAt: row.achieved_at,
+    createdAt: row.created_at,
+  };
+};
