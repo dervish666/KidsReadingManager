@@ -1,5 +1,21 @@
 # Changelog
 
+## [3.42.2] - 2026-04-08
+
+### Security
+- **Hardcover API auth** — requests now routed through `fetchWithAuth` instead of reading JWT directly from localStorage, centralising auth handling and token refresh
+- **Password reset script** — email input validated against regex; SQL written to temp file instead of shell string interpolation to prevent injection
+
+### Fixed
+- **Timezone chart dates** — `ReadingTimelineChart` date range replaced `toISOString().split('T')[0]` with `toLocaleDateString('en-CA')` to prevent BST date shift
+- **Version sync** — `APP_VERSION` in worker.js now matches package.json
+- **Landing page performance** — `LandingPage` lazy-loaded via `React.lazy()` so screenshot assets are deferred until needed
+- **README** — updated repo name, folder path, and dev server port (3001)
+
+### Changed
+- **Webhook tests** — mocked `fetchSchoolDetails` to eliminate live `api.wonde.com` DNS noise during test runs
+- **Hardcover tests** — updated to use injectable mock fetch instead of `global.fetch` + localStorage
+
 ## [3.42.1] - 2026-04-08
 
 ### Security

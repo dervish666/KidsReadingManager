@@ -14,6 +14,9 @@
  */
 
 const { execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
 
 // Parse command line arguments
 const args = process.argv.slice(2);
@@ -38,6 +41,13 @@ if (!email || !password) {
 
 if (password.length < 8) {
   console.warn('Warning: Password is less than 8 characters. Consider using a stronger password.');
+}
+
+// Validate email format to prevent SQL/shell injection
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+if (!EMAIL_REGEX.test(email)) {
+  console.error('Error: Invalid email format.');
+  process.exit(1);
 }
 
 // PBKDF2 configuration matching crypto.js
@@ -74,20 +84,23 @@ async function main() {
   const passwordHash = await hashPassword(password);
   console.log('Generated new password hash with 100,000 PBKDF2 iterations');
 
-  // Escape single quotes in the hash for SQL
+  // Escape single quotes in the hash and email for SQL
   const escapedHash = passwordHash.replace(/'/g, "''");
+  const escapedEmail = email.toLowerCase().replace(/'/g, "''");
 
-  // Build the SQL command
-  const sql = `UPDATE users SET password_hash = '${escapedHash}', updated_at = datetime('now') WHERE email = '${email.toLowerCase()}'`;
+  // Write SQL to a temp file to avoid shell interpolation risks
+  const sql = `UPDATE users SET password_hash = '${escapedHash}', updated_at = datetime('now') WHERE email = '${escapedEmail}';\n`;
+  const tmpFile = path.join(os.tmpdir(), `reset-pw-${Date.now()}.sql`);
+  fs.writeFileSync(tmpFile, sql, 'utf8');
 
-  // Build wrangler command
+  // Execute via --file to avoid nested shell quoting
   const remoteFlag = isRemote ? '--remote' : '--local';
-  const cmd = `npx wrangler d1 execute reading-manager-db ${remoteFlag} --command "${sql}"`;
+  const wranglerArgs = ['wrangler', 'd1', 'execute', 'reading-manager-db', remoteFlag, '--file', tmpFile];
 
   console.log('Executing database update...');
 
   try {
-    const output = execSync(cmd, {
+    const output = execSync(`npx ${wranglerArgs.join(' ')}`, {
       encoding: 'utf8',
       cwd: process.cwd(),
       stdio: ['pipe', 'pipe', 'pipe']
@@ -108,6 +121,9 @@ async function main() {
       console.error(error.stderr);
     }
     process.exit(1);
+  } finally {
+    // Clean up temp file
+    try { fs.unlinkSync(tmpFile); } catch { /* ignore */ }
   }
 }
 

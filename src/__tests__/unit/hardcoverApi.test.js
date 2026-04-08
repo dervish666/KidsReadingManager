@@ -13,30 +13,30 @@ import {
   getCoverUrl,
   batchFindMissingAuthors,
   batchFindMissingDescriptions,
-  batchFindMissingGenres
+  batchFindMissingGenres,
+  setFetchFunction
 } from '../../utils/hardcoverApi.js';
 
 describe('hardcoverApi', () => {
-  let originalFetch;
+  let mockFetch = vi.fn();
 
   beforeEach(() => {
-    originalFetch = global.fetch;
     resetHardcoverAvailabilityCache();
     resetHardcoverRateLimitFlag();
     vi.useFakeTimers();
-    // Set auth token so hardcoverQuery includes Authorization header
-    localStorage.setItem('krm_auth_token', 'test-jwt-token');
+    mockFetch.mockReset();
+    // Inject a mock auth-aware fetch so tests don't depend on localStorage
+    setFetchFunction(mockFetch);
   });
 
   afterEach(() => {
-    global.fetch = originalFetch;
     vi.useRealTimers();
-    localStorage.removeItem('krm_auth_token');
+    setFetchFunction(null);
   });
 
   describe('checkHardcoverAvailability', () => {
     it('returns true on valid response', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ data: { __typename: 'query_root' } })
       });
@@ -44,14 +44,13 @@ describe('hardcoverApi', () => {
       const result = await checkHardcoverAvailability('test-api-key');
 
       expect(result).toBe(true);
-      expect(global.fetch).toHaveBeenCalledTimes(1);
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(mockFetch).toHaveBeenCalledWith(
         '/api/hardcover/graphql',
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer test-jwt-token'
           }),
           body: expect.any(String),
           signal: expect.any(AbortSignal)
@@ -59,14 +58,14 @@ describe('hardcoverApi', () => {
       );
 
       // Verify the body contains the introspection query and apiKey
-      const callArgs = global.fetch.mock.calls[0];
+      const callArgs = mockFetch.mock.calls[0];
       const body = JSON.parse(callArgs[1].body);
       expect(body.query).toContain('__typename');
       expect(body.apiKey).toBe('test-api-key');
     });
 
     it('returns false on GraphQL errors', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
           errors: [{ message: 'Unauthorized' }]
@@ -79,7 +78,7 @@ describe('hardcoverApi', () => {
     });
 
     it('returns false on fetch throw', async () => {
-      global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+      mockFetch.mockRejectedValue(new Error('Network error'));
 
       const result = await checkHardcoverAvailability('test-api-key');
 
@@ -87,41 +86,41 @@ describe('hardcoverApi', () => {
     });
 
     it('returns false when no API key provided', async () => {
-      global.fetch = vi.fn();
+      mockFetch.mockClear();
 
       const result = await checkHardcoverAvailability(null);
 
       expect(result).toBe(false);
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(mockFetch).not.toHaveBeenCalled();
     });
 
     it('caches result for 60 seconds (second call does not re-fetch)', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ data: { __typename: 'query_root' } })
       });
 
       const result1 = await checkHardcoverAvailability('test-api-key');
       expect(result1).toBe(true);
-      expect(global.fetch).toHaveBeenCalledTimes(1);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
 
       // Advance time by 30 seconds (within cache window)
       vi.advanceTimersByTime(30000);
 
       const result2 = await checkHardcoverAvailability('test-api-key');
       expect(result2).toBe(true);
-      expect(global.fetch).toHaveBeenCalledTimes(1); // Still 1, no re-fetch
+      expect(mockFetch).toHaveBeenCalledTimes(1); // Still 1, no re-fetch
 
       // Advance time past 60 seconds total
       vi.advanceTimersByTime(31000);
 
       const result3 = await checkHardcoverAvailability('test-api-key');
       expect(result3).toBe(true);
-      expect(global.fetch).toHaveBeenCalledTimes(2); // Now re-fetched
+      expect(mockFetch).toHaveBeenCalledTimes(2); // Now re-fetched
     });
 
     it('returns false on HTTP error response', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: false,
         status: 500,
         statusText: 'Internal Server Error'
@@ -143,7 +142,7 @@ describe('hardcoverApi', () => {
     });
 
     it('returns status after successful check', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ data: { __typename: 'query_root' } })
       });
@@ -159,7 +158,7 @@ describe('hardcoverApi', () => {
     });
 
     it('reports stale after 60 seconds', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ data: { __typename: 'query_root' } })
       });
@@ -176,7 +175,7 @@ describe('hardcoverApi', () => {
     });
 
     it('returns false available after failed check', async () => {
-      global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+      mockFetch.mockRejectedValue(new Error('Network error'));
 
       await checkHardcoverAvailability('test-api-key');
 
@@ -189,13 +188,13 @@ describe('hardcoverApi', () => {
 
   describe('resetHardcoverAvailabilityCache', () => {
     it('clears the cache so next check re-fetches', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ data: { __typename: 'query_root' } })
       });
 
       await checkHardcoverAvailability('test-api-key');
-      expect(global.fetch).toHaveBeenCalledTimes(1);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
 
       // Reset the cache
       resetHardcoverAvailabilityCache();
@@ -207,7 +206,7 @@ describe('hardcoverApi', () => {
 
       // Next check should re-fetch
       await checkHardcoverAvailability('test-api-key');
-      expect(global.fetch).toHaveBeenCalledTimes(2);
+      expect(mockFetch).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -234,7 +233,7 @@ describe('hardcoverApi', () => {
         }
       ];
 
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
           data: {
@@ -262,7 +261,7 @@ describe('hardcoverApi', () => {
       });
 
       // Verify the GraphQL query was sent correctly
-      const callArgs = global.fetch.mock.calls[0];
+      const callArgs = mockFetch.mock.calls[0];
       const body = JSON.parse(callArgs[1].body);
       expect(body.query).toContain('search');
       expect(body.query).toContain('query_type');
@@ -271,7 +270,7 @@ describe('hardcoverApi', () => {
     });
 
     it('passes custom limit as perPage', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
           data: { search: { results: { hits: [], found: 0 } } }
@@ -280,13 +279,13 @@ describe('hardcoverApi', () => {
 
       await searchBooksByTitle('Test', 'test-api-key', 10);
 
-      const callArgs = global.fetch.mock.calls[0];
+      const callArgs = mockFetch.mock.calls[0];
       const body = JSON.parse(callArgs[1].body);
       expect(body.variables.perPage).toBe(10);
     });
 
     it('returns empty array when results are empty', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
           data: { search: { results: { hits: [], found: 0 } } }
@@ -311,7 +310,7 @@ describe('hardcoverApi', () => {
         }
       ];
 
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
           data: { search: { results: { hits: mockHits, found: mockHits.length } } }
@@ -325,7 +324,7 @@ describe('hardcoverApi', () => {
     });
 
     it('handles malformed JSON in results field', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
           data: { search: { results: 'not valid json{{{' } }
@@ -338,7 +337,7 @@ describe('hardcoverApi', () => {
     });
 
     it('handles null results field', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
           data: { search: { results: null } }
@@ -377,7 +376,7 @@ describe('hardcoverApi', () => {
         }
       ];
 
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
           data: { search: { results: { hits: mockHits, found: mockHits.length } } }
@@ -400,7 +399,7 @@ describe('hardcoverApi', () => {
         }
       ];
 
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
           data: { search: { results: { hits: mockHits, found: mockHits.length } } }
@@ -443,7 +442,7 @@ describe('hardcoverApi', () => {
         }
       ];
 
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
           data: { search: { results: { hits: mockHits, found: mockHits.length } } }
@@ -456,7 +455,7 @@ describe('hardcoverApi', () => {
     });
 
     it('returns null when no results found', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
           data: { search: { results: { hits: [], found: 0 } } }
@@ -481,7 +480,7 @@ describe('hardcoverApi', () => {
         }
       ];
 
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
           data: { search: { results: { hits: mockHits, found: mockHits.length } } }
@@ -506,7 +505,7 @@ describe('hardcoverApi', () => {
         }
       ];
 
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
           data: { search: { results: { hits: mockHits, found: mockHits.length } } }
@@ -519,7 +518,7 @@ describe('hardcoverApi', () => {
     });
 
     it('returns null on API error', async () => {
-      global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+      mockFetch.mockRejectedValue(new Error('Network error'));
 
       const author = await findAuthorForBook('The Hobbit', 'test-api-key');
 
@@ -548,7 +547,7 @@ describe('hardcoverApi', () => {
         }
       ];
 
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
           data: { search: { results: { hits: mockHits, found: mockHits.length } } }
@@ -593,7 +592,7 @@ describe('hardcoverApi', () => {
         }
       ];
 
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
           data: { search: { results: { hits: mockHits, found: mockHits.length } } }
@@ -644,7 +643,7 @@ describe('hardcoverApi', () => {
         }
       ];
 
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
           data: { search: { results: { hits: mockHits, found: mockHits.length } } }
@@ -664,7 +663,7 @@ describe('hardcoverApi', () => {
     });
 
     it('returns empty array when no results', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
           data: { search: { results: { hits: [], found: 0 } } }
@@ -680,7 +679,7 @@ describe('hardcoverApi', () => {
     });
 
     it('returns empty array on API error', async () => {
-      global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+      mockFetch.mockRejectedValue(new Error('Network error'));
 
       const candidates = await findTopAuthorCandidatesForBook(
         'Test Book',
@@ -703,7 +702,7 @@ describe('hardcoverApi', () => {
         }
       ];
 
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
           data: { search: { results: { hits: mockHits, found: mockHits.length } } }
@@ -749,7 +748,7 @@ describe('hardcoverApi', () => {
         }
       ];
 
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
           data: { search: { results: { hits: mockHits, found: mockHits.length } } }
@@ -787,7 +786,7 @@ describe('hardcoverApi', () => {
         }
       ];
 
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
           data: { search: { results: { hits: mockHits, found: mockHits.length } } }
@@ -808,11 +807,10 @@ describe('hardcoverApi', () => {
     // Helper: creates a mock fetch that returns different responses for
     // the search query vs. the book-detail query based on the GraphQL
     // operation/query text in the request body.
-    function createMockFetch(searchResults, detailBooks) {
-      return vi.fn(async (url, options) => {
+    function setupMockFetch(searchResults, detailBooks) {
+      mockFetch.mockImplementation(async (url, options) => {
         const body = JSON.parse(options.body);
         if (body.query.includes('search')) {
-          // Search query — return stringified search results
           return {
             ok: true,
             json: () => Promise.resolve({
@@ -827,7 +825,6 @@ describe('hardcoverApi', () => {
             })
           };
         }
-        // Book detail query
         return {
           ok: true,
           json: () => Promise.resolve({
@@ -877,7 +874,7 @@ describe('hardcoverApi', () => {
         }
       ];
 
-      global.fetch = createMockFetch(searchResults, detailBooks);
+      setupMockFetch(searchResults, detailBooks);
 
       const result = await getBookDetails('The BFG', 'Roald Dahl', 'test-api-key');
 
@@ -925,7 +922,7 @@ describe('hardcoverApi', () => {
         }
       ];
 
-      global.fetch = createMockFetch(searchResults, detailBooks);
+      setupMockFetch(searchResults, detailBooks);
 
       const result = await getBookDetails(
         'Harry Potter and the Philosophers Stone',
@@ -940,7 +937,7 @@ describe('hardcoverApi', () => {
 
     it('returns null when search finds no match', async () => {
       // Return empty search results
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
           data: { search: { results: { hits: [], found: 0 } } }
@@ -964,7 +961,7 @@ describe('hardcoverApi', () => {
       ];
 
       // Detail query returns empty books array
-      global.fetch = createMockFetch(searchResults, []);
+      setupMockFetch(searchResults, []);
 
       const result = await getBookDetails('Ghost Book', null, 'test-api-key');
 
@@ -999,7 +996,7 @@ describe('hardcoverApi', () => {
         }
       ];
 
-      global.fetch = createMockFetch(searchResults, detailBooks);
+      setupMockFetch(searchResults, detailBooks);
 
       const result = await getBookDetails('Charlotte\'s Web', null, 'test-api-key');
 
@@ -1047,7 +1044,7 @@ describe('hardcoverApi', () => {
         }
       ];
 
-      global.fetch = createMockFetch(searchResults, detailBooks);
+      setupMockFetch(searchResults, detailBooks);
 
       const result = await getBookDetails('Crossover Book', null, 'test-api-key');
 
@@ -1090,7 +1087,7 @@ describe('hardcoverApi', () => {
         }
       ];
 
-      global.fetch = createMockFetch(searchResults, detailBooks);
+      setupMockFetch(searchResults, detailBooks);
 
       const result = await getBookDetails('ISBN-13 Book', null, 'test-api-key');
 
@@ -1131,7 +1128,7 @@ describe('hardcoverApi', () => {
         }
       ];
 
-      global.fetch = createMockFetch(searchResults, detailBooks);
+      setupMockFetch(searchResults, detailBooks);
 
       const result = await getBookDetails('ISBN-10 Only Book', null, 'test-api-key');
 
@@ -1167,7 +1164,7 @@ describe('hardcoverApi', () => {
         }
       ];
 
-      global.fetch = createMockFetch(searchResults, detailBooks);
+      setupMockFetch(searchResults, detailBooks);
 
       const result = await getBookDetails('Long Description Book', null, 'test-api-key');
 
@@ -1202,7 +1199,7 @@ describe('hardcoverApi', () => {
         }
       ];
 
-      global.fetch = createMockFetch(searchResults, detailBooks);
+      setupMockFetch(searchResults, detailBooks);
 
       const result = await getBookDetails('Minimal Book', null, 'test-api-key');
 
@@ -1217,10 +1214,9 @@ describe('hardcoverApi', () => {
   });
 
   describe('findGenresForBook', () => {
-    // Helper: creates a mock fetch that returns different responses for
-    // the search query vs. the book-detail query
-    function createMockFetch(searchResults, detailBooks) {
-      return vi.fn(async (url, options) => {
+    // Helper: configures mockFetch for search + detail queries
+    function setupMockFetch(searchResults, detailBooks) {
+      mockFetch.mockImplementation(async (url, options) => {
         const body = JSON.parse(options.body);
         if (body.query.includes('search')) {
           return {
@@ -1272,7 +1268,7 @@ describe('hardcoverApi', () => {
         }
       ];
 
-      global.fetch = createMockFetch(searchResults, detailBooks);
+      setupMockFetch(searchResults, detailBooks);
 
       const genres = await findGenresForBook('The BFG', 'Roald Dahl', 'test-api-key');
 
@@ -1305,7 +1301,7 @@ describe('hardcoverApi', () => {
         }
       ];
 
-      global.fetch = createMockFetch(searchResults, detailBooks);
+      setupMockFetch(searchResults, detailBooks);
 
       const genres = await findGenresForBook('Mystery Book', null, 'test-api-key');
 
@@ -1313,7 +1309,7 @@ describe('hardcoverApi', () => {
     });
 
     it('returns null when book is not found', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
           data: { search: { results: { hits: [], found: 0 } } }
@@ -1326,7 +1322,7 @@ describe('hardcoverApi', () => {
     });
 
     it('returns null on API error', async () => {
-      global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+      mockFetch.mockRejectedValue(new Error('Network error'));
 
       const genres = await findGenresForBook('Some Book', null, 'test-api-key');
 
@@ -1359,7 +1355,7 @@ describe('hardcoverApi', () => {
         }
       ];
 
-      global.fetch = createMockFetch(searchResults, detailBooks);
+      setupMockFetch(searchResults, detailBooks);
 
       const genres = await findGenresForBook('Empty Genre Book', null, 'test-api-key');
 
@@ -1401,9 +1397,9 @@ describe('hardcoverApi', () => {
   });
 
   describe('batchFindMissingAuthors', () => {
-    // Helper: creates a mock fetch that responds to search queries
-    function createSearchMockFetch(titleToAuthor) {
-      return vi.fn(async (url, options) => {
+    // Helper: configures mockFetch to respond to search queries
+    function setupSearchMockFetch(titleToAuthor) {
+      mockFetch.mockImplementation(async (url, options) => {
         const body = JSON.parse(options.body);
         const searchTerm = body.variables?.q || '';
 
@@ -1444,7 +1440,7 @@ describe('hardcoverApi', () => {
         { title: 'Charlie', author: 'Roald Dahl' } // Already has author, should be skipped
       ];
 
-      global.fetch = createSearchMockFetch({
+      setupSearchMockFetch({
         'The BFG': 'Roald Dahl',
         'Matilda': 'Roald Dahl'
       });
@@ -1480,7 +1476,7 @@ describe('hardcoverApi', () => {
         { title: 'The BFG', author: '' }
       ];
 
-      global.fetch = createSearchMockFetch({
+      setupSearchMockFetch({
         'The BFG': 'Roald Dahl'
       });
 
@@ -1502,7 +1498,7 @@ describe('hardcoverApi', () => {
       ];
 
       // findAuthorForBook catches errors internally and returns null
-      global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+      mockFetch.mockRejectedValue(new Error('Network error'));
 
       const results = await batchFindMissingAuthors(books, 'test-api-key');
 
@@ -1517,7 +1513,7 @@ describe('hardcoverApi', () => {
         { title: 'Book B', author: '' }
       ];
 
-      global.fetch = createSearchMockFetch({
+      setupSearchMockFetch({
         'Book A': 'Author A',
         'Book B': 'Author B'
       });
@@ -1538,9 +1534,9 @@ describe('hardcoverApi', () => {
   });
 
   describe('batchFindMissingDescriptions', () => {
-    // Helper: creates a mock fetch for search + detail queries
-    function createDetailMockFetch(titleToDescription) {
-      return vi.fn(async (url, options) => {
+    // Helper: configures mockFetch for search + detail queries
+    function setupDetailMockFetch(titleToDescription) {
+      mockFetch.mockImplementation(async (url, options) => {
         const body = JSON.parse(options.body);
 
         if (body.query.includes('search')) {
@@ -1603,7 +1599,7 @@ describe('hardcoverApi', () => {
         { title: 'Book B', author: 'Author B', description: 'Already has one' }
       ];
 
-      global.fetch = createDetailMockFetch({
+      setupDetailMockFetch({
         'Book A': 'Found description for Book A'
       });
 
@@ -1629,7 +1625,7 @@ describe('hardcoverApi', () => {
         { title: 'Book A', author: 'Author', description: '' }
       ];
 
-      global.fetch = createDetailMockFetch({
+      setupDetailMockFetch({
         'Book A': 'A description'
       });
 
@@ -1647,9 +1643,9 @@ describe('hardcoverApi', () => {
   });
 
   describe('batchFindMissingGenres', () => {
-    // Helper: creates a mock fetch for search + detail queries with genre data
-    function createGenreMockFetch(titleToGenres) {
-      return vi.fn(async (url, options) => {
+    // Helper: configures mockFetch for search + detail queries with genre data
+    function setupGenreMockFetch(titleToGenres) {
+      mockFetch.mockImplementation(async (url, options) => {
         const body = JSON.parse(options.body);
 
         if (body.query.includes('search')) {
@@ -1712,7 +1708,7 @@ describe('hardcoverApi', () => {
         { title: 'Has Genres', author: 'Author B', genreIds: [1, 2] }
       ];
 
-      global.fetch = createGenreMockFetch({
+      setupGenreMockFetch({
         'Fantasy Book': ['Fantasy', 'Adventure']
       });
 
@@ -1739,7 +1735,7 @@ describe('hardcoverApi', () => {
         { title: 'Genre Book', author: 'Author', genreIds: [] }
       ];
 
-      global.fetch = createGenreMockFetch({
+      setupGenreMockFetch({
         'Genre Book': ['Fiction']
       });
 
@@ -1760,7 +1756,7 @@ describe('hardcoverApi', () => {
         { title: 'No Genre Book', author: 'Author', genreIds: [] }
       ];
 
-      global.fetch = createGenreMockFetch({
+      setupGenreMockFetch({
         'No Genre Book': []
       });
 
@@ -1777,7 +1773,7 @@ describe('hardcoverApi', () => {
       ];
 
       // findGenresForBook catches errors internally and returns null
-      global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+      mockFetch.mockRejectedValue(new Error('Network error'));
 
       const results = await batchFindMissingGenres(books, 'test-api-key');
 
@@ -1789,7 +1785,7 @@ describe('hardcoverApi', () => {
 
   describe('rate limit detection', () => {
     it('sets rate limit flag on 429 HTTP status', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: false,
         status: 429,
         statusText: 'Too Many Requests'
@@ -1803,7 +1799,7 @@ describe('hardcoverApi', () => {
     });
 
     it('sets rate limit flag on GraphQL rate limit error message', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
           errors: [{ message: 'Rate limit exceeded, please try again later' }]
@@ -1816,7 +1812,7 @@ describe('hardcoverApi', () => {
     });
 
     it('sets rate limit flag on "too many requests" error message', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
           errors: [{ message: 'Too many requests' }]
@@ -1829,7 +1825,7 @@ describe('hardcoverApi', () => {
     });
 
     it('does not set rate limit flag on regular errors', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
           errors: [{ message: 'Unauthorized' }]
@@ -1842,7 +1838,7 @@ describe('hardcoverApi', () => {
     });
 
     it('rate limit flag expires after cooldown period', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: false,
         status: 429,
         statusText: 'Too Many Requests'
@@ -1858,7 +1854,7 @@ describe('hardcoverApi', () => {
     });
 
     it('resetHardcoverRateLimitFlag clears the flag', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: false,
         status: 429,
         statusText: 'Too Many Requests'
@@ -1873,83 +1869,83 @@ describe('hardcoverApi', () => {
 
     it('searchBooksByTitle returns empty array when rate limited', async () => {
       // Set up rate limit state
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: false,
         status: 429,
         statusText: 'Too Many Requests'
       });
       await expect(searchBooksByTitle('Trigger', 'test-api-key')).rejects.toThrow();
 
-      // Reset fetch to track calls
-      global.fetch = vi.fn();
+      // Clear call history to track subsequent calls
+      mockFetch.mockClear();
 
       const result = await searchBooksByTitle('Test', 'test-api-key');
       expect(result).toEqual([]);
       // Should NOT have made any fetch call
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(mockFetch).not.toHaveBeenCalled();
     });
 
     it('findAuthorForBook returns null when rate limited', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: false,
         status: 429,
         statusText: 'Too Many Requests'
       });
       await expect(searchBooksByTitle('Trigger', 'test-api-key')).rejects.toThrow();
 
-      global.fetch = vi.fn();
+      mockFetch.mockClear();
 
       const result = await findAuthorForBook('Test', 'test-api-key');
       expect(result).toBeNull();
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(mockFetch).not.toHaveBeenCalled();
     });
 
     it('getBookDetails returns null when rate limited', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: false,
         status: 429,
         statusText: 'Too Many Requests'
       });
       await expect(searchBooksByTitle('Trigger', 'test-api-key')).rejects.toThrow();
 
-      global.fetch = vi.fn();
+      mockFetch.mockClear();
 
       const result = await getBookDetails('Test', null, 'test-api-key');
       expect(result).toBeNull();
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(mockFetch).not.toHaveBeenCalled();
     });
 
     it('findGenresForBook returns null when rate limited', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: false,
         status: 429,
         statusText: 'Too Many Requests'
       });
       await expect(searchBooksByTitle('Trigger', 'test-api-key')).rejects.toThrow();
 
-      global.fetch = vi.fn();
+      mockFetch.mockClear();
 
       const result = await findGenresForBook('Test', null, 'test-api-key');
       expect(result).toBeNull();
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(mockFetch).not.toHaveBeenCalled();
     });
 
     it('batch functions return empty when rate limited', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: false,
         status: 429,
         statusText: 'Too Many Requests'
       });
       await expect(searchBooksByTitle('Trigger', 'test-api-key')).rejects.toThrow();
 
-      global.fetch = vi.fn();
+      mockFetch.mockClear();
 
       const books = [{ title: 'Book A', author: '', description: '', genreIds: [] }];
 
       expect(await batchFindMissingAuthors(books, 'test-api-key')).toEqual([]);
       expect(await batchFindMissingDescriptions(books, 'test-api-key')).toEqual([]);
       expect(await batchFindMissingGenres(books, 'test-api-key')).toEqual([]);
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(mockFetch).not.toHaveBeenCalled();
     });
   });
 });

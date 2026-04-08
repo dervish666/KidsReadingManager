@@ -12,6 +12,15 @@ vi.mock('../../services/wondeSync.js', () => ({
   runFullSync: vi.fn()
 }));
 
+vi.mock('../../utils/wondeApi.js', () => ({
+  fetchSchoolDetails: vi.fn().mockResolvedValue({
+    name: 'Test School',
+    address: { address_line_1: '1 Test St', address_town: 'Testville', address_postcode: 'TE1 1ST' },
+    phone: '01onal234567',
+    email: 'office@testschool.example.com'
+  })
+}));
+
 import webhooksRouter from '../../routes/webhooks.js';
 import { encryptSensitiveData } from '../../utils/crypto.js';
 import { runFullSync } from '../../services/wondeSync.js';

@@ -11,7 +11,7 @@ import { useAuth } from './contexts/AuthContext';
 import { BookCoverProvider } from './contexts/BookCoverContext';
 import TourProvider from './components/tour/TourProvider';
 import Login from './components/Login';
-import LandingPage from './components/LandingPage';
+const LandingPage = React.lazy(() => import('./components/LandingPage'));
 import DpaConsentModal from './components/DpaConsentModal';
 import BillingBanner from './components/BillingBanner';
 import SubscriptionBlockedScreen from './components/SubscriptionBlockedScreen';
@@ -190,7 +190,11 @@ function AppContent() {
     if (showLogin) {
       return <Login onBackToLanding={() => setShowLogin(false)} />;
     }
-    return <LandingPage onSignIn={() => setShowLogin(true)} />;
+    return (
+      <Suspense fallback={<PageFallback />}>
+        <LandingPage onSignIn={() => setShowLogin(true)} />
+      </Suspense>
+    );
   }
 
   if (subscriptionBlock === 'cancelled') {

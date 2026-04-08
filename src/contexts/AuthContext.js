@@ -7,6 +7,7 @@ import React, {
   useCallback,
   useRef,
 } from 'react';
+import { setFetchFunction as setHardcoverFetch } from '../utils/hardcoverApi.js';
 
 // Create context
 const AuthContext = createContext();
@@ -379,6 +380,11 @@ export const AuthProvider = ({ children }) => {
     },
     [authMode, refreshAccessToken, clearAuthState, user]
   );
+
+  // Inject fetchWithAuth into hardcoverApi so it uses the shared auth path
+  useEffect(() => {
+    setHardcoverFetch(fetchWithAuth);
+  }, [fetchWithAuth]);
 
   // Legacy login helper (shared password)
   const login = useCallback(async (password) => {

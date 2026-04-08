@@ -21,6 +21,19 @@ const AVAILABILITY_CHECK_INTERVAL = 60000; // Re-check every 60 seconds
 let rateLimitCooldownEnd = 0;
 const RATE_LIMIT_COOLDOWN_MS = 60000; // 60 second cooldown after rate limit detected
 
+// Injectable auth-aware fetch function (set via setFetchFunction)
+let _authFetch = null;
+
+/**
+ * Inject an auth-aware fetch function (e.g. fetchWithAuth from AuthContext).
+ * Must be called once during app initialisation so that all Hardcover requests
+ * go through the shared auth path (automatic token refresh, 401 handling, etc.).
+ * @param {Function} fn - fetch-compatible function that attaches auth headers
+ */
+export function setFetchFunction(fn) {
+  _authFetch = fn;
+}
+
 /**
  * Internal helper to POST a GraphQL query via the backend proxy.
  * The proxy forwards the request to Hardcover server-side, avoiding CORS.
@@ -35,23 +48,18 @@ const RATE_LIMIT_COOLDOWN_MS = 60000; // 60 second cooldown after rate limit det
  * @throws {Error} On HTTP errors or GraphQL errors
  */
 async function hardcoverQuery(query, variables, apiKey, options = {}) {
-  const token = typeof localStorage !== 'undefined'
-    ? localStorage.getItem('krm_auth_token')
-    : null;
-
-  const headers = {
-    'Content-Type': 'application/json'
-  };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  const response = await fetchWithTimeout(PROXY_URL, {
+  const fetchFn = _authFetch || fetchWithTimeout;
+  const fetchArgs = [PROXY_URL, {
     method: 'POST',
-    headers,
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ query, variables, apiKey }),
     ...options
-  }, 5000);
+  }];
+
+  // fetchWithTimeout takes a third timeout arg; _authFetch does not
+  const response = _authFetch
+    ? await fetchFn(...fetchArgs)
+    : await fetchFn(...fetchArgs, 5000);
 
   if (!response.ok) {
     // Detect rate limiting from HTTP status

@@ -79,8 +79,8 @@ The Recommendations section enables:
 ### Local Development
 ```bash
 # Clone the repository
-git clone https://github.com/dervish666/KidsReadingManager.git
-cd KidsReadingManager
+git clone https://github.com/dervish666/TallyReading.git
+cd TallyReading
 
 # Install dependencies
 npm install
@@ -88,7 +88,7 @@ npm install
 # Start the development server
 npm run start:dev
 
-# Open http://localhost:3000 in your browser
+# Open http://localhost:3001 in your browser
 ```
 
 ## 💡 How It Works

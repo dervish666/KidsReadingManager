@@ -65,8 +65,8 @@ const ReadingTimelineChart = () => {
     }
 
     return {
-      startDateISO: startDate.toISOString().split('T')[0],
-      endDateISO: endDate.toISOString().split('T')[0]
+      startDateISO: startDate.toLocaleDateString('en-CA'),
+      endDateISO: endDate.toLocaleDateString('en-CA')
     };
   }, [timeRange]);
 
