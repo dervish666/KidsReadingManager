@@ -656,6 +656,43 @@ export default Sentry.withSentry(
           console.log(
             `[Cron] Badge evaluation complete: ${totalStudents} students, ${totalNewBadges} new badges`
           );
+
+          // ── Class goals drift correction ──────────────────────────────────
+          try {
+            const { recalculateClassGoalProgress, resolveCurrentTerm } = await import(
+              './utils/classGoalsEngine.js'
+            );
+
+            let totalClassesProcessed = 0;
+
+            for (const org of orgs.results || []) {
+              const classes = await db
+                .prepare('SELECT id FROM classes WHERE organization_id = ? AND is_active = 1')
+                .bind(org.id)
+                .all();
+
+              const termDatesResult = await db
+                .prepare('SELECT term_name, start_date, end_date, academic_year FROM term_dates WHERE organization_id = ? ORDER BY start_date')
+                .bind(org.id)
+                .all();
+
+              const today = new Date().toISOString().split('T')[0];
+              const { term, startDate, endDate } = resolveCurrentTerm(termDatesResult.results || [], today);
+
+              for (const cls of (classes.results || [])) {
+                try {
+                  await recalculateClassGoalProgress(db, cls.id, org.id, startDate, endDate, term);
+                  totalClassesProcessed++;
+                } catch (err) {
+                  console.error(`[Cron] Class goal recalc error for class ${cls.id}:`, err.message);
+                }
+              }
+            }
+
+            console.log(`[Cron] Class goals recalculated: ${totalClassesProcessed} classes`);
+          } catch (error) {
+            console.error('[Cron] Class goals recalculation failed:', error.message);
+          }
         } catch (error) {
           console.error('[Cron] Badge evaluation failed:', error.message);
         }
