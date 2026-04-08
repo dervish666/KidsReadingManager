@@ -20,12 +20,14 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import WhatshotIcon from '@mui/icons-material/Whatshot';
+import EmojiNatureIcon from '@mui/icons-material/EmojiNature';
 import DaysSinceReadingChart from './DaysSinceReadingChart';
 import ReadingTimelineChart from './ReadingTimelineChart';
 import OverviewTab from './OverviewTab';
 import NeedsAttentionTab from './NeedsAttentionTab';
 import FrequencyTab from './FrequencyTab';
 import StreaksTab from './StreaksTab';
+import AchievementsTab from './AchievementsTab';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
 import { generateStatsPDF } from '../../utils/statsExport';
@@ -347,6 +349,7 @@ const ReadingStats = () => {
             <Tab icon={<CalendarTodayIcon />} iconPosition="start" label="Needs Attention" />
             <Tab icon={<MenuBookIcon />} iconPosition="start" label="Reading Frequency" />
             <Tab icon={<TimelineIcon />} iconPosition="start" label="Reading Timeline" />
+            <Tab icon={<EmojiNatureIcon />} iconPosition="start" label="Achievements" />
           </Tabs>
         </Paper>
 
@@ -418,6 +421,19 @@ const ReadingStats = () => {
                   <ReadingTimelineChart />
                 </Box>
               </Box>
+            ))}
+          {currentTab === 5 &&
+            (students.length === 0 ? (
+              <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 4 }}>
+                <Typography variant="body1" color="text.secondary">
+                  No data available yet. Add students and record reading sessions to see statistics.
+                </Typography>
+              </Paper>
+            ) : (
+              <AchievementsTab
+                fetchWithAuth={fetchWithAuth}
+                globalClassFilter={globalClassFilter}
+              />
             ))}
         </Box>
       </Box>

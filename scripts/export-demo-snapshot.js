@@ -55,6 +55,8 @@ const TABLES = [
     name: 'support_ticket_notes',
     where: `ticket_id IN (SELECT id FROM support_tickets WHERE organization_id = '${DEMO_ORG_ID}')`,
   },
+  { name: 'student_reading_stats', where: `organization_id = '${DEMO_ORG_ID}'` },
+  { name: 'student_badges', where: `organization_id = '${DEMO_ORG_ID}'` },
 ];
 
 console.log(`Exporting Learnalot demo data (org: ${DEMO_ORG_ID})...\n`);

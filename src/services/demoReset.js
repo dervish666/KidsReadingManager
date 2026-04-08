@@ -6,6 +6,7 @@
  */
 
 import { DEMO_ORG_ID, SNAPSHOT } from '../data/demoSnapshot.js';
+import { recalculateStats, evaluateRealTime, evaluateBatch } from '../utils/badgeEngine.js';
 
 const BATCH_LIMIT = 100;
 
@@ -16,6 +17,14 @@ const DELETE_TABLES = [
     where: `ticket_id IN (SELECT id FROM support_tickets WHERE organization_id = '${DEMO_ORG_ID}')`,
   },
   { table: 'support_tickets', where: `organization_id = '${DEMO_ORG_ID}'` },
+  {
+    table: 'student_badges',
+    where: `organization_id = '${DEMO_ORG_ID}'`,
+  },
+  {
+    table: 'student_reading_stats',
+    where: `organization_id = '${DEMO_ORG_ID}'`,
+  },
   {
     table: 'reading_sessions',
     where: `student_id IN (SELECT id FROM students WHERE organization_id = '${DEMO_ORG_ID}')`,
@@ -143,6 +152,32 @@ export async function resetDemoData(db) {
       }
       console.log(`[DemoReset] ${table}: ${inserted}/${rows.length} rows via fallback`);
     }
+  }
+
+  // Phase 3: Evaluate badges for all demo students with reading sessions
+  try {
+    const students = await db
+      .prepare(
+        `SELECT DISTINCT s.id, s.year_group
+         FROM students s
+         INNER JOIN reading_sessions rs ON rs.student_id = s.id
+         WHERE s.organization_id = ? AND s.is_active = 1`
+      )
+      .bind(DEMO_ORG_ID)
+      .all();
+
+    let badgeCount = 0;
+    for (const student of students.results || []) {
+      await recalculateStats(db, student.id, DEMO_ORG_ID);
+      const rt = await evaluateRealTime(db, student.id, DEMO_ORG_ID, student.year_group);
+      const batch = await evaluateBatch(db, student.id, DEMO_ORG_ID, student.year_group);
+      badgeCount += rt.length + batch.length;
+    }
+    console.log(
+      `[DemoReset] Badges: ${badgeCount} awarded to ${(students.results || []).length} students`
+    );
+  } catch (error) {
+    console.warn(`[DemoReset] Badge evaluation skipped: ${error.message}`);
   }
 
   console.log('[DemoReset] Reset complete');

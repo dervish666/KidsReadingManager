@@ -242,7 +242,8 @@ studentsRouter.get('/', requireReadonly(), async (c) => {
       .prepare(
         `
       SELECT s.*, c.name as class_name, b.title as current_book_title, b.author as current_book_author,
-        (SELECT COUNT(*) FROM reading_sessions rs WHERE rs.student_id = s.id AND (rs.notes IS NULL OR (rs.notes NOT LIKE '%[ABSENT]%' AND rs.notes NOT LIKE '%[NO_RECORD]%'))) as total_session_count
+        (SELECT COUNT(*) FROM reading_sessions rs WHERE rs.student_id = s.id AND (rs.notes IS NULL OR (rs.notes NOT LIKE '%[ABSENT]%' AND rs.notes NOT LIKE '%[NO_RECORD]%'))) as total_session_count,
+        (SELECT COUNT(*) FROM student_badges sb WHERE sb.student_id = s.id) as badge_count
       FROM students s
       LEFT JOIN classes c ON s.class_id = c.id
       LEFT JOIN books b ON s.current_book_id = b.id
@@ -257,6 +258,7 @@ studentsRouter.get('/', requireReadonly(), async (c) => {
       ...rowToStudent(row),
       className: row.class_name,
       totalSessionCount: row.total_session_count || 0,
+      badgeCount: row.badge_count || 0,
     }));
 
     return c.json(students);

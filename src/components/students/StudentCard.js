@@ -158,8 +158,8 @@ const StudentCard = React.memo(({ student }) => {
                 {student.currentStreak > 0 && (
                   <StreakBadge streak={student.currentStreak} size="small" />
                 )}
-                {student.badges && student.badges.length > 0 && (
-                  <BadgeIndicators badges={student.badges} />
+                {(student.badgeCount > 0 || (student.badges && student.badges.length > 0)) && (
+                  <BadgeIndicators count={student.badgeCount || student.badges?.length || 0} />
                 )}
                 <Box
                   role="img"

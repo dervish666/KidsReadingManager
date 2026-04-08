@@ -95,4 +95,142 @@ badgesRouter.post('/students/:id/notify', requireTeacher(), async (c) => {
   return c.json({ updated: badgeIds.length });
 });
 
+/**
+ * GET /api/badges/summary
+ * Class-wide badge progress: aggregate counts + per-student progress for each badge.
+ * Query: ?classId=<id|all|unassigned>
+ */
+badgesRouter.get('/summary', requireReadonly(), async (c) => {
+  const db = requireDB(c.env);
+  const organizationId = c.get('organizationId');
+  const classId = c.req.query('classId') || 'all';
+
+  // Validate classId when it's a specific class
+  if (classId !== 'all' && classId !== 'unassigned') {
+    const cls = await db
+      .prepare('SELECT id FROM classes WHERE id = ? AND organization_id = ?')
+      .bind(classId, organizationId)
+      .first();
+    if (!cls) return c.json({ error: 'Class not found' }, 404);
+  }
+
+  // Build student query with class filter
+  let studentSql = `
+    SELECT s.id, s.name, s.year_group
+    FROM students s
+    LEFT JOIN classes c ON s.class_id = c.id
+    WHERE s.organization_id = ? AND s.is_active = 1`;
+  const binds = [organizationId];
+
+  if (classId === 'unassigned') {
+    studentSql += ' AND s.class_id IS NULL';
+  } else if (classId !== 'all') {
+    studentSql += ' AND s.class_id = ?';
+    binds.push(classId);
+  } else {
+    studentSql += ' AND (s.class_id IS NULL OR c.disabled = 0)';
+  }
+  studentSql += ' ORDER BY s.name ASC';
+
+  const studentsResult = await db.prepare(studentSql).bind(...binds).all();
+  const students = studentsResult.results || [];
+
+  if (students.length === 0) {
+    return c.json({ totalStudents: 0, studentsWithBadges: 0, totalBadgesEarned: 0, badges: [] });
+  }
+
+  // Use subqueries to avoid D1 bind parameter limits for large student sets
+  const classFilter =
+    classId === 'unassigned'
+      ? ' AND s.class_id IS NULL'
+      : classId !== 'all'
+        ? ' AND s.class_id = ?'
+        : ' AND (s.class_id IS NULL OR c.disabled = 0)';
+  const studentSubquery = `SELECT s.id FROM students s
+    LEFT JOIN classes c ON s.class_id = c.id
+    WHERE s.organization_id = ? AND s.is_active = 1${classFilter}`;
+  const subBinds =
+    classId !== 'all' && classId !== 'unassigned' ? [organizationId, classId] : [organizationId];
+
+  const [badgesResult, statsResult] = await Promise.all([
+    db
+      .prepare(`SELECT * FROM student_badges WHERE student_id IN (${studentSubquery})`)
+      .bind(...subBinds)
+      .all(),
+    db
+      .prepare(`SELECT * FROM student_reading_stats WHERE student_id IN (${studentSubquery})`)
+      .bind(...subBinds)
+      .all(),
+  ]);
+
+  // Index badges and stats by student_id
+  const badgesByStudent = {};
+  for (const b of badgesResult.results || []) {
+    (badgesByStudent[b.student_id] ||= []).push(b);
+  }
+  const statsByStudent = {};
+  for (const s of statsResult.results || []) {
+    statsByStudent[s.student_id] = rowToReadingStats(s);
+  }
+
+  const studentsWithBadgesSet = new Set(Object.keys(badgesByStudent));
+  const totalBadgesEarned = (badgesResult.results || []).length;
+
+  // Build per-badge summary
+  const nonSecretDefs = BADGE_DEFINITIONS.filter((b) => !b.isSecret);
+  const secretDefs = BADGE_DEFINITIONS.filter((b) => b.isSecret);
+  const badgeSummaries = [];
+
+  for (const def of nonSecretDefs) {
+    const badgeStudents = students.map((s) => {
+      const studentBadges = badgesByStudent[s.id] || [];
+      const earned = studentBadges.find((b) => b.badge_id === def.id);
+      if (earned) {
+        return { id: s.id, name: s.name, earned: true, earnedAt: earned.earned_at };
+      }
+      // Compute progress — authorBookCounts intentionally omitted (too expensive for summary);
+      // series_finisher falls back to { current: 0, target: 3 }
+      const stats = statsByStudent[s.id] || {};
+      const keyStage = resolveKeyStage(s.year_group);
+      const progress = def.progress(stats, { keyStage });
+      return {
+        id: s.id,
+        name: s.name,
+        earned: false,
+        current: progress.current,
+        target: progress.target,
+      };
+    });
+
+    const earnedCount = badgeStudents.filter((s) => s.earned).length;
+    badgeSummaries.push({ badgeId: def.id, earnedCount, students: badgeStudents });
+  }
+
+  // Secret badges — only include if any student earned them
+  for (const def of secretDefs) {
+    const earnedStudents = [];
+    for (const s of students) {
+      const studentBadges = badgesByStudent[s.id] || [];
+      const earned = studentBadges.find((b) => b.badge_id === def.id);
+      if (earned) {
+        earnedStudents.push({ id: s.id, name: s.name, earned: true, earnedAt: earned.earned_at });
+      }
+    }
+    if (earnedStudents.length > 0) {
+      badgeSummaries.push({
+        badgeId: def.id,
+        earnedCount: earnedStudents.length,
+        students: earnedStudents,
+      });
+    }
+  }
+
+  return c.json({
+    totalStudents: students.length,
+    studentsWithBadges: studentsWithBadgesSet.size,
+    totalBadgesEarned,
+    badges: badgeSummaries,
+  });
+});
+
 export default badgesRouter;
