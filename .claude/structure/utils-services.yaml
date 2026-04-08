@@ -494,6 +494,25 @@ files:
       - from: utils/badgeDefinitions
         items: [resolveKeyStage, getRealtimeBadges, getBatchBadges, BADGE_DEFINITIONS]
 
+  utils/classGoalsEngine.js:
+    description: Class goal utilities - term resolution, auto-generation defaults, progress recalculation
+    exports:
+      - name: resolveCurrentTerm
+        kind: function
+        params: [{name: db}, {name: organizationId}, {name: classId}]
+        returns: Promise<object>
+        description: Determine the current academic term from term_dates for the given org
+      - name: buildDefaultGoal
+        kind: function
+        params: [{name: classId}, {name: organizationId}, {name: termLabel}, {name: academicYear}]
+        returns: object
+        description: Return default goal object (sessionsTarget null, booksTarget null) for a class/term
+      - name: recalculateGoalProgress
+        kind: function
+        params: [{name: db}, {name: classId}, {name: organizationId}, {name: termLabel}, {name: academicYear}]
+        returns: Promise<object>
+        description: Recompute sessionsActual and booksActual from reading_sessions for the goal period
+
   utils/wondeApi.js:
     description: Wonde REST API client for school data provisioning
     exports:

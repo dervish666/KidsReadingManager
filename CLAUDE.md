@@ -41,7 +41,7 @@ src/routes/auth.js - POST/GET register, login, refresh, logout, password reset
 src/routes/mylogin.js - MyLogin OAuth2 SSO (login, callback, logout)
 src/routes/students.js - GET/POST/PUT/DELETE student CRUD, bulk import
 src/routes/books.js - GET/POST/PUT/DELETE books, AI recommendations, search, CSV import
-src/routes/classes.js - GET/POST/PUT/DELETE class management
+src/routes/classes.js - GET/POST/PUT/DELETE class management, GET/PUT class goals
 src/routes/genres.js - GET/POST/PUT/DELETE genre management
 src/routes/covers.js - GET book covers from R2 cache + OpenLibrary fallback
 src/routes/users.js - GET/POST/PUT/DELETE user management (admin only)
@@ -98,6 +98,7 @@ src/utils/hardcoverApi.js - Hardcover GraphQL API client with rate limiting
 src/utils/bookMetadataApi.js - Unified metadata API with provider abstraction
 src/utils/csvParser.js - CSV parsing for book import
 src/utils/classAssignments.js - Sync class_assignments from wonde_employee_classes for a user
+src/utils/classGoalsEngine.js - Term resolution, auto-generation defaults, class goal progress recalculation
 src/utils/routeHelpers.js - Shared route helpers (getDB, requireDB, isMultiTenantMode, requireStudent)
 src/utils/rowMappers.js - Centralized row-to-object mappers (rowToBook, rowToStudent, rowToClass, rowToUser, rowToOrganization, rowToGenre, rowToSupportTicket, rowToSupportNote, rowToTourCompletion, rowToBadge, rowToReadingStats, rowToClassGoal)
 src/utils/constants.js - Shared constants (PUBLIC_PATHS for auth bypass)
@@ -186,6 +187,10 @@ src/components/badges/GardenHeader.js - SVG garden header evolving through 4 sta
 src/components/badges/BadgeCollection.js - Grid of earned badges + near-miss progress bars
 src/components/badges/BadgeCelebration.js - Unlock celebration dialog shown after session save
 src/components/badges/BadgeIndicators.js - Mini badge count chip for StudentCard
+
+<!-- Frontend Components - Goals -->
+src/components/goals/ClassGoalsEditor.js - Teacher modal for editing class goal targets
+src/components/goals/ClassGoalsDisplay.js - Fullscreen classroom projection view with garden and confetti
 
 <!-- Frontend Components - Stats -->
 src/components/stats/ReadingStats.js - Stats dashboard with metrics and charts

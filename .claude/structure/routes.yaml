@@ -102,7 +102,7 @@ files:
         items: [isExactMatch, isFuzzyMatch, isAuthorMatch]
 
   classes.js:
-    description: Class management - CRUD with student counts
+    description: Class management - CRUD with student counts, and class goals
     exports:
       - name: classesRouter
         kind: object
@@ -122,6 +122,12 @@ files:
         requires: teacher
       - route: DELETE /api/classes/:id
         description: Soft delete class and unassign students
+        requires: teacher
+      - route: GET /api/classes/:id/goals
+        description: Get class goals for current or specified term
+        requires: readonly
+      - route: PUT /api/classes/:id/goals
+        description: Upsert class goal targets for a term
         requires: teacher
 
   covers.js:

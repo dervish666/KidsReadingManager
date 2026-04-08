@@ -72,9 +72,9 @@ describe('hardDeleteOrganization', () => {
     expect(sqlLog[1].sql).toContain('INSERT INTO data_rights_log');
     expect(sqlLog[1].binds).toEqual(['purge-log-uuid', ORG_ID, ORG_ID]);
 
-    // -- 25 DELETEs from DELETE_ORDER (indexes 2..26)
-    const deleteSqls = sqlLog.slice(2, 27);
-    expect(deleteSqls).toHaveLength(25);
+    // -- 26 DELETEs from DELETE_ORDER (indexes 2..27)
+    const deleteSqls = sqlLog.slice(2, 28);
+    expect(deleteSqls).toHaveLength(26);
     for (const entry of deleteSqls) {
       expect(entry.sql).toMatch(/^DELETE FROM /);
       expect(entry.binds).toEqual([ORG_ID]);
@@ -86,21 +86,23 @@ describe('hardDeleteOrganization', () => {
     expect(tableOrder[1]).toBe('support_tickets');
     expect(tableOrder.indexOf('students')).toBeLessThan(tableOrder.indexOf('classes'));
     expect(tableOrder.indexOf('reading_sessions')).toBeLessThan(tableOrder.indexOf('students'));
+    // class_goals must be deleted before classes (FK constraint)
+    expect(tableOrder.indexOf('class_goals')).toBeLessThan(tableOrder.indexOf('classes'));
     expect(tableOrder[tableOrder.length - 1]).toBe('users');
 
-    // -- data_rights_log DELETE (index 27)
-    expect(sqlLog[27].sql).toContain('DELETE FROM data_rights_log');
-    expect(sqlLog[27].binds).toEqual([ORG_ID, 'purge-log-uuid']);
+    // -- data_rights_log DELETE (index 28)
+    expect(sqlLog[28].sql).toContain('DELETE FROM data_rights_log');
+    expect(sqlLog[28].binds).toEqual([ORG_ID, 'purge-log-uuid']);
 
-    // -- Anonymise UPDATE (index 28)
-    expect(sqlLog[28].sql).toContain('UPDATE organizations SET');
-    expect(sqlLog[28].sql).toContain("name = 'Deleted Organisation'");
-    expect(sqlLog[28].sql).toContain('purged_at');
-    expect(sqlLog[28].binds).toEqual([ORG_ID]);
+    // -- Anonymise UPDATE (index 29)
+    expect(sqlLog[29].sql).toContain('UPDATE organizations SET');
+    expect(sqlLog[29].sql).toContain("name = 'Deleted Organisation'");
+    expect(sqlLog[29].sql).toContain('purged_at');
+    expect(sqlLog[29].binds).toEqual([ORG_ID]);
 
     // -- Return value
     expect(result.orgId).toBe(ORG_ID);
-    expect(result.tablesProcessed).toBe(26); // 25 DELETE_ORDER + 1 data_rights_log
+    expect(result.tablesProcessed).toBe(27); // 26 DELETE_ORDER + 1 data_rights_log
     expect(result.errors).toEqual([]);
   });
 
@@ -170,13 +172,13 @@ describe('hardDeleteOrganization', () => {
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0]).toContain('student_badges');
 
-    // 24 succeeded from DELETE_ORDER + 1 data_rights_log = 25
-    expect(result.tablesProcessed).toBe(25);
+    // 25 succeeded from DELETE_ORDER + 1 data_rights_log = 26
+    expect(result.tablesProcessed).toBe(26);
 
     // Verify tables after the failing one were still processed
     const deleteSqls = sqlLog.filter((e) => e.sql.startsWith('DELETE FROM'));
-    // 25 DELETEs from DELETE_ORDER + 1 data_rights_log = 26 total attempted
-    expect(deleteSqls).toHaveLength(26);
+    // 26 DELETEs from DELETE_ORDER + 1 data_rights_log = 27 total attempted
+    expect(deleteSqls).toHaveLength(27);
   });
 });
 

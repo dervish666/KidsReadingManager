@@ -377,6 +377,24 @@ files:
         props: [badges, maxVisible]
         description: "Shows garden chip + up to maxVisible (default 4) badge icons; returns null if empty"
 
+  # ---- goals/ ----
+
+  goals/ClassGoalsEditor.js:
+    description: Teacher modal for editing class goal targets per term
+    exports:
+      - name: ClassGoalsEditor
+        kind: component
+        props: [classId, className, open, onClose, onSaved]
+        description: Dialog with fields for sessionsTarget and booksTarget; auto-populates defaults via GET /api/classes/:id/goals
+
+  goals/ClassGoalsDisplay.js:
+    description: Fullscreen classroom projection view showing class goal progress with garden and confetti
+    exports:
+      - name: ClassGoalsDisplay
+        kind: component
+        props: [classId, className, open, onClose]
+        description: Fullscreen dialog with GardenHeader, session/book progress bars, confetti on 100% completion
+
   # ---- stats/ ----
 
   stats/ReadingStats.js:
