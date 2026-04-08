@@ -37,6 +37,10 @@ const DELETE_TABLES = [
     table: 'class_assignments',
     where: `class_id IN (SELECT id FROM classes WHERE organization_id = '${DEMO_ORG_ID}')`,
   },
+  {
+    table: 'class_goals',
+    where: `class_id IN (SELECT id FROM classes WHERE organization_id = '${DEMO_ORG_ID}')`,
+  },
   { table: 'students', where: `organization_id = '${DEMO_ORG_ID}'` },
   { table: 'classes', where: `organization_id = '${DEMO_ORG_ID}'` },
   { table: 'org_book_selections', where: `organization_id = '${DEMO_ORG_ID}'` },

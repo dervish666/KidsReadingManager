@@ -31,6 +31,10 @@ const DELETE_ORDER = [
     table: 'class_assignments',
     where: `class_id IN (SELECT id FROM classes WHERE organization_id = ?)`,
   },
+  {
+    table: 'class_goals',
+    where: `class_id IN (SELECT id FROM classes WHERE organization_id = ?)`,
+  },
   { table: 'students', where: `organization_id = ?` },
   { table: 'classes', where: `organization_id = ?` },
   { table: 'org_book_selections', where: `organization_id = ?` },
