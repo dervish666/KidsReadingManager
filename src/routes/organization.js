@@ -9,6 +9,7 @@ import { encryptSensitiveData } from '../utils/crypto.js';
 import { requireDB as getDB } from '../utils/routeHelpers.js';
 import { rowToOrganization } from '../utils/rowMappers.js';
 import { notFoundError, badRequestError, createError } from '../middleware/errorHandler.js';
+import { hardDeleteOrganization } from '../services/orgPurge.js';
 
 export const organizationRouter = new Hono();
 
@@ -813,6 +814,43 @@ organizationRouter.put('/:id', requireOwner(), auditLog('update', 'organization'
     return c.json({ error: 'Failed to update organization' }, 500);
   }
 });
+
+/**
+ * DELETE /api/organization/:id/purge
+ * Permanently delete all org data (Article 17 erasure)
+ * Requires: owner role, body { confirm: "<org name>" }
+ */
+organizationRouter.delete(
+  '/:id/purge',
+  requireOwner(),
+  auditLog('purge', 'organization'),
+  async (c) => {
+    const db = getDB(c.env);
+    const orgId = c.req.param('id');
+
+    // Load org to check name confirmation
+    const org = await db
+      .prepare('SELECT id, name, legal_hold, purged_at FROM organizations WHERE id = ?')
+      .bind(orgId)
+      .first();
+
+    if (!org) {
+      throw notFoundError('Organization not found');
+    }
+
+    const body = await c.req.json();
+    const confirmName = (body.confirm || '').trim().toLowerCase();
+    const orgName = (org.name || '').trim().toLowerCase();
+
+    if (confirmName !== orgName) {
+      throw badRequestError('Confirmation name does not match the organization name');
+    }
+
+    // hardDeleteOrganization handles legal_hold and purged_at checks (throws 409)
+    const result = await hardDeleteOrganization(db, orgId);
+    return c.json(result);
+  }
+);
 
 /**
  * DELETE /api/organization/:id
