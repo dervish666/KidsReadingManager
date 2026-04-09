@@ -99,8 +99,9 @@ const SessionForm = () => {
       setStudentHistory([]);
       return;
     }
+    const controller = new AbortController();
     setHistoryLoading(true);
-    fetchWithAuth(`/api/students/${selectedStudentId}/sessions`)
+    fetchWithAuth(`/api/students/${selectedStudentId}/sessions`, { signal: controller.signal })
       .then((r) => (r.ok ? r.json() : []))
       .then((sessions) => {
         const real = sessions
@@ -114,10 +115,14 @@ const SessionForm = () => {
         setStudentHistory(real);
         setHistoryLoading(false);
       })
-      .catch(() => {
+      .catch((error) => {
+        if (error.name === 'AbortError') return;
         setStudentHistory([]);
         setHistoryLoading(false);
       });
+    return () => {
+      controller.abort();
+    };
   }, [selectedStudentId, fetchWithAuth, historyRefresh]);
 
   const handleBookChange = async (book) => {

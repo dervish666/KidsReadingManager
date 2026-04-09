@@ -230,8 +230,9 @@ const HomeReadingRegister = () => {
       setStudentHistory([]);
       return;
     }
+    const controller = new AbortController();
     setHistoryLoading(true);
-    fetchWithAuth(`/api/students/${selectedStudent.id}/sessions`)
+    fetchWithAuth(`/api/students/${selectedStudent.id}/sessions`, { signal: controller.signal })
       .then((r) => (r.ok ? r.json() : []))
       .then((sessions) => {
         // Filter out absent/no_record markers, sort newest first
@@ -246,10 +247,14 @@ const HomeReadingRegister = () => {
         setStudentHistory(real);
         setHistoryLoading(false);
       })
-      .catch(() => {
+      .catch((error) => {
+        if (error.name === 'AbortError') return;
         setStudentHistory([]);
         setHistoryLoading(false);
       });
+    return () => {
+      controller.abort();
+    };
   }, [selectedStudent?.id, fetchWithAuth, historyRefresh]);
 
   // Build a sessions-by-student lookup for O(1) access
@@ -794,26 +799,32 @@ const HomeReadingRegister = () => {
     let color = 'grey.400';
     let content = '-';
 
+    let ariaLabel = 'Not entered';
+
     switch (status) {
       case READING_STATUS.READ:
         bgColor = 'success.light';
         color = 'success.dark';
         content = '✓';
+        ariaLabel = 'Read';
         break;
       case READING_STATUS.MULTIPLE:
         bgColor = 'success.main';
         color = 'white';
         content = count;
+        ariaLabel = 'Read multiple times';
         break;
       case READING_STATUS.ABSENT:
         bgColor = 'warning.light';
         color = 'warning.dark';
         content = 'A';
+        ariaLabel = 'Absent';
         break;
       case READING_STATUS.NO_RECORD:
         bgColor = 'grey.200';
         color = 'grey.600';
         content = '•';
+        ariaLabel = 'No record';
         break;
       default:
         break;
@@ -826,6 +837,7 @@ const HomeReadingRegister = () => {
     return (
       <TableCell
         key={dateStr}
+        aria-label={ariaLabel}
         sx={{ ...cellStyle, backgroundColor: bgColor, color }}
         onClick={() => {
           setSelectedDate(dateStr);

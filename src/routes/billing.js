@@ -33,9 +33,8 @@ billingRouter.post('/setup', requireAdmin(), async (c) => {
 
   // Allow owners to provision billing for any org via body.organizationId
   const body = await c.req.json().catch(() => ({}));
-  const organizationId = (userRole === 'owner' && body.organizationId)
-    ? body.organizationId
-    : c.get('organizationId');
+  const organizationId =
+    userRole === 'owner' && body.organizationId ? body.organizationId : c.get('organizationId');
 
   if (!c.env.STRIPE_SECRET_KEY) {
     return c.json({ error: 'Stripe is not configured' }, 503);
@@ -143,7 +142,7 @@ billingRouter.post('/setup', requireAdmin(), async (c) => {
     });
   } catch (err) {
     console.error('[Billing] Setup failed:', err.message);
-    return c.json({ error: `Billing setup failed: ${err.message}` }, 500);
+    return c.json({ error: 'Billing setup failed. Please try again or contact support.' }, 500);
   }
 });
 
@@ -227,17 +226,22 @@ billingRouter.post('/portal', requireAdmin(), async (c) => {
     return c.json({ error: 'Billing not configured for this organization' }, 400);
   }
 
-  const stripe = getStripe(c.env);
+  try {
+    const stripe = getStripe(c.env);
 
-  // Use request origin for return URL (works across dev/staging/production)
-  const origin = new URL(c.req.url).origin;
+    // Use request origin for return URL (works across dev/staging/production)
+    const origin = new URL(c.req.url).origin;
 
-  const session = await stripe.billingPortal.sessions.create({
-    customer: org.stripe_customer_id,
-    return_url: `${origin}/settings`,
-  });
+    const session = await stripe.billingPortal.sessions.create({
+      customer: org.stripe_customer_id,
+      return_url: `${origin}/settings`,
+    });
 
-  return c.json({ url: session.url });
+    return c.json({ url: session.url });
+  } catch (err) {
+    console.error('[Billing] Portal session failed:', err.message);
+    return c.json({ error: 'Failed to open billing portal. Please try again.' }, 500);
+  }
 });
 
 /**
@@ -250,9 +254,7 @@ billingRouter.post('/change-plan', requireAdmin(), async (c) => {
   const organizationId = c.get('organizationId');
 
   const org = await db
-    .prepare(
-      'SELECT stripe_subscription_id FROM organizations WHERE id = ? AND is_active = 1'
-    )
+    .prepare('SELECT stripe_subscription_id FROM organizations WHERE id = ? AND is_active = 1')
     .bind(organizationId)
     .first();
 
@@ -260,32 +262,37 @@ billingRouter.post('/change-plan', requireAdmin(), async (c) => {
     return c.json({ error: 'No active subscription' }, 400);
   }
 
-  const priceId = getPriceId(c.env);
-  const stripe = getStripe(c.env);
+  try {
+    const priceId = getPriceId(c.env);
+    const stripe = getStripe(c.env);
 
-  // Get current subscription to find the item ID
-  const subscription = await stripe.subscriptions.retrieve(org.stripe_subscription_id);
-  const itemId = subscription.items.data[0]?.id;
+    // Get current subscription to find the item ID
+    const subscription = await stripe.subscriptions.retrieve(org.stripe_subscription_id);
+    const itemId = subscription.items.data[0]?.id;
 
-  if (!itemId) {
-    return c.json({ error: 'Subscription has no items' }, 500);
+    if (!itemId) {
+      return c.json({ error: 'Subscription has no items' }, 500);
+    }
+
+    // Update the subscription to the current annual price
+    await stripe.subscriptions.update(org.stripe_subscription_id, {
+      items: [{ id: itemId, price: priceId }],
+      proration_behavior: 'create_prorations',
+    });
+
+    // Update local record (webhook will also update, but this is faster for UX)
+    await db
+      .prepare(
+        "UPDATE organizations SET subscription_plan = 'annual', updated_at = datetime('now') WHERE id = ?"
+      )
+      .bind(organizationId)
+      .run();
+
+    return c.json({ plan: 'annual', status: 'updated' });
+  } catch (err) {
+    console.error('[Billing] Plan change failed:', err.message);
+    return c.json({ error: 'Failed to change plan. Please try again or contact support.' }, 500);
   }
-
-  // Update the subscription to the current annual price
-  await stripe.subscriptions.update(org.stripe_subscription_id, {
-    items: [{ id: itemId, price: priceId }],
-    proration_behavior: 'create_prorations',
-  });
-
-  // Update local record (webhook will also update, but this is faster for UX)
-  await db
-    .prepare(
-      "UPDATE organizations SET subscription_plan = 'annual', updated_at = datetime('now') WHERE id = ?"
-    )
-    .bind(organizationId)
-    .run();
-
-  return c.json({ plan: 'annual', status: 'updated' });
 });
 
 /**

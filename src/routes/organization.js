@@ -5,6 +5,7 @@
 
 import { Hono } from 'hono';
 import { requireOwner, requireAdmin, requireReadonly, auditLog } from '../middleware/tenant.js';
+import { generateUniqueSlug } from '../utils/helpers.js';
 import { encryptSensitiveData } from '../utils/crypto.js';
 import { requireDB as getDB } from '../utils/routeHelpers.js';
 import { rowToOrganization } from '../utils/rowMappers.js';
@@ -663,26 +664,7 @@ organizationRouter.post(
       }
 
       // Generate slug from name if not provided, auto-incrementing on collision
-      const baseSlug =
-        slug ||
-        name
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/^-|-$/g, '');
-
-      let orgSlug = baseSlug;
-      let slugCounter = 1;
-      while (slugCounter <= 100) {
-        const existing = await db
-          .prepare('SELECT id FROM organizations WHERE slug = ?')
-          .bind(orgSlug)
-          .first();
-        if (!existing) break;
-        orgSlug = `${baseSlug}-${slugCounter++}`;
-      }
-      if (slugCounter > 100) {
-        throw badRequestError('Unable to generate a unique slug for this organization name');
-      }
+      const orgSlug = await generateUniqueSlug(db, slug || name);
 
       const orgId = generateId();
       await db

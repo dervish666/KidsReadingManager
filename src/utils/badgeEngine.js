@@ -7,7 +7,12 @@
  */
 
 import { generateId } from './helpers.js';
-import { resolveKeyStage, getRealtimeBadges, getBatchBadges, BADGE_DEFINITIONS } from './badgeDefinitions.js';
+import {
+  resolveKeyStage,
+  getRealtimeBadges,
+  getBatchBadges,
+  BADGE_DEFINITIONS,
+} from './badgeDefinitions.js';
 
 // ── Genre Classification ────────────────────────────────────────────────────
 
@@ -62,10 +67,10 @@ export async function recalculateStats(db, studentId, organizationId) {
   const books = booksResult.results || [];
   const bookMap = new Map(books.map((b) => [b.id, b]));
 
-  // Fetch genre names for classification
+  // Fetch genre names for classification (scoped to org for multi-tenant isolation)
   const genresResult = await db
-    .prepare(`SELECT id, name FROM genres`)
-    .bind()
+    .prepare(`SELECT id, name FROM genres WHERE organization_id = ? OR is_predefined = 1`)
+    .bind(organizationId)
     .all();
   const genreNameMap = new Map((genresResult.results || []).map((g) => [g.id, g.name]));
 

@@ -8,6 +8,7 @@ import {
   TextField,
   Box,
   Link,
+  Alert,
 } from '@mui/material';
 
 export default function ClassGoalsEditor({ open, onClose, classId, goals, onSave, fetchWithAuth }) {
@@ -19,9 +20,11 @@ export default function ClassGoalsEditor({ open, onClose, classId, goals, onSave
     return map;
   });
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSave = async () => {
     setSaving(true);
+    setError('');
     try {
       const response = await fetchWithAuth(`/api/classes/${classId}/goals`, {
         method: 'PUT',
@@ -36,7 +39,11 @@ export default function ClassGoalsEditor({ open, onClose, classId, goals, onSave
       if (response.ok) {
         const data = await response.json();
         onSave(data);
+      } else {
+        setError('Failed to save goals. Please try again.');
       }
+    } catch {
+      setError('Failed to save goals. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -65,6 +72,11 @@ export default function ClassGoalsEditor({ open, onClose, classId, goals, onSave
         Edit Class Goals
       </DialogTitle>
       <DialogContent>
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
           <TextField
             label="Reading Sessions Target"
@@ -99,12 +111,7 @@ export default function ClassGoalsEditor({ open, onClose, classId, goals, onSave
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
-        <Button
-          onClick={handleSave}
-          variant="contained"
-          disabled={saving}
-          sx={{ borderRadius: 2 }}
-        >
+        <Button onClick={handleSave} variant="contained" disabled={saving} sx={{ borderRadius: 2 }}>
           {saving ? 'Saving...' : 'Save'}
         </Button>
       </DialogActions>

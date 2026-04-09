@@ -9,7 +9,7 @@ const TourContext = createContext(null);
 export const useTourContext = () => useContext(TourContext);
 
 const TourProvider = ({ children }) => {
-  const { completedTours, markTourComplete } = useUI();
+  const { completedTours, toursLoaded, markTourComplete } = useUI();
   const [currentTourId, setCurrentTourId] = useState(null);
   const [running, setRunning] = useState(false);
 
@@ -109,6 +109,7 @@ const TourProvider = ({ children }) => {
     startTour,
     isTourAvailable,
     isTourCompleted,
+    toursLoaded,
     running,
     currentTourId,
   };

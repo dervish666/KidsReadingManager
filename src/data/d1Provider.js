@@ -39,7 +39,7 @@ const bookToRow = (book) => {
     page_count: book.pageCount ?? null,
     series_name: book.seriesName ?? null,
     series_number: book.seriesNumber ?? null,
-    publication_year: book.publicationYear ?? null
+    publication_year: book.publicationYear ?? null,
   };
 };
 
@@ -76,12 +76,17 @@ const getBooksByOrganization = async (env, organizationId) => {
       throw new Error('D1 database not available');
     }
 
-    const result = await db.prepare(`
+    const result = await db
+      .prepare(
+        `
       SELECT b.* FROM books b
       INNER JOIN org_book_selections obs ON b.id = obs.book_id
       WHERE obs.organization_id = ? AND obs.is_available = 1
       ORDER BY b.title
-    `).bind(organizationId).all();
+    `
+      )
+      .bind(organizationId)
+      .all();
 
     return (result.results || []).map(rowToBook);
   } catch (error) {
@@ -104,7 +109,7 @@ const getBookById = async (env, id) => {
     }
 
     const result = await db.prepare('SELECT * FROM books WHERE id = ?').bind(id).first();
-    return rowToBook(result);
+    return result ? rowToBook(result) : null;
   } catch (error) {
     console.error('Error getting book by ID from D1:', error);
     throw new Error('Failed to retrieve book');
@@ -125,24 +130,29 @@ const addBook = async (env, newBook) => {
     }
 
     const row = bookToRow(newBook);
-    
-    await db.prepare(`
+
+    await db
+      .prepare(
+        `
       INSERT INTO books (id, title, author, genre_ids, reading_level, age_range, description, isbn, page_count, series_name, series_number, publication_year)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(
-      row.id,
-      row.title,
-      row.author,
-      row.genre_ids,
-      row.reading_level,
-      row.age_range,
-      row.description,
-      row.isbn,
-      row.page_count,
-      row.series_name,
-      row.series_number,
-      row.publication_year
-    ).run();
+    `
+      )
+      .bind(
+        row.id,
+        row.title,
+        row.author,
+        row.genre_ids,
+        row.reading_level,
+        row.age_range,
+        row.description,
+        row.isbn,
+        row.page_count,
+        row.series_name,
+        row.series_number,
+        row.publication_year
+      )
+      .run();
 
     return newBook;
   } catch (error) {
@@ -166,27 +176,32 @@ const updateBook = async (env, id, updatedBook) => {
     }
 
     const row = bookToRow({ ...updatedBook, id });
-    
-    await db.prepare(`
+
+    await db
+      .prepare(
+        `
       UPDATE books
       SET title = ?, author = ?, genre_ids = ?, reading_level = ?, age_range = ?, description = ?,
           isbn = ?, page_count = ?, series_name = ?, series_number = ?, publication_year = ?,
           updated_at = datetime('now')
       WHERE id = ?
-    `).bind(
-      row.title,
-      row.author,
-      row.genre_ids,
-      row.reading_level,
-      row.age_range,
-      row.description,
-      row.isbn,
-      row.page_count,
-      row.series_name,
-      row.series_number,
-      row.publication_year,
-      id
-    ).run();
+    `
+      )
+      .bind(
+        row.title,
+        row.author,
+        row.genre_ids,
+        row.reading_level,
+        row.age_range,
+        row.description,
+        row.isbn,
+        row.page_count,
+        row.series_name,
+        row.series_number,
+        row.publication_year,
+        id
+      )
+      .run();
 
     return { ...updatedBook, id };
   } catch (error) {
@@ -242,25 +257,29 @@ const addBooksBatch = async (env, newBooks) => {
     }
 
     // Prepare batch statements
-    const statements = newBooks.map(book => {
+    const statements = newBooks.map((book) => {
       const row = bookToRow(book);
-      return db.prepare(`
+      return db
+        .prepare(
+          `
         INSERT INTO books (id, title, author, genre_ids, reading_level, age_range, description, isbn, page_count, series_name, series_number, publication_year)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).bind(
-        row.id,
-        row.title,
-        row.author,
-        row.genre_ids,
-        row.reading_level,
-        row.age_range,
-        row.description,
-        row.isbn,
-        row.page_count,
-        row.series_name,
-        row.series_number,
-        row.publication_year
-      );
+      `
+        )
+        .bind(
+          row.id,
+          row.title,
+          row.author,
+          row.genre_ids,
+          row.reading_level,
+          row.age_range,
+          row.description,
+          row.isbn,
+          row.page_count,
+          row.series_name,
+          row.series_number,
+          row.publication_year
+        );
     });
 
     // Execute batch (D1 supports up to 100 statements per batch)
@@ -273,8 +292,12 @@ const addBooksBatch = async (env, newBooks) => {
         await db.batch(batch);
         completedCount += batch.length;
       } catch (batchError) {
-        console.error(`Batch insert failed at items ${i}-${i + batch.length} of ${statements.length}. ${completedCount} items were committed before failure.`);
-        throw new Error(`Batch insert failed after ${completedCount}/${statements.length} items: ${batchError.message}`);
+        console.error(
+          `Batch insert failed at items ${i}-${i + batch.length} of ${statements.length}. ${completedCount} items were committed before failure.`
+        );
+        throw new Error(
+          `Batch insert failed after ${completedCount}/${statements.length} items: ${batchError.message}`
+        );
       }
     }
 
@@ -305,26 +328,30 @@ const updateBooksBatch = async (env, bookUpdates) => {
     // Prepare batch statements
     const statements = bookUpdates.map(({ id, bookData }) => {
       const row = bookToRow({ ...bookData, id });
-      return db.prepare(`
+      return db
+        .prepare(
+          `
         UPDATE books
         SET title = ?, author = ?, genre_ids = ?, reading_level = ?, age_range = ?, description = ?,
             isbn = ?, page_count = ?, series_name = ?, series_number = ?, publication_year = ?,
             updated_at = datetime('now')
         WHERE id = ?
-      `).bind(
-        row.title,
-        row.author,
-        row.genre_ids,
-        row.reading_level,
-        row.age_range,
-        row.description,
-        row.isbn,
-        row.page_count,
-        row.series_name,
-        row.series_number,
-        row.publication_year,
-        id
-      );
+      `
+        )
+        .bind(
+          row.title,
+          row.author,
+          row.genre_ids,
+          row.reading_level,
+          row.age_range,
+          row.description,
+          row.isbn,
+          row.page_count,
+          row.series_name,
+          row.series_number,
+          row.publication_year,
+          id
+        );
     });
 
     // Execute batch
@@ -336,8 +363,12 @@ const updateBooksBatch = async (env, bookUpdates) => {
         await db.batch(batch);
         completedCount += batch.length;
       } catch (batchError) {
-        console.error(`Batch update failed at items ${i}-${i + batch.length} of ${statements.length}. ${completedCount} items were committed before failure.`);
-        throw new Error(`Batch update failed after ${completedCount}/${statements.length} items: ${batchError.message}`);
+        console.error(
+          `Batch update failed at items ${i}-${i + batch.length} of ${statements.length}. ${completedCount} items were committed before failure.`
+        );
+        throw new Error(
+          `Batch update failed after ${completedCount}/${statements.length} items: ${batchError.message}`
+        );
       }
     }
 
@@ -367,13 +398,18 @@ const searchBooks = async (env, query, limit = 50) => {
     }
 
     // Use FTS5 for full-text search
-    const result = await db.prepare(`
+    const result = await db
+      .prepare(
+        `
       SELECT books.* FROM books
       INNER JOIN books_fts ON books.id = books_fts.id
       WHERE books_fts MATCH ?
       ORDER BY rank
       LIMIT ?
-    `).bind(query + '*', limit).all();
+    `
+      )
+      .bind(query + '*', limit)
+      .all();
 
     return (result.results || []).map(rowToBook);
   } catch (error) {
@@ -382,13 +418,18 @@ const searchBooks = async (env, query, limit = 50) => {
     try {
       const db = getDB(env);
       const likeQuery = `%${query}%`;
-      const result = await db.prepare(`
+      const result = await db
+        .prepare(
+          `
         SELECT * FROM books 
         WHERE title LIKE ? OR author LIKE ?
         ORDER BY title
         LIMIT ?
-      `).bind(likeQuery, likeQuery, limit).all();
-      
+      `
+        )
+        .bind(likeQuery, likeQuery, limit)
+        .all();
+
       return (result.results || []).map(rowToBook);
     } catch (fallbackError) {
       console.error('Fallback search also failed:', fallbackError);
@@ -418,18 +459,23 @@ const getBooksPaginated = async (env, page = 1, pageSize = 50) => {
     const total = countResult?.count || 0;
 
     // Get paginated results
-    const result = await db.prepare(`
+    const result = await db
+      .prepare(
+        `
       SELECT * FROM books 
       ORDER BY title 
       LIMIT ? OFFSET ?
-    `).bind(pageSize, offset).all();
+    `
+      )
+      .bind(pageSize, offset)
+      .all();
 
     return {
       books: (result.results || []).map(rowToBook),
       total,
       page,
       pageSize,
-      totalPages: Math.ceil(total / pageSize)
+      totalPages: Math.ceil(total / pageSize),
     };
   } catch (error) {
     console.error('Error getting paginated books from D1:', error);
@@ -462,12 +508,12 @@ const getBookCount = async (env) => {
  * Allows filtering books within ±N levels of student's reading level
  */
 const READING_LEVEL_MAP = {
-  'beginner': 1,
-  'early': 2,
-  'developing': 3,
-  'intermediate': 4,
-  'advanced': 5,
-  'expert': 6
+  beginner: 1,
+  early: 2,
+  developing: 3,
+  intermediate: 4,
+  advanced: 5,
+  expert: 6,
 };
 
 /**
@@ -513,7 +559,7 @@ const getFilteredBooksForRecommendations = async (env, options = {}) => {
       excludeBookIds = [],
       favoriteGenreIds = [],
       levelRange = 2,
-      limit = 100
+      limit = 100,
     } = options;
 
     // Calculate reading level range
@@ -555,21 +601,30 @@ const getFilteredBooksForRecommendations = async (env, options = {}) => {
       // Use LIKE for JSON array matching (works with SQLite)
       const genreConditions = favoriteGenreIds.map(() => 'genre_ids LIKE ?').join(' OR ');
       query += ` AND (${genreConditions})`;
-      params.push(...favoriteGenreIds.map(id => {
-        const escaped = String(id).replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_').replace(/"/g, '');
-        return `%"${escaped}"%`;
-      }));
+      params.push(
+        ...favoriteGenreIds.map((id) => {
+          const escaped = String(id)
+            .replace(/\\/g, '\\\\')
+            .replace(/%/g, '\\%')
+            .replace(/_/g, '\\_')
+            .replace(/"/g, '');
+          return `%"${escaped}"%`;
+        })
+      );
     }
 
     // Phase 1: Fetch candidate IDs only (lightweight — avoids full-row random sort)
     const idQuery = query.replace('SELECT *', 'SELECT id');
-    const idResult = await db.prepare(idQuery).bind(...params).all();
-    let candidateIds = (idResult.results || []).map(r => r.id);
+    const idResult = await db
+      .prepare(idQuery)
+      .bind(...params)
+      .all();
+    let candidateIds = (idResult.results || []).map((r) => r.id);
 
     // Filter large exclusion lists in JS
     if (excludeBookIds.length > 500) {
       const excludeSet = new Set(excludeBookIds);
-      candidateIds = candidateIds.filter(id => !excludeSet.has(id));
+      candidateIds = candidateIds.filter((id) => !excludeSet.has(id));
     }
 
     // Phase 2: Fisher-Yates shuffle and take `limit` IDs
@@ -596,7 +651,7 @@ const getFilteredBooksForRecommendations = async (env, options = {}) => {
     if (books.length < 20) {
       return await getFilteredBooksForRecommendationsFallback(env, {
         excludeBookIds,
-        limit
+        limit,
       });
     }
 
@@ -606,7 +661,7 @@ const getFilteredBooksForRecommendations = async (env, options = {}) => {
     // Fallback to basic query on error
     return await getFilteredBooksForRecommendationsFallback(env, {
       excludeBookIds: options.excludeBookIds || [],
-      limit: options.limit || 100
+      limit: options.limit || 100,
     });
   }
 };
@@ -640,13 +695,16 @@ const getFilteredBooksForRecommendationsFallback = async (env, options = {}) => 
       params.push(...excludeBookIds);
     }
 
-    const idResult = await db.prepare(idQuery).bind(...params).all();
-    let candidateIds = (idResult.results || []).map(r => r.id);
+    const idResult = await db
+      .prepare(idQuery)
+      .bind(...params)
+      .all();
+    let candidateIds = (idResult.results || []).map((r) => r.id);
 
     // Filter large exclusion lists in JS
     if (excludeBookIds.length > 500) {
       const excludeSet = new Set(excludeBookIds);
-      candidateIds = candidateIds.filter(id => !excludeSet.has(id));
+      candidateIds = candidateIds.filter((id) => !excludeSet.has(id));
     }
 
     // Fisher-Yates shuffle and take `limit`
@@ -683,5 +741,5 @@ export {
   getBooksPaginated,
   getBookCount,
   getFilteredBooksForRecommendations,
-  READING_LEVEL_MAP
+  READING_LEVEL_MAP,
 };

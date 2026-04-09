@@ -57,6 +57,9 @@ src/routes/termDates.js - GET/PUT term dates per organization and academic year
 src/routes/tours.js - GET/POST tour completion tracking per user
 src/routes/metadata.js - GET/PUT metadata config, GET status, GET/DELETE jobs, POST enrich
 src/routes/badges.js - GET/POST badge collection, notify, and class-wide summary endpoints
+src/routes/contact.js - POST landing page contact form enquiry (public, rate limited)
+src/routes/billing.js - POST/GET Stripe billing setup, status, portal, plan changes
+src/routes/stripeWebhook.js - POST Stripe webhook handler (signature verification, event dedup)
 
 <!-- Middleware -->
 src/middleware/tenant.js - JWT auth, tenant isolation, role guards, audit logging, rate limiting
@@ -105,6 +108,9 @@ src/utils/constants.js - Shared constants (PUBLIC_PATHS for auth bypass)
 src/utils/wondeApi.js - Wonde REST API client for school data sync
 src/utils/badgeDefinitions.js - Badge definitions with evaluate/progress functions, key stage resolution
 src/utils/badgeEngine.js - Stats calculation, real-time/batch evaluation, genre classification, near-miss calculation
+src/utils/stripe.js - Stripe client factory, price ID helpers, AI add-on detection
+src/utils/statsExport.js - PDF/CSV stats report generation (jsPDF)
+src/utils/titleMatching.js - Title normalization and similarity scoring for metadata APIs
 
 <!-- Contexts & Hooks -->
 src/contexts/AuthContext.js - Auth tokens, user, fetchWithAuth, login/logout, permissions, org switching
@@ -113,6 +119,7 @@ src/contexts/UIContext.js - Class filter, priority list, reading status, tours
 src/contexts/AppContext.js - Composite provider (nests Auth > Data > UI), re-exports hooks
 src/contexts/BookCoverContext.js - Book cover URL caching (localStorage, 7-day TTL)
 src/hooks/useBookCover.js - Hook for book cover fetching with deduplication
+src/hooks/useEnrichmentPolling.js - Polling hook for metadata enrichment job progress
 
 <!-- Frontend Components - Root -->
 src/components/Header.js - App bar with nav, class filter, school switcher
@@ -138,6 +145,11 @@ src/components/AISettings.js - AI provider configuration
 src/components/UserManagement.js - User CRUD and role assignment
 src/components/SchoolManagement.js - School management container (state, API calls, table+drawer orchestration)
 src/components/DataManagement.js - Export/import and Wonde sync UI
+src/components/BillingBanner.js - Subscription status banner (trial countdown, past-due warning)
+src/components/BillingDashboard.js - Billing management dashboard for admins
+src/components/SubscriptionBlockedScreen.js - Blocked state screen when subscription cancelled
+src/components/ClassAssignmentBanner.js - Class assignment notification for new teachers
+src/components/WelcomeDialog.js - First-time user welcome dialog
 
 src/components/schools/SchoolTable.js - School data table with search, filters, sorting, pagination
 src/components/schools/SchoolDrawer.js - Side drawer wrapper (read/edit/add modes, deactivate dialog)
@@ -150,6 +162,9 @@ src/components/books/BookImportWizard.js - CSV import with fuzzy matching
 src/components/books/AddBookModal.js - Add single book dialog
 src/components/books/BarcodeScanner.js - ISBN barcode scanner (html5-qrcode)
 src/components/books/ScanBookFlow.js - Scan-to-add workflow orchestrator
+src/components/books/BookEditDialog.js - Book editing dialog (title, author, ISBN, genre)
+src/components/books/BookExportMenu.js - Book export menu (JSON/CSV download)
+src/components/books/bookImportUtils.js - Import utility functions (column detection, dedup)
 
 <!-- Frontend Components - Classes -->
 src/components/classes/ClassManager.js - Class CRUD with year groups

@@ -293,21 +293,27 @@ export const DataProvider = ({ children }) => {
 
   const updateStudentClassId = useCallback(
     async (studentId, classId) => {
-      const student = students.find((s) => s.id === studentId);
-      if (!student) {
+      // Normalize classId - convert 'unassigned' string to null
+      const normalizedClassId = classId === 'unassigned' || classId === '' ? null : classId;
+
+      let previousClassId;
+      let foundStudent;
+      setStudents((prev) => {
+        const student = prev.find((s) => s.id === studentId);
+        if (!student) {
+          foundStudent = null;
+          return prev;
+        }
+        foundStudent = student;
+        previousClassId = student.classId;
+        return prev.map((s) => (s.id === studentId ? { ...s, classId: normalizedClassId } : s));
+      });
+
+      if (!foundStudent) {
         return;
       }
 
-      // Normalize classId - convert 'unassigned' string to null
-      const normalizedClassId = classId === 'unassigned' || classId === '' ? null : classId;
-      const previousClassId = student.classId;
-
-      const updatedStudent = {
-        ...student,
-        classId: normalizedClassId,
-      };
-
-      setStudents((prev) => prev.map((s) => (s.id === studentId ? updatedStudent : s)));
+      const updatedStudent = { ...foundStudent, classId: normalizedClassId };
 
       try {
         const response = await fetchWithAuth(`${API_URL}/students/${studentId}`, {
@@ -328,21 +334,31 @@ export const DataProvider = ({ children }) => {
         throw error; // Re-throw so the component can handle it
       }
     },
-    [students, fetchWithAuth, setApiError]
+    [fetchWithAuth, setApiError]
   );
 
   const updateStudent = useCallback(
     async (id, updatedData) => {
-      const currentStudent = students.find((student) => student.id === id);
-      if (!currentStudent) {
+      let snapshotBeforeUpdate;
+      let foundStudent;
+      setStudents((prev) => {
+        const currentStudent = prev.find((student) => student.id === id);
+        if (!currentStudent) {
+          foundStudent = null;
+          return prev;
+        }
+        foundStudent = currentStudent;
+        snapshotBeforeUpdate = { ...currentStudent };
+        return prev.map((student) =>
+          student.id === id ? { ...currentStudent, ...updatedData } : student
+        );
+      });
+
+      if (!foundStudent) {
         return;
       }
-      const updatedStudent = { ...currentStudent, ...updatedData };
-      const snapshotBeforeUpdate = { ...currentStudent };
 
-      setStudents((prev) =>
-        prev.map((student) => (student.id === id ? updatedStudent : student))
-      );
+      const updatedStudent = { ...foundStudent, ...updatedData };
 
       try {
         const response = await fetchWithAuth(`${API_URL}/students/${id}`, {
@@ -362,14 +378,17 @@ export const DataProvider = ({ children }) => {
         );
       }
     },
-    [students, fetchWithAuth, setApiError]
+    [fetchWithAuth, setApiError]
   );
 
   const deleteStudent = useCallback(
     async (id) => {
       // Capture the student being deleted for potential rollback
-      const deletedStudent = students.find((s) => s.id === id);
-      setStudents((prev) => prev.filter((student) => student.id !== id));
+      let deletedStudent;
+      setStudents((prev) => {
+        deletedStudent = prev.find((s) => s.id === id);
+        return prev.filter((student) => student.id !== id);
+      });
 
       try {
         const response = await fetchWithAuth(`${API_URL}/students/${id}`, {
@@ -387,20 +406,19 @@ export const DataProvider = ({ children }) => {
         }
       }
     },
-    [students, fetchWithAuth, setApiError]
+    [fetchWithAuth, setApiError]
   );
 
   const updateStudentCurrentBook = useCallback(
     async (studentId, bookId, bookTitle = null, bookAuthor = null) => {
-      const student = students.find((s) => s.id === studentId);
-      if (!student) {
-        return null;
-      }
-
       // Optimistic update
-      const previousStudents = students;
-      setStudents((prev) =>
-        prev.map((s) =>
+      let previousStudents;
+      let foundStudent;
+      setStudents((prev) => {
+        previousStudents = prev;
+        foundStudent = prev.find((s) => s.id === studentId);
+        if (!foundStudent) return prev;
+        return prev.map((s) =>
           s.id === studentId
             ? {
                 ...s,
@@ -409,18 +427,19 @@ export const DataProvider = ({ children }) => {
                 currentBookAuthor: bookAuthor,
               }
             : s
-        )
-      );
+        );
+      });
+
+      if (!foundStudent) {
+        return null;
+      }
 
       try {
-        const response = await fetchWithAuth(
-          `${API_URL}/students/${studentId}/current-book`,
-          {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ bookId }),
-          }
-        );
+        const response = await fetchWithAuth(`${API_URL}/students/${studentId}/current-book`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bookId }),
+        });
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
@@ -451,25 +470,27 @@ export const DataProvider = ({ children }) => {
         return null;
       }
     },
-    [students, fetchWithAuth, setApiError]
+    [fetchWithAuth, setApiError]
   );
 
   // --- Book operations ---
 
   const updateBook = useCallback(
     async (id, updatedFields) => {
-      const existing = books.find((b) => b.id === id);
-      if (!existing) {
+      let previousBooks;
+      let foundBook;
+      setBooks((prev) => {
+        previousBooks = prev;
+        foundBook = prev.find((b) => b.id === id);
+        if (!foundBook) return prev;
+        return prev.map((b) => (b.id === id ? { ...foundBook, ...updatedFields } : b));
+      });
+
+      if (!foundBook) {
         return null;
       }
 
-      const updatedBook = {
-        ...existing,
-        ...updatedFields,
-      };
-
-      const previousBooks = books;
-      setBooks((prev) => prev.map((b) => (b.id === id ? updatedBook : b)));
+      const updatedBook = { ...foundBook, ...updatedFields };
 
       try {
         const response = await fetchWithAuth(`${API_URL}/books/${id}`, {
@@ -495,7 +516,7 @@ export const DataProvider = ({ children }) => {
         return null;
       }
     },
-    [books, fetchWithAuth, setApiError]
+    [fetchWithAuth, setApiError]
   );
 
   const updateBookField = useCallback(
@@ -628,8 +649,7 @@ export const DataProvider = ({ children }) => {
           prev.map((s) => {
             if (s.id !== studentId) return s;
             if (isMarker) return s;
-            const newLastRead =
-              !s.lastReadDate || date > s.lastReadDate ? date : s.lastReadDate;
+            const newLastRead = !s.lastReadDate || date > s.lastReadDate ? date : s.lastReadDate;
             return {
               ...s,
               lastReadDate: newLastRead,
@@ -794,8 +814,11 @@ export const DataProvider = ({ children }) => {
       };
 
       // Optimistic update
-      const previousGenres = genres;
-      setGenres((prev) => [...prev, newGenre]);
+      let previousGenres;
+      setGenres((prev) => {
+        previousGenres = prev;
+        return [...prev, newGenre];
+      });
 
       try {
         const response = await fetchWithAuth(`${API_URL}/genres`, {
@@ -818,7 +841,7 @@ export const DataProvider = ({ children }) => {
         return null;
       }
     },
-    [genres, fetchWithAuth, setApiError]
+    [fetchWithAuth, setApiError]
   );
 
   // --- Class management ---
@@ -833,8 +856,11 @@ export const DataProvider = ({ children }) => {
       };
 
       // Optimistic update
-      const previousClasses = classes;
-      setClasses((prev) => [...prev, newClass]);
+      let previousClasses;
+      setClasses((prev) => {
+        previousClasses = prev;
+        return [...prev, newClass];
+      });
 
       try {
         const response = await fetchWithAuth(`${API_URL}/classes`, {
@@ -857,24 +883,26 @@ export const DataProvider = ({ children }) => {
         return null;
       }
     },
-    [classes, fetchWithAuth, setApiError]
+    [fetchWithAuth, setApiError]
   );
 
   const updateClass = useCallback(
     async (id, updatedFields) => {
-      const existing = classes.find((c) => c.id === id);
-      if (!existing) {
+      // Optimistic update
+      let previousClasses;
+      let foundClass;
+      setClasses((prev) => {
+        previousClasses = prev;
+        foundClass = prev.find((c) => c.id === id);
+        if (!foundClass) return prev;
+        return prev.map((c) => (c.id === id ? { ...foundClass, ...updatedFields } : c));
+      });
+
+      if (!foundClass) {
         return null;
       }
 
-      const updatedClass = {
-        ...existing,
-        ...updatedFields,
-      };
-
-      // Optimistic update
-      const previousClasses = classes;
-      setClasses((prev) => prev.map((c) => (c.id === id ? updatedClass : c)));
+      const updatedClass = { ...foundClass, ...updatedFields };
 
       try {
         const response = await fetchWithAuth(`${API_URL}/classes/${id}`, {
@@ -897,18 +925,24 @@ export const DataProvider = ({ children }) => {
         return null;
       }
     },
-    [classes, fetchWithAuth, setApiError]
+    [fetchWithAuth, setApiError]
   );
 
   const deleteClass = useCallback(
     async (id) => {
       // Optimistic update
-      const previousClasses = classes;
-      setClasses((prev) => prev.filter((c) => c.id !== id));
+      let previousClasses;
+      setClasses((prev) => {
+        previousClasses = prev;
+        return prev.filter((c) => c.id !== id);
+      });
 
       // Also unassign students from this class
-      const previousStudents = students;
-      setStudents((prev) => prev.map((s) => (s.classId === id ? { ...s, classId: null } : s)));
+      let previousStudents;
+      setStudents((prev) => {
+        previousStudents = prev;
+        return prev.map((s) => (s.classId === id ? { ...s, classId: null } : s));
+      });
 
       try {
         const response = await fetchWithAuth(`${API_URL}/classes/${id}`, {
@@ -926,7 +960,7 @@ export const DataProvider = ({ children }) => {
         setStudents(previousStudents);
       }
     },
-    [classes, students, fetchWithAuth, setApiError]
+    [fetchWithAuth, setApiError]
   );
 
   // --- Data Export/Import ---

@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { generateId } from '../utils/helpers';
+import { generateId, csvRow } from '../utils/helpers';
 import { calculateStreak, getDateString } from '../utils/streakCalculator';
 
 // Import services (legacy KV mode)
@@ -16,6 +16,7 @@ import {
   validateStudent,
   validateBulkImport,
   validateReadingLevelRange,
+  validateSessionInput,
 } from '../utils/validation';
 import { notFoundError, badRequestError, forbiddenError } from '../middleware/errorHandler';
 import {
@@ -515,8 +516,8 @@ studentsRouter.get('/stats', requireReadonly(), async (c) => {
     .bind(organizationId)
     .first();
 
-  let recentlyReadDays = 14;
-  let needsAttentionDays = 21;
+  let recentlyReadDays = 3;
+  let needsAttentionDays = 7;
   if (settingsResult?.setting_value) {
     try {
       const parsed = JSON.parse(settingsResult.setting_value);
@@ -1251,41 +1252,11 @@ studentsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
   const body = await c.req.json();
 
   // Validate reading session input
-  if (body.pagesRead !== undefined && body.pagesRead !== null) {
-    const pages = Number(body.pagesRead);
-    if (!Number.isFinite(pages) || pages < 0 || pages > 10000) {
-      throw badRequestError('pagesRead must be a number between 0 and 10000');
-    }
-    body.pagesRead = pages;
+  const sessionValidation = validateSessionInput(body);
+  if (!sessionValidation.isValid) {
+    throw badRequestError(sessionValidation.error);
   }
-  if (body.duration !== undefined && body.duration !== null) {
-    const dur = Number(body.duration);
-    if (!Number.isFinite(dur) || dur < 0 || dur > 1440) {
-      throw badRequestError('duration must be a number between 0 and 1440 minutes');
-    }
-    body.duration = dur;
-  }
-  if (body.date) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(body.date) || isNaN(Date.parse(body.date))) {
-      throw badRequestError('date must be a valid YYYY-MM-DD format');
-    }
-  }
-  if (body.notes && body.notes.length > 2000) {
-    throw badRequestError('notes must be 2000 characters or fewer');
-  }
-  if (body.assessment !== null && body.assessment !== undefined && body.assessment !== '') {
-    const assessmentNum = Number(body.assessment);
-    if (!Number.isInteger(assessmentNum) || assessmentNum < 1 || assessmentNum > 10) {
-      throw badRequestError('Assessment must be an integer between 1 and 10');
-    }
-    body.assessment = assessmentNum;
-  } else {
-    body.assessment = null;
-  }
-  const validLocations = [null, undefined, '', 'school', 'home', 'library', 'other'];
-  if (body.location && !validLocations.includes(body.location)) {
-    throw badRequestError('Invalid location value');
-  }
+  Object.assign(body, sessionValidation.data);
 
   // Multi-tenant mode: use D1
   if (isMultiTenantMode(c)) {
@@ -1568,41 +1539,11 @@ studentsRouter.put(
     const body = await c.req.json();
 
     // Validate reading session input
-    if (body.pagesRead !== undefined && body.pagesRead !== null) {
-      const pages = Number(body.pagesRead);
-      if (!Number.isFinite(pages) || pages < 0 || pages > 10000) {
-        throw badRequestError('pagesRead must be a number between 0 and 10000');
-      }
-      body.pagesRead = pages;
+    const sessionValidation = validateSessionInput(body);
+    if (!sessionValidation.isValid) {
+      throw badRequestError(sessionValidation.error);
     }
-    if (body.duration !== undefined && body.duration !== null) {
-      const dur = Number(body.duration);
-      if (!Number.isFinite(dur) || dur < 0 || dur > 1440) {
-        throw badRequestError('duration must be a number between 0 and 1440 minutes');
-      }
-      body.duration = dur;
-    }
-    if (body.date) {
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(body.date) || isNaN(Date.parse(body.date))) {
-        throw badRequestError('date must be a valid YYYY-MM-DD format');
-      }
-    }
-    if (body.notes && body.notes.length > 2000) {
-      throw badRequestError('notes must be 2000 characters or fewer');
-    }
-    if (body.assessment !== null && body.assessment !== undefined && body.assessment !== '') {
-      const assessmentNum = Number(body.assessment);
-      if (!Number.isInteger(assessmentNum) || assessmentNum < 1 || assessmentNum > 10) {
-        throw badRequestError('Assessment must be an integer between 1 and 10');
-      }
-      body.assessment = assessmentNum;
-    } else {
-      body.assessment = null;
-    }
-    const validLocations = [null, undefined, '', 'school', 'home', 'library', 'other'];
-    if (body.location && !validLocations.includes(body.location)) {
-      throw badRequestError('Invalid location value');
-    }
+    Object.assign(body, sessionValidation.data);
 
     // Multi-tenant mode: use D1
     if (isMultiTenantMode(c)) {
@@ -2362,22 +2303,6 @@ studentsRouter.get('/:id/export', requireAdmin(), async (c) => {
 });
 
 /**
- * CSV helper: escape a value and wrap in quotes if needed
- */
-function csvRow(values) {
-  return values
-    .map((v) => {
-      if (v === null || v === undefined) return '';
-      const str = String(v);
-      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-        return `"${str.replace(/"/g, '""')}"`;
-      }
-      return str;
-    })
-    .join(',');
-}
-
-/**
  * Process an array in batches with limited concurrency.
  * @param {Array} items - Items to process
  * @param {number} concurrency - Max concurrent promises
@@ -2481,7 +2406,7 @@ const recalculateAllStreaks = async (db) => {
               `
             UPDATE students SET
               current_streak = ?,
-              longest_streak = ?,
+              longest_streak = MAX(longest_streak, ?),
               streak_start_date = ?,
               updated_at = datetime("now")
             WHERE id = ?

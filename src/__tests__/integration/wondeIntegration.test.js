@@ -50,7 +50,16 @@ vi.mock('../../services/wondeSync.js', () => ({
 }));
 
 vi.mock('../../utils/helpers.js', () => ({
-  generateId: vi.fn().mockReturnValue('generated-id-1')
+  generateId: vi.fn().mockReturnValue('generated-id-1'),
+  generateUniqueSlug: vi.fn().mockImplementation(async (_db, name) => {
+    const slug = name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .substring(0, 50);
+    return slug || 'org';
+  }),
 }));
 
 // ---------------------------------------------------------------------------

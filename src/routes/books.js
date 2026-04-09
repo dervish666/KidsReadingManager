@@ -518,8 +518,7 @@ booksRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
       if ((count?.count || 0) >= 3) {
         return c.json(
           {
-            error:
-              'Demo is limited to 3 AI recommendation requests. Sign up for unlimited access!',
+            error: 'Demo is limited to 3 AI recommendation requests. Sign up for unlimited access!',
             code: 'DEMO_AI_LIMIT',
           },
           429
@@ -777,7 +776,7 @@ booksRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
     // Log and handle AI service errors (use 500 for upstream failures)
     console.error('AI suggestions error:', error.message, error.stack);
     throw serverError(
-      `AI error: ${error.message || 'Unknown error'}. Try "Find in Library" instead.`
+      'AI recommendations are temporarily unavailable. Try "Find in Library" instead.'
     );
   }
 });
@@ -1305,7 +1304,7 @@ booksRouter.post('/:id/enrich', requireAdmin(), async (c) => {
 
   const { merged, log } = await enrichBook(
     { id: book.id, title: book.title, author: book.author, isbn: book.isbn },
-    config,
+    config
   );
 
   const fieldsEnriched = log.flatMap((entry) => entry.fields);
@@ -1315,7 +1314,9 @@ booksRouter.post('/:id/enrich', requireAdmin(), async (c) => {
   const r2 = c.env.BOOK_COVERS;
   if (merged.coverUrl && book.isbn && r2) {
     try {
-      const res = await fetch(merged.coverUrl, { headers: { 'User-Agent': 'TallyReading/1.0 (educational-app)' } });
+      const res = await fetch(merged.coverUrl, {
+        headers: { 'User-Agent': 'TallyReading/1.0 (educational-app)' },
+      });
       if (res.ok) {
         const imageData = await res.arrayBuffer();
         if (imageData.byteLength > 1000) {
@@ -1325,7 +1326,9 @@ booksRouter.post('/:id/enrich', requireAdmin(), async (c) => {
           coverStored = true;
         }
       }
-    } catch { /* non-critical */ }
+    } catch {
+      /* non-critical */
+    }
   }
 
   return c.json({

@@ -10,6 +10,7 @@ export default function BadgeCelebration({ badges = [], onClose }) {
     <Dialog
       open={badges.length > 0}
       onClose={onClose}
+      aria-labelledby="badge-celebration-title"
       PaperProps={{
         sx: {
           borderRadius: 3,
@@ -21,7 +22,11 @@ export default function BadgeCelebration({ badges = [], onClose }) {
     >
       <DialogContent sx={{ textAlign: 'center', py: 3, px: 3 }}>
         <Typography sx={{ fontSize: 40, mb: 1 }}>🌸</Typography>
-        <Typography variant="h6" sx={{ fontWeight: 600, color: '#3D3427', mb: 2 }}>
+        <Typography
+          id="badge-celebration-title"
+          variant="h6"
+          sx={{ fontWeight: 600, color: '#3D3427', mb: 2 }}
+        >
           {badges.length > 1 ? `${badges.length} new badges earned!` : 'New badge earned!'}
         </Typography>
         <BadgeIcon badge={badge} size="large" showLabel />

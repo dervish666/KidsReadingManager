@@ -10,7 +10,7 @@ const generateColorFromString = (str) => {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash; // Convert to 32-bit integer
   }
 
@@ -36,6 +36,8 @@ const BookCoverPlaceholder = ({ title, width = 80, height = 120 }) => {
 
   return (
     <Box
+      role="img"
+      aria-label={`Book cover placeholder for ${title}`}
       data-testid="placeholder-bg"
       sx={{
         width: `${width}px`,

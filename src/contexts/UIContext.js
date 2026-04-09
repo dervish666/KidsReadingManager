@@ -1,10 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useMemo,
-  useCallback,
-} from 'react';
+import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { useData } from './DataContext';
 
@@ -33,6 +27,7 @@ export const UIProvider = ({ children }) => {
 
   // State for completed guided tours
   const [completedTours, setCompletedTours] = useState({});
+  const [toursLoaded, setToursLoaded] = useState(false);
 
   // Recently accessed students (for quick access in dropdowns)
   const [recentlyAccessedStudents, setRecentlyAccessedStudents] = useState(() => {
@@ -70,6 +65,8 @@ export const UIProvider = ({ children }) => {
       }
     } catch (err) {
       console.error('Failed to fetch tour status:', err);
+    } finally {
+      setToursLoaded(true);
     }
   }, [fetchWithAuth]);
 
@@ -101,6 +98,8 @@ export const UIProvider = ({ children }) => {
       fetchTourStatus();
     } else if (!isAuthenticated) {
       hasFetchedTours.current = false;
+      setToursLoaded(false);
+      setCompletedTours({});
     }
   }, [isAuthenticated, fetchTourStatus]);
 
@@ -223,6 +222,7 @@ export const UIProvider = ({ children }) => {
       resetPriorityList,
       // Tour state
       completedTours,
+      toursLoaded,
       markTourComplete,
     }),
     [
@@ -239,6 +239,7 @@ export const UIProvider = ({ children }) => {
       markStudentAsPriorityHandled,
       resetPriorityList,
       completedTours,
+      toursLoaded,
       markTourComplete,
     ]
   );

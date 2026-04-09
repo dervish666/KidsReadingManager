@@ -15,8 +15,8 @@
 export function normalizeTitle(title) {
   return title
     .toLowerCase()
-    .replace(/[^\w\s]/g, '') // Remove punctuation
-    .replace(/\s+/g, ' ')    // Normalize whitespace
+    .replace(/[^\p{L}\p{N}\s]/gu, '') // Remove punctuation (Unicode-safe)
+    .replace(/\s+/g, ' ') // Normalize whitespace
     .trim();
 }
 
@@ -80,10 +80,7 @@ export function calculateTitleSimilarity(title1, title2) {
   }
 
   // Weighted combination; emphasize partial/substring coverage
-  const combined =
-    0.5 * substringScore +
-    0.3 * wordScore +
-    0.2 * charScore;
+  const combined = 0.5 * substringScore + 0.3 * wordScore + 0.2 * charScore;
 
   return Math.max(0, Math.min(1, combined));
 }
@@ -102,15 +99,11 @@ export function calculateTitleSimilarity(title1, title2) {
 export function findBestTitleMatch(searchTitle, results, options = {}) {
   if (!results || results.length === 0) return null;
 
-  const {
-    threshold = 0.3,
-    getTitle = (r) => r.title || '',
-    hasAuthor = () => true,
-  } = options;
+  const { threshold = 0.3, getTitle = (r) => r.title || '', hasAuthor = () => true } = options;
 
   const normalizedSearchTitle = normalizeTitle(searchTitle);
 
-  const scoredResults = results.map(result => {
+  const scoredResults = results.map((result) => {
     const normalizedResultTitle = normalizeTitle(getTitle(result));
     const similarity = calculateTitleSimilarity(normalizedSearchTitle, normalizedResultTitle);
     return {

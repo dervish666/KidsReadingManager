@@ -12,10 +12,17 @@ const metadataRouter = new Hono();
 const DEFAULT_PROVIDER_CHAIN = ['openlibrary', 'googlebooks', 'hardcover'];
 
 async function getConfig(db) {
-  const row = await db.prepare('SELECT * FROM metadata_config WHERE id = ?').bind('default').first();
+  const row = await db
+    .prepare('SELECT * FROM metadata_config WHERE id = ?')
+    .bind('default')
+    .first();
   if (!row) return null;
   let providerChain;
-  try { providerChain = JSON.parse(row.provider_chain); } catch { providerChain = DEFAULT_PROVIDER_CHAIN; }
+  try {
+    providerChain = JSON.parse(row.provider_chain);
+  } catch {
+    providerChain = DEFAULT_PROVIDER_CHAIN;
+  }
   return {
     providerChain,
     hasHardcoverApiKey: Boolean(row.hardcover_api_key_encrypted),
@@ -27,7 +34,10 @@ async function getConfig(db) {
 }
 
 async function getConfigWithKeys(db, jwtSecret) {
-  const row = await db.prepare('SELECT * FROM metadata_config WHERE id = ?').bind('default').first();
+  const row = await db
+    .prepare('SELECT * FROM metadata_config WHERE id = ?')
+    .bind('default')
+    .first();
   if (!row) return null;
 
   let hardcoverApiKey = null;
@@ -49,7 +59,11 @@ async function getConfigWithKeys(db, jwtSecret) {
   }
 
   let providerChain;
-  try { providerChain = JSON.parse(row.provider_chain); } catch { providerChain = DEFAULT_PROVIDER_CHAIN; }
+  try {
+    providerChain = JSON.parse(row.provider_chain);
+  } catch {
+    providerChain = DEFAULT_PROVIDER_CHAIN;
+  }
   return {
     providerChain,
     hardcoverApiKey,
@@ -141,7 +155,7 @@ metadataRouter.put('/config', requireOwner(), auditLog('update', 'metadata_confi
       fetch_covers = excluded.fetch_covers,
       updated_by = excluded.updated_by,
       updated_at = excluded.updated_at
-  `,
+  `
     )
     .bind(
       body.providerChain !== undefined
@@ -158,7 +172,7 @@ metadataRouter.put('/config', requireOwner(), auditLog('update', 'metadata_confi
         : current?.rate_limit_delay_ms || 1500,
       body.batchSize !== undefined ? parseInt(body.batchSize, 10) : current?.batch_size || 10,
       body.fetchCovers !== undefined ? (body.fetchCovers ? 1 : 0) : (current?.fetch_covers ?? 1),
-      userId,
+      userId
     )
     .run();
 
@@ -180,7 +194,7 @@ metadataRouter.get('/status', requireAdmin(), async (c) => {
   // Count total books linked to this org
   const totalRow = await db
     .prepare(
-      'SELECT COUNT(*) as count FROM org_book_selections WHERE organization_id = ? AND is_available = 1',
+      'SELECT COUNT(*) as count FROM org_book_selections WHERE organization_id = ? AND is_available = 1'
     )
     .bind(organizationId)
     .first();
@@ -195,7 +209,7 @@ metadataRouter.get('/status', requireAdmin(), async (c) => {
       AND b.author IS NOT NULL AND b.author != '' AND LOWER(b.author) != 'unknown'
       AND b.description IS NOT NULL AND b.description != ''
       AND b.isbn IS NOT NULL AND b.isbn != ''
-  `,
+  `
     )
     .bind(organizationId)
     .first();
@@ -208,7 +222,7 @@ metadataRouter.get('/status', requireAdmin(), async (c) => {
     WHERE (organization_id = ? OR organization_id IS NULL)
       AND status = 'completed'
     ORDER BY created_at DESC LIMIT 1
-  `,
+  `
     )
     .bind(organizationId)
     .first();
@@ -221,7 +235,7 @@ metadataRouter.get('/status', requireAdmin(), async (c) => {
     WHERE (organization_id = ? OR organization_id IS NULL)
       AND status IN ('pending', 'running')
     ORDER BY created_at DESC LIMIT 1
-  `,
+  `
     )
     .bind(organizationId)
     .first();
@@ -256,7 +270,10 @@ metadataRouter.get('/jobs', requireAdmin(), async (c) => {
   }
 
   const result = bindings.length
-    ? await db.prepare(query).bind(...bindings).all()
+    ? await db
+        .prepare(query)
+        .bind(...bindings)
+        .all()
     : await db.prepare(query).all();
 
   const jobs = (result.results || []).map((row) => ({
@@ -300,7 +317,7 @@ metadataRouter.delete('/jobs/:id', requireAdmin(), async (c) => {
 
   await db
     .prepare(
-      "UPDATE metadata_jobs SET status = 'paused', updated_at = datetime('now') WHERE id = ? AND status IN ('pending', 'running')",
+      "UPDATE metadata_jobs SET status = 'paused', updated_at = datetime('now') WHERE id = ? AND status IN ('pending', 'running')"
     )
     .bind(id)
     .run();
@@ -347,7 +364,7 @@ metadataRouter.post('/enrich', requireAdmin(), async (c) => {
     const responseJobId = userRole === 'owner' ? runningJob.id : undefined;
     return c.json(
       { error: 'Another enrichment job is already running', activeJobId: responseJobId },
-      409,
+      409
     );
   }
 
@@ -399,7 +416,10 @@ metadataRouter.post('/enrich', requireAdmin(), async (c) => {
     }
 
     const countRow = countBindings.length
-      ? await db.prepare(countQuery).bind(...countBindings).first()
+      ? await db
+          .prepare(countQuery)
+          .bind(...countBindings)
+          .first()
       : await db.prepare(countQuery).first();
 
     const totalBooks = countRow?.count || 0;
@@ -412,7 +432,7 @@ metadataRouter.post('/enrich', requireAdmin(), async (c) => {
         `
       INSERT INTO metadata_jobs (id, organization_id, job_type, status, total_books, include_covers, background, created_by)
       VALUES (?, ?, ?, 'pending', ?, ?, ?, ?)
-    `,
+    `
       )
       .bind(jobId, organizationId, jobType, totalBooks, includeCovers ? 1 : 0, background, userId)
       .run();
@@ -430,10 +450,7 @@ metadataRouter.post('/enrich', requireAdmin(), async (c) => {
   }
 
   // --- Batch processing (with jobId) ---
-  const job = await db
-    .prepare('SELECT * FROM metadata_jobs WHERE id = ?')
-    .bind(body.jobId)
-    .first();
+  const job = await db.prepare('SELECT * FROM metadata_jobs WHERE id = ?').bind(body.jobId).first();
   if (!job) return c.json({ error: 'Job not found' }, 404);
   if (job.status === 'paused' || job.status === 'completed' || job.status === 'failed') {
     return c.json({ error: `Job is ${job.status}` }, 400);
@@ -463,11 +480,24 @@ metadataRouter.post('/enrich', requireAdmin(), async (c) => {
   } catch (err) {
     console.error('Enrich batch error:', err);
     try {
-      await db.prepare(
-        "UPDATE metadata_jobs SET status = 'failed', updated_at = datetime('now') WHERE id = ?"
-      ).bind(job.id).run();
-    } catch { /* best effort */ }
-    return c.json({ error: 'Batch processing failed: ' + (err.message || 'unknown error'), jobId: job.id, status: 'failed', done: true }, 500);
+      await db
+        .prepare(
+          "UPDATE metadata_jobs SET status = 'failed', updated_at = datetime('now') WHERE id = ?"
+        )
+        .bind(job.id)
+        .run();
+    } catch {
+      /* best effort */
+    }
+    return c.json(
+      {
+        error: 'Metadata enrichment failed. Please retry.',
+        jobId: job.id,
+        status: 'failed',
+        done: true,
+      },
+      500
+    );
   }
 });
 

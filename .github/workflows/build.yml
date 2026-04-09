@@ -29,6 +29,9 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
+    - name: Check formatting
+      run: npx prettier --check "src/**/*.js"
+
     - name: Build
       run: npm run build
 

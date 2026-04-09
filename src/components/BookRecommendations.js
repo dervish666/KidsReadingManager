@@ -138,14 +138,16 @@ const BookRecommendations = () => {
 
   // Load AI config on mount
   useEffect(() => {
+    const controller = new AbortController();
     const loadAIConfig = async () => {
       try {
-        const response = await fetchWithAuth('/api/settings/ai');
+        const response = await fetchWithAuth('/api/settings/ai', { signal: controller.signal });
         if (response.ok) {
           const config = await response.json();
           setAiConfig(config);
         }
-      } catch {
+      } catch (error) {
+        if (error.name === 'AbortError') return;
         setAiConfig({ loadError: true });
       }
     };
@@ -153,6 +155,9 @@ const BookRecommendations = () => {
     if (fetchWithAuth) {
       loadAIConfig();
     }
+    return () => {
+      controller.abort();
+    };
   }, [fetchWithAuth]);
 
   // Helper to get provider display name
@@ -200,13 +205,13 @@ const BookRecommendations = () => {
   };
 
   // Helper to fetch sessions and build booksRead list for a student
-  const loadStudentBooksRead = async (studentId) => {
+  const loadStudentBooksRead = async (studentId, { signal } = {}) => {
     if (!studentId) {
       setBooksRead([]);
       return;
     }
     try {
-      const response = await fetchWithAuth(`/api/students/${studentId}/sessions`);
+      const response = await fetchWithAuth(`/api/students/${studentId}/sessions`, { signal });
       const sessions = response.ok ? await response.json() : [];
       const uniqueBooks = new Map();
       sessions.forEach((session) => {
@@ -220,7 +225,8 @@ const BookRecommendations = () => {
         }
       });
       setBooksRead(Array.from(uniqueBooks.values()));
-    } catch {
+    } catch (error) {
+      if (error.name === 'AbortError') return;
       setBooksRead([]);
     }
   };
@@ -1220,7 +1226,9 @@ const BookRecommendations = () => {
           <DialogTitle
             sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
           >
-            <Typography variant="h6" component="span">{selectedStudent?.name} — Reading Preferences</Typography>
+            <Typography variant="h6" component="span">
+              {selectedStudent?.name} — Reading Preferences
+            </Typography>
             <IconButton onClick={() => setPreferencesOpen(false)}>
               <CloseIcon />
             </IconButton>

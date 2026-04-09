@@ -13,11 +13,7 @@
  * - Sync logging with status tracking
  */
 
-import {
-  fetchAllStudents,
-  fetchAllClasses,
-  fetchDeletions
-} from '../utils/wondeApi.js';
+import { fetchAllStudents, fetchAllClasses, fetchDeletions } from '../utils/wondeApi.js';
 import { syncUserClassAssignments } from '../utils/classAssignments.js';
 
 /**
@@ -45,7 +41,7 @@ export function mapWondeStudent(wondeStudent) {
     gender: wondeStudent.gender || null,
     firstLanguage: extendedData?.first_language || extendedData?.home_language || null,
     ealDetailedStatus: extendedData?.english_as_additional_language_status || null,
-    wondeClassIds: Array.isArray(classesData) ? classesData.map(c => c.id) : []
+    wondeClassIds: Array.isArray(classesData) ? classesData.map((c) => c.id) : [],
   };
 }
 
@@ -58,7 +54,7 @@ export function mapWondeStudent(wondeStudent) {
 export function mapWondeClass(wondeClass) {
   return {
     wondeClassId: wondeClass.id,
-    name: wondeClass.name
+    name: wondeClass.name,
   };
 }
 
@@ -74,7 +70,7 @@ export function mapWondeEmployee(wondeEmployee) {
   return {
     wondeEmployeeId: wondeEmployee.id,
     name: `${wondeEmployee.forename} ${wondeEmployee.surname}`,
-    wondeClassIds: Array.isArray(classesData) ? classesData.map(c => c.id) : []
+    wondeClassIds: Array.isArray(classesData) ? classesData.map((c) => c.id) : [],
   };
 }
 
@@ -112,22 +108,25 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
     studentsDeactivated: 0,
     classesCreated: 0,
     classesUpdated: 0,
-    employeesSynced: 0
+    employeesSynced: 0,
   };
 
   // Step 1: Create sync log entry
   try {
-    await db.prepare(
-      `INSERT INTO wonde_sync_log (id, organization_id, sync_type, status, started_at)
+    await db
+      .prepare(
+        `INSERT INTO wonde_sync_log (id, organization_id, sync_type, status, started_at)
        VALUES (?, ?, ?, 'running', ?)`
-    ).bind(syncId, orgId, syncType, now).run();
+      )
+      .bind(syncId, orgId, syncType, now)
+      .run();
   } catch (err) {
     // If we can't even log, return failed immediately
     return {
       status: 'failed',
       syncId,
       ...counts,
-      errorMessage: `Failed to create sync log: ${err.message}`
+      errorMessage: `Failed to create sync log: ${err.message}`,
     };
   }
 
@@ -143,11 +142,12 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
     const wondeClasses = await fetchAllClasses(schoolToken, wondeSchoolId, fetchOptions);
 
     // Batch-fetch existing classes to avoid N+1 queries
-    const existingClassesResult = await db.prepare(
-      `SELECT wonde_class_id, id, name FROM classes WHERE organization_id = ?`
-    ).bind(orgId).all();
+    const existingClassesResult = await db
+      .prepare(`SELECT wonde_class_id, id, name FROM classes WHERE organization_id = ?`)
+      .bind(orgId)
+      .all();
     const existingClassMap = new Map(
-      (existingClassesResult.results || []).map(r => [r.wonde_class_id, r])
+      (existingClassesResult.results || []).map((r) => [r.wonde_class_id, r])
     );
 
     // Map wonde_class_id → tally class id (built as we upsert)
@@ -160,19 +160,21 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
 
       if (existing) {
         classStatements.push(
-          db.prepare(
-            `UPDATE classes SET name = ?, updated_at = datetime('now') WHERE id = ?`
-          ).bind(mapped.name, existing.id)
+          db
+            .prepare(`UPDATE classes SET name = ?, updated_at = datetime('now') WHERE id = ?`)
+            .bind(mapped.name, existing.id)
         );
         classLookup.set(mapped.wondeClassId, existing.id);
         counts.classesUpdated++;
       } else {
         const classId = crypto.randomUUID();
         classStatements.push(
-          db.prepare(
-            `INSERT INTO classes (id, organization_id, name, wonde_class_id, is_active, created_at, updated_at)
+          db
+            .prepare(
+              `INSERT INTO classes (id, organization_id, name, wonde_class_id, is_active, created_at, updated_at)
              VALUES (?, ?, ?, ?, 1, datetime('now'), datetime('now'))`
-          ).bind(classId, orgId, mapped.name, mapped.wondeClassId)
+            )
+            .bind(classId, orgId, mapped.name, mapped.wondeClassId)
         );
         classLookup.set(mapped.wondeClassId, classId);
         counts.classesCreated++;
@@ -190,22 +192,20 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
     // -----------------------------------------------------------------------
     const [wondeStudents, deletions] = await Promise.all([
       fetchAllStudents(schoolToken, wondeSchoolId, fetchOptions),
-      fetchDeletions(schoolToken, wondeSchoolId, options.updatedAfter)
+      fetchDeletions(schoolToken, wondeSchoolId, options.updatedAfter),
     ]);
 
     // Batch-fetch existing students and GDPR erased list to avoid N+1 queries
     const [existingStudentsResult, erasedRows] = await db.batch([
-      db.prepare(
-        'SELECT wonde_student_id, id FROM students WHERE organization_id = ?'
-      ).bind(orgId),
-      db.prepare(
-        'SELECT wonde_student_id FROM wonde_erased_students WHERE organization_id = ?'
-      ).bind(orgId)
+      db.prepare('SELECT wonde_student_id, id FROM students WHERE organization_id = ?').bind(orgId),
+      db
+        .prepare('SELECT wonde_student_id FROM wonde_erased_students WHERE organization_id = ?')
+        .bind(orgId),
     ]);
     const existingStudentMap = new Map(
-      (existingStudentsResult.results || []).map(r => [r.wonde_student_id, r.id])
+      (existingStudentsResult.results || []).map((r) => [r.wonde_student_id, r.id])
     );
-    const erasedWondeIds = new Set((erasedRows.results || []).map(r => r.wonde_student_id));
+    const erasedWondeIds = new Set((erasedRows.results || []).map((r) => r.wonde_student_id));
 
     const studentStatements = [];
 
@@ -218,43 +218,64 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
       }
 
       // Resolve class_id from first wondeClassId
-      const classId = mapped.wondeClassIds.length > 0
-        ? (classLookup.get(mapped.wondeClassIds[0]) || null)
-        : null;
+      const classId =
+        mapped.wondeClassIds.length > 0 ? classLookup.get(mapped.wondeClassIds[0]) || null : null;
 
       const existingId = existingStudentMap.get(mapped.wondeStudentId);
 
       if (existingId) {
         studentStatements.push(
-          db.prepare(
-            `UPDATE students SET name = ?, class_id = ?, year_group = ?,
+          db
+            .prepare(
+              `UPDATE students SET name = ?, class_id = ?, year_group = ?,
              sen_status = ?, pupil_premium = ?, eal_status = ?, fsm = ?,
              date_of_birth = ?, gender = ?, first_language = ?, eal_detailed_status = ?,
              is_active = 1, updated_at = datetime('now')
              WHERE id = ?`
-          ).bind(
-            mapped.name, classId, mapped.yearGroup,
-            mapped.senStatus, mapped.pupilPremium, mapped.ealStatus, mapped.fsm,
-            mapped.dateOfBirth, mapped.gender, mapped.firstLanguage, mapped.ealDetailedStatus,
-            existingId
-          )
+            )
+            .bind(
+              mapped.name,
+              classId,
+              mapped.yearGroup,
+              mapped.senStatus,
+              mapped.pupilPremium,
+              mapped.ealStatus,
+              mapped.fsm,
+              mapped.dateOfBirth,
+              mapped.gender,
+              mapped.firstLanguage,
+              mapped.ealDetailedStatus,
+              existingId
+            )
         );
         counts.studentsUpdated++;
       } else {
         const studentId = crypto.randomUUID();
         studentStatements.push(
-          db.prepare(
-            `INSERT INTO students (id, organization_id, name, class_id, wonde_student_id,
+          db
+            .prepare(
+              `INSERT INTO students (id, organization_id, name, class_id, wonde_student_id,
              year_group, sen_status, pupil_premium, eal_status, fsm,
              date_of_birth, gender, first_language, eal_detailed_status,
              is_active, created_at, updated_at)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'), datetime('now'))`
-          ).bind(
-            studentId, orgId, mapped.name, classId, mapped.wondeStudentId,
-            mapped.yearGroup, mapped.senStatus, mapped.pupilPremium,
-            mapped.ealStatus, mapped.fsm,
-            mapped.dateOfBirth, mapped.gender, mapped.firstLanguage, mapped.ealDetailedStatus
-          )
+            )
+            .bind(
+              studentId,
+              orgId,
+              mapped.name,
+              classId,
+              mapped.wondeStudentId,
+              mapped.yearGroup,
+              mapped.senStatus,
+              mapped.pupilPremium,
+              mapped.ealStatus,
+              mapped.fsm,
+              mapped.dateOfBirth,
+              mapped.gender,
+              mapped.firstLanguage,
+              mapped.ealDetailedStatus
+            )
         );
         counts.studentsCreated++;
       }
@@ -271,7 +292,9 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
     // Build from classes data (which includes employees) — more reliable than
     // the employees endpoint which may not return classes.data consistently.
     // DELETE included in the first INSERT batch for atomicity
-    const deleteStmt = db.prepare(`DELETE FROM wonde_employee_classes WHERE organization_id = ?`).bind(orgId);
+    const deleteStmt = db
+      .prepare(`DELETE FROM wonde_employee_classes WHERE organization_id = ?`)
+      .bind(orgId);
     const employeeStatements = [];
     const seenEmployeeIds = new Set();
 
@@ -283,10 +306,12 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
         const mappingId = crypto.randomUUID();
         const empName = `${emp.forename || ''} ${emp.surname || ''}`.trim();
         employeeStatements.push(
-          db.prepare(
-            `INSERT INTO wonde_employee_classes (id, organization_id, wonde_employee_id, wonde_class_id, employee_name)
+          db
+            .prepare(
+              `INSERT INTO wonde_employee_classes (id, organization_id, wonde_employee_id, wonde_class_id, employee_name)
              VALUES (?, ?, ?, ?, ?)`
-          ).bind(mappingId, orgId, emp.id, wc.id, empName)
+            )
+            .bind(mappingId, orgId, emp.id, wc.id, empName)
         );
         seenEmployeeIds.add(emp.id);
       }
@@ -297,10 +322,14 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
     // Execute employee-class inserts in batches of 100.
     // The DELETE is included in the first batch for atomicity — if the batch fails,
     // neither the delete nor the inserts are applied.
-    for (let i = 0; i < employeeStatements.length; i += 100) {
-      const batch = employeeStatements.slice(i, i + 100);
-      if (i === 0) batch.unshift(deleteStmt); // DELETE + first inserts are atomic
-      await db.batch(batch);
+    {
+      // First batch: DELETE + up to 99 inserts (keeping total within D1's 100-statement limit)
+      const firstBatch = [deleteStmt, ...employeeStatements.slice(0, 99)];
+      await db.batch(firstBatch);
+      // Remaining batches of 100
+      for (let i = 99; i < employeeStatements.length; i += 100) {
+        await db.batch(employeeStatements.slice(i, i + 100));
+      }
     }
     // If there are no employee statements, still run the DELETE to clear stale mappings
     if (employeeStatements.length === 0) {
@@ -310,9 +339,12 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
     // -----------------------------------------------------------------------
     // Step 4b: Refresh class_assignments for users with wonde_employee_ids
     // -----------------------------------------------------------------------
-    const usersWithWonde = await db.prepare(
-      'SELECT id, wonde_employee_id FROM users WHERE organization_id = ? AND wonde_employee_id IS NOT NULL AND is_active = 1'
-    ).bind(orgId).all();
+    const usersWithWonde = await db
+      .prepare(
+        'SELECT id, wonde_employee_id FROM users WHERE organization_id = ? AND wonde_employee_id IS NOT NULL AND is_active = 1'
+      )
+      .bind(orgId)
+      .all();
 
     // Process class assignments concurrently in batches of 5
     const wondeUsers = usersWithWonde.results || [];
@@ -320,11 +352,14 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
     for (let i = 0; i < wondeUsers.length; i += ASSIGN_CONCURRENCY) {
       const batch = wondeUsers.slice(i, i + ASSIGN_CONCURRENCY);
       const results = await Promise.allSettled(
-        batch.map(u => syncUserClassAssignments(db, u.id, u.wonde_employee_id, orgId))
+        batch.map((u) => syncUserClassAssignments(db, u.id, u.wonde_employee_id, orgId))
       );
       for (let j = 0; j < results.length; j++) {
         if (results[j].status === 'rejected') {
-          console.warn(`[WondeSync] Could not sync class assignments for user ${batch[j].id}:`, results[j].reason?.message);
+          console.warn(
+            `[WondeSync] Could not sync class assignments for user ${batch[j].id}:`,
+            results[j].reason?.message
+          );
         }
       }
     }
@@ -336,10 +371,12 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
     for (const del of deletions) {
       if (!del.restored_at) {
         deactivateStatements.push(
-          db.prepare(
-            `UPDATE students SET is_active = 0, updated_at = datetime('now')
+          db
+            .prepare(
+              `UPDATE students SET is_active = 0, updated_at = datetime('now')
              WHERE wonde_student_id = ? AND organization_id = ?`
-          ).bind(del.id, orgId)
+            )
+            .bind(del.id, orgId)
         );
       }
     }
@@ -351,38 +388,48 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
     // -----------------------------------------------------------------------
     // Step 6: Update organization last sync timestamp
     // -----------------------------------------------------------------------
-    await db.prepare(
-      `UPDATE organizations SET wonde_last_sync_at = ? WHERE id = ?`
-    ).bind(new Date().toISOString(), orgId).run();
+    await db
+      .prepare(`UPDATE organizations SET wonde_last_sync_at = ? WHERE id = ?`)
+      .bind(new Date().toISOString(), orgId)
+      .run();
 
     // -----------------------------------------------------------------------
     // Step 7: Update sync log to completed
     // -----------------------------------------------------------------------
-    await db.prepare(
-      `UPDATE wonde_sync_log SET status = 'completed', completed_at = ?,
+    await db
+      .prepare(
+        `UPDATE wonde_sync_log SET status = 'completed', completed_at = ?,
        students_created = ?, students_updated = ?, students_deactivated = ?,
        classes_created = ?, classes_updated = ?, employees_synced = ?
        WHERE id = ?`
-    ).bind(
-      new Date().toISOString(),
-      counts.studentsCreated, counts.studentsUpdated, counts.studentsDeactivated,
-      counts.classesCreated, counts.classesUpdated, counts.employeesSynced,
-      syncId
-    ).run();
+      )
+      .bind(
+        new Date().toISOString(),
+        counts.studentsCreated,
+        counts.studentsUpdated,
+        counts.studentsDeactivated,
+        counts.classesCreated,
+        counts.classesUpdated,
+        counts.employeesSynced,
+        syncId
+      )
+      .run();
 
     return {
       status: 'completed',
       syncId,
-      ...counts
+      ...counts,
     };
-
   } catch (err) {
     // Update sync log to failed
     try {
-      await db.prepare(
-        `UPDATE wonde_sync_log SET status = 'failed', completed_at = ?, error_message = ?
+      await db
+        .prepare(
+          `UPDATE wonde_sync_log SET status = 'failed', completed_at = ?, error_message = ?
          WHERE id = ?`
-      ).bind(new Date().toISOString(), err.message, syncId).run();
+        )
+        .bind(new Date().toISOString(), err.message, syncId)
+        .run();
     } catch {
       // Best-effort sync log update
     }
@@ -391,7 +438,7 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
       status: 'failed',
       syncId,
       ...counts,
-      errorMessage: err.message
+      errorMessage: err.message,
     };
   }
 }

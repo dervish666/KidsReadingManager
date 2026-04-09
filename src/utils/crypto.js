@@ -11,8 +11,8 @@
 // This is a platform limitation. While OWASP recommends higher, 100k provides
 // reasonable protection and is the maximum supported by the runtime.
 const PBKDF2_ITERATIONS = 100000;
-const SALT_LENGTH = 16;  // 128 bits
-const HASH_LENGTH = 32;  // 256 bits
+const SALT_LENGTH = 16; // 128 bits
+const HASH_LENGTH = 32; // 256 bits
 
 /**
  * Hash a password using PBKDF2 with a random salt
@@ -36,7 +36,7 @@ export async function hashPassword(password) {
       name: 'PBKDF2',
       salt,
       iterations: PBKDF2_ITERATIONS,
-      hash: 'SHA-256'
+      hash: 'SHA-256',
     },
     keyMaterial,
     HASH_LENGTH * 8 // bits
@@ -77,7 +77,7 @@ async function verifyPasswordWithIterations(password, storedHash, iterations) {
       name: 'PBKDF2',
       salt,
       iterations,
-      hash: 'SHA-256'
+      hash: 'SHA-256',
     },
     keyMaterial,
     HASH_LENGTH * 8
@@ -124,14 +124,14 @@ const REFRESH_TOKEN_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days in ms
 export async function createAccessToken(payload, secret, expiresIn = ACCESS_TOKEN_TTL) {
   const header = {
     alg: JWT_ALGORITHM,
-    typ: 'JWT'
+    typ: 'JWT',
   };
 
   const now = Date.now();
   const tokenPayload = {
     ...payload,
     iat: Math.floor(now / 1000),
-    exp: Math.floor((now + expiresIn) / 1000)
+    exp: Math.floor((now + expiresIn) / 1000),
   };
 
   const encodedHeader = base64UrlEncode(JSON.stringify(header));
@@ -163,7 +163,7 @@ export async function createRefreshToken(userId, secret) {
   return {
     token,
     hash: tokenHash,
-    expiresAt
+    expiresAt,
   };
 }
 
@@ -187,8 +187,14 @@ export async function verifyAccessToken(token, secret) {
     const expectedSignature = await signHS256(signatureInput, secret);
     const expectedEncodedSignature = base64UrlEncode(expectedSignature);
 
-    const sigBytes = new Uint8Array([...atob(encodedSignature.replace(/-/g, '+').replace(/_/g, '/'))].map(c => c.charCodeAt(0)));
-    const expectedSigBytes = new Uint8Array([...atob(expectedEncodedSignature.replace(/-/g, '+').replace(/_/g, '/'))].map(c => c.charCodeAt(0)));
+    const sigBytes = new Uint8Array(
+      [...atob(encodedSignature.replace(/-/g, '+').replace(/_/g, '/'))].map((c) => c.charCodeAt(0))
+    );
+    const expectedSigBytes = new Uint8Array(
+      [...atob(expectedEncodedSignature.replace(/-/g, '+').replace(/_/g, '/'))].map((c) =>
+        c.charCodeAt(0)
+      )
+    );
     if (!constantTimeEqual(sigBytes, expectedSigBytes)) {
       return { valid: false, error: 'Invalid signature' };
     }
@@ -245,8 +251,10 @@ export function buildRefreshCookie(token, isProduction) {
     'Path=/api/auth',
     `Max-Age=${7 * 24 * 60 * 60}`,
     'SameSite=Strict',
-    isProduction ? 'Secure' : ''
-  ].filter(Boolean).join('; ');
+    isProduction ? 'Secure' : '',
+  ]
+    .filter(Boolean)
+    .join('; ');
 }
 
 /**
@@ -261,8 +269,10 @@ export function buildClearRefreshCookie(isProduction) {
     'Path=/api/auth',
     'Max-Age=0',
     'SameSite=Strict',
-    isProduction ? 'Secure' : ''
-  ].filter(Boolean).join('; ');
+    isProduction ? 'Secure' : '',
+  ]
+    .filter(Boolean)
+    .join('; ');
 }
 
 // ============================================================================
@@ -339,7 +349,7 @@ export function constantTimeEqual(a, b) {
   const len = Math.max(a.length, b.length);
   let result = a.length ^ b.length; // non-zero if lengths differ
   for (let i = 0; i < len; i++) {
-    result |= (i < a.length ? a[i] : 0xFF) ^ (i < b.length ? b[i] : 0xFF);
+    result |= (i < a.length ? a[i] : 0xff) ^ (i < b.length ? b[i] : 0xff);
   }
   return result === 0;
 }
@@ -388,10 +398,7 @@ function base64ToArrayBuffer(base64) {
  * @returns {string} - Base64url string
  */
 function arrayBufferToBase64Url(buffer) {
-  return arrayBufferToBase64(buffer)
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
+  return arrayBufferToBase64(buffer).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 /**
@@ -431,7 +438,7 @@ function base64UrlDecode(input) {
  */
 function arrayBufferToHex(buffer) {
   return Array.from(buffer)
-    .map(b => b.toString(16).padStart(2, '0'))
+    .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 }
 
@@ -443,14 +450,14 @@ export const ROLES = {
   OWNER: 'owner',
   ADMIN: 'admin',
   TEACHER: 'teacher',
-  READONLY: 'readonly'
+  READONLY: 'readonly',
 };
 
 export const ROLE_HIERARCHY = {
   [ROLES.OWNER]: 4,
   [ROLES.ADMIN]: 3,
   [ROLES.TEACHER]: 2,
-  [ROLES.READONLY]: 1
+  [ROLES.READONLY]: 1,
 };
 
 /**
@@ -476,7 +483,7 @@ export const permissions = {
   canRecordSessions: (role) => hasPermission(role, ROLES.TEACHER),
   canViewData: (role) => hasPermission(role, ROLES.READONLY),
   canManageBooks: (role) => hasPermission(role, ROLES.ADMIN),
-  canManageSettings: (role) => hasPermission(role, ROLES.ADMIN)
+  canManageSettings: (role) => hasPermission(role, ROLES.ADMIN),
 };
 
 // ============================================================================
@@ -497,13 +504,9 @@ async function deriveEncryptionKey(secret) {
   const encoder = new TextEncoder();
 
   // Import the secret as key material
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(secret),
-    'HKDF',
-    false,
-    ['deriveKey']
-  );
+  const keyMaterial = await crypto.subtle.importKey('raw', encoder.encode(secret), 'HKDF', false, [
+    'deriveKey',
+  ]);
 
   // Derive an AES key using HKDF
   return crypto.subtle.deriveKey(
@@ -511,7 +514,7 @@ async function deriveEncryptionKey(secret) {
       name: 'HKDF',
       hash: 'SHA-256',
       salt: encoder.encode('krm-api-key-encryption-v1'),
-      info: encoder.encode('api-key-encryption')
+      info: encoder.encode('api-key-encryption'),
     },
     keyMaterial,
     { name: ENCRYPTION_ALGORITHM, length: ENCRYPTION_KEY_LENGTH },
@@ -555,11 +558,11 @@ export async function encryptSensitiveData(plaintext, secret) {
     encoder.encode(plaintext)
   );
 
-  // Combine IV and ciphertext, encode as base64
+  // Combine IV and ciphertext, encode as base64 with enc: prefix
   const ivBase64 = arrayBufferToBase64(iv);
   const ciphertextBase64 = arrayBufferToBase64(new Uint8Array(ciphertext));
 
-  return `${ivBase64}:${ciphertextBase64}`;
+  return `enc:${ivBase64}:${ciphertextBase64}`;
 }
 
 /**
@@ -573,14 +576,24 @@ export async function decryptSensitiveData(encryptedData, secret) {
     throw new Error('Encrypted data and secret are required for decryption');
   }
 
-  // Check if data is in encrypted format (contains :)
+  // Detect format:
+  //   "enc:iv:ciphertext" — current format (preferred)
+  //   "iv:ciphertext"     — legacy encrypted format (pre-prefix migration)
+  //   no colons           — legacy plaintext (backward compat, will be re-encrypted on next update)
   if (!encryptedData.includes(':')) {
-    // Data is not encrypted (legacy plaintext), return as-is
-    // This allows backward compatibility during migration
     return encryptedData;
   }
 
-  const [ivBase64, ciphertextBase64] = encryptedData.split(':');
+  let ivBase64, ciphertextBase64;
+  if (encryptedData.startsWith('enc:')) {
+    // Current format: strip prefix, then split
+    const rest = encryptedData.slice(4);
+    [ivBase64, ciphertextBase64] = rest.split(':');
+  } else {
+    // Legacy encrypted format (iv:ciphertext without prefix)
+    [ivBase64, ciphertextBase64] = encryptedData.split(':');
+  }
+
   if (!ivBase64 || !ciphertextBase64) {
     throw new Error('Invalid encrypted data format');
   }

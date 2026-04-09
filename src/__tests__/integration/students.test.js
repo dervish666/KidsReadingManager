@@ -34,6 +34,7 @@ vi.mock('../../utils/validation', () => ({
   validateStudent: () => ({ isValid: true }),
   validateBulkImport: () => ({ isValid: true }),
   validateReadingLevelRange: () => ({ isValid: true }),
+  validateSessionInput: (body) => ({ isValid: true, error: '', data: { ...body } }),
 }));
 
 vi.mock('../../services/kvService', () => ({
@@ -46,6 +47,16 @@ vi.mock('../../services/kvService', () => ({
 
 vi.mock('../../utils/helpers', () => ({
   generateId: () => 'generated-id',
+  csvRow: (values) =>
+    values
+      .map((v) => {
+        if (v === null || v === undefined) return '';
+        const str = String(v);
+        if (str.includes(',') || str.includes('"') || str.includes('\n'))
+          return `"${str.replace(/"/g, '""')}"`;
+        return str;
+      })
+      .join(','),
 }));
 
 vi.mock('../../utils/streakCalculator', () => ({

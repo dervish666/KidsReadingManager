@@ -298,7 +298,7 @@ const BookAutocomplete = ({
                     <IconButton
                       onClick={() => setScanOpen(true)}
                       size="small"
-                      title="Scan ISBN barcode"
+                      aria-label="Scan ISBN barcode"
                     >
                       <QrCodeScannerIcon />
                     </IconButton>

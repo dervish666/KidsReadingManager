@@ -59,6 +59,11 @@ function Confetti() {
           60%  { opacity: 1; }
           100% { transform: translateY(100vh) rotate(720deg) scale(0.6); opacity: 0; }
         }
+        @media (prefers-reduced-motion: reduce) {
+          @keyframes confettiFall {
+            0%, 100% { transform: none; opacity: 0; }
+          }
+        }
       `}</style>
       {pieces.map((p) => (
         <ConfettiPiece
@@ -340,10 +345,7 @@ export default function ClassGoalsDisplay({ open, onClose, classId, fetchWithAut
       </Box>
 
       {/* Footer */}
-      <Box
-        component="footer"
-        sx={{ textAlign: 'center', pb: 2, pt: 1 }}
-      >
+      <Box component="footer" sx={{ textAlign: 'center', pb: 2, pt: 1 }}>
         <Typography
           sx={{
             color: '#6B6050',

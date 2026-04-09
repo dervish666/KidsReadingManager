@@ -67,6 +67,7 @@ enabled = true
 # Every minute - Background metadata enrichment (exits immediately if no job)
 # Every hour (minute 0) - Demo environment data reset
 # 2:00 AM UTC - Recalculate all student streaks + GDPR cleanup
+# 2:30 AM UTC - Batch badge evaluation (after streaks are recalculated)
 # 3:00 AM UTC - Wonde daily delta sync
 [triggers]
 crons = ["*/1 * * * *", "0 * * * *", "0 2 * * *", "30 2 * * *", "0 3 * * *"]

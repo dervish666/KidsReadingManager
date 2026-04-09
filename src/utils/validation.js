@@ -3,6 +3,80 @@
  */
 
 /**
+ * Validate password strength (8-128 chars, uppercase, lowercase, number).
+ * @param {string} password - The password to validate
+ * @returns {{ isValid: boolean, error: string }}
+ */
+export function validatePassword(password) {
+  if (password.length < 8) {
+    return { isValid: false, error: 'Password must be at least 8 characters' };
+  }
+  if (password.length > 128) {
+    return { isValid: false, error: 'Password must be 128 characters or fewer' };
+  }
+  if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+    return {
+      isValid: false,
+      error:
+        'Password must contain at least one uppercase letter, one lowercase letter, and one number',
+    };
+  }
+  return { isValid: true, error: '' };
+}
+
+/**
+ * Validate reading session input fields (pagesRead, duration, date, notes, assessment, location).
+ * Mutates numeric fields to parsed values in the returned data object.
+ * @param {Object} body - The request body to validate
+ * @returns {{ isValid: boolean, error: string, data: Object }}
+ */
+export function validateSessionInput(body) {
+  const data = { ...body };
+
+  if (data.pagesRead !== undefined && data.pagesRead !== null) {
+    const pages = Number(data.pagesRead);
+    if (!Number.isFinite(pages) || pages < 0 || pages > 10000) {
+      return { isValid: false, error: 'pagesRead must be a number between 0 and 10000', data };
+    }
+    data.pagesRead = pages;
+  }
+  if (data.duration !== undefined && data.duration !== null) {
+    const dur = Number(data.duration);
+    if (!Number.isFinite(dur) || dur < 0 || dur > 1440) {
+      return {
+        isValid: false,
+        error: 'duration must be a number between 0 and 1440 minutes',
+        data,
+      };
+    }
+    data.duration = dur;
+  }
+  if (data.date) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data.date) || isNaN(Date.parse(data.date))) {
+      return { isValid: false, error: 'date must be a valid YYYY-MM-DD format', data };
+    }
+  }
+  if (data.notes && data.notes.length > 2000) {
+    return { isValid: false, error: 'notes must be 2000 characters or fewer', data };
+  }
+  if (data.assessment !== null && data.assessment !== undefined && data.assessment !== '') {
+    const assessmentNum = Number(data.assessment);
+    if (!Number.isInteger(assessmentNum) || assessmentNum < 1 || assessmentNum > 10) {
+      return { isValid: false, error: 'Assessment must be an integer between 1 and 10', data };
+    }
+    data.assessment = assessmentNum;
+  } else {
+    data.assessment = null;
+  }
+  const validLocations = [null, undefined, '', 'school', 'home', 'library', 'other'];
+  if (data.location && !validLocations.includes(data.location)) {
+    return { isValid: false, error: 'Invalid location value', data };
+  }
+
+  return { isValid: true, error: '', data };
+}
+
+/**
  * Validates reading level range (min and max values)
  * @param {number|string|null} min - Minimum reading level
  * @param {number|string|null} max - Maximum reading level
@@ -16,7 +90,10 @@ export function validateReadingLevelRange(min, max) {
 
   // If one is set, both must be set
   if ((min === null || min === undefined) !== (max === null || max === undefined)) {
-    return { isValid: false, errors: ['Reading level range requires both minimum and maximum values'] };
+    return {
+      isValid: false,
+      errors: ['Reading level range requires both minimum and maximum values'],
+    };
   }
 
   // Convert to numbers and round to 1 decimal place
@@ -61,27 +138,27 @@ export function isValidAssessment(value) {
  */
 export function validateStudent(student) {
   const errors = [];
-  
+
   // Check required fields
   if (!student) {
     return { isValid: false, errors: ['Student data is required'] };
   }
-  
+
   // Validate name
   if (!student.name || typeof student.name !== 'string' || student.name.trim() === '') {
     errors.push('Student name is required');
   }
-  
+
   // Validate ID if provided (for updates)
   if (student.id && typeof student.id !== 'string') {
     errors.push('Student ID must be a string');
   }
-  
+
   // Validate lastReadDate if provided
   if (student.lastReadDate && typeof student.lastReadDate !== 'string') {
     errors.push('Last read date must be a string');
   }
-  
+
   // Validate reading sessions if provided
   if (student.readingSessions) {
     if (!Array.isArray(student.readingSessions)) {
@@ -98,10 +175,10 @@ export function validateStudent(student) {
       });
     }
   }
-  
+
   return {
     isValid: errors.length === 0,
-    errors
+    errors,
   };
 }
 
@@ -135,23 +212,23 @@ export function validateSettings(settings) {
   if (dangerousKey) {
     return { isValid: false, errors: [`Invalid settings key: ${dangerousKey}`] };
   }
-  
+
   // Validate reading status settings if provided
   if (settings.readingStatusSettings) {
     const { recentlyReadDays, needsAttentionDays } = settings.readingStatusSettings;
-    
+
     if (recentlyReadDays !== undefined) {
       if (typeof recentlyReadDays !== 'number' || recentlyReadDays < 1) {
         errors.push('Recently read days must be a positive number');
       }
     }
-    
+
     if (needsAttentionDays !== undefined) {
       if (typeof needsAttentionDays !== 'number' || needsAttentionDays < 1) {
         errors.push('Needs attention days must be a positive number');
       }
     }
-    
+
     // Ensure logical relationship between thresholds
     if (recentlyReadDays && needsAttentionDays && recentlyReadDays >= needsAttentionDays) {
       errors.push('Recently read days must be less than needs attention days');
@@ -161,28 +238,28 @@ export function validateSettings(settings) {
   // Validate AI settings if provided
   if (settings.ai) {
     const { provider, apiKey, baseUrl, model } = settings.ai;
-    
+
     if (provider && !['anthropic', 'openai', 'gemini'].includes(provider)) {
       errors.push('Invalid AI provider selected');
     }
-    
+
     // API key is optional (might be set in env vars), but if provided should be a string
     if (apiKey && typeof apiKey !== 'string') {
       errors.push('API key must be a string');
     }
-    
+
     if (baseUrl && typeof baseUrl !== 'string') {
       errors.push('Base URL must be a string');
     }
-    
+
     if (model && typeof model !== 'string') {
       errors.push('Model name must be a string');
     }
   }
-  
+
   return {
     isValid: errors.length === 0,
-    errors
+    errors,
   };
 }
 
@@ -193,12 +270,12 @@ export function validateSettings(settings) {
  */
 export function validateBulkImport(students) {
   const errors = [];
-  
+
   // Check if data is an array
   if (!Array.isArray(students)) {
     return { isValid: false, errors: ['Bulk import data must be an array'] };
   }
-  
+
   // Validate each student
   students.forEach((student, index) => {
     const validation = validateStudent(student);
@@ -206,10 +283,10 @@ export function validateBulkImport(students) {
       errors.push(`Student at index ${index} is invalid: ${validation.errors.join(', ')}`);
     }
   });
-  
+
   return {
     isValid: errors.length === 0,
-    errors
+    errors,
   };
 }
 
@@ -340,12 +417,12 @@ export function validateBook(book) {
  */
 export function validateDataImport(data) {
   const errors = [];
-  
+
   // Check required structure
   if (!data) {
     return { isValid: false, errors: ['Data is required'] };
   }
-  
+
   // Validate students array
   if (!data.students || !Array.isArray(data.students)) {
     errors.push('Data must contain a students array');
@@ -358,7 +435,7 @@ export function validateDataImport(data) {
       }
     });
   }
-  
+
   // Validate settings if provided
   if (data.settings) {
     const validation = validateSettings(data.settings);
@@ -366,9 +443,9 @@ export function validateDataImport(data) {
       errors.push(`Settings are invalid: ${validation.errors.join(', ')}`);
     }
   }
-  
+
   return {
     isValid: errors.length === 0,
-    errors
+    errors,
   };
 }

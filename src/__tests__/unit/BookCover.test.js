@@ -107,8 +107,8 @@ describe('BookCover Component', () => {
         expect(placeholder).toBeInTheDocument();
       });
 
-      // Verify no image is shown
-      expect(screen.queryByRole('img')).not.toBeInTheDocument();
+      // Verify no actual <img> element is shown (placeholder has role="img" for a11y but is not an <img>)
+      expect(document.querySelector('img')).not.toBeInTheDocument();
     });
   });
 

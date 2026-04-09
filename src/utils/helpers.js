@@ -16,12 +16,14 @@ export function generateId() {
 
   // Convert to UUID format
   return [
-    bytes.slice(0, 4),  // time_low
-    bytes.slice(4, 6),  // time_mid
-    bytes.slice(6, 8),  // time_high_and_version
+    bytes.slice(0, 4), // time_low
+    bytes.slice(4, 6), // time_mid
+    bytes.slice(6, 8), // time_high_and_version
     bytes.slice(8, 10), // clock_seq_high_and_reserved + clock_seq_low
-    bytes.slice(10, 16) // node
-  ].map(chunk => Array.from(chunk, byte => byte.toString(16).padStart(2, '0')).join('')).join('-');
+    bytes.slice(10, 16), // node
+  ]
+    .map((chunk) => Array.from(chunk, (byte) => byte.toString(16).padStart(2, '0')).join(''))
+    .join('-');
 }
 
 /**
@@ -91,7 +93,8 @@ export function sortStudentsByPriority(students) {
 export function getPrioritizedStudents(students, count) {
   return [...students]
     .sort((a, b) => {
-      if (!a.lastReadDate && !b.lastReadDate) return (a.totalSessionCount || 0) - (b.totalSessionCount || 0);
+      if (!a.lastReadDate && !b.lastReadDate)
+        return (a.totalSessionCount || 0) - (b.totalSessionCount || 0);
       if (!a.lastReadDate) return -1;
       if (!b.lastReadDate) return 1;
       const dateComparison = new Date(a.lastReadDate) - new Date(b.lastReadDate);
@@ -110,7 +113,7 @@ export const STATUS_TO_PALETTE = {
   never: 'notRead',
   attention: 'needsAttention',
   overdue: 'notRead',
-  recent: 'recentlyRead'
+  recent: 'recentlyRead',
 };
 
 /**
@@ -136,8 +139,13 @@ export function parseGenreIds(value) {
   try {
     const parsed = JSON.parse(value);
     if (Array.isArray(parsed)) return parsed;
-  } catch { /* not JSON, fall through */ }
-  return value.split(',').map(g => g.trim()).filter(Boolean);
+  } catch {
+    /* not JSON, fall through */
+  }
+  return value
+    .split(',')
+    .map((g) => g.trim())
+    .filter(Boolean);
 }
 
 /**
@@ -165,6 +173,61 @@ export function formatRelativeTime(dateString) {
 }
 
 /**
+ * CSV helper: escape a value and wrap in quotes if needed, then join with commas.
+ * @param {Array} values - Array of values to format as a CSV row
+ * @returns {string} - CSV-formatted row string
+ */
+export function csvRow(values) {
+  return values
+    .map((v) => {
+      if (v === null || v === undefined) return '';
+      const str = String(v);
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    })
+    .join(',');
+}
+
+/**
+ * Generate URL-safe slug from a name string.
+ * @param {string} name - The name to slugify
+ * @returns {string} - URL-safe slug (max 50 chars)
+ */
+export function generateSlug(name) {
+  const slug = name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .substring(0, 50);
+  return slug || 'org';
+}
+
+/**
+ * Generate a unique slug for an organization by checking D1 for collisions.
+ * @param {object} db - D1 database binding
+ * @param {string} name - The name to slugify
+ * @returns {Promise<string>} - A unique slug
+ * @throws {Error} If unable to generate a unique slug after 100 attempts
+ */
+export async function generateUniqueSlug(db, name) {
+  const baseSlug = generateSlug(name);
+  let finalSlug = baseSlug;
+  let slugCounter = 1;
+  while (slugCounter <= 100) {
+    const existing = await db
+      .prepare('SELECT id FROM organizations WHERE slug = ?')
+      .bind(finalSlug)
+      .first();
+    if (!existing) return finalSlug;
+    finalSlug = `${baseSlug}-${slugCounter++}`;
+  }
+  throw new Error('Unable to generate unique organization slug');
+}
+
+/**
  * Fetch with a timeout using AbortController.
  * If the request doesn't complete within timeoutMs, it is aborted and a timeout error is thrown.
  * @param {string} url - The URL to fetch
@@ -179,7 +242,7 @@ export async function fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
   try {
     const response = await fetch(url, {
       ...options,
-      signal: controller.signal
+      signal: controller.signal,
     });
     return response;
   } catch (error) {

@@ -397,7 +397,7 @@ describe('BookRecommendations Component', () => {
 
       // Wait for initial async operations to complete
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/settings/ai');
+        expect(mockFetch).toHaveBeenCalledWith('/api/settings/ai', expect.any(Object));
       });
 
       expect(screen.getByText('Book Recommendations')).toBeInTheDocument();
@@ -431,7 +431,7 @@ describe('BookRecommendations Component', () => {
 
       // Wait for initial async operations to complete
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/settings/ai');
+        expect(mockFetch).toHaveBeenCalledWith('/api/settings/ai', expect.any(Object));
       });
 
       expect(screen.getByText('Failed to load data from server')).toBeInTheDocument();
@@ -451,7 +451,7 @@ describe('BookRecommendations Component', () => {
       render(<BookRecommendations />, { wrapper: createWrapper(context) });
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/settings/ai');
+        expect(mockFetch).toHaveBeenCalledWith('/api/settings/ai', expect.any(Object));
       });
 
       // Should display AI status chip
@@ -485,7 +485,7 @@ describe('BookRecommendations Component', () => {
 
       // Wait for initial async operations to complete
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/settings/ai');
+        expect(mockFetch).toHaveBeenCalledWith('/api/settings/ai', expect.any(Object));
       });
 
       const studentSelect = screen.getByLabelText(/student/i);
@@ -503,7 +503,7 @@ describe('BookRecommendations Component', () => {
 
       // Wait for initial async operations to complete
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/settings/ai');
+        expect(mockFetch).toHaveBeenCalledWith('/api/settings/ai', expect.any(Object));
       });
 
       const studentSelect = screen.getByLabelText(/student/i);
@@ -1772,7 +1772,7 @@ describe('BookRecommendations Component', () => {
 
       // Wait for initial async operations to complete
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/settings/ai');
+        expect(mockFetch).toHaveBeenCalledWith('/api/settings/ai', expect.any(Object));
       });
 
       const studentSelect = screen.getByLabelText(/student/i);
@@ -1787,7 +1787,7 @@ describe('BookRecommendations Component', () => {
 
       // Wait for initial async operations to complete
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/settings/ai');
+        expect(mockFetch).toHaveBeenCalledWith('/api/settings/ai', expect.any(Object));
       });
 
       // Typography with variant="h4" renders as h1 with component="h1"

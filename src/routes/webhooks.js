@@ -19,6 +19,7 @@ import {
   getEncryptionSecret,
 } from '../utils/crypto.js';
 import { runFullSync } from '../services/wondeSync.js';
+import { generateUniqueSlug } from '../utils/helpers.js';
 import { fetchSchoolDetails } from '../utils/wondeApi.js';
 
 const webhooksRouter = new Hono();
@@ -119,21 +120,7 @@ webhooksRouter.post('/wonde', async (c) => {
         );
       } else {
         orgId = crypto.randomUUID();
-        const baseSlug =
-          schoolName
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, '-')
-            .replace(/(^-|-$)/g, '') || 'school';
-        let finalSlug = baseSlug;
-        let slugCounter = 1;
-        while (slugCounter <= 100) {
-          const existing2 = await db
-            .prepare('SELECT id FROM organizations WHERE slug = ?')
-            .bind(finalSlug)
-            .first();
-          if (!existing2) break;
-          finalSlug = `${baseSlug}-${slugCounter++}`;
-        }
+        const finalSlug = await generateUniqueSlug(db, schoolName);
 
         await db
           .prepare(

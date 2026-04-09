@@ -4,13 +4,18 @@
  */
 
 import { Hono } from 'hono';
-import { generateId } from '../utils/helpers.js';
+import { generateId, csvRow } from '../utils/helpers.js';
 import { hashPassword, generateTemporaryPassword, ROLES, hasPermission } from '../utils/crypto.js';
 import { requireAdmin, requireOwner, auditLog } from '../middleware/tenant.js';
 import { sendWelcomeEmail } from '../utils/email.js';
 import { requireDB as getDB } from '../utils/routeHelpers.js';
 import { rowToUser } from '../utils/rowMappers.js';
-import { notFoundError, badRequestError, forbiddenError, createError } from '../middleware/errorHandler.js';
+import {
+  notFoundError,
+  badRequestError,
+  forbiddenError,
+  createError,
+} from '../middleware/errorHandler.js';
 
 export const usersRouter = new Hono();
 
@@ -482,20 +487,14 @@ usersRouter.delete('/:id', requireAdmin(), auditLog('delete', 'user'), async (c)
     // Soft delete (deactivate), revoke tokens, and clean up class assignments
     await db.batch([
       db
-        .prepare(
-          `UPDATE users SET is_active = 0, updated_at = datetime("now") WHERE id = ?`
-        )
+        .prepare(`UPDATE users SET is_active = 0, updated_at = datetime("now") WHERE id = ?`)
         .bind(targetUserId),
       db
         .prepare(
           `UPDATE refresh_tokens SET revoked_at = datetime("now") WHERE user_id = ? AND revoked_at IS NULL`
         )
         .bind(targetUserId),
-      db
-        .prepare(
-          `DELETE FROM class_assignments WHERE user_id = ?`
-        )
-        .bind(targetUserId),
+      db.prepare(`DELETE FROM class_assignments WHERE user_id = ?`).bind(targetUserId),
     ]);
 
     return c.json({ message: 'User deactivated successfully' });
@@ -892,19 +891,3 @@ usersRouter.get('/:id/classes', requireAdmin(), async (c) => {
     return c.json({ error: 'Failed to get user classes' }, 500);
   }
 });
-
-/**
- * CSV helper: escape a value and wrap in quotes if needed
- */
-function csvRow(values) {
-  return values
-    .map((v) => {
-      if (v === null || v === undefined) return '';
-      const str = String(v);
-      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-        return `"${str.replace(/"/g, '""')}"`;
-      }
-      return str;
-    })
-    .join(',');
-}

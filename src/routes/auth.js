@@ -4,7 +4,8 @@
  */
 
 import { Hono } from 'hono';
-import { generateId } from '../utils/helpers.js';
+import { generateId, generateUniqueSlug } from '../utils/helpers.js';
+import { validatePassword } from '../utils/validation.js';
 import {
   hashPassword,
   verifyPassword,
@@ -126,19 +127,6 @@ authRouter.get('/mode', async (c) => {
 });
 
 /**
- * Generate URL-safe slug from organization name
- */
-function generateSlug(name) {
-  const slug = name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .substring(0, 50);
-  return slug || 'org';
-}
-
-/**
  * POST /api/auth/register
  * Register a new organization and owner account
  *
@@ -173,21 +161,10 @@ authRouter.post('/register', async (c) => {
       return c.json({ error: 'Invalid email format' }, 400);
     }
 
-    // Validate password strength (8–128 chars, uppercase, lowercase, number)
-    if (password.length < 8) {
-      return c.json({ error: 'Password must be at least 8 characters' }, 400);
-    }
-    if (password.length > 128) {
-      return c.json({ error: 'Password must be 128 characters or fewer' }, 400);
-    }
-    if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
-      return c.json(
-        {
-          error:
-            'Password must contain at least one uppercase letter, one lowercase letter, and one number',
-        },
-        400
-      );
+    // Validate password strength
+    const pwCheck = validatePassword(password);
+    if (!pwCheck.isValid) {
+      return c.json({ error: pwCheck.error }, 400);
     }
 
     // Check if email already exists (among active users)
@@ -210,49 +187,34 @@ authRouter.post('/register', async (c) => {
     // Generate IDs
     const orgId = generateId();
     const userId = generateId();
-    const slug = generateSlug(organizationName);
-
-    // Check if slug is unique, append number if needed
-    let finalSlug = slug;
-    let slugCounter = 1;
-    while (slugCounter <= 100) {
-      const existingOrg = await db
-        .prepare('SELECT id FROM organizations WHERE slug = ?')
-        .bind(finalSlug)
-        .first();
-
-      if (!existingOrg) break;
-      finalSlug = `${slug}-${slugCounter++}`;
-    }
-    if (slugCounter > 100) {
-      throw badRequestError('Unable to generate unique organization slug');
-    }
+    let finalSlug = await generateUniqueSlug(db, organizationName);
 
     // Hash password
     const passwordHash = await hashPassword(password);
 
     // Create organization and user in a transaction.
     // Retry on slug collision (TOCTOU race between the uniqueness check and INSERT).
-    const createBatch = async (slugToUse) => db.batch([
-      db
-        .prepare(
-          `
+    const createBatch = async (slugToUse) =>
+      db.batch([
+        db
+          .prepare(
+            `
         INSERT INTO organizations (id, name, slug, is_active)
         VALUES (?, ?, ?, 1)
       `
-        )
-        .bind(orgId, organizationName, slugToUse),
+          )
+          .bind(orgId, organizationName, slugToUse),
 
-      // Create owner user
-      db
-        .prepare(
-          `
+        // Create owner user
+        db
+          .prepare(
+            `
         INSERT INTO users (id, organization_id, email, password_hash, name, role, is_active)
         VALUES (?, ?, ?, ?, ?, 'owner', 1)
       `
-        )
-        .bind(userId, orgId, email.toLowerCase(), passwordHash, name),
-    ]);
+          )
+          .bind(userId, orgId, email.toLowerCase(), passwordHash, name),
+      ]);
 
     try {
       await createBatch(finalSlug);
@@ -628,9 +590,13 @@ authRouter.post('/refresh', async (c) => {
 
       if (revokedToken) {
         // Token reuse detected — revoke ALL tokens for this user (theft indicator)
-        console.warn(`[Auth] Refresh token reuse detected for user ${revokedToken.user_id} — revoking all tokens`);
+        console.warn(
+          `[Auth] Refresh token reuse detected for user ${revokedToken.user_id} — revoking all tokens`
+        );
         await db
-          .prepare('UPDATE refresh_tokens SET revoked_at = datetime("now") WHERE user_id = ? AND revoked_at IS NULL')
+          .prepare(
+            'UPDATE refresh_tokens SET revoked_at = datetime("now") WHERE user_id = ? AND revoked_at IS NULL'
+          )
           .bind(revokedToken.user_id)
           .run();
       }
@@ -890,21 +856,10 @@ authRouter.post('/reset-password', async (c) => {
       return c.json({ error: 'Token and password required' }, 400);
     }
 
-    // Validate password strength (8–128 chars, uppercase, lowercase, number)
-    if (password.length < 8) {
-      return c.json({ error: 'Password must be at least 8 characters' }, 400);
-    }
-    if (password.length > 128) {
-      return c.json({ error: 'Password must be 128 characters or fewer' }, 400);
-    }
-    if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
-      return c.json(
-        {
-          error:
-            'Password must contain at least one uppercase letter, one lowercase letter, and one number',
-        },
-        400
-      );
+    // Validate password strength
+    const pwCheck = validatePassword(password);
+    if (!pwCheck.isValid) {
+      return c.json({ error: pwCheck.error }, 400);
     }
 
     // Find reset token
@@ -1036,20 +991,9 @@ authRouter.put('/password', async (c) => {
     }
 
     // Validate new password strength
-    if (newPassword.length < 8) {
-      return c.json({ error: 'New password must be at least 8 characters' }, 400);
-    }
-    if (newPassword.length > 128) {
-      return c.json({ error: 'Password must be 128 characters or fewer' }, 400);
-    }
-    if (!/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
-      return c.json(
-        {
-          error:
-            'Password must contain at least one uppercase letter, one lowercase letter, and one number',
-        },
-        400
-      );
+    const pwCheck = validatePassword(newPassword);
+    if (!pwCheck.isValid) {
+      return c.json({ error: pwCheck.error }, 400);
     }
 
     // Get current password hash

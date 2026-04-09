@@ -7,6 +7,7 @@ import {
 import { runFullSync } from '../services/wondeSync.js';
 import { fetchSchoolDetails, fetchWondeSchools } from '../utils/wondeApi.js';
 import { requireAdmin, requireOwner } from '../middleware/tenant.js';
+import { generateUniqueSlug } from '../utils/helpers.js';
 
 const wondeAdminRouter = new Hono();
 
@@ -131,21 +132,7 @@ wondeAdminRouter.post('/sync-all', requireOwner(), async (c) => {
     } else {
       // Create new organization
       const orgId = crypto.randomUUID();
-      const baseSlug =
-        name
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/(^-|-$)/g, '') || 'school';
-      let finalSlug = baseSlug;
-      let slugCounter = 1;
-      while (slugCounter <= 100) {
-        const clash = await db
-          .prepare('SELECT id FROM organizations WHERE slug = ?')
-          .bind(finalSlug)
-          .first();
-        if (!clash) break;
-        finalSlug = `${baseSlug}-${slugCounter++}`;
-      }
+      const finalSlug = await generateUniqueSlug(db, name);
 
       await db
         .prepare(

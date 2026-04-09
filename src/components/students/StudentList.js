@@ -19,6 +19,7 @@ import {
   Pagination,
   Chip,
   InputAdornment,
+  IconButton,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 
@@ -336,10 +337,14 @@ const StudentList = () => {
                   ),
                   endAdornment: searchQuery ? (
                     <InputAdornment position="end">
-                      <ClearIcon
-                        sx={{ color: 'text.secondary', cursor: 'pointer', fontSize: 18 }}
+                      <IconButton
+                        size="small"
+                        aria-label="Clear search"
                         onClick={() => setSearchQuery('')}
-                      />
+                        sx={{ color: 'text.secondary' }}
+                      >
+                        <ClearIcon fontSize="small" />
+                      </IconButton>
                     </InputAdornment>
                   ) : null,
                 },

@@ -1,5 +1,22 @@
 # Changelog
 
+## [3.43.1] - 2026-04-09
+
+### Fixed
+- **Tour re-triggering on every login** — race condition where the guided tour auto-started before completion status was fetched from the API, causing it to replay on every login
+- **Abort controller leaks** — added `AbortController` cleanup to `useEffect` fetches in BookRecommendations, HomeReadingRegister, and SessionForm to prevent state updates on unmounted components
+- **ClassGoalsEditor error handling** — added missing `catch` block and user-facing error alert for failed goal saves
+
+### Security
+- **Input validation hardening** — stricter validation across auth, student, book, and billing routes (audit follow-up)
+- **Encryption key separation** — `ENCRYPTION_KEY` env var for AES-GCM operations, falling back to `JWT_SECRET`
+- **Route parameter validation** — tighter checks on IDs, pagination, and query params across API routes
+
+### Changed
+- **Accessibility improvements** — added `aria-label` and `role` attributes to BookCoverPlaceholder, BadgeCelebration dialog, HomeReadingRegister status cells, BookAutocomplete scan button, and StudentList search clear button
+- **Reduced motion support** — confetti animation in ClassGoalsDisplay respects `prefers-reduced-motion`
+- **DataContext optimizations** — `updateStudent` and `updateStudentClassId` use functional state updates to avoid stale closure dependencies
+
 ## [3.43.0] - 2026-04-08
 
 ### Added
