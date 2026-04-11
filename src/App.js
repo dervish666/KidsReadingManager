@@ -3,7 +3,6 @@ import { Box, Container, Paper, CssBaseline, ThemeProvider, CircularProgress } f
 import theme from './styles/theme';
 import BottomNavigation from '@mui/material/BottomNavigation';
 import BottomNavigationAction from '@mui/material/BottomNavigationAction';
-import SettingsIcon from '@mui/icons-material/Settings';
 import Header from './components/Header';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AppProvider } from './contexts/AppContext';
@@ -41,6 +40,7 @@ import iconRecord from './assets/icon-record.png';
 import iconStats from './assets/icon-stats.png';
 import iconRecommend from './assets/icon-recommend.png';
 import iconBooks from './assets/icon-books.png';
+import iconSettings from './assets/icon-settings.png';
 
 // Import bookshelf images
 import bookshelfLeft from './assets/bookshelf-left.png';
@@ -53,8 +53,8 @@ const NavIcon = ({ src, alt, selected }) => (
     src={src}
     alt={alt}
     sx={{
-      width: 28,
-      height: 28,
+      width: 36,
+      height: 36,
       objectFit: 'contain',
       filter: selected ? 'none' : 'grayscale(30%) opacity(0.7)',
       transition: 'all 0.2s ease',
@@ -135,7 +135,13 @@ function AppContent() {
         adminOnly: false,
       },
       { key: 'books', label: 'Books', icon: iconBooks, Component: BookManager, adminOnly: true },
-      { key: 'settings', label: 'Settings', icon: null, Component: SettingsPage, adminOnly: true },
+      {
+        key: 'settings',
+        label: 'Settings',
+        icon: iconSettings,
+        Component: SettingsPage,
+        adminOnly: true,
+      },
     ],
     [],
   );
@@ -381,13 +387,7 @@ function AppContent() {
             <BottomNavigationAction
               key={tab.key}
               label={tab.label}
-              icon={
-                tab.icon ? (
-                  <NavIcon src={tab.icon} alt={tab.label} selected={safeTab === index} />
-                ) : (
-                  <SettingsIcon />
-                )
-              }
+              icon={<NavIcon src={tab.icon} alt={tab.label} selected={safeTab === index} />}
             />
           ))}
         </BottomNavigation>
