@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.43.2] - 2026-04-11
+
+### Changed
+- **Watercolor icon set refresh** — regenerated all seven bottom navigation icons as a cohesive hand-painted watercolor set (Juggernaut-XL + StorybookRedmond LoRA via ComfyUI). New concepts: children reading together (Students), apple on book (School Reading), girl in hammock (Home Reading), notebook with bar chart (Stats), gift-wrapped book (Recommend), row of spines (Books), brass cog (Settings).
+- **New settings icon** — replaces the flat MUI `SettingsIcon` fallback with a matching watercolor `icon-settings.png` so the full nav set shares one visual language.
+- **Nav icon size** — bumped from 28px to 36px in `BottomNavigation` for better presence at tablet sizes.
+
 ## [3.43.1] - 2026-04-09
 
 ### Fixed

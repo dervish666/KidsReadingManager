@@ -35,6 +35,7 @@ After adding, removing, or renaming source files or public classes/functions, up
 src/worker.js - Cloudflare Worker entry; middleware chain, route registration, scheduled tasks
 src/App.js - Main React app component; layout, routing, auth gate
 src/index.js - React app entry point
+src/instrument.js - Sentry browser SDK initialization
 
 <!-- Backend Routes -->
 src/routes/auth.js - POST/GET register, login, refresh, logout, password reset
@@ -86,8 +87,9 @@ src/services/providers/hardcoverProvider.js - Hardcover GraphQL server-side adap
 
 <!-- Utilities -->
 src/utils/crypto.js - PBKDF2 hashing, JWT, AES-GCM encryption, role constants
-src/utils/validation.js - Input validation for students, books, ranges
-src/utils/helpers.js - ID generation, reading status, student sorting
+src/utils/validation.js - Input validation (students, books, sessions, passwords, ranges, genres, classes)
+src/utils/helpers.js - ID generation, reading status, student sorting, csvRow, slug generation, fetchWithTimeout
+src/utils/calculateAge.js - Age calculation from date of birth
 src/utils/email.js - Password reset/welcome/signup/support emails (multi-provider)
 src/utils/streakCalculator.js - Reading streak calculation with grace period
 src/utils/studentProfile.js - Build student reading profile for AI context
@@ -185,10 +187,15 @@ src/components/students/StudentTable.js - Tabular student view
 src/components/students/StreakBadge.js - Flame icon streak counter
 src/components/students/ReadingLevelRangeInput.js - Dual-slider for AR level range
 src/components/students/PrioritizedStudentsList.js - Priority-ordered student list
+src/components/students/StudentTimeline.js - Chronological reading session timeline for a student
 src/components/students/BulkImport.js - CSV bulk student import
 
 <!-- Frontend Components - Sessions -->
 src/components/sessions/HomeReadingRegister.js - Unified reading register with multi-day history columns
+src/components/sessions/homeReadingUtils.js - Reading status constants and helpers for home reading
+src/components/sessions/MultipleCountDialog.js - Dialog for entering multiple reading session count
+src/components/sessions/FullReadingView.js - Expanded reading session entry view
+src/components/sessions/QuickReadingView.js - Compact quick-entry reading view
 src/components/sessions/SessionForm.js - Reading session form
 src/components/sessions/QuickEntry.js - Fast session entry for priority students
 src/components/sessions/BookAutocomplete.js - Book search autocomplete
@@ -209,6 +216,10 @@ src/components/goals/ClassGoalsDisplay.js - Fullscreen classroom projection view
 
 <!-- Frontend Components - Stats -->
 src/components/stats/ReadingStats.js - Stats dashboard with metrics and charts
+src/components/stats/OverviewTab.js - Stats overview with summary cards and trend indicators
+src/components/stats/FrequencyTab.js - Reading frequency analysis tab
+src/components/stats/StreaksTab.js - Streak leaderboard and history tab
+src/components/stats/NeedsAttentionTab.js - Students needing reading attention tab
 src/components/stats/ReadingTimelineChart.js - Reading timeline line chart
 src/components/stats/ReadingFrequencyChart.js - Reading frequency bar chart
 src/components/stats/DaysSinceReadingChart.js - Days since reading indicator
@@ -408,7 +419,12 @@ Public paths are defined in `src/middleware/tenant.js` (jwtAuthMiddleware): `/ap
 
 ### Scheduled Tasks
 
-Cron triggers: hourly demo environment reset (`src/services/demoReset.js`), 2:00 AM UTC for streak recalculation (`src/utils/streakCalculator.js`), 3:00 AM UTC for Wonde delta sync (`src/services/wondeSync.js`). All run in `src/worker.js` `scheduled` handler.
+Cron triggers (all in `src/worker.js` `scheduled` handler):
+- **Every minute** — background metadata enrichment job processing (`src/services/metadataService.js`)
+- **Hourly** — demo environment reset (`src/services/demoReset.js`)
+- **2:00 AM UTC** — streak recalculation + GDPR purge (`src/utils/streakCalculator.js`, `src/services/orgPurge.js`)
+- **2:30 AM UTC** — badge evaluation + class goal drift correction (`src/utils/badgeEngine.js`, `src/utils/classGoalsEngine.js`)
+- **3:00 AM UTC** — Wonde delta sync (`src/services/wondeSync.js`)
 
 ### Wonde + MyLogin Integration
 
