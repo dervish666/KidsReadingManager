@@ -45,7 +45,7 @@ function makeMockDb(handlers) {
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
 
-const TERM = 'Q2 2026'; // today resolves to this when no term_dates exist (April 2026 → Q2)
+const TERM = '2025/26'; // today resolves to this academic year when no term_dates exist (April 2026 → Sep 2025–Aug 2026)
 
 const makeGoalRow = (metric, { target = 20, current = 0, achieved_at = null } = {}) => ({
   id: `goal-${metric}`,
@@ -86,7 +86,7 @@ describe('GET /:id/goals', () => {
       },
       first: (sql, _args) => {
         if (sql.includes('COUNT(*)')) return { count: 3 }; // classSize = 3
-        return null;
+        return { count: 0 };
       },
       batch: (stmts) => {
         batchCalled = true;
@@ -113,7 +113,7 @@ describe('GET /:id/goals', () => {
   });
 
   it('returns existing goals without re-inserting when they already exist', async () => {
-    let batchCalled = false;
+    let insertBatchCalled = false;
 
     const db = makeMockDb({
       all: (sql, _args) => {
@@ -121,10 +121,13 @@ describe('GET /:id/goals', () => {
         if (sql.includes('class_goals')) return { results: DEFAULT_GOAL_ROWS };
         return { results: [] };
       },
-      first: () => null,
-      batch: () => {
-        batchCalled = true;
-        return Promise.resolve([]);
+      first: () => ({ count: 0 }),
+      batch: (stmts) => {
+        // Check if any statement is an INSERT (backfill) vs UPDATE (recalc)
+        if (stmts.some((s) => s._sql && s._sql.includes('INSERT'))) {
+          insertBatchCalled = true;
+        }
+        return Promise.resolve(stmts.map(() => ({ success: true })));
       },
     });
 
@@ -133,7 +136,7 @@ describe('GET /:id/goals', () => {
     const body = await res.json();
 
     expect(res.status).toBe(200);
-    expect(batchCalled).toBe(false); // no insert because all 6 goals already existed
+    expect(insertBatchCalled).toBe(false); // no INSERT because all 6 goals already existed
     expect(body.goals).toHaveLength(6);
     expect(body.gardenStage).toBe('seedling');
     expect(body.goalsCompleted).toBe(0);

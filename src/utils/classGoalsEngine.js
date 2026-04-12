@@ -58,6 +58,41 @@ export function resolveCurrentTerm(termDates, today) {
   return calendarQuarterFallback(today);
 }
 
+/**
+ * Resolve the current academic year from term_dates.
+ * Returns the full year range (earliest start to latest end) for goals.
+ * Falls back to Sep–Aug cycle if no term_dates exist.
+ */
+export function resolveAcademicYear(termDates, today) {
+  if (Array.isArray(termDates) && termDates.length > 0) {
+    // Find which academic_year today falls in
+    const currentTerm = termDates.find((r) => today >= r.start_date && today <= r.end_date);
+    const academicYear = currentTerm?.academic_year || termDates[termDates.length - 1].academic_year;
+
+    // Get all terms for this academic year
+    const yearTerms = termDates.filter((r) => r.academic_year === academicYear);
+    if (yearTerms.length > 0) {
+      const starts = yearTerms.map((r) => r.start_date).sort();
+      const ends = yearTerms.map((r) => r.end_date).sort();
+      return {
+        term: academicYear,
+        startDate: starts[0],
+        endDate: ends[ends.length - 1],
+      };
+    }
+  }
+
+  // Fallback: UK academic year Sep–Aug
+  const year = parseInt(today.slice(0, 4));
+  const month = parseInt(today.slice(5, 7));
+  const startYear = month >= 9 ? year : year - 1;
+  return {
+    term: `${startYear}/${String(startYear + 1).slice(2)}`,
+    startDate: `${startYear}-09-01`,
+    endDate: `${startYear + 1}-08-31`,
+  };
+}
+
 // ── Auto-Generated Targets ───────────────────────────────────────────────────
 
 /**
@@ -270,9 +305,9 @@ export async function updateClassGoalOnSession(db, studentId, orgId) {
     .all();
   const termDates = termDatesResult.results || [];
 
-  // 3. Resolve current term
+  // 3. Resolve academic year (goals span full year, not individual terms)
   const today = new Date().toISOString().slice(0, 10);
-  const { term, startDate, endDate } = resolveCurrentTerm(termDates, today);
+  const { term, startDate, endDate } = resolveAcademicYear(termDates, today);
 
   // 4. Fetch goals to snapshot pre-update state
   const goalsBefore = await db
