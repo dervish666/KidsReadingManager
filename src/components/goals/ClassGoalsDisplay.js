@@ -8,31 +8,37 @@ const CONFETTI_EMOJIS = ['🌸', '✨', '🎉', '🌟', '📚', '🌿'];
 const METRIC_CONFIG = {
   sessions: {
     label: 'Reading Sessions',
+    description: 'Total reading sessions across all students',
     gradient: 'linear-gradient(90deg, #8AAD8A, #6B8E6B)',
     icon: '📖',
   },
   genres: {
     label: 'Genres Explored',
+    description: 'Different genres the class has read across',
     gradient: 'linear-gradient(90deg, #C4956A, #A67B50)',
     icon: '🎨',
   },
   books: {
     label: 'Unique Books',
+    description: 'Different books the class has read',
     gradient: 'linear-gradient(90deg, #7BA1C7, #5A86B0)',
     icon: '📚',
   },
   reading_days: {
     label: 'Reading Days',
+    description: 'Different days the class has read',
     gradient: 'linear-gradient(90deg, #D4A06A, #B8864A)',
     icon: '📅',
   },
   readers: {
     label: 'Active Readers',
+    description: "Students who've read at least once",
     gradient: 'linear-gradient(90deg, #9B8EC4, #7B6EA4)',
     icon: '👥',
   },
   badges: {
     label: 'Badges Earned',
+    description: 'Total badges collected by the class',
     gradient: 'linear-gradient(90deg, #D4956A, #C47A4A)',
     icon: '🏆',
   },
@@ -137,6 +143,11 @@ function ProgressBar({ goal }) {
           >
             {config.label}
           </Typography>
+          {config.description && (
+            <Typography sx={{ color: '#8B7E6A', fontSize: 12, fontStyle: 'italic', ml: 0.5 }}>
+              — {config.description}
+            </Typography>
+          )}
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>

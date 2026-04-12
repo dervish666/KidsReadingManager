@@ -63,6 +63,9 @@ const DEFAULT_GOAL_ROWS = [
   makeGoalRow('sessions', { target: 60 }), // classSize=3 → sessions=60
   makeGoalRow('genres', { target: 10 }),
   makeGoalRow('books', { target: 12 }), // classSize=3 → books=12
+  makeGoalRow('reading_days', { target: 30 }),
+  makeGoalRow('readers', { target: 3 }),
+  makeGoalRow('badges', { target: 3 }),
 ];
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -98,7 +101,7 @@ describe('GET /:id/goals', () => {
 
     expect(res.status).toBe(200);
     expect(batchCalled).toBe(true);
-    expect(body.goals).toHaveLength(3);
+    expect(body.goals).toHaveLength(6);
     expect(body.term).toBe(TERM);
     expect(body.gardenStage).toBe('seedling');
     expect(body.goalsCompleted).toBe(0);
@@ -130,8 +133,8 @@ describe('GET /:id/goals', () => {
     const body = await res.json();
 
     expect(res.status).toBe(200);
-    expect(batchCalled).toBe(false); // no insert because goals already existed
-    expect(body.goals).toHaveLength(3);
+    expect(batchCalled).toBe(false); // no insert because all 6 goals already existed
+    expect(body.goals).toHaveLength(6);
     expect(body.gardenStage).toBe('seedling');
     expect(body.goalsCompleted).toBe(0);
   });

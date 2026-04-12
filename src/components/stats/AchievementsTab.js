@@ -408,12 +408,12 @@ function StudentBadgeRow({ student }) {
 }
 
 const GOAL_METRICS = [
-  { metric: 'readers', label: 'Active Readers', color: '#9B8EC4', colorEnd: '#7B6EA4' },
-  { metric: 'reading_days', label: 'Reading Days', color: '#D4A06A', colorEnd: '#B8864A' },
-  { metric: 'sessions', label: 'Reading Sessions', color: '#8AAD8A', colorEnd: '#6B8E6B' },
-  { metric: 'badges', label: 'Badges Earned', color: '#D4956A', colorEnd: '#C47A4A' },
-  { metric: 'genres', label: 'Genres Explored', color: '#C4956A', colorEnd: '#A67B50' },
-  { metric: 'books', label: 'Unique Books', color: '#7BA1C7', colorEnd: '#5A86B0' },
+  { metric: 'readers', label: 'Active Readers', description: "Students who've read at least once", color: '#9B8EC4', colorEnd: '#7B6EA4' },
+  { metric: 'reading_days', label: 'Reading Days', description: 'Different days the class has read', color: '#D4A06A', colorEnd: '#B8864A' },
+  { metric: 'sessions', label: 'Reading Sessions', description: 'Total sessions across all students', color: '#8AAD8A', colorEnd: '#6B8E6B' },
+  { metric: 'badges', label: 'Badges Earned', description: 'Total badges collected by the class', color: '#D4956A', colorEnd: '#C47A4A' },
+  { metric: 'genres', label: 'Genres Explored', description: 'Different genres read across', color: '#C4956A', colorEnd: '#A67B50' },
+  { metric: 'books', label: 'Unique Books', description: 'Different books the class has read', color: '#7BA1C7', colorEnd: '#5A86B0' },
 ];
 
 function ClassGoalsSection({
@@ -469,7 +469,7 @@ function ClassGoalsSection({
           <GardenHeader stage={classGoals.gardenStage} goalsCompleted={classGoals?.goalsCompleted} label={classGoals.term || 'This Term'} />
           <CardContent sx={{ pt: 2, pb: 2 }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-              {GOAL_METRICS.map(({ metric, label, color, colorEnd }) => {
+              {GOAL_METRICS.map(({ metric, label, description, color, colorEnd }) => {
                 const goal = classGoals.goals?.find((g) => g.metric === metric);
                 if (!goal) return null;
                 const pct = goal.target > 0 ? Math.min(100, (goal.current / goal.target) * 100) : 0;
@@ -484,9 +484,16 @@ function ClassGoalsSection({
                         mb: 0.5,
                       }}
                     >
-                      <Typography variant="body2" sx={{ fontWeight: 600, color: '#3D3427' }}>
-                        {label}
-                      </Typography>
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#3D3427' }}>
+                          {label}
+                        </Typography>
+                        {description && (
+                          <Typography variant="caption" sx={{ color: '#8B7E6A', fontStyle: 'italic' }}>
+                            {description}
+                          </Typography>
+                        )}
+                      </Box>
                       {completed ? (
                         <Chip
                           label="Goal reached!"

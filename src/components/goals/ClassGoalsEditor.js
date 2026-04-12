@@ -79,14 +79,40 @@ export default function ClassGoalsEditor({ open, onClose, classId, goals, onSave
         )}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
           <TextField
+            label="Active Readers Target"
+            helperText="Students who've read at least once this term"
+            type="number"
+            value={targets.readers || ''}
+            onChange={(e) => setTargets((t) => ({ ...t, readers: e.target.value }))}
+            inputProps={{ min: 1 }}
+          />
+          <TextField
+            label="Reading Days Target"
+            helperText="Different days the class has had a reading session"
+            type="number"
+            value={targets.reading_days || ''}
+            onChange={(e) => setTargets((t) => ({ ...t, reading_days: e.target.value }))}
+            inputProps={{ min: 1 }}
+          />
+          <TextField
             label="Reading Sessions Target"
+            helperText="Total reading sessions across all students"
             type="number"
             value={targets.sessions || ''}
             onChange={(e) => setTargets((t) => ({ ...t, sessions: e.target.value }))}
             inputProps={{ min: 1 }}
           />
           <TextField
+            label="Badges Earned Target"
+            helperText="Total badges collected by the whole class"
+            type="number"
+            value={targets.badges || ''}
+            onChange={(e) => setTargets((t) => ({ ...t, badges: e.target.value }))}
+            inputProps={{ min: 1 }}
+          />
+          <TextField
             label="Genres Explored Target"
+            helperText="Different genres the class has read across"
             type="number"
             value={targets.genres || ''}
             onChange={(e) => setTargets((t) => ({ ...t, genres: e.target.value }))}
@@ -94,30 +120,10 @@ export default function ClassGoalsEditor({ open, onClose, classId, goals, onSave
           />
           <TextField
             label="Unique Books Target"
+            helperText="Different books the class has read"
             type="number"
             value={targets.books || ''}
             onChange={(e) => setTargets((t) => ({ ...t, books: e.target.value }))}
-            inputProps={{ min: 1 }}
-          />
-          <TextField
-            label="Reading Days Target"
-            type="number"
-            value={targets.reading_days || ''}
-            onChange={(e) => setTargets((t) => ({ ...t, reading_days: e.target.value }))}
-            inputProps={{ min: 1 }}
-          />
-          <TextField
-            label="Active Readers Target"
-            type="number"
-            value={targets.readers || ''}
-            onChange={(e) => setTargets((t) => ({ ...t, readers: e.target.value }))}
-            inputProps={{ min: 1 }}
-          />
-          <TextField
-            label="Badges Earned Target"
-            type="number"
-            value={targets.badges || ''}
-            onChange={(e) => setTargets((t) => ({ ...t, badges: e.target.value }))}
             inputProps={{ min: 1 }}
           />
           <Link
