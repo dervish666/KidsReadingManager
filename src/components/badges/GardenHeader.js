@@ -1,6 +1,21 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 
+// Growth stages for the central plant (swapped as badges accumulate)
+import gardenGrow1 from '../../assets/garden-seedling.png';
+import gardenGrow2 from '../../assets/garden-grow-2.png';
+import gardenGrow3 from '../../assets/garden-grow-3.png';
+import gardenGrow4 from '../../assets/garden-grow-4.png';
+
+// Static garden elements
+import gardenFlower from '../../assets/garden-flower.png';
+import gardenBush from '../../assets/garden-bush.png';
+import gardenFlowers from '../../assets/garden-flowers.png';
+import gardenSmallTree from '../../assets/garden-small-tree.png';
+import gardenButterfly from '../../assets/garden-butterfly.png';
+import gardenLargeTree from '../../assets/garden-large-tree.png';
+import gardenBird from '../../assets/garden-bird.png';
+
 const STAGES = [
   { name: 'Seedling', min: 0, max: 2 },
   { name: 'Sprout', min: 3, max: 7 },
@@ -12,140 +27,154 @@ function getStage(badgeCount) {
   return STAGES.find((s) => badgeCount >= s.min && badgeCount <= s.max) || STAGES[0];
 }
 
-function SeedlingSvg() {
-  return (
-    <svg viewBox="0 0 300 80" width="100%" height="80">
-      {/* Ground */}
-      <rect x="0" y="60" width="300" height="20" fill="#D4A574" rx="4" />
-      <rect x="0" y="55" width="300" height="10" fill="#C49A6C" rx="4" />
-      {/* Single seedling */}
-      <line x1="150" y1="55" x2="150" y2="35" stroke="#7A9B5A" strokeWidth="2" />
-      <ellipse cx="145" cy="32" rx="6" ry="8" fill="#8FB573" transform="rotate(-20,145,32)" />
-      <ellipse cx="155" cy="32" rx="6" ry="8" fill="#8FB573" transform="rotate(20,155,32)" />
-    </svg>
-  );
+// Growth stages: the central plant evolves through 4 images
+const GROWTH_STAGES = [
+  { src: gardenGrow1, minBadges: 1, height: '40%' },
+  { src: gardenGrow2, minBadges: 5, height: '50%' },
+  { src: gardenGrow3, minBadges: 9, height: '58%' },
+  { src: gardenGrow4, minBadges: 13, height: '65%' },
+];
+
+function getCurrentGrowth(badgeCount) {
+  let current = null;
+  for (const stage of GROWTH_STAGES) {
+    if (badgeCount >= stage.minBadges) current = stage;
+  }
+  return current;
 }
 
-function SproutSvg() {
-  return (
-    <svg viewBox="0 0 300 80" width="100%" height="80">
-      <rect x="0" y="60" width="300" height="20" fill="#D4A574" rx="4" />
-      <rect x="0" y="55" width="300" height="10" fill="#C49A6C" rx="4" />
-      {/* Small plants */}
-      <line x1="80" y1="55" x2="80" y2="30" stroke="#7A9B5A" strokeWidth="2" />
-      <ellipse cx="74" cy="28" rx="8" ry="10" fill="#8FB573" transform="rotate(-15,74,28)" />
-      <ellipse cx="86" cy="28" rx="8" ry="10" fill="#8FB573" transform="rotate(15,86,28)" />
-      <line x1="150" y1="55" x2="150" y2="25" stroke="#6B8F50" strokeWidth="2.5" />
-      <ellipse cx="143" cy="22" rx="9" ry="11" fill="#86A86B" transform="rotate(-20,143,22)" />
-      <ellipse cx="157" cy="22" rx="9" ry="11" fill="#86A86B" transform="rotate(20,157,22)" />
-      <line x1="220" y1="55" x2="220" y2="35" stroke="#7A9B5A" strokeWidth="2" />
-      <ellipse cx="215" cy="33" rx="7" ry="9" fill="#8FB573" transform="rotate(-10,215,33)" />
-      <ellipse cx="225" cy="33" rx="7" ry="9" fill="#8FB573" transform="rotate(10,225,33)" />
-      {/* Butterfly */}
-      <ellipse cx="120" cy="20" rx="5" ry="3" fill="#E8B4C8" transform="rotate(-30,120,20)" />
-      <ellipse cx="128" cy="20" rx="5" ry="3" fill="#E8B4C8" transform="rotate(30,128,20)" />
-      <circle cx="124" cy="22" r="1" fill="#3D3427" />
-    </svg>
-  );
+// Static elements that appear at threshold
+const GARDEN_ELEMENTS = [
+  { src: gardenFlower, alt: 'Wildflower', minBadges: 3, left: '58%', bottom: '10%', height: '48%' },
+  { src: gardenBush, alt: 'Bush', minBadges: 5, left: '70%', bottom: '14%', height: '38%' },
+  { src: gardenFlowers, alt: 'Flower patch', minBadges: 7, left: '28%', bottom: '8%', height: '52%' },
+  { src: gardenSmallTree, alt: 'Apple tree', minBadges: 9, left: '78%', bottom: '10%', height: '60%' },
+  { src: gardenButterfly, alt: 'Butterfly', minBadges: 11, left: '50%', bottom: '55%', height: '32%' },
+  { src: gardenLargeTree, alt: 'Oak tree', minBadges: 13, left: '2%', bottom: '8%', height: '80%' },
+  { src: gardenBird, alt: 'Robin', minBadges: 16, left: '18%', bottom: '50%', height: '28%' },
+];
+
+function getGroundGradient(badgeCount) {
+  if (badgeCount < 3) {
+    return 'linear-gradient(180deg, transparent 70%, #D4A574 85%, #C49A6C 100%)';
+  }
+  if (badgeCount < 7) {
+    return 'linear-gradient(180deg, transparent 70%, #B8C49A 82%, #C49A6C 100%)';
+  }
+  if (badgeCount < 13) {
+    return 'linear-gradient(180deg, transparent 70%, #A8D48C 82%, #B8C49A 94%, #C49A6C 100%)';
+  }
+  return 'linear-gradient(180deg, transparent 65%, #A8D48C 78%, #8FBF6F 90%, #B8C49A 100%)';
 }
 
-function BloomSvg() {
-  return (
-    <svg viewBox="0 0 300 80" width="100%" height="80">
-      <rect x="0" y="60" width="300" height="20" fill="#D4A574" rx="4" />
-      <rect x="0" y="55" width="300" height="10" fill="#B8D4A0" rx="4" />
-      {/* Small tree */}
-      <rect x="68" y="30" width="4" height="25" fill="#8B6B4A" />
-      <circle cx="70" cy="22" r="16" fill="#6B8F50" />
-      <circle cx="62" cy="18" r="10" fill="#86A86B" />
-      <circle cx="78" cy="18" r="10" fill="#86A86B" />
-      {/* Flowers */}
-      <line x1="140" y1="55" x2="140" y2="30" stroke="#7A9B5A" strokeWidth="2" />
-      <circle cx="140" cy="26" r="5" fill="#E8B4C8" />
-      <circle cx="140" cy="26" r="2" fill="#F5D76E" />
-      <line x1="170" y1="55" x2="170" y2="35" stroke="#7A9B5A" strokeWidth="2" />
-      <circle cx="170" cy="31" r="4" fill="#D4A0D4" />
-      <circle cx="170" cy="31" r="1.5" fill="#F5D76E" />
-      <line x1="200" y1="55" x2="200" y2="32" stroke="#7A9B5A" strokeWidth="2" />
-      <circle cx="200" cy="28" r="5" fill="#F5D76E" />
-      <circle cx="200" cy="28" r="2" fill="#CD7F32" />
-      {/* Plants */}
-      <line x1="240" y1="55" x2="240" y2="35" stroke="#6B8F50" strokeWidth="2" />
-      <ellipse cx="235" cy="32" rx="7" ry="9" fill="#86A86B" transform="rotate(-15,235,32)" />
-      <ellipse cx="245" cy="32" rx="7" ry="9" fill="#86A86B" transform="rotate(15,245,32)" />
-      {/* Bird */}
-      <path d="M250,15 Q255,10 260,15 Q255,12 250,15" fill="#8B6B4A" />
-    </svg>
-  );
+function getSkyGradient(badgeCount) {
+  if (badgeCount < 1) {
+    return 'linear-gradient(180deg, #F5EFD6 0%, #FFF8EE 100%)';
+  }
+  if (badgeCount < 7) {
+    return 'linear-gradient(180deg, #EDF5E4 0%, #F5EFD6 60%, #FFF8EE 100%)';
+  }
+  return 'linear-gradient(180deg, #E8F5E2 0%, #EDF5E4 40%, #F5EFD6 80%, #FFF8EE 100%)';
 }
-
-function FullGardenSvg() {
-  return (
-    <svg viewBox="0 0 300 80" width="100%" height="80">
-      <rect x="0" y="60" width="300" height="20" fill="#C49A6C" rx="4" />
-      <rect x="0" y="55" width="300" height="10" fill="#A8D48C" rx="4" />
-      {/* Large tree */}
-      <rect x="38" y="25" width="5" height="30" fill="#8B6B4A" />
-      <circle cx="40" cy="15" r="18" fill="#5A8040" />
-      <circle cx="30" cy="10" r="12" fill="#6B8F50" />
-      <circle cx="50" cy="10" r="12" fill="#6B8F50" />
-      <circle cx="40" cy="5" r="10" fill="#86A86B" />
-      {/* Flowers field */}
-      {[95, 115, 135, 155, 175].map((x, i) => (
-        <React.Fragment key={i}>
-          <line x1={x} y1={55} x2={x} y2={30 + (i % 2) * 5} stroke="#7A9B5A" strokeWidth="2" />
-          <circle cx={x} cy={26 + (i % 2) * 5} r={4 + (i % 3)} fill={['#E8B4C8', '#F5D76E', '#D4A0D4', '#E8B4C8', '#F5D76E'][i]} />
-          <circle cx={x} cy={26 + (i % 2) * 5} r={1.5} fill="#CD7F32" />
-        </React.Fragment>
-      ))}
-      {/* Second tree */}
-      <rect x="218" y="30" width="4" height="25" fill="#8B6B4A" />
-      <circle cx="220" cy="22" r="14" fill="#6B8F50" />
-      <circle cx="212" cy="18" r="9" fill="#86A86B" />
-      <circle cx="228" cy="18" r="9" fill="#86A86B" />
-      {/* Small creatures */}
-      <circle cx="260" cy="52" r="3" fill="#CD7F32" /> {/* Hedgehog body */}
-      <circle cx="263" cy="51" r="1" fill="#3D3427" /> {/* Eye */}
-      {/* Butterfly */}
-      <ellipse cx="85" cy="15" rx="5" ry="3" fill="#E8B4C8" transform="rotate(-30,85,15)" />
-      <ellipse cx="93" cy="15" rx="5" ry="3" fill="#D4A0D4" transform="rotate(30,93,15)" />
-      {/* Bird */}
-      <path d="M270,10 Q275,5 280,10 Q275,7 270,10" fill="#8B6B4A" />
-    </svg>
-  );
-}
-
-const SVG_COMPONENTS = {
-  Seedling: SeedlingSvg,
-  Sprout: SproutSvg,
-  Bloom: BloomSvg,
-  'Full Garden': FullGardenSvg,
-};
 
 export default function GardenHeader({ badgeCount = 0, studentName = '', stage: stageProp, label }) {
   const stage = stageProp
     ? STAGES.find((s) => s.name.toLowerCase().replace(/ /g, '_') === stageProp) || STAGES[0]
     : getStage(badgeCount);
-  const SvgComponent = SVG_COMPONENTS[stage.name];
 
   const subtitle = label || (studentName ? `${studentName}'s Reading Garden` : 'Reading Garden');
+  const growth = getCurrentGrowth(badgeCount);
 
   return (
     <Box
       sx={{
-        background: 'linear-gradient(180deg, #E8F5E2 0%, #F5EFD6 50%, #D4A574 100%)',
-        p: 2,
-        textAlign: 'center',
+        position: 'relative',
+        overflow: 'hidden',
         borderRadius: '12px 12px 0 0',
+        height: 130,
+        background: getSkyGradient(badgeCount),
       }}
     >
-      <SvgComponent />
-      <Typography variant="subtitle2" sx={{ color: '#5D6B4A', fontWeight: 600, mt: 0.5 }}>
-        {subtitle}
-      </Typography>
-      <Typography variant="caption" sx={{ color: '#7A8B66' }}>
-        {badgeCount} badge{badgeCount !== 1 ? 's' : ''} earned · {stage.name} stage
-      </Typography>
+      {/* Ground layer */}
+      <Box
+        sx={{
+          position: 'absolute',
+          inset: 0,
+          background: getGroundGradient(badgeCount),
+          transition: 'background 0.8s ease',
+        }}
+      />
+
+      {/* Growing central plant — swaps through 4 growth stages */}
+      {GROWTH_STAGES.map((gs) => {
+        const isActive = growth && growth.src === gs.src;
+        return (
+          <Box
+            key={gs.minBadges}
+            component="img"
+            src={gs.src}
+            alt={`Plant growth stage ${gs.minBadges}`}
+            sx={{
+              position: 'absolute',
+              left: '43%',
+              bottom: '10%',
+              height: gs.height,
+              width: 'auto',
+              objectFit: 'contain',
+              transformOrigin: 'bottom center',
+              opacity: isActive ? 1 : 0,
+              transform: isActive ? 'scale(1) translateY(0)' : 'scale(0.8) translateY(5px)',
+              transition: 'opacity 0.8s ease, transform 0.8s ease',
+              pointerEvents: 'none',
+              filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.08))',
+            }}
+          />
+        );
+      })}
+
+      {/* Static garden elements */}
+      {GARDEN_ELEMENTS.map((el) => (
+        <Box
+          key={el.alt}
+          component="img"
+          src={el.src}
+          alt={el.alt}
+          sx={{
+            position: 'absolute',
+            left: el.left,
+            bottom: el.bottom,
+            height: el.height,
+            width: 'auto',
+            objectFit: 'contain',
+            opacity: badgeCount >= el.minBadges ? 1 : 0,
+            transform: badgeCount >= el.minBadges ? 'scale(1) translateY(0)' : 'scale(0.6) translateY(10px)',
+            transition: 'opacity 0.6s ease, transform 0.6s ease',
+            pointerEvents: 'none',
+            filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.08))',
+          }}
+        />
+      ))}
+
+      {/* Text overlay */}
+      <Box
+        sx={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          textAlign: 'center',
+          pb: 0.5,
+          background: 'linear-gradient(transparent, rgba(255,254,249,0.7))',
+          pt: 2,
+        }}
+      >
+        <Typography variant="subtitle2" sx={{ color: '#5D6B4A', fontWeight: 600, fontSize: '0.75rem' }}>
+          {subtitle}
+        </Typography>
+        <Typography variant="caption" sx={{ color: '#7A8B66', fontSize: '0.65rem' }}>
+          {badgeCount} badge{badgeCount !== 1 ? 's' : ''} earned · {stage.name} stage
+        </Typography>
+      </Box>
     </Box>
   );
 }

@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.44.0] - 2026-04-12
+
+### Changed
+- **Watercolor garden header** — replaced hand-coded SVG garden with layered watercolor PNG illustrations generated via ComfyUI (DreamShaperXL Turbo + StorybookRedmond LoRA). Eight garden elements (wildflower, bush, sunflower patch, apple tree, butterfly, oak tree, robin) appear progressively as badges are earned.
+- **Growing plant stages** — central plant evolves through four distinct watercolor images: tiny seedling, leafy sprout, pink bud, and full bloom, swapping at badge thresholds for a tangible sense of growth.
+- **Dynamic ground and sky** — CSS gradient ground transitions from bare earth to lush grass, sky warms from cream to green as the garden fills.
+- **CSS transitions** — all garden elements fade in with scale/opacity transitions for smooth reveals.
+
 ## [3.43.2] - 2026-04-11
 
 ### Changed

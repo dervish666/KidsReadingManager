@@ -205,7 +205,7 @@ src/components/sessions/StudentInfoCard.js - Student info during session entry
 
 <!-- Frontend Components - Badges -->
 src/components/badges/BadgeIcon.js - Single badge circle with tier gradient and category icon
-src/components/badges/GardenHeader.js - SVG garden header evolving through 4 stages (seedling→sprout→bloom→garden)
+src/components/badges/GardenHeader.js - Layered watercolor PNG garden header; 8 elements appear progressively as badges are earned (seedling→sprout→bloom→full garden)
 src/components/badges/BadgeCollection.js - Grid of earned badges + near-miss progress bars
 src/components/badges/BadgeCelebration.js - Unlock celebration dialog shown after session save
 src/components/badges/BadgeIndicators.js - Mini badge count chip for StudentCard
