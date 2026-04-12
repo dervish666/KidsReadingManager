@@ -77,13 +77,25 @@ function getSkyGradient(badgeCount) {
   return 'linear-gradient(180deg, #E8F5E2 0%, #EDF5E4 40%, #F5EFD6 80%, #FFF8EE 100%)';
 }
 
+// When used for class goals (stage prop), map stage names to effective badge counts
+// so the garden fills in appropriately for 0–3 completed goals
+const STAGE_BADGE_MAP = {
+  seedling: 0,
+  sprout: 5,
+  bloom: 11,
+  full_garden: 16,
+};
+
 export default function GardenHeader({ badgeCount = 0, studentName = '', stage: stageProp, label }) {
   const stage = stageProp
     ? STAGES.find((s) => s.name.toLowerCase().replace(/ /g, '_') === stageProp) || STAGES[0]
     : getStage(badgeCount);
 
+  // When stage prop is used (class goals), derive badge count from the stage
+  const effectiveBadgeCount = stageProp ? (STAGE_BADGE_MAP[stageProp] ?? 0) : badgeCount;
+
   const subtitle = label || (studentName ? `${studentName}'s Reading Garden` : 'Reading Garden');
-  const growth = getCurrentGrowth(badgeCount);
+  const growth = getCurrentGrowth(effectiveBadgeCount);
 
   return (
     <Box
@@ -92,7 +104,7 @@ export default function GardenHeader({ badgeCount = 0, studentName = '', stage: 
         overflow: 'hidden',
         borderRadius: '12px 12px 0 0',
         height: 130,
-        background: getSkyGradient(badgeCount),
+        background: getSkyGradient(effectiveBadgeCount),
       }}
     >
       {/* Ground layer */}
@@ -100,7 +112,7 @@ export default function GardenHeader({ badgeCount = 0, studentName = '', stage: 
         sx={{
           position: 'absolute',
           inset: 0,
-          background: getGroundGradient(badgeCount),
+          background: getGroundGradient(effectiveBadgeCount),
           transition: 'background 0.8s ease',
         }}
       />
@@ -146,8 +158,8 @@ export default function GardenHeader({ badgeCount = 0, studentName = '', stage: 
             height: el.height,
             width: 'auto',
             objectFit: 'contain',
-            opacity: badgeCount >= el.minBadges ? 1 : 0,
-            transform: badgeCount >= el.minBadges ? 'scale(1) translateY(0)' : 'scale(0.6) translateY(10px)',
+            opacity: effectiveBadgeCount >= el.minBadges ? 1 : 0,
+            transform: effectiveBadgeCount >= el.minBadges ? 'scale(1) translateY(0)' : 'scale(0.6) translateY(10px)',
             transition: 'opacity 0.6s ease, transform 0.6s ease',
             pointerEvents: 'none',
             filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.08))',
@@ -172,7 +184,7 @@ export default function GardenHeader({ badgeCount = 0, studentName = '', stage: 
           {subtitle}
         </Typography>
         <Typography variant="caption" sx={{ color: '#7A8B66', fontSize: '0.65rem' }}>
-          {badgeCount} badge{badgeCount !== 1 ? 's' : ''} earned · {stage.name} stage
+          {stageProp ? stage.name + ' stage' : `${badgeCount} badge${badgeCount !== 1 ? 's' : ''} earned · ${stage.name} stage`}
         </Typography>
       </Box>
     </Box>
