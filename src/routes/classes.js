@@ -361,8 +361,9 @@ classesRouter.get('/:id/goals', requireTeacher(), async (c) => {
   const goals = (goalsResult.results || []).map(rowToClassGoal);
   const goalsCompleted = goals.filter((g) => g.achievedAt).length;
   const STAGES = ['seedling', 'sprout', 'bloom', 'full_garden'];
+  const stageIndex = goalsCompleted <= 1 ? 0 : goalsCompleted <= 3 ? 1 : goalsCompleted <= 5 ? 2 : 3;
 
-  return c.json({ goals, term, gardenStage: STAGES[Math.min(goalsCompleted, 3)], goalsCompleted });
+  return c.json({ goals, term, gardenStage: STAGES[stageIndex], goalsCompleted });
 });
 
 // PUT /api/classes/:id/goals — update goal targets
@@ -378,7 +379,7 @@ classesRouter.put('/:id/goals', requireTeacher(), async (c) => {
 
   const updates = [];
   for (const { metric, target } of goals) {
-    if (!['sessions', 'genres', 'books'].includes(metric) || typeof target !== 'number' || target < 1) {
+    if (!['sessions', 'genres', 'books', 'reading_days', 'readers', 'badges'].includes(metric) || typeof target !== 'number' || target < 1) {
       return c.json({ error: `Invalid goal: metric=${metric}, target=${target}` }, 400);
     }
     // Clear achieved_at if target raised above current
@@ -398,8 +399,9 @@ classesRouter.put('/:id/goals', requireTeacher(), async (c) => {
   const updatedGoals = (goalsResult.results || []).map(rowToClassGoal);
   const goalsCompleted = updatedGoals.filter((g) => g.achievedAt).length;
   const STAGES = ['seedling', 'sprout', 'bloom', 'full_garden'];
+  const stageIndex = goalsCompleted <= 1 ? 0 : goalsCompleted <= 3 ? 1 : goalsCompleted <= 5 ? 2 : 3;
 
-  return c.json({ goals: updatedGoals, gardenStage: STAGES[Math.min(goalsCompleted, 3)], goalsCompleted });
+  return c.json({ goals: updatedGoals, gardenStage: STAGES[stageIndex], goalsCompleted });
 });
 
 export { classesRouter };

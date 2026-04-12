@@ -21,9 +21,24 @@ const METRIC_CONFIG = {
     gradient: 'linear-gradient(90deg, #7BA1C7, #5A86B0)',
     icon: '📚',
   },
+  reading_days: {
+    label: 'Reading Days',
+    gradient: 'linear-gradient(90deg, #D4A06A, #B8864A)',
+    icon: '📅',
+  },
+  readers: {
+    label: 'Active Readers',
+    gradient: 'linear-gradient(90deg, #9B8EC4, #7B6EA4)',
+    icon: '👥',
+  },
+  badges: {
+    label: 'Badges Earned',
+    gradient: 'linear-gradient(90deg, #D4956A, #C47A4A)',
+    icon: '🏆',
+  },
 };
 
-const METRIC_ORDER = ['sessions', 'genres', 'books'];
+const METRIC_ORDER = ['readers', 'reading_days', 'sessions', 'badges', 'genres', 'books'];
 
 function ConfettiPiece({ emoji, style }) {
   return (
@@ -319,7 +334,7 @@ export default function ClassGoalsDisplay({ open, onClose, classId, fetchWithAut
             mb: 4,
           }}
         >
-          <GardenHeader stage={gardenStage} label={`${displayName}'s Reading Garden`} />
+          <GardenHeader stage={gardenStage} goalsCompleted={data?.goalsCompleted} label={`${displayName}'s Reading Garden`} />
         </Box>
 
         {/* Progress bars */}

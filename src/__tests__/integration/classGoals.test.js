@@ -158,10 +158,10 @@ describe('GET /:id/goals', () => {
 
     expect(res.status).toBe(200);
     expect(body.goalsCompleted).toBe(1);
-    expect(body.gardenStage).toBe('sprout');
+    expect(body.gardenStage).toBe('seedling');
   });
 
-  it('caps gardenStage at full_garden when all 3+ goals are achieved', async () => {
+  it('returns sprout stage when 3 goals are achieved', async () => {
     const rows = [
       makeGoalRow('sessions', { target: 60, current: 60, achieved_at: '2026-04-01T10:00:00Z' }),
       makeGoalRow('genres', { target: 10, current: 10, achieved_at: '2026-04-02T10:00:00Z' }),
@@ -183,7 +183,7 @@ describe('GET /:id/goals', () => {
 
     expect(res.status).toBe(200);
     expect(body.goalsCompleted).toBe(3);
-    expect(body.gardenStage).toBe('full_garden');
+    expect(body.gardenStage).toBe('sprout');
   });
 
   it('uses term_dates when they are present instead of calendar fallback', async () => {

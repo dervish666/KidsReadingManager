@@ -54,7 +54,7 @@ export default function ClassGoalsEditor({ open, onClose, classId, goals, onSave
       const response = await fetchWithAuth(`/api/classes/${classId}/students`);
       const students = response.ok ? await response.json() : [];
       const size = Array.isArray(students) ? students.length : 0;
-      setTargets({ sessions: size * 20, genres: 10, books: size * 4 });
+      setTargets({ sessions: size * 20, genres: 10, books: size * 4, reading_days: 30, readers: size, badges: size });
     } catch {
       // Silently fail — teacher can set manually
     }
@@ -97,6 +97,27 @@ export default function ClassGoalsEditor({ open, onClose, classId, goals, onSave
             type="number"
             value={targets.books || ''}
             onChange={(e) => setTargets((t) => ({ ...t, books: e.target.value }))}
+            inputProps={{ min: 1 }}
+          />
+          <TextField
+            label="Reading Days Target"
+            type="number"
+            value={targets.reading_days || ''}
+            onChange={(e) => setTargets((t) => ({ ...t, reading_days: e.target.value }))}
+            inputProps={{ min: 1 }}
+          />
+          <TextField
+            label="Active Readers Target"
+            type="number"
+            value={targets.readers || ''}
+            onChange={(e) => setTargets((t) => ({ ...t, readers: e.target.value }))}
+            inputProps={{ min: 1 }}
+          />
+          <TextField
+            label="Badges Earned Target"
+            type="number"
+            value={targets.badges || ''}
+            onChange={(e) => setTargets((t) => ({ ...t, badges: e.target.value }))}
             inputProps={{ min: 1 }}
           />
           <Link

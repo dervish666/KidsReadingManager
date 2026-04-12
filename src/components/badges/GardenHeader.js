@@ -77,22 +77,19 @@ function getSkyGradient(badgeCount) {
   return 'linear-gradient(180deg, #E8F5E2 0%, #EDF5E4 40%, #F5EFD6 80%, #FFF8EE 100%)';
 }
 
-// When used for class goals (stage prop), map stage names to effective badge counts
-// so the garden fills in appropriately for 0–3 completed goals
-const STAGE_BADGE_MAP = {
-  seedling: 0,
-  sprout: 5,
-  bloom: 11,
-  full_garden: 16,
-};
+// When used for class goals, map goalsCompleted (0–6) to effective badge counts
+// for granular garden filling across the 8 element thresholds
+const GOALS_BADGE_MAP = [0, 1, 3, 5, 9, 13, 16];
 
-export default function GardenHeader({ badgeCount = 0, studentName = '', stage: stageProp, label }) {
+export default function GardenHeader({ badgeCount = 0, studentName = '', stage: stageProp, label, goalsCompleted }) {
   const stage = stageProp
     ? STAGES.find((s) => s.name.toLowerCase().replace(/ /g, '_') === stageProp) || STAGES[0]
     : getStage(badgeCount);
 
-  // When stage prop is used (class goals), derive badge count from the stage
-  const effectiveBadgeCount = stageProp ? (STAGE_BADGE_MAP[stageProp] ?? 0) : badgeCount;
+  // When goalsCompleted is provided (class goals), map it to an effective badge count
+  const effectiveBadgeCount = goalsCompleted != null
+    ? (GOALS_BADGE_MAP[Math.min(goalsCompleted, 6)] ?? 0)
+    : badgeCount;
 
   const subtitle = label || (studentName ? `${studentName}'s Reading Garden` : 'Reading Garden');
   const growth = getCurrentGrowth(effectiveBadgeCount);

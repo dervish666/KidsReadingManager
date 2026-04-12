@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.45.0] - 2026-04-12
+
+### Added
+- **3 new class goals** — Reading Days (distinct days the class has read), Active Readers (students who've read at least once this term), and Badges Earned (total badges across the class). Ordered for quick wins: readers and badges are achievable early, motivating the class before the harder goals kick in.
+- **Granular garden progression** — garden now maps 7 states (0–6 goals completed) to progressive element visibility, so each goal completion visibly grows the garden rather than jumping between 4 stages.
+
+### Changed
+- **Stage calculation** — with 6 goals, garden stages now use broader bands (0–1 = seedling, 2–3 = sprout, 4–5 = bloom, 6 = full garden) instead of 1:1 mapping.
+- **Goal ordering** — display and editor show quick-win goals first (Active Readers, Reading Days) before cumulative goals (Sessions, Badges, Genres, Books).
+
 ## [3.44.0] - 2026-04-12
 
 ### Changed
