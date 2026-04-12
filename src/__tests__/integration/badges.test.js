@@ -1,12 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { recalculateStats, evaluateRealTime, calculateNearMisses } from '../../utils/badgeEngine.js';
+import {
+  recalculateStats,
+  evaluateRealTime,
+  calculateNearMisses,
+} from '../../utils/badgeEngine.js';
 import { BADGE_DEFINITIONS, resolveKeyStage } from '../../utils/badgeDefinitions.js';
 
 describe('Badge system integration', () => {
   // Test that the full flow works: recalculate stats → evaluate → near-misses
   it('awards First Finish badge when a student has their first book session', async () => {
     const sessions = [
-      { session_date: '2026-04-01', book_id: 'b1', duration_minutes: 15, pages_read: 20, notes: '' },
+      {
+        session_date: '2026-04-01',
+        book_id: 'b1',
+        duration_minutes: 15,
+        pages_read: 20,
+        notes: '',
+      },
     ];
     const books = [{ id: 'b1', author: 'Roald Dahl', genre_ids: '["genre-fiction"]' }];
     const genres = [{ id: 'genre-fiction', name: 'Realistic Fiction' }];

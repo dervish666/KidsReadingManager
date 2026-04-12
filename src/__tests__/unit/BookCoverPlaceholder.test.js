@@ -41,7 +41,8 @@ describe('BookCoverPlaceholder Component', () => {
     });
 
     it('should truncate long titles', () => {
-      const longTitle = 'This is a very long book title that should be truncated to fit within the placeholder component';
+      const longTitle =
+        'This is a very long book title that should be truncated to fit within the placeholder component';
       render(<BookCoverPlaceholder title={longTitle} />);
 
       // The component should still contain the title (it will be truncated via CSS)

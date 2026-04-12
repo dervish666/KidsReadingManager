@@ -1,6 +1,6 @@
 /**
  * KV Service for interacting with Cloudflare KV storage
- * 
+ *
  * This service provides methods for reading and writing data to the KV store.
  * The application uses a single JSON document stored under the 'app_data' key.
  */
@@ -13,13 +13,13 @@ const DEFAULT_DATA = {
   settings: {
     readingStatusSettings: {
       recentlyReadDays: 7,
-      needsAttentionDays: 14
-    }
+      needsAttentionDays: 14,
+    },
   },
   metadata: {
     lastUpdated: new Date().toISOString(),
-    version: '1.0.0'
-  }
+    version: '1.0.0',
+  },
 };
 
 // Key for storing the application data
@@ -59,10 +59,10 @@ export async function saveData(env, data) {
       ...data,
       metadata: {
         ...(data.metadata || {}),
-        lastUpdated: new Date().toISOString()
-      }
+        lastUpdated: new Date().toISOString(),
+      },
     };
-    
+
     await env.READING_MANAGER_KV.put(APP_DATA_KEY, JSON.stringify(updatedData));
     return true;
   } catch (error) {
@@ -81,12 +81,12 @@ export async function getStudents(env) {
   const students = data.students || [];
 
   // Normalize readingSessions to ensure bookId field exists
-  return students.map(student => ({
+  return students.map((student) => ({
     ...student,
-    readingSessions: (student.readingSessions || []).map(session => ({
+    readingSessions: (student.readingSessions || []).map((session) => ({
       ...session,
-      bookId: session.bookId !== undefined ? session.bookId : null
-    }))
+      bookId: session.bookId !== undefined ? session.bookId : null,
+    })),
   }));
 }
 
@@ -98,7 +98,7 @@ export async function getStudents(env) {
  */
 export async function getStudentById(env, id) {
   const data = await getData(env);
-  return data.students.find(student => student.id === id) || null;
+  return data.students.find((student) => student.id === id) || null;
 }
 
 /**
@@ -109,8 +109,8 @@ export async function getStudentById(env, id) {
  */
 export async function saveStudent(env, student) {
   const data = await getData(env);
-  const index = data.students.findIndex(s => s.id === student.id);
-  
+  const index = data.students.findIndex((s) => s.id === student.id);
+
   if (index === -1) {
     // Create new student
     data.students.push(student);
@@ -118,7 +118,7 @@ export async function saveStudent(env, student) {
     // Update existing student
     data.students[index] = student;
   }
-  
+
   await saveData(env, data);
   return student;
 }
@@ -132,12 +132,12 @@ export async function saveStudent(env, student) {
 export async function deleteStudent(env, id) {
   const data = await getData(env);
   const initialLength = data.students.length;
-  data.students = data.students.filter(student => student.id !== id);
-  
+  data.students = data.students.filter((student) => student.id !== id);
+
   if (data.students.length === initialLength) {
     return false; // Student not found
   }
-  
+
   await saveData(env, data);
   return true;
 }
@@ -183,7 +183,7 @@ export async function getClasses(env) {
  */
 export async function getClassById(env, id) {
   const data = await getData(env);
-  return data.classes.find(cls => cls.id === id) || null;
+  return data.classes.find((cls) => cls.id === id) || null;
 }
 
 /**
@@ -194,14 +194,14 @@ export async function getClassById(env, id) {
  */
 export async function saveClass(env, cls) {
   const data = await getData(env);
-  
+
   // Initialize classes array if it doesn't exist
   if (!data.classes) {
     data.classes = [];
   }
-  
-  const index = data.classes.findIndex(c => c.id === cls.id);
-  
+
+  const index = data.classes.findIndex((c) => c.id === cls.id);
+
   if (index === -1) {
     // Create new class
     data.classes.push(cls);
@@ -209,7 +209,7 @@ export async function saveClass(env, cls) {
     // Update existing class
     data.classes[index] = cls;
   }
-  
+
   await saveData(env, data);
   return cls;
 }
@@ -222,27 +222,27 @@ export async function saveClass(env, cls) {
  */
 export async function deleteClass(env, id) {
   const data = await getData(env);
-  
+
   // Initialize classes array if it doesn't exist
   if (!data.classes) {
     data.classes = [];
     return false; // Class not found
   }
-  
+
   const initialLength = data.classes.length;
-  data.classes = data.classes.filter(cls => cls.id !== id);
-  
+  data.classes = data.classes.filter((cls) => cls.id !== id);
+
   if (data.classes.length === initialLength) {
     return false; // Class not found
   }
-  
+
   // Unassign students from the deleted class
   if (data.students) {
-    data.students = data.students.map(student =>
+    data.students = data.students.map((student) =>
       student.classId === id ? { ...student, classId: null } : student
     );
   }
-  
+
   await saveData(env, data);
   return true;
 }
@@ -278,7 +278,7 @@ export async function getBooks(env) {
  */
 export async function getBookById(env, id) {
   const data = await getData(env);
-  return (data.books || []).find(book => book.id === id) || null;
+  return (data.books || []).find((book) => book.id === id) || null;
 }
 
 /**
@@ -295,7 +295,7 @@ export async function saveBook(env, book) {
     data.books = [];
   }
 
-  const index = data.books.findIndex(b => b.id === book.id);
+  const index = data.books.findIndex((b) => b.id === book.id);
 
   if (index === -1) {
     // Create new book
@@ -323,9 +323,9 @@ export async function deleteBook(env, id) {
     data.books = [];
   }
 
-  const bookToDelete = data.books.find(book => book.id === id);
+  const bookToDelete = data.books.find((book) => book.id === id);
   const initialLength = data.books.length;
-  data.books = data.books.filter(book => book.id !== id);
+  data.books = data.books.filter((book) => book.id !== id);
 
   if (data.books.length === initialLength) {
     return null; // Book not found
@@ -353,7 +353,7 @@ export async function getGenres(env) {
  */
 export async function getGenreById(env, id) {
   const genres = await getGenres(env);
-  return genres.find(genre => genre.id === id) || null;
+  return genres.find((genre) => genre.id === id) || null;
 }
 
 /**
@@ -364,13 +364,13 @@ export async function getGenreById(env, id) {
  */
 export async function saveGenre(env, genre) {
   const data = await getData(env);
-  
+
   if (!data.genres) {
     data.genres = [];
   }
-  
-  const existingIndex = data.genres.findIndex(g => g.id === genre.id);
-  
+
+  const existingIndex = data.genres.findIndex((g) => g.id === genre.id);
+
   if (existingIndex >= 0) {
     // Update existing genre
     data.genres[existingIndex] = genre;
@@ -378,7 +378,7 @@ export async function saveGenre(env, genre) {
     // Add new genre
     data.genres.push(genre);
   }
-  
+
   await saveData(env, data);
   return genre;
 }
@@ -391,18 +391,18 @@ export async function saveGenre(env, genre) {
  */
 export async function deleteGenre(env, id) {
   const data = await getData(env);
-  
+
   if (!data.genres) {
     return false;
   }
-  
+
   const initialLength = data.genres.length;
-  data.genres = data.genres.filter(genre => genre.id !== id);
-  
+  data.genres = data.genres.filter((genre) => genre.id !== id);
+
   if (data.genres.length === initialLength) {
     return false;
   }
-  
+
   await saveData(env, data);
   return true;
 }

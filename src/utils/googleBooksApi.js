@@ -22,28 +22,32 @@ const AVAILABILITY_CHECK_INTERVAL = 60000; // Re-check every 60 seconds
  */
 export async function checkGoogleBooksAvailability(apiKey, timeout = 3000) {
   const now = Date.now();
-  
+
   // Return cached result if recent
-  if (googleBooksAvailable !== null && (now - lastAvailabilityCheck) < AVAILABILITY_CHECK_INTERVAL) {
+  if (googleBooksAvailable !== null && now - lastAvailabilityCheck < AVAILABILITY_CHECK_INTERVAL) {
     return googleBooksAvailable;
   }
-  
+
   if (!apiKey) {
     console.warn('Google Books API key not provided');
     googleBooksAvailable = false;
     lastAvailabilityCheck = now;
     return false;
   }
-  
+
   try {
     // Use a simple search request to check availability
-    const response = await fetchWithTimeout(`${VOLUMES_API_URL}?q=test&maxResults=1&key=${apiKey}`, {
-      method: 'GET',
-    }, timeout);
+    const response = await fetchWithTimeout(
+      `${VOLUMES_API_URL}?q=test&maxResults=1&key=${apiKey}`,
+      {
+        method: 'GET',
+      },
+      timeout
+    );
 
     googleBooksAvailable = response.ok;
     lastAvailabilityCheck = now;
-    
+
     // Availability check succeeded — no need to log success
     return googleBooksAvailable;
   } catch (error) {
@@ -71,7 +75,7 @@ export function getGoogleBooksStatus() {
   return {
     available: googleBooksAvailable,
     lastCheck: lastAvailabilityCheck,
-    stale: (now - lastAvailabilityCheck) >= AVAILABILITY_CHECK_INTERVAL
+    stale: now - lastAvailabilityCheck >= AVAILABILITY_CHECK_INTERVAL,
   };
 }
 
@@ -86,7 +90,7 @@ export async function searchBooksByTitle(title, apiKey, limit = 5) {
   if (!title || typeof title !== 'string') {
     throw new Error('Title is required and must be a string');
   }
-  
+
   if (!apiKey) {
     throw new Error('Google Books API key is required');
   }
@@ -95,14 +99,16 @@ export async function searchBooksByTitle(title, apiKey, limit = 5) {
     const searchParams = new URLSearchParams({
       q: `intitle:${title.trim()}`,
       maxResults: Math.min(limit, 40).toString(), // Google Books max is 40
-      key: apiKey
+      key: apiKey,
     });
 
     const response = await fetchWithTimeout(`${VOLUMES_API_URL}?${searchParams}`, {}, 5000);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(`Google Books API error: ${response.status} ${response.statusText} - ${errorData.error?.message || ''}`);
+      throw new Error(
+        `Google Books API error: ${response.status} ${response.statusText} - ${errorData.error?.message || ''}`
+      );
     }
 
     const data = await response.json();
@@ -125,7 +131,7 @@ export async function searchBooks(title, author, apiKey, limit = 5) {
   if (!title || typeof title !== 'string') {
     throw new Error('Title is required and must be a string');
   }
-  
+
   if (!apiKey) {
     throw new Error('Google Books API key is required');
   }
@@ -135,18 +141,20 @@ export async function searchBooks(title, author, apiKey, limit = 5) {
     if (author && author.trim()) {
       query += `+inauthor:${author.trim()}`;
     }
-    
+
     const searchParams = new URLSearchParams({
       q: query,
       maxResults: Math.min(limit, 40).toString(),
-      key: apiKey
+      key: apiKey,
     });
 
     const response = await fetchWithTimeout(`${VOLUMES_API_URL}?${searchParams}`, {}, 5000);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(`Google Books API error: ${response.status} ${response.statusText} - ${errorData.error?.message || ''}`);
+      throw new Error(
+        `Google Books API error: ${response.status} ${response.statusText} - ${errorData.error?.message || ''}`
+      );
     }
 
     const data = await response.json();
@@ -196,8 +204,8 @@ export async function findTopAuthorCandidatesForBook(title, apiKey, limit = 3) {
 
     // Score results using similarity logic and filter to those with authors
     const scored = results
-      .filter(r => r.volumeInfo?.authors && r.volumeInfo.authors.length > 0)
-      .map(r => {
+      .filter((r) => r.volumeInfo?.authors && r.volumeInfo.authors.length > 0)
+      .map((r) => {
         const volumeInfo = r.volumeInfo;
         const normalizedResultTitle = normalizeTitle(volumeInfo.title || '');
         const similarity = calculateTitleSimilarity(normalizedSearchTitle, normalizedResultTitle);
@@ -205,7 +213,8 @@ export async function findTopAuthorCandidatesForBook(title, apiKey, limit = 3) {
         // Get cover URL from imageLinks
         let coverUrl = null;
         if (volumeInfo.imageLinks) {
-          coverUrl = volumeInfo.imageLinks.thumbnail || volumeInfo.imageLinks.smallThumbnail || null;
+          coverUrl =
+            volumeInfo.imageLinks.thumbnail || volumeInfo.imageLinks.smallThumbnail || null;
           // Convert http to https for security
           if (coverUrl && coverUrl.startsWith('http:')) {
             coverUrl = coverUrl.replace('http:', 'https:');
@@ -217,10 +226,10 @@ export async function findTopAuthorCandidatesForBook(title, apiKey, limit = 3) {
           title: volumeInfo.title || '',
           authors: volumeInfo.authors,
           similarity,
-          coverUrl
+          coverUrl,
         };
       })
-      .filter(entry => entry.similarity > 0.2); // keep loose but not random
+      .filter((entry) => entry.similarity > 0.2); // keep loose but not random
 
     if (scored.length === 0) {
       return [];
@@ -243,7 +252,7 @@ export async function findTopAuthorCandidatesForBook(title, apiKey, limit = 3) {
           name: authorName.trim(),
           sourceTitle: entry.title,
           similarity: entry.similarity,
-          coverUrl: entry.coverUrl || null
+          coverUrl: entry.coverUrl || null,
         });
 
         if (candidates.length >= maxResults) {
@@ -282,7 +291,7 @@ export async function getBookDetails(title, author, apiKey) {
     }
 
     const volumeInfo = bestMatch.volumeInfo || {};
-    
+
     // Get cover URL
     let coverUrl = null;
     if (volumeInfo.imageLinks) {
@@ -301,13 +310,15 @@ export async function getBookDetails(title, author, apiKey) {
 
     // Extract ISBN-13 preferentially, fall back to ISBN-10
     const identifiers = volumeInfo.industryIdentifiers || [];
-    const isbn13 = identifiers.find(i => i.type === 'ISBN_13');
-    const isbn10 = identifiers.find(i => i.type === 'ISBN_10');
+    const isbn13 = identifiers.find((i) => i.type === 'ISBN_13');
+    const isbn10 = identifiers.find((i) => i.type === 'ISBN_10');
     const isbn = isbn13?.identifier || isbn10?.identifier || null;
 
     // Extract publication year from publishedDate (formats: "2005", "2005-03", "2005-03-15")
     const publishedDate = volumeInfo.publishedDate || null;
-    const publicationYear = publishedDate ? parseInt(publishedDate.substring(0, 4), 10) || null : null;
+    const publicationYear = publishedDate
+      ? parseInt(publishedDate.substring(0, 4), 10) || null
+      : null;
 
     return {
       coverUrl,
@@ -323,7 +334,7 @@ export async function getBookDetails(title, author, apiKey) {
       isbn,
       publicationYear,
       seriesName: null,
-      seriesNumber: null
+      seriesNumber: null,
     };
   } catch (error) {
     console.error('Error getting book details from Google Books:', error);
@@ -332,7 +343,11 @@ export async function getBookDetails(title, author, apiKey) {
 }
 
 // Title matching utilities imported from shared module
-import { normalizeTitle, calculateTitleSimilarity, findBestTitleMatch as _findBestTitleMatch } from './titleMatching.js';
+import {
+  normalizeTitle,
+  calculateTitleSimilarity,
+  findBestTitleMatch as _findBestTitleMatch,
+} from './titleMatching.js';
 
 function findBestTitleMatch(searchTitle, results) {
   return _findBestTitleMatch(searchTitle, results, {
@@ -372,7 +387,7 @@ export async function batchFindMissingAuthors(books, apiKey, onProgress = null) 
     try {
       // Small delay to be respectful to the API
       if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 50));
+        await new Promise((resolve) => setTimeout(resolve, 50));
       }
 
       // Use multi-candidate helper so UI can present choices
@@ -384,7 +399,7 @@ export async function batchFindMissingAuthors(books, apiKey, onProgress = null) 
         book,
         foundAuthor,
         candidates,
-        success: !!foundAuthor
+        success: !!foundAuthor,
       });
 
       if (onProgress) {
@@ -394,7 +409,7 @@ export async function batchFindMissingAuthors(books, apiKey, onProgress = null) 
           book: book.title,
           foundAuthor,
           candidates,
-          success: !!foundAuthor
+          success: !!foundAuthor,
         });
       }
     } catch (error) {
@@ -404,7 +419,7 @@ export async function batchFindMissingAuthors(books, apiKey, onProgress = null) 
         foundAuthor: null,
         candidates: [],
         success: false,
-        error: error.message
+        error: error.message,
       });
 
       if (onProgress) {
@@ -415,7 +430,7 @@ export async function batchFindMissingAuthors(books, apiKey, onProgress = null) 
           foundAuthor: null,
           candidates: [],
           success: false,
-          error: error.message
+          error: error.message,
         });
       }
     }
@@ -452,7 +467,7 @@ export async function batchFindMissingDescriptions(books, apiKey, onProgress = n
     try {
       // Small delay to be respectful to the API
       if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 50));
+        await new Promise((resolve) => setTimeout(resolve, 50));
       }
 
       const details = await getBookDetails(book.title, book.author || null, apiKey);
@@ -462,7 +477,7 @@ export async function batchFindMissingDescriptions(books, apiKey, onProgress = n
         book,
         foundDescription,
         coverUrl: details?.coverUrl || null,
-        success: !!foundDescription
+        success: !!foundDescription,
       });
 
       if (onProgress) {
@@ -472,7 +487,7 @@ export async function batchFindMissingDescriptions(books, apiKey, onProgress = n
           book: book.title,
           foundDescription,
           coverUrl: details?.coverUrl || null,
-          success: !!foundDescription
+          success: !!foundDescription,
         });
       }
     } catch (error) {
@@ -482,7 +497,7 @@ export async function batchFindMissingDescriptions(books, apiKey, onProgress = n
         foundDescription: null,
         coverUrl: null,
         success: false,
-        error: error.message
+        error: error.message,
       });
 
       if (onProgress) {
@@ -493,7 +508,7 @@ export async function batchFindMissingDescriptions(books, apiKey, onProgress = n
           foundDescription: null,
           coverUrl: null,
           success: false,
-          error: error.message
+          error: error.message,
         });
       }
     }
@@ -520,9 +535,15 @@ export async function findGenresForBook(title, author, apiKey) {
     // Find the best match
     const bestMatch = findBestTitleMatch(title, results);
 
-    if (!bestMatch || !bestMatch.volumeInfo?.categories || bestMatch.volumeInfo.categories.length === 0) {
+    if (
+      !bestMatch ||
+      !bestMatch.volumeInfo?.categories ||
+      bestMatch.volumeInfo.categories.length === 0
+    ) {
       // Try to get categories from the first result if no best match
-      const firstWithCategories = results.find(r => r.volumeInfo?.categories && r.volumeInfo.categories.length > 0);
+      const firstWithCategories = results.find(
+        (r) => r.volumeInfo?.categories && r.volumeInfo.categories.length > 0
+      );
       if (firstWithCategories) {
         return filterAndNormalizeGenres(firstWithCategories.volumeInfo.categories);
       }
@@ -547,15 +568,53 @@ function filterAndNormalizeGenres(categories) {
 
   // Common genre keywords to look for (case-insensitive)
   const genreKeywords = [
-    'fiction', 'fantasy', 'science fiction', 'mystery', 'adventure',
-    'romance', 'horror', 'thriller', 'historical', 'biography',
-    'autobiography', 'non-fiction', 'nonfiction', 'poetry', 'drama',
-    'comedy', 'humor', 'children', 'young adult', 'juvenile',
-    'picture book', 'graphic novel', 'comic', 'fairy tale', 'folklore',
-    'mythology', 'legend', 'animal', 'nature', 'science', 'history',
-    'sports', 'school', 'family', 'friendship', 'magic', 'detective',
-    'spy', 'war', 'action', 'suspense', 'paranormal', 'supernatural',
-    'dystopian', 'utopian', 'realistic fiction', 'contemporary'
+    'fiction',
+    'fantasy',
+    'science fiction',
+    'mystery',
+    'adventure',
+    'romance',
+    'horror',
+    'thriller',
+    'historical',
+    'biography',
+    'autobiography',
+    'non-fiction',
+    'nonfiction',
+    'poetry',
+    'drama',
+    'comedy',
+    'humor',
+    'children',
+    'young adult',
+    'juvenile',
+    'picture book',
+    'graphic novel',
+    'comic',
+    'fairy tale',
+    'folklore',
+    'mythology',
+    'legend',
+    'animal',
+    'nature',
+    'science',
+    'history',
+    'sports',
+    'school',
+    'family',
+    'friendship',
+    'magic',
+    'detective',
+    'spy',
+    'war',
+    'action',
+    'suspense',
+    'paranormal',
+    'supernatural',
+    'dystopian',
+    'utopian',
+    'realistic fiction',
+    'contemporary',
   ];
 
   const normalizedGenres = new Set();
@@ -563,15 +622,16 @@ function filterAndNormalizeGenres(categories) {
   for (const category of categories) {
     // Google Books categories can be hierarchical like "Fiction / Fantasy / General"
     // Split by "/" and process each part
-    const parts = category.split('/').map(p => p.trim().toLowerCase());
-    
+    const parts = category.split('/').map((p) => p.trim().toLowerCase());
+
     for (const part of parts) {
       // Check if part matches or contains a genre keyword
       for (const keyword of genreKeywords) {
         if (part === keyword || part.includes(keyword)) {
           // Capitalize first letter of each word
-          const normalized = keyword.split(' ')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          const normalized = keyword
+            .split(' ')
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
             .join(' ');
           normalizedGenres.add(normalized);
           break;
@@ -612,7 +672,7 @@ export async function batchFindMissingGenres(books, apiKey, onProgress = null) {
     try {
       // Small delay to be respectful to the API
       if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 50));
+        await new Promise((resolve) => setTimeout(resolve, 50));
       }
 
       const foundGenres = await findGenresForBook(book.title, book.author || null, apiKey);
@@ -620,7 +680,7 @@ export async function batchFindMissingGenres(books, apiKey, onProgress = null) {
       results.push({
         book,
         foundGenres: foundGenres || [],
-        success: foundGenres && foundGenres.length > 0
+        success: foundGenres && foundGenres.length > 0,
       });
 
       if (onProgress) {
@@ -629,7 +689,7 @@ export async function batchFindMissingGenres(books, apiKey, onProgress = null) {
           total: booksNeedingGenres.length,
           book: book.title,
           foundGenres: foundGenres || [],
-          success: foundGenres && foundGenres.length > 0
+          success: foundGenres && foundGenres.length > 0,
         });
       }
     } catch (error) {
@@ -638,7 +698,7 @@ export async function batchFindMissingGenres(books, apiKey, onProgress = null) {
         book,
         foundGenres: [],
         success: false,
-        error: error.message
+        error: error.message,
       });
 
       if (onProgress) {
@@ -648,7 +708,7 @@ export async function batchFindMissingGenres(books, apiKey, onProgress = null) {
           book: book.title,
           foundGenres: [],
           success: false,
-          error: error.message
+          error: error.message,
         });
       }
     }
@@ -682,9 +742,8 @@ export async function fetchAllMetadata(title, author, apiKey) {
     const volumeInfo = bestMatch.volumeInfo || {};
 
     // Author
-    const foundAuthor = volumeInfo.authors && volumeInfo.authors.length > 0
-      ? volumeInfo.authors[0]
-      : null;
+    const foundAuthor =
+      volumeInfo.authors && volumeInfo.authors.length > 0 ? volumeInfo.authors[0] : null;
 
     // Cover URL
     let coverUrl = null;
@@ -703,18 +762,21 @@ export async function fetchAllMetadata(title, author, apiKey) {
 
     // ISBN
     const identifiers = volumeInfo.industryIdentifiers || [];
-    const isbn13 = identifiers.find(i => i.type === 'ISBN_13');
-    const isbn10 = identifiers.find(i => i.type === 'ISBN_10');
+    const isbn13 = identifiers.find((i) => i.type === 'ISBN_13');
+    const isbn10 = identifiers.find((i) => i.type === 'ISBN_10');
     const isbn = isbn13?.identifier || isbn10?.identifier || null;
 
     // Year
     const publishedDate = volumeInfo.publishedDate || null;
-    const publicationYear = publishedDate ? parseInt(publishedDate.substring(0, 4), 10) || null : null;
+    const publicationYear = publishedDate
+      ? parseInt(publishedDate.substring(0, 4), 10) || null
+      : null;
 
     // Genres
-    const genres = volumeInfo.categories && volumeInfo.categories.length > 0
-      ? filterAndNormalizeGenres(volumeInfo.categories)
-      : null;
+    const genres =
+      volumeInfo.categories && volumeInfo.categories.length > 0
+        ? filterAndNormalizeGenres(volumeInfo.categories)
+        : null;
 
     return {
       foundAuthor,
@@ -725,7 +787,7 @@ export async function fetchAllMetadata(title, author, apiKey) {
       genres,
       coverUrl,
       seriesName: null,
-      seriesNumber: null
+      seriesNumber: null,
     };
   } catch (error) {
     console.error(`Error fetching all metadata for "${title}":`, error);

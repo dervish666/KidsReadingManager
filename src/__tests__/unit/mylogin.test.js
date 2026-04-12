@@ -14,23 +14,46 @@ vi.mock('../../utils/crypto.js', () => ({
   hashToken: vi.fn(),
   ROLE_HIERARCHY: { owner: 4, admin: 3, teacher: 2, readonly: 1 },
   buildRefreshCookie: (token, isProduction) => {
-    return [`refresh_token=${token}`, 'HttpOnly', 'Path=/api/auth', `Max-Age=${7*24*60*60}`, 'SameSite=Strict', isProduction ? 'Secure' : ''].filter(Boolean).join('; ');
+    return [
+      `refresh_token=${token}`,
+      'HttpOnly',
+      'Path=/api/auth',
+      `Max-Age=${7 * 24 * 60 * 60}`,
+      'SameSite=Strict',
+      isProduction ? 'Secure' : '',
+    ]
+      .filter(Boolean)
+      .join('; ');
   },
   buildClearRefreshCookie: (isProduction) => {
-    return ['refresh_token=', 'HttpOnly', 'Path=/api/auth', 'Max-Age=0', 'SameSite=Strict', isProduction ? 'Secure' : ''].filter(Boolean).join('; ');
-  }
+    return [
+      'refresh_token=',
+      'HttpOnly',
+      'Path=/api/auth',
+      'Max-Age=0',
+      'SameSite=Strict',
+      isProduction ? 'Secure' : '',
+    ]
+      .filter(Boolean)
+      .join('; ');
+  },
 }));
 
 vi.mock('../../utils/helpers.js', () => ({
-  generateId: vi.fn()
+  generateId: vi.fn(),
 }));
 
 vi.mock('../../utils/classAssignments.js', () => ({
-  syncUserClassAssignments: vi.fn()
+  syncUserClassAssignments: vi.fn(),
 }));
 
 import { myloginRouter } from '../../routes/mylogin.js';
-import { createJWTPayload, createAccessToken, createRefreshToken, hashToken } from '../../utils/crypto.js';
+import {
+  createJWTPayload,
+  createAccessToken,
+  createRefreshToken,
+  hashToken,
+} from '../../utils/crypto.js';
 import { generateId } from '../../utils/helpers.js';
 import { syncUserClassAssignments } from '../../utils/classAssignments.js';
 
@@ -50,13 +73,13 @@ function createMockEnv() {
     READING_MANAGER_KV: {
       get: vi.fn(),
       put: vi.fn(),
-      delete: vi.fn()
+      delete: vi.fn(),
     },
     JWT_SECRET: 'test-secret',
     MYLOGIN_CLIENT_ID: 'test-client-id',
     MYLOGIN_CLIENT_SECRET: 'test-client-secret',
     MYLOGIN_REDIRECT_URI: 'https://tallyreading.uk/api/auth/mylogin/callback',
-    ENVIRONMENT: 'development'
+    ENVIRONMENT: 'development',
   };
 }
 
@@ -65,12 +88,12 @@ function createMockDb() {
     bind: vi.fn().mockReturnThis(),
     run: vi.fn().mockResolvedValue({ success: true }),
     first: vi.fn().mockResolvedValue(null),
-    all: vi.fn().mockResolvedValue({ results: [] })
+    all: vi.fn().mockResolvedValue({ results: [] }),
   };
 
   return {
     prepare: vi.fn().mockReturnValue(mockStatement),
-    _statement: mockStatement
+    _statement: mockStatement,
   };
 }
 
@@ -85,12 +108,12 @@ function makeUserProfile(overrides = {}) {
     email: 'jane.smith@school.org',
     type: 'employee',
     service_providers: {
-      wonde: { service_provider_id: 'wonde-emp-456' }
+      wonde: { service_provider_id: 'wonde-emp-456' },
     },
     organisation: {
-      wonde_id: 'A1234567890'
+      wonde_id: 'A1234567890',
     },
-    ...overrides
+    ...overrides,
   };
 }
 
@@ -119,13 +142,13 @@ describe('MyLogin OAuth Routes', () => {
       name: 'Jane Smith',
       org: 'org-id-1',
       orgSlug: 'cheddar-grove',
-      role: 'teacher'
+      role: 'teacher',
     });
     createAccessToken.mockResolvedValue('mock-access-token');
     createRefreshToken.mockResolvedValue({
       token: 'mock-refresh-token',
       hash: 'mock-refresh-hash',
-      expiresAt: '2026-03-03T00:00:00.000Z'
+      expiresAt: '2026-03-03T00:00:00.000Z',
     });
     hashToken.mockResolvedValue('hashed-refresh-token');
     generateId.mockReturnValue('generated-id-1');
@@ -157,8 +180,8 @@ describe('MyLogin OAuth Routes', () => {
       await app.request('/api/auth/mylogin/login', { method: 'GET' }, env);
 
       // Should have inserted state into D1 oauth_state table
-      const insertCall = env.READING_MANAGER_DB.prepare.mock.calls.find(
-        call => call[0].includes('INSERT INTO oauth_state')
+      const insertCall = env.READING_MANAGER_DB.prepare.mock.calls.find((call) =>
+        call[0].includes('INSERT INTO oauth_state')
       );
       expect(insertCall).toBeDefined();
 
@@ -211,10 +234,11 @@ describe('MyLogin OAuth Routes', () => {
         if (urlStr.includes('/oauth/token')) {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({
-              access_token: 'mylogin-access-token',
-              token_type: 'Bearer'
-            })
+            json: () =>
+              Promise.resolve({
+                access_token: 'mylogin-access-token',
+                token_type: 'Bearer',
+              }),
           });
         }
 
@@ -222,7 +246,7 @@ describe('MyLogin OAuth Routes', () => {
         if (urlStr.includes('/api/user')) {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve(userProfile)
+            json: () => Promise.resolve(userProfile),
           });
         }
 
@@ -234,23 +258,27 @@ describe('MyLogin OAuth Routes', () => {
      * Helper to set up DB mock for callback tests
      */
     function setupDbForCallback(options = {}) {
-      const {
-        orgFound = true,
-        existingUser = null,
-        employeeClasses = []
-      } = options;
+      const { orgFound = true, existingUser = null, employeeClasses = [] } = options;
 
       const db = env.READING_MANAGER_DB;
 
       db.prepare.mockImplementation((sql) => {
         // Match org by wonde_school_id
-        if (sql.includes('SELECT') && sql.includes('organizations') && sql.includes('wonde_school_id')) {
+        if (
+          sql.includes('SELECT') &&
+          sql.includes('organizations') &&
+          sql.includes('wonde_school_id')
+        ) {
           return {
             bind: vi.fn().mockReturnValue({
-              first: vi.fn().mockResolvedValue(
-                orgFound ? { id: 'org-id-1', slug: 'cheddar-grove', name: 'Cheddar Grove Primary' } : null
-              )
-            })
+              first: vi
+                .fn()
+                .mockResolvedValue(
+                  orgFound
+                    ? { id: 'org-id-1', slug: 'cheddar-grove', name: 'Cheddar Grove Primary' }
+                    : null
+                ),
+            }),
           };
         }
 
@@ -258,8 +286,8 @@ describe('MyLogin OAuth Routes', () => {
         if (sql.includes('SELECT') && sql.includes('users') && sql.includes('mylogin_id')) {
           return {
             bind: vi.fn().mockReturnValue({
-              first: vi.fn().mockResolvedValue(existingUser)
-            })
+              first: vi.fn().mockResolvedValue(existingUser),
+            }),
           };
         }
 
@@ -267,8 +295,8 @@ describe('MyLogin OAuth Routes', () => {
         if (sql.includes('UPDATE') && sql.includes('users')) {
           return {
             bind: vi.fn().mockReturnValue({
-              run: vi.fn().mockResolvedValue({ success: true })
-            })
+              run: vi.fn().mockResolvedValue({ success: true }),
+            }),
           };
         }
 
@@ -276,8 +304,8 @@ describe('MyLogin OAuth Routes', () => {
         if (sql.includes('INSERT INTO users')) {
           return {
             bind: vi.fn().mockReturnValue({
-              run: vi.fn().mockResolvedValue({ success: true })
-            })
+              run: vi.fn().mockResolvedValue({ success: true }),
+            }),
           };
         }
 
@@ -285,8 +313,8 @@ describe('MyLogin OAuth Routes', () => {
         if (sql.includes('wonde_employee_classes')) {
           return {
             bind: vi.fn().mockReturnValue({
-              all: vi.fn().mockResolvedValue({ results: employeeClasses })
-            })
+              all: vi.fn().mockResolvedValue({ results: employeeClasses }),
+            }),
           };
         }
 
@@ -294,8 +322,8 @@ describe('MyLogin OAuth Routes', () => {
         if (sql.includes('SELECT') && sql.includes('classes') && sql.includes('wonde_class_id')) {
           return {
             bind: vi.fn().mockReturnValue({
-              first: vi.fn().mockResolvedValue({ id: 'tally-class-1' })
-            })
+              first: vi.fn().mockResolvedValue({ id: 'tally-class-1' }),
+            }),
           };
         }
 
@@ -303,8 +331,8 @@ describe('MyLogin OAuth Routes', () => {
         if (sql.includes('class_assignments')) {
           return {
             bind: vi.fn().mockReturnValue({
-              run: vi.fn().mockResolvedValue({ success: true })
-            })
+              run: vi.fn().mockResolvedValue({ success: true }),
+            }),
           };
         }
 
@@ -312,17 +340,21 @@ describe('MyLogin OAuth Routes', () => {
         if (sql.includes('INSERT INTO refresh_tokens')) {
           return {
             bind: vi.fn().mockReturnValue({
-              run: vi.fn().mockResolvedValue({ success: true })
-            })
+              run: vi.fn().mockResolvedValue({ success: true }),
+            }),
           };
         }
 
         // Find student by wonde_student_id
-        if (sql.includes('SELECT') && sql.includes('students') && sql.includes('wonde_student_id')) {
+        if (
+          sql.includes('SELECT') &&
+          sql.includes('students') &&
+          sql.includes('wonde_student_id')
+        ) {
           return {
             bind: vi.fn().mockReturnValue({
-              first: vi.fn().mockResolvedValue(null)
-            })
+              first: vi.fn().mockResolvedValue(null),
+            }),
           };
         }
 
@@ -330,8 +362,8 @@ describe('MyLogin OAuth Routes', () => {
         if (sql.includes('oauth_state') && sql.includes('SELECT')) {
           return {
             bind: vi.fn().mockReturnValue({
-              first: vi.fn().mockResolvedValue({ state: 'valid-state' })
-            })
+              first: vi.fn().mockResolvedValue({ state: 'valid-state' }),
+            }),
           };
         }
 
@@ -339,8 +371,8 @@ describe('MyLogin OAuth Routes', () => {
         if (sql.includes('oauth_state') && sql.includes('DELETE')) {
           return {
             bind: vi.fn().mockReturnValue({
-              run: vi.fn().mockResolvedValue({ success: true })
-            })
+              run: vi.fn().mockResolvedValue({ success: true }),
+            }),
           };
         }
 
@@ -349,8 +381,8 @@ describe('MyLogin OAuth Routes', () => {
           bind: vi.fn().mockReturnValue({
             first: vi.fn().mockResolvedValue(null),
             run: vi.fn().mockResolvedValue({ success: true }),
-            all: vi.fn().mockResolvedValue({ results: [] })
-          })
+            all: vi.fn().mockResolvedValue({ results: [] }),
+          }),
         };
       });
     }
@@ -363,10 +395,7 @@ describe('MyLogin OAuth Routes', () => {
       setupDbForCallback({
         orgFound: true,
         existingUser: null,
-        employeeClasses: [
-          { wonde_class_id: 'wonde-class-A' },
-          { wonde_class_id: 'wonde-class-B' }
-        ]
+        employeeClasses: [{ wonde_class_id: 'wonde-class-A' }, { wonde_class_id: 'wonde-class-B' }],
       });
 
       env.READING_MANAGER_KV.get.mockResolvedValue('1');
@@ -382,13 +411,13 @@ describe('MyLogin OAuth Routes', () => {
 
       // Should have verified state from D1 (strongly consistent)
       const stateSelect = env.READING_MANAGER_DB.prepare.mock.calls.find(
-        call => call[0].includes('SELECT') && call[0].includes('oauth_state')
+        (call) => call[0].includes('SELECT') && call[0].includes('oauth_state')
       );
       expect(stateSelect).toBeDefined();
 
       // Should have deleted state from D1 after verification
       const stateDelete = env.READING_MANAGER_DB.prepare.mock.calls.find(
-        call => call[0].includes('DELETE') && call[0].includes('oauth_state')
+        (call) => call[0].includes('DELETE') && call[0].includes('oauth_state')
       );
       expect(stateDelete).toBeDefined();
 
@@ -398,8 +427,8 @@ describe('MyLogin OAuth Routes', () => {
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({
-            'Content-Type': 'application/x-www-form-urlencoded'
-          })
+            'Content-Type': 'application/x-www-form-urlencoded',
+          }),
         })
       );
 
@@ -408,14 +437,14 @@ describe('MyLogin OAuth Routes', () => {
         'https://app.mylogin.com/api/user',
         expect.objectContaining({
           headers: expect.objectContaining({
-            Authorization: 'Bearer mylogin-access-token'
-          })
+            Authorization: 'Bearer mylogin-access-token',
+          }),
         })
       );
 
       // Should have stored refresh token
-      const refreshInsert = env.READING_MANAGER_DB.prepare.mock.calls.find(
-        call => call[0].includes('INSERT INTO refresh_tokens')
+      const refreshInsert = env.READING_MANAGER_DB.prepare.mock.calls.find((call) =>
+        call[0].includes('INSERT INTO refresh_tokens')
       );
       expect(refreshInsert).toBeDefined();
 
@@ -431,23 +460,20 @@ describe('MyLogin OAuth Routes', () => {
       setupDbForCallback({ orgFound: true, existingUser: null });
       env.READING_MANAGER_KV.get.mockResolvedValue('1');
 
-      await app.request(
-        '/api/auth/mylogin/callback?code=code&state=state',
-        { method: 'GET' },
-        env
-      );
+      await app.request('/api/auth/mylogin/callback?code=code&state=state', { method: 'GET' }, env);
 
       // The INSERT INTO users call should use 'teacher' as the role
-      const insertCall = env.READING_MANAGER_DB.prepare.mock.calls.find(
-        call => call[0].includes('INSERT INTO users')
+      const insertCall = env.READING_MANAGER_DB.prepare.mock.calls.find((call) =>
+        call[0].includes('INSERT INTO users')
       );
       expect(insertCall).toBeDefined();
 
       // Find the bind call for the INSERT (role should be in args)
-      const insertStatementIdx = env.READING_MANAGER_DB.prepare.mock.calls.findIndex(
-        call => call[0].includes('INSERT INTO users')
+      const insertStatementIdx = env.READING_MANAGER_DB.prepare.mock.calls.findIndex((call) =>
+        call[0].includes('INSERT INTO users')
       );
-      const bindArgs = env.READING_MANAGER_DB.prepare.mock.results[insertStatementIdx].value.bind.mock.calls[0];
+      const bindArgs =
+        env.READING_MANAGER_DB.prepare.mock.results[insertStatementIdx].value.bind.mock.calls[0];
 
       // bindArgs should contain 'teacher' as the role
       expect(bindArgs).toContain('teacher');
@@ -459,22 +485,18 @@ describe('MyLogin OAuth Routes', () => {
       setupFetchMock(makeUserProfile({ type: 'employee' }));
       setupDbForCallback({
         orgFound: true,
-        existingUser: null
+        existingUser: null,
       });
       env.READING_MANAGER_KV.get.mockResolvedValue('1');
 
-      await app.request(
-        '/api/auth/mylogin/callback?code=code&state=state',
-        { method: 'GET' },
-        env
-      );
+      await app.request('/api/auth/mylogin/callback?code=code&state=state', { method: 'GET' }, env);
 
       // Should have called the shared helper
       expect(syncUserClassAssignments).toHaveBeenCalledWith(
         env.READING_MANAGER_DB,
-        'generated-id-1',      // userId from generateId mock
-        'wonde-emp-456',       // wondeEmployeeId from profile
-        'org-id-1'             // org.id
+        'generated-id-1', // userId from generateId mock
+        'wonde-emp-456', // wondeEmployeeId from profile
+        'org-id-1' // org.id
       );
     });
 
@@ -488,7 +510,7 @@ describe('MyLogin OAuth Routes', () => {
         name: 'Jane Old Name',
         email: 'jane.old@school.org',
         role: 'teacher',
-        mylogin_id: 'ml-user-123'
+        mylogin_id: 'ml-user-123',
       };
 
       setupFetchMock();
@@ -506,13 +528,13 @@ describe('MyLogin OAuth Routes', () => {
 
       // Should have updated the existing user, not inserted
       const updateCall = env.READING_MANAGER_DB.prepare.mock.calls.find(
-        call => call[0].includes('UPDATE') && call[0].includes('users')
+        (call) => call[0].includes('UPDATE') && call[0].includes('users')
       );
       expect(updateCall).toBeDefined();
 
       // Should NOT have inserted a new user
-      const insertCall = env.READING_MANAGER_DB.prepare.mock.calls.find(
-        call => call[0].includes('INSERT INTO users')
+      const insertCall = env.READING_MANAGER_DB.prepare.mock.calls.find((call) =>
+        call[0].includes('INSERT INTO users')
       );
       expect(insertCall).toBeUndefined();
 
@@ -530,7 +552,7 @@ describe('MyLogin OAuth Routes', () => {
         name: 'Jane Smith',
         email: 'jane.smith@school.org',
         role: 'teacher',
-        mylogin_id: 'ml-user-123'
+        mylogin_id: 'ml-user-123',
       };
 
       syncUserClassAssignments.mockResolvedValue(2);
@@ -564,18 +586,14 @@ describe('MyLogin OAuth Routes', () => {
         name: 'Admin User',
         email: 'admin@school.org',
         role: 'admin',
-        mylogin_id: 'ml-user-123'
+        mylogin_id: 'ml-user-123',
       };
 
       setupFetchMock(makeUserProfile({ type: 'admin' }));
       setupDbForCallback({ orgFound: true, existingUser: existingAdmin });
       env.READING_MANAGER_KV.get.mockResolvedValue('1');
 
-      await app.request(
-        '/api/auth/mylogin/callback?code=code&state=state',
-        { method: 'GET' },
-        env
-      );
+      await app.request('/api/auth/mylogin/callback?code=code&state=state', { method: 'GET' }, env);
 
       expect(syncUserClassAssignments).not.toHaveBeenCalled();
     });
@@ -587,7 +605,7 @@ describe('MyLogin OAuth Routes', () => {
         name: 'Jane Smith',
         email: 'jane.smith@school.org',
         role: 'teacher',
-        mylogin_id: 'ml-user-123'
+        mylogin_id: 'ml-user-123',
       };
 
       syncUserClassAssignments.mockRejectedValue(new Error('DB error'));
@@ -652,28 +670,27 @@ describe('MyLogin OAuth Routes', () => {
     // Student login
     // -----------------------------------------------------------------------
     it('creates a student user with readonly role', async () => {
-      setupFetchMock(makeUserProfile({
-        type: 'student',
-        service_providers: {
-          wonde: { service_provider_id: 'wonde-student-789' }
-        }
-      }));
+      setupFetchMock(
+        makeUserProfile({
+          type: 'student',
+          service_providers: {
+            wonde: { service_provider_id: 'wonde-student-789' },
+          },
+        })
+      );
       setupDbForCallback({ orgFound: true, existingUser: null });
       env.READING_MANAGER_KV.get.mockResolvedValue('1');
 
-      await app.request(
-        '/api/auth/mylogin/callback?code=code&state=state',
-        { method: 'GET' },
-        env
-      );
+      await app.request('/api/auth/mylogin/callback?code=code&state=state', { method: 'GET' }, env);
 
       // The INSERT INTO users call should use 'readonly' as the role
-      const insertCallIdx = env.READING_MANAGER_DB.prepare.mock.calls.findIndex(
-        call => call[0].includes('INSERT INTO users')
+      const insertCallIdx = env.READING_MANAGER_DB.prepare.mock.calls.findIndex((call) =>
+        call[0].includes('INSERT INTO users')
       );
       expect(insertCallIdx).not.toBe(-1);
 
-      const bindArgs = env.READING_MANAGER_DB.prepare.mock.results[insertCallIdx].value.bind.mock.calls[0];
+      const bindArgs =
+        env.READING_MANAGER_DB.prepare.mock.results[insertCallIdx].value.bind.mock.calls[0];
       expect(bindArgs).toContain('readonly');
     });
 
@@ -685,18 +702,15 @@ describe('MyLogin OAuth Routes', () => {
       setupDbForCallback({ orgFound: true, existingUser: null });
       env.READING_MANAGER_KV.get.mockResolvedValue('1');
 
-      await app.request(
-        '/api/auth/mylogin/callback?code=code&state=state',
-        { method: 'GET' },
-        env
-      );
+      await app.request('/api/auth/mylogin/callback?code=code&state=state', { method: 'GET' }, env);
 
-      const insertCallIdx = env.READING_MANAGER_DB.prepare.mock.calls.findIndex(
-        call => call[0].includes('INSERT INTO users')
+      const insertCallIdx = env.READING_MANAGER_DB.prepare.mock.calls.findIndex((call) =>
+        call[0].includes('INSERT INTO users')
       );
       expect(insertCallIdx).not.toBe(-1);
 
-      const bindArgs = env.READING_MANAGER_DB.prepare.mock.results[insertCallIdx].value.bind.mock.calls[0];
+      const bindArgs =
+        env.READING_MANAGER_DB.prepare.mock.results[insertCallIdx].value.bind.mock.calls[0];
       expect(bindArgs).toContain('admin');
     });
 
@@ -710,7 +724,7 @@ describe('MyLogin OAuth Routes', () => {
           return Promise.resolve({
             ok: false,
             status: 400,
-            text: () => Promise.resolve('Bad Request')
+            text: () => Promise.resolve('Bad Request'),
           });
         }
         return Promise.resolve({ ok: false, status: 404 });
@@ -742,14 +756,14 @@ describe('MyLogin OAuth Routes', () => {
         if (urlStr.includes('/oauth/token')) {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ access_token: 'tok', token_type: 'Bearer' })
+            json: () => Promise.resolve({ access_token: 'tok', token_type: 'Bearer' }),
           });
         }
         if (urlStr.includes('/api/user')) {
           return Promise.resolve({
             ok: false,
             status: 500,
-            text: () => Promise.resolve('Internal Server Error')
+            text: () => Promise.resolve('Internal Server Error'),
           });
         }
         return Promise.resolve({ ok: false, status: 404 });
@@ -780,15 +794,9 @@ describe('MyLogin OAuth Routes', () => {
       setupDbForCallback({ orgFound: true, existingUser: null });
       env.READING_MANAGER_KV.get.mockResolvedValue('1');
 
-      await app.request(
-        '/api/auth/mylogin/callback?code=code&state=state',
-        { method: 'GET' },
-        env
-      );
+      await app.request('/api/auth/mylogin/callback?code=code&state=state', { method: 'GET' }, env);
 
-      const tokenCall = global.fetch.mock.calls.find(
-        call => call[0].includes('/oauth/token')
-      );
+      const tokenCall = global.fetch.mock.calls.find((call) => call[0].includes('/oauth/token'));
       expect(tokenCall).toBeDefined();
 
       const expectedAuth = 'Basic ' + btoa('test-client-id:test-client-secret');
@@ -799,25 +807,24 @@ describe('MyLogin OAuth Routes', () => {
     // User name is constructed from first_name + last_name
     // -----------------------------------------------------------------------
     it('constructs user name from first_name and last_name', async () => {
-      setupFetchMock(makeUserProfile({
-        first_name: 'John',
-        last_name: 'Doe'
-      }));
+      setupFetchMock(
+        makeUserProfile({
+          first_name: 'John',
+          last_name: 'Doe',
+        })
+      );
       setupDbForCallback({ orgFound: true, existingUser: null });
       env.READING_MANAGER_KV.get.mockResolvedValue('1');
 
-      await app.request(
-        '/api/auth/mylogin/callback?code=code&state=state',
-        { method: 'GET' },
-        env
-      );
+      await app.request('/api/auth/mylogin/callback?code=code&state=state', { method: 'GET' }, env);
 
       // Check that the INSERT uses 'John Doe' as the name
-      const insertCallIdx = env.READING_MANAGER_DB.prepare.mock.calls.findIndex(
-        call => call[0].includes('INSERT INTO users')
+      const insertCallIdx = env.READING_MANAGER_DB.prepare.mock.calls.findIndex((call) =>
+        call[0].includes('INSERT INTO users')
       );
       if (insertCallIdx !== -1) {
-        const bindArgs = env.READING_MANAGER_DB.prepare.mock.results[insertCallIdx].value.bind.mock.calls[0];
+        const bindArgs =
+          env.READING_MANAGER_DB.prepare.mock.results[insertCallIdx].value.bind.mock.calls[0];
         expect(bindArgs).toContain('John Doe');
       }
     });
@@ -830,18 +837,15 @@ describe('MyLogin OAuth Routes', () => {
       setupDbForCallback({ orgFound: true, existingUser: null });
       env.READING_MANAGER_KV.get.mockResolvedValue('1');
 
-      await app.request(
-        '/api/auth/mylogin/callback?code=code&state=state',
-        { method: 'GET' },
-        env
-      );
+      await app.request('/api/auth/mylogin/callback?code=code&state=state', { method: 'GET' }, env);
 
-      const insertCallIdx = env.READING_MANAGER_DB.prepare.mock.calls.findIndex(
-        call => call[0].includes('INSERT INTO users')
+      const insertCallIdx = env.READING_MANAGER_DB.prepare.mock.calls.findIndex((call) =>
+        call[0].includes('INSERT INTO users')
       );
       expect(insertCallIdx).not.toBe(-1);
 
-      const bindArgs = env.READING_MANAGER_DB.prepare.mock.results[insertCallIdx].value.bind.mock.calls[0];
+      const bindArgs =
+        env.READING_MANAGER_DB.prepare.mock.results[insertCallIdx].value.bind.mock.calls[0];
       expect(bindArgs).toContain('mylogin');
     });
   });
@@ -858,15 +862,15 @@ describe('MyLogin OAuth Routes', () => {
         if (sql.includes('UPDATE refresh_tokens') && sql.includes('revoked_at')) {
           return {
             bind: vi.fn().mockReturnValue({
-              run: vi.fn().mockResolvedValue({ success: true })
-            })
+              run: vi.fn().mockResolvedValue({ success: true }),
+            }),
           };
         }
         return {
           bind: vi.fn().mockReturnValue({
             run: vi.fn().mockResolvedValue({ success: true }),
-            first: vi.fn().mockResolvedValue(null)
-          })
+            first: vi.fn().mockResolvedValue(null),
+          }),
         };
       });
 
@@ -875,8 +879,8 @@ describe('MyLogin OAuth Routes', () => {
         {
           method: 'POST',
           headers: {
-            cookie: 'refresh_token=some-refresh-token'
-          }
+            cookie: 'refresh_token=some-refresh-token',
+          },
         },
         env
       );
@@ -890,7 +894,7 @@ describe('MyLogin OAuth Routes', () => {
 
       // Should have revoked the refresh token
       const revokeCall = db.prepare.mock.calls.find(
-        call => call[0].includes('UPDATE refresh_tokens') && call[0].includes('revoked_at')
+        (call) => call[0].includes('UPDATE refresh_tokens') && call[0].includes('revoked_at')
       );
       expect(revokeCall).toBeDefined();
 
@@ -901,11 +905,7 @@ describe('MyLogin OAuth Routes', () => {
     });
 
     it('returns logout URL even when no refresh token is present', async () => {
-      const res = await app.request(
-        '/api/auth/mylogin/logout',
-        { method: 'POST' },
-        env
-      );
+      const res = await app.request('/api/auth/mylogin/logout', { method: 'POST' }, env);
 
       expect(res.status).toBe(200);
       const json = await res.json();
@@ -916,8 +916,8 @@ describe('MyLogin OAuth Routes', () => {
       const db = env.READING_MANAGER_DB;
       db.prepare.mockImplementation(() => ({
         bind: vi.fn().mockReturnValue({
-          run: vi.fn().mockResolvedValue({ success: true })
-        })
+          run: vi.fn().mockResolvedValue({ success: true }),
+        }),
       }));
 
       await app.request(
@@ -925,8 +925,8 @@ describe('MyLogin OAuth Routes', () => {
         {
           method: 'POST',
           headers: {
-            cookie: 'refresh_token=the-token'
-          }
+            cookie: 'refresh_token=the-token',
+          },
         },
         env
       );

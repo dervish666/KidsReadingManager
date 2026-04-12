@@ -49,8 +49,8 @@ coversRouter.get('/:type/:key', async (c) => {
           headers: {
             'Content-Type': contentType,
             'Cache-Control': CACHE_CONTROL,
-            'X-Cache-Source': 'r2'
-          }
+            'X-Cache-Source': 'r2',
+          },
         });
       }
     } catch (err) {
@@ -64,9 +64,13 @@ coversRouter.get('/:type/:key', async (c) => {
 
   let originResponse;
   try {
-    originResponse = await fetchWithTimeout(originUrl, {
-      headers: { 'User-Agent': 'TallyReading/1.0 (educational-app)' }
-    }, 5000);
+    originResponse = await fetchWithTimeout(
+      originUrl,
+      {
+        headers: { 'User-Agent': 'TallyReading/1.0 (educational-app)' },
+      },
+      5000
+    );
   } catch (err) {
     console.error('Origin fetch error:', err);
     return c.json({ message: 'Failed to fetch cover from origin' }, 502);
@@ -88,11 +92,13 @@ coversRouter.get('/:type/:key', async (c) => {
   // 7. Store in R2 via waitUntil (non-blocking)
   // Copy the ArrayBuffer so R2 put and Response don't race over the same buffer
   if (r2) {
-    const r2PutPromise = r2.put(r2Key, imageData.slice(0), {
-      httpMetadata: { contentType }
-    }).catch(err => {
-      console.error('R2 put error:', err);
-    });
+    const r2PutPromise = r2
+      .put(r2Key, imageData.slice(0), {
+        httpMetadata: { contentType },
+      })
+      .catch((err) => {
+        console.error('R2 put error:', err);
+      });
 
     if (c.executionCtx?.waitUntil) {
       c.executionCtx.waitUntil(r2PutPromise);
@@ -105,8 +111,8 @@ coversRouter.get('/:type/:key', async (c) => {
     headers: {
       'Content-Type': contentType,
       'Cache-Control': CACHE_CONTROL,
-      'X-Cache-Source': 'origin'
-    }
+      'X-Cache-Source': 'origin',
+    },
   });
 });
 

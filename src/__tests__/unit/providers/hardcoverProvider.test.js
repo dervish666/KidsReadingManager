@@ -16,41 +16,49 @@ describe('hardcoverProvider', () => {
     // Search response
     fetchWithTimeout.mockResolvedValueOnce({
       ok: true,
-      json: () => Promise.resolve({
-        data: {
-          search: {
-            results: JSON.stringify({
-              hits: [{ document: { id: 42, title: 'The Gruffalo', author_names: ['Julia Donaldson'] } }],
-            }),
+      json: () =>
+        Promise.resolve({
+          data: {
+            search: {
+              results: JSON.stringify({
+                hits: [
+                  {
+                    document: { id: 42, title: 'The Gruffalo', author_names: ['Julia Donaldson'] },
+                  },
+                ],
+              }),
+            },
           },
-        },
-      }),
+        }),
     });
 
     // Book details response
     fetchWithTimeout.mockResolvedValueOnce({
       ok: true,
-      json: () => Promise.resolve({
-        data: {
-          books: [{
-            id: 42,
-            title: 'The Gruffalo',
-            description: 'A mouse walks through the woods.',
-            pages: 32,
-            release_year: 1999,
-            cached_contributors: JSON.stringify([{ author: { name: 'Julia Donaldson' } }]),
-            cached_tags: JSON.stringify([{ tag: 'childrens' }, { tag: 'picture-books' }]),
-            cached_image: 'https://hardcover.app/covers/gruffalo.jpg',
-            book_series: [{ position: '1', series: { name: 'Gruffalo Series' } }],
-            editions: [{ isbn_13: '9780142403877', isbn_10: null, pages: 32 }],
-          }],
-        },
-      }),
+      json: () =>
+        Promise.resolve({
+          data: {
+            books: [
+              {
+                id: 42,
+                title: 'The Gruffalo',
+                description: 'A mouse walks through the woods.',
+                pages: 32,
+                release_year: 1999,
+                cached_contributors: JSON.stringify([{ author: { name: 'Julia Donaldson' } }]),
+                cached_tags: JSON.stringify([{ tag: 'childrens' }, { tag: 'picture-books' }]),
+                cached_image: 'https://hardcover.app/covers/gruffalo.jpg',
+                book_series: [{ position: '1', series: { name: 'Gruffalo Series' } }],
+                editions: [{ isbn_13: '9780142403877', isbn_10: null, pages: 32 }],
+              },
+            ],
+          },
+        }),
     });
 
     const result = await fetchMetadata(
       { title: 'The Gruffalo', author: 'Julia Donaldson' },
-      'test-api-key',
+      'test-api-key'
     );
 
     expect(result.author).toBe('Julia Donaldson');

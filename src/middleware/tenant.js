@@ -9,7 +9,7 @@ import { PUBLIC_PATHS } from '../utils/constants.js';
 /**
  * JWT Authentication Middleware
  * Validates JWT token and extracts user/organization context
- * 
+ *
  * Public endpoints (no auth required):
  * - POST /api/auth/login
  * - POST /api/auth/register
@@ -17,7 +17,7 @@ import { PUBLIC_PATHS } from '../utils/constants.js';
  * - POST /api/auth/forgot-password
  * - POST /api/auth/reset-password
  * - GET /api/health
- * 
+ *
  * @returns {Function} Hono middleware
  */
 export function jwtAuthMiddleware() {
@@ -89,9 +89,10 @@ export function tenantMiddleware() {
       // Verify the user still has owner role in DB (don't trust JWT claim alone)
       const db = c.env.READING_MANAGER_DB;
       if (db) {
-        const dbUser = await db.prepare(
-          'SELECT role FROM users WHERE id = ? AND is_active = 1'
-        ).bind(c.get('userId')).first();
+        const dbUser = await db
+          .prepare('SELECT role FROM users WHERE id = ? AND is_active = 1')
+          .bind(c.get('userId'))
+          .first();
         if (dbUser?.role === 'owner') {
           targetOrgId = overrideOrgId;
         }
@@ -102,9 +103,10 @@ export function tenantMiddleware() {
     const db = c.env.READING_MANAGER_DB;
     if (db) {
       try {
-        const org = await db.prepare(
-          'SELECT id, is_active, subscription_status FROM organizations WHERE id = ?'
-        ).bind(targetOrgId).first();
+        const org = await db
+          .prepare('SELECT id, is_active, subscription_status FROM organizations WHERE id = ?')
+          .bind(targetOrgId)
+          .first();
 
         if (!org) {
           return c.json({ error: 'Organization not found' }, 404);
@@ -167,20 +169,22 @@ export function subscriptionGate() {
       if (c.req.method === 'GET' || c.req.method === 'HEAD') return next();
       return c.json(
         {
-          error: 'Your subscription payment is overdue. The app is in read-only mode until payment is resolved.',
+          error:
+            'Your subscription payment is overdue. The app is in read-only mode until payment is resolved.',
           code: 'SUBSCRIPTION_PAST_DUE',
         },
-        403,
+        403
       );
     }
 
     // 6. cancelled or any unknown status — fully blocked
     return c.json(
       {
-        error: 'Your subscription has been cancelled. Please contact support or reactivate via the billing portal.',
+        error:
+          'Your subscription has been cancelled. Please contact support or reactivate via the billing portal.',
         code: 'SUBSCRIPTION_CANCELLED',
       },
-      403,
+      403
     );
   };
 }
@@ -227,7 +231,7 @@ const ALLOWED_OWNERSHIP_TABLES = new Set([
   'org_settings',
   'org_ai_config',
   'genres',
-  'users'
+  'users',
 ]);
 
 /**
@@ -241,7 +245,9 @@ const ALLOWED_OWNERSHIP_TABLES = new Set([
 export function requireOrgOwnership(tableName, idParam = 'id') {
   // Validate table name at middleware creation time (not runtime)
   if (!ALLOWED_OWNERSHIP_TABLES.has(tableName)) {
-    throw new Error(`Invalid table name for ownership check: ${tableName}. Allowed tables: ${[...ALLOWED_OWNERSHIP_TABLES].join(', ')}`);
+    throw new Error(
+      `Invalid table name for ownership check: ${tableName}. Allowed tables: ${[...ALLOWED_OWNERSHIP_TABLES].join(', ')}`
+    );
   }
 
   return async (c, next) => {
@@ -258,9 +264,10 @@ export function requireOrgOwnership(tableName, idParam = 'id') {
     }
 
     try {
-      const resource = await db.prepare(
-        `SELECT organization_id FROM ${tableName} WHERE id = ?`
-      ).bind(resourceId).first();
+      const resource = await db
+        .prepare(`SELECT organization_id FROM ${tableName} WHERE id = ?`)
+        .bind(resourceId)
+        .first();
 
       if (!resource) {
         return c.json({ error: 'Resource not found' }, 404);
@@ -281,7 +288,7 @@ export function requireOrgOwnership(tableName, idParam = 'id') {
 /**
  * Audit logging middleware
  * Logs sensitive operations to the audit_log table
- * 
+ *
  * @param {string} action - Action type ('create', 'update', 'delete', etc.)
  * @param {string} entityType - Entity type ('student', 'class', 'session', etc.)
  * @returns {Function} Hono middleware
@@ -306,27 +313,22 @@ export function auditLog(action, entityType) {
       const entityId = c.req.param('id') || null;
 
       // Get request details
-      const ipAddress = c.req.header('cf-connecting-ip') || 
-                        c.req.header('x-forwarded-for') || 
-                        'unknown';
+      const ipAddress =
+        c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || 'unknown';
       const userAgent = c.req.header('user-agent') || 'unknown';
 
       // Generate audit log ID
       const id = crypto.randomUUID();
 
-      await db.prepare(`
+      await db
+        .prepare(
+          `
         INSERT INTO audit_log (id, organization_id, user_id, action, entity_type, entity_id, ip_address, user_agent)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `).bind(
-        id,
-        organizationId,
-        userId,
-        action,
-        entityType,
-        entityId,
-        ipAddress,
-        userAgent
-      ).run();
+      `
+        )
+        .bind(id, organizationId, userId, action, entityType, entityId, ipAddress, userAgent)
+        .run();
     } catch (error) {
       // Don't fail the request if audit logging fails
       console.error('Audit logging error:', error);
@@ -352,17 +354,23 @@ export function rateLimit(maxRequests = 100, windowMs = 60000) {
 
     // If no database, fail closed for sensitive auth endpoints, skip for others
     if (!db) {
-      const sensitiveAuthPaths = ['/api/auth/login', '/api/auth/register', '/api/auth/reset-password', '/api/auth/forgot-password'];
-      if (sensitiveAuthPaths.some(p => c.req.path.startsWith(p))) {
+      const sensitiveAuthPaths = [
+        '/api/auth/login',
+        '/api/auth/register',
+        '/api/auth/reset-password',
+        '/api/auth/forgot-password',
+      ];
+      if (sensitiveAuthPaths.some((p) => c.req.path.startsWith(p))) {
         return c.json({ error: 'Service temporarily unavailable' }, 503);
       }
       return next();
     }
 
     // Use IP address as the rate limit key (or userId if authenticated)
-    const ipAddress = c.req.header('cf-connecting-ip') ||
-                      c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ||
-                      'unknown';
+    const ipAddress =
+      c.req.header('cf-connecting-ip') ||
+      c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ||
+      'unknown';
     const userId = c.get('userId');
     const key = userId || `ip:${ipAddress}`;
     const endpoint = c.req.path;
@@ -371,40 +379,62 @@ export function rateLimit(maxRequests = 100, windowMs = 60000) {
       const windowSeconds = Math.ceil(windowMs / 1000);
 
       // Count requests in the current window
-      const result = await db.prepare(`
+      const result = await db
+        .prepare(
+          `
         SELECT COUNT(*) as count FROM rate_limits
         WHERE key = ? AND endpoint = ?
         AND created_at > datetime('now', ? || ' seconds')
-      `).bind(key, endpoint, -windowSeconds).first();
+      `
+        )
+        .bind(key, endpoint, -windowSeconds)
+        .first();
 
       const currentCount = result?.count || 0;
 
       if (currentCount >= maxRequests) {
         // Rate limit exceeded
-        return c.json({
-          error: 'Too many requests. Please slow down.',
-          retryAfter: windowSeconds
-        }, 429);
+        return c.json(
+          {
+            error: 'Too many requests. Please slow down.',
+            retryAfter: windowSeconds,
+          },
+          429
+        );
       }
 
       // Record this request
-      await db.prepare(`
+      await db
+        .prepare(
+          `
         INSERT INTO rate_limits (id, key, endpoint, created_at)
         VALUES (?, ?, ?, datetime('now'))
-      `).bind(crypto.randomUUID(), key, endpoint).run();
+      `
+        )
+        .bind(crypto.randomUUID(), key, endpoint)
+        .run();
 
       // Cleanup old entries (async, don't wait) - only run occasionally
-      if (Math.random() < 0.01) { // 1% chance to clean up
-        db.prepare(`
+      if (Math.random() < 0.01) {
+        // 1% chance to clean up
+        db.prepare(
+          `
           DELETE FROM rate_limits WHERE created_at < datetime('now', '-1 hour')
-        `).run().catch(() => {});
+        `
+        )
+          .run()
+          .catch(() => {});
       }
-
     } catch (error) {
       // If rate_limits table doesn't exist or other error, fail closed for auth paths
       console.warn('Rate limiting error:', error.message);
-      const sensitiveAuthPaths = ['/api/auth/login', '/api/auth/register', '/api/auth/reset-password', '/api/auth/forgot-password'];
-      if (sensitiveAuthPaths.some(p => c.req.path.startsWith(p))) {
+      const sensitiveAuthPaths = [
+        '/api/auth/login',
+        '/api/auth/register',
+        '/api/auth/reset-password',
+        '/api/auth/forgot-password',
+      ];
+      if (sensitiveAuthPaths.some((p) => c.req.path.startsWith(p))) {
         return c.json({ error: 'Service temporarily unavailable' }, 503);
       }
     }
@@ -438,7 +468,7 @@ export function costRateLimit(maxRequests = 10) {
 /**
  * Helper to get organization-scoped query builder
  * Adds organization_id filter to queries
- * 
+ *
  * @param {Object} c - Hono context
  * @param {string} baseQuery - Base SQL query
  * @param {Array} params - Query parameters
@@ -453,6 +483,6 @@ export function scopeToOrganization(c, baseQuery, params = []) {
 
   return {
     query: `${baseQuery}${connector} organization_id = ?`,
-    params: [...params, organizationId]
+    params: [...params, organizationId],
   };
 }

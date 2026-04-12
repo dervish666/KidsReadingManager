@@ -4,7 +4,7 @@ import { Hono } from 'hono';
 // Mock the email module BEFORE importing the router
 vi.mock('../../utils/email.js', () => ({
   sendWelcomeEmail: vi.fn().mockResolvedValue({ success: true }),
-  sendPasswordResetEmail: vi.fn().mockResolvedValue({ success: true })
+  sendPasswordResetEmail: vi.fn().mockResolvedValue({ success: true }),
 }));
 
 // Mock hashPassword to avoid crypto operations in tests
@@ -12,7 +12,7 @@ vi.mock('../../utils/crypto.js', async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
-    hashPassword: vi.fn().mockResolvedValue('mocked-hash:mocked-hash')
+    hashPassword: vi.fn().mockResolvedValue('mocked-hash:mocked-hash'),
   };
 });
 
@@ -30,14 +30,14 @@ const createMockDB = (overrides = {}) => {
     bind: vi.fn().mockReturnThis(),
     all: vi.fn().mockResolvedValue(overrides.allResults || { results: [], success: true }),
     first: vi.fn().mockResolvedValue(overrides.firstResult || null),
-    run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } })
+    run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } }),
   };
 
   return {
     prepare: vi.fn().mockReturnValue(prepareChain),
     batch: vi.fn().mockResolvedValue([{ success: true }]),
     _chain: prepareChain,
-    ...overrides
+    ...overrides,
   };
 };
 
@@ -54,7 +54,7 @@ const createTestApp = (contextValues = {}, dbOverrides = {}) => {
       JWT_SECRET: TEST_SECRET,
       READING_MANAGER_DB: mockDB,
       APP_URL: 'http://localhost:3000',
-      ...contextValues.env
+      ...contextValues.env,
     };
 
     // Set context values that would normally come from auth middleware
@@ -71,7 +71,7 @@ const createTestApp = (contextValues = {}, dbOverrides = {}) => {
   // Error handler (matches production onError in worker.js)
   app.onError((err, c) => {
     const status = err.status || 500;
-    const message = status >= 500 ? 'Internal Server Error' : (err.message || 'An error occurred');
+    const message = status >= 500 ? 'Internal Server Error' : err.message || 'An error occurred';
     return c.json({ status: 'error', error: message, message }, status);
   });
 
@@ -86,7 +86,7 @@ const makeRequest = async (app, method, path, body = null, token = null) => {
     method,
     headers: {
       'Content-Type': 'application/json',
-    }
+    },
   };
 
   if (token) {
@@ -111,7 +111,7 @@ describe('Users API Routes', () => {
         const { app } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.TEACHER
+          userRole: ROLES.TEACHER,
         });
 
         const response = await makeRequest(app, 'GET', '/api/users');
@@ -125,7 +125,7 @@ describe('Users API Routes', () => {
         const { app } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.READONLY
+          userRole: ROLES.READONLY,
         });
 
         const response = await makeRequest(app, 'GET', '/api/users');
@@ -136,29 +136,32 @@ describe('Users API Routes', () => {
       });
 
       it('should allow requests from admins', async () => {
-        const { app, mockDB } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.ADMIN
-        }, {
-          allResults: {
-            results: [
-              {
-                id: 'user-1',
-                organization_id: 'org-456',
-                organization_name: 'Test Org',
-                email: 'test@example.com',
-                name: 'Test User',
-                role: 'teacher',
-                is_active: 1,
-                last_login_at: null,
-                created_at: '2024-01-01',
-                updated_at: '2024-01-01'
-              }
-            ],
-            success: true
+        const { app, mockDB } = createTestApp(
+          {
+            userId: 'user-123',
+            organizationId: 'org-456',
+            userRole: ROLES.ADMIN,
+          },
+          {
+            allResults: {
+              results: [
+                {
+                  id: 'user-1',
+                  organization_id: 'org-456',
+                  organization_name: 'Test Org',
+                  email: 'test@example.com',
+                  name: 'Test User',
+                  role: 'teacher',
+                  is_active: 1,
+                  last_login_at: null,
+                  created_at: '2024-01-01',
+                  updated_at: '2024-01-01',
+                },
+              ],
+              success: true,
+            },
           }
-        });
+        );
 
         const response = await makeRequest(app, 'GET', '/api/users');
         const data = await response.json();
@@ -169,13 +172,16 @@ describe('Users API Routes', () => {
       });
 
       it('should allow requests from owners', async () => {
-        const { app } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.OWNER
-        }, {
-          allResults: { results: [], success: true }
-        });
+        const { app } = createTestApp(
+          {
+            userId: 'user-123',
+            organizationId: 'org-456',
+            userRole: ROLES.OWNER,
+          },
+          {
+            allResults: { results: [], success: true },
+          }
+        );
 
         const response = await makeRequest(app, 'GET', '/api/users');
         const data = await response.json();
@@ -187,13 +193,16 @@ describe('Users API Routes', () => {
 
     describe('Organization scoping', () => {
       it('should scope query to organization for admins', async () => {
-        const { app, mockDB } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.ADMIN
-        }, {
-          allResults: { results: [], success: true }
-        });
+        const { app, mockDB } = createTestApp(
+          {
+            userId: 'user-123',
+            organizationId: 'org-456',
+            userRole: ROLES.ADMIN,
+          },
+          {
+            allResults: { results: [], success: true },
+          }
+        );
 
         await makeRequest(app, 'GET', '/api/users');
 
@@ -203,13 +212,16 @@ describe('Users API Routes', () => {
       });
 
       it('should return users from all organizations for owners', async () => {
-        const { app, mockDB } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.OWNER
-        }, {
-          allResults: { results: [], success: true }
-        });
+        const { app, mockDB } = createTestApp(
+          {
+            userId: 'user-123',
+            organizationId: 'org-456',
+            userRole: ROLES.OWNER,
+          },
+          {
+            allResults: { results: [], success: true },
+          }
+        );
 
         await makeRequest(app, 'GET', '/api/users');
 
@@ -221,29 +233,32 @@ describe('Users API Routes', () => {
 
     describe('Response format', () => {
       it('should transform database rows to camelCase', async () => {
-        const { app } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.ADMIN
-        }, {
-          allResults: {
-            results: [
-              {
-                id: 'user-1',
-                organization_id: 'org-456',
-                organization_name: 'Test Org',
-                email: 'test@example.com',
-                name: 'Test User',
-                role: 'teacher',
-                is_active: 1,
-                last_login_at: '2024-01-15T10:00:00Z',
-                created_at: '2024-01-01',
-                updated_at: '2024-01-01'
-              }
-            ],
-            success: true
+        const { app } = createTestApp(
+          {
+            userId: 'user-123',
+            organizationId: 'org-456',
+            userRole: ROLES.ADMIN,
+          },
+          {
+            allResults: {
+              results: [
+                {
+                  id: 'user-1',
+                  organization_id: 'org-456',
+                  organization_name: 'Test Org',
+                  email: 'test@example.com',
+                  name: 'Test User',
+                  role: 'teacher',
+                  is_active: 1,
+                  last_login_at: '2024-01-15T10:00:00Z',
+                  created_at: '2024-01-01',
+                  updated_at: '2024-01-01',
+                },
+              ],
+              success: true,
+            },
           }
-        });
+        );
 
         const response = await makeRequest(app, 'GET', '/api/users');
         const data = await response.json();
@@ -266,19 +281,22 @@ describe('Users API Routes', () => {
       });
 
       it('should convert is_active to boolean', async () => {
-        const { app } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.ADMIN
-        }, {
-          allResults: {
-            results: [
-              { id: 'u1', is_active: 1 },
-              { id: 'u2', is_active: 0 }
-            ],
-            success: true
+        const { app } = createTestApp(
+          {
+            userId: 'user-123',
+            organizationId: 'org-456',
+            userRole: ROLES.ADMIN,
+          },
+          {
+            allResults: {
+              results: [
+                { id: 'u1', is_active: 1 },
+                { id: 'u2', is_active: 0 },
+              ],
+              success: true,
+            },
           }
-        });
+        );
 
         const response = await makeRequest(app, 'GET', '/api/users');
         const data = await response.json();
@@ -288,32 +306,35 @@ describe('Users API Routes', () => {
       });
 
       it('should include auth provider fields for SSO users', async () => {
-        const { app } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.ADMIN
-        }, {
-          allResults: {
-            results: [
-              {
-                id: 'user-sso',
-                organization_id: 'org-456',
-                organization_name: 'Test School',
-                email: 'teacher@school.com',
-                name: 'SSO Teacher',
-                role: 'teacher',
-                is_active: 1,
-                last_login_at: '2024-03-01T09:00:00Z',
-                created_at: '2024-02-01',
-                updated_at: '2024-03-01',
-                auth_provider: 'mylogin',
-                mylogin_id: 'ml-12345',
-                wonde_employee_id: 'A1234567890'
-              }
-            ],
-            success: true
+        const { app } = createTestApp(
+          {
+            userId: 'user-123',
+            organizationId: 'org-456',
+            userRole: ROLES.ADMIN,
+          },
+          {
+            allResults: {
+              results: [
+                {
+                  id: 'user-sso',
+                  organization_id: 'org-456',
+                  organization_name: 'Test School',
+                  email: 'teacher@school.com',
+                  name: 'SSO Teacher',
+                  role: 'teacher',
+                  is_active: 1,
+                  last_login_at: '2024-03-01T09:00:00Z',
+                  created_at: '2024-02-01',
+                  updated_at: '2024-03-01',
+                  auth_provider: 'mylogin',
+                  mylogin_id: 'ml-12345',
+                  wonde_employee_id: 'A1234567890',
+                },
+              ],
+              success: true,
+            },
           }
-        });
+        );
 
         const response = await makeRequest(app, 'GET', '/api/users');
         const data = await response.json();
@@ -327,21 +348,24 @@ describe('Users API Routes', () => {
 
   describe('GET /api/users/:id', () => {
     it('should allow users to view their own profile', async () => {
-      const { app, mockDB } = createTestApp({
-        userId: 'user-123',
-        organizationId: 'org-456',
-        userRole: ROLES.TEACHER
-      }, {
-        firstResult: {
-          id: 'user-123',
-          organization_id: 'org-456',
-          email: 'teacher@example.com',
-          name: 'Teacher User',
-          role: 'teacher',
-          is_active: 1,
-          created_at: '2024-01-01'
+      const { app, mockDB } = createTestApp(
+        {
+          userId: 'user-123',
+          organizationId: 'org-456',
+          userRole: ROLES.TEACHER,
+        },
+        {
+          firstResult: {
+            id: 'user-123',
+            organization_id: 'org-456',
+            email: 'teacher@example.com',
+            name: 'Teacher User',
+            role: 'teacher',
+            is_active: 1,
+            created_at: '2024-01-01',
+          },
         }
-      });
+      );
 
       const response = await makeRequest(app, 'GET', '/api/users/user-123');
       const data = await response.json();
@@ -352,20 +376,23 @@ describe('Users API Routes', () => {
     });
 
     it('should allow admins to view any user in their organization', async () => {
-      const { app } = createTestApp({
-        userId: 'admin-user',
-        organizationId: 'org-456',
-        userRole: ROLES.ADMIN
-      }, {
-        firstResult: {
-          id: 'other-user',
-          organization_id: 'org-456',
-          email: 'other@example.com',
-          name: 'Other User',
-          role: 'teacher',
-          is_active: 1
+      const { app } = createTestApp(
+        {
+          userId: 'admin-user',
+          organizationId: 'org-456',
+          userRole: ROLES.ADMIN,
+        },
+        {
+          firstResult: {
+            id: 'other-user',
+            organization_id: 'org-456',
+            email: 'other@example.com',
+            name: 'Other User',
+            role: 'teacher',
+            is_active: 1,
+          },
         }
-      });
+      );
 
       const response = await makeRequest(app, 'GET', '/api/users/other-user');
       const data = await response.json();
@@ -378,7 +405,7 @@ describe('Users API Routes', () => {
       const { app } = createTestApp({
         userId: 'teacher-user',
         organizationId: 'org-456',
-        userRole: ROLES.TEACHER
+        userRole: ROLES.TEACHER,
       });
 
       const response = await makeRequest(app, 'GET', '/api/users/other-user');
@@ -389,13 +416,16 @@ describe('Users API Routes', () => {
     });
 
     it('should return 404 for non-existent user', async () => {
-      const { app } = createTestApp({
-        userId: 'admin-user',
-        organizationId: 'org-456',
-        userRole: ROLES.ADMIN
-      }, {
-        firstResult: null
-      });
+      const { app } = createTestApp(
+        {
+          userId: 'admin-user',
+          organizationId: 'org-456',
+          userRole: ROLES.ADMIN,
+        },
+        {
+          firstResult: null,
+        }
+      );
 
       const response = await makeRequest(app, 'GET', '/api/users/non-existent');
       const data = await response.json();
@@ -411,13 +441,13 @@ describe('Users API Routes', () => {
         const { app } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.TEACHER
+          userRole: ROLES.TEACHER,
         });
 
         const response = await makeRequest(app, 'POST', '/api/users', {
           email: 'new@example.com',
           name: 'New User',
-          role: 'teacher'
+          role: 'teacher',
         });
         const data = await response.json();
 
@@ -429,7 +459,7 @@ describe('Users API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-user',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         // Mock the chain of queries
@@ -444,7 +474,7 @@ describe('Users API Routes', () => {
         const response = await makeRequest(app, 'POST', '/api/users', {
           email: 'new@example.com',
           name: 'New User',
-          role: 'teacher'
+          role: 'teacher',
         });
         const data = await response.json();
 
@@ -459,11 +489,11 @@ describe('Users API Routes', () => {
         const { app } = createTestApp({
           userId: 'admin-user',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         const response = await makeRequest(app, 'POST', '/api/users', {
-          email: 'test@example.com'
+          email: 'test@example.com',
           // missing name and role
         });
         const data = await response.json();
@@ -478,13 +508,13 @@ describe('Users API Routes', () => {
         const { app } = createTestApp({
           userId: 'admin-user',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         const response = await makeRequest(app, 'POST', '/api/users', {
           email: 'invalid-email',
           name: 'Test User',
-          role: 'teacher'
+          role: 'teacher',
         });
         const data = await response.json();
 
@@ -496,13 +526,13 @@ describe('Users API Routes', () => {
         const { app } = createTestApp({
           userId: 'admin-user',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         const response = await makeRequest(app, 'POST', '/api/users', {
           email: 'test@example.com',
           name: 'Test User',
-          role: 'superuser'
+          role: 'superuser',
         });
         const data = await response.json();
 
@@ -517,7 +547,7 @@ describe('Users API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-user',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue({ id: 'existing-user' });
@@ -525,7 +555,7 @@ describe('Users API Routes', () => {
         const response = await makeRequest(app, 'POST', '/api/users', {
           email: 'existing@example.com',
           name: 'New User',
-          role: 'teacher'
+          role: 'teacher',
         });
         const data = await response.json();
 
@@ -539,7 +569,7 @@ describe('Users API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-user',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue(null); // No existing user
@@ -547,7 +577,7 @@ describe('Users API Routes', () => {
         const response = await makeRequest(app, 'POST', '/api/users', {
           email: 'newadmin@example.com',
           name: 'New Admin',
-          role: 'admin'
+          role: 'admin',
         });
         const data = await response.json();
 
@@ -559,7 +589,7 @@ describe('Users API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'owner-user',
           organizationId: 'org-456',
-          userRole: ROLES.OWNER
+          userRole: ROLES.OWNER,
         });
 
         let callIndex = 0;
@@ -573,7 +603,7 @@ describe('Users API Routes', () => {
         const response = await makeRequest(app, 'POST', '/api/users', {
           email: 'newadmin@example.com',
           name: 'New Admin',
-          role: 'admin'
+          role: 'admin',
         });
         const data = await response.json();
 
@@ -582,13 +612,12 @@ describe('Users API Routes', () => {
       });
     });
 
-
     describe('Cross-organization creation', () => {
       it('should prevent admins from creating users in other organizations', async () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-user',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue(null);
@@ -597,7 +626,7 @@ describe('Users API Routes', () => {
           email: 'new@example.com',
           name: 'New User',
           role: 'teacher',
-          organizationId: 'other-org-789'
+          organizationId: 'other-org-789',
         });
         const data = await response.json();
 
@@ -609,7 +638,7 @@ describe('Users API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'owner-user',
           organizationId: 'org-456',
-          userRole: ROLES.OWNER
+          userRole: ROLES.OWNER,
         });
 
         let callIndex = 0;
@@ -624,7 +653,7 @@ describe('Users API Routes', () => {
           email: 'new@example.com',
           name: 'New User',
           role: 'teacher',
-          organizationId: 'other-org-789'
+          organizationId: 'other-org-789',
         });
         const data = await response.json();
 
@@ -639,18 +668,19 @@ describe('Users API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.TEACHER
+          userRole: ROLES.TEACHER,
         });
 
         let callIndex = 0;
         mockDB._chain.first.mockImplementation(() => {
           callIndex++;
-          if (callIndex === 1) return Promise.resolve({
-            id: 'user-123',
-            organization_id: 'org-456',
-            role: 'teacher',
-            is_active: 1
-          });
+          if (callIndex === 1)
+            return Promise.resolve({
+              id: 'user-123',
+              organization_id: 'org-456',
+              role: 'teacher',
+              is_active: 1,
+            });
           // Return updated user
           return Promise.resolve({
             id: 'user-123',
@@ -658,12 +688,12 @@ describe('Users API Routes', () => {
             organization_name: 'Test Org',
             name: 'Updated Name',
             role: 'teacher',
-            is_active: 1
+            is_active: 1,
           });
         });
 
         const response = await makeRequest(app, 'PUT', '/api/users/user-123', {
-          name: 'Updated Name'
+          name: 'Updated Name',
         });
         const data = await response.json();
 
@@ -675,17 +705,17 @@ describe('Users API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.TEACHER
+          userRole: ROLES.TEACHER,
         });
 
         mockDB._chain.first.mockResolvedValue({
           id: 'user-123',
           organization_id: 'org-456',
-          role: 'teacher'
+          role: 'teacher',
         });
 
         const response = await makeRequest(app, 'PUT', '/api/users/user-123', {
-          role: 'admin'
+          role: 'admin',
         });
         const data = await response.json();
 
@@ -697,17 +727,17 @@ describe('Users API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue({
           id: 'admin-123',
           organization_id: 'org-456',
-          role: 'admin'
+          role: 'admin',
         });
 
         const response = await makeRequest(app, 'PUT', '/api/users/admin-123', {
-          isActive: false
+          isActive: false,
         });
         const data = await response.json();
 
@@ -721,31 +751,32 @@ describe('Users API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         let callIndex = 0;
         mockDB._chain.first.mockImplementation(() => {
           callIndex++;
-          if (callIndex === 1) return Promise.resolve({
-            id: 'other-user',
-            organization_id: 'org-456',
-            role: 'teacher',
-            is_active: 1
-          });
+          if (callIndex === 1)
+            return Promise.resolve({
+              id: 'other-user',
+              organization_id: 'org-456',
+              role: 'teacher',
+              is_active: 1,
+            });
           return Promise.resolve({
             id: 'other-user',
             organization_id: 'org-456',
             organization_name: 'Test Org',
             name: 'Updated',
             role: 'readonly',
-            is_active: 1
+            is_active: 1,
           });
         });
 
         const response = await makeRequest(app, 'PUT', '/api/users/other-user', {
           name: 'Updated',
-          role: 'readonly'
+          role: 'readonly',
         });
         const data = await response.json();
 
@@ -756,17 +787,17 @@ describe('Users API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue({
           id: 'other-user',
           organization_id: 'org-456',
-          role: 'teacher'
+          role: 'teacher',
         });
 
         const response = await makeRequest(app, 'PUT', '/api/users/other-user', {
-          role: 'admin'
+          role: 'admin',
         });
         const data = await response.json();
 
@@ -778,17 +809,17 @@ describe('Users API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue({
           id: 'other-admin',
           organization_id: 'org-456',
-          role: 'admin'
+          role: 'admin',
         });
 
         const response = await makeRequest(app, 'PUT', '/api/users/other-admin', {
-          role: 'teacher'
+          role: 'teacher',
         });
         const data = await response.json();
 
@@ -802,28 +833,29 @@ describe('Users API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'owner-123',
           organizationId: 'org-456',
-          userRole: ROLES.OWNER
+          userRole: ROLES.OWNER,
         });
 
         let callIndex = 0;
         mockDB._chain.first.mockImplementation(() => {
           callIndex++;
-          if (callIndex === 1) return Promise.resolve({
-            id: 'teacher-user',
-            organization_id: 'org-456',
-            role: 'teacher'
-          });
+          if (callIndex === 1)
+            return Promise.resolve({
+              id: 'teacher-user',
+              organization_id: 'org-456',
+              role: 'teacher',
+            });
           return Promise.resolve({
             id: 'teacher-user',
             organization_id: 'org-456',
             organization_name: 'Test Org',
             role: 'admin',
-            is_active: 1
+            is_active: 1,
           });
         });
 
         const response = await makeRequest(app, 'PUT', '/api/users/teacher-user', {
-          role: 'admin'
+          role: 'admin',
         });
         const data = await response.json();
 
@@ -834,17 +866,17 @@ describe('Users API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'owner-123',
           organizationId: 'org-456',
-          userRole: ROLES.OWNER
+          userRole: ROLES.OWNER,
         });
 
         mockDB._chain.first.mockResolvedValue({
           id: 'owner-user',
           organization_id: 'org-456',
-          role: 'owner'
+          role: 'owner',
         });
 
         const response = await makeRequest(app, 'PUT', '/api/users/owner-user', {
-          role: 'admin'
+          role: 'admin',
         });
         const data = await response.json();
 
@@ -856,17 +888,17 @@ describe('Users API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue({
           id: 'owner-user',
           organization_id: 'org-456',
-          role: 'owner'
+          role: 'owner',
         });
 
         const response = await makeRequest(app, 'PUT', '/api/users/owner-user', {
-          isActive: false
+          isActive: false,
         });
         const data = await response.json();
 
@@ -880,13 +912,13 @@ describe('Users API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue(null);
 
         const response = await makeRequest(app, 'PUT', '/api/users/non-existent', {
-          name: 'New Name'
+          name: 'New Name',
         });
         const data = await response.json();
 
@@ -898,17 +930,17 @@ describe('Users API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'owner-123',
           organizationId: 'org-456',
-          userRole: ROLES.OWNER
+          userRole: ROLES.OWNER,
         });
 
         mockDB._chain.first.mockResolvedValue({
           id: 'other-user',
           organization_id: 'org-456',
-          role: 'teacher'
+          role: 'teacher',
         });
 
         const response = await makeRequest(app, 'PUT', '/api/users/other-user', {
-          role: 'superadmin'
+          role: 'superadmin',
         });
         const data = await response.json();
 
@@ -920,13 +952,13 @@ describe('Users API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue({
           id: 'other-user',
           organization_id: 'org-456',
-          role: 'teacher'
+          role: 'teacher',
         });
 
         const response = await makeRequest(app, 'PUT', '/api/users/other-user', {});
@@ -942,17 +974,17 @@ describe('Users API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'teacher-123',
           organizationId: 'org-456',
-          userRole: ROLES.TEACHER
+          userRole: ROLES.TEACHER,
         });
 
         mockDB._chain.first.mockResolvedValue({
           id: 'other-user',
           organization_id: 'org-456',
-          role: 'teacher'
+          role: 'teacher',
         });
 
         const response = await makeRequest(app, 'PUT', '/api/users/other-user', {
-          name: 'New Name'
+          name: 'New Name',
         });
         const data = await response.json();
 
@@ -968,7 +1000,7 @@ describe('Users API Routes', () => {
         const { app } = createTestApp({
           userId: 'teacher-123',
           organizationId: 'org-456',
-          userRole: ROLES.TEACHER
+          userRole: ROLES.TEACHER,
         });
 
         const response = await makeRequest(app, 'DELETE', '/api/users/other-user');
@@ -982,14 +1014,14 @@ describe('Users API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue({
           id: 'other-user',
           organization_id: 'org-456',
           role: 'teacher',
-          is_active: 1
+          is_active: 1,
         });
 
         const response = await makeRequest(app, 'DELETE', '/api/users/other-user');
@@ -1005,19 +1037,19 @@ describe('Users API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue({
           id: 'other-user',
           organization_id: 'org-456',
-          role: 'teacher'
+          role: 'teacher',
         });
 
         await makeRequest(app, 'DELETE', '/api/users/other-user');
 
         // Check that the update query sets is_active = 0
-        const updateCall = mockDB.prepare.mock.calls.find(call =>
+        const updateCall = mockDB.prepare.mock.calls.find((call) =>
           call[0].includes('UPDATE users SET is_active = 0')
         );
         expect(updateCall).toBeDefined();
@@ -1027,19 +1059,19 @@ describe('Users API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue({
           id: 'other-user',
           organization_id: 'org-456',
-          role: 'teacher'
+          role: 'teacher',
         });
 
         await makeRequest(app, 'DELETE', '/api/users/other-user');
 
         // Check that refresh tokens are revoked
-        const revokeCall = mockDB.prepare.mock.calls.find(call =>
+        const revokeCall = mockDB.prepare.mock.calls.find((call) =>
           call[0].includes('UPDATE refresh_tokens SET revoked_at')
         );
         expect(revokeCall).toBeDefined();
@@ -1051,13 +1083,13 @@ describe('Users API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue({
           id: 'admin-123',
           organization_id: 'org-456',
-          role: 'admin'
+          role: 'admin',
         });
 
         const response = await makeRequest(app, 'DELETE', '/api/users/admin-123');
@@ -1071,13 +1103,13 @@ describe('Users API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue({
           id: 'owner-user',
           organization_id: 'org-456',
-          role: 'owner'
+          role: 'owner',
         });
 
         const response = await makeRequest(app, 'DELETE', '/api/users/owner-user');
@@ -1091,7 +1123,7 @@ describe('Users API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue(null);
@@ -1109,7 +1141,7 @@ describe('Users API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         // User from different organization
@@ -1130,7 +1162,7 @@ describe('Users API Routes', () => {
         const { app } = createTestApp({
           userId: 'teacher-123',
           organizationId: 'org-456',
-          userRole: ROLES.TEACHER
+          userRole: ROLES.TEACHER,
         });
 
         const response = await makeRequest(app, 'POST', '/api/users/other-user/reset-password');
@@ -1144,7 +1176,7 @@ describe('Users API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue({
@@ -1153,7 +1185,7 @@ describe('Users API Routes', () => {
           organization_name: 'Test Org',
           email: 'other@example.com',
           name: 'Other User',
-          role: 'teacher'
+          role: 'teacher',
         });
 
         const response = await makeRequest(app, 'POST', '/api/users/other-user/reset-password');
@@ -1169,7 +1201,7 @@ describe('Users API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue({
@@ -1177,13 +1209,13 @@ describe('Users API Routes', () => {
           organization_id: 'org-456',
           organization_name: 'Test Org',
           email: 'other@example.com',
-          name: 'Other User'
+          name: 'Other User',
         });
 
         await makeRequest(app, 'POST', '/api/users/other-user/reset-password');
 
         // Check that password was updated
-        const updateCall = mockDB.prepare.mock.calls.find(call =>
+        const updateCall = mockDB.prepare.mock.calls.find((call) =>
           call[0].includes('UPDATE users SET password_hash')
         );
         expect(updateCall).toBeDefined();
@@ -1193,7 +1225,7 @@ describe('Users API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue({
@@ -1201,13 +1233,13 @@ describe('Users API Routes', () => {
           organization_id: 'org-456',
           organization_name: 'Test Org',
           email: 'other@example.com',
-          name: 'Other User'
+          name: 'Other User',
         });
 
         await makeRequest(app, 'POST', '/api/users/other-user/reset-password');
 
         // Check that refresh tokens are revoked
-        const revokeCall = mockDB.prepare.mock.calls.find(call =>
+        const revokeCall = mockDB.prepare.mock.calls.find((call) =>
           call[0].includes('UPDATE refresh_tokens SET revoked_at')
         );
         expect(revokeCall).toBeDefined();
@@ -1220,7 +1252,7 @@ describe('Users API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue({
@@ -1228,7 +1260,7 @@ describe('Users API Routes', () => {
           organization_id: 'org-456',
           organization_name: 'Test Org',
           email: 'other@example.com',
-          name: 'Other User'
+          name: 'Other User',
         });
 
         await makeRequest(app, 'POST', '/api/users/other-user/reset-password');
@@ -1240,7 +1272,7 @@ describe('Users API Routes', () => {
           'Other User',
           'Test Org',
           expect.any(String), // temporary password
-          expect.any(String)  // base URL
+          expect.any(String) // base URL
         );
       });
 
@@ -1251,7 +1283,7 @@ describe('Users API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue({
@@ -1259,7 +1291,7 @@ describe('Users API Routes', () => {
           organization_id: 'org-456',
           organization_name: 'Test Org',
           email: 'other@example.com',
-          name: 'Other User'
+          name: 'Other User',
         });
 
         const response = await makeRequest(app, 'POST', '/api/users/other-user/reset-password');
@@ -1275,7 +1307,7 @@ describe('Users API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue({
@@ -1283,7 +1315,7 @@ describe('Users API Routes', () => {
           organization_id: 'org-456',
           organization_name: 'Test Org',
           email: 'other@example.com',
-          name: 'Other User'
+          name: 'Other User',
         });
 
         const response = await makeRequest(app, 'POST', '/api/users/other-user/reset-password');
@@ -1300,7 +1332,7 @@ describe('Users API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue(null);
@@ -1318,7 +1350,7 @@ describe('Users API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         // User from different organization - query returns null
@@ -1338,7 +1370,7 @@ describe('Users API Routes', () => {
       const { app, mockDB } = createTestApp({
         userId: 'admin-123',
         organizationId: 'org-456',
-        userRole: ROLES.ADMIN
+        userRole: ROLES.ADMIN,
       });
 
       mockDB._chain.all.mockRejectedValue(new Error('Database connection failed'));
@@ -1354,7 +1386,7 @@ describe('Users API Routes', () => {
       const { app, mockDB } = createTestApp({
         userId: 'admin-123',
         organizationId: 'org-456',
-        userRole: ROLES.ADMIN
+        userRole: ROLES.ADMIN,
       });
 
       mockDB._chain.first.mockRejectedValue(new Error('Database error'));
@@ -1362,7 +1394,7 @@ describe('Users API Routes', () => {
       const response = await makeRequest(app, 'POST', '/api/users', {
         email: 'test@example.com',
         name: 'Test',
-        role: 'teacher'
+        role: 'teacher',
       });
       const data = await response.json();
 
@@ -1374,13 +1406,13 @@ describe('Users API Routes', () => {
       const { app, mockDB } = createTestApp({
         userId: 'admin-123',
         organizationId: 'org-456',
-        userRole: ROLES.ADMIN
+        userRole: ROLES.ADMIN,
       });
 
       mockDB._chain.first.mockRejectedValue(new Error('Database error'));
 
       const response = await makeRequest(app, 'PUT', '/api/users/some-user', {
-        name: 'Updated'
+        name: 'Updated',
       });
       const data = await response.json();
 
@@ -1392,7 +1424,7 @@ describe('Users API Routes', () => {
       const { app, mockDB } = createTestApp({
         userId: 'admin-123',
         organizationId: 'org-456',
-        userRole: ROLES.ADMIN
+        userRole: ROLES.ADMIN,
       });
 
       mockDB._chain.first.mockRejectedValue(new Error('Database error'));
@@ -1408,7 +1440,7 @@ describe('Users API Routes', () => {
       const { app, mockDB } = createTestApp({
         userId: 'admin-123',
         organizationId: 'org-456',
-        userRole: ROLES.ADMIN
+        userRole: ROLES.ADMIN,
       });
 
       mockDB._chain.first.mockRejectedValue(new Error('Database error'));
@@ -1426,7 +1458,7 @@ describe('Users API Routes', () => {
       const { app } = createTestApp({
         userId: 'user-123',
         organizationId: 'org-456',
-        userRole: ROLES.TEACHER
+        userRole: ROLES.TEACHER,
       });
 
       const response = await makeRequest(app, 'GET', '/api/users/user-1/classes');
@@ -1442,7 +1474,7 @@ describe('Users API Routes', () => {
           return Promise.resolve({
             id: 'user-1',
             organization_id: 'org-456',
-            wonde_employee_id: 'A1234567890'
+            wonde_employee_id: 'A1234567890',
           });
         }
         return Promise.resolve(null);
@@ -1450,16 +1482,19 @@ describe('Users API Routes', () => {
       mockDB._chain.all.mockResolvedValue({
         results: [
           { class_id: 'class-1', class_name: 'Year 3 Elm', source: 'wonde' },
-          { class_id: 'class-2', class_name: 'Year 4 Oak', source: 'wonde' }
+          { class_id: 'class-2', class_name: 'Year 4 Oak', source: 'wonde' },
         ],
-        success: true
+        success: true,
       });
 
-      const { app } = createTestApp({
-        userId: 'admin-1',
-        organizationId: 'org-456',
-        userRole: ROLES.ADMIN
-      }, mockDB);
+      const { app } = createTestApp(
+        {
+          userId: 'admin-1',
+          organizationId: 'org-456',
+          userRole: ROLES.ADMIN,
+        },
+        mockDB
+      );
 
       const response = await makeRequest(app, 'GET', '/api/users/user-1/classes');
       const data = await response.json();
@@ -1469,7 +1504,7 @@ describe('Users API Routes', () => {
       expect(data.classes[0]).toEqual({
         classId: 'class-1',
         className: 'Year 3 Elm',
-        source: 'wonde'
+        source: 'wonde',
       });
     });
 
@@ -1478,14 +1513,17 @@ describe('Users API Routes', () => {
       mockDB._chain.first.mockResolvedValue({
         id: 'user-2',
         organization_id: 'org-456',
-        wonde_employee_id: null
+        wonde_employee_id: null,
       });
 
-      const { app } = createTestApp({
-        userId: 'admin-1',
-        organizationId: 'org-456',
-        userRole: ROLES.ADMIN
-      }, mockDB);
+      const { app } = createTestApp(
+        {
+          userId: 'admin-1',
+          organizationId: 'org-456',
+          userRole: ROLES.ADMIN,
+        },
+        mockDB
+      );
 
       const response = await makeRequest(app, 'GET', '/api/users/user-2/classes');
       const data = await response.json();
@@ -1498,11 +1536,14 @@ describe('Users API Routes', () => {
       const mockDB = createMockDB();
       mockDB._chain.first.mockResolvedValue(null);
 
-      const { app } = createTestApp({
-        userId: 'admin-1',
-        organizationId: 'org-456',
-        userRole: ROLES.ADMIN
-      }, mockDB);
+      const { app } = createTestApp(
+        {
+          userId: 'admin-1',
+          organizationId: 'org-456',
+          userRole: ROLES.ADMIN,
+        },
+        mockDB
+      );
 
       const response = await makeRequest(app, 'GET', '/api/users/nonexistent/classes');
       expect(response.status).toBe(404);

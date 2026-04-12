@@ -35,15 +35,11 @@ export function parseOpenLibraryBook(olData) {
   const title = olData.title || null;
   const pageCount = olData.number_of_pages ?? null;
   const publicationYear = parsePublicationYear(olData.publish_date);
-  const coverId = olData.covers && olData.covers.length > 0
-    ? olData.covers[0]
-    : null;
+  const coverId = olData.covers && olData.covers.length > 0 ? olData.covers[0] : null;
 
   let seriesName = null;
   if (olData.series) {
-    seriesName = Array.isArray(olData.series)
-      ? olData.series[0]
-      : olData.series;
+    seriesName = Array.isArray(olData.series) ? olData.series[0] : olData.series;
   }
 
   let seriesNumber = null;
@@ -108,11 +104,9 @@ export async function lookupISBN(isbn, env) {
   if (!response.ok) {
     // Cache the negative result
     try {
-      await env.RECOMMENDATIONS_CACHE.put(
-        cacheKey,
-        JSON.stringify({ notFound: true }),
-        { expirationTtl: CACHE_TTL_NOT_FOUND }
-      );
+      await env.RECOMMENDATIONS_CACHE.put(cacheKey, JSON.stringify({ notFound: true }), {
+        expirationTtl: CACHE_TTL_NOT_FOUND,
+      });
     } catch {
       // KV unavailable — skip caching
     }
@@ -155,11 +149,9 @@ export async function lookupISBN(isbn, env) {
 
   // Cache successful result
   try {
-    await env.RECOMMENDATIONS_CACHE.put(
-      cacheKey,
-      JSON.stringify(result),
-      { expirationTtl: CACHE_TTL_SUCCESS }
-    );
+    await env.RECOMMENDATIONS_CACHE.put(cacheKey, JSON.stringify(result), {
+      expirationTtl: CACHE_TTL_SUCCESS,
+    });
   } catch {
     // KV unavailable — skip caching
   }

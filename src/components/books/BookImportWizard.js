@@ -22,7 +22,7 @@ import {
   Checkbox,
   Chip,
   Divider,
-  Paper
+  Paper,
 } from '@mui/material';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import { useAuth } from '../../contexts/AuthContext';
@@ -36,7 +36,17 @@ const BookImportWizard = ({ open, onClose }) => {
   const { reloadDataFromServer } = useData();
   const [activeStep, setActiveStep] = useState(0);
   const [csvData, setCsvData] = useState(null);
-  const [columnMapping, setColumnMapping] = useState({ title: null, author: null, readingLevel: null, isbn: null, description: null, pageCount: null, publicationYear: null, seriesName: null, seriesNumber: null });
+  const [columnMapping, setColumnMapping] = useState({
+    title: null,
+    author: null,
+    readingLevel: null,
+    isbn: null,
+    description: null,
+    pageCount: null,
+    publicationYear: null,
+    seriesName: null,
+    seriesNumber: null,
+  });
   const [previewResults, setPreviewResults] = useState(null);
   const [selectedConflicts, setSelectedConflicts] = useState({});
   const [selectedPossibleMatches, setSelectedPossibleMatches] = useState({});
@@ -81,7 +91,7 @@ const BookImportWizard = ({ open, onClose }) => {
   }, []);
 
   const handleMappingChange = (field, value) => {
-    setColumnMapping(prev => ({ ...prev, [field]: value === '' ? null : parseInt(value) }));
+    setColumnMapping((prev) => ({ ...prev, [field]: value === '' ? null : parseInt(value) }));
   };
 
   const handlePreview = async () => {
@@ -99,7 +109,7 @@ const BookImportWizard = ({ open, onClose }) => {
       const response = await fetchWithAuth('/api/books/import/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ books })
+        body: JSON.stringify({ books }),
       });
 
       if (!response.ok) throw new Error('Preview failed');
@@ -121,32 +131,32 @@ const BookImportWizard = ({ open, onClose }) => {
 
     try {
       // Build full payload
-      const allMatched = previewResults.matched.map(m => ({ existingBookId: m.existingBook.id }));
-      const allNewBooks = previewResults.newBooks.map(n => n.importedBook);
+      const allMatched = previewResults.matched.map((m) => ({ existingBookId: m.existingBook.id }));
+      const allNewBooks = previewResults.newBooks.map((n) => n.importedBook);
       const allConflicts = previewResults.conflicts
-        .filter(c => selectedConflicts[c.existingBook.id])
-        .map(c => ({
+        .filter((c) => selectedConflicts[c.existingBook.id])
+        .map((c) => ({
           existingBookId: c.existingBook.id,
           updateReadingLevel: true,
-          newReadingLevel: c.importedBook.readingLevel
+          newReadingLevel: c.importedBook.readingLevel,
         }));
 
       // Also link conflicts that weren't updated
       const unupdatedConflicts = previewResults.conflicts
-        .filter(c => !selectedConflicts[c.existingBook.id])
-        .map(c => ({ existingBookId: c.existingBook.id }));
+        .filter((c) => !selectedConflicts[c.existingBook.id])
+        .map((c) => ({ existingBookId: c.existingBook.id }));
       allMatched.push(...unupdatedConflicts);
 
       // Handle possible matches: accepted ones link to existing, rejected become new books
       if (previewResults.possibleMatches) {
         const acceptedMatches = previewResults.possibleMatches
-          .filter(pm => selectedPossibleMatches[pm.existingBook.id])
-          .map(pm => ({ existingBookId: pm.existingBook.id }));
+          .filter((pm) => selectedPossibleMatches[pm.existingBook.id])
+          .map((pm) => ({ existingBookId: pm.existingBook.id }));
         allMatched.push(...acceptedMatches);
 
         const rejectedMatches = previewResults.possibleMatches
-          .filter(pm => !selectedPossibleMatches[pm.existingBook.id])
-          .map(pm => pm.importedBook);
+          .filter((pm) => !selectedPossibleMatches[pm.existingBook.id])
+          .map((pm) => pm.importedBook);
         allNewBooks.push(...rejectedMatches);
       }
 
@@ -163,7 +173,7 @@ const BookImportWizard = ({ open, onClose }) => {
         const response = await fetchWithAuth('/api/books/import/confirm', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ matched: chunk, newBooks: [], conflicts: [] })
+          body: JSON.stringify({ matched: chunk, newBooks: [], conflicts: [] }),
         });
         if (!response.ok) throw new Error(`Import chunk failed (matched ${i})`);
         const result = await response.json();
@@ -180,7 +190,7 @@ const BookImportWizard = ({ open, onClose }) => {
         const response = await fetchWithAuth('/api/books/import/confirm', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ matched: [], newBooks: chunk, conflicts: [] })
+          body: JSON.stringify({ matched: [], newBooks: chunk, conflicts: [] }),
         });
         if (!response.ok) throw new Error(`Import chunk failed (new ${i})`);
         const result = await response.json();
@@ -196,7 +206,7 @@ const BookImportWizard = ({ open, onClose }) => {
         const response = await fetchWithAuth('/api/books/import/confirm', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ matched: [], newBooks: [], conflicts: allConflicts })
+          body: JSON.stringify({ matched: [], newBooks: [], conflicts: allConflicts }),
         });
         if (!response.ok) throw new Error('Import chunk failed (conflicts)');
         const result = await response.json();
@@ -210,7 +220,7 @@ const BookImportWizard = ({ open, onClose }) => {
         created: totals.created,
         updated: totals.updated,
         errors: totals.errors.length > 0 ? totals.errors : undefined,
-        success: totals.errors.length === 0
+        success: totals.errors.length === 0,
       });
       setActiveStep(3);
       await reloadDataFromServer();
@@ -225,7 +235,17 @@ const BookImportWizard = ({ open, onClose }) => {
   const handleClose = () => {
     setActiveStep(0);
     setCsvData(null);
-    setColumnMapping({ title: null, author: null, readingLevel: null, isbn: null, description: null, pageCount: null, publicationYear: null, seriesName: null, seriesNumber: null });
+    setColumnMapping({
+      title: null,
+      author: null,
+      readingLevel: null,
+      isbn: null,
+      description: null,
+      pageCount: null,
+      publicationYear: null,
+      seriesName: null,
+      seriesNumber: null,
+    });
     setPreviewResults(null);
     setSelectedConflicts({});
     setSelectedPossibleMatches({});
@@ -258,7 +278,8 @@ const BookImportWizard = ({ open, onClose }) => {
               </Button>
             </label>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-              Only Title is required. Optional columns: Author, Reading Level, ISBN, Description, Page Count, Year, Series
+              Only Title is required. Optional columns: Author, Reading Level, ISBN, Description,
+              Page Count, Year, Series
             </Typography>
           </Box>
         );
@@ -279,13 +300,17 @@ const BookImportWizard = ({ open, onClose }) => {
                 { key: 'pageCount', label: 'Page Count' },
                 { key: 'publicationYear', label: 'Publication Year' },
                 { key: 'seriesName', label: 'Series Name' },
-                { key: 'seriesNumber', label: 'Series Number' }
+                { key: 'seriesNumber', label: 'Series Number' },
               ];
               return (
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
                   {allFields.map((field, i) => (
                     <React.Fragment key={field.key}>
-                      {i === 4 && <Divider sx={{ my: 0.5 }}><Chip label="Optional metadata" size="small" /></Divider>}
+                      {i === 4 && (
+                        <Divider sx={{ my: 0.5 }}>
+                          <Chip label="Optional metadata" size="small" />
+                        </Divider>
+                      )}
                       <FormControl fullWidth size="small">
                         <InputLabel>{field.label}</InputLabel>
                         <Select
@@ -295,7 +320,9 @@ const BookImportWizard = ({ open, onClose }) => {
                         >
                           <MenuItem value="">Not mapped</MenuItem>
                           {csvData?.headers.map((header, idx) => (
-                            <MenuItem key={idx} value={idx}>{header}</MenuItem>
+                            <MenuItem key={idx} value={idx}>
+                              {header}
+                            </MenuItem>
                           ))}
                         </Select>
                       </FormControl>
@@ -319,10 +346,16 @@ const BookImportWizard = ({ open, onClose }) => {
                   <Chip label={`${previewResults.matched.length} matched`} color="success" />
                   <Chip label={`${previewResults.newBooks.length} new`} color="primary" />
                   {previewResults.possibleMatches?.length > 0 && (
-                    <Chip label={`${previewResults.possibleMatches.length} possible matches`} color="info" />
+                    <Chip
+                      label={`${previewResults.possibleMatches.length} possible matches`}
+                      color="info"
+                    />
                   )}
                   <Chip label={`${previewResults.conflicts.length} conflicts`} color="warning" />
-                  <Chip label={`${previewResults.alreadyInLibrary.length} already in library`} color="default" />
+                  <Chip
+                    label={`${previewResults.alreadyInLibrary.length} already in library`}
+                    color="default"
+                  />
                 </Box>
 
                 {previewResults.possibleMatches?.length > 0 && (
@@ -335,23 +368,46 @@ const BookImportWizard = ({ open, onClose }) => {
                     </Typography>
                     <List dense>
                       {previewResults.possibleMatches.map((match) => (
-                        <ListItem key={match.existingBook.id} dense sx={{ alignItems: 'flex-start' }}>
+                        <ListItem
+                          key={match.existingBook.id}
+                          dense
+                          sx={{ alignItems: 'flex-start' }}
+                        >
                           <Checkbox
                             checked={!!selectedPossibleMatches[match.existingBook.id]}
-                            onChange={(e) => setSelectedPossibleMatches(prev => ({
-                              ...prev,
-                              [match.existingBook.id]: e.target.checked
-                            }))}
+                            onChange={(e) =>
+                              setSelectedPossibleMatches((prev) => ({
+                                ...prev,
+                                [match.existingBook.id]: e.target.checked,
+                              }))
+                            }
                             sx={{ mt: 0.5 }}
                           />
                           <ListItemText
                             primary={
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                                <Typography variant="body2" component="span" sx={{ color: 'text.secondary' }}>
+                              <Box
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 1,
+                                  flexWrap: 'wrap',
+                                }}
+                              >
+                                <Typography
+                                  variant="body2"
+                                  component="span"
+                                  sx={{ color: 'text.secondary' }}
+                                >
                                   "{match.importedBook.title}"
                                 </Typography>
-                                <Typography variant="body2" component="span">→</Typography>
-                                <Typography variant="body2" component="span" sx={{ fontWeight: 500 }}>
+                                <Typography variant="body2" component="span">
+                                  →
+                                </Typography>
+                                <Typography
+                                  variant="body2"
+                                  component="span"
+                                  sx={{ fontWeight: 500 }}
+                                >
                                   "{match.existingBook.title}"
                                 </Typography>
                               </Box>
@@ -359,15 +415,20 @@ const BookImportWizard = ({ open, onClose }) => {
                             secondary={
                               <Box component="span" sx={{ display: 'block', mt: 0.5 }}>
                                 {match.importedBook.author && (
-                                  <Typography variant="caption" component="span" sx={{ color: 'text.secondary', mr: 1 }}>
+                                  <Typography
+                                    variant="caption"
+                                    component="span"
+                                    sx={{ color: 'text.secondary', mr: 1 }}
+                                  >
                                     by {match.importedBook.author}
                                   </Typography>
                                 )}
-                                {match.existingBook.author && match.importedBook.author !== match.existingBook.author && (
-                                  <Typography variant="caption" component="span">
-                                    → by {match.existingBook.author}
-                                  </Typography>
-                                )}
+                                {match.existingBook.author &&
+                                  match.importedBook.author !== match.existingBook.author && (
+                                    <Typography variant="caption" component="span">
+                                      → by {match.existingBook.author}
+                                    </Typography>
+                                  )}
                               </Box>
                             }
                           />
@@ -387,10 +448,12 @@ const BookImportWizard = ({ open, onClose }) => {
                         <ListItem key={conflict.existingBook.id} dense>
                           <Checkbox
                             checked={!!selectedConflicts[conflict.existingBook.id]}
-                            onChange={(e) => setSelectedConflicts(prev => ({
-                              ...prev,
-                              [conflict.existingBook.id]: e.target.checked
-                            }))}
+                            onChange={(e) =>
+                              setSelectedConflicts((prev) => ({
+                                ...prev,
+                                [conflict.existingBook.id]: e.target.checked,
+                              }))
+                            }
                           />
                           <ListItemText
                             primary={conflict.existingBook.title}
@@ -409,7 +472,11 @@ const BookImportWizard = ({ open, onClose }) => {
       case 3: // Complete
         return (
           <Box sx={{ py: 4, textAlign: 'center' }}>
-            <Typography variant="h6" color={importResult?.errors ? 'warning.main' : 'success.main'} gutterBottom>
+            <Typography
+              variant="h6"
+              color={importResult?.errors ? 'warning.main' : 'success.main'}
+              gutterBottom
+            >
               {importResult?.errors ? 'Import Partially Complete' : 'Import Complete!'}
             </Typography>
             {importResult && (
@@ -423,7 +490,8 @@ const BookImportWizard = ({ open, onClose }) => {
                       {importResult.errors.length} errors occurred
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      First error: {importResult.errors[0]?.error || JSON.stringify(importResult.errors[0])}
+                      First error:{' '}
+                      {importResult.errors[0]?.error || JSON.stringify(importResult.errors[0])}
                     </Typography>
                   </Box>
                 )}
@@ -449,33 +517,43 @@ const BookImportWizard = ({ open, onClose }) => {
           ))}
         </Stepper>
 
-        {isLoading && (
-          importProgress ? (
+        {isLoading &&
+          (importProgress ? (
             <Box sx={{ mb: 2 }}>
-              <LinearProgress variant="determinate" value={(importProgress.processed / importProgress.total) * 100} sx={{ mb: 0.5 }} />
+              <LinearProgress
+                variant="determinate"
+                value={(importProgress.processed / importProgress.total) * 100}
+                sx={{ mb: 0.5 }}
+              />
               <Typography variant="caption" color="text.secondary" align="center" display="block">
                 Importing {importProgress.processed} / {importProgress.total} books...
               </Typography>
             </Box>
           ) : (
             <LinearProgress sx={{ mb: 2 }} />
-          )
+          ))}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
         )}
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
         {renderStepContent()}
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleClose}>
-          {activeStep === 3 ? 'Done' : 'Cancel'}
-        </Button>
+        <Button onClick={handleClose}>{activeStep === 3 ? 'Done' : 'Cancel'}</Button>
         {activeStep === 1 && (
           <Button onClick={handlePreview} variant="contained" disabled={isLoading}>
             Preview Import
           </Button>
         )}
         {activeStep === 2 && (
-          <Button onClick={handleConfirmImport} variant="contained" color="primary" disabled={isLoading}>
+          <Button
+            onClick={handleConfirmImport}
+            variant="contained"
+            color="primary"
+            disabled={isLoading}
+          >
             Confirm Import
           </Button>
         )}

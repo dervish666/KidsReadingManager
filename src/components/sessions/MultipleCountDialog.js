@@ -1,5 +1,12 @@
 import React from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button } from '@mui/material';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Button,
+} from '@mui/material';
 
 const MultipleCountDialog = ({ open, onClose, onConfirm, count, onCountChange }) => {
   return (

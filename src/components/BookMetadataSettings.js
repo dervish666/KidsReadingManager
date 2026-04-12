@@ -165,7 +165,9 @@ const BookMetadataSettings = () => {
   };
 
   const progressPercent =
-    progress?.totalBooks > 0 ? Math.round((progress.processedBooks / progress.totalBooks) * 100) : 0;
+    progress?.totalBooks > 0
+      ? Math.round((progress.processedBooks / progress.totalBooks) * 100)
+      : 0;
 
   // ── Render ────────────────────────────────────────────────────────────────────
 
@@ -201,7 +203,9 @@ const BookMetadataSettings = () => {
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
           <Button
             variant="contained"
-            startIcon={isRunning ? <CircularProgress size={18} color="inherit" /> : <AutoFixHighIcon />}
+            startIcon={
+              isRunning ? <CircularProgress size={18} color="inherit" /> : <AutoFixHighIcon />
+            }
             onClick={handleFillMissing}
             disabled={isRunning}
             sx={{

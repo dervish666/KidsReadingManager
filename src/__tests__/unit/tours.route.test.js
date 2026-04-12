@@ -41,8 +41,20 @@ describe('GET /api/tours/status', () => {
   it('returns completed tours with tourId and version', async () => {
     mockDb.all.mockResolvedValue({
       results: [
-        { id: 1, user_id: 1, tour_id: 'students', tour_version: 1, completed_at: '2026-03-26T12:00:00Z' },
-        { id: 2, user_id: 1, tour_id: 'stats', tour_version: 1, completed_at: '2026-03-26T13:00:00Z' },
+        {
+          id: 1,
+          user_id: 1,
+          tour_id: 'students',
+          tour_version: 1,
+          completed_at: '2026-03-26T12:00:00Z',
+        },
+        {
+          id: 2,
+          user_id: 1,
+          tour_id: 'stats',
+          tour_version: 1,
+          completed_at: '2026-03-26T13:00:00Z',
+        },
       ],
     });
 
@@ -88,6 +100,8 @@ describe('POST /api/tours/:tourId/complete', () => {
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data).toEqual({ success: true, tourId: 'students', version: 1 });
-    expect(mockDb.prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO user_tour_completions'));
+    expect(mockDb.prepare).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO user_tour_completions')
+    );
   });
 });

@@ -75,13 +75,25 @@ const formatDate = (dateStr) => {
 const statusChipProps = (status) => {
   switch (status) {
     case 'completed':
-      return { label: 'Completed', sx: { backgroundColor: 'rgba(74, 110, 74, 0.1)', color: 'status.recentlyRead' } };
+      return {
+        label: 'Completed',
+        sx: { backgroundColor: 'rgba(74, 110, 74, 0.1)', color: 'status.recentlyRead' },
+      };
     case 'running':
-      return { label: 'Running', sx: { backgroundColor: 'rgba(90, 138, 158, 0.12)', color: 'info.main' } };
+      return {
+        label: 'Running',
+        sx: { backgroundColor: 'rgba(90, 138, 158, 0.12)', color: 'info.main' },
+      };
     case 'paused':
-      return { label: 'Paused', sx: { backgroundColor: 'rgba(155, 110, 58, 0.1)', color: 'status.needsAttention' } };
+      return {
+        label: 'Paused',
+        sx: { backgroundColor: 'rgba(155, 110, 58, 0.1)', color: 'status.needsAttention' },
+      };
     case 'failed':
-      return { label: 'Failed', sx: { backgroundColor: 'rgba(193, 126, 126, 0.12)', color: 'error.main' } };
+      return {
+        label: 'Failed',
+        sx: { backgroundColor: 'rgba(193, 126, 126, 0.12)', color: 'error.main' },
+      };
     default:
       return { label: status || 'Unknown', sx: {} };
   }
@@ -175,7 +187,7 @@ const MetadataManagement = () => {
         const res = await fetchWithAuth('/api/organization/all?pageSize=200');
         if (res.ok) {
           const data = await res.json();
-          setSchools(Array.isArray(data) ? data : (data.organizations || []));
+          setSchools(Array.isArray(data) ? data : data.organizations || []);
         }
       } catch (err) {
         console.error('Failed to load schools', err);
@@ -191,7 +203,7 @@ const MetadataManagement = () => {
       const res = await fetchWithAuth('/api/metadata/jobs');
       if (res.ok) {
         const data = await res.json();
-        setJobs(Array.isArray(data) ? data : (data.jobs || []));
+        setJobs(Array.isArray(data) ? data : data.jobs || []);
       }
     } catch (err) {
       console.error('Failed to load jobs', err);
@@ -316,7 +328,10 @@ const MetadataManagement = () => {
       // Background mode: don't poll, the cron will handle it
       if (runInBackground) {
         setIsEnriching(false);
-        showSnackbar('Enrichment started in background — check Job History for progress', 'success');
+        showSnackbar(
+          'Enrichment started in background — check Job History for progress',
+          'success'
+        );
         loadJobs();
         return;
       }
@@ -369,10 +384,7 @@ const MetadataManagement = () => {
       <Paper sx={{ p: 3, mb: 3, borderRadius: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
           <MenuBookIcon color="primary" sx={{ mr: 1 }} />
-          <Typography
-            variant="h6"
-            sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800 }}
-          >
+          <Typography variant="h6" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800 }}>
             Provider Configuration
           </Typography>
         </Box>
@@ -459,7 +471,11 @@ const MetadataManagement = () => {
           type="password"
           value={hardcoverKey}
           onChange={(e) => setHardcoverKey(e.target.value)}
-          placeholder={config.hasHardcoverApiKey ? 'Key configured — enter new key to replace' : 'Enter API key'}
+          placeholder={
+            config.hasHardcoverApiKey
+              ? 'Key configured — enter new key to replace'
+              : 'Enter API key'
+          }
           helperText="Stored encrypted. Leave blank to keep existing key."
           sx={{ mb: 2 }}
           autoComplete="new-password"
@@ -471,7 +487,11 @@ const MetadataManagement = () => {
           type="password"
           value={googleBooksKey}
           onChange={(e) => setGoogleBooksKey(e.target.value)}
-          placeholder={config.hasGoogleBooksApiKey ? 'Key configured — enter new key to replace' : 'Enter API key'}
+          placeholder={
+            config.hasGoogleBooksApiKey
+              ? 'Key configured — enter new key to replace'
+              : 'Enter API key'
+          }
           helperText="Stored encrypted. Leave blank to keep existing key."
           sx={{ mb: 3 }}
           autoComplete="new-password"
@@ -553,10 +573,7 @@ const MetadataManagement = () => {
       <Paper sx={{ p: 3, mb: 3, borderRadius: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
           <RefreshIcon color="primary" sx={{ mr: 1 }} />
-          <Typography
-            variant="h6"
-            sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800 }}
-          >
+          <Typography variant="h6" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800 }}>
             Global Enrichment
           </Typography>
         </Box>
@@ -608,7 +625,9 @@ const MetadataManagement = () => {
         <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
           <Button
             variant="contained"
-            startIcon={isEnriching ? <CircularProgress size={18} color="inherit" /> : <PlayArrowIcon />}
+            startIcon={
+              isEnriching ? <CircularProgress size={18} color="inherit" /> : <PlayArrowIcon />
+            }
             onClick={() => handleEnrich('fill_missing')}
             disabled={isEnriching}
             sx={{
@@ -622,7 +641,9 @@ const MetadataManagement = () => {
           </Button>
           <Button
             variant="outlined"
-            startIcon={isEnriching ? <CircularProgress size={18} color="primary" /> : <RefreshIcon />}
+            startIcon={
+              isEnriching ? <CircularProgress size={18} color="primary" /> : <RefreshIcon />
+            }
             onClick={() => handleEnrich('refresh_all')}
             disabled={isEnriching}
             sx={{
@@ -669,8 +690,8 @@ const MetadataManagement = () => {
               {progress?.currentBook
                 ? `Processing: ${progress.currentBook}`
                 : isEnriching
-                ? 'Starting enrichment…'
-                : 'Complete'}
+                  ? 'Starting enrichment…'
+                  : 'Complete'}
               {progress?.processedBooks != null && progress?.totalBooks != null
                 ? ` (${progress.processedBooks}/${progress.totalBooks})`
                 : ''}
@@ -697,10 +718,7 @@ const MetadataManagement = () => {
       {/* ── Section 3: Job History ─────────────────────────────────────────── */}
       <Paper sx={{ p: 3, borderRadius: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Typography
-            variant="h6"
-            sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800 }}
-          >
+          <Typography variant="h6" sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800 }}>
             Job History
           </Typography>
           <IconButton
@@ -723,37 +741,65 @@ const MetadataManagement = () => {
               <TableHead>
                 <TableRow>
                   <TableCell
-                    sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: 'text.secondary' }}
+                    sx={{
+                      fontFamily: '"Nunito", sans-serif',
+                      fontWeight: 700,
+                      color: 'text.secondary',
+                    }}
                   >
                     Date
                   </TableCell>
                   <TableCell
-                    sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: 'text.secondary' }}
+                    sx={{
+                      fontFamily: '"Nunito", sans-serif',
+                      fontWeight: 700,
+                      color: 'text.secondary',
+                    }}
                   >
                     School
                   </TableCell>
                   <TableCell
-                    sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: 'text.secondary' }}
+                    sx={{
+                      fontFamily: '"Nunito", sans-serif',
+                      fontWeight: 700,
+                      color: 'text.secondary',
+                    }}
                   >
                     Type
                   </TableCell>
                   <TableCell
-                    sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: 'text.secondary' }}
+                    sx={{
+                      fontFamily: '"Nunito", sans-serif',
+                      fontWeight: 700,
+                      color: 'text.secondary',
+                    }}
                   >
                     Status
                   </TableCell>
                   <TableCell
-                    sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: 'text.secondary' }}
+                    sx={{
+                      fontFamily: '"Nunito", sans-serif',
+                      fontWeight: 700,
+                      color: 'text.secondary',
+                    }}
                   >
                     Progress
                   </TableCell>
                   <TableCell
-                    sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: 'text.secondary' }}
+                    sx={{
+                      fontFamily: '"Nunito", sans-serif',
+                      fontWeight: 700,
+                      color: 'text.secondary',
+                    }}
                   >
                     Enriched
                   </TableCell>
                   <TableCell
-                    sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, color: 'text.secondary' }}
+                    sx={{
+                      fontFamily: '"Nunito", sans-serif',
+                      fontWeight: 700,
+                      color: 'text.secondary',
+                    }}
                   >
                     Errors
                   </TableCell>
@@ -763,22 +809,25 @@ const MetadataManagement = () => {
                 {jobs.map((job) => {
                   const chipProps = statusChipProps(job.status);
                   return (
-                    <TableRow
-                      key={job.id}
-                      sx={{ '&:last-child td': { border: 0 } }}
-                    >
+                    <TableRow key={job.id} sx={{ '&:last-child td': { border: 0 } }}>
                       <TableCell
-                        sx={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.8rem', color: 'text.secondary' }}
+                        sx={{
+                          fontFamily: '"DM Sans", sans-serif',
+                          fontSize: '0.8rem',
+                          color: 'text.secondary',
+                        }}
                       >
                         {formatDate(job.createdAt)}
                       </TableCell>
-                      <TableCell
-                        sx={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.85rem' }}
-                      >
+                      <TableCell sx={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.85rem' }}>
                         {job.organizationId || 'All schools'}
                       </TableCell>
                       <TableCell
-                        sx={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.85rem', textTransform: 'capitalize' }}
+                        sx={{
+                          fontFamily: '"DM Sans", sans-serif',
+                          fontSize: '0.85rem',
+                          textTransform: 'capitalize',
+                        }}
                       >
                         {job.jobType || '—'}
                       </TableCell>
@@ -794,16 +843,12 @@ const MetadataManagement = () => {
                           }}
                         />
                       </TableCell>
-                      <TableCell
-                        sx={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.85rem' }}
-                      >
+                      <TableCell sx={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.85rem' }}>
                         {job.processedBooks != null && job.totalBooks != null
                           ? `${job.processedBooks}/${job.totalBooks}`
                           : '—'}
                       </TableCell>
-                      <TableCell
-                        sx={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.85rem' }}
-                      >
+                      <TableCell sx={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.85rem' }}>
                         {job.enrichedBooks ?? '—'}
                       </TableCell>
                       <TableCell

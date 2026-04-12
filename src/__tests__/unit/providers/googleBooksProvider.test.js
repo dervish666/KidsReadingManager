@@ -15,27 +15,28 @@ describe('googleBooksProvider', () => {
   it('returns metadata from Google Books API', async () => {
     fetchWithTimeout.mockResolvedValueOnce({
       ok: true,
-      json: () => Promise.resolve({
-        items: [{
-          volumeInfo: {
-            title: 'The Gruffalo',
-            authors: ['Julia Donaldson'],
-            description: 'A mouse walks through the woods.',
-            publishedDate: '1999-03-23',
-            pageCount: 32,
-            categories: ['Juvenile Fiction'],
-            industryIdentifiers: [
-              { type: 'ISBN_13', identifier: '9780142403877' },
-            ],
-            imageLinks: { thumbnail: 'https://books.google.com/cover.jpg' },
-          },
-        }],
-      }),
+      json: () =>
+        Promise.resolve({
+          items: [
+            {
+              volumeInfo: {
+                title: 'The Gruffalo',
+                authors: ['Julia Donaldson'],
+                description: 'A mouse walks through the woods.',
+                publishedDate: '1999-03-23',
+                pageCount: 32,
+                categories: ['Juvenile Fiction'],
+                industryIdentifiers: [{ type: 'ISBN_13', identifier: '9780142403877' }],
+                imageLinks: { thumbnail: 'https://books.google.com/cover.jpg' },
+              },
+            },
+          ],
+        }),
     });
 
     const result = await fetchMetadata(
       { title: 'The Gruffalo', author: 'Julia Donaldson' },
-      'test-api-key',
+      'test-api-key'
     );
 
     expect(result.author).toBe('Julia Donaldson');

@@ -13,14 +13,14 @@ const createMockDB = (overrides = {}) => {
     bind: vi.fn().mockReturnThis(),
     all: vi.fn().mockResolvedValue(overrides.allResults || { results: [], success: true }),
     first: vi.fn().mockResolvedValue(overrides.firstResult || null),
-    run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } })
+    run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } }),
   };
 
   return {
     prepare: vi.fn().mockReturnValue(prepareChain),
     batch: vi.fn().mockResolvedValue([{ success: true }]),
     _chain: prepareChain,
-    ...overrides
+    ...overrides,
   };
 };
 
@@ -34,11 +34,14 @@ const createTestApp = (contextValues = {}, dbOverrides = {}) => {
   // Use Hono's built-in error handler (catches thrown errors from route handlers)
   app.onError((err, c) => {
     const status = err.status || 500;
-    return c.json({
-      status: 'error',
-      message: err.message || 'Internal Server Error',
-      path: c.req.path
-    }, status);
+    return c.json(
+      {
+        status: 'error',
+        message: err.message || 'Internal Server Error',
+        path: c.req.path,
+      },
+      status
+    );
   });
 
   // Middleware to inject context values (simulates auth middleware)
@@ -46,7 +49,7 @@ const createTestApp = (contextValues = {}, dbOverrides = {}) => {
     c.env = {
       JWT_SECRET: TEST_SECRET,
       READING_MANAGER_DB: mockDB,
-      ...contextValues.env
+      ...contextValues.env,
     };
 
     // Set context values that would normally come from auth middleware
@@ -71,7 +74,7 @@ const makeRequest = async (app, method, path, body = null) => {
     method,
     headers: {
       'Content-Type': 'application/json',
-    }
+    },
   };
 
   if (body) {
@@ -93,7 +96,7 @@ const createMockClass = (overrides = {}) => ({
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-15T00:00:00Z',
   student_count: 25,
-  ...overrides
+  ...overrides,
 });
 
 /**
@@ -108,7 +111,7 @@ const createMockStudent = (overrides = {}) => ({
   likes: '["adventure","mystery"]',
   dislikes: '["horror"]',
   is_active: 1,
-  ...overrides
+  ...overrides,
 });
 
 describe('Classes API Routes', () => {
@@ -132,16 +135,19 @@ describe('Classes API Routes', () => {
       it('should allow teachers to list classes', async () => {
         const classes = [
           createMockClass({ id: 'class-1', name: 'Year 3 Blue', student_count: 25 }),
-          createMockClass({ id: 'class-2', name: 'Year 4 Red', student_count: 28 })
+          createMockClass({ id: 'class-2', name: 'Year 4 Red', student_count: 28 }),
         ];
 
-        const { app } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.TEACHER
-        }, {
-          allResults: { results: classes, success: true }
-        });
+        const { app } = createTestApp(
+          {
+            userId: 'user-123',
+            organizationId: 'org-456',
+            userRole: ROLES.TEACHER,
+          },
+          {
+            allResults: { results: classes, success: true },
+          }
+        );
 
         const response = await makeRequest(app, 'GET', '/api/classes');
         const data = await response.json();
@@ -152,13 +158,16 @@ describe('Classes API Routes', () => {
       });
 
       it('should allow admins to list classes', async () => {
-        const { app } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.ADMIN
-        }, {
-          allResults: { results: [createMockClass()], success: true }
-        });
+        const { app } = createTestApp(
+          {
+            userId: 'user-123',
+            organizationId: 'org-456',
+            userRole: ROLES.ADMIN,
+          },
+          {
+            allResults: { results: [createMockClass()], success: true },
+          }
+        );
 
         const response = await makeRequest(app, 'GET', '/api/classes');
 
@@ -166,13 +175,16 @@ describe('Classes API Routes', () => {
       });
 
       it('should allow readonly users to list classes', async () => {
-        const { app } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.READONLY
-        }, {
-          allResults: { results: [], success: true }
-        });
+        const { app } = createTestApp(
+          {
+            userId: 'user-123',
+            organizationId: 'org-456',
+            userRole: ROLES.READONLY,
+          },
+          {
+            allResults: { results: [], success: true },
+          }
+        );
 
         const response = await makeRequest(app, 'GET', '/api/classes');
 
@@ -180,13 +192,16 @@ describe('Classes API Routes', () => {
       });
 
       it('should allow owners to list classes', async () => {
-        const { app } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.OWNER
-        }, {
-          allResults: { results: [], success: true }
-        });
+        const { app } = createTestApp(
+          {
+            userId: 'user-123',
+            organizationId: 'org-456',
+            userRole: ROLES.OWNER,
+          },
+          {
+            allResults: { results: [], success: true },
+          }
+        );
 
         const response = await makeRequest(app, 'GET', '/api/classes');
 
@@ -196,13 +211,16 @@ describe('Classes API Routes', () => {
 
     describe('Organization scoping', () => {
       it('should scope query to organization', async () => {
-        const { app, mockDB } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.TEACHER
-        }, {
-          allResults: { results: [], success: true }
-        });
+        const { app, mockDB } = createTestApp(
+          {
+            userId: 'user-123',
+            organizationId: 'org-456',
+            userRole: ROLES.TEACHER,
+          },
+          {
+            allResults: { results: [], success: true },
+          }
+        );
 
         await makeRequest(app, 'GET', '/api/classes');
 
@@ -213,13 +231,16 @@ describe('Classes API Routes', () => {
       });
 
       it('should only return active classes', async () => {
-        const { app, mockDB } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.TEACHER
-        }, {
-          allResults: { results: [], success: true }
-        });
+        const { app, mockDB } = createTestApp(
+          {
+            userId: 'user-123',
+            organizationId: 'org-456',
+            userRole: ROLES.TEACHER,
+          },
+          {
+            allResults: { results: [], success: true },
+          }
+        );
 
         await makeRequest(app, 'GET', '/api/classes');
 
@@ -231,22 +252,27 @@ describe('Classes API Routes', () => {
 
     describe('Response format', () => {
       it('should transform database rows to camelCase', async () => {
-        const classes = [createMockClass({
-          teacher_name: 'Mrs Jones',
-          academic_year: '2025',
-          is_active: 1,
-          created_at: '2024-01-01',
-          updated_at: '2024-01-20',
-          student_count: 30
-        })];
+        const classes = [
+          createMockClass({
+            teacher_name: 'Mrs Jones',
+            academic_year: '2025',
+            is_active: 1,
+            created_at: '2024-01-01',
+            updated_at: '2024-01-20',
+            student_count: 30,
+          }),
+        ];
 
-        const { app } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.TEACHER
-        }, {
-          allResults: { results: classes, success: true }
-        });
+        const { app } = createTestApp(
+          {
+            userId: 'user-123',
+            organizationId: 'org-456',
+            userRole: ROLES.TEACHER,
+          },
+          {
+            allResults: { results: classes, success: true },
+          }
+        );
 
         const response = await makeRequest(app, 'GET', '/api/classes');
         const data = await response.json();
@@ -262,16 +288,19 @@ describe('Classes API Routes', () => {
       it('should convert is_active to boolean', async () => {
         const classes = [
           createMockClass({ id: 'c1', is_active: 1 }),
-          createMockClass({ id: 'c2', is_active: 0 })
+          createMockClass({ id: 'c2', is_active: 0 }),
         ];
 
-        const { app } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.TEACHER
-        }, {
-          allResults: { results: classes, success: true }
-        });
+        const { app } = createTestApp(
+          {
+            userId: 'user-123',
+            organizationId: 'org-456',
+            userRole: ROLES.TEACHER,
+          },
+          {
+            allResults: { results: classes, success: true },
+          }
+        );
 
         const response = await makeRequest(app, 'GET', '/api/classes');
         const data = await response.json();
@@ -283,16 +312,19 @@ describe('Classes API Routes', () => {
       it('should include student count in response', async () => {
         const classes = [
           createMockClass({ id: 'c1', student_count: 25 }),
-          createMockClass({ id: 'c2', student_count: 0 })
+          createMockClass({ id: 'c2', student_count: 0 }),
         ];
 
-        const { app } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.TEACHER
-        }, {
-          allResults: { results: classes, success: true }
-        });
+        const { app } = createTestApp(
+          {
+            userId: 'user-123',
+            organizationId: 'org-456',
+            userRole: ROLES.TEACHER,
+          },
+          {
+            allResults: { results: classes, success: true },
+          }
+        );
 
         const response = await makeRequest(app, 'GET', '/api/classes');
         const data = await response.json();
@@ -302,13 +334,16 @@ describe('Classes API Routes', () => {
       });
 
       it('should return empty array when no classes exist', async () => {
-        const { app } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.TEACHER
-        }, {
-          allResults: { results: [], success: true }
-        });
+        const { app } = createTestApp(
+          {
+            userId: 'user-123',
+            organizationId: 'org-456',
+            userRole: ROLES.TEACHER,
+          },
+          {
+            allResults: { results: [], success: true },
+          }
+        );
 
         const response = await makeRequest(app, 'GET', '/api/classes');
         const data = await response.json();
@@ -322,13 +357,16 @@ describe('Classes API Routes', () => {
   describe('GET /api/classes/:id', () => {
     describe('Permission checks', () => {
       it('should allow teachers to view a class', async () => {
-        const { app } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.TEACHER
-        }, {
-          firstResult: createMockClass()
-        });
+        const { app } = createTestApp(
+          {
+            userId: 'user-123',
+            organizationId: 'org-456',
+            userRole: ROLES.TEACHER,
+          },
+          {
+            firstResult: createMockClass(),
+          }
+        );
 
         const response = await makeRequest(app, 'GET', '/api/classes/class-123');
 
@@ -336,13 +374,16 @@ describe('Classes API Routes', () => {
       });
 
       it('should allow readonly users to view a class', async () => {
-        const { app } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.READONLY
-        }, {
-          firstResult: createMockClass()
-        });
+        const { app } = createTestApp(
+          {
+            userId: 'user-123',
+            organizationId: 'org-456',
+            userRole: ROLES.READONLY,
+          },
+          {
+            firstResult: createMockClass(),
+          }
+        );
 
         const response = await makeRequest(app, 'GET', '/api/classes/class-123');
 
@@ -355,7 +396,7 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.TEACHER
+          userRole: ROLES.TEACHER,
         });
 
         // Class exists but belongs to different org - query returns null
@@ -369,13 +410,16 @@ describe('Classes API Routes', () => {
       });
 
       it('should scope query to organization and check is_active', async () => {
-        const { app, mockDB } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.TEACHER
-        }, {
-          firstResult: createMockClass()
-        });
+        const { app, mockDB } = createTestApp(
+          {
+            userId: 'user-123',
+            organizationId: 'org-456',
+            userRole: ROLES.TEACHER,
+          },
+          {
+            firstResult: createMockClass(),
+          }
+        );
 
         await makeRequest(app, 'GET', '/api/classes/class-123');
 
@@ -387,17 +431,20 @@ describe('Classes API Routes', () => {
 
     describe('Response format', () => {
       it('should transform database row to camelCase', async () => {
-        const { app } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.TEACHER
-        }, {
-          firstResult: createMockClass({
-            teacher_name: 'Mr Brown',
-            academic_year: '2024',
-            student_count: 22
-          })
-        });
+        const { app } = createTestApp(
+          {
+            userId: 'user-123',
+            organizationId: 'org-456',
+            userRole: ROLES.TEACHER,
+          },
+          {
+            firstResult: createMockClass({
+              teacher_name: 'Mr Brown',
+              academic_year: '2024',
+              student_count: 22,
+            }),
+          }
+        );
 
         const response = await makeRequest(app, 'GET', '/api/classes/class-123');
         const data = await response.json();
@@ -408,13 +455,16 @@ describe('Classes API Routes', () => {
       });
 
       it('should include student count in response', async () => {
-        const { app } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.TEACHER
-        }, {
-          firstResult: createMockClass({ student_count: 30 })
-        });
+        const { app } = createTestApp(
+          {
+            userId: 'user-123',
+            organizationId: 'org-456',
+            userRole: ROLES.TEACHER,
+          },
+          {
+            firstResult: createMockClass({ student_count: 30 }),
+          }
+        );
 
         const response = await makeRequest(app, 'GET', '/api/classes/class-123');
         const data = await response.json();
@@ -425,13 +475,16 @@ describe('Classes API Routes', () => {
 
     describe('Not found handling', () => {
       it('should return 404 for non-existent class', async () => {
-        const { app } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.TEACHER
-        }, {
-          firstResult: null
-        });
+        const { app } = createTestApp(
+          {
+            userId: 'user-123',
+            organizationId: 'org-456',
+            userRole: ROLES.TEACHER,
+          },
+          {
+            firstResult: null,
+          }
+        );
 
         const response = await makeRequest(app, 'GET', '/api/classes/nonexistent');
         const data = await response.json();
@@ -444,7 +497,7 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.TEACHER
+          userRole: ROLES.TEACHER,
         });
 
         // Soft-deleted class won't be found due to is_active = 1 filter
@@ -465,7 +518,7 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.TEACHER
+          userRole: ROLES.TEACHER,
         });
 
         // First query: verify class exists
@@ -478,7 +531,7 @@ describe('Classes API Routes', () => {
         });
         mockDB._chain.all.mockResolvedValue({
           results: [createMockStudent()],
-          success: true
+          success: true,
         });
 
         const response = await makeRequest(app, 'GET', '/api/classes/class-123/students');
@@ -490,7 +543,7 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.READONLY
+          userRole: ROLES.READONLY,
         });
 
         mockDB._chain.first.mockResolvedValue({ id: 'class-123' });
@@ -507,7 +560,7 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.TEACHER
+          userRole: ROLES.TEACHER,
         });
 
         mockDB._chain.first.mockResolvedValue(null);
@@ -523,7 +576,7 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.TEACHER
+          userRole: ROLES.TEACHER,
         });
 
         mockDB._chain.first.mockResolvedValue(null);
@@ -540,17 +593,19 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.TEACHER
+          userRole: ROLES.TEACHER,
         });
 
         mockDB._chain.first.mockResolvedValue({ id: 'class-123' });
         mockDB._chain.all.mockResolvedValue({
-          results: [createMockStudent({
-            class_id: 'class-123',
-            last_read_date: '2024-01-20',
-            reading_level: 5
-          })],
-          success: true
+          results: [
+            createMockStudent({
+              class_id: 'class-123',
+              last_read_date: '2024-01-20',
+              reading_level: 5,
+            }),
+          ],
+          success: true,
         });
 
         const response = await makeRequest(app, 'GET', '/api/classes/class-123/students');
@@ -565,16 +620,18 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.TEACHER
+          userRole: ROLES.TEACHER,
         });
 
         mockDB._chain.first.mockResolvedValue({ id: 'class-123' });
         mockDB._chain.all.mockResolvedValue({
-          results: [createMockStudent({
-            likes: '["adventure","science fiction"]',
-            dislikes: '["romance"]'
-          })],
-          success: true
+          results: [
+            createMockStudent({
+              likes: '["adventure","science fiction"]',
+              dislikes: '["romance"]',
+            }),
+          ],
+          success: true,
         });
 
         const response = await makeRequest(app, 'GET', '/api/classes/class-123/students');
@@ -588,16 +645,18 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.TEACHER
+          userRole: ROLES.TEACHER,
         });
 
         mockDB._chain.first.mockResolvedValue({ id: 'class-123' });
         mockDB._chain.all.mockResolvedValue({
-          results: [createMockStudent({
-            likes: null,
-            dislikes: null
-          })],
-          success: true
+          results: [
+            createMockStudent({
+              likes: null,
+              dislikes: null,
+            }),
+          ],
+          success: true,
         });
 
         const response = await makeRequest(app, 'GET', '/api/classes/class-123/students');
@@ -611,7 +670,7 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.TEACHER
+          userRole: ROLES.TEACHER,
         });
 
         mockDB._chain.first.mockResolvedValue({ id: 'class-123' });
@@ -628,7 +687,7 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.TEACHER
+          userRole: ROLES.TEACHER,
         });
 
         mockDB._chain.first.mockResolvedValue({ id: 'class-123' });
@@ -636,7 +695,7 @@ describe('Classes API Routes', () => {
         await makeRequest(app, 'GET', '/api/classes/class-123/students');
 
         // Check that the students query filters for is_active = 1
-        const studentQueryCall = mockDB.prepare.mock.calls.find(call =>
+        const studentQueryCall = mockDB.prepare.mock.calls.find((call) =>
           call[0].includes('FROM students')
         );
         expect(studentQueryCall[0]).toContain('is_active = 1');
@@ -650,11 +709,11 @@ describe('Classes API Routes', () => {
         const { app } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.TEACHER
+          userRole: ROLES.TEACHER,
         });
 
         const response = await makeRequest(app, 'POST', '/api/classes', {
-          name: 'New Class'
+          name: 'New Class',
         });
         const data = await response.json();
 
@@ -666,11 +725,11 @@ describe('Classes API Routes', () => {
         const { app } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.READONLY
+          userRole: ROLES.READONLY,
         });
 
         const response = await makeRequest(app, 'POST', '/api/classes', {
-          name: 'New Class'
+          name: 'New Class',
         });
         const data = await response.json();
 
@@ -682,18 +741,20 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         // Mock the created class
-        mockDB._chain.first.mockResolvedValue(createMockClass({
-          id: 'new-class-id',
-          name: 'New Class'
-        }));
+        mockDB._chain.first.mockResolvedValue(
+          createMockClass({
+            id: 'new-class-id',
+            name: 'New Class',
+          })
+        );
 
         const response = await makeRequest(app, 'POST', '/api/classes', {
           name: 'New Class',
-          teacherName: 'Mr Test'
+          teacherName: 'Mr Test',
         });
         const data = await response.json();
 
@@ -705,16 +766,18 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'owner-123',
           organizationId: 'org-456',
-          userRole: ROLES.OWNER
+          userRole: ROLES.OWNER,
         });
 
-        mockDB._chain.first.mockResolvedValue(createMockClass({
-          id: 'new-class-id',
-          name: 'Owner Class'
-        }));
+        mockDB._chain.first.mockResolvedValue(
+          createMockClass({
+            id: 'new-class-id',
+            name: 'Owner Class',
+          })
+        );
 
         const response = await makeRequest(app, 'POST', '/api/classes', {
-          name: 'Owner Class'
+          name: 'Owner Class',
         });
 
         expect(response.status).toBe(201);
@@ -726,7 +789,7 @@ describe('Classes API Routes', () => {
         const { app } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         const response = await makeRequest(app, 'POST', '/api/classes', {});
@@ -740,11 +803,11 @@ describe('Classes API Routes', () => {
         const { app } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         const response = await makeRequest(app, 'POST', '/api/classes', {
-          name: ''
+          name: '',
         });
         const data = await response.json();
 
@@ -758,27 +821,27 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue(createMockClass());
 
         await makeRequest(app, 'POST', '/api/classes', {
-          name: 'New Class'
+          name: 'New Class',
         });
 
         // Check that the INSERT includes organization_id
-        const insertCall = mockDB.prepare.mock.calls.find(call =>
+        const insertCall = mockDB.prepare.mock.calls.find((call) =>
           call[0].includes('INSERT INTO classes')
         );
         expect(insertCall).toBeDefined();
         expect(mockDB._chain.bind).toHaveBeenCalledWith(
           expect.any(String), // id
-          'org-456',          // organization_id
-          'New Class',        // name
-          null,               // teacher_name
+          'org-456', // organization_id
+          'New Class', // name
+          null, // teacher_name
           expect.any(String), // academic_year
-          'admin-123'         // created_by
+          'admin-123' // created_by
         );
       });
 
@@ -786,13 +849,13 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue(createMockClass());
 
         await makeRequest(app, 'POST', '/api/classes', {
-          name: 'New Class'
+          name: 'New Class',
         });
 
         // Verify created_by is set to the current user
@@ -806,13 +869,13 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue(createMockClass());
 
         const response = await makeRequest(app, 'POST', '/api/classes', {
-          name: 'New Class'
+          name: 'New Class',
         });
 
         expect(response.status).toBe(201);
@@ -822,18 +885,20 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
-        mockDB._chain.first.mockResolvedValue(createMockClass({
-          teacher_name: 'Mrs Test',
-          academic_year: '2025'
-        }));
+        mockDB._chain.first.mockResolvedValue(
+          createMockClass({
+            teacher_name: 'Mrs Test',
+            academic_year: '2025',
+          })
+        );
 
         const response = await makeRequest(app, 'POST', '/api/classes', {
           name: 'New Class',
           teacherName: 'Mrs Test',
-          academicYear: '2025'
+          academicYear: '2025',
         });
         const data = await response.json();
 
@@ -845,13 +910,13 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue(createMockClass());
 
         await makeRequest(app, 'POST', '/api/classes', {
-          name: 'New Class'
+          name: 'New Class',
         });
 
         const bindArgs = mockDB._chain.bind.mock.calls[0];
@@ -865,13 +930,13 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue(createMockClass({ teacher_name: null }));
 
         const response = await makeRequest(app, 'POST', '/api/classes', {
-          name: 'No Teacher Class'
+          name: 'No Teacher Class',
         });
         const data = await response.json();
 
@@ -883,14 +948,14 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue(createMockClass({ id: 'custom-id' }));
 
         await makeRequest(app, 'POST', '/api/classes', {
           id: 'custom-id',
-          name: 'Custom ID Class'
+          name: 'Custom ID Class',
         });
 
         const bindArgs = mockDB._chain.bind.mock.calls[0];
@@ -908,11 +973,11 @@ describe('Classes API Routes', () => {
         const { app } = createTestApp({
           userId: 'teacher-123',
           organizationId: 'org-456',
-          userRole: ROLES.TEACHER
+          userRole: ROLES.TEACHER,
         });
 
         const response = await makeRequest(app, 'PUT', '/api/classes/class-123', {
-          name: 'Updated Class'
+          name: 'Updated Class',
         });
         const data = await response.json();
 
@@ -924,11 +989,11 @@ describe('Classes API Routes', () => {
         const { app } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.READONLY
+          userRole: ROLES.READONLY,
         });
 
         const response = await makeRequest(app, 'PUT', '/api/classes/class-123', {
-          name: 'Updated Class'
+          name: 'Updated Class',
         });
         const data = await response.json();
 
@@ -940,7 +1005,7 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         let callIndex = 0;
@@ -951,7 +1016,7 @@ describe('Classes API Routes', () => {
         });
 
         const response = await makeRequest(app, 'PUT', '/api/classes/class-123', {
-          name: 'Updated Class'
+          name: 'Updated Class',
         });
         const data = await response.json();
 
@@ -963,7 +1028,7 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'owner-123',
           organizationId: 'org-456',
-          userRole: ROLES.OWNER
+          userRole: ROLES.OWNER,
         });
 
         let callIndex = 0;
@@ -974,7 +1039,7 @@ describe('Classes API Routes', () => {
         });
 
         const response = await makeRequest(app, 'PUT', '/api/classes/class-123', {
-          name: 'Owner Updated'
+          name: 'Owner Updated',
         });
 
         expect(response.status).toBe(200);
@@ -986,7 +1051,7 @@ describe('Classes API Routes', () => {
         const { app } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         const response = await makeRequest(app, 'PUT', '/api/classes/class-123', {});
@@ -1000,11 +1065,11 @@ describe('Classes API Routes', () => {
         const { app } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         const response = await makeRequest(app, 'PUT', '/api/classes/class-123', {
-          name: ''
+          name: '',
         });
         const data = await response.json();
 
@@ -1018,14 +1083,14 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         // Class not found (belongs to different org)
         mockDB._chain.first.mockResolvedValue(null);
 
         const response = await makeRequest(app, 'PUT', '/api/classes/other-org-class', {
-          name: 'Updated Class'
+          name: 'Updated Class',
         });
         const data = await response.json();
 
@@ -1037,7 +1102,7 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         let callIndex = 0;
@@ -1048,7 +1113,7 @@ describe('Classes API Routes', () => {
         });
 
         await makeRequest(app, 'PUT', '/api/classes/class-123', {
-          name: 'Updated Class'
+          name: 'Updated Class',
         });
 
         // Verify the existence check includes organization_id
@@ -1063,13 +1128,13 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue(null);
 
         const response = await makeRequest(app, 'PUT', '/api/classes/nonexistent', {
-          name: 'Updated Class'
+          name: 'Updated Class',
         });
         const data = await response.json();
 
@@ -1081,14 +1146,14 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         // Soft-deleted class won't be found due to is_active = 1 filter
         mockDB._chain.first.mockResolvedValue(null);
 
         const response = await makeRequest(app, 'PUT', '/api/classes/deleted-class', {
-          name: 'Updated Class'
+          name: 'Updated Class',
         });
         const data = await response.json();
 
@@ -1102,24 +1167,26 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         let callIndex = 0;
         mockDB._chain.first.mockImplementation(() => {
           callIndex++;
           if (callIndex === 1) return Promise.resolve({ id: 'class-123' });
-          return Promise.resolve(createMockClass({
-            name: 'Updated Name',
-            teacher_name: 'New Teacher',
-            academic_year: '2025'
-          }));
+          return Promise.resolve(
+            createMockClass({
+              name: 'Updated Name',
+              teacher_name: 'New Teacher',
+              academic_year: '2025',
+            })
+          );
         });
 
         const response = await makeRequest(app, 'PUT', '/api/classes/class-123', {
           name: 'Updated Name',
           teacherName: 'New Teacher',
-          academicYear: '2025'
+          academicYear: '2025',
         });
         const data = await response.json();
 
@@ -1134,7 +1201,7 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         let callIndex = 0;
@@ -1147,11 +1214,11 @@ describe('Classes API Routes', () => {
         await makeRequest(app, 'PUT', '/api/classes/class-123', {
           name: 'New Name',
           teacherName: 'New Teacher',
-          academicYear: '2026'
+          academicYear: '2026',
         });
 
         // Verify UPDATE query was called with correct values
-        const updateCall = mockDB.prepare.mock.calls.find(call =>
+        const updateCall = mockDB.prepare.mock.calls.find((call) =>
           call[0].includes('UPDATE classes')
         );
         expect(updateCall).toBeDefined();
@@ -1169,7 +1236,7 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         let callIndex = 0;
@@ -1181,7 +1248,7 @@ describe('Classes API Routes', () => {
 
         const response = await makeRequest(app, 'PUT', '/api/classes/class-123', {
           name: 'Class Name',
-          teacherName: ''
+          teacherName: '',
         });
         const data = await response.json();
 
@@ -1196,7 +1263,7 @@ describe('Classes API Routes', () => {
         const { app } = createTestApp({
           userId: 'teacher-123',
           organizationId: 'org-456',
-          userRole: ROLES.TEACHER
+          userRole: ROLES.TEACHER,
         });
 
         const response = await makeRequest(app, 'DELETE', '/api/classes/class-123');
@@ -1210,7 +1277,7 @@ describe('Classes API Routes', () => {
         const { app } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.READONLY
+          userRole: ROLES.READONLY,
         });
 
         const response = await makeRequest(app, 'DELETE', '/api/classes/class-123');
@@ -1224,7 +1291,7 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue({ id: 'class-123' });
@@ -1240,7 +1307,7 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'owner-123',
           organizationId: 'org-456',
-          userRole: ROLES.OWNER
+          userRole: ROLES.OWNER,
         });
 
         mockDB._chain.first.mockResolvedValue({ id: 'class-123' });
@@ -1256,7 +1323,7 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue(null);
@@ -1272,7 +1339,7 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue({ id: 'class-123' });
@@ -1290,7 +1357,7 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue({ id: 'class-123' });
@@ -1307,7 +1374,7 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue({ id: 'class-123' });
@@ -1318,7 +1385,7 @@ describe('Classes API Routes', () => {
         expect(mockDB.batch).toHaveBeenCalled();
 
         // Check that prepare was called with student update
-        const studentUpdateCall = mockDB.prepare.mock.calls.find(call =>
+        const studentUpdateCall = mockDB.prepare.mock.calls.find((call) =>
           call[0].includes('UPDATE students')
         );
         expect(studentUpdateCall).toBeDefined();
@@ -1329,7 +1396,7 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue({ id: 'class-123' });
@@ -1337,7 +1404,7 @@ describe('Classes API Routes', () => {
         await makeRequest(app, 'DELETE', '/api/classes/class-123');
 
         // Verify the soft delete query updates updated_at
-        const softDeleteCall = mockDB.prepare.mock.calls.find(call =>
+        const softDeleteCall = mockDB.prepare.mock.calls.find((call) =>
           call[0].includes('UPDATE classes SET is_active = 0')
         );
         expect(softDeleteCall[0]).toContain('updated_at');
@@ -1349,7 +1416,7 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue(null);
@@ -1365,7 +1432,7 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         // Already deleted (is_active = 0) won't be found
@@ -1384,7 +1451,7 @@ describe('Classes API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue({ id: 'class-123' });
@@ -1402,15 +1469,18 @@ describe('Classes API Routes', () => {
     const roles = [ROLES.OWNER, ROLES.ADMIN, ROLES.TEACHER, ROLES.READONLY];
 
     describe('Read operations (GET)', () => {
-      roles.forEach(role => {
+      roles.forEach((role) => {
         it(`should allow ${role} to list classes`, async () => {
-          const { app } = createTestApp({
-            userId: 'user-123',
-            organizationId: 'org-456',
-            userRole: role
-          }, {
-            allResults: { results: [], success: true }
-          });
+          const { app } = createTestApp(
+            {
+              userId: 'user-123',
+              organizationId: 'org-456',
+              userRole: role,
+            },
+            {
+              allResults: { results: [], success: true },
+            }
+          );
 
           const response = await makeRequest(app, 'GET', '/api/classes');
 
@@ -1418,13 +1488,16 @@ describe('Classes API Routes', () => {
         });
 
         it(`should allow ${role} to view a single class`, async () => {
-          const { app } = createTestApp({
-            userId: 'user-123',
-            organizationId: 'org-456',
-            userRole: role
-          }, {
-            firstResult: createMockClass()
-          });
+          const { app } = createTestApp(
+            {
+              userId: 'user-123',
+              organizationId: 'org-456',
+              userRole: role,
+            },
+            {
+              firstResult: createMockClass(),
+            }
+          );
 
           const response = await makeRequest(app, 'GET', '/api/classes/class-123');
 
@@ -1438,7 +1511,7 @@ describe('Classes API Routes', () => {
         { role: ROLES.OWNER, canWrite: true },
         { role: ROLES.ADMIN, canWrite: true },
         { role: ROLES.TEACHER, canWrite: false },
-        { role: ROLES.READONLY, canWrite: false }
+        { role: ROLES.READONLY, canWrite: false },
       ];
 
       writeRoles.forEach(({ role, canWrite }) => {
@@ -1446,13 +1519,13 @@ describe('Classes API Routes', () => {
           const { app, mockDB } = createTestApp({
             userId: 'user-123',
             organizationId: 'org-456',
-            userRole: role
+            userRole: role,
           });
 
           mockDB._chain.first.mockResolvedValue(createMockClass());
 
           const response = await makeRequest(app, 'POST', '/api/classes', {
-            name: 'New Class'
+            name: 'New Class',
           });
 
           if (canWrite) {
@@ -1466,7 +1539,7 @@ describe('Classes API Routes', () => {
           const { app, mockDB } = createTestApp({
             userId: 'user-123',
             organizationId: 'org-456',
-            userRole: role
+            userRole: role,
           });
 
           let callIndex = 0;
@@ -1477,7 +1550,7 @@ describe('Classes API Routes', () => {
           });
 
           const response = await makeRequest(app, 'PUT', '/api/classes/class-123', {
-            name: 'Updated Class'
+            name: 'Updated Class',
           });
 
           if (canWrite) {
@@ -1491,7 +1564,7 @@ describe('Classes API Routes', () => {
           const { app, mockDB } = createTestApp({
             userId: 'user-123',
             organizationId: 'org-456',
-            userRole: role
+            userRole: role,
           });
 
           mockDB._chain.first.mockResolvedValue({ id: 'class-123' });
@@ -1510,16 +1583,19 @@ describe('Classes API Routes', () => {
 
   describe('Student Count Accuracy', () => {
     it('should count only active students in class list', async () => {
-      const { app, mockDB } = createTestApp({
-        userId: 'user-123',
-        organizationId: 'org-456',
-        userRole: ROLES.TEACHER
-      }, {
-        allResults: {
-          results: [createMockClass({ student_count: 20 })],
-          success: true
+      const { app, mockDB } = createTestApp(
+        {
+          userId: 'user-123',
+          organizationId: 'org-456',
+          userRole: ROLES.TEACHER,
+        },
+        {
+          allResults: {
+            results: [createMockClass({ student_count: 20 })],
+            success: true,
+          },
         }
-      });
+      );
 
       await makeRequest(app, 'GET', '/api/classes');
 
@@ -1529,13 +1605,16 @@ describe('Classes API Routes', () => {
     });
 
     it('should count only active students in single class view', async () => {
-      const { app, mockDB } = createTestApp({
-        userId: 'user-123',
-        organizationId: 'org-456',
-        userRole: ROLES.TEACHER
-      }, {
-        firstResult: createMockClass({ student_count: 15 })
-      });
+      const { app, mockDB } = createTestApp(
+        {
+          userId: 'user-123',
+          organizationId: 'org-456',
+          userRole: ROLES.TEACHER,
+        },
+        {
+          firstResult: createMockClass({ student_count: 15 }),
+        }
+      );
 
       await makeRequest(app, 'GET', '/api/classes/class-123');
 
@@ -1545,13 +1624,16 @@ describe('Classes API Routes', () => {
     });
 
     it('should return 0 student count for empty class', async () => {
-      const { app } = createTestApp({
-        userId: 'user-123',
-        organizationId: 'org-456',
-        userRole: ROLES.TEACHER
-      }, {
-        firstResult: createMockClass({ student_count: 0 })
-      });
+      const { app } = createTestApp(
+        {
+          userId: 'user-123',
+          organizationId: 'org-456',
+          userRole: ROLES.TEACHER,
+        },
+        {
+          firstResult: createMockClass({ student_count: 0 }),
+        }
+      );
 
       const response = await makeRequest(app, 'GET', '/api/classes/class-123');
       const data = await response.json();
@@ -1565,7 +1647,7 @@ describe('Classes API Routes', () => {
       const { app, mockDB } = createTestApp({
         userId: 'user-123',
         organizationId: 'org-456',
-        userRole: ROLES.TEACHER
+        userRole: ROLES.TEACHER,
       });
 
       mockDB._chain.all.mockRejectedValue(new Error('Database connection failed'));
@@ -1579,7 +1661,7 @@ describe('Classes API Routes', () => {
       const { app, mockDB } = createTestApp({
         userId: 'user-123',
         organizationId: 'org-456',
-        userRole: ROLES.TEACHER
+        userRole: ROLES.TEACHER,
       });
 
       mockDB._chain.first.mockRejectedValue(new Error('Database error'));
@@ -1593,13 +1675,13 @@ describe('Classes API Routes', () => {
       const { app, mockDB } = createTestApp({
         userId: 'admin-123',
         organizationId: 'org-456',
-        userRole: ROLES.ADMIN
+        userRole: ROLES.ADMIN,
       });
 
       mockDB._chain.run.mockRejectedValue(new Error('Insert failed'));
 
       const response = await makeRequest(app, 'POST', '/api/classes', {
-        name: 'New Class'
+        name: 'New Class',
       });
 
       expect(response.status).toBe(500);
@@ -1609,14 +1691,14 @@ describe('Classes API Routes', () => {
       const { app, mockDB } = createTestApp({
         userId: 'admin-123',
         organizationId: 'org-456',
-        userRole: ROLES.ADMIN
+        userRole: ROLES.ADMIN,
       });
 
       mockDB._chain.first.mockResolvedValueOnce({ id: 'class-123' });
       mockDB._chain.run.mockRejectedValue(new Error('Update failed'));
 
       const response = await makeRequest(app, 'PUT', '/api/classes/class-123', {
-        name: 'Updated Class'
+        name: 'Updated Class',
       });
 
       expect(response.status).toBe(500);
@@ -1626,7 +1708,7 @@ describe('Classes API Routes', () => {
       const { app, mockDB } = createTestApp({
         userId: 'admin-123',
         organizationId: 'org-456',
-        userRole: ROLES.ADMIN
+        userRole: ROLES.ADMIN,
       });
 
       mockDB._chain.first.mockResolvedValue({ id: 'class-123' });

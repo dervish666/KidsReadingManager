@@ -4,7 +4,7 @@ import {
   fetchAllStudents,
   fetchAllClasses,
   fetchAllEmployees,
-  fetchDeletions
+  fetchDeletions,
 } from '../../utils/wondeApi.js';
 
 describe('wondeApi', () => {
@@ -25,10 +25,11 @@ describe('wondeApi', () => {
     it('makes GET request to correct base URL + path', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: [{ id: '1', name: 'Alice' }],
-          meta: { pagination: { more: false, current_page: 1 } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: [{ id: '1', name: 'Alice' }],
+            meta: { pagination: { more: false, current_page: 1 } },
+          }),
       });
 
       await wondeRequest('/schools/SCHOOL1/students', 'test-token');
@@ -41,10 +42,11 @@ describe('wondeApi', () => {
     it('sends Bearer token in Authorization header', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: [],
-          meta: { pagination: { more: false, current_page: 1 } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: [],
+            meta: { pagination: { more: false, current_page: 1 } },
+          }),
       });
 
       await wondeRequest('/schools/SCHOOL1/students', 'my-secret-token');
@@ -52,7 +54,7 @@ describe('wondeApi', () => {
       const [, options] = global.fetch.mock.calls[0];
       expect(options.headers).toEqual(
         expect.objectContaining({
-          'Authorization': 'Bearer my-secret-token'
+          Authorization: 'Bearer my-secret-token',
         })
       );
     });
@@ -60,15 +62,16 @@ describe('wondeApi', () => {
     it('appends query params to URL', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: [],
-          meta: { pagination: { more: false, current_page: 1 } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: [],
+            meta: { pagination: { more: false, current_page: 1 } },
+          }),
       });
 
       await wondeRequest('/schools/S1/students', 'tok', {
         include: 'classes,education_details',
-        per_page: '200'
+        per_page: '200',
       });
 
       const [url] = global.fetch.mock.calls[0];
@@ -80,131 +83,136 @@ describe('wondeApi', () => {
     it('returns data array from single-page response', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: [
-            { id: '1', name: 'Alice' },
-            { id: '2', name: 'Bob' }
-          ],
-          meta: { pagination: { more: false, current_page: 1 } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: [
+              { id: '1', name: 'Alice' },
+              { id: '2', name: 'Bob' },
+            ],
+            meta: { pagination: { more: false, current_page: 1 } },
+          }),
       });
 
       const result = await wondeRequest('/schools/S1/students', 'tok');
 
       expect(result).toEqual([
         { id: '1', name: 'Alice' },
-        { id: '2', name: 'Bob' }
+        { id: '2', name: 'Bob' },
       ]);
     });
 
     it('follows pagination and collects all pages into single array', async () => {
-      global.fetch = vi.fn()
+      global.fetch = vi
+        .fn()
         .mockResolvedValueOnce({
           ok: true,
-          json: () => Promise.resolve({
-            data: [{ id: '1' }, { id: '2' }],
-            meta: {
-              pagination: {
-                more: true,
-                current_page: 1,
-                next: 'https://api.wonde.com/v1.0/schools/S1/students?page=2'
-              }
-            }
-          })
+          json: () =>
+            Promise.resolve({
+              data: [{ id: '1' }, { id: '2' }],
+              meta: {
+                pagination: {
+                  more: true,
+                  current_page: 1,
+                  next: 'https://api.wonde.com/v1.0/schools/S1/students?page=2',
+                },
+              },
+            }),
         })
         .mockResolvedValueOnce({
           ok: true,
-          json: () => Promise.resolve({
-            data: [{ id: '3' }, { id: '4' }],
-            meta: {
-              pagination: {
-                more: true,
-                current_page: 2,
-                next: 'https://api.wonde.com/v1.0/schools/S1/students?page=3'
-              }
-            }
-          })
+          json: () =>
+            Promise.resolve({
+              data: [{ id: '3' }, { id: '4' }],
+              meta: {
+                pagination: {
+                  more: true,
+                  current_page: 2,
+                  next: 'https://api.wonde.com/v1.0/schools/S1/students?page=3',
+                },
+              },
+            }),
         })
         .mockResolvedValueOnce({
           ok: true,
-          json: () => Promise.resolve({
-            data: [{ id: '5' }],
-            meta: {
-              pagination: {
-                more: false,
-                current_page: 3
-              }
-            }
-          })
+          json: () =>
+            Promise.resolve({
+              data: [{ id: '5' }],
+              meta: {
+                pagination: {
+                  more: false,
+                  current_page: 3,
+                },
+              },
+            }),
         });
 
       const result = await wondeRequest('/schools/S1/students', 'tok');
 
       expect(global.fetch).toHaveBeenCalledTimes(3);
-      expect(result).toEqual([
-        { id: '1' }, { id: '2' },
-        { id: '3' }, { id: '4' },
-        { id: '5' }
-      ]);
+      expect(result).toEqual([{ id: '1' }, { id: '2' }, { id: '3' }, { id: '4' }, { id: '5' }]);
     });
 
     it('uses next URL from pagination for subsequent pages', async () => {
-      global.fetch = vi.fn()
+      global.fetch = vi
+        .fn()
         .mockResolvedValueOnce({
           ok: true,
-          json: () => Promise.resolve({
-            data: [{ id: '1' }],
-            meta: {
-              pagination: {
-                more: true,
-                current_page: 1,
-                next: 'https://api.wonde.com/v1.0/schools/S1/students?page=2&include=classes'
-              }
-            }
-          })
+          json: () =>
+            Promise.resolve({
+              data: [{ id: '1' }],
+              meta: {
+                pagination: {
+                  more: true,
+                  current_page: 1,
+                  next: 'https://api.wonde.com/v1.0/schools/S1/students?page=2&include=classes',
+                },
+              },
+            }),
         })
         .mockResolvedValueOnce({
           ok: true,
-          json: () => Promise.resolve({
-            data: [{ id: '2' }],
-            meta: { pagination: { more: false, current_page: 2 } }
-          })
+          json: () =>
+            Promise.resolve({
+              data: [{ id: '2' }],
+              meta: { pagination: { more: false, current_page: 2 } },
+            }),
         });
 
       await wondeRequest('/schools/S1/students', 'tok', { include: 'classes' });
 
       // Second call should use the `next` URL directly
       const [secondUrl] = global.fetch.mock.calls[1];
-      expect(secondUrl).toBe('https://api.wonde.com/v1.0/schools/S1/students?page=2&include=classes');
+      expect(secondUrl).toBe(
+        'https://api.wonde.com/v1.0/schools/S1/students?page=2&include=classes'
+      );
     });
 
     it('throws on non-ok response with status and statusText', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 403,
-        statusText: 'Forbidden'
+        statusText: 'Forbidden',
       });
 
-      await expect(
-        wondeRequest('/schools/S1/students', 'bad-token')
-      ).rejects.toThrow('Wonde API error: 403 Forbidden');
+      await expect(wondeRequest('/schools/S1/students', 'bad-token')).rejects.toThrow(
+        'Wonde API error: 403 Forbidden'
+      );
     });
 
     it('throws on network error (passes through)', async () => {
       global.fetch = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
 
-      await expect(
-        wondeRequest('/schools/S1/students', 'tok')
-      ).rejects.toThrow('Failed to fetch');
+      await expect(wondeRequest('/schools/S1/students', 'tok')).rejects.toThrow('Failed to fetch');
     });
 
     it('handles empty data array gracefully', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: [],
-          meta: { pagination: { more: false, current_page: 1 } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: [],
+            meta: { pagination: { more: false, current_page: 1 } },
+          }),
       });
 
       const result = await wondeRequest('/schools/S1/students', 'tok');
@@ -214,9 +222,10 @@ describe('wondeApi', () => {
     it('handles response with no pagination meta', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: [{ id: '1' }]
-        })
+        json: () =>
+          Promise.resolve({
+            data: [{ id: '1' }],
+          }),
       });
 
       const result = await wondeRequest('/schools/S1/students', 'tok');
@@ -226,9 +235,10 @@ describe('wondeApi', () => {
     it('handles response with missing data field', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          meta: { pagination: { more: false } }
-        })
+        json: () =>
+          Promise.resolve({
+            meta: { pagination: { more: false } },
+          }),
       });
 
       const result = await wondeRequest('/schools/S1/students', 'tok');
@@ -243,10 +253,11 @@ describe('wondeApi', () => {
     it('calls correct endpoint with correct includes and per_page', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: [],
-          meta: { pagination: { more: false } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: [],
+            meta: { pagination: { more: false } },
+          }),
       });
 
       await fetchAllStudents('tok123', 'SCHOOL_ABC');
@@ -254,17 +265,20 @@ describe('wondeApi', () => {
       const [url] = global.fetch.mock.calls[0];
       const parsed = new URL(url);
       expect(parsed.pathname).toBe('/v1.0/schools/SCHOOL_ABC/students');
-      expect(parsed.searchParams.get('include')).toBe('education_details,extended_details,classes,year');
+      expect(parsed.searchParams.get('include')).toBe(
+        'education_details,extended_details,classes,year'
+      );
       expect(parsed.searchParams.get('per_page')).toBe('200');
     });
 
     it('passes updatedAfter as updated_after param', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: [],
-          meta: { pagination: { more: false } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: [],
+            meta: { pagination: { more: false } },
+          }),
       });
 
       await fetchAllStudents('tok', 'S1', { updatedAfter: '2026-01-15T00:00:00Z' });
@@ -277,10 +291,11 @@ describe('wondeApi', () => {
     it('does not include updated_after when not specified', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: [],
-          meta: { pagination: { more: false } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: [],
+            meta: { pagination: { more: false } },
+          }),
       });
 
       await fetchAllStudents('tok', 'S1');
@@ -293,13 +308,14 @@ describe('wondeApi', () => {
     it('returns collected student data', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: [
-            { id: 'stu1', forename: 'Alice' },
-            { id: 'stu2', forename: 'Bob' }
-          ],
-          meta: { pagination: { more: false } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: [
+              { id: 'stu1', forename: 'Alice' },
+              { id: 'stu2', forename: 'Bob' },
+            ],
+            meta: { pagination: { more: false } },
+          }),
       });
 
       const result = await fetchAllStudents('tok', 'S1');
@@ -315,10 +331,11 @@ describe('wondeApi', () => {
     it('calls correct endpoint with correct includes and filters', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: [],
-          meta: { pagination: { more: false } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: [],
+            meta: { pagination: { more: false } },
+          }),
       });
 
       await fetchAllClasses('tok', 'SCHOOL_XYZ');
@@ -334,10 +351,11 @@ describe('wondeApi', () => {
     it('passes updatedAfter as updated_after param', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: [],
-          meta: { pagination: { more: false } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: [],
+            meta: { pagination: { more: false } },
+          }),
       });
 
       await fetchAllClasses('tok', 'S1', { updatedAfter: '2026-02-01T10:00:00Z' });
@@ -350,10 +368,11 @@ describe('wondeApi', () => {
     it('does not include updated_after when not specified', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: [],
-          meta: { pagination: { more: false } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: [],
+            meta: { pagination: { more: false } },
+          }),
       });
 
       await fetchAllClasses('tok', 'S1');
@@ -371,10 +390,11 @@ describe('wondeApi', () => {
     it('calls correct endpoint with correct includes and filters', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: [],
-          meta: { pagination: { more: false } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: [],
+            meta: { pagination: { more: false } },
+          }),
       });
 
       await fetchAllEmployees('tok', 'SCHOOL_99');
@@ -390,10 +410,11 @@ describe('wondeApi', () => {
     it('passes updatedAfter as updated_after param', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: [],
-          meta: { pagination: { more: false } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: [],
+            meta: { pagination: { more: false } },
+          }),
       });
 
       await fetchAllEmployees('tok', 'S1', { updatedAfter: '2026-03-01T00:00:00Z' });
@@ -406,10 +427,11 @@ describe('wondeApi', () => {
     it('does not include updated_after when not specified', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: [],
-          meta: { pagination: { more: false } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: [],
+            meta: { pagination: { more: false } },
+          }),
       });
 
       await fetchAllEmployees('tok', 'S1');
@@ -427,10 +449,11 @@ describe('wondeApi', () => {
     it('calls correct endpoint with type=student', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: [],
-          meta: { pagination: { more: false } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: [],
+            meta: { pagination: { more: false } },
+          }),
       });
 
       await fetchDeletions('tok', 'SCHOOL_DEL');
@@ -444,10 +467,11 @@ describe('wondeApi', () => {
     it('passes updatedAfter as updated_after param', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: [],
-          meta: { pagination: { more: false } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: [],
+            meta: { pagination: { more: false } },
+          }),
       });
 
       await fetchDeletions('tok', 'S1', '2026-01-01T00:00:00Z');
@@ -460,10 +484,11 @@ describe('wondeApi', () => {
     it('does not include updated_after when not specified', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: [],
-          meta: { pagination: { more: false } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: [],
+            meta: { pagination: { more: false } },
+          }),
       });
 
       await fetchDeletions('tok', 'S1');
@@ -476,12 +501,11 @@ describe('wondeApi', () => {
     it('returns deletion records', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: [
-            { id: 'del1', type: 'student', deleted_at: '2026-02-20T12:00:00Z' }
-          ],
-          meta: { pagination: { more: false } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: [{ id: 'del1', type: 'student', deleted_at: '2026-02-20T12:00:00Z' }],
+            meta: { pagination: { more: false } },
+          }),
       });
 
       const result = await fetchDeletions('tok', 'S1');
@@ -498,44 +522,40 @@ describe('wondeApi', () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 401,
-        statusText: 'Unauthorized'
+        statusText: 'Unauthorized',
       });
 
-      await expect(
-        fetchAllStudents('bad-tok', 'S1')
-      ).rejects.toThrow('Wonde API error: 401 Unauthorized');
+      await expect(fetchAllStudents('bad-tok', 'S1')).rejects.toThrow(
+        'Wonde API error: 401 Unauthorized'
+      );
     });
 
     it('fetchAllClasses throws on network error', async () => {
       global.fetch = vi.fn().mockRejectedValue(new Error('Network failure'));
 
-      await expect(
-        fetchAllClasses('tok', 'S1')
-      ).rejects.toThrow('Network failure');
+      await expect(fetchAllClasses('tok', 'S1')).rejects.toThrow('Network failure');
     });
 
     it('fetchAllEmployees throws on API error', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 500,
-        statusText: 'Internal Server Error'
+        statusText: 'Internal Server Error',
       });
 
-      await expect(
-        fetchAllEmployees('tok', 'S1')
-      ).rejects.toThrow('Wonde API error: 500 Internal Server Error');
+      await expect(fetchAllEmployees('tok', 'S1')).rejects.toThrow(
+        'Wonde API error: 500 Internal Server Error'
+      );
     });
 
     it('fetchDeletions throws on API error', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 404,
-        statusText: 'Not Found'
+        statusText: 'Not Found',
       });
 
-      await expect(
-        fetchDeletions('tok', 'S1')
-      ).rejects.toThrow('Wonde API error: 404 Not Found');
+      await expect(fetchDeletions('tok', 'S1')).rejects.toThrow('Wonde API error: 404 Not Found');
     });
   });
 
@@ -544,26 +564,29 @@ describe('wondeApi', () => {
   // ---------------------------------------------------------------------------
   describe('pagination through convenience functions', () => {
     it('fetchAllStudents collects multi-page results', async () => {
-      global.fetch = vi.fn()
+      global.fetch = vi
+        .fn()
         .mockResolvedValueOnce({
           ok: true,
-          json: () => Promise.resolve({
-            data: [{ id: 'stu1' }],
-            meta: {
-              pagination: {
-                more: true,
-                current_page: 1,
-                next: 'https://api.wonde.com/v1.0/schools/S1/students?page=2&include=education_details,extended_details,classes,year&per_page=200'
-              }
-            }
-          })
+          json: () =>
+            Promise.resolve({
+              data: [{ id: 'stu1' }],
+              meta: {
+                pagination: {
+                  more: true,
+                  current_page: 1,
+                  next: 'https://api.wonde.com/v1.0/schools/S1/students?page=2&include=education_details,extended_details,classes,year&per_page=200',
+                },
+              },
+            }),
         })
         .mockResolvedValueOnce({
           ok: true,
-          json: () => Promise.resolve({
-            data: [{ id: 'stu2' }],
-            meta: { pagination: { more: false, current_page: 2 } }
-          })
+          json: () =>
+            Promise.resolve({
+              data: [{ id: 'stu2' }],
+              meta: { pagination: { more: false, current_page: 2 } },
+            }),
         });
 
       const result = await fetchAllStudents('tok', 'S1');

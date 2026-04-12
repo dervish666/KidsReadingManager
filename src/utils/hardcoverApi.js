@@ -49,17 +49,18 @@ export function setFetchFunction(fn) {
  */
 async function hardcoverQuery(query, variables, apiKey, options = {}) {
   const fetchFn = _authFetch || fetchWithTimeout;
-  const fetchArgs = [PROXY_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query, variables, apiKey }),
-    ...options
-  }];
+  const fetchArgs = [
+    PROXY_URL,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, variables, apiKey }),
+      ...options,
+    },
+  ];
 
   // fetchWithTimeout takes a third timeout arg; _authFetch does not
-  const response = _authFetch
-    ? await fetchFn(...fetchArgs)
-    : await fetchFn(...fetchArgs, 5000);
+  const response = _authFetch ? await fetchFn(...fetchArgs) : await fetchFn(...fetchArgs, 5000);
 
   if (!response.ok) {
     // Detect rate limiting from HTTP status
@@ -94,7 +95,7 @@ export async function checkHardcoverAvailability(apiKey, timeout = 3000) {
   const now = Date.now();
 
   // Return cached result if recent
-  if (hardcoverAvailable !== null && (now - lastAvailabilityCheck) < AVAILABILITY_CHECK_INTERVAL) {
+  if (hardcoverAvailable !== null && now - lastAvailabilityCheck < AVAILABILITY_CHECK_INTERVAL) {
     return hardcoverAvailable;
   }
 
@@ -108,12 +109,7 @@ export async function checkHardcoverAvailability(apiKey, timeout = 3000) {
     const controller = new AbortController();
     timeoutId = setTimeout(() => controller.abort(), timeout);
 
-    await hardcoverQuery(
-      '{ __typename }',
-      {},
-      apiKey,
-      { signal: controller.signal }
-    );
+    await hardcoverQuery('{ __typename }', {}, apiKey, { signal: controller.signal });
 
     clearTimeout(timeoutId);
 
@@ -148,7 +144,7 @@ export function getHardcoverStatus() {
   return {
     available: hardcoverAvailable,
     lastCheck: lastAvailabilityCheck,
-    stale: (now - lastAvailabilityCheck) >= AVAILABILITY_CHECK_INTERVAL
+    stale: now - lastAvailabilityCheck >= AVAILABILITY_CHECK_INTERVAL,
   };
 }
 
@@ -179,7 +175,11 @@ export function resetHardcoverRateLimitFlag() {
  * @returns {string}
  */
 // Title matching utilities imported from shared module
-import { normalizeTitle, calculateTitleSimilarity, findBestTitleMatch as _findBestTitleMatch } from './titleMatching.js';
+import {
+  normalizeTitle,
+  calculateTitleSimilarity,
+  findBestTitleMatch as _findBestTitleMatch,
+} from './titleMatching.js';
 
 function findBestTitleMatch(searchTitle, results) {
   return _findBestTitleMatch(searchTitle, results, {
@@ -244,7 +244,7 @@ export async function searchBooksByTitle(title, apiKey, limit = 5) {
     // Legacy: JSON string (unlikely but handle for safety)
     try {
       const parsed = JSON.parse(rawResults);
-      hits = Array.isArray(parsed) ? parsed : (parsed.hits || []);
+      hits = Array.isArray(parsed) ? parsed : parsed.hits || [];
     } catch {
       console.error('Failed to parse Hardcover search results JSON');
       return [];
@@ -253,7 +253,7 @@ export async function searchBooksByTitle(title, apiKey, limit = 5) {
     return [];
   }
 
-  return hits.map(item => {
+  return hits.map((item) => {
     const doc = item.document || {};
     const authorNames = Array.isArray(doc.author_names) ? doc.author_names : [];
 
@@ -262,7 +262,7 @@ export async function searchBooksByTitle(title, apiKey, limit = 5) {
       title: doc.title || '',
       author: authorNames.length > 0 ? authorNames[0] : null,
       isbns: Array.isArray(doc.isbns) ? doc.isbns : [],
-      seriesNames: Array.isArray(doc.series_names) ? doc.series_names : []
+      seriesNames: Array.isArray(doc.series_names) ? doc.series_names : [],
     };
   });
 }
@@ -375,9 +375,10 @@ export async function getBookDetails(title, author, apiKey) {
     const publicationYear = book.release_year || null;
 
     // Extract genres from cached_tags
-    const genres = Array.isArray(book.cached_tags?.Genre) && book.cached_tags.Genre.length > 0
-      ? book.cached_tags.Genre
-      : null;
+    const genres =
+      Array.isArray(book.cached_tags?.Genre) && book.cached_tags.Genre.length > 0
+        ? book.cached_tags.Genre
+        : null;
 
     return {
       coverUrl,
@@ -388,7 +389,7 @@ export async function getBookDetails(title, author, apiKey) {
       seriesName,
       seriesNumber,
       genres,
-      hardcoverId: book.id
+      hardcoverId: book.id,
     };
   } catch (error) {
     console.error(`Error getting book details for "${title}":`, error);
@@ -422,8 +423,8 @@ export async function findTopAuthorCandidatesForBook(title, apiKey, limit = 3) {
 
     // Score results by title similarity and filter to those with authors
     const scored = results
-      .filter(r => !!r.author)
-      .map(r => {
+      .filter((r) => !!r.author)
+      .map((r) => {
         const normalizedResultTitle = normalizeTitle(r.title || '');
         const similarity = calculateTitleSimilarity(normalizedSearchTitle, normalizedResultTitle);
 
@@ -438,10 +439,10 @@ export async function findTopAuthorCandidatesForBook(title, apiKey, limit = 3) {
           title: r.title || '',
           author: r.author,
           similarity,
-          coverUrl
+          coverUrl,
         };
       })
-      .filter(entry => entry.similarity > 0.2);
+      .filter((entry) => entry.similarity > 0.2);
 
     if (scored.length === 0) {
       return [];
@@ -463,7 +464,7 @@ export async function findTopAuthorCandidatesForBook(title, apiKey, limit = 3) {
         name: entry.author.trim(),
         sourceTitle: entry.title,
         similarity: entry.similarity,
-        coverUrl: entry.coverUrl || null
+        coverUrl: entry.coverUrl || null,
       });
 
       if (candidates.length >= maxResults) {
@@ -520,7 +521,7 @@ export async function fetchAllMetadata(title, author, apiKey) {
         genres: null,
         coverUrl: null,
         seriesName: null,
-        seriesNumber: null
+        seriesNumber: null,
       };
     }
 
@@ -544,9 +545,10 @@ export async function fetchAllMetadata(title, author, apiKey) {
     }
 
     // Genres
-    const genres = Array.isArray(book.cached_tags?.Genre) && book.cached_tags.Genre.length > 0
-      ? book.cached_tags.Genre
-      : null;
+    const genres =
+      Array.isArray(book.cached_tags?.Genre) && book.cached_tags.Genre.length > 0
+        ? book.cached_tags.Genre
+        : null;
 
     return {
       foundAuthor,
@@ -557,7 +559,7 @@ export async function fetchAllMetadata(title, author, apiKey) {
       genres,
       coverUrl: book.cached_image?.url || null,
       seriesName,
-      seriesNumber
+      seriesNumber,
     };
   } catch (error) {
     console.error(`Error fetching all metadata for "${title}":`, error);
@@ -663,7 +665,7 @@ export async function batchFindMissingAuthors(books, apiKey, onProgress = null) 
     try {
       // 200ms delay between requests (Hardcover 60 req/min limit)
       if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise((resolve) => setTimeout(resolve, 200));
       }
 
       const foundAuthor = await findAuthorForBook(book.title, apiKey);
@@ -671,7 +673,7 @@ export async function batchFindMissingAuthors(books, apiKey, onProgress = null) 
       results.push({
         book,
         foundAuthor,
-        success: !!foundAuthor
+        success: !!foundAuthor,
       });
 
       if (onProgress) {
@@ -680,7 +682,7 @@ export async function batchFindMissingAuthors(books, apiKey, onProgress = null) 
           total: booksNeedingAuthors.length,
           book: book.title,
           foundAuthor,
-          success: !!foundAuthor
+          success: !!foundAuthor,
         });
       }
     } catch (error) {
@@ -689,7 +691,7 @@ export async function batchFindMissingAuthors(books, apiKey, onProgress = null) 
         book,
         foundAuthor: null,
         success: false,
-        error: error.message
+        error: error.message,
       });
 
       if (onProgress) {
@@ -699,7 +701,7 @@ export async function batchFindMissingAuthors(books, apiKey, onProgress = null) 
           book: book.title,
           foundAuthor: null,
           success: false,
-          error: error.message
+          error: error.message,
         });
       }
     }
@@ -741,7 +743,7 @@ export async function batchFindMissingDescriptions(books, apiKey, onProgress = n
     try {
       // 200ms delay between requests
       if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise((resolve) => setTimeout(resolve, 200));
       }
 
       const details = await getBookDetails(book.title, book.author || null, apiKey);
@@ -750,7 +752,7 @@ export async function batchFindMissingDescriptions(books, apiKey, onProgress = n
       results.push({
         book,
         foundDescription,
-        success: !!foundDescription
+        success: !!foundDescription,
       });
 
       if (onProgress) {
@@ -759,7 +761,7 @@ export async function batchFindMissingDescriptions(books, apiKey, onProgress = n
           total: booksNeedingDescriptions.length,
           book: book.title,
           foundDescription,
-          success: !!foundDescription
+          success: !!foundDescription,
         });
       }
     } catch (error) {
@@ -768,7 +770,7 @@ export async function batchFindMissingDescriptions(books, apiKey, onProgress = n
         book,
         foundDescription: null,
         success: false,
-        error: error.message
+        error: error.message,
       });
 
       if (onProgress) {
@@ -778,7 +780,7 @@ export async function batchFindMissingDescriptions(books, apiKey, onProgress = n
           book: book.title,
           foundDescription: null,
           success: false,
-          error: error.message
+          error: error.message,
         });
       }
     }
@@ -820,7 +822,7 @@ export async function batchFindMissingGenres(books, apiKey, onProgress = null) {
     try {
       // 200ms delay between requests
       if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise((resolve) => setTimeout(resolve, 200));
       }
 
       const foundGenres = await findGenresForBook(book.title, book.author || null, apiKey);
@@ -828,7 +830,7 @@ export async function batchFindMissingGenres(books, apiKey, onProgress = null) {
       results.push({
         book,
         foundGenres: foundGenres || [],
-        success: !!(foundGenres && foundGenres.length > 0)
+        success: !!(foundGenres && foundGenres.length > 0),
       });
 
       if (onProgress) {
@@ -837,7 +839,7 @@ export async function batchFindMissingGenres(books, apiKey, onProgress = null) {
           total: booksNeedingGenres.length,
           book: book.title,
           foundGenres: foundGenres || [],
-          success: !!(foundGenres && foundGenres.length > 0)
+          success: !!(foundGenres && foundGenres.length > 0),
         });
       }
     } catch (error) {
@@ -846,7 +848,7 @@ export async function batchFindMissingGenres(books, apiKey, onProgress = null) {
         book,
         foundGenres: [],
         success: false,
-        error: error.message
+        error: error.message,
       });
 
       if (onProgress) {
@@ -856,7 +858,7 @@ export async function batchFindMissingGenres(books, apiKey, onProgress = null) {
           book: book.title,
           foundGenres: [],
           success: false,
-          error: error.message
+          error: error.message,
         });
       }
     }

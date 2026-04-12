@@ -117,10 +117,7 @@ const QuickReadingView = ({
                       >
                         {day}
                       </Typography>
-                      <Typography
-                        variant="caption"
-                        sx={{ fontWeight: 'bold', fontSize: '0.8rem' }}
-                      >
+                      <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.8rem' }}>
                         {dayNum}
                       </Typography>
                     </TableCell>
@@ -246,9 +243,7 @@ const QuickReadingView = ({
                             }
                             color="primary"
                             disabled={isRecording}
-                            onClick={() =>
-                              onQuickRecord(student, READING_STATUS.MULTIPLE, n)
-                            }
+                            onClick={() => onQuickRecord(student, READING_STATUS.MULTIPLE, n)}
                             sx={numBtnSx}
                             aria-label={`Mark ${student.name} as read ${n} times`}
                           >
@@ -286,9 +281,7 @@ const QuickReadingView = ({
                         </Button>
                         <Button
                           size="small"
-                          variant={
-                            status === READING_STATUS.NO_RECORD ? 'contained' : 'outlined'
-                          }
+                          variant={status === READING_STATUS.NO_RECORD ? 'contained' : 'outlined'}
                           disabled={isRecording}
                           onClick={() => onQuickRecord(student, READING_STATUS.NO_RECORD)}
                           sx={{
@@ -358,9 +351,7 @@ const QuickReadingView = ({
                 <TableRow>
                   <TableCell colSpan={6} sx={{ textAlign: 'center', py: 4 }}>
                     <Typography color="text.secondary">
-                      {searchQuery
-                        ? 'No students match your search'
-                        : 'No students in this class'}
+                      {searchQuery ? 'No students match your search' : 'No students in this class'}
                     </Typography>
                   </TableCell>
                 </TableRow>

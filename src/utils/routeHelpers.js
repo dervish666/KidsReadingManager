@@ -59,9 +59,10 @@ export const safeJsonParse = (value, fallback) => {
  */
 export const requireStudent = async (db, id, organizationId) => {
   const { notFoundError } = await import('../middleware/errorHandler.js');
-  const row = await db.prepare(
-    'SELECT id FROM students WHERE id = ? AND organization_id = ? AND is_active = 1'
-  ).bind(id, organizationId).first();
+  const row = await db
+    .prepare('SELECT id FROM students WHERE id = ? AND organization_id = ? AND is_active = 1')
+    .bind(id, organizationId)
+    .first();
   if (!row) {
     throw notFoundError(`Student with ID ${id} not found`);
   }

@@ -31,7 +31,13 @@ function escapeHtml(str) {
  * @param {string} baseUrl - Base URL for the reset link
  * @returns {Promise<{success: boolean, error?: string}>}
  */
-export async function sendPasswordResetEmail(env, recipientEmail, recipientName, resetToken, baseUrl) {
+export async function sendPasswordResetEmail(
+  env,
+  recipientEmail,
+  recipientName,
+  resetToken,
+  baseUrl
+) {
   const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
 
   const subject = 'Reset your Tally Reading password';
@@ -87,20 +93,34 @@ If you didn't request this, you can safely ignore this email.
 
   // Try Resend first (most reliable for transactional email)
   if (env.RESEND_API_KEY) {
-    return await sendWithResend(env.RESEND_API_KEY, env.EMAIL_FROM || 'hello@tallyreading.uk', recipientEmail, subject, textBody, htmlBody);
+    return await sendWithResend(
+      env.RESEND_API_KEY,
+      env.EMAIL_FROM || 'hello@tallyreading.uk',
+      recipientEmail,
+      subject,
+      textBody,
+      htmlBody
+    );
   }
 
   // Try Cloudflare Email Routing binding
   if (env.EMAIL_SENDER) {
     // Cloudflare Email Routing selected
-    return await sendWithCloudflareEmail(env.EMAIL_SENDER, env.EMAIL_FROM || 'hello@tallyreading.uk', recipientEmail, subject, textBody, htmlBody);
+    return await sendWithCloudflareEmail(
+      env.EMAIL_SENDER,
+      env.EMAIL_FROM || 'hello@tallyreading.uk',
+      recipientEmail,
+      subject,
+      textBody,
+      htmlBody
+    );
   }
 
   // No email provider configured
   console.warn('No email provider configured. Set RESEND_API_KEY or EMAIL_SENDER binding.');
   return {
     success: false,
-    error: 'Email service not configured'
+    error: 'Email service not configured',
   };
 }
 
@@ -109,20 +129,24 @@ If you didn't request this, you can safely ignore this email.
  */
 async function sendWithResend(apiKey, from, to, subject, text, html) {
   try {
-    const response = await fetchWithTimeout('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
+    const response = await fetchWithTimeout(
+      'https://api.resend.com/emails',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from,
+          to,
+          subject,
+          text,
+          html,
+        }),
       },
-      body: JSON.stringify({
-        from,
-        to,
-        subject,
-        text,
-        html,
-      }),
-    }, 5000);
+      5000
+    );
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
@@ -248,7 +272,14 @@ Time: ${timestamp}`;
 /**
  * Send a welcome email to new users
  */
-export async function sendWelcomeEmail(env, recipientEmail, recipientName, organizationName, temporaryPassword, baseUrl) {
+export async function sendWelcomeEmail(
+  env,
+  recipientEmail,
+  recipientName,
+  organizationName,
+  temporaryPassword,
+  baseUrl
+) {
   const loginUrl = `${baseUrl}/login`;
 
   const subject = `Welcome to Tally Reading - ${organizationName}`;
@@ -301,12 +332,26 @@ ${loginUrl}
 
   // Try Resend first
   if (env.RESEND_API_KEY) {
-    return await sendWithResend(env.RESEND_API_KEY, env.EMAIL_FROM || 'hello@tallyreading.uk', recipientEmail, subject, textBody, htmlBody);
+    return await sendWithResend(
+      env.RESEND_API_KEY,
+      env.EMAIL_FROM || 'hello@tallyreading.uk',
+      recipientEmail,
+      subject,
+      textBody,
+      htmlBody
+    );
   }
 
   // Try Cloudflare Email Routing binding
   if (env.EMAIL_SENDER) {
-    return await sendWithCloudflareEmail(env.EMAIL_SENDER, env.EMAIL_FROM || 'hello@tallyreading.uk', recipientEmail, subject, textBody, htmlBody);
+    return await sendWithCloudflareEmail(
+      env.EMAIL_SENDER,
+      env.EMAIL_FROM || 'hello@tallyreading.uk',
+      recipientEmail,
+      subject,
+      textBody,
+      htmlBody
+    );
   }
 
   console.warn('No email provider configured for welcome email.');
@@ -400,7 +445,13 @@ ${ticket.message}`;
  * @param {number} daysRemaining - Days until trial expires
  * @returns {Promise<{success: boolean, error?: string}>}
  */
-export async function sendTrialEndingEmail(env, recipientEmail, recipientName, organizationName, daysRemaining) {
+export async function sendTrialEndingEmail(
+  env,
+  recipientEmail,
+  recipientName,
+  organizationName,
+  daysRemaining
+) {
   const from = env.EMAIL_FROM || 'hello@tallyreading.uk';
   const subject = `Your Tally Reading trial ends in ${daysRemaining} days`;
 
@@ -446,10 +497,24 @@ If you have any questions, reply to this email — we're happy to help.
 </html>`;
 
   if (env.RESEND_API_KEY) {
-    return await sendWithResend(env.RESEND_API_KEY, from, recipientEmail, subject, textBody, htmlBody);
+    return await sendWithResend(
+      env.RESEND_API_KEY,
+      from,
+      recipientEmail,
+      subject,
+      textBody,
+      htmlBody
+    );
   }
   if (env.EMAIL_SENDER) {
-    return await sendWithCloudflareEmail(env.EMAIL_SENDER, from, recipientEmail, subject, textBody, htmlBody);
+    return await sendWithCloudflareEmail(
+      env.EMAIL_SENDER,
+      from,
+      recipientEmail,
+      subject,
+      textBody,
+      htmlBody
+    );
   }
 
   console.warn('No email provider configured for trial reminder.');

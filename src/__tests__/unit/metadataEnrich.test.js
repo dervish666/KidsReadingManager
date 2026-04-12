@@ -23,9 +23,15 @@ describe('metadataService.processBatch', () => {
 
   it('processes books and returns progress', async () => {
     olFetch.mockResolvedValue({
-      author: 'Julia Donaldson', description: 'A story.', genres: ['Fiction'],
-      isbn: '9780142403877', pageCount: 32, publicationYear: 1999,
-      seriesName: null, seriesNumber: null, coverUrl: null,
+      author: 'Julia Donaldson',
+      description: 'A story.',
+      genres: ['Fiction'],
+      isbn: '9780142403877',
+      pageCount: 32,
+      publicationYear: 1999,
+      seriesName: null,
+      seriesNumber: null,
+      coverUrl: null,
     });
 
     const books = [
@@ -53,9 +59,16 @@ describe('metadataService.processBatch', () => {
 
   it('handles rate limiting by recording the error', async () => {
     olFetch.mockResolvedValue({
-      author: null, description: null, genres: null, isbn: null,
-      pageCount: null, publicationYear: null, seriesName: null,
-      seriesNumber: null, coverUrl: null, rateLimited: true,
+      author: null,
+      description: null,
+      genres: null,
+      isbn: null,
+      pageCount: null,
+      publicationYear: null,
+      seriesName: null,
+      seriesNumber: null,
+      coverUrl: null,
+      rateLimited: true,
     });
 
     const books = [{ id: 'b1', title: 'Book 1' }];

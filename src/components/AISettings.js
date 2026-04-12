@@ -73,9 +73,7 @@ const AISettings = () => {
           const config = await response.json();
           const loadedProvider = config.provider || 'anthropic';
           setProvider(loadedProvider);
-          setModelPreference(
-            config.modelPreference || getDefaultModel(loadedProvider)
-          );
+          setModelPreference(config.modelPreference || getDefaultModel(loadedProvider));
           setHasApiKey(config.hasApiKey || false);
           setAvailableProviders(config.availableProviders || {});
           setKeySource(config.keySource || 'none');
@@ -339,9 +337,7 @@ const AISettings = () => {
                 Anthropic (Claude) {availableProviders.anthropic && '✓'}
               </MenuItem>
               <MenuItem value="openai">OpenAI (GPT) {availableProviders.openai && '✓'}</MenuItem>
-              <MenuItem value="gemini">
-                Google (Gemini) {availableProviders.google && '✓'}
-              </MenuItem>
+              <MenuItem value="gemini">Google (Gemini) {availableProviders.google && '✓'}</MenuItem>
             </Select>
           </FormControl>
 

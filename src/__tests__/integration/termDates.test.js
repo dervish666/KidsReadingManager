@@ -34,10 +34,13 @@ const createTestApp = (contextValues = {}, dbOverrides = {}) => {
 
   app.onError((error, c) => {
     const status = error.status || 500;
-    return c.json({
-      status: 'error',
-      message: error.message || 'Internal Server Error',
-    }, status);
+    return c.json(
+      {
+        status: 'error',
+        message: error.message || 'Internal Server Error',
+      },
+      status
+    );
   });
 
   app.use('*', async (c, next) => {

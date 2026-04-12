@@ -13,7 +13,7 @@ import { isHardcoverRateLimited } from './hardcoverApi';
 export const METADATA_PROVIDERS = {
   OPEN_LIBRARY: 'openlibrary',
   GOOGLE_BOOKS: 'googlebooks',
-  HARDCOVER: 'hardcover'
+  HARDCOVER: 'hardcover',
 };
 
 // Default provider
@@ -23,7 +23,7 @@ export const DEFAULT_PROVIDER = METADATA_PROVIDERS.OPEN_LIBRARY;
 export const SPEED_PRESETS = {
   careful: 2000,
   normal: 1000,
-  fast: 500
+  fast: 500,
 };
 
 /**
@@ -36,13 +36,19 @@ export function getMetadataConfig(settings) {
   return {
     provider: bookMetadata.provider || DEFAULT_PROVIDER,
     // Both API keys are stored server-side only (encrypted). Boolean flags indicate presence.
-    apiKey: bookMetadata.googleBooksApiKey || (bookMetadata.hasGoogleBooksApiKey ? '__server_stored__' : null),
-    hasGoogleBooksApiKey: Boolean(bookMetadata.googleBooksApiKey || bookMetadata.hasGoogleBooksApiKey),
-    hardcoverApiKey: bookMetadata.hardcoverApiKey || (bookMetadata.hasHardcoverApiKey ? '__server_stored__' : null),
+    apiKey:
+      bookMetadata.googleBooksApiKey ||
+      (bookMetadata.hasGoogleBooksApiKey ? '__server_stored__' : null),
+    hasGoogleBooksApiKey: Boolean(
+      bookMetadata.googleBooksApiKey || bookMetadata.hasGoogleBooksApiKey
+    ),
+    hardcoverApiKey:
+      bookMetadata.hardcoverApiKey ||
+      (bookMetadata.hasHardcoverApiKey ? '__server_stored__' : null),
     hasHardcoverApiKey: Boolean(bookMetadata.hardcoverApiKey || bookMetadata.hasHardcoverApiKey),
     batchSize: bookMetadata.batchSize || 50,
     speedPreset: bookMetadata.speedPreset || 'normal',
-    autoFallback: bookMetadata.autoFallback !== false
+    autoFallback: bookMetadata.autoFallback !== false,
   };
 }
 
@@ -174,7 +180,11 @@ export async function findTopAuthorCandidatesForBook(title, settings, limit = 3)
       throw new Error('Hardcover API key is not configured. Please add it in Settings.');
     }
     try {
-      const result = await hardcover.findTopAuthorCandidatesForBook(title, config.hardcoverApiKey, limit);
+      const result = await hardcover.findTopAuthorCandidatesForBook(
+        title,
+        config.hardcoverApiKey,
+        limit
+      );
       if (result && result.length > 0) return result;
     } catch (e) {
       console.warn('Hardcover lookup failed, falling back to OpenLibrary:', e.message);
@@ -362,8 +372,10 @@ export function getCoverUrl(bookData, settings) {
  */
 export function providerRequiresApiKey(settings) {
   const config = getMetadataConfig(settings);
-  return config.provider === METADATA_PROVIDERS.GOOGLE_BOOKS ||
-    config.provider === METADATA_PROVIDERS.HARDCOVER;
+  return (
+    config.provider === METADATA_PROVIDERS.GOOGLE_BOOKS ||
+    config.provider === METADATA_PROVIDERS.HARDCOVER
+  );
 }
 
 /**
@@ -378,7 +390,7 @@ export function validateProviderConfig(settings) {
     if (!config.apiKey) {
       return {
         valid: false,
-        error: 'Google Books API key is required. Please configure it in Settings.'
+        error: 'Google Books API key is required. Please configure it in Settings.',
       };
     }
   }
@@ -387,7 +399,7 @@ export function validateProviderConfig(settings) {
     if (!config.hardcoverApiKey) {
       return {
         valid: false,
-        error: 'Hardcover API key is required. Please configure it in Settings.'
+        error: 'Hardcover API key is required. Please configure it in Settings.',
       };
     }
   }
@@ -404,13 +416,17 @@ export function validateProviderConfig(settings) {
  */
 function abortableDelay(ms, signal) {
   if (signal?.aborted) return Promise.resolve();
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     const timer = setTimeout(resolve, ms);
     if (signal) {
-      signal.addEventListener('abort', () => {
-        clearTimeout(timer);
-        resolve();
-      }, { once: true });
+      signal.addEventListener(
+        'abort',
+        () => {
+          clearTimeout(timer);
+          resolve();
+        },
+        { once: true }
+      );
     }
   });
 }
@@ -480,7 +496,8 @@ export async function batchFetchAllMetadata(books, settings, onProgress = null, 
   const baseDelay = SPEED_PRESETS[config.speedPreset] || SPEED_PRESETS.normal;
   let currentDelay = baseDelay;
   let consecutiveRateLimited = 0;
-  const autoFallback = options.autoFallback !== undefined ? options.autoFallback : config.autoFallback;
+  const autoFallback =
+    options.autoFallback !== undefined ? options.autoFallback : config.autoFallback;
   let providerSwitched = false;
   let effectiveSettings = settings;
 
@@ -539,8 +556,10 @@ export async function batchFetchAllMetadata(books, settings, onProgress = null, 
     }
 
     // Check rate limit state after processing this book (outside try/catch)
-    const rateLimited = config.provider === METADATA_PROVIDERS.HARDCOVER &&
-      typeof isHardcoverRateLimited === 'function' && isHardcoverRateLimited();
+    const rateLimited =
+      config.provider === METADATA_PROVIDERS.HARDCOVER &&
+      typeof isHardcoverRateLimited === 'function' &&
+      isHardcoverRateLimited();
 
     if (rateLimited) {
       consecutiveRateLimited++;
@@ -554,8 +573,8 @@ export async function batchFetchAllMetadata(books, settings, onProgress = null, 
           ...settings,
           bookMetadata: {
             ...settings?.bookMetadata,
-            provider: METADATA_PROVIDERS.OPEN_LIBRARY
-          }
+            provider: METADATA_PROVIDERS.OPEN_LIBRARY,
+          },
         };
         currentDelay = baseDelay; // Reset delay after switching
       }

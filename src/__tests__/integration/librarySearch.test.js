@@ -12,7 +12,7 @@ const createMockDB = (overrides = {}) => {
   mockPrepare.mockReturnValue({
     bind: mockBind,
     all: mockAll,
-    first: mockFirst
+    first: mockFirst,
   });
 
   return {
@@ -20,7 +20,7 @@ const createMockDB = (overrides = {}) => {
     _mockBind: mockBind,
     _mockAll: mockAll,
     _mockFirst: mockFirst,
-    ...overrides
+    ...overrides,
   };
 };
 
@@ -34,37 +34,46 @@ describe('Library Search Integration', () => {
 
     it('should build complete profile with all data present', async () => {
       // Mock student data
-      mockDb._mockFirst
-        .mockResolvedValueOnce({
-          id: 'student-1',
-          name: 'Emma',
-          reading_level: 'intermediate',
-          age_range: '8-10',
-          likes: '["Harry Potter", "Percy Jackson"]',
-          dislikes: '["boring books"]',
-          notes: 'Loves fantasy'
-        });
+      mockDb._mockFirst.mockResolvedValueOnce({
+        id: 'student-1',
+        name: 'Emma',
+        reading_level: 'intermediate',
+        age_range: '8-10',
+        likes: '["Harry Potter", "Percy Jackson"]',
+        dislikes: '["boring books"]',
+        notes: 'Loves fantasy',
+      });
 
       // Mock preferences (favorite genres) - note: query uses genre_name and preference_type
       mockDb._mockAll
         .mockResolvedValueOnce({
           results: [
             { genre_id: 'genre-1', genre_name: 'Fantasy', preference_type: 'favorite' },
-            { genre_id: 'genre-2', genre_name: 'Adventure', preference_type: 'favorite' }
-          ]
+            { genre_id: 'genre-2', genre_name: 'Adventure', preference_type: 'favorite' },
+          ],
         })
         // Mock reading sessions
         .mockResolvedValueOnce({
           results: [
-            { book_id: 'book-1', title: 'The Hobbit', author: 'Tolkien', genre_ids: 'genre-1', session_date: '2024-01-15' },
-            { book_id: 'book-2', title: 'Narnia', author: 'Lewis', genre_ids: 'genre-1', session_date: '2024-01-10' }
-          ]
+            {
+              book_id: 'book-1',
+              title: 'The Hobbit',
+              author: 'Tolkien',
+              genre_ids: 'genre-1',
+              session_date: '2024-01-15',
+            },
+            {
+              book_id: 'book-2',
+              title: 'Narnia',
+              author: 'Lewis',
+              genre_ids: 'genre-1',
+              session_date: '2024-01-10',
+            },
+          ],
         })
         // Mock genre names lookup
         .mockResolvedValueOnce({
-          results: [
-            { id: 'genre-1', name: 'Fantasy' }
-          ]
+          results: [{ id: 'genre-1', name: 'Fantasy' }],
         });
 
       const profile = await buildStudentReadingProfile('student-1', 'org-1', mockDb);
@@ -95,7 +104,7 @@ describe('Library Search Integration', () => {
         age_range: '6-8',
         likes: null,
         dislikes: null,
-        notes: null
+        notes: null,
       });
 
       mockDb._mockAll
@@ -119,7 +128,7 @@ describe('Library Search Integration', () => {
         age_range: '10-12',
         likes: null,
         dislikes: null,
-        notes: null
+        notes: null,
       });
 
       mockDb._mockAll
@@ -127,22 +136,64 @@ describe('Library Search Integration', () => {
         .mockResolvedValueOnce({
           results: [
             // Multiple books in different genres
-            { book_id: 'b1', title: 'Book1', author: 'A', genre_ids: 'fantasy', session_date: '2024-01-01' },
-            { book_id: 'b2', title: 'Book2', author: 'A', genre_ids: 'fantasy', session_date: '2024-01-02' },
-            { book_id: 'b3', title: 'Book3', author: 'A', genre_ids: 'fantasy', session_date: '2024-01-03' },
-            { book_id: 'b4', title: 'Book4', author: 'A', genre_ids: 'mystery', session_date: '2024-01-04' },
-            { book_id: 'b5', title: 'Book5', author: 'A', genre_ids: 'mystery', session_date: '2024-01-05' },
-            { book_id: 'b6', title: 'Book6', author: 'A', genre_ids: 'scifi', session_date: '2024-01-06' },
-            { book_id: 'b7', title: 'Book7', author: 'A', genre_ids: 'romance', session_date: '2024-01-07' }
-          ]
+            {
+              book_id: 'b1',
+              title: 'Book1',
+              author: 'A',
+              genre_ids: 'fantasy',
+              session_date: '2024-01-01',
+            },
+            {
+              book_id: 'b2',
+              title: 'Book2',
+              author: 'A',
+              genre_ids: 'fantasy',
+              session_date: '2024-01-02',
+            },
+            {
+              book_id: 'b3',
+              title: 'Book3',
+              author: 'A',
+              genre_ids: 'fantasy',
+              session_date: '2024-01-03',
+            },
+            {
+              book_id: 'b4',
+              title: 'Book4',
+              author: 'A',
+              genre_ids: 'mystery',
+              session_date: '2024-01-04',
+            },
+            {
+              book_id: 'b5',
+              title: 'Book5',
+              author: 'A',
+              genre_ids: 'mystery',
+              session_date: '2024-01-05',
+            },
+            {
+              book_id: 'b6',
+              title: 'Book6',
+              author: 'A',
+              genre_ids: 'scifi',
+              session_date: '2024-01-06',
+            },
+            {
+              book_id: 'b7',
+              title: 'Book7',
+              author: 'A',
+              genre_ids: 'romance',
+              session_date: '2024-01-07',
+            },
+          ],
         })
         .mockResolvedValueOnce({
           results: [
             { id: 'fantasy', name: 'Fantasy' },
             { id: 'mystery', name: 'Mystery' },
             { id: 'scifi', name: 'Science Fiction' },
-            { id: 'romance', name: 'Romance' }
-          ]
+            { id: 'romance', name: 'Romance' },
+          ],
         });
 
       const profile = await buildStudentReadingProfile('student-3', 'org-1', mockDb);
@@ -162,7 +213,7 @@ describe('Library Search Integration', () => {
         age_range: '8-10',
         likes: null,
         dislikes: null,
-        notes: null
+        notes: null,
       });
 
       mockDb._mockAll
@@ -173,8 +224,8 @@ describe('Library Search Integration', () => {
             title: `Book ${i}`,
             author: `Author ${i}`,
             genre_ids: 'fiction',
-            session_date: `2024-01-${String(20 - i).padStart(2, '0')}`
-          }))
+            session_date: `2024-01-${String(20 - i).padStart(2, '0')}`,
+          })),
         })
         .mockResolvedValueOnce({ results: [{ id: 'fiction', name: 'Fiction' }] });
 
@@ -191,12 +242,10 @@ describe('Library Search Integration', () => {
         age_range: '8-10',
         likes: 'not valid json',
         dislikes: '{ broken',
-        notes: null
+        notes: null,
       });
 
-      mockDb._mockAll
-        .mockResolvedValueOnce({ results: [] })
-        .mockResolvedValueOnce({ results: [] });
+      mockDb._mockAll.mockResolvedValueOnce({ results: [] }).mockResolvedValueOnce({ results: [] });
 
       const profile = await buildStudentReadingProfile('student-5', 'org-1', mockDb);
 
@@ -223,7 +272,7 @@ describe('Library Search Integration', () => {
         age_range: '8-10',
         likes: null,
         dislikes: null,
-        notes: null
+        notes: null,
       });
 
       mockDb._mockAll
@@ -246,12 +295,10 @@ describe('Library Search Integration', () => {
         age_range: '8-10',
         likes: null,
         dislikes: null,
-        notes: null
+        notes: null,
       });
 
-      mockDb._mockAll
-        .mockResolvedValueOnce({ results: [] })
-        .mockResolvedValueOnce({ results: [] });
+      mockDb._mockAll.mockResolvedValueOnce({ results: [] }).mockResolvedValueOnce({ results: [] });
 
       const profile = await buildStudentReadingProfile('student-no-range', 'org-1', mockDb);
 
@@ -270,12 +317,10 @@ describe('Library Search Integration', () => {
         age_range: '6-8',
         likes: null,
         dislikes: null,
-        notes: null
+        notes: null,
       });
 
-      mockDb._mockAll
-        .mockResolvedValueOnce({ results: [] })
-        .mockResolvedValueOnce({ results: [] });
+      mockDb._mockAll.mockResolvedValueOnce({ results: [] }).mockResolvedValueOnce({ results: [] });
 
       const profile = await buildStudentReadingProfile('student-zero', 'org-1', mockDb);
 
@@ -297,7 +342,7 @@ describe('Library Search Integration', () => {
         { id: 'b3', reading_level: '3.0' }, // Within range
         { id: 'b4', reading_level: '4.0' }, // At max boundary
         { id: 'b5', reading_level: '4.5' }, // Above range
-        { id: 'b6', reading_level: null },  // Unleveled
+        { id: 'b6', reading_level: null }, // Unleveled
       ];
 
       const isInRange = (book) => {
@@ -309,7 +354,7 @@ describe('Library Search Integration', () => {
       const filteredBooks = books.filter(isInRange);
 
       // Should include: b2 (2.0), b3 (3.0), b4 (4.0), b6 (null)
-      expect(filteredBooks.map(b => b.id)).toEqual(['b2', 'b3', 'b4', 'b6']);
+      expect(filteredBooks.map((b) => b.id)).toEqual(['b2', 'b3', 'b4', 'b6']);
     });
 
     it('should include all books when student has no range', () => {
@@ -351,7 +396,7 @@ describe('Library Search Integration', () => {
       const filteredBooks = books.filter(isInRange);
 
       // Only exact match should be included
-      expect(filteredBooks.map(b => b.id)).toEqual(['b2']);
+      expect(filteredBooks.map((b) => b.id)).toEqual(['b2']);
     });
 
     it('should always include unleveled books regardless of range', () => {
@@ -389,7 +434,7 @@ describe('Library Search Integration', () => {
       const studentProfile = {
         explicitFavorites: ['fantasy'],
         inferredFavorites: ['mystery'],
-        readingLevel: 'intermediate'
+        readingLevel: 'intermediate',
       };
 
       // Book A matches explicit favorite

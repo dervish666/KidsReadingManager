@@ -80,7 +80,7 @@ describe('GET /:id/goals', () => {
         if (sql.includes('term_dates')) return { results: [] }; // no term dates → Q2 fallback
         if (sql.includes('class_goals')) {
           if (!fetchAfterInsert) return { results: [] }; // first fetch: empty
-          return { results: DEFAULT_GOAL_ROWS };           // second fetch after batch insert
+          return { results: DEFAULT_GOAL_ROWS }; // second fetch after batch insert
         }
         return { results: [] };
       },

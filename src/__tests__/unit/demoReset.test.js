@@ -92,9 +92,7 @@ describe('resetDemoData', () => {
 
     await resetDemoData(db);
 
-    const userDelete = prepareCalls.find(
-      (sql) => sql.includes('DELETE') && sql.includes('users')
-    );
+    const userDelete = prepareCalls.find((sql) => sql.includes('DELETE') && sql.includes('users'));
     expect(userDelete).toBeDefined();
     expect(userDelete).toContain("auth_provider = 'demo'");
   });

@@ -143,7 +143,7 @@ function AppContent() {
         adminOnly: true,
       },
     ],
-    [],
+    []
   );
 
   const visibleTabs = useMemo(() => {

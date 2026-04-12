@@ -30,23 +30,23 @@ vi.mock('../../utils/crypto.js', async () => {
       name: 'Jane Teacher',
       org: 'org-id',
       orgSlug: 'furlong-school',
-      role: 'teacher'
+      role: 'teacher',
     }),
     createAccessToken: vi.fn().mockResolvedValue('mock-access-token'),
     createRefreshToken: vi.fn().mockResolvedValue({
       token: 'mock-refresh-token',
       hash: 'mock-refresh-hash',
-      expiresAt: '2026-03-03T00:00:00.000Z'
+      expiresAt: '2026-03-03T00:00:00.000Z',
     }),
-    hashToken: vi.fn().mockResolvedValue('hashed-token')
+    hashToken: vi.fn().mockResolvedValue('hashed-token'),
   };
 });
 
 vi.mock('../../services/wondeSync.js', () => ({
   runFullSync: vi.fn().mockResolvedValue({
     status: 'completed',
-    counts: { students: 10, classes: 3, employees: 5, deletions: 0 }
-  })
+    counts: { students: 10, classes: 3, employees: 5, deletions: 0 },
+  }),
 }));
 
 vi.mock('../../utils/helpers.js', () => ({
@@ -88,11 +88,11 @@ const MYLOGIN_USER_PROFILE = {
   email: 'jane@furlongschool.org',
   type: 'employee',
   service_providers: {
-    wonde: { service_provider_id: 'wonde-emp-456' }
+    wonde: { service_provider_id: 'wonde-emp-456' },
   },
   organisation: {
-    wonde_id: WONDE_SCHOOL_ID
-  }
+    wonde_id: WONDE_SCHOOL_ID,
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -117,25 +117,25 @@ function createApp() {
  *   { orgByWondeId, userByMyloginId, employeeClasses }
  */
 function createMockDb(overrides = {}) {
-  const {
-    orgByWondeId = null,
-    userByMyloginId = null,
-    employeeClasses = []
-  } = overrides;
+  const { orgByWondeId = null, userByMyloginId = null, employeeClasses = [] } = overrides;
 
   const db = {
     prepare: vi.fn(),
-    batch: vi.fn().mockResolvedValue([])
+    batch: vi.fn().mockResolvedValue([]),
   };
 
   db.prepare.mockImplementation((sql) => {
     // SELECT org by wonde_school_id
-    if (sql.includes('SELECT') && sql.includes('organizations') && sql.includes('wonde_school_id')) {
+    if (
+      sql.includes('SELECT') &&
+      sql.includes('organizations') &&
+      sql.includes('wonde_school_id')
+    ) {
       return {
         bind: vi.fn().mockReturnValue({
           first: vi.fn().mockResolvedValue(orgByWondeId),
-          run: vi.fn().mockResolvedValue({ success: true })
-        })
+          run: vi.fn().mockResolvedValue({ success: true }),
+        }),
       };
     }
 
@@ -143,8 +143,8 @@ function createMockDb(overrides = {}) {
     if (sql.includes('INSERT INTO organizations')) {
       return {
         bind: vi.fn().mockReturnValue({
-          run: vi.fn().mockResolvedValue({ success: true })
-        })
+          run: vi.fn().mockResolvedValue({ success: true }),
+        }),
       };
     }
 
@@ -152,8 +152,8 @@ function createMockDb(overrides = {}) {
     if (sql.includes('UPDATE organizations') && sql.includes('is_active')) {
       return {
         bind: vi.fn().mockReturnValue({
-          run: vi.fn().mockResolvedValue({ success: true })
-        })
+          run: vi.fn().mockResolvedValue({ success: true }),
+        }),
       };
     }
 
@@ -161,8 +161,8 @@ function createMockDb(overrides = {}) {
     if (sql.includes('SELECT') && sql.includes('users') && sql.includes('mylogin_id')) {
       return {
         bind: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue(userByMyloginId)
-        })
+          first: vi.fn().mockResolvedValue(userByMyloginId),
+        }),
       };
     }
 
@@ -170,8 +170,8 @@ function createMockDb(overrides = {}) {
     if (sql.includes('UPDATE') && sql.includes('users')) {
       return {
         bind: vi.fn().mockReturnValue({
-          run: vi.fn().mockResolvedValue({ success: true })
-        })
+          run: vi.fn().mockResolvedValue({ success: true }),
+        }),
       };
     }
 
@@ -179,8 +179,8 @@ function createMockDb(overrides = {}) {
     if (sql.includes('INSERT INTO users')) {
       return {
         bind: vi.fn().mockReturnValue({
-          run: vi.fn().mockResolvedValue({ success: true })
-        })
+          run: vi.fn().mockResolvedValue({ success: true }),
+        }),
       };
     }
 
@@ -188,8 +188,8 @@ function createMockDb(overrides = {}) {
     if (sql.includes('wonde_employee_classes')) {
       return {
         bind: vi.fn().mockReturnValue({
-          all: vi.fn().mockResolvedValue({ results: employeeClasses })
-        })
+          all: vi.fn().mockResolvedValue({ results: employeeClasses }),
+        }),
       };
     }
 
@@ -197,8 +197,8 @@ function createMockDb(overrides = {}) {
     if (sql.includes('SELECT') && sql.includes('classes') && sql.includes('wonde_class_id')) {
       return {
         bind: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue({ id: 'tally-class-1' })
-        })
+          first: vi.fn().mockResolvedValue({ id: 'tally-class-1' }),
+        }),
       };
     }
 
@@ -206,8 +206,8 @@ function createMockDb(overrides = {}) {
     if (sql.includes('class_assignments')) {
       return {
         bind: vi.fn().mockReturnValue({
-          run: vi.fn().mockResolvedValue({ success: true })
-        })
+          run: vi.fn().mockResolvedValue({ success: true }),
+        }),
       };
     }
 
@@ -215,8 +215,8 @@ function createMockDb(overrides = {}) {
     if (sql.includes('INSERT INTO refresh_tokens')) {
       return {
         bind: vi.fn().mockReturnValue({
-          run: vi.fn().mockResolvedValue({ success: true })
-        })
+          run: vi.fn().mockResolvedValue({ success: true }),
+        }),
       };
     }
 
@@ -225,8 +225,8 @@ function createMockDb(overrides = {}) {
       bind: vi.fn().mockReturnValue({
         first: vi.fn().mockResolvedValue(null),
         run: vi.fn().mockResolvedValue({ success: true }),
-        all: vi.fn().mockResolvedValue({ results: [] })
-      })
+        all: vi.fn().mockResolvedValue({ results: [] }),
+      }),
     };
   });
 
@@ -244,14 +244,14 @@ function createMockEnv(dbOverrides = {}) {
     READING_MANAGER_KV: {
       get: vi.fn(),
       put: vi.fn(),
-      delete: vi.fn()
+      delete: vi.fn(),
     },
     JWT_SECRET: 'test-secret-key',
     WONDE_WEBHOOK_SECRET: WEBHOOK_SECRET,
     MYLOGIN_CLIENT_ID: 'test-client-id',
     MYLOGIN_CLIENT_SECRET: 'test-client-secret',
     MYLOGIN_REDIRECT_URI: 'https://tallyreading.uk/api/auth/mylogin/callback',
-    ENVIRONMENT: 'development'
+    ENVIRONMENT: 'development',
   };
 }
 
@@ -266,10 +266,11 @@ function setupMyLoginFetch(userProfile = MYLOGIN_USER_PROFILE) {
     if (urlStr.includes('/oauth/token')) {
       return Promise.resolve({
         ok: true,
-        json: () => Promise.resolve({
-          access_token: 'mylogin-access-token',
-          token_type: 'Bearer'
-        })
+        json: () =>
+          Promise.resolve({
+            access_token: 'mylogin-access-token',
+            token_type: 'Bearer',
+          }),
       });
     }
 
@@ -277,7 +278,7 @@ function setupMyLoginFetch(userProfile = MYLOGIN_USER_PROFILE) {
     if (urlStr.includes('/api/user')) {
       return Promise.resolve({
         ok: true,
-        json: () => Promise.resolve(userProfile)
+        json: () => Promise.resolve(userProfile),
       });
     }
 
@@ -310,16 +311,20 @@ describe('Wonde + MyLogin Integration', () => {
     it('creates an organization, encrypts the token, and triggers sync', async () => {
       const env = createMockEnv();
 
-      const res = await app.request(`/api/webhooks/wonde`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Webhook-Secret': WEBHOOK_SECRET },
-        body: JSON.stringify({
-          payload_type: 'schoolApproved',
-          school_id: WONDE_SCHOOL_ID,
-          school_name: SCHOOL_NAME,
-          school_token: SCHOOL_TOKEN
-        })
-      }, env);
+      const res = await app.request(
+        `/api/webhooks/wonde`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Webhook-Secret': WEBHOOK_SECRET },
+          body: JSON.stringify({
+            payload_type: 'schoolApproved',
+            school_id: WONDE_SCHOOL_ID,
+            school_name: SCHOOL_NAME,
+            school_token: SCHOOL_TOKEN,
+          }),
+        },
+        env
+      );
 
       const json = await res.json();
 
@@ -329,22 +334,20 @@ describe('Wonde + MyLogin Integration', () => {
       expect(json.success).toBe(true);
 
       // Token was encrypted
-      expect(encryptSensitiveData).toHaveBeenCalledWith(
-        SCHOOL_TOKEN,
-        'test-secret-key'
-      );
+      expect(encryptSensitiveData).toHaveBeenCalledWith(SCHOOL_TOKEN, 'test-secret-key');
 
       // Organization INSERT called with correct fields
-      const insertCall = env.READING_MANAGER_DB.prepare.mock.calls.find(
-        call => call[0].includes('INSERT INTO organizations')
+      const insertCall = env.READING_MANAGER_DB.prepare.mock.calls.find((call) =>
+        call[0].includes('INSERT INTO organizations')
       );
       expect(insertCall).toBeDefined();
 
       // Find the bind args for the INSERT
-      const insertIdx = env.READING_MANAGER_DB.prepare.mock.calls.findIndex(
-        call => call[0].includes('INSERT INTO organizations')
+      const insertIdx = env.READING_MANAGER_DB.prepare.mock.calls.findIndex((call) =>
+        call[0].includes('INSERT INTO organizations')
       );
-      const bindArgs = env.READING_MANAGER_DB.prepare.mock.results[insertIdx].value.bind.mock.calls[0];
+      const bindArgs =
+        env.READING_MANAGER_DB.prepare.mock.results[insertIdx].value.bind.mock.calls[0];
 
       // bindArgs: [orgId, school_name, slug, wonde_school_id, encrypted_token]
       expect(bindArgs[1]).toBe(SCHOOL_NAME);
@@ -371,7 +374,7 @@ describe('Wonde + MyLogin Integration', () => {
       const env = createMockEnv({
         orgByWondeId: orgData,
         userByMyloginId: null, // no existing user
-        employeeClasses: [{ wonde_class_id: 'wonde-class-A' }]
+        employeeClasses: [{ wonde_class_id: 'wonde-class-A' }],
       });
 
       setupMyLoginFetch();
@@ -403,36 +406,37 @@ describe('Wonde + MyLogin Integration', () => {
         'https://app.mylogin.com/api/user',
         expect.objectContaining({
           headers: expect.objectContaining({
-            Authorization: 'Bearer mylogin-access-token'
-          })
+            Authorization: 'Bearer mylogin-access-token',
+          }),
         })
       );
 
       // User INSERT was called (not UPDATE)
-      const insertCall = env.READING_MANAGER_DB.prepare.mock.calls.find(
-        call => call[0].includes('INSERT INTO users')
+      const insertCall = env.READING_MANAGER_DB.prepare.mock.calls.find((call) =>
+        call[0].includes('INSERT INTO users')
       );
       expect(insertCall).toBeDefined();
 
       // Verify INSERT bind args contain correct values
-      const insertIdx = env.READING_MANAGER_DB.prepare.mock.calls.findIndex(
-        call => call[0].includes('INSERT INTO users')
+      const insertIdx = env.READING_MANAGER_DB.prepare.mock.calls.findIndex((call) =>
+        call[0].includes('INSERT INTO users')
       );
-      const bindArgs = env.READING_MANAGER_DB.prepare.mock.results[insertIdx].value.bind.mock.calls[0];
+      const bindArgs =
+        env.READING_MANAGER_DB.prepare.mock.results[insertIdx].value.bind.mock.calls[0];
 
-      expect(bindArgs).toContain('Jane Teacher');      // name
+      expect(bindArgs).toContain('Jane Teacher'); // name
       expect(bindArgs).toContain('jane@furlongschool.org'); // email
-      expect(bindArgs).toContain('mylogin');            // auth_provider
-      expect(bindArgs).toContain('teacher');            // role (employee -> teacher)
+      expect(bindArgs).toContain('mylogin'); // auth_provider
+      expect(bindArgs).toContain('teacher'); // role (employee -> teacher)
       expect(bindArgs).toContain(String(MYLOGIN_USER_PROFILE.id)); // mylogin_id
-      expect(bindArgs).toContain('wonde-emp-456');      // wonde_employee_id
+      expect(bindArgs).toContain('wonde-emp-456'); // wonde_employee_id
 
       // Refresh token was created (access token is obtained via /api/auth/refresh after redirect)
       expect(createRefreshToken).toHaveBeenCalled();
 
       // Refresh token stored in DB
-      const refreshInsert = env.READING_MANAGER_DB.prepare.mock.calls.find(
-        call => call[0].includes('INSERT INTO refresh_tokens')
+      const refreshInsert = env.READING_MANAGER_DB.prepare.mock.calls.find((call) =>
+        call[0].includes('INSERT INTO refresh_tokens')
       );
       expect(refreshInsert).toBeDefined();
 
@@ -443,8 +447,8 @@ describe('Wonde + MyLogin Integration', () => {
       expect(cookie).toContain('Path=/api/auth');
 
       // Employee classes looked up for new teacher
-      const classLookup = env.READING_MANAGER_DB.prepare.mock.calls.find(
-        call => call[0].includes('wonde_employee_classes')
+      const classLookup = env.READING_MANAGER_DB.prepare.mock.calls.find((call) =>
+        call[0].includes('wonde_employee_classes')
       );
       expect(classLookup).toBeDefined();
     });
@@ -462,12 +466,12 @@ describe('Wonde + MyLogin Integration', () => {
         name: 'Jane OldName',
         email: 'jane.old@school.org',
         role: 'teacher',
-        mylogin_id: String(MYLOGIN_USER_PROFILE.id)
+        mylogin_id: String(MYLOGIN_USER_PROFILE.id),
       };
 
       const env = createMockEnv({
         orgByWondeId: orgData,
-        userByMyloginId: existingUser
+        userByMyloginId: existingUser,
       });
 
       setupMyLoginFetch();
@@ -485,19 +489,19 @@ describe('Wonde + MyLogin Integration', () => {
 
       // UPDATE was called on the existing user
       const updateCall = env.READING_MANAGER_DB.prepare.mock.calls.find(
-        call => call[0].includes('UPDATE') && call[0].includes('users')
+        (call) => call[0].includes('UPDATE') && call[0].includes('users')
       );
       expect(updateCall).toBeDefined();
 
       // INSERT INTO users was NOT called (no duplicate)
-      const insertCall = env.READING_MANAGER_DB.prepare.mock.calls.find(
-        call => call[0].includes('INSERT INTO users')
+      const insertCall = env.READING_MANAGER_DB.prepare.mock.calls.find((call) =>
+        call[0].includes('INSERT INTO users')
       );
       expect(insertCall).toBeUndefined();
 
       // Refresh token stored and cookie set
-      const refreshInsert = env.READING_MANAGER_DB.prepare.mock.calls.find(
-        call => call[0].includes('INSERT INTO refresh_tokens')
+      const refreshInsert = env.READING_MANAGER_DB.prepare.mock.calls.find((call) =>
+        call[0].includes('INSERT INTO refresh_tokens')
       );
       expect(refreshInsert).toBeDefined();
 
@@ -512,19 +516,23 @@ describe('Wonde + MyLogin Integration', () => {
   describe('Webhook accessRevoked -> org soft-deleted', () => {
     it('sets is_active = 0 on the organization', async () => {
       const env = createMockEnv({
-        orgByWondeId: { id: 'org-id-1', slug: 'furlong-school', name: SCHOOL_NAME }
+        orgByWondeId: { id: 'org-id-1', slug: 'furlong-school', name: SCHOOL_NAME },
       });
 
-      const res = await app.request(`/api/webhooks/wonde`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Webhook-Secret': WEBHOOK_SECRET },
-        body: JSON.stringify({
-          payload_type: 'accessRevoked',
-          school_id: WONDE_SCHOOL_ID,
-          school_name: SCHOOL_NAME,
-          revoke_reason: 'Switching to a different platform'
-        })
-      }, env);
+      const res = await app.request(
+        `/api/webhooks/wonde`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Webhook-Secret': WEBHOOK_SECRET },
+          body: JSON.stringify({
+            payload_type: 'accessRevoked',
+            school_id: WONDE_SCHOOL_ID,
+            school_name: SCHOOL_NAME,
+            revoke_reason: 'Switching to a different platform',
+          }),
+        },
+        env
+      );
 
       const json = await res.json();
 
@@ -533,13 +541,13 @@ describe('Wonde + MyLogin Integration', () => {
 
       // SELECT to find the org by wonde_school_id
       const selectCall = env.READING_MANAGER_DB.prepare.mock.calls.find(
-        call => call[0].includes('SELECT') && call[0].includes('wonde_school_id')
+        (call) => call[0].includes('SELECT') && call[0].includes('wonde_school_id')
       );
       expect(selectCall).toBeDefined();
 
       // UPDATE setting is_active = 0
       const updateCall = env.READING_MANAGER_DB.prepare.mock.calls.find(
-        call => call[0].includes('UPDATE organizations') && call[0].includes('is_active = 0')
+        (call) => call[0].includes('UPDATE organizations') && call[0].includes('is_active = 0')
       );
       expect(updateCall).toBeDefined();
 
@@ -555,16 +563,20 @@ describe('Wonde + MyLogin Integration', () => {
     it('processes a complete school lifecycle correctly', async () => {
       // Step 1: School approves via webhook
       const step1Env = createMockEnv();
-      const webhookRes = await app.request(`/api/webhooks/wonde`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Webhook-Secret': WEBHOOK_SECRET },
-        body: JSON.stringify({
-          payload_type: 'schoolApproved',
-          school_id: WONDE_SCHOOL_ID,
-          school_name: SCHOOL_NAME,
-          school_token: SCHOOL_TOKEN
-        })
-      }, step1Env);
+      const webhookRes = await app.request(
+        `/api/webhooks/wonde`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Webhook-Secret': WEBHOOK_SECRET },
+          body: JSON.stringify({
+            payload_type: 'schoolApproved',
+            school_id: WONDE_SCHOOL_ID,
+            school_name: SCHOOL_NAME,
+            school_token: SCHOOL_TOKEN,
+          }),
+        },
+        step1Env
+      );
 
       const webhookJson = await webhookRes.json();
       expect(webhookRes.status).toBe(200);
@@ -584,7 +596,7 @@ describe('Wonde + MyLogin Integration', () => {
       const step2Env = createMockEnv({
         orgByWondeId: orgData,
         userByMyloginId: null,
-        employeeClasses: []
+        employeeClasses: [],
       });
       setupMyLoginFetch();
       step2Env.READING_MANAGER_KV.get.mockResolvedValue('1');
@@ -599,8 +611,8 @@ describe('Wonde + MyLogin Integration', () => {
       expect(loginRes.headers.get('Location')).toBe('/?auth=callback');
 
       // User INSERT was called
-      const userInsert = step2Env.READING_MANAGER_DB.prepare.mock.calls.find(
-        call => call[0].includes('INSERT INTO users')
+      const userInsert = step2Env.READING_MANAGER_DB.prepare.mock.calls.find((call) =>
+        call[0].includes('INSERT INTO users')
       );
       expect(userInsert).toBeDefined();
 
@@ -612,11 +624,11 @@ describe('Wonde + MyLogin Integration', () => {
         organization_id: createdOrgId,
         name: 'Jane Teacher',
         email: 'jane@furlongschool.org',
-        role: 'teacher'
+        role: 'teacher',
       };
       const step3Env = createMockEnv({
         orgByWondeId: orgData,
-        userByMyloginId: existingUser
+        userByMyloginId: existingUser,
       });
       setupMyLoginFetch();
       step3Env.READING_MANAGER_KV.get.mockResolvedValue('1');
@@ -630,14 +642,14 @@ describe('Wonde + MyLogin Integration', () => {
       expect(reloginRes.status).toBe(302);
 
       // No INSERT INTO users this time
-      const noInsert = step3Env.READING_MANAGER_DB.prepare.mock.calls.find(
-        call => call[0].includes('INSERT INTO users')
+      const noInsert = step3Env.READING_MANAGER_DB.prepare.mock.calls.find((call) =>
+        call[0].includes('INSERT INTO users')
       );
       expect(noInsert).toBeUndefined();
 
       // UPDATE was called instead
       const updateUser = step3Env.READING_MANAGER_DB.prepare.mock.calls.find(
-        call => call[0].includes('UPDATE') && call[0].includes('users')
+        (call) => call[0].includes('UPDATE') && call[0].includes('users')
       );
       expect(updateUser).toBeDefined();
 
@@ -645,25 +657,29 @@ describe('Wonde + MyLogin Integration', () => {
 
       // Step 4: School revokes access
       const step4Env = createMockEnv({
-        orgByWondeId: { id: createdOrgId }
+        orgByWondeId: { id: createdOrgId },
       });
 
-      const revokeRes = await app.request(`/api/webhooks/wonde`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Webhook-Secret': WEBHOOK_SECRET },
-        body: JSON.stringify({
-          payload_type: 'accessRevoked',
-          school_id: WONDE_SCHOOL_ID,
-          school_name: SCHOOL_NAME,
-          revoke_reason: 'Contract ended'
-        })
-      }, step4Env);
+      const revokeRes = await app.request(
+        `/api/webhooks/wonde`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Webhook-Secret': WEBHOOK_SECRET },
+          body: JSON.stringify({
+            payload_type: 'accessRevoked',
+            school_id: WONDE_SCHOOL_ID,
+            school_name: SCHOOL_NAME,
+            revoke_reason: 'Contract ended',
+          }),
+        },
+        step4Env
+      );
 
       expect(revokeRes.status).toBe(200);
 
       // Org soft-deleted
       const softDelete = step4Env.READING_MANAGER_DB.prepare.mock.calls.find(
-        call => call[0].includes('UPDATE organizations') && call[0].includes('is_active = 0')
+        (call) => call[0].includes('UPDATE organizations') && call[0].includes('is_active = 0')
       );
       expect(softDelete).toBeDefined();
 

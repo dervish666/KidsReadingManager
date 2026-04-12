@@ -3,7 +3,7 @@ import { Hono } from 'hono';
 // Import services (legacy KV mode)
 import {
   getSettings as getSettingsKV,
-  updateSettings as updateSettingsKV
+  updateSettings as updateSettingsKV,
 } from '../services/kvService';
 
 // Import utilities
@@ -28,10 +28,10 @@ const settingsRouter = new Hono();
 const defaultSettings = {
   readingStatusSettings: {
     recentlyReadDays: 3,
-    needsAttentionDays: 7
+    needsAttentionDays: 7,
   },
   timezone: 'UTC',
-  academicYear: new Date().getFullYear().toString()
+  academicYear: new Date().getFullYear().toString(),
 };
 
 /**
@@ -43,11 +43,16 @@ settingsRouter.get('/', requireReadonly(), async (c) => {
   if (isMultiTenantMode(c)) {
     const db = getDB(c.env);
     const organizationId = c.get('organizationId');
-    
-    const result = await db.prepare(`
+
+    const result = await db
+      .prepare(
+        `
       SELECT setting_key, setting_value FROM org_settings WHERE organization_id = ?
-    `).bind(organizationId).all();
-    
+    `
+      )
+      .bind(organizationId)
+      .all();
+
     // Convert to object
     const settings = { ...defaultSettings };
     for (const row of result.results || []) {
@@ -72,25 +77,25 @@ settingsRouter.get('/', requireReadonly(), async (c) => {
  */
 settingsRouter.post('/', requireAdmin(), auditLog('update', 'settings'), async (c) => {
   const body = await c.req.json();
-  
+
   // Validate settings
   const validation = validateSettings(body);
   if (!validation.isValid) {
     throw badRequestError(validation.errors.join(', '));
   }
-  
+
   // Multi-tenant mode: use D1
   if (isMultiTenantMode(c)) {
     const db = getDB(c.env);
     const organizationId = c.get('organizationId');
     const userId = c.get('userId');
-    
+
     // Check permission
     const userRole = c.get('userRole');
     if (!permissions.canManageSettings(userRole)) {
       return c.json({ error: 'Permission denied' }, 403);
     }
-    
+
     // Validate settings keys
     const allowedKeys = [
       'readingStatusSettings',
@@ -98,9 +103,9 @@ settingsRouter.post('/', requireAdmin(), auditLog('update', 'settings'), async (
       'academicYear',
       'defaultReadingLevel',
       'schoolName',
-      'streakGracePeriodDays'
+      'streakGracePeriodDays',
     ];
-    
+
     const updates = [];
     for (const [key, value] of Object.entries(body)) {
       if (!allowedKeys.includes(key)) {
@@ -110,36 +115,37 @@ settingsRouter.post('/', requireAdmin(), auditLog('update', 'settings'), async (
       const settingValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
       updates.push({ key, value: settingValue });
     }
-    
+
     if (updates.length === 0) {
       return c.json({ error: 'No valid settings to update' }, 400);
     }
-    
+
     // Upsert settings
     const statements = updates.map(({ key, value }) => {
-      return db.prepare(`
+      return db
+        .prepare(
+          `
         INSERT INTO org_settings (id, organization_id, setting_key, setting_value, updated_by)
         VALUES (?, ?, ?, ?, ?)
         ON CONFLICT(organization_id, setting_key) 
         DO UPDATE SET setting_value = ?, updated_by = ?, updated_at = datetime("now")
-      `).bind(
-        crypto.randomUUID(),
-        organizationId,
-        key,
-        value,
-        userId,
-        value,
-        userId
-      );
+      `
+        )
+        .bind(crypto.randomUUID(), organizationId, key, value, userId, value, userId);
     });
-    
+
     await db.batch(statements);
-    
+
     // Fetch updated settings
-    const result = await db.prepare(`
+    const result = await db
+      .prepare(
+        `
       SELECT setting_key, setting_value FROM org_settings WHERE organization_id = ?
-    `).bind(organizationId).all();
-    
+    `
+      )
+      .bind(organizationId)
+      .all();
+
     const settings = { ...defaultSettings };
     for (const row of result.results || []) {
       try {
@@ -166,7 +172,7 @@ settingsRouter.get('/ai', async (c) => {
   const envKeys = {
     anthropic: Boolean(c.env.ANTHROPIC_API_KEY),
     openai: Boolean(c.env.OPENAI_API_KEY),
-    google: Boolean(c.env.GOOGLE_API_KEY)
+    google: Boolean(c.env.GOOGLE_API_KEY),
   };
 
   // Multi-tenant mode: use D1
@@ -174,13 +180,19 @@ settingsRouter.get('/ai', async (c) => {
     const db = getDB(c.env);
     const organizationId = c.get('organizationId');
 
-    const config = await db.prepare(`
+    const config = await db
+      .prepare(
+        `
       SELECT provider, model_preference, is_enabled, api_key_encrypted FROM org_ai_config WHERE organization_id = ?
-    `).bind(organizationId).first();
+    `
+      )
+      .bind(organizationId)
+      .first();
 
-    const org = await db.prepare(
-      'SELECT ai_addon_active FROM organizations WHERE id = ?'
-    ).bind(organizationId).first();
+    const org = await db
+      .prepare('SELECT ai_addon_active FROM organizations WHERE id = ?')
+      .bind(organizationId)
+      .first();
     const aiAddonActive = Boolean(org?.ai_addon_active);
 
     const activeProvider = config?.provider || 'anthropic';
@@ -195,17 +207,23 @@ settingsRouter.get('/ai', async (c) => {
       availableProviders: {
         anthropic: hasOrgKey && activeProvider === 'anthropic' ? true : envKeys.anthropic,
         openai: hasOrgKey && activeProvider === 'openai' ? true : envKeys.openai,
-        google: hasOrgKey && activeProvider === 'google' ? true : envKeys.google
+        google: hasOrgKey && activeProvider === 'google' ? true : envKeys.google,
       },
       // Indicate the source of the active key
-      keySource: hasOrgKey ? 'organization' : (envKeys[activeProvider] ? 'environment' : 'none'),
+      keySource: hasOrgKey ? 'organization' : envKeys[activeProvider] ? 'environment' : 'none',
       aiAddonActive,
     });
   }
 
   // Legacy mode: check environment variables
   const hasAnyKey = envKeys.anthropic || envKeys.openai || envKeys.google;
-  const activeProvider = envKeys.anthropic ? 'anthropic' : (envKeys.openai ? 'openai' : (envKeys.google ? 'google' : 'anthropic'));
+  const activeProvider = envKeys.anthropic
+    ? 'anthropic'
+    : envKeys.openai
+      ? 'openai'
+      : envKeys.google
+        ? 'google'
+        : 'anthropic';
 
   return c.json({
     provider: activeProvider,
@@ -229,10 +247,13 @@ export async function upsertAiConfig(c) {
   const body = await c.req.json();
 
   if (!isMultiTenantMode(c)) {
-    return c.json({
-      error: 'AI configuration is managed via environment variables in legacy mode',
-      message: 'Set ANTHROPIC_API_KEY in your environment'
-    }, 400);
+    return c.json(
+      {
+        error: 'AI configuration is managed via environment variables in legacy mode',
+        message: 'Set ANTHROPIC_API_KEY in your environment',
+      },
+      400
+    );
   }
 
   const db = getDB(c.env);
@@ -248,9 +269,14 @@ export async function upsertAiConfig(c) {
   }
 
   // Check if config exists
-  const existing = await db.prepare(`
+  const existing = await db
+    .prepare(
+      `
     SELECT id, provider FROM org_ai_config WHERE organization_id = ?
-  `).bind(organizationId).first();
+  `
+    )
+    .bind(organizationId)
+    .first();
 
   if (existing) {
     const updates = [];
@@ -296,9 +322,14 @@ export async function upsertAiConfig(c) {
       updates.push('updated_at = datetime("now")');
       params.push(organizationId);
 
-      await db.prepare(`
+      await db
+        .prepare(
+          `
         UPDATE org_ai_config SET ${updates.join(', ')} WHERE organization_id = ?
-      `).bind(...params).run();
+      `
+        )
+        .bind(...params)
+        .run();
     }
   } else {
     let encryptedApiKey = null;
@@ -310,29 +341,39 @@ export async function upsertAiConfig(c) {
       encryptedApiKey = await encryptSensitiveData(apiKey, encSecret);
     }
 
-    await db.prepare(`
+    await db
+      .prepare(
+        `
       INSERT INTO org_ai_config (id, organization_id, provider, api_key_encrypted, model_preference, is_enabled, updated_by)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).bind(
-      crypto.randomUUID(),
-      organizationId,
-      provider || 'anthropic',
-      encryptedApiKey,
-      modelPreference || null,
-      isEnabled ? 1 : 0,
-      userId
-    ).run();
+    `
+      )
+      .bind(
+        crypto.randomUUID(),
+        organizationId,
+        provider || 'anthropic',
+        encryptedApiKey,
+        modelPreference || null,
+        isEnabled ? 1 : 0,
+        userId
+      )
+      .run();
   }
 
   // Fetch updated config
-  const config = await db.prepare(`
+  const config = await db
+    .prepare(
+      `
     SELECT provider, model_preference, is_enabled, api_key_encrypted FROM org_ai_config WHERE organization_id = ?
-  `).bind(organizationId).first();
+  `
+    )
+    .bind(organizationId)
+    .first();
 
   const envKeys = {
     anthropic: Boolean(c.env.ANTHROPIC_API_KEY),
     openai: Boolean(c.env.OPENAI_API_KEY),
-    google: Boolean(c.env.GOOGLE_API_KEY)
+    google: Boolean(c.env.GOOGLE_API_KEY),
   };
 
   const activeProvider = config?.provider || 'anthropic';
@@ -346,9 +387,9 @@ export async function upsertAiConfig(c) {
     availableProviders: {
       anthropic: hasOrgKey && activeProvider === 'anthropic' ? true : envKeys.anthropic,
       openai: hasOrgKey && activeProvider === 'openai' ? true : envKeys.openai,
-      google: hasOrgKey && activeProvider === 'google' ? true : envKeys.google
+      google: hasOrgKey && activeProvider === 'google' ? true : envKeys.google,
     },
-    keySource: hasOrgKey ? 'organization' : (envKeys[activeProvider] ? 'environment' : 'none')
+    keySource: hasOrgKey ? 'organization' : envKeys[activeProvider] ? 'environment' : 'none',
   });
 }
 

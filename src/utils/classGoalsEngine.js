@@ -67,7 +67,8 @@ export function resolveAcademicYear(termDates, today) {
   if (Array.isArray(termDates) && termDates.length > 0) {
     // Find which academic_year today falls in
     const currentTerm = termDates.find((r) => today >= r.start_date && today <= r.end_date);
-    const academicYear = currentTerm?.academic_year || termDates[termDates.length - 1].academic_year;
+    const academicYear =
+      currentTerm?.academic_year || termDates[termDates.length - 1].academic_year;
 
     // Get all terms for this academic year
     const yearTerms = termDates.filter((r) => r.academic_year === academicYear);

@@ -1,4 +1,12 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+  useMemo,
+} from 'react';
 
 // Create context
 const BookCoverContext = createContext(null);
@@ -134,7 +142,9 @@ export const BookCoverProvider = ({ children }) => {
       // Evict oldest entries if cache exceeds max size
       const keys = Object.keys(newCache);
       if (keys.length > MAX_CACHE_ENTRIES) {
-        const sorted = keys.sort((a, b) => (newCache[a].fetchedAt || 0) - (newCache[b].fetchedAt || 0));
+        const sorted = keys.sort(
+          (a, b) => (newCache[a].fetchedAt || 0) - (newCache[b].fetchedAt || 0)
+        );
         const toRemove = sorted.slice(0, keys.length - MAX_CACHE_ENTRIES);
         for (const k of toRemove) {
           delete newCache[k];
@@ -170,17 +180,16 @@ export const BookCoverProvider = ({ children }) => {
   }, []);
 
   // Memoize the value to prevent unnecessary re-renders of consumers
-  const value = useMemo(() => ({
-    getCachedCover,
-    setCachedCover,
-    isCached,
-  }), [getCachedCover, setCachedCover, isCached]);
-
-  return (
-    <BookCoverContext.Provider value={value}>
-      {children}
-    </BookCoverContext.Provider>
+  const value = useMemo(
+    () => ({
+      getCachedCover,
+      setCachedCover,
+      isCached,
+    }),
+    [getCachedCover, setCachedCover, isCached]
   );
+
+  return <BookCoverContext.Provider value={value}>{children}</BookCoverContext.Provider>;
 };
 
 /**

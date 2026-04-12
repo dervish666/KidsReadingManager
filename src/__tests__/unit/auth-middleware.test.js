@@ -3,12 +3,12 @@ import {
   createAuthToken,
   validateAuthToken,
   authMiddleware,
-  handleLogin
+  handleLogin,
 } from '../../middleware/auth.js';
 
 // Mock environment
 const createMockEnv = (password = 'test-password') => ({
-  WORKER_ADMIN_PASSWORD: password
+  WORKER_ADMIN_PASSWORD: password,
 });
 
 describe('Legacy Auth Middleware', () => {
@@ -81,7 +81,7 @@ describe('Legacy Auth Middleware', () => {
       const expiredPayload = {
         iat: Date.now() - 100000,
         exp: Date.now() - 1000, // expired
-        sig: 'fake-sig'
+        sig: 'fake-sig',
       };
       const token = btoa(JSON.stringify(expiredPayload));
 
@@ -109,12 +109,12 @@ describe('Legacy Auth Middleware', () => {
         header: vi.fn((name) => {
           if (name.toLowerCase() === 'authorization') return authHeader;
           return null;
-        })
+        }),
       };
       return {
         req,
         env: createMockEnv(),
-        json: vi.fn().mockImplementation((data, status) => ({ data, status }))
+        json: vi.fn().mockImplementation((data, status) => ({ data, status })),
       };
     };
 
@@ -189,74 +189,64 @@ describe('Legacy Auth Middleware', () => {
       const c = {
         env: {},
         req: { json: vi.fn().mockResolvedValue({ password: 'test' }) },
-        json: vi.fn().mockImplementation((data, status) => ({ data, status }))
+        json: vi.fn().mockImplementation((data, status) => ({ data, status })),
       };
 
       await handleLogin(c);
 
-      expect(c.json).toHaveBeenCalledWith(
-        { error: 'Server auth not configured' },
-        500
-      );
+      expect(c.json).toHaveBeenCalledWith({ error: 'Server auth not configured' }, 500);
     });
 
     it('should return error for wrong password', async () => {
       const c = {
         env: { WORKER_ADMIN_PASSWORD: 'correct-password' },
         req: { json: vi.fn().mockResolvedValue({ password: 'wrong-password' }) },
-        json: vi.fn().mockImplementation((data, status) => ({ data, status }))
+        json: vi.fn().mockImplementation((data, status) => ({ data, status })),
       };
 
       await handleLogin(c);
 
-      expect(c.json).toHaveBeenCalledWith(
-        { error: 'Invalid password' },
-        401
-      );
+      expect(c.json).toHaveBeenCalledWith({ error: 'Invalid password' }, 401);
     });
 
     it('should return error for missing password', async () => {
       const c = {
         env: { WORKER_ADMIN_PASSWORD: 'correct-password' },
         req: { json: vi.fn().mockResolvedValue({}) },
-        json: vi.fn().mockImplementation((data, status) => ({ data, status }))
+        json: vi.fn().mockImplementation((data, status) => ({ data, status })),
       };
 
       await handleLogin(c);
 
-      expect(c.json).toHaveBeenCalledWith(
-        { error: 'Invalid password' },
-        401
-      );
+      expect(c.json).toHaveBeenCalledWith({ error: 'Invalid password' }, 401);
     });
 
     it('should return token for correct password', async () => {
       const c = {
         env: { WORKER_ADMIN_PASSWORD: 'correct-password' },
         req: { json: vi.fn().mockResolvedValue({ password: 'correct-password' }) },
-        json: vi.fn().mockImplementation((data, status) => ({ data, status }))
+        json: vi.fn().mockImplementation((data, status) => ({ data, status })),
       };
 
       await handleLogin(c);
 
-      expect(c.json).toHaveBeenCalledWith(expect.objectContaining({
-        token: expect.any(String)
-      }));
+      expect(c.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          token: expect.any(String),
+        })
+      );
     });
 
     it('should handle JSON parse errors gracefully', async () => {
       const c = {
         env: { WORKER_ADMIN_PASSWORD: 'correct-password' },
         req: { json: vi.fn().mockRejectedValue(new Error('Invalid JSON')) },
-        json: vi.fn().mockImplementation((data, status) => ({ data, status }))
+        json: vi.fn().mockImplementation((data, status) => ({ data, status })),
       };
 
       await handleLogin(c);
 
-      expect(c.json).toHaveBeenCalledWith(
-        { error: 'Invalid password' },
-        401
-      );
+      expect(c.json).toHaveBeenCalledWith({ error: 'Invalid password' }, 401);
     });
   });
 });

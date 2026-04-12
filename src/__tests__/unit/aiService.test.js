@@ -10,26 +10,26 @@ describe('aiService', () => {
         readingLevel: 'intermediate',
         ageRange: '8-10',
         notes: 'Loves fantasy',
-        ...overrides.student
+        ...overrides.student,
       },
       preferences: {
         favoriteGenreIds: ['genre-1', 'genre-2'],
         favoriteGenreNames: ['Fantasy', 'Adventure'],
         likes: ['Harry Potter', 'Percy Jackson'],
         dislikes: ['boring books', 'sad endings'],
-        ...overrides.preferences
+        ...overrides.preferences,
       },
       inferredGenres: [
         { id: 'genre-1', name: 'Fantasy', count: 5 },
-        { id: 'genre-3', name: 'Mystery', count: 3 }
+        { id: 'genre-3', name: 'Mystery', count: 3 },
       ],
       recentReads: [
         { title: 'The Hobbit', author: 'Tolkien' },
-        { title: 'Narnia', author: 'Lewis' }
+        { title: 'Narnia', author: 'Lewis' },
       ],
       readBookIds: ['book-1', 'book-2'],
       booksReadCount: 5,
-      ...overrides
+      ...overrides,
     });
 
     it('should include student basic info in prompt', () => {
@@ -93,10 +93,10 @@ describe('aiService', () => {
           favoriteGenreIds: [],
           favoriteGenreNames: [],
           likes: [],
-          dislikes: []
+          dislikes: [],
         },
         inferredGenres: [],
-        recentReads: []
+        recentReads: [],
       });
 
       const prompt = buildBroadSuggestionsPrompt(profile);
@@ -140,7 +140,7 @@ describe('aiService', () => {
       const profile = createMockProfile();
       const prompt = buildBroadSuggestionsPrompt(profile);
 
-      expect(prompt).toContain('different from books they\'ve already read');
+      expect(prompt).toContain("different from books they've already read");
     });
 
     it('should not include student name in prompt (GDPR)', () => {
@@ -153,7 +153,7 @@ describe('aiService', () => {
 
     it('should handle missing age range', () => {
       const profile = createMockProfile({
-        student: { ...createMockProfile().student, ageRange: null }
+        student: { ...createMockProfile().student, ageRange: null },
       });
       const prompt = buildBroadSuggestionsPrompt(profile);
 
@@ -177,20 +177,20 @@ describe('aiService', () => {
         readingLevelMin: 5.0,
         readingLevelMax: 9.0,
         ageRange: '8-10',
-        ...overrides.student
+        ...overrides.student,
       },
       preferences: {
         favoriteGenreIds: [],
         favoriteGenreNames: [],
         likes: [],
         dislikes: [],
-        ...overrides.preferences
+        ...overrides.preferences,
       },
       inferredGenres: [],
       recentReads: [],
       readBookIds: [],
       booksReadCount: 0,
-      ...overrides
+      ...overrides,
     });
 
     it('should include AR level explanation when student has reading level range', () => {
@@ -199,7 +199,7 @@ describe('aiService', () => {
           name: 'Test',
           readingLevelMin: 5.2,
           readingLevelMax: 8.7,
-        }
+        },
       });
 
       const prompt = buildBroadSuggestionsPrompt(profile, 'balanced');
@@ -217,7 +217,7 @@ describe('aiService', () => {
           name: 'Test',
           readingLevelMin: 5.0,
           readingLevelMax: 9.0,
-        }
+        },
       });
 
       const prompt = buildBroadSuggestionsPrompt(profile, 'consolidation');
@@ -236,7 +236,7 @@ describe('aiService', () => {
           name: 'Test',
           readingLevelMin: 5.0,
           readingLevelMax: 9.0,
-        }
+        },
       });
 
       const prompt = buildBroadSuggestionsPrompt(profile, 'challenge');
@@ -254,7 +254,7 @@ describe('aiService', () => {
           name: 'Test',
           readingLevelMin: 5.0,
           readingLevelMax: 9.0,
-        }
+        },
       });
 
       const prompt = buildBroadSuggestionsPrompt(profile, 'balanced');
@@ -271,7 +271,7 @@ describe('aiService', () => {
           name: 'Test',
           readingLevelMin: 5.0,
           readingLevelMax: 9.0,
-        }
+        },
       });
 
       const prompt = buildBroadSuggestionsPrompt(profile);
@@ -286,7 +286,7 @@ describe('aiService', () => {
           name: 'Test',
           readingLevelMin: null,
           readingLevelMax: null,
-        }
+        },
       });
 
       const prompt = buildBroadSuggestionsPrompt(profile, 'balanced');
@@ -302,7 +302,7 @@ describe('aiService', () => {
           name: 'Test',
           readingLevelMin: 5.0,
           readingLevelMax: null,
-        }
+        },
       });
 
       const prompt = buildBroadSuggestionsPrompt(profile, 'balanced');
@@ -317,7 +317,7 @@ describe('aiService', () => {
           name: 'Test',
           readingLevelMin: null,
           readingLevelMax: 9.0,
-        }
+        },
       });
 
       const prompt = buildBroadSuggestionsPrompt(profile, 'balanced');
@@ -332,18 +332,25 @@ describe('aiService', () => {
     // through the response structure expectations
 
     it('should expect specific fields in each recommendation', () => {
-      const expectedFields = ['title', 'author', 'ageRange', 'readingLevel', 'reason', 'whereToFind'];
+      const expectedFields = [
+        'title',
+        'author',
+        'ageRange',
+        'readingLevel',
+        'reason',
+        'whereToFind',
+      ];
       const mockSuggestion = {
         title: 'Test Book',
         author: 'Test Author',
         ageRange: '8-10',
         readingLevel: 'intermediate',
         reason: 'Great book',
-        whereToFind: 'Library'
+        whereToFind: 'Library',
       };
 
       // Verify all expected fields are present
-      expectedFields.forEach(field => {
+      expectedFields.forEach((field) => {
         expect(mockSuggestion).toHaveProperty(field);
       });
     });
@@ -351,7 +358,7 @@ describe('aiService', () => {
     it('should handle suggestions with missing fields by using defaults', () => {
       // This tests the expected contract - if normalization provides defaults
       const minimalSuggestion = {
-        title: 'Only Title'
+        title: 'Only Title',
       };
 
       // After normalization, should have defaults
@@ -361,7 +368,8 @@ describe('aiService', () => {
         ageRange: minimalSuggestion.ageRange || '8-12',
         readingLevel: minimalSuggestion.readingLevel || 'intermediate',
         reason: minimalSuggestion.reason || 'Recommended based on reading preferences',
-        whereToFind: minimalSuggestion.whereToFind || 'Available at most public libraries and bookstores'
+        whereToFind:
+          minimalSuggestion.whereToFind || 'Available at most public libraries and bookstores',
       };
 
       expect(normalized.title).toBe('Only Title');

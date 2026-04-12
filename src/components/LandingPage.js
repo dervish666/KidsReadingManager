@@ -44,7 +44,10 @@ export default function LandingPage({ onSignIn }) {
       localStorage.setItem('krm_auth_mode', 'multitenant');
       // Auto-select the demo teacher's assigned class
       if (data.user.assignedClassIds?.length > 0) {
-        sessionStorage.setItem('pendingClassAutoFilter', JSON.stringify(data.user.assignedClassIds));
+        sessionStorage.setItem(
+          'pendingClassAutoFilter',
+          JSON.stringify(data.user.assignedClassIds)
+        );
       }
       window.location.href = '/';
     } catch {
@@ -238,7 +241,7 @@ export default function LandingPage({ onSignIn }) {
               {
                 icon: '🏠',
                 title: 'Home reading without the hassle',
-                desc: "Replace paper reading diaries with a quick digital register. One tap per child, per day — saving teachers roughly 10 minutes per class on admin alone.",
+                desc: 'Replace paper reading diaries with a quick digital register. One tap per child, per day — saving teachers roughly 10 minutes per class on admin alone.',
               },
               {
                 icon: '🏫',
@@ -436,11 +439,7 @@ export default function LandingPage({ onSignIn }) {
                     className="lp-contact-textarea"
                     disabled={contactLoading}
                   />
-                  <button
-                    type="submit"
-                    className="lp-btn lp-btn-primary"
-                    disabled={contactLoading}
-                  >
+                  <button type="submit" className="lp-btn lp-btn-primary" disabled={contactLoading}>
                     {contactLoading ? 'Sending...' : 'Send Message'}
                   </button>
                   {contactError && <p className="lp-contact-error">{contactError}</p>}

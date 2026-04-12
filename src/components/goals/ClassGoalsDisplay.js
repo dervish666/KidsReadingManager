@@ -345,7 +345,11 @@ export default function ClassGoalsDisplay({ open, onClose, classId, fetchWithAut
             mb: 4,
           }}
         >
-          <GardenHeader stage={gardenStage} goalsCompleted={data?.goalsCompleted} label={`${displayName}'s Reading Garden`} />
+          <GardenHeader
+            stage={gardenStage}
+            goalsCompleted={data?.goalsCompleted}
+            label={`${displayName}'s Reading Garden`}
+          />
         </Box>
 
         {/* Progress bars */}

@@ -602,9 +602,8 @@ export default Sentry.withSentry(
       // Badge evaluation at 2:30 AM UTC (after streaks are recalculated)
       if (event.cron === '30 2 * * *') {
         try {
-          const { recalculateStats, evaluateRealTime, evaluateBatch } = await import(
-            './utils/badgeEngine.js'
-          );
+          const { recalculateStats, evaluateRealTime, evaluateBatch } =
+            await import('./utils/badgeEngine.js');
 
           // Get all active organizations
           const orgs = await db
@@ -630,18 +629,8 @@ export default Sentry.withSentry(
             for (const student of students.results || []) {
               try {
                 await recalculateStats(db, student.id, org.id);
-                const rtBadges = await evaluateRealTime(
-                  db,
-                  student.id,
-                  org.id,
-                  student.year_group
-                );
-                const batchBadges = await evaluateBatch(
-                  db,
-                  student.id,
-                  org.id,
-                  student.year_group
-                );
+                const rtBadges = await evaluateRealTime(db, student.id, org.id, student.year_group);
+                const batchBadges = await evaluateBatch(db, student.id, org.id, student.year_group);
                 totalNewBadges += rtBadges.length + batchBadges.length;
                 totalStudents++;
               } catch (err) {
@@ -659,9 +648,8 @@ export default Sentry.withSentry(
 
           // ── Class goals drift correction ──────────────────────────────────
           try {
-            const { recalculateClassGoalProgress, resolveCurrentTerm } = await import(
-              './utils/classGoalsEngine.js'
-            );
+            const { recalculateClassGoalProgress, resolveCurrentTerm } =
+              await import('./utils/classGoalsEngine.js');
 
             let totalClassesProcessed = 0;
 
@@ -672,14 +660,19 @@ export default Sentry.withSentry(
                 .all();
 
               const termDatesResult = await db
-                .prepare('SELECT term_name, start_date, end_date, academic_year FROM term_dates WHERE organization_id = ? ORDER BY start_date')
+                .prepare(
+                  'SELECT term_name, start_date, end_date, academic_year FROM term_dates WHERE organization_id = ? ORDER BY start_date'
+                )
                 .bind(org.id)
                 .all();
 
               const today = new Date().toISOString().split('T')[0];
-              const { term, startDate, endDate } = resolveCurrentTerm(termDatesResult.results || [], today);
+              const { term, startDate, endDate } = resolveCurrentTerm(
+                termDatesResult.results || [],
+                today
+              );
 
-              for (const cls of (classes.results || [])) {
+              for (const cls of classes.results || []) {
                 try {
                   await recalculateClassGoalProgress(db, cls.id, org.id, startDate, endDate, term);
                   totalClassesProcessed++;

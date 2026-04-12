@@ -34,8 +34,7 @@ export default function BillingDashboard() {
       .catch(() => {});
   }, [fetchWithAuth]);
 
-  const filtered =
-    filter === 'all' ? orgs : orgs.filter((o) => o.subscriptionStatus === filter);
+  const filtered = filter === 'all' ? orgs : orgs.filter((o) => o.subscriptionStatus === filter);
 
   // Determine Stripe dashboard base URL (test vs live)
   // In production, remove '/test' from the URL

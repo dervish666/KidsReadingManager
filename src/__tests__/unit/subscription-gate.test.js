@@ -79,7 +79,7 @@ describe('subscriptionGate', () => {
       expect(next).not.toHaveBeenCalled();
       expect(c.json).toHaveBeenCalledWith(
         expect.objectContaining({ code: 'SUBSCRIPTION_CANCELLED' }),
-        403,
+        403
       );
     });
   });
@@ -132,7 +132,7 @@ describe('subscriptionGate', () => {
         expect(next).not.toHaveBeenCalled();
         expect(c.json).toHaveBeenCalledWith(
           expect.objectContaining({ code: 'SUBSCRIPTION_PAST_DUE' }),
-          403,
+          403
         );
       });
     });
@@ -151,7 +151,7 @@ describe('subscriptionGate', () => {
         expect(next).not.toHaveBeenCalled();
         expect(c.json).toHaveBeenCalledWith(
           expect.objectContaining({ code: 'SUBSCRIPTION_CANCELLED' }),
-          403,
+          403
         );
       });
     });
@@ -170,7 +170,7 @@ describe('subscriptionGate', () => {
         expect(next).not.toHaveBeenCalled();
         expect(c.json).toHaveBeenCalledWith(
           expect.objectContaining({ code: 'SUBSCRIPTION_CANCELLED' }),
-          403,
+          403
         );
       });
     });

@@ -15,36 +15,36 @@ import {
   Select,
   MenuItem,
   FormControl,
-  InputLabel
+  InputLabel,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useData } from '../../contexts/DataContext';
 
 const BulkImport = ({ open, onClose }) => {
-   const { bulkImportStudents, students, classes } = useData();
-   const theme = useTheme();
-   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
-   const [namesText, setNamesText] = useState('');
-   const [error, setError] = useState('');
-   const [preview, setPreview] = useState([]);
-   const [selectedClassId, setSelectedClassId] = useState('');
+  const { bulkImportStudents, students, classes } = useData();
+  const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
+  const [namesText, setNamesText] = useState('');
+  const [error, setError] = useState('');
+  const [preview, setPreview] = useState([]);
+  const [selectedClassId, setSelectedClassId] = useState('');
 
   const handleTextChange = (e) => {
     const text = e.target.value;
     setNamesText(text);
-    
+
     // Generate preview
     if (text.trim()) {
       const names = text
         .split('\n')
-        .map(name => name.trim())
-        .filter(name => name);
+        .map((name) => name.trim())
+        .filter((name) => name);
       setPreview(names);
     } else {
       setPreview([]);
     }
-    
+
     // Clear error when user types
     if (error) setError('');
   };
@@ -54,39 +54,37 @@ const BulkImport = ({ open, onClose }) => {
       setError('Please enter at least one student name');
       return;
     }
-    
+
     let names = namesText
       .split('\n')
-      .map(name => name.trim())
-      .filter(name => name);
-    names = [...new Set(names.map(n => n.trim()))].filter(Boolean);
+      .map((name) => name.trim())
+      .filter((name) => name);
+    names = [...new Set(names.map((n) => n.trim()))].filter(Boolean);
 
     if (names.length === 0) {
       setError('Please enter at least one valid student name');
       return;
     }
-    
+
     // Check for duplicates only within the same class (or unassigned if no class selected)
-    const studentsInSameClass = students.filter(s => {
+    const studentsInSameClass = students.filter((s) => {
       if (selectedClassId) {
         return s.classId === selectedClassId;
       } else {
         return !s.classId; // Unassigned students
       }
     });
-    const existingNames = studentsInSameClass.map(s => s.name.toLowerCase());
-    const duplicates = names.filter(name =>
-      existingNames.includes(name.toLowerCase())
-    );
+    const existingNames = studentsInSameClass.map((s) => s.name.toLowerCase());
+    const duplicates = names.filter((name) => existingNames.includes(name.toLowerCase()));
 
     if (duplicates.length > 0) {
       const classContext = selectedClassId
-        ? classes.find(c => c.id === selectedClassId)?.name || 'this class'
+        ? classes.find((c) => c.id === selectedClassId)?.name || 'this class'
         : 'unassigned students';
       setError(`Some students already exist in ${classContext}: ${duplicates.join(', ')}`);
       return;
     }
-    
+
     bulkImportStudents(names, selectedClassId || null);
     setNamesText('');
     setPreview([]);
@@ -107,13 +105,14 @@ const BulkImport = ({ open, onClose }) => {
       <DialogTitle>Bulk Input Students</DialogTitle>
       <DialogContent>
         {/* Wrap content in Grid container */}
-        <Grid container spacing={3} sx={{ pt: 1, pb: 'calc(env(safe-area-inset-bottom) + 16px)' }}> {/* Add some padding top */}
+        <Grid container spacing={3} sx={{ pt: 1, pb: 'calc(env(safe-area-inset-bottom) + 16px)' }}>
+          {' '}
+          {/* Add some padding top */}
           <Grid size={12}>
             <DialogContentText>
               Enter each student's name on a new line to add multiple students at once.
             </DialogContentText>
           </Grid>
-
           <Grid size={12}>
             <FormControl fullWidth>
               <InputLabel>Class (Optional)</InputLabel>
@@ -133,16 +132,20 @@ const BulkImport = ({ open, onClose }) => {
               </Select>
             </FormControl>
           </Grid>
-          
           {error && (
-            <Grid size={12}> {/* Wrap Alert in Grid item */}
-              <Alert severity="error"> {/* Remove sx margins, rely on Grid spacing */}
+            <Grid size={12}>
+              {' '}
+              {/* Wrap Alert in Grid item */}
+              <Alert severity="error">
+                {' '}
+                {/* Remove sx margins, rely on Grid spacing */}
                 {error}
               </Alert>
             </Grid>
           )}
-          
-          <Grid size={12}> {/* Wrap TextField in Grid item */}
+          <Grid size={12}>
+            {' '}
+            {/* Wrap TextField in Grid item */}
             <TextField
               autoFocus
               // margin="dense" // Remove margin, rely on Grid spacing
@@ -157,10 +160,13 @@ const BulkImport = ({ open, onClose }) => {
               // sx={{ mt: 2 }} // Remove sx margin, rely on Grid spacing
             />
           </Grid>
-          
           {preview.length > 0 && (
-            <Grid size={12}> {/* Wrap Preview Box in Grid item */}
-              <Box> {/* Remove sx margin, rely on Grid spacing */}
+            <Grid size={12}>
+              {' '}
+              {/* Wrap Preview Box in Grid item */}
+              <Box>
+                {' '}
+                {/* Remove sx margin, rely on Grid spacing */}
                 <Typography variant="subtitle2" gutterBottom>
                   Preview ({preview.length} students):
                 </Typography>
@@ -174,7 +180,15 @@ const BulkImport = ({ open, onClose }) => {
           )}
         </Grid>
       </DialogContent>
-      <DialogActions sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' }, px: 2, pb: 'calc(env(safe-area-inset-bottom) + 8px)' }}>
+      <DialogActions
+        sx={{
+          display: 'flex',
+          gap: 2,
+          flexDirection: { xs: 'column', sm: 'row' },
+          px: 2,
+          pb: 'calc(env(safe-area-inset-bottom) + 8px)',
+        }}
+      >
         <Button onClick={handleClose} fullWidth>
           Cancel
         </Button>

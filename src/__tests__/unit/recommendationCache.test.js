@@ -269,9 +269,7 @@ describe('recommendationCache', () => {
         },
       };
 
-      await expect(
-        cacheRecommendations(env, sampleInputs, sampleResult)
-      ).resolves.toBeUndefined();
+      await expect(cacheRecommendations(env, sampleInputs, sampleResult)).resolves.toBeUndefined();
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         'Recommendation cache write error:',

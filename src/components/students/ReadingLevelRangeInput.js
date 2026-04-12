@@ -38,7 +38,7 @@ export default function ReadingLevelRangeInput({ min, max, onChange, disabled = 
             min: 1.0,
             max: 13.0,
             step: 0.1,
-            'aria-label': 'Minimum reading level'
+            'aria-label': 'Minimum reading level',
           }}
           value={min ?? ''}
           onChange={handleMinChange}
@@ -54,7 +54,7 @@ export default function ReadingLevelRangeInput({ min, max, onChange, disabled = 
             min: 1.0,
             max: 13.0,
             step: 0.1,
-            'aria-label': 'Maximum reading level'
+            'aria-label': 'Maximum reading level',
           }}
           value={max ?? ''}
           onChange={handleMaxChange}
@@ -79,8 +79,12 @@ export default function ReadingLevelRangeInput({ min, max, onChange, disabled = 
         <Box data-testid="reading-level-range-bar" sx={{ position: 'relative', mt: 1 }}>
           {/* Scale labels */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-            <Typography variant="caption" color="text.secondary">1.0</Typography>
-            <Typography variant="caption" color="text.secondary">13.0</Typography>
+            <Typography variant="caption" color="text.secondary">
+              1.0
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              13.0
+            </Typography>
           </Box>
 
           {/* Background bar */}

@@ -11,14 +11,14 @@ const createMockDB = (overrides = {}) => {
     bind: vi.fn().mockReturnThis(),
     all: vi.fn().mockResolvedValue(overrides.allResults || defaultResults),
     first: vi.fn().mockResolvedValue(overrides.firstResult || null),
-    run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } })
+    run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } }),
   };
 
   return {
     prepare: vi.fn().mockReturnValue(prepareChain),
     batch: vi.fn().mockResolvedValue([{ success: true }]),
     _prepareChain: prepareChain,
-    ...overrides
+    ...overrides,
   };
 };
 
@@ -37,13 +37,13 @@ const createMockRouteContext = (overrides = {}) => {
       }),
       json: vi.fn().mockResolvedValue(overrides.body || {}),
       query: vi.fn(() => null),
-      ...overrides.req
+      ...overrides.req,
     },
     env: {
       JWT_SECRET: 'test-secret',
       READING_MANAGER_DB: db,
       READING_MANAGER_KV: null,
-      ...overrides.env
+      ...overrides.env,
     },
     json: vi.fn((data, status = 200) => ({ data, status })),
     set: vi.fn((key, value) => store.set(key, value)),
@@ -54,7 +54,7 @@ const createMockRouteContext = (overrides = {}) => {
       return store.get(key);
     }),
     db,
-    ...overrides
+    ...overrides,
   };
 };
 
@@ -88,8 +88,8 @@ describe('Student Reading Level Range - Route Integration', () => {
           preferences: {
             favoriteGenreIds: [],
             likes: [],
-            dislikes: []
-          }
+            dislikes: [],
+          },
         };
       };
 
@@ -102,7 +102,7 @@ describe('Student Reading Level Range - Route Integration', () => {
         reading_level_max: 5.5,
         likes: '[]',
         dislikes: '[]',
-        is_active: 1
+        is_active: 1,
       };
 
       const student = rowToStudent(dbRow);
@@ -120,7 +120,7 @@ describe('Student Reading Level Range - Route Integration', () => {
           name: row.name,
           readingLevel: row.reading_level,
           readingLevelMin: row.reading_level_min,
-          readingLevelMax: row.reading_level_max
+          readingLevelMax: row.reading_level_max,
         };
       };
 
@@ -129,7 +129,7 @@ describe('Student Reading Level Range - Route Integration', () => {
         name: 'Test Student',
         reading_level: null,
         reading_level_min: null,
-        reading_level_max: null
+        reading_level_max: null,
       };
 
       const student = rowToStudent(dbRow);
@@ -248,7 +248,7 @@ describe('Student Reading Level Range - Route Integration', () => {
         name: row.name,
         readingLevel: row.reading_level,
         readingLevelMin: row.reading_level_min,
-        readingLevelMax: row.reading_level_max
+        readingLevelMax: row.reading_level_max,
       });
 
       const dbResult = {
@@ -256,7 +256,7 @@ describe('Student Reading Level Range - Route Integration', () => {
         name: 'Alice',
         reading_level: 5.0,
         reading_level_min: 4.5,
-        reading_level_max: 5.5
+        reading_level_max: 5.5,
       };
 
       const student = transformStudent(dbResult);
@@ -274,15 +274,15 @@ describe('Student Reading Level Range - Route Integration', () => {
       const students = [
         { name: 'Alice', readingLevelMin: 4.0, readingLevelMax: 6.0 },
         { name: 'Bob', readingLevelMin: 5.0, readingLevelMax: 7.0 },
-        { name: 'Charlie', readingLevelMin: null, readingLevelMax: null }
+        { name: 'Charlie', readingLevelMin: null, readingLevelMax: null },
       ];
 
       // Validate each student's range
-      const validations = students.map(s =>
+      const validations = students.map((s) =>
         validateReadingLevelRange(s.readingLevelMin, s.readingLevelMax)
       );
 
-      expect(validations.every(v => v.isValid)).toBe(true);
+      expect(validations.every((v) => v.isValid)).toBe(true);
     });
 
     it('should reject bulk import if any student has invalid range', async () => {
@@ -293,11 +293,11 @@ describe('Student Reading Level Range - Route Integration', () => {
         { name: 'Bob', readingLevelMin: 8.0, readingLevelMax: 5.0 }, // Invalid!
       ];
 
-      const validations = students.map(s =>
+      const validations = students.map((s) =>
         validateReadingLevelRange(s.readingLevelMin, s.readingLevelMax)
       );
 
-      expect(validations.some(v => !v.isValid)).toBe(true);
+      expect(validations.some((v) => !v.isValid)).toBe(true);
     });
   });
 
@@ -353,7 +353,7 @@ describe('Student Reading Level Range - Route Integration', () => {
         readingLevelMin: row.reading_level_min,
         readingLevelMax: row.reading_level_max,
         // Legacy field preserved
-        readingLevel: row.reading_level
+        readingLevel: row.reading_level,
       });
 
       const dbRow = {
@@ -361,7 +361,7 @@ describe('Student Reading Level Range - Route Integration', () => {
         name: 'Test',
         reading_level: 5.0,
         reading_level_min: 4.5,
-        reading_level_max: 5.5
+        reading_level_max: 5.5,
       };
 
       const student = rowToStudent(dbRow);

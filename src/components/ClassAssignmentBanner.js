@@ -3,8 +3,7 @@ import { Alert, IconButton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { useAuth } from '../contexts/AuthContext';
 
-const hasNoClasses = (user) =>
-  !user?.assignedClassIds || user.assignedClassIds.length === 0;
+const hasNoClasses = (user) => !user?.assignedClassIds || user.assignedClassIds.length === 0;
 
 export default function ClassAssignmentBanner() {
   const { user } = useAuth();
@@ -35,18 +34,13 @@ export default function ClassAssignmentBanner() {
       severity="warning"
       sx={{ mb: 2 }}
       action={
-        <IconButton
-          aria-label="close"
-          color="inherit"
-          size="small"
-          onClick={handleDismiss}
-        >
+        <IconButton aria-label="close" color="inherit" size="small" onClick={handleDismiss}>
           <CloseIcon fontSize="inherit" />
         </IconButton>
       }
     >
-      Your classes haven&apos;t been linked yet — this usually resolves overnight, or ask your school
-      administrator.
+      Your classes haven&apos;t been linked yet — this usually resolves overnight, or ask your
+      school administrator.
     </Alert>
   );
 }

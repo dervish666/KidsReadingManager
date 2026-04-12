@@ -7,7 +7,7 @@ vi.mock('../../utils/crypto.js', async (importOriginal) => {
   return {
     ...actual,
     encryptSensitiveData: vi.fn().mockResolvedValue('encrypted-api-key-data'),
-    decryptSensitiveData: vi.fn().mockResolvedValue('decrypted-api-key')
+    decryptSensitiveData: vi.fn().mockResolvedValue('decrypted-api-key'),
   };
 });
 
@@ -25,14 +25,14 @@ const createMockDB = (overrides = {}) => {
     bind: vi.fn().mockReturnThis(),
     all: vi.fn().mockResolvedValue(overrides.allResults || { results: [], success: true }),
     first: vi.fn().mockResolvedValue(overrides.firstResult || null),
-    run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } })
+    run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } }),
   };
 
   return {
     prepare: vi.fn().mockReturnValue(prepareChain),
     batch: vi.fn().mockResolvedValue([{ success: true }]),
     _chain: prepareChain,
-    ...overrides
+    ...overrides,
   };
 };
 
@@ -46,11 +46,14 @@ const createTestApp = (contextValues = {}, dbOverrides = {}) => {
   // Use Hono's onError hook for proper error handling in tests
   app.onError((err, c) => {
     const status = err.status || 500;
-    return c.json({
-      status: 'error',
-      message: err.message || 'Internal Server Error',
-      path: c.req.path
-    }, status);
+    return c.json(
+      {
+        status: 'error',
+        message: err.message || 'Internal Server Error',
+        path: c.req.path,
+      },
+      status
+    );
   });
 
   // Middleware to inject context values (simulates auth middleware)
@@ -62,7 +65,7 @@ const createTestApp = (contextValues = {}, dbOverrides = {}) => {
       ANTHROPIC_API_KEY: contextValues.anthropicKey || null,
       OPENAI_API_KEY: contextValues.openaiKey || null,
       GOOGLE_API_KEY: contextValues.googleKey || null,
-      ...contextValues.env
+      ...contextValues.env,
     };
 
     // Set context values that would normally come from auth middleware
@@ -87,7 +90,7 @@ const makeRequest = async (app, method, path, body = null) => {
     method,
     headers: {
       'Content-Type': 'application/json',
-    }
+    },
   };
 
   if (body) {
@@ -112,13 +115,16 @@ describe('Settings API Routes', () => {
   describe('GET /api/settings', () => {
     describe('Multi-tenant mode', () => {
       it('should return settings with defaults when no settings exist', async () => {
-        const { app } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.TEACHER
-        }, {
-          allResults: { results: [], success: true }
-        });
+        const { app } = createTestApp(
+          {
+            userId: 'user-123',
+            organizationId: 'org-456',
+            userRole: ROLES.TEACHER,
+          },
+          {
+            allResults: { results: [], success: true },
+          }
+        );
 
         const response = await makeRequest(app, 'GET', '/api/settings');
         const data = await response.json();
@@ -131,20 +137,26 @@ describe('Settings API Routes', () => {
       });
 
       it('should return stored settings merged with defaults', async () => {
-        const { app } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.TEACHER
-        }, {
-          allResults: {
-            results: [
-              { setting_key: 'timezone', setting_value: '"America/New_York"' },
-              { setting_key: 'schoolName', setting_value: '"Test School"' },
-              { setting_key: 'readingStatusSettings', setting_value: '{"recentlyReadDays":5,"needsAttentionDays":10}' }
-            ],
-            success: true
+        const { app } = createTestApp(
+          {
+            userId: 'user-123',
+            organizationId: 'org-456',
+            userRole: ROLES.TEACHER,
+          },
+          {
+            allResults: {
+              results: [
+                { setting_key: 'timezone', setting_value: '"America/New_York"' },
+                { setting_key: 'schoolName', setting_value: '"Test School"' },
+                {
+                  setting_key: 'readingStatusSettings',
+                  setting_value: '{"recentlyReadDays":5,"needsAttentionDays":10}',
+                },
+              ],
+              success: true,
+            },
           }
-        });
+        );
 
         const response = await makeRequest(app, 'GET', '/api/settings');
         const data = await response.json();
@@ -157,18 +169,19 @@ describe('Settings API Routes', () => {
       });
 
       it('should handle non-JSON setting values', async () => {
-        const { app } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.TEACHER
-        }, {
-          allResults: {
-            results: [
-              { setting_key: 'schoolName', setting_value: 'Plain text value' }
-            ],
-            success: true
+        const { app } = createTestApp(
+          {
+            userId: 'user-123',
+            organizationId: 'org-456',
+            userRole: ROLES.TEACHER,
+          },
+          {
+            allResults: {
+              results: [{ setting_key: 'schoolName', setting_value: 'Plain text value' }],
+              success: true,
+            },
           }
-        });
+        );
 
         const response = await makeRequest(app, 'GET', '/api/settings');
         const data = await response.json();
@@ -178,13 +191,16 @@ describe('Settings API Routes', () => {
       });
 
       it('should scope queries to organization', async () => {
-        const { app, mockDB } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.TEACHER
-        }, {
-          allResults: { results: [], success: true }
-        });
+        const { app, mockDB } = createTestApp(
+          {
+            userId: 'user-123',
+            organizationId: 'org-456',
+            userRole: ROLES.TEACHER,
+          },
+          {
+            allResults: { results: [], success: true },
+          }
+        );
 
         await makeRequest(app, 'GET', '/api/settings');
 
@@ -198,14 +214,14 @@ describe('Settings API Routes', () => {
     describe('Legacy mode (no JWT_SECRET)', () => {
       it('should fall back to KV storage when not in multi-tenant mode', async () => {
         const mockKV = {
-          get: vi.fn().mockResolvedValue(JSON.stringify({ timezone: 'Europe/London' }))
+          get: vi.fn().mockResolvedValue(JSON.stringify({ timezone: 'Europe/London' })),
         };
 
         const { app } = createTestApp({
           userId: 'user-123',
           userRole: ROLES.TEACHER,
           kv: mockKV,
-          env: { JWT_SECRET: null }
+          env: { JWT_SECRET: null },
         });
 
         const response = await makeRequest(app, 'GET', '/api/settings');
@@ -224,11 +240,11 @@ describe('Settings API Routes', () => {
         const { app } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.TEACHER
+          userRole: ROLES.TEACHER,
         });
 
         const response = await makeRequest(app, 'POST', '/api/settings', {
-          timezone: 'America/Los_Angeles'
+          timezone: 'America/Los_Angeles',
         });
         const data = await response.json();
 
@@ -240,11 +256,11 @@ describe('Settings API Routes', () => {
         const { app } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.READONLY
+          userRole: ROLES.READONLY,
         });
 
         const response = await makeRequest(app, 'POST', '/api/settings', {
-          timezone: 'America/Los_Angeles'
+          timezone: 'America/Los_Angeles',
         });
         const data = await response.json();
 
@@ -253,16 +269,19 @@ describe('Settings API Routes', () => {
       });
 
       it('should allow requests from admins', async () => {
-        const { app, mockDB } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.ADMIN
-        }, {
-          allResults: { results: [], success: true }
-        });
+        const { app, mockDB } = createTestApp(
+          {
+            userId: 'user-123',
+            organizationId: 'org-456',
+            userRole: ROLES.ADMIN,
+          },
+          {
+            allResults: { results: [], success: true },
+          }
+        );
 
         const response = await makeRequest(app, 'POST', '/api/settings', {
-          timezone: 'America/Los_Angeles'
+          timezone: 'America/Los_Angeles',
         });
         const data = await response.json();
 
@@ -271,16 +290,19 @@ describe('Settings API Routes', () => {
       });
 
       it('should allow requests from owners', async () => {
-        const { app, mockDB } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.OWNER
-        }, {
-          allResults: { results: [], success: true }
-        });
+        const { app, mockDB } = createTestApp(
+          {
+            userId: 'user-123',
+            organizationId: 'org-456',
+            userRole: ROLES.OWNER,
+          },
+          {
+            allResults: { results: [], success: true },
+          }
+        );
 
         const response = await makeRequest(app, 'POST', '/api/settings', {
-          timezone: 'Europe/London'
+          timezone: 'Europe/London',
         });
         const data = await response.json();
 
@@ -294,14 +316,14 @@ describe('Settings API Routes', () => {
         const { app } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         const response = await makeRequest(app, 'POST', '/api/settings', {
           readingStatusSettings: {
             recentlyReadDays: 0,
-            needsAttentionDays: 7
-          }
+            needsAttentionDays: 7,
+          },
         });
         const data = await response.json();
 
@@ -314,14 +336,14 @@ describe('Settings API Routes', () => {
         const { app } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         const response = await makeRequest(app, 'POST', '/api/settings', {
           readingStatusSettings: {
             recentlyReadDays: 3,
-            needsAttentionDays: -1
-          }
+            needsAttentionDays: -1,
+          },
         });
         const data = await response.json();
 
@@ -334,14 +356,14 @@ describe('Settings API Routes', () => {
         const { app } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         const response = await makeRequest(app, 'POST', '/api/settings', {
           readingStatusSettings: {
             recentlyReadDays: 7,
-            needsAttentionDays: 5
-          }
+            needsAttentionDays: 5,
+          },
         });
         const data = await response.json();
 
@@ -354,13 +376,13 @@ describe('Settings API Routes', () => {
         const { app } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         const response = await app.request('/api/settings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: 'null'
+          body: 'null',
         });
         const data = await response.json();
 
@@ -372,13 +394,16 @@ describe('Settings API Routes', () => {
 
     describe('Allowed settings keys', () => {
       it('should accept allowed setting keys', async () => {
-        const { app, mockDB } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.ADMIN
-        }, {
-          allResults: { results: [], success: true }
-        });
+        const { app, mockDB } = createTestApp(
+          {
+            userId: 'user-123',
+            organizationId: 'org-456',
+            userRole: ROLES.ADMIN,
+          },
+          {
+            allResults: { results: [], success: true },
+          }
+        );
 
         const response = await makeRequest(app, 'POST', '/api/settings', {
           timezone: 'UTC',
@@ -386,7 +411,7 @@ describe('Settings API Routes', () => {
           defaultReadingLevel: 3,
           schoolName: 'Test School',
           readingStatusSettings: { recentlyReadDays: 5, needsAttentionDays: 14 },
-          streakGracePeriodDays: 2
+          streakGracePeriodDays: 2,
         });
 
         expect(response.status).toBe(200);
@@ -397,12 +422,12 @@ describe('Settings API Routes', () => {
         const { app } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         const response = await makeRequest(app, 'POST', '/api/settings', {
           dangerousKey: 'malicious value',
-          systemConfig: 'injection attempt'
+          systemConfig: 'injection attempt',
         });
         const data = await response.json();
 
@@ -411,17 +436,20 @@ describe('Settings API Routes', () => {
       });
 
       it('should filter out disallowed keys while keeping allowed ones', async () => {
-        const { app, mockDB } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.ADMIN
-        }, {
-          allResults: { results: [], success: true }
-        });
+        const { app, mockDB } = createTestApp(
+          {
+            userId: 'user-123',
+            organizationId: 'org-456',
+            userRole: ROLES.ADMIN,
+          },
+          {
+            allResults: { results: [], success: true },
+          }
+        );
 
         const response = await makeRequest(app, 'POST', '/api/settings', {
           timezone: 'America/Chicago',
-          invalidKey: 'should be ignored'
+          invalidKey: 'should be ignored',
         });
 
         expect(response.status).toBe(200);
@@ -432,21 +460,24 @@ describe('Settings API Routes', () => {
 
     describe('Settings update behavior', () => {
       it('should upsert settings in database', async () => {
-        const { app, mockDB } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.ADMIN
-        }, {
-          allResults: { results: [], success: true }
-        });
+        const { app, mockDB } = createTestApp(
+          {
+            userId: 'user-123',
+            organizationId: 'org-456',
+            userRole: ROLES.ADMIN,
+          },
+          {
+            allResults: { results: [], success: true },
+          }
+        );
 
         await makeRequest(app, 'POST', '/api/settings', {
-          timezone: 'Asia/Tokyo'
+          timezone: 'Asia/Tokyo',
         });
 
         // Check that INSERT ... ON CONFLICT was used
-        const prepareCall = mockDB.prepare.mock.calls.find(call =>
-          call[0].includes('INSERT INTO org_settings') && call[0].includes('ON CONFLICT')
+        const prepareCall = mockDB.prepare.mock.calls.find(
+          (call) => call[0].includes('INSERT INTO org_settings') && call[0].includes('ON CONFLICT')
         );
         expect(prepareCall).toBeDefined();
       });
@@ -455,7 +486,7 @@ describe('Settings API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         // Configure mock to return updated settings on the second query
@@ -465,17 +496,15 @@ describe('Settings API Routes', () => {
           if (queryCount === 1) {
             // First call is the final fetch
             return Promise.resolve({
-              results: [
-                { setting_key: 'timezone', setting_value: '"Asia/Tokyo"' }
-              ],
-              success: true
+              results: [{ setting_key: 'timezone', setting_value: '"Asia/Tokyo"' }],
+              success: true,
             });
           }
           return Promise.resolve({ results: [], success: true });
         });
 
         const response = await makeRequest(app, 'POST', '/api/settings', {
-          timezone: 'Asia/Tokyo'
+          timezone: 'Asia/Tokyo',
         });
         const data = await response.json();
 
@@ -484,22 +513,25 @@ describe('Settings API Routes', () => {
       });
 
       it('should stringify object values', async () => {
-        const { app, mockDB } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.ADMIN
-        }, {
-          allResults: { results: [], success: true }
-        });
+        const { app, mockDB } = createTestApp(
+          {
+            userId: 'user-123',
+            organizationId: 'org-456',
+            userRole: ROLES.ADMIN,
+          },
+          {
+            allResults: { results: [], success: true },
+          }
+        );
 
         await makeRequest(app, 'POST', '/api/settings', {
-          readingStatusSettings: { recentlyReadDays: 5, needsAttentionDays: 14 }
+          readingStatusSettings: { recentlyReadDays: 5, needsAttentionDays: 14 },
         });
 
         // Verify binding includes stringified JSON
         const bindCalls = mockDB._chain.bind.mock.calls;
-        const hasJsonString = bindCalls.some(call =>
-          call.some(arg => typeof arg === 'string' && arg.includes('recentlyReadDays'))
+        const hasJsonString = bindCalls.some((call) =>
+          call.some((arg) => typeof arg === 'string' && arg.includes('recentlyReadDays'))
         );
         expect(hasJsonString).toBe(true);
       });
@@ -512,14 +544,14 @@ describe('Settings API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.TEACHER
+          userRole: ROLES.TEACHER,
         });
 
         mockDB._chain.first.mockResolvedValue({
           provider: 'anthropic',
           model_preference: 'claude-3-sonnet',
           is_enabled: 1,
-          api_key_encrypted: 'encrypted-key-data'
+          api_key_encrypted: 'encrypted-key-data',
         });
 
         const response = await makeRequest(app, 'GET', '/api/settings/ai');
@@ -540,7 +572,7 @@ describe('Settings API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.TEACHER
+          userRole: ROLES.TEACHER,
         });
 
         mockDB._chain.first.mockResolvedValue(null);
@@ -560,13 +592,13 @@ describe('Settings API Routes', () => {
           userId: 'user-123',
           organizationId: 'org-456',
           userRole: ROLES.TEACHER,
-          anthropicKey: 'sk-test-key'
+          anthropicKey: 'sk-test-key',
         });
 
         mockDB._chain.first.mockResolvedValue({
           provider: 'anthropic',
           is_enabled: 1,
-          api_key_encrypted: null
+          api_key_encrypted: null,
         });
 
         const response = await makeRequest(app, 'GET', '/api/settings/ai');
@@ -584,7 +616,7 @@ describe('Settings API Routes', () => {
           userRole: ROLES.TEACHER,
           anthropicKey: 'sk-anthropic',
           openaiKey: 'sk-openai',
-          googleKey: null
+          googleKey: null,
         });
 
         mockDB._chain.first.mockResolvedValue(null);
@@ -653,7 +685,7 @@ describe('Settings API Routes', () => {
         const { app } = createTestApp({
           userId: 'user-123',
           anthropicKey: 'sk-test',
-          env: { JWT_SECRET: null }
+          env: { JWT_SECRET: null },
         });
 
         const response = await makeRequest(app, 'GET', '/api/settings/ai');
@@ -669,7 +701,7 @@ describe('Settings API Routes', () => {
         const { app } = createTestApp({
           userId: 'user-123',
           openaiKey: 'sk-openai',
-          env: { JWT_SECRET: null }
+          env: { JWT_SECRET: null },
         });
 
         const response = await makeRequest(app, 'GET', '/api/settings/ai');
@@ -683,7 +715,7 @@ describe('Settings API Routes', () => {
         const { app } = createTestApp({
           userId: 'user-123',
           googleKey: 'google-key',
-          env: { JWT_SECRET: null }
+          env: { JWT_SECRET: null },
         });
 
         const response = await makeRequest(app, 'GET', '/api/settings/ai');
@@ -701,11 +733,11 @@ describe('Settings API Routes', () => {
         const { app } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.TEACHER
+          userRole: ROLES.TEACHER,
         });
 
         const response = await makeRequest(app, 'POST', '/api/settings/ai', {
-          provider: 'openai'
+          provider: 'openai',
         });
         const data = await response.json();
 
@@ -717,11 +749,11 @@ describe('Settings API Routes', () => {
         const { app } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.READONLY
+          userRole: ROLES.READONLY,
         });
 
         const response = await makeRequest(app, 'POST', '/api/settings/ai', {
-          provider: 'anthropic'
+          provider: 'anthropic',
         });
         const data = await response.json();
 
@@ -733,13 +765,13 @@ describe('Settings API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue({ id: 'existing-config' });
 
         const response = await makeRequest(app, 'POST', '/api/settings/ai', {
-          provider: 'openai'
+          provider: 'openai',
         });
 
         expect(response.status).toBe(200);
@@ -749,14 +781,14 @@ describe('Settings API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.OWNER
+          userRole: ROLES.OWNER,
         });
 
         mockDB._chain.first.mockResolvedValue({ id: 'existing-config' });
 
         const response = await makeRequest(app, 'POST', '/api/settings/ai', {
           provider: 'google',
-          isEnabled: true
+          isEnabled: true,
         });
 
         expect(response.status).toBe(200);
@@ -768,11 +800,11 @@ describe('Settings API Routes', () => {
         const { app } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         const response = await makeRequest(app, 'POST', '/api/settings/ai', {
-          provider: 'invalid-provider'
+          provider: 'invalid-provider',
         });
         const data = await response.json();
 
@@ -785,13 +817,13 @@ describe('Settings API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue({ id: 'existing-config' });
 
         const response = await makeRequest(app, 'POST', '/api/settings/ai', {
-          provider: 'anthropic'
+          provider: 'anthropic',
         });
 
         expect(response.status).toBe(200);
@@ -801,13 +833,13 @@ describe('Settings API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue({ id: 'existing-config' });
 
         const response = await makeRequest(app, 'POST', '/api/settings/ai', {
-          provider: 'openai'
+          provider: 'openai',
         });
 
         expect(response.status).toBe(200);
@@ -817,13 +849,13 @@ describe('Settings API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         mockDB._chain.first.mockResolvedValue({ id: 'existing-config' });
 
         const response = await makeRequest(app, 'POST', '/api/settings/ai', {
-          provider: 'google'
+          provider: 'google',
         });
 
         expect(response.status).toBe(200);
@@ -835,7 +867,7 @@ describe('Settings API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         let queryCount = 0;
@@ -850,14 +882,14 @@ describe('Settings API Routes', () => {
             provider: 'openai',
             model_preference: 'gpt-4',
             is_enabled: 1,
-            api_key_encrypted: null
+            api_key_encrypted: null,
           });
         });
 
         const response = await makeRequest(app, 'POST', '/api/settings/ai', {
           provider: 'openai',
           modelPreference: 'gpt-4',
-          isEnabled: true
+          isEnabled: true,
         });
         const data = await response.json();
 
@@ -871,7 +903,7 @@ describe('Settings API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         let queryCount = 0;
@@ -886,18 +918,18 @@ describe('Settings API Routes', () => {
             provider: 'google',
             model_preference: null,
             is_enabled: 1,
-            api_key_encrypted: null
+            api_key_encrypted: null,
           });
         });
 
         const response = await makeRequest(app, 'POST', '/api/settings/ai', {
           provider: 'google',
-          isEnabled: true
+          isEnabled: true,
         });
 
         expect(response.status).toBe(200);
         // Verify INSERT was called
-        const insertCall = mockDB.prepare.mock.calls.find(call =>
+        const insertCall = mockDB.prepare.mock.calls.find((call) =>
           call[0].includes('INSERT INTO org_ai_config')
         );
         expect(insertCall).toBeDefined();
@@ -909,7 +941,7 @@ describe('Settings API Routes', () => {
         const { app, mockDB } = createTestApp({
           userId: 'user-123',
           organizationId: 'org-456',
-          userRole: ROLES.ADMIN
+          userRole: ROLES.ADMIN,
         });
 
         let queryCount = 0;
@@ -921,12 +953,12 @@ describe('Settings API Routes', () => {
           return Promise.resolve({
             provider: 'anthropic',
             is_enabled: 1,
-            api_key_encrypted: 'encrypted-api-key-data'
+            api_key_encrypted: 'encrypted-api-key-data',
           });
         });
 
         const response = await makeRequest(app, 'POST', '/api/settings/ai', {
-          apiKey: 'sk-test-key-12345'
+          apiKey: 'sk-test-key-12345',
         });
 
         expect(response.status).toBe(200);
@@ -941,13 +973,13 @@ describe('Settings API Routes', () => {
           userId: 'user-123',
           organizationId: 'org-456',
           userRole: ROLES.ADMIN,
-          env: { JWT_SECRET: null }
+          env: { JWT_SECRET: null },
         });
 
         mockDB._chain.first.mockResolvedValue({ id: 'existing-config' });
 
         const response = await makeRequest(app, 'POST', '/api/settings/ai', {
-          apiKey: 'sk-test-key'
+          apiKey: 'sk-test-key',
         });
         const data = await response.json();
 
@@ -962,11 +994,11 @@ describe('Settings API Routes', () => {
         const { app } = createTestApp({
           userId: 'user-123',
           userRole: ROLES.ADMIN,
-          env: { JWT_SECRET: null }
+          env: { JWT_SECRET: null },
         });
 
         const response = await makeRequest(app, 'POST', '/api/settings/ai', {
-          provider: 'openai'
+          provider: 'openai',
         });
         const data = await response.json();
 
@@ -978,13 +1010,16 @@ describe('Settings API Routes', () => {
 
   describe('Organization scoping', () => {
     it('should scope GET /api/settings to organization', async () => {
-      const { app, mockDB } = createTestApp({
-        userId: 'user-123',
-        organizationId: 'specific-org-789',
-        userRole: ROLES.TEACHER
-      }, {
-        allResults: { results: [], success: true }
-      });
+      const { app, mockDB } = createTestApp(
+        {
+          userId: 'user-123',
+          organizationId: 'specific-org-789',
+          userRole: ROLES.TEACHER,
+        },
+        {
+          allResults: { results: [], success: true },
+        }
+      );
 
       await makeRequest(app, 'GET', '/api/settings');
 
@@ -992,23 +1027,24 @@ describe('Settings API Routes', () => {
     });
 
     it('should scope POST /api/settings to organization', async () => {
-      const { app, mockDB } = createTestApp({
-        userId: 'user-123',
-        organizationId: 'specific-org-789',
-        userRole: ROLES.ADMIN
-      }, {
-        allResults: { results: [], success: true }
-      });
+      const { app, mockDB } = createTestApp(
+        {
+          userId: 'user-123',
+          organizationId: 'specific-org-789',
+          userRole: ROLES.ADMIN,
+        },
+        {
+          allResults: { results: [], success: true },
+        }
+      );
 
       await makeRequest(app, 'POST', '/api/settings', {
-        timezone: 'UTC'
+        timezone: 'UTC',
       });
 
       // Check that organizationId is used in the upsert
       const bindCalls = mockDB._chain.bind.mock.calls;
-      const hasOrgId = bindCalls.some(call =>
-        call.includes('specific-org-789')
-      );
+      const hasOrgId = bindCalls.some((call) => call.includes('specific-org-789'));
       expect(hasOrgId).toBe(true);
     });
 
@@ -1016,7 +1052,7 @@ describe('Settings API Routes', () => {
       const { app, mockDB } = createTestApp({
         userId: 'user-123',
         organizationId: 'specific-org-789',
-        userRole: ROLES.TEACHER
+        userRole: ROLES.TEACHER,
       });
 
       await makeRequest(app, 'GET', '/api/settings/ai');
@@ -1028,37 +1064,36 @@ describe('Settings API Routes', () => {
       const { app, mockDB } = createTestApp({
         userId: 'user-123',
         organizationId: 'specific-org-789',
-        userRole: ROLES.ADMIN
+        userRole: ROLES.ADMIN,
       });
 
       mockDB._chain.first.mockResolvedValue({ id: 'config' });
 
       await makeRequest(app, 'POST', '/api/settings/ai', {
-        provider: 'anthropic'
+        provider: 'anthropic',
       });
 
       const bindCalls = mockDB._chain.bind.mock.calls;
-      const hasOrgId = bindCalls.some(call =>
-        call.includes('specific-org-789')
-      );
+      const hasOrgId = bindCalls.some((call) => call.includes('specific-org-789'));
       expect(hasOrgId).toBe(true);
     });
   });
 
   describe('Response format', () => {
     it('should return settings as JSON object', async () => {
-      const { app } = createTestApp({
-        userId: 'user-123',
-        organizationId: 'org-456',
-        userRole: ROLES.TEACHER
-      }, {
-        allResults: {
-          results: [
-            { setting_key: 'timezone', setting_value: '"UTC"' }
-          ],
-          success: true
+      const { app } = createTestApp(
+        {
+          userId: 'user-123',
+          organizationId: 'org-456',
+          userRole: ROLES.TEACHER,
+        },
+        {
+          allResults: {
+            results: [{ setting_key: 'timezone', setting_value: '"UTC"' }],
+            success: true,
+          },
         }
-      });
+      );
 
       const response = await makeRequest(app, 'GET', '/api/settings');
       const data = await response.json();
@@ -1072,14 +1107,14 @@ describe('Settings API Routes', () => {
       const { app, mockDB } = createTestApp({
         userId: 'user-123',
         organizationId: 'org-456',
-        userRole: ROLES.TEACHER
+        userRole: ROLES.TEACHER,
       });
 
       mockDB._chain.first.mockResolvedValue({
         provider: 'anthropic',
         model_preference: 'claude-3-opus',
         is_enabled: 1,
-        api_key_encrypted: 'encrypted'
+        api_key_encrypted: 'encrypted',
       });
 
       const response = await makeRequest(app, 'GET', '/api/settings/ai');
@@ -1100,7 +1135,7 @@ describe('Settings API Routes', () => {
       const { app, mockDB } = createTestApp({
         userId: 'user-123',
         organizationId: 'org-456',
-        userRole: ROLES.TEACHER
+        userRole: ROLES.TEACHER,
       });
 
       mockDB._chain.all.mockRejectedValue(new Error('Database error'));
@@ -1114,13 +1149,13 @@ describe('Settings API Routes', () => {
       const { app, mockDB } = createTestApp({
         userId: 'user-123',
         organizationId: 'org-456',
-        userRole: ROLES.ADMIN
+        userRole: ROLES.ADMIN,
       });
 
       mockDB.batch.mockRejectedValue(new Error('Database error'));
 
       const response = await makeRequest(app, 'POST', '/api/settings', {
-        timezone: 'UTC'
+        timezone: 'UTC',
       });
 
       expect(response.status).toBe(500);
@@ -1130,7 +1165,7 @@ describe('Settings API Routes', () => {
       const { app, mockDB } = createTestApp({
         userId: 'user-123',
         organizationId: 'org-456',
-        userRole: ROLES.TEACHER
+        userRole: ROLES.TEACHER,
       });
 
       mockDB._chain.first.mockRejectedValue(new Error('Database error'));
@@ -1144,13 +1179,13 @@ describe('Settings API Routes', () => {
       const { app, mockDB } = createTestApp({
         userId: 'user-123',
         organizationId: 'org-456',
-        userRole: ROLES.ADMIN
+        userRole: ROLES.ADMIN,
       });
 
       mockDB._chain.first.mockRejectedValue(new Error('Database error'));
 
       const response = await makeRequest(app, 'POST', '/api/settings/ai', {
-        provider: 'anthropic'
+        provider: 'anthropic',
       });
 
       expect(response.status).toBe(500);
@@ -1162,19 +1197,22 @@ describe('Settings API Routes', () => {
       { role: ROLES.OWNER, canRead: true, canWrite: true },
       { role: ROLES.ADMIN, canRead: true, canWrite: true },
       { role: ROLES.TEACHER, canRead: true, canWrite: false },
-      { role: ROLES.READONLY, canRead: true, canWrite: false }
+      { role: ROLES.READONLY, canRead: true, canWrite: false },
     ];
 
     testCases.forEach(({ role, canRead, canWrite }) => {
       describe(`Role: ${role}`, () => {
         it(`should ${canRead ? 'allow' : 'deny'} GET /api/settings`, async () => {
-          const { app } = createTestApp({
-            userId: 'user-123',
-            organizationId: 'org-456',
-            userRole: role
-          }, {
-            allResults: { results: [], success: true }
-          });
+          const { app } = createTestApp(
+            {
+              userId: 'user-123',
+              organizationId: 'org-456',
+              userRole: role,
+            },
+            {
+              allResults: { results: [], success: true },
+            }
+          );
 
           const response = await makeRequest(app, 'GET', '/api/settings');
 
@@ -1186,16 +1224,19 @@ describe('Settings API Routes', () => {
         });
 
         it(`should ${canWrite ? 'allow' : 'deny'} POST /api/settings`, async () => {
-          const { app, mockDB } = createTestApp({
-            userId: 'user-123',
-            organizationId: 'org-456',
-            userRole: role
-          }, {
-            allResults: { results: [], success: true }
-          });
+          const { app, mockDB } = createTestApp(
+            {
+              userId: 'user-123',
+              organizationId: 'org-456',
+              userRole: role,
+            },
+            {
+              allResults: { results: [], success: true },
+            }
+          );
 
           const response = await makeRequest(app, 'POST', '/api/settings', {
-            timezone: 'UTC'
+            timezone: 'UTC',
           });
 
           if (canWrite) {
@@ -1209,7 +1250,7 @@ describe('Settings API Routes', () => {
           const { app, mockDB } = createTestApp({
             userId: 'user-123',
             organizationId: 'org-456',
-            userRole: role
+            userRole: role,
           });
 
           mockDB._chain.first.mockResolvedValue(null);
@@ -1227,13 +1268,13 @@ describe('Settings API Routes', () => {
           const { app, mockDB } = createTestApp({
             userId: 'user-123',
             organizationId: 'org-456',
-            userRole: role
+            userRole: role,
           });
 
           mockDB._chain.first.mockResolvedValue({ id: 'config' });
 
           const response = await makeRequest(app, 'POST', '/api/settings/ai', {
-            provider: 'anthropic'
+            provider: 'anthropic',
           });
 
           if (canWrite) {

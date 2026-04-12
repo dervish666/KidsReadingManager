@@ -5,8 +5,10 @@ import { parseOpenLibraryBook, lookupISBN } from '../../utils/isbnLookup.js';
 const createMockKV = () => {
   const store = {};
   return {
-    get: vi.fn(async (key, type) => store[key] ? JSON.parse(store[key]) : null),
-    put: vi.fn(async (key, value) => { store[key] = value; }),
+    get: vi.fn(async (key, type) => (store[key] ? JSON.parse(store[key]) : null)),
+    put: vi.fn(async (key, value) => {
+      store[key] = value;
+    }),
   };
 };
 
@@ -128,16 +130,19 @@ describe('lookupISBN', () => {
   });
 
   it('should call OpenLibrary with normalized ISBN and correct User-Agent', async () => {
-    globalThis.fetch = vi.fn().mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        title: 'Test Book',
-        authors: [{ key: '/authors/OL123A' }],
-      }),
-    }).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ name: 'Test Author' }),
-    });
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          title: 'Test Book',
+          authors: [{ key: '/authors/OL123A' }],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ name: 'Test Author' }),
+      });
 
     // Use a valid ISBN-10 that normalizes to ISBN-13
     await lookupISBN('0141036141', createEnv());
@@ -153,7 +158,8 @@ describe('lookupISBN', () => {
   });
 
   it('should fetch author name from authors endpoint', async () => {
-    globalThis.fetch = vi.fn()
+    globalThis.fetch = vi
+      .fn()
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({
@@ -205,22 +211,19 @@ describe('lookupISBN', () => {
   });
 
   it('should cache successful lookups in KV', async () => {
-    globalThis.fetch = vi.fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          title: 'Cached Book',
-          number_of_pages: 200,
-        }),
-      });
+    globalThis.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        title: 'Cached Book',
+        number_of_pages: 200,
+      }),
+    });
 
     await lookupISBN('9780261103344', createEnv());
 
-    expect(mockKV.put).toHaveBeenCalledWith(
-      'isbn:9780261103344',
-      expect.any(String),
-      { expirationTtl: 2592000 }
-    );
+    expect(mockKV.put).toHaveBeenCalledWith('isbn:9780261103344', expect.any(String), {
+      expirationTtl: 2592000,
+    });
 
     // Verify the cached value is a valid JSON of the result
     const cachedValue = JSON.parse(mockKV.put.mock.calls[0][1]);
@@ -283,13 +286,12 @@ describe('lookupISBN', () => {
       put: vi.fn().mockRejectedValue(new Error('KV unavailable')),
     };
 
-    globalThis.fetch = vi.fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          title: 'Fallback Book',
-        }),
-      });
+    globalThis.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        title: 'Fallback Book',
+      }),
+    });
 
     const result = await lookupISBN('9780261103344', createEnv(brokenKV));
     expect(result).not.toBeNull();
@@ -297,7 +299,8 @@ describe('lookupISBN', () => {
   });
 
   it('should handle author fetch failure gracefully', async () => {
-    globalThis.fetch = vi.fn()
+    globalThis.fetch = vi
+      .fn()
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({
@@ -314,7 +317,8 @@ describe('lookupISBN', () => {
   });
 
   it('should construct the result object with all expected fields', async () => {
-    globalThis.fetch = vi.fn()
+    globalThis.fetch = vi
+      .fn()
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({

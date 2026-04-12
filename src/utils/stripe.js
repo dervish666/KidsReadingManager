@@ -51,7 +51,5 @@ export function getPlanFromPriceId(priceId, env) {
  */
 export function hasAiAddon(subscription, env) {
   const addonPrices = [env.STRIPE_AI_ADDON_PRICE_ID, LEGACY_AI_ADDON_PRICE].filter(Boolean);
-  return (subscription.items?.data || []).some((item) =>
-    addonPrices.includes(item.price?.id)
-  );
+  return (subscription.items?.data || []).some((item) => addonPrices.includes(item.price?.id));
 }

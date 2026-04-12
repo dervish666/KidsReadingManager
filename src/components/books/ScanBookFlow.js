@@ -9,7 +9,7 @@ import {
   Typography,
   CircularProgress,
   Alert,
-  Divider
+  Divider,
 } from '@mui/material';
 import BarcodeScanner from './BarcodeScanner';
 import BookCover from '../BookCover';
@@ -59,25 +59,28 @@ const ScanBookFlow = ({ open, onClose, onBookSelected }) => {
     }
   }, [resetState, onClose]);
 
-  const handleScan = useCallback(async (scannedIsbn) => {
-    setIsbn(scannedIsbn);
-    setStep(STEPS.LOADING);
-    setErrorMessage('');
+  const handleScan = useCallback(
+    async (scannedIsbn) => {
+      setIsbn(scannedIsbn);
+      setStep(STEPS.LOADING);
+      setErrorMessage('');
 
-    try {
-      const response = await fetchWithAuth(`/api/books/isbn/${encodeURIComponent(scannedIsbn)}`);
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.message || `Lookup failed (${response.status})`);
+      try {
+        const response = await fetchWithAuth(`/api/books/isbn/${encodeURIComponent(scannedIsbn)}`);
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.message || `Lookup failed (${response.status})`);
+        }
+        const result = await response.json();
+        setLookupResult(result);
+        setStep(STEPS.PREVIEW);
+      } catch (err) {
+        setErrorMessage(err.message || 'Failed to look up ISBN');
+        setStep(STEPS.ERROR);
       }
-      const result = await response.json();
-      setLookupResult(result);
-      setStep(STEPS.PREVIEW);
-    } catch (err) {
-      setErrorMessage(err.message || 'Failed to look up ISBN');
-      setStep(STEPS.ERROR);
-    }
-  }, [fetchWithAuth]);
+    },
+    [fetchWithAuth]
+  );
 
   const handleScanAgain = useCallback(() => {
     resetState();
@@ -119,13 +122,7 @@ const ScanBookFlow = ({ open, onClose, onBookSelected }) => {
 
   // Render the scanner step
   if (step === STEPS.SCANNING) {
-    return (
-      <BarcodeScanner
-        open={open}
-        onScan={handleScan}
-        onClose={handleClose}
-      />
-    );
+    return <BarcodeScanner open={open} onScan={handleScan} onClose={handleClose} />;
   }
 
   // All other steps render inside a Dialog
@@ -187,12 +184,7 @@ const ScanBookFlow = ({ open, onClose, onBookSelected }) => {
             {book && book.title && (
               <Box sx={{ display: 'flex', gap: 2 }}>
                 <Box sx={{ flexShrink: 0 }}>
-                  <BookCover
-                    title={book.title}
-                    author={book.author}
-                    width={80}
-                    height={120}
-                  />
+                  <BookCover title={book.title} author={book.author} width={80} height={120} />
                 </Box>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography variant="h6" noWrap>

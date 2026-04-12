@@ -89,9 +89,7 @@ export default function WelcomeDialog() {
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
               <Typography sx={{ fontSize: '1.2rem' }}>🏫</Typography>
-              <Typography
-                sx={{ fontWeight: 700, color: 'text.primary', fontSize: '0.95rem' }}
-              >
+              <Typography sx={{ fontWeight: 700, color: 'text.primary', fontSize: '0.95rem' }}>
                 {classInfo.name}
               </Typography>
               {classInfo.othersCount > 0 && (
@@ -132,9 +130,7 @@ export default function WelcomeDialog() {
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
               <Typography sx={{ fontSize: '1.2rem' }}>&#x26A0;&#xFE0F;</Typography>
-              <Typography
-                sx={{ fontWeight: 700, color: 'text.primary', fontSize: '0.95rem' }}
-              >
+              <Typography sx={{ fontWeight: 700, color: 'text.primary', fontSize: '0.95rem' }}>
                 No classes linked yet
               </Typography>
             </Box>
@@ -150,9 +146,7 @@ export default function WelcomeDialog() {
 
         {/* What you can do */}
         <Box sx={{ textAlign: 'left', mb: 3.5 }}>
-          <Typography
-            sx={{ fontWeight: 700, color: 'text.primary', fontSize: '0.85rem', mb: 1.5 }}
-          >
+          <Typography sx={{ fontWeight: 700, color: 'text.primary', fontSize: '0.85rem', mb: 1.5 }}>
             Here&apos;s what you can do:
           </Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>

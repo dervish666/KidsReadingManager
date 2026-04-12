@@ -132,7 +132,10 @@ badgesRouter.get('/summary', requireReadonly(), async (c) => {
   }
   studentSql += ' ORDER BY s.name ASC';
 
-  const studentsResult = await db.prepare(studentSql).bind(...binds).all();
+  const studentsResult = await db
+    .prepare(studentSql)
+    .bind(...binds)
+    .all();
   const students = studentsResult.results || [];
 
   if (students.length === 0) {

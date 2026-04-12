@@ -25,11 +25,21 @@ export default function BadgeIcon({ badge, size = 'medium', showLabel = true }) 
   const fontSize = size === 'small' ? 12 : size === 'large' ? 30 : 22;
   const gradient = TIER_GRADIENTS[badge.tier] || TIER_GRADIENTS.single;
   const icon = CATEGORY_ICONS[badge.icon] || '🏆';
-  const tierLabel = badge.tier === 'single' ? '' : badge.tier.charAt(0).toUpperCase() + badge.tier.slice(1);
+  const tierLabel =
+    badge.tier === 'single' ? '' : badge.tier.charAt(0).toUpperCase() + badge.tier.slice(1);
 
   return (
-    <Tooltip title={`${badge.name}${tierLabel ? ` (${tierLabel})` : ''} — ${badge.description || badge.unlockMessage || ''}`}>
-      <Box sx={{ textAlign: 'center', display: 'inline-flex', flexDirection: 'column', alignItems: 'center' }}>
+    <Tooltip
+      title={`${badge.name}${tierLabel ? ` (${tierLabel})` : ''} — ${badge.description || badge.unlockMessage || ''}`}
+    >
+      <Box
+        sx={{
+          textAlign: 'center',
+          display: 'inline-flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+        }}
+      >
         <Box
           sx={{
             width: px,
@@ -47,7 +57,10 @@ export default function BadgeIcon({ badge, size = 'medium', showLabel = true }) 
         </Box>
         {showLabel && size !== 'small' && (
           <>
-            <Typography variant="caption" sx={{ mt: 0.5, fontWeight: 500, color: '#3D3427', fontSize: 10, lineHeight: 1.2 }}>
+            <Typography
+              variant="caption"
+              sx={{ mt: 0.5, fontWeight: 500, color: '#3D3427', fontSize: 10, lineHeight: 1.2 }}
+            >
               {badge.name}
             </Typography>
             {tierLabel && (

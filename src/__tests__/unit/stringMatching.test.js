@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeString, calculateSimilarity, isExactMatch, isFuzzyMatch } from '../../utils/stringMatching.js';
+import {
+  normalizeString,
+  calculateSimilarity,
+  isExactMatch,
+  isFuzzyMatch,
+} from '../../utils/stringMatching.js';
 
 describe('stringMatching utilities', () => {
   describe('normalizeString', () => {
@@ -49,24 +54,30 @@ describe('stringMatching utilities', () => {
 
   describe('isFuzzyMatch', () => {
     it('should match similar title and author', () => {
-      expect(isFuzzyMatch(
-        { title: 'The Hobit', author: 'Tolkien' },
-        { title: 'The Hobbit', author: 'J.R.R. Tolkien' }
-      )).toBe(true);
+      expect(
+        isFuzzyMatch(
+          { title: 'The Hobit', author: 'Tolkien' },
+          { title: 'The Hobbit', author: 'J.R.R. Tolkien' }
+        )
+      ).toBe(true);
     });
 
     it('should not match different books', () => {
-      expect(isFuzzyMatch(
-        { title: 'The BFG', author: 'Roald Dahl' },
-        { title: 'The Hobbit', author: 'J.R.R. Tolkien' }
-      )).toBe(false);
+      expect(
+        isFuzzyMatch(
+          { title: 'The BFG', author: 'Roald Dahl' },
+          { title: 'The Hobbit', author: 'J.R.R. Tolkien' }
+        )
+      ).toBe(false);
     });
 
     it('should match with missing author on one side', () => {
-      expect(isFuzzyMatch(
-        { title: 'The Hobbit', author: null },
-        { title: 'The Hobbit', author: 'Tolkien' }
-      )).toBe(true);
+      expect(
+        isFuzzyMatch(
+          { title: 'The Hobbit', author: null },
+          { title: 'The Hobbit', author: 'Tolkien' }
+        )
+      ).toBe(true);
     });
   });
 });

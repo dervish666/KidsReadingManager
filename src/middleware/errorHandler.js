@@ -1,6 +1,6 @@
 /**
  * Error handler middleware for Hono
- * 
+ *
  * This middleware catches errors and formats them consistently.
  */
 
@@ -10,14 +10,13 @@ export const errorHandler = () => {
       await next();
     } catch (error) {
       console.error(`Error in request to ${c.req.path}:`, error);
-      
+
       // Determine status code
       const status = error.status || 500;
-      
+
       // For 5xx errors, don't leak internal details to client
-      const message = status >= 500
-        ? 'Internal Server Error'
-        : (error.message || 'An error occurred');
+      const message =
+        status >= 500 ? 'Internal Server Error' : error.message || 'An error occurred';
 
       return c.json(
         {

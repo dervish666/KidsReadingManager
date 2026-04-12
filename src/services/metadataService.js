@@ -13,8 +13,15 @@ const PROVIDERS = {
 };
 
 const MERGE_FIELDS = [
-  'author', 'description', 'genres', 'isbn',
-  'pageCount', 'publicationYear', 'seriesName', 'seriesNumber', 'coverUrl',
+  'author',
+  'description',
+  'genres',
+  'isbn',
+  'pageCount',
+  'publicationYear',
+  'seriesName',
+  'seriesNumber',
+  'coverUrl',
 ];
 
 /**
@@ -30,9 +37,8 @@ export async function enrichBook(book, config) {
   const rateLimited = [];
 
   // Determine which fields to target (exclude coverUrl if fetchCovers is false)
-  const targetFields = config.fetchCovers === false
-    ? MERGE_FIELDS.filter((f) => f !== 'coverUrl')
-    : MERGE_FIELDS;
+  const targetFields =
+    config.fetchCovers === false ? MERGE_FIELDS.filter((f) => f !== 'coverUrl') : MERGE_FIELDS;
 
   for (const providerName of config.providerChain) {
     const provider = PROVIDERS[providerName];
@@ -130,7 +136,7 @@ export async function processBatch(books, config, options = {}) {
 
       // Check if any fields were actually populated
       const hasUpdates = Object.values(result.merged).some(
-        (v) => v != null && (!Array.isArray(v) || v.length > 0),
+        (v) => v != null && (!Array.isArray(v) || v.length > 0)
       );
 
       if (hasUpdates) {
@@ -224,27 +230,43 @@ export async function processJobBatch(db, job, config, options = {}) {
     }
   }
 
-  const booksResult = await db.prepare(booksQuery).bind(...booksBindings).all();
+  const booksResult = await db
+    .prepare(booksQuery)
+    .bind(...booksBindings)
+    .all();
   const books = (booksResult.results || []).map((row) => ({
-    id: row.id, title: row.title, author: row.author || '', isbn: row.isbn || '',
+    id: row.id,
+    title: row.title,
+    author: row.author || '',
+    isbn: row.isbn || '',
   }));
 
   // No more books → job complete
   if (books.length === 0) {
-    await db.prepare(
-      "UPDATE metadata_jobs SET status = 'completed', updated_at = datetime('now') WHERE id = ?"
-    ).bind(job.id).run();
+    await db
+      .prepare(
+        "UPDATE metadata_jobs SET status = 'completed', updated_at = datetime('now') WHERE id = ?"
+      )
+      .bind(job.id)
+      .run();
     return {
-      processedBooks: job.processed_books, enrichedBooks: job.enriched_books,
-      errorCount: job.error_count, currentBook: null, done: true, jobStatus: 'completed',
+      processedBooks: job.processed_books,
+      enrichedBooks: job.enriched_books,
+      errorCount: job.error_count,
+      currentBook: null,
+      done: true,
+      jobStatus: 'completed',
     };
   }
 
   // Mark job as running
   if (job.status === 'pending') {
-    await db.prepare(
-      "UPDATE metadata_jobs SET status = 'running', updated_at = datetime('now') WHERE id = ?"
-    ).bind(job.id).run();
+    await db
+      .prepare(
+        "UPDATE metadata_jobs SET status = 'running', updated_at = datetime('now') WHERE id = ?"
+      )
+      .bind(job.id)
+      .run();
   }
 
   // Process the batch
@@ -260,7 +282,12 @@ export async function processJobBatch(db, job, config, options = {}) {
         bookUpdates.push({ bookId, merged });
       }
       for (const entry of log) {
-        logEntries.push({ bookId, provider: entry.provider, fields: entry.fields, coverUrl: merged.coverUrl });
+        logEntries.push({
+          bookId,
+          provider: entry.provider,
+          fields: entry.fields,
+          coverUrl: merged.coverUrl,
+        });
       }
     },
   });
@@ -301,34 +328,113 @@ export async function processJobBatch(db, job, config, options = {}) {
     if (job.job_type === 'fill_missing') {
       const sets = [];
       const params = [];
-      if (merged.author) { sets.push("author = CASE WHEN author IS NULL OR author = '' OR LOWER(author) = 'unknown' THEN ? ELSE author END"); params.push(merged.author); }
-      if (merged.description) { sets.push("description = CASE WHEN description IS NULL OR description = '' THEN ? ELSE description END"); params.push(merged.description); }
-      if (merged.isbn) { sets.push("isbn = CASE WHEN isbn IS NULL OR isbn = '' THEN ? ELSE isbn END"); params.push(merged.isbn); }
-      if (merged.pageCount) { sets.push('page_count = CASE WHEN page_count IS NULL THEN ? ELSE page_count END'); params.push(merged.pageCount); }
-      if (merged.publicationYear) { sets.push('publication_year = CASE WHEN publication_year IS NULL THEN ? ELSE publication_year END'); params.push(merged.publicationYear); }
-      if (merged.seriesName) { sets.push("series_name = CASE WHEN series_name IS NULL OR series_name = '' THEN ? ELSE series_name END"); params.push(merged.seriesName); }
-      if (merged.seriesNumber != null) { sets.push('series_number = CASE WHEN series_number IS NULL THEN ? ELSE series_number END'); params.push(merged.seriesNumber); }
-      if (merged.genreIds?.length) { sets.push("genre_ids = CASE WHEN genre_ids IS NULL OR genre_ids = '' OR genre_ids = '[]' THEN ? ELSE genre_ids END"); params.push(JSON.stringify(merged.genreIds)); }
-      if (sets.length > 0) { sets.push("updated_at = datetime('now')"); params.push(bookId); statements.push(db.prepare(`UPDATE books SET ${sets.join(', ')} WHERE id = ?`).bind(...params)); }
+      if (merged.author) {
+        sets.push(
+          "author = CASE WHEN author IS NULL OR author = '' OR LOWER(author) = 'unknown' THEN ? ELSE author END"
+        );
+        params.push(merged.author);
+      }
+      if (merged.description) {
+        sets.push(
+          "description = CASE WHEN description IS NULL OR description = '' THEN ? ELSE description END"
+        );
+        params.push(merged.description);
+      }
+      if (merged.isbn) {
+        sets.push("isbn = CASE WHEN isbn IS NULL OR isbn = '' THEN ? ELSE isbn END");
+        params.push(merged.isbn);
+      }
+      if (merged.pageCount) {
+        sets.push('page_count = CASE WHEN page_count IS NULL THEN ? ELSE page_count END');
+        params.push(merged.pageCount);
+      }
+      if (merged.publicationYear) {
+        sets.push(
+          'publication_year = CASE WHEN publication_year IS NULL THEN ? ELSE publication_year END'
+        );
+        params.push(merged.publicationYear);
+      }
+      if (merged.seriesName) {
+        sets.push(
+          "series_name = CASE WHEN series_name IS NULL OR series_name = '' THEN ? ELSE series_name END"
+        );
+        params.push(merged.seriesName);
+      }
+      if (merged.seriesNumber != null) {
+        sets.push('series_number = CASE WHEN series_number IS NULL THEN ? ELSE series_number END');
+        params.push(merged.seriesNumber);
+      }
+      if (merged.genreIds?.length) {
+        sets.push(
+          "genre_ids = CASE WHEN genre_ids IS NULL OR genre_ids = '' OR genre_ids = '[]' THEN ? ELSE genre_ids END"
+        );
+        params.push(JSON.stringify(merged.genreIds));
+      }
+      if (sets.length > 0) {
+        sets.push("updated_at = datetime('now')");
+        params.push(bookId);
+        statements.push(
+          db.prepare(`UPDATE books SET ${sets.join(', ')} WHERE id = ?`).bind(...params)
+        );
+      }
     } else {
       const sets = [];
       const params = [];
-      if (merged.author) { sets.push('author = ?'); params.push(merged.author); }
-      if (merged.description) { sets.push('description = ?'); params.push(merged.description); }
-      if (merged.isbn) { sets.push('isbn = ?'); params.push(merged.isbn); }
-      if (merged.pageCount) { sets.push('page_count = ?'); params.push(merged.pageCount); }
-      if (merged.publicationYear) { sets.push('publication_year = ?'); params.push(merged.publicationYear); }
-      if (merged.seriesName) { sets.push('series_name = ?'); params.push(merged.seriesName); }
-      if (merged.seriesNumber != null) { sets.push('series_number = ?'); params.push(merged.seriesNumber); }
-      if (merged.genreIds?.length) { sets.push('genre_ids = ?'); params.push(JSON.stringify(merged.genreIds)); }
-      if (sets.length > 0) { sets.push("updated_at = datetime('now')"); params.push(bookId); statements.push(db.prepare(`UPDATE books SET ${sets.join(', ')} WHERE id = ?`).bind(...params)); }
+      if (merged.author) {
+        sets.push('author = ?');
+        params.push(merged.author);
+      }
+      if (merged.description) {
+        sets.push('description = ?');
+        params.push(merged.description);
+      }
+      if (merged.isbn) {
+        sets.push('isbn = ?');
+        params.push(merged.isbn);
+      }
+      if (merged.pageCount) {
+        sets.push('page_count = ?');
+        params.push(merged.pageCount);
+      }
+      if (merged.publicationYear) {
+        sets.push('publication_year = ?');
+        params.push(merged.publicationYear);
+      }
+      if (merged.seriesName) {
+        sets.push('series_name = ?');
+        params.push(merged.seriesName);
+      }
+      if (merged.seriesNumber != null) {
+        sets.push('series_number = ?');
+        params.push(merged.seriesNumber);
+      }
+      if (merged.genreIds?.length) {
+        sets.push('genre_ids = ?');
+        params.push(JSON.stringify(merged.genreIds));
+      }
+      if (sets.length > 0) {
+        sets.push("updated_at = datetime('now')");
+        params.push(bookId);
+        statements.push(
+          db.prepare(`UPDATE books SET ${sets.join(', ')} WHERE id = ?`).bind(...params)
+        );
+      }
     }
   }
 
   for (const entry of logEntries) {
     statements.push(
-      db.prepare('INSERT INTO book_metadata_log (id, book_id, provider, fields_updated, cover_url) VALUES (?, ?, ?, ?, ?)')
-        .bind(crypto.randomUUID(), entry.bookId, entry.provider, JSON.stringify(entry.fields), entry.coverUrl || null)
+      db
+        .prepare(
+          'INSERT INTO book_metadata_log (id, book_id, provider, fields_updated, cover_url) VALUES (?, ?, ?, ?, ?)'
+        )
+        .bind(
+          crypto.randomUUID(),
+          entry.bookId,
+          entry.provider,
+          JSON.stringify(entry.fields),
+          entry.coverUrl || null
+        )
     );
   }
 
@@ -338,7 +444,10 @@ export async function processJobBatch(db, job, config, options = {}) {
   const newErrors = job.error_count + progress.errorCount;
 
   statements.push(
-    db.prepare(`UPDATE metadata_jobs SET processed_books = ?, enriched_books = ?, error_count = ?, last_book_id = ?, updated_at = datetime('now') WHERE id = ?`)
+    db
+      .prepare(
+        `UPDATE metadata_jobs SET processed_books = ?, enriched_books = ?, error_count = ?, last_book_id = ?, updated_at = datetime('now') WHERE id = ?`
+      )
       .bind(newProcessed, newEnriched, newErrors, progress.lastBookId, job.id)
   );
 
@@ -352,7 +461,9 @@ export async function processJobBatch(db, job, config, options = {}) {
       .filter(({ merged }) => merged.coverUrl && merged.isbn)
       .map(async ({ merged }) => {
         try {
-          const res = await fetch(merged.coverUrl, { headers: { 'User-Agent': 'TallyReading/1.0 (educational-app)' } });
+          const res = await fetch(merged.coverUrl, {
+            headers: { 'User-Agent': 'TallyReading/1.0 (educational-app)' },
+          });
           if (res.ok) {
             const imageData = await res.arrayBuffer();
             if (imageData.byteLength > 1000) {
@@ -361,7 +472,9 @@ export async function processJobBatch(db, job, config, options = {}) {
               });
             }
           }
-        } catch { /* non-critical */ }
+        } catch {
+          /* non-critical */
+        }
       });
 
     if (waitUntil) {

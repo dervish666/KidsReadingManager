@@ -11,7 +11,7 @@ import {
   hasPermission,
   permissions,
   ROLES,
-  ROLE_HIERARCHY
+  ROLE_HIERARCHY,
 } from '../../utils/crypto.js';
 
 describe('Password Hashing', () => {
@@ -96,7 +96,7 @@ describe('JWT Tokens', () => {
     name: 'Test User',
     org: 'org-456',
     orgSlug: 'test-org',
-    role: 'teacher'
+    role: 'teacher',
   };
 
   describe('createAccessToken', () => {
@@ -240,11 +240,11 @@ describe('createJWTPayload', () => {
       id: 'user-123',
       email: 'test@example.com',
       name: 'Test User',
-      role: 'teacher'
+      role: 'teacher',
     };
     const organization = {
       id: 'org-456',
-      slug: 'test-org'
+      slug: 'test-org',
     };
 
     const payload = createJWTPayload(user, organization);

@@ -22,14 +22,17 @@ termDatesRouter.get('/', requireReadonly(), async (c) => {
   const organizationId = c.get('organizationId');
   const academicYear = c.req.query('year') || getCurrentAcademicYear();
 
-  const result = await db.prepare(
-    `SELECT term_name, term_order, start_date, end_date
+  const result = await db
+    .prepare(
+      `SELECT term_name, term_order, start_date, end_date
      FROM term_dates
      WHERE organization_id = ? AND academic_year = ?
      ORDER BY term_order`
-  ).bind(organizationId, academicYear).all();
+    )
+    .bind(organizationId, academicYear)
+    .all();
 
-  const terms = (result.results || []).map(row => ({
+  const terms = (result.results || []).map((row) => ({
     termName: row.term_name,
     termOrder: row.term_order,
     startDate: row.start_date,
@@ -73,38 +76,45 @@ termDatesRouter.put('/', requireAdmin(), async (c) => {
   for (let i = 1; i < sorted.length; i++) {
     // Terms can be back-to-back (start === prev end) but not overlapping
     if (sorted[i].startDate < sorted[i - 1].endDate) {
-      throw badRequestError(`Term dates overlap: ${sorted[i - 1].termName} and ${sorted[i].termName}`);
+      throw badRequestError(
+        `Term dates overlap: ${sorted[i - 1].termName} and ${sorted[i].termName}`
+      );
     }
   }
 
-  const deleteStmt = db.prepare(
-    `DELETE FROM term_dates WHERE organization_id = ? AND academic_year = ?`
-  ).bind(organizationId, academicYear);
+  const deleteStmt = db
+    .prepare(`DELETE FROM term_dates WHERE organization_id = ? AND academic_year = ?`)
+    .bind(organizationId, academicYear);
 
-  const insertStmts = terms.map(term =>
-    db.prepare(
-      `INSERT INTO term_dates (id, organization_id, academic_year, term_name, term_order, start_date, end_date, updated_by)
+  const insertStmts = terms.map((term) =>
+    db
+      .prepare(
+        `INSERT INTO term_dates (id, organization_id, academic_year, term_name, term_order, start_date, end_date, updated_by)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(
-      crypto.randomUUID(),
-      organizationId,
-      academicYear,
-      term.termName,
-      term.termOrder,
-      term.startDate,
-      term.endDate,
-      userId
-    )
+      )
+      .bind(
+        crypto.randomUUID(),
+        organizationId,
+        academicYear,
+        term.termName,
+        term.termOrder,
+        term.startDate,
+        term.endDate,
+        userId
+      )
   );
 
   await db.batch([deleteStmt, ...insertStmts]);
 
-  return c.json({ academicYear, terms: terms.map(t => ({
-    termName: t.termName,
-    termOrder: t.termOrder,
-    startDate: t.startDate,
-    endDate: t.endDate,
-  }))});
+  return c.json({
+    academicYear,
+    terms: terms.map((t) => ({
+      termName: t.termName,
+      termOrder: t.termOrder,
+      startDate: t.startDate,
+      endDate: t.endDate,
+    })),
+  });
 });
 
 export { termDatesRouter };

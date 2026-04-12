@@ -1,12 +1,5 @@
 import React, { useState } from 'react';
-import { 
-  TextField, 
-  Box, 
-  Typography, 
-  IconButton, 
-  Tooltip,
-  Collapse
-} from '@mui/material';
+import { TextField, Box, Typography, IconButton, Tooltip, Collapse } from '@mui/material';
 import MicIcon from '@mui/icons-material/Mic';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
@@ -17,70 +10,72 @@ const SessionNotes = ({ value, onChange, defaultExpanded = false }) => {
   const [speechRecognitionSupported] = useState(
     'SpeechRecognition' in window || 'webkitSpeechRecognition' in window
   );
-  
+
   const toggleExpanded = () => {
     setExpanded(!expanded);
   };
 
   const startSpeechRecognition = () => {
     if (!speechRecognitionSupported) return;
-    
+
     // Use the browser's Speech Recognition API
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
-    
+
     recognition.lang = 'en-US';
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
-    
+
     recognition.onstart = () => {
       setIsRecording(true);
     };
-    
+
     recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript;
       // Append to existing notes
       onChange({ target: { value: value ? `${value} ${transcript}` : transcript } });
     };
-    
+
     recognition.onerror = (event) => {
       console.error('Speech recognition error', event.error);
       setIsRecording(false);
     };
-    
+
     recognition.onend = () => {
       setIsRecording(false);
     };
-    
+
     recognition.start();
   };
 
   return (
     <Box>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-        <Typography variant="subtitle1">
-          Notes
-        </Typography>
+        <Typography variant="subtitle1">Notes</Typography>
         <Box sx={{ flexGrow: 1 }} />
         {speechRecognitionSupported && (
           <Tooltip title="Add notes using voice (if supported by your browser)">
             <IconButton
-              aria-label={isRecording ? "Stop voice input" : "Voice input"}
+              aria-label={isRecording ? 'Stop voice input' : 'Voice input'}
               onClick={startSpeechRecognition}
-              color={isRecording ? "error" : "default"}
+              color={isRecording ? 'error' : 'default'}
               size="small"
             >
               <MicIcon />
             </IconButton>
           </Tooltip>
         )}
-        <Tooltip title={expanded ? "Hide notes" : "Show notes"}>
-          <IconButton aria-label={expanded ? "Collapse notes" : "Expand notes"} onClick={toggleExpanded} size="small">
+        <Tooltip title={expanded ? 'Hide notes' : 'Show notes'}>
+          <IconButton
+            aria-label={expanded ? 'Collapse notes' : 'Expand notes'}
+            onClick={toggleExpanded}
+            size="small"
+          >
             {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
           </IconButton>
         </Tooltip>
       </Box>
-      
+
       <Collapse in={expanded} timeout="auto">
         <TextField
           multiline
@@ -92,11 +87,16 @@ const SessionNotes = ({ value, onChange, defaultExpanded = false }) => {
           variant="outlined"
         />
       </Collapse>
-      
+
       {!expanded && (
         <Box
           onClick={toggleExpanded}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleExpanded(); } }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              toggleExpanded();
+            }
+          }}
           role="button"
           tabIndex={0}
           aria-label="Click to expand notes"
@@ -107,12 +107,14 @@ const SessionNotes = ({ value, onChange, defaultExpanded = false }) => {
             textAlign: 'center',
             cursor: 'pointer',
             '&:hover': {
-              bgcolor: 'rgba(0, 0, 0, 0.04)'
-            }
+              bgcolor: 'rgba(0, 0, 0, 0.04)',
+            },
           }}
         >
           <Typography variant="body2" color="text.secondary">
-            {value ? value.substring(0, 50) + (value.length > 50 ? '...' : '') : 'Click to add notes...'}
+            {value
+              ? value.substring(0, 50) + (value.length > 50 ? '...' : '')
+              : 'Click to add notes...'}
           </Typography>
         </Box>
       )}

@@ -4,26 +4,22 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('../../utils/wondeApi.js', () => ({
   fetchAllStudents: vi.fn(),
   fetchAllClasses: vi.fn(),
-  fetchDeletions: vi.fn()
+  fetchDeletions: vi.fn(),
 }));
 
 // Mock classAssignments module
 vi.mock('../../utils/classAssignments.js', () => ({
-  syncUserClassAssignments: vi.fn().mockResolvedValue(0)
+  syncUserClassAssignments: vi.fn().mockResolvedValue(0),
 }));
 
 import {
   mapWondeStudent,
   mapWondeClass,
   mapWondeEmployee,
-  runFullSync
+  runFullSync,
 } from '../../services/wondeSync.js';
 
-import {
-  fetchAllStudents,
-  fetchAllClasses,
-  fetchDeletions
-} from '../../utils/wondeApi.js';
+import { fetchAllStudents, fetchAllClasses, fetchDeletions } from '../../utils/wondeApi.js';
 
 import { syncUserClassAssignments } from '../../utils/classAssignments.js';
 
@@ -35,16 +31,16 @@ function createMockDb() {
     bind: vi.fn().mockReturnThis(),
     run: vi.fn().mockResolvedValue({ success: true }),
     first: vi.fn().mockResolvedValue(null),
-    all: vi.fn().mockResolvedValue({ results: [] })
+    all: vi.fn().mockResolvedValue({ results: [] }),
   };
 
   const db = {
     prepare: vi.fn().mockReturnValue(mockStatement),
     batch: vi.fn().mockResolvedValue([
       { results: [], success: true },
-      { results: [], success: true }
+      { results: [], success: true },
     ]),
-    _statement: mockStatement
+    _statement: mockStatement,
   };
 
   return db;
@@ -61,23 +57,20 @@ describe('mapWondeStudent', () => {
       surname: 'Smith',
       education_details: {
         data: {
-          current_nc_year: '5'
-        }
+          current_nc_year: '5',
+        },
       },
       extended_details: {
         data: {
           sen_status: 'K',
           pupil_premium: true,
           eal_status: 'E',
-          free_school_meals: true
-        }
+          free_school_meals: true,
+        },
       },
       classes: {
-        data: [
-          { id: 'CLS_001' },
-          { id: 'CLS_002' }
-        ]
-      }
+        data: [{ id: 'CLS_001' }, { id: 'CLS_002' }],
+      },
     };
 
     const result = mapWondeStudent(wondeStudent);
@@ -94,7 +87,7 @@ describe('mapWondeStudent', () => {
       gender: null,
       firstLanguage: null,
       ealDetailedStatus: null,
-      wondeClassIds: ['CLS_001', 'CLS_002']
+      wondeClassIds: ['CLS_001', 'CLS_002'],
     });
   });
 
@@ -103,7 +96,7 @@ describe('mapWondeStudent', () => {
       id: 'B123',
       forename: 'Bob',
       surname: 'Jones',
-      classes: { data: [] }
+      classes: { data: [] },
     };
 
     const result = mapWondeStudent(wondeStudent);
@@ -121,7 +114,7 @@ describe('mapWondeStudent', () => {
       id: 'C123',
       forename: 'Charlie',
       surname: 'Brown',
-      education_details: { data: { current_nc_year: '3' } }
+      education_details: { data: { current_nc_year: '3' } },
     };
 
     const result = mapWondeStudent(wondeStudent);
@@ -134,7 +127,7 @@ describe('mapWondeStudent', () => {
     const wondeStudent = {
       id: 'D123',
       forename: 'Diana',
-      surname: 'Lee'
+      surname: 'Lee',
     };
 
     const result = mapWondeStudent(wondeStudent);
@@ -151,7 +144,7 @@ describe('mapWondeStudent', () => {
       gender: null,
       firstLanguage: null,
       ealDetailedStatus: null,
-      wondeClassIds: []
+      wondeClassIds: [],
     });
   });
 
@@ -162,7 +155,7 @@ describe('mapWondeStudent', () => {
       surname: 'Green',
       education_details: { data: null },
       extended_details: { data: null },
-      classes: { data: null }
+      classes: { data: null },
     };
 
     const result = mapWondeStudent(wondeStudent);
@@ -183,14 +176,14 @@ describe('mapWondeClass', () => {
   it('maps a Wonde class object', () => {
     const wondeClass = {
       id: 'CLS_ABC',
-      name: 'Year 5 Blue'
+      name: 'Year 5 Blue',
     };
 
     const result = mapWondeClass(wondeClass);
 
     expect(result).toEqual({
       wondeClassId: 'CLS_ABC',
-      name: 'Year 5 Blue'
+      name: 'Year 5 Blue',
     });
   });
 });
@@ -205,11 +198,8 @@ describe('mapWondeEmployee', () => {
       forename: 'Jane',
       surname: 'Teacher',
       classes: {
-        data: [
-          { id: 'CLS_A' },
-          { id: 'CLS_B' }
-        ]
-      }
+        data: [{ id: 'CLS_A' }, { id: 'CLS_B' }],
+      },
     };
 
     const result = mapWondeEmployee(wondeEmployee);
@@ -217,7 +207,7 @@ describe('mapWondeEmployee', () => {
     expect(result).toEqual({
       wondeEmployeeId: 'EMP_001',
       name: 'Jane Teacher',
-      wondeClassIds: ['CLS_A', 'CLS_B']
+      wondeClassIds: ['CLS_A', 'CLS_B'],
     });
   });
 
@@ -225,7 +215,7 @@ describe('mapWondeEmployee', () => {
     const wondeEmployee = {
       id: 'EMP_002',
       forename: 'John',
-      surname: 'Doe'
+      surname: 'Doe',
     };
 
     const result = mapWondeEmployee(wondeEmployee);
@@ -233,7 +223,7 @@ describe('mapWondeEmployee', () => {
     expect(result).toEqual({
       wondeEmployeeId: 'EMP_002',
       name: 'John Doe',
-      wondeClassIds: []
+      wondeClassIds: [],
     });
   });
 
@@ -242,7 +232,7 @@ describe('mapWondeEmployee', () => {
       id: 'EMP_003',
       forename: 'Sue',
       surname: 'Admin',
-      classes: { data: null }
+      classes: { data: null },
     };
 
     const result = mapWondeEmployee(wondeEmployee);
@@ -261,8 +251,16 @@ describe('runFullSync', () => {
 
   // Sample Wonde API data
   const sampleClasses = [
-    { id: 'WCLS_1', name: 'Year 3 Red', employees: { data: [{ id: 'WEMP_1', forename: 'Jane', surname: 'Teacher' }] } },
-    { id: 'WCLS_2', name: 'Year 4 Blue', employees: { data: [{ id: 'WEMP_1', forename: 'Jane', surname: 'Teacher' }] } }
+    {
+      id: 'WCLS_1',
+      name: 'Year 3 Red',
+      employees: { data: [{ id: 'WEMP_1', forename: 'Jane', surname: 'Teacher' }] },
+    },
+    {
+      id: 'WCLS_2',
+      name: 'Year 4 Blue',
+      employees: { data: [{ id: 'WEMP_1', forename: 'Jane', surname: 'Teacher' }] },
+    },
   ];
 
   const sampleStudents = [
@@ -271,15 +269,15 @@ describe('runFullSync', () => {
       forename: 'Alice',
       surname: 'Smith',
       education_details: { data: { current_nc_year: '3' } },
-      classes: { data: [{ id: 'WCLS_1' }] }
+      classes: { data: [{ id: 'WCLS_1' }] },
     },
     {
       id: 'WSTU_2',
       forename: 'Bob',
       surname: 'Jones',
       education_details: { data: { current_nc_year: '4' } },
-      classes: { data: [{ id: 'WCLS_2' }] }
-    }
+      classes: { data: [{ id: 'WCLS_2' }] },
+    },
   ];
 
   const sampleDeletions = [];
@@ -316,17 +314,21 @@ describe('runFullSync', () => {
       bind: vi.fn().mockReturnThis(),
       run: vi.fn().mockResolvedValue({ success: true }),
       first: vi.fn().mockResolvedValue(null),
-      all: vi.fn().mockResolvedValue({ results: [] })
+      all: vi.fn().mockResolvedValue({ results: [] }),
     }));
     db.batch = vi.fn().mockResolvedValue([
       { results: [], success: true },
-      { results: [], success: true }
+      { results: [], success: true },
     ]);
 
     await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
 
     expect(fetchAllClasses).toHaveBeenCalledWith(SCHOOL_TOKEN, WONDE_SCHOOL_ID, expect.any(Object));
-    expect(fetchAllStudents).toHaveBeenCalledWith(SCHOOL_TOKEN, WONDE_SCHOOL_ID, expect.any(Object));
+    expect(fetchAllStudents).toHaveBeenCalledWith(
+      SCHOOL_TOKEN,
+      WONDE_SCHOOL_ID,
+      expect.any(Object)
+    );
     expect(fetchDeletions).toHaveBeenCalledWith(SCHOOL_TOKEN, WONDE_SCHOOL_ID, undefined);
   });
 
@@ -337,20 +339,20 @@ describe('runFullSync', () => {
         return {
           bind: vi.fn().mockReturnThis(),
           all: vi.fn().mockResolvedValue({
-            results: [{ wonde_class_id: 'WCLS_2', id: 'existing-class-id', name: 'Old Name' }]
-          })
+            results: [{ wonde_class_id: 'WCLS_2', id: 'existing-class-id', name: 'Old Name' }],
+          }),
         };
       }
       return {
         bind: vi.fn().mockReturnThis(),
         run: vi.fn().mockResolvedValue({ success: true }),
         first: vi.fn().mockResolvedValue(null),
-        all: vi.fn().mockResolvedValue({ results: [] })
+        all: vi.fn().mockResolvedValue({ results: [] }),
       };
     });
     db.batch = vi.fn().mockResolvedValue([
       { results: [], success: true },
-      { results: [], success: true }
+      { results: [], success: true },
     ]);
 
     const result = await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
@@ -362,17 +364,22 @@ describe('runFullSync', () => {
   it('upserts students (creates new, updates existing)', async () => {
     // Existing students batch-fetch: WSTU_2 exists
     db.prepare = vi.fn().mockImplementation((sql) => {
-      if (sql.includes('SELECT') && sql.includes('classes') && sql.includes('organization_id') && !sql.includes('wonde_class_id')) {
+      if (
+        sql.includes('SELECT') &&
+        sql.includes('classes') &&
+        sql.includes('organization_id') &&
+        !sql.includes('wonde_class_id')
+      ) {
         return {
           bind: vi.fn().mockReturnThis(),
-          all: vi.fn().mockResolvedValue({ results: [] })
+          all: vi.fn().mockResolvedValue({ results: [] }),
         };
       }
       return {
         bind: vi.fn().mockReturnThis(),
         run: vi.fn().mockResolvedValue({ success: true }),
         first: vi.fn().mockResolvedValue(null),
-        all: vi.fn().mockResolvedValue({ results: [] })
+        all: vi.fn().mockResolvedValue({ results: [] }),
       };
     });
 
@@ -381,11 +388,13 @@ describe('runFullSync', () => {
     // 2. Student + erased batch-fetch
     // 3. Student upserts
     // 4. Employee inserts
-    db.batch = vi.fn()
+    db.batch = vi
+      .fn()
       .mockResolvedValueOnce([{ success: true }]) // class upserts
-      .mockResolvedValueOnce([ // student + erased batch-fetch
+      .mockResolvedValueOnce([
+        // student + erased batch-fetch
         { results: [{ wonde_student_id: 'WSTU_2', id: 'existing-student-id' }], success: true },
-        { results: [], success: true }
+        { results: [], success: true },
       ])
       .mockResolvedValueOnce([{ success: true }]) // student upserts
       .mockResolvedValue([{ success: true }]); // remaining batches
@@ -399,7 +408,9 @@ describe('runFullSync', () => {
   it('handles employee class mappings', async () => {
     db.prepare = vi.fn().mockImplementation((sql) => {
       if (sql.includes('DELETE FROM wonde_employee_classes')) {
-        return { bind: vi.fn().mockReturnValue({ run: vi.fn().mockResolvedValue({ success: true }) }) };
+        return {
+          bind: vi.fn().mockReturnValue({ run: vi.fn().mockResolvedValue({ success: true }) }),
+        };
       }
       if (sql.includes('INSERT INTO wonde_employee_classes')) {
         return { bind: vi.fn().mockReturnThis() };
@@ -408,18 +419,18 @@ describe('runFullSync', () => {
         bind: vi.fn().mockReturnThis(),
         run: vi.fn().mockResolvedValue({ success: true }),
         first: vi.fn().mockResolvedValue(null),
-        all: vi.fn().mockResolvedValue({ results: [] })
+        all: vi.fn().mockResolvedValue({ results: [] }),
       };
     });
     db.batch = vi.fn().mockResolvedValue([
       { results: [], success: true },
-      { results: [], success: true }
+      { results: [], success: true },
     ]);
 
     const result = await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
 
     // DELETE runs standalone, then INSERTs are batched separately
-    const deleteCall = db.prepare.mock.calls.find(call =>
+    const deleteCall = db.prepare.mock.calls.find((call) =>
       call[0].includes('DELETE FROM wonde_employee_classes')
     );
     expect(deleteCall).toBeDefined();
@@ -429,7 +440,7 @@ describe('runFullSync', () => {
   it('handles student deletions (deactivates students)', async () => {
     fetchDeletions.mockResolvedValue([
       { id: 'WSTU_DEL_1', restored_at: null },
-      { id: 'WSTU_DEL_2', restored_at: '2026-02-20T10:00:00Z' } // restored, should skip
+      { id: 'WSTU_DEL_2', restored_at: '2026-02-20T10:00:00Z' }, // restored, should skip
     ]);
 
     db.prepare = vi.fn().mockImplementation((sql) => {
@@ -440,12 +451,12 @@ describe('runFullSync', () => {
         bind: vi.fn().mockReturnThis(),
         run: vi.fn().mockResolvedValue({ success: true }),
         first: vi.fn().mockResolvedValue(null),
-        all: vi.fn().mockResolvedValue({ results: [] })
+        all: vi.fn().mockResolvedValue({ results: [] }),
       };
     });
     db.batch = vi.fn().mockResolvedValue([
       { results: [], success: true },
-      { results: [], success: true }
+      { results: [], success: true },
     ]);
 
     const result = await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
@@ -458,7 +469,7 @@ describe('runFullSync', () => {
   it('updates organizations.wonde_last_sync_at', async () => {
     const updateOrgStatement = {
       bind: vi.fn().mockReturnThis(),
-      run: vi.fn().mockResolvedValue({ success: true })
+      run: vi.fn().mockResolvedValue({ success: true }),
     };
 
     db.prepare = vi.fn().mockImplementation((sql) => {
@@ -469,12 +480,12 @@ describe('runFullSync', () => {
         bind: vi.fn().mockReturnThis(),
         run: vi.fn().mockResolvedValue({ success: true }),
         first: vi.fn().mockResolvedValue(null),
-        all: vi.fn().mockResolvedValue({ results: [] })
+        all: vi.fn().mockResolvedValue({ results: [] }),
       };
     });
     db.batch = vi.fn().mockResolvedValue([
       { results: [], success: true },
-      { results: [], success: true }
+      { results: [], success: true },
     ]);
 
     await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
@@ -486,7 +497,7 @@ describe('runFullSync', () => {
   it('updates sync log with completed status and counts', async () => {
     const syncLogUpdateStatement = {
       bind: vi.fn().mockReturnThis(),
-      run: vi.fn().mockResolvedValue({ success: true })
+      run: vi.fn().mockResolvedValue({ success: true }),
     };
 
     db.prepare = vi.fn().mockImplementation((sql) => {
@@ -497,12 +508,12 @@ describe('runFullSync', () => {
         bind: vi.fn().mockReturnThis(),
         run: vi.fn().mockResolvedValue({ success: true }),
         first: vi.fn().mockResolvedValue(null),
-        all: vi.fn().mockResolvedValue({ results: [] })
+        all: vi.fn().mockResolvedValue({ results: [] }),
       };
     });
     db.batch = vi.fn().mockResolvedValue([
       { results: [], success: true },
-      { results: [], success: true }
+      { results: [], success: true },
     ]);
 
     const result = await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
@@ -529,7 +540,7 @@ describe('runFullSync', () => {
 
     const syncLogUpdateStatement = {
       bind: vi.fn().mockReturnThis(),
-      run: vi.fn().mockResolvedValue({ success: true })
+      run: vi.fn().mockResolvedValue({ success: true }),
     };
 
     db.prepare = vi.fn().mockImplementation((sql) => {
@@ -540,7 +551,7 @@ describe('runFullSync', () => {
         bind: vi.fn().mockReturnThis(),
         run: vi.fn().mockResolvedValue({ success: true }),
         first: vi.fn().mockResolvedValue(null),
-        all: vi.fn().mockResolvedValue({ results: [] })
+        all: vi.fn().mockResolvedValue({ results: [] }),
       };
     });
 
@@ -555,7 +566,7 @@ describe('runFullSync', () => {
     const updatedAfter = '2026-02-20T00:00:00Z';
     db.batch = vi.fn().mockResolvedValue([
       { results: [], success: true },
-      { results: [], success: true }
+      { results: [], success: true },
     ]);
 
     await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db, { updatedAfter });
@@ -570,17 +581,13 @@ describe('runFullSync', () => {
       WONDE_SCHOOL_ID,
       expect.objectContaining({ updatedAfter })
     );
-    expect(fetchDeletions).toHaveBeenCalledWith(
-      SCHOOL_TOKEN,
-      WONDE_SCHOOL_ID,
-      updatedAfter
-    );
+    expect(fetchDeletions).toHaveBeenCalledWith(SCHOOL_TOKEN, WONDE_SCHOOL_ID, updatedAfter);
   });
 
   it('sets sync_type to full when no updatedAfter', async () => {
     const syncLogInsertStatement = {
       bind: vi.fn().mockReturnThis(),
-      run: vi.fn().mockResolvedValue({ success: true })
+      run: vi.fn().mockResolvedValue({ success: true }),
     };
 
     db.prepare = vi.fn().mockImplementation((sql) => {
@@ -591,7 +598,7 @@ describe('runFullSync', () => {
         bind: vi.fn().mockReturnThis(),
         run: vi.fn().mockResolvedValue({ success: true }),
         first: vi.fn().mockResolvedValue(null),
-        all: vi.fn().mockResolvedValue({ results: [] })
+        all: vi.fn().mockResolvedValue({ results: [] }),
       };
     });
 
@@ -605,7 +612,7 @@ describe('runFullSync', () => {
   it('sets sync_type to delta when updatedAfter is provided', async () => {
     const syncLogInsertStatement = {
       bind: vi.fn().mockReturnThis(),
-      run: vi.fn().mockResolvedValue({ success: true })
+      run: vi.fn().mockResolvedValue({ success: true }),
     };
 
     db.prepare = vi.fn().mockImplementation((sql) => {
@@ -616,12 +623,12 @@ describe('runFullSync', () => {
         bind: vi.fn().mockReturnThis(),
         run: vi.fn().mockResolvedValue({ success: true }),
         first: vi.fn().mockResolvedValue(null),
-        all: vi.fn().mockResolvedValue({ results: [] })
+        all: vi.fn().mockResolvedValue({ results: [] }),
       };
     });
 
     await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db, {
-      updatedAfter: '2026-02-20T00:00:00Z'
+      updatedAfter: '2026-02-20T00:00:00Z',
     });
 
     const bindArgs = syncLogInsertStatement.bind.mock.calls[0];
@@ -634,7 +641,7 @@ describe('runFullSync', () => {
     fetchDeletions.mockResolvedValue([]);
     db.batch = vi.fn().mockResolvedValue([
       { results: [], success: true },
-      { results: [], success: true }
+      { results: [], success: true },
     ]);
 
     const result = await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
@@ -654,16 +661,14 @@ describe('runFullSync', () => {
       bind: vi.fn().mockReturnThis(),
       run: vi.fn().mockResolvedValue({ success: true }),
       first: vi.fn().mockResolvedValue(null),
-      all: vi.fn().mockResolvedValue({ results: [] })
+      all: vi.fn().mockResolvedValue({ results: [] }),
     }));
 
     // Track the student INSERT statements passed to db.batch
     const batchCalls = [];
     db.batch = vi.fn().mockImplementation((statements) => {
       batchCalls.push(statements);
-      return Promise.resolve(
-        (statements || []).map(() => ({ results: [], success: true }))
-      );
+      return Promise.resolve((statements || []).map(() => ({ results: [], success: true })));
     });
 
     const result = await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
@@ -677,7 +682,7 @@ describe('runFullSync', () => {
     fetchAllStudents.mockRejectedValue(new Error('Student fetch failed'));
     db.batch = vi.fn().mockResolvedValue([
       { results: [], success: true },
-      { results: [], success: true }
+      { results: [], success: true },
     ]);
 
     const result = await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
@@ -689,26 +694,26 @@ describe('runFullSync', () => {
   it('refreshes class_assignments for users with wonde_employee_id after employee sync', async () => {
     const usersWithWondeResults = [
       { id: 'user-1', wonde_employee_id: 'WEMP_1' },
-      { id: 'user-2', wonde_employee_id: 'WEMP_2' }
+      { id: 'user-2', wonde_employee_id: 'WEMP_2' },
     ];
 
     db.prepare = vi.fn().mockImplementation((sql) => {
       if (sql.includes('SELECT id, wonde_employee_id FROM users')) {
         return {
           bind: vi.fn().mockReturnThis(),
-          all: vi.fn().mockResolvedValue({ results: usersWithWondeResults })
+          all: vi.fn().mockResolvedValue({ results: usersWithWondeResults }),
         };
       }
       return {
         bind: vi.fn().mockReturnThis(),
         run: vi.fn().mockResolvedValue({ success: true }),
         first: vi.fn().mockResolvedValue(null),
-        all: vi.fn().mockResolvedValue({ results: [] })
+        all: vi.fn().mockResolvedValue({ results: [] }),
       };
     });
     db.batch = vi.fn().mockResolvedValue([
       { results: [], success: true },
-      { results: [], success: true }
+      { results: [], success: true },
     ]);
 
     syncUserClassAssignments.mockResolvedValue(2);
@@ -729,20 +734,21 @@ describe('runFullSync', () => {
         bind: vi.fn().mockReturnThis(),
         run: vi.fn().mockResolvedValue({ success: true }),
         first: vi.fn().mockResolvedValue(null),
-        all: vi.fn().mockResolvedValue({ results: [] })
+        all: vi.fn().mockResolvedValue({ results: [] }),
       };
     });
     db.batch = vi.fn().mockResolvedValue([
       { results: [], success: true },
-      { results: [], success: true }
+      { results: [], success: true },
     ]);
 
     await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
 
-    const userQuery = preparedStatements.find(sql =>
-      sql.includes('SELECT id, wonde_employee_id FROM users') &&
-      sql.includes('wonde_employee_id IS NOT NULL') &&
-      sql.includes('is_active = 1')
+    const userQuery = preparedStatements.find(
+      (sql) =>
+        sql.includes('SELECT id, wonde_employee_id FROM users') &&
+        sql.includes('wonde_employee_id IS NOT NULL') &&
+        sql.includes('is_active = 1')
     );
     expect(userQuery).toBeDefined();
   });
@@ -750,26 +756,26 @@ describe('runFullSync', () => {
   it('continues sync even if syncUserClassAssignments throws for one user', async () => {
     const usersWithWondeResults = [
       { id: 'user-fail', wonde_employee_id: 'WEMP_FAIL' },
-      { id: 'user-ok', wonde_employee_id: 'WEMP_OK' }
+      { id: 'user-ok', wonde_employee_id: 'WEMP_OK' },
     ];
 
     db.prepare = vi.fn().mockImplementation((sql) => {
       if (sql.includes('SELECT id, wonde_employee_id FROM users')) {
         return {
           bind: vi.fn().mockReturnThis(),
-          all: vi.fn().mockResolvedValue({ results: usersWithWondeResults })
+          all: vi.fn().mockResolvedValue({ results: usersWithWondeResults }),
         };
       }
       return {
         bind: vi.fn().mockReturnThis(),
         run: vi.fn().mockResolvedValue({ success: true }),
         first: vi.fn().mockResolvedValue(null),
-        all: vi.fn().mockResolvedValue({ results: [] })
+        all: vi.fn().mockResolvedValue({ results: [] }),
       };
     });
     db.batch = vi.fn().mockResolvedValue([
       { results: [], success: true },
-      { results: [], success: true }
+      { results: [], success: true },
     ]);
 
     syncUserClassAssignments
@@ -798,19 +804,19 @@ describe('runFullSync', () => {
       if (sql.includes('SELECT id, wonde_employee_id FROM users')) {
         return {
           bind: vi.fn().mockReturnThis(),
-          all: vi.fn().mockResolvedValue({ results: [] })
+          all: vi.fn().mockResolvedValue({ results: [] }),
         };
       }
       return {
         bind: vi.fn().mockReturnThis(),
         run: vi.fn().mockResolvedValue({ success: true }),
         first: vi.fn().mockResolvedValue(null),
-        all: vi.fn().mockResolvedValue({ results: [] })
+        all: vi.fn().mockResolvedValue({ results: [] }),
       };
     });
     db.batch = vi.fn().mockResolvedValue([
       { results: [], success: true },
-      { results: [], success: true }
+      { results: [], success: true },
     ]);
 
     const result = await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);

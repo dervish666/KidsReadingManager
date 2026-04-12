@@ -52,7 +52,7 @@ const getAllBooks = () => {
  */
 const getBookById = (id) => {
   const data = readData();
-  return data.books.find(book => book.id === id) || null;
+  return data.books.find((book) => book.id === id) || null;
 };
 
 /**
@@ -89,7 +89,7 @@ const updateBook = (id, updatedBook) => {
   // Initialize books array if it doesn't exist
   if (!data.books) data.books = [];
 
-  const index = data.books.findIndex(book => book.id === id);
+  const index = data.books.findIndex((book) => book.id === id);
 
   if (index === -1) {
     throw new Error('Book not found');
@@ -116,10 +116,10 @@ const deleteBook = (id) => {
   // Initialize books array if it doesn't exist
   if (!data.books) data.books = [];
 
-  const bookToDelete = data.books.find(book => book.id === id);
+  const bookToDelete = data.books.find((book) => book.id === id);
   const initialLength = data.books.length;
 
-  data.books = data.books.filter(book => book.id !== id);
+  data.books = data.books.filter((book) => book.id !== id);
 
   if (data.books.length === initialLength) {
     throw new Error('Book not found');
@@ -149,7 +149,7 @@ const addBooksBatch = (newBooks) => {
 
   // Add all new books to the array
   data.books.push(...newBooks);
-  
+
   if (writeData(data)) {
     return newBooks;
   } else {
@@ -173,15 +173,15 @@ const updateBooksBatch = (bookUpdates) => {
   }
 
   const updatedBooks = [];
-  
+
   bookUpdates.forEach(({ id, bookData }) => {
-    const index = data.books.findIndex(book => book.id === id);
+    const index = data.books.findIndex((book) => book.id === id);
     if (index !== -1) {
       data.books[index] = { ...bookData, id };
       updatedBooks.push(data.books[index]);
     }
   });
-  
+
   if (writeData(data)) {
     return updatedBooks;
   } else {
@@ -196,5 +196,5 @@ module.exports = {
   updateBook,
   deleteBook,
   addBooksBatch,
-  updateBooksBatch
+  updateBooksBatch,
 };

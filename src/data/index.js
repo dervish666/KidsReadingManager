@@ -23,7 +23,8 @@ import * as d1Provider from './d1Provider.js';
  */
 async function createProvider(env = null) {
   // Check for explicit STORAGE_TYPE environment variable first
-  const storageType = typeof process !== 'undefined' ? (process.env.STORAGE_TYPE || process.env.storage_type) : null;
+  const storageType =
+    typeof process !== 'undefined' ? process.env.STORAGE_TYPE || process.env.storage_type : null;
 
   // If D1 database is available, use it for books (preferred for large collections)
   if (env && env.READING_MANAGER_DB) {
@@ -51,11 +52,13 @@ async function createProvider(env = null) {
 async function createJSONProvider() {
   // Check if we're in a Node.js environment (not Cloudflare Workers)
   if (typeof process === 'undefined' || !process.versions || !process.versions.node) {
-    throw new Error('JSON provider is only available in Node.js environments for local development');
+    throw new Error(
+      'JSON provider is only available in Node.js environments for local development'
+    );
   }
 
   // Dynamic import to avoid build errors in Cloudflare Workers
-  const jsonProvider = await import('./jsonProvider.js').catch(err => {
+  const jsonProvider = await import('./jsonProvider.js').catch((err) => {
     throw new Error(`Failed to load JSON provider: ${err.message}`);
   });
 
@@ -86,7 +89,7 @@ async function createJSONProvider() {
 
     async updateBooksBatch(bookUpdates) {
       return jsonProvider.default.updateBooksBatch(bookUpdates);
-    }
+    },
   };
 }
 
@@ -105,7 +108,8 @@ function createD1Provider(env) {
     getBooksPaginated: (...args) => d1Provider.getBooksPaginated(env || {}, ...args),
     getBookCount: (...args) => d1Provider.getBookCount(env || {}),
     // AI recommendation filtering - optimized for large book collections
-    getFilteredBooksForRecommendations: (...args) => d1Provider.getFilteredBooksForRecommendations(env || {}, ...args)
+    getFilteredBooksForRecommendations: (...args) =>
+      d1Provider.getFilteredBooksForRecommendations(env || {}, ...args),
   };
 }
 
@@ -124,9 +128,10 @@ function createKVProvider(env) {
       const books = await kvProvider.getAllBooks(env || {});
       const lowerQuery = query.toLowerCase();
       return books
-        .filter(book =>
-          book.title?.toLowerCase().includes(lowerQuery) ||
-          book.author?.toLowerCase().includes(lowerQuery)
+        .filter(
+          (book) =>
+            book.title?.toLowerCase().includes(lowerQuery) ||
+            book.author?.toLowerCase().includes(lowerQuery)
         )
         .slice(0, limit);
     },
@@ -138,7 +143,7 @@ function createKVProvider(env) {
         total: books.length,
         page,
         pageSize,
-        totalPages: Math.ceil(books.length / pageSize)
+        totalPages: Math.ceil(books.length / pageSize),
       };
     },
     getBookCount: async () => {
@@ -151,28 +156,28 @@ function createKVProvider(env) {
         readingLevel = 'intermediate',
         excludeBookIds = [],
         favoriteGenreIds = [],
-        limit = 100
+        limit = 100,
       } = options;
 
       const books = await kvProvider.getAllBooks(env || {});
       const excludeSet = new Set(excludeBookIds);
 
       // Filter books based on criteria
-      let filtered = books.filter(book => !excludeSet.has(book.id));
+      let filtered = books.filter((book) => !excludeSet.has(book.id));
 
       // Filter by reading level if specified (simple matching for KV)
       if (readingLevel) {
         const levelLower = readingLevel.toLowerCase();
-        filtered = filtered.filter(book =>
-          !book.readingLevel || book.readingLevel.toLowerCase() === levelLower
+        filtered = filtered.filter(
+          (book) => !book.readingLevel || book.readingLevel.toLowerCase() === levelLower
         );
       }
 
       // Filter by favorite genres if specified
       if (favoriteGenreIds.length > 0) {
         const genreSet = new Set(favoriteGenreIds);
-        const genreFiltered = filtered.filter(book =>
-          book.genreIds?.some(id => genreSet.has(id))
+        const genreFiltered = filtered.filter((book) =>
+          book.genreIds?.some((id) => genreSet.has(id))
         );
         // Only use genre filter if it returns results
         if (genreFiltered.length > 0) {
@@ -186,7 +191,7 @@ function createKVProvider(env) {
         [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
       }
       return filtered.slice(0, limit);
-    }
+    },
   };
 }
 

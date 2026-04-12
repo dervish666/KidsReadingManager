@@ -26,10 +26,13 @@ const createTestApp = (contextValues = {}, dbOverrides = {}) => {
 
   app.onError((error, c) => {
     const status = error.status || 500;
-    return c.json({
-      status: 'error',
-      message: error.message || 'Internal Server Error',
-    }, status);
+    return c.json(
+      {
+        status: 'error',
+        message: error.message || 'Internal Server Error',
+      },
+      status
+    );
   });
 
   app.use('*', async (c, next) => {
@@ -195,7 +198,7 @@ describe('POST /api/support', () => {
     expect(res.status).toBe(200);
 
     const bindCalls = mockDB._chain.bind.mock.calls;
-    const insertBind = bindCalls.find(call => call.length >= 7);
+    const insertBind = bindCalls.find((call) => call.length >= 7);
     expect(insertBind).toBeDefined();
     expect(insertBind[5]).toBe('Help me');
     expect(insertBind[6]).toBe('I need assistance.');
@@ -205,12 +208,40 @@ describe('POST /api/support', () => {
 describe('GET /api/support', () => {
   it('returns all tickets for owner', async () => {
     const ticketRows = [
-      { id: 'ticket-1', organization_id: 'org-1', user_id: 'user-1', user_name: 'Jane', user_email: 'jane@test.com', subject: 'Help', message: 'Need help', status: 'open', created_at: '2026-03-05T10:00:00Z', updated_at: null, organization_name: 'Test School' },
-      { id: 'ticket-2', organization_id: 'org-2', user_id: 'user-2', user_name: 'Bob', user_email: 'bob@test.com', subject: 'Bug', message: 'Found bug', status: 'resolved', created_at: '2026-03-04T10:00:00Z', updated_at: '2026-03-05T10:00:00Z', organization_name: 'Other School' },
+      {
+        id: 'ticket-1',
+        organization_id: 'org-1',
+        user_id: 'user-1',
+        user_name: 'Jane',
+        user_email: 'jane@test.com',
+        subject: 'Help',
+        message: 'Need help',
+        status: 'open',
+        created_at: '2026-03-05T10:00:00Z',
+        updated_at: null,
+        organization_name: 'Test School',
+      },
+      {
+        id: 'ticket-2',
+        organization_id: 'org-2',
+        user_id: 'user-2',
+        user_name: 'Bob',
+        user_email: 'bob@test.com',
+        subject: 'Bug',
+        message: 'Found bug',
+        status: 'resolved',
+        created_at: '2026-03-04T10:00:00Z',
+        updated_at: '2026-03-05T10:00:00Z',
+        organization_name: 'Other School',
+      },
     ];
 
     const { app } = createTestApp(
-      { userId: 'owner-1', userRole: 'owner', user: { sub: 'owner-1', name: 'Owner', email: 'owner@test.com' } },
+      {
+        userId: 'owner-1',
+        userRole: 'owner',
+        user: { sub: 'owner-1', name: 'Owner', email: 'owner@test.com' },
+      },
       { allResults: { results: ticketRows, success: true } }
     );
 
@@ -224,7 +255,8 @@ describe('GET /api/support', () => {
 
   it('rejects non-owner users', async () => {
     const { app } = createTestApp({
-      userId: 'user-1', userRole: 'teacher',
+      userId: 'user-1',
+      userRole: 'teacher',
       user: { sub: 'user-1', name: 'Jane', email: 'jane@test.com' },
     });
 
@@ -234,7 +266,11 @@ describe('GET /api/support', () => {
 
   it('filters by status when query param provided', async () => {
     const { app, mockDB } = createTestApp(
-      { userId: 'owner-1', userRole: 'owner', user: { sub: 'owner-1', name: 'Owner', email: 'owner@test.com' } },
+      {
+        userId: 'owner-1',
+        userRole: 'owner',
+        user: { sub: 'owner-1', name: 'Owner', email: 'owner@test.com' },
+      },
       { allResults: { results: [], success: true } }
     );
 
@@ -245,9 +281,28 @@ describe('GET /api/support', () => {
 
 describe('GET /api/support/:id', () => {
   it('returns ticket with notes', async () => {
-    const ticketRow = { id: 'ticket-1', organization_id: 'org-1', user_id: 'user-1', user_name: 'Jane', user_email: 'jane@test.com', subject: 'Help', message: 'Need help', status: 'open', created_at: '2026-03-05T10:00:00Z', updated_at: null, organization_name: 'Test School' };
+    const ticketRow = {
+      id: 'ticket-1',
+      organization_id: 'org-1',
+      user_id: 'user-1',
+      user_name: 'Jane',
+      user_email: 'jane@test.com',
+      subject: 'Help',
+      message: 'Need help',
+      status: 'open',
+      created_at: '2026-03-05T10:00:00Z',
+      updated_at: null,
+      organization_name: 'Test School',
+    };
     const noteRows = [
-      { id: 'note-1', ticket_id: 'ticket-1', user_id: 'owner-1', user_name: 'Owner', note: 'Looking into it', created_at: '2026-03-05T11:00:00Z' },
+      {
+        id: 'note-1',
+        ticket_id: 'ticket-1',
+        user_id: 'owner-1',
+        user_name: 'Owner',
+        note: 'Looking into it',
+        created_at: '2026-03-05T11:00:00Z',
+      },
     ];
 
     const mockDB = createMockDB();
@@ -279,7 +334,11 @@ describe('GET /api/support/:id', () => {
 
   it('returns 404 for non-existent ticket', async () => {
     const { app } = createTestApp(
-      { userId: 'owner-1', userRole: 'owner', user: { sub: 'owner-1', name: 'Owner', email: 'owner@test.com' } },
+      {
+        userId: 'owner-1',
+        userRole: 'owner',
+        user: { sub: 'owner-1', name: 'Owner', email: 'owner@test.com' },
+      },
       { firstResult: null }
     );
 
@@ -291,7 +350,11 @@ describe('GET /api/support/:id', () => {
 describe('PATCH /api/support/:id', () => {
   it('updates ticket status', async () => {
     const { app, mockDB } = createTestApp(
-      { userId: 'owner-1', userRole: 'owner', user: { sub: 'owner-1', name: 'Owner', email: 'owner@test.com' } },
+      {
+        userId: 'owner-1',
+        userRole: 'owner',
+        user: { sub: 'owner-1', name: 'Owner', email: 'owner@test.com' },
+      },
       { firstResult: { id: 'ticket-1', status: 'open' } }
     );
 
@@ -307,7 +370,11 @@ describe('PATCH /api/support/:id', () => {
 
   it('rejects invalid status', async () => {
     const { app } = createTestApp(
-      { userId: 'owner-1', userRole: 'owner', user: { sub: 'owner-1', name: 'Owner', email: 'owner@test.com' } },
+      {
+        userId: 'owner-1',
+        userRole: 'owner',
+        user: { sub: 'owner-1', name: 'Owner', email: 'owner@test.com' },
+      },
       { firstResult: { id: 'ticket-1', status: 'open' } }
     );
 
@@ -317,7 +384,11 @@ describe('PATCH /api/support/:id', () => {
 
   it('returns 404 for non-existent ticket', async () => {
     const { app } = createTestApp(
-      { userId: 'owner-1', userRole: 'owner', user: { sub: 'owner-1', name: 'Owner', email: 'owner@test.com' } },
+      {
+        userId: 'owner-1',
+        userRole: 'owner',
+        user: { sub: 'owner-1', name: 'Owner', email: 'owner@test.com' },
+      },
       { firstResult: null }
     );
 
@@ -329,11 +400,17 @@ describe('PATCH /api/support/:id', () => {
 describe('POST /api/support/:id/notes', () => {
   it('adds a note to a ticket', async () => {
     const { app, mockDB } = createTestApp(
-      { userId: 'owner-1', userRole: 'owner', user: { sub: 'owner-1', name: 'Owner', email: 'owner@test.com' } },
+      {
+        userId: 'owner-1',
+        userRole: 'owner',
+        user: { sub: 'owner-1', name: 'Owner', email: 'owner@test.com' },
+      },
       { firstResult: { id: 'ticket-1' } }
     );
 
-    const res = await makeRequest(app, 'POST', '/api/support/ticket-1/notes', { note: 'Working on it' });
+    const res = await makeRequest(app, 'POST', '/api/support/ticket-1/notes', {
+      note: 'Working on it',
+    });
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.success).toBe(true);
@@ -345,26 +422,36 @@ describe('POST /api/support/:id/notes', () => {
   });
 
   it('rejects empty note', async () => {
-    const { app } = createTestApp(
-      { userId: 'owner-1', userRole: 'owner', user: { sub: 'owner-1', name: 'Owner', email: 'owner@test.com' } },
-    );
+    const { app } = createTestApp({
+      userId: 'owner-1',
+      userRole: 'owner',
+      user: { sub: 'owner-1', name: 'Owner', email: 'owner@test.com' },
+    });
 
     const res = await makeRequest(app, 'POST', '/api/support/ticket-1/notes', { note: '' });
     expect(res.status).toBe(400);
   });
 
   it('rejects note exceeding 2000 characters', async () => {
-    const { app } = createTestApp(
-      { userId: 'owner-1', userRole: 'owner', user: { sub: 'owner-1', name: 'Owner', email: 'owner@test.com' } },
-    );
+    const { app } = createTestApp({
+      userId: 'owner-1',
+      userRole: 'owner',
+      user: { sub: 'owner-1', name: 'Owner', email: 'owner@test.com' },
+    });
 
-    const res = await makeRequest(app, 'POST', '/api/support/ticket-1/notes', { note: 'x'.repeat(2001) });
+    const res = await makeRequest(app, 'POST', '/api/support/ticket-1/notes', {
+      note: 'x'.repeat(2001),
+    });
     expect(res.status).toBe(400);
   });
 
   it('returns 404 for non-existent ticket', async () => {
     const { app } = createTestApp(
-      { userId: 'owner-1', userRole: 'owner', user: { sub: 'owner-1', name: 'Owner', email: 'owner@test.com' } },
+      {
+        userId: 'owner-1',
+        userRole: 'owner',
+        user: { sub: 'owner-1', name: 'Owner', email: 'owner@test.com' },
+      },
       { firstResult: null }
     );
 

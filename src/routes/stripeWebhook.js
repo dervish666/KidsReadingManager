@@ -41,11 +41,7 @@ stripeWebhookRouter.post('/', async (c) => {
 
   let event;
   try {
-    event = await stripe.webhooks.constructEventAsync(
-      body,
-      signature,
-      c.env.STRIPE_WEBHOOK_SECRET
-    );
+    event = await stripe.webhooks.constructEventAsync(body, signature, c.env.STRIPE_WEBHOOK_SECRET);
   } catch (err) {
     console.error('[Stripe Webhook] Signature verification failed:', err.message);
     return c.json({ error: 'Invalid signature' }, 400);
@@ -63,8 +59,7 @@ stripeWebhookRouter.post('/', async (c) => {
 
   // Extract customer ID from the event data
   const obj = event.data.object;
-  const customerId =
-    typeof obj.customer === 'string' ? obj.customer : obj.customer?.id || null;
+  const customerId = typeof obj.customer === 'string' ? obj.customer : obj.customer?.id || null;
 
   // Look up the organization (needed for audit trail and updates)
   let orgRecord = null;
@@ -183,20 +178,35 @@ stripeWebhookRouter.post('/', async (c) => {
       case 'customer.subscription.trial_will_end': {
         // Fires 3 days before trial ends — notify the school admin
         const trialCustomerId = obj.customer;
-        const trialDaysLeft = Math.max(1, Math.ceil((obj.trial_end * 1000 - Date.now()) / 86400000));
-        console.log(`[Stripe Webhook] Trial ending in ~${trialDaysLeft} days for subscription ${obj.id}`);
+        const trialDaysLeft = Math.max(
+          1,
+          Math.ceil((obj.trial_end * 1000 - Date.now()) / 86400000)
+        );
+        console.log(
+          `[Stripe Webhook] Trial ending in ~${trialDaysLeft} days for subscription ${obj.id}`
+        );
         try {
           const trialOrg = await db
-            .prepare('SELECT id, name FROM organizations WHERE stripe_customer_id = ? AND is_active = 1')
+            .prepare(
+              'SELECT id, name FROM organizations WHERE stripe_customer_id = ? AND is_active = 1'
+            )
             .bind(trialCustomerId)
             .first();
           if (trialOrg) {
             const admin = await db
-              .prepare("SELECT email, name FROM users WHERE organization_id = ? AND role IN ('admin', 'owner') AND is_active = 1 ORDER BY role = 'admin' DESC LIMIT 1")
+              .prepare(
+                "SELECT email, name FROM users WHERE organization_id = ? AND role IN ('admin', 'owner') AND is_active = 1 ORDER BY role = 'admin' DESC LIMIT 1"
+              )
               .bind(trialOrg.id)
               .first();
             if (admin?.email) {
-              await sendTrialEndingEmail(c.env, admin.email, admin.name || 'there', trialOrg.name, trialDaysLeft);
+              await sendTrialEndingEmail(
+                c.env,
+                admin.email,
+                admin.name || 'there',
+                trialOrg.name,
+                trialDaysLeft
+              );
             }
           }
         } catch (emailErr) {

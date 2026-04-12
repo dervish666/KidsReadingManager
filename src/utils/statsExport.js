@@ -25,7 +25,15 @@ const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
  * @param {Array} params.topStreaks  – enriched with .name
  * @param {Array} params.needsAttention
  */
-export function generateStatsPDF({ schoolName, className, periodLabel, dateRange, stats, topStreaks, needsAttention }) {
+export function generateStatsPDF({
+  schoolName,
+  className,
+  periodLabel,
+  dateRange,
+  stats,
+  topStreaks,
+  needsAttention,
+}) {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   let y = 0;
 

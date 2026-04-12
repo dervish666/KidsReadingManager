@@ -159,9 +159,7 @@ export const AuthProvider = ({ children }) => {
             "Your school hasn't been set up on Tally Reading yet. Please ask your school administrator to get in touch with us.",
           internal: 'An unexpected error occurred. Please try again.',
         };
-        setApiError(
-          reasonMessages[authReason] || `Login failed: ${authReason || 'unknown error'}`
-        );
+        setApiError(reasonMessages[authReason] || `Login failed: ${authReason || 'unknown error'}`);
       } else if (authParam === 'callback') {
         // Remove query param from URL (clean up)
         window.history.replaceState({}, '', window.location.pathname);

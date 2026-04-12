@@ -9,7 +9,7 @@ import {
   MenuItem,
   Tooltip,
   useMediaQuery,
-  CircularProgress
+  CircularProgress,
 } from '@mui/material';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
@@ -24,22 +24,26 @@ const ReadingTimelineChart = () => {
   const { globalClassFilter } = useUI();
 
   // Get IDs of disabled classes
-  const disabledClassIds = classes.filter(cls => cls.disabled).map(cls => cls.id);
+  const disabledClassIds = classes.filter((cls) => cls.disabled).map((cls) => cls.id);
 
   // Filter students based on global class filter and disabled classes
-  const activeStudents = useMemo(() => students.filter(student => {
-    // First, filter by global class filter
-    if (globalClassFilter && globalClassFilter !== 'all') {
-      if (globalClassFilter === 'unassigned') {
-        if (student.classId) return false;
-      } else {
-        if (student.classId !== globalClassFilter) return false;
-      }
-    }
+  const activeStudents = useMemo(
+    () =>
+      students.filter((student) => {
+        // First, filter by global class filter
+        if (globalClassFilter && globalClassFilter !== 'all') {
+          if (globalClassFilter === 'unassigned') {
+            if (student.classId) return false;
+          } else {
+            if (student.classId !== globalClassFilter) return false;
+          }
+        }
 
-    // Then, filter out students from disabled classes
-    return !student.classId || !disabledClassIds.includes(student.classId);
-  }), [students, globalClassFilter, disabledClassIds]);
+        // Then, filter out students from disabled classes
+        return !student.classId || !disabledClassIds.includes(student.classId);
+      }),
+    [students, globalClassFilter, disabledClassIds]
+  );
 
   const [timeRange, setTimeRange] = useState('30'); // Default to 30 days
   const [fetchedSessions, setFetchedSessions] = useState([]);
@@ -66,7 +70,7 @@ const ReadingTimelineChart = () => {
 
     return {
       startDateISO: startDate.toLocaleDateString('en-CA'),
-      endDateISO: endDate.toLocaleDateString('en-CA')
+      endDateISO: endDate.toLocaleDateString('en-CA'),
     };
   }, [timeRange]);
 
@@ -83,8 +87,10 @@ const ReadingTimelineChart = () => {
       return;
     }
     setLoading(true);
-    fetchWithAuth(`/api/students/sessions?classId=${effectiveClassId}&startDate=${startDateISO}&endDate=${endDateISO}`)
-      .then(r => r.ok ? r.json() : [])
+    fetchWithAuth(
+      `/api/students/sessions?classId=${effectiveClassId}&startDate=${startDateISO}&endDate=${endDateISO}`
+    )
+      .then((r) => (r.ok ? r.json() : []))
       .then(setFetchedSessions)
       .catch(() => setFetchedSessions([]))
       .finally(() => setLoading(false));
@@ -109,33 +115,36 @@ const ReadingTimelineChart = () => {
   const studentSessions = useMemo(() => {
     // Group fetched sessions by studentId (exclude absent/no-record markers)
     const sessionsByStudent = new Map();
-    fetchedSessions.filter(s => !s.notes?.includes('[ABSENT]') && !s.notes?.includes('[NO_RECORD]')).forEach(session => {
-      if (!sessionsByStudent.has(session.studentId)) {
-        sessionsByStudent.set(session.studentId, []);
-      }
-      sessionsByStudent.get(session.studentId).push(session);
-    });
+    fetchedSessions
+      .filter((s) => !s.notes?.includes('[ABSENT]') && !s.notes?.includes('[NO_RECORD]'))
+      .forEach((session) => {
+        if (!sessionsByStudent.has(session.studentId)) {
+          sessionsByStudent.set(session.studentId, []);
+        }
+        sessionsByStudent.get(session.studentId).push(session);
+      });
 
-    return activeStudents.map(student => ({
-      id: student.id,
-      name: student.name,
-      sessions: sessionsByStudent.get(student.id) || [],
-      lastReadDate: student.lastReadDate ? new Date(student.lastReadDate) : null
-    }))
-    .sort((a, b) => {
-      // Sort by most recent reading first
-      if (!a.lastReadDate && !b.lastReadDate) return 0;
-      if (!a.lastReadDate) return 1;
-      if (!b.lastReadDate) return -1;
-      return b.lastReadDate - a.lastReadDate;
-    });
+    return activeStudents
+      .map((student) => ({
+        id: student.id,
+        name: student.name,
+        sessions: sessionsByStudent.get(student.id) || [],
+        lastReadDate: student.lastReadDate ? new Date(student.lastReadDate) : null,
+      }))
+      .sort((a, b) => {
+        // Sort by most recent reading first
+        if (!a.lastReadDate && !b.lastReadDate) return 0;
+        if (!a.lastReadDate) return 1;
+        if (!b.lastReadDate) return -1;
+        return b.lastReadDate - a.lastReadDate;
+      });
   }, [activeStudents, fetchedSessions]);
 
   // Format date for display
   const formatDate = (date) => {
     return date.toLocaleDateString('en-GB', {
       day: 'numeric',
-      month: 'short'
+      month: 'short',
     });
   };
 
@@ -151,7 +160,7 @@ const ReadingTimelineChart = () => {
 
   // Check if a student has a session on a specific date
   const hasSessionOnDate = (student, date) => {
-    return student.sessions.find(session => {
+    return student.sessions.find((session) => {
       const sessionDate = new Date(session.date);
       return sessionDate.toDateString() === date.toDateString();
     });
@@ -192,10 +201,17 @@ const ReadingTimelineChart = () => {
 
   return (
     <Paper sx={{ p: 3, mb: 3, pb: 'calc(env(safe-area-inset-bottom) + 16px)' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexDirection: { xs: 'column', sm: 'row' }, gap: { xs: 1, sm: 0 } }}>
-        <Typography variant="h6">
-          Reading Timeline
-        </Typography>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 3,
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: { xs: 1, sm: 0 },
+        }}
+      >
+        <Typography variant="h6">Reading Timeline</Typography>
         <FormControl size="small" sx={{ minWidth: 120, width: { xs: '100%', sm: 'auto' } }}>
           <InputLabel id="time-range-label">Time Range</InputLabel>
           <Select
@@ -231,7 +247,7 @@ const ReadingTimelineChart = () => {
                 sx={{
                   minWidth: { xs: 44, sm: 56 },
                   textAlign: 'center',
-                  borderRight: index < visibleDates.length - 1 ? '1px dashed #eee' : 'none'
+                  borderRight: index < visibleDates.length - 1 ? '1px dashed #eee' : 'none',
                 }}
               >
                 <Typography variant="caption" noWrap>
@@ -242,7 +258,7 @@ const ReadingTimelineChart = () => {
           </Box>
 
           {/* Student rows */}
-          {studentSessions.map(student => (
+          {studentSessions.map((student) => (
             <Box
               key={student.id}
               sx={{
@@ -250,8 +266,8 @@ const ReadingTimelineChart = () => {
                 mb: 2,
                 alignItems: 'center',
                 '&:hover': {
-                  bgcolor: 'rgba(0, 0, 0, 0.02)'
-                }
+                  bgcolor: 'rgba(0, 0, 0, 0.02)',
+                },
               }}
             >
               {/* Student name */}
@@ -275,7 +291,7 @@ const ReadingTimelineChart = () => {
                         display: 'flex',
                         justifyContent: 'center',
                         alignItems: 'center',
-                        borderRight: index < visibleDates.length - 1 ? '1px dashed #eee' : 'none'
+                        borderRight: index < visibleDates.length - 1 ? '1px dashed #eee' : 'none',
                       }}
                     >
                       {session && (
@@ -290,9 +306,7 @@ const ReadingTimelineChart = () => {
                                 Assessment: {formatAssessmentDisplay(session.assessment)}
                               </Typography>
                               {session.notes && (
-                                <Typography variant="body2">
-                                  Notes: {session.notes}
-                                </Typography>
+                                <Typography variant="body2">Notes: {session.notes}</Typography>
                               )}
                             </Box>
                           }
@@ -303,7 +317,7 @@ const ReadingTimelineChart = () => {
                               height: 20,
                               borderRadius: 1,
                               bgcolor: getAssessmentColor(session.assessment),
-                              cursor: 'pointer'
+                              cursor: 'pointer',
                             }}
                           />
                         </Tooltip>
@@ -318,15 +332,39 @@ const ReadingTimelineChart = () => {
           {/* Legend */}
           <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3, flexWrap: 'wrap', gap: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Box sx={{ width: 12, height: 12, borderRadius: 1, bgcolor: theme.palette.success.main, mr: 1 }} />
+              <Box
+                sx={{
+                  width: 12,
+                  height: 12,
+                  borderRadius: 1,
+                  bgcolor: theme.palette.success.main,
+                  mr: 1,
+                }}
+              />
               <Typography variant="caption">Independent (8-10)</Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Box sx={{ width: 12, height: 12, borderRadius: 1, bgcolor: theme.palette.warning.main, mr: 1 }} />
+              <Box
+                sx={{
+                  width: 12,
+                  height: 12,
+                  borderRadius: 1,
+                  bgcolor: theme.palette.warning.main,
+                  mr: 1,
+                }}
+              />
               <Typography variant="caption">Moderate (4-6)</Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Box sx={{ width: 12, height: 12, borderRadius: 1, bgcolor: theme.palette.error.main, mr: 1 }} />
+              <Box
+                sx={{
+                  width: 12,
+                  height: 12,
+                  borderRadius: 1,
+                  bgcolor: theme.palette.error.main,
+                  mr: 1,
+                }}
+              />
               <Typography variant="caption">Needing Help (1-3)</Typography>
             </Box>
           </Box>

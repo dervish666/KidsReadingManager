@@ -54,7 +54,14 @@ export default function ClassGoalsEditor({ open, onClose, classId, goals, onSave
       const response = await fetchWithAuth(`/api/classes/${classId}/students`);
       const students = response.ok ? await response.json() : [];
       const size = Array.isArray(students) ? students.length : 0;
-      setTargets({ sessions: size * 20, genres: 10, books: size * 4, reading_days: 30, readers: size, badges: size });
+      setTargets({
+        sessions: size * 20,
+        genres: 10,
+        books: size * 4,
+        reading_days: 30,
+        readers: size,
+        badges: size,
+      });
     } catch {
       // Silently fail — teacher can set manually
     }

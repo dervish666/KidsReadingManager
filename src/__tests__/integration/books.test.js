@@ -22,14 +22,14 @@ const createMockDB = (overrides = {}) => {
     bind: vi.fn().mockReturnThis(),
     all: vi.fn().mockResolvedValue(overrides.allResults || { results: [], success: true }),
     first: vi.fn().mockResolvedValue(overrides.firstResult || null),
-    run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } })
+    run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } }),
   };
 
   return {
     prepare: vi.fn().mockReturnValue(prepareChain),
     batch: vi.fn().mockResolvedValue([{ success: true }]),
     _chain: prepareChain,
-    ...overrides
+    ...overrides,
   };
 };
 
@@ -43,11 +43,14 @@ const createTestApp = (contextValues = {}, dbOverrides = {}) => {
   // Add global error handler using Hono's onError
   app.onError((error, c) => {
     const status = error.status || 500;
-    return c.json({
-      status: 'error',
-      message: error.message || 'Internal Server Error',
-      path: c.req.path
-    }, status);
+    return c.json(
+      {
+        status: 'error',
+        message: error.message || 'Internal Server Error',
+        path: c.req.path,
+      },
+      status
+    );
   });
 
   // Middleware to inject context values (simulates auth middleware)
@@ -55,7 +58,7 @@ const createTestApp = (contextValues = {}, dbOverrides = {}) => {
     c.env = {
       JWT_SECRET: TEST_SECRET,
       READING_MANAGER_DB: mockDB,
-      ...contextValues.env
+      ...contextValues.env,
     };
 
     // Set context values that would normally come from auth middleware
@@ -80,7 +83,7 @@ const makeRequest = async (app, method, path, body = null) => {
     method,
     headers: {
       'Content-Type': 'application/json',
-    }
+    },
   };
 
   if (body) {
@@ -103,7 +106,7 @@ const createMockBookRow = (overrides = {}) => ({
   description: 'A fantasy adventure about a hobbit.',
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
-  ...overrides
+  ...overrides,
 });
 
 /**
@@ -117,7 +120,7 @@ const createMockBook = (overrides = {}) => ({
   readingLevel: 'intermediate',
   ageRange: '10-14',
   description: 'A fantasy adventure about a hobbit.',
-  ...overrides
+  ...overrides,
 });
 
 /**
@@ -131,7 +134,7 @@ const createMockStudent = (overrides = {}) => ({
   likes: '["Harry Potter"]',
   dislikes: '["horror"]',
   notes: 'Loves fantasy',
-  ...overrides
+  ...overrides,
 });
 
 /**
@@ -144,9 +147,9 @@ const createUserContext = (overrides = {}) => ({
   user: {
     sub: 'user-123',
     org: 'org-456',
-    role: 'teacher'
+    role: 'teacher',
   },
-  ...overrides
+  ...overrides,
 });
 
 describe('Books API Routes', () => {
@@ -173,13 +176,12 @@ describe('Books API Routes', () => {
       it('should allow requests from readonly users', async () => {
         const books = [
           createMockBookRow({ id: 'book-1', title: 'Book One' }),
-          createMockBookRow({ id: 'book-2', title: 'Book Two' })
+          createMockBookRow({ id: 'book-2', title: 'Book Two' }),
         ];
 
-        const { app, mockDB } = createTestApp(
-          createUserContext({ userRole: 'readonly' }),
-          { allResults: { results: books, success: true } }
-        );
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'readonly' }), {
+          allResults: { results: books, success: true },
+        });
 
         const response = await makeRequest(app, 'GET', '/api/books');
         const data = await response.json();
@@ -195,10 +197,9 @@ describe('Books API Routes', () => {
       });
 
       it('should allow requests from teachers', async () => {
-        const { app } = createTestApp(
-          createUserContext({ userRole: 'teacher' }),
-          { allResults: { results: [], success: true } }
-        );
+        const { app } = createTestApp(createUserContext({ userRole: 'teacher' }), {
+          allResults: { results: [], success: true },
+        });
 
         const response = await makeRequest(app, 'GET', '/api/books');
 
@@ -206,10 +207,9 @@ describe('Books API Routes', () => {
       });
 
       it('should allow requests from admins', async () => {
-        const { app } = createTestApp(
-          createUserContext({ userRole: 'admin' }),
-          { allResults: { results: [], success: true } }
-        );
+        const { app } = createTestApp(createUserContext({ userRole: 'admin' }), {
+          allResults: { results: [], success: true },
+        });
 
         const response = await makeRequest(app, 'GET', '/api/books');
 
@@ -217,10 +217,9 @@ describe('Books API Routes', () => {
       });
 
       it('should allow requests from owners', async () => {
-        const { app } = createTestApp(
-          createUserContext({ userRole: 'owner' }),
-          { allResults: { results: [], success: true } }
-        );
+        const { app } = createTestApp(createUserContext({ userRole: 'owner' }), {
+          allResults: { results: [], success: true },
+        });
 
         const response = await makeRequest(app, 'GET', '/api/books');
 
@@ -231,13 +230,10 @@ describe('Books API Routes', () => {
     describe('Pagination', () => {
       it('should return paginated results when page parameter is provided', async () => {
         const books = [createMockBookRow({ id: 'book-1', title: 'Book One' })];
-        const { app, mockDB } = createTestApp(
-          createUserContext({ userRole: 'readonly' }),
-          {
-            firstResult: { count: 100 },
-            allResults: { results: books, success: true }
-          }
-        );
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'readonly' }), {
+          firstResult: { count: 100 },
+          allResults: { results: books, success: true },
+        });
 
         const response = await makeRequest(app, 'GET', '/api/books?page=1&pageSize=10');
         const data = await response.json();
@@ -251,13 +247,10 @@ describe('Books API Routes', () => {
       });
 
       it('should use default pageSize of 50 when not specified', async () => {
-        const { app, mockDB } = createTestApp(
-          createUserContext({ userRole: 'readonly' }),
-          {
-            firstResult: { count: 100 },
-            allResults: { results: [], success: true }
-          }
-        );
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'readonly' }), {
+          firstResult: { count: 100 },
+          allResults: { results: [], success: true },
+        });
 
         const response = await makeRequest(app, 'GET', '/api/books?page=1');
         const data = await response.json();
@@ -270,10 +263,9 @@ describe('Books API Routes', () => {
     describe('Search functionality', () => {
       it('should search books when search parameter is provided', async () => {
         const books = [createMockBookRow({ id: 'book-1', title: 'Harry Potter' })];
-        const { app, mockDB } = createTestApp(
-          createUserContext({ userRole: 'readonly' }),
-          { allResults: { results: books, success: true } }
-        );
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'readonly' }), {
+          allResults: { results: books, success: true },
+        });
 
         const response = await makeRequest(app, 'GET', '/api/books?search=Harry');
         const data = await response.json();
@@ -283,14 +275,10 @@ describe('Books API Routes', () => {
       });
 
       it('should return paginated books when no query params provided', async () => {
-        const books = [
-          createMockBookRow({ id: 'book-1' }),
-          createMockBookRow({ id: 'book-2' })
-        ];
-        const { app } = createTestApp(
-          createUserContext({ userRole: 'readonly' }),
-          { allResults: { results: books, success: true } }
-        );
+        const books = [createMockBookRow({ id: 'book-1' }), createMockBookRow({ id: 'book-2' })];
+        const { app } = createTestApp(createUserContext({ userRole: 'readonly' }), {
+          allResults: { results: books, success: true },
+        });
 
         const response = await makeRequest(app, 'GET', '/api/books');
         const data = await response.json();
@@ -313,14 +301,13 @@ describe('Books API Routes', () => {
             age_range: '12-16',
             genre_ids: '["fantasy"]',
             created_at: '2024-01-01',
-            updated_at: '2024-01-02'
-          })
+            updated_at: '2024-01-02',
+          }),
         ];
 
-        const { app } = createTestApp(
-          createUserContext({ userRole: 'readonly' }),
-          { allResults: { results: books, success: true } }
-        );
+        const { app } = createTestApp(createUserContext({ userRole: 'readonly' }), {
+          allResults: { results: books, success: true },
+        });
 
         const response = await makeRequest(app, 'GET', '/api/books');
         const data = await response.json();
@@ -337,10 +324,9 @@ describe('Books API Routes', () => {
   describe('GET /api/books/search', () => {
     describe('Permission checks', () => {
       it('should allow readonly users to search', async () => {
-        const { app } = createTestApp(
-          createUserContext({ userRole: 'readonly' }),
-          { allResults: { results: [], success: true } }
-        );
+        const { app } = createTestApp(createUserContext({ userRole: 'readonly' }), {
+          allResults: { results: [], success: true },
+        });
 
         const response = await makeRequest(app, 'GET', '/api/books/search?q=test');
         const data = await response.json();
@@ -387,13 +373,12 @@ describe('Books API Routes', () => {
       it('should return search results with count', async () => {
         const books = [
           createMockBookRow({ id: 'book-1', title: 'Harry Potter' }),
-          createMockBookRow({ id: 'book-2', title: 'Harry Potter 2' })
+          createMockBookRow({ id: 'book-2', title: 'Harry Potter 2' }),
         ];
 
-        const { app } = createTestApp(
-          createUserContext({ userRole: 'readonly' }),
-          { allResults: { results: books, success: true } }
-        );
+        const { app } = createTestApp(createUserContext({ userRole: 'readonly' }), {
+          allResults: { results: books, success: true },
+        });
 
         const response = await makeRequest(app, 'GET', '/api/books/search?q=Harry');
         const data = await response.json();
@@ -404,10 +389,9 @@ describe('Books API Routes', () => {
       });
 
       it('should respect limit parameter', async () => {
-        const { app, mockDB } = createTestApp(
-          createUserContext({ userRole: 'readonly' }),
-          { allResults: { results: [], success: true } }
-        );
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'readonly' }), {
+          allResults: { results: [], success: true },
+        });
 
         await makeRequest(app, 'GET', '/api/books/search?q=test&limit=25');
 
@@ -420,14 +404,16 @@ describe('Books API Routes', () => {
   describe('GET /api/books/library-search', () => {
     describe('Permission checks', () => {
       it('should allow readonly users to search library', async () => {
-        const { app, mockDB } = createTestApp(
-          createUserContext({ userRole: 'readonly' })
-        );
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'readonly' }));
 
         mockDB._chain.first.mockResolvedValue(createMockStudent());
         mockDB._chain.all.mockResolvedValue({ results: [], success: true });
 
-        const response = await makeRequest(app, 'GET', '/api/books/library-search?studentId=student-123');
+        const response = await makeRequest(
+          app,
+          'GET',
+          '/api/books/library-search?studentId=student-123'
+        );
 
         expect(response.status).toBe(200);
       });
@@ -453,7 +439,11 @@ describe('Books API Routes', () => {
           // No organizationId
         });
 
-        const response = await makeRequest(app, 'GET', '/api/books/library-search?studentId=student-123');
+        const response = await makeRequest(
+          app,
+          'GET',
+          '/api/books/library-search?studentId=student-123'
+        );
         const data = await response.json();
 
         expect(response.status).toBe(400);
@@ -468,7 +458,11 @@ describe('Books API Routes', () => {
         // buildStudentReadingProfile returns null for non-existent student
         mockDB._chain.first.mockResolvedValue(null);
 
-        const response = await makeRequest(app, 'GET', '/api/books/library-search?studentId=nonexistent');
+        const response = await makeRequest(
+          app,
+          'GET',
+          '/api/books/library-search?studentId=nonexistent'
+        );
         const data = await response.json();
 
         expect(response.status).toBe(404);
@@ -491,7 +485,11 @@ describe('Books API Routes', () => {
           // Mock books query
           .mockResolvedValueOnce({ results: [], success: true });
 
-        const response = await makeRequest(app, 'GET', '/api/books/library-search?studentId=student-123');
+        const response = await makeRequest(
+          app,
+          'GET',
+          '/api/books/library-search?studentId=student-123'
+        );
         const data = await response.json();
 
         expect(response.status).toBe(200);
@@ -518,7 +516,11 @@ describe('Books API Routes', () => {
 
         mockDB._chain.all.mockResolvedValue({ results: [], success: true });
 
-        const response = await makeRequest(app, 'GET', '/api/books/ai-suggestions?studentId=student-123');
+        const response = await makeRequest(
+          app,
+          'GET',
+          '/api/books/ai-suggestions?studentId=student-123'
+        );
 
         // Should fail because AI not enabled, not because of permissions
         expect(response.status).toBe(403);
@@ -545,7 +547,11 @@ describe('Books API Routes', () => {
           // No organizationId
         });
 
-        const response = await makeRequest(app, 'GET', '/api/books/ai-suggestions?studentId=student-123');
+        const response = await makeRequest(
+          app,
+          'GET',
+          '/api/books/ai-suggestions?studentId=student-123'
+        );
         const data = await response.json();
 
         expect(response.status).toBe(400);
@@ -568,7 +574,11 @@ describe('Books API Routes', () => {
 
         mockDB._chain.all.mockResolvedValue({ results: [], success: true });
 
-        const response = await makeRequest(app, 'GET', '/api/books/ai-suggestions?studentId=student-123');
+        const response = await makeRequest(
+          app,
+          'GET',
+          '/api/books/ai-suggestions?studentId=student-123'
+        );
         const data = await response.json();
 
         expect(response.status).toBe(403);
@@ -586,14 +596,18 @@ describe('Books API Routes', () => {
           .mockResolvedValueOnce({
             provider: 'anthropic',
             api_key_encrypted: 'encrypted-key',
-            is_enabled: 0
+            is_enabled: 0,
           })
           // Organization: addon not active
           .mockResolvedValueOnce({ ai_addon_active: 0 });
 
         mockDB._chain.all.mockResolvedValue({ results: [], success: true });
 
-        const response = await makeRequest(app, 'GET', '/api/books/ai-suggestions?studentId=student-123');
+        const response = await makeRequest(
+          app,
+          'GET',
+          '/api/books/ai-suggestions?studentId=student-123'
+        );
         const data = await response.json();
 
         expect(response.status).toBe(403);
@@ -659,10 +673,9 @@ describe('Books API Routes', () => {
   describe('GET /api/books/count', () => {
     describe('Permission checks', () => {
       it('should allow readonly users to get count', async () => {
-        const { app, mockDB } = createTestApp(
-          createUserContext({ userRole: 'readonly' }),
-          { firstResult: { count: 100 } }
-        );
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'readonly' }), {
+          firstResult: { count: 100 },
+        });
 
         const response = await makeRequest(app, 'GET', '/api/books/count');
         const data = await response.json();
@@ -672,10 +685,9 @@ describe('Books API Routes', () => {
       });
 
       it('should allow teachers to get count', async () => {
-        const { app } = createTestApp(
-          createUserContext({ userRole: 'teacher' }),
-          { firstResult: { count: 50 } }
-        );
+        const { app } = createTestApp(createUserContext({ userRole: 'teacher' }), {
+          firstResult: { count: 50 },
+        });
 
         const response = await makeRequest(app, 'GET', '/api/books/count');
 
@@ -685,10 +697,9 @@ describe('Books API Routes', () => {
 
     describe('Response format', () => {
       it('should return count in expected format', async () => {
-        const { app } = createTestApp(
-          createUserContext({ userRole: 'readonly' }),
-          { firstResult: { count: 12345 } }
-        );
+        const { app } = createTestApp(createUserContext({ userRole: 'readonly' }), {
+          firstResult: { count: 12345 },
+        });
 
         const response = await makeRequest(app, 'GET', '/api/books/count');
         const data = await response.json();
@@ -704,7 +715,7 @@ describe('Books API Routes', () => {
         const { app } = createTestApp(createUserContext({ userRole: 'readonly' }));
 
         const response = await makeRequest(app, 'POST', '/api/books', {
-          title: 'New Book'
+          title: 'New Book',
         });
         const data = await response.json();
 
@@ -719,7 +730,7 @@ describe('Books API Routes', () => {
 
         const response = await makeRequest(app, 'POST', '/api/books', {
           title: 'New Book',
-          author: 'Test Author'
+          author: 'Test Author',
         });
 
         expect(response.status).toBe(201);
@@ -731,7 +742,7 @@ describe('Books API Routes', () => {
         mockDB._chain.run.mockResolvedValue({ success: true });
 
         const response = await makeRequest(app, 'POST', '/api/books', {
-          title: 'New Book'
+          title: 'New Book',
         });
 
         expect(response.status).toBe(201);
@@ -743,7 +754,7 @@ describe('Books API Routes', () => {
         mockDB._chain.run.mockResolvedValue({ success: true });
 
         const response = await makeRequest(app, 'POST', '/api/books', {
-          title: 'New Book'
+          title: 'New Book',
         });
 
         expect(response.status).toBe(201);
@@ -765,7 +776,7 @@ describe('Books API Routes', () => {
         const { app } = createTestApp(createUserContext({ userRole: 'teacher' }));
 
         const response = await makeRequest(app, 'POST', '/api/books', {
-          title: ''
+          title: '',
         });
         const data = await response.json();
 
@@ -785,7 +796,7 @@ describe('Books API Routes', () => {
           genreIds: ['classic', 'fiction'],
           readingLevel: 'advanced',
           ageRange: '16+',
-          description: 'A classic American novel'
+          description: 'A classic American novel',
         };
 
         const response = await makeRequest(app, 'POST', '/api/books', bookData);
@@ -803,7 +814,7 @@ describe('Books API Routes', () => {
         mockDB._chain.run.mockResolvedValue({ success: true });
 
         const response = await makeRequest(app, 'POST', '/api/books', {
-          title: 'Minimal Book'
+          title: 'Minimal Book',
         });
         const data = await response.json();
 
@@ -818,7 +829,7 @@ describe('Books API Routes', () => {
         mockDB._chain.run.mockResolvedValue({ success: true });
 
         const response = await makeRequest(app, 'POST', '/api/books', {
-          title: 'New Book'
+          title: 'New Book',
         });
         const data = await response.json();
 
@@ -833,7 +844,7 @@ describe('Books API Routes', () => {
 
         const response = await makeRequest(app, 'POST', '/api/books', {
           id: 'custom-book-id',
-          title: 'Custom ID Book'
+          title: 'Custom ID Book',
         });
         const data = await response.json();
 
@@ -849,7 +860,7 @@ describe('Books API Routes', () => {
         const { app } = createTestApp(createUserContext({ userRole: 'readonly' }));
 
         const response = await makeRequest(app, 'PUT', '/api/books/book-123', {
-          title: 'Updated Title'
+          title: 'Updated Title',
         });
         const data = await response.json();
 
@@ -864,7 +875,7 @@ describe('Books API Routes', () => {
         mockDB._chain.run.mockResolvedValue({ success: true });
 
         const response = await makeRequest(app, 'PUT', '/api/books/book-123', {
-          title: 'Updated Title'
+          title: 'Updated Title',
         });
 
         expect(response.status).toBe(200);
@@ -877,7 +888,7 @@ describe('Books API Routes', () => {
         mockDB._chain.run.mockResolvedValue({ success: true });
 
         const response = await makeRequest(app, 'PUT', '/api/books/book-123', {
-          title: 'Updated Title'
+          title: 'Updated Title',
         });
 
         expect(response.status).toBe(200);
@@ -891,7 +902,7 @@ describe('Books API Routes', () => {
         mockDB._chain.first.mockResolvedValue(null);
 
         const response = await makeRequest(app, 'PUT', '/api/books/nonexistent', {
-          title: 'Updated Title'
+          title: 'Updated Title',
         });
         const data = await response.json();
 
@@ -907,7 +918,7 @@ describe('Books API Routes', () => {
         mockDB._chain.first.mockResolvedValue(createMockBookRow());
 
         const response = await makeRequest(app, 'PUT', '/api/books/book-123', {
-          title: ''
+          title: '',
         });
         const data = await response.json();
 
@@ -925,7 +936,7 @@ describe('Books API Routes', () => {
 
         const response = await makeRequest(app, 'PUT', '/api/books/book-123', {
           title: 'Updated Title',
-          author: 'New Author'
+          author: 'New Author',
         });
         const data = await response.json();
 
@@ -937,14 +948,16 @@ describe('Books API Routes', () => {
       it('should preserve existing fields when not provided in update', async () => {
         const { app, mockDB } = createTestApp(createUserContext({ userRole: 'teacher' }));
 
-        mockDB._chain.first.mockResolvedValue(createMockBookRow({
-          author: 'Original Author',
-          description: 'Original Description'
-        }));
+        mockDB._chain.first.mockResolvedValue(
+          createMockBookRow({
+            author: 'Original Author',
+            description: 'Original Description',
+          })
+        );
         mockDB._chain.run.mockResolvedValue({ success: true });
 
         const response = await makeRequest(app, 'PUT', '/api/books/book-123', {
-          title: 'Updated Title'
+          title: 'Updated Title',
           // Not providing author or description
         });
         const data = await response.json();
@@ -963,7 +976,7 @@ describe('Books API Routes', () => {
 
         const response = await makeRequest(app, 'PUT', '/api/books/book-123', {
           id: 'different-id', // Try to change ID
-          title: 'Updated Title'
+          title: 'Updated Title',
         });
         const data = await response.json();
 
@@ -1070,7 +1083,7 @@ describe('Books API Routes', () => {
 
         const response = await makeRequest(app, 'POST', '/api/books/bulk', [
           { title: 'Book 1' },
-          { title: 'Book 2' }
+          { title: 'Book 2' },
         ]);
         const data = await response.json();
 
@@ -1084,9 +1097,7 @@ describe('Books API Routes', () => {
         mockDB._chain.all.mockResolvedValue({ results: [], success: true });
         mockDB.batch.mockResolvedValue([{ success: true }]);
 
-        const response = await makeRequest(app, 'POST', '/api/books/bulk', [
-          { title: 'Book 1' }
-        ]);
+        const response = await makeRequest(app, 'POST', '/api/books/bulk', [{ title: 'Book 1' }]);
 
         expect(response.status).toBe(201);
       });
@@ -1097,9 +1108,7 @@ describe('Books API Routes', () => {
         mockDB._chain.all.mockResolvedValue({ results: [], success: true });
         mockDB.batch.mockResolvedValue([{ success: true }]);
 
-        const response = await makeRequest(app, 'POST', '/api/books/bulk', [
-          { title: 'Book 1' }
-        ]);
+        const response = await makeRequest(app, 'POST', '/api/books/bulk', [{ title: 'Book 1' }]);
 
         expect(response.status).toBe(201);
       });
@@ -1110,7 +1119,7 @@ describe('Books API Routes', () => {
         const { app } = createTestApp(createUserContext({ userRole: 'teacher' }));
 
         const response = await makeRequest(app, 'POST', '/api/books/bulk', {
-          title: 'Not an array'
+          title: 'Not an array',
         });
         const data = await response.json();
 
@@ -1133,7 +1142,7 @@ describe('Books API Routes', () => {
 
         const response = await makeRequest(app, 'POST', '/api/books/bulk', [
           { author: 'No Title' },
-          { description: 'Also no title' }
+          { description: 'Also no title' },
         ]);
         const data = await response.json();
 
@@ -1151,7 +1160,7 @@ describe('Books API Routes', () => {
 
         const response = await makeRequest(app, 'POST', '/api/books/bulk', [
           { title: 'Book 1', author: 'Author 1' },
-          { title: 'Book 2', author: 'Author 2' }
+          { title: 'Book 2', author: 'Author 2' },
         ]);
         const data = await response.json();
 
@@ -1171,7 +1180,7 @@ describe('Books API Routes', () => {
         const response = await makeRequest(app, 'POST', '/api/books/bulk', [
           { title: 'Valid Book' },
           { author: 'No Title' }, // Invalid
-          { title: 'Another Valid Book' }
+          { title: 'Another Valid Book' },
         ]);
         const data = await response.json();
 
@@ -1186,13 +1195,13 @@ describe('Books API Routes', () => {
         // Existing books in database
         mockDB._chain.all.mockResolvedValue({
           results: [createMockBookRow({ id: 'existing-1', title: 'Existing Book' })],
-          success: true
+          success: true,
         });
         mockDB.batch.mockResolvedValue([{ success: true }]);
 
         const response = await makeRequest(app, 'POST', '/api/books/bulk', [
           { title: 'Existing Book' }, // Duplicate
-          { title: 'New Book' } // New
+          { title: 'New Book' }, // New
         ]);
         const data = await response.json();
 
@@ -1207,13 +1216,13 @@ describe('Books API Routes', () => {
 
         mockDB._chain.all.mockResolvedValue({
           results: [createMockBookRow({ id: 'existing-1', title: 'The Great Book' })],
-          success: true
+          success: true,
         });
         mockDB.batch.mockResolvedValue([{ success: true }]);
 
         const response = await makeRequest(app, 'POST', '/api/books/bulk', [
           { title: 'THE GREAT BOOK' }, // Same title, different case
-          { title: 'Different Book' }
+          { title: 'Different Book' },
         ]);
         const data = await response.json();
 
@@ -1232,7 +1241,7 @@ describe('Books API Routes', () => {
         const response = await makeRequest(app, 'POST', '/api/books/bulk', [
           { title: 'Book 1' },
           { title: 'Book 2' },
-          { title: 'Book 3' }
+          { title: 'Book 3' },
         ]);
         const data = await response.json();
 
@@ -1254,7 +1263,7 @@ describe('Books API Routes', () => {
       { method: 'POST', path: '/api/books', minRole: 'teacher', body: { title: 'Test' } },
       { method: 'PUT', path: '/api/books/book-123', minRole: 'teacher', body: { title: 'Test' } },
       { method: 'DELETE', path: '/api/books/book-123', minRole: 'teacher' },
-      { method: 'POST', path: '/api/books/bulk', minRole: 'teacher', body: [{ title: 'Test' }] }
+      { method: 'POST', path: '/api/books/bulk', minRole: 'teacher', body: [{ title: 'Test' }] },
     ];
 
     const roles = ['readonly', 'teacher', 'admin', 'owner'];
@@ -1263,7 +1272,7 @@ describe('Books API Routes', () => {
     endpoints.forEach(({ method, path, minRole, body }) => {
       const minRoleLevel = roleHierarchy[minRole];
 
-      roles.forEach(role => {
+      roles.forEach((role) => {
         const roleLevel = roleHierarchy[role];
         const shouldAllow = roleLevel >= minRoleLevel;
 
@@ -1274,9 +1283,7 @@ describe('Books API Routes', () => {
           if (shouldAllow) {
             mockDB._chain.all.mockResolvedValue({ results: [], success: true });
             mockDB._chain.first.mockResolvedValue(
-              method === 'GET' && path === '/api/books/count'
-                ? { count: 0 }
-                : createMockBookRow()
+              method === 'GET' && path === '/api/books/count' ? { count: 0 } : createMockBookRow()
             );
             mockDB._chain.run.mockResolvedValue({ success: true });
             mockDB.batch.mockResolvedValue([{ success: true }]);
@@ -1331,7 +1338,7 @@ describe('Books API Routes', () => {
       mockDB._chain.run.mockRejectedValue(new Error('Insert failed'));
 
       const response = await makeRequest(app, 'POST', '/api/books', {
-        title: 'Test Book'
+        title: 'Test Book',
       });
 
       expect(response.status).toBe(500);
@@ -1344,7 +1351,7 @@ describe('Books API Routes', () => {
       mockDB._chain.run.mockRejectedValue(new Error('Update failed'));
 
       const response = await makeRequest(app, 'PUT', '/api/books/book-123', {
-        title: 'Updated Title'
+        title: 'Updated Title',
       });
 
       expect(response.status).toBe(500);
@@ -1367,9 +1374,7 @@ describe('Books API Routes', () => {
       mockDB._chain.all.mockResolvedValue({ results: [], success: true });
       mockDB.batch.mockRejectedValue(new Error('Batch insert failed'));
 
-      const response = await makeRequest(app, 'POST', '/api/books/bulk', [
-        { title: 'Book 1' }
-      ]);
+      const response = await makeRequest(app, 'POST', '/api/books/bulk', [{ title: 'Book 1' }]);
 
       expect(response.status).toBe(500);
     });
@@ -1377,10 +1382,9 @@ describe('Books API Routes', () => {
 
   describe('Multi-tenant mode detection', () => {
     it('should use D1 database when READING_MANAGER_DB is present', async () => {
-      const { app, mockDB } = createTestApp(
-        createUserContext({ userRole: 'readonly' }),
-        { allResults: { results: [], success: true } }
-      );
+      const { app, mockDB } = createTestApp(createUserContext({ userRole: 'readonly' }), {
+        allResults: { results: [], success: true },
+      });
 
       await makeRequest(app, 'GET', '/api/books');
 
@@ -1394,7 +1398,7 @@ describe('Books API Routes', () => {
       const { app, mockDB } = createTestApp(
         createUserContext({
           userRole: 'readonly',
-          organizationId: 'org-123'
+          organizationId: 'org-123',
         }),
         { allResults: { results: [], success: true } }
       );
@@ -1436,10 +1440,9 @@ describe('Books API Routes', () => {
     });
 
     it('returns 404 when book not found', async () => {
-      const { app } = createTestApp(
-        createUserContext({ userRole: 'admin' }),
-        { firstResult: null }
-      );
+      const { app } = createTestApp(createUserContext({ userRole: 'admin' }), {
+        firstResult: null,
+      });
 
       const res = await makeRequest(app, 'POST', '/api/books/nonexistent/enrich');
       expect(res.status).toBe(404);
@@ -1449,9 +1452,14 @@ describe('Books API Routes', () => {
       const book = createMockBookRow({ id: 'book-1', isbn: '9780261102217', description: null });
       const mockDB = createMockDB({ firstResult: book });
       // metadata_config query comes second
-      mockDB._chain.first
-        .mockResolvedValueOnce(book)
-        .mockResolvedValueOnce({ provider_chain: '["openlibrary"]', hardcover_api_key_encrypted: null, google_books_api_key_encrypted: null, rate_limit_delay_ms: 1500, batch_size: 10, fetch_covers: 1 });
+      mockDB._chain.first.mockResolvedValueOnce(book).mockResolvedValueOnce({
+        provider_chain: '["openlibrary"]',
+        hardcover_api_key_encrypted: null,
+        google_books_api_key_encrypted: null,
+        rate_limit_delay_ms: 1500,
+        batch_size: 10,
+        fetch_covers: 1,
+      });
 
       getConfigWithKeys.mockResolvedValue({
         providerChain: ['openlibrary'],
@@ -1465,10 +1473,7 @@ describe('Books API Routes', () => {
         rateLimited: [],
       });
 
-      const { app } = createTestApp(
-        createUserContext({ userRole: 'admin' }),
-        {}
-      );
+      const { app } = createTestApp(createUserContext({ userRole: 'admin' }), {});
       // Inject our controlled mockDB
       const res = await app.request('/api/books/book-1/enrich', {
         method: 'POST',
@@ -1477,10 +1482,9 @@ describe('Books API Routes', () => {
       });
 
       // Can't inject env easily via request — use createTestApp with overrides instead
-      const { app: app2 } = createTestApp(
-        createUserContext({ userRole: 'admin' }),
-        { firstResult: book }
-      );
+      const { app: app2 } = createTestApp(createUserContext({ userRole: 'admin' }), {
+        firstResult: book,
+      });
       getConfigWithKeys.mockResolvedValue({
         providerChain: ['openlibrary'],
         hardcoverApiKey: null,

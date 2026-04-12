@@ -25,7 +25,7 @@ import {
   MenuItem,
   Collapse,
   Alert,
-  CircularProgress
+  CircularProgress,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -57,7 +57,7 @@ const ClassManager = () => {
   const [loadingStudents, setLoadingStudents] = useState(null);
 
   // Detect Wonde-connected org by checking if any class has a wondeClassId
-  const isWondeOrg = useMemo(() => classes.some(cls => cls.wondeClassId), [classes]);
+  const isWondeOrg = useMemo(() => classes.some((cls) => cls.wondeClassId), [classes]);
 
   const handleAddClass = (e) => {
     e.preventDefault();
@@ -85,7 +85,10 @@ const ClassManager = () => {
       setError('Please enter both class name and teacher name.');
       return;
     }
-    updateClass(editingClass.id, { name: editClassName.trim(), teacherName: editTeacherName.trim() });
+    updateClass(editingClass.id, {
+      name: editClassName.trim(),
+      teacherName: editTeacherName.trim(),
+    });
     setEditingClass(null);
     setEditClassName('');
     setEditTeacherName('');
@@ -119,30 +122,33 @@ const ClassManager = () => {
     }
   };
 
-  const handleToggleExpand = useCallback(async (classId) => {
-    if (expandedClassId === classId) {
-      setExpandedClassId(null);
-      return;
-    }
-
-    setExpandedClassId(classId);
-
-    // Fetch students if not already cached
-    if (!classStudents[classId]) {
-      setLoadingStudents(classId);
-      try {
-        const response = await fetchWithAuth(`/api/classes/${classId}/students`);
-        if (response.ok) {
-          const students = await response.json();
-          setClassStudents(prev => ({ ...prev, [classId]: students }));
-        }
-      } catch (err) {
-        console.error('Error fetching class students:', err);
-      } finally {
-        setLoadingStudents(null);
+  const handleToggleExpand = useCallback(
+    async (classId) => {
+      if (expandedClassId === classId) {
+        setExpandedClassId(null);
+        return;
       }
-    }
-  }, [expandedClassId, classStudents, fetchWithAuth]);
+
+      setExpandedClassId(classId);
+
+      // Fetch students if not already cached
+      if (!classStudents[classId]) {
+        setLoadingStudents(classId);
+        try {
+          const response = await fetchWithAuth(`/api/classes/${classId}/students`);
+          if (response.ok) {
+            const students = await response.json();
+            setClassStudents((prev) => ({ ...prev, [classId]: students }));
+          }
+        } catch (err) {
+          console.error('Error fetching class students:', err);
+        } finally {
+          setLoadingStudents(null);
+        }
+      }
+    },
+    [expandedClassId, classStudents, fetchWithAuth]
+  );
 
   const formatReadingLevel = (min, max) => {
     if (min == null && max == null) return null;
@@ -163,11 +169,13 @@ const ClassManager = () => {
           {isLoading ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 1 }}>
               <CircularProgress size={16} />
-              <Typography variant="body2" color="text.secondary">Loading students...</Typography>
+              <Typography variant="body2" color="text.secondary">
+                Loading students...
+              </Typography>
             </Box>
           ) : students && students.length > 0 ? (
             <List dense disablePadding>
-              {students.map(student => (
+              {students.map((student) => (
                 <ListItem key={student.id} disablePadding sx={{ py: 0.25 }}>
                   <ListItemText
                     primary={student.name}
@@ -192,7 +200,8 @@ const ClassManager = () => {
   const renderWondeClassList = () => (
     <>
       <Alert icon={<SyncIcon />} severity="info" sx={{ mb: 2 }}>
-        Classes are synced from your school's MIS via Wonde. To add or rename classes, update them in your MIS and they will sync automatically.
+        Classes are synced from your school's MIS via Wonde. To add or rename classes, update them
+        in your MIS and they will sync automatically.
       </Alert>
 
       {classes.length === 0 ? (
@@ -215,7 +224,7 @@ const ClassManager = () => {
                           color="primary"
                         />
                       }
-                      label={cls.disabled ? "Disabled" : "Active"}
+                      label={cls.disabled ? 'Disabled' : 'Active'}
                       sx={{ mr: 0 }}
                     />
                   </Box>
@@ -242,7 +251,11 @@ const ClassManager = () => {
                     }
                     secondary={cls.teacherName ? String(cls.teacherName) : null}
                   />
-                  {expandedClassId === cls.id ? <ExpandLessIcon color="action" /> : <ExpandMoreIcon color="action" />}
+                  {expandedClassId === cls.id ? (
+                    <ExpandLessIcon color="action" />
+                  ) : (
+                    <ExpandMoreIcon color="action" />
+                  )}
                 </ListItemButton>
               </ListItem>
               {renderStudentExpansion(cls)}
@@ -334,13 +347,18 @@ const ClassManager = () => {
                             color="primary"
                           />
                         }
-                        label={cls.disabled ? "Disabled" : "Active"}
+                        label={cls.disabled ? 'Disabled' : 'Active'}
                         sx={{ mr: 1 }}
                       />
                       <IconButton edge="end" aria-label="edit" onClick={() => handleEditClick(cls)}>
                         <EditIcon />
                       </IconButton>
-                      <IconButton edge="end" aria-label="delete" color="error" onClick={() => handleDeleteClick(cls)}>
+                      <IconButton
+                        edge="end"
+                        aria-label="delete"
+                        color="error"
+                        onClick={() => handleDeleteClick(cls)}
+                      >
                         <DeleteIcon />
                       </IconButton>
                     </Box>
@@ -367,7 +385,11 @@ const ClassManager = () => {
                       }
                       secondary={cls.teacherName ? String(cls.teacherName) : ''}
                     />
-                    {expandedClassId === cls.id ? <ExpandLessIcon color="action" /> : <ExpandMoreIcon color="action" />}
+                    {expandedClassId === cls.id ? (
+                      <ExpandLessIcon color="action" />
+                    ) : (
+                      <ExpandMoreIcon color="action" />
+                    )}
                   </ListItemButton>
                 </ListItem>
                 {renderStudentExpansion(cls)}
@@ -436,7 +458,8 @@ const ClassManager = () => {
         <DialogTitle>Delete Class</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to delete the class "{confirmDelete?.name}"? This will unassign all students in this class.
+            Are you sure you want to delete the class "{confirmDelete?.name}"? This will unassign
+            all students in this class.
           </DialogContentText>
         </DialogContent>
         <DialogActions>

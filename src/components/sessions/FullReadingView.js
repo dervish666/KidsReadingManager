@@ -523,9 +523,7 @@ const FullReadingView = ({
                 <TableRow>
                   <TableCell colSpan={dates.length + 3} sx={{ textAlign: 'center', py: 4 }}>
                     <Typography color="text.secondary">
-                      {searchQuery
-                        ? 'No students match your search'
-                        : 'No students in this class'}
+                      {searchQuery ? 'No students match your search' : 'No students in this class'}
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -548,8 +546,7 @@ const FullReadingView = ({
                     Daily Totals
                   </TableCell>
                   {dailyTotals.map((totals, index) => {
-                    const isWeekend =
-                      dates[index].getDay() === 0 || dates[index].getDay() === 6;
+                    const isWeekend = dates[index].getDay() === 0 || dates[index].getDay() === 6;
                     return (
                       <TableCell
                         key={index}

@@ -141,7 +141,20 @@ describe('CSV Parser', () => {
     });
 
     it('should detect all columns from typical Accelerated Reader CSV', () => {
-      const headers = ['Title', 'Author', 'Quiz No', 'Int. Lvl', 'BL', 'Pts', 'Description', 'No.of Pages', 'Publisher', 'Year Published', 'ISBN', 'F/NF'];
+      const headers = [
+        'Title',
+        'Author',
+        'Quiz No',
+        'Int. Lvl',
+        'BL',
+        'Pts',
+        'Description',
+        'No.of Pages',
+        'Publisher',
+        'Year Published',
+        'ISBN',
+        'F/NF',
+      ];
       const mapping = detectColumnMapping(headers);
 
       expect(mapping.title).toBe(0);
@@ -158,9 +171,19 @@ describe('CSV Parser', () => {
     it('should convert CSV rows to book objects', () => {
       const rows = [
         ['The BFG', 'Roald Dahl', '3.0'],
-        ['Matilda', 'Roald Dahl', '4.0']
+        ['Matilda', 'Roald Dahl', '4.0'],
       ];
-      const mapping = { title: 0, author: 1, readingLevel: 2, isbn: null, description: null, pageCount: null, publicationYear: null, seriesName: null, seriesNumber: null };
+      const mapping = {
+        title: 0,
+        author: 1,
+        readingLevel: 2,
+        isbn: null,
+        description: null,
+        pageCount: null,
+        publicationYear: null,
+        seriesName: null,
+        seriesNumber: null,
+      };
 
       const books = mapCSVToBooks(rows, mapping);
 
@@ -174,7 +197,7 @@ describe('CSV Parser', () => {
         pageCount: null,
         publicationYear: null,
         seriesName: null,
-        seriesNumber: null
+        seriesNumber: null,
       });
     });
 
@@ -182,9 +205,19 @@ describe('CSV Parser', () => {
       const rows = [
         ['The BFG', 'Roald Dahl'],
         ['', 'Some Author'],
-        ['Matilda', 'Roald Dahl']
+        ['Matilda', 'Roald Dahl'],
       ];
-      const mapping = { title: 0, author: 1, readingLevel: null, isbn: null, description: null, pageCount: null, publicationYear: null, seriesName: null, seriesNumber: null };
+      const mapping = {
+        title: 0,
+        author: 1,
+        readingLevel: null,
+        isbn: null,
+        description: null,
+        pageCount: null,
+        publicationYear: null,
+        seriesName: null,
+        seriesNumber: null,
+      };
 
       const books = mapCSVToBooks(rows, mapping);
       expect(books).toHaveLength(2);
@@ -193,9 +226,19 @@ describe('CSV Parser', () => {
     it('should include ISBN when mapped', () => {
       const rows = [
         ['The BFG', 'Roald Dahl', '3.0', '9780142410387'],
-        ['Matilda', 'Roald Dahl', '4.0', '9780142410370']
+        ['Matilda', 'Roald Dahl', '4.0', '9780142410370'],
       ];
-      const mapping = { title: 0, author: 1, readingLevel: 2, isbn: 3, description: null, pageCount: null, publicationYear: null, seriesName: null, seriesNumber: null };
+      const mapping = {
+        title: 0,
+        author: 1,
+        readingLevel: 2,
+        isbn: 3,
+        description: null,
+        pageCount: null,
+        publicationYear: null,
+        seriesName: null,
+        seriesNumber: null,
+      };
 
       const books = mapCSVToBooks(rows, mapping);
 
@@ -209,16 +252,24 @@ describe('CSV Parser', () => {
         pageCount: null,
         publicationYear: null,
         seriesName: null,
-        seriesNumber: null
+        seriesNumber: null,
       });
       expect(books[1].isbn).toBe('9780142410370');
     });
 
     it('should set ISBN to null when not mapped', () => {
-      const rows = [
-        ['The BFG', 'Roald Dahl', '3.0']
-      ];
-      const mapping = { title: 0, author: 1, readingLevel: 2, isbn: null, description: null, pageCount: null, publicationYear: null, seriesName: null, seriesNumber: null };
+      const rows = [['The BFG', 'Roald Dahl', '3.0']];
+      const mapping = {
+        title: 0,
+        author: 1,
+        readingLevel: 2,
+        isbn: null,
+        description: null,
+        pageCount: null,
+        publicationYear: null,
+        seriesName: null,
+        seriesNumber: null,
+      };
 
       const books = mapCSVToBooks(rows, mapping);
 
@@ -226,10 +277,18 @@ describe('CSV Parser', () => {
     });
 
     it('should set ISBN to null when field is empty', () => {
-      const rows = [
-        ['The BFG', 'Roald Dahl', '3.0', '']
-      ];
-      const mapping = { title: 0, author: 1, readingLevel: 2, isbn: 3, description: null, pageCount: null, publicationYear: null, seriesName: null, seriesNumber: null };
+      const rows = [['The BFG', 'Roald Dahl', '3.0', '']];
+      const mapping = {
+        title: 0,
+        author: 1,
+        readingLevel: 2,
+        isbn: 3,
+        description: null,
+        pageCount: null,
+        publicationYear: null,
+        seriesName: null,
+        seriesNumber: null,
+      };
 
       const books = mapCSVToBooks(rows, mapping);
 
@@ -238,11 +297,28 @@ describe('CSV Parser', () => {
 
     it('should map additional metadata fields', () => {
       const rows = [
-        ['The BFG', 'Roald Dahl', '3.0', '9780142410387', 'A friendly giant story', '208', '1982', 'Giants', '1']
+        [
+          'The BFG',
+          'Roald Dahl',
+          '3.0',
+          '9780142410387',
+          'A friendly giant story',
+          '208',
+          '1982',
+          'Giants',
+          '1',
+        ],
       ];
       const mapping = {
-        title: 0, author: 1, readingLevel: 2, isbn: 3,
-        description: 4, pageCount: 5, publicationYear: 6, seriesName: 7, seriesNumber: 8
+        title: 0,
+        author: 1,
+        readingLevel: 2,
+        isbn: 3,
+        description: 4,
+        pageCount: 5,
+        publicationYear: 6,
+        seriesName: 7,
+        seriesNumber: 8,
       };
 
       const books = mapCSVToBooks(rows, mapping);
@@ -256,17 +332,22 @@ describe('CSV Parser', () => {
         pageCount: '208',
         publicationYear: '1982',
         seriesName: 'Giants',
-        seriesNumber: '1'
+        seriesNumber: '1',
       });
     });
 
     it('should set unmapped metadata fields to null', () => {
-      const rows = [
-        ['The BFG', 'Roald Dahl']
-      ];
+      const rows = [['The BFG', 'Roald Dahl']];
       const mapping = {
-        title: 0, author: 1, readingLevel: null, isbn: null,
-        description: null, pageCount: null, publicationYear: null, seriesName: null, seriesNumber: null
+        title: 0,
+        author: 1,
+        readingLevel: null,
+        isbn: null,
+        description: null,
+        pageCount: null,
+        publicationYear: null,
+        seriesName: null,
+        seriesNumber: null,
       };
 
       const books = mapCSVToBooks(rows, mapping);

@@ -1,11 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import {
-  Box,
-  Typography,
-  Paper,
-  Tooltip,
-  Button
-} from '@mui/material';
+import { Box, Typography, Paper, Tooltip, Button } from '@mui/material';
 import { useData } from '../../contexts/DataContext';
 import { useUI } from '../../contexts/UIContext';
 import { useTheme } from '@mui/material/styles';
@@ -19,9 +13,9 @@ const ReadingFrequencyChart = () => {
 
   // Filter students based on global class filter and disabled classes
   const activeStudents = useMemo(() => {
-    const disabledClassIds = classes.filter(cls => cls.disabled).map(cls => cls.id);
+    const disabledClassIds = classes.filter((cls) => cls.disabled).map((cls) => cls.id);
 
-    return students.filter(student => {
+    return students.filter((student) => {
       // First, filter by global class filter
       if (globalClassFilter && globalClassFilter !== 'all') {
         if (globalClassFilter === 'unassigned') {
@@ -35,51 +29,62 @@ const ReadingFrequencyChart = () => {
       return !student.classId || !disabledClassIds.includes(student.classId);
     });
   }, [students, globalClassFilter, classes]);
-  
+
   const [showAll, setShowAll] = useState(false);
 
   // Sort students by reading session count (most to least)
-  const sortedStudents = [...activeStudents].sort((a, b) =>
-    (b.totalSessionCount || 0) - (a.totalSessionCount || 0)
+  const sortedStudents = [...activeStudents].sort(
+    (a, b) => (b.totalSessionCount || 0) - (a.totalSessionCount || 0)
   );
 
   const displayStudents = showAll ? sortedStudents : sortedStudents.slice(0, 30);
 
   // Find the maximum number of sessions for scaling
   const maxSessions = Math.max(
-    ...activeStudents.map(s => (s.totalSessionCount || 0)),
+    ...activeStudents.map((s) => s.totalSessionCount || 0),
     5 // Minimum scale (at least 5 sessions)
   );
-  
+
   // Get color based on session count
   const getBarColor = (count) => {
     if (count === 0) return theme.palette.error.main; // No sessions
     if (count < 3) return theme.palette.warning.main; // Few sessions
     return theme.palette.primary.main; // Good number of sessions
   };
-  
+
   return (
     <Paper sx={{ p: 3, mb: 3, pb: 'calc(env(safe-area-inset-bottom) + 16px)' }}>
       <Typography variant="h6" gutterBottom>
         Reading Frequency by Student
       </Typography>
-      
+
       {activeStudents.length === 0 ? (
         <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 3 }}>
           No student data available.
         </Typography>
       ) : (
         <Box sx={{ mt: 3 }}>
-          {displayStudents.map(student => {
+          {displayStudents.map((student) => {
             const sessionCount = student.totalSessionCount || 0;
             const basePercent = Math.max((sessionCount / maxSessions) * 100, 3); // Base percent
             const adjustedPercent = isSmall ? Math.max(basePercent, 6) : basePercent; // Larger min on small screens
             const barWidth = `${Math.min(adjustedPercent, 100)}%`;
-            
+
             return (
               <Box key={student.id} sx={{ mb: 2, width: '100%' }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5, flexDirection: { xs: 'column', sm: 'row' }, gap: 1 }}>
-                  <Typography variant="body2" sx={{ maxWidth: { xs: '100%', sm: '60%' }, wordBreak: 'break-word' }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    mb: 0.5,
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    gap: 1,
+                  }}
+                >
+                  <Typography
+                    variant="body2"
+                    sx={{ maxWidth: { xs: '100%', sm: '60%' }, wordBreak: 'break-word' }}
+                  >
                     {student.name}
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
@@ -102,7 +107,7 @@ const ReadingFrequencyChart = () => {
                         position: 'relative',
                         '&:hover': {
                           opacity: 0.9,
-                        }
+                        },
                       }}
                     />
                   </Box>
@@ -129,15 +134,39 @@ const ReadingFrequencyChart = () => {
 
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Box sx={{ width: 12, height: 12, borderRadius: 1, bgcolor: theme.palette.primary.main, mr: 1 }} />
+              <Box
+                sx={{
+                  width: 12,
+                  height: 12,
+                  borderRadius: 1,
+                  bgcolor: theme.palette.primary.main,
+                  mr: 1,
+                }}
+              />
               <Typography variant="caption">3+ sessions</Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Box sx={{ width: 12, height: 12, borderRadius: 1, bgcolor: theme.palette.warning.main, mr: 1 }} />
+              <Box
+                sx={{
+                  width: 12,
+                  height: 12,
+                  borderRadius: 1,
+                  bgcolor: theme.palette.warning.main,
+                  mr: 1,
+                }}
+              />
               <Typography variant="caption">1-2 sessions</Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Box sx={{ width: 12, height: 12, borderRadius: 1, bgcolor: theme.palette.error.main, mr: 1 }} />
+              <Box
+                sx={{
+                  width: 12,
+                  height: 12,
+                  borderRadius: 1,
+                  bgcolor: theme.palette.error.main,
+                  mr: 1,
+                }}
+              />
               <Typography variant="caption">No sessions</Typography>
             </Box>
           </Box>

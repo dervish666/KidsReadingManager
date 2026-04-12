@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { sendPasswordResetEmail, sendWelcomeEmail, sendSignupNotificationEmail } from '../../utils/email.js';
+import {
+  sendPasswordResetEmail,
+  sendWelcomeEmail,
+  sendSignupNotificationEmail,
+} from '../../utils/email.js';
 
 // Mock the cloudflare:email module with a proper constructor class
 vi.mock('cloudflare:email', () => {
@@ -10,7 +14,7 @@ vi.mock('cloudflare:email', () => {
         this.to = to;
         this.content = content;
       }
-    }
+    },
   };
 });
 
@@ -38,19 +42,19 @@ describe('Email Service', () => {
       recipientEmail: 'user@example.com',
       recipientName: 'John Doe',
       resetToken: 'abc123token',
-      baseUrl: 'https://app.example.com'
+      baseUrl: 'https://app.example.com',
     };
 
     describe('with Resend provider', () => {
       const envWithResend = {
         RESEND_API_KEY: 'test-resend-api-key',
-        EMAIL_FROM: 'noreply@myapp.com'
+        EMAIL_FROM: 'noreply@myapp.com',
       };
 
       it('should send email via Resend API when RESEND_API_KEY is configured', async () => {
         global.fetch.mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ id: 'email-123' })
+          json: async () => ({ id: 'email-123' }),
         });
 
         const result = await sendPasswordResetEmail(
@@ -68,9 +72,9 @@ describe('Email Service', () => {
           expect.objectContaining({
             method: 'POST',
             headers: {
-              'Authorization': 'Bearer test-resend-api-key',
-              'Content-Type': 'application/json'
-            }
+              Authorization: 'Bearer test-resend-api-key',
+              'Content-Type': 'application/json',
+            },
           })
         );
       });
@@ -78,7 +82,7 @@ describe('Email Service', () => {
       it('should include correct email content in Resend request', async () => {
         global.fetch.mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ id: 'email-123' })
+          json: async () => ({ id: 'email-123' }),
         });
 
         await sendPasswordResetEmail(
@@ -96,9 +100,13 @@ describe('Email Service', () => {
         expect(requestBody.to).toBe('user@example.com');
         expect(requestBody.subject).toBe('Reset your Tally Reading password');
         expect(requestBody.text).toContain('Hi John Doe');
-        expect(requestBody.text).toContain('https://app.example.com/reset-password?token=abc123token');
+        expect(requestBody.text).toContain(
+          'https://app.example.com/reset-password?token=abc123token'
+        );
         expect(requestBody.html).toContain('John Doe');
-        expect(requestBody.html).toContain('https://app.example.com/reset-password?token=abc123token');
+        expect(requestBody.html).toContain(
+          'https://app.example.com/reset-password?token=abc123token'
+        );
       });
 
       it('should use default EMAIL_FROM when not configured', async () => {
@@ -106,7 +114,7 @@ describe('Email Service', () => {
 
         global.fetch.mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ id: 'email-123' })
+          json: async () => ({ id: 'email-123' }),
         });
 
         await sendPasswordResetEmail(
@@ -126,7 +134,7 @@ describe('Email Service', () => {
       it('should handle Resend API error response', async () => {
         global.fetch.mockResolvedValueOnce({
           ok: false,
-          json: async () => ({ message: 'Invalid API key' })
+          json: async () => ({ message: 'Invalid API key' }),
         });
 
         const result = await sendPasswordResetEmail(
@@ -145,7 +153,7 @@ describe('Email Service', () => {
       it('should handle Resend API error response without message', async () => {
         global.fetch.mockResolvedValueOnce({
           ok: false,
-          json: async () => ({})
+          json: async () => ({}),
         });
 
         const result = await sendPasswordResetEmail(
@@ -179,7 +187,9 @@ describe('Email Service', () => {
       it('should handle Resend API response JSON parse error', async () => {
         global.fetch.mockResolvedValueOnce({
           ok: false,
-          json: async () => { throw new Error('Invalid JSON'); }
+          json: async () => {
+            throw new Error('Invalid JSON');
+          },
         });
 
         const result = await sendPasswordResetEmail(
@@ -197,7 +207,7 @@ describe('Email Service', () => {
       it('should log success message when email sent via Resend', async () => {
         global.fetch.mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ id: 'email-xyz-789' })
+          json: async () => ({ id: 'email-xyz-789' }),
         });
 
         await sendPasswordResetEmail(
@@ -214,14 +224,14 @@ describe('Email Service', () => {
 
     describe('with Cloudflare Email provider', () => {
       const createMockEmailBinding = () => ({
-        send: vi.fn().mockResolvedValue(undefined)
+        send: vi.fn().mockResolvedValue(undefined),
       });
 
       it('should send email via Cloudflare Email when EMAIL_SENDER is configured', async () => {
         const mockEmailBinding = createMockEmailBinding();
         const envWithCloudflare = {
           EMAIL_SENDER: mockEmailBinding,
-          EMAIL_FROM: 'cf@myapp.com'
+          EMAIL_FROM: 'cf@myapp.com',
         };
 
         const result = await sendPasswordResetEmail(
@@ -240,7 +250,7 @@ describe('Email Service', () => {
       it('should use default EMAIL_FROM for Cloudflare when not configured', async () => {
         const mockEmailBinding = createMockEmailBinding();
         const envWithCloudflareNoFrom = {
-          EMAIL_SENDER: mockEmailBinding
+          EMAIL_SENDER: mockEmailBinding,
         };
 
         const result = await sendPasswordResetEmail(
@@ -256,10 +266,10 @@ describe('Email Service', () => {
 
       it('should handle Cloudflare Email send error', async () => {
         const mockEmailBinding = {
-          send: vi.fn().mockRejectedValue(new Error('Cloudflare email error'))
+          send: vi.fn().mockRejectedValue(new Error('Cloudflare email error')),
         };
         const envWithCloudflare = {
-          EMAIL_SENDER: mockEmailBinding
+          EMAIL_SENDER: mockEmailBinding,
         };
 
         const result = await sendPasswordResetEmail(
@@ -280,12 +290,12 @@ describe('Email Service', () => {
         const envWithBoth = {
           RESEND_API_KEY: 'test-resend-key',
           EMAIL_SENDER: mockEmailBinding,
-          EMAIL_FROM: 'both@myapp.com'
+          EMAIL_FROM: 'both@myapp.com',
         };
 
         global.fetch.mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ id: 'resend-email-id' })
+          json: async () => ({ id: 'resend-email-id' }),
         });
 
         const result = await sendPasswordResetEmail(
@@ -339,13 +349,15 @@ describe('Email Service', () => {
 
       it('should throw error when env is null/undefined', async () => {
         // The function expects a valid env object - passing null throws
-        await expect(sendPasswordResetEmail(
-          null,
-          defaultParams.recipientEmail,
-          defaultParams.recipientName,
-          defaultParams.resetToken,
-          defaultParams.baseUrl
-        )).rejects.toThrow();
+        await expect(
+          sendPasswordResetEmail(
+            null,
+            defaultParams.recipientEmail,
+            defaultParams.recipientName,
+            defaultParams.resetToken,
+            defaultParams.baseUrl
+          )
+        ).rejects.toThrow();
       });
     });
 
@@ -353,7 +365,7 @@ describe('Email Service', () => {
       it('should include recipient name in text body', async () => {
         global.fetch.mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ id: 'email-123' })
+          json: async () => ({ id: 'email-123' }),
         });
 
         await sendPasswordResetEmail(
@@ -370,13 +382,13 @@ describe('Email Service', () => {
         expect(requestBody.text).toContain('Hi Alice Smith,');
         expect(requestBody.text).toContain('You requested to reset your password');
         expect(requestBody.text).toContain('This link will expire in 1 hour');
-        expect(requestBody.text).toContain('If you didn\'t request this');
+        expect(requestBody.text).toContain("If you didn't request this");
       });
 
       it('should include correct reset URL in email', async () => {
         global.fetch.mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ id: 'email-123' })
+          json: async () => ({ id: 'email-123' }),
         });
 
         await sendPasswordResetEmail(
@@ -399,7 +411,7 @@ describe('Email Service', () => {
       it('should include HTML styling in email body', async () => {
         global.fetch.mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ id: 'email-123' })
+          json: async () => ({ id: 'email-123' }),
         });
 
         await sendPasswordResetEmail(
@@ -427,19 +439,19 @@ describe('Email Service', () => {
       recipientName: 'Jane Doe',
       organizationName: 'Springfield Elementary',
       temporaryPassword: 'TempPass123!',
-      baseUrl: 'https://app.example.com'
+      baseUrl: 'https://app.example.com',
     };
 
     describe('with Resend provider', () => {
       const envWithResend = {
         RESEND_API_KEY: 'test-resend-api-key',
-        EMAIL_FROM: 'welcome@myapp.com'
+        EMAIL_FROM: 'welcome@myapp.com',
       };
 
       it('should send welcome email via Resend API', async () => {
         global.fetch.mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ id: 'welcome-email-123' })
+          json: async () => ({ id: 'welcome-email-123' }),
         });
 
         const result = await sendWelcomeEmail(
@@ -458,7 +470,7 @@ describe('Email Service', () => {
       it('should include correct welcome email content', async () => {
         global.fetch.mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ id: 'email-123' })
+          json: async () => ({ id: 'email-123' }),
         });
 
         await sendWelcomeEmail(
@@ -485,7 +497,7 @@ describe('Email Service', () => {
       it('should include login URL in welcome email', async () => {
         global.fetch.mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ id: 'email-123' })
+          json: async () => ({ id: 'email-123' }),
         });
 
         await sendWelcomeEmail(
@@ -507,7 +519,7 @@ describe('Email Service', () => {
       it('should include temporary password in welcome email', async () => {
         global.fetch.mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ id: 'email-123' })
+          json: async () => ({ id: 'email-123' }),
         });
 
         await sendWelcomeEmail(
@@ -529,7 +541,7 @@ describe('Email Service', () => {
       it('should handle Resend API error for welcome email', async () => {
         global.fetch.mockResolvedValueOnce({
           ok: false,
-          json: async () => ({ message: 'Rate limit exceeded' })
+          json: async () => ({ message: 'Rate limit exceeded' }),
         });
 
         const result = await sendWelcomeEmail(
@@ -549,10 +561,10 @@ describe('Email Service', () => {
     describe('with Cloudflare Email provider', () => {
       it('should send welcome email via Cloudflare Email', async () => {
         const mockEmailBinding = {
-          send: vi.fn().mockResolvedValue(undefined)
+          send: vi.fn().mockResolvedValue(undefined),
         };
         const envWithCloudflare = {
-          EMAIL_SENDER: mockEmailBinding
+          EMAIL_SENDER: mockEmailBinding,
         };
 
         const result = await sendWelcomeEmail(
@@ -570,10 +582,10 @@ describe('Email Service', () => {
 
       it('should handle Cloudflare Email error for welcome email', async () => {
         const mockEmailBinding = {
-          send: vi.fn().mockRejectedValue(new Error('Email routing failed'))
+          send: vi.fn().mockRejectedValue(new Error('Email routing failed')),
         };
         const envWithCloudflare = {
-          EMAIL_SENDER: mockEmailBinding
+          EMAIL_SENDER: mockEmailBinding,
         };
 
         const result = await sendWelcomeEmail(
@@ -613,7 +625,7 @@ describe('Email Service', () => {
       it('should include organization name in subject', async () => {
         global.fetch.mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ id: 'email-123' })
+          json: async () => ({ id: 'email-123' }),
         });
 
         await sendWelcomeEmail(
@@ -634,7 +646,7 @@ describe('Email Service', () => {
       it('should include password change reminder in welcome email', async () => {
         global.fetch.mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ id: 'email-123' })
+          json: async () => ({ id: 'email-123' }),
         });
 
         await sendWelcomeEmail(
@@ -656,7 +668,7 @@ describe('Email Service', () => {
       it('should include HTML styling in welcome email', async () => {
         global.fetch.mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ id: 'email-123' })
+          json: async () => ({ id: 'email-123' }),
         });
 
         await sendWelcomeEmail(
@@ -680,7 +692,7 @@ describe('Email Service', () => {
       it('should include credentials box in HTML email', async () => {
         global.fetch.mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ id: 'email-123' })
+          json: async () => ({ id: 'email-123' }),
         });
 
         await sendWelcomeEmail(
@@ -706,13 +718,13 @@ describe('Email Service', () => {
     describe('with Resend provider', () => {
       const envWithResend = {
         RESEND_API_KEY: 'test-resend-api-key',
-        EMAIL_FROM: 'hello@tallyreading.uk'
+        EMAIL_FROM: 'hello@tallyreading.uk',
       };
 
       it('should send notification email via Resend API', async () => {
         global.fetch.mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ id: 'signup-email-123' })
+          json: async () => ({ id: 'signup-email-123' }),
         });
 
         const result = await sendSignupNotificationEmail(envWithResend, 'teacher@school.sch.uk');
@@ -724,7 +736,7 @@ describe('Email Service', () => {
       it('should send to EMAIL_FROM address (self-notification)', async () => {
         global.fetch.mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ id: 'email-123' })
+          json: async () => ({ id: 'email-123' }),
         });
 
         await sendSignupNotificationEmail(envWithResend, 'new@signup.com');
@@ -739,7 +751,7 @@ describe('Email Service', () => {
       it('should include signup email in subject and body', async () => {
         global.fetch.mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ id: 'email-123' })
+          json: async () => ({ id: 'email-123' }),
         });
 
         await sendSignupNotificationEmail(envWithResend, 'interested@school.sch.uk');
@@ -755,7 +767,7 @@ describe('Email Service', () => {
       it('should include timestamp in body', async () => {
         global.fetch.mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ id: 'email-123' })
+          json: async () => ({ id: 'email-123' }),
         });
 
         await sendSignupNotificationEmail(envWithResend, 'test@example.com');
@@ -770,7 +782,7 @@ describe('Email Service', () => {
       it('should use default email when EMAIL_FROM not configured', async () => {
         global.fetch.mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ id: 'email-123' })
+          json: async () => ({ id: 'email-123' }),
         });
 
         await sendSignupNotificationEmail({ RESEND_API_KEY: 'key' }, 'test@example.com');
@@ -784,7 +796,7 @@ describe('Email Service', () => {
       it('should handle Resend API error', async () => {
         global.fetch.mockResolvedValueOnce({
           ok: false,
-          json: async () => ({ message: 'Forbidden' })
+          json: async () => ({ message: 'Forbidden' }),
         });
 
         const result = await sendSignupNotificationEmail(envWithResend, 'test@example.com');
@@ -797,7 +809,7 @@ describe('Email Service', () => {
     describe('with Cloudflare Email provider', () => {
       it('should send notification via Cloudflare Email', async () => {
         const mockEmailBinding = {
-          send: vi.fn().mockResolvedValue(undefined)
+          send: vi.fn().mockResolvedValue(undefined),
         };
         const env = { EMAIL_SENDER: mockEmailBinding };
 
@@ -824,7 +836,7 @@ describe('Email Service', () => {
       it('should escape HTML in signup email address', async () => {
         global.fetch.mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ id: 'email-123' })
+          json: async () => ({ id: 'email-123' }),
         });
 
         await sendSignupNotificationEmail(
@@ -842,13 +854,10 @@ describe('Email Service', () => {
       it('should include HTML styling', async () => {
         global.fetch.mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ id: 'email-123' })
+          json: async () => ({ id: 'email-123' }),
         });
 
-        await sendSignupNotificationEmail(
-          { RESEND_API_KEY: 'key' },
-          'test@example.com'
-        );
+        await sendSignupNotificationEmail({ RESEND_API_KEY: 'key' }, 'test@example.com');
 
         const fetchCall = global.fetch.mock.calls[0];
         const requestBody = JSON.parse(fetchCall[1].body);
@@ -863,16 +872,16 @@ describe('Email Service', () => {
   describe('Provider priority', () => {
     it('should use Resend as first priority when available', async () => {
       const mockEmailBinding = {
-        send: vi.fn().mockResolvedValue(undefined)
+        send: vi.fn().mockResolvedValue(undefined),
       };
       const env = {
         RESEND_API_KEY: 'resend-key',
-        EMAIL_SENDER: mockEmailBinding
+        EMAIL_SENDER: mockEmailBinding,
       };
 
       global.fetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ id: 'resend-id' })
+        json: async () => ({ id: 'resend-id' }),
       });
 
       await sendPasswordResetEmail(
@@ -889,10 +898,10 @@ describe('Email Service', () => {
 
     it('should fall back to Cloudflare when Resend is not configured', async () => {
       const mockEmailBinding = {
-        send: vi.fn().mockResolvedValue(undefined)
+        send: vi.fn().mockResolvedValue(undefined),
       };
       const env = {
-        EMAIL_SENDER: mockEmailBinding
+        EMAIL_SENDER: mockEmailBinding,
       };
 
       await sendPasswordResetEmail(

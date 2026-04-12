@@ -68,10 +68,7 @@ describe('syncUserClassAssignments', () => {
   // Delete + recreate flow with matching classes
   // -------------------------------------------------------------------------
   it('deletes existing assignments, queries wonde mappings, and inserts new assignments via batch', async () => {
-    const selectResults = [
-      { class_id: 'tally-class-1' },
-      { class_id: 'tally-class-2' },
-    ];
+    const selectResults = [{ class_id: 'tally-class-1' }, { class_id: 'tally-class-2' }];
     const { db, stmts } = createMockDB(selectResults);
 
     const result = await syncUserClassAssignments(db, 'user-1', 'wonde-emp-1', 'org-1');
@@ -99,22 +96,17 @@ describe('syncUserClassAssignments', () => {
     // Third and fourth calls: INSERT statements prepared and batched
     const insert1 = stmts[2];
     expect(insert1.sql).toContain('INSERT OR IGNORE INTO class_assignments');
-    expect(insert1.stmt.bind).toHaveBeenCalledWith(
-      expect.any(String), 'tally-class-1', 'user-1'
-    );
+    expect(insert1.stmt.bind).toHaveBeenCalledWith(expect.any(String), 'tally-class-1', 'user-1');
 
     const insert2 = stmts[3];
     expect(insert2.sql).toContain('INSERT OR IGNORE INTO class_assignments');
-    expect(insert2.stmt.bind).toHaveBeenCalledWith(
-      expect.any(String), 'tally-class-2', 'user-1'
-    );
+    expect(insert2.stmt.bind).toHaveBeenCalledWith(expect.any(String), 'tally-class-2', 'user-1');
 
     // INSERTs are executed via db.batch() instead of individual .run() calls
     expect(db.batch).toHaveBeenCalledTimes(1);
-    expect(db.batch).toHaveBeenCalledWith(expect.arrayContaining([
-      expect.anything(),
-      expect.anything()
-    ]));
+    expect(db.batch).toHaveBeenCalledWith(
+      expect.arrayContaining([expect.anything(), expect.anything()])
+    );
   });
 
   // -------------------------------------------------------------------------
@@ -139,7 +131,7 @@ describe('syncUserClassAssignments', () => {
     expect(stmts[1].stmt.all).toHaveBeenCalled();
 
     // No INSERT calls
-    const insertCalls = stmts.filter(s => s.sql.includes('INSERT'));
+    const insertCalls = stmts.filter((s) => s.sql.includes('INSERT'));
     expect(insertCalls).toHaveLength(0);
   });
 });

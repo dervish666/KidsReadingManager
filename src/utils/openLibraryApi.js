@@ -22,24 +22,28 @@ const AVAILABILITY_CHECK_INTERVAL = 60000; // Re-check every 60 seconds
  */
 export async function checkOpenLibraryAvailability(timeout = 3000) {
   const now = Date.now();
-  
+
   // Return cached result if recent
-  if (openLibraryAvailable !== null && (now - lastAvailabilityCheck) < AVAILABILITY_CHECK_INTERVAL) {
+  if (openLibraryAvailable !== null && now - lastAvailabilityCheck < AVAILABILITY_CHECK_INTERVAL) {
     return openLibraryAvailable;
   }
-  
+
   try {
     // Use a simple GET request to check availability
-    const response = await fetchWithTimeout(`${OPENLIBRARY_BASE_URL}/search.json?q=test&limit=1`, {
-      method: 'GET',
-      headers: {
-        'User-Agent': 'TallyReading/1.0 (educational-app)'
-      }
-    }, timeout);
-    
+    const response = await fetchWithTimeout(
+      `${OPENLIBRARY_BASE_URL}/search.json?q=test&limit=1`,
+      {
+        method: 'GET',
+        headers: {
+          'User-Agent': 'TallyReading/1.0 (educational-app)',
+        },
+      },
+      timeout
+    );
+
     openLibraryAvailable = response.ok;
     lastAvailabilityCheck = now;
-    
+
     // Availability check succeeded — no need to log success
     return openLibraryAvailable;
   } catch (error) {
@@ -67,7 +71,7 @@ export function getOpenLibraryStatus() {
   return {
     available: openLibraryAvailable,
     lastCheck: lastAvailabilityCheck,
-    stale: (now - lastAvailabilityCheck) >= AVAILABILITY_CHECK_INTERVAL
+    stale: now - lastAvailabilityCheck >= AVAILABILITY_CHECK_INTERVAL,
   };
 }
 
@@ -86,14 +90,18 @@ export async function searchBooksByTitle(title, limit = 5) {
     const searchParams = new URLSearchParams({
       title: title.trim(),
       limit: limit.toString(),
-      fields: 'key,title,author_name,author_key,first_publish_year,isbn,publisher,language'
+      fields: 'key,title,author_name,author_key,first_publish_year,isbn,publisher,language',
     });
 
-    const response = await fetchWithTimeout(`${SEARCH_API_URL}?${searchParams}`, {
-      headers: {
-        'User-Agent': 'TallyReading/1.0 (educational-app)'
-      }
-    }, 5000);
+    const response = await fetchWithTimeout(
+      `${SEARCH_API_URL}?${searchParams}`,
+      {
+        headers: {
+          'User-Agent': 'TallyReading/1.0 (educational-app)',
+        },
+      },
+      5000
+    );
 
     if (!response.ok) {
       throw new Error(`OpenLibrary API error: ${response.status} ${response.statusText}`);
@@ -146,8 +154,8 @@ export async function findTopAuthorCandidatesForBook(title, limit = 3) {
 
     // Score results using existing similarity logic and filter to those with authors
     const scored = results
-      .filter(r => Array.isArray(r.author_name) && r.author_name.length > 0)
-      .map(r => {
+      .filter((r) => Array.isArray(r.author_name) && r.author_name.length > 0)
+      .map((r) => {
         const normalizedResultTitle = normalizeTitle(r.title || '');
         const similarity = calculateTitleSimilarity(normalizedSearchTitle, normalizedResultTitle);
 
@@ -165,10 +173,10 @@ export async function findTopAuthorCandidatesForBook(title, limit = 3) {
           title: r.title || '',
           authors: r.author_name,
           similarity,
-          coverUrl
+          coverUrl,
         };
       })
-      .filter(entry => entry.similarity > 0.2); // keep loose but not random
+      .filter((entry) => entry.similarity > 0.2); // keep loose but not random
 
     if (scored.length === 0) {
       return [];
@@ -191,7 +199,7 @@ export async function findTopAuthorCandidatesForBook(title, limit = 3) {
           name: authorName.trim(),
           sourceTitle: entry.title,
           similarity: entry.similarity,
-          coverUrl: entry.coverUrl || null
+          coverUrl: entry.coverUrl || null,
         });
 
         if (candidates.length >= maxResults) {
@@ -214,7 +222,11 @@ export async function findTopAuthorCandidatesForBook(title, limit = 3) {
  * @returns {Object|null} The best matching result or null
  */
 // Title matching utilities imported from shared module
-import { normalizeTitle, calculateTitleSimilarity, findBestTitleMatch as _findBestTitleMatch } from './titleMatching.js';
+import {
+  normalizeTitle,
+  calculateTitleSimilarity,
+  findBestTitleMatch as _findBestTitleMatch,
+} from './titleMatching.js';
 
 function findBestTitleMatch(searchTitle, results) {
   return _findBestTitleMatch(searchTitle, results, {
@@ -249,7 +261,7 @@ export async function batchFindMissingAuthors(books, onProgress = null) {
     try {
       // Small delay to be respectful to the API
       if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
       }
 
       // Use multi-candidate helper so UI can present choices
@@ -261,7 +273,7 @@ export async function batchFindMissingAuthors(books, onProgress = null) {
         book,
         foundAuthor,
         candidates,
-        success: !!foundAuthor
+        success: !!foundAuthor,
       });
 
       if (onProgress) {
@@ -271,7 +283,7 @@ export async function batchFindMissingAuthors(books, onProgress = null) {
           book: book.title,
           foundAuthor,
           candidates,
-          success: !!foundAuthor
+          success: !!foundAuthor,
         });
       }
     } catch (error) {
@@ -281,7 +293,7 @@ export async function batchFindMissingAuthors(books, onProgress = null) {
         foundAuthor: null,
         candidates: [],
         success: false,
-        error: error.message
+        error: error.message,
       });
 
       if (onProgress) {
@@ -292,7 +304,7 @@ export async function batchFindMissingAuthors(books, onProgress = null) {
           foundAuthor: null,
           candidates: [],
           success: false,
-          error: error.message
+          error: error.message,
         });
       }
     }
@@ -312,18 +324,22 @@ export async function getBookDetails(title, author = null) {
     const searchParams = new URLSearchParams({
       title: title.trim(),
       limit: '5',
-      fields: 'key,title,author_name,cover_i,ia,isbn,first_publish_year,number_of_pages_median'
+      fields: 'key,title,author_name,cover_i,ia,isbn,first_publish_year,number_of_pages_median',
     });
 
     if (author) {
       searchParams.set('author', author.trim());
     }
 
-    const response = await fetchWithTimeout(`${SEARCH_API_URL}?${searchParams}`, {
-      headers: {
-        'User-Agent': 'TallyReading/1.0 (educational-app)'
-      }
-    }, 5000);
+    const response = await fetchWithTimeout(
+      `${SEARCH_API_URL}?${searchParams}`,
+      {
+        headers: {
+          'User-Agent': 'TallyReading/1.0 (educational-app)',
+        },
+      },
+      5000
+    );
 
     if (!response.ok) {
       throw new Error(`OpenLibrary API error: ${response.status} ${response.statusText}`);
@@ -349,11 +365,15 @@ export async function getBookDetails(title, author = null) {
 
     if (workKey && workKey.startsWith('/works/')) {
       try {
-        const workResponse = await fetchWithTimeout(`${OPENLIBRARY_BASE_URL}${workKey}.json`, {
-          headers: {
-            'User-Agent': 'TallyReading/1.0 (educational-app)'
-          }
-        }, 5000);
+        const workResponse = await fetchWithTimeout(
+          `${OPENLIBRARY_BASE_URL}${workKey}.json`,
+          {
+            headers: {
+              'User-Agent': 'TallyReading/1.0 (educational-app)',
+            },
+          },
+          5000
+        );
 
         if (workResponse.ok) {
           const workData = await workResponse.json();
@@ -376,7 +396,7 @@ export async function getBookDetails(title, author = null) {
 
     // Extract ISBN-13 preferentially, fall back to any ISBN
     const isbnList = bestMatch.isbn || [];
-    const isbn13 = isbnList.find(i => i.length === 13) || isbnList[0] || null;
+    const isbn13 = isbnList.find((i) => i.length === 13) || isbnList[0] || null;
 
     return {
       coverId: bestMatch.cover_i,
@@ -388,7 +408,7 @@ export async function getBookDetails(title, author = null) {
       pageCount: bestMatch.number_of_pages_median || null,
       publicationYear: bestMatch.first_publish_year || null,
       seriesName: null,
-      seriesNumber: null
+      seriesNumber: null,
     };
   } catch (error) {
     console.error('Error getting book details:', error);
@@ -423,7 +443,7 @@ export async function batchFindMissingDescriptions(books, onProgress = null) {
     try {
       // Small delay to be respectful to the API
       if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
       }
 
       const details = await getBookDetails(book.title, book.author || null);
@@ -432,7 +452,7 @@ export async function batchFindMissingDescriptions(books, onProgress = null) {
       results.push({
         book,
         foundDescription,
-        success: !!foundDescription
+        success: !!foundDescription,
       });
 
       if (onProgress) {
@@ -441,7 +461,7 @@ export async function batchFindMissingDescriptions(books, onProgress = null) {
           total: booksNeedingDescriptions.length,
           book: book.title,
           foundDescription,
-          success: !!foundDescription
+          success: !!foundDescription,
         });
       }
     } catch (error) {
@@ -450,7 +470,7 @@ export async function batchFindMissingDescriptions(books, onProgress = null) {
         book,
         foundDescription: null,
         success: false,
-        error: error.message
+        error: error.message,
       });
 
       if (onProgress) {
@@ -460,7 +480,7 @@ export async function batchFindMissingDescriptions(books, onProgress = null) {
           book: book.title,
           foundDescription: null,
           success: false,
-          error: error.message
+          error: error.message,
         });
       }
     }
@@ -480,18 +500,22 @@ export async function findGenresForBook(title, author = null) {
     const searchParams = new URLSearchParams({
       title: title.trim(),
       limit: '5',
-      fields: 'key,title,author_name,subject'
+      fields: 'key,title,author_name,subject',
     });
 
     if (author) {
       searchParams.set('author', author.trim());
     }
 
-    const response = await fetchWithTimeout(`${SEARCH_API_URL}?${searchParams}`, {
-      headers: {
-        'User-Agent': 'TallyReading/1.0 (educational-app)'
-      }
-    }, 5000);
+    const response = await fetchWithTimeout(
+      `${SEARCH_API_URL}?${searchParams}`,
+      {
+        headers: {
+          'User-Agent': 'TallyReading/1.0 (educational-app)',
+        },
+      },
+      5000
+    );
 
     if (!response.ok) {
       throw new Error(`OpenLibrary API error: ${response.status} ${response.statusText}`);
@@ -509,7 +533,7 @@ export async function findGenresForBook(title, author = null) {
 
     if (!bestMatch || !bestMatch.subject || bestMatch.subject.length === 0) {
       // Try to get subjects from the first result if no best match
-      const firstWithSubjects = docs.find(doc => doc.subject && doc.subject.length > 0);
+      const firstWithSubjects = docs.find((doc) => doc.subject && doc.subject.length > 0);
       if (firstWithSubjects) {
         return filterAndNormalizeGenres(firstWithSubjects.subject);
       }
@@ -534,28 +558,68 @@ function filterAndNormalizeGenres(subjects) {
 
   // Common genre keywords to look for (case-insensitive)
   const genreKeywords = [
-    'fiction', 'fantasy', 'science fiction', 'mystery', 'adventure',
-    'romance', 'horror', 'thriller', 'historical', 'biography',
-    'autobiography', 'non-fiction', 'nonfiction', 'poetry', 'drama',
-    'comedy', 'humor', 'children', 'young adult', 'juvenile',
-    'picture book', 'graphic novel', 'comic', 'fairy tale', 'folklore',
-    'mythology', 'legend', 'animal', 'nature', 'science', 'history',
-    'sports', 'school', 'family', 'friendship', 'magic', 'detective',
-    'spy', 'war', 'action', 'suspense', 'paranormal', 'supernatural',
-    'dystopian', 'utopian', 'realistic fiction', 'contemporary'
+    'fiction',
+    'fantasy',
+    'science fiction',
+    'mystery',
+    'adventure',
+    'romance',
+    'horror',
+    'thriller',
+    'historical',
+    'biography',
+    'autobiography',
+    'non-fiction',
+    'nonfiction',
+    'poetry',
+    'drama',
+    'comedy',
+    'humor',
+    'children',
+    'young adult',
+    'juvenile',
+    'picture book',
+    'graphic novel',
+    'comic',
+    'fairy tale',
+    'folklore',
+    'mythology',
+    'legend',
+    'animal',
+    'nature',
+    'science',
+    'history',
+    'sports',
+    'school',
+    'family',
+    'friendship',
+    'magic',
+    'detective',
+    'spy',
+    'war',
+    'action',
+    'suspense',
+    'paranormal',
+    'supernatural',
+    'dystopian',
+    'utopian',
+    'realistic fiction',
+    'contemporary',
   ];
 
   const normalizedGenres = new Set();
 
-  for (const subject of subjects.slice(0, 50)) { // Limit to first 50 subjects
+  for (const subject of subjects.slice(0, 50)) {
+    // Limit to first 50 subjects
     const lowerSubject = subject.toLowerCase();
-    
+
     // Check if subject matches or contains a genre keyword
     for (const keyword of genreKeywords) {
       if (lowerSubject === keyword || lowerSubject.includes(keyword)) {
         // Capitalize first letter of each word
-        const normalized = keyword.split(' ')
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        const normalized = keyword
+          .split(' ')
+          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
           .join(' ');
         normalizedGenres.add(normalized);
         break;
@@ -594,7 +658,7 @@ export async function batchFindMissingGenres(books, onProgress = null) {
     try {
       // Small delay to be respectful to the API
       if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
       }
 
       const foundGenres = await findGenresForBook(book.title, book.author || null);
@@ -602,7 +666,7 @@ export async function batchFindMissingGenres(books, onProgress = null) {
       results.push({
         book,
         foundGenres: foundGenres || [],
-        success: foundGenres && foundGenres.length > 0
+        success: foundGenres && foundGenres.length > 0,
       });
 
       if (onProgress) {
@@ -611,7 +675,7 @@ export async function batchFindMissingGenres(books, onProgress = null) {
           total: booksNeedingGenres.length,
           book: book.title,
           foundGenres: foundGenres || [],
-          success: foundGenres && foundGenres.length > 0
+          success: foundGenres && foundGenres.length > 0,
         });
       }
     } catch (error) {
@@ -620,7 +684,7 @@ export async function batchFindMissingGenres(books, onProgress = null) {
         book,
         foundGenres: [],
         success: false,
-        error: error.message
+        error: error.message,
       });
 
       if (onProgress) {
@@ -630,7 +694,7 @@ export async function batchFindMissingGenres(books, onProgress = null) {
           book: book.title,
           foundGenres: [],
           success: false,
-          error: error.message
+          error: error.message,
         });
       }
     }
@@ -652,18 +716,23 @@ export async function fetchAllMetadata(title, author = null) {
     const searchParams = new URLSearchParams({
       title: title.trim(),
       limit: '5',
-      fields: 'key,title,author_name,author_key,first_publish_year,isbn,cover_i,ia,number_of_pages_median,subject'
+      fields:
+        'key,title,author_name,author_key,first_publish_year,isbn,cover_i,ia,number_of_pages_median,subject',
     });
 
     if (author) {
       searchParams.set('author', author.trim());
     }
 
-    const response = await fetchWithTimeout(`${SEARCH_API_URL}?${searchParams}`, {
-      headers: {
-        'User-Agent': 'TallyReading/1.0 (educational-app)'
-      }
-    }, 5000);
+    const response = await fetchWithTimeout(
+      `${SEARCH_API_URL}?${searchParams}`,
+      {
+        headers: {
+          'User-Agent': 'TallyReading/1.0 (educational-app)',
+        },
+      },
+      5000
+    );
 
     if (!response.ok) {
       throw new Error(`OpenLibrary API error: ${response.status} ${response.statusText}`);
@@ -682,29 +751,33 @@ export async function fetchAllMetadata(title, author = null) {
     }
 
     // Extract author
-    const foundAuthor = bestMatch.author_name && bestMatch.author_name.length > 0
-      ? bestMatch.author_name[0]
-      : null;
+    const foundAuthor =
+      bestMatch.author_name && bestMatch.author_name.length > 0 ? bestMatch.author_name[0] : null;
 
     // Extract ISBN-13 preferentially
     const isbnList = bestMatch.isbn || [];
-    const isbn = isbnList.find(i => i.length === 13) || isbnList[0] || null;
+    const isbn = isbnList.find((i) => i.length === 13) || isbnList[0] || null;
 
     // Extract genres from subjects
-    const genres = bestMatch.subject && bestMatch.subject.length > 0
-      ? filterAndNormalizeGenres(bestMatch.subject)
-      : null;
+    const genres =
+      bestMatch.subject && bestMatch.subject.length > 0
+        ? filterAndNormalizeGenres(bestMatch.subject)
+        : null;
 
     // Fetch description from work endpoint (the only second call needed)
     let description = null;
     const workKey = bestMatch.key;
     if (workKey && workKey.startsWith('/works/')) {
       try {
-        const workResponse = await fetchWithTimeout(`${OPENLIBRARY_BASE_URL}${workKey}.json`, {
-          headers: {
-            'User-Agent': 'TallyReading/1.0 (educational-app)'
-          }
-        }, 5000);
+        const workResponse = await fetchWithTimeout(
+          `${OPENLIBRARY_BASE_URL}${workKey}.json`,
+          {
+            headers: {
+              'User-Agent': 'TallyReading/1.0 (educational-app)',
+            },
+          },
+          5000
+        );
 
         if (workResponse.ok) {
           const workData = await workResponse.json();
@@ -730,7 +803,7 @@ export async function fetchAllMetadata(title, author = null) {
       genres,
       coverUrl: bestMatch.cover_i ? `${COVERS_BASE_URL}/id/${bestMatch.cover_i}-M.jpg` : null,
       seriesName: null,
-      seriesNumber: null
+      seriesNumber: null,
     };
   } catch (error) {
     console.error(`Error fetching all metadata for "${title}":`, error);

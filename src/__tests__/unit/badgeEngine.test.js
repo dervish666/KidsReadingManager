@@ -1,9 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import {
-  classifyGenre,
-  GENRE_CLASSIFICATION,
-  recalculateStats,
-} from '../../utils/badgeEngine.js';
+import { classifyGenre, GENRE_CLASSIFICATION, recalculateStats } from '../../utils/badgeEngine.js';
 
 describe('classifyGenre', () => {
   it('classifies Adventure as fiction', () => {
@@ -56,8 +52,20 @@ describe('recalculateStats', () => {
 
   it('counts distinct books correctly', async () => {
     const sessions = [
-      { session_date: '2026-04-01', book_id: 'b1', duration_minutes: 15, pages_read: 10, notes: '' },
-      { session_date: '2026-04-02', book_id: 'b1', duration_minutes: 20, pages_read: 15, notes: '' },
+      {
+        session_date: '2026-04-01',
+        book_id: 'b1',
+        duration_minutes: 15,
+        pages_read: 10,
+        notes: '',
+      },
+      {
+        session_date: '2026-04-02',
+        book_id: 'b1',
+        duration_minutes: 20,
+        pages_read: 15,
+        notes: '',
+      },
       { session_date: '2026-04-03', book_id: 'b2', duration_minutes: 10, pages_read: 5, notes: '' },
     ];
     const db = mockDb(sessions, [], []);
@@ -70,8 +78,20 @@ describe('recalculateStats', () => {
 
   it('excludes marker sessions from day counts', async () => {
     const sessions = [
-      { session_date: '2026-04-01', book_id: 'b1', duration_minutes: 15, pages_read: 10, notes: '' },
-      { session_date: '2026-04-02', book_id: null, duration_minutes: null, pages_read: null, notes: '[ABSENT]' },
+      {
+        session_date: '2026-04-01',
+        book_id: 'b1',
+        duration_minutes: 15,
+        pages_read: 10,
+        notes: '',
+      },
+      {
+        session_date: '2026-04-02',
+        book_id: null,
+        duration_minutes: null,
+        pages_read: null,
+        notes: '[ABSENT]',
+      },
     ];
     const db = mockDb(sessions, [], []);
     const stats = await recalculateStats(db, 'stu-1', 'org-1');

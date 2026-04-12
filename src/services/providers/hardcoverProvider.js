@@ -32,14 +32,18 @@ const DETAILS_QUERY = `
 `;
 
 async function graphql(query, variables, apiKey) {
-  return fetchWithTimeout(GRAPHQL_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
+  return fetchWithTimeout(
+    GRAPHQL_URL,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({ query, variables }),
     },
-    body: JSON.stringify({ query, variables }),
-  }, TIMEOUT);
+    TIMEOUT
+  );
 }
 
 /**
@@ -49,9 +53,15 @@ async function graphql(query, variables, apiKey) {
  */
 export async function fetchMetadata(book, apiKey) {
   const empty = {
-    author: null, description: null, genres: null, isbn: null,
-    pageCount: null, publicationYear: null, seriesName: null,
-    seriesNumber: null, coverUrl: null,
+    author: null,
+    description: null,
+    genres: null,
+    isbn: null,
+    pageCount: null,
+    publicationYear: null,
+    seriesName: null,
+    seriesNumber: null,
+    coverUrl: null,
   };
 
   if (!apiKey) return empty;
@@ -99,11 +109,14 @@ export async function fetchMetadata(book, apiKey) {
 
     // Author from cached_contributors
     try {
-      const contributors = typeof b.cached_contributors === 'string'
-        ? JSON.parse(b.cached_contributors)
-        : b.cached_contributors;
+      const contributors =
+        typeof b.cached_contributors === 'string'
+          ? JSON.parse(b.cached_contributors)
+          : b.cached_contributors;
       result.author = contributors?.[0]?.author?.name || null;
-    } catch (e) { console.debug('Failed to parse cached data:', e?.message); }
+    } catch (e) {
+      console.debug('Failed to parse cached data:', e?.message);
+    }
 
     result.description = b.description || null;
     result.pageCount = b.pages || b.editions?.[0]?.pages || null;
@@ -114,7 +127,9 @@ export async function fetchMetadata(book, apiKey) {
     try {
       const tags = typeof b.cached_tags === 'string' ? JSON.parse(b.cached_tags) : b.cached_tags;
       result.genres = tags?.slice(0, 5).map((t) => t.tag || t) || null;
-    } catch (e) { console.debug('Failed to parse cached data:', e?.message); }
+    } catch (e) {
+      console.debug('Failed to parse cached data:', e?.message);
+    }
 
     // ISBN from edition
     const edition = b.editions?.[0];

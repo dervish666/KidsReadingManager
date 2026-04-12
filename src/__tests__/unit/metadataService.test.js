@@ -30,24 +30,33 @@ describe('metadataService.enrichBook', () => {
   it('merges results from multiple providers (first non-empty wins)', async () => {
     // Hardcover returns author + series but no description
     hcFetch.mockResolvedValueOnce({
-      author: 'Julia Donaldson', description: null, genres: null,
-      isbn: null, pageCount: null, publicationYear: null,
-      seriesName: 'Gruffalo Series', seriesNumber: 1, coverUrl: null,
+      author: 'Julia Donaldson',
+      description: null,
+      genres: null,
+      isbn: null,
+      pageCount: null,
+      publicationYear: null,
+      seriesName: 'Gruffalo Series',
+      seriesNumber: 1,
+      coverUrl: null,
     });
 
     // Google Books returns description + ISBN but no series
     gbFetch.mockResolvedValueOnce({
-      author: 'J. Donaldson', description: 'A mouse walks through the woods.',
-      genres: ['Juvenile Fiction'], isbn: '9780142403877', pageCount: 32,
-      publicationYear: 1999, seriesName: null, seriesNumber: null, coverUrl: null,
+      author: 'J. Donaldson',
+      description: 'A mouse walks through the woods.',
+      genres: ['Juvenile Fiction'],
+      isbn: '9780142403877',
+      pageCount: 32,
+      publicationYear: 1999,
+      seriesName: null,
+      seriesNumber: null,
+      coverUrl: null,
     });
 
     // OpenLibrary not called because all fields are filled after Google Books
 
-    const result = await enrichBook(
-      { id: 'book1', title: 'The Gruffalo', author: '' },
-      baseConfig,
-    );
+    const result = await enrichBook({ id: 'book1', title: 'The Gruffalo', author: '' }, baseConfig);
 
     // Author from Hardcover (first provider), description from Google Books
     expect(result.merged.author).toBe('Julia Donaldson');
@@ -60,27 +69,42 @@ describe('metadataService.enrichBook', () => {
 
   it('falls through to next provider when first returns empty', async () => {
     hcFetch.mockResolvedValueOnce({
-      author: null, description: null, genres: null, isbn: null,
-      pageCount: null, publicationYear: null, seriesName: null,
-      seriesNumber: null, coverUrl: null,
+      author: null,
+      description: null,
+      genres: null,
+      isbn: null,
+      pageCount: null,
+      publicationYear: null,
+      seriesName: null,
+      seriesNumber: null,
+      coverUrl: null,
     });
 
     gbFetch.mockResolvedValueOnce({
-      author: null, description: null, genres: null, isbn: null,
-      pageCount: null, publicationYear: null, seriesName: null,
-      seriesNumber: null, coverUrl: null,
+      author: null,
+      description: null,
+      genres: null,
+      isbn: null,
+      pageCount: null,
+      publicationYear: null,
+      seriesName: null,
+      seriesNumber: null,
+      coverUrl: null,
     });
 
     olFetch.mockResolvedValueOnce({
-      author: 'Julia Donaldson', description: 'A story.', genres: null,
-      isbn: null, pageCount: null, publicationYear: 1999,
-      seriesName: null, seriesNumber: null, coverUrl: null,
+      author: 'Julia Donaldson',
+      description: 'A story.',
+      genres: null,
+      isbn: null,
+      pageCount: null,
+      publicationYear: 1999,
+      seriesName: null,
+      seriesNumber: null,
+      coverUrl: null,
     });
 
-    const result = await enrichBook(
-      { id: 'book1', title: 'The Gruffalo' },
-      baseConfig,
-    );
+    const result = await enrichBook({ id: 'book1', title: 'The Gruffalo' }, baseConfig);
 
     expect(result.merged.author).toBe('Julia Donaldson');
     expect(result.merged.publicationYear).toBe(1999);
@@ -89,14 +113,20 @@ describe('metadataService.enrichBook', () => {
 
   it('skips providers not in the chain', async () => {
     olFetch.mockResolvedValueOnce({
-      author: 'Julia Donaldson', description: 'A story.', genres: null,
-      isbn: null, pageCount: 32, publicationYear: 1999,
-      seriesName: null, seriesNumber: null, coverUrl: null,
+      author: 'Julia Donaldson',
+      description: 'A story.',
+      genres: null,
+      isbn: null,
+      pageCount: 32,
+      publicationYear: 1999,
+      seriesName: null,
+      seriesNumber: null,
+      coverUrl: null,
     });
 
     const result = await enrichBook(
       { id: 'book1', title: 'The Gruffalo' },
-      { ...baseConfig, providerChain: ['openlibrary'] },
+      { ...baseConfig, providerChain: ['openlibrary'] }
     );
 
     expect(result.merged.author).toBe('Julia Donaldson');
@@ -106,21 +136,30 @@ describe('metadataService.enrichBook', () => {
 
   it('tracks which provider supplied which fields in the log', async () => {
     hcFetch.mockResolvedValueOnce({
-      author: 'Julia Donaldson', description: null, genres: null,
-      isbn: null, pageCount: null, publicationYear: null,
-      seriesName: 'Gruffalo Series', seriesNumber: 1, coverUrl: null,
+      author: 'Julia Donaldson',
+      description: null,
+      genres: null,
+      isbn: null,
+      pageCount: null,
+      publicationYear: null,
+      seriesName: 'Gruffalo Series',
+      seriesNumber: 1,
+      coverUrl: null,
     });
 
     gbFetch.mockResolvedValueOnce({
-      author: 'J. Donaldson', description: 'A story.', genres: ['Fiction'],
-      isbn: '9780142403877', pageCount: 32, publicationYear: 1999,
-      seriesName: null, seriesNumber: null, coverUrl: null,
+      author: 'J. Donaldson',
+      description: 'A story.',
+      genres: ['Fiction'],
+      isbn: '9780142403877',
+      pageCount: 32,
+      publicationYear: 1999,
+      seriesName: null,
+      seriesNumber: null,
+      coverUrl: null,
     });
 
-    const result = await enrichBook(
-      { id: 'book1', title: 'The Gruffalo' },
-      baseConfig,
-    );
+    const result = await enrichBook({ id: 'book1', title: 'The Gruffalo' }, baseConfig);
 
     const hcLog = result.log.find((l) => l.provider === 'hardcover');
     expect(hcLog.fields).toContain('author');

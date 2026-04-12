@@ -18,13 +18,16 @@ hardcoverRouter.post('/graphql', requireTeacher(), async (c) => {
   // Read Hardcover API key from metadata_config (owner-managed, encrypted)
   let apiKey = null;
   if (db) {
-    const row = await db.prepare(
-      `SELECT hardcover_api_key_encrypted FROM metadata_config WHERE id = 'default'`
-    ).first();
+    const row = await db
+      .prepare(`SELECT hardcover_api_key_encrypted FROM metadata_config WHERE id = 'default'`)
+      .first();
 
     if (row?.hardcover_api_key_encrypted) {
       try {
-        apiKey = await decryptSensitiveData(row.hardcover_api_key_encrypted, getEncryptionSecret(c.env));
+        apiKey = await decryptSensitiveData(
+          row.hardcover_api_key_encrypted,
+          getEncryptionSecret(c.env)
+        );
       } catch {
         // ignore decrypt errors
       }
@@ -32,7 +35,10 @@ hardcoverRouter.post('/graphql', requireTeacher(), async (c) => {
   }
 
   if (!apiKey) {
-    return c.json({ error: 'Hardcover API key is not configured. Please configure it in Settings.' }, 400);
+    return c.json(
+      { error: 'Hardcover API key is not configured. Please configure it in Settings.' },
+      400
+    );
   }
 
   const body = await c.req.json();
@@ -45,8 +51,8 @@ hardcoverRouter.post('/graphql', requireTeacher(), async (c) => {
   // Only allow read-only queries — reject mutations and subscriptions.
   // Strip comments and whitespace first to prevent bypass via `# comment\nmutation { ... }`.
   const cleaned = query
-    .replace(/#[^\n]*/g, '')   // strip single-line comments
-    .replace(/^[\s\n]+/, '');  // strip leading whitespace
+    .replace(/#[^\n]*/g, '') // strip single-line comments
+    .replace(/^[\s\n]+/, ''); // strip leading whitespace
   if (/^(mutation|subscription)\b/i.test(cleaned)) {
     return c.json({ error: 'Only read-only GraphQL queries are allowed' }, 400);
   }
@@ -56,9 +62,9 @@ hardcoverRouter.post('/graphql', requireTeacher(), async (c) => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      authorization: apiKey
+      authorization: apiKey,
     },
-    body: JSON.stringify({ query, variables })
+    body: JSON.stringify({ query, variables }),
   });
 
   try {

@@ -43,8 +43,12 @@ export const BADGE_DEFINITIONS = [
     unlockMessage: "You've started your reading journey! Your garden is sprouting.",
     icon: 'bookworm',
     keyStageThresholds: { KS1: 5, LowerKS2: 8, UpperKS2: 10 },
-    evaluate: (stats, ctx) => stats.totalBooks >= threshold(ctx.keyStage, { KS1: 5, LowerKS2: 8, UpperKS2: 10 }),
-    progress: (stats, ctx) => ({ current: stats.totalBooks, target: threshold(ctx.keyStage, { KS1: 5, LowerKS2: 8, UpperKS2: 10 }) }),
+    evaluate: (stats, ctx) =>
+      stats.totalBooks >= threshold(ctx.keyStage, { KS1: 5, LowerKS2: 8, UpperKS2: 10 }),
+    progress: (stats, ctx) => ({
+      current: stats.totalBooks,
+      target: threshold(ctx.keyStage, { KS1: 5, LowerKS2: 8, UpperKS2: 10 }),
+    }),
   },
   {
     id: 'bookworm_silver',
@@ -52,11 +56,15 @@ export const BADGE_DEFINITIONS = [
     tier: 'silver',
     category: 'volume',
     description: 'A growing collection of books read',
-    unlockMessage: "Your reading garden is flourishing! So many stories explored.",
+    unlockMessage: 'Your reading garden is flourishing! So many stories explored.',
     icon: 'bookworm',
     keyStageThresholds: { KS1: 15, LowerKS2: 25, UpperKS2: 30 },
-    evaluate: (stats, ctx) => stats.totalBooks >= threshold(ctx.keyStage, { KS1: 15, LowerKS2: 25, UpperKS2: 30 }),
-    progress: (stats, ctx) => ({ current: stats.totalBooks, target: threshold(ctx.keyStage, { KS1: 15, LowerKS2: 25, UpperKS2: 30 }) }),
+    evaluate: (stats, ctx) =>
+      stats.totalBooks >= threshold(ctx.keyStage, { KS1: 15, LowerKS2: 25, UpperKS2: 30 }),
+    progress: (stats, ctx) => ({
+      current: stats.totalBooks,
+      target: threshold(ctx.keyStage, { KS1: 15, LowerKS2: 25, UpperKS2: 30 }),
+    }),
   },
   {
     id: 'bookworm_gold',
@@ -64,11 +72,15 @@ export const BADGE_DEFINITIONS = [
     tier: 'gold',
     category: 'volume',
     description: 'An impressive reading achievement',
-    unlockMessage: "What an incredible reader you are! Your garden is blooming beautifully.",
+    unlockMessage: 'What an incredible reader you are! Your garden is blooming beautifully.',
     icon: 'bookworm',
     keyStageThresholds: { KS1: 30, LowerKS2: 50, UpperKS2: 60 },
-    evaluate: (stats, ctx) => stats.totalBooks >= threshold(ctx.keyStage, { KS1: 30, LowerKS2: 50, UpperKS2: 60 }),
-    progress: (stats, ctx) => ({ current: stats.totalBooks, target: threshold(ctx.keyStage, { KS1: 30, LowerKS2: 50, UpperKS2: 60 }) }),
+    evaluate: (stats, ctx) =>
+      stats.totalBooks >= threshold(ctx.keyStage, { KS1: 30, LowerKS2: 50, UpperKS2: 60 }),
+    progress: (stats, ctx) => ({
+      current: stats.totalBooks,
+      target: threshold(ctx.keyStage, { KS1: 30, LowerKS2: 50, UpperKS2: 60 }),
+    }),
   },
   {
     id: 'bookworm_star',
@@ -76,11 +88,15 @@ export const BADGE_DEFINITIONS = [
     tier: 'star',
     category: 'volume',
     description: 'A truly remarkable reading journey',
-    unlockMessage: "A star reader! Your reading garden is a wonder to behold.",
+    unlockMessage: 'A star reader! Your reading garden is a wonder to behold.',
     icon: 'bookworm',
     keyStageThresholds: { KS1: 50, LowerKS2: 80, UpperKS2: 100 },
-    evaluate: (stats, ctx) => stats.totalBooks >= threshold(ctx.keyStage, { KS1: 50, LowerKS2: 80, UpperKS2: 100 }),
-    progress: (stats, ctx) => ({ current: stats.totalBooks, target: threshold(ctx.keyStage, { KS1: 50, LowerKS2: 80, UpperKS2: 100 }) }),
+    evaluate: (stats, ctx) =>
+      stats.totalBooks >= threshold(ctx.keyStage, { KS1: 50, LowerKS2: 80, UpperKS2: 100 }),
+    progress: (stats, ctx) => ({
+      current: stats.totalBooks,
+      target: threshold(ctx.keyStage, { KS1: 50, LowerKS2: 80, UpperKS2: 100 }),
+    }),
   },
 
   // ── Volume: Time Traveller (3 tiers) ───────────────────────────────────
@@ -90,11 +106,15 @@ export const BADGE_DEFINITIONS = [
     tier: 'bronze',
     category: 'volume',
     description: 'Minutes spent reading',
-    unlockMessage: "All that reading time is paying off! Your garden is growing.",
+    unlockMessage: 'All that reading time is paying off! Your garden is growing.',
     icon: 'clock',
     keyStageThresholds: { KS1: 200, LowerKS2: 400, UpperKS2: 600 },
-    evaluate: (stats, ctx) => stats.totalMinutes >= threshold(ctx.keyStage, { KS1: 200, LowerKS2: 400, UpperKS2: 600 }),
-    progress: (stats, ctx) => ({ current: stats.totalMinutes, target: threshold(ctx.keyStage, { KS1: 200, LowerKS2: 400, UpperKS2: 600 }) }),
+    evaluate: (stats, ctx) =>
+      stats.totalMinutes >= threshold(ctx.keyStage, { KS1: 200, LowerKS2: 400, UpperKS2: 600 }),
+    progress: (stats, ctx) => ({
+      current: stats.totalMinutes,
+      target: threshold(ctx.keyStage, { KS1: 200, LowerKS2: 400, UpperKS2: 600 }),
+    }),
   },
   {
     id: 'time_traveller_silver',
@@ -105,8 +125,12 @@ export const BADGE_DEFINITIONS = [
     unlockMessage: "You've spent so much time with wonderful stories!",
     icon: 'clock',
     keyStageThresholds: { KS1: 600, LowerKS2: 1200, UpperKS2: 1800 },
-    evaluate: (stats, ctx) => stats.totalMinutes >= threshold(ctx.keyStage, { KS1: 600, LowerKS2: 1200, UpperKS2: 1800 }),
-    progress: (stats, ctx) => ({ current: stats.totalMinutes, target: threshold(ctx.keyStage, { KS1: 600, LowerKS2: 1200, UpperKS2: 1800 }) }),
+    evaluate: (stats, ctx) =>
+      stats.totalMinutes >= threshold(ctx.keyStage, { KS1: 600, LowerKS2: 1200, UpperKS2: 1800 }),
+    progress: (stats, ctx) => ({
+      current: stats.totalMinutes,
+      target: threshold(ctx.keyStage, { KS1: 600, LowerKS2: 1200, UpperKS2: 1800 }),
+    }),
   },
   {
     id: 'time_traveller_gold',
@@ -114,11 +138,15 @@ export const BADGE_DEFINITIONS = [
     tier: 'gold',
     category: 'volume',
     description: 'A truly committed reader',
-    unlockMessage: "What a time traveller! Hours upon hours of reading adventures.",
+    unlockMessage: 'What a time traveller! Hours upon hours of reading adventures.',
     icon: 'clock',
     keyStageThresholds: { KS1: 1500, LowerKS2: 3000, UpperKS2: 5000 },
-    evaluate: (stats, ctx) => stats.totalMinutes >= threshold(ctx.keyStage, { KS1: 1500, LowerKS2: 3000, UpperKS2: 5000 }),
-    progress: (stats, ctx) => ({ current: stats.totalMinutes, target: threshold(ctx.keyStage, { KS1: 1500, LowerKS2: 3000, UpperKS2: 5000 }) }),
+    evaluate: (stats, ctx) =>
+      stats.totalMinutes >= threshold(ctx.keyStage, { KS1: 1500, LowerKS2: 3000, UpperKS2: 5000 }),
+    progress: (stats, ctx) => ({
+      current: stats.totalMinutes,
+      target: threshold(ctx.keyStage, { KS1: 1500, LowerKS2: 3000, UpperKS2: 5000 }),
+    }),
   },
 
   // ── Consistency: Steady Reader ──────────────────────────────────────────
@@ -141,7 +169,7 @@ export const BADGE_DEFINITIONS = [
     tier: 'single',
     category: 'consistency_realtime',
     description: 'Read every day in one week',
-    unlockMessage: "A whole week of reading! Your reading garden is thriving.",
+    unlockMessage: 'A whole week of reading! Your reading garden is thriving.',
     icon: 'sun',
     evaluate: (stats) => stats.daysReadThisWeek >= 7,
     progress: (stats) => ({ current: stats.daysReadThisWeek, target: 7 }),
@@ -154,7 +182,7 @@ export const BADGE_DEFINITIONS = [
     tier: 'single',
     category: 'consistency_batch',
     description: 'Read 4+ days every week for a whole month',
-    unlockMessage: "A whole month of steady reading! That takes real dedication.",
+    unlockMessage: 'A whole month of steady reading! That takes real dedication.',
     icon: 'sun',
     evaluate: (stats) => stats.weeksWith4PlusDays >= 4,
     progress: (stats) => ({ current: stats.weeksWith4PlusDays, target: 4 }),
@@ -167,7 +195,7 @@ export const BADGE_DEFINITIONS = [
     tier: 'single',
     category: 'milestone',
     description: 'Log your first book',
-    unlockMessage: "Your very first book! Every reading garden starts with a single seed.",
+    unlockMessage: 'Your very first book! Every reading garden starts with a single seed.',
     icon: 'seedling',
     evaluate: (stats) => stats.totalBooks >= 1,
     progress: (stats) => ({ current: stats.totalBooks, target: 1 }),
@@ -200,7 +228,7 @@ export const BADGE_DEFINITIONS = [
     tier: 'bronze',
     category: 'exploration',
     description: 'Read books from 3 different genres',
-    unlockMessage: "Three genres explored! Your reading world is expanding.",
+    unlockMessage: 'Three genres explored! Your reading world is expanding.',
     icon: 'compass',
     evaluate: (stats) => (stats.genresRead?.length || 0) >= 3,
     progress: (stats) => ({ current: stats.genresRead?.length || 0, target: 3 }),
@@ -235,7 +263,7 @@ export const BADGE_DEFINITIONS = [
     tier: 'single',
     category: 'exploration',
     description: 'Read both fiction and non-fiction books',
-    unlockMessage: "Stories and facts — you enjoy both! A well-rounded reader.",
+    unlockMessage: 'Stories and facts — you enjoy both! A well-rounded reader.',
     icon: 'compass',
     evaluate: (stats) => stats.fictionCount >= 1 && stats.nonfictionCount >= 1,
     progress: (stats) => ({
@@ -272,7 +300,7 @@ export const BADGE_DEFINITIONS = [
     tier: 'single',
     category: 'secret',
     description: 'Read on both Saturday and Sunday of the same weekend',
-    unlockMessage: "Reading all weekend! Your garden grows even on rest days.",
+    unlockMessage: 'Reading all weekend! Your garden grows even on rest days.',
     icon: 'hidden',
     isSecret: true,
     evaluate: (_stats, ctx) => {

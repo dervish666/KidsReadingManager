@@ -52,14 +52,16 @@ const BookManager = () => {
   useEffect(() => {
     let cancelled = false;
     fetchWithAuth('/api/books?all=true')
-      .then((r) => r.ok ? r.json() : null)
+      .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (!cancelled && data) {
-          setFullBooks(Array.isArray(data) ? data : (data.books || []));
+          setFullBooks(Array.isArray(data) ? data : data.books || []);
         }
       })
       .catch(() => {});
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [fetchWithAuth]);
 
   const [newBookTitle, setNewBookTitle] = useState('');
@@ -164,13 +166,13 @@ const BookManager = () => {
         setConfirmImport({
           open: true,
           file,
-          data: importedData
+          data: importedData,
         });
       } catch (error) {
         setSnackbar({
           open: true,
           message: `Import failed: ${error.message}`,
-          severity: 'error'
+          severity: 'error',
         });
       }
     };
@@ -191,7 +193,7 @@ const BookManager = () => {
       }
 
       // Filter valid books
-      const validBooks = importedBooks.filter(book => book.title && book.title.trim());
+      const validBooks = importedBooks.filter((book) => book.title && book.title.trim());
 
       if (validBooks.length === 0) {
         throw new Error('No valid books found in import data');
@@ -222,13 +224,13 @@ const BookManager = () => {
       setSnackbar({
         open: true,
         message,
-        severity: 'success'
+        severity: 'success',
       });
     } catch (error) {
       setSnackbar({
         open: true,
         message: `Import failed: ${error.message}`,
-        severity: 'error'
+        severity: 'error',
       });
     }
   };
@@ -264,7 +266,7 @@ const BookManager = () => {
   // Get unique reading levels from books
   const readingLevels = useMemo(() => {
     const levels = new Set();
-    books.forEach(book => {
+    books.forEach((book) => {
       if (book.readingLevel) {
         levels.add(book.readingLevel);
       }
@@ -279,7 +281,7 @@ const BookManager = () => {
     // Search filter - search by title or author
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
-      filtered = filtered.filter(book => {
+      filtered = filtered.filter((book) => {
         const title = (book.title || '').toLowerCase();
         const author = (book.author || '').toLowerCase();
         return title.includes(query) || author.includes(query);
@@ -287,7 +289,7 @@ const BookManager = () => {
     }
 
     if (genreFilter) {
-      filtered = filtered.filter(book => {
+      filtered = filtered.filter((book) => {
         const bookGenreIds = book.genreIds || [];
         return bookGenreIds.includes(genreFilter);
       });
@@ -300,14 +302,14 @@ const BookManager = () => {
         const range = levelRangeFilter ? parseFloat(levelRangeFilter) : 0;
         const maxLevel = baseLevel + range;
 
-        filtered = filtered.filter(book => {
+        filtered = filtered.filter((book) => {
           const bookLevel = parseFloat(book.readingLevel);
           if (isNaN(bookLevel)) return false;
           return bookLevel >= baseLevel && bookLevel <= maxLevel;
         });
       } else {
         // Non-numeric level - exact match only
-        filtered = filtered.filter(book => book.readingLevel === readingLevelFilter);
+        filtered = filtered.filter((book) => book.readingLevel === readingLevelFilter);
       }
     }
 
@@ -336,7 +338,7 @@ const BookManager = () => {
   };
 
   const getGenreName = (genreId) => {
-    const genre = genres.find(g => g.id === genreId);
+    const genre = genres.find((g) => g.id === genreId);
     return genre ? genre.name : 'Unknown';
   };
 
@@ -360,15 +362,12 @@ const BookManager = () => {
 
       {/* Add Book Form and Actions */}
       <Box sx={{ mt: 2 }}>
-        <Paper
-          component="form"
-          onSubmit={handleAddBook}
-          variant="outlined"
-          sx={{ p: 2 }}
-        >
+        <Paper component="form" onSubmit={handleAddBook} variant="outlined" sx={{ p: 2 }}>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
             {/* Add Book Form Fields */}
-            <Box sx={{ display: 'flex', gap: 1.5, flex: '1 1 auto', flexWrap: 'wrap', minWidth: 300 }}>
+            <Box
+              sx={{ display: 'flex', gap: 1.5, flex: '1 1 auto', flexWrap: 'wrap', minWidth: 300 }}
+            >
               <Typography variant="subtitle2" sx={{ width: '100%', mb: 0.5 }}>
                 Add New Book
               </Typography>
@@ -414,7 +413,15 @@ const BookManager = () => {
             </Box>
 
             {/* Action Buttons */}
-            <Box sx={{ display: 'flex', gap: 1, flex: '0 0 auto', alignItems: 'center', alignSelf: 'flex-end' }}>
+            <Box
+              sx={{
+                display: 'flex',
+                gap: 1,
+                flex: '0 0 auto',
+                alignItems: 'center',
+                alignSelf: 'flex-end',
+              }}
+            >
               {/* Scan ISBN Button */}
               <Button
                 variant="outlined"
@@ -452,10 +459,23 @@ const BookManager = () => {
       )}
 
       <Box sx={{ mt: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            mb: 2,
+            flexWrap: 'wrap',
+            gap: 2,
+          }}
+        >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
             <Typography variant="subtitle1">
-              Existing Books ({(genreFilter || readingLevelFilter || searchQuery) ? `${filteredBooks.length} of ${books.length}` : books.length})
+              Existing Books (
+              {genreFilter || readingLevelFilter || searchQuery
+                ? `${filteredBooks.length} of ${books.length}`
+                : books.length}
+              )
             </Typography>
 
             {/* Search Box */}
@@ -486,7 +506,9 @@ const BookManager = () => {
                 >
                   <MenuItem value="">All Genres</MenuItem>
                   {genres.map((genre) => (
-                    <MenuItem key={genre.id} value={genre.id}>{genre.name}</MenuItem>
+                    <MenuItem key={genre.id} value={genre.id}>
+                      {genre.name}
+                    </MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -503,7 +525,9 @@ const BookManager = () => {
                 >
                   <MenuItem value="">All Levels</MenuItem>
                   {readingLevels.map((level) => (
-                    <MenuItem key={level} value={level}>{level}</MenuItem>
+                    <MenuItem key={level} value={level}>
+                      {level}
+                    </MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -549,7 +573,9 @@ const BookManager = () => {
               </FormControl>
 
               <Typography variant="body2" color="text.secondary">
-                Showing {Math.min((currentPage - 1) * booksPerPage + 1, filteredBooks.length)}-{Math.min(currentPage * booksPerPage, filteredBooks.length)} of {filteredBooks.length}
+                Showing {Math.min((currentPage - 1) * booksPerPage + 1, filteredBooks.length)}-
+                {Math.min(currentPage * booksPerPage, filteredBooks.length)} of{' '}
+                {filteredBooks.length}
               </Typography>
             </Box>
           )}
@@ -558,7 +584,9 @@ const BookManager = () => {
         {books.length === 0 ? (
           <Typography variant="body2">No books created yet.</Typography>
         ) : filteredBooks.length === 0 ? (
-          <Typography variant="body2" color="text.secondary">No books match the selected filters.</Typography>
+          <Typography variant="body2" color="text.secondary">
+            No books match the selected filters.
+          </Typography>
         ) : (
           <>
             <List>
@@ -570,8 +598,8 @@ const BookManager = () => {
                   sx={{
                     cursor: 'pointer',
                     '&:hover': {
-                      backgroundColor: 'action.hover'
-                    }
+                      backgroundColor: 'action.hover',
+                    },
                   }}
                   secondaryAction={
                     <IconButton
@@ -592,8 +620,18 @@ const BookManager = () => {
                   </Box>
                   <ListItemText
                     primary={
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', pr: 2 }}>
-                        <Typography variant="subtitle2" sx={{ flexShrink: 0 }}>{book.title}</Typography>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1,
+                          flexWrap: 'wrap',
+                          pr: 2,
+                        }}
+                      >
+                        <Typography variant="subtitle2" sx={{ flexShrink: 0 }}>
+                          {book.title}
+                        </Typography>
                         {book.author && (
                           <Chip
                             label={`by ${book.author}`}
@@ -645,7 +683,7 @@ const BookManager = () => {
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               whiteSpace: 'nowrap',
-                              minWidth: 0
+                              minWidth: 0,
                             }}
                           >
                             {book.description}
@@ -712,8 +750,8 @@ const BookManager = () => {
               importedBooks = confirmImport.data.books;
             }
 
-            const validBooks = importedBooks.filter(book => book.title && book.title.trim());
-            const duplicates = validBooks.filter(book => isDuplicateBook(book, books));
+            const validBooks = importedBooks.filter((book) => book.title && book.title.trim());
+            const duplicates = validBooks.filter((book) => isDuplicateBook(book, books));
             const newBooks = validBooks.length - duplicates.length;
 
             return (
@@ -738,14 +776,28 @@ const BookManager = () => {
                     <Typography variant="subtitle2" gutterBottom>
                       Duplicates to be skipped:
                     </Typography>
-                    <Box sx={{ maxHeight: 200, overflow: 'auto', border: 1, borderColor: 'divider', borderRadius: 1, p: 1 }}>
+                    <Box
+                      sx={{
+                        maxHeight: 200,
+                        overflow: 'auto',
+                        border: 1,
+                        borderColor: 'divider',
+                        borderRadius: 1,
+                        p: 1,
+                      }}
+                    >
                       {duplicates.slice(0, 10).map((book, index) => (
                         <Typography key={index} variant="body2" color="text.secondary">
-                          • {book.title}{book.author ? ` by ${book.author}` : ''}
+                          • {book.title}
+                          {book.author ? ` by ${book.author}` : ''}
                         </Typography>
                       ))}
                       {duplicates.length > 10 && (
-                        <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{ fontStyle: 'italic' }}
+                        >
                           ... and {duplicates.length - 10} more
                         </Typography>
                       )}
@@ -765,10 +817,7 @@ const BookManager = () => {
       </Dialog>
 
       {/* Book Import Wizard */}
-      <BookImportWizard
-        open={showImportWizard}
-        onClose={() => setShowImportWizard(false)}
-      />
+      <BookImportWizard open={showImportWizard} onClose={() => setShowImportWizard(false)} />
 
       {/* ISBN Scanner Flow */}
       <ScanBookFlow
@@ -777,7 +826,11 @@ const BookManager = () => {
         onBookSelected={(book) => {
           setScannerOpen(false);
           reloadDataFromServer();
-          setSnackbar({ open: true, message: `Added "${book.title}" to library`, severity: 'success' });
+          setSnackbar({
+            open: true,
+            message: `Added "${book.title}" to library`,
+            severity: 'success',
+          });
         }}
       />
 
@@ -788,11 +841,7 @@ const BookManager = () => {
         onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
-        >
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
           {snackbar.message}
         </Alert>
       </Snackbar>

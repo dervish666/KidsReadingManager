@@ -13,7 +13,7 @@ import {
   Typography,
   TableSortLabel,
   Snackbar,
-  Alert
+  Alert,
 } from '@mui/material';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import CheckIcon from '@mui/icons-material/Check';
@@ -81,7 +81,8 @@ const StudentTable = React.memo(({ students }) => {
 
   const getDaysSince = (student) => studentDerivedData.get(student.id)?.daysSince || 'Never read';
   const getClassName = (student) => studentDerivedData.get(student.id)?.className || 'Unassigned';
-  const getMostRecentReadDate = (student) => studentDerivedData.get(student.id)?.mostRecentReadDate || null;
+  const getMostRecentReadDate = (student) =>
+    studentDerivedData.get(student.id)?.mostRecentReadDate || null;
 
   const handleRowClick = (student) => {
     setSelectedStudent(student);
@@ -95,7 +96,7 @@ const StudentTable = React.memo(({ students }) => {
       setMarkedStudentId(student.id);
       setSnackbar({
         open: true,
-        message: `${student.name} added to reading list`
+        message: `${student.name} added to reading list`,
       });
       // Clear the checkmark animation after a delay
       if (markedStudentTimerRef.current) {
@@ -153,16 +154,16 @@ const StudentTable = React.memo(({ students }) => {
 
   return (
     <>
-      <TableContainer 
-        component={Paper} 
-        sx={{ 
+      <TableContainer
+        component={Paper}
+        sx={{
           borderRadius: 0,
           boxShadow: 1,
           '& .MuiTableCell-root': {
             // Touch-friendly padding
             py: { xs: 2, sm: 1.5 },
-            px: { xs: 1.5, sm: 2 }
-          }
+            px: { xs: 1.5, sm: 2 },
+          },
         }}
       >
         <Table sx={{ minWidth: { xs: 300, sm: 650 } }}>
@@ -179,13 +180,15 @@ const StudentTable = React.memo(({ students }) => {
                     '&:hover': { color: 'white !important' },
                     '& .MuiTableSortLabel-icon': { color: 'white !important' },
                     '&.Mui-active': { color: 'white !important' },
-                    '&.Mui-active .MuiTableSortLabel-icon': { color: 'white !important' }
+                    '&.Mui-active .MuiTableSortLabel-icon': { color: 'white !important' },
                   }}
                 >
                   Student
                 </TableSortLabel>
               </TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 600, display: { xs: 'none', sm: 'table-cell' } }}>
+              <TableCell
+                sx={{ color: 'white', fontWeight: 600, display: { xs: 'none', sm: 'table-cell' } }}
+              >
                 <TableSortLabel
                   active={orderBy === 'class'}
                   direction={orderBy === 'class' ? order : 'asc'}
@@ -196,7 +199,7 @@ const StudentTable = React.memo(({ students }) => {
                     '&:hover': { color: 'white !important' },
                     '& .MuiTableSortLabel-icon': { color: 'white !important' },
                     '&.Mui-active': { color: 'white !important' },
-                    '&.Mui-active .MuiTableSortLabel-icon': { color: 'white !important' }
+                    '&.Mui-active .MuiTableSortLabel-icon': { color: 'white !important' },
                   }}
                 >
                   Class
@@ -213,7 +216,7 @@ const StudentTable = React.memo(({ students }) => {
                     '&:hover': { color: 'white !important' },
                     '& .MuiTableSortLabel-icon': { color: 'white !important' },
                     '&.Mui-active': { color: 'white !important' },
-                    '&.Mui-active .MuiTableSortLabel-icon': { color: 'white !important' }
+                    '&.Mui-active .MuiTableSortLabel-icon': { color: 'white !important' },
                   }}
                 >
                   Last Read
@@ -230,7 +233,7 @@ const StudentTable = React.memo(({ students }) => {
                     '&:hover': { color: 'white !important' },
                     '& .MuiTableSortLabel-icon': { color: 'white !important' },
                     '&.Mui-active': { color: 'white !important' },
-                    '&.Mui-active .MuiTableSortLabel-icon': { color: 'white !important' }
+                    '&.Mui-active .MuiTableSortLabel-icon': { color: 'white !important' },
                   }}
                 >
                   Sessions
@@ -267,7 +270,12 @@ const StudentTable = React.memo(({ students }) => {
                   tabIndex={0}
                   role="row"
                   aria-label={`${student.name}, status: ${{ recent: 'Recently read', attention: 'Needs attention', never: 'Not read', overdue: 'Overdue' }[status] || status}`}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleRowClick(student); } }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleRowClick(student);
+                    }
+                  }}
                 >
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -278,7 +286,7 @@ const StudentTable = React.memo(({ students }) => {
 
                         return (
                           <Tooltip
-                            title={isMarkedForToday ? "Reading today ✓" : "Reading today"}
+                            title={isMarkedForToday ? 'Reading today ✓' : 'Reading today'}
                             arrow
                             placement="top"
                           >
@@ -286,7 +294,11 @@ const StudentTable = React.memo(({ students }) => {
                               onClick={(e) => handleIconClick(e, student)}
                               role="button"
                               tabIndex={0}
-                              aria-label={isMarkedForToday ? `${student.name} marked as reading today` : `Mark ${student.name} as reading today`}
+                              aria-label={
+                                isMarkedForToday
+                                  ? `${student.name} marked as reading today`
+                                  : `Mark ${student.name} as reading today`
+                              }
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter' || e.key === ' ') {
                                   e.preventDefault();
@@ -308,11 +320,11 @@ const StudentTable = React.memo(({ students }) => {
                                 transition: 'all 0.2s ease-in-out',
                                 '&:hover': {
                                   transform: 'scale(1.1)',
-                                  bgcolor: showGreen ? 'success.dark' : 'primary.dark'
+                                  bgcolor: showGreen ? 'success.dark' : 'primary.dark',
                                 },
                                 '&:active': {
-                                  transform: 'scale(0.95)'
-                                }
+                                  transform: 'scale(0.95)',
+                                },
                               }}
                             >
                               {isJustClicked ? (
@@ -333,7 +345,7 @@ const StudentTable = React.memo(({ students }) => {
                               fontSize: { xs: '0.95rem', sm: '1rem' },
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap'
+                              whiteSpace: 'nowrap',
                             }}
                           >
                             {student.name} ({student.totalSessionCount || 0})
@@ -342,12 +354,12 @@ const StudentTable = React.memo(({ students }) => {
                             <StreakBadge streak={student.currentStreak} size="small" />
                           )}
                         </Box>
-                        <Typography 
-                          variant="body2" 
+                        <Typography
+                          variant="body2"
                           color="text.secondary"
-                          sx={{ 
+                          sx={{
                             fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                            display: { xs: 'block', sm: 'none' }
+                            display: { xs: 'block', sm: 'none' },
                           }}
                         >
                           {getClassName(student)}
@@ -365,20 +377,26 @@ const StudentTable = React.memo(({ students }) => {
                       <Chip
                         label={formatDate(mostRecentReadDate)}
                         size="small"
-                        color={paletteKey === 'notRead' ? 'error' : paletteKey === 'needsAttention' ? 'warning' : 'success'}
+                        color={
+                          paletteKey === 'notRead'
+                            ? 'error'
+                            : paletteKey === 'needsAttention'
+                              ? 'warning'
+                              : 'success'
+                        }
                         sx={{
                           height: { xs: 26, sm: 24 },
                           fontSize: { xs: '0.75rem', sm: '0.7rem' },
                           fontWeight: 500,
-                          alignSelf: 'flex-start'
+                          alignSelf: 'flex-start',
                         }}
                       />
-                      <Typography 
-                        variant="caption" 
+                      <Typography
+                        variant="caption"
                         color="text.secondary"
-                        sx={{ 
+                        sx={{
                           fontStyle: 'italic',
-                          fontSize: { xs: '0.7rem', sm: '0.65rem' }
+                          fontSize: { xs: '0.7rem', sm: '0.65rem' },
                         }}
                       >
                         {getDaysSince(student)}
@@ -394,7 +412,7 @@ const StudentTable = React.memo(({ students }) => {
                         height: { xs: 26, sm: 24 },
                         fontSize: { xs: '0.75rem', sm: '0.7rem' },
                         fontWeight: 600,
-                        minWidth: { xs: 40, sm: 36 }
+                        minWidth: { xs: 40, sm: 36 },
                       }}
                     />
                   </TableCell>

@@ -55,7 +55,7 @@ const getAllBooks = async (env) => {
 const getBookById = async (env, id) => {
   try {
     const books = await getAllBooks(env);
-    return books.find(book => book.id === id) || null;
+    return books.find((book) => book.id === id) || null;
   } catch (error) {
     console.error('Error getting book by ID from KV:', error);
     throw new Error('Failed to retrieve book');
@@ -105,7 +105,7 @@ const updateBook = async (env, id, updatedBook) => {
     }
 
     const books = await getAllBooks(env);
-    const index = books.findIndex(book => book.id === id);
+    const index = books.findIndex((book) => book.id === id);
 
     if (index === -1) {
       throw new Error('Book not found');
@@ -138,10 +138,10 @@ const deleteBook = async (env, id) => {
     }
 
     const books = await getAllBooks(env);
-    const bookToDelete = books.find(book => book.id === id);
+    const bookToDelete = books.find((book) => book.id === id);
     const initialLength = books.length;
 
-    const updatedBooks = books.filter(book => book.id !== id);
+    const updatedBooks = books.filter((book) => book.id !== id);
 
     if (updatedBooks.length === initialLength) {
       throw new Error('Book not found');
@@ -177,13 +177,13 @@ const addBooksBatch = async (env, newBooks) => {
 
     // Get current books (1 KV operation)
     const existingBooks = await getAllBooks(env);
-    
+
     // Add all new books to the array
     const updatedBooks = [...existingBooks, ...newBooks];
-    
+
     // Save updated books array (1 KV operation)
     await kv.put('books', JSON.stringify(updatedBooks));
-    
+
     return newBooks;
   } catch (error) {
     console.error('Error adding books batch to KV:', error);
@@ -212,19 +212,19 @@ const updateBooksBatch = async (env, bookUpdates) => {
     // Get current books (1 KV operation)
     const books = await getAllBooks(env);
     const updatedBooks = [];
-    
+
     // Apply all updates
     bookUpdates.forEach(({ id, bookData }) => {
-      const index = books.findIndex(book => book.id === id);
+      const index = books.findIndex((book) => book.id === id);
       if (index !== -1) {
         books[index] = { ...bookData, id };
         updatedBooks.push(books[index]);
       }
     });
-    
+
     // Save updated books array (1 KV operation)
     await kv.put('books', JSON.stringify(books));
-    
+
     return updatedBooks;
   } catch (error) {
     console.error('Error updating books batch in KV:', error);
@@ -239,5 +239,5 @@ export {
   updateBook,
   deleteBook,
   addBooksBatch,
-  updateBooksBatch
+  updateBooksBatch,
 };

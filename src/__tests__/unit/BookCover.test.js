@@ -6,9 +6,7 @@ import BookCover from '../../components/BookCover';
 import { _clearPendingRequests } from '../../hooks/useBookCover';
 
 // Wrapper component for providing context
-const wrapper = ({ children }) => (
-  <BookCoverProvider>{children}</BookCoverProvider>
-);
+const wrapper = ({ children }) => <BookCoverProvider>{children}</BookCoverProvider>;
 
 const renderWithProvider = (ui) => {
   return render(ui, { wrapper });

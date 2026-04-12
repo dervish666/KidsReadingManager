@@ -6,7 +6,7 @@ describe('buildStudentReadingProfile', () => {
 
   beforeEach(() => {
     mockDb = {
-      prepare: vi.fn()
+      prepare: vi.fn(),
     };
   });
 
@@ -24,8 +24,8 @@ describe('buildStudentReadingProfile', () => {
         age_range: '8-10',
         likes: JSON.stringify(['The Hobbit']),
         dislikes: JSON.stringify(['Scary Stories']),
-        notes: 'Loves adventure books'
-      })
+        notes: 'Loves adventure books',
+      }),
     };
 
     // Mock preferences query
@@ -34,9 +34,9 @@ describe('buildStudentReadingProfile', () => {
       all: vi.fn().mockResolvedValue({
         results: [
           { genre_id: 'genre-1', genre_name: 'Fantasy', preference_type: 'favorite' },
-          { genre_id: 'genre-2', genre_name: 'Adventure', preference_type: 'favorite' }
-        ]
-      })
+          { genre_id: 'genre-2', genre_name: 'Adventure', preference_type: 'favorite' },
+        ],
+      }),
     };
 
     // Mock reading sessions query (for inferred genres)
@@ -44,11 +44,29 @@ describe('buildStudentReadingProfile', () => {
       bind: vi.fn().mockReturnThis(),
       all: vi.fn().mockResolvedValue({
         results: [
-          { book_id: 'book-1', title: 'Book One', author: 'Author A', genre_ids: 'genre-1,genre-3', session_date: '2024-01-03' },
-          { book_id: 'book-2', title: 'Book Two', author: 'Author B', genre_ids: 'genre-1', session_date: '2024-01-02' },
-          { book_id: 'book-3', title: 'Book Three', author: 'Author C', genre_ids: 'genre-3', session_date: '2024-01-01' }
-        ]
-      })
+          {
+            book_id: 'book-1',
+            title: 'Book One',
+            author: 'Author A',
+            genre_ids: 'genre-1,genre-3',
+            session_date: '2024-01-03',
+          },
+          {
+            book_id: 'book-2',
+            title: 'Book Two',
+            author: 'Author B',
+            genre_ids: 'genre-1',
+            session_date: '2024-01-02',
+          },
+          {
+            book_id: 'book-3',
+            title: 'Book Three',
+            author: 'Author C',
+            genre_ids: 'genre-3',
+            session_date: '2024-01-01',
+          },
+        ],
+      }),
     };
 
     // Mock genre names query
@@ -57,9 +75,9 @@ describe('buildStudentReadingProfile', () => {
       all: vi.fn().mockResolvedValue({
         results: [
           { id: 'genre-1', name: 'Fantasy' },
-          { id: 'genre-3', name: 'Mystery' }
-        ]
-      })
+          { id: 'genre-3', name: 'Mystery' },
+        ],
+      }),
     };
 
     mockDb.prepare
@@ -91,7 +109,7 @@ describe('buildStudentReadingProfile', () => {
   it('should return null if student not found', async () => {
     const studentQuery = {
       bind: vi.fn().mockReturnThis(),
-      first: vi.fn().mockResolvedValue(null)
+      first: vi.fn().mockResolvedValue(null),
     };
 
     mockDb.prepare.mockReturnValueOnce(studentQuery);
@@ -111,18 +129,18 @@ describe('buildStudentReadingProfile', () => {
         age_range: '6-8',
         likes: '[]',
         dislikes: '[]',
-        notes: null
-      })
+        notes: null,
+      }),
     };
 
     const preferencesQuery = {
       bind: vi.fn().mockReturnThis(),
-      all: vi.fn().mockResolvedValue({ results: [] })
+      all: vi.fn().mockResolvedValue({ results: [] }),
     };
 
     const sessionsQuery = {
       bind: vi.fn().mockReturnThis(),
-      all: vi.fn().mockResolvedValue({ results: [] })
+      all: vi.fn().mockResolvedValue({ results: [] }),
     };
 
     mockDb.prepare
@@ -149,18 +167,18 @@ describe('buildStudentReadingProfile', () => {
         age_range: null,
         likes: null,
         dislikes: null,
-        notes: null
-      })
+        notes: null,
+      }),
     };
 
     const preferencesQuery = {
       bind: vi.fn().mockReturnThis(),
-      all: vi.fn().mockResolvedValue({ results: [] })
+      all: vi.fn().mockResolvedValue({ results: [] }),
     };
 
     const sessionsQuery = {
       bind: vi.fn().mockReturnThis(),
-      all: vi.fn().mockResolvedValue({ results: [] })
+      all: vi.fn().mockResolvedValue({ results: [] }),
     };
 
     mockDb.prepare
@@ -187,13 +205,13 @@ describe('buildStudentReadingProfile', () => {
         age_range: '10-12',
         likes: '[]',
         dislikes: '[]',
-        notes: null
-      })
+        notes: null,
+      }),
     };
 
     const preferencesQuery = {
       bind: vi.fn().mockReturnThis(),
-      all: vi.fn().mockResolvedValue({ results: [] })
+      all: vi.fn().mockResolvedValue({ results: [] }),
     };
 
     // Reading history with 5 different genres
@@ -201,15 +219,57 @@ describe('buildStudentReadingProfile', () => {
       bind: vi.fn().mockReturnThis(),
       all: vi.fn().mockResolvedValue({
         results: [
-          { book_id: 'book-1', title: 'Book 1', author: 'A1', genre_ids: 'genre-fantasy', session_date: '2024-01-10' },
-          { book_id: 'book-2', title: 'Book 2', author: 'A2', genre_ids: 'genre-fantasy', session_date: '2024-01-09' },
-          { book_id: 'book-3', title: 'Book 3', author: 'A3', genre_ids: 'genre-fantasy,genre-mystery', session_date: '2024-01-08' },
-          { book_id: 'book-4', title: 'Book 4', author: 'A4', genre_ids: 'genre-mystery', session_date: '2024-01-07' },
-          { book_id: 'book-5', title: 'Book 5', author: 'A5', genre_ids: 'genre-adventure', session_date: '2024-01-06' },
-          { book_id: 'book-6', title: 'Book 6', author: 'A6', genre_ids: 'genre-scifi', session_date: '2024-01-05' },
-          { book_id: 'book-7', title: 'Book 7', author: 'A7', genre_ids: 'genre-horror', session_date: '2024-01-04' }
-        ]
-      })
+          {
+            book_id: 'book-1',
+            title: 'Book 1',
+            author: 'A1',
+            genre_ids: 'genre-fantasy',
+            session_date: '2024-01-10',
+          },
+          {
+            book_id: 'book-2',
+            title: 'Book 2',
+            author: 'A2',
+            genre_ids: 'genre-fantasy',
+            session_date: '2024-01-09',
+          },
+          {
+            book_id: 'book-3',
+            title: 'Book 3',
+            author: 'A3',
+            genre_ids: 'genre-fantasy,genre-mystery',
+            session_date: '2024-01-08',
+          },
+          {
+            book_id: 'book-4',
+            title: 'Book 4',
+            author: 'A4',
+            genre_ids: 'genre-mystery',
+            session_date: '2024-01-07',
+          },
+          {
+            book_id: 'book-5',
+            title: 'Book 5',
+            author: 'A5',
+            genre_ids: 'genre-adventure',
+            session_date: '2024-01-06',
+          },
+          {
+            book_id: 'book-6',
+            title: 'Book 6',
+            author: 'A6',
+            genre_ids: 'genre-scifi',
+            session_date: '2024-01-05',
+          },
+          {
+            book_id: 'book-7',
+            title: 'Book 7',
+            author: 'A7',
+            genre_ids: 'genre-horror',
+            session_date: '2024-01-04',
+          },
+        ],
+      }),
     };
 
     // Genre names query (will only be called for top 3)
@@ -219,9 +279,9 @@ describe('buildStudentReadingProfile', () => {
         results: [
           { id: 'genre-fantasy', name: 'Fantasy' },
           { id: 'genre-mystery', name: 'Mystery' },
-          { id: 'genre-adventure', name: 'Adventure' }
-        ]
-      })
+          { id: 'genre-adventure', name: 'Adventure' },
+        ],
+      }),
     };
 
     mockDb.prepare
@@ -253,13 +313,13 @@ describe('buildStudentReadingProfile', () => {
         age_range: '8-10',
         likes: '[]',
         dislikes: '[]',
-        notes: null
-      })
+        notes: null,
+      }),
     };
 
     const preferencesQuery = {
       bind: vi.fn().mockReturnThis(),
-      all: vi.fn().mockResolvedValue({ results: [] })
+      all: vi.fn().mockResolvedValue({ results: [] }),
     };
 
     // 8 reading sessions
@@ -267,16 +327,64 @@ describe('buildStudentReadingProfile', () => {
       bind: vi.fn().mockReturnThis(),
       all: vi.fn().mockResolvedValue({
         results: [
-          { book_id: 'book-1', title: 'Most Recent', author: 'Author 1', genre_ids: null, session_date: '2024-01-08' },
-          { book_id: 'book-2', title: 'Second', author: 'Author 2', genre_ids: null, session_date: '2024-01-07' },
-          { book_id: 'book-3', title: 'Third', author: 'Author 3', genre_ids: null, session_date: '2024-01-06' },
-          { book_id: 'book-4', title: 'Fourth', author: 'Author 4', genre_ids: null, session_date: '2024-01-05' },
-          { book_id: 'book-5', title: 'Fifth', author: 'Author 5', genre_ids: null, session_date: '2024-01-04' },
-          { book_id: 'book-6', title: 'Sixth', author: 'Author 6', genre_ids: null, session_date: '2024-01-03' },
-          { book_id: 'book-7', title: 'Seventh', author: 'Author 7', genre_ids: null, session_date: '2024-01-02' },
-          { book_id: 'book-8', title: 'Eighth', author: 'Author 8', genre_ids: null, session_date: '2024-01-01' }
-        ]
-      })
+          {
+            book_id: 'book-1',
+            title: 'Most Recent',
+            author: 'Author 1',
+            genre_ids: null,
+            session_date: '2024-01-08',
+          },
+          {
+            book_id: 'book-2',
+            title: 'Second',
+            author: 'Author 2',
+            genre_ids: null,
+            session_date: '2024-01-07',
+          },
+          {
+            book_id: 'book-3',
+            title: 'Third',
+            author: 'Author 3',
+            genre_ids: null,
+            session_date: '2024-01-06',
+          },
+          {
+            book_id: 'book-4',
+            title: 'Fourth',
+            author: 'Author 4',
+            genre_ids: null,
+            session_date: '2024-01-05',
+          },
+          {
+            book_id: 'book-5',
+            title: 'Fifth',
+            author: 'Author 5',
+            genre_ids: null,
+            session_date: '2024-01-04',
+          },
+          {
+            book_id: 'book-6',
+            title: 'Sixth',
+            author: 'Author 6',
+            genre_ids: null,
+            session_date: '2024-01-03',
+          },
+          {
+            book_id: 'book-7',
+            title: 'Seventh',
+            author: 'Author 7',
+            genre_ids: null,
+            session_date: '2024-01-02',
+          },
+          {
+            book_id: 'book-8',
+            title: 'Eighth',
+            author: 'Author 8',
+            genre_ids: null,
+            session_date: '2024-01-01',
+          },
+        ],
+      }),
     };
 
     mockDb.prepare
@@ -305,13 +413,13 @@ describe('buildStudentReadingProfile', () => {
         age_range: '8-10',
         likes: '[]',
         dislikes: '[]',
-        notes: null
-      })
+        notes: null,
+      }),
     };
 
     const preferencesQuery = {
       bind: vi.fn().mockReturnThis(),
-      all: vi.fn().mockResolvedValue({ results: [] })
+      all: vi.fn().mockResolvedValue({ results: [] }),
     };
 
     // Some sessions with book_id, some without
@@ -319,11 +427,29 @@ describe('buildStudentReadingProfile', () => {
       bind: vi.fn().mockReturnThis(),
       all: vi.fn().mockResolvedValue({
         results: [
-          { book_id: 'book-1', title: 'Book One', author: 'Author 1', genre_ids: null, session_date: '2024-01-03' },
-          { book_id: null, title: 'Unknown Book', author: null, genre_ids: null, session_date: '2024-01-02' },
-          { book_id: 'book-2', title: 'Book Two', author: 'Author 2', genre_ids: null, session_date: '2024-01-01' }
-        ]
-      })
+          {
+            book_id: 'book-1',
+            title: 'Book One',
+            author: 'Author 1',
+            genre_ids: null,
+            session_date: '2024-01-03',
+          },
+          {
+            book_id: null,
+            title: 'Unknown Book',
+            author: null,
+            genre_ids: null,
+            session_date: '2024-01-02',
+          },
+          {
+            book_id: 'book-2',
+            title: 'Book Two',
+            author: 'Author 2',
+            genre_ids: null,
+            session_date: '2024-01-01',
+          },
+        ],
+      }),
     };
 
     mockDb.prepare
@@ -350,28 +476,34 @@ describe('buildStudentReadingProfile', () => {
         age_range: '8-10',
         likes: '[]',
         dislikes: '[]',
-        notes: null
-      })
+        notes: null,
+      }),
     };
 
     const preferencesQuery = {
       bind: vi.fn().mockReturnThis(),
-      all: vi.fn().mockResolvedValue({ results: [] })
+      all: vi.fn().mockResolvedValue({ results: [] }),
     };
 
     const sessionsQuery = {
       bind: vi.fn().mockReturnThis(),
       all: vi.fn().mockResolvedValue({
         results: [
-          { book_id: 'book-1', title: 'Book One', author: 'Author 1', genre_ids: 'unknown-genre-id', session_date: '2024-01-01' }
-        ]
-      })
+          {
+            book_id: 'book-1',
+            title: 'Book One',
+            author: 'Author 1',
+            genre_ids: 'unknown-genre-id',
+            session_date: '2024-01-01',
+          },
+        ],
+      }),
     };
 
     // Genre lookup returns nothing (unknown genre)
     const genreNamesQuery = {
       bind: vi.fn().mockReturnThis(),
-      all: vi.fn().mockResolvedValue({ results: [] })
+      all: vi.fn().mockResolvedValue({ results: [] }),
     };
 
     mockDb.prepare
@@ -396,19 +528,19 @@ describe('buildStudentReadingProfile', () => {
         age_range: null,
         likes: null,
         dislikes: null,
-        notes: null
-      })
+        notes: null,
+      }),
     };
 
     // Return undefined results instead of empty array
     const preferencesQuery = {
       bind: vi.fn().mockReturnThis(),
-      all: vi.fn().mockResolvedValue({ results: undefined })
+      all: vi.fn().mockResolvedValue({ results: undefined }),
     };
 
     const sessionsQuery = {
       bind: vi.fn().mockReturnThis(),
-      all: vi.fn().mockResolvedValue({ results: undefined })
+      all: vi.fn().mockResolvedValue({ results: undefined }),
     };
 
     mockDb.prepare

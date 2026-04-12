@@ -291,7 +291,13 @@ const Login = ({ onBackToLanding } = {}) => {
 
           <Typography
             variant="body2"
-            sx={{ color: 'text.secondary', fontSize: '0.75rem', mt: 0.5, mb: 3, textAlign: 'center' }}
+            sx={{
+              color: 'text.secondary',
+              fontSize: '0.75rem',
+              mt: 0.5,
+              mb: 3,
+              textAlign: 'center',
+            }}
           >
             School staff — use your MyLogin account
           </Typography>

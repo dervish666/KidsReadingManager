@@ -19,27 +19,25 @@ const StreakBadge = ({ streak, size = 'medium', showLabel = false }) => {
       fontSize: '0.75rem',
       emojiSize: '0.875rem',
       padding: '2px 6px',
-      minWidth: 28
+      minWidth: 28,
     },
     medium: {
       fontSize: '0.875rem',
       emojiSize: '1rem',
       padding: '4px 8px',
-      minWidth: 36
+      minWidth: 36,
     },
     large: {
       fontSize: '1rem',
       emojiSize: '1.25rem',
       padding: '6px 12px',
-      minWidth: 44
-    }
+      minWidth: 44,
+    },
   };
 
   const config = sizeConfig[size] || sizeConfig.medium;
 
-  const tooltipText = streak === 1
-    ? '1 day reading streak!'
-    : `${streak} day reading streak!`;
+  const tooltipText = streak === 1 ? '1 day reading streak!' : `${streak} day reading streak!`;
 
   return (
     <Tooltip title={tooltipText} arrow>
@@ -60,7 +58,7 @@ const StreakBadge = ({ streak, size = 'medium', showLabel = false }) => {
           '&:hover': {
             transform: 'scale(1.05)',
             boxShadow: '0 4px 12px rgba(255, 107, 53, 0.4)',
-          }
+          },
         }}
       >
         <Typography

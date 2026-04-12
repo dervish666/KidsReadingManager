@@ -9,7 +9,7 @@ import coversRouter from '../../routes/covers.js';
 const createMockR2 = (overrides = {}) => ({
   get: vi.fn().mockResolvedValue(null),
   put: vi.fn().mockResolvedValue(undefined),
-  ...overrides
+  ...overrides,
 });
 
 /**
@@ -20,14 +20,14 @@ const createMockR2Object = (body = new Uint8Array([1, 2, 3]), overrides = {}) =>
     start(controller) {
       controller.enqueue(body);
       controller.close();
-    }
+    },
   }),
   httpMetadata: {
     contentType: 'image/jpeg',
-    ...overrides.httpMetadata
+    ...overrides.httpMetadata,
   },
   size: body.length,
-  ...overrides
+  ...overrides,
 });
 
 /**
@@ -43,17 +43,20 @@ const createTestApp = (envOverrides = {}) => {
 
   app.onError((error, c) => {
     const status = error.status || 500;
-    return c.json({
-      status: 'error',
-      message: error.message || 'Internal Server Error'
-    }, status);
+    return c.json(
+      {
+        status: 'error',
+        message: error.message || 'Internal Server Error',
+      },
+      status
+    );
   });
 
   app.route('/api/covers', coversRouter);
 
   const env = {
     BOOK_COVERS: mockR2,
-    ...envOverrides
+    ...envOverrides,
   };
 
   const executionCtx = { waitUntil: mockWaitUntil };
@@ -173,7 +176,7 @@ describe('Cover Proxy Route', () => {
 
   describe('R2 cache hit', () => {
     it('should return image from R2 when cached', async () => {
-      const imageData = new Uint8Array([0xFF, 0xD8, 0xFF, 0xE0]); // JPEG magic bytes
+      const imageData = new Uint8Array([0xff, 0xd8, 0xff, 0xe0]); // JPEG magic bytes
       const { request, mockR2 } = createTestApp();
 
       mockR2.get.mockResolvedValue(createMockR2Object(imageData));
@@ -221,7 +224,7 @@ describe('Cover Proxy Route', () => {
       const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
         new Response(imageBody, {
           status: 200,
-          headers: { 'Content-Length': '2000', 'Content-Type': 'image/jpeg' }
+          headers: { 'Content-Length': '2000', 'Content-Type': 'image/jpeg' },
         })
       );
 
@@ -231,7 +234,7 @@ describe('Cover Proxy Route', () => {
       expect(fetchSpy).toHaveBeenCalledWith(
         'https://covers.openlibrary.org/b/isbn/9780140449136-M.jpg',
         expect.objectContaining({
-          headers: expect.objectContaining({ 'User-Agent': expect.any(String) })
+          headers: expect.objectContaining({ 'User-Agent': expect.any(String) }),
         })
       );
     });
@@ -244,7 +247,7 @@ describe('Cover Proxy Route', () => {
       vi.spyOn(globalThis, 'fetch').mockResolvedValue(
         new Response(imageBody, {
           status: 200,
-          headers: { 'Content-Length': '2000', 'Content-Type': 'image/jpeg' }
+          headers: { 'Content-Length': '2000', 'Content-Type': 'image/jpeg' },
         })
       );
 
@@ -261,7 +264,7 @@ describe('Cover Proxy Route', () => {
       vi.spyOn(globalThis, 'fetch').mockResolvedValue(
         new Response(imageBody, {
           status: 200,
-          headers: { 'Content-Length': '2000', 'Content-Type': 'image/jpeg' }
+          headers: { 'Content-Length': '2000', 'Content-Type': 'image/jpeg' },
         })
       );
 
@@ -278,7 +281,7 @@ describe('Cover Proxy Route', () => {
       vi.spyOn(globalThis, 'fetch').mockResolvedValue(
         new Response(imageBody, {
           status: 200,
-          headers: { 'Content-Length': '2000', 'Content-Type': 'image/jpeg' }
+          headers: { 'Content-Length': '2000', 'Content-Type': 'image/jpeg' },
         })
       );
 
@@ -295,7 +298,7 @@ describe('Cover Proxy Route', () => {
       vi.spyOn(globalThis, 'fetch').mockResolvedValue(
         new Response(tinyImage, {
           status: 200,
-          headers: { 'Content-Length': '500', 'Content-Type': 'image/jpeg' }
+          headers: { 'Content-Length': '500', 'Content-Type': 'image/jpeg' },
         })
       );
 
@@ -312,7 +315,7 @@ describe('Cover Proxy Route', () => {
       vi.spyOn(globalThis, 'fetch').mockResolvedValue(
         new Response(tinyImage, {
           status: 200,
-          headers: { 'Content-Length': '500', 'Content-Type': 'image/jpeg' }
+          headers: { 'Content-Length': '500', 'Content-Type': 'image/jpeg' },
         })
       );
 
@@ -330,7 +333,7 @@ describe('Cover Proxy Route', () => {
       vi.spyOn(globalThis, 'fetch').mockResolvedValue(
         new Response(imageBody, {
           status: 200,
-          headers: { 'Content-Type': 'image/jpeg' }
+          headers: { 'Content-Type': 'image/jpeg' },
           // No Content-Length header
         })
       );
@@ -345,9 +348,7 @@ describe('Cover Proxy Route', () => {
       const { request, mockR2 } = createTestApp();
       mockR2.get.mockResolvedValue(null);
 
-      vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-        new Response('Not Found', { status: 404 })
-      );
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('Not Found', { status: 404 }));
 
       const response = await request('/api/covers/isbn/9780140449136-M.jpg');
 
@@ -369,9 +370,7 @@ describe('Cover Proxy Route', () => {
       const { request, mockR2, mockWaitUntil } = createTestApp();
       mockR2.get.mockResolvedValue(null);
 
-      vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-        new Response('Not Found', { status: 404 })
-      );
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('Not Found', { status: 404 }));
 
       await request('/api/covers/isbn/9780140449136-M.jpg');
 
@@ -389,7 +388,7 @@ describe('Cover Proxy Route', () => {
       vi.spyOn(globalThis, 'fetch').mockResolvedValue(
         new Response(imageBody, {
           status: 200,
-          headers: { 'Content-Type': 'image/jpeg' }
+          headers: { 'Content-Type': 'image/jpeg' },
         })
       );
 
@@ -408,7 +407,7 @@ describe('Cover Proxy Route', () => {
       vi.spyOn(globalThis, 'fetch').mockResolvedValue(
         new Response(imageBody, {
           status: 200,
-          headers: { 'Content-Length': '2000', 'Content-Type': 'image/jpeg' }
+          headers: { 'Content-Length': '2000', 'Content-Type': 'image/jpeg' },
         })
       );
 

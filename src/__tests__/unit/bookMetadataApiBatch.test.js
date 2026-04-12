@@ -52,7 +52,11 @@ vi.mock('../../utils/hardcoverApi', () => ({
   getCoverUrl: vi.fn(),
 }));
 
-import { batchFetchAllMetadata, SPEED_PRESETS, getMetadataConfig } from '../../utils/bookMetadataApi';
+import {
+  batchFetchAllMetadata,
+  SPEED_PRESETS,
+  getMetadataConfig,
+} from '../../utils/bookMetadataApi';
 import * as openLibrary from '../../utils/openLibraryApi';
 import * as hardcover from '../../utils/hardcoverApi';
 
@@ -100,14 +104,16 @@ describe('batchFetchAllMetadata', () => {
   });
 
   it('fetches all metadata for a single book via unified fetch', async () => {
-    openLibrary.fetchAllMetadata.mockResolvedValue(makeMetadata({
-      foundAuthor: 'Roald Dahl',
-      description: 'A story about a chocolate factory.',
-      genres: ['Fiction', 'Children'],
-      isbn: '9780142410318',
-      pageCount: 176,
-      publicationYear: 1964,
-    }));
+    openLibrary.fetchAllMetadata.mockResolvedValue(
+      makeMetadata({
+        foundAuthor: 'Roald Dahl',
+        description: 'A story about a chocolate factory.',
+        genres: ['Fiction', 'Children'],
+        isbn: '9780142410318',
+        pageCount: 176,
+        publicationYear: 1964,
+      })
+    );
 
     const books = [{ title: 'Charlie and the Chocolate Factory', author: 'Roald Dahl' }];
     const promise = batchFetchAllMetadata(books, defaultSettings);
@@ -126,16 +132,19 @@ describe('batchFetchAllMetadata', () => {
 
     // Verify unified fetch was called with title and author
     expect(openLibrary.fetchAllMetadata).toHaveBeenCalledWith(
-      'Charlie and the Chocolate Factory', 'Roald Dahl'
+      'Charlie and the Chocolate Factory',
+      'Roald Dahl'
     );
   });
 
   it('passes null author when book has no author', async () => {
-    openLibrary.fetchAllMetadata.mockResolvedValue(makeMetadata({
-      foundAuthor: 'Found Author',
-      description: 'A desc',
-      genres: ['Mystery'],
-    }));
+    openLibrary.fetchAllMetadata.mockResolvedValue(
+      makeMetadata({
+        foundAuthor: 'Found Author',
+        description: 'A desc',
+        genres: ['Mystery'],
+      })
+    );
 
     const books = [{ title: 'Unknown Author Book' }];
     const promise = batchFetchAllMetadata(books, defaultSettings);
@@ -146,11 +155,13 @@ describe('batchFetchAllMetadata', () => {
   });
 
   it('calls onProgress callback with current, total, and book info', async () => {
-    openLibrary.fetchAllMetadata.mockResolvedValue(makeMetadata({
-      foundAuthor: 'Author A',
-      description: 'Desc A',
-      genres: ['Genre A'],
-    }));
+    openLibrary.fetchAllMetadata.mockResolvedValue(
+      makeMetadata({
+        foundAuthor: 'Author A',
+        description: 'Desc A',
+        genres: ['Genre A'],
+      })
+    );
 
     const books = [
       { title: 'Book One', author: 'Auth 1' },
@@ -164,32 +175,37 @@ describe('batchFetchAllMetadata', () => {
 
     expect(onProgress).toHaveBeenCalledTimes(2);
 
-    expect(onProgress).toHaveBeenNthCalledWith(1, expect.objectContaining({
-      current: 1,
-      total: 2,
-      book: 'Book One',
-    }));
+    expect(onProgress).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        current: 1,
+        total: 2,
+        book: 'Book One',
+      })
+    );
 
-    expect(onProgress).toHaveBeenNthCalledWith(2, expect.objectContaining({
-      current: 2,
-      total: 2,
-      book: 'Book Two',
-    }));
+    expect(onProgress).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        current: 2,
+        total: 2,
+        book: 'Book Two',
+      })
+    );
   });
 
   it('handles API errors gracefully per book without throwing', async () => {
     openLibrary.fetchAllMetadata
       .mockRejectedValueOnce(new Error('API timeout'))
-      .mockResolvedValueOnce(makeMetadata({
-        foundAuthor: 'Good Author',
-        description: 'Good desc',
-        genres: ['Good Genre'],
-      }));
+      .mockResolvedValueOnce(
+        makeMetadata({
+          foundAuthor: 'Good Author',
+          description: 'Good desc',
+          genres: ['Good Genre'],
+        })
+      );
 
-    const books = [
-      { title: 'Bad Book' },
-      { title: 'Good Book' },
-    ];
+    const books = [{ title: 'Bad Book' }, { title: 'Good Book' }];
 
     const promise = batchFetchAllMetadata(books, defaultSettings);
     await flushTimers();
@@ -228,10 +244,12 @@ describe('batchFetchAllMetadata', () => {
   });
 
   it('returns null for description when metadata has no description', async () => {
-    openLibrary.fetchAllMetadata.mockResolvedValue(makeMetadata({
-      foundAuthor: 'Some Author',
-      genres: ['Fiction'],
-    }));
+    openLibrary.fetchAllMetadata.mockResolvedValue(
+      makeMetadata({
+        foundAuthor: 'Some Author',
+        genres: ['Fiction'],
+      })
+    );
 
     const books = [{ title: 'No Desc Book' }];
     const promise = batchFetchAllMetadata(books, defaultSettings);
@@ -250,11 +268,7 @@ describe('batchFetchAllMetadata', () => {
       });
     });
 
-    const books = [
-      { title: 'Book A' },
-      { title: 'Book B' },
-      { title: 'Book C' },
-    ];
+    const books = [{ title: 'Book A' }, { title: 'Book B' }, { title: 'Book C' }];
 
     const promise = batchFetchAllMetadata(books, defaultSettings);
     await flushTimers();
@@ -266,16 +280,18 @@ describe('batchFetchAllMetadata', () => {
   });
 
   it('includes foundSeriesName and foundSeriesNumber when metadata contains series', async () => {
-    openLibrary.fetchAllMetadata.mockResolvedValue(makeMetadata({
-      foundAuthor: 'J.K. Rowling',
-      description: 'A boy wizard.',
-      isbn: '9780747532699',
-      pageCount: 223,
-      publicationYear: 1997,
-      genres: ['Fantasy'],
-      seriesName: 'Harry Potter',
-      seriesNumber: 1,
-    }));
+    openLibrary.fetchAllMetadata.mockResolvedValue(
+      makeMetadata({
+        foundAuthor: 'J.K. Rowling',
+        description: 'A boy wizard.',
+        isbn: '9780747532699',
+        pageCount: 223,
+        publicationYear: 1997,
+        genres: ['Fantasy'],
+        seriesName: 'Harry Potter',
+        seriesNumber: 1,
+      })
+    );
 
     const books = [{ title: "Harry Potter and the Philosopher's Stone", author: 'J.K. Rowling' }];
     const promise = batchFetchAllMetadata(books, defaultSettings);
@@ -288,11 +304,13 @@ describe('batchFetchAllMetadata', () => {
   });
 
   it('returns null for series fields when metadata has no series', async () => {
-    openLibrary.fetchAllMetadata.mockResolvedValue(makeMetadata({
-      foundAuthor: 'Author',
-      description: 'A standalone book.',
-      genres: ['Fiction'],
-    }));
+    openLibrary.fetchAllMetadata.mockResolvedValue(
+      makeMetadata({
+        foundAuthor: 'Author',
+        description: 'A standalone book.',
+        genres: ['Fiction'],
+      })
+    );
 
     const books = [{ title: 'Standalone Book' }];
     const promise = batchFetchAllMetadata(books, defaultSettings);
@@ -333,20 +351,22 @@ describe('batchFetchAllMetadata', () => {
       bookMetadata: {
         provider: 'hardcover',
         hardcoverApiKey: 'test-hardcover-key',
-      }
+      },
     };
 
     it('routes to hardcover fetchAllMetadata when provider is hardcover', async () => {
-      hardcover.fetchAllMetadata.mockResolvedValue(makeMetadata({
-        foundAuthor: 'Hardcover Author',
-        description: 'Hardcover description.',
-        isbn: '9781234567890',
-        pageCount: 300,
-        publicationYear: 2020,
-        genres: ['Sci-Fi', 'Adventure'],
-        seriesName: 'Hardcover Series',
-        seriesNumber: 3,
-      }));
+      hardcover.fetchAllMetadata.mockResolvedValue(
+        makeMetadata({
+          foundAuthor: 'Hardcover Author',
+          description: 'Hardcover description.',
+          isbn: '9781234567890',
+          pageCount: 300,
+          publicationYear: 2020,
+          genres: ['Sci-Fi', 'Adventure'],
+          seriesName: 'Hardcover Series',
+          seriesNumber: 3,
+        })
+      );
 
       const books = [{ title: 'Hardcover Book', author: 'HC Author' }];
       const promise = batchFetchAllMetadata(books, hardcoverSettings);
@@ -373,16 +393,18 @@ describe('batchFetchAllMetadata', () => {
 
     it('falls back to OpenLibrary when Hardcover fetchAllMetadata returns null', async () => {
       hardcover.fetchAllMetadata.mockResolvedValue(null);
-      openLibrary.fetchAllMetadata.mockResolvedValue(makeMetadata({
-        foundAuthor: 'OL Author',
-        description: 'OL description.',
-        isbn: '9780000000000',
-        pageCount: 200,
-        publicationYear: 2015,
-        genres: ['OL Genre'],
-        seriesName: 'OL Series',
-        seriesNumber: 2,
-      }));
+      openLibrary.fetchAllMetadata.mockResolvedValue(
+        makeMetadata({
+          foundAuthor: 'OL Author',
+          description: 'OL description.',
+          isbn: '9780000000000',
+          pageCount: 200,
+          publicationYear: 2015,
+          genres: ['OL Genre'],
+          seriesName: 'OL Series',
+          seriesNumber: 2,
+        })
+      );
 
       const books = [{ title: 'Waterfall Book', author: 'Author' }];
       const promise = batchFetchAllMetadata(books, hardcoverSettings);
@@ -404,11 +426,13 @@ describe('batchFetchAllMetadata', () => {
 
     it('falls back to OpenLibrary when Hardcover throws an error', async () => {
       hardcover.fetchAllMetadata.mockRejectedValue(new Error('Hardcover down'));
-      openLibrary.fetchAllMetadata.mockResolvedValue(makeMetadata({
-        foundAuthor: 'OL Fallback Author',
-        description: 'OL Fallback desc',
-        genres: ['OL Fallback Genre'],
-      }));
+      openLibrary.fetchAllMetadata.mockResolvedValue(
+        makeMetadata({
+          foundAuthor: 'OL Fallback Author',
+          description: 'OL Fallback desc',
+          genres: ['OL Fallback Genre'],
+        })
+      );
 
       const books = [{ title: 'Error Fallback Book' }];
       const promise = batchFetchAllMetadata(books, hardcoverSettings);
@@ -425,7 +449,7 @@ describe('batchFetchAllMetadata', () => {
         bookMetadata: {
           provider: 'hardcover',
           // No hardcoverApiKey
-        }
+        },
       };
 
       const books = [{ title: 'Some Book' }];
@@ -441,16 +465,15 @@ describe('batchFetchAllMetadata', () => {
     });
 
     it('uses 1000ms delay between books for Hardcover provider', async () => {
-      hardcover.fetchAllMetadata.mockResolvedValue(makeMetadata({
-        foundAuthor: 'Author',
-        description: 'Desc',
-        genres: ['Genre'],
-      }));
+      hardcover.fetchAllMetadata.mockResolvedValue(
+        makeMetadata({
+          foundAuthor: 'Author',
+          description: 'Desc',
+          genres: ['Genre'],
+        })
+      );
 
-      const books = [
-        { title: 'Book 1' },
-        { title: 'Book 2' },
-      ];
+      const books = [{ title: 'Book 1' }, { title: 'Book 2' }];
 
       const promise = batchFetchAllMetadata(books, hardcoverSettings);
 
@@ -473,13 +496,11 @@ describe('batchFetchAllMetadata', () => {
         return makeMetadata({ foundAuthor: 'Author' });
       });
 
-      const books = [
-        { title: 'Book 1' },
-        { title: 'Book 2' },
-        { title: 'Book 3' },
-      ];
+      const books = [{ title: 'Book 1' }, { title: 'Book 2' }, { title: 'Book 3' }];
 
-      const promise = batchFetchAllMetadata(books, defaultSettings, null, { signal: controller.signal });
+      const promise = batchFetchAllMetadata(books, defaultSettings, null, {
+        signal: controller.signal,
+      });
       await flushTimers();
       const results = await promise;
 
@@ -491,16 +512,15 @@ describe('batchFetchAllMetadata', () => {
     it('returns partial results on abort', async () => {
       openLibrary.fetchAllMetadata.mockResolvedValue(makeMetadata({ foundAuthor: 'Author' }));
 
-      const books = [
-        { title: 'Book 1' },
-        { title: 'Book 2' },
-      ];
+      const books = [{ title: 'Book 1' }, { title: 'Book 2' }];
 
       // Abort immediately
       const controller = new AbortController();
       controller.abort();
 
-      const results = await batchFetchAllMetadata(books, defaultSettings, null, { signal: controller.signal });
+      const results = await batchFetchAllMetadata(books, defaultSettings, null, {
+        signal: controller.signal,
+      });
 
       // Should return empty since signal was already aborted
       expect(results).toEqual([]);
@@ -531,11 +551,7 @@ describe('batchFetchAllMetadata', () => {
     it('reports batchTotal and overallTotal in onProgress', async () => {
       openLibrary.fetchAllMetadata.mockResolvedValue(makeMetadata({ foundAuthor: 'Author' }));
 
-      const books = [
-        { title: 'Book 1' },
-        { title: 'Book 2' },
-        { title: 'Book 3' },
-      ];
+      const books = [{ title: 'Book 1' }, { title: 'Book 2' }, { title: 'Book 3' }];
 
       const onProgress = vi.fn();
       const promise = batchFetchAllMetadata(books, defaultSettings, onProgress, { batchSize: 2 });
@@ -543,12 +559,15 @@ describe('batchFetchAllMetadata', () => {
       await promise;
 
       expect(onProgress).toHaveBeenCalledTimes(2);
-      expect(onProgress).toHaveBeenNthCalledWith(1, expect.objectContaining({
-        current: 1,
-        total: 2,
-        batchTotal: 2,
-        overallTotal: 3,
-      }));
+      expect(onProgress).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          current: 1,
+          total: 2,
+          batchTotal: 2,
+          overallTotal: 3,
+        })
+      );
     });
 
     it('uses batchSize from settings when not in options', async () => {
@@ -557,7 +576,7 @@ describe('batchFetchAllMetadata', () => {
       const settingsWithBatchSize = {
         bookMetadata: {
           batchSize: 3,
-        }
+        },
       };
 
       const books = [
@@ -598,7 +617,7 @@ describe('batchFetchAllMetadata', () => {
           batchSize: 25,
           speedPreset: 'careful',
           autoFallback: false,
-        }
+        },
       });
       expect(config.batchSize).toBe(25);
       expect(config.speedPreset).toBe('careful');
@@ -611,7 +630,7 @@ describe('batchFetchAllMetadata', () => {
       bookMetadata: {
         provider: 'hardcover',
         hardcoverApiKey: 'test-key',
-      }
+      },
     };
 
     it('reports rateLimited in onProgress when Hardcover is rate limited', async () => {
@@ -625,9 +644,11 @@ describe('batchFetchAllMetadata', () => {
       await flushTimers();
       await promise;
 
-      expect(onProgress).toHaveBeenCalledWith(expect.objectContaining({
-        rateLimited: true,
-      }));
+      expect(onProgress).toHaveBeenCalledWith(
+        expect.objectContaining({
+          rateLimited: true,
+        })
+      );
     });
 
     it('reports providerSwitched after 5 consecutive rate-limited books', async () => {
@@ -643,20 +664,19 @@ describe('batchFetchAllMetadata', () => {
       await promise;
 
       // After 5 consecutive rate-limited books, provider should switch
-      const switchedCall = progressCalls.find(p => p.providerSwitched);
+      const switchedCall = progressCalls.find((p) => p.providerSwitched);
       expect(switchedCall).toBeTruthy();
       expect(switchedCall.switchedFrom).toBe('Hardcover');
     });
 
     it('calls onBookResult callback with each result', async () => {
-      openLibrary.fetchAllMetadata.mockResolvedValue(makeMetadata({
-        foundAuthor: 'Author A',
-      }));
+      openLibrary.fetchAllMetadata.mockResolvedValue(
+        makeMetadata({
+          foundAuthor: 'Author A',
+        })
+      );
 
-      const books = [
-        { title: 'Book 1' },
-        { title: 'Book 2' },
-      ];
+      const books = [{ title: 'Book 1' }, { title: 'Book 2' }];
 
       const onBookResult = vi.fn();
       const promise = batchFetchAllMetadata(books, defaultSettings, null, { onBookResult });
@@ -664,25 +684,30 @@ describe('batchFetchAllMetadata', () => {
       await promise;
 
       expect(onBookResult).toHaveBeenCalledTimes(2);
-      expect(onBookResult).toHaveBeenNthCalledWith(1, expect.objectContaining({
-        book: books[0],
-        foundAuthor: 'Author A',
-      }));
-      expect(onBookResult).toHaveBeenNthCalledWith(2, expect.objectContaining({
-        book: books[1],
-        foundAuthor: 'Author A',
-      }));
+      expect(onBookResult).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          book: books[0],
+          foundAuthor: 'Author A',
+        })
+      );
+      expect(onBookResult).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          book: books[1],
+          foundAuthor: 'Author A',
+        })
+      );
     });
 
     it('awaits async onBookResult before processing next book', async () => {
-      openLibrary.fetchAllMetadata.mockResolvedValue(makeMetadata({
-        foundAuthor: 'Author',
-      }));
+      openLibrary.fetchAllMetadata.mockResolvedValue(
+        makeMetadata({
+          foundAuthor: 'Author',
+        })
+      );
 
-      const books = [
-        { title: 'Book 1' },
-        { title: 'Book 2' },
-      ];
+      const books = [{ title: 'Book 1' }, { title: 'Book 2' }];
 
       const order = [];
       const onBookResult = vi.fn().mockImplementation(async (result) => {
@@ -711,12 +736,14 @@ describe('batchFetchAllMetadata', () => {
       const progressCalls = [];
       const onProgress = (p) => progressCalls.push({ ...p });
 
-      const promise = batchFetchAllMetadata(books, hardcoverSettings, onProgress, { autoFallback: false });
+      const promise = batchFetchAllMetadata(books, hardcoverSettings, onProgress, {
+        autoFallback: false,
+      });
       await flushTimers();
       await promise;
 
       // Should not have switched provider
-      expect(progressCalls.every(p => !p.providerSwitched)).toBe(true);
+      expect(progressCalls.every((p) => !p.providerSwitched)).toBe(true);
     });
   });
 });

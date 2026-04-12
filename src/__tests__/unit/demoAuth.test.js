@@ -140,11 +140,7 @@ describe('POST /api/auth/demo', () => {
     const app = createTestApp(mockDB);
     await app.request('/api/auth/demo', { method: 'POST' });
 
-    expect(createAccessToken).toHaveBeenCalledWith(
-      expect.any(Object),
-      TEST_SECRET,
-      60 * 60 * 1000
-    );
+    expect(createAccessToken).toHaveBeenCalledWith(expect.any(Object), TEST_SECRET, 60 * 60 * 1000);
   });
 
   it('returns 503 when no demo user exists', async () => {

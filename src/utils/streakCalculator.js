@@ -62,18 +62,14 @@ export function daysBetween(date1, date2) {
  * @returns {Object} { currentStreak, longestStreak, streakStartDate, lastReadDate }
  */
 export function calculateStreak(sessions, options = {}) {
-  const {
-    gracePeriodDays = 1,
-    timezone = 'UTC',
-    referenceDate = new Date()
-  } = options;
+  const { gracePeriodDays = 1, timezone = 'UTC', referenceDate = new Date() } = options;
 
   // Default result for no sessions
   const defaultResult = {
     currentStreak: 0,
     longestStreak: 0,
     streakStartDate: null,
-    lastReadDate: null
+    lastReadDate: null,
   };
 
   if (!sessions || sessions.length === 0) {
@@ -141,7 +137,7 @@ export function calculateStreak(sessions, options = {}) {
     currentStreak,
     longestStreak,
     streakStartDate,
-    lastReadDate
+    lastReadDate,
   };
 }
 
@@ -153,7 +149,12 @@ export function calculateStreak(sessions, options = {}) {
  * @param {string} timezone - Timezone for calculations
  * @returns {boolean} True if this would extend/continue the streak
  */
-export function wouldExtendStreak(currentStreakData, newSessionDate, gracePeriodDays = 1, timezone = 'UTC') {
+export function wouldExtendStreak(
+  currentStreakData,
+  newSessionDate,
+  gracePeriodDays = 1,
+  timezone = 'UTC'
+) {
   if (!currentStreakData.lastReadDate) {
     return true; // First session always starts a streak
   }
@@ -175,5 +176,5 @@ export default {
   getDateString,
   getUniqueReadingDates,
   daysBetween,
-  wouldExtendStreak
+  wouldExtendStreak,
 };

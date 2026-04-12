@@ -15,16 +15,23 @@ const TIMEOUT = 5000;
  */
 export async function fetchMetadata(book) {
   const empty = {
-    author: null, description: null, genres: null, isbn: null,
-    pageCount: null, publicationYear: null, seriesName: null,
-    seriesNumber: null, coverUrl: null,
+    author: null,
+    description: null,
+    genres: null,
+    isbn: null,
+    pageCount: null,
+    publicationYear: null,
+    seriesName: null,
+    seriesNumber: null,
+    coverUrl: null,
   };
 
   try {
     // 1. Search by ISBN first (most precise), fall back to title+author
     const params = new URLSearchParams({
       limit: '5',
-      fields: 'key,title,author_name,first_publish_year,isbn,cover_i,number_of_pages_median,subject',
+      fields:
+        'key,title,author_name,first_publish_year,isbn,cover_i,number_of_pages_median,subject',
     });
 
     if (book.isbn) {
@@ -37,7 +44,7 @@ export async function fetchMetadata(book) {
     const searchRes = await fetchWithTimeout(
       `${SEARCH_URL}?${params}`,
       { headers: { 'User-Agent': 'TallyReading/1.0 (educational-app)' } },
-      TIMEOUT,
+      TIMEOUT
     );
 
     if (!searchRes.ok) {
@@ -53,7 +60,20 @@ export async function fetchMetadata(book) {
     result.author = doc.author_name?.[0] || null;
     result.publicationYear = doc.first_publish_year || null;
     result.pageCount = doc.number_of_pages_median || null;
-    result.genres = doc.subject?.filter(s => s.length < 50 && !['Accessible book', 'Protected DAISY', 'Internet Archive Wishlist', 'Large type books', 'In library'].includes(s)).slice(0, 5) || null;
+    result.genres =
+      doc.subject
+        ?.filter(
+          (s) =>
+            s.length < 50 &&
+            ![
+              'Accessible book',
+              'Protected DAISY',
+              'Internet Archive Wishlist',
+              'Large type books',
+              'In library',
+            ].includes(s)
+        )
+        .slice(0, 5) || null;
 
     // Pick the first ISBN-13 (13 digits) or first ISBN
     if (doc.isbn?.length) {
@@ -71,7 +91,7 @@ export async function fetchMetadata(book) {
         const worksRes = await fetchWithTimeout(
           `https://openlibrary.org${doc.key}.json`,
           { headers: { 'User-Agent': 'TallyReading/1.0 (educational-app)' } },
-          TIMEOUT,
+          TIMEOUT
         );
         if (worksRes.ok) {
           const worksData = await worksRes.json();

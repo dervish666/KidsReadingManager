@@ -14,7 +14,7 @@ import {
   batchFindMissingAuthors,
   batchFindMissingDescriptions,
   batchFindMissingGenres,
-  setFetchFunction
+  setFetchFunction,
 } from '../../utils/hardcoverApi.js';
 
 describe('hardcoverApi', () => {
@@ -38,7 +38,7 @@ describe('hardcoverApi', () => {
     it('returns true on valid response', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({ data: { __typename: 'query_root' } })
+        json: () => Promise.resolve({ data: { __typename: 'query_root' } }),
       });
 
       const result = await checkHardcoverAvailability('test-api-key');
@@ -53,7 +53,7 @@ describe('hardcoverApi', () => {
             'Content-Type': 'application/json',
           }),
           body: expect.any(String),
-          signal: expect.any(AbortSignal)
+          signal: expect.any(AbortSignal),
         })
       );
 
@@ -67,9 +67,10 @@ describe('hardcoverApi', () => {
     it('returns false on GraphQL errors', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          errors: [{ message: 'Unauthorized' }]
-        })
+        json: () =>
+          Promise.resolve({
+            errors: [{ message: 'Unauthorized' }],
+          }),
       });
 
       const result = await checkHardcoverAvailability('bad-api-key');
@@ -97,7 +98,7 @@ describe('hardcoverApi', () => {
     it('caches result for 60 seconds (second call does not re-fetch)', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({ data: { __typename: 'query_root' } })
+        json: () => Promise.resolve({ data: { __typename: 'query_root' } }),
       });
 
       const result1 = await checkHardcoverAvailability('test-api-key');
@@ -123,7 +124,7 @@ describe('hardcoverApi', () => {
       mockFetch.mockResolvedValue({
         ok: false,
         status: 500,
-        statusText: 'Internal Server Error'
+        statusText: 'Internal Server Error',
       });
 
       const result = await checkHardcoverAvailability('test-api-key');
@@ -144,7 +145,7 @@ describe('hardcoverApi', () => {
     it('returns status after successful check', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({ data: { __typename: 'query_root' } })
+        json: () => Promise.resolve({ data: { __typename: 'query_root' } }),
       });
 
       vi.setSystemTime(new Date('2026-02-23T12:00:00Z'));
@@ -160,7 +161,7 @@ describe('hardcoverApi', () => {
     it('reports stale after 60 seconds', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({ data: { __typename: 'query_root' } })
+        json: () => Promise.resolve({ data: { __typename: 'query_root' } }),
       });
 
       await checkHardcoverAvailability('test-api-key');
@@ -190,7 +191,7 @@ describe('hardcoverApi', () => {
     it('clears the cache so next check re-fetches', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({ data: { __typename: 'query_root' } })
+        json: () => Promise.resolve({ data: { __typename: 'query_root' } }),
       });
 
       await checkHardcoverAvailability('test-api-key');
@@ -219,8 +220,8 @@ describe('hardcoverApi', () => {
             title: 'Percy Jackson and the Lightning Thief',
             author_names: ['Rick Riordan'],
             isbns: ['9780141346809'],
-            series_names: ['Percy Jackson']
-          }
+            series_names: ['Percy Jackson'],
+          },
         },
         {
           document: {
@@ -228,18 +229,19 @@ describe('hardcoverApi', () => {
             title: 'Percy Jackson and the Sea of Monsters',
             author_names: ['Rick Riordan'],
             isbns: ['9780141346830'],
-            series_names: ['Percy Jackson']
-          }
-        }
+            series_names: ['Percy Jackson'],
+          },
+        },
       ];
 
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: {
-            search: { results: { hits: mockHits, found: mockHits.length } }
-          }
-        })
+        json: () =>
+          Promise.resolve({
+            data: {
+              search: { results: { hits: mockHits, found: mockHits.length } },
+            },
+          }),
       });
 
       const results = await searchBooksByTitle('Percy Jackson', 'test-api-key');
@@ -250,14 +252,14 @@ describe('hardcoverApi', () => {
         title: 'Percy Jackson and the Lightning Thief',
         author: 'Rick Riordan',
         isbns: ['9780141346809'],
-        seriesNames: ['Percy Jackson']
+        seriesNames: ['Percy Jackson'],
       });
       expect(results[1]).toEqual({
         id: 102,
         title: 'Percy Jackson and the Sea of Monsters',
         author: 'Rick Riordan',
         isbns: ['9780141346830'],
-        seriesNames: ['Percy Jackson']
+        seriesNames: ['Percy Jackson'],
       });
 
       // Verify the GraphQL query was sent correctly
@@ -272,9 +274,10 @@ describe('hardcoverApi', () => {
     it('passes custom limit as perPage', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: { search: { results: { hits: [], found: 0 } } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: { search: { results: { hits: [], found: 0 } } },
+          }),
       });
 
       await searchBooksByTitle('Test', 'test-api-key', 10);
@@ -287,9 +290,10 @@ describe('hardcoverApi', () => {
     it('returns empty array when results are empty', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: { search: { results: { hits: [], found: 0 } } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: { search: { results: { hits: [], found: 0 } } },
+          }),
       });
 
       const results = await searchBooksByTitle('Nonexistent Book', 'test-api-key');
@@ -305,16 +309,17 @@ describe('hardcoverApi', () => {
             title: 'Orphan Book',
             author_names: [],
             isbns: ['9781234567890'],
-            series_names: []
-          }
-        }
+            series_names: [],
+          },
+        },
       ];
 
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: { search: { results: { hits: mockHits, found: mockHits.length } } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: { search: { results: { hits: mockHits, found: mockHits.length } } },
+          }),
       });
 
       const results = await searchBooksByTitle('Orphan Book', 'test-api-key');
@@ -326,9 +331,10 @@ describe('hardcoverApi', () => {
     it('handles malformed JSON in results field', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: { search: { results: 'not valid json{{{' } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: { search: { results: 'not valid json{{{' } },
+          }),
       });
 
       const results = await searchBooksByTitle('Broken', 'test-api-key');
@@ -339,9 +345,10 @@ describe('hardcoverApi', () => {
     it('handles null results field', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: { search: { results: null } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: { search: { results: null } },
+          }),
       });
 
       const results = await searchBooksByTitle('Null', 'test-api-key');
@@ -350,17 +357,13 @@ describe('hardcoverApi', () => {
     });
 
     it('throws when title is missing', async () => {
-      await expect(searchBooksByTitle('', 'test-api-key'))
-        .rejects.toThrow('Title is required');
-      await expect(searchBooksByTitle(null, 'test-api-key'))
-        .rejects.toThrow('Title is required');
+      await expect(searchBooksByTitle('', 'test-api-key')).rejects.toThrow('Title is required');
+      await expect(searchBooksByTitle(null, 'test-api-key')).rejects.toThrow('Title is required');
     });
 
     it('throws when API key is missing', async () => {
-      await expect(searchBooksByTitle('Test', ''))
-        .rejects.toThrow('API key is required');
-      await expect(searchBooksByTitle('Test', null))
-        .rejects.toThrow('API key is required');
+      await expect(searchBooksByTitle('Test', '')).rejects.toThrow('API key is required');
+      await expect(searchBooksByTitle('Test', null)).rejects.toThrow('API key is required');
     });
 
     it('handles multiple authors by taking the first', async () => {
@@ -371,16 +374,17 @@ describe('hardcoverApi', () => {
             title: 'Collaborative Work',
             author_names: ['Author One', 'Author Two'],
             isbns: [],
-            series_names: []
-          }
-        }
+            series_names: [],
+          },
+        },
       ];
 
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: { search: { results: { hits: mockHits, found: mockHits.length } } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: { search: { results: { hits: mockHits, found: mockHits.length } } },
+          }),
       });
 
       const results = await searchBooksByTitle('Collaborative Work', 'test-api-key');
@@ -393,17 +397,18 @@ describe('hardcoverApi', () => {
         {
           document: {
             id: 400,
-            title: 'Minimal Book'
+            title: 'Minimal Book',
             // No author_names, isbns, or series_names
-          }
-        }
+          },
+        },
       ];
 
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: { search: { results: { hits: mockHits, found: mockHits.length } } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: { search: { results: { hits: mockHits, found: mockHits.length } } },
+          }),
       });
 
       const results = await searchBooksByTitle('Minimal Book', 'test-api-key');
@@ -414,7 +419,7 @@ describe('hardcoverApi', () => {
         title: 'Minimal Book',
         author: null,
         isbns: [],
-        seriesNames: []
+        seriesNames: [],
       });
     });
   });
@@ -428,8 +433,8 @@ describe('hardcoverApi', () => {
             title: 'The Hobbit',
             author_names: ['J.R.R. Tolkien'],
             isbns: ['9780261103344'],
-            series_names: []
-          }
+            series_names: [],
+          },
         },
         {
           document: {
@@ -437,16 +442,17 @@ describe('hardcoverApi', () => {
             title: 'The Hobbit: An Unexpected Journey',
             author_names: ['Brian Sibley'],
             isbns: [],
-            series_names: []
-          }
-        }
+            series_names: [],
+          },
+        },
       ];
 
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: { search: { results: { hits: mockHits, found: mockHits.length } } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: { search: { results: { hits: mockHits, found: mockHits.length } } },
+          }),
       });
 
       const author = await findAuthorForBook('The Hobbit', 'test-api-key');
@@ -457,9 +463,10 @@ describe('hardcoverApi', () => {
     it('returns null when no results found', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: { search: { results: { hits: [], found: 0 } } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: { search: { results: { hits: [], found: 0 } } },
+          }),
       });
 
       const author = await findAuthorForBook('ZZZXXX Nonexistent', 'test-api-key');
@@ -475,16 +482,17 @@ describe('hardcoverApi', () => {
             title: 'Completely Different Title',
             author_names: ['Some Author'],
             isbns: [],
-            series_names: []
-          }
-        }
+            series_names: [],
+          },
+        },
       ];
 
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: { search: { results: { hits: mockHits, found: mockHits.length } } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: { search: { results: { hits: mockHits, found: mockHits.length } } },
+          }),
       });
 
       const author = await findAuthorForBook('The Hobbit', 'test-api-key');
@@ -500,16 +508,17 @@ describe('hardcoverApi', () => {
             title: 'The Hobbit',
             author_names: [],
             isbns: [],
-            series_names: []
-          }
-        }
+            series_names: [],
+          },
+        },
       ];
 
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: { search: { results: { hits: mockHits, found: mockHits.length } } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: { search: { results: { hits: mockHits, found: mockHits.length } } },
+          }),
       });
 
       const author = await findAuthorForBook('The Hobbit', 'test-api-key');
@@ -533,8 +542,8 @@ describe('hardcoverApi', () => {
             title: 'Wonder',
             author_names: ['R.J. Palacio'],
             isbns: [],
-            series_names: []
-          }
+            series_names: [],
+          },
         },
         {
           document: {
@@ -542,16 +551,17 @@ describe('hardcoverApi', () => {
             title: 'Wonderstruck',
             author_names: ['Brian Selznick'],
             isbns: [],
-            series_names: []
-          }
-        }
+            series_names: [],
+          },
+        },
       ];
 
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: { search: { results: { hits: mockHits, found: mockHits.length } } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: { search: { results: { hits: mockHits, found: mockHits.length } } },
+          }),
       });
 
       const author = await findAuthorForBook('Wonder', 'test-api-key');
@@ -569,8 +579,8 @@ describe('hardcoverApi', () => {
             title: 'Harry Potter and the Philosophers Stone',
             author_names: ['J.K. Rowling'],
             isbns: ['9780747532743'],
-            series_names: ['Harry Potter']
-          }
+            series_names: ['Harry Potter'],
+          },
         },
         {
           document: {
@@ -578,8 +588,8 @@ describe('hardcoverApi', () => {
             title: 'Harry Potter and the Chamber of Secrets',
             author_names: ['J.K. Rowling'],
             isbns: ['9780747538486'],
-            series_names: ['Harry Potter']
-          }
+            series_names: ['Harry Potter'],
+          },
         },
         {
           document: {
@@ -587,16 +597,17 @@ describe('hardcoverApi', () => {
             title: 'Harry: A Biography',
             author_names: ['Angela Levin'],
             isbns: [],
-            series_names: []
-          }
-        }
+            series_names: [],
+          },
+        },
       ];
 
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: { search: { results: { hits: mockHits, found: mockHits.length } } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: { search: { results: { hits: mockHits, found: mockHits.length } } },
+          }),
       });
 
       const candidates = await findTopAuthorCandidatesForBook(
@@ -629,8 +640,8 @@ describe('hardcoverApi', () => {
             title: 'Diary of a Wimpy Kid',
             author_names: ['Jeff Kinney'],
             isbns: ['9780141324906'],
-            series_names: ['Diary of a Wimpy Kid']
-          }
+            series_names: ['Diary of a Wimpy Kid'],
+          },
         },
         {
           document: {
@@ -638,16 +649,17 @@ describe('hardcoverApi', () => {
             title: 'Diary of a Wimpy Kid: Rodrick Rules',
             author_names: ['Jeff Kinney'],
             isbns: ['9780141324920'],
-            series_names: ['Diary of a Wimpy Kid']
-          }
-        }
+            series_names: ['Diary of a Wimpy Kid'],
+          },
+        },
       ];
 
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: { search: { results: { hits: mockHits, found: mockHits.length } } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: { search: { results: { hits: mockHits, found: mockHits.length } } },
+          }),
       });
 
       const candidates = await findTopAuthorCandidatesForBook(
@@ -657,7 +669,7 @@ describe('hardcoverApi', () => {
       );
 
       // Should only have one unique author despite multiple results
-      const authorNames = candidates.map(c => c.name);
+      const authorNames = candidates.map((c) => c.name);
       expect(new Set(authorNames).size).toBe(authorNames.length);
       expect(candidates[0].name).toBe('Jeff Kinney');
     });
@@ -665,15 +677,13 @@ describe('hardcoverApi', () => {
     it('returns empty array when no results', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: { search: { results: { hits: [], found: 0 } } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: { search: { results: { hits: [], found: 0 } } },
+          }),
       });
 
-      const candidates = await findTopAuthorCandidatesForBook(
-        'ZZZXXX Nonexistent',
-        'test-api-key'
-      );
+      const candidates = await findTopAuthorCandidatesForBook('ZZZXXX Nonexistent', 'test-api-key');
 
       expect(candidates).toEqual([]);
     });
@@ -681,10 +691,7 @@ describe('hardcoverApi', () => {
     it('returns empty array on API error', async () => {
       mockFetch.mockRejectedValue(new Error('Network error'));
 
-      const candidates = await findTopAuthorCandidatesForBook(
-        'Test Book',
-        'test-api-key'
-      );
+      const candidates = await findTopAuthorCandidatesForBook('Test Book', 'test-api-key');
 
       expect(candidates).toEqual([]);
     });
@@ -697,22 +704,20 @@ describe('hardcoverApi', () => {
             title: 'Totally Unrelated Book About Cooking',
             author_names: ['Chef Someone'],
             isbns: [],
-            series_names: []
-          }
-        }
+            series_names: [],
+          },
+        },
       ];
 
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: { search: { results: { hits: mockHits, found: mockHits.length } } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: { search: { results: { hits: mockHits, found: mockHits.length } } },
+          }),
       });
 
-      const candidates = await findTopAuthorCandidatesForBook(
-        'Harry Potter',
-        'test-api-key'
-      );
+      const candidates = await findTopAuthorCandidatesForBook('Harry Potter', 'test-api-key');
 
       expect(candidates).toEqual([]);
     });
@@ -725,8 +730,8 @@ describe('hardcoverApi', () => {
             title: 'Magic Tree House',
             author_names: ['Mary Pope Osborne'],
             isbns: [],
-            series_names: ['Magic Tree House']
-          }
+            series_names: ['Magic Tree House'],
+          },
         },
         {
           document: {
@@ -734,8 +739,8 @@ describe('hardcoverApi', () => {
             title: 'Magic Tree House: Dinosaurs Before Dark',
             author_names: ['Mary Pope Osborne', 'Sal Murdocca'],
             isbns: [],
-            series_names: ['Magic Tree House']
-          }
+            series_names: ['Magic Tree House'],
+          },
         },
         {
           document: {
@@ -743,16 +748,17 @@ describe('hardcoverApi', () => {
             title: 'The Magic Treehouse',
             author_names: ['Different Author'],
             isbns: [],
-            series_names: []
-          }
-        }
+            series_names: [],
+          },
+        },
       ];
 
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: { search: { results: { hits: mockHits, found: mockHits.length } } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: { search: { results: { hits: mockHits, found: mockHits.length } } },
+          }),
       });
 
       const candidates = await findTopAuthorCandidatesForBook(
@@ -772,8 +778,8 @@ describe('hardcoverApi', () => {
             title: 'The Gruffalo',
             author_names: [],
             isbns: [],
-            series_names: []
-          }
+            series_names: [],
+          },
         },
         {
           document: {
@@ -781,22 +787,20 @@ describe('hardcoverApi', () => {
             title: 'The Gruffalo',
             author_names: ['Julia Donaldson'],
             isbns: ['9781509804757'],
-            series_names: []
-          }
-        }
+            series_names: [],
+          },
+        },
       ];
 
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: { search: { results: { hits: mockHits, found: mockHits.length } } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: { search: { results: { hits: mockHits, found: mockHits.length } } },
+          }),
       });
 
-      const candidates = await findTopAuthorCandidatesForBook(
-        'The Gruffalo',
-        'test-api-key'
-      );
+      const candidates = await findTopAuthorCandidatesForBook('The Gruffalo', 'test-api-key');
 
       expect(candidates.length).toBeGreaterThanOrEqual(1);
       expect(candidates[0].name).toBe('Julia Donaldson');
@@ -813,23 +817,25 @@ describe('hardcoverApi', () => {
         if (body.query.includes('search')) {
           return {
             ok: true,
-            json: () => Promise.resolve({
-              data: {
-                search: {
-                  results: {
-                    hits: searchResults.map(r => ({ document: r })),
-                    found: searchResults.length
-                  }
-                }
-              }
-            })
+            json: () =>
+              Promise.resolve({
+                data: {
+                  search: {
+                    results: {
+                      hits: searchResults.map((r) => ({ document: r })),
+                      found: searchResults.length,
+                    },
+                  },
+                },
+              }),
           };
         }
         return {
           ok: true,
-          json: () => Promise.resolve({
-            data: { books: detailBooks }
-          })
+          json: () =>
+            Promise.resolve({
+              data: { books: detailBooks },
+            }),
         };
       });
     }
@@ -841,8 +847,8 @@ describe('hardcoverApi', () => {
           title: 'The BFG',
           author_names: ['Roald Dahl'],
           isbns: ['9780141346137'],
-          series_names: []
-        }
+          series_names: [],
+        },
       ];
 
       const detailBooks = [
@@ -860,18 +866,18 @@ describe('hardcoverApi', () => {
               position: 1.0,
               details: null,
               featured: true,
-              series: { name: 'Roald Dahl Collection' }
-            }
+              series: { name: 'Roald Dahl Collection' },
+            },
           ],
           editions: [
             {
               isbn_13: '9780141346137',
               isbn_10: '0141346132',
               pages: 210,
-              release_date: '2007-08-01'
-            }
-          ]
-        }
+              release_date: '2007-08-01',
+            },
+          ],
+        },
       ];
 
       setupMockFetch(searchResults, detailBooks);
@@ -896,8 +902,8 @@ describe('hardcoverApi', () => {
           title: 'Harry Potter and the Philosophers Stone',
           author_names: ['J.K. Rowling'],
           isbns: [],
-          series_names: ['Harry Potter']
-        }
+          series_names: ['Harry Potter'],
+        },
       ];
 
       const detailBooks = [
@@ -915,11 +921,11 @@ describe('hardcoverApi', () => {
               position: 1.0,
               details: null,
               featured: true,
-              series: { name: 'Harry Potter' }
-            }
+              series: { name: 'Harry Potter' },
+            },
           ],
-          editions: []
-        }
+          editions: [],
+        },
       ];
 
       setupMockFetch(searchResults, detailBooks);
@@ -939,9 +945,10 @@ describe('hardcoverApi', () => {
       // Return empty search results
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: { search: { results: { hits: [], found: 0 } } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: { search: { results: { hits: [], found: 0 } } },
+          }),
       });
 
       const result = await getBookDetails('ZZZZZ Nonexistent Book', null, 'test-api-key');
@@ -956,8 +963,8 @@ describe('hardcoverApi', () => {
           title: 'Ghost Book',
           author_names: ['Ghost Author'],
           isbns: [],
-          series_names: []
-        }
+          series_names: [],
+        },
       ];
 
       // Detail query returns empty books array
@@ -972,17 +979,17 @@ describe('hardcoverApi', () => {
       const searchResults = [
         {
           id: 50,
-          title: 'Charlotte\'s Web',
+          title: "Charlotte's Web",
           author_names: ['E.B. White'],
           isbns: [],
-          series_names: []
-        }
+          series_names: [],
+        },
       ];
 
       const detailBooks = [
         {
           id: 50,
-          title: 'Charlotte\'s Web',
+          title: "Charlotte's Web",
           description: 'A story about a pig and a spider.',
           pages: 184,
           release_year: 1952,
@@ -990,15 +997,13 @@ describe('hardcoverApi', () => {
           cached_tags: {},
           cached_image: { url: 'https://hardcover.app/images/cw.jpg' },
           book_series: [],
-          editions: [
-            { isbn_13: '9780064400558', isbn_10: null, pages: 184, release_date: null }
-          ]
-        }
+          editions: [{ isbn_13: '9780064400558', isbn_10: null, pages: 184, release_date: null }],
+        },
       ];
 
       setupMockFetch(searchResults, detailBooks);
 
-      const result = await getBookDetails('Charlotte\'s Web', null, 'test-api-key');
+      const result = await getBookDetails("Charlotte's Web", null, 'test-api-key');
 
       expect(result).not.toBeNull();
       expect(result.seriesName).toBeNull();
@@ -1012,8 +1017,8 @@ describe('hardcoverApi', () => {
           title: 'Crossover Book',
           author_names: ['Multi Author'],
           isbns: [],
-          series_names: ['Series A', 'Series B']
-        }
+          series_names: ['Series A', 'Series B'],
+        },
       ];
 
       const detailBooks = [
@@ -1031,17 +1036,17 @@ describe('hardcoverApi', () => {
               position: 3.0,
               details: null,
               featured: true,
-              series: { name: 'Primary Series' }
+              series: { name: 'Primary Series' },
             },
             {
               position: 7.0,
               details: null,
               featured: false,
-              series: { name: 'Secondary Series' }
-            }
+              series: { name: 'Secondary Series' },
+            },
           ],
-          editions: []
-        }
+          editions: [],
+        },
       ];
 
       setupMockFetch(searchResults, detailBooks);
@@ -1061,8 +1066,8 @@ describe('hardcoverApi', () => {
           title: 'ISBN-13 Book',
           author_names: ['Author A'],
           isbns: [],
-          series_names: []
-        }
+          series_names: [],
+        },
       ];
 
       const detailBooks = [
@@ -1081,10 +1086,10 @@ describe('hardcoverApi', () => {
               isbn_13: '9781234567890',
               isbn_10: '1234567890',
               pages: 100,
-              release_date: null
-            }
-          ]
-        }
+              release_date: null,
+            },
+          ],
+        },
       ];
 
       setupMockFetch(searchResults, detailBooks);
@@ -1102,8 +1107,8 @@ describe('hardcoverApi', () => {
           title: 'ISBN-10 Only Book',
           author_names: ['Author B'],
           isbns: [],
-          series_names: []
-        }
+          series_names: [],
+        },
       ];
 
       const detailBooks = [
@@ -1122,10 +1127,10 @@ describe('hardcoverApi', () => {
               isbn_13: null,
               isbn_10: '0987654321',
               pages: 150,
-              release_date: null
-            }
-          ]
-        }
+              release_date: null,
+            },
+          ],
+        },
       ];
 
       setupMockFetch(searchResults, detailBooks);
@@ -1145,8 +1150,8 @@ describe('hardcoverApi', () => {
           title: 'Long Description Book',
           author_names: ['Verbose Author'],
           isbns: [],
-          series_names: []
-        }
+          series_names: [],
+        },
       ];
 
       const detailBooks = [
@@ -1160,8 +1165,8 @@ describe('hardcoverApi', () => {
           cached_tags: {},
           cached_image: null,
           book_series: [],
-          editions: []
-        }
+          editions: [],
+        },
       ];
 
       setupMockFetch(searchResults, detailBooks);
@@ -1180,8 +1185,8 @@ describe('hardcoverApi', () => {
           title: 'Minimal Book',
           author_names: ['Minimal Author'],
           isbns: [],
-          series_names: []
-        }
+          series_names: [],
+        },
       ];
 
       const detailBooks = [
@@ -1195,8 +1200,8 @@ describe('hardcoverApi', () => {
           cached_tags: {},
           cached_image: null,
           book_series: [],
-          editions: []
-        }
+          editions: [],
+        },
       ];
 
       setupMockFetch(searchResults, detailBooks);
@@ -1221,23 +1226,25 @@ describe('hardcoverApi', () => {
         if (body.query.includes('search')) {
           return {
             ok: true,
-            json: () => Promise.resolve({
-              data: {
-                search: {
-                  results: {
-                    hits: searchResults.map(r => ({ document: r })),
-                    found: searchResults.length
-                  }
-                }
-              }
-            })
+            json: () =>
+              Promise.resolve({
+                data: {
+                  search: {
+                    results: {
+                      hits: searchResults.map((r) => ({ document: r })),
+                      found: searchResults.length,
+                    },
+                  },
+                },
+              }),
           };
         }
         return {
           ok: true,
-          json: () => Promise.resolve({
-            data: { books: detailBooks }
-          })
+          json: () =>
+            Promise.resolve({
+              data: { books: detailBooks },
+            }),
         };
       });
     }
@@ -1249,8 +1256,8 @@ describe('hardcoverApi', () => {
           title: 'The BFG',
           author_names: ['Roald Dahl'],
           isbns: ['9780141346137'],
-          series_names: []
-        }
+          series_names: [],
+        },
       ];
 
       const detailBooks = [
@@ -1264,8 +1271,8 @@ describe('hardcoverApi', () => {
           cached_tags: { Genre: ['Fiction', "Children's", 'Fantasy'] },
           cached_image: null,
           book_series: [],
-          editions: []
-        }
+          editions: [],
+        },
       ];
 
       setupMockFetch(searchResults, detailBooks);
@@ -1282,8 +1289,8 @@ describe('hardcoverApi', () => {
           title: 'Mystery Book',
           author_names: ['Some Author'],
           isbns: [],
-          series_names: []
-        }
+          series_names: [],
+        },
       ];
 
       const detailBooks = [
@@ -1297,8 +1304,8 @@ describe('hardcoverApi', () => {
           cached_tags: {},
           cached_image: null,
           book_series: [],
-          editions: []
-        }
+          editions: [],
+        },
       ];
 
       setupMockFetch(searchResults, detailBooks);
@@ -1311,9 +1318,10 @@ describe('hardcoverApi', () => {
     it('returns null when book is not found', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          data: { search: { results: { hits: [], found: 0 } } }
-        })
+        json: () =>
+          Promise.resolve({
+            data: { search: { results: { hits: [], found: 0 } } },
+          }),
       });
 
       const genres = await findGenresForBook('ZZZXXX Nonexistent', null, 'test-api-key');
@@ -1336,8 +1344,8 @@ describe('hardcoverApi', () => {
           title: 'Empty Genre Book',
           author_names: ['Author'],
           isbns: [],
-          series_names: []
-        }
+          series_names: [],
+        },
       ];
 
       const detailBooks = [
@@ -1351,8 +1359,8 @@ describe('hardcoverApi', () => {
           cached_tags: { Genre: [] },
           cached_image: null,
           book_series: [],
-          editions: []
-        }
+          editions: [],
+        },
       ];
 
       setupMockFetch(searchResults, detailBooks);
@@ -1372,7 +1380,7 @@ describe('hardcoverApi', () => {
 
     it('returns cached_image.url when coverUrl is missing', () => {
       const bookData = {
-        cached_image: { url: 'https://hardcover.app/images/cached.jpg' }
+        cached_image: { url: 'https://hardcover.app/images/cached.jpg' },
       };
 
       expect(getCoverUrl(bookData)).toBe('https://hardcover.app/images/cached.jpg');
@@ -1389,7 +1397,7 @@ describe('hardcoverApi', () => {
     it('prefers coverUrl over cached_image.url', () => {
       const bookData = {
         coverUrl: 'https://hardcover.app/images/primary.jpg',
-        cached_image: { url: 'https://hardcover.app/images/fallback.jpg' }
+        cached_image: { url: 'https://hardcover.app/images/fallback.jpg' },
       };
 
       expect(getCoverUrl(bookData)).toBe('https://hardcover.app/images/primary.jpg');
@@ -1413,22 +1421,25 @@ describe('hardcoverApi', () => {
         }
 
         const hits = matchedAuthor
-          ? [{
-              document: {
-                id: Math.floor(Math.random() * 10000),
-                title: searchTerm,
-                author_names: [matchedAuthor],
-                isbns: [],
-                series_names: []
-              }
-            }]
+          ? [
+              {
+                document: {
+                  id: Math.floor(Math.random() * 10000),
+                  title: searchTerm,
+                  author_names: [matchedAuthor],
+                  isbns: [],
+                  series_names: [],
+                },
+              },
+            ]
           : [];
 
         return {
           ok: true,
-          json: () => Promise.resolve({
-            data: { search: { results: { hits, found: hits.length } } }
-          })
+          json: () =>
+            Promise.resolve({
+              data: { search: { results: { hits, found: hits.length } } },
+            }),
         };
       });
     }
@@ -1437,12 +1448,12 @@ describe('hardcoverApi', () => {
       const books = [
         { title: 'The BFG', author: '' },
         { title: 'Matilda', author: '' },
-        { title: 'Charlie', author: 'Roald Dahl' } // Already has author, should be skipped
+        { title: 'Charlie', author: 'Roald Dahl' }, // Already has author, should be skipped
       ];
 
       setupSearchMockFetch({
         'The BFG': 'Roald Dahl',
-        'Matilda': 'Roald Dahl'
+        Matilda: 'Roald Dahl',
       });
 
       const promise = batchFindMissingAuthors(books, 'test-api-key');
@@ -1463,7 +1474,7 @@ describe('hardcoverApi', () => {
     it('returns empty array when all books have authors', async () => {
       const books = [
         { title: 'The BFG', author: 'Roald Dahl' },
-        { title: 'Matilda', author: 'Roald Dahl' }
+        { title: 'Matilda', author: 'Roald Dahl' },
       ];
 
       const results = await batchFindMissingAuthors(books, 'test-api-key');
@@ -1472,12 +1483,10 @@ describe('hardcoverApi', () => {
     });
 
     it('calls onProgress callback with correct data', async () => {
-      const books = [
-        { title: 'The BFG', author: '' }
-      ];
+      const books = [{ title: 'The BFG', author: '' }];
 
       setupSearchMockFetch({
-        'The BFG': 'Roald Dahl'
+        'The BFG': 'Roald Dahl',
       });
 
       const onProgress = vi.fn();
@@ -1485,17 +1494,17 @@ describe('hardcoverApi', () => {
       await batchFindMissingAuthors(books, 'test-api-key', onProgress);
 
       expect(onProgress).toHaveBeenCalledTimes(1);
-      expect(onProgress).toHaveBeenCalledWith(expect.objectContaining({
-        current: 1,
-        total: 1,
-        book: 'The BFG'
-      }));
+      expect(onProgress).toHaveBeenCalledWith(
+        expect.objectContaining({
+          current: 1,
+          total: 1,
+          book: 'The BFG',
+        })
+      );
     });
 
     it('handles API errors gracefully per book', async () => {
-      const books = [
-        { title: 'Error Book', author: '' }
-      ];
+      const books = [{ title: 'Error Book', author: '' }];
 
       // findAuthorForBook catches errors internally and returns null
       mockFetch.mockRejectedValue(new Error('Network error'));
@@ -1510,12 +1519,12 @@ describe('hardcoverApi', () => {
     it('includes delay between API calls', async () => {
       const books = [
         { title: 'Book A', author: '' },
-        { title: 'Book B', author: '' }
+        { title: 'Book B', author: '' },
       ];
 
       setupSearchMockFetch({
         'Book A': 'Author A',
-        'Book B': 'Author B'
+        'Book B': 'Author B',
       });
 
       // Process first book immediately
@@ -1550,22 +1559,25 @@ describe('hardcoverApi', () => {
           }
 
           const hits = matchedTitle
-            ? [{
-                document: {
-                  id: 100,
-                  title: matchedTitle,
-                  author_names: ['Test Author'],
-                  isbns: [],
-                  series_names: []
-                }
-              }]
+            ? [
+                {
+                  document: {
+                    id: 100,
+                    title: matchedTitle,
+                    author_names: ['Test Author'],
+                    isbns: [],
+                    series_names: [],
+                  },
+                },
+              ]
             : [];
 
           return {
             ok: true,
-            json: () => Promise.resolve({
-              data: { search: { results: { hits, found: hits.length } } }
-            })
+            json: () =>
+              Promise.resolve({
+                data: { search: { results: { hits, found: hits.length } } },
+              }),
           };
         }
 
@@ -1573,22 +1585,25 @@ describe('hardcoverApi', () => {
         const description = Object.values(titleToDescription)[0] || null;
         return {
           ok: true,
-          json: () => Promise.resolve({
-            data: {
-              books: [{
-                id: 100,
-                title: 'Test',
-                description,
-                pages: 200,
-                release_year: 2020,
-                cached_contributors: {},
-                cached_tags: {},
-                cached_image: null,
-                book_series: [],
-                editions: []
-              }]
-            }
-          })
+          json: () =>
+            Promise.resolve({
+              data: {
+                books: [
+                  {
+                    id: 100,
+                    title: 'Test',
+                    description,
+                    pages: 200,
+                    release_year: 2020,
+                    cached_contributors: {},
+                    cached_tags: {},
+                    cached_image: null,
+                    book_series: [],
+                    editions: [],
+                  },
+                ],
+              },
+            }),
         };
       });
     }
@@ -1596,11 +1611,11 @@ describe('hardcoverApi', () => {
     it('calls getBookDetails for each book without description', async () => {
       const books = [
         { title: 'Book A', author: 'Author A', description: '' },
-        { title: 'Book B', author: 'Author B', description: 'Already has one' }
+        { title: 'Book B', author: 'Author B', description: 'Already has one' },
       ];
 
       setupDetailMockFetch({
-        'Book A': 'Found description for Book A'
+        'Book A': 'Found description for Book A',
       });
 
       const results = await batchFindMissingDescriptions(books, 'test-api-key');
@@ -1611,9 +1626,7 @@ describe('hardcoverApi', () => {
     });
 
     it('returns empty array when all books have descriptions', async () => {
-      const books = [
-        { title: 'Book A', description: 'Has description' }
-      ];
+      const books = [{ title: 'Book A', description: 'Has description' }];
 
       const results = await batchFindMissingDescriptions(books, 'test-api-key');
 
@@ -1621,12 +1634,10 @@ describe('hardcoverApi', () => {
     });
 
     it('calls onProgress callback', async () => {
-      const books = [
-        { title: 'Book A', author: 'Author', description: '' }
-      ];
+      const books = [{ title: 'Book A', author: 'Author', description: '' }];
 
       setupDetailMockFetch({
-        'Book A': 'A description'
+        'Book A': 'A description',
       });
 
       const onProgress = vi.fn();
@@ -1634,11 +1645,13 @@ describe('hardcoverApi', () => {
       await batchFindMissingDescriptions(books, 'test-api-key', onProgress);
 
       expect(onProgress).toHaveBeenCalledTimes(1);
-      expect(onProgress).toHaveBeenCalledWith(expect.objectContaining({
-        current: 1,
-        total: 1,
-        book: 'Book A'
-      }));
+      expect(onProgress).toHaveBeenCalledWith(
+        expect.objectContaining({
+          current: 1,
+          total: 1,
+          book: 'Book A',
+        })
+      );
     });
   });
 
@@ -1659,22 +1672,25 @@ describe('hardcoverApi', () => {
           }
 
           const hits = matchedTitle
-            ? [{
-                document: {
-                  id: 200,
-                  title: matchedTitle,
-                  author_names: ['Test Author'],
-                  isbns: [],
-                  series_names: []
-                }
-              }]
+            ? [
+                {
+                  document: {
+                    id: 200,
+                    title: matchedTitle,
+                    author_names: ['Test Author'],
+                    isbns: [],
+                    series_names: [],
+                  },
+                },
+              ]
             : [];
 
           return {
             ok: true,
-            json: () => Promise.resolve({
-              data: { search: { results: { hits, found: hits.length } } }
-            })
+            json: () =>
+              Promise.resolve({
+                data: { search: { results: { hits, found: hits.length } } },
+              }),
           };
         }
 
@@ -1682,22 +1698,25 @@ describe('hardcoverApi', () => {
         const genres = Object.values(titleToGenres)[0] || [];
         return {
           ok: true,
-          json: () => Promise.resolve({
-            data: {
-              books: [{
-                id: 200,
-                title: 'Test',
-                description: 'Desc',
-                pages: 200,
-                release_year: 2020,
-                cached_contributors: {},
-                cached_tags: genres.length > 0 ? { Genre: genres } : {},
-                cached_image: null,
-                book_series: [],
-                editions: []
-              }]
-            }
-          })
+          json: () =>
+            Promise.resolve({
+              data: {
+                books: [
+                  {
+                    id: 200,
+                    title: 'Test',
+                    description: 'Desc',
+                    pages: 200,
+                    release_year: 2020,
+                    cached_contributors: {},
+                    cached_tags: genres.length > 0 ? { Genre: genres } : {},
+                    cached_image: null,
+                    book_series: [],
+                    editions: [],
+                  },
+                ],
+              },
+            }),
         };
       });
     }
@@ -1705,11 +1724,11 @@ describe('hardcoverApi', () => {
     it('returns genres for books missing them', async () => {
       const books = [
         { title: 'Fantasy Book', author: 'Author A', genreIds: [] },
-        { title: 'Has Genres', author: 'Author B', genreIds: [1, 2] }
+        { title: 'Has Genres', author: 'Author B', genreIds: [1, 2] },
       ];
 
       setupGenreMockFetch({
-        'Fantasy Book': ['Fantasy', 'Adventure']
+        'Fantasy Book': ['Fantasy', 'Adventure'],
       });
 
       const results = await batchFindMissingGenres(books, 'test-api-key');
@@ -1722,7 +1741,7 @@ describe('hardcoverApi', () => {
     it('returns empty array when all books have genres', async () => {
       const books = [
         { title: 'Book A', genreIds: [1] },
-        { title: 'Book B', genreIds: [2, 3] }
+        { title: 'Book B', genreIds: [2, 3] },
       ];
 
       const results = await batchFindMissingGenres(books, 'test-api-key');
@@ -1731,12 +1750,10 @@ describe('hardcoverApi', () => {
     });
 
     it('calls onProgress callback with correct data', async () => {
-      const books = [
-        { title: 'Genre Book', author: 'Author', genreIds: [] }
-      ];
+      const books = [{ title: 'Genre Book', author: 'Author', genreIds: [] }];
 
       setupGenreMockFetch({
-        'Genre Book': ['Fiction']
+        'Genre Book': ['Fiction'],
       });
 
       const onProgress = vi.fn();
@@ -1744,20 +1761,20 @@ describe('hardcoverApi', () => {
       await batchFindMissingGenres(books, 'test-api-key', onProgress);
 
       expect(onProgress).toHaveBeenCalledTimes(1);
-      expect(onProgress).toHaveBeenCalledWith(expect.objectContaining({
-        current: 1,
-        total: 1,
-        book: 'Genre Book'
-      }));
+      expect(onProgress).toHaveBeenCalledWith(
+        expect.objectContaining({
+          current: 1,
+          total: 1,
+          book: 'Genre Book',
+        })
+      );
     });
 
     it('handles books where no genres are found', async () => {
-      const books = [
-        { title: 'No Genre Book', author: 'Author', genreIds: [] }
-      ];
+      const books = [{ title: 'No Genre Book', author: 'Author', genreIds: [] }];
 
       setupGenreMockFetch({
-        'No Genre Book': []
+        'No Genre Book': [],
       });
 
       const results = await batchFindMissingGenres(books, 'test-api-key');
@@ -1768,9 +1785,7 @@ describe('hardcoverApi', () => {
     });
 
     it('handles API errors gracefully per book', async () => {
-      const books = [
-        { title: 'Error Book', genreIds: [] }
-      ];
+      const books = [{ title: 'Error Book', genreIds: [] }];
 
       // findGenresForBook catches errors internally and returns null
       mockFetch.mockRejectedValue(new Error('Network error'));
@@ -1788,7 +1803,7 @@ describe('hardcoverApi', () => {
       mockFetch.mockResolvedValue({
         ok: false,
         status: 429,
-        statusText: 'Too Many Requests'
+        statusText: 'Too Many Requests',
       });
 
       // Trigger a request that gets 429
@@ -1801,9 +1816,10 @@ describe('hardcoverApi', () => {
     it('sets rate limit flag on GraphQL rate limit error message', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          errors: [{ message: 'Rate limit exceeded, please try again later' }]
-        })
+        json: () =>
+          Promise.resolve({
+            errors: [{ message: 'Rate limit exceeded, please try again later' }],
+          }),
       });
 
       await expect(searchBooksByTitle('Test', 'test-api-key')).rejects.toThrow('Rate limit');
@@ -1814,9 +1830,10 @@ describe('hardcoverApi', () => {
     it('sets rate limit flag on "too many requests" error message', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          errors: [{ message: 'Too many requests' }]
-        })
+        json: () =>
+          Promise.resolve({
+            errors: [{ message: 'Too many requests' }],
+          }),
       });
 
       await expect(searchBooksByTitle('Test', 'test-api-key')).rejects.toThrow('Too many requests');
@@ -1827,9 +1844,10 @@ describe('hardcoverApi', () => {
     it('does not set rate limit flag on regular errors', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          errors: [{ message: 'Unauthorized' }]
-        })
+        json: () =>
+          Promise.resolve({
+            errors: [{ message: 'Unauthorized' }],
+          }),
       });
 
       await expect(searchBooksByTitle('Test', 'test-api-key')).rejects.toThrow('Unauthorized');
@@ -1841,7 +1859,7 @@ describe('hardcoverApi', () => {
       mockFetch.mockResolvedValue({
         ok: false,
         status: 429,
-        statusText: 'Too Many Requests'
+        statusText: 'Too Many Requests',
       });
 
       await expect(searchBooksByTitle('Test', 'test-api-key')).rejects.toThrow('429');
@@ -1857,7 +1875,7 @@ describe('hardcoverApi', () => {
       mockFetch.mockResolvedValue({
         ok: false,
         status: 429,
-        statusText: 'Too Many Requests'
+        statusText: 'Too Many Requests',
       });
 
       await expect(searchBooksByTitle('Test', 'test-api-key')).rejects.toThrow('429');
@@ -1872,7 +1890,7 @@ describe('hardcoverApi', () => {
       mockFetch.mockResolvedValue({
         ok: false,
         status: 429,
-        statusText: 'Too Many Requests'
+        statusText: 'Too Many Requests',
       });
       await expect(searchBooksByTitle('Trigger', 'test-api-key')).rejects.toThrow();
 
@@ -1889,7 +1907,7 @@ describe('hardcoverApi', () => {
       mockFetch.mockResolvedValue({
         ok: false,
         status: 429,
-        statusText: 'Too Many Requests'
+        statusText: 'Too Many Requests',
       });
       await expect(searchBooksByTitle('Trigger', 'test-api-key')).rejects.toThrow();
 
@@ -1904,7 +1922,7 @@ describe('hardcoverApi', () => {
       mockFetch.mockResolvedValue({
         ok: false,
         status: 429,
-        statusText: 'Too Many Requests'
+        statusText: 'Too Many Requests',
       });
       await expect(searchBooksByTitle('Trigger', 'test-api-key')).rejects.toThrow();
 
@@ -1919,7 +1937,7 @@ describe('hardcoverApi', () => {
       mockFetch.mockResolvedValue({
         ok: false,
         status: 429,
-        statusText: 'Too Many Requests'
+        statusText: 'Too Many Requests',
       });
       await expect(searchBooksByTitle('Trigger', 'test-api-key')).rejects.toThrow();
 
@@ -1934,7 +1952,7 @@ describe('hardcoverApi', () => {
       mockFetch.mockResolvedValue({
         ok: false,
         status: 429,
-        statusText: 'Too Many Requests'
+        statusText: 'Too Many Requests',
       });
       await expect(searchBooksByTitle('Trigger', 'test-api-key')).rejects.toThrow();
 

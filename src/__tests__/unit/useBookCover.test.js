@@ -5,9 +5,7 @@ import { BookCoverProvider } from '../../contexts/BookCoverContext';
 import { useBookCover, _clearPendingRequests } from '../../hooks/useBookCover';
 
 // Wrapper component for providing context
-const wrapper = ({ children }) => (
-  <BookCoverProvider>{children}</BookCoverProvider>
-);
+const wrapper = ({ children }) => <BookCoverProvider>{children}</BookCoverProvider>;
 
 describe('useBookCover', () => {
   beforeEach(() => {
@@ -67,12 +65,8 @@ describe('useBookCover', () => {
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining('https://openlibrary.org/search.json')
       );
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('title=Harry+Potter')
-      );
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('author=J.K.+Rowling')
-      );
+      expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('title=Harry+Potter'));
+      expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('author=J.K.+Rowling'));
     });
 
     it('should return null when no cover found (empty docs)', async () => {
@@ -140,9 +134,7 @@ describe('useBookCover', () => {
       expect(result.current.coverUrl).toBe('/api/covers/id/99999-M.jpg');
 
       // Verify fetch was called without author param (URLSearchParams uses + for spaces)
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('title=Orphan+Book')
-      );
+      expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('title=Orphan+Book'));
     });
   });
 
@@ -158,13 +150,10 @@ describe('useBookCover', () => {
       });
 
       // First render - should fetch
-      const { result, rerender } = renderHook(
-        ({ title, author }) => useBookCover(title, author),
-        {
-          wrapper,
-          initialProps: { title: 'Cached Book', author: 'Cached Author' },
-        }
-      );
+      const { result, rerender } = renderHook(({ title, author }) => useBookCover(title, author), {
+        wrapper,
+        initialProps: { title: 'Cached Book', author: 'Cached Author' },
+      });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -195,13 +184,10 @@ describe('useBookCover', () => {
       });
 
       // First render - should fetch and get null
-      const { result, rerender } = renderHook(
-        ({ title, author }) => useBookCover(title, author),
-        {
-          wrapper,
-          initialProps: { title: 'No Cover Book', author: 'No Cover Author' },
-        }
-      );
+      const { result, rerender } = renderHook(({ title, author }) => useBookCover(title, author), {
+        wrapper,
+        initialProps: { title: 'No Cover Book', author: 'No Cover Author' },
+      });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);

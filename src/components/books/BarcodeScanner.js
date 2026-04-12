@@ -6,7 +6,7 @@ import {
   DialogActions,
   Button,
   Box,
-  Typography
+  Typography,
 } from '@mui/material';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 
@@ -58,8 +58,8 @@ const BarcodeScanner = ({ open, onScan, onClose }) => {
             formatsToSupport: [Html5QrcodeSupportedFormats.EAN_13],
             videoConstraints: {
               facingMode: 'environment',
-              advanced: [{ playsinline: true }]
-            }
+              advanced: [{ playsinline: true }],
+            },
           },
           (decodedText) => {
             // Prevent duplicate callbacks from rapid successive scans
@@ -79,7 +79,9 @@ const BarcodeScanner = ({ open, onScan, onClose }) => {
       } catch (err) {
         const errStr = err.toString();
         if (errStr.includes('NotAllowedError') || errStr.includes('Permission')) {
-          setError('Camera permission denied. Please allow camera access in your browser settings and try again.');
+          setError(
+            'Camera permission denied. Please allow camera access in your browser settings and try again.'
+          );
         } else if (errStr.includes('NotFoundError')) {
           setError('No camera found. Please ensure your device has a camera.');
         } else {
@@ -115,7 +117,7 @@ const BarcodeScanner = ({ open, onScan, onClose }) => {
             minHeight: 300,
             backgroundColor: '#1a1a1a',
             borderRadius: 1,
-            overflow: 'hidden'
+            overflow: 'hidden',
           }}
         />
         {error ? (

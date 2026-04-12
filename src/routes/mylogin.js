@@ -17,7 +17,7 @@ import {
   hashToken,
   buildRefreshCookie,
   buildClearRefreshCookie,
-  ROLE_HIERARCHY
+  ROLE_HIERARCHY,
 } from '../utils/crypto.js';
 import { generateId } from '../utils/helpers.js';
 import { syncUserClassAssignments } from '../utils/classAssignments.js';
@@ -97,7 +97,10 @@ myloginRouter.get('/callback', async (c) => {
     // Check D1 first (strongly consistent), fall back to KV
     let stateValid = false;
     if (db) {
-      const row = await db.prepare('SELECT state FROM oauth_state WHERE state = ?').bind(state).first();
+      const row = await db
+        .prepare('SELECT state FROM oauth_state WHERE state = ?')
+        .bind(state)
+        .first();
       if (row) {
         stateValid = true;
         await db.prepare('DELETE FROM oauth_state WHERE state = ?').bind(state).run();
@@ -129,16 +132,16 @@ myloginRouter.get('/callback', async (c) => {
       code,
       redirect_uri: redirectUri,
       client_id: clientId,
-      client_secret: clientSecret
+      client_secret: clientSecret,
     });
 
     const tokenRes = await fetch('https://app.mylogin.com/oauth/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        Authorization: `Basic ${credentials}`
+        Authorization: `Basic ${credentials}`,
       },
-      body: tokenBody.toString()
+      body: tokenBody.toString(),
     });
 
     if (!tokenRes.ok) {
@@ -159,8 +162,8 @@ myloginRouter.get('/callback', async (c) => {
     // -----------------------------------------------------------------------
     const userRes = await fetch('https://app.mylogin.com/api/user', {
       headers: {
-        Authorization: `Bearer ${accessToken}`
-      }
+        Authorization: `Bearer ${accessToken}`,
+      },
     });
 
     if (!userRes.ok) {
@@ -192,9 +195,12 @@ myloginRouter.get('/callback', async (c) => {
       return c.redirect('/?auth=error&reason=no_school');
     }
 
-    const org = await db.prepare(
-      'SELECT id, slug, name FROM organizations WHERE wonde_school_id = ? AND is_active = 1'
-    ).bind(wondeSchoolId).first();
+    const org = await db
+      .prepare(
+        'SELECT id, slug, name FROM organizations WHERE wonde_school_id = ? AND is_active = 1'
+      )
+      .bind(wondeSchoolId)
+      .first();
 
     if (!org) {
       console.error('[MyLogin] No org found for wonde_school_id:', wondeSchoolId, '- user:', email);
@@ -206,9 +212,12 @@ myloginRouter.get('/callback', async (c) => {
     // -----------------------------------------------------------------------
     let userId;
 
-    const existingUser = await db.prepare(
-      'SELECT id, organization_id, name, email, role FROM users WHERE mylogin_id = ? AND is_active = 1'
-    ).bind(String(myloginId)).first();
+    const existingUser = await db
+      .prepare(
+        'SELECT id, organization_id, name, email, role FROM users WHERE mylogin_id = ? AND is_active = 1'
+      )
+      .bind(String(myloginId))
+      .first();
 
     if (existingUser) {
       // Update existing user — sync name and email from IdP.
@@ -224,36 +233,43 @@ myloginRouter.get('/callback', async (c) => {
         effectiveRole = idpRole;
       } else {
         // IdP wants to elevate — keep existing role and log warning
-        console.warn(`[MyLogin] Blocked role elevation for ${name}: IdP wants ${idpRole} but user has ${existingUser.role}. Keeping existing role.`);
+        console.warn(
+          `[MyLogin] Blocked role elevation for ${name}: IdP wants ${idpRole} but user has ${existingUser.role}. Keeping existing role.`
+        );
       }
 
       if (existingUser.role !== effectiveRole) {
         console.log(`[MyLogin] Role changed for ${name}: ${existingUser.role} → ${effectiveRole}`);
       }
-      await db.prepare(
-        `UPDATE users SET name = ?, email = ?, role = ?, last_login_at = datetime("now"), updated_at = datetime("now")
+      await db
+        .prepare(
+          `UPDATE users SET name = ?, email = ?, role = ?, last_login_at = datetime("now"), updated_at = datetime("now")
          WHERE id = ?`
-      ).bind(name, email, effectiveRole, userId).run();
+        )
+        .bind(name, email, effectiveRole, userId)
+        .run();
     } else {
       // Create new user
       userId = generateId();
       const placeholderHash = crypto.randomUUID(); // placeholder password hash
 
-      await db.prepare(
-        `INSERT INTO users (id, organization_id, name, email, mylogin_id, wonde_employee_id, auth_provider, role, password_hash, is_active, created_at, updated_at, last_login_at)
+      await db
+        .prepare(
+          `INSERT INTO users (id, organization_id, name, email, mylogin_id, wonde_employee_id, auth_provider, role, password_hash, is_active, created_at, updated_at, last_login_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime("now"), datetime("now"), datetime("now"))`
-      ).bind(
-        userId,
-        org.id,
-        name,
-        email,
-        String(myloginId),
-        wondeEmployeeId,
-        'mylogin',
-        role,
-        placeholderHash
-      ).run();
-
+        )
+        .bind(
+          userId,
+          org.id,
+          name,
+          email,
+          String(myloginId),
+          wondeEmployeeId,
+          'mylogin',
+          role,
+          placeholderHash
+        )
+        .run();
     }
 
     // Sync class assignments for teachers (runs for both new and existing users)
@@ -277,9 +293,12 @@ myloginRouter.get('/callback', async (c) => {
     const refreshTokenData = await createRefreshToken(userId, c.env.JWT_SECRET);
 
     // Store refresh token hash
-    await db.prepare(
-      'INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at) VALUES (?, ?, ?, ?)'
-    ).bind(generateId(), userId, refreshTokenData.hash, refreshTokenData.expiresAt).run();
+    await db
+      .prepare(
+        'INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at) VALUES (?, ?, ?, ?)'
+      )
+      .bind(generateId(), userId, refreshTokenData.hash, refreshTokenData.expiresAt)
+      .run();
 
     // Set httpOnly cookie
     const isProduction = c.env.ENVIRONMENT !== 'development';
@@ -291,10 +310,9 @@ myloginRouter.get('/callback', async (c) => {
       status: 302,
       headers: {
         Location: '/?auth=callback',
-        'Set-Cookie': buildRefreshCookie(refreshTokenData.token, isProduction)
-      }
+        'Set-Cookie': buildRefreshCookie(refreshTokenData.token, isProduction),
+      },
     });
-
   } catch (error) {
     console.error('[MyLogin] Callback error:', error);
     return c.redirect('/?auth=error&reason=internal');
@@ -315,9 +333,10 @@ myloginRouter.post('/logout', async (c) => {
 
     if (refreshToken && db) {
       const tokenHash = await hashToken(refreshToken);
-      await db.prepare(
-        'UPDATE refresh_tokens SET revoked_at = datetime("now") WHERE token_hash = ?'
-      ).bind(tokenHash).run();
+      await db
+        .prepare('UPDATE refresh_tokens SET revoked_at = datetime("now") WHERE token_hash = ?')
+        .bind(tokenHash)
+        .run();
     }
 
     // Clear the refresh token cookie
@@ -329,7 +348,6 @@ myloginRouter.post('/logout', async (c) => {
     logoutUrl.searchParams.set('client_id', c.env.MYLOGIN_CLIENT_ID);
 
     return c.json({ logoutUrl: logoutUrl.toString() });
-
   } catch (error) {
     console.error('[MyLogin] Logout error:', error);
     return c.json({ error: 'Logout failed' }, 500);

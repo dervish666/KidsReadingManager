@@ -5,20 +5,24 @@ import { Hono } from 'hono';
 vi.mock('../../utils/crypto.js', () => ({
   encryptSensitiveData: vi.fn(),
   constantTimeStringEqual: vi.fn((a, b) => a === b),
-  getEncryptionSecret: vi.fn((env) => env.ENCRYPTION_KEY || env.JWT_SECRET)
+  getEncryptionSecret: vi.fn((env) => env.ENCRYPTION_KEY || env.JWT_SECRET),
 }));
 
 vi.mock('../../services/wondeSync.js', () => ({
-  runFullSync: vi.fn()
+  runFullSync: vi.fn(),
 }));
 
 vi.mock('../../utils/wondeApi.js', () => ({
   fetchSchoolDetails: vi.fn().mockResolvedValue({
     name: 'Test School',
-    address: { address_line_1: '1 Test St', address_town: 'Testville', address_postcode: 'TE1 1ST' },
+    address: {
+      address_line_1: '1 Test St',
+      address_town: 'Testville',
+      address_postcode: 'TE1 1ST',
+    },
     phone: '01onal234567',
-    email: 'office@testschool.example.com'
-  })
+    email: 'office@testschool.example.com',
+  }),
 }));
 
 import webhooksRouter from '../../routes/webhooks.js';
@@ -35,12 +39,12 @@ function createMockDb() {
         bind: vi.fn().mockReturnThis(),
         run: vi.fn().mockResolvedValue({ success: true }),
         first: vi.fn().mockResolvedValue(null),
-        all: vi.fn().mockResolvedValue({ results: [] })
+        all: vi.fn().mockResolvedValue({ results: [] }),
       };
       // Allow chaining: bind returns the same statement
       stmt.bind.mockReturnValue(stmt);
       return stmt;
-    })
+    }),
   };
 
   return db;
@@ -63,11 +67,15 @@ async function postWebhook(app, body, env, { secret = 'test-webhook-secret' } = 
   if (secret) {
     headers['X-Webhook-Secret'] = secret;
   }
-  return app.request('/api/webhooks/wonde', {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(body)
-  }, env);
+  return app.request(
+    '/api/webhooks/wonde',
+    {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    },
+    env
+  );
 }
 
 describe('Wonde Webhook Handler', () => {
@@ -83,7 +91,7 @@ describe('Wonde Webhook Handler', () => {
     env = {
       READING_MANAGER_DB: mockDb,
       JWT_SECRET: 'test-secret-key',
-      WONDE_WEBHOOK_SECRET: 'test-webhook-secret'
+      WONDE_WEBHOOK_SECRET: 'test-webhook-secret',
     };
 
     // Default mock return values
@@ -99,7 +107,7 @@ describe('Wonde Webhook Handler', () => {
       payload_type: 'schoolApproved',
       school_id: 'A1234567890',
       school_name: 'Cheddar Grove Primary School',
-      school_token: 'tok_abc123'
+      school_token: 'tok_abc123',
     };
 
     it('creates an organization and triggers sync', async () => {
@@ -116,9 +124,7 @@ describe('Wonde Webhook Handler', () => {
 
       // Should have called prepare with an INSERT INTO organizations query
       const prepareCalls = mockDb.prepare.mock.calls;
-      const insertCall = prepareCalls.find(call =>
-        call[0].includes('INSERT INTO organizations')
-      );
+      const insertCall = prepareCalls.find((call) => call[0].includes('INSERT INTO organizations'));
       expect(insertCall).toBeDefined();
 
       // Find the bind call for the INSERT
@@ -145,20 +151,20 @@ describe('Wonde Webhook Handler', () => {
 
       expect(runFullSync).toHaveBeenCalledWith(
         expect.any(String), // orgId (UUID)
-        'tok_abc123',       // school token
-        'A1234567890',      // wonde school id
-        mockDb              // database
+        'tok_abc123', // school token
+        'A1234567890', // wonde school id
+        mockDb // database
       );
     });
 
     it('generates a valid slug from the school name', async () => {
       const payload = {
         ...validPayload,
-        school_name: "St. Mary's C of E Primary & Nursery School!!!"
+        school_name: "St. Mary's C of E Primary & Nursery School!!!",
       };
       await postWebhook(app, payload, env);
 
-      const insertCall = mockDb.prepare.mock.calls.find(call =>
+      const insertCall = mockDb.prepare.mock.calls.find((call) =>
         call[0].includes('INSERT INTO organizations')
       );
       const bindArgs = mockDb.prepare.mock.results.find((result, idx) =>
@@ -209,44 +215,52 @@ describe('Wonde Webhook Handler', () => {
           return {
             bind: vi.fn().mockReturnValue({
               first: vi.fn().mockResolvedValue({ id: 'org-uuid-123' }),
-              run: vi.fn().mockResolvedValue({ success: true })
-            })
+              run: vi.fn().mockResolvedValue({ success: true }),
+            }),
           };
         }
         // For UPDATE query
         return {
           bind: vi.fn().mockReturnValue({
             first: vi.fn().mockResolvedValue(null),
-            run: vi.fn().mockResolvedValue({ success: true })
-          })
+            run: vi.fn().mockResolvedValue({ success: true }),
+          }),
         };
       });
 
-      const res = await postWebhook(app, {
-        payload_type: 'accessRevoked',
-        school_id: 'A1234567890',
-        school_name: 'Test School',
-        revoke_reason: 'No longer needed'
-      }, env);
+      const res = await postWebhook(
+        app,
+        {
+          payload_type: 'accessRevoked',
+          school_id: 'A1234567890',
+          school_name: 'Test School',
+          revoke_reason: 'No longer needed',
+        },
+        env
+      );
 
       expect(res.status).toBe(200);
       const json = await res.json();
       expect(json.success).toBe(true);
 
       // Verify UPDATE was called to soft-delete
-      const updateCall = mockDb.prepare.mock.calls.find(call =>
-        call[0].includes('UPDATE organizations') && call[0].includes('is_active = 0')
+      const updateCall = mockDb.prepare.mock.calls.find(
+        (call) => call[0].includes('UPDATE organizations') && call[0].includes('is_active = 0')
       );
       expect(updateCall).toBeDefined();
     });
 
     it('returns 200 even when organization not found', async () => {
       // Default mock returns null for first() — org not found
-      const res = await postWebhook(app, {
-        payload_type: 'accessRevoked',
-        school_id: 'UNKNOWN_ID',
-        school_name: 'Unknown School'
-      }, env);
+      const res = await postWebhook(
+        app,
+        {
+          payload_type: 'accessRevoked',
+          school_id: 'UNKNOWN_ID',
+          school_name: 'Unknown School',
+        },
+        env
+      );
 
       expect(res.status).toBe(200);
       const json = await res.json();
@@ -254,10 +268,14 @@ describe('Wonde Webhook Handler', () => {
     });
 
     it('returns 400 when school_id is missing', async () => {
-      const res = await postWebhook(app, {
-        payload_type: 'accessRevoked',
-        school_name: 'Test School'
-      }, env);
+      const res = await postWebhook(
+        app,
+        {
+          payload_type: 'accessRevoked',
+          school_name: 'Test School',
+        },
+        env
+      );
 
       expect(res.status).toBe(400);
       const json = await res.json();
@@ -275,31 +293,35 @@ describe('Wonde Webhook Handler', () => {
           return {
             bind: vi.fn().mockReturnValue({
               first: vi.fn().mockResolvedValue({ id: 'org-uuid-456' }),
-              run: vi.fn().mockResolvedValue({ success: true })
-            })
+              run: vi.fn().mockResolvedValue({ success: true }),
+            }),
           };
         }
         return {
           bind: vi.fn().mockReturnValue({
             first: vi.fn().mockResolvedValue(null),
-            run: vi.fn().mockResolvedValue({ success: true })
-          })
+            run: vi.fn().mockResolvedValue({ success: true }),
+          }),
         };
       });
 
-      const res = await postWebhook(app, {
-        payload_type: 'accessDeclined',
-        school_id: 'A1234567890',
-        school_name: 'Declined School',
-        decline_reason: 'Not interested'
-      }, env);
+      const res = await postWebhook(
+        app,
+        {
+          payload_type: 'accessDeclined',
+          school_id: 'A1234567890',
+          school_name: 'Declined School',
+          decline_reason: 'Not interested',
+        },
+        env
+      );
 
       expect(res.status).toBe(200);
       const json = await res.json();
       expect(json.success).toBe(true);
 
-      const updateCall = mockDb.prepare.mock.calls.find(call =>
-        call[0].includes('UPDATE organizations') && call[0].includes('is_active = 0')
+      const updateCall = mockDb.prepare.mock.calls.find(
+        (call) => call[0].includes('UPDATE organizations') && call[0].includes('is_active = 0')
       );
       expect(updateCall).toBeDefined();
     });
@@ -310,12 +332,16 @@ describe('Wonde Webhook Handler', () => {
   // -------------------------------------------------------------------------
   describe('schoolMigration', () => {
     it('returns 200 and acknowledges the migration', async () => {
-      const res = await postWebhook(app, {
-        payload_type: 'schoolMigration',
-        school_name: 'Migrating School',
-        migrate_from: 'old-server',
-        migrate_to: 'new-server'
-      }, env);
+      const res = await postWebhook(
+        app,
+        {
+          payload_type: 'schoolMigration',
+          school_name: 'Migrating School',
+          migrate_from: 'old-server',
+          migrate_to: 'new-server',
+        },
+        env
+      );
 
       expect(res.status).toBe(200);
       const json = await res.json();
@@ -328,10 +354,14 @@ describe('Wonde Webhook Handler', () => {
   // -------------------------------------------------------------------------
   describe('unknown payload type', () => {
     it('returns 200 with acknowledgment', async () => {
-      const res = await postWebhook(app, {
-        payload_type: 'someFutureEvent',
-        school_id: 'A1234567890'
-      }, env);
+      const res = await postWebhook(
+        app,
+        {
+          payload_type: 'someFutureEvent',
+          school_id: 'A1234567890',
+        },
+        env
+      );
 
       expect(res.status).toBe(200);
       const json = await res.json();
@@ -345,10 +375,14 @@ describe('Wonde Webhook Handler', () => {
   // -------------------------------------------------------------------------
   describe('missing payload_type', () => {
     it('returns 400 when payload_type is not provided', async () => {
-      const res = await postWebhook(app, {
-        school_id: 'A1234567890',
-        school_name: 'Test School'
-      }, env);
+      const res = await postWebhook(
+        app,
+        {
+          school_id: 'A1234567890',
+          school_name: 'Test School',
+        },
+        env
+      );
 
       expect(res.status).toBe(400);
       const json = await res.json();
@@ -364,12 +398,16 @@ describe('Wonde Webhook Handler', () => {
       const envNoSecret = { ...env };
       delete envNoSecret.WONDE_WEBHOOK_SECRET;
 
-      const res = await postWebhook(app, {
-        payload_type: 'schoolApproved',
-        school_id: 'A1234567890',
-        school_name: 'Test School',
-        school_token: 'tok_abc123'
-      }, envNoSecret);
+      const res = await postWebhook(
+        app,
+        {
+          payload_type: 'schoolApproved',
+          school_id: 'A1234567890',
+          school_name: 'Test School',
+          school_token: 'tok_abc123',
+        },
+        envNoSecret
+      );
 
       expect(res.status).toBe(503);
       const json = await res.json();
@@ -377,12 +415,17 @@ describe('Wonde Webhook Handler', () => {
     });
 
     it('returns 401 when secret query parameter is missing', async () => {
-      const res = await postWebhook(app, {
-        payload_type: 'schoolApproved',
-        school_id: 'A1234567890',
-        school_name: 'Test School',
-        school_token: 'tok_abc123'
-      }, env, { secret: null });
+      const res = await postWebhook(
+        app,
+        {
+          payload_type: 'schoolApproved',
+          school_id: 'A1234567890',
+          school_name: 'Test School',
+          school_token: 'tok_abc123',
+        },
+        env,
+        { secret: null }
+      );
 
       expect(res.status).toBe(401);
       const json = await res.json();
@@ -390,12 +433,17 @@ describe('Wonde Webhook Handler', () => {
     });
 
     it('returns 401 when secret query parameter is wrong', async () => {
-      const res = await postWebhook(app, {
-        payload_type: 'schoolApproved',
-        school_id: 'A1234567890',
-        school_name: 'Test School',
-        school_token: 'tok_abc123'
-      }, env, { secret: 'wrong-secret' });
+      const res = await postWebhook(
+        app,
+        {
+          payload_type: 'schoolApproved',
+          school_id: 'A1234567890',
+          school_name: 'Test School',
+          school_token: 'tok_abc123',
+        },
+        env,
+        { secret: 'wrong-secret' }
+      );
 
       expect(res.status).toBe(401);
       const json = await res.json();
@@ -403,12 +451,17 @@ describe('Wonde Webhook Handler', () => {
     });
 
     it('succeeds when correct secret is provided', async () => {
-      const res = await postWebhook(app, {
-        payload_type: 'schoolMigration',
-        school_name: 'Test',
-        migrate_from: 'a',
-        migrate_to: 'b'
-      }, env, { secret: 'test-webhook-secret' });
+      const res = await postWebhook(
+        app,
+        {
+          payload_type: 'schoolMigration',
+          school_name: 'Test',
+          migrate_from: 'a',
+          migrate_to: 'b',
+        },
+        env,
+        { secret: 'test-webhook-secret' }
+      );
 
       expect(res.status).toBe(200);
     });

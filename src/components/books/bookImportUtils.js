@@ -31,7 +31,8 @@ export const parseCSVLine = (line) => {
 
 export const parseCSV = (csvText) => {
   const lines = csvText.split('\n').filter((line) => line.trim());
-  if (lines.length < 2) throw new Error('CSV file must have at least a header row and one data row');
+  if (lines.length < 2)
+    throw new Error('CSV file must have at least a header row and one data row');
 
   const headers = lines[0].split(',').map((h) => h.replace(/"/g, '').trim());
   const expectedHeaders = ['Title', 'Author', 'Reading Level', 'Age Range'];

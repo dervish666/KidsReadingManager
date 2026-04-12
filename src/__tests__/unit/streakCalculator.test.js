@@ -4,7 +4,7 @@ import {
   getDateString,
   getUniqueReadingDates,
   daysBetween,
-  wouldExtendStreak
+  wouldExtendStreak,
 } from '../../utils/streakCalculator';
 
 describe('streakCalculator', () => {
@@ -40,7 +40,7 @@ describe('streakCalculator', () => {
         { date: '2025-01-05' },
         { date: '2025-01-09' },
         { date: '2025-01-05' }, // Duplicate
-        { date: '2025-01-07' }
+        { date: '2025-01-07' },
       ];
       const result = getUniqueReadingDates(sessions, 'UTC');
       expect(result).toEqual(['2025-01-09', '2025-01-07', '2025-01-05']);
@@ -62,16 +62,12 @@ describe('streakCalculator', () => {
         currentStreak: 0,
         longestStreak: 0,
         streakStartDate: null,
-        lastReadDate: null
+        lastReadDate: null,
       });
     });
 
     it('should calculate streak for consecutive days', () => {
-      const sessions = [
-        { date: '2025-01-09' },
-        { date: '2025-01-08' },
-        { date: '2025-01-07' }
-      ];
+      const sessions = [{ date: '2025-01-09' }, { date: '2025-01-08' }, { date: '2025-01-07' }];
       const result = calculateStreak(sessions, { referenceDate, gracePeriodDays: 0 });
       expect(result.currentStreak).toBe(3);
       expect(result.longestStreak).toBe(3);
@@ -83,7 +79,7 @@ describe('streakCalculator', () => {
       // Read on 9th, skipped 8th, read on 7th - still a streak with 1-day grace
       const sessions = [
         { date: '2025-01-09' },
-        { date: '2025-01-07' } // Skipped 8th
+        { date: '2025-01-07' }, // Skipped 8th
       ];
       const result = calculateStreak(sessions, { referenceDate, gracePeriodDays: 1 });
       expect(result.currentStreak).toBe(2);
@@ -93,7 +89,7 @@ describe('streakCalculator', () => {
       // Read on 9th, then 6th - 3 day gap with 1-day grace should break
       const sessions = [
         { date: '2025-01-09' },
-        { date: '2025-01-06' } // 3 day gap
+        { date: '2025-01-06' }, // 3 day gap
       ];
       const result = calculateStreak(sessions, { referenceDate, gracePeriodDays: 1 });
       expect(result.currentStreak).toBe(1);
@@ -110,7 +106,7 @@ describe('streakCalculator', () => {
         { date: '2024-12-31' },
         { date: '2024-12-30' },
         { date: '2024-12-29' },
-        { date: '2024-12-28' }
+        { date: '2024-12-28' },
       ];
       const result = calculateStreak(sessions, { referenceDate, gracePeriodDays: 0 });
       expect(result.currentStreak).toBe(2);
@@ -122,7 +118,7 @@ describe('streakCalculator', () => {
         { date: '2025-01-09' },
         { date: '2025-01-09' }, // Same day
         { date: '2025-01-08' },
-        { date: '2025-01-08' }  // Same day
+        { date: '2025-01-08' }, // Same day
       ];
       const result = calculateStreak(sessions, { referenceDate, gracePeriodDays: 0 });
       expect(result.currentStreak).toBe(2); // Only 2 unique days
@@ -131,7 +127,7 @@ describe('streakCalculator', () => {
     it('should return 0 current streak if last read was too long ago', () => {
       // Last read was 5 days ago with 1-day grace period
       const sessions = [
-        { date: '2025-01-04' } // 5 days before reference
+        { date: '2025-01-04' }, // 5 days before reference
       ];
       const result = calculateStreak(sessions, { referenceDate, gracePeriodDays: 1 });
       expect(result.currentStreak).toBe(0);
@@ -141,7 +137,7 @@ describe('streakCalculator', () => {
 
     it('should handle reading today starting a new streak', () => {
       const sessions = [
-        { date: '2025-01-09' } // Today
+        { date: '2025-01-09' }, // Today
       ];
       const result = calculateStreak(sessions, { referenceDate, gracePeriodDays: 1 });
       expect(result.currentStreak).toBe(1);
@@ -152,7 +148,7 @@ describe('streakCalculator', () => {
       const sessions = [
         { date: '2025-01-09' },
         { date: '2025-01-05' }, // 4 day gap (within 3+1=4 grace)
-        { date: '2025-01-01' }  // 4 day gap
+        { date: '2025-01-01' }, // 4 day gap
       ];
       const result = calculateStreak(sessions, { referenceDate, gracePeriodDays: 3 });
       expect(result.currentStreak).toBe(3);
@@ -161,11 +157,7 @@ describe('streakCalculator', () => {
 
   describe('wouldExtendStreak', () => {
     it('should return true for first session', () => {
-      const result = wouldExtendStreak(
-        { currentStreak: 0, lastReadDate: null },
-        '2025-01-09',
-        1
-      );
+      const result = wouldExtendStreak({ currentStreak: 0, lastReadDate: null }, '2025-01-09', 1);
       expect(result).toBe(true);
     });
 

@@ -24,13 +24,11 @@ signupRouter.post('/', async (c) => {
   const db = c.env.READING_MANAGER_DB;
   if (!db) {
     // No database — accept silently
-    return c.json({ message: 'Thanks! We\'ll be in touch.' });
+    return c.json({ message: "Thanks! We'll be in touch." });
   }
 
   try {
-    await db.prepare(
-      'INSERT OR IGNORE INTO email_signups (email) VALUES (?)'
-    ).bind(email).run();
+    await db.prepare('INSERT OR IGNORE INTO email_signups (email) VALUES (?)').bind(email).run();
   } catch (error) {
     console.error('Email signup DB error:', error.message);
     // Don't reveal DB errors to the user
@@ -44,7 +42,7 @@ signupRouter.post('/', async (c) => {
   }
 
   // Always return success — don't reveal whether the email was already registered
-  return c.json({ message: 'Thanks! We\'ll be in touch.' });
+  return c.json({ message: "Thanks! We'll be in touch." });
 });
 
 export { signupRouter };

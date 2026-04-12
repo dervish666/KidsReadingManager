@@ -14,7 +14,7 @@ import {
   TextField,
   Slider,
   IconButton,
-  Grid // Import Grid
+  Grid, // Import Grid
 } from '@mui/material';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
@@ -35,7 +35,7 @@ const QuickEntry = () => {
     priorityStudentCount,
     updatePriorityStudentCount,
   } = useUI();
-  
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [assessment, setAssessment] = useState(null);
   const [notes, setNotes] = useState('');
@@ -46,11 +46,11 @@ const QuickEntry = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [completedStudents, setCompletedStudents] = useState([]);
   const [count, setCount] = useState(priorityStudentCount);
-  
+
   // Use the memoized prioritized students array from context
   // Filter to use only the number specified by count
   const prioritizedStudents = contextPrioritizedStudents.slice(0, count);
-  
+
   // Reset current index if we have no students
   useEffect(() => {
     if (prioritizedStudents.length === 0) {
@@ -59,9 +59,9 @@ const QuickEntry = () => {
       setCurrentIndex(prioritizedStudents.length - 1);
     }
   }, [prioritizedStudents.length, currentIndex]);
-  
+
   const currentStudent = prioritizedStudents[currentIndex];
-  
+
   const handleNext = () => {
     if (currentIndex < prioritizedStudents.length - 1) {
       setCurrentIndex(currentIndex + 1);
@@ -70,7 +70,7 @@ const QuickEntry = () => {
       setNotes('');
     }
   };
-  
+
   const handlePrevious = () => {
     if (currentIndex > 0) {
       setCurrentIndex(currentIndex - 1);
@@ -79,15 +79,15 @@ const QuickEntry = () => {
       setNotes('');
     }
   };
-  
+
   const handleAssessmentChange = (newAssessment) => {
     setAssessment(newAssessment);
   };
-  
+
   const handleNotesChange = (event) => {
     setNotes(event.target.value);
   };
-  
+
   const handleSave = async () => {
     if (!currentStudent) return;
 
@@ -100,7 +100,7 @@ const QuickEntry = () => {
     try {
       await addReadingSession(currentStudent.id, {
         assessment,
-        notes
+        notes,
       });
 
       // Add to completed students list
@@ -121,28 +121,28 @@ const QuickEntry = () => {
       setSnackbarOpen(true);
     }
   };
-  
+
   const handleSnackbarClose = () => {
     setSnackbarOpen(false);
   };
-  
+
   const toggleNotesDrawer = () => {
     setNotesDrawerOpen(!notesDrawerOpen);
   };
-  
+
   const toggleSettingsDrawer = () => {
     setSettingsOpen(!settingsOpen);
   };
-  
+
   const handleCountChange = (event, newValue) => {
     setCount(newValue);
     updatePriorityStudentCount(newValue);
   };
-  
+
   const isCompleted = (studentId) => {
     return completedStudents.includes(studentId);
   };
-  
+
   if (prioritizedStudents.length === 0) {
     return (
       <Paper sx={{ p: 3, textAlign: 'center' }}>
@@ -155,7 +155,7 @@ const QuickEntry = () => {
       </Paper>
     );
   }
-  
+
   if (!currentStudent) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
@@ -163,15 +163,15 @@ const QuickEntry = () => {
       </Box>
     );
   }
-  
+
   const status = getReadingStatus(currentStudent);
   const statusColors = {
     notRead: theme.palette.status?.notRead || '#EF4444',
     needsAttention: theme.palette.status?.needsAttention || '#F59E0B',
-    recentlyRead: theme.palette.status?.recentlyRead || '#10B981'
+    recentlyRead: theme.palette.status?.recentlyRead || '#10B981',
   };
   const paletteKey = STATUS_TO_PALETTE[status] || 'notRead';
-  
+
   return (
     <Box>
       <Paper sx={{ p: 3, mb: 2 }}>
@@ -196,9 +196,12 @@ const QuickEntry = () => {
             icon={<CheckCircleIcon />}
           />
         </Box>
-        
-        <Grid container spacing={3}> {/* Add Grid container */}
-          <Grid sx={{ mb: 3 }} size={12}> {/* Wrap Card in Grid item */}
+        <Grid container spacing={3}>
+          {' '}
+          {/* Add Grid container */}
+          <Grid sx={{ mb: 3 }} size={12}>
+            {' '}
+            {/* Wrap Card in Grid item */}
             <Card
               sx={{
                 // mb: 3, // Margin now handled by Grid item
@@ -207,49 +210,51 @@ const QuickEntry = () => {
               role="group"
               aria-label={`${currentStudent.name}, status: ${{ recent: 'Recently read', attention: 'Needs attention', never: 'Not read', overdue: 'Overdue' }[status] || status}`}
             >
-          <CardContent>
-            <Typography variant="h5" component="h2" gutterBottom>
-              {currentStudent.name}
-            </Typography>
-            
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              Last read: {currentStudent.lastReadDate 
-                ? new Date(currentStudent.lastReadDate).toLocaleDateString('en-GB', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric'
-                  }) 
-                : 'Never'}
-            </Typography>
-            
-            <Typography variant="body2" color="text.secondary">
-              Total sessions: {currentStudent.totalSessionCount || 0}
-            </Typography>
-          </CardContent>
-          
-          {isCompleted(currentStudent.id) && (
-            <Box sx={{ bgcolor: 'success.light', p: 1, textAlign: 'center' }}>
-              <Typography variant="body2" color="white">
-                Reading session recorded today
-              </Typography>
-            </Box>
-          )}
+              <CardContent>
+                <Typography variant="h5" component="h2" gutterBottom>
+                  {currentStudent.name}
+                </Typography>
+
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Last read:{' '}
+                  {currentStudent.lastReadDate
+                    ? new Date(currentStudent.lastReadDate).toLocaleDateString('en-GB', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      })
+                    : 'Never'}
+                </Typography>
+
+                <Typography variant="body2" color="text.secondary">
+                  Total sessions: {currentStudent.totalSessionCount || 0}
+                </Typography>
+              </CardContent>
+
+              {isCompleted(currentStudent.id) && (
+                <Box sx={{ bgcolor: 'success.light', p: 1, textAlign: 'center' }}>
+                  <Typography variant="body2" color="white">
+                    Reading session recorded today
+                  </Typography>
+                </Box>
+              )}
             </Card>
-          </Grid> {/* Close Card Grid item */}
-          
-          <Grid sx={{ mb: 3 }} size={12}> {/* Wrap Assessment Box in Grid item */}
+          </Grid>{' '}
+          {/* Close Card Grid item */}
+          <Grid sx={{ mb: 3 }} size={12}>
+            {' '}
+            {/* Wrap Assessment Box in Grid item */}
             {/* <Box sx={{ mb: 3 }}> */} {/* Remove Box wrapper, margin handled by Grid item */}
             <Typography variant="subtitle1" gutterBottom>
-            Assessment:
-          </Typography>
-          <AssessmentSelector
-            value={assessment}
-            onChange={handleAssessmentChange}
-            />
+              Assessment:
+            </Typography>
+            <AssessmentSelector value={assessment} onChange={handleAssessmentChange} />
             {/* </Box> */}
-          </Grid> {/* Close Assessment Grid item */}
-          
-          <Grid sx={{ mb: 3 }} size={12}> {/* Wrap Notes Button in Grid item */}
+          </Grid>{' '}
+          {/* Close Assessment Grid item */}
+          <Grid sx={{ mb: 3 }} size={12}>
+            {' '}
+            {/* Wrap Notes Button in Grid item */}
             <Button
               variant="outlined"
               fullWidth
@@ -258,47 +263,53 @@ const QuickEntry = () => {
             >
               {notes ? 'Edit Notes' : 'Add Notes'}
             </Button>
-          </Grid> {/* Close Notes Button Grid item */}
-        
-        <Grid size={12}> {/* Wrap Button Box in Grid item */}
-          <Box sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            flexDirection: { xs: 'column', sm: 'row' },
-            gap: 1
-          }}>
-            <Button
-              variant="outlined"
-              startIcon={<NavigateBeforeIcon />}
-              onClick={handlePrevious}
-              disabled={currentIndex === 0}
-              sx={{ flex: { sm: '0 0 30%', xs: '1 1 auto' }, width: { xs: '100%', sm: 'auto' } }}
+          </Grid>{' '}
+          {/* Close Notes Button Grid item */}
+          <Grid size={12}>
+            {' '}
+            {/* Wrap Button Box in Grid item */}
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                flexDirection: { xs: 'column', sm: 'row' },
+                gap: 1,
+              }}
             >
-              Previous
-            </Button>
-            
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleSave}
-              disabled={isCompleted(currentStudent.id)}
-              sx={{ flex: { sm: '0 0 35%', xs: '1 1 auto' }, width: { xs: '100%', sm: 'auto' } }}
-            >
-              {isCompleted(currentStudent.id) ? 'Recorded' : 'Save'}
-            </Button>
-            
-            <Button
-              variant="outlined"
-              endIcon={<NavigateNextIcon />}
-              onClick={handleNext}
-              disabled={currentIndex === prioritizedStudents.length - 1}
-              sx={{ flex: { sm: '0 0 30%', xs: '1 1 auto' }, width: { xs: '100%', sm: 'auto' } }}
-            >
-              Next
-            </Button>
-          </Box>
-        </Grid> {/* Close Button Box Grid item */}
-      </Grid> {/* Close Grid container */}
+              <Button
+                variant="outlined"
+                startIcon={<NavigateBeforeIcon />}
+                onClick={handlePrevious}
+                disabled={currentIndex === 0}
+                sx={{ flex: { sm: '0 0 30%', xs: '1 1 auto' }, width: { xs: '100%', sm: 'auto' } }}
+              >
+                Previous
+              </Button>
+
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleSave}
+                disabled={isCompleted(currentStudent.id)}
+                sx={{ flex: { sm: '0 0 35%', xs: '1 1 auto' }, width: { xs: '100%', sm: 'auto' } }}
+              >
+                {isCompleted(currentStudent.id) ? 'Recorded' : 'Save'}
+              </Button>
+
+              <Button
+                variant="outlined"
+                endIcon={<NavigateNextIcon />}
+                onClick={handleNext}
+                disabled={currentIndex === prioritizedStudents.length - 1}
+                sx={{ flex: { sm: '0 0 30%', xs: '1 1 auto' }, width: { xs: '100%', sm: 'auto' } }}
+              >
+                Next
+              </Button>
+            </Box>
+          </Grid>{' '}
+          {/* Close Button Box Grid item */}
+        </Grid>{' '}
+        {/* Close Grid container */}
       </Paper>
       <SwipeableDrawer
         anchor="bottom"
@@ -322,11 +333,7 @@ const QuickEntry = () => {
             variant="outlined"
             sx={{ mb: 2 }}
           />
-          <Button
-            variant="contained"
-            onClick={toggleNotesDrawer}
-            fullWidth
-          >
+          <Button variant="contained" onClick={toggleNotesDrawer} fullWidth>
             Done
           </Button>
         </Box>
@@ -357,7 +364,7 @@ const QuickEntry = () => {
               marks={[
                 { value: 1, label: '1' },
                 { value: 8, label: '8' },
-                { value: 15, label: '15' }
+                { value: 15, label: '15' },
               ]}
               valueLabelDisplay="auto"
               sx={{ mb: 3, width: '100%' }}
@@ -372,20 +379,12 @@ const QuickEntry = () => {
           <Typography variant="body2" sx={{ mb: 3 }}>
             2. Those who have been read with the least number of times
           </Typography>
-          <Button
-            variant="contained"
-            onClick={toggleSettingsDrawer}
-            fullWidth
-          >
+          <Button variant="contained" onClick={toggleSettingsDrawer} fullWidth>
             Done
           </Button>
         </Box>
       </SwipeableDrawer>
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={2000}
-        onClose={handleSnackbarClose}
-      >
+      <Snackbar open={snackbarOpen} autoHideDuration={2000} onClose={handleSnackbarClose}>
         <Alert onClose={handleSnackbarClose} severity={snackbarSeverity} sx={{ width: '100%' }}>
           {snackbarMessage}
         </Alert>

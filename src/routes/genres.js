@@ -6,7 +6,7 @@ import {
   getGenres as getGenresKV,
   getGenreById as getGenreByIdKV,
   saveGenre as saveGenreKV,
-  deleteGenre as deleteGenreKV
+  deleteGenre as deleteGenreKV,
 } from '../services/kvService';
 
 // Import utilities
@@ -31,15 +31,19 @@ genresRouter.get('/', requireReadonly(), async (c) => {
   // Multi-tenant mode: use D1 (genres are global)
   if (isMultiTenantMode(c)) {
     const db = getDB(c.env);
-    
-    const result = await db.prepare(`
+
+    const result = await db
+      .prepare(
+        `
       SELECT * FROM genres ORDER BY is_predefined DESC, name ASC
-    `).all();
-    
+    `
+      )
+      .all();
+
     const genres = (result.results || []).map(rowToGenre);
     return c.json(genres);
   }
-  
+
   // Legacy mode: use KV
   const genres = await getGenresKV(c.env);
   return c.json(genres);
@@ -53,29 +57,34 @@ genresRouter.get('/', requireReadonly(), async (c) => {
  */
 genresRouter.get('/:id', requireReadonly(), async (c) => {
   const { id } = c.req.param();
-  
+
   // Multi-tenant mode: use D1
   if (isMultiTenantMode(c)) {
     const db = getDB(c.env);
-    
-    const genre = await db.prepare(`
+
+    const genre = await db
+      .prepare(
+        `
       SELECT * FROM genres WHERE id = ?
-    `).bind(id).first();
-    
+    `
+      )
+      .bind(id)
+      .first();
+
     if (!genre) {
       throw notFoundError(`Genre with ID ${id} not found`);
     }
-    
+
     return c.json(rowToGenre(genre));
   }
-  
+
   // Legacy mode: use KV
   const genre = await getGenreByIdKV(c.env, id);
-  
+
   if (!genre) {
     throw notFoundError(`Genre with ID ${id} not found`);
   }
-  
+
   return c.json(genre);
 });
 
@@ -93,47 +102,57 @@ genresRouter.post('/', requireOwner(), async (c) => {
   if (!validation.isValid) {
     throw badRequestError(validation.errors.join('; '));
   }
-  
+
   // Multi-tenant mode: use D1
   if (isMultiTenantMode(c)) {
     const db = getDB(c.env);
-    
+
     const genreId = generateId();
-    
+
     // Check if genre name already exists
-    const existing = await db.prepare(`
+    const existing = await db
+      .prepare(
+        `
       SELECT id FROM genres WHERE LOWER(name) = LOWER(?)
-    `).bind(body.name).first();
-    
+    `
+      )
+      .bind(body.name)
+      .first();
+
     if (existing) {
       throw badRequestError('A genre with this name already exists');
     }
-    
-    await db.prepare(`
+
+    await db
+      .prepare(
+        `
       INSERT INTO genres (id, name, description, is_predefined)
       VALUES (?, ?, ?, ?)
-    `).bind(
-      genreId,
-      body.name,
-      body.description || null,
-      body.isPredefined ? 1 : 0
-    ).run();
-    
+    `
+      )
+      .bind(genreId, body.name, body.description || null, body.isPredefined ? 1 : 0)
+      .run();
+
     // Fetch the created genre
-    const genre = await db.prepare(`
+    const genre = await db
+      .prepare(
+        `
       SELECT * FROM genres WHERE id = ?
-    `).bind(genreId).first();
-    
+    `
+      )
+      .bind(genreId)
+      .first();
+
     return c.json(rowToGenre(genre), 201);
   }
-  
+
   // Legacy mode: use KV
   const newGenre = {
     id: body.id || generateId(),
     name: body.name,
     isPredefined: body.isPredefined || false,
   };
-  
+
   const savedGenre = await saveGenreKV(c.env, newGenre);
   return c.json(savedGenre, 201);
 });
@@ -153,58 +172,74 @@ genresRouter.put('/:id', requireOwner(), async (c) => {
   if (!validation.isValid) {
     throw badRequestError(validation.errors.join('; '));
   }
-  
+
   // Multi-tenant mode: use D1
   if (isMultiTenantMode(c)) {
     const db = getDB(c.env);
-    
+
     // Check if genre exists
-    const existing = await db.prepare(`
+    const existing = await db
+      .prepare(
+        `
       SELECT * FROM genres WHERE id = ?
-    `).bind(id).first();
-    
+    `
+      )
+      .bind(id)
+      .first();
+
     if (!existing) {
       throw notFoundError(`Genre with ID ${id} not found`);
     }
-    
+
     // Check if new name conflicts with another genre
-    const nameConflict = await db.prepare(`
+    const nameConflict = await db
+      .prepare(
+        `
       SELECT id FROM genres WHERE LOWER(name) = LOWER(?) AND id != ?
-    `).bind(body.name, id).first();
-    
+    `
+      )
+      .bind(body.name, id)
+      .first();
+
     if (nameConflict) {
       throw badRequestError('A genre with this name already exists');
     }
-    
+
     // Update genre
-    await db.prepare(`
+    await db
+      .prepare(
+        `
       UPDATE genres SET name = ?, description = ? WHERE id = ?
-    `).bind(
-      body.name,
-      body.description || null,
-      id
-    ).run();
-    
+    `
+      )
+      .bind(body.name, body.description || null, id)
+      .run();
+
     // Fetch updated genre
-    const genre = await db.prepare(`
+    const genre = await db
+      .prepare(
+        `
       SELECT * FROM genres WHERE id = ?
-    `).bind(id).first();
-    
+    `
+      )
+      .bind(id)
+      .first();
+
     return c.json(rowToGenre(genre));
   }
-  
+
   // Legacy mode: use KV
   const existingGenre = await getGenreByIdKV(c.env, id);
   if (!existingGenre) {
     throw notFoundError(`Genre with ID ${id} not found`);
   }
-  
+
   const updatedGenre = {
     ...existingGenre,
     name: body.name,
     isPredefined: body.isPredefined !== undefined ? body.isPredefined : existingGenre.isPredefined,
   };
-  
+
   const savedGenre = await saveGenreKV(c.env, updatedGenre);
   return c.json(savedGenre);
 });
@@ -217,40 +252,50 @@ genresRouter.put('/:id', requireOwner(), async (c) => {
  */
 genresRouter.delete('/:id', requireOwner(), async (c) => {
   const { id } = c.req.param();
-  
+
   // Multi-tenant mode: use D1
   if (isMultiTenantMode(c)) {
     const db = getDB(c.env);
-    
+
     // Check if genre exists
-    const existing = await db.prepare(`
+    const existing = await db
+      .prepare(
+        `
       SELECT * FROM genres WHERE id = ?
-    `).bind(id).first();
-    
+    `
+      )
+      .bind(id)
+      .first();
+
     if (!existing) {
       throw notFoundError(`Genre with ID ${id} not found`);
     }
-    
+
     // Cannot delete predefined genres
     if (existing.is_predefined) {
       throw badRequestError('Cannot delete predefined genres');
     }
-    
+
     // Delete genre (cascade will handle book_genres)
-    await db.prepare(`
+    await db
+      .prepare(
+        `
       DELETE FROM genres WHERE id = ?
-    `).bind(id).run();
-    
+    `
+      )
+      .bind(id)
+      .run();
+
     return c.json({ message: 'Genre deleted successfully' });
   }
-  
+
   // Legacy mode: use KV
   const success = await deleteGenreKV(c.env, id);
-  
+
   if (!success) {
     throw notFoundError(`Genre with ID ${id} not found`);
   }
-  
+
   return c.json({ message: 'Genre deleted successfully' });
 });
 

@@ -108,7 +108,10 @@ async function batchExec(db, statements, label) {
     try {
       await db.batch(chunk);
     } catch (error) {
-      console.error(`[DemoReset] batch ${label} [${i}..${i + chunk.length}] failed:`, error.message);
+      console.error(
+        `[DemoReset] batch ${label} [${i}..${i + chunk.length}] failed:`,
+        error.message
+      );
       throw error;
     }
   }

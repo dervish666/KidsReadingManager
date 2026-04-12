@@ -8,7 +8,7 @@ import {
   validateGenre,
   validateClass,
   validateBook,
-  isValidAssessment
+  isValidAssessment,
 } from '../../utils/validation.js';
 
 describe('validateStudent', () => {
@@ -24,9 +24,7 @@ describe('validateStudent', () => {
         id: '123',
         name: 'Jane Doe',
         lastReadDate: '2024-01-15',
-        readingSessions: [
-          { id: '1', date: '2024-01-15', assessment: 8 }
-        ]
+        readingSessions: [{ id: '1', date: '2024-01-15', assessment: 8 }],
       });
       expect(result.isValid).toBe(true);
       expect(result.errors).toHaveLength(0);
@@ -98,7 +96,7 @@ describe('validateStudent', () => {
     it('should reject sessions without ID', () => {
       const result = validateStudent({
         name: 'John',
-        readingSessions: [{ date: '2024-01-15', assessment: 8 }]
+        readingSessions: [{ date: '2024-01-15', assessment: 8 }],
       });
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Session at index 0 is missing an ID');
@@ -107,7 +105,7 @@ describe('validateStudent', () => {
     it('should reject sessions without date', () => {
       const result = validateStudent({
         name: 'John',
-        readingSessions: [{ id: '1', assessment: 8 }]
+        readingSessions: [{ id: '1', assessment: 8 }],
       });
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Session at index 0 is missing a date');
@@ -116,7 +114,7 @@ describe('validateStudent', () => {
     it('should accept sessions without assessment', () => {
       const result = validateStudent({
         name: 'John',
-        readingSessions: [{ id: '1', date: '2024-01-15' }]
+        readingSessions: [{ id: '1', date: '2024-01-15' }],
       });
       expect(result.isValid).toBe(true);
     });
@@ -124,10 +122,7 @@ describe('validateStudent', () => {
     it('should report errors for multiple invalid sessions', () => {
       const result = validateStudent({
         name: 'John',
-        readingSessions: [
-          { id: '1', date: '2024-01-15' },
-          { assessment: 8 }
-        ]
+        readingSessions: [{ id: '1', date: '2024-01-15' }, { assessment: 8 }],
       });
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Session at index 1 is missing an ID');
@@ -147,8 +142,8 @@ describe('validateSettings', () => {
       const result = validateSettings({
         readingStatusSettings: {
           recentlyReadDays: 3,
-          needsAttentionDays: 7
-        }
+          needsAttentionDays: 7,
+        },
       });
       expect(result.isValid).toBe(true);
     });
@@ -159,8 +154,8 @@ describe('validateSettings', () => {
           provider: 'anthropic',
           apiKey: 'test-key',
           baseUrl: 'https://api.example.com',
-          model: 'claude-3'
-        }
+          model: 'claude-3',
+        },
       });
       expect(result.isValid).toBe(true);
     });
@@ -175,7 +170,7 @@ describe('validateSettings', () => {
 
     it('should reject invalid AI provider', () => {
       const result = validateSettings({
-        ai: { provider: 'invalid-provider' }
+        ai: { provider: 'invalid-provider' },
       });
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Invalid AI provider selected');
@@ -183,7 +178,7 @@ describe('validateSettings', () => {
 
     it('should reject non-string API key', () => {
       const result = validateSettings({
-        ai: { provider: 'anthropic', apiKey: 123 }
+        ai: { provider: 'anthropic', apiKey: 123 },
       });
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('API key must be a string');
@@ -191,7 +186,7 @@ describe('validateSettings', () => {
 
     it('should reject non-string base URL', () => {
       const result = validateSettings({
-        ai: { provider: 'anthropic', baseUrl: 123 }
+        ai: { provider: 'anthropic', baseUrl: 123 },
       });
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Base URL must be a string');
@@ -199,7 +194,7 @@ describe('validateSettings', () => {
 
     it('should reject non-string model', () => {
       const result = validateSettings({
-        ai: { provider: 'anthropic', model: 123 }
+        ai: { provider: 'anthropic', model: 123 },
       });
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Model name must be a string');
@@ -209,7 +204,7 @@ describe('validateSettings', () => {
   describe('reading status settings validation', () => {
     it('should reject non-positive recentlyReadDays', () => {
       const result = validateSettings({
-        readingStatusSettings: { recentlyReadDays: 0 }
+        readingStatusSettings: { recentlyReadDays: 0 },
       });
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Recently read days must be a positive number');
@@ -217,7 +212,7 @@ describe('validateSettings', () => {
 
     it('should reject negative recentlyReadDays', () => {
       const result = validateSettings({
-        readingStatusSettings: { recentlyReadDays: -1 }
+        readingStatusSettings: { recentlyReadDays: -1 },
       });
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Recently read days must be a positive number');
@@ -225,7 +220,7 @@ describe('validateSettings', () => {
 
     it('should reject non-positive needsAttentionDays', () => {
       const result = validateSettings({
-        readingStatusSettings: { needsAttentionDays: 0 }
+        readingStatusSettings: { needsAttentionDays: 0 },
       });
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Needs attention days must be a positive number');
@@ -235,8 +230,8 @@ describe('validateSettings', () => {
       const result = validateSettings({
         readingStatusSettings: {
           recentlyReadDays: 7,
-          needsAttentionDays: 7
-        }
+          needsAttentionDays: 7,
+        },
       });
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Recently read days must be less than needs attention days');
@@ -246,8 +241,8 @@ describe('validateSettings', () => {
       const result = validateSettings({
         readingStatusSettings: {
           recentlyReadDays: 10,
-          needsAttentionDays: 5
-        }
+          needsAttentionDays: 5,
+        },
       });
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Recently read days must be less than needs attention days');
@@ -257,10 +252,7 @@ describe('validateSettings', () => {
 
 describe('validateBulkImport', () => {
   it('should accept valid array of students', () => {
-    const result = validateBulkImport([
-      { name: 'John Doe' },
-      { name: 'Jane Doe' }
-    ]);
+    const result = validateBulkImport([{ name: 'John Doe' }, { name: 'Jane Doe' }]);
     expect(result.isValid).toBe(true);
   });
 
@@ -278,7 +270,7 @@ describe('validateBulkImport', () => {
   it('should reject array with invalid students', () => {
     const result = validateBulkImport([
       { name: 'John Doe' },
-      { id: '123' } // missing name
+      { id: '123' }, // missing name
     ]);
     expect(result.isValid).toBe(false);
     expect(result.errors.length).toBeGreaterThan(0);
@@ -289,7 +281,7 @@ describe('validateBulkImport', () => {
 describe('validateDataImport', () => {
   it('should accept valid data with students array', () => {
     const result = validateDataImport({
-      students: [{ name: 'John Doe' }]
+      students: [{ name: 'John Doe' }],
     });
     expect(result.isValid).toBe(true);
   });
@@ -300,9 +292,9 @@ describe('validateDataImport', () => {
       settings: {
         readingStatusSettings: {
           recentlyReadDays: 3,
-          needsAttentionDays: 7
-        }
-      }
+          needsAttentionDays: 7,
+        },
+      },
     });
     expect(result.isValid).toBe(true);
   });
@@ -331,9 +323,9 @@ describe('validateDataImport', () => {
       settings: {
         readingStatusSettings: {
           recentlyReadDays: 10,
-          needsAttentionDays: 5 // invalid: recently > needs attention
-        }
-      }
+          needsAttentionDays: 5, // invalid: recently > needs attention
+        },
+      },
     });
     expect(result.isValid).toBe(false);
     expect(result.errors[0]).toContain('Settings are invalid');
@@ -406,13 +398,13 @@ describe('validateReadingLevelRange', () => {
   it('should return invalid for invalid string inputs like abc', () => {
     const result = validateReadingLevelRange('abc', 'def');
     expect(result.isValid).toBe(false);
-    expect(result.errors.some(e => e.includes('valid numbers'))).toBe(true);
+    expect(result.errors.some((e) => e.includes('valid numbers'))).toBe(true);
   });
 
   it('should return invalid for non-numeric string inputs', () => {
     const result = validateReadingLevelRange('not-a-number', '5.0');
     expect(result.isValid).toBe(false);
-    expect(result.errors.some(e => e.includes('valid numbers'))).toBe(true);
+    expect(result.errors.some((e) => e.includes('valid numbers'))).toBe(true);
   });
 
   it('should round to one decimal place', () => {
@@ -518,7 +510,7 @@ describe('validateBook', () => {
       readingLevel: '5.5',
       isbn: '9780261102217',
       genreIds: ['fantasy'],
-      pageCount: 310
+      pageCount: 310,
     });
     expect(result.isValid).toBe(true);
   });

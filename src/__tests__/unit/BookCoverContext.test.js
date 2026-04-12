@@ -206,11 +206,17 @@ describe('BookCoverContext', () => {
       );
 
       act(() => {
-        functions.setCachedCover('Persistent Book', 'Persistent Author', 'https://example.com/persistent.jpg');
+        functions.setCachedCover(
+          'Persistent Book',
+          'Persistent Author',
+          'https://example.com/persistent.jpg'
+        );
       });
 
       // Advance past the debounce timer so localStorage is written
-      act(() => { vi.advanceTimersByTime(2500); });
+      act(() => {
+        vi.advanceTimersByTime(2500);
+      });
 
       // Check localStorage
       const stored = localStorage.getItem('bookCovers');
@@ -239,7 +245,9 @@ describe('BookCoverContext', () => {
         </BookCoverProvider>
       );
 
-      expect(screen.getByTestId('cached-cover').textContent).toBe('https://example.com/preloaded.jpg');
+      expect(screen.getByTestId('cached-cover').textContent).toBe(
+        'https://example.com/preloaded.jpg'
+      );
       expect(screen.getByTestId('is-cached').textContent).toBe('true');
     });
 
@@ -301,7 +309,7 @@ describe('BookCoverContext', () => {
       const now = Date.now();
       const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
       const eightDaysAgo = now - (sevenDaysMs + 1000); // Just over 7 days ago
-      const threeDaysAgo = now - (3 * 24 * 60 * 60 * 1000);
+      const threeDaysAgo = now - 3 * 24 * 60 * 60 * 1000;
 
       // Pre-populate localStorage with expired and non-expired entries
       const cacheData = {
@@ -329,7 +337,9 @@ describe('BookCoverContext', () => {
       expect(screen.getByTestId('cached-cover').textContent).toBe('https://example.com/fresh.jpg');
 
       // Advance past the debounce timer so pruned cache is written to localStorage
-      act(() => { vi.advanceTimersByTime(2500); });
+      act(() => {
+        vi.advanceTimersByTime(2500);
+      });
 
       // Check that expired entry was removed from localStorage
       const stored = localStorage.getItem('bookCovers');
@@ -359,7 +369,9 @@ describe('BookCoverContext', () => {
         functions.setCachedCover('My Book', 'Some Author', 'https://example.com/mybook.jpg');
       });
 
-      act(() => { vi.advanceTimersByTime(2500); });
+      act(() => {
+        vi.advanceTimersByTime(2500);
+      });
 
       const stored = localStorage.getItem('bookCovers');
       const parsed = JSON.parse(stored);
@@ -390,7 +402,9 @@ describe('BookCoverContext', () => {
       const cached = functions.getCachedCover('No Author Book', '');
       expect(cached).toBe('https://example.com/noauthor.jpg');
 
-      act(() => { vi.advanceTimersByTime(2500); });
+      act(() => {
+        vi.advanceTimersByTime(2500);
+      });
 
       const stored = localStorage.getItem('bookCovers');
       const parsed = JSON.parse(stored);

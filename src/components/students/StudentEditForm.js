@@ -1,4 +1,11 @@
-import React, { useState, useEffect, useCallback, forwardRef, useImperativeHandle, useMemo } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  forwardRef,
+  useImperativeHandle,
+  useMemo,
+} from 'react';
 import {
   Box,
   Typography,
@@ -72,7 +79,7 @@ const StudentEditForm = forwardRef(function StudentEditForm({ student, onSave, o
   // Derive read book IDs from student sessions for priority ordering in autocomplete
   const priorityBookIds = useMemo(() => {
     const sessions = student?.readingSessions || [];
-    return [...new Set(sessions.map(s => s.bookId).filter(Boolean))];
+    return [...new Set(sessions.map((s) => s.bookId).filter(Boolean))];
   }, [student?.readingSessions]);
 
   // Helper: reset all form fields to the given student's values
@@ -98,37 +105,53 @@ const StudentEditForm = forwardRef(function StudentEditForm({ student, onSave, o
   }, [student, resetToStudent]);
 
   // Expose save() and cancel() to the parent via ref
-  useImperativeHandle(ref, () => ({
-    save() {
-      if (!name.trim()) {
-        setNameError(true);
-        setSnackbarMessage('Student name is required');
-        setSnackbarSeverity('error');
-        setSnackbarOpen(true);
-        return;
-      }
+  useImperativeHandle(
+    ref,
+    () => ({
+      save() {
+        if (!name.trim()) {
+          setNameError(true);
+          setSnackbarMessage('Student name is required');
+          setSnackbarSeverity('error');
+          setSnackbarOpen(true);
+          return;
+        }
 
-      const formData = {
-        name: name.trim(),
-        classId: classId || null,
-        readingLevelMin,
-        readingLevelMax,
-        preferences: {
-          favoriteGenreIds: selectedGenres,
-          likes,
-          dislikes,
-        },
-        updatedAt: new Date().toISOString(),
-      };
+        const formData = {
+          name: name.trim(),
+          classId: classId || null,
+          readingLevelMin,
+          readingLevelMax,
+          preferences: {
+            favoriteGenreIds: selectedGenres,
+            likes,
+            dislikes,
+          },
+          updatedAt: new Date().toISOString(),
+        };
 
-      onSave(formData);
-    },
+        onSave(formData);
+      },
 
-    cancel() {
-      resetToStudent(student);
-      onCancel();
-    },
-  }), [name, classId, readingLevelMin, readingLevelMax, selectedGenres, likes, dislikes, student, onSave, onCancel, resetToStudent]);
+      cancel() {
+        resetToStudent(student);
+        onCancel();
+      },
+    }),
+    [
+      name,
+      classId,
+      readingLevelMin,
+      readingLevelMax,
+      selectedGenres,
+      likes,
+      dislikes,
+      student,
+      onSave,
+      onCancel,
+      resetToStudent,
+    ]
+  );
 
   // AI opt-out toggle — calls the dedicated endpoint directly
   const handleAiOptOutToggle = async (event) => {
@@ -176,11 +199,11 @@ const StudentEditForm = forwardRef(function StudentEditForm({ student, onSave, o
   };
 
   const handleRemoveLike = (likeToRemove) => {
-    setLikes(likes.filter(like => like !== likeToRemove));
+    setLikes(likes.filter((like) => like !== likeToRemove));
   };
 
   const handleRemoveDislike = (dislikeToRemove) => {
-    setDislikes(dislikes.filter(dislike => dislike !== dislikeToRemove));
+    setDislikes(dislikes.filter((dislike) => dislike !== dislikeToRemove));
   };
 
   const handleAddGenre = async () => {
@@ -239,7 +262,8 @@ const StudentEditForm = forwardRef(function StudentEditForm({ student, onSave, o
             </MenuItem>
             {filteredClasses.map((cls) => (
               <MenuItem key={cls.id} value={cls.id}>
-                {cls.name}{cls.teacherName ? ` (${cls.teacherName})` : ''}
+                {cls.name}
+                {cls.teacherName ? ` (${cls.teacherName})` : ''}
               </MenuItem>
             ))}
           </Select>
@@ -283,10 +307,8 @@ const StudentEditForm = forwardRef(function StudentEditForm({ student, onSave, o
                 renderValue={(selected) => (
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                     {selected.map((genreId) => {
-                      const genre = genres.find(g => g.id === genreId);
-                      return genre ? (
-                        <Chip key={genreId} label={genre.name} size="small" />
-                      ) : null;
+                      const genre = genres.find((g) => g.id === genreId);
+                      return genre ? <Chip key={genreId} label={genre.name} size="small" /> : null;
                     })}
                   </Box>
                 )}
@@ -388,9 +410,7 @@ const StudentEditForm = forwardRef(function StudentEditForm({ student, onSave, o
             }
             label={
               <Box>
-                <Typography variant="subtitle2">
-                  AI Book Recommendations
-                </Typography>
+                <Typography variant="subtitle2">AI Book Recommendations</Typography>
                 <Typography variant="caption" color="text.secondary">
                   {aiOptOut
                     ? "Disabled — this student's reading data will not be sent to AI providers."
@@ -420,7 +440,9 @@ const StudentEditForm = forwardRef(function StudentEditForm({ student, onSave, o
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setAddGenreOpen(false)}>Cancel</Button>
-          <Button onClick={handleAddGenre} variant="contained">Add Genre</Button>
+          <Button onClick={handleAddGenre} variant="contained">
+            Add Genre
+          </Button>
         </DialogActions>
       </Dialog>
 

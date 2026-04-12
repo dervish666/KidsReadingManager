@@ -78,14 +78,14 @@ const createMockDB = (overrides = {}) => {
     bind: vi.fn().mockReturnThis(),
     all: vi.fn().mockResolvedValue(overrides.allResults || defaultResults),
     first: vi.fn().mockResolvedValue(overrides.firstResult || null),
-    run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } })
+    run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } }),
   };
 
   return {
     prepare: vi.fn().mockReturnValue(prepareChain),
     batch: vi.fn().mockResolvedValue([{ success: true }]),
     _prepareChain: prepareChain,
-    ...overrides
+    ...overrides,
   };
 };
 
@@ -95,10 +95,13 @@ const createTestApp = (contextValues = {}, dbOverrides = {}) => {
 
   app.onError((error, c) => {
     const status = error.status || 500;
-    return c.json({
-      status: 'error',
-      message: error.message || 'Internal Server Error',
-    }, status);
+    return c.json(
+      {
+        status: 'error',
+        message: error.message || 'Internal Server Error',
+      },
+      status
+    );
   });
 
   app.use('*', async (c, next) => {
@@ -151,7 +154,7 @@ describe('GET /api/students - Slim Response', () => {
         eal_status: null,
         fsm: 0,
         processing_restricted: 0,
-        ai_opt_out: 0
+        ai_opt_out: 0,
       };
 
       const student = rowToStudent(row);
@@ -205,14 +208,14 @@ describe('GET /api/students - Slim Response', () => {
         ai_opt_out: 0,
         // Joined columns from SQL
         class_name: 'Year 3',
-        total_session_count: 42
+        total_session_count: 42,
       };
 
       // Simulate the mapping done in the GET / route handler
       const student = {
         ...rowToStudent(row),
         className: row.class_name,
-        totalSessionCount: row.total_session_count || 0
+        totalSessionCount: row.total_session_count || 0,
       };
 
       expect(student.totalSessionCount).toBe(42);
@@ -249,13 +252,13 @@ describe('GET /api/students - Slim Response', () => {
         processing_restricted: 0,
         ai_opt_out: 0,
         class_name: null,
-        total_session_count: null
+        total_session_count: null,
       };
 
       const student = {
         ...rowToStudent(row),
         className: row.class_name,
-        totalSessionCount: row.total_session_count || 0
+        totalSessionCount: row.total_session_count || 0,
       };
 
       expect(student.totalSessionCount).toBe(0);
@@ -290,13 +293,13 @@ describe('GET /api/students - Slim Response', () => {
         processing_restricted: 0,
         ai_opt_out: 1,
         class_name: 'Year 5',
-        total_session_count: 87
+        total_session_count: 87,
       };
 
       const student = {
         ...rowToStudent(row),
         className: row.class_name,
-        totalSessionCount: row.total_session_count || 0
+        totalSessionCount: row.total_session_count || 0,
       };
 
       // Verify all expected fields are present
@@ -447,9 +450,11 @@ describe('GET /api/students/sessions', () => {
   });
 
   it('should require classId and startDate and endDate', async () => {
-    const { app } = createTestApp(
-      { organizationId: 'org-1', userId: 'user-1', userRole: 'teacher' }
-    );
+    const { app } = createTestApp({
+      organizationId: 'org-1',
+      userId: 'user-1',
+      userRole: 'teacher',
+    });
 
     // Missing all params
     const res1 = await makeRequest(app, 'GET', '/api/students/sessions');
@@ -489,7 +494,8 @@ describe('GET /api/students/sessions', () => {
     expect(prepareCall).toBeTruthy();
 
     // Verify bind was called with org-42 as first parameter
-    const bindCall = mockDB._prepareChain.bind.mock.calls[mockDB._prepareChain.bind.mock.calls.length - 1];
+    const bindCall =
+      mockDB._prepareChain.bind.mock.calls[mockDB._prepareChain.bind.mock.calls.length - 1];
     expect(bindCall[0]).toBe('org-42');
   });
 
@@ -540,10 +546,13 @@ const createStatsTestApp = (contextValues = {}, queryResults = []) => {
 
   app.onError((error, c) => {
     const status = error.status || 500;
-    return c.json({
-      status: 'error',
-      message: error.message || 'Internal Server Error',
-    }, status);
+    return c.json(
+      {
+        status: 'error',
+        message: error.message || 'Internal Server Error',
+      },
+      status
+    );
   });
 
   app.use('*', async (c, next) => {
@@ -566,14 +575,37 @@ describe('GET /api/students/stats', () => {
   it('should return aggregated stats for a class', async () => {
     const today = new Date().toISOString().split('T')[0];
     const studentRows = [
-      { id: 'student-1', last_read_date: today, current_streak: 5, longest_streak: 10, streak_start_date: '2026-02-20' },
-      { id: 'student-2', last_read_date: today, current_streak: 3, longest_streak: 8, streak_start_date: '2026-03-01' },
-      { id: 'student-3', last_read_date: null, current_streak: 0, longest_streak: 0, streak_start_date: null },
+      {
+        id: 'student-1',
+        last_read_date: today,
+        current_streak: 5,
+        longest_streak: 10,
+        streak_start_date: '2026-02-20',
+      },
+      {
+        id: 'student-2',
+        last_read_date: today,
+        current_streak: 3,
+        longest_streak: 8,
+        streak_start_date: '2026-03-01',
+      },
+      {
+        id: 'student-3',
+        last_read_date: null,
+        current_streak: 0,
+        longest_streak: 0,
+        streak_start_date: null,
+      },
     ];
 
     const sessionRows = [
       { student_id: 'student-1', session_date: today, location: 'home', book_title: 'The Hobbit' },
-      { student_id: 'student-1', session_date: today, location: 'school', book_title: 'The Hobbit' },
+      {
+        student_id: 'student-1',
+        session_date: today,
+        location: 'school',
+        book_title: 'The Hobbit',
+      },
       { student_id: 'student-2', session_date: today, location: 'home', book_title: 'Dune' },
     ];
 
@@ -582,7 +614,10 @@ describe('GET /api/students/stats', () => {
       [
         { match: 'FROM students s', all: { results: studentRows, success: true } },
         { match: 'FROM reading_sessions rs', all: { results: sessionRows, success: true } },
-        { match: 'org_settings', first: { setting_value: JSON.stringify({ recentlyReadDays: 3, needsAttentionDays: 7 }) } },
+        {
+          match: 'org_settings',
+          first: { setting_value: JSON.stringify({ recentlyReadDays: 3, needsAttentionDays: 7 }) },
+        },
       ]
     );
 
@@ -614,13 +649,29 @@ describe('GET /api/students/stats', () => {
 
   it('should filter by date range', async () => {
     const studentRows = [
-      { id: 'student-1', last_read_date: '2026-03-01', current_streak: 2, longest_streak: 5, streak_start_date: '2026-02-28' },
+      {
+        id: 'student-1',
+        last_read_date: '2026-03-01',
+        current_streak: 2,
+        longest_streak: 5,
+        streak_start_date: '2026-02-28',
+      },
     ];
 
     // Only sessions within the requested date range should be returned by the query
     const sessionRows = [
-      { student_id: 'student-1', session_date: '2026-03-01', location: 'home', book_title: 'Book A' },
-      { student_id: 'student-1', session_date: '2026-03-02', location: 'school', book_title: 'Book B' },
+      {
+        student_id: 'student-1',
+        session_date: '2026-03-01',
+        location: 'home',
+        book_title: 'Book A',
+      },
+      {
+        student_id: 'student-1',
+        session_date: '2026-03-02',
+        location: 'school',
+        book_title: 'Book B',
+      },
     ];
 
     const { app, mockDB } = createStatsTestApp(
@@ -644,8 +695,8 @@ describe('GET /api/students/stats', () => {
     expect(data.totalStudents).toBe(1);
 
     // Verify the session query was called with start/end dates
-    const sessionPrepareCall = mockDB.prepare.mock.calls.find(
-      (call) => call[0].includes('reading_sessions')
+    const sessionPrepareCall = mockDB.prepare.mock.calls.find((call) =>
+      call[0].includes('reading_sessions')
     );
     expect(sessionPrepareCall).toBeTruthy();
   });
@@ -653,9 +704,27 @@ describe('GET /api/students/stats', () => {
   it('should include streak stats from student rows', async () => {
     const today = new Date().toISOString().split('T')[0];
     const studentRows = [
-      { id: 'student-1', last_read_date: today, current_streak: 10, longest_streak: 15, streak_start_date: '2026-02-01' },
-      { id: 'student-2', last_read_date: today, current_streak: 7, longest_streak: 20, streak_start_date: '2026-02-15' },
-      { id: 'student-3', last_read_date: today, current_streak: 0, longest_streak: 5, streak_start_date: null },
+      {
+        id: 'student-1',
+        last_read_date: today,
+        current_streak: 10,
+        longest_streak: 15,
+        streak_start_date: '2026-02-01',
+      },
+      {
+        id: 'student-2',
+        last_read_date: today,
+        current_streak: 7,
+        longest_streak: 20,
+        streak_start_date: '2026-02-15',
+      },
+      {
+        id: 'student-3',
+        last_read_date: today,
+        current_streak: 0,
+        longest_streak: 5,
+        streak_start_date: null,
+      },
     ];
 
     const { app } = createStatsTestApp(
@@ -770,10 +839,19 @@ describe('POST /api/students/:id/sessions - timezone-aware date defaults', () =>
 
   it('should use provided body.date when present, ignoring timezone', async () => {
     const createdSession = {
-      id: 'generated-id', session_date: '2026-04-01', book_id: null,
-      book_title: null, book_title_manual: 'The Hobbit', book_author: null,
-      book_author_manual: null, pages_read: null, duration_minutes: null,
-      assessment: 5, notes: null, location: 'school', recorded_by: 'user-1',
+      id: 'generated-id',
+      session_date: '2026-04-01',
+      book_id: null,
+      book_title: null,
+      book_title_manual: 'The Hobbit',
+      book_author: null,
+      book_author_manual: null,
+      pages_read: null,
+      duration_minutes: null,
+      assessment: 5,
+      notes: null,
+      location: 'school',
+      recorded_by: 'user-1',
     };
     const { app, mockDB } = createStatsTestApp(
       { organizationId: 'org-1', userId: 'user-1', userRole: 'teacher' },
@@ -802,10 +880,19 @@ describe('POST /api/students/:id/sessions - timezone-aware date defaults', () =>
 
   it('should default to UTC when no timezone is configured for the org', async () => {
     const createdSession = {
-      id: 'generated-id', session_date: '2026-04-04', book_id: null,
-      book_title: null, book_title_manual: 'Test Book', book_author: null,
-      book_author_manual: null, pages_read: null, duration_minutes: null,
-      assessment: 3, notes: null, location: 'school', recorded_by: 'user-1',
+      id: 'generated-id',
+      session_date: '2026-04-04',
+      book_id: null,
+      book_title: null,
+      book_title_manual: 'Test Book',
+      book_author: null,
+      book_author_manual: null,
+      pages_read: null,
+      duration_minutes: null,
+      assessment: 3,
+      notes: null,
+      location: 'school',
+      recorded_by: 'user-1',
     };
     const { app, mockDB } = createStatsTestApp(
       { organizationId: 'org-1', userId: 'user-1', userRole: 'teacher' },

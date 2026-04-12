@@ -52,8 +52,8 @@ export default function SubscriptionBlockedScreen() {
 
         <Typography sx={{ mb: 4, color: 'text.secondary', lineHeight: 1.6 }}>
           {isAdmin
-            ? 'Your school\'s subscription has ended. Reactivate via the billing portal to restore access.'
-            : 'Your school\'s subscription has ended. Please contact your school administrator to restore access.'}
+            ? "Your school's subscription has ended. Reactivate via the billing portal to restore access."
+            : "Your school's subscription has ended. Please contact your school administrator to restore access."}
         </Typography>
 
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>

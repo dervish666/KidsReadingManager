@@ -9,16 +9,18 @@ const createMockDB = (overrides = {}) => {
     bind: vi.fn().mockReturnThis(),
     all: vi.fn().mockResolvedValue(overrides.allResults || { results: [], success: true }),
     first: vi.fn().mockResolvedValue(overrides.firstResult || null),
-    run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } })
+    run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } }),
   };
 
   return {
     prepare: vi.fn().mockReturnValue(prepareChain),
-    batch: vi.fn().mockImplementation((stmts) =>
-      Promise.resolve(stmts.map(() => ({ success: true, results: [], meta: { changes: 1 } })))
-    ),
+    batch: vi
+      .fn()
+      .mockImplementation((stmts) =>
+        Promise.resolve(stmts.map(() => ({ success: true, results: [], meta: { changes: 1 } })))
+      ),
     _chain: prepareChain,
-    ...overrides
+    ...overrides,
   };
 };
 
@@ -66,7 +68,7 @@ describe('Book Import API', () => {
       const existingBooks = [
         { id: 'book-1', title: 'The BFG', author: 'Roald Dahl', reading_level: '3.0' },
         { id: 'book-2', title: 'Matilda', author: 'Roald Dahl', reading_level: '4.0' },
-        { id: 'book-3', title: 'The Hobbit', author: 'J.R.R. Tolkien', reading_level: null }
+        { id: 'book-3', title: 'The Hobbit', author: 'J.R.R. Tolkien', reading_level: null },
       ];
 
       const { app, mockDB } = createTestApp(
@@ -79,10 +81,10 @@ describe('Book Import API', () => {
         const chain = {
           bind: vi.fn().mockReturnThis(),
           all: vi.fn().mockResolvedValue({
-            results: sql.includes('org_book_selections') ? [] : existingBooks
+            results: sql.includes('org_book_selections') ? [] : existingBooks,
           }),
           first: vi.fn().mockResolvedValue(null),
-          run: vi.fn().mockResolvedValue({ success: true })
+          run: vi.fn().mockResolvedValue({ success: true }),
         };
         return chain;
       });
@@ -91,13 +93,13 @@ describe('Book Import API', () => {
         { title: 'The BFG', author: 'Roald Dahl', readingLevel: '3.0' }, // exact match
         { title: 'The Hobit', author: 'Tolkien' }, // fuzzy match (typo in title, short author)
         { title: 'New Book', author: 'New Author' }, // new
-        { title: 'Matilda', author: 'Roald Dahl', readingLevel: '5.0' } // conflict (different level)
+        { title: 'Matilda', author: 'Roald Dahl', readingLevel: '5.0' }, // conflict (different level)
       ];
 
       const res = await app.request('/api/books/import/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ books: importBooks })
+        body: JSON.stringify({ books: importBooks }),
       });
 
       expect(res.status).toBe(200);
@@ -120,12 +122,8 @@ describe('Book Import API', () => {
     });
 
     it('should detect books already in organization library', async () => {
-      const existingBooks = [
-        { id: 'book-1', title: 'The BFG', author: 'Roald Dahl' }
-      ];
-      const orgSelections = [
-        { book_id: 'book-1', organization_id: 'org-123' }
-      ];
+      const existingBooks = [{ id: 'book-1', title: 'The BFG', author: 'Roald Dahl' }];
+      const orgSelections = [{ book_id: 'book-1', organization_id: 'org-123' }];
 
       const { app, mockDB } = createTestApp(
         { organizationId: 'org-123', userRole: 'admin' },
@@ -137,10 +135,10 @@ describe('Book Import API', () => {
         const chain = {
           bind: vi.fn().mockReturnThis(),
           all: vi.fn().mockResolvedValue({
-            results: sql.includes('org_book_selections') ? orgSelections : existingBooks
+            results: sql.includes('org_book_selections') ? orgSelections : existingBooks,
           }),
           first: vi.fn().mockResolvedValue(null),
-          run: vi.fn().mockResolvedValue({ success: true })
+          run: vi.fn().mockResolvedValue({ success: true }),
         };
         return chain;
       });
@@ -148,7 +146,7 @@ describe('Book Import API', () => {
       const res = await app.request('/api/books/import/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ books: [{ title: 'The BFG', author: 'Roald Dahl' }] })
+        body: JSON.stringify({ books: [{ title: 'The BFG', author: 'Roald Dahl' }] }),
       });
 
       expect(res.status).toBe(200);
@@ -163,7 +161,7 @@ describe('Book Import API', () => {
       const res = await app.request('/api/books/import/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ books: [] })
+        body: JSON.stringify({ books: [] }),
       });
 
       // 401 for unauthenticated (no userRole), 403 for wrong role
@@ -171,30 +169,24 @@ describe('Book Import API', () => {
     });
 
     it('should reject readonly users', async () => {
-      const { app } = createTestApp(
-        { organizationId: 'org-123', userRole: 'readonly' },
-        {}
-      );
+      const { app } = createTestApp({ organizationId: 'org-123', userRole: 'readonly' }, {});
 
       const res = await app.request('/api/books/import/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ books: [{ title: 'Test' }] })
+        body: JSON.stringify({ books: [{ title: 'Test' }] }),
       });
 
       expect(res.status).toBe(403);
     });
 
     it('should require array of books in request body', async () => {
-      const { app, mockDB } = createTestApp(
-        { organizationId: 'org-123', userRole: 'admin' },
-        {}
-      );
+      const { app, mockDB } = createTestApp({ organizationId: 'org-123', userRole: 'admin' }, {});
 
       const res = await app.request('/api/books/import/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ books: 'not an array' })
+        body: JSON.stringify({ books: 'not an array' }),
       });
 
       expect(res.status).toBe(400);
@@ -215,7 +207,7 @@ describe('Book Import API', () => {
           bind: vi.fn().mockReturnThis(),
           all: vi.fn().mockResolvedValue({ results: [] }),
           first: vi.fn().mockResolvedValue(null),
-          run: vi.fn().mockResolvedValue({ success: true })
+          run: vi.fn().mockResolvedValue({ success: true }),
         };
         return chain;
       });
@@ -223,12 +215,14 @@ describe('Book Import API', () => {
       const res = await app.request('/api/books/import/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ books: [
-          { title: '', author: 'Author' }, // empty title
-          { author: 'Author Only' }, // no title
-          { title: '   ', author: 'Whitespace' }, // whitespace title
-          { title: 'Valid Book', author: 'Valid Author' } // valid
-        ]})
+        body: JSON.stringify({
+          books: [
+            { title: '', author: 'Author' }, // empty title
+            { author: 'Author Only' }, // no title
+            { title: '   ', author: 'Whitespace' }, // whitespace title
+            { title: 'Valid Book', author: 'Valid Author' }, // valid
+          ],
+        }),
       });
 
       expect(res.status).toBe(200);
@@ -239,7 +233,7 @@ describe('Book Import API', () => {
 
     it('should return summary statistics', async () => {
       const existingBooks = [
-        { id: 'book-1', title: 'Existing Book', author: 'Author', reading_level: '3.0' }
+        { id: 'book-1', title: 'Existing Book', author: 'Author', reading_level: '3.0' },
       ];
 
       const { app, mockDB } = createTestApp(
@@ -251,10 +245,10 @@ describe('Book Import API', () => {
         const chain = {
           bind: vi.fn().mockReturnThis(),
           all: vi.fn().mockResolvedValue({
-            results: sql.includes('org_book_selections') ? [] : existingBooks
+            results: sql.includes('org_book_selections') ? [] : existingBooks,
           }),
           first: vi.fn().mockResolvedValue(null),
-          run: vi.fn().mockResolvedValue({ success: true })
+          run: vi.fn().mockResolvedValue({ success: true }),
         };
         return chain;
       });
@@ -262,10 +256,12 @@ describe('Book Import API', () => {
       const res = await app.request('/api/books/import/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ books: [
-          { title: 'Existing Book', author: 'Author', readingLevel: '3.0' }, // matched
-          { title: 'New Book' } // new
-        ]})
+        body: JSON.stringify({
+          books: [
+            { title: 'Existing Book', author: 'Author', readingLevel: '3.0' }, // matched
+            { title: 'New Book' }, // new
+          ],
+        }),
       });
 
       expect(res.status).toBe(200);
@@ -288,7 +284,7 @@ describe('Book Import API', () => {
           bind: vi.fn().mockReturnThis(),
           all: vi.fn().mockResolvedValue({ results: [] }),
           first: vi.fn().mockResolvedValue(null),
-          run: vi.fn().mockResolvedValue({ success: true })
+          run: vi.fn().mockResolvedValue({ success: true }),
         };
         return chain;
       });
@@ -296,7 +292,7 @@ describe('Book Import API', () => {
       const res = await app.request('/api/books/import/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ books: [{ title: 'Test Book' }] })
+        body: JSON.stringify({ books: [{ title: 'Test Book' }] }),
       });
 
       expect(res.status).toBe(200);
@@ -311,7 +307,7 @@ describe('Book Import API', () => {
       const res = await app.request('/api/books/import/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ books: [{ title: 'Test' }] })
+        body: JSON.stringify({ books: [{ title: 'Test' }] }),
       });
 
       expect(res.status).toBe(400);
@@ -322,10 +318,7 @@ describe('Book Import API', () => {
 
   describe('POST /api/books/import/confirm', () => {
     it('should link matched books to organization', async () => {
-      const { app, mockDB } = createTestApp(
-        { organizationId: 'org-123', userRole: 'admin' },
-        {}
-      );
+      const { app, mockDB } = createTestApp({ organizationId: 'org-123', userRole: 'admin' }, {});
 
       const res = await app.request('/api/books/import/confirm', {
         method: 'POST',
@@ -333,8 +326,8 @@ describe('Book Import API', () => {
         body: JSON.stringify({
           matched: [{ existingBookId: 'book-1' }, { existingBookId: 'book-2' }],
           newBooks: [],
-          conflicts: []
-        })
+          conflicts: [],
+        }),
       });
 
       expect(res.status).toBe(200);
@@ -343,10 +336,7 @@ describe('Book Import API', () => {
     });
 
     it('should create new books and link to organization', async () => {
-      const { app, mockDB } = createTestApp(
-        { organizationId: 'org-123', userRole: 'admin' },
-        {}
-      );
+      const { app, mockDB } = createTestApp({ organizationId: 'org-123', userRole: 'admin' }, {});
 
       const res = await app.request('/api/books/import/confirm', {
         method: 'POST',
@@ -355,10 +345,10 @@ describe('Book Import API', () => {
           matched: [],
           newBooks: [
             { title: 'New Book 1', author: 'Author 1' },
-            { title: 'New Book 2', author: 'Author 2', readingLevel: '3.0' }
+            { title: 'New Book 2', author: 'Author 2', readingLevel: '3.0' },
           ],
-          conflicts: []
-        })
+          conflicts: [],
+        }),
       });
 
       expect(res.status).toBe(200);
@@ -367,10 +357,7 @@ describe('Book Import API', () => {
     });
 
     it('should update books when conflicts are accepted', async () => {
-      const { app, mockDB } = createTestApp(
-        { organizationId: 'org-123', userRole: 'admin' },
-        {}
-      );
+      const { app, mockDB } = createTestApp({ organizationId: 'org-123', userRole: 'admin' }, {});
 
       const res = await app.request('/api/books/import/confirm', {
         method: 'POST',
@@ -379,9 +366,9 @@ describe('Book Import API', () => {
           matched: [],
           newBooks: [],
           conflicts: [
-            { existingBookId: 'book-1', updateReadingLevel: true, newReadingLevel: '5.0' }
-          ]
-        })
+            { existingBookId: 'book-1', updateReadingLevel: true, newReadingLevel: '5.0' },
+          ],
+        }),
       });
 
       expect(res.status).toBe(200);
@@ -398,18 +385,15 @@ describe('Book Import API', () => {
         body: JSON.stringify({
           matched: [],
           newBooks: [],
-          conflicts: []
-        })
+          conflicts: [],
+        }),
       });
 
       expect(res.status).toBe(401);
     });
 
     it('should reject readonly users', async () => {
-      const { app } = createTestApp(
-        { organizationId: 'org-123', userRole: 'readonly' },
-        {}
-      );
+      const { app } = createTestApp({ organizationId: 'org-123', userRole: 'readonly' }, {});
 
       const res = await app.request('/api/books/import/confirm', {
         method: 'POST',
@@ -417,8 +401,8 @@ describe('Book Import API', () => {
         body: JSON.stringify({
           matched: [],
           newBooks: [],
-          conflicts: []
-        })
+          conflicts: [],
+        }),
       });
 
       expect(res.status).toBe(403);
@@ -436,8 +420,8 @@ describe('Book Import API', () => {
         body: JSON.stringify({
           matched: [],
           newBooks: [],
-          conflicts: []
-        })
+          conflicts: [],
+        }),
       });
 
       expect(res.status).toBe(400);

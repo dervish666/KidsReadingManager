@@ -5,12 +5,9 @@ import {
   createError,
   notFoundError,
   badRequestError,
-  serverError
+  serverError,
 } from '../../middleware/errorHandler.js';
-import {
-  encryptSensitiveData,
-  decryptSensitiveData
-} from '../../utils/crypto.js';
+import { encryptSensitiveData, decryptSensitiveData } from '../../utils/crypto.js';
 import { validateSettings } from '../../utils/validation.js';
 
 // ============================================================================
@@ -27,9 +24,7 @@ describe('Error Handler Middleware', () => {
     // errorHandler() middleware. Test the actual pattern from worker.js (line 247).
     app.onError((err, c) => {
       const status = err.status || 500;
-      const message = status >= 500
-        ? 'Internal Server Error'
-        : (err.message || 'An error occurred');
+      const message = status >= 500 ? 'Internal Server Error' : err.message || 'An error occurred';
       return c.json({ status: 'error', message }, status);
     });
 
@@ -155,7 +150,7 @@ describe('Error Handler Middleware', () => {
 
       const mockContext = {
         req: { path: '/api/data' },
-        json: vi.fn((body, status) => ({ body, status }))
+        json: vi.fn((body, status) => ({ body, status })),
       };
 
       // Import and call the middleware factory, then invoke the returned function
@@ -180,7 +175,7 @@ describe('Error Handler Middleware', () => {
     it('should pass through 4xx errors in the middleware function', async () => {
       const mockContext = {
         req: { path: '/api/books' },
-        json: vi.fn((body, status) => ({ body, status }))
+        json: vi.fn((body, status) => ({ body, status })),
       };
 
       const middleware = errorHandler();
@@ -325,33 +320,33 @@ describe('Encrypt/Decrypt Round-Trip', () => {
   });
 
   it('should throw when encrypting with empty plaintext', async () => {
-    await expect(
-      encryptSensitiveData('', testSecret)
-    ).rejects.toThrow('Plaintext and secret are required for encryption');
+    await expect(encryptSensitiveData('', testSecret)).rejects.toThrow(
+      'Plaintext and secret are required for encryption'
+    );
   });
 
   it('should throw when encrypting with null plaintext', async () => {
-    await expect(
-      encryptSensitiveData(null, testSecret)
-    ).rejects.toThrow('Plaintext and secret are required for encryption');
+    await expect(encryptSensitiveData(null, testSecret)).rejects.toThrow(
+      'Plaintext and secret are required for encryption'
+    );
   });
 
   it('should throw when encrypting with empty secret', async () => {
-    await expect(
-      encryptSensitiveData('some-data', '')
-    ).rejects.toThrow('Plaintext and secret are required for encryption');
+    await expect(encryptSensitiveData('some-data', '')).rejects.toThrow(
+      'Plaintext and secret are required for encryption'
+    );
   });
 
   it('should throw when decrypting with null input', async () => {
-    await expect(
-      decryptSensitiveData(null, testSecret)
-    ).rejects.toThrow('Encrypted data and secret are required for decryption');
+    await expect(decryptSensitiveData(null, testSecret)).rejects.toThrow(
+      'Encrypted data and secret are required for decryption'
+    );
   });
 
   it('should throw when decrypting with empty secret', async () => {
-    await expect(
-      decryptSensitiveData('some:data', '')
-    ).rejects.toThrow('Encrypted data and secret are required for decryption');
+    await expect(decryptSensitiveData('some:data', '')).rejects.toThrow(
+      'Encrypted data and secret are required for decryption'
+    );
   });
 
   it('should handle unicode plaintext correctly', async () => {
@@ -382,7 +377,7 @@ describe('parseCookies Edge Cases', () => {
   function parseCookies(cookieHeader) {
     const cookies = {};
     if (!cookieHeader) return cookies;
-    cookieHeader.split(';').forEach(cookie => {
+    cookieHeader.split(';').forEach((cookie) => {
       const [name, ...rest] = cookie.trim().split('=');
       if (name) cookies[name] = rest.join('=');
     });
@@ -465,8 +460,8 @@ describe('Settings Prototype Pollution Guard', () => {
       constructor: { prototype: { isAdmin: true } },
       readingStatusSettings: {
         recentlyReadDays: 3,
-        needsAttentionDays: 7
-      }
+        needsAttentionDays: 7,
+      },
     };
 
     const result = validateSettings(malicious);

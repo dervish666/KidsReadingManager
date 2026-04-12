@@ -230,9 +230,7 @@ export default function StreaksTab({ stats, studentsWithStreaks, recalculating, 
               All students have streaks!
             </Alert>
           ) : (
-            <Paper
-              sx={{ borderRadius: 3, overflow: 'hidden', maxHeight: 300, overflowY: 'auto' }}
-            >
+            <Paper sx={{ borderRadius: 3, overflow: 'hidden', maxHeight: 300, overflowY: 'auto' }}>
               {studentsWithNoStreak.map((student) => (
                 <Box
                   key={student.id}

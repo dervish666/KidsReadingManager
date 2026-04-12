@@ -36,7 +36,10 @@ export const normalizeAuthorDisplay = (str) => {
   if (!str) return null;
   const trimmed = str.trim();
   if (!trimmed.includes(',')) return trimmed;
-  const parts = trimmed.split(',').map(s => s.trim()).filter(Boolean);
+  const parts = trimmed
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
   if (parts.length === 2) {
     return `${parts[1]} ${parts[0]}`;
   }
@@ -90,7 +93,7 @@ export const calculateSimilarity = (a, b) => {
   const maxLength = Math.max(normalA.length, normalB.length);
   const distance = levenshteinDistance(normalA, normalB);
 
-  return 1 - (distance / maxLength);
+  return 1 - distance / maxLength;
 };
 
 /**

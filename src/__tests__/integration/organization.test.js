@@ -729,11 +729,11 @@ describe('Organization Routes', () => {
         preparedQueries.push(sql);
         return {
           bind: vi.fn().mockReturnValue({
-            first: vi.fn().mockResolvedValue(
-              sql.includes('timezone')
-                ? { setting_value: '"Europe/London"' }
-                : null
-            ),
+            first: vi
+              .fn()
+              .mockResolvedValue(
+                sql.includes('timezone') ? { setting_value: '"Europe/London"' } : null
+              ),
           }),
         };
       });

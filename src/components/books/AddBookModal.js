@@ -7,7 +7,7 @@ import {
   TextField,
   Button,
   Box,
-  Typography
+  Typography,
 } from '@mui/material';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
@@ -58,7 +58,8 @@ const AddBookModal = ({ open, initialTitle = '', onClose, onBookCreated }) => {
       }
 
       // If additional metadata was provided, update the book
-      const hasMetadata = isbn.trim() || pageCount || seriesName.trim() || seriesNumber || publicationYear;
+      const hasMetadata =
+        isbn.trim() || pageCount || seriesName.trim() || seriesNumber || publicationYear;
       if (hasMetadata) {
         const updateData = {};
         if (isbn.trim()) updateData.isbn = isbn.trim();
@@ -70,7 +71,7 @@ const AddBookModal = ({ open, initialTitle = '', onClose, onBookCreated }) => {
         await fetchWithAuth(`/api/books/${book.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updateData)
+          body: JSON.stringify(updateData),
         });
       }
 

@@ -14,9 +14,15 @@ const TIMEOUT = 5000;
  */
 export async function fetchMetadata(book, apiKey) {
   const empty = {
-    author: null, description: null, genres: null, isbn: null,
-    pageCount: null, publicationYear: null, seriesName: null,
-    seriesNumber: null, coverUrl: null,
+    author: null,
+    description: null,
+    genres: null,
+    isbn: null,
+    pageCount: null,
+    publicationYear: null,
+    seriesName: null,
+    seriesNumber: null,
+    coverUrl: null,
   };
 
   if (!apiKey) return empty;
@@ -70,7 +76,9 @@ export async function fetchMetadata(book, apiKey) {
 
     // Cover URL — upgrade to higher res by removing edge=curl and zoom
     if (vol.imageLinks?.thumbnail) {
-      result.coverUrl = vol.imageLinks.thumbnail.replace('&edge=curl', '').replace('zoom=1', 'zoom=2');
+      result.coverUrl = vol.imageLinks.thumbnail
+        .replace('&edge=curl', '')
+        .replace('zoom=1', 'zoom=2');
     }
 
     return result;

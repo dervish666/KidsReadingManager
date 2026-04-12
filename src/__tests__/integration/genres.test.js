@@ -12,14 +12,14 @@ const createMockDB = (overrides = {}) => {
     bind: vi.fn().mockReturnThis(),
     all: vi.fn().mockResolvedValue(overrides.allResults || { results: [], success: true }),
     first: vi.fn().mockResolvedValue(overrides.firstResult || null),
-    run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } })
+    run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } }),
   };
 
   return {
     prepare: vi.fn().mockReturnValue(prepareChain),
     batch: vi.fn().mockResolvedValue([{ success: true }]),
     _chain: prepareChain,
-    ...overrides
+    ...overrides,
   };
 };
 
@@ -33,11 +33,14 @@ const createTestApp = (contextValues = {}, dbOverrides = {}) => {
   // Add global error handler using Hono's onError
   app.onError((error, c) => {
     const status = error.status || 500;
-    return c.json({
-      status: 'error',
-      message: error.message || 'Internal Server Error',
-      path: c.req.path
-    }, status);
+    return c.json(
+      {
+        status: 'error',
+        message: error.message || 'Internal Server Error',
+        path: c.req.path,
+      },
+      status
+    );
   });
 
   // Middleware to inject context values (simulates auth middleware)
@@ -45,7 +48,7 @@ const createTestApp = (contextValues = {}, dbOverrides = {}) => {
     c.env = {
       JWT_SECRET: TEST_SECRET,
       READING_MANAGER_DB: mockDB,
-      ...contextValues.env
+      ...contextValues.env,
     };
 
     // Set context values that would normally come from auth middleware
@@ -70,7 +73,7 @@ const makeRequest = async (app, method, path, body = null) => {
     method,
     headers: {
       'Content-Type': 'application/json',
-    }
+    },
   };
 
   if (body) {
@@ -89,7 +92,7 @@ const createMockGenre = (overrides = {}) => ({
   description: 'Fantasy books with magical elements',
   is_predefined: 0,
   created_at: '2024-01-01T00:00:00Z',
-  ...overrides
+  ...overrides,
 });
 
 /**
@@ -102,9 +105,9 @@ const createUserContext = (overrides = {}) => ({
   user: {
     sub: 'user-123',
     org: 'org-456',
-    role: 'owner'
+    role: 'owner',
   },
-  ...overrides
+  ...overrides,
 });
 
 describe('Genres API Routes', () => {
@@ -126,13 +129,12 @@ describe('Genres API Routes', () => {
         const genres = [
           createMockGenre({ id: 'genre-1', name: 'Fantasy', is_predefined: 1 }),
           createMockGenre({ id: 'genre-2', name: 'Science Fiction', is_predefined: 1 }),
-          createMockGenre({ id: 'genre-3', name: 'Custom Genre', is_predefined: 0 })
+          createMockGenre({ id: 'genre-3', name: 'Custom Genre', is_predefined: 0 }),
         ];
 
-        const { app, mockDB } = createTestApp(
-          createUserContext({ userRole: 'readonly' }),
-          { allResults: { results: genres, success: true } }
-        );
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'readonly' }), {
+          allResults: { results: genres, success: true },
+        });
 
         const response = await makeRequest(app, 'GET', '/api/genres');
         const data = await response.json();
@@ -143,10 +145,9 @@ describe('Genres API Routes', () => {
       });
 
       it('should allow requests from teachers', async () => {
-        const { app } = createTestApp(
-          createUserContext({ userRole: 'teacher' }),
-          { allResults: { results: [], success: true } }
-        );
+        const { app } = createTestApp(createUserContext({ userRole: 'teacher' }), {
+          allResults: { results: [], success: true },
+        });
 
         const response = await makeRequest(app, 'GET', '/api/genres');
 
@@ -154,10 +155,9 @@ describe('Genres API Routes', () => {
       });
 
       it('should allow requests from admins', async () => {
-        const { app } = createTestApp(
-          createUserContext({ userRole: 'admin' }),
-          { allResults: { results: [], success: true } }
-        );
+        const { app } = createTestApp(createUserContext({ userRole: 'admin' }), {
+          allResults: { results: [], success: true },
+        });
 
         const response = await makeRequest(app, 'GET', '/api/genres');
 
@@ -165,10 +165,9 @@ describe('Genres API Routes', () => {
       });
 
       it('should allow requests from owners', async () => {
-        const { app } = createTestApp(
-          createUserContext({ userRole: 'owner' }),
-          { allResults: { results: [], success: true } }
-        );
+        const { app } = createTestApp(createUserContext({ userRole: 'owner' }), {
+          allResults: { results: [], success: true },
+        });
 
         const response = await makeRequest(app, 'GET', '/api/genres');
 
@@ -184,14 +183,13 @@ describe('Genres API Routes', () => {
             name: 'Fantasy',
             description: 'Magical worlds',
             is_predefined: 1,
-            created_at: '2024-01-01T00:00:00Z'
-          })
+            created_at: '2024-01-01T00:00:00Z',
+          }),
         ];
 
-        const { app } = createTestApp(
-          createUserContext({ userRole: 'readonly' }),
-          { allResults: { results: genres, success: true } }
-        );
+        const { app } = createTestApp(createUserContext({ userRole: 'readonly' }), {
+          allResults: { results: genres, success: true },
+        });
 
         const response = await makeRequest(app, 'GET', '/api/genres');
         const data = await response.json();
@@ -201,20 +199,19 @@ describe('Genres API Routes', () => {
           name: 'Fantasy',
           description: 'Magical worlds',
           isPredefined: true,
-          createdAt: '2024-01-01T00:00:00Z'
+          createdAt: '2024-01-01T00:00:00Z',
         });
       });
 
       it('should convert is_predefined to boolean', async () => {
         const genres = [
           createMockGenre({ id: 'g1', is_predefined: 1 }),
-          createMockGenre({ id: 'g2', is_predefined: 0 })
+          createMockGenre({ id: 'g2', is_predefined: 0 }),
         ];
 
-        const { app } = createTestApp(
-          createUserContext({ userRole: 'readonly' }),
-          { allResults: { results: genres, success: true } }
-        );
+        const { app } = createTestApp(createUserContext({ userRole: 'readonly' }), {
+          allResults: { results: genres, success: true },
+        });
 
         const response = await makeRequest(app, 'GET', '/api/genres');
         const data = await response.json();
@@ -224,10 +221,9 @@ describe('Genres API Routes', () => {
       });
 
       it('should return genres sorted by predefined first, then by name', async () => {
-        const { app, mockDB } = createTestApp(
-          createUserContext({ userRole: 'readonly' }),
-          { allResults: { results: [], success: true } }
-        );
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'readonly' }), {
+          allResults: { results: [], success: true },
+        });
 
         await makeRequest(app, 'GET', '/api/genres');
 
@@ -238,10 +234,9 @@ describe('Genres API Routes', () => {
 
     describe('Global genre access', () => {
       it('should not scope genres by organization (genres are global)', async () => {
-        const { app, mockDB } = createTestApp(
-          createUserContext({ userRole: 'readonly' }),
-          { allResults: { results: [], success: true } }
-        );
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'readonly' }), {
+          allResults: { results: [], success: true },
+        });
 
         await makeRequest(app, 'GET', '/api/genres');
 
@@ -257,10 +252,9 @@ describe('Genres API Routes', () => {
       it('should allow readonly users to get a specific genre', async () => {
         const genre = createMockGenre({ id: 'genre-123', name: 'Fantasy' });
 
-        const { app } = createTestApp(
-          createUserContext({ userRole: 'readonly' }),
-          { firstResult: genre }
-        );
+        const { app } = createTestApp(createUserContext({ userRole: 'readonly' }), {
+          firstResult: genre,
+        });
 
         const response = await makeRequest(app, 'GET', '/api/genres/genre-123');
         const data = await response.json();
@@ -273,10 +267,9 @@ describe('Genres API Routes', () => {
       it('should allow teachers to get a specific genre', async () => {
         const genre = createMockGenre({ id: 'genre-123' });
 
-        const { app } = createTestApp(
-          createUserContext({ userRole: 'teacher' }),
-          { firstResult: genre }
-        );
+        const { app } = createTestApp(createUserContext({ userRole: 'teacher' }), {
+          firstResult: genre,
+        });
 
         const response = await makeRequest(app, 'GET', '/api/genres/genre-123');
 
@@ -291,13 +284,12 @@ describe('Genres API Routes', () => {
           name: 'Mystery',
           description: 'Detective stories',
           is_predefined: 1,
-          created_at: '2024-01-15T00:00:00Z'
+          created_at: '2024-01-15T00:00:00Z',
         });
 
-        const { app } = createTestApp(
-          createUserContext({ userRole: 'readonly' }),
-          { firstResult: genre }
-        );
+        const { app } = createTestApp(createUserContext({ userRole: 'readonly' }), {
+          firstResult: genre,
+        });
 
         const response = await makeRequest(app, 'GET', '/api/genres/genre-123');
         const data = await response.json();
@@ -307,17 +299,16 @@ describe('Genres API Routes', () => {
           name: 'Mystery',
           description: 'Detective stories',
           isPredefined: true,
-          createdAt: '2024-01-15T00:00:00Z'
+          createdAt: '2024-01-15T00:00:00Z',
         });
       });
     });
 
     describe('Error handling', () => {
       it('should return 404 for non-existent genre', async () => {
-        const { app } = createTestApp(
-          createUserContext({ userRole: 'readonly' }),
-          { firstResult: null }
-        );
+        const { app } = createTestApp(createUserContext({ userRole: 'readonly' }), {
+          firstResult: null,
+        });
 
         const response = await makeRequest(app, 'GET', '/api/genres/non-existent');
         const data = await response.json();
@@ -334,7 +325,7 @@ describe('Genres API Routes', () => {
         const { app } = createTestApp(createUserContext({ userRole: 'readonly' }));
 
         const response = await makeRequest(app, 'POST', '/api/genres', {
-          name: 'New Genre'
+          name: 'New Genre',
         });
         const data = await response.json();
 
@@ -346,7 +337,7 @@ describe('Genres API Routes', () => {
         const { app } = createTestApp(createUserContext({ userRole: 'teacher' }));
 
         const response = await makeRequest(app, 'POST', '/api/genres', {
-          name: 'New Genre'
+          name: 'New Genre',
         });
         const data = await response.json();
 
@@ -358,7 +349,7 @@ describe('Genres API Routes', () => {
         const { app } = createTestApp(createUserContext({ userRole: 'admin' }));
 
         const response = await makeRequest(app, 'POST', '/api/genres', {
-          name: 'New Genre'
+          name: 'New Genre',
         });
         const data = await response.json();
 
@@ -377,7 +368,7 @@ describe('Genres API Routes', () => {
         });
 
         const response = await makeRequest(app, 'POST', '/api/genres', {
-          name: 'Owner Genre'
+          name: 'Owner Genre',
         });
         const data = await response.json();
 
@@ -401,7 +392,7 @@ describe('Genres API Routes', () => {
         const { app } = createTestApp(createUserContext({ userRole: 'owner' }));
 
         const response = await makeRequest(app, 'POST', '/api/genres', {
-          name: ''
+          name: '',
         });
         const data = await response.json();
 
@@ -418,7 +409,7 @@ describe('Genres API Routes', () => {
         mockDB._chain.first.mockResolvedValue({ id: 'existing-genre' });
 
         const response = await makeRequest(app, 'POST', '/api/genres', {
-          name: 'Fantasy'
+          name: 'Fantasy',
         });
         const data = await response.json();
 
@@ -451,7 +442,7 @@ describe('Genres API Routes', () => {
 
         const response = await makeRequest(app, 'POST', '/api/genres', {
           id: 'custom-id',
-          name: 'Test Genre'
+          name: 'Test Genre',
         });
         const data = await response.json();
 
@@ -470,13 +461,13 @@ describe('Genres API Routes', () => {
         });
 
         const response = await makeRequest(app, 'POST', '/api/genres', {
-          name: 'Test Genre'
+          name: 'Test Genre',
         });
 
         expect(response.status).toBe(201);
 
         // Verify INSERT was called with ID
-        const insertCall = mockDB.prepare.mock.calls.find(call =>
+        const insertCall = mockDB.prepare.mock.calls.find((call) =>
           call[0].includes('INSERT INTO genres')
         );
         expect(insertCall).toBeDefined();
@@ -489,15 +480,17 @@ describe('Genres API Routes', () => {
         mockDB._chain.first.mockImplementation(() => {
           callIndex++;
           if (callIndex === 1) return Promise.resolve(null);
-          return Promise.resolve(createMockGenre({
-            name: 'Adventure',
-            description: 'Action-packed stories'
-          }));
+          return Promise.resolve(
+            createMockGenre({
+              name: 'Adventure',
+              description: 'Action-packed stories',
+            })
+          );
         });
 
         const response = await makeRequest(app, 'POST', '/api/genres', {
           name: 'Adventure',
-          description: 'Action-packed stories'
+          description: 'Action-packed stories',
         });
         const data = await response.json();
 
@@ -512,14 +505,16 @@ describe('Genres API Routes', () => {
         mockDB._chain.first.mockImplementation(() => {
           callIndex++;
           if (callIndex === 1) return Promise.resolve(null);
-          return Promise.resolve(createMockGenre({
-            name: 'Horror',
-            description: null
-          }));
+          return Promise.resolve(
+            createMockGenre({
+              name: 'Horror',
+              description: null,
+            })
+          );
         });
 
         const response = await makeRequest(app, 'POST', '/api/genres', {
-          name: 'Horror'
+          name: 'Horror',
         });
         const data = await response.json();
 
@@ -534,15 +529,17 @@ describe('Genres API Routes', () => {
         mockDB._chain.first.mockImplementation(() => {
           callIndex++;
           if (callIndex === 1) return Promise.resolve(null);
-          return Promise.resolve(createMockGenre({
-            name: 'Romance',
-            is_predefined: 1
-          }));
+          return Promise.resolve(
+            createMockGenre({
+              name: 'Romance',
+              is_predefined: 1,
+            })
+          );
         });
 
         const response = await makeRequest(app, 'POST', '/api/genres', {
           name: 'Romance',
-          isPredefined: true
+          isPredefined: true,
         });
         const data = await response.json();
 
@@ -557,14 +554,16 @@ describe('Genres API Routes', () => {
         mockDB._chain.first.mockImplementation(() => {
           callIndex++;
           if (callIndex === 1) return Promise.resolve(null);
-          return Promise.resolve(createMockGenre({
-            name: 'Custom',
-            is_predefined: 0
-          }));
+          return Promise.resolve(
+            createMockGenre({
+              name: 'Custom',
+              is_predefined: 0,
+            })
+          );
         });
 
         const response = await makeRequest(app, 'POST', '/api/genres', {
-          name: 'Custom'
+          name: 'Custom',
         });
         const data = await response.json();
 
@@ -580,7 +579,7 @@ describe('Genres API Routes', () => {
         const { app } = createTestApp(createUserContext({ userRole: 'readonly' }));
 
         const response = await makeRequest(app, 'PUT', '/api/genres/genre-123', {
-          name: 'Updated Genre'
+          name: 'Updated Genre',
         });
         const data = await response.json();
 
@@ -592,7 +591,7 @@ describe('Genres API Routes', () => {
         const { app } = createTestApp(createUserContext({ userRole: 'teacher' }));
 
         const response = await makeRequest(app, 'PUT', '/api/genres/genre-123', {
-          name: 'Updated Genre'
+          name: 'Updated Genre',
         });
         const data = await response.json();
 
@@ -604,7 +603,7 @@ describe('Genres API Routes', () => {
         const { app } = createTestApp(createUserContext({ userRole: 'admin' }));
 
         const response = await makeRequest(app, 'PUT', '/api/genres/genre-123', {
-          name: 'Updated Genre'
+          name: 'Updated Genre',
         });
         const data = await response.json();
 
@@ -624,7 +623,7 @@ describe('Genres API Routes', () => {
         });
 
         const response = await makeRequest(app, 'PUT', '/api/genres/genre-123', {
-          name: 'Owner Update'
+          name: 'Owner Update',
         });
 
         expect(response.status).toBe(200);
@@ -646,7 +645,7 @@ describe('Genres API Routes', () => {
         const { app } = createTestApp(createUserContext({ userRole: 'owner' }));
 
         const response = await makeRequest(app, 'PUT', '/api/genres/genre-123', {
-          name: ''
+          name: '',
         });
         const data = await response.json();
 
@@ -662,7 +661,7 @@ describe('Genres API Routes', () => {
         mockDB._chain.first.mockResolvedValue(null);
 
         const response = await makeRequest(app, 'PUT', '/api/genres/non-existent', {
-          name: 'Updated Name'
+          name: 'Updated Name',
         });
         const data = await response.json();
 
@@ -683,7 +682,7 @@ describe('Genres API Routes', () => {
         });
 
         const response = await makeRequest(app, 'PUT', '/api/genres/genre-123', {
-          name: 'Existing Genre Name'
+          name: 'Existing Genre Name',
         });
         const data = await response.json();
 
@@ -697,14 +696,21 @@ describe('Genres API Routes', () => {
         let callIndex = 0;
         mockDB._chain.first.mockImplementation(() => {
           callIndex++;
-          if (callIndex === 1) return Promise.resolve(createMockGenre({ id: 'genre-123', name: 'Fantasy' }));
+          if (callIndex === 1)
+            return Promise.resolve(createMockGenre({ id: 'genre-123', name: 'Fantasy' }));
           if (callIndex === 2) return Promise.resolve(null); // No conflict (same genre)
-          return Promise.resolve(createMockGenre({ id: 'genre-123', name: 'Fantasy', description: 'Updated description' }));
+          return Promise.resolve(
+            createMockGenre({
+              id: 'genre-123',
+              name: 'Fantasy',
+              description: 'Updated description',
+            })
+          );
         });
 
         const response = await makeRequest(app, 'PUT', '/api/genres/genre-123', {
           name: 'Fantasy',
-          description: 'Updated description'
+          description: 'Updated description',
         });
 
         expect(response.status).toBe(200);
@@ -724,8 +730,8 @@ describe('Genres API Routes', () => {
         await makeRequest(app, 'PUT', '/api/genres/genre-123', { name: 'New Name' });
 
         // Find the query that checks for name conflicts
-        const conflictQuery = mockDB.prepare.mock.calls.find(call =>
-          call[0].includes('LOWER(name) = LOWER(?)') && call[0].includes('id != ?')
+        const conflictQuery = mockDB.prepare.mock.calls.find(
+          (call) => call[0].includes('LOWER(name) = LOWER(?)') && call[0].includes('id != ?')
         );
         expect(conflictQuery).toBeDefined();
       });
@@ -744,7 +750,7 @@ describe('Genres API Routes', () => {
         });
 
         const response = await makeRequest(app, 'PUT', '/api/genres/genre-123', {
-          name: 'New Name'
+          name: 'New Name',
         });
         const data = await response.json();
 
@@ -765,7 +771,7 @@ describe('Genres API Routes', () => {
 
         const response = await makeRequest(app, 'PUT', '/api/genres/genre-123', {
           name: 'Fantasy',
-          description: 'New description'
+          description: 'New description',
         });
         const data = await response.json();
 
@@ -779,14 +785,15 @@ describe('Genres API Routes', () => {
         let callIndex = 0;
         mockDB._chain.first.mockImplementation(() => {
           callIndex++;
-          if (callIndex === 1) return Promise.resolve(createMockGenre({ description: 'Old description' }));
+          if (callIndex === 1)
+            return Promise.resolve(createMockGenre({ description: 'Old description' }));
           if (callIndex === 2) return Promise.resolve(null);
           return Promise.resolve(createMockGenre({ description: null }));
         });
 
         const response = await makeRequest(app, 'PUT', '/api/genres/genre-123', {
           name: 'Fantasy',
-          description: null
+          description: null,
         });
         const data = await response.json();
 
@@ -857,11 +864,13 @@ describe('Genres API Routes', () => {
       it('should reject deletion of predefined genres', async () => {
         const { app, mockDB } = createTestApp(createUserContext({ userRole: 'owner' }));
 
-        mockDB._chain.first.mockResolvedValue(createMockGenre({
-          id: 'genre-123',
-          name: 'Fantasy',
-          is_predefined: 1
-        }));
+        mockDB._chain.first.mockResolvedValue(
+          createMockGenre({
+            id: 'genre-123',
+            name: 'Fantasy',
+            is_predefined: 1,
+          })
+        );
 
         const response = await makeRequest(app, 'DELETE', '/api/genres/genre-123');
         const data = await response.json();
@@ -873,11 +882,13 @@ describe('Genres API Routes', () => {
       it('should allow deletion of custom genres', async () => {
         const { app, mockDB } = createTestApp(createUserContext({ userRole: 'owner' }));
 
-        mockDB._chain.first.mockResolvedValue(createMockGenre({
-          id: 'genre-123',
-          name: 'Custom Genre',
-          is_predefined: 0
-        }));
+        mockDB._chain.first.mockResolvedValue(
+          createMockGenre({
+            id: 'genre-123',
+            name: 'Custom Genre',
+            is_predefined: 0,
+          })
+        );
 
         const response = await makeRequest(app, 'DELETE', '/api/genres/genre-123');
         const data = await response.json();
@@ -896,7 +907,7 @@ describe('Genres API Routes', () => {
         await makeRequest(app, 'DELETE', '/api/genres/genre-123');
 
         // Verify DELETE query was executed
-        const deleteCall = mockDB.prepare.mock.calls.find(call =>
+        const deleteCall = mockDB.prepare.mock.calls.find((call) =>
           call[0].includes('DELETE FROM genres WHERE id = ?')
         );
         expect(deleteCall).toBeDefined();
@@ -910,7 +921,7 @@ describe('Genres API Routes', () => {
       { method: 'GET', path: '/api/genres/genre-123', minRole: 'readonly' },
       { method: 'POST', path: '/api/genres', minRole: 'owner', body: { name: 'Test' } },
       { method: 'PUT', path: '/api/genres/genre-123', minRole: 'owner', body: { name: 'Test' } },
-      { method: 'DELETE', path: '/api/genres/genre-123', minRole: 'owner' }
+      { method: 'DELETE', path: '/api/genres/genre-123', minRole: 'owner' },
     ];
 
     const roles = ['readonly', 'teacher', 'admin', 'owner'];
@@ -919,7 +930,7 @@ describe('Genres API Routes', () => {
     endpoints.forEach(({ method, path, minRole, body }) => {
       const minRoleLevel = roleHierarchy[minRole];
 
-      roles.forEach(role => {
+      roles.forEach((role) => {
         const roleLevel = roleHierarchy[role];
         const shouldAllow = roleLevel >= minRoleLevel;
 
@@ -966,10 +977,9 @@ describe('Genres API Routes', () => {
 
   describe('Multi-tenant mode detection', () => {
     it('should use D1 database when JWT_SECRET and organizationId are present', async () => {
-      const { app, mockDB } = createTestApp(
-        createUserContext({ userRole: 'readonly' }),
-        { allResults: { results: [], success: true } }
-      );
+      const { app, mockDB } = createTestApp(createUserContext({ userRole: 'readonly' }), {
+        allResults: { results: [], success: true },
+      });
 
       await makeRequest(app, 'GET', '/api/genres');
 
@@ -1006,7 +1016,7 @@ describe('Genres API Routes', () => {
       mockDB._chain.run.mockRejectedValue(new Error('Insert failed'));
 
       const response = await makeRequest(app, 'POST', '/api/genres', {
-        name: 'Test Genre'
+        name: 'Test Genre',
       });
 
       expect(response.status).toBe(500);
@@ -1024,7 +1034,7 @@ describe('Genres API Routes', () => {
       mockDB._chain.run.mockRejectedValue(new Error('Update failed'));
 
       const response = await makeRequest(app, 'PUT', '/api/genres/genre-123', {
-        name: 'Updated Name'
+        name: 'Updated Name',
       });
 
       expect(response.status).toBe(500);

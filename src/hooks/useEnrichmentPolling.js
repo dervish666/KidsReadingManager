@@ -12,13 +12,7 @@ import { useState, useRef, useCallback } from 'react';
  * @param {number}   [options.retryDelay]  - ms to wait between retries (default 2000)
  */
 export function useEnrichmentPolling(fetchWithAuth, options = {}) {
-  const {
-    onComplete,
-    onError,
-    onFinished,
-    maxRetries = 3,
-    retryDelay = 2000,
-  } = options;
+  const { onComplete, onError, onFinished, maxRetries = 3, retryDelay = 2000 } = options;
 
   const [progress, setProgress] = useState(null);
   const abortRef = useRef(null);
@@ -84,7 +78,7 @@ export function useEnrichmentPolling(fetchWithAuth, options = {}) {
         onFinished?.();
       }
     },
-    [fetchWithAuth, onComplete, onError, onFinished, maxRetries, retryDelay],
+    [fetchWithAuth, onComplete, onError, onFinished, maxRetries, retryDelay]
   );
 
   const stopPolling = useCallback(() => {

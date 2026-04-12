@@ -7,7 +7,7 @@ import { Hono } from 'hono';
 // Mock the email module BEFORE importing the router
 vi.mock('../../utils/email.js', () => ({
   sendPasswordResetEmail: vi.fn().mockResolvedValue({ success: true }),
-  sendWelcomeEmail: vi.fn().mockResolvedValue({ success: true })
+  sendWelcomeEmail: vi.fn().mockResolvedValue({ success: true }),
 }));
 
 // Mock crypto functions to avoid slow PBKDF2 in tests
@@ -22,14 +22,14 @@ vi.mock('../../utils/crypto.js', async (importOriginal) => {
     createRefreshToken: vi.fn().mockResolvedValue({
       token: 'mocked-refresh-token',
       hash: 'mocked-refresh-hash',
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-    })
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    }),
   };
 });
 
 // Mock the tenant middleware to avoid rate_limits table issues
 vi.mock('../../middleware/tenant.js', () => ({
-  authRateLimit: () => async (_c, next) => next()
+  authRateLimit: () => async (_c, next) => next(),
 }));
 
 // Import after mocks
@@ -75,12 +75,12 @@ const createMockDB = (queryHandler) => {
           }
           return Promise.resolve({ results: [], success: true });
         }),
-        _boundArgs: []
+        _boundArgs: [],
       };
       return chain;
     }),
     batch: vi.fn().mockResolvedValue([{ success: true }]),
-    _calls: calls
+    _calls: calls,
   };
 
   return db;
@@ -96,7 +96,7 @@ const createTestApp = (mockDB) => {
       JWT_SECRET: TEST_SECRET,
       READING_MANAGER_DB: mockDB,
       APP_URL: 'http://localhost:3000',
-      ENVIRONMENT: 'development'
+      ENVIRONMENT: 'development',
     };
     await next();
   });
@@ -112,8 +112,8 @@ const makeRequest = async (app, method, path, body = null, headers = {}) => {
     method,
     headers: {
       'Content-Type': 'application/json',
-      ...headers
-    }
+      ...headers,
+    },
   };
   if (body) {
     options.body = JSON.stringify(body);
@@ -150,7 +150,7 @@ describe('Auth API Routes', () => {
 
       const response = await makeRequest(app, 'POST', '/api/auth/login', {
         email: 'locked@example.com',
-        password: 'wrongpassword'
+        password: 'wrongpassword',
       });
       const data = await response.json();
 
@@ -177,7 +177,7 @@ describe('Auth API Routes', () => {
             organization_id: 'org-456',
             org_name: 'Test School',
             org_slug: 'test-school',
-            org_active: 1
+            org_active: 1,
           };
         }
         return null;
@@ -189,7 +189,7 @@ describe('Auth API Routes', () => {
 
       const response = await makeRequest(app, 'POST', '/api/auth/login', {
         email: 'test@example.com',
-        password: 'correctpassword'
+        password: 'correctpassword',
       });
       const data = await response.json();
 
@@ -210,7 +210,7 @@ describe('Auth API Routes', () => {
 
       const response = await makeRequest(app, 'POST', '/api/auth/login', {
         email: 'locked@example.com',
-        password: 'anypassword'
+        password: 'anypassword',
       });
 
       expect(response.status).toBe(429);
@@ -233,7 +233,7 @@ describe('Auth API Routes', () => {
             organization_id: 'org-456',
             org_name: 'Test School',
             org_slug: 'test-school',
-            org_active: 1
+            org_active: 1,
           };
         }
         return null;
@@ -245,7 +245,7 @@ describe('Auth API Routes', () => {
 
       const response = await makeRequest(app, 'POST', '/api/auth/login', {
         email: 'test@example.com',
-        password: 'correctpassword'
+        password: 'correctpassword',
       });
       const data = await response.json();
 
@@ -271,13 +271,11 @@ describe('Auth API Routes', () => {
 
       await makeRequest(app, 'POST', '/api/auth/login', {
         email: 'nonexistent@example.com',
-        password: 'somepassword'
+        password: 'somepassword',
       });
 
       // Verify INSERT INTO login_attempts was called
-      const insertCalls = mockDB._calls.filter(sql =>
-        sql.includes('INSERT INTO login_attempts')
-      );
+      const insertCalls = mockDB._calls.filter((sql) => sql.includes('INSERT INTO login_attempts'));
       expect(insertCalls.length).toBeGreaterThan(0);
     });
   });
@@ -303,7 +301,7 @@ describe('Auth API Routes', () => {
 
       const response = await makeRequest(app, 'POST', '/api/auth/login', {
         email: 'deactivated@example.com',
-        password: 'correctpassword'
+        password: 'correctpassword',
       });
       const data = await response.json();
 
@@ -328,7 +326,7 @@ describe('Auth API Routes', () => {
 
       const response = await makeRequest(app, 'POST', '/api/auth/login', {
         email: 'user@example.com',
-        password: 'correctpassword'
+        password: 'correctpassword',
       });
       const data = await response.json();
 
@@ -352,7 +350,7 @@ describe('Auth API Routes', () => {
             organization_id: 'org-456',
             org_name: 'Active School',
             org_slug: 'active-school',
-            org_active: 1
+            org_active: 1,
           };
         }
         return null;
@@ -364,7 +362,7 @@ describe('Auth API Routes', () => {
 
       const response = await makeRequest(app, 'POST', '/api/auth/login', {
         email: 'active@example.com',
-        password: 'correctpassword'
+        password: 'correctpassword',
       });
       const data = await response.json();
 
@@ -391,7 +389,7 @@ describe('Auth API Routes', () => {
             organization_id: 'org-456',
             org_name: 'Test School',
             org_slug: 'test-school',
-            org_active: 1
+            org_active: 1,
           };
         }
         return null;
@@ -403,7 +401,7 @@ describe('Auth API Routes', () => {
 
       const response = await makeRequest(app, 'POST', '/api/auth/login', {
         email: 'user@example.com',
-        password: 'wrongpassword'
+        password: 'wrongpassword',
       });
       const data = await response.json();
 
@@ -426,7 +424,7 @@ describe('Auth API Routes', () => {
 
       const response = await makeRequest(app, 'POST', '/api/auth/login', {
         email: 'nobody@example.com',
-        password: 'anypassword'
+        password: 'anypassword',
       });
       const data = await response.json();
 
@@ -440,7 +438,7 @@ describe('Auth API Routes', () => {
       const app = createTestApp(mockDB);
 
       const response = await makeRequest(app, 'POST', '/api/auth/login', {
-        email: 'test@example.com'
+        email: 'test@example.com',
         // No password
       });
       const data = await response.json();
@@ -471,7 +469,7 @@ describe('Auth API Routes', () => {
             org_id: 'org-456',
             org_name: 'Test School',
             org_slug: 'test-school',
-            org_active: 1
+            org_active: 1,
           };
         }
         return null;
@@ -480,7 +478,7 @@ describe('Auth API Routes', () => {
       const app = createTestApp(mockDB);
 
       const response = await makeRequest(app, 'POST', '/api/auth/refresh', null, {
-        cookie: 'refresh_token=valid-refresh-token'
+        cookie: 'refresh_token=valid-refresh-token',
       });
       const data = await response.json();
 
@@ -507,7 +505,7 @@ describe('Auth API Routes', () => {
             org_id: 'org-456',
             org_name: 'Test School',
             org_slug: 'test-school',
-            org_active: 1
+            org_active: 1,
           };
         }
         return null;
@@ -516,19 +514,17 @@ describe('Auth API Routes', () => {
       const app = createTestApp(mockDB);
 
       await makeRequest(app, 'POST', '/api/auth/refresh', null, {
-        cookie: 'refresh_token=old-token'
+        cookie: 'refresh_token=old-token',
       });
 
       // Verify that the old token was revoked (UPDATE ... SET revoked_at)
-      const revokeCalls = mockDB._calls.filter(sql =>
+      const revokeCalls = mockDB._calls.filter((sql) =>
         sql.includes('UPDATE refresh_tokens SET revoked_at')
       );
       expect(revokeCalls.length).toBeGreaterThan(0);
 
       // Verify that a new refresh token was inserted
-      const insertCalls = mockDB._calls.filter(sql =>
-        sql.includes('INSERT INTO refresh_tokens')
-      );
+      const insertCalls = mockDB._calls.filter((sql) => sql.includes('INSERT INTO refresh_tokens'));
       expect(insertCalls.length).toBeGreaterThan(0);
     });
 
@@ -544,7 +540,7 @@ describe('Auth API Routes', () => {
       const app = createTestApp(mockDB);
 
       const response = await makeRequest(app, 'POST', '/api/auth/refresh', null, {
-        cookie: 'refresh_token=revoked-token'
+        cookie: 'refresh_token=revoked-token',
       });
       const data = await response.json();
 
@@ -568,7 +564,7 @@ describe('Auth API Routes', () => {
             org_id: 'org-456',
             org_name: 'Test School',
             org_slug: 'test-school',
-            org_active: 1
+            org_active: 1,
           };
         }
         return null;
@@ -577,7 +573,7 @@ describe('Auth API Routes', () => {
       const app = createTestApp(mockDB);
 
       const response = await makeRequest(app, 'POST', '/api/auth/refresh', null, {
-        cookie: 'refresh_token=expired-token'
+        cookie: 'refresh_token=expired-token',
       });
       const data = await response.json();
 
@@ -612,7 +608,7 @@ describe('Auth API Routes', () => {
             org_id: 'org-456',
             org_name: 'Test School',
             org_slug: 'test-school',
-            org_active: 1
+            org_active: 1,
           };
         }
         return null;
@@ -621,7 +617,7 @@ describe('Auth API Routes', () => {
       const app = createTestApp(mockDB);
 
       const response = await makeRequest(app, 'POST', '/api/auth/refresh', {
-        refreshToken: 'body-token'
+        refreshToken: 'body-token',
       });
       const data = await response.json();
 
@@ -645,7 +641,7 @@ describe('Auth API Routes', () => {
             org_id: 'org-456',
             org_name: 'Test School',
             org_slug: 'test-school',
-            org_active: 1
+            org_active: 1,
           };
         }
         return null;
@@ -654,7 +650,7 @@ describe('Auth API Routes', () => {
       const app = createTestApp(mockDB);
 
       const response = await makeRequest(app, 'POST', '/api/auth/refresh', null, {
-        cookie: 'refresh_token=some-token'
+        cookie: 'refresh_token=some-token',
       });
       const data = await response.json();
 
@@ -678,7 +674,7 @@ describe('Auth API Routes', () => {
             org_id: 'org-456',
             org_name: 'Inactive School',
             org_slug: 'inactive-school',
-            org_active: 0 // Inactive org
+            org_active: 0, // Inactive org
           };
         }
         return null;
@@ -687,7 +683,7 @@ describe('Auth API Routes', () => {
       const app = createTestApp(mockDB);
 
       const response = await makeRequest(app, 'POST', '/api/auth/refresh', null, {
-        cookie: 'refresh_token=some-token'
+        cookie: 'refresh_token=some-token',
       });
       const data = await response.json();
 
@@ -711,7 +707,7 @@ describe('Auth API Routes', () => {
             org_id: 'org-456',
             org_name: 'Test School',
             org_slug: 'test-school',
-            org_active: 1
+            org_active: 1,
           };
         }
         return null;
@@ -720,7 +716,7 @@ describe('Auth API Routes', () => {
       const app = createTestApp(mockDB);
 
       const response = await makeRequest(app, 'POST', '/api/auth/refresh', null, {
-        cookie: 'refresh_token=old-token'
+        cookie: 'refresh_token=old-token',
       });
 
       const setCookie = response.headers.get('set-cookie');
@@ -751,7 +747,7 @@ describe('Auth API Routes', () => {
         organizationName: 'New School',
         email: 'existing@example.com',
         password: 'Password123',
-        name: 'New User'
+        name: 'New User',
       });
       const data = await response.json();
 
@@ -779,7 +775,7 @@ describe('Auth API Routes', () => {
         organizationName: 'Brand New School',
         email: 'newuser@example.com',
         password: 'SecurePassword123',
-        name: 'New User'
+        name: 'New User',
       });
       const data = await response.json();
 
@@ -800,7 +796,7 @@ describe('Auth API Routes', () => {
       const app = createTestApp(mockDB);
 
       const response = await makeRequest(app, 'POST', '/api/auth/register', {
-        email: 'test@example.com'
+        email: 'test@example.com',
         // Missing organizationName, password, name
       });
       const data = await response.json();
@@ -820,7 +816,7 @@ describe('Auth API Routes', () => {
         organizationName: 'Test School',
         email: 'not-an-email',
         password: 'Password123',
-        name: 'Test User'
+        name: 'Test User',
       });
       const data = await response.json();
 
@@ -836,7 +832,7 @@ describe('Auth API Routes', () => {
         organizationName: 'Test School',
         email: 'user@example.com',
         password: 'short',
-        name: 'Test User'
+        name: 'Test User',
       });
       const data = await response.json();
 
@@ -861,7 +857,7 @@ describe('Auth API Routes', () => {
         organizationName: 'Cookie School',
         email: 'cookie@example.com',
         password: 'Password123',
-        name: 'Cookie User'
+        name: 'Cookie User',
       });
 
       expect(response.status).toBe(201);
@@ -891,7 +887,7 @@ describe('Auth API Routes', () => {
         organizationName: 'Duplicate School',
         email: 'newuser@example.com',
         password: 'Password123',
-        name: 'New User'
+        name: 'New User',
       });
 
       expect(response.status).toBe(201);
@@ -916,7 +912,7 @@ describe('Auth API Routes', () => {
       const app = createTestApp(mockDB);
 
       const response = await makeRequest(app, 'POST', '/api/auth/forgot-password', {
-        email: 'user@example.com'
+        email: 'user@example.com',
       });
       const data = await response.json();
 
@@ -924,13 +920,13 @@ describe('Auth API Routes', () => {
       expect(data.message).toBe('If the email exists, a reset link will be sent');
 
       // Verify that old tokens were invalidated
-      const invalidateCalls = mockDB._calls.filter(sql =>
+      const invalidateCalls = mockDB._calls.filter((sql) =>
         sql.includes('UPDATE password_reset_tokens SET used_at')
       );
       expect(invalidateCalls.length).toBeGreaterThan(0);
 
       // Verify that new token was stored
-      const insertCalls = mockDB._calls.filter(sql =>
+      const insertCalls = mockDB._calls.filter((sql) =>
         sql.includes('INSERT INTO password_reset_tokens')
       );
       expect(insertCalls.length).toBeGreaterThan(0);
@@ -956,7 +952,7 @@ describe('Auth API Routes', () => {
       const app = createTestApp(mockDB);
 
       const response = await makeRequest(app, 'POST', '/api/auth/forgot-password', {
-        email: 'nonexistent@example.com'
+        email: 'nonexistent@example.com',
       });
       const data = await response.json();
 
@@ -984,13 +980,17 @@ describe('Auth API Routes', () => {
     it('should reset password with a valid token', async () => {
       const mockDB = createMockDB((sql) => {
         // Find reset token
-        if (sql.includes('password_reset_tokens') && sql.includes('token_hash') && sql.includes('used_at IS NULL')) {
+        if (
+          sql.includes('password_reset_tokens') &&
+          sql.includes('token_hash') &&
+          sql.includes('used_at IS NULL')
+        ) {
           return {
             id: 'prt-123',
             user_id: 'user-123',
             token_hash: 'hashed-valid-reset-token',
             expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 min future
-            used_at: null
+            used_at: null,
           };
         }
         return null;
@@ -1000,7 +1000,7 @@ describe('Auth API Routes', () => {
 
       const response = await makeRequest(app, 'POST', '/api/auth/reset-password', {
         token: 'valid-reset-token',
-        password: 'NewPassword123'
+        password: 'NewPassword123',
       });
       const data = await response.json();
 
@@ -1013,13 +1013,17 @@ describe('Auth API Routes', () => {
 
     it('should fail with an expired token', async () => {
       const mockDB = createMockDB((sql) => {
-        if (sql.includes('password_reset_tokens') && sql.includes('token_hash') && sql.includes('used_at IS NULL')) {
+        if (
+          sql.includes('password_reset_tokens') &&
+          sql.includes('token_hash') &&
+          sql.includes('used_at IS NULL')
+        ) {
           return {
             id: 'prt-expired',
             user_id: 'user-123',
             token_hash: 'hashed-expired-token',
             expires_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(), // 1 hour ago
-            used_at: null
+            used_at: null,
           };
         }
         return null;
@@ -1029,7 +1033,7 @@ describe('Auth API Routes', () => {
 
       const response = await makeRequest(app, 'POST', '/api/auth/reset-password', {
         token: 'expired-token',
-        password: 'NewPassword123'
+        password: 'NewPassword123',
       });
       const data = await response.json();
 
@@ -1050,7 +1054,7 @@ describe('Auth API Routes', () => {
 
       const response = await makeRequest(app, 'POST', '/api/auth/reset-password', {
         token: 'already-used-token',
-        password: 'NewPassword123'
+        password: 'NewPassword123',
       });
       const data = await response.json();
 
@@ -1070,7 +1074,7 @@ describe('Auth API Routes', () => {
 
       const response = await makeRequest(app, 'POST', '/api/auth/reset-password', {
         token: 'totally-invalid-token',
-        password: 'NewPassword123'
+        password: 'NewPassword123',
       });
       const data = await response.json();
 
@@ -1083,7 +1087,7 @@ describe('Auth API Routes', () => {
       const app = createTestApp(mockDB);
 
       const response = await makeRequest(app, 'POST', '/api/auth/reset-password', {
-        token: 'some-token'
+        token: 'some-token',
         // Missing password
       });
       const data = await response.json();
@@ -1098,7 +1102,7 @@ describe('Auth API Routes', () => {
 
       const response = await makeRequest(app, 'POST', '/api/auth/reset-password', {
         token: 'some-token',
-        password: 'short'
+        password: 'short',
       });
       const data = await response.json();
 
@@ -1108,13 +1112,17 @@ describe('Auth API Routes', () => {
 
     it('should revoke all refresh tokens after password reset', async () => {
       const mockDB = createMockDB((sql) => {
-        if (sql.includes('password_reset_tokens') && sql.includes('token_hash') && sql.includes('used_at IS NULL')) {
+        if (
+          sql.includes('password_reset_tokens') &&
+          sql.includes('token_hash') &&
+          sql.includes('used_at IS NULL')
+        ) {
           return {
             id: 'prt-123',
             user_id: 'user-123',
             token_hash: 'hashed-token',
             expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-            used_at: null
+            used_at: null,
           };
         }
         return null;
@@ -1124,7 +1132,7 @@ describe('Auth API Routes', () => {
 
       await makeRequest(app, 'POST', '/api/auth/reset-password', {
         token: 'valid-token',
-        password: 'NewPassword123'
+        password: 'NewPassword123',
       });
 
       // Verify batch was called
@@ -1159,7 +1167,7 @@ describe('Auth API Routes', () => {
             organization_id: 'org-456',
             org_name: 'Test School',
             org_slug: 'test-school',
-            org_active: 1
+            org_active: 1,
           };
         }
         return null;
@@ -1171,7 +1179,7 @@ describe('Auth API Routes', () => {
 
       const response = await makeRequest(app, 'POST', '/api/auth/login', {
         email: 'user@example.com',
-        password: 'correctpassword'
+        password: 'correctpassword',
       });
 
       expect(response.status).toBe(200);
@@ -1180,7 +1188,7 @@ describe('Auth API Routes', () => {
       expect(hashPassword).toHaveBeenCalled();
 
       // Verify UPDATE users SET password_hash was called for rehash
-      const rehashCalls = mockDB._calls.filter(sql =>
+      const rehashCalls = mockDB._calls.filter((sql) =>
         sql.includes('UPDATE users SET password_hash')
       );
       expect(rehashCalls.length).toBeGreaterThan(0);
@@ -1200,7 +1208,7 @@ describe('Auth API Routes', () => {
 
       const response = await makeRequest(app, 'POST', '/api/auth/login', {
         email: 'user@example.com',
-        password: 'Password123'
+        password: 'Password123',
       });
       const data = await response.json();
 
@@ -1219,7 +1227,7 @@ describe('Auth API Routes', () => {
         organizationName: 'Test',
         email: 'test@example.com',
         password: 'Password123',
-        name: 'Test User'
+        name: 'Test User',
       });
       const data = await response.json();
 
@@ -1235,7 +1243,7 @@ describe('Auth API Routes', () => {
       const app = createTestApp(mockDB);
 
       const response = await makeRequest(app, 'POST', '/api/auth/refresh', null, {
-        cookie: 'refresh_token=some-token'
+        cookie: 'refresh_token=some-token',
       });
       const data = await response.json();
 
@@ -1251,7 +1259,7 @@ describe('Auth API Routes', () => {
       const app = createTestApp(mockDB);
 
       const response = await makeRequest(app, 'POST', '/api/auth/forgot-password', {
-        email: 'user@example.com'
+        email: 'user@example.com',
       });
       const data = await response.json();
 
@@ -1268,7 +1276,7 @@ describe('Auth API Routes', () => {
 
       const response = await makeRequest(app, 'POST', '/api/auth/reset-password', {
         token: 'some-token',
-        password: 'NewPassword123'
+        password: 'NewPassword123',
       });
       const data = await response.json();
 

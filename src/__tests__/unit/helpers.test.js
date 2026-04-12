@@ -5,7 +5,7 @@ import {
   getReadingStatus,
   sortStudentsByPriority,
   getPrioritizedStudents,
-  formatAssessmentDisplay
+  formatAssessmentDisplay,
 } from '../../utils/helpers.js';
 
 describe('generateId', () => {
@@ -60,8 +60,8 @@ describe('getReadingStatus', () => {
   const defaultSettings = {
     readingStatusSettings: {
       recentlyReadDays: 3,
-      needsAttentionDays: 7
-    }
+      needsAttentionDays: 7,
+    },
   };
 
   beforeEach(() => {
@@ -118,7 +118,7 @@ describe('sortStudentsByPriority', () => {
     const students = [
       { name: 'A', lastReadDate: '2024-01-15' },
       { name: 'B', lastReadDate: null },
-      { name: 'C', lastReadDate: '2024-01-10' }
+      { name: 'C', lastReadDate: '2024-01-10' },
     ];
 
     const sorted = sortStudentsByPriority(students);
@@ -130,7 +130,7 @@ describe('sortStudentsByPriority', () => {
     const students = [
       { name: 'A', lastReadDate: '2024-01-15' },
       { name: 'B', lastReadDate: '2024-01-10' },
-      { name: 'C', lastReadDate: '2024-01-20' }
+      { name: 'C', lastReadDate: '2024-01-20' },
     ];
 
     const sorted = sortStudentsByPriority(students);
@@ -143,7 +143,7 @@ describe('sortStudentsByPriority', () => {
   it('should not mutate original array', () => {
     const students = [
       { name: 'A', lastReadDate: '2024-01-15' },
-      { name: 'B', lastReadDate: '2024-01-10' }
+      { name: 'B', lastReadDate: '2024-01-10' },
     ];
     const originalFirst = students[0];
 
@@ -160,7 +160,7 @@ describe('sortStudentsByPriority', () => {
   it('should handle all null dates', () => {
     const students = [
       { name: 'A', lastReadDate: null },
-      { name: 'B', lastReadDate: null }
+      { name: 'B', lastReadDate: null },
     ];
 
     const sorted = sortStudentsByPriority(students);
@@ -173,7 +173,7 @@ describe('getPrioritizedStudents', () => {
     const students = [
       { name: 'A', lastReadDate: '2024-01-15', totalSessionCount: 0 },
       { name: 'B', lastReadDate: '2024-01-10', totalSessionCount: 0 },
-      { name: 'C', lastReadDate: '2024-01-20', totalSessionCount: 0 }
+      { name: 'C', lastReadDate: '2024-01-20', totalSessionCount: 0 },
     ];
 
     const prioritized = getPrioritizedStudents(students, 2);
@@ -194,7 +194,7 @@ describe('getPrioritizedStudents', () => {
   it('should prioritize students without read date', () => {
     const students = [
       { name: 'A', lastReadDate: '2024-01-15', totalSessionCount: 0 },
-      { name: 'B', lastReadDate: null, totalSessionCount: 0 }
+      { name: 'B', lastReadDate: null, totalSessionCount: 0 },
     ];
 
     const prioritized = getPrioritizedStudents(students, 2);
@@ -205,7 +205,7 @@ describe('getPrioritizedStudents', () => {
   it('should use session count as tiebreaker', () => {
     const students = [
       { name: 'A', lastReadDate: null, totalSessionCount: 3 },
-      { name: 'B', lastReadDate: null, totalSessionCount: 1 }
+      { name: 'B', lastReadDate: null, totalSessionCount: 1 },
     ];
 
     const prioritized = getPrioritizedStudents(students, 2);

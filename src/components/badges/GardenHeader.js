@@ -47,9 +47,30 @@ function getCurrentGrowth(badgeCount) {
 const GARDEN_ELEMENTS = [
   { src: gardenFlower, alt: 'Wildflower', minBadges: 3, left: '58%', bottom: '10%', height: '48%' },
   { src: gardenBush, alt: 'Bush', minBadges: 5, left: '70%', bottom: '14%', height: '38%' },
-  { src: gardenFlowers, alt: 'Flower patch', minBadges: 7, left: '28%', bottom: '8%', height: '52%' },
-  { src: gardenSmallTree, alt: 'Apple tree', minBadges: 9, left: '78%', bottom: '10%', height: '60%' },
-  { src: gardenButterfly, alt: 'Butterfly', minBadges: 11, left: '50%', bottom: '55%', height: '32%' },
+  {
+    src: gardenFlowers,
+    alt: 'Flower patch',
+    minBadges: 7,
+    left: '28%',
+    bottom: '8%',
+    height: '52%',
+  },
+  {
+    src: gardenSmallTree,
+    alt: 'Apple tree',
+    minBadges: 9,
+    left: '78%',
+    bottom: '10%',
+    height: '60%',
+  },
+  {
+    src: gardenButterfly,
+    alt: 'Butterfly',
+    minBadges: 11,
+    left: '50%',
+    bottom: '55%',
+    height: '32%',
+  },
   { src: gardenLargeTree, alt: 'Oak tree', minBadges: 13, left: '2%', bottom: '8%', height: '80%' },
   { src: gardenBird, alt: 'Robin', minBadges: 16, left: '18%', bottom: '50%', height: '28%' },
 ];
@@ -81,15 +102,20 @@ function getSkyGradient(badgeCount) {
 // for granular garden filling across the 8 element thresholds
 const GOALS_BADGE_MAP = [0, 1, 3, 5, 9, 13, 16];
 
-export default function GardenHeader({ badgeCount = 0, studentName = '', stage: stageProp, label, goalsCompleted }) {
+export default function GardenHeader({
+  badgeCount = 0,
+  studentName = '',
+  stage: stageProp,
+  label,
+  goalsCompleted,
+}) {
   const stage = stageProp
     ? STAGES.find((s) => s.name.toLowerCase().replace(/ /g, '_') === stageProp) || STAGES[0]
     : getStage(badgeCount);
 
   // When goalsCompleted is provided (class goals), map it to an effective badge count
-  const effectiveBadgeCount = goalsCompleted != null
-    ? (GOALS_BADGE_MAP[Math.min(goalsCompleted, 6)] ?? 0)
-    : badgeCount;
+  const effectiveBadgeCount =
+    goalsCompleted != null ? (GOALS_BADGE_MAP[Math.min(goalsCompleted, 6)] ?? 0) : badgeCount;
 
   const subtitle = label || (studentName ? `${studentName}'s Reading Garden` : 'Reading Garden');
   const growth = getCurrentGrowth(effectiveBadgeCount);
@@ -156,7 +182,10 @@ export default function GardenHeader({ badgeCount = 0, studentName = '', stage: 
             width: 'auto',
             objectFit: 'contain',
             opacity: effectiveBadgeCount >= el.minBadges ? 1 : 0,
-            transform: effectiveBadgeCount >= el.minBadges ? 'scale(1) translateY(0)' : 'scale(0.6) translateY(10px)',
+            transform:
+              effectiveBadgeCount >= el.minBadges
+                ? 'scale(1) translateY(0)'
+                : 'scale(0.6) translateY(10px)',
             transition: 'opacity 0.6s ease, transform 0.6s ease',
             pointerEvents: 'none',
             filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.08))',
@@ -177,11 +206,16 @@ export default function GardenHeader({ badgeCount = 0, studentName = '', stage: 
           pt: 2,
         }}
       >
-        <Typography variant="subtitle2" sx={{ color: '#5D6B4A', fontWeight: 600, fontSize: '0.75rem' }}>
+        <Typography
+          variant="subtitle2"
+          sx={{ color: '#5D6B4A', fontWeight: 600, fontSize: '0.75rem' }}
+        >
           {subtitle}
         </Typography>
         <Typography variant="caption" sx={{ color: '#7A8B66', fontSize: '0.65rem' }}>
-          {stageProp ? stage.name + ' stage' : `${badgeCount} badge${badgeCount !== 1 ? 's' : ''} earned · ${stage.name} stage`}
+          {stageProp
+            ? stage.name + ' stage'
+            : `${badgeCount} badge${badgeCount !== 1 ? 's' : ''} earned · ${stage.name} stage`}
         </Typography>
       </Box>
     </Box>

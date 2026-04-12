@@ -16,8 +16,7 @@ const createMockDB = () => {
 };
 
 // Helper: create book ID rows (phase 1 result)
-const makeIdRows = (count) =>
-  Array.from({ length: count }, (_, i) => ({ id: `book-${i + 1}` }));
+const makeIdRows = (count) => Array.from({ length: count }, (_, i) => ({ id: `book-${i + 1}` }));
 
 // Helper: create full book rows (phase 3 result)
 const makeBookRows = (ids) =>
@@ -158,16 +157,10 @@ describe('getFilteredBooksForRecommendations', () => {
 
     // Run twice — Fisher-Yates should select different ID subsets
     const run1 = createMockForRun();
-    await getFilteredBooksForRecommendations(
-      { READING_MANAGER_DB: run1.db },
-      { limit: 50 }
-    );
+    await getFilteredBooksForRecommendations({ READING_MANAGER_DB: run1.db }, { limit: 50 });
 
     const run2 = createMockForRun();
-    await getFilteredBooksForRecommendations(
-      { READING_MANAGER_DB: run2.db },
-      { limit: 50 }
-    );
+    await getFilteredBooksForRecommendations({ READING_MANAGER_DB: run2.db }, { limit: 50 });
 
     // The IDs passed to phase 3 bind() should differ between runs
     expect(run1.bindArgs[0]).not.toEqual(run2.bindArgs[0]);
@@ -222,7 +215,10 @@ describe('getFilteredBooksForRecommendations', () => {
           }
           if (callCount === 2) {
             // Phase 3: main query full rows (only 5)
-            return Promise.resolve({ results: makeBookRows(idRows.map((r) => r.id)), success: true });
+            return Promise.resolve({
+              results: makeBookRows(idRows.map((r) => r.id)),
+              success: true,
+            });
           }
           if (callCount === 3) {
             // Fallback phase 1: IDs
