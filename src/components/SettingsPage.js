@@ -11,6 +11,7 @@ import SchoolIcon from '@mui/icons-material/School';
 import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 import PaymentIcon from '@mui/icons-material/Payment';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import TuneIcon from '@mui/icons-material/Tune';
 import Settings from './Settings';
 import DataManagement from './DataManagement';
 import AISettings from './AISettings';
@@ -20,6 +21,7 @@ import UserManagement from './UserManagement';
 import SchoolManagement from './SchoolManagement';
 import SupportTicketManager from './SupportTicketManager';
 import BillingDashboard from './BillingDashboard';
+import PlatformSettings from './PlatformSettings';
 import SupportModal from './SupportModal';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -55,6 +57,11 @@ const SettingsPage = () => {
       });
     }
     if (isOwner) {
+      allTabs.push({
+        label: 'Platform',
+        icon: <TuneIcon />,
+        component: PlatformSettings,
+      });
       allTabs.push({
         label: 'School Management',
         icon: <SchoolIcon />,
