@@ -683,29 +683,49 @@ booksRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
         );
       }
 
-      // Use environment API key
-      const envProvider = c.env.ANTHROPIC_API_KEY
-        ? 'anthropic'
-        : c.env.OPENAI_API_KEY
-          ? 'openai'
-          : c.env.GOOGLE_API_KEY
-            ? 'google'
-            : null;
-      const envKeyMap = {
-        anthropic: 'ANTHROPIC_API_KEY',
-        openai: 'OPENAI_API_KEY',
-        google: 'GOOGLE_API_KEY',
-      };
+      // Path 2a: Use owner's platform key
+      const platformKey = await db
+        .prepare('SELECT provider, api_key_encrypted FROM platform_ai_keys WHERE is_active = 1')
+        .first();
 
-      if (!envProvider) {
-        throw badRequestError('AI not configured. No API key available.');
+      if (platformKey?.api_key_encrypted) {
+        try {
+          const decryptedKey = await decryptSensitiveData(platformKey.api_key_encrypted, encSecret);
+          aiConfig = {
+            provider: platformKey.provider,
+            apiKey: decryptedKey,
+            model: null,
+          };
+        } catch (decryptError) {
+          console.error('Failed to decrypt platform API key:', decryptError.message);
+          throw badRequestError('Platform AI configuration error. Contact the administrator.');
+        }
+      } else {
+        // Path 2b: Tertiary fallback — env vars (transitional, remove after platform keys confirmed)
+        const envProvider = c.env.ANTHROPIC_API_KEY
+          ? 'anthropic'
+          : c.env.OPENAI_API_KEY
+            ? 'openai'
+            : c.env.GOOGLE_API_KEY
+              ? 'google'
+              : null;
+
+        if (!envProvider) {
+          throw badRequestError('AI not configured. Contact your administrator.');
+        }
+
+        const envKeyMap = {
+          anthropic: 'ANTHROPIC_API_KEY',
+          openai: 'OPENAI_API_KEY',
+          google: 'GOOGLE_API_KEY',
+        };
+
+        aiConfig = {
+          provider: envProvider,
+          apiKey: c.env[envKeyMap[envProvider]],
+          model: null,
+        };
       }
-
-      aiConfig = {
-        provider: envProvider,
-        apiKey: c.env[envKeyMap[envProvider]],
-        model: null,
-      };
     }
 
     // Generate AI suggestions

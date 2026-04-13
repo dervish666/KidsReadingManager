@@ -653,7 +653,9 @@ describe('Books API Routes', () => {
           // 4. AI config: no org key
           .mockResolvedValueOnce(null)
           // 5. Organization: addon active
-          .mockResolvedValueOnce({ ai_addon_active: 1 });
+          .mockResolvedValueOnce({ ai_addon_active: 1 })
+          // 6. Platform key: none
+          .mockResolvedValueOnce(null);
 
         // Mock remaining queries (sessions, books, genres for profile building)
         mockDB._chain.all.mockResolvedValue({ results: [], success: true });
@@ -666,6 +668,109 @@ describe('Books API Routes', () => {
         // Should proceed past config check (will fail later without AI service mock, but not 400/403)
         expect(response.status).not.toBe(400);
         expect(response.status).not.toBe(403);
+      });
+
+      it('should use platform key when org has ai_addon_active but no org key', async () => {
+        const { app, mockDB } = createTestApp({
+          ...createUserContext({ userRole: 'readonly' }),
+          env: {},
+        });
+
+        mockDB._chain.first
+          // 1. GDPR flags
+          .mockResolvedValueOnce({ processing_restricted: 0, ai_opt_out: 0 })
+          // 2. buildStudentReadingProfile student query
+          .mockResolvedValueOnce(createMockStudent())
+          // 3. Cache check configRow
+          .mockResolvedValueOnce({ provider: 'anthropic' })
+          // 4. AI config: no org key
+          .mockResolvedValueOnce(null)
+          // 5. Organization: addon active
+          .mockResolvedValueOnce({ ai_addon_active: 1 })
+          // 6. Platform key: found
+          .mockResolvedValueOnce({
+            provider: 'anthropic',
+            api_key_encrypted: 'encrypted-platform-key',
+          });
+
+        // Mock remaining queries (sessions, books, genres for profile building)
+        mockDB._chain.all.mockResolvedValue({ results: [], success: true });
+
+        const response = await makeRequest(
+          app,
+          'GET',
+          '/api/books/ai-suggestions?studentId=student-123'
+        );
+        // Should proceed past config check (will fail later without AI service mock, but not 400/403)
+        expect(response.status).not.toBe(400);
+        expect(response.status).not.toBe(403);
+      });
+
+      it('should fall back to env var when no platform key exists', async () => {
+        const { app, mockDB } = createTestApp({
+          ...createUserContext({ userRole: 'readonly' }),
+          env: { ANTHROPIC_API_KEY: 'env-test-key' },
+        });
+
+        mockDB._chain.first
+          // 1. GDPR flags
+          .mockResolvedValueOnce({ processing_restricted: 0, ai_opt_out: 0 })
+          // 2. buildStudentReadingProfile student query
+          .mockResolvedValueOnce(createMockStudent())
+          // 3. Cache check configRow
+          .mockResolvedValueOnce({ provider: 'anthropic' })
+          // 4. AI config: no org key
+          .mockResolvedValueOnce(null)
+          // 5. Organization: addon active
+          .mockResolvedValueOnce({ ai_addon_active: 1 })
+          // 6. Platform key: none
+          .mockResolvedValueOnce(null);
+
+        // Mock remaining queries
+        mockDB._chain.all.mockResolvedValue({ results: [], success: true });
+
+        const response = await makeRequest(
+          app,
+          'GET',
+          '/api/books/ai-suggestions?studentId=student-123'
+        );
+        // Should proceed past config check — env var fallback should work
+        expect(response.status).not.toBe(400);
+        expect(response.status).not.toBe(403);
+      });
+
+      it('should return error when no org key, no platform key, no env var', async () => {
+        const { app, mockDB } = createTestApp({
+          ...createUserContext({ userRole: 'readonly' }),
+          env: {},
+        });
+
+        mockDB._chain.first
+          // 1. GDPR flags
+          .mockResolvedValueOnce({ processing_restricted: 0, ai_opt_out: 0 })
+          // 2. buildStudentReadingProfile student query
+          .mockResolvedValueOnce(createMockStudent())
+          // 3. Cache check configRow
+          .mockResolvedValueOnce(null)
+          // 4. AI config: no org key
+          .mockResolvedValueOnce(null)
+          // 5. Organization: addon active
+          .mockResolvedValueOnce({ ai_addon_active: 1 })
+          // 6. Platform key: none
+          .mockResolvedValueOnce(null);
+
+        // Mock remaining queries
+        mockDB._chain.all.mockResolvedValue({ results: [], success: true });
+
+        const response = await makeRequest(
+          app,
+          'GET',
+          '/api/books/ai-suggestions?studentId=student-123'
+        );
+        const data = await response.json();
+
+        expect(response.status).toBe(400);
+        expect(data.message).toContain('AI not configured');
       });
     });
   });
