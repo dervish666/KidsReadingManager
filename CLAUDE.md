@@ -139,6 +139,7 @@ src/components/PrivacyPolicy.js - Privacy Policy standalone page
 src/components/BookRecommendations.js - AI recommendations with library search
 src/components/SupportModal.js - Support contact form modal (subject, message, email notification)
 src/components/SupportTicketManager.js - Owner-only support ticket list with detail panel, status management, internal notes
+src/components/PlatformSettings.js - Owner-only platform AI key management (per-provider keys, active provider selection)
 src/components/BookMetadataSettings.js - Simplified admin view: enrichment status + Fill Missing
 src/components/MetadataManagement.js - Owner metadata config, global enrichment, job history
 src/components/Settings.js - Reading status thresholds and streak settings

@@ -65,6 +65,21 @@ files:
     api_calls:
       - POST /api/support
 
+  PlatformSettings.js:
+    description: Owner-only platform AI key management — per-provider key entry, active provider selection
+    exports:
+      - name: PlatformSettings
+        kind: component
+        description: Manages platform-level AI API keys (Anthropic, OpenAI, Google) with encrypted storage, active provider toggle
+    state: [keys, activeProvider, keyInputs, saving, loading, feedback]
+    imports:
+      - from: contexts/AuthContext
+        items: [useAuth]
+    api_calls:
+      - GET /api/settings/platform-ai
+      - PUT /api/settings/platform-ai
+      - DELETE /api/settings/platform-ai/:provider
+
   BookMetadataSettings.js:
     description: Simplified admin view — enrichment status and Fill Missing button
     exports:

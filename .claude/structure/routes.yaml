@@ -269,6 +269,15 @@ files:
       - route: POST /api/settings/ai
         description: Update AI config with encrypted key
         requires: admin
+      - route: GET /api/settings/platform-ai
+        description: Get platform AI key status (never exposes keys)
+        requires: owner
+      - route: PUT /api/settings/platform-ai
+        description: Upsert platform AI key and/or set active provider
+        requires: owner
+      - route: DELETE /api/settings/platform-ai/:provider
+        description: Remove platform AI key for a provider
+        requires: owner
 
   signup.js:
     description: Email newsletter signup - rate limited
