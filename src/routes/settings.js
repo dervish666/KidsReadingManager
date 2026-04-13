@@ -9,7 +9,7 @@ import {
 // Import utilities
 import { validateSettings } from '../utils/validation';
 import { badRequestError } from '../middleware/errorHandler';
-import { auditLog, requireReadonly, requireAdmin } from '../middleware/tenant';
+import { auditLog, requireReadonly, requireAdmin, requireOwner } from '../middleware/tenant';
 import {
   permissions,
   encryptSensitiveData,
@@ -510,5 +510,153 @@ settingsRouter.post('/ai/models', requireAdmin(), async (c) => {
     return c.json({ error: 'Failed to reach provider API' }, 502);
   }
 });
+
+// ============================================================================
+// Platform AI Keys (owner-only)
+// ============================================================================
+
+const VALID_AI_PROVIDERS = ['anthropic', 'openai', 'google'];
+
+/**
+ * Build the standard response shape for platform AI key endpoints.
+ */
+function buildPlatformAiResponse(rows) {
+  const keys = {};
+  let activeProvider = null;
+
+  for (const provider of VALID_AI_PROVIDERS) {
+    const row = rows.find((r) => r.provider === provider);
+    keys[provider] = {
+      configured: Boolean(row?.api_key_encrypted),
+      isActive: Boolean(row?.is_active),
+      updatedAt: row?.updated_at || null,
+    };
+    if (row?.is_active) {
+      activeProvider = provider;
+    }
+  }
+
+  return { keys, activeProvider };
+}
+
+/**
+ * GET /api/settings/platform-ai
+ * List platform AI key status (never returns actual keys).
+ */
+settingsRouter.get('/platform-ai', requireOwner(), async (c) => {
+  const db = getDB(c.env);
+
+  const result = await db.prepare('SELECT * FROM platform_ai_keys').all();
+
+  return c.json(buildPlatformAiResponse(result.results || []));
+});
+
+/**
+ * PUT /api/settings/platform-ai
+ * Upsert a platform AI key and/or set the active provider.
+ */
+settingsRouter.put(
+  '/platform-ai',
+  requireOwner(),
+  auditLog('update', 'platform_ai_keys'),
+  async (c) => {
+    const db = getDB(c.env);
+    const userId = c.get('userId');
+    const body = await c.req.json();
+    const { provider, apiKey, setActive } = body;
+
+    // Validate provider
+    if (!provider || !VALID_AI_PROVIDERS.includes(provider)) {
+      throw badRequestError('Invalid AI provider. Must be one of: anthropic, openai, google');
+    }
+
+    // Validate apiKey length if provided
+    if (apiKey !== undefined) {
+      if (typeof apiKey !== 'string' || apiKey.length < 10 || apiKey.length > 500) {
+        throw badRequestError('API key must be a string between 10 and 500 characters');
+      }
+    }
+
+    if (setActive && apiKey) {
+      // Encrypt the key and atomically: clear others + upsert with is_active=1
+      const encSecret = getEncryptionSecret(c.env);
+      const encrypted = await encryptSensitiveData(apiKey, encSecret);
+
+      const clearStmt = db
+        .prepare('UPDATE platform_ai_keys SET is_active = 0 WHERE provider != ?')
+        .bind(provider);
+
+      const upsertStmt = db
+        .prepare(
+          `INSERT INTO platform_ai_keys (provider, api_key_encrypted, is_active, updated_at, updated_by)
+         VALUES (?, ?, 1, datetime("now"), ?)
+         ON CONFLICT(provider) DO UPDATE SET
+           api_key_encrypted = excluded.api_key_encrypted,
+           is_active = excluded.is_active,
+           updated_at = excluded.updated_at,
+           updated_by = excluded.updated_by`
+        )
+        .bind(provider, encrypted, userId);
+
+      await db.batch([clearStmt, upsertStmt]);
+    } else if (setActive && !apiKey) {
+      // Just activate an existing key — no new key supplied
+      const clearStmt = db
+        .prepare('UPDATE platform_ai_keys SET is_active = 0 WHERE provider != ?')
+        .bind(provider);
+
+      const activateStmt = db
+        .prepare(
+          `UPDATE platform_ai_keys SET is_active = 1, updated_at = datetime("now"), updated_by = ? WHERE provider = ?`
+        )
+        .bind(userId, provider);
+
+      await db.batch([clearStmt, activateStmt]);
+    } else if (apiKey) {
+      // Store/update key without changing active status
+      const encSecret = getEncryptionSecret(c.env);
+      const encrypted = await encryptSensitiveData(apiKey, encSecret);
+
+      await db
+        .prepare(
+          `INSERT INTO platform_ai_keys (provider, api_key_encrypted, is_active, updated_at, updated_by)
+         VALUES (?, ?, 0, datetime("now"), ?)
+         ON CONFLICT(provider) DO UPDATE SET
+           api_key_encrypted = excluded.api_key_encrypted,
+           is_active = excluded.is_active,
+           updated_at = excluded.updated_at,
+           updated_by = excluded.updated_by`
+        )
+        .bind(provider, encrypted, userId)
+        .run();
+    }
+
+    // Return current state
+    const result = await db.prepare('SELECT * FROM platform_ai_keys').all();
+    return c.json(buildPlatformAiResponse(result.results || []));
+  }
+);
+
+/**
+ * DELETE /api/settings/platform-ai/:provider
+ * Remove a platform AI key.
+ */
+settingsRouter.delete(
+  '/platform-ai/:provider',
+  requireOwner(),
+  auditLog('delete', 'platform_ai_keys'),
+  async (c) => {
+    const provider = c.req.param('provider');
+
+    if (!VALID_AI_PROVIDERS.includes(provider)) {
+      throw badRequestError('Invalid AI provider. Must be one of: anthropic, openai, google');
+    }
+
+    const db = getDB(c.env);
+    await db.prepare('DELETE FROM platform_ai_keys WHERE provider = ?').bind(provider).run();
+
+    return c.json({ success: true });
+  }
+);
 
 export { settingsRouter };
