@@ -409,6 +409,7 @@ const BookRecommendations = () => {
   // Determine AI status
   const hasActiveAI =
     aiConfig?.keySource === 'organization' ||
+    aiConfig?.keySource === 'platform' ||
     (aiConfig?.keySource === 'environment' && aiConfig?.aiAddonActive);
   const activeProvider = aiConfig?.provider;
 

@@ -292,7 +292,11 @@ const AISettings = () => {
           {keySource !== 'none' && (
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
               Active key source:{' '}
-              {keySource === 'organization' ? 'Organization settings' : 'Environment variable'}
+              {keySource === 'organization'
+                ? 'Organization settings'
+                : keySource === 'platform'
+                  ? 'Platform key (owner-managed)'
+                  : 'Environment variable'}
             </Typography>
           )}
         </Paper>
