@@ -29,6 +29,7 @@ const SchoolDrawer = ({
   onStartTrial,
   onOpenPortal,
   onDeactivate,
+  onToggleAi,
 }) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
@@ -80,6 +81,8 @@ const SchoolDrawer = ({
               onStartTrial={onStartTrial}
               onOpenPortal={onOpenPortal}
               onDeactivate={handleDeactivateClick}
+              onToggleAi={onToggleAi}
+              loading={loading}
             />
           )}
           {(mode === 'edit' || mode === 'add') && (

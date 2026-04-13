@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Chip, Button, Divider, Alert } from '@mui/material';
+import { Box, Typography, Chip, Button, Divider, Alert, Switch } from '@mui/material';
 import { Edit as EditIcon, Sync as SyncIcon } from '@mui/icons-material';
 
 const BILLING_CHIP_COLOR = {
@@ -48,7 +48,7 @@ const LabelValue = ({ label, value }) => (
   </>
 );
 
-const SchoolReadView = ({ school, onEdit, onSync, onStartTrial, onOpenPortal, onDeactivate }) => {
+const SchoolReadView = ({ school, onEdit, onSync, onStartTrial, onOpenPortal, onDeactivate, onToggleAi, loading }) => {
   if (!school) return null;
 
   const isWonde = Boolean(school.wondeSchoolId);
@@ -151,7 +151,17 @@ const SchoolReadView = ({ school, onEdit, onSync, onStartTrial, onOpenPortal, on
             }
           />
           <LabelValue label="Plan" value={school.subscriptionPlan} />
-          <LabelValue label="AI Add-on" value={school.aiAddonActive ? 'Enabled' : 'Not enabled'} />
+          <LabelValue
+            label="AI Add-on"
+            value={
+              <Switch
+                checked={school.aiAddonActive}
+                onChange={(e) => onToggleAi(e.target.checked)}
+                disabled={loading}
+                size="small"
+              />
+            }
+          />
           {school.aiAddonActive && (
             <LabelValue
               label="AI Key"
