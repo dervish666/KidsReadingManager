@@ -17,6 +17,9 @@ import {
   FormControl,
   FormLabel,
   Tooltip,
+  Select,
+  MenuItem,
+  InputLabel,
 } from '@mui/material';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import SaveIcon from '@mui/icons-material/Save';
@@ -43,6 +46,24 @@ const PlatformSettings = () => {
   const [deletingProvider, setDeletingProvider] = useState(null);
   const [settingActive, setSettingActive] = useState(false);
   const [feedback, setFeedback] = useState(null); // { type: 'success'|'error', message }
+  const [models, setModels] = useState([]);
+  const [loadingModels, setLoadingModels] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('');
+
+  const fetchModels = useCallback(async () => {
+    setLoadingModels(true);
+    try {
+      const response = await fetchWithAuth(`${API_URL}/settings/platform-ai/models`);
+      if (response.ok) {
+        const data = await response.json();
+        setModels(data.models || []);
+      }
+    } catch (error) {
+      console.error('Error fetching models:', error);
+    } finally {
+      setLoadingModels(false);
+    }
+  }, [fetchWithAuth]);
 
   const showFeedback = useCallback((type, message) => {
     setFeedback({ type, message });
@@ -70,6 +91,24 @@ const PlatformSettings = () => {
       loadConfig();
     }
   }, [fetchWithAuth]);
+
+  // Set selected model from current key state
+  useEffect(() => {
+    if (activeProvider && keys[activeProvider]) {
+      setSelectedModel(keys[activeProvider].modelPreference || '');
+    } else {
+      setSelectedModel('');
+    }
+  }, [activeProvider, keys]);
+
+  // Fetch models when active provider changes
+  useEffect(() => {
+    if (activeProvider) {
+      fetchModels();
+    } else {
+      setModels([]);
+    }
+  }, [activeProvider, fetchModels]);
 
   const handleSaveKey = async (provider) => {
     const key = apiKeys[provider];
@@ -156,6 +195,38 @@ const PlatformSettings = () => {
       showFeedback('error', `Failed to set active provider. ${error.message}`);
     } finally {
       setSettingActive(false);
+    }
+  };
+
+  const handleModelChange = async (newModel) => {
+    setSelectedModel(newModel);
+    try {
+      const response = await fetchWithAuth(`${API_URL}/settings/platform-ai`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider: activeProvider,
+          setActive: true,
+          modelPreference: newModel || null,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update model');
+      }
+
+      const data = await response.json();
+      setKeys(data.keys || {});
+      setActiveProvider(data.activeProvider || null);
+      showFeedback('success', `Default model updated.`);
+    } catch (error) {
+      console.error('Error updating model:', error);
+      showFeedback('error', `Failed to update model. ${error.message}`);
+      // Revert selection on failure
+      if (activeProvider && keys[activeProvider]) {
+        setSelectedModel(keys[activeProvider].modelPreference || '');
+      }
     }
   };
 
@@ -362,6 +433,57 @@ const PlatformSettings = () => {
             </>
           )}
         </FormControl>
+
+        {/* Default model selection */}
+        {activeProvider && keys[activeProvider]?.configured && (
+          <>
+            <Divider sx={{ my: 3 }} />
+
+            <Box>
+              <Typography
+                variant="subtitle1"
+                sx={{
+                  fontWeight: 700,
+                  fontFamily: '"Nunito", sans-serif',
+                  mb: 1,
+                }}
+              >
+                Default Model
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                The default model used for AI recommendations. Leave as "Default" to use the
+                provider's standard model.
+              </Typography>
+
+              {loadingModels ? (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <CircularProgress size={20} />
+                  <Typography variant="body2" color="text.secondary">
+                    Loading available models...
+                  </Typography>
+                </Box>
+              ) : (
+                <FormControl fullWidth size="small">
+                  <InputLabel>Model</InputLabel>
+                  <Select
+                    value={selectedModel}
+                    label="Model"
+                    onChange={(e) => handleModelChange(e.target.value)}
+                  >
+                    <MenuItem value="">
+                      <em>Default (provider decides)</em>
+                    </MenuItem>
+                    {models.map((model) => (
+                      <MenuItem key={model.id} value={model.id}>
+                        {model.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              )}
+            </Box>
+          </>
+        )}
       </Paper>
     </Box>
   );
