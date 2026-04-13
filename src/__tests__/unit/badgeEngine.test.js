@@ -25,16 +25,18 @@ describe('recalculateStats', () => {
     const bookResults = { results: books };
     const genreResults = { results: genres };
     let callIndex = 0;
+    const nextResult = () => {
+      callIndex++;
+      if (callIndex === 1) return results; // sessions query
+      if (callIndex === 2) return bookResults; // books query
+      if (callIndex === 3) return genreResults; // genres query
+      return { results: [] };
+    };
     return {
       prepare: vi.fn(() => ({
+        all: vi.fn(() => nextResult()),
         bind: vi.fn(() => ({
-          all: vi.fn(() => {
-            callIndex++;
-            if (callIndex === 1) return results; // sessions query
-            if (callIndex === 2) return bookResults; // books query
-            if (callIndex === 3) return genreResults; // genres query
-            return { results: [] };
-          }),
+          all: vi.fn(() => nextResult()),
           run: vi.fn(),
         })),
       })),

@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.45.1] - 2026-04-13
+
+### Fixed
+- **Nightly badge evaluation failing** — badge engine queried `organization_id` on the `genres` table which doesn't have that column, causing every student's batch badge evaluation to silently fail at 2:30 AM UTC.
+
 ## [3.45.0] - 2026-04-12
 
 ### Added

@@ -67,11 +67,8 @@ export async function recalculateStats(db, studentId, organizationId) {
   const books = booksResult.results || [];
   const bookMap = new Map(books.map((b) => [b.id, b]));
 
-  // Fetch genre names for classification (scoped to org for multi-tenant isolation)
-  const genresResult = await db
-    .prepare(`SELECT id, name FROM genres WHERE organization_id = ? OR is_predefined = 1`)
-    .bind(organizationId)
-    .all();
+  // Fetch genre names for classification (genres are global, not org-scoped)
+  const genresResult = await db.prepare('SELECT id, name FROM genres').all();
   const genreNameMap = new Map((genresResult.results || []).map((g) => [g.id, g.name]));
 
   // Calculate aggregate stats
