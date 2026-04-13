@@ -162,7 +162,8 @@ organizationRouter.get('/all', requireAdmin(), async (c) => {
         (SELECT COUNT(*) FROM classes c WHERE c.organization_id = o.id AND c.is_active = 1) as class_count,
         (SELECT wsl.error_message FROM wonde_sync_log wsl
          WHERE wsl.organization_id = o.id
-         ORDER BY wsl.started_at DESC LIMIT 1) as last_sync_error
+         ORDER BY wsl.started_at DESC LIMIT 1) as last_sync_error,
+        (SELECT COUNT(*) FROM org_ai_config WHERE organization_id = o.id AND api_key_encrypted IS NOT NULL) as has_ai_key
       FROM organizations o
       WHERE ${whereClause}
       ORDER BY ${orderByCol} ${sortOrder}

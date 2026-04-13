@@ -150,6 +150,8 @@ export const rowToOrganization = (row) => {
     classCount: row.class_count ?? null,
     // Sync error (only present when joined via subquery)
     lastSyncError: row.last_sync_error || null,
+    // AI key (only present when joined via subquery)
+    hasAiKey: Boolean(row.has_ai_key),
   };
 };
 
