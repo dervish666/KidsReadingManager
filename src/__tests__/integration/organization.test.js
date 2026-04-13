@@ -570,6 +570,60 @@ describe('Organization Routes', () => {
       expect(response.status).toBe(400);
       expect(data.error).toBe('No valid fields to update');
     });
+
+    it('should update ai_addon_active when aiAddonActive is provided', async () => {
+      const mockOrg = createMockOrganization({ ai_addon_active: 1 });
+      let callCount = 0;
+      const mockDb = createMockDB();
+
+      mockDb.prepare = vi.fn().mockReturnValue({
+        bind: vi.fn().mockReturnThis(),
+        first: vi.fn().mockImplementation(() => {
+          callCount++;
+          if (callCount === 1) return Promise.resolve({ id: 'org-123' }); // exists check
+          return Promise.resolve(mockOrg);
+        }),
+        run: vi.fn().mockResolvedValue({ success: true }),
+      });
+
+      const app = createTestApp(mockDb, createUserContext({ userRole: 'owner' }));
+
+      const response = await app.request('/api/organization/org-123', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ aiAddonActive: true }),
+      });
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.message).toBe('Organization updated successfully');
+    });
+
+    it('should accept aiAddonActive=false as the only field', async () => {
+      const mockOrg = createMockOrganization({ ai_addon_active: 0 });
+      let callCount = 0;
+      const mockDb = createMockDB();
+
+      mockDb.prepare = vi.fn().mockReturnValue({
+        bind: vi.fn().mockReturnThis(),
+        first: vi.fn().mockImplementation(() => {
+          callCount++;
+          if (callCount === 1) return Promise.resolve({ id: 'org-123' });
+          return Promise.resolve(mockOrg);
+        }),
+        run: vi.fn().mockResolvedValue({ success: true }),
+      });
+
+      const app = createTestApp(mockDb, createUserContext({ userRole: 'owner' }));
+
+      const response = await app.request('/api/organization/org-123', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ aiAddonActive: false }),
+      });
+
+      expect(response.status).toBe(200);
+    });
   });
 
   describe('PUT /api/organization (current org)', () => {

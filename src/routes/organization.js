@@ -724,7 +724,7 @@ organizationRouter.put('/:id', requireOwner(), auditLog('update', 'organization'
     const orgId = c.req.param('id');
     const body = await c.req.json();
 
-    const { name, contactEmail, billingEmail, phone, addressLine1, addressLine2, town, postcode } =
+    const { name, contactEmail, billingEmail, phone, addressLine1, addressLine2, town, postcode, aiAddonActive } =
       body;
 
     // Check if organization exists (and is active)
@@ -760,6 +760,11 @@ organizationRouter.put('/:id', requireOwner(), auditLog('update', 'organization'
         updates.push(`${col} = ?`);
         params.push(typeof val === 'string' ? val.trim() : val);
       }
+    }
+
+    if (aiAddonActive !== undefined) {
+      updates.push('ai_addon_active = ?');
+      params.push(aiAddonActive ? 1 : 0);
     }
 
     if (updates.length === 0) {
