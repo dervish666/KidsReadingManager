@@ -195,6 +195,13 @@ settingsRouter.get('/ai', async (c) => {
       .first();
     const aiAddonActive = Boolean(org?.ai_addon_active);
 
+    // Check platform-level keys (owner-managed fallback)
+    const platformKeyRow = await db
+      .prepare('SELECT provider, is_active FROM platform_ai_keys WHERE is_active = 1')
+      .first();
+    const hasPlatformKey = Boolean(platformKeyRow);
+    const platformProvider = platformKeyRow?.provider || null;
+
     const activeProvider = config?.provider || 'anthropic';
     const hasOrgKey = Boolean(config?.api_key_encrypted);
 
@@ -203,14 +210,29 @@ settingsRouter.get('/ai', async (c) => {
       modelPreference: config?.model_preference || null,
       isEnabled: Boolean(config?.is_enabled),
       hasApiKey: hasOrgKey,
-      // Show which providers have keys configured (org-level or env-level)
+      // Show which providers have keys configured (org-level, platform-level, or env-level)
       availableProviders: {
-        anthropic: hasOrgKey && activeProvider === 'anthropic' ? true : envKeys.anthropic,
-        openai: hasOrgKey && activeProvider === 'openai' ? true : envKeys.openai,
-        google: hasOrgKey && activeProvider === 'google' ? true : envKeys.google,
+        anthropic:
+          (hasOrgKey && activeProvider === 'anthropic') ||
+          (hasPlatformKey && platformProvider === 'anthropic') ||
+          envKeys.anthropic,
+        openai:
+          (hasOrgKey && activeProvider === 'openai') ||
+          (hasPlatformKey && platformProvider === 'openai') ||
+          envKeys.openai,
+        google:
+          (hasOrgKey && activeProvider === 'google') ||
+          (hasPlatformKey && platformProvider === 'google') ||
+          envKeys.google,
       },
       // Indicate the source of the active key
-      keySource: hasOrgKey ? 'organization' : envKeys[activeProvider] ? 'environment' : 'none',
+      keySource: hasOrgKey
+        ? 'organization'
+        : hasPlatformKey
+          ? 'platform'
+          : envKeys[activeProvider]
+            ? 'environment'
+            : 'none',
       aiAddonActive,
     });
   }
@@ -376,6 +398,13 @@ export async function upsertAiConfig(c) {
     google: Boolean(c.env.GOOGLE_API_KEY),
   };
 
+  // Check platform-level keys (owner-managed fallback)
+  const platformKeyRow = await db
+    .prepare('SELECT provider, is_active FROM platform_ai_keys WHERE is_active = 1')
+    .first();
+  const hasPlatformKey = Boolean(platformKeyRow);
+  const platformProvider = platformKeyRow?.provider || null;
+
   const activeProvider = config?.provider || 'anthropic';
   const hasOrgKey = Boolean(config?.api_key_encrypted);
 
@@ -385,11 +414,26 @@ export async function upsertAiConfig(c) {
     isEnabled: Boolean(config?.is_enabled),
     hasApiKey: hasOrgKey,
     availableProviders: {
-      anthropic: hasOrgKey && activeProvider === 'anthropic' ? true : envKeys.anthropic,
-      openai: hasOrgKey && activeProvider === 'openai' ? true : envKeys.openai,
-      google: hasOrgKey && activeProvider === 'google' ? true : envKeys.google,
+      anthropic:
+        (hasOrgKey && activeProvider === 'anthropic') ||
+        (hasPlatformKey && platformProvider === 'anthropic') ||
+        envKeys.anthropic,
+      openai:
+        (hasOrgKey && activeProvider === 'openai') ||
+        (hasPlatformKey && platformProvider === 'openai') ||
+        envKeys.openai,
+      google:
+        (hasOrgKey && activeProvider === 'google') ||
+        (hasPlatformKey && platformProvider === 'google') ||
+        envKeys.google,
     },
-    keySource: hasOrgKey ? 'organization' : envKeys[activeProvider] ? 'environment' : 'none',
+    keySource: hasOrgKey
+      ? 'organization'
+      : hasPlatformKey
+        ? 'platform'
+        : envKeys[activeProvider]
+          ? 'environment'
+          : 'none',
   });
 }
 

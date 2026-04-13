@@ -595,11 +595,16 @@ describe('Settings API Routes', () => {
           anthropicKey: 'sk-test-key',
         });
 
-        mockDB._chain.first.mockResolvedValue({
+        // First call: org_ai_config query
+        mockDB._chain.first.mockResolvedValueOnce({
           provider: 'anthropic',
           is_enabled: 1,
           api_key_encrypted: null,
         });
+        // Second call: organization ai_addon_active query
+        mockDB._chain.first.mockResolvedValueOnce({ ai_addon_active: 0 });
+        // Third call: platform_ai_keys query (no platform key)
+        mockDB._chain.first.mockResolvedValueOnce(null);
 
         const response = await makeRequest(app, 'GET', '/api/settings/ai');
         const data = await response.json();
@@ -647,6 +652,8 @@ describe('Settings API Routes', () => {
         });
         // Second call: organization ai_addon_active query
         mockDB._chain.first.mockResolvedValueOnce({ ai_addon_active: 1 });
+        // Third call: platform_ai_keys query (no platform key)
+        mockDB._chain.first.mockResolvedValueOnce(null);
 
         const response = await makeRequest(app, 'GET', '/api/settings/ai');
         const data = await response.json();
@@ -671,12 +678,69 @@ describe('Settings API Routes', () => {
         });
         // Organization has ai_addon_active = 0
         mockDB._chain.first.mockResolvedValueOnce({ ai_addon_active: 0 });
+        // Third call: platform_ai_keys query (no platform key)
+        mockDB._chain.first.mockResolvedValueOnce(null);
 
         const response = await makeRequest(app, 'GET', '/api/settings/ai');
         const data = await response.json();
 
         expect(response.status).toBe(200);
         expect(data.aiAddonActive).toBe(false);
+      });
+
+      it("should return keySource 'platform' when no org key but platform key active", async () => {
+        const { app, mockDB } = createTestApp({
+          organizationId: 'org-123',
+          userRole: ROLES.TEACHER,
+          userId: 'user-123',
+        });
+
+        // First call: org_ai_config query (no org key)
+        mockDB._chain.first.mockResolvedValueOnce({
+          provider: 'anthropic',
+          model_preference: null,
+          is_enabled: 1,
+          api_key_encrypted: null,
+        });
+        // Second call: organization ai_addon_active query
+        mockDB._chain.first.mockResolvedValueOnce({ ai_addon_active: 1 });
+        // Third call: platform_ai_keys query (active platform key)
+        mockDB._chain.first.mockResolvedValueOnce({ provider: 'anthropic', is_active: 1 });
+
+        const response = await makeRequest(app, 'GET', '/api/settings/ai');
+        const data = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(data.keySource).toBe('platform');
+      });
+
+      it('should show platform provider in availableProviders', async () => {
+        const { app, mockDB } = createTestApp({
+          organizationId: 'org-123',
+          userRole: ROLES.TEACHER,
+          userId: 'user-123',
+        });
+
+        // First call: org_ai_config query (no org key)
+        mockDB._chain.first.mockResolvedValueOnce({
+          provider: 'anthropic',
+          model_preference: null,
+          is_enabled: 1,
+          api_key_encrypted: null,
+        });
+        // Second call: organization ai_addon_active query
+        mockDB._chain.first.mockResolvedValueOnce({ ai_addon_active: 1 });
+        // Third call: platform_ai_keys query (active platform key for anthropic)
+        mockDB._chain.first.mockResolvedValueOnce({ provider: 'anthropic', is_active: 1 });
+
+        const response = await makeRequest(app, 'GET', '/api/settings/ai');
+        const data = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(data.availableProviders.anthropic).toBe(true);
+        // Other providers without platform keys or env keys should be false
+        expect(data.availableProviders.openai).toBe(false);
+        expect(data.availableProviders.google).toBe(false);
       });
     });
 
