@@ -76,6 +76,7 @@ const COLUMNS = [
   { id: 'source', label: 'Source', sortable: false },
   { id: 'wondeStatus', label: 'Wonde Status', sortable: false },
   { id: 'subscriptionStatus', label: 'Billing' },
+  { id: 'ai', label: 'AI', sortable: false },
   { id: 'wondeLastSyncAt', label: 'Last Sync' },
   { id: 'town', label: 'Town' },
 ];
@@ -444,6 +445,22 @@ const SchoolTable = ({
                           color={billingColor}
                           sx={{ fontWeight: 600, fontSize: '0.75rem' }}
                         />
+                      </TableCell>
+
+                      {/* AI */}
+                      <TableCell>
+                        {school.aiAddonActive ? (
+                          <Chip
+                            label={school.hasAiKey ? 'Own' : 'Platform'}
+                            size="small"
+                            color={school.hasAiKey ? 'info' : 'default'}
+                            sx={{ fontWeight: 600, fontSize: '0.7rem' }}
+                          />
+                        ) : (
+                          <Typography variant="body2" color="text.disabled">
+                            {'\u2014'}
+                          </Typography>
+                        )}
                       </TableCell>
 
                       {/* Last Sync */}
