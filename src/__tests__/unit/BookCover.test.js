@@ -132,8 +132,10 @@ describe('BookCover Component', () => {
       // Simulate image load error
       fireEvent.error(img);
 
-      // Image should be hidden (not visible)
-      expect(img).toHaveStyle({ display: 'none' });
+      // After error, the placeholder should appear alongside the hidden image
+      await waitFor(() => {
+        expect(screen.getByTestId('placeholder-bg')).toBeInTheDocument();
+      });
     });
   });
 

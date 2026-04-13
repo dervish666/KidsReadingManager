@@ -527,12 +527,14 @@ const createSequenceMockDB = (queryResults) => {
       });
       const allResult = entry?.all || { results: [], success: true };
       const firstResult = entry?.first !== undefined ? entry.first : null;
+      const boundMethods = {
+        all: vi.fn().mockResolvedValue(allResult),
+        first: vi.fn().mockResolvedValue(firstResult),
+        run: vi.fn().mockResolvedValue({ success: true }),
+      };
       return {
-        bind: vi.fn().mockReturnValue({
-          all: vi.fn().mockResolvedValue(allResult),
-          first: vi.fn().mockResolvedValue(firstResult),
-          run: vi.fn().mockResolvedValue({ success: true }),
-        }),
+        ...boundMethods,
+        bind: vi.fn().mockReturnValue(boundMethods),
       };
     }),
     batch: vi.fn().mockResolvedValue([{ success: true }]),
