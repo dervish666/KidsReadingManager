@@ -48,7 +48,7 @@ const LabelValue = ({ label, value }) => (
   </>
 );
 
-const SchoolReadView = ({ school, onEdit, onSync, onStartTrial, onOpenPortal, onDeactivate, onToggleAi, loading }) => {
+const SchoolReadView = ({ school, onEdit, onSync, onStartTrial, onOpenPortal, onDeactivate, onToggleAi, onClearAiKey, loading }) => {
   if (!school) return null;
 
   const isWonde = Boolean(school.wondeSchoolId);
@@ -168,16 +168,18 @@ const SchoolReadView = ({ school, onEdit, onSync, onStartTrial, onOpenPortal, on
               value={
                 school.hasAiKey ? (
                   <Chip
-                    label="Own key"
+                    label="Own key → Use platform"
                     size="small"
                     color="info"
-                    sx={{ fontWeight: 600, fontSize: '0.7rem' }}
+                    onClick={() => onClearAiKey()}
+                    disabled={loading}
+                    sx={{ fontWeight: 600, fontSize: '0.7rem', cursor: 'pointer' }}
                   />
                 ) : (
                   <Chip
-                    label="Owner-managed"
+                    label="Platform"
                     size="small"
-                    color="default"
+                    color="success"
                     sx={{ fontWeight: 600, fontSize: '0.7rem' }}
                   />
                 )

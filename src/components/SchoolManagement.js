@@ -326,6 +326,29 @@ const SchoolManagement = () => {
     }
   }, [selectedSchool, fetchWithAuth, fetchSchools]);
 
+  const handleClearAiKey = useCallback(async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetchWithAuth(`/api/organization/${selectedSchool.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ clearAiKey: true }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to clear AI key');
+      }
+      const newSchools = await fetchSchools();
+      const updatedSchool = newSchools.find((s) => s.id === selectedSchool.id);
+      if (updatedSchool) setSelectedSchool(updatedSchool);
+      setSuccess(`${selectedSchool.name} now uses platform AI key`);
+    } catch (err) {
+      setError(err.message || 'Failed to clear AI key');
+    } finally {
+      setSaving(false);
+    }
+  }, [selectedSchool, fetchWithAuth, fetchSchools]);
+
   const [syncingAll, setSyncingAll] = useState(false);
 
   const handleSyncAllWonde = useCallback(async () => {
@@ -422,6 +445,7 @@ const SchoolManagement = () => {
         onOpenPortal={handleOpenPortal}
         onDeactivate={handleDeactivate}
         onToggleAi={handleToggleAi}
+        onClearAiKey={handleClearAiKey}
       />
     </Box>
   );

@@ -724,7 +724,7 @@ organizationRouter.put('/:id', requireOwner(), auditLog('update', 'organization'
     const orgId = c.req.param('id');
     const body = await c.req.json();
 
-    const { name, contactEmail, billingEmail, phone, addressLine1, addressLine2, town, postcode, aiAddonActive } =
+    const { name, contactEmail, billingEmail, phone, addressLine1, addressLine2, town, postcode, aiAddonActive, clearAiKey } =
       body;
 
     // Check if organization exists (and is active)
@@ -767,21 +767,32 @@ organizationRouter.put('/:id', requireOwner(), auditLog('update', 'organization'
       params.push(aiAddonActive ? 1 : 0);
     }
 
-    if (updates.length === 0) {
+    // clearAiKey counts as a valid action even without other field updates
+    if (updates.length === 0 && !clearAiKey) {
       throw badRequestError('No valid fields to update');
     }
 
-    updates.push('updated_at = datetime("now")');
-    params.push(orgId);
+    if (updates.length > 0) {
+      updates.push('updated_at = datetime("now")');
+      params.push(orgId);
 
-    await db
-      .prepare(
-        `
-      UPDATE organizations SET ${updates.join(', ')} WHERE id = ?
-    `
-      )
-      .bind(...params)
-      .run();
+      await db
+        .prepare(
+          `
+        UPDATE organizations SET ${updates.join(', ')} WHERE id = ?
+      `
+        )
+        .bind(...params)
+        .run();
+    }
+
+    // Clear the org's own AI key so it falls back to platform key
+    if (clearAiKey) {
+      await db
+        .prepare('DELETE FROM org_ai_config WHERE organization_id = ?')
+        .bind(orgId)
+        .run();
+    }
 
     const updatedOrg = await db
       .prepare(
