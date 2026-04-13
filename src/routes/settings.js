@@ -574,6 +574,7 @@ function buildPlatformAiResponse(rows) {
       configured: Boolean(row?.api_key_encrypted),
       isActive: Boolean(row?.is_active),
       updatedAt: row?.updated_at || null,
+      modelPreference: row?.model_preference || null,
     };
     if (row?.is_active) {
       activeProvider = provider;
@@ -621,6 +622,9 @@ settingsRouter.put(
       }
     }
 
+    const modelPrefProvided = 'modelPreference' in body;
+    const modelPrefValue = modelPrefProvided ? (body.modelPreference || null) : undefined;
+
     if (setActive && apiKey) {
       // Encrypt the key and atomically: clear others + upsert with is_active=1
       const encSecret = getEncryptionSecret(c.env);
@@ -630,17 +634,26 @@ settingsRouter.put(
         .prepare('UPDATE platform_ai_keys SET is_active = 0 WHERE provider != ?')
         .bind(provider);
 
-      const upsertStmt = db
-        .prepare(
-          `INSERT INTO platform_ai_keys (provider, api_key_encrypted, is_active, updated_at, updated_by)
-         VALUES (?, ?, 1, datetime("now"), ?)
-         ON CONFLICT(provider) DO UPDATE SET
-           api_key_encrypted = excluded.api_key_encrypted,
-           is_active = excluded.is_active,
-           updated_at = excluded.updated_at,
-           updated_by = excluded.updated_by`
-        )
-        .bind(provider, encrypted, userId);
+      const upsertSql = modelPrefProvided
+        ? `INSERT INTO platform_ai_keys (provider, api_key_encrypted, is_active, model_preference, updated_at, updated_by)
+           VALUES (?, ?, 1, ?, datetime("now"), ?)
+           ON CONFLICT(provider) DO UPDATE SET
+             api_key_encrypted = excluded.api_key_encrypted,
+             is_active = excluded.is_active,
+             model_preference = excluded.model_preference,
+             updated_at = excluded.updated_at,
+             updated_by = excluded.updated_by`
+        : `INSERT INTO platform_ai_keys (provider, api_key_encrypted, is_active, updated_at, updated_by)
+           VALUES (?, ?, 1, datetime("now"), ?)
+           ON CONFLICT(provider) DO UPDATE SET
+             api_key_encrypted = excluded.api_key_encrypted,
+             is_active = excluded.is_active,
+             updated_at = excluded.updated_at,
+             updated_by = excluded.updated_by`;
+
+      const upsertStmt = modelPrefProvided
+        ? db.prepare(upsertSql).bind(provider, encrypted, modelPrefValue, userId)
+        : db.prepare(upsertSql).bind(provider, encrypted, userId);
 
       await db.batch([clearStmt, upsertStmt]);
     } else if (setActive && !apiKey) {
@@ -649,11 +662,13 @@ settingsRouter.put(
         .prepare('UPDATE platform_ai_keys SET is_active = 0 WHERE provider != ?')
         .bind(provider);
 
-      const activateStmt = db
-        .prepare(
-          `UPDATE platform_ai_keys SET is_active = 1, updated_at = datetime("now"), updated_by = ? WHERE provider = ?`
-        )
-        .bind(userId, provider);
+      const activateSql = modelPrefProvided
+        ? `UPDATE platform_ai_keys SET is_active = 1, model_preference = ?, updated_at = datetime("now"), updated_by = ? WHERE provider = ?`
+        : `UPDATE platform_ai_keys SET is_active = 1, updated_at = datetime("now"), updated_by = ? WHERE provider = ?`;
+
+      const activateStmt = modelPrefProvided
+        ? db.prepare(activateSql).bind(modelPrefValue, userId, provider)
+        : db.prepare(activateSql).bind(userId, provider);
 
       await db.batch([clearStmt, activateStmt]);
     } else if (apiKey) {
@@ -661,18 +676,27 @@ settingsRouter.put(
       const encSecret = getEncryptionSecret(c.env);
       const encrypted = await encryptSensitiveData(apiKey, encSecret);
 
-      await db
-        .prepare(
-          `INSERT INTO platform_ai_keys (provider, api_key_encrypted, is_active, updated_at, updated_by)
-         VALUES (?, ?, 0, datetime("now"), ?)
-         ON CONFLICT(provider) DO UPDATE SET
-           api_key_encrypted = excluded.api_key_encrypted,
-           is_active = excluded.is_active,
-           updated_at = excluded.updated_at,
-           updated_by = excluded.updated_by`
-        )
-        .bind(provider, encrypted, userId)
-        .run();
+      const storeSql = modelPrefProvided
+        ? `INSERT INTO platform_ai_keys (provider, api_key_encrypted, is_active, model_preference, updated_at, updated_by)
+           VALUES (?, ?, 0, ?, datetime("now"), ?)
+           ON CONFLICT(provider) DO UPDATE SET
+             api_key_encrypted = excluded.api_key_encrypted,
+             is_active = excluded.is_active,
+             model_preference = excluded.model_preference,
+             updated_at = excluded.updated_at,
+             updated_by = excluded.updated_by`
+        : `INSERT INTO platform_ai_keys (provider, api_key_encrypted, is_active, updated_at, updated_by)
+           VALUES (?, ?, 0, datetime("now"), ?)
+           ON CONFLICT(provider) DO UPDATE SET
+             api_key_encrypted = excluded.api_key_encrypted,
+             is_active = excluded.is_active,
+             updated_at = excluded.updated_at,
+             updated_by = excluded.updated_by`;
+
+      const bindArgs = modelPrefProvided
+        ? [provider, encrypted, modelPrefValue, userId]
+        : [provider, encrypted, userId];
+      await db.prepare(storeSql).bind(...bindArgs).run();
     }
 
     // Return current state
@@ -680,6 +704,41 @@ settingsRouter.put(
     return c.json(buildPlatformAiResponse(result.results || []));
   }
 );
+
+/**
+ * GET /api/settings/platform-ai/models
+ * Fetch available models using the active platform key.
+ */
+settingsRouter.get('/platform-ai/models', requireOwner(), async (c) => {
+  const db = getDB(c.env);
+
+  const activeKey = await db
+    .prepare('SELECT provider, api_key_encrypted FROM platform_ai_keys WHERE is_active = 1')
+    .first();
+
+  if (!activeKey?.api_key_encrypted) {
+    return c.json({ models: [] });
+  }
+
+  const encSecret = getEncryptionSecret(c.env);
+  if (!encSecret) {
+    return c.json({ models: [] });
+  }
+
+  let apiKey;
+  try {
+    apiKey = await decryptSensitiveData(activeKey.api_key_encrypted, encSecret);
+  } catch {
+    return c.json({ models: [] });
+  }
+
+  try {
+    const models = await fetchProviderModels(activeKey.provider, apiKey);
+    return c.json({ models: models || [] });
+  } catch {
+    return c.json({ models: [] });
+  }
+});
 
 /**
  * DELETE /api/settings/platform-ai/:provider

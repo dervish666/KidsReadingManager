@@ -134,16 +134,19 @@ describe('Platform AI Keys API Routes', () => {
         configured: false,
         isActive: false,
         updatedAt: null,
+        modelPreference: null,
       });
       expect(data.keys.openai).toEqual({
         configured: false,
         isActive: false,
         updatedAt: null,
+        modelPreference: null,
       });
       expect(data.keys.google).toEqual({
         configured: false,
         isActive: false,
         updatedAt: null,
+        modelPreference: null,
       });
       expect(data.activeProvider).toBeNull();
     });
@@ -356,6 +359,109 @@ describe('Platform AI Keys API Routes', () => {
       const response = await makeRequest(app, 'DELETE', '/api/settings/platform-ai/anthropic');
 
       expect(response.status).toBe(403);
+    });
+  });
+
+  describe('Platform AI Keys - Model Preference', () => {
+    it('GET /api/settings/platform-ai should include modelPreference in response', async () => {
+      const { app, mockDB } = createTestApp(createUserContext(ROLES.OWNER));
+
+      mockDB._chain.all.mockResolvedValue({
+        results: [
+          {
+            provider: 'anthropic',
+            api_key_encrypted: 'enc-key',
+            is_active: 1,
+            model_preference: 'claude-sonnet-4-6',
+            updated_at: '2026-04-13',
+          },
+        ],
+        success: true,
+      });
+
+      const response = await makeRequest(app, 'GET', '/api/settings/platform-ai');
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.keys.anthropic.modelPreference).toBe('claude-sonnet-4-6');
+      expect(data.keys.openai.modelPreference).toBeNull();
+    });
+
+    it('PUT /api/settings/platform-ai should store modelPreference', async () => {
+      const { app, mockDB } = createTestApp(createUserContext(ROLES.OWNER));
+
+      mockDB._chain.all.mockResolvedValue({
+        results: [
+          {
+            provider: 'anthropic',
+            api_key_encrypted: 'enc-key',
+            is_active: 1,
+            model_preference: 'claude-sonnet-4-6',
+            updated_at: '2026-04-13',
+          },
+        ],
+        success: true,
+      });
+
+      const response = await makeRequest(app, 'PUT', '/api/settings/platform-ai', {
+        provider: 'anthropic',
+        apiKey: 'sk-ant-test-key-1234567890',
+        setActive: true,
+        modelPreference: 'claude-sonnet-4-6',
+      });
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      // Verify the SQL included model_preference
+      const prepareCalls = mockDB.prepare.mock.calls;
+      const upsertCall = prepareCalls.find((c) => c[0].includes('model_preference'));
+      expect(upsertCall).toBeDefined();
+    });
+
+    it('GET /api/settings/platform-ai/models should return models for active provider', async () => {
+      const { app, mockDB } = createTestApp(createUserContext(ROLES.OWNER));
+
+      mockDB._chain.first.mockResolvedValue({
+        provider: 'anthropic',
+        api_key_encrypted: 'enc-key',
+        is_active: 1,
+      });
+
+      // Mock global fetch for the Anthropic models API
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            data: [
+              { id: 'claude-sonnet-4-6', display_name: 'Claude Sonnet 4.6' },
+              { id: 'claude-haiku-4-5-20251001', display_name: 'Claude Haiku 4.5' },
+            ],
+          }),
+      });
+
+      try {
+        const response = await makeRequest(app, 'GET', '/api/settings/platform-ai/models');
+        const data = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(data.models).toHaveLength(2);
+        expect(data.models[0].id).toBe('claude-sonnet-4-6');
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it('GET /api/settings/platform-ai/models should return empty when no active key', async () => {
+      const { app, mockDB } = createTestApp(createUserContext(ROLES.OWNER));
+
+      mockDB._chain.first.mockResolvedValue(null);
+
+      const response = await makeRequest(app, 'GET', '/api/settings/platform-ai/models');
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.models).toEqual([]);
     });
   });
 });
