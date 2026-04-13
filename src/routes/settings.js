@@ -202,13 +202,14 @@ settingsRouter.get('/ai', async (c) => {
     const hasPlatformKey = Boolean(platformKeyRow);
     const platformProvider = platformKeyRow?.provider || null;
 
-    const activeProvider = config?.provider || 'anthropic';
     const hasOrgKey = Boolean(config?.api_key_encrypted);
+    // Use org provider if configured, otherwise fall back to platform provider
+    const activeProvider = config?.provider || platformProvider || 'anthropic';
 
     return c.json({
       provider: activeProvider,
       modelPreference: config?.model_preference || null,
-      isEnabled: Boolean(config?.is_enabled),
+      isEnabled: Boolean(config?.is_enabled) || (hasPlatformKey && aiAddonActive),
       hasApiKey: hasOrgKey,
       // Show which providers have keys configured (org-level, platform-level, or env-level)
       availableProviders: {
@@ -405,13 +406,19 @@ export async function upsertAiConfig(c) {
   const hasPlatformKey = Boolean(platformKeyRow);
   const platformProvider = platformKeyRow?.provider || null;
 
-  const activeProvider = config?.provider || 'anthropic';
   const hasOrgKey = Boolean(config?.api_key_encrypted);
+  const activeProvider = config?.provider || platformProvider || 'anthropic';
+
+  const org = await db
+    .prepare('SELECT ai_addon_active FROM organizations WHERE id = ?')
+    .bind(organizationId)
+    .first();
+  const aiAddonActive = Boolean(org?.ai_addon_active);
 
   return c.json({
     provider: activeProvider,
     modelPreference: config?.model_preference || null,
-    isEnabled: Boolean(config?.is_enabled),
+    isEnabled: Boolean(config?.is_enabled) || (hasPlatformKey && aiAddonActive),
     hasApiKey: hasOrgKey,
     availableProviders: {
       anthropic:
@@ -434,6 +441,7 @@ export async function upsertAiConfig(c) {
         : envKeys[activeProvider]
           ? 'environment'
           : 'none',
+    aiAddonActive,
   });
 }
 
