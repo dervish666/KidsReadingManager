@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.47.0] - 2026-04-13
+
+### Added
+- **AI toggle per school** — owner can enable/disable the AI add-on for any school directly from the school detail drawer, without requiring a Stripe webhook. Switch uses pessimistic updates with loading state.
+- **Platform model selection** — Platform Settings now shows available models for the active AI provider with a dropdown to choose a default. Selected model is used for all schools on the platform key.
+
+### Changed
+- **AI resolution uses platform model** — when a school uses the owner-managed platform key, the AI service now uses the owner's selected model preference instead of falling back to provider defaults.
+
 ## [3.46.0] - 2026-04-13
 
 ### Added
