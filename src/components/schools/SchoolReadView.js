@@ -152,6 +152,28 @@ const SchoolReadView = ({ school, onEdit, onSync, onStartTrial, onOpenPortal, on
           />
           <LabelValue label="Plan" value={school.subscriptionPlan} />
           <LabelValue label="AI Add-on" value={school.aiAddonActive ? 'Enabled' : 'Not enabled'} />
+          {school.aiAddonActive && (
+            <LabelValue
+              label="AI Key"
+              value={
+                school.hasAiKey ? (
+                  <Chip
+                    label="Own key"
+                    size="small"
+                    color="info"
+                    sx={{ fontWeight: 600, fontSize: '0.7rem' }}
+                  />
+                ) : (
+                  <Chip
+                    label="Owner-managed"
+                    size="small"
+                    color="default"
+                    sx={{ fontWeight: 600, fontSize: '0.7rem' }}
+                  />
+                )
+              }
+            />
+          )}
           {school.subscriptionStatus === 'trialing' && (
             <LabelValue label="Trial ends" value={formatDate(school.trialEndsAt)} />
           )}
