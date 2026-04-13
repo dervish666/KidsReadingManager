@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.46.0] - 2026-04-13
+
+### Added
+- **Owner-managed AI keys** — new Platform tab in Settings for storing per-provider API keys (Anthropic, OpenAI, Google) with AES-GCM encryption. Schools with the AI add-on that haven't configured their own key automatically use the owner's platform key.
+- **AI status in School Management** — school detail view and table now show whether each school uses its own AI key or the owner-managed platform key.
+
+### Changed
+- **AI key resolution** — recommendations now check platform keys before falling back to environment variables, with env vars kept as a transitional tertiary fallback.
+- **Settings AI endpoint** — `GET /api/settings/ai` reports `keySource: 'platform'` when owner-managed keys are in use.
+
 ## [3.45.1] - 2026-04-13
 
 ### Fixed
