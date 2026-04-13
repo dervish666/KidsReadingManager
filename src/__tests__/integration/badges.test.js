@@ -24,15 +24,18 @@ describe('Badge system integration', () => {
     let upsertedStats = null;
     let insertedBadges = [];
     const mockDb = {
-      prepare: vi.fn((sql) => ({
+      prepare: vi.fn((sql) => {
+        const allFn = vi.fn(() => {
+          if (sql.includes('reading_sessions')) return { results: sessions };
+          if (sql.includes('books b')) return { results: books };
+          if (sql.includes('genres')) return { results: genres };
+          if (sql.includes('student_badges')) return { results: [] };
+          return { results: [] };
+        });
+        return {
+        all: allFn,
         bind: vi.fn((...args) => ({
-          all: vi.fn(() => {
-            if (sql.includes('reading_sessions')) return { results: sessions };
-            if (sql.includes('books b')) return { results: books };
-            if (sql.includes('genres')) return { results: genres };
-            if (sql.includes('student_badges')) return { results: [] };
-            return { results: [] };
-          }),
+          all: allFn,
           first: vi.fn(() => {
             if (sql.includes('student_reading_stats')) return upsertedStats;
             return null;
@@ -61,7 +64,8 @@ describe('Badge system integration', () => {
             }
           }),
         })),
-      })),
+      };
+      }),
     };
 
     await recalculateStats(mockDb, 'stu-1', 'org-1');
