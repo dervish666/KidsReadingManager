@@ -685,7 +685,9 @@ booksRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
 
       // Path 2a: Use owner's platform key
       const platformKey = await db
-        .prepare('SELECT provider, api_key_encrypted, model_preference FROM platform_ai_keys WHERE is_active = 1')
+        .prepare(
+          'SELECT provider, api_key_encrypted, model_preference FROM platform_ai_keys WHERE is_active = 1'
+        )
         .first();
 
       if (platformKey?.api_key_encrypted) {

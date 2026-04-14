@@ -724,8 +724,18 @@ organizationRouter.put('/:id', requireOwner(), auditLog('update', 'organization'
     const orgId = c.req.param('id');
     const body = await c.req.json();
 
-    const { name, contactEmail, billingEmail, phone, addressLine1, addressLine2, town, postcode, aiAddonActive, clearAiKey } =
-      body;
+    const {
+      name,
+      contactEmail,
+      billingEmail,
+      phone,
+      addressLine1,
+      addressLine2,
+      town,
+      postcode,
+      aiAddonActive,
+      clearAiKey,
+    } = body;
 
     // Check if organization exists (and is active)
     const existing = await db
@@ -788,10 +798,7 @@ organizationRouter.put('/:id', requireOwner(), auditLog('update', 'organization'
 
     // Clear the org's own AI key so it falls back to platform key
     if (clearAiKey) {
-      await db
-        .prepare('DELETE FROM org_ai_config WHERE organization_id = ?')
-        .bind(orgId)
-        .run();
+      await db.prepare('DELETE FROM org_ai_config WHERE organization_id = ?').bind(orgId).run();
     }
 
     const updatedOrg = await db

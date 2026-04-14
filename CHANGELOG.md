@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.47.1] - 2026-04-14
+
+### Fixed
+- **Nightly streak recalc no longer aborted by a single slow org** — wrapped each organization's block in `recalculateAllStreaks` in its own try/catch so a D1 timeout on one org's SELECT or batch UPDATE is recorded in the results and the cron continues with the remaining orgs (Sentry TALLY-READING-6). Also reduced per-batch work: session IN-clause chunks 50 → 25 and UPDATE batches 100 → 50.
+
+### Changed
+- Prettier cleanup across recent AI/org/settings changes — formatting only, no behaviour changes.
+
 ## [3.47.0] - 2026-04-13
 
 ### Added

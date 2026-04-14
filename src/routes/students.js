@@ -2339,63 +2339,65 @@ const recalculateAllStreaks = async (db) => {
 
   results.organizations = orgs.results?.length || 0;
 
-  // Process each organization sequentially (settings differ per org)
+  // Process each organization sequentially (settings differ per org).
+  // Each org is fully isolated: a D1 timeout or other error in one org must not
+  // abort the cron for remaining orgs (see Sentry TALLY-READING-6).
   for (const org of orgs.results || []) {
     const organizationId = org.id;
 
-    // Fetch org streak settings ONCE per org (not per student)
-    let orgSettings;
     try {
-      orgSettings = await getOrgStreakSettings(db, organizationId, {});
-    } catch {
-      orgSettings = { gracePeriodDays: 1, timezone: 'UTC' };
-    }
-
-    // 1. Fetch ALL active students for this org in one query
-    const studentsResult = await db
-      .prepare(`SELECT id FROM students WHERE organization_id = ? AND is_active = 1`)
-      .bind(organizationId)
-      .all();
-
-    const studentList = studentsResult.results || [];
-    results.total += studentList.length;
-
-    if (studentList.length === 0) continue;
-
-    // 2. Fetch ALL sessions for all active students in one bulk query (last 90 days)
-    const studentIds = studentList.map((s) => s.id);
-    const allSessions = [];
-    const SESSION_BATCH = 50; // chunk IN clauses to stay within D1 limits
-    for (let i = 0; i < studentIds.length; i += SESSION_BATCH) {
-      const batch = studentIds.slice(i, i + SESSION_BATCH);
-      const placeholders = batch.map(() => '?').join(',');
-      const sessionsResult = await db
-        .prepare(
-          `
-        SELECT student_id, session_date as date FROM reading_sessions
-        WHERE student_id IN (${placeholders})
-          AND session_date >= date('now', '-90 days')
-          AND (notes IS NULL OR (notes NOT LIKE '%[ABSENT]%' AND notes NOT LIKE '%[NO_RECORD]%'))
-        ORDER BY session_date DESC
-      `
-        )
-        .bind(...batch)
-        .all();
-      allSessions.push(...(sessionsResult.results || []));
-    }
-
-    // 3. Group sessions by student_id in JavaScript
-    const sessionsByStudent = new Map();
-    for (const session of allSessions) {
-      if (!sessionsByStudent.has(session.student_id)) {
-        sessionsByStudent.set(session.student_id, []);
+      // Fetch org streak settings ONCE per org (not per student)
+      let orgSettings;
+      try {
+        orgSettings = await getOrgStreakSettings(db, organizationId, {});
+      } catch {
+        orgSettings = { gracePeriodDays: 1, timezone: 'UTC' };
       }
-      sessionsByStudent.get(session.student_id).push(session);
-    }
 
-    // 4. Calculate streak for each student and build update statements
-    const updateStatements = [];
-    try {
+      // 1. Fetch ALL active students for this org in one query
+      const studentsResult = await db
+        .prepare(`SELECT id FROM students WHERE organization_id = ? AND is_active = 1`)
+        .bind(organizationId)
+        .all();
+
+      const studentList = studentsResult.results || [];
+      results.total += studentList.length;
+
+      if (studentList.length === 0) continue;
+
+      // 2. Fetch ALL sessions for all active students in one bulk query (last 90 days)
+      const studentIds = studentList.map((s) => s.id);
+      const allSessions = [];
+      const SESSION_BATCH = 25;
+      for (let i = 0; i < studentIds.length; i += SESSION_BATCH) {
+        const batch = studentIds.slice(i, i + SESSION_BATCH);
+        const placeholders = batch.map(() => '?').join(',');
+        const sessionsResult = await db
+          .prepare(
+            `
+          SELECT student_id, session_date as date FROM reading_sessions
+          WHERE student_id IN (${placeholders})
+            AND session_date >= date('now', '-90 days')
+            AND (notes IS NULL OR (notes NOT LIKE '%[ABSENT]%' AND notes NOT LIKE '%[NO_RECORD]%'))
+          ORDER BY session_date DESC
+        `
+          )
+          .bind(...batch)
+          .all();
+        allSessions.push(...(sessionsResult.results || []));
+      }
+
+      // 3. Group sessions by student_id in JavaScript
+      const sessionsByStudent = new Map();
+      for (const session of allSessions) {
+        if (!sessionsByStudent.has(session.student_id)) {
+          sessionsByStudent.set(session.student_id, []);
+        }
+        sessionsByStudent.get(session.student_id).push(session);
+      }
+
+      // 4. Calculate streak for each student and build update statements
+      const updateStatements = [];
       for (const student of studentList) {
         const studentSessions = sessionsByStudent.get(student.id) || [];
         const streakData = calculateStreak(studentSessions, orgSettings);
@@ -2421,8 +2423,8 @@ const recalculateAllStreaks = async (db) => {
         );
       }
 
-      // 5. Batch UPDATE in chunks of 100 (D1 limit)
-      const BATCH_SIZE = 100;
+      // 5. Batch UPDATE in chunks of 50 (well under D1's 100-statement limit)
+      const BATCH_SIZE = 50;
       for (let i = 0; i < updateStatements.length; i += BATCH_SIZE) {
         const chunk = updateStatements.slice(i, i + BATCH_SIZE);
         await db.batch(chunk);
@@ -2431,7 +2433,7 @@ const recalculateAllStreaks = async (db) => {
     } catch (err) {
       results.errors.push({
         organizationId,
-        error: err?.message || 'Batch streak update failed',
+        error: err?.message || 'Streak recalculation failed for organization',
       });
     }
   }

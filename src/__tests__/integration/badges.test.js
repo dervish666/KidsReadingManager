@@ -33,38 +33,41 @@ describe('Badge system integration', () => {
           return { results: [] };
         });
         return {
-        all: allFn,
-        bind: vi.fn((...args) => ({
           all: allFn,
-          first: vi.fn(() => {
-            if (sql.includes('student_reading_stats')) return upsertedStats;
-            return null;
-          }),
-          run: vi.fn(() => {
-            if (sql.includes('INSERT INTO student_reading_stats') || sql.includes('ON CONFLICT')) {
-              upsertedStats = {
-                total_books: 1,
-                total_sessions: 1,
-                total_minutes: 15,
-                total_pages: 20,
-                genres_read: '["genre-fiction"]',
-                unique_authors_count: 1,
-                fiction_count: 1,
-                nonfiction_count: 0,
-                poetry_count: 0,
-                days_read_this_week: 1,
-                days_read_this_term: 1,
-                days_read_this_month: 1,
-                weeks_with_4plus_days: 0,
-                weeks_with_reading: 1,
-              };
-            }
-            if (sql.includes('INSERT INTO student_badges')) {
-              insertedBadges.push(args);
-            }
-          }),
-        })),
-      };
+          bind: vi.fn((...args) => ({
+            all: allFn,
+            first: vi.fn(() => {
+              if (sql.includes('student_reading_stats')) return upsertedStats;
+              return null;
+            }),
+            run: vi.fn(() => {
+              if (
+                sql.includes('INSERT INTO student_reading_stats') ||
+                sql.includes('ON CONFLICT')
+              ) {
+                upsertedStats = {
+                  total_books: 1,
+                  total_sessions: 1,
+                  total_minutes: 15,
+                  total_pages: 20,
+                  genres_read: '["genre-fiction"]',
+                  unique_authors_count: 1,
+                  fiction_count: 1,
+                  nonfiction_count: 0,
+                  poetry_count: 0,
+                  days_read_this_week: 1,
+                  days_read_this_term: 1,
+                  days_read_this_month: 1,
+                  weeks_with_4plus_days: 0,
+                  weeks_with_reading: 1,
+                };
+              }
+              if (sql.includes('INSERT INTO student_badges')) {
+                insertedBadges.push(args);
+              }
+            }),
+          })),
+        };
       }),
     };
 

@@ -303,28 +303,31 @@ const SchoolManagement = () => {
     }
   }, [selectedSchool, fetchWithAuth, fetchSchools]);
 
-  const handleToggleAi = useCallback(async (newValue) => {
-    setSaving(true);
-    setError(null);
-    try {
-      const res = await fetchWithAuth(`/api/organization/${selectedSchool.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ aiAddonActive: newValue }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to update AI status');
+  const handleToggleAi = useCallback(
+    async (newValue) => {
+      setSaving(true);
+      setError(null);
+      try {
+        const res = await fetchWithAuth(`/api/organization/${selectedSchool.id}`, {
+          method: 'PUT',
+          body: JSON.stringify({ aiAddonActive: newValue }),
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'Failed to update AI status');
+        }
+        const newSchools = await fetchSchools();
+        const updatedSchool = newSchools.find((s) => s.id === selectedSchool.id);
+        if (updatedSchool) setSelectedSchool(updatedSchool);
+        setSuccess(`AI ${newValue ? 'enabled' : 'disabled'} for ${selectedSchool.name}`);
+      } catch (err) {
+        setError(err.message || 'Failed to update AI status');
+      } finally {
+        setSaving(false);
       }
-      const newSchools = await fetchSchools();
-      const updatedSchool = newSchools.find((s) => s.id === selectedSchool.id);
-      if (updatedSchool) setSelectedSchool(updatedSchool);
-      setSuccess(`AI ${newValue ? 'enabled' : 'disabled'} for ${selectedSchool.name}`);
-    } catch (err) {
-      setError(err.message || 'Failed to update AI status');
-    } finally {
-      setSaving(false);
-    }
-  }, [selectedSchool, fetchWithAuth, fetchSchools]);
+    },
+    [selectedSchool, fetchWithAuth, fetchSchools]
+  );
 
   const handleClearAiKey = useCallback(async () => {
     setSaving(true);

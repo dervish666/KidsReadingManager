@@ -631,7 +631,7 @@ settingsRouter.put(
     }
 
     const modelPrefProvided = 'modelPreference' in body;
-    const modelPrefValue = modelPrefProvided ? (body.modelPreference || null) : undefined;
+    const modelPrefValue = modelPrefProvided ? body.modelPreference || null : undefined;
 
     if (setActive && apiKey) {
       // Encrypt the key and atomically: clear others + upsert with is_active=1
@@ -704,7 +704,10 @@ settingsRouter.put(
       const bindArgs = modelPrefProvided
         ? [provider, encrypted, modelPrefValue, userId]
         : [provider, encrypted, userId];
-      await db.prepare(storeSql).bind(...bindArgs).run();
+      await db
+        .prepare(storeSql)
+        .bind(...bindArgs)
+        .run();
     }
 
     // Return current state

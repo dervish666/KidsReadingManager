@@ -48,7 +48,17 @@ const LabelValue = ({ label, value }) => (
   </>
 );
 
-const SchoolReadView = ({ school, onEdit, onSync, onStartTrial, onOpenPortal, onDeactivate, onToggleAi, onClearAiKey, loading }) => {
+const SchoolReadView = ({
+  school,
+  onEdit,
+  onSync,
+  onStartTrial,
+  onOpenPortal,
+  onDeactivate,
+  onToggleAi,
+  onClearAiKey,
+  loading,
+}) => {
   if (!school) return null;
 
   const isWonde = Boolean(school.wondeSchoolId);
