@@ -703,7 +703,7 @@ const UserManagement = () => {
                 }}
               >
                 <Typography variant="subtitle2">Class Assignments</Typography>
-                {!editingClasses && !classesLoading && (
+                {!editingClasses && !classesLoading && !isWondeUser && (
                   <Button size="small" startIcon={<EditIcon />} onClick={startEditingClasses}>
                     Edit
                   </Button>
@@ -763,7 +763,9 @@ const UserManagement = () => {
                 </Box>
               ) : (
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                  No classes assigned. Click Edit to assign classes.
+                  {isWondeUser
+                    ? 'No classes assigned. Class assignments are synced from Wonde.'
+                    : 'No classes assigned. Click Edit to assign classes.'}
                 </Typography>
               )}
             </Box>

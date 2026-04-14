@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.48.2] - 2026-04-14
+
+### Changed
+- **Hide class-assignment editor for Wonde-synced users** — the Edit button and empty-state prompt in User Management are now suppressed when the user has a `wonde_employee_id`. Their assignments are a pure reflection of `wonde_employee_classes` (rebuilt on every MyLogin login and nightly sync), so manual edits via the UI were wiped before they could be useful. Wonde users still see their assigned classes as read-only chips; empty-state copy now reads "Class assignments are synced from Wonde."
+
 ## [3.48.1] - 2026-04-14
 
 ### Changed
