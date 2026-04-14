@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.48.1] - 2026-04-14
+
+### Changed
+- **Month labels in Home Reading register** — Full view date headers now show a short month label ("Feb", "Mar", …) on the first column and at each month boundary, so long ranges like "Spring 2" are legible without hovering for a tooltip.
+
 ## [3.48.0] - 2026-04-14
 
 ### Added

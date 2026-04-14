@@ -369,6 +369,11 @@ const FullReadingView = ({
                   const dateStr = formatDateISO(date);
                   const isWeekend = date.getDay() === 0 || date.getDay() === 6;
                   const isSelectedDate = selectedDate === dateStr;
+                  const prevDate = index > 0 ? dates[index - 1] : null;
+                  const isMonthBoundary = !prevDate || prevDate.getMonth() !== date.getMonth();
+                  const monthLabel = isMonthBoundary
+                    ? date.toLocaleDateString('en-GB', { month: 'short' })
+                    : '';
                   return (
                     <TableCell
                       key={index}
@@ -401,6 +406,21 @@ const FullReadingView = ({
                         })}
                       >
                         <Box>
+                          <Typography
+                            variant="caption"
+                            display="block"
+                            sx={{
+                              fontSize: isMobile ? '0.6rem' : '0.65rem',
+                              fontWeight: 700,
+                              color: isSelectedDate ? 'primary.contrastText' : 'primary.main',
+                              lineHeight: 1.1,
+                              minHeight: '0.9em',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.03em',
+                            }}
+                          >
+                            {monthLabel || '\u00A0'}
+                          </Typography>
                           <Typography
                             variant="caption"
                             display="block"
