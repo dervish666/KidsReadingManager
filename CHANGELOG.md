@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.48.0] - 2026-04-14
+
+### Added
+- **Class assignments in User Management** — user detail dialog now shows each user's assigned classes (for all roles, including owner) and lets admins/owners edit them via multi-select. New `PUT /api/users/:id/classes` endpoint replaces assignments, validating every class belongs to the user's organization. Backed by the existing `class_assignments` table used at login. Wonde-synced users show a warning that the next sync will overwrite manual edits; manual schools (e.g. demo) persist.
+
+### Fixed
+- **Class auto-filter on login actually applied** — `pendingClassAutoFilter` was written to `sessionStorage.globalClassFilter` by DataContext but UIContext only read that key once at mount, so the teacher's class was never selected. Consumer moved into UIContext where it reacts to `classes` loading and updates React state via `updateGlobalClassFilter`. Email/password login also now sets `pendingClassAutoFilter`, matching SSO and demo flows.
+
 ## [3.47.1] - 2026-04-14
 
 ### Fixed

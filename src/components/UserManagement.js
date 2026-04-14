@@ -30,6 +30,7 @@ import {
   InputAdornment,
   ToggleButton,
   ToggleButtonGroup,
+  Autocomplete,
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
@@ -72,7 +73,12 @@ const UserManagement = () => {
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [detailUser, setDetailUser] = useState(null);
   const [userClasses, setUserClasses] = useState([]);
+  const [availableClasses, setAvailableClasses] = useState([]);
+  const [isWondeUser, setIsWondeUser] = useState(false);
   const [classesLoading, setClassesLoading] = useState(false);
+  const [editingClasses, setEditingClasses] = useState(false);
+  const [classEditValue, setClassEditValue] = useState([]);
+  const [savingClasses, setSavingClasses] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -309,23 +315,66 @@ const UserManagement = () => {
     });
   }, [users, searchQuery, authFilter]);
 
+  const loadUserClasses = async (targetUser) => {
+    setClassesLoading(true);
+    try {
+      const response = await fetchWithAuth(`/api/users/${targetUser.id}/classes`);
+      const data =
+        response && typeof response.json === 'function' ? await response.json() : response;
+      setUserClasses(data.classes || []);
+      setAvailableClasses(data.availableClasses || []);
+      setIsWondeUser(Boolean(data.isWondeUser));
+    } catch {
+      setUserClasses([]);
+      setAvailableClasses([]);
+    } finally {
+      setClassesLoading(false);
+    }
+  };
+
   const openDetailDialog = async (targetUser) => {
     setDetailUser(targetUser);
     setDetailDialogOpen(true);
     setUserClasses([]);
+    setAvailableClasses([]);
+    setIsWondeUser(false);
+    setEditingClasses(false);
 
-    if (targetUser.wondeEmployeeId) {
-      setClassesLoading(true);
-      try {
-        const response = await fetchWithAuth(`/api/users/${targetUser.id}/classes`);
-        const data =
-          response && typeof response.json === 'function' ? await response.json() : response;
-        setUserClasses(data.classes || []);
-      } catch {
-        // Non-critical — just show empty
-      } finally {
-        setClassesLoading(false);
+    await loadUserClasses(targetUser);
+  };
+
+  const startEditingClasses = () => {
+    setClassEditValue(
+      userClasses.map((c) => availableClasses.find((a) => a.classId === c.classId)).filter(Boolean)
+    );
+    setEditingClasses(true);
+  };
+
+  const cancelEditingClasses = () => {
+    setEditingClasses(false);
+    setClassEditValue([]);
+  };
+
+  const saveClassAssignments = async () => {
+    if (!detailUser) return;
+    setSavingClasses(true);
+    setError(null);
+    try {
+      const response = await fetchWithAuth(`/api/users/${detailUser.id}/classes`, {
+        method: 'PUT',
+        body: JSON.stringify({ classIds: classEditValue.map((c) => c.classId) }),
+      });
+      if (response && typeof response.json === 'function' && !response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `Failed (${response.status})`);
       }
+      setSuccess('Class assignments updated');
+      setEditingClasses(false);
+      await loadUserClasses(detailUser);
+    } catch (err) {
+      setError(err.message || 'Failed to update class assignments');
+    } finally {
+      setSavingClasses(false);
     }
   };
 
@@ -645,15 +694,63 @@ const UserManagement = () => {
                 )}
               </Box>
 
-              <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
-                Class Assignments
-              </Typography>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  mt: 2,
+                }}
+              >
+                <Typography variant="subtitle2">Class Assignments</Typography>
+                {!editingClasses && !classesLoading && (
+                  <Button size="small" startIcon={<EditIcon />} onClick={startEditingClasses}>
+                    Edit
+                  </Button>
+                )}
+              </Box>
               {classesLoading ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
                   <CircularProgress size={24} />
                 </Box>
+              ) : editingClasses ? (
+                <Box>
+                  <Autocomplete
+                    multiple
+                    size="small"
+                    options={availableClasses}
+                    value={classEditValue}
+                    onChange={(_, val) => setClassEditValue(val)}
+                    getOptionLabel={(opt) => opt.className}
+                    isOptionEqualToValue={(opt, val) => opt.classId === val.classId}
+                    renderInput={(params) => (
+                      <TextField {...params} placeholder="Select classes..." />
+                    )}
+                    sx={{ mt: 1 }}
+                  />
+                  {isWondeUser && (
+                    <Alert severity="info" sx={{ mt: 1 }}>
+                      This is a Wonde-synced user. The next Wonde sync will overwrite manual changes
+                      based on MIS data.
+                    </Alert>
+                  )}
+                  <Box sx={{ display: 'flex', gap: 1, mt: 2, justifyContent: 'flex-end' }}>
+                    <Button size="small" onClick={cancelEditingClasses} disabled={savingClasses}>
+                      Cancel
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="contained"
+                      onClick={saveClassAssignments}
+                      disabled={savingClasses}
+                      startIcon={savingClasses ? <CircularProgress size={16} /> : null}
+                    >
+                      {savingClasses ? 'Saving...' : 'Save'}
+                    </Button>
+                  </Box>
+                </Box>
               ) : userClasses.length > 0 ? (
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
                   {userClasses.map((cls) => (
                     <Chip
                       key={cls.classId}
@@ -665,10 +762,8 @@ const UserManagement = () => {
                   ))}
                 </Box>
               ) : (
-                <Typography variant="body2" color="text.secondary">
-                  {detailUser.wondeEmployeeId
-                    ? 'No class assignments found from Wonde sync.'
-                    : 'Local user — class assignments are managed via Wonde sync.'}
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  No classes assigned. Click Edit to assign classes.
                 </Typography>
               )}
             </Box>

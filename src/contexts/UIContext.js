@@ -10,7 +10,7 @@ export const useUI = () => useContext(UIContext);
 
 export const UIProvider = ({ children }) => {
   const { fetchWithAuth, isAuthenticated } = useAuth();
-  const { students, readingStatusSettings } = useData();
+  const { students, classes, readingStatusSettings } = useData();
 
   // Global class filter state (persisted in sessionStorage)
   const [globalClassFilter, setGlobalClassFilter] = useState(() => {
@@ -114,6 +114,35 @@ export const UIProvider = ({ children }) => {
       }
     }
   }, []);
+
+  // Apply pending class auto-filter after classes load (fresh SSO/demo/email login).
+  // This lives here (not DataContext) so globalClassFilter React state actually
+  // updates — a sessionStorage write alone won't re-trigger UIContext's initial read.
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!Array.isArray(classes) || classes.length === 0) return;
+
+    let pending;
+    try {
+      pending = window.sessionStorage.getItem('pendingClassAutoFilter');
+    } catch {
+      return;
+    }
+    if (!pending) return;
+
+    try {
+      const assignedIds = JSON.parse(pending);
+      const assignedClasses = classes
+        .filter((c) => assignedIds.includes(c.id))
+        .sort((a, b) => a.name.localeCompare(b.name));
+      if (assignedClasses.length > 0) {
+        updateGlobalClassFilter(assignedClasses[0].id);
+      }
+      window.sessionStorage.removeItem('pendingClassAutoFilter');
+    } catch {
+      window.sessionStorage.removeItem('pendingClassAutoFilter');
+    }
+  }, [classes, updateGlobalClassFilter]);
 
   // Helper: Get reading status for a student.
   // Uses calendar-date comparison to avoid DST/timezone drift near midnight.

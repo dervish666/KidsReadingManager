@@ -486,6 +486,19 @@ export const AuthProvider = ({ children }) => {
       setAuthMode('multitenant');
       setApiError(null);
 
+      // Auto-select teacher's first assigned class on email/password login
+      // (UIContext applies this once classes finish loading)
+      if (data.user?.assignedClassIds?.length > 0) {
+        try {
+          window.sessionStorage.setItem(
+            'pendingClassAutoFilter',
+            JSON.stringify(data.user.assignedClassIds)
+          );
+        } catch {
+          /* ignore */
+        }
+      }
+
       return userWithOrg;
     } catch (err) {
       setApiError(err.message || 'Login failed');

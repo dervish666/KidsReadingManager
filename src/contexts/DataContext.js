@@ -78,29 +78,11 @@ export const DataProvider = ({ children }) => {
       }));
       setStudents(studentsWithClassId);
 
-      // Classes (optional)
+      // Classes (optional) — pendingClassAutoFilter is consumed by UIContext
+      // once classes are available, so React state updates correctly.
       if (classesResponse?.ok) {
         const classesData = await classesResponse.json();
         setClasses(classesData);
-
-        // After classes are loaded, check for pending auto-filter from SSO login
-        // UIContext reads globalClassFilter from sessionStorage, so we write there
-        try {
-          const pending = window.sessionStorage.getItem('pendingClassAutoFilter');
-          if (pending) {
-            window.sessionStorage.removeItem('pendingClassAutoFilter');
-            const assignedIds = JSON.parse(pending);
-            // Find the first assigned class alphabetically by name
-            const assignedClasses = classesData
-              .filter((c) => assignedIds.includes(c.id))
-              .sort((a, b) => a.name.localeCompare(b.name));
-            if (assignedClasses.length > 0) {
-              window.sessionStorage.setItem('globalClassFilter', assignedClasses[0].id);
-            }
-          }
-        } catch {
-          /* ignore */
-        }
       } else {
         setClasses([]);
       }
