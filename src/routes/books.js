@@ -1906,7 +1906,7 @@ booksRouter.post('/import/confirm', requireAdmin(), auditLog('import', 'books'),
     } catch (error) {
       // If the entire batch fails, record errors for all items in it
       console.error(`Batch ${Math.floor(i / BATCH_SIZE) + 1} failed:`, error.message);
-      batch.forEach((b) => b.onError(error.message));
+      batch.forEach((b) => b.onError('Import batch failed. Please contact support.'));
     }
   }
 

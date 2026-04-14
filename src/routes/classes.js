@@ -351,16 +351,22 @@ classesRouter.delete('/:id', auditLog('delete', 'class'), async (c) => {
       throw notFoundError(`Class with ID ${id} not found`);
     }
 
-    // Soft delete - also unassign students from this class
+    // Soft delete - also unassign students from this class.
+    // Both updates are org-scoped as defense-in-depth even though the pre-check above
+    // already confirms the class belongs to the requesting org.
     await db.batch([
       db
-        .prepare(`UPDATE classes SET is_active = 0, updated_at = datetime("now") WHERE id = ?`)
-        .bind(id),
+        .prepare(
+          `UPDATE classes SET is_active = 0, updated_at = datetime("now")
+           WHERE id = ? AND organization_id = ?`
+        )
+        .bind(id, organizationId),
       db
         .prepare(
-          `UPDATE students SET class_id = NULL, updated_at = datetime("now") WHERE class_id = ?`
+          `UPDATE students SET class_id = NULL, updated_at = datetime("now")
+           WHERE class_id = ? AND organization_id = ?`
         )
-        .bind(id),
+        .bind(id, organizationId),
     ]);
 
     return c.json({ message: 'Class deleted successfully' });

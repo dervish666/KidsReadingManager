@@ -95,12 +95,16 @@ export function mapWondeEmployee(wondeEmployee) {
  * @param {Object} db - D1 database binding
  * @param {Object} [options] - Sync options
  * @param {string} [options.updatedAfter] - ISO date for delta sync
+ * @param {Object} [options.kv] - Optional KV binding (READING_MANAGER_KV) for per-org sync lock.
+ *                                When provided, prevents overlapping sync for the same org.
  * @returns {Promise<Object>} Sync result with status and counts
  */
 export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options = {}) {
   const syncId = crypto.randomUUID();
   const syncType = options.updatedAfter ? 'delta' : 'full';
   const now = new Date().toISOString();
+  const kv = options.kv || null;
+  const lockKey = `wondeSync:lock:${orgId}`;
 
   const counts = {
     studentsCreated: 0,
@@ -110,6 +114,30 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
     classesUpdated: 0,
     employeesSynced: 0,
   };
+
+  // Step 0: Acquire per-org sync lock (skip if another sync is in flight).
+  // Lock TTL is 10 minutes — long enough for even the largest schools but short
+  // enough that a stuck lock self-clears if the Worker dies mid-sync.
+  if (kv) {
+    try {
+      const existing = await kv.get(lockKey);
+      if (existing) {
+        console.log(
+          `[WondeSync] Skipping org ${orgId}: sync already in progress since ${existing}`
+        );
+        return {
+          status: 'skipped',
+          syncId: null,
+          ...counts,
+          errorMessage: 'Sync already in progress for this organization',
+        };
+      }
+      await kv.put(lockKey, now, { expirationTtl: 600 });
+    } catch (err) {
+      // If the KV lookup fails, fall through rather than blocking the sync entirely.
+      console.warn(`[WondeSync] Lock acquisition error for ${orgId}: ${err.message}`);
+    }
+  }
 
   // Step 1: Create sync log entry
   try {
@@ -121,7 +149,8 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
       .bind(syncId, orgId, syncType, now)
       .run();
   } catch (err) {
-    // If we can't even log, return failed immediately
+    // If we can't even log, release the lock and return failed immediately
+    if (kv) await kv.delete(lockKey).catch(() => {});
     return {
       status: 'failed',
       syncId,
@@ -415,6 +444,7 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
       )
       .run();
 
+    if (kv) await kv.delete(lockKey).catch(() => {});
     return {
       status: 'completed',
       syncId,
@@ -434,6 +464,7 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
       // Best-effort sync log update
     }
 
+    if (kv) await kv.delete(lockKey).catch(() => {});
     return {
       status: 'failed',
       syncId,

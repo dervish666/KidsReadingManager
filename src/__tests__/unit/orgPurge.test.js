@@ -10,9 +10,9 @@ let sqlLog = [];
  * Build a mock D1 database.
  *
  * `firstResult` controls what the initial SELECT returns.
- * `failingTable` (optional) makes the DELETE for that table throw.
+ * `batchShouldFail` (optional) makes db.batch() reject atomically.
  */
-const createMockDB = ({ firstResult = null, failingTable = null } = {}) => {
+const createMockDB = ({ firstResult = null, batchShouldFail = false } = {}) => {
   sqlLog = [];
 
   const db = {
@@ -26,15 +26,16 @@ const createMockDB = ({ firstResult = null, failingTable = null } = {}) => {
           return chainable;
         }),
         first: vi.fn().mockResolvedValue(firstResult),
-        run: vi.fn().mockImplementation(() => {
-          if (failingTable && sql.includes(`FROM ${failingTable} `)) {
-            return Promise.reject(new Error(`D1_ERROR: table ${failingTable} locked`));
-          }
-          return Promise.resolve({ success: true, meta: { changes: 1 } });
-        }),
+        run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } }),
         all: vi.fn().mockResolvedValue({ results: [], success: true }),
       };
       return chainable;
+    }),
+    batch: vi.fn().mockImplementation((statements) => {
+      if (batchShouldFail) {
+        return Promise.reject(new Error('D1_ERROR: batch aborted'));
+      }
+      return Promise.resolve(statements.map(() => ({ success: true, meta: { changes: 1 } })));
     }),
   };
 
@@ -59,7 +60,7 @@ describe('hardDeleteOrganization', () => {
   // ---------------------------------------------------------------
   // 1. Happy path
   // ---------------------------------------------------------------
-  it('deletes all 26 tables in order, anonymises org, and returns summary', async () => {
+  it('runs a single atomic batch: log insert, 26 deletes, log cleanup, tombstone', async () => {
     const db = createMockDB({ firstResult: activeOrg });
 
     const result = await hardDeleteOrganization(db, ORG_ID);
@@ -68,7 +69,13 @@ describe('hardDeleteOrganization', () => {
     expect(sqlLog[0].sql).toContain('SELECT');
     expect(sqlLog[0].binds).toEqual([ORG_ID]);
 
-    // -- data_rights_log INSERT is second
+    // -- Single atomic batch invocation for all destructive work
+    expect(db.batch).toHaveBeenCalledTimes(1);
+    const batchStatements = db.batch.mock.calls[0][0];
+    // 1 log insert + 26 deletes + 1 log cleanup + 1 tombstone = 29
+    expect(batchStatements).toHaveLength(29);
+
+    // -- data_rights_log INSERT comes first inside the batch (sqlLog index 1)
     expect(sqlLog[1].sql).toContain('INSERT INTO data_rights_log');
     expect(sqlLog[1].binds).toEqual(['purge-log-uuid', ORG_ID, ORG_ID]);
 
@@ -90,11 +97,11 @@ describe('hardDeleteOrganization', () => {
     expect(tableOrder.indexOf('class_goals')).toBeLessThan(tableOrder.indexOf('classes'));
     expect(tableOrder[tableOrder.length - 1]).toBe('users');
 
-    // -- data_rights_log DELETE (index 28)
+    // -- data_rights_log cleanup DELETE (sqlLog index 28)
     expect(sqlLog[28].sql).toContain('DELETE FROM data_rights_log');
     expect(sqlLog[28].binds).toEqual([ORG_ID, 'purge-log-uuid']);
 
-    // -- Anonymise UPDATE (index 29)
+    // -- Anonymise UPDATE (sqlLog index 29)
     expect(sqlLog[29].sql).toContain('UPDATE organizations SET');
     expect(sqlLog[29].sql).toContain("name = 'Deleted Organisation'");
     expect(sqlLog[29].sql).toContain('purged_at');
@@ -158,27 +165,15 @@ describe('hardDeleteOrganization', () => {
   });
 
   // ---------------------------------------------------------------
-  // 5. Per-table resilience
+  // 5. Atomic rollback on batch failure
   // ---------------------------------------------------------------
-  it('logs failing table in errors array without aborting remaining deletes', async () => {
+  it('throws when the atomic batch fails, so callers can retry instead of tombstoning partially', async () => {
     const db = createMockDB({
       firstResult: activeOrg,
-      failingTable: 'student_badges',
+      batchShouldFail: true,
     });
 
-    const result = await hardDeleteOrganization(db, ORG_ID);
-
-    // The function should continue past the failure
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors[0]).toContain('student_badges');
-
-    // 25 succeeded from DELETE_ORDER + 1 data_rights_log = 26
-    expect(result.tablesProcessed).toBe(26);
-
-    // Verify tables after the failing one were still processed
-    const deleteSqls = sqlLog.filter((e) => e.sql.startsWith('DELETE FROM'));
-    // 26 DELETEs from DELETE_ORDER + 1 data_rights_log = 27 total attempted
-    expect(deleteSqls).toHaveLength(27);
+    await expect(hardDeleteOrganization(db, ORG_ID)).rejects.toThrow(/purge failed/i);
   });
 });
 

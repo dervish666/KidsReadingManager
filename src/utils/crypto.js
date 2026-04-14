@@ -581,6 +581,11 @@ export async function decryptSensitiveData(encryptedData, secret) {
   //   "iv:ciphertext"     — legacy encrypted format (pre-prefix migration)
   //   no colons           — legacy plaintext (backward compat, will be re-encrypted on next update)
   if (!encryptedData.includes(':')) {
+    // Flag plaintext reads so we can detect fields that escaped encryption.
+    // Scheduled for fail-closed conversion once production telemetry is clean.
+    console.warn(
+      `[crypto] decryptSensitiveData plaintext fallback fired (length=${encryptedData.length})`
+    );
     return encryptedData;
   }
 

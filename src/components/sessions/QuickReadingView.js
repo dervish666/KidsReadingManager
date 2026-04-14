@@ -309,6 +309,20 @@ const QuickReadingView = ({
                     <TableCell
                       {...(isFirstRow ? { 'data-tour': 'quick-book' } : {})}
                       onClick={() => onEditBookStudent(student.id)}
+                      onKeyDown={(e) => {
+                        if (editingBookStudentId === student.id) return;
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          onEditBookStudent(student.id);
+                        }
+                      }}
+                      role="button"
+                      tabIndex={editingBookStudentId === student.id ? -1 : 0}
+                      aria-label={
+                        book
+                          ? `Change book for ${student.name}. Current book: ${book.title}`
+                          : `Set book for ${student.name}`
+                      }
                       sx={{
                         color: book ? 'text.secondary' : 'text.disabled',
                         fontSize: '0.85rem',
@@ -319,6 +333,11 @@ const QuickReadingView = ({
                         whiteSpace: 'nowrap',
                         padding: '4px 8px',
                         cursor: 'pointer',
+                        '&:focus-visible': {
+                          outline: '2px solid',
+                          outlineColor: 'primary.main',
+                          outlineOffset: '-2px',
+                        },
                       }}
                     >
                       {editingBookStudentId === student.id ? (

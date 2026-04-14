@@ -475,9 +475,9 @@ async function fetchProviderModels(provider, apiKey) {
   }
 
   if (provider === 'google') {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
-    );
+    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models', {
+      headers: { 'x-goog-api-key': apiKey },
+    });
     if (!res.ok) return null;
     const data = await res.json();
     return (data.models || [])

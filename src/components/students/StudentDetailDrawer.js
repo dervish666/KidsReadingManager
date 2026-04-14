@@ -55,6 +55,17 @@ const StudentDetailDrawer = ({ open, student, onClose }) => {
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
 
   const editFormRef = useRef(null);
+  // Capture the element that triggered opening so we can restore focus on close.
+  // Keyboard + screen-reader users otherwise drop to <body> when the drawer closes.
+  const returnFocusRef = useRef(null);
+  useEffect(() => {
+    if (open) {
+      returnFocusRef.current = typeof document !== 'undefined' ? document.activeElement : null;
+    } else if (returnFocusRef.current && typeof returnFocusRef.current.focus === 'function') {
+      returnFocusRef.current.focus();
+      returnFocusRef.current = null;
+    }
+  }, [open]);
 
   // ── Derived values ─────────────────────────────────────────────────────────
   const displayStudent = fullStudent || student;

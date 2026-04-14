@@ -10,13 +10,13 @@ const TestUIContext = createContext();
 
 // Mock the context modules (HomeReadingRegister uses useAuth, useData, useUI)
 vi.mock('../../contexts/AuthContext', () => ({
-  useAuth: () => useContext(TestAuthContext)
+  useAuth: () => useContext(TestAuthContext),
 }));
 vi.mock('../../contexts/DataContext', () => ({
-  useData: () => useContext(TestDataContext)
+  useData: () => useContext(TestDataContext),
 }));
 vi.mock('../../contexts/UIContext', () => ({
-  useUI: () => useContext(TestUIContext)
+  useUI: () => useContext(TestUIContext),
 }));
 
 // Mock tour hooks to avoid requiring TourProvider
@@ -25,11 +25,11 @@ vi.mock('../../components/tour/useTour', () => ({
     tourButtonProps: { onClick: vi.fn(), shouldPulse: false },
     startTour: vi.fn(),
     isTourAvailable: false,
-  })
+  }),
 }));
 
 vi.mock('../../components/tour/TourButton', () => ({
-  default: () => null
+  default: () => null,
 }));
 
 // Mock the BookAutocomplete component
@@ -44,7 +44,7 @@ vi.mock('../../components/sessions/BookAutocomplete', () => ({
         aria-label={label}
       />
     </div>
-  )
+  ),
 }));
 
 // Import HomeReadingRegister after mocking
@@ -82,13 +82,13 @@ const createMockFetchWithAuth = (sessions = []) => {
     if (url.startsWith('/api/students/sessions')) {
       return Promise.resolve({
         ok: true,
-        json: () => Promise.resolve(sessions)
+        json: () => Promise.resolve(sessions),
       });
     }
     if (url.startsWith('/api/term-dates')) {
       return Promise.resolve({
         ok: true,
-        json: () => Promise.resolve({ terms: [] })
+        json: () => Promise.resolve({ terms: [] }),
       });
     }
     return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
@@ -106,7 +106,7 @@ const createMockContext = (overrides = {}) => {
         classId: 'class-1',
         currentBookId: 'book-1',
         currentBookTitle: 'The Cat in the Hat',
-        currentBookAuthor: 'Dr. Seuss'
+        currentBookAuthor: 'Dr. Seuss',
       },
       {
         id: 'student-2',
@@ -114,33 +114,33 @@ const createMockContext = (overrides = {}) => {
         classId: 'class-1',
         currentBookId: null,
         currentBookTitle: null,
-        currentBookAuthor: null
+        currentBookAuthor: null,
       },
       {
         id: 'student-3',
         name: 'Charlie Brown',
         classId: 'class-2',
         currentBookId: 'book-2',
-        currentBookTitle: 'Charlotte\'s Web',
-        currentBookAuthor: 'E.B. White'
-      }
+        currentBookTitle: "Charlotte's Web",
+        currentBookAuthor: 'E.B. White',
+      },
     ],
     books: [
       {
         id: 'book-1',
         title: 'The Cat in the Hat',
-        author: 'Dr. Seuss'
+        author: 'Dr. Seuss',
       },
       {
         id: 'book-2',
-        title: 'Charlotte\'s Web',
-        author: 'E.B. White'
-      }
+        title: "Charlotte's Web",
+        author: 'E.B. White',
+      },
     ],
     classes: [
       { id: 'class-1', name: 'Class 1A', disabled: false },
       { id: 'class-2', name: 'Class 2B', disabled: false },
-      { id: 'class-3', name: 'Disabled Class', disabled: true }
+      { id: 'class-3', name: 'Disabled Class', disabled: true },
     ],
     addReadingSession: vi.fn(),
     deleteReadingSession: vi.fn(),
@@ -149,7 +149,7 @@ const createMockContext = (overrides = {}) => {
     globalClassFilter: 'all',
     setGlobalClassFilter: vi.fn(),
     fetchWithAuth: createMockFetchWithAuth(sessions),
-    ...rest
+    ...rest,
   };
 };
 
@@ -211,7 +211,8 @@ describe('HomeReadingRegister Component', () => {
 
       // Should have called fetchWithAuth for sessions endpoint
       expect(context.fetchWithAuth).toHaveBeenCalledWith(
-        expect.stringContaining('/api/students/sessions?classId=class-1')
+        expect.stringContaining('/api/students/sessions?classId=class-1'),
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
       );
     });
   });
@@ -221,7 +222,7 @@ describe('HomeReadingRegister Component', () => {
       const mockSetGlobalClassFilter = vi.fn();
       const context = createMockContext({
         globalClassFilter: 'all',
-        setGlobalClassFilter: mockSetGlobalClassFilter
+        setGlobalClassFilter: mockSetGlobalClassFilter,
       });
 
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
@@ -234,7 +235,7 @@ describe('HomeReadingRegister Component', () => {
       const mockSetGlobalClassFilter = vi.fn();
       const context = createMockContext({
         globalClassFilter: 'unassigned',
-        setGlobalClassFilter: mockSetGlobalClassFilter
+        setGlobalClassFilter: mockSetGlobalClassFilter,
       });
 
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
@@ -247,7 +248,7 @@ describe('HomeReadingRegister Component', () => {
       const mockSetGlobalClassFilter = vi.fn();
       const context = createMockContext({
         globalClassFilter: 'class-1',
-        setGlobalClassFilter: mockSetGlobalClassFilter
+        setGlobalClassFilter: mockSetGlobalClassFilter,
       });
 
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
@@ -258,12 +259,19 @@ describe('HomeReadingRegister Component', () => {
     it('should never mutate global class filter across re-renders', () => {
       const mockSetGlobalClassFilter = vi.fn();
       const baseContext = createMockContext();
-      const { fetchWithAuth, globalClassFilter: _gcf, setGlobalClassFilter: _sgcf, ...dataValues } = baseContext;
+      const {
+        fetchWithAuth,
+        globalClassFilter: _gcf,
+        setGlobalClassFilter: _sgcf,
+        ...dataValues
+      } = baseContext;
 
       const wrapper = ({ children }) => (
         <TestAuthContext.Provider value={{ fetchWithAuth }}>
           <TestDataContext.Provider value={dataValues}>
-            <TestUIContext.Provider value={{ globalClassFilter: 'all', setGlobalClassFilter: mockSetGlobalClassFilter }}>
+            <TestUIContext.Provider
+              value={{ globalClassFilter: 'all', setGlobalClassFilter: mockSetGlobalClassFilter }}
+            >
               {children}
             </TestUIContext.Provider>
           </TestDataContext.Provider>
@@ -294,10 +302,10 @@ describe('HomeReadingRegister Component', () => {
       const context = createMockContext({
         classes: [
           { id: 'class-1', name: 'Class 1A', disabled: false },
-          { id: 'class-3', name: 'Disabled Class', disabled: true }
+          { id: 'class-3', name: 'Disabled Class', disabled: true },
         ],
         globalClassFilter: 'class-3', // Try to select disabled class
-        setGlobalClassFilter: mockSetGlobalClassFilter
+        setGlobalClassFilter: mockSetGlobalClassFilter,
       });
 
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
@@ -342,7 +350,7 @@ describe('HomeReadingRegister Component', () => {
     it('should show "No students in this class" when class has no students', () => {
       const context = createMockContext({
         globalClassFilter: 'class-3', // Disabled class - no students will match
-        students: [] // Empty students
+        students: [], // Empty students
       });
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
 
@@ -360,7 +368,7 @@ describe('HomeReadingRegister Component', () => {
       expect(screen.getByText('Clear')).toBeInTheDocument();
       // Date columns should be present (day abbreviations for current week)
       const dayAbbreviations = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-      const foundDays = dayAbbreviations.filter(day => screen.queryByText(day));
+      const foundDays = dayAbbreviations.filter((day) => screen.queryByText(day));
       expect(foundDays.length).toBeGreaterThan(0);
     });
   });
@@ -383,7 +391,7 @@ describe('HomeReadingRegister Component', () => {
       const mockAddReadingSession = vi.fn();
       const context = createMockContext({
         globalClassFilter: 'class-1',
-        addReadingSession: mockAddReadingSession
+        addReadingSession: mockAddReadingSession,
       });
       const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
@@ -397,11 +405,14 @@ describe('HomeReadingRegister Component', () => {
       await user.click(readButton);
 
       await waitFor(() => {
-        expect(mockAddReadingSession).toHaveBeenCalledWith('student-1', expect.objectContaining({
-          date: getYesterday(),
-          assessment: null,
-          location: 'home'
-        }));
+        expect(mockAddReadingSession).toHaveBeenCalledWith(
+          'student-1',
+          expect.objectContaining({
+            date: getYesterday(),
+            assessment: null,
+            location: 'home',
+          })
+        );
       });
     });
 
@@ -409,7 +420,7 @@ describe('HomeReadingRegister Component', () => {
       const mockAddReadingSession = vi.fn();
       const context = createMockContext({
         globalClassFilter: 'class-1',
-        addReadingSession: mockAddReadingSession
+        addReadingSession: mockAddReadingSession,
       });
       const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
@@ -423,10 +434,13 @@ describe('HomeReadingRegister Component', () => {
       await user.click(absentButton);
 
       await waitFor(() => {
-        expect(mockAddReadingSession).toHaveBeenCalledWith('student-1', expect.objectContaining({
-          notes: expect.stringContaining('[ABSENT]'),
-          location: 'home'
-        }));
+        expect(mockAddReadingSession).toHaveBeenCalledWith(
+          'student-1',
+          expect.objectContaining({
+            notes: expect.stringContaining('[ABSENT]'),
+            location: 'home',
+          })
+        );
       });
     });
 
@@ -434,7 +448,7 @@ describe('HomeReadingRegister Component', () => {
       const mockAddReadingSession = vi.fn();
       const context = createMockContext({
         globalClassFilter: 'class-1',
-        addReadingSession: mockAddReadingSession
+        addReadingSession: mockAddReadingSession,
       });
       const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
@@ -448,10 +462,13 @@ describe('HomeReadingRegister Component', () => {
       await user.click(noRecordButton);
 
       await waitFor(() => {
-        expect(mockAddReadingSession).toHaveBeenCalledWith('student-1', expect.objectContaining({
-          notes: expect.stringContaining('[NO_RECORD]'),
-          location: 'home'
-        }));
+        expect(mockAddReadingSession).toHaveBeenCalledWith(
+          'student-1',
+          expect.objectContaining({
+            notes: expect.stringContaining('[NO_RECORD]'),
+            location: 'home',
+          })
+        );
       });
     });
 
@@ -476,7 +493,7 @@ describe('HomeReadingRegister Component', () => {
       const mockAddReadingSession = vi.fn();
       const context = createMockContext({
         globalClassFilter: 'class-1',
-        addReadingSession: mockAddReadingSession
+        addReadingSession: mockAddReadingSession,
       });
       const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
@@ -493,10 +510,13 @@ describe('HomeReadingRegister Component', () => {
         // Should be called twice (once per day)
         expect(mockAddReadingSession).toHaveBeenCalledTimes(2);
         // Both calls should be home sessions with no notes
-        expect(mockAddReadingSession).toHaveBeenCalledWith('student-1', expect.objectContaining({
-          notes: '',
-          location: 'home'
-        }));
+        expect(mockAddReadingSession).toHaveBeenCalledWith(
+          'student-1',
+          expect.objectContaining({
+            notes: '',
+            location: 'home',
+          })
+        );
       });
     });
 
@@ -504,7 +524,7 @@ describe('HomeReadingRegister Component', () => {
       const mockAddReadingSession = vi.fn();
       const context = createMockContext({
         globalClassFilter: 'class-1',
-        addReadingSession: mockAddReadingSession
+        addReadingSession: mockAddReadingSession,
       });
       const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
@@ -536,7 +556,7 @@ describe('HomeReadingRegister Component', () => {
       const mockAddReadingSession = vi.fn();
       const context = createMockContext({
         globalClassFilter: 'class-1',
-        addReadingSession: mockAddReadingSession
+        addReadingSession: mockAddReadingSession,
       });
       const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
@@ -565,9 +585,9 @@ describe('HomeReadingRegister Component', () => {
           {
             id: 'student-1',
             name: 'Only Student',
-            classId: 'class-1'
-          }
-        ]
+            classId: 'class-1',
+          },
+        ],
       });
       const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
@@ -596,8 +616,8 @@ describe('HomeReadingRegister Component', () => {
           {
             id: 'student-1',
             name: 'Alice Smith',
-            classId: 'class-1'
-          }
+            classId: 'class-1',
+          },
         ],
         sessions: [
           {
@@ -606,9 +626,9 @@ describe('HomeReadingRegister Component', () => {
             date: getToday(),
             location: 'home',
             assessment: 8,
-            notes: ''
-          }
-        ]
+            notes: '',
+          },
+        ],
       });
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
 
@@ -627,14 +647,14 @@ describe('HomeReadingRegister Component', () => {
           {
             id: 'student-1',
             name: 'Alice Smith',
-            classId: 'class-1'
-          }
+            classId: 'class-1',
+          },
         ],
         sessions: [
           { id: 'session-1', studentId: 'student-1', date: today, location: 'home', notes: '' },
           { id: 'session-2', studentId: 'student-1', date: today, location: 'home', notes: '' },
-          { id: 'session-3', studentId: 'student-1', date: today, location: 'school', notes: '' }
-        ]
+          { id: 'session-3', studentId: 'student-1', date: today, location: 'school', notes: '' },
+        ],
       });
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
 
@@ -652,9 +672,9 @@ describe('HomeReadingRegister Component', () => {
         students: [
           {
             id: 'student-1',
-            name: 'Zoe Absent',  // Use different name to avoid matching button labels
-            classId: 'class-1'
-          }
+            name: 'Zoe Absent', // Use different name to avoid matching button labels
+            classId: 'class-1',
+          },
         ],
         sessions: [
           {
@@ -663,9 +683,9 @@ describe('HomeReadingRegister Component', () => {
             date: getToday(),
             location: 'home',
             assessment: 8,
-            notes: '[ABSENT] Student was absent'
-          }
-        ]
+            notes: '[ABSENT] Student was absent',
+          },
+        ],
       });
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
 
@@ -685,8 +705,8 @@ describe('HomeReadingRegister Component', () => {
           {
             id: 'student-1',
             name: 'Alice Smith',
-            classId: 'class-1'
-          }
+            classId: 'class-1',
+          },
         ],
         sessions: [
           {
@@ -695,9 +715,9 @@ describe('HomeReadingRegister Component', () => {
             date: getToday(),
             location: 'home',
             assessment: 8,
-            notes: '[NO_RECORD] No reading record received'
-          }
-        ]
+            notes: '[NO_RECORD] No reading record received',
+          },
+        ],
       });
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
 
@@ -718,8 +738,8 @@ describe('HomeReadingRegister Component', () => {
           {
             id: 'student-1',
             name: 'Alice Smith',
-            classId: 'class-1'
-          }
+            classId: 'class-1',
+          },
         ],
         sessions: [
           {
@@ -728,9 +748,9 @@ describe('HomeReadingRegister Component', () => {
             date: getYesterday(),
             location: 'home',
             assessment: 8,
-            notes: ''
-          }
-        ]
+            notes: '',
+          },
+        ],
       });
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
 
@@ -749,8 +769,8 @@ describe('HomeReadingRegister Component', () => {
           {
             id: 'student-1',
             name: 'Alice Smith',
-            classId: 'class-1'
-          }
+            classId: 'class-1',
+          },
         ],
         sessions: [
           {
@@ -759,9 +779,9 @@ describe('HomeReadingRegister Component', () => {
             date: getYesterday(),
             location: 'home',
             assessment: 8,
-            notes: ''
-          }
-        ]
+            notes: '',
+          },
+        ],
       });
       const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
@@ -827,36 +847,48 @@ describe('HomeReadingRegister Component', () => {
           {
             id: 'student-1',
             name: 'Alice Smith',
-            classId: 'class-1'
+            classId: 'class-1',
           },
           {
             id: 'student-2',
             name: 'Bob Jones',
-            classId: 'class-1'
+            classId: 'class-1',
           },
           {
             id: 'student-3',
             name: 'Charlie Absent',
-            classId: 'class-1'
+            classId: 'class-1',
           },
           {
             id: 'student-4',
             name: 'Diana NoRecord',
-            classId: 'class-1'
+            classId: 'class-1',
           },
           {
             id: 'student-5',
             name: 'Eve NotEntered',
-            classId: 'class-1'
-          }
+            classId: 'class-1',
+          },
         ],
         sessions: [
           { id: 's1', studentId: 'student-1', date: getYesterday(), location: 'home', notes: '' },
           { id: 's2a', studentId: 'student-2', date: getYesterday(), location: 'home', notes: '' },
           { id: 's2b', studentId: 'student-2', date: getYesterday(), location: 'home', notes: '' },
-          { id: 's3', studentId: 'student-3', date: getYesterday(), location: 'home', notes: '[ABSENT]' },
-          { id: 's4', studentId: 'student-4', date: getYesterday(), location: 'home', notes: '[NO_RECORD]' }
-        ]
+          {
+            id: 's3',
+            studentId: 'student-3',
+            date: getYesterday(),
+            location: 'home',
+            notes: '[ABSENT]',
+          },
+          {
+            id: 's4',
+            studentId: 'student-4',
+            date: getYesterday(),
+            location: 'home',
+            notes: '[NO_RECORD]',
+          },
+        ],
       });
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
 
@@ -889,7 +921,7 @@ describe('HomeReadingRegister Component', () => {
       const mockUpdateStudentCurrentBook = vi.fn();
       const context = createMockContext({
         globalClassFilter: 'class-1',
-        updateStudentCurrentBook: mockUpdateStudentCurrentBook
+        updateStudentCurrentBook: mockUpdateStudentCurrentBook,
       });
       const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
@@ -914,7 +946,7 @@ describe('HomeReadingRegister Component', () => {
       const mockAddReadingSession = vi.fn();
       const context = createMockContext({
         globalClassFilter: 'class-1',
-        addReadingSession: mockAddReadingSession
+        addReadingSession: mockAddReadingSession,
       });
       const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
@@ -934,7 +966,7 @@ describe('HomeReadingRegister Component', () => {
       const mockAddReadingSession = vi.fn().mockRejectedValue(new Error('API Error'));
       const context = createMockContext({
         globalClassFilter: 'class-1',
-        addReadingSession: mockAddReadingSession
+        addReadingSession: mockAddReadingSession,
       });
       const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
@@ -955,7 +987,7 @@ describe('HomeReadingRegister Component', () => {
     it('should handle empty classes array', () => {
       const context = createMockContext({
         classes: [],
-        globalClassFilter: 'all'
+        globalClassFilter: 'all',
       });
 
       // Should render without crashing
@@ -970,10 +1002,10 @@ describe('HomeReadingRegister Component', () => {
           {
             id: 'student-1',
             name: 'No Sessions Student',
-            classId: 'class-1'
-          }
+            classId: 'class-1',
+          },
         ],
-        sessions: [] // No sessions returned from API
+        sessions: [], // No sessions returned from API
       });
 
       // Component should render without crashing
@@ -988,13 +1020,13 @@ describe('HomeReadingRegister Component', () => {
           {
             id: 'student-1',
             name: 'Multi Session Student',
-            classId: 'class-1'
-          }
+            classId: 'class-1',
+          },
         ],
         sessions: [
           { id: 's1', studentId: 'student-1', date: getToday(), location: 'home', notes: '' },
-          { id: 's2', studentId: 'student-1', date: getToday(), location: 'school', notes: '' }
-        ]
+          { id: 's2', studentId: 'student-1', date: getToday(), location: 'school', notes: '' },
+        ],
       });
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
 
@@ -1013,7 +1045,7 @@ describe('HomeReadingRegister Component', () => {
       const context = createMockContext({
         globalClassFilter: 'class-1',
         addReadingSession: mockAddReadingSession,
-        fetchWithAuth: mockFetchWithAuth
+        fetchWithAuth: mockFetchWithAuth,
       });
       const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
@@ -1026,8 +1058,8 @@ describe('HomeReadingRegister Component', () => {
 
       // After recording, it should have called fetchWithAuth again for sessions (refresh)
       await waitFor(() => {
-        const sessionCalls = mockFetchWithAuth.mock.calls.filter(
-          call => call[0].startsWith('/api/students/sessions')
+        const sessionCalls = mockFetchWithAuth.mock.calls.filter((call) =>
+          call[0].startsWith('/api/students/sessions')
         );
         // At least 2 calls: initial fetch + refresh after recording
         expect(sessionCalls.length).toBeGreaterThanOrEqual(2);

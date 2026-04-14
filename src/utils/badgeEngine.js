@@ -67,7 +67,9 @@ export async function recalculateStats(db, studentId, organizationId) {
   const books = booksResult.results || [];
   const bookMap = new Map(books.map((b) => [b.id, b]));
 
-  // Fetch genre names for classification (genres are global, not org-scoped)
+  // Fetch genre names for classification. Genres are a platform-wide reference
+  // table: only the owner role can create/edit them (see src/routes/genres.js),
+  // so there's no cross-tenant write path. Reading unscoped is safe.
   const genresResult = await db.prepare('SELECT id, name FROM genres').all();
   const genreNameMap = new Map((genresResult.results || []).map((g) => [g.id, g.name]));
 

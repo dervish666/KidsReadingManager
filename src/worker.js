@@ -577,7 +577,7 @@ export default Sentry.withSentry(
 
               for (const org of staleOrgs.results || []) {
                 try {
-                  const result = await hardDeleteOrganization(db, org.id);
+                  const result = await hardDeleteOrganization(db, org.id, env);
                   console.log(
                     `[Cron] Purged org ${org.id}: ${result.tablesProcessed} tables, ${result.errors.length} errors`
                   );
@@ -613,8 +613,23 @@ export default Sentry.withSentry(
 
           let totalStudents = 0;
           let totalNewBadges = 0;
+          let orgsProcessed = 0;
+          let orgsSkipped = 0;
+          // Scheduled Workers have a 30s CPU limit; bail before we breach it so the
+          // cleanup logic still runs. Remaining orgs pick up on the next night's cron.
+          const BUDGET_MS = 22_000;
+          const cronStart = Date.now();
 
           for (const org of orgs.results || []) {
+            if (Date.now() - cronStart > BUDGET_MS) {
+              orgsSkipped = (orgs.results || []).length - orgsProcessed;
+              console.warn(
+                `[Cron] Badge budget exhausted after ${orgsProcessed} orgs; ${orgsSkipped} deferred to next run`
+              );
+              break;
+            }
+
+            const orgStart = Date.now();
             // Get active students with at least one session
             const students = await db
               .prepare(
@@ -640,10 +655,14 @@ export default Sentry.withSentry(
                 );
               }
             }
+            orgsProcessed++;
+            console.log(
+              `[Cron] Badge org ${org.id}: ${students.results?.length || 0} students in ${Date.now() - orgStart}ms`
+            );
           }
 
           console.log(
-            `[Cron] Badge evaluation complete: ${totalStudents} students, ${totalNewBadges} new badges`
+            `[Cron] Badge evaluation complete: ${orgsProcessed} orgs (${orgsSkipped} deferred), ${totalStudents} students, ${totalNewBadges} new badges, ${Date.now() - cronStart}ms`
           );
 
           // ── Class goals drift correction ──────────────────────────────────
@@ -716,6 +735,7 @@ export default Sentry.withSentry(
                   );
                   await runFullSync(org.id, schoolToken, org.wonde_school_id, db, {
                     updatedAfter: org.wonde_last_sync_at,
+                    kv: env.READING_MANAGER_KV,
                   });
                   return org.id;
                 })

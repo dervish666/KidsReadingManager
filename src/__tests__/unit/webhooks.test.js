@@ -90,6 +90,11 @@ describe('Wonde Webhook Handler', () => {
     mockDb = createMockDb();
     env = {
       READING_MANAGER_DB: mockDb,
+      READING_MANAGER_KV: {
+        get: vi.fn().mockResolvedValue(null),
+        put: vi.fn().mockResolvedValue(undefined),
+        delete: vi.fn().mockResolvedValue(undefined),
+      },
       JWT_SECRET: 'test-secret-key',
       WONDE_WEBHOOK_SECRET: 'test-webhook-secret',
     };
@@ -153,7 +158,8 @@ describe('Wonde Webhook Handler', () => {
         expect.any(String), // orgId (UUID)
         'tok_abc123', // school token
         'A1234567890', // wonde school id
-        mockDb // database
+        mockDb, // database
+        expect.objectContaining({ kv: expect.any(Object) })
       );
     });
 

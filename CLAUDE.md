@@ -113,6 +113,7 @@ src/utils/badgeEngine.js - Stats calculation, real-time/batch evaluation, genre 
 src/utils/stripe.js - Stripe client factory, price ID helpers, AI add-on detection
 src/utils/statsExport.js - PDF/CSV stats report generation (jsPDF)
 src/utils/titleMatching.js - Title normalization and similarity scoring for metadata APIs
+src/utils/orgStatusCache.js - KV cache for organization is_active + subscription_status (tenantMiddleware reads, Stripe webhook/org deactivate/purge invalidate)
 
 <!-- Contexts & Hooks -->
 src/contexts/AuthContext.js - Auth tokens, user, fetchWithAuth, login/logout, permissions, org switching

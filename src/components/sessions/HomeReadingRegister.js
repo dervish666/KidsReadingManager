@@ -198,19 +198,25 @@ const HomeReadingRegister = () => {
     }
     if (!fetchStartDateISO || !endDateISO) return;
 
+    const controller = new AbortController();
     setSessionsLoading(true);
     fetchWithAuth(
-      `/api/students/sessions?classId=${effectiveClassId}&startDate=${fetchStartDateISO}&endDate=${endDateISO}`
+      `/api/students/sessions?classId=${effectiveClassId}&startDate=${fetchStartDateISO}&endDate=${endDateISO}`,
+      { signal: controller.signal }
     )
       .then((r) => (r.ok ? r.json() : []))
       .then((sessions) => {
         setClassSessions(sessions);
         setSessionsLoading(false);
       })
-      .catch(() => {
+      .catch((error) => {
+        if (error.name === 'AbortError') return;
         setClassSessions([]);
         setSessionsLoading(false);
       });
+    return () => {
+      controller.abort();
+    };
   }, [effectiveClassId, fetchStartDateISO, endDateISO, fetchWithAuth]);
 
   // Refresh sessions after mutations (add/delete)
@@ -221,7 +227,12 @@ const HomeReadingRegister = () => {
     )
       .then((r) => (r.ok ? r.json() : []))
       .then(setClassSessions)
-      .catch(() => {});
+      .catch((err) => {
+        console.error('[HomeReading] session refresh failed', err);
+        setSnackbarMessage('Could not refresh the register. Your last change was saved, though.');
+        setSnackbarSeverity('warning');
+        setSnackbarOpen(true);
+      });
   }, [effectiveClassId, fetchStartDateISO, endDateISO, fetchWithAuth]);
 
   // Fetch selected student's full reading history

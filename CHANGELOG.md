@@ -1,5 +1,28 @@
 # Changelog
 
+## [3.49.0] - 2026-04-14
+
+### Security
+- **Google API key now sent via header, not URL query** — `fetchProviderModels` for Google Gemini was passing the key as `?key=…`, leaving it in proxy logs, browser history, and Referer headers. Switched to the `x-goog-api-key` header to match Anthropic/OpenAI handlers.
+- **Plaintext fallback in `decryptSensitiveData` now logs a warning** — colon-less data is still returned as-is for backward compatibility, but each occurrence emits `console.warn` so Sentry surfaces fields that escaped encryption. Sets up a future fail-closed migration once production telemetry is clean.
+- **Generic error message for failed book-import batches** — `confirmBatchImport` was forwarding raw D1 error text (UNIQUE constraint hints, table names) to authenticated clients. Now returns "Import batch failed. Please contact support." with the real error logged server-side only.
+- **Defense-in-depth org scope on class soft-delete** — both UPDATE statements in `DELETE /api/classes/:id` now include `AND organization_id = ?`. The pre-existence check already blocked cross-org exploitation, but matching the defensive pattern used elsewhere costs nothing.
+
+### Added
+- **Per-org KV cache for tenant middleware** — new `src/utils/orgStatusCache.js` caches `(is_active, subscription_status)` in `READING_MANAGER_KV` with a 5-minute TTL. `tenantMiddleware` no longer hits D1 for the org-status lookup on every authenticated request. Stripe webhook handlers (`subscription.created/updated/deleted`, `invoice.paid/payment_failed`), `DELETE /api/organization/:id`, and `hardDeleteOrganization` all invalidate the cache so a missed event self-heals within five minutes.
+- **Per-org sync lock for Wonde** — `runFullSync` accepts an optional KV binding via `options.kv` and acquires a `wondeSync:lock:${orgId}` key with a 10-minute TTL. Concurrent calls (cron + manual sync, or two webhook deliveries) for the same org skip cleanly with `status: 'skipped'` instead of racing through truncate/insert phases. Lock is released in `finally` and self-clears via TTL if the Worker dies.
+- **Typed-DELETE confirmation for platform AI key removal** — `PlatformSettings.handleDeleteKey` now opens a Dialog requiring the user to type `DELETE` before the key is removed. Prevents misclick disasters where a single click would disable AI for every school relying on the platform key.
+- **Badge-cron observability + 22s budget** — the 2:30 AM badge evaluation cron now logs per-org timing and bails out before the 30s Worker CPU limit. Remaining orgs defer to the next nightly run instead of silently truncating mid-evaluation. Final log line reports orgs processed, deferred, students touched, badges awarded, and total elapsed.
+- **Focus restoration on `StudentDetailDrawer` close** — the drawer captures `document.activeElement` when opened and restores focus on close. Keyboard and screen-reader users no longer drop to `<body>`.
+- **`QuickReadingView` book cell is keyboard-accessible** — the per-row "edit book" TableCell now has `role="button"`, `tabIndex={0}`, an `onKeyDown` handler for Enter/Space, an `aria-label` describing the action and current book, and a focus-visible ring. Previously a mouse-only target.
+- **`AbortController` on the HomeReadingRegister class-sessions fetch** — the second useEffect was already wired up last cycle; the first one (the main register data fetch at `HomeReadingRegister.js:194-214`) was missed. Rapid class/date switches no longer race stale responses over fresher state.
+
+### Fixed
+- **Atomic organisation purge** — `hardDeleteOrganization` now executes its 26 cascade deletes plus the `data_rights_log` insert/cleanup and the anonymise UPDATE in a single `db.batch()`. Previously, a mid-purge D1 failure left the org tombstoned with partial data still resident — a GDPR failure mode. The function now throws on batch failure so callers can retry instead of falsely declaring the purge complete.
+- **HomeReadingRegister silent refresh failures** — `refreshSessions` was catching `()=>{}`. After a save it'd leave the register stale with no signal. Now logs to Sentry-via-console and shows a warning Snackbar so volunteers know to retry.
+- **Wonde `schoolApproved` silent fetchSchoolDetails failure** — escalated `console.warn` → `console.error` with the failing `school_id` so Sentry surfaces orgs that were created with null contact/address fields.
+- **Stripe trial-ending email failure escalation** — same pattern; missed reminder emails now leave a Sentry-visible breadcrumb with the org and event IDs so ops can manually resend before the trial actually ends.
+
 ## [3.48.2] - 2026-04-14
 
 ### Changed

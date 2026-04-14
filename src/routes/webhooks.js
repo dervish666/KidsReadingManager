@@ -73,7 +73,10 @@ webhooksRouter.post('/wonde', async (c) => {
       try {
         schoolDetails = await fetchSchoolDetails(body.school_token, body.school_id);
       } catch (err) {
-        console.warn(`[Webhook] Could not fetch school details: ${err.message}`);
+        // Org will be created with null contact/address fields. Escalate so ops can retry via Wonde admin.
+        console.error(
+          `[Webhook] schoolApproved: fetchSchoolDetails failed for school_id=${body.school_id}: ${err.message}`
+        );
       }
 
       const contactEmail = (schoolDetails?.email || '').trim().substring(0, 200) || null;
@@ -149,7 +152,9 @@ webhooksRouter.post('/wonde', async (c) => {
       }
 
       // Trigger full sync in background
-      const syncPromise = runFullSync(orgId, body.school_token, body.school_id, db);
+      const syncPromise = runFullSync(orgId, body.school_token, body.school_id, db, {
+        kv: c.env.READING_MANAGER_KV,
+      });
       try {
         // executionCtx is a read-only getter that throws when unavailable
         c.executionCtx.waitUntil(syncPromise);

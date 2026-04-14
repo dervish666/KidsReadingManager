@@ -5,6 +5,7 @@
 
 import { verifyAccessToken, hasPermission, ROLES } from '../utils/crypto.js';
 import { PUBLIC_PATHS } from '../utils/constants.js';
+import { getCachedOrgStatus, setCachedOrgStatus } from '../utils/orgStatusCache.js';
 
 /**
  * JWT Authentication Middleware
@@ -103,23 +104,34 @@ export function tenantMiddleware() {
     const db = c.env.READING_MANAGER_DB;
     if (db) {
       try {
-        const org = await db
-          .prepare('SELECT id, is_active, subscription_status FROM organizations WHERE id = ?')
-          .bind(targetOrgId)
-          .first();
+        // Try KV cache first (5-min TTL); invalidated by Stripe webhook + org deactivation.
+        let status = await getCachedOrgStatus(c.env, targetOrgId);
 
-        if (!org) {
-          return c.json({ error: 'Organization not found' }, 404);
+        if (!status) {
+          const org = await db
+            .prepare('SELECT id, is_active, subscription_status FROM organizations WHERE id = ?')
+            .bind(targetOrgId)
+            .first();
+
+          if (!org) {
+            return c.json({ error: 'Organization not found' }, 404);
+          }
+
+          status = {
+            is_active: org.is_active ? 1 : 0,
+            subscription_status: org.subscription_status || 'none',
+          };
+          await setCachedOrgStatus(c.env, targetOrgId, status);
         }
 
-        if (!org.is_active) {
+        if (!status.is_active) {
           return c.json({ error: 'Organization is inactive' }, 403);
         }
 
-        c.set('subscriptionStatus', org.subscription_status || 'none');
+        c.set('subscriptionStatus', status.subscription_status);
 
         // Update the organizationId in context if owner is switching
-        if (overrideOrgId && userRole === 'owner' && org) {
+        if (overrideOrgId && userRole === 'owner') {
           c.set('organizationId', targetOrgId);
         }
       } catch (error) {

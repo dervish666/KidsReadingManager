@@ -184,7 +184,9 @@ wondeAdminRouter.post('/sync', requireAdmin(), async (c) => {
   }
 
   // Run full sync
-  const result = await runFullSync(orgId, schoolToken, org.wonde_school_id, db);
+  const result = await runFullSync(orgId, schoolToken, org.wonde_school_id, db, {
+    kv: c.env.READING_MANAGER_KV,
+  });
 
   return c.json({
     success: result.status === 'completed',
@@ -256,7 +258,9 @@ wondeAdminRouter.post('/sync/:orgId', requireOwner(), async (c) => {
   }
 
   // Run full data sync (students, classes, employees)
-  const result = await runFullSync(orgId, schoolToken, org.wonde_school_id, db);
+  const result = await runFullSync(orgId, schoolToken, org.wonde_school_id, db, {
+    kv: c.env.READING_MANAGER_KV,
+  });
 
   return c.json({
     success: result.status === 'completed',

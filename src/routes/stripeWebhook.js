@@ -10,6 +10,7 @@ import { Hono } from 'hono';
 import { getStripe, getPlanFromPriceId, hasAiAddon } from '../utils/stripe.js';
 import { generateId } from '../utils/helpers.js';
 import { sendTrialEndingEmail } from '../utils/email.js';
+import { invalidateOrgStatus } from '../utils/orgStatusCache.js';
 
 /**
  * Normalize Stripe subscription status to consistent British spelling.
@@ -136,6 +137,7 @@ stripeWebhookRouter.post('/', async (c) => {
           )
           .bind(...params)
           .run();
+        await invalidateOrgStatus(c.env, orgRecord.id);
         break;
       }
 
@@ -148,6 +150,7 @@ stripeWebhookRouter.post('/', async (c) => {
           )
           .bind(customerId)
           .run();
+        if (orgRecord) await invalidateOrgStatus(c.env, orgRecord.id);
         break;
       }
 
@@ -160,6 +163,7 @@ stripeWebhookRouter.post('/', async (c) => {
           )
           .bind(customerId)
           .run();
+        if (orgRecord) await invalidateOrgStatus(c.env, orgRecord.id);
         break;
       }
 
@@ -172,6 +176,7 @@ stripeWebhookRouter.post('/', async (c) => {
           )
           .bind(customerId)
           .run();
+        if (orgRecord) await invalidateOrgStatus(c.env, orgRecord.id);
         break;
       }
 
@@ -210,7 +215,11 @@ stripeWebhookRouter.post('/', async (c) => {
             }
           }
         } catch (emailErr) {
-          console.error('[Stripe Webhook] Failed to send trial reminder:', emailErr.message);
+          // Webhook stays successful (idempotent via billing_events) but the school misses the
+          // reminder. Escalate via Sentry so ops can manually resend.
+          console.error(
+            `[Stripe Webhook] Trial-ending email failed for org=${trialOrg?.id} event=${event.id}: ${emailErr.message}`
+          );
         }
         break;
       }

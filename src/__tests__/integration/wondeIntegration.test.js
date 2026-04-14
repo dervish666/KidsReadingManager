@@ -360,7 +360,8 @@ describe('Wonde + MyLogin Integration', () => {
         expect.any(String), // orgId
         SCHOOL_TOKEN,
         WONDE_SCHOOL_ID,
-        env.READING_MANAGER_DB
+        env.READING_MANAGER_DB,
+        expect.objectContaining({ kv: expect.anything() })
       );
     });
   });

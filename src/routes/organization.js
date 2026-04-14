@@ -11,6 +11,7 @@ import { requireDB as getDB } from '../utils/routeHelpers.js';
 import { rowToOrganization } from '../utils/rowMappers.js';
 import { notFoundError, badRequestError, createError } from '../middleware/errorHandler.js';
 import { hardDeleteOrganization } from '../services/orgPurge.js';
+import { invalidateOrgStatus } from '../utils/orgStatusCache.js';
 
 export const organizationRouter = new Hono();
 
@@ -853,7 +854,7 @@ organizationRouter.delete(
     }
 
     // hardDeleteOrganization handles legal_hold and purged_at checks (throws 409)
-    const result = await hardDeleteOrganization(db, orgId);
+    const result = await hardDeleteOrganization(db, orgId, c.env);
     return c.json(result);
   }
 );
@@ -908,6 +909,8 @@ organizationRouter.delete('/:id', requireOwner(), auditLog('delete', 'organizati
         )
         .bind(orgId),
     ]);
+
+    await invalidateOrgStatus(c.env, orgId);
 
     return c.json({ message: 'Organization deactivated successfully' });
   } catch (error) {

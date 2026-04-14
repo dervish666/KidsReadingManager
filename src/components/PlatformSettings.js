@@ -20,6 +20,11 @@ import {
   Select,
   MenuItem,
   InputLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import SaveIcon from '@mui/icons-material/Save';
@@ -49,6 +54,8 @@ const PlatformSettings = () => {
   const [models, setModels] = useState([]);
   const [loadingModels, setLoadingModels] = useState(false);
   const [selectedModel, setSelectedModel] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
   const fetchModels = useCallback(async () => {
     setLoadingModels(true);
@@ -140,7 +147,22 @@ const PlatformSettings = () => {
     }
   };
 
-  const handleDeleteKey = async (provider) => {
+  const requestDeleteKey = (provider) => {
+    setDeleteTarget(provider);
+    setDeleteConfirmText('');
+  };
+
+  const cancelDeleteKey = () => {
+    setDeleteTarget(null);
+    setDeleteConfirmText('');
+  };
+
+  const confirmDeleteKey = async () => {
+    const provider = deleteTarget;
+    if (!provider) return;
+
+    setDeleteTarget(null);
+    setDeleteConfirmText('');
     setDeletingProvider(provider);
     try {
       const response = await fetchWithAuth(`${API_URL}/settings/platform-ai/${provider}`, {
@@ -365,10 +387,11 @@ const PlatformSettings = () => {
                     <Tooltip title="Remove API key">
                       <IconButton
                         color="error"
-                        onClick={() => handleDeleteKey(provider.key)}
+                        onClick={() => requestDeleteKey(provider.key)}
                         disabled={isDeleting}
                         size="small"
                         sx={{ minWidth: 40, minHeight: 40 }}
+                        aria-label={`Remove ${provider.name} API key`}
                       >
                         {isDeleting ? <CircularProgress size={18} /> : <DeleteIcon />}
                       </IconButton>
@@ -485,6 +508,43 @@ const PlatformSettings = () => {
           </>
         )}
       </Paper>
+
+      <Dialog
+        open={Boolean(deleteTarget)}
+        onClose={cancelDeleteKey}
+        aria-labelledby="platform-ai-delete-title"
+      >
+        <DialogTitle id="platform-ai-delete-title">
+          Remove {deleteTarget ? getProviderName(deleteTarget) : ''} key?
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            This disables AI features for every school relying on the platform{' '}
+            {deleteTarget ? getProviderName(deleteTarget) : ''} key. Schools with their own key are
+            unaffected. Type <strong>DELETE</strong> to confirm.
+          </DialogContentText>
+          <TextField
+            autoFocus
+            fullWidth
+            size="small"
+            value={deleteConfirmText}
+            onChange={(e) => setDeleteConfirmText(e.target.value)}
+            placeholder="DELETE"
+            inputProps={{ 'aria-label': 'Type DELETE to confirm' }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={cancelDeleteKey}>Cancel</Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={confirmDeleteKey}
+            disabled={deleteConfirmText !== 'DELETE'}
+          >
+            Remove key
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
