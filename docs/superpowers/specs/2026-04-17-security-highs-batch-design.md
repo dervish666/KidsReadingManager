@@ -29,16 +29,18 @@ Scope was deliberately tightened from the pen-test's "This week" list to exclude
 **Root cause reframing:** the pen-test recommends HMAC signatures. Wonde's published documentation (`https://docs.wonde.com/docs/api/sync/`) does not describe any webhook signing mechanism — shared secret via query string or header is what the platform offers. So the realistic fix is to make the existing server-side verification authoritative rather than advisory.
 
 **Fix:**
-- In the `schoolApproved` branch of `src/routes/webhooks.js`, restructure the `fetchSchoolDetails` call:
-  - If it throws OR returns null OR the returned `school_id` does not match the body's `school_id` → respond `400` with `{ error: 'Could not verify school with Wonde' }`, do **not** create or update the organization.
-  - If it succeeds and matches → proceed as today.
-- The existing "create with null contact fields" fallback path is deleted. For a leaked-secret attack, the attacker must also supply a valid `school_token` paired with the claimed `school_id` — which is equivalent to already having Wonde access, so nothing new is compromised.
+- In the `schoolApproved` branch of `src/routes/webhooks.js`, the `fetchSchoolDetails` call runs **before** the existing-vs-new org split at line 92. The verification guard therefore covers **both** the create branch (new org) and the reactivation branch (existing soft-deleted org that the webhook is re-approving). Reactivation is the more attacker-valuable path — a leaked secret + a known `school_id` could otherwise flip a previously-revoked org back to `is_active = 1` with a forged token.
+  - If `fetchSchoolDetails` throws OR returns null OR the returned `school_id` does not match the body's `school_id` → respond `400` with `{ error: 'Could not verify school with Wonde' }`, do **not** touch the database at all.
+  - If it succeeds and matches → proceed as today through the existing branch split.
+- The "create/reactivate with null contact fields" fallback path is deleted. For a leaked-secret attack, the attacker must also supply a valid `school_token` paired with the claimed `school_id` — which is equivalent to already having Wonde access, so nothing new is compromised.
 - Other payload types (`accessRevoked`, `accessDeclined`, `schoolMigration`) unchanged — they operate on existing orgs via `wonde_school_id` lookup, so they don't create new trust surface.
 
 **Tests (new file `src/__tests__/integration/webhooks.test.js`):**
-- Valid secret + `fetchSchoolDetails` returns matching school details → org created (`201`).
-- Valid secret + `fetchSchoolDetails` throws → `400`, no org `INSERT` issued.
-- Valid secret + `fetchSchoolDetails` returns details with mismatched `school_id` → `400`, no org `INSERT`.
+- Valid secret + `fetchSchoolDetails` returns matching school details + no existing org → org created (`201`), INSERT issued.
+- Valid secret + `fetchSchoolDetails` returns matching school details + existing soft-deleted org → reactivation UPDATE issued, `is_active` flips to 1.
+- Valid secret + `fetchSchoolDetails` throws + no existing org → `400`, no INSERT issued.
+- Valid secret + `fetchSchoolDetails` throws + existing soft-deleted org → `400`, **no reactivation UPDATE issued** (the attacker-valuable path).
+- Valid secret + `fetchSchoolDetails` returns details with mismatched `school_id` → `400`, no DB writes.
 - Invalid secret → `401` (existing behaviour, regression guard).
 
 **Rollout:** No migration. Env var already in place. Pure handler logic change.
@@ -90,11 +92,11 @@ ALTER TABLE billing_events ADD COLUMN processed_at TEXT;
 -- flow. Without this, the first webhook after deploy would see 0 matches
 -- for any historic event and would re-process from scratch on retry.
 UPDATE billing_events SET processed = 1, processed_at = created_at WHERE processed = 0;
-
--- New dedup index covers (stripe_event_id, processed) lookups.
-CREATE INDEX IF NOT EXISTS idx_billing_events_stripe_event_processed
-  ON billing_events(stripe_event_id, processed);
 ```
+
+No new index. `billing_events.stripe_event_id` already carries `UNIQUE` (migration 0038), so dedup lookups are already indexed. A composite `(stripe_event_id, processed)` would be redundant storage.
+
+**Pre-deploy safety check (advisory):** Before applying, run `SELECT COUNT(*) FROM billing_events WHERE created_at > datetime('now','-7 days')` against production and spot-check the count against Stripe's event log for the same window. If the two diverge significantly, review individual events before letting the backfill flip `processed = 1` for them.
 
 **Handler changes** (`src/routes/stripeWebhook.js`):
 
@@ -107,17 +109,22 @@ CREATE INDEX IF NOT EXISTS idx_billing_events_stripe_event_processed
      .first();
    if (existing) return c.json({ received: true, status: 'already_processed' });
    ```
-3. Record the event with `INSERT OR IGNORE` (a previous failed attempt might have inserted a `processed=0` row already):
+3. Record the event with `INSERT OR IGNORE` (a previous failed attempt might have inserted a `processed=0` row already). **Preserve the existing `if (orgRecord)` guard** — `billing_events.organization_id` is `NOT NULL` (migration 0038 line 23), so events without a resolvable customer/org cannot be inserted. Current behaviour for those events is a no-op (each state-mutation case checks `if (!customerId || !orgRecord) break`); we preserve that.
+
    ```js
-   const eventRowId = generateId();
-   await db
-     .prepare(
-       `INSERT OR IGNORE INTO billing_events (id, organization_id, event_type, stripe_event_id, data, created_at, processed)
-        VALUES (?, ?, ?, ?, ?, datetime('now'), 0)`
-     )
-     .bind(eventRowId, orgRecord?.id || null, event.type, event.id, JSON.stringify({...}))
-     .run();
+   if (orgRecord) {
+     const eventRowId = generateId();
+     await db
+       .prepare(
+         `INSERT OR IGNORE INTO billing_events (id, organization_id, event_type, stripe_event_id, data, created_at, processed)
+          VALUES (?, ?, ?, ?, ?, datetime('now'), 0)`
+       )
+       .bind(eventRowId, orgRecord.id, event.type, event.id, JSON.stringify({...}))
+       .run();
+   }
    ```
+
+   For events arriving without a resolvable org (`orgRecord === null`): the handler remains a no-op but still returns 200. This matches today's semantics; a webhook for a customer we don't have is not retriable on our end anyway.
 4. Run the state mutation switch inside `try`.
 5. **On success:**
    ```js
