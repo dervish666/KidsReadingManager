@@ -52,9 +52,6 @@ files:
       - name: loginWithEmail
         params: [email, password]
         description: Multi-tenant email/password login
-      - name: register
-        params: [organizationName, userName, email, password]
-        description: Create new organization and account
       - name: forgotPassword
         params: [email]
       - name: resetPassword

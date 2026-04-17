@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.51.0] - 2026-04-17
+
+### Security
+- **Public registration disabled by default (C1)** — `POST /api/auth/register` now returns 404 unless `PUBLIC_REGISTRATION_ENABLED=true` is set. The endpoint was unused by the production frontend (the `register` export from `AuthContext` was imported into `Login.js` but never called); removed the dead client code. Closes the pen-test finding where a single IP could create ~14,400 owner-role orgs/day, each draining Anthropic/OpenAI/Hardcover quota via passing `subscriptionGate`.
+- **Security headers served on every static asset response (C2)** — new `public/_headers` file wires CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Strict-Transport-Security, and Permissions-Policy into the Cloudflare `[assets]` runtime. The Worker-level headers were dead because `run_worker_first = ['/api/*']` bypasses the Worker for non-API paths. CSP tuned for the real dependency graph (Sentry including Session Replay, Google Fonts, MUI runtime styles, same-origin covers); adds HSTS preload and `upgrade-insecure-requests` for first-visit TLS hardening, plus `object-src 'none'` and `manifest-src 'self'` for defense-in-depth.
+- **OAuth state now expires after 10 minutes (C3)** — `mylogin.js` callback SELECT filters `created_at > datetime('now', '-10 minutes')`. Captured state values can no longer replay for up to ~26 hours between cleanup runs.
+- **Admin cannot reset owner password (C4)** — `POST /api/users/:id/reset-password` now throws 403 when the target is owner and the caller is not. Matches the pattern on DELETE, PUT, and DELETE /erase for the same router. Closes the admin → owner escalation path via mailbox-compromise.
+- **Covers endpoint rate-limited at 60 req/min/IP (H8)** — `/api/covers/*` is public and was unthrottled; scripted cache misses could drain Google Books and Hardcover quotas and fill R2 permanently. Mirrors the `/api/contact` and `/api/signup` rate-limit pattern, applied via `coversRouter.use('*', …)` so it covers the `/search` and `/:type/:key` sub-paths. R2 LRU eviction for `search/*` keys tracked as a separate follow-up.
+
+### Removed
+- **Dead `register` plumbing from `AuthContext` and `Login`** — the `register` `useCallback`, two `useMemo` exports, and the unused import in `Login.js`. Also removed from `.claude/structure/contexts-hooks.yaml`.
+
 ## [3.50.1] - 2026-04-17
 
 ### Fixed
