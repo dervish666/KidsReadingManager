@@ -48,7 +48,9 @@ const createMockDB = (queryHandler) => {
   const calls = [];
 
   const db = {
+    _prepareCalls: 0,
     prepare: vi.fn((sql) => {
+      db._prepareCalls += 1;
       calls.push(sql);
       const chain = {
         bind: vi.fn((...args) => {
@@ -97,6 +99,7 @@ const createTestApp = (mockDB) => {
       READING_MANAGER_DB: mockDB,
       APP_URL: 'http://localhost:3000',
       ENVIRONMENT: 'development',
+      PUBLIC_REGISTRATION_ENABLED: 'true',
     };
     await next();
   });
@@ -893,6 +896,41 @@ describe('Auth API Routes', () => {
       expect(response.status).toBe(201);
       // Slug was checked at least twice (first taken, then unique)
       expect(slugCheckCount).toBe(2);
+    });
+  });
+
+  // ===========================================================================
+  // 4b. Registration: Disabled by default (C1 pen-test fix)
+  // ===========================================================================
+  describe('POST /api/auth/register - Disabled by default', () => {
+    it('returns 404 and writes nothing when PUBLIC_REGISTRATION_ENABLED is not "true"', async () => {
+      const mockDB = createMockDB();
+      const app = new Hono();
+      app.use('*', async (c, next) => {
+        c.env = {
+          JWT_SECRET: TEST_SECRET,
+          READING_MANAGER_DB: mockDB,
+          APP_URL: 'http://localhost:3000',
+          ENVIRONMENT: 'development',
+          // PUBLIC_REGISTRATION_ENABLED deliberately unset
+        };
+        await next();
+      });
+      app.route('/api/auth', authRouter);
+
+      const response = await app.request('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          organizationName: 'Probe',
+          email: 'probe@example.com',
+          password: 'Hunter2!StrongPw',
+          name: 'Probe User',
+        }),
+      });
+
+      expect(response.status).toBe(404);
+      expect(mockDB._prepareCalls).toBe(0);
     });
   });
 

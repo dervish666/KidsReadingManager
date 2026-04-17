@@ -626,6 +626,15 @@ usersRouter.post('/:id/reset-password', requireAdmin(), auditLog('update', 'user
       throw notFoundError('User not found');
     }
 
+    // Only owners can reset owner passwords — otherwise a compromised admin
+    // account could trigger a reset email for the owner and pair it with an
+    // email-interception vector (shared school inbox, forwarding rule) for
+    // full takeover.
+    const currentUserRole = c.get('userRole');
+    if (existingUser.role === 'owner' && currentUserRole !== 'owner') {
+      throw forbiddenError('Cannot reset owner password');
+    }
+
     // Generate new temporary password
     const newPassword = generateTemporaryPassword();
     const passwordHash = await hashPassword(newPassword);

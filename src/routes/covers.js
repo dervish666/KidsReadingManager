@@ -2,10 +2,17 @@ import { Hono } from 'hono';
 import { fetchWithTimeout } from '../utils/helpers.js';
 import { getConfigWithKeys } from './metadata.js';
 import { getEncryptionSecret, hashToken } from '../utils/crypto.js';
+import { rateLimit } from '../middleware/tenant.js';
 import { fetchMetadata as googleBooksFetch } from '../services/providers/googleBooksProvider.js';
 import { fetchMetadata as hardcoverFetch } from '../services/providers/hardcoverProvider.js';
 
 const coversRouter = new Hono();
+
+// H8: cap unauthenticated cover lookups. 60/min per IP is generous for
+// normal classroom load (a single class rarely renders more than ~30
+// covers) while blocking scripted enumeration that would burn external
+// provider quota and fill R2 with orphan keys.
+coversRouter.use('*', rateLimit(60, 60000));
 
 // Valid cover types for /:type/:key
 const VALID_TYPES = new Set(['id', 'olid', 'isbn', 'ia']);
