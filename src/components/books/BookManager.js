@@ -616,7 +616,13 @@ const BookManager = () => {
                   }
                 >
                   <Box sx={{ mr: 1.5, flexShrink: 0 }}>
-                    <BookCover title={book.title} author={book.author} width={40} height={56} />
+                    <BookCover
+                      title={book.title}
+                      author={book.author}
+                      isbn={book.isbn || null}
+                      width={40}
+                      height={56}
+                    />
                   </Box>
                   <ListItemText
                     primary={

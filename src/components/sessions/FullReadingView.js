@@ -708,6 +708,7 @@ const FullReadingView = ({
                         <BookCover
                           title={book?.title || 'Unknown'}
                           author={book?.author}
+                          isbn={book?.isbn || null}
                           width={70}
                           height={100}
                         />

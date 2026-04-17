@@ -10,11 +10,11 @@ vi.mock('../../contexts/AuthContext', () => ({
 
 import ClassAssignmentBanner from '../../components/ClassAssignmentBanner';
 
-const createWrapper = (user) => ({ children }) => (
-  <TestAuthContext.Provider value={{ user }}>
-    {children}
-  </TestAuthContext.Provider>
-);
+const createWrapper =
+  (user) =>
+  ({ children }) => (
+    <TestAuthContext.Provider value={{ user }}>{children}</TestAuthContext.Provider>
+  );
 
 describe('ClassAssignmentBanner', () => {
   beforeEach(() => {

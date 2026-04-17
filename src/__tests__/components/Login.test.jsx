@@ -8,7 +8,7 @@ const TestAuthContext = createContext();
 
 // Mock the AuthContext module (Login uses useAuth)
 vi.mock('../../contexts/AuthContext', () => ({
-  useAuth: () => useContext(TestAuthContext)
+  useAuth: () => useContext(TestAuthContext),
 }));
 
 // Import Login after mocking
@@ -17,9 +17,7 @@ import Login from '../../components/Login';
 // Mock AuthContext provider wrapper
 const createWrapper = (contextValue) => {
   return ({ children }) => (
-    <TestAuthContext.Provider value={contextValue}>
-      {children}
-    </TestAuthContext.Provider>
+    <TestAuthContext.Provider value={contextValue}>{children}</TestAuthContext.Provider>
   );
 };
 
@@ -31,7 +29,7 @@ const createMockContext = (overrides = {}) => ({
   apiError: null,
   isMultiTenantMode: false,
   serverAuthModeDetected: true,
-  ...overrides
+  ...overrides,
 });
 
 describe('Login Component', () => {
@@ -82,7 +80,7 @@ describe('Login Component', () => {
       const mockLogin = vi.fn().mockResolvedValue(undefined);
       const context = createMockContext({
         isMultiTenantMode: false,
-        login: mockLogin
+        login: mockLogin,
       });
       const user = userEvent.setup();
 
@@ -101,7 +99,7 @@ describe('Login Component', () => {
       const mockLogin = vi.fn().mockRejectedValue(new Error('Invalid password'));
       const context = createMockContext({
         isMultiTenantMode: false,
-        login: mockLogin
+        login: mockLogin,
       });
       const user = userEvent.setup();
 
@@ -119,10 +117,12 @@ describe('Login Component', () => {
     });
 
     it('should show submitting state while logging in', async () => {
-      const mockLogin = vi.fn().mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
+      const mockLogin = vi
+        .fn()
+        .mockImplementation(() => new Promise((resolve) => setTimeout(resolve, 100)));
       const context = createMockContext({
         isMultiTenantMode: false,
-        login: mockLogin
+        login: mockLogin,
       });
       const user = userEvent.setup();
 
@@ -140,7 +140,7 @@ describe('Login Component', () => {
     it('should handle missing login function gracefully', async () => {
       const context = createMockContext({
         isMultiTenantMode: false,
-        login: undefined
+        login: undefined,
       });
       const user = userEvent.setup();
 
@@ -206,7 +206,7 @@ describe('Login Component', () => {
       const mockLoginWithEmail = vi.fn().mockResolvedValue(undefined);
       const context = createMockContext({
         isMultiTenantMode: true,
-        loginWithEmail: mockLoginWithEmail
+        loginWithEmail: mockLoginWithEmail,
       });
       const user = userEvent.setup();
 
@@ -241,7 +241,7 @@ describe('Login Component', () => {
     it('should display API error from context', () => {
       const context = createMockContext({
         isMultiTenantMode: true,
-        apiError: 'Server error occurred'
+        apiError: 'Server error occurred',
       });
 
       render(<Login />, { wrapper: createWrapper(context) });
@@ -263,7 +263,7 @@ describe('Login Component', () => {
       const mockLogin = vi.fn().mockResolvedValue(undefined);
       const context = createMockContext({
         isMultiTenantMode: false,
-        login: mockLogin
+        login: mockLogin,
       });
       const user = userEvent.setup();
 

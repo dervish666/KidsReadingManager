@@ -285,18 +285,13 @@ describe('Email Service', () => {
         expect(consoleErrorSpy).toHaveBeenCalled();
       });
 
-      it('should prefer Resend over Cloudflare when both are configured', async () => {
+      it('should prefer Cloudflare over Resend when both are configured', async () => {
         const mockEmailBinding = createMockEmailBinding();
         const envWithBoth = {
           RESEND_API_KEY: 'test-resend-key',
           EMAIL_SENDER: mockEmailBinding,
           EMAIL_FROM: 'both@myapp.com',
         };
-
-        global.fetch.mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ id: 'resend-email-id' }),
-        });
 
         const result = await sendPasswordResetEmail(
           envWithBoth,
@@ -307,8 +302,63 @@ describe('Email Service', () => {
         );
 
         expect(result.success).toBe(true);
+        expect(mockEmailBinding.send).toHaveBeenCalledTimes(1);
+        expect(global.fetch).not.toHaveBeenCalled();
+      });
+
+      it('should call Cloudflare binding with plain-object API (not EmailMessage)', async () => {
+        const mockEmailBinding = createMockEmailBinding();
+        const env = { EMAIL_SENDER: mockEmailBinding, EMAIL_FROM: 'cf@myapp.com' };
+
+        await sendPasswordResetEmail(
+          env,
+          'user@example.com',
+          'Test User',
+          'token123',
+          'https://app.example.com'
+        );
+
+        expect(mockEmailBinding.send).toHaveBeenCalledTimes(1);
+        const arg = mockEmailBinding.send.mock.calls[0][0];
+        expect(arg).toMatchObject({
+          from: 'cf@myapp.com',
+          to: 'user@example.com',
+          subject: 'Reset your Tally Reading password',
+        });
+        expect(arg.text).toContain('Hi Test User');
+        expect(arg.html).toContain('Reset Password');
+      });
+
+      it('should fall back to Resend when Cloudflare send fails', async () => {
+        const mockEmailBinding = {
+          send: vi.fn().mockRejectedValue(new Error('CF transient failure')),
+        };
+        const env = {
+          RESEND_API_KEY: 'resend-key',
+          EMAIL_SENDER: mockEmailBinding,
+          EMAIL_FROM: 'fallback@myapp.com',
+        };
+
+        global.fetch.mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ id: 'resend-backup-id' }),
+        });
+
+        const result = await sendPasswordResetEmail(
+          env,
+          defaultParams.recipientEmail,
+          defaultParams.recipientName,
+          defaultParams.resetToken,
+          defaultParams.baseUrl
+        );
+
+        expect(result.success).toBe(true);
+        expect(mockEmailBinding.send).toHaveBeenCalledTimes(1);
         expect(global.fetch).toHaveBeenCalledTimes(1);
-        expect(mockEmailBinding.send).not.toHaveBeenCalled();
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+          expect.stringContaining('Cloudflare Email send failed for password reset'),
+          'CF transient failure'
+        );
       });
     });
 
@@ -325,7 +375,7 @@ describe('Email Service', () => {
         expect(result.success).toBe(false);
         expect(result.error).toBe('Email service not configured');
         expect(consoleWarnSpy).toHaveBeenCalledWith(
-          'No email provider configured. Set RESEND_API_KEY or EMAIL_SENDER binding.'
+          'No email provider configured for password reset.'
         );
       });
 
@@ -870,13 +920,30 @@ describe('Email Service', () => {
   });
 
   describe('Provider priority', () => {
-    it('should use Resend as first priority when available', async () => {
+    it('should use Cloudflare as first priority when available', async () => {
       const mockEmailBinding = {
         send: vi.fn().mockResolvedValue(undefined),
       };
       const env = {
         RESEND_API_KEY: 'resend-key',
         EMAIL_SENDER: mockEmailBinding,
+      };
+
+      await sendPasswordResetEmail(
+        env,
+        'test@example.com',
+        'Test User',
+        'token',
+        'https://example.com'
+      );
+
+      expect(mockEmailBinding.send).toHaveBeenCalledTimes(1);
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it('should use Resend when Cloudflare binding is not configured', async () => {
+      const env = {
+        RESEND_API_KEY: 'resend-key',
       };
 
       global.fetch.mockResolvedValueOnce({
@@ -893,10 +960,9 @@ describe('Email Service', () => {
       );
 
       expect(global.fetch).toHaveBeenCalledTimes(1);
-      expect(mockEmailBinding.send).not.toHaveBeenCalled();
     });
 
-    it('should fall back to Cloudflare when Resend is not configured', async () => {
+    it('should use Cloudflare when Resend is not configured', async () => {
       const mockEmailBinding = {
         send: vi.fn().mockResolvedValue(undefined),
       };

@@ -7,7 +7,6 @@ import Header from './components/Header';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AppProvider } from './contexts/AppContext';
 import { useAuth } from './contexts/AuthContext';
-import { BookCoverProvider } from './contexts/BookCoverContext';
 import TourProvider from './components/tour/TourProvider';
 import Login from './components/Login';
 const LandingPage = React.lazy(() => import('./components/LandingPage'));
@@ -402,11 +401,9 @@ function App() {
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <AppProvider>
-          <BookCoverProvider>
-            <TourProvider>
-              <AppContent />
-            </TourProvider>
-          </BookCoverProvider>
+          <TourProvider>
+            <AppContent />
+          </TourProvider>
         </AppProvider>
       </ThemeProvider>
     </ErrorBoundary>

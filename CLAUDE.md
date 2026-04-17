@@ -44,7 +44,7 @@ src/routes/students.js - GET/POST/PUT/DELETE student CRUD, bulk import
 src/routes/books.js - GET/POST/PUT/DELETE books, AI recommendations, search, CSV import
 src/routes/classes.js - GET/POST/PUT/DELETE class management, GET/PUT class goals
 src/routes/genres.js - GET/POST/PUT/DELETE genre management
-src/routes/covers.js - GET book covers from R2 cache + OpenLibrary fallback
+src/routes/covers.js - GET book covers; R2 cache + OpenLibrary → Google Books → Hardcover fallback (ISBN via /:type/:key, title+author via /search)
 src/routes/users.js - GET/POST/PUT/DELETE user management (admin only)
 src/routes/organization.js - GET/POST/PUT/DELETE org settings, AI config, audit log, purge (Article 17)
 src/routes/settings.js - GET/POST application settings and AI configuration
@@ -120,8 +120,6 @@ src/contexts/AuthContext.js - Auth tokens, user, fetchWithAuth, login/logout, pe
 src/contexts/DataContext.js - Students, classes, books, genres, settings, all CRUD operations
 src/contexts/UIContext.js - Class filter, priority list, reading status, tours
 src/contexts/AppContext.js - Composite provider (nests Auth > Data > UI), re-exports hooks
-src/contexts/BookCoverContext.js - Book cover URL caching (localStorage, 7-day TTL)
-src/hooks/useBookCover.js - Hook for book cover fetching with deduplication
 src/hooks/useEnrichmentPolling.js - Polling hook for metadata enrichment job progress
 
 <!-- Frontend Components - Root -->
@@ -401,7 +399,7 @@ Unified register for class-wide home reading: status buttons (read/multiple/abse
 
 ### Book Cover System
 
-Covers fetched from OpenLibrary with multi-strategy lookup (ISBN → OCLC → title), request deduplication, localStorage caching (`src/contexts/BookCoverContext.js`), and deterministic gradient placeholders from title hash.
+`BookCover` (`src/components/BookCover.js`) resolves covers entirely via the worker. Two routes exist on `/api/covers` (`src/routes/covers.js`): `/:type/:key` for identifier-based lookups (ISBN, OpenLibrary ID) and `/search?title=…&author=…` for title-based lookups. Both check R2 first, then chain OpenLibrary → Google Books → Hardcover (the same provider adapters used for metadata enrichment). Successful covers are cached in R2 for 30 days; 404s carry a 1-hour Cache-Control so broken titles don't hammer providers. Component behaviour: prefer the ISBN URL when available, fall through to the search URL on image error, and show a deterministic gradient placeholder (`BookCoverPlaceholder`) if all attempts fail.
 
 ### Multi-School Library Import
 

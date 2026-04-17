@@ -10,57 +10,57 @@ const TestUIContext = createContext();
 
 // Mock the context modules (StudentTable uses useData and useUI)
 vi.mock('../../contexts/DataContext', () => ({
-  useData: () => useContext(TestDataContext)
+  useData: () => useContext(TestDataContext),
 }));
 vi.mock('../../contexts/UIContext', () => ({
-  useUI: () => useContext(TestUIContext)
+  useUI: () => useContext(TestUIContext),
 }));
 
 // Mock the StudentDetailDrawer component to simplify testing
 vi.mock('../../components/students/StudentDetailDrawer', () => ({
-  default: ({ open, onClose, student }) => (
+  default: ({ open, onClose, student }) =>
     open ? (
       <div data-testid="student-detail-drawer" role="dialog">
         <span data-testid="drawer-student-name">{student?.name}</span>
         <button onClick={onClose}>Close Drawer</button>
       </div>
-    ) : null
-  )
+    ) : null,
 }));
 
 // Import after mocking
 import StudentTable from '../../components/students/StudentTable';
 
 // Create a theme with status colors for testing
-const createTestTheme = () => createTheme({
-  palette: {
-    primary: {
-      main: '#1976d2',
-      dark: '#115293',
+const createTestTheme = () =>
+  createTheme({
+    palette: {
+      primary: {
+        main: '#1976d2',
+        dark: '#115293',
+      },
+      success: {
+        main: '#4caf50',
+        dark: '#388e3c',
+      },
+      warning: {
+        main: '#ff9800',
+      },
+      error: {
+        main: '#f44336',
+      },
+      status: {
+        recent: '#4caf50',
+        attention: '#ff9800',
+        overdue: '#f44336',
+        never: '#9e9e9e',
+        notRead: '#f44336',
+        needsAttention: '#ff9800',
+      },
+      action: {
+        hover: 'rgba(0, 0, 0, 0.04)',
+      },
     },
-    success: {
-      main: '#4caf50',
-      dark: '#388e3c',
-    },
-    warning: {
-      main: '#ff9800',
-    },
-    error: {
-      main: '#f44336',
-    },
-    status: {
-      recent: '#4caf50',
-      attention: '#ff9800',
-      overdue: '#f44336',
-      never: '#9e9e9e',
-      notRead: '#f44336',
-      needsAttention: '#ff9800',
-    },
-    action: {
-      hover: 'rgba(0, 0, 0, 0.04)',
-    },
-  },
-});
+  });
 
 // Mock context provider wrapper with theme
 const createWrapper = (contextValue) => {
@@ -68,9 +68,7 @@ const createWrapper = (contextValue) => {
   return ({ children }) => (
     <ThemeProvider theme={createTestTheme()}>
       <TestDataContext.Provider value={{ classes }}>
-        <TestUIContext.Provider value={uiValues}>
-          {children}
-        </TestUIContext.Provider>
+        <TestUIContext.Provider value={uiValues}>{children}</TestUIContext.Provider>
       </TestDataContext.Provider>
     </ThemeProvider>
   );
@@ -81,7 +79,7 @@ const createMockContext = (overrides = {}) => ({
   classes: [
     { id: 'class-1', name: 'Class 1A', disabled: false },
     { id: 'class-2', name: 'Class 2B', disabled: false },
-    { id: 'class-3', name: 'Class 3C', disabled: true }
+    { id: 'class-3', name: 'Class 3C', disabled: true },
   ],
   getReadingStatus: vi.fn((student) => {
     if (!student || !student.lastReadDate) return 'notRead';
@@ -94,7 +92,7 @@ const createMockContext = (overrides = {}) => ({
   }),
   markStudentAsPriorityHandled: vi.fn(),
   markedPriorityStudentIds: new Set(),
-  ...overrides
+  ...overrides,
 });
 
 // Helper to create test students
@@ -134,7 +132,7 @@ const createTestStudents = () => [
     currentStreak: 3,
     readingLevel: '4.0',
     totalSessionCount: 2,
-  }
+  },
 ];
 
 describe('StudentTable Component', () => {
@@ -200,14 +198,16 @@ describe('StudentTable Component', () => {
 
     it('should display "Unassigned" for students without a class', () => {
       const context = createMockContext();
-      const studentsWithNoClass = [{
-        id: 'student-no-class',
-        name: 'No Class Student',
-        classId: null,
-        lastReadDate: null,
-        currentStreak: 0,
-        totalSessionCount: 0,
-      }];
+      const studentsWithNoClass = [
+        {
+          id: 'student-no-class',
+          name: 'No Class Student',
+          classId: null,
+          lastReadDate: null,
+          currentStreak: 0,
+          totalSessionCount: 0,
+        },
+      ];
       render(<StudentTable students={studentsWithNoClass} />, { wrapper: createWrapper(context) });
 
       expect(screen.getAllByText('Unassigned').length).toBeGreaterThan(0);
@@ -263,7 +263,9 @@ describe('StudentTable Component', () => {
       const rows = screen.getAllByRole('row').slice(1);
       // First row should have a Class 1A student (either Alice or Bob)
       const firstRowText = rows[0].textContent;
-      expect(firstRowText.includes('Alice Anderson') || firstRowText.includes('Bob Brown')).toBe(true);
+      expect(firstRowText.includes('Alice Anderson') || firstRowText.includes('Bob Brown')).toBe(
+        true
+      );
     });
 
     it('should sort by last read date when clicking last read column', async () => {
@@ -286,7 +288,9 @@ describe('StudentTable Component', () => {
       render(<StudentTable students={students} />, { wrapper: createWrapper(context) });
 
       // Click the Sessions column header
-      const sessionsSortLabel = screen.getByRole('button', { name: /sort by number of reading sessions/i });
+      const sessionsSortLabel = screen.getByRole('button', {
+        name: /sort by number of reading sessions/i,
+      });
       fireEvent.click(sessionsSortLabel);
 
       // Charlie (0 sessions) should come first with ascending order
@@ -299,7 +303,9 @@ describe('StudentTable Component', () => {
       const students = createTestStudents();
       render(<StudentTable students={students} />, { wrapper: createWrapper(context) });
 
-      const sessionsSortLabel = screen.getByRole('button', { name: /sort by number of reading sessions/i });
+      const sessionsSortLabel = screen.getByRole('button', {
+        name: /sort by number of reading sessions/i,
+      });
 
       // First click - ascending
       fireEvent.click(sessionsSortLabel);
@@ -351,13 +357,15 @@ describe('StudentTable Component', () => {
     it('should call markStudentAsPriorityHandled when clicking the book icon', async () => {
       const mockMarkStudent = vi.fn();
       const context = createMockContext({
-        markStudentAsPriorityHandled: mockMarkStudent
+        markStudentAsPriorityHandled: mockMarkStudent,
       });
       const students = createTestStudents();
       render(<StudentTable students={students} />, { wrapper: createWrapper(context) });
 
       // Find and click the "mark as reading today" button for Alice
-      const markButton = screen.getByRole('button', { name: /mark alice anderson as reading today/i });
+      const markButton = screen.getByRole('button', {
+        name: /mark alice anderson as reading today/i,
+      });
       fireEvent.click(markButton);
 
       expect(mockMarkStudent).toHaveBeenCalledWith('student-1');
@@ -366,12 +374,14 @@ describe('StudentTable Component', () => {
     it('should show snackbar after marking student', () => {
       const mockMarkStudent = vi.fn();
       const context = createMockContext({
-        markStudentAsPriorityHandled: mockMarkStudent
+        markStudentAsPriorityHandled: mockMarkStudent,
       });
       const students = createTestStudents();
       render(<StudentTable students={students} />, { wrapper: createWrapper(context) });
 
-      const markButton = screen.getByRole('button', { name: /mark alice anderson as reading today/i });
+      const markButton = screen.getByRole('button', {
+        name: /mark alice anderson as reading today/i,
+      });
       fireEvent.click(markButton);
 
       // Snackbar should appear immediately after click
@@ -380,24 +390,28 @@ describe('StudentTable Component', () => {
 
     it('should show check icon when student is already marked', () => {
       const context = createMockContext({
-        markedPriorityStudentIds: new Set(['student-1'])
+        markedPriorityStudentIds: new Set(['student-1']),
       });
       const students = createTestStudents();
       render(<StudentTable students={students} />, { wrapper: createWrapper(context) });
 
       // The button should now say "marked as reading today"
-      expect(screen.getByRole('button', { name: /alice anderson marked as reading today/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /alice anderson marked as reading today/i })
+      ).toBeInTheDocument();
     });
 
     it('should not open detail drawer when clicking mark button', async () => {
       const mockMarkStudent = vi.fn();
       const context = createMockContext({
-        markStudentAsPriorityHandled: mockMarkStudent
+        markStudentAsPriorityHandled: mockMarkStudent,
       });
       const students = createTestStudents();
       render(<StudentTable students={students} />, { wrapper: createWrapper(context) });
 
-      const markButton = screen.getByRole('button', { name: /mark alice anderson as reading today/i });
+      const markButton = screen.getByRole('button', {
+        name: /mark alice anderson as reading today/i,
+      });
       fireEvent.click(markButton);
 
       // Detail drawer should NOT be opened
@@ -420,15 +434,17 @@ describe('StudentTable Component', () => {
 
     it('should not display streak badge for students with no streak', () => {
       const context = createMockContext();
-      const studentsWithNoStreak = [{
-        id: 'student-no-streak',
-        name: 'No Streak Student',
-        classId: 'class-1',
-        lastReadDate: '2024-01-10',
-        currentStreak: 0,
-        readingLevel: '2.0',
-        totalSessionCount: 1,
-      }];
+      const studentsWithNoStreak = [
+        {
+          id: 'student-no-streak',
+          name: 'No Streak Student',
+          classId: 'class-1',
+          lastReadDate: '2024-01-10',
+          currentStreak: 0,
+          readingLevel: '2.0',
+          totalSessionCount: 1,
+        },
+      ];
       render(<StudentTable students={studentsWithNoStreak} />, { wrapper: createWrapper(context) });
 
       // Should only show "1" for session count, not as a streak badge
@@ -505,7 +521,7 @@ describe('StudentTable Component', () => {
         return 'recent';
       });
       const context = createMockContext({
-        getReadingStatus: mockGetReadingStatus
+        getReadingStatus: mockGetReadingStatus,
       });
       const students = createTestStudents();
       render(<StudentTable students={students} />, { wrapper: createWrapper(context) });
@@ -553,7 +569,9 @@ describe('StudentTable Component', () => {
       const students = createTestStudents();
       render(<StudentTable students={students} />, { wrapper: createWrapper(context) });
 
-      const sortButton = screen.getByRole('button', { name: /sort by number of reading sessions/i });
+      const sortButton = screen.getByRole('button', {
+        name: /sort by number of reading sessions/i,
+      });
       expect(sortButton).toHaveAttribute('aria-label');
       expect(sortButton.getAttribute('aria-label')).toContain('sessions');
     });
@@ -581,26 +599,42 @@ describe('StudentTable Component', () => {
       render(<StudentTable students={students} />, { wrapper: createWrapper(context) });
 
       // Each student should have a "mark as reading" button with descriptive aria-label
-      expect(screen.getByRole('button', { name: /mark alice anderson as reading today/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /mark bob brown as reading today/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /mark charlie chen as reading today/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /mark diana davis as reading today/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /mark alice anderson as reading today/i })
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /mark bob brown as reading today/i })
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /mark charlie chen as reading today/i })
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /mark diana davis as reading today/i })
+      ).toBeInTheDocument();
     });
 
     it('should update aria-label when student is marked as reading today', () => {
       const context = createMockContext({
-        markedPriorityStudentIds: new Set(['student-1', 'student-3'])
+        markedPriorityStudentIds: new Set(['student-1', 'student-3']),
       });
       const students = createTestStudents();
       render(<StudentTable students={students} />, { wrapper: createWrapper(context) });
 
       // Alice and Charlie are marked, so their buttons should reflect that
-      expect(screen.getByRole('button', { name: /alice anderson marked as reading today/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /charlie chen marked as reading today/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /alice anderson marked as reading today/i })
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /charlie chen marked as reading today/i })
+      ).toBeInTheDocument();
 
       // Bob and Diana are not marked
-      expect(screen.getByRole('button', { name: /mark bob brown as reading today/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /mark diana davis as reading today/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /mark bob brown as reading today/i })
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /mark diana davis as reading today/i })
+      ).toBeInTheDocument();
     });
 
     it('should be keyboard accessible via tabIndex on mark button', () => {
@@ -608,19 +642,23 @@ describe('StudentTable Component', () => {
       const students = [createTestStudents()[0]]; // Just Alice
       render(<StudentTable students={students} />, { wrapper: createWrapper(context) });
 
-      const markButton = screen.getByRole('button', { name: /mark alice anderson as reading today/i });
+      const markButton = screen.getByRole('button', {
+        name: /mark alice anderson as reading today/i,
+      });
       expect(markButton).toHaveAttribute('tabIndex', '0');
     });
 
     it('should handle keyboard activation on mark button', async () => {
       const mockMarkStudent = vi.fn();
       const context = createMockContext({
-        markStudentAsPriorityHandled: mockMarkStudent
+        markStudentAsPriorityHandled: mockMarkStudent,
       });
       const students = [createTestStudents()[0]]; // Just Alice
       render(<StudentTable students={students} />, { wrapper: createWrapper(context) });
 
-      const markButton = screen.getByRole('button', { name: /mark alice anderson as reading today/i });
+      const markButton = screen.getByRole('button', {
+        name: /mark alice anderson as reading today/i,
+      });
 
       // Focus and press Enter
       markButton.focus();
@@ -632,12 +670,14 @@ describe('StudentTable Component', () => {
     it('should handle spacebar activation on mark button', async () => {
       const mockMarkStudent = vi.fn();
       const context = createMockContext({
-        markStudentAsPriorityHandled: mockMarkStudent
+        markStudentAsPriorityHandled: mockMarkStudent,
       });
       const students = [createTestStudents()[0]]; // Just Alice
       render(<StudentTable students={students} />, { wrapper: createWrapper(context) });
 
-      const markButton = screen.getByRole('button', { name: /mark alice anderson as reading today/i });
+      const markButton = screen.getByRole('button', {
+        name: /mark alice anderson as reading today/i,
+      });
 
       // Focus and press Space
       markButton.focus();
@@ -661,15 +701,19 @@ describe('StudentTable Component', () => {
 
     it('should handle students with invalid classId', () => {
       const context = createMockContext();
-      const studentsWithInvalidClass = [{
-        id: 'student-invalid',
-        name: 'Invalid Class Student',
-        classId: 'non-existent-class',
-        lastReadDate: null,
-        currentStreak: 0,
-        totalSessionCount: 0,
-      }];
-      render(<StudentTable students={studentsWithInvalidClass} />, { wrapper: createWrapper(context) });
+      const studentsWithInvalidClass = [
+        {
+          id: 'student-invalid',
+          name: 'Invalid Class Student',
+          classId: 'non-existent-class',
+          lastReadDate: null,
+          currentStreak: 0,
+          totalSessionCount: 0,
+        },
+      ];
+      render(<StudentTable students={studentsWithInvalidClass} />, {
+        wrapper: createWrapper(context),
+      });
 
       // Should display "Unknown" for unmatched classId
       expect(screen.getAllByText('Unknown').length).toBeGreaterThan(0);
@@ -677,14 +721,16 @@ describe('StudentTable Component', () => {
 
     it('should use lastReadDate for display', () => {
       const context = createMockContext();
-      const studentWithLastRead = [{
-        id: 'student-sessions',
-        name: 'Session Student',
-        classId: 'class-1',
-        lastReadDate: '2024-01-24',
-        currentStreak: 1,
-        totalSessionCount: 2,
-      }];
+      const studentWithLastRead = [
+        {
+          id: 'student-sessions',
+          name: 'Session Student',
+          classId: 'class-1',
+          lastReadDate: '2024-01-24',
+          currentStreak: 1,
+          totalSessionCount: 2,
+        },
+      ];
       render(<StudentTable students={studentWithLastRead} />, { wrapper: createWrapper(context) });
 
       // Should show the lastReadDate
@@ -693,13 +739,15 @@ describe('StudentTable Component', () => {
 
     it('should handle null markStudentAsPriorityHandled gracefully', () => {
       const context = createMockContext({
-        markStudentAsPriorityHandled: null
+        markStudentAsPriorityHandled: null,
       });
       const students = [createTestStudents()[0]];
       render(<StudentTable students={students} />, { wrapper: createWrapper(context) });
 
       // Click should not throw an error
-      const markButton = screen.getByRole('button', { name: /mark alice anderson as reading today/i });
+      const markButton = screen.getByRole('button', {
+        name: /mark alice anderson as reading today/i,
+      });
       fireEvent.click(markButton);
 
       // Component should still be rendered
@@ -708,7 +756,7 @@ describe('StudentTable Component', () => {
 
     it('should handle undefined markedPriorityStudentIds', () => {
       const context = createMockContext({
-        markedPriorityStudentIds: undefined
+        markedPriorityStudentIds: undefined,
       });
       const students = createTestStudents();
 
@@ -723,12 +771,14 @@ describe('StudentTable Component', () => {
     it('should show snackbar when marking a student', () => {
       const mockMarkStudent = vi.fn();
       const context = createMockContext({
-        markStudentAsPriorityHandled: mockMarkStudent
+        markStudentAsPriorityHandled: mockMarkStudent,
       });
       const students = [createTestStudents()[0]];
       render(<StudentTable students={students} />, { wrapper: createWrapper(context) });
 
-      const markButton = screen.getByRole('button', { name: /mark alice anderson as reading today/i });
+      const markButton = screen.getByRole('button', {
+        name: /mark alice anderson as reading today/i,
+      });
       fireEvent.click(markButton);
 
       // Snackbar should appear
@@ -738,7 +788,7 @@ describe('StudentTable Component', () => {
     it('should include student name in snackbar message', () => {
       const mockMarkStudent = vi.fn();
       const context = createMockContext({
-        markStudentAsPriorityHandled: mockMarkStudent
+        markStudentAsPriorityHandled: mockMarkStudent,
       });
       const students = createTestStudents();
       render(<StudentTable students={students} />, { wrapper: createWrapper(context) });

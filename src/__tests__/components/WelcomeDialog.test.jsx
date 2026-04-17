@@ -36,15 +36,15 @@ const defaultUI = {
   markTourComplete: vi.fn(),
 };
 
-const createWrapper = (auth, data = defaultData, ui = defaultUI) => ({ children }) => (
-  <TestAuthContext.Provider value={auth}>
-    <TestDataContext.Provider value={data}>
-      <TestUIContext.Provider value={ui}>
-        {children}
-      </TestUIContext.Provider>
-    </TestDataContext.Provider>
-  </TestAuthContext.Provider>
-);
+const createWrapper =
+  (auth, data = defaultData, ui = defaultUI) =>
+  ({ children }) => (
+    <TestAuthContext.Provider value={auth}>
+      <TestDataContext.Provider value={data}>
+        <TestUIContext.Provider value={ui}>{children}</TestUIContext.Provider>
+      </TestDataContext.Provider>
+    </TestAuthContext.Provider>
+  );
 
 describe('WelcomeDialog', () => {
   beforeEach(() => {

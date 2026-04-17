@@ -131,15 +131,19 @@ files:
         requires: teacher
 
   covers.js:
-    description: Book cover image serving with R2 caching and OpenLibrary origin
+    description: Book cover image serving with R2 caching and multi-provider origin fallback (OpenLibrary → Google Books → Hardcover)
     exports:
       - name: coversRouter
         kind: object
         description: Hono router for cover endpoints
     endpoints:
       - route: GET /api/covers/:type/:key
-        description: Serve cover images with R2 cache + OpenLibrary fallback
+        description: Serve cover images by id|olid|isbn|ia identifier. R2 → OpenLibrary; for ISBN, falls through to Google Books → Hardcover.
         public: true
+      - route: GET /api/covers/search
+        description: Resolve a cover by title+author. Hashes normalized input for a stable R2 key; falls through OpenLibrary search → Google Books → Hardcover.
+        public: true
+        query_params: [title, author?]
 
   data.js:
     description: Legacy data export/import (single-tenant only)

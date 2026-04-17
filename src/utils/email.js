@@ -1,12 +1,18 @@
 /**
  * Email utilities for sending transactional emails
  *
- * Supports multiple email providers:
- * 1. Cloudflare Email Routing (send_email binding) - requires Email Routing enabled
- * 2. Resend - requires RESEND_API_KEY secret
- * 3. SMTP relay - requires SMTP_* environment variables
+ * Provider strategy:
+ * 1. Cloudflare Email Service (send_email binding) — primary. Uses the simple
+ *    object-based API introduced in public beta (2026-04-16). No MIME plumbing,
+ *    no cloudflare:email import — just env.EMAIL_SENDER.send({ to, from, ... }).
+ *    Cloudflare auto-manages SPF/DKIM/DMARC and IP reputation for
+ *    Email-Service-verified domains.
+ * 2. Resend (RESEND_API_KEY) — fallback. Catches Cloudflare failures during
+ *    the beta migration. Safe to remove once Cloudflare reaches GA and we've
+ *    validated deliverability.
  *
- * Falls back gracefully if no email provider is configured.
+ * If both fail (or neither is configured) the caller gets a graceful
+ * `{ success: false, error }` so transactional flows can proceed without crashing.
  */
 
 import { fetchWithTimeout } from './helpers.js';
@@ -20,6 +26,100 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+/**
+ * Unified send: try Cloudflare first, fall back to Resend on failure.
+ * @param {Object} env - Worker environment bindings
+ * @param {{from:string,to:string,subject:string,text:string,html:string}} message
+ * @param {string} logLabel - Short context label for logs (e.g. 'password reset')
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+async function sendEmail(env, message, logLabel) {
+  let cfError = null;
+
+  // Primary: Cloudflare Email Service (send_email binding)
+  if (env.EMAIL_SENDER) {
+    const result = await sendWithCloudflareEmail(env.EMAIL_SENDER, message);
+    if (result.success) return result;
+    cfError = result.error;
+    if (env.RESEND_API_KEY) {
+      console.warn(
+        `Cloudflare Email send failed for ${logLabel}, falling back to Resend:`,
+        cfError
+      );
+    }
+  }
+
+  // Fallback: Resend
+  if (env.RESEND_API_KEY) {
+    return sendWithResend(env.RESEND_API_KEY, message);
+  }
+
+  // Cloudflare was tried and failed, no Resend fallback configured — surface
+  // the original error so operators can see what broke.
+  if (cfError) {
+    return { success: false, error: cfError };
+  }
+
+  console.warn(`No email provider configured for ${logLabel}.`);
+  return { success: false, error: 'Email service not configured' };
+}
+
+/**
+ * Send email using Resend API
+ * @param {string} apiKey
+ * @param {{from:string,to:string,subject:string,text:string,html:string}} message
+ */
+async function sendWithResend(apiKey, { from, to, subject, text, html }) {
+  try {
+    const response = await fetchWithTimeout(
+      'https://api.resend.com/emails',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ from, to, subject, text, html }),
+      },
+      5000
+    );
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      console.error('Resend API error:', error);
+      return { success: false, error: error.message || 'Failed to send email' };
+    }
+
+    await response.json().catch(() => ({}));
+    return { success: true };
+  } catch (error) {
+    console.error('Resend send error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Send email using Cloudflare Email Service binding.
+ *
+ * Uses the simple object-based API from the public-beta Email Service
+ * (2026-04-16). The binding's .send() method now accepts a plain object with
+ * { from, to, subject, text, html } — no EmailMessage / MIME construction
+ * required. Cloudflare handles SPF/DKIM/DMARC and IP reputation automatically
+ * for domains approved for Email Service sending.
+ *
+ * @param {{ send: (msg: object) => Promise<void> }} emailBinding - env.EMAIL_SENDER
+ * @param {{from:string,to:string,subject:string,text:string,html:string}} message
+ */
+async function sendWithCloudflareEmail(emailBinding, { from, to, subject, text, html }) {
+  try {
+    await emailBinding.send({ from, to, subject, text, html });
+    return { success: true };
+  } catch (error) {
+    console.error('Cloudflare Email send error:', error);
+    return { success: false, error: error.message };
+  }
 }
 
 /**
@@ -91,129 +191,17 @@ If you didn't request this, you can safely ignore this email.
 </body>
 </html>`;
 
-  // Try Resend first (most reliable for transactional email)
-  if (env.RESEND_API_KEY) {
-    return await sendWithResend(
-      env.RESEND_API_KEY,
-      env.EMAIL_FROM || 'hello@tallyreading.uk',
-      recipientEmail,
+  return sendEmail(
+    env,
+    {
+      from: env.EMAIL_FROM || 'hello@tallyreading.uk',
+      to: recipientEmail,
       subject,
-      textBody,
-      htmlBody
-    );
-  }
-
-  // Try Cloudflare Email Routing binding
-  if (env.EMAIL_SENDER) {
-    // Cloudflare Email Routing selected
-    return await sendWithCloudflareEmail(
-      env.EMAIL_SENDER,
-      env.EMAIL_FROM || 'hello@tallyreading.uk',
-      recipientEmail,
-      subject,
-      textBody,
-      htmlBody
-    );
-  }
-
-  // No email provider configured
-  console.warn('No email provider configured. Set RESEND_API_KEY or EMAIL_SENDER binding.');
-  return {
-    success: false,
-    error: 'Email service not configured',
-  };
-}
-
-/**
- * Send email using Resend API
- */
-async function sendWithResend(apiKey, from, to, subject, text, html) {
-  try {
-    const response = await fetchWithTimeout(
-      'https://api.resend.com/emails',
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from,
-          to,
-          subject,
-          text,
-          html,
-        }),
-      },
-      5000
-    );
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      console.error('Resend API error:', error);
-      return { success: false, error: error.message || 'Failed to send email' };
-    }
-
-    const result = await response.json();
-    // Resend email sent successfully
-    return { success: true };
-  } catch (error) {
-    console.error('Resend send error:', error);
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * Send email using Cloudflare Email Routing binding
- * Requires the send_email binding to be configured in wrangler.toml
- */
-async function sendWithCloudflareEmail(emailBinding, from, to, subject, text, html) {
-  try {
-    // Import EmailMessage from cloudflare:email
-    const { EmailMessage } = await import('cloudflare:email');
-
-    // Generate a unique Message-ID (required by Cloudflare Email)
-    const messageId = `<${Date.now()}.${Math.random().toString(36).slice(2)}@tallyreading.uk>`;
-
-    // Build MIME message manually (simpler than importing mimetext)
-    const boundary = `----=_Part_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-
-    // Base64-encode HTML body to safely handle non-ASCII characters and long lines
-    const htmlBase64 = btoa(unescape(encodeURIComponent(html)));
-
-    const rawEmail = [
-      `From: ${from}`,
-      `To: ${to}`,
-      `Subject: ${subject}`,
-      `Message-ID: ${messageId}`,
-      `Date: ${new Date().toUTCString()}`,
-      `MIME-Version: 1.0`,
-      `Content-Type: multipart/alternative; boundary="${boundary}"`,
-      ``,
-      `--${boundary}`,
-      `Content-Type: text/plain; charset=utf-8`,
-      `Content-Transfer-Encoding: 7bit`,
-      ``,
-      text,
-      ``,
-      `--${boundary}`,
-      `Content-Type: text/html; charset=utf-8`,
-      `Content-Transfer-Encoding: base64`,
-      ``,
-      htmlBase64,
-      ``,
-      `--${boundary}--`,
-    ].join('\r\n');
-
-    const message = new EmailMessage(from, to, rawEmail);
-    await emailBinding.send(message);
-
-    // Cloudflare Email sent successfully
-    return { success: true };
-  } catch (error) {
-    console.error('Cloudflare Email send error:', error);
-    return { success: false, error: error.message };
-  }
+      text: textBody,
+      html: htmlBody,
+    },
+    'password reset'
+  );
 }
 
 /**
@@ -255,18 +243,17 @@ Time: ${timestamp}`;
 </body>
 </html>`;
 
-  // Try Resend first
-  if (env.RESEND_API_KEY) {
-    return await sendWithResend(env.RESEND_API_KEY, to, to, subject, textBody, htmlBody);
-  }
-
-  // Try Cloudflare Email Routing binding
-  if (env.EMAIL_SENDER) {
-    return await sendWithCloudflareEmail(env.EMAIL_SENDER, to, to, subject, textBody, htmlBody);
-  }
-
-  console.warn('No email provider configured for signup notification.');
-  return { success: false, error: 'Email service not configured' };
+  return sendEmail(
+    env,
+    {
+      from: to,
+      to,
+      subject,
+      text: textBody,
+      html: htmlBody,
+    },
+    'signup notification'
+  );
 }
 
 /**
@@ -330,32 +317,17 @@ ${loginUrl}
 </body>
 </html>`;
 
-  // Try Resend first
-  if (env.RESEND_API_KEY) {
-    return await sendWithResend(
-      env.RESEND_API_KEY,
-      env.EMAIL_FROM || 'hello@tallyreading.uk',
-      recipientEmail,
+  return sendEmail(
+    env,
+    {
+      from: env.EMAIL_FROM || 'hello@tallyreading.uk',
+      to: recipientEmail,
       subject,
-      textBody,
-      htmlBody
-    );
-  }
-
-  // Try Cloudflare Email Routing binding
-  if (env.EMAIL_SENDER) {
-    return await sendWithCloudflareEmail(
-      env.EMAIL_SENDER,
-      env.EMAIL_FROM || 'hello@tallyreading.uk',
-      recipientEmail,
-      subject,
-      textBody,
-      htmlBody
-    );
-  }
-
-  console.warn('No email provider configured for welcome email.');
-  return { success: false, error: 'Email service not configured' };
+      text: textBody,
+      html: htmlBody,
+    },
+    'welcome email'
+  );
 }
 
 /**
@@ -422,18 +394,11 @@ ${ticket.message}`;
 </body>
 </html>`;
 
-  // Try Resend first
-  if (env.RESEND_API_KEY) {
-    return await sendWithResend(env.RESEND_API_KEY, from, to, subject, textBody, htmlBody);
-  }
-
-  // Try Cloudflare Email Routing binding
-  if (env.EMAIL_SENDER) {
-    return await sendWithCloudflareEmail(env.EMAIL_SENDER, from, to, subject, textBody, htmlBody);
-  }
-
-  console.warn('No email provider configured for support notification.');
-  return { success: false, error: 'Email service not configured' };
+  return sendEmail(
+    env,
+    { from, to, subject, text: textBody, html: htmlBody },
+    'support notification'
+  );
 }
 
 /**
@@ -496,27 +461,9 @@ If you have any questions, reply to this email — we're happy to help.
 </body>
 </html>`;
 
-  if (env.RESEND_API_KEY) {
-    return await sendWithResend(
-      env.RESEND_API_KEY,
-      from,
-      recipientEmail,
-      subject,
-      textBody,
-      htmlBody
-    );
-  }
-  if (env.EMAIL_SENDER) {
-    return await sendWithCloudflareEmail(
-      env.EMAIL_SENDER,
-      from,
-      recipientEmail,
-      subject,
-      textBody,
-      htmlBody
-    );
-  }
-
-  console.warn('No email provider configured for trial reminder.');
-  return { success: false, error: 'Email service not configured' };
+  return sendEmail(
+    env,
+    { from, to: recipientEmail, subject, text: textBody, html: htmlBody },
+    'trial reminder'
+  );
 }

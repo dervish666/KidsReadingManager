@@ -10,13 +10,13 @@ const TestUIContext = createContext();
 
 // Mock the context modules (BookRecommendations uses useAuth, useData, useUI)
 vi.mock('../../contexts/AuthContext', () => ({
-  useAuth: () => useContext(TestAuthContext)
+  useAuth: () => useContext(TestAuthContext),
 }));
 vi.mock('../../contexts/DataContext', () => ({
-  useData: () => useContext(TestDataContext)
+  useData: () => useContext(TestDataContext),
 }));
 vi.mock('../../contexts/UIContext', () => ({
-  useUI: () => useContext(TestUIContext)
+  useUI: () => useContext(TestUIContext),
 }));
 
 // Mock tour hooks to avoid requiring TourProvider
@@ -36,7 +36,7 @@ vi.mock('../../components/students/StudentEditForm', () => ({
     <div data-testid="student-edit-form">
       <span>Edit Form: {student?.name}</span>
     </div>
-  ))
+  )),
 }));
 
 // Mock the BookCover component
@@ -50,7 +50,7 @@ vi.mock('../../components/BookCover', () => ({
     >
       Book Cover: {title}
     </div>
-  )
+  ),
 }));
 
 // Import after mocking
@@ -58,13 +58,12 @@ import BookRecommendations from '../../components/BookRecommendations';
 
 // Mock context provider wrapper — splits values across Auth, Data, UI contexts
 const createWrapper = (contextValue) => {
-  const { fetchWithAuth, apiError, students, classes, books, updateStudent, ...uiValues } = contextValue;
+  const { fetchWithAuth, apiError, students, classes, books, updateStudent, ...uiValues } =
+    contextValue;
   return ({ children }) => (
     <TestAuthContext.Provider value={{ fetchWithAuth, apiError }}>
       <TestDataContext.Provider value={{ students, classes, books, updateStudent }}>
-        <TestUIContext.Provider value={uiValues}>
-          {children}
-        </TestUIContext.Provider>
+        <TestUIContext.Provider value={uiValues}>{children}</TestUIContext.Provider>
       </TestDataContext.Provider>
     </TestAuthContext.Provider>
   );
@@ -82,8 +81,8 @@ const createMockContext = (overrides = {}) => ({
       preferences: {
         favoriteGenreIds: ['genre-1'],
         likes: ['The Cat in the Hat', 'Green Eggs and Ham'],
-        dislikes: ['Boring Book']
-      }
+        dislikes: ['Boring Book'],
+      },
     },
     {
       id: 'student-2',
@@ -91,7 +90,7 @@ const createMockContext = (overrides = {}) => ({
       classId: 'class-1',
       readingLevel: 3.0,
       totalSessionCount: 0,
-      preferences: {}
+      preferences: {},
     },
     {
       id: 'student-3',
@@ -102,18 +101,18 @@ const createMockContext = (overrides = {}) => ({
       preferences: {
         favoriteGenreIds: ['genre-2'],
         likes: [],
-        dislikes: []
-      }
-    }
+        dislikes: [],
+      },
+    },
   ],
   classes: [
     { id: 'class-1', name: 'Class 1A' },
-    { id: 'class-2', name: 'Class 2B' }
+    { id: 'class-2', name: 'Class 2B' },
   ],
   books: [
     { id: 'book-1', title: 'The Cat in the Hat', author: 'Dr. Seuss' },
-    { id: 'book-2', title: 'Charlotte\'s Web', author: 'E.B. White' },
-    { id: 'book-3', title: 'Harry Potter', author: 'J.K. Rowling' }
+    { id: 'book-2', title: "Charlotte's Web", author: 'E.B. White' },
+    { id: 'book-3', title: 'Harry Potter', author: 'J.K. Rowling' },
   ],
   apiError: null,
   fetchWithAuth: vi.fn(),
@@ -124,32 +123,30 @@ const createMockContext = (overrides = {}) => ({
       name: 'Alice Smith',
       classId: 'class-1',
       totalSessionCount: 2,
-      lastReadDate: '2024-06-01'
+      lastReadDate: '2024-06-01',
     },
     {
       id: 'student-2',
       name: 'Bob Jones',
       classId: 'class-1',
       totalSessionCount: 0,
-      lastReadDate: null
-    }
+      lastReadDate: null,
+    },
   ],
   getReadingStatus: vi.fn().mockReturnValue('attention'),
   markStudentAsPriorityHandled: vi.fn(),
   updateStudent: vi.fn().mockResolvedValue({}),
-  ...overrides
+  ...overrides,
 });
 
 // Default session data for each student (used by fetchWithAuth mock)
 const defaultStudentSessions = {
   'student-1': [
     { id: 'session-1', bookId: 'book-1', date: '2024-06-01', assessment: 8 },
-    { id: 'session-2', bookId: 'book-2', date: '2024-06-02', assessment: 5 }
+    { id: 'session-2', bookId: 'book-2', date: '2024-06-02', assessment: 5 },
   ],
   'student-2': [],
-  'student-3': [
-    { id: 'session-3', bookId: 'book-3', date: '2024-06-03', assessment: 8 }
-  ]
+  'student-3': [{ id: 'session-3', bookId: 'book-3', date: '2024-06-03', assessment: 8 }],
 };
 
 // Helper to create mock fetch responses
@@ -159,13 +156,16 @@ const createMockFetch = (responses = {}) => {
     if (url === '/api/settings/ai') {
       return Promise.resolve({
         ok: true,
-        json: () => Promise.resolve(responses.aiConfig || {
-          hasApiKey: true,
-          keySource: 'organization',
-          provider: 'anthropic',
-          modelPreference: 'claude-3-sonnet',
-          aiAddonActive: false,
-        })
+        json: () =>
+          Promise.resolve(
+            responses.aiConfig || {
+              hasApiKey: true,
+              keySource: 'organization',
+              provider: 'anthropic',
+              modelPreference: 'claude-3-sonnet',
+              aiAddonActive: false,
+            }
+          ),
       });
     }
 
@@ -176,7 +176,7 @@ const createMockFetch = (responses = {}) => {
       const sessions = (responses.studentSessions || defaultStudentSessions)[studentId] || [];
       return Promise.resolve({
         ok: true,
-        json: () => Promise.resolve(sessions)
+        json: () => Promise.resolve(sessions),
       });
     }
 
@@ -184,31 +184,34 @@ const createMockFetch = (responses = {}) => {
     if (url.startsWith('/api/books/library-search')) {
       return Promise.resolve({
         ok: responses.librarySearchOk !== false,
-        json: () => Promise.resolve(responses.librarySearch || {
-          studentProfile: {
-            readingLevel: 2.5,
-            favoriteGenres: ['Fiction', 'Adventure'],
-            inferredGenres: ['Mystery']
-          },
-          books: [
-            {
-              id: 'rec-1',
-              title: 'Recommended Book 1',
-              author: 'Author One',
-              readingLevel: '2.5',
-              genres: ['Fiction'],
-              matchReason: 'Matches reading level'
-            },
-            {
-              id: 'rec-2',
-              title: 'Recommended Book 2',
-              author: 'Author Two',
-              readingLevel: '3.0',
-              genres: ['Adventure'],
-              matchReason: 'Based on favorite genres'
+        json: () =>
+          Promise.resolve(
+            responses.librarySearch || {
+              studentProfile: {
+                readingLevel: 2.5,
+                favoriteGenres: ['Fiction', 'Adventure'],
+                inferredGenres: ['Mystery'],
+              },
+              books: [
+                {
+                  id: 'rec-1',
+                  title: 'Recommended Book 1',
+                  author: 'Author One',
+                  readingLevel: '2.5',
+                  genres: ['Fiction'],
+                  matchReason: 'Matches reading level',
+                },
+                {
+                  id: 'rec-2',
+                  title: 'Recommended Book 2',
+                  author: 'Author Two',
+                  readingLevel: '3.0',
+                  genres: ['Adventure'],
+                  matchReason: 'Based on favorite genres',
+                },
+              ],
             }
-          ]
-        })
+          ),
       });
     }
 
@@ -216,33 +219,36 @@ const createMockFetch = (responses = {}) => {
     if (url.startsWith('/api/books/ai-suggestions')) {
       return Promise.resolve({
         ok: responses.aiSuggestionsOk !== false,
-        json: () => Promise.resolve(responses.aiSuggestions || {
-          studentProfile: {
-            readingLevel: 2.5,
-            favoriteGenres: ['Fiction'],
-            inferredGenres: []
-          },
-          suggestions: [
-            {
-              id: 'ai-1',
-              title: 'AI Suggested Book 1',
-              author: 'AI Author One',
-              level: '2.5',
-              reason: 'Based on reading history',
-              inLibrary: true,
-              whereToFind: 'Available at local library'
-            },
-            {
-              id: 'ai-2',
-              title: 'AI Suggested Book 2',
-              author: 'AI Author Two',
-              level: '3.0',
-              reason: 'Popular among similar readers',
-              inLibrary: false,
-              whereToFind: 'Available online'
+        json: () =>
+          Promise.resolve(
+            responses.aiSuggestions || {
+              studentProfile: {
+                readingLevel: 2.5,
+                favoriteGenres: ['Fiction'],
+                inferredGenres: [],
+              },
+              suggestions: [
+                {
+                  id: 'ai-1',
+                  title: 'AI Suggested Book 1',
+                  author: 'AI Author One',
+                  level: '2.5',
+                  reason: 'Based on reading history',
+                  inLibrary: true,
+                  whereToFind: 'Available at local library',
+                },
+                {
+                  id: 'ai-2',
+                  title: 'AI Suggested Book 2',
+                  author: 'AI Author Two',
+                  level: '3.0',
+                  reason: 'Popular among similar readers',
+                  inLibrary: false,
+                  whereToFind: 'Available online',
+                },
+              ],
             }
-          ]
-        })
+          ),
       });
     }
 
@@ -262,13 +268,15 @@ describe('BookRecommendations Component', () => {
   describe('Empty State', () => {
     it('should display empty state illustration when no student selected', async () => {
       const mockContext = createMockContext({
-        fetchWithAuth: createMockFetch()
+        fetchWithAuth: createMockFetch(),
       });
       render(<BookRecommendations />, { wrapper: createWrapper(mockContext) });
 
       await waitFor(() => {
         expect(screen.getByTestId('empty-state-illustration')).toBeInTheDocument();
-        expect(screen.getByText(/select a student to find their next great read/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/select a student to find their next great read/i)
+        ).toBeInTheDocument();
       });
     });
   });
@@ -276,7 +284,7 @@ describe('BookRecommendations Component', () => {
   describe('Priority Student Quick-Pick Cards', () => {
     it('should display priority student quick-pick cards when no student selected', async () => {
       const mockContext = createMockContext({
-        fetchWithAuth: createMockFetch()
+        fetchWithAuth: createMockFetch(),
       });
       render(<BookRecommendations />, { wrapper: createWrapper(mockContext) });
 
@@ -289,7 +297,7 @@ describe('BookRecommendations Component', () => {
     it('should select student and trigger library search when quick-pick card is clicked', async () => {
       const mockFetch = createMockFetch();
       const mockContext = createMockContext({
-        fetchWithAuth: mockFetch
+        fetchWithAuth: mockFetch,
       });
       render(<BookRecommendations />, { wrapper: createWrapper(mockContext) });
 
@@ -309,7 +317,7 @@ describe('BookRecommendations Component', () => {
     it('should hide quick-pick cards when no priority students exist', async () => {
       const mockContext = createMockContext({
         fetchWithAuth: createMockFetch(),
-        prioritizedStudents: []
+        prioritizedStudents: [],
       });
       render(<BookRecommendations />, { wrapper: createWrapper(mockContext) });
 
@@ -324,7 +332,7 @@ describe('BookRecommendations Component', () => {
       const user = userEvent.setup();
       const mockFetch = createMockFetch();
       const mockContext = createMockContext({
-        fetchWithAuth: mockFetch
+        fetchWithAuth: mockFetch,
       });
       render(<BookRecommendations />, { wrapper: createWrapper(mockContext) });
 
@@ -350,7 +358,12 @@ describe('BookRecommendations Component', () => {
         if (url === '/api/settings/ai') {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ hasApiKey: true, keySource: 'organization', provider: 'anthropic' })
+            json: () =>
+              Promise.resolve({
+                hasApiKey: true,
+                keySource: 'organization',
+                provider: 'anthropic',
+              }),
           });
         }
         if (url.startsWith('/api/books/library-search')) {
@@ -377,10 +390,11 @@ describe('BookRecommendations Component', () => {
       // Resolve the search
       resolveSearch({
         ok: true,
-        json: () => Promise.resolve({
-          studentProfile: { readingLevel: 2.5, favoriteGenres: [] },
-          books: []
-        })
+        json: () =>
+          Promise.resolve({
+            studentProfile: { readingLevel: 2.5, favoriteGenres: [] },
+            books: [],
+          }),
       });
 
       await waitFor(() => {
@@ -416,16 +430,20 @@ describe('BookRecommendations Component', () => {
       await user.click(studentSelect);
 
       // Check that all students are in the dropdown
-      expect(screen.getByRole('option', { name: /Alice Smith \(2 sessions\)/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('option', { name: /Alice Smith \(2 sessions\)/i })
+      ).toBeInTheDocument();
       expect(screen.getByRole('option', { name: /Bob Jones \(0 sessions\)/i })).toBeInTheDocument();
-      expect(screen.getByRole('option', { name: /Charlie Brown \(1 sessions\)/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('option', { name: /Charlie Brown \(1 sessions\)/i })
+      ).toBeInTheDocument();
     });
 
     it('should display API error from context when present', async () => {
       const mockFetch = createMockFetch();
       const context = createMockContext({
         fetchWithAuth: mockFetch,
-        apiError: 'Failed to load data from server'
+        apiError: 'Failed to load data from server',
       });
       render(<BookRecommendations />, { wrapper: createWrapper(context) });
 
@@ -445,7 +463,7 @@ describe('BookRecommendations Component', () => {
           provider: 'anthropic',
           modelPreference: 'claude-3-sonnet',
           aiAddonActive: false,
-        }
+        },
       });
       const context = createMockContext({ fetchWithAuth: mockFetch });
       render(<BookRecommendations />, { wrapper: createWrapper(context) });
@@ -465,8 +483,8 @@ describe('BookRecommendations Component', () => {
         aiConfig: {
           hasApiKey: false,
           keySource: null,
-          provider: null
-        }
+          provider: null,
+        },
       });
       const context = createMockContext({ fetchWithAuth: mockFetch });
       render(<BookRecommendations />, { wrapper: createWrapper(context) });
@@ -497,7 +515,7 @@ describe('BookRecommendations Component', () => {
       const mockFetch = createMockFetch();
       const context = createMockContext({
         fetchWithAuth: mockFetch,
-        students: []
+        students: [],
       });
       render(<BookRecommendations />, { wrapper: createWrapper(context) });
 
@@ -534,7 +552,7 @@ describe('BookRecommendations Component', () => {
       const mockFetch = createMockFetch();
       const context = createMockContext({
         fetchWithAuth: mockFetch,
-        globalClassFilter: 'class-1'
+        globalClassFilter: 'class-1',
       });
       const user = userEvent.setup();
       render(<BookRecommendations />, { wrapper: createWrapper(context) });
@@ -552,7 +570,7 @@ describe('BookRecommendations Component', () => {
       const mockFetch = createMockFetch();
       const context = createMockContext({
         fetchWithAuth: mockFetch,
-        globalClassFilter: 'all'
+        globalClassFilter: 'all',
       });
       const user = userEvent.setup();
       render(<BookRecommendations />, { wrapper: createWrapper(context) });
@@ -572,9 +590,19 @@ describe('BookRecommendations Component', () => {
         fetchWithAuth: mockFetch,
         globalClassFilter: 'unassigned',
         students: [
-          { id: 'student-assigned', name: 'Assigned Student', classId: 'class-1', totalSessionCount: 0 },
-          { id: 'student-unassigned', name: 'Unassigned Student', classId: null, totalSessionCount: 0 }
-        ]
+          {
+            id: 'student-assigned',
+            name: 'Assigned Student',
+            classId: 'class-1',
+            totalSessionCount: 0,
+          },
+          {
+            id: 'student-unassigned',
+            name: 'Unassigned Student',
+            classId: null,
+            totalSessionCount: 0,
+          },
+        ],
       });
       const user = userEvent.setup();
       render(<BookRecommendations />, { wrapper: createWrapper(context) });
@@ -584,7 +612,7 @@ describe('BookRecommendations Component', () => {
 
       // Only unassigned student should be visible (plus the "Select a student" option)
       const options = screen.getAllByRole('option');
-      const studentOptions = options.filter(opt => opt.textContent.includes('Student'));
+      const studentOptions = options.filter((opt) => opt.textContent.includes('Student'));
       expect(studentOptions).toHaveLength(1);
       expect(screen.getByRole('option', { name: /Unassigned Student/i })).toBeInTheDocument();
     });
@@ -752,18 +780,24 @@ describe('BookRecommendations Component', () => {
         if (url === '/api/settings/ai') {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ hasApiKey: true, keySource: 'organization', provider: 'anthropic' })
+            json: () =>
+              Promise.resolve({
+                hasApiKey: true,
+                keySource: 'organization',
+                provider: 'anthropic',
+              }),
           });
         }
         if (url.startsWith('/api/books/library-search')) {
-          return new Promise(resolve => {
+          return new Promise((resolve) => {
             setTimeout(() => {
               resolve({
                 ok: true,
-                json: () => Promise.resolve({
-                  studentProfile: { readingLevel: 2.5 },
-                  books: []
-                })
+                json: () =>
+                  Promise.resolve({
+                    studentProfile: { readingLevel: 2.5 },
+                    books: [],
+                  }),
               });
             }, 100);
           });
@@ -857,7 +891,7 @@ describe('BookRecommendations Component', () => {
 
     it('should not show AI banner when AI is not configured', async () => {
       const mockFetch = createMockFetch({
-        aiConfig: { hasApiKey: false, keySource: null, provider: null }
+        aiConfig: { hasApiKey: false, keySource: null, provider: null },
       });
       const context = createMockContext({ fetchWithAuth: mockFetch });
       const user = userEvent.setup();
@@ -891,7 +925,9 @@ describe('BookRecommendations Component', () => {
       await user.click(screen.getByRole('button', { name: /ask ai/i }));
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/books/ai-suggestions?studentId=student-1&focusMode=balanced');
+        expect(mockFetch).toHaveBeenCalledWith(
+          '/api/books/ai-suggestions?studentId=student-1&focusMode=balanced'
+        );
       });
     });
 
@@ -1090,15 +1126,20 @@ describe('BookRecommendations Component', () => {
         if (url === '/api/settings/ai') {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ hasApiKey: true, keySource: 'organization', provider: 'anthropic' })
+            json: () =>
+              Promise.resolve({
+                hasApiKey: true,
+                keySource: 'organization',
+                provider: 'anthropic',
+              }),
           });
         }
         if (url.startsWith('/api/books/library-search')) {
-          return new Promise(resolve => {
+          return new Promise((resolve) => {
             setTimeout(() => {
               resolve({
                 ok: true,
-                json: () => Promise.resolve({ studentProfile: {}, books: [] })
+                json: () => Promise.resolve({ studentProfile: {}, books: [] }),
               });
             }, 500);
           });
@@ -1125,21 +1166,26 @@ describe('BookRecommendations Component', () => {
         if (url === '/api/settings/ai') {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ hasApiKey: true, keySource: 'organization', provider: 'anthropic' })
+            json: () =>
+              Promise.resolve({
+                hasApiKey: true,
+                keySource: 'organization',
+                provider: 'anthropic',
+              }),
           });
         }
         if (url.startsWith('/api/books/library-search')) {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ studentProfile: {}, books: [] })
+            json: () => Promise.resolve({ studentProfile: {}, books: [] }),
           });
         }
         if (url.startsWith('/api/books/ai-suggestions')) {
-          return new Promise(resolve => {
+          return new Promise((resolve) => {
             setTimeout(() => {
               resolve({
                 ok: true,
-                json: () => Promise.resolve({ studentProfile: {}, suggestions: [] })
+                json: () => Promise.resolve({ studentProfile: {}, suggestions: [] }),
               });
             }, 500);
           });
@@ -1173,15 +1219,20 @@ describe('BookRecommendations Component', () => {
         if (url === '/api/settings/ai') {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ hasApiKey: true, keySource: 'organization', provider: 'anthropic' })
+            json: () =>
+              Promise.resolve({
+                hasApiKey: true,
+                keySource: 'organization',
+                provider: 'anthropic',
+              }),
           });
         }
         if (url.startsWith('/api/books/library-search')) {
-          return new Promise(resolve => {
+          return new Promise((resolve) => {
             setTimeout(() => {
               resolve({
                 ok: true,
-                json: () => Promise.resolve({ studentProfile: {}, books: [] })
+                json: () => Promise.resolve({ studentProfile: {}, books: [] }),
               });
             }, 500);
           });
@@ -1211,13 +1262,22 @@ describe('BookRecommendations Component', () => {
         if (url === '/api/settings/ai') {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ hasApiKey: true, keySource: 'organization', provider: 'anthropic' })
+            json: () =>
+              Promise.resolve({
+                hasApiKey: true,
+                keySource: 'organization',
+                provider: 'anthropic',
+              }),
           });
         }
         if (url.startsWith('/api/books/library-search')) {
           return Promise.resolve({
             ok: false,
-            json: () => Promise.resolve({ error: 'Library search failed', message: 'No books found matching criteria' })
+            json: () =>
+              Promise.resolve({
+                error: 'Library search failed',
+                message: 'No books found matching criteria',
+              }),
           });
         }
         return Promise.resolve({ ok: false });
@@ -1242,19 +1302,24 @@ describe('BookRecommendations Component', () => {
         if (url === '/api/settings/ai') {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ hasApiKey: true, keySource: 'organization', provider: 'anthropic' })
+            json: () =>
+              Promise.resolve({
+                hasApiKey: true,
+                keySource: 'organization',
+                provider: 'anthropic',
+              }),
           });
         }
         if (url.startsWith('/api/books/library-search')) {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ studentProfile: {}, books: [] })
+            json: () => Promise.resolve({ studentProfile: {}, books: [] }),
           });
         }
         if (url.startsWith('/api/books/ai-suggestions')) {
           return Promise.resolve({
             ok: false,
-            json: () => Promise.resolve({ error: 'AI error', message: 'AI service unavailable' })
+            json: () => Promise.resolve({ error: 'AI error', message: 'AI service unavailable' }),
           });
         }
         return Promise.resolve({ ok: false });
@@ -1287,7 +1352,12 @@ describe('BookRecommendations Component', () => {
         if (url === '/api/settings/ai') {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ hasApiKey: true, keySource: 'organization', provider: 'anthropic' })
+            json: () =>
+              Promise.resolve({
+                hasApiKey: true,
+                keySource: 'organization',
+                provider: 'anthropic',
+              }),
           });
         }
         if (url.startsWith('/api/books/library-search')) {
@@ -1318,7 +1388,12 @@ describe('BookRecommendations Component', () => {
         if (url === '/api/settings/ai') {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ hasApiKey: true, keySource: 'organization', provider: 'anthropic' })
+            json: () =>
+              Promise.resolve({
+                hasApiKey: true,
+                keySource: 'organization',
+                provider: 'anthropic',
+              }),
           });
         }
         if (url.startsWith('/api/books/library-search')) {
@@ -1326,12 +1401,12 @@ describe('BookRecommendations Component', () => {
           if (libraryRequestCount <= 1) {
             return Promise.resolve({
               ok: false,
-              json: () => Promise.resolve({ message: 'First error' })
+              json: () => Promise.resolve({ message: 'First error' }),
             });
           }
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ studentProfile: {}, books: [] })
+            json: () => Promise.resolve({ studentProfile: {}, books: [] }),
           });
         }
         return Promise.resolve({ ok: false });
@@ -1429,7 +1504,7 @@ describe('BookRecommendations Component', () => {
   describe('AI Provider Display', () => {
     it('should display Claude as provider name for anthropic', async () => {
       const mockFetch = createMockFetch({
-        aiConfig: { hasApiKey: true, keySource: 'organization', provider: 'anthropic' }
+        aiConfig: { hasApiKey: true, keySource: 'organization', provider: 'anthropic' },
       });
       const context = createMockContext({ fetchWithAuth: mockFetch });
       render(<BookRecommendations />, { wrapper: createWrapper(context) });
@@ -1441,7 +1516,7 @@ describe('BookRecommendations Component', () => {
 
     it('should display GPT as provider name for openai', async () => {
       const mockFetch = createMockFetch({
-        aiConfig: { hasApiKey: true, keySource: 'organization', provider: 'openai' }
+        aiConfig: { hasApiKey: true, keySource: 'organization', provider: 'openai' },
       });
       const context = createMockContext({ fetchWithAuth: mockFetch });
       render(<BookRecommendations />, { wrapper: createWrapper(context) });
@@ -1453,7 +1528,7 @@ describe('BookRecommendations Component', () => {
 
     it('should display Gemini as provider name for google', async () => {
       const mockFetch = createMockFetch({
-        aiConfig: { hasApiKey: true, keySource: 'organization', provider: 'google' }
+        aiConfig: { hasApiKey: true, keySource: 'organization', provider: 'google' },
       });
       const context = createMockContext({ fetchWithAuth: mockFetch });
       render(<BookRecommendations />, { wrapper: createWrapper(context) });
@@ -1532,13 +1607,13 @@ describe('BookRecommendations Component', () => {
   describe('Edge Cases', () => {
     it('should handle students with no sessions', async () => {
       const mockFetch = createMockFetch({
-        studentSessions: { 'student-1': [] }
+        studentSessions: { 'student-1': [] },
       });
       const context = createMockContext({
         fetchWithAuth: mockFetch,
         students: [
-          { id: 'student-1', name: 'No Sessions', classId: 'class-1', totalSessionCount: 0 }
-        ]
+          { id: 'student-1', name: 'No Sessions', classId: 'class-1', totalSessionCount: 0 },
+        ],
       });
       const user = userEvent.setup();
       render(<BookRecommendations />, { wrapper: createWrapper(context) });
@@ -1555,10 +1630,8 @@ describe('BookRecommendations Component', () => {
     it('should handle book ID not found in books array', async () => {
       const mockFetch = createMockFetch({
         studentSessions: {
-          'student-1': [
-            { id: 'session-1', bookId: 'non-existent-book', date: '2024-06-01' }
-          ]
-        }
+          'student-1': [{ id: 'session-1', bookId: 'non-existent-book', date: '2024-06-01' }],
+        },
       });
       const context = createMockContext({
         fetchWithAuth: mockFetch,
@@ -1567,9 +1640,9 @@ describe('BookRecommendations Component', () => {
             id: 'student-1',
             name: 'Unknown Book Student',
             classId: 'class-1',
-            totalSessionCount: 1
-          }
-        ]
+            totalSessionCount: 1,
+          },
+        ],
       });
       const user = userEvent.setup();
       render(<BookRecommendations />, { wrapper: createWrapper(context) });
@@ -1588,7 +1661,7 @@ describe('BookRecommendations Component', () => {
       const mockFetch = createMockFetch();
       const context = createMockContext({
         fetchWithAuth: mockFetch,
-        books: []
+        books: [],
       });
       const user = userEvent.setup();
       render(<BookRecommendations />, { wrapper: createWrapper(context) });
@@ -1722,7 +1795,9 @@ describe('BookRecommendations Component', () => {
 
       // Verify the API was called with focusMode
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/books/ai-suggestions?studentId=student-1&focusMode=challenge');
+        expect(mockFetch).toHaveBeenCalledWith(
+          '/api/books/ai-suggestions?studentId=student-1&focusMode=challenge'
+        );
       });
     });
 
@@ -1731,16 +1806,21 @@ describe('BookRecommendations Component', () => {
         if (url === '/api/settings/ai') {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ hasApiKey: true, keySource: 'organization', provider: 'anthropic' })
+            json: () =>
+              Promise.resolve({
+                hasApiKey: true,
+                keySource: 'organization',
+                provider: 'anthropic',
+              }),
           });
         }
         if (url.startsWith('/api/books/library-search')) {
           // Delay to capture loading state
-          return new Promise(resolve => {
+          return new Promise((resolve) => {
             setTimeout(() => {
               resolve({
                 ok: true,
-                json: () => Promise.resolve({ studentProfile: {}, books: [] })
+                json: () => Promise.resolve({ studentProfile: {}, books: [] }),
               });
             }, 500);
           });
@@ -1800,13 +1880,18 @@ describe('BookRecommendations Component', () => {
         if (url === '/api/settings/ai') {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ hasApiKey: true, keySource: 'organization', provider: 'anthropic' })
+            json: () =>
+              Promise.resolve({
+                hasApiKey: true,
+                keySource: 'organization',
+                provider: 'anthropic',
+              }),
           });
         }
         if (url.startsWith('/api/books/library-search')) {
           return Promise.resolve({
             ok: false,
-            json: () => Promise.resolve({ message: 'Test error message' })
+            json: () => Promise.resolve({ message: 'Test error message' }),
           });
         }
         return Promise.resolve({ ok: false });

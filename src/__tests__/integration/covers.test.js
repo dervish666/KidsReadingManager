@@ -1,7 +1,26 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Hono } from 'hono';
 
+// Mock the metadata config loader so /search tests can control what API
+// keys (if any) are available without hitting a real DB.
+vi.mock('../../routes/metadata.js', () => ({
+  getConfigWithKeys: vi.fn(),
+  metadataRouter: {},
+}));
+
+// Mock provider adapters so /search tests can drive cover URL returns
+// from Google Books and Hardcover deterministically.
+vi.mock('../../services/providers/googleBooksProvider.js', () => ({
+  fetchMetadata: vi.fn(),
+}));
+vi.mock('../../services/providers/hardcoverProvider.js', () => ({
+  fetchMetadata: vi.fn(),
+}));
+
 import coversRouter from '../../routes/covers.js';
+import { getConfigWithKeys } from '../../routes/metadata.js';
+import { fetchMetadata as googleBooksFetch } from '../../services/providers/googleBooksProvider.js';
+import { fetchMetadata as hardcoverFetch } from '../../services/providers/hardcoverProvider.js';
 
 /**
  * Create a mock R2 bucket for testing
@@ -416,6 +435,281 @@ describe('Cover Proxy Route', () => {
       // Should still work by fetching from origin, just skip R2
       expect(response.status).toBe(200);
       expect(response.headers.get('X-Cache-Source')).toBe('origin');
+    });
+  });
+});
+
+/**
+ * Helper: build a fetch mock that routes requests by URL pattern. Any pattern
+ * not matched returns a 404 so tests fail loudly on unexpected calls.
+ */
+const mockFetchByUrl = (handlers) => {
+  return vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+    const urlStr = typeof url === 'string' ? url : url.toString();
+    for (const [pattern, response] of handlers) {
+      if (urlStr.includes(pattern)) {
+        return typeof response === 'function' ? response(urlStr) : response;
+      }
+    }
+    return new Response('Unexpected URL: ' + urlStr, { status: 404 });
+  });
+};
+
+const imageResponse = (size = 2000, contentType = 'image/jpeg') =>
+  new Response(new Uint8Array(size), {
+    status: 200,
+    headers: { 'Content-Type': contentType },
+  });
+
+describe('Cover Search Route', () => {
+  let consoleErrorSpy;
+  let consoleLogSpy;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    // Default: no DB, no config — tests opt in to Google/Hardcover by
+    // providing env.READING_MANAGER_DB and overriding getConfigWithKeys.
+    getConfigWithKeys.mockResolvedValue(null);
+    googleBooksFetch.mockResolvedValue({ coverUrl: null });
+    hardcoverFetch.mockResolvedValue({ coverUrl: null });
+  });
+
+  afterEach(() => {
+    consoleErrorSpy.mockRestore();
+    consoleLogSpy.mockRestore();
+    vi.restoreAllMocks();
+  });
+
+  describe('Validation', () => {
+    it('rejects a request with no title', async () => {
+      const { request } = createTestApp();
+      const response = await request('/api/covers/search');
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.message).toMatch(/title/i);
+    });
+
+    it('rejects a title that is too long', async () => {
+      const { request } = createTestApp();
+      const longTitle = 'x'.repeat(201);
+      const response = await request(`/api/covers/search?title=${encodeURIComponent(longTitle)}`);
+      expect(response.status).toBe(400);
+    });
+
+    it('rejects an author that is too long', async () => {
+      const { request } = createTestApp();
+      const longAuthor = 'y'.repeat(201);
+      const response = await request(
+        `/api/covers/search?title=Book&author=${encodeURIComponent(longAuthor)}`
+      );
+      expect(response.status).toBe(400);
+    });
+  });
+
+  describe('R2 cache hit', () => {
+    it('returns the cached image without calling any origin', async () => {
+      const { request, mockR2 } = createTestApp();
+      mockR2.get.mockResolvedValue(createMockR2Object());
+      const fetchSpy = vi.spyOn(globalThis, 'fetch');
+
+      const response = await request('/api/covers/search?title=Harry+Potter&author=Rowling');
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('X-Cache-Source')).toBe('r2');
+      expect(fetchSpy).not.toHaveBeenCalled();
+      // R2 key should be under "search/" with a 16-char hex hash
+      const key = mockR2.get.mock.calls[0][0];
+      expect(key).toMatch(/^search\/[a-f0-9]{16}-M\.jpg$/);
+    });
+
+    it('normalizes case and whitespace to produce stable R2 keys', async () => {
+      const { request, mockR2 } = createTestApp();
+      mockR2.get.mockResolvedValue(createMockR2Object());
+
+      await request('/api/covers/search?title=Harry+Potter&author=J.K.+Rowling');
+      const key1 = mockR2.get.mock.calls[0][0];
+
+      mockR2.get.mockClear();
+      await request('/api/covers/search?title=  HARRY   POTTER  &author=j.k.+rowling');
+      const key2 = mockR2.get.mock.calls[0][0];
+
+      expect(key1).toBe(key2);
+    });
+  });
+
+  describe('OpenLibrary search path', () => {
+    it('fetches from OpenLibrary search, then the cover endpoint', async () => {
+      const { request, mockR2 } = createTestApp();
+      mockR2.get.mockResolvedValue(null);
+
+      const fetchSpy = mockFetchByUrl([
+        [
+          'openlibrary.org/search.json',
+          new Response(JSON.stringify({ docs: [{ cover_i: 42 }] }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+        ],
+        ['covers.openlibrary.org/b/id/42-M.jpg', imageResponse()],
+      ]);
+
+      const response = await request('/api/covers/search?title=Harry+Potter&author=Rowling');
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('X-Cache-Source')).toBe('openlibrary');
+      expect(fetchSpy).toHaveBeenCalledWith(
+        expect.stringContaining('openlibrary.org/search.json?title=Harry+Potter'),
+        expect.any(Object)
+      );
+    });
+
+    it('caches the fetched image in R2 under the search key', async () => {
+      const { request, mockR2, mockWaitUntil } = createTestApp();
+      mockR2.get.mockResolvedValue(null);
+
+      mockFetchByUrl([
+        ['openlibrary.org/search.json', new Response(JSON.stringify({ docs: [{ cover_i: 42 }] }))],
+        ['covers.openlibrary.org', imageResponse()],
+      ]);
+
+      await request('/api/covers/search?title=Harry+Potter');
+
+      expect(mockWaitUntil).toHaveBeenCalled();
+      // R2 put fires inside waitUntil; we don't await it, but confirming the
+      // put was queued with the expected key is enough
+      const putKey = mockR2.put.mock.calls[0]?.[0];
+      expect(putKey).toMatch(/^search\/[a-f0-9]{16}-M\.jpg$/);
+    });
+  });
+
+  describe('Google Books fallback', () => {
+    it('falls back to Google Books when OpenLibrary finds nothing', async () => {
+      const { request, mockR2 } = createTestApp({
+        READING_MANAGER_DB: {},
+        JWT_SECRET: 'test-secret',
+      });
+      mockR2.get.mockResolvedValue(null);
+      getConfigWithKeys.mockResolvedValue({
+        providerChain: ['openlibrary', 'googlebooks', 'hardcover'],
+        googleBooksApiKey: 'gb-key',
+        hardcoverApiKey: null,
+      });
+      googleBooksFetch.mockResolvedValue({
+        coverUrl: 'https://books.google.com/cover/abc.jpg',
+      });
+
+      mockFetchByUrl([
+        [
+          'openlibrary.org/search.json',
+          new Response(JSON.stringify({ docs: [] }), {
+            headers: { 'Content-Type': 'application/json' },
+          }),
+        ],
+        ['books.google.com/cover/abc.jpg', imageResponse()],
+      ]);
+
+      const response = await request('/api/covers/search?title=Obscure+Title&author=Nobody');
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('X-Cache-Source')).toBe('google-books');
+      expect(googleBooksFetch).toHaveBeenCalledWith(
+        { title: 'Obscure Title', author: 'Nobody' },
+        'gb-key'
+      );
+    });
+  });
+
+  describe('Hardcover fallback', () => {
+    it('falls back to Hardcover when OpenLibrary and Google Books miss', async () => {
+      const { request, mockR2 } = createTestApp({
+        READING_MANAGER_DB: {},
+        JWT_SECRET: 'test-secret',
+      });
+      mockR2.get.mockResolvedValue(null);
+      getConfigWithKeys.mockResolvedValue({
+        providerChain: ['openlibrary', 'googlebooks', 'hardcover'],
+        googleBooksApiKey: 'gb-key',
+        hardcoverApiKey: 'hc-key',
+      });
+      googleBooksFetch.mockResolvedValue({ coverUrl: null });
+      hardcoverFetch.mockResolvedValue({
+        coverUrl: 'https://hardcover.app/cover/xyz.jpg',
+      });
+
+      mockFetchByUrl([
+        ['openlibrary.org/search.json', new Response(JSON.stringify({ docs: [] }))],
+        ['hardcover.app/cover/xyz.jpg', imageResponse()],
+      ]);
+
+      const response = await request('/api/covers/search?title=Something+Rare&author=Unknown');
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('X-Cache-Source')).toBe('hardcover');
+      expect(hardcoverFetch).toHaveBeenCalledWith(
+        { title: 'Something Rare', author: 'Unknown' },
+        'hc-key'
+      );
+    });
+  });
+
+  describe('All providers miss', () => {
+    it('returns 404 with a short Cache-Control when nothing resolves', async () => {
+      const { request, mockR2 } = createTestApp({
+        READING_MANAGER_DB: {},
+        JWT_SECRET: 'test-secret',
+      });
+      mockR2.get.mockResolvedValue(null);
+      getConfigWithKeys.mockResolvedValue({
+        googleBooksApiKey: 'gb-key',
+        hardcoverApiKey: 'hc-key',
+      });
+      googleBooksFetch.mockResolvedValue({ coverUrl: null });
+      hardcoverFetch.mockResolvedValue({ coverUrl: null });
+
+      mockFetchByUrl([['openlibrary.org/search.json', new Response(JSON.stringify({ docs: [] }))]]);
+
+      const response = await request('/api/covers/search?title=Nothing+Here&author=No+One');
+
+      expect(response.status).toBe(404);
+      expect(response.headers.get('Cache-Control')).toBe('public, max-age=3600');
+    });
+  });
+
+  describe('Provider failure isolation', () => {
+    it('continues to Hardcover when Google Books throws', async () => {
+      const { request, mockR2 } = createTestApp({
+        READING_MANAGER_DB: {},
+        JWT_SECRET: 'test-secret',
+      });
+      mockR2.get.mockResolvedValue(null);
+      getConfigWithKeys.mockResolvedValue({
+        googleBooksApiKey: 'gb-key',
+        hardcoverApiKey: 'hc-key',
+      });
+      googleBooksFetch.mockRejectedValue(new Error('GB blew up'));
+      hardcoverFetch.mockResolvedValue({
+        coverUrl: 'https://hardcover.app/cover/ok.jpg',
+      });
+
+      mockFetchByUrl([
+        ['openlibrary.org/search.json', new Response(JSON.stringify({ docs: [] }))],
+        ['hardcover.app/cover/ok.jpg', imageResponse()],
+      ]);
+
+      const response = await request('/api/covers/search?title=Whatever');
+      expect(response.status).toBe(200);
+      expect(response.headers.get('X-Cache-Source')).toBe('hardcover');
+    });
+
+    it('returns 404 when OpenLibrary search itself throws but no config is set', async () => {
+      const { request, mockR2 } = createTestApp();
+      mockR2.get.mockResolvedValue(null);
+      vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Network down'));
+
+      const response = await request('/api/covers/search?title=Whatever');
+      expect(response.status).toBe(404);
     });
   });
 });

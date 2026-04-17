@@ -35,6 +35,26 @@
           }
         ]
       }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Context is about to be auto-compacted. Check if there is risky in-progress work: uncommitted changes to migration files (migrations/*.sql), worker entry or middleware (src/worker.js, src/middleware/*.js), or a large multi-file refactor (>10 modified files). If so, respond {\"ok\": false, \"reason\": \"Compaction blocked — uncommitted risky work in progress. Commit, stash, or summarise plan to the user before continuing.\"}. Otherwise respond {\"ok\": true}."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /Users/dervish/CascadeProjects/TallyReading && CHANGED=$(git diff --name-only HEAD -- 'src/**/*.js' 'src/**/*.jsx' 2>/dev/null); if [ -n \"$CHANGED\" ] && [ -d src/__tests__ ]; then echo '--- vitest on changed files ---' >&2; CI=true npx vitest run --changed HEAD --reporter=dot 2>&1 | tail -20 >&2; fi; echo '{\"ok\": true}'"
+          }
+        ]
+      }
     ]
   }
 }

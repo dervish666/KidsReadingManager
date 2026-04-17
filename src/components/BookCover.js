@@ -1,24 +1,43 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Box } from '@mui/material';
-import { useBookCover } from '../hooks/useBookCover';
 import BookCoverPlaceholder from './BookCoverPlaceholder';
 
 /**
- * BookCover - Displays a book cover image fetched from OpenLibrary, with fallback to placeholder
- *
- * Uses IntersectionObserver to defer cover fetching until the component is near-visible,
- * preventing hundreds of simultaneous OpenLibrary requests when rendering large lists.
+ * Build the server-side title+author search URL. The worker resolves this
+ * via OpenLibrary → Google Books → Hardcover and caches the winner in R2.
  */
-const BookCover = React.memo(({ title, author = null, width = 80, height = 120 }) => {
+const searchUrl = (title, author) => {
+  const params = new URLSearchParams({ title });
+  if (author) params.set('author', author);
+  return `/api/covers/search?${params.toString()}`;
+};
+
+/**
+ * BookCover - Displays a book cover image fetched through /api/covers, with
+ * graceful fallback to a gradient placeholder.
+ *
+ * Resolution order:
+ *   1. If `isbn` is provided, request /api/covers/isbn/{isbn}-M.jpg.
+ *      (The worker serves from R2 first, then tries OpenLibrary → Google Books
+ *      → Hardcover by ISBN.)
+ *   2. If that 404s or we have no ISBN, fall back to /api/covers/search with
+ *      title+author. (Worker tries OpenLibrary search → Google Books →
+ *      Hardcover by title+author.)
+ *   3. If that also fails, render the placeholder.
+ *
+ * Uses IntersectionObserver to defer fetching until the component is near-
+ * visible, preventing hundreds of simultaneous requests in long lists.
+ */
+const BookCover = React.memo(({ title, author = null, isbn = null, width = 80, height = 120 }) => {
   const [isVisible, setIsVisible] = useState(false);
+  const [triedSearchFallback, setTriedSearchFallback] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const containerRef = useRef(null);
 
-  // Only fetch cover when element is near the viewport (200px margin)
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
 
-    // If IntersectionObserver isn't available, fetch immediately
     if (typeof IntersectionObserver === 'undefined') {
       setIsVisible(true);
       return;
@@ -38,21 +57,34 @@ const BookCover = React.memo(({ title, author = null, width = 80, height = 120 }
     return () => observer.disconnect();
   }, []);
 
-  // Only activate the hook when visible — passes null title to skip fetching
-  const { coverUrl } = useBookCover(isVisible ? title : null, isVisible ? author : null);
-  const [imageError, setImageError] = useState(false);
-
-  // Reset error state when title/author changes
+  // Reset fallback/error state whenever the target book changes
   useEffect(() => {
+    setTriedSearchFallback(false);
     setImageError(false);
-  }, [title, author]);
+  }, [title, author, isbn]);
 
   const handleImageError = useCallback(() => {
-    setImageError(true);
-  }, []);
+    // If we're currently showing the ISBN URL and we have a title to fall back
+    // to, switch to the search URL. Otherwise, give up and show the placeholder.
+    if (isbn && !triedSearchFallback && title) {
+      setTriedSearchFallback(true);
+    } else {
+      setImageError(true);
+    }
+  }, [isbn, triedSearchFallback, title]);
 
-  // If not visible yet or no cover URL, show placeholder
-  if (!coverUrl) {
+  // Decide the current src based on ISBN availability and whether we've had
+  // to fall back to the search URL already.
+  let currentSrc = null;
+  if (isVisible) {
+    if (isbn && !triedSearchFallback) {
+      currentSrc = `/api/covers/isbn/${encodeURIComponent(isbn)}-M.jpg`;
+    } else if (title) {
+      currentSrc = searchUrl(title, author);
+    }
+  }
+
+  if (!currentSrc || imageError) {
     return (
       <Box ref={containerRef}>
         <BookCoverPlaceholder title={title} width={width} height={height} />
@@ -60,13 +92,14 @@ const BookCover = React.memo(({ title, author = null, width = 80, height = 120 }
     );
   }
 
-  // Show the cover image with error fallback
   return (
     <Box ref={containerRef} sx={{ position: 'relative', width, height }}>
-      {imageError && <BookCoverPlaceholder title={title} width={width} height={height} />}
       <Box
         component="img"
-        src={coverUrl}
+        // `key` forces a clean remount when the URL changes (ISBN → search),
+        // so we don't briefly show a broken image between attempts.
+        key={currentSrc}
+        src={currentSrc}
         alt={`Cover of ${title}`}
         loading="lazy"
         onError={handleImageError}
@@ -76,7 +109,7 @@ const BookCover = React.memo(({ title, author = null, width = 80, height = 120 }
           borderRadius: 1,
           boxShadow: 1,
           objectFit: 'cover',
-          display: imageError ? 'none' : 'block',
+          display: 'block',
         }}
       />
     </Box>

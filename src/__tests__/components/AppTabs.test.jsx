@@ -18,9 +18,6 @@ vi.mock('../../contexts/UIContext', () => ({
 vi.mock('../../contexts/AppContext', () => ({
   AppProvider: ({ children }) => children,
 }));
-vi.mock('../../contexts/BookCoverContext', () => ({
-  BookCoverProvider: ({ children }) => children,
-}));
 vi.mock('../../components/tour/TourProvider', () => ({
   __esModule: true,
   default: ({ children }) => children,
@@ -155,7 +152,10 @@ describe('Role-Based Tab Visibility', () => {
   });
 
   it('shows 5 tabs for teacher role (no Books or Settings)', async () => {
-    renderApp({ userRole: 'teacher', user: { name: 'Mrs Jones', role: 'teacher', assignedClassIds: ['c1'] } });
+    renderApp({
+      userRole: 'teacher',
+      user: { name: 'Mrs Jones', role: 'teacher', assignedClassIds: ['c1'] },
+    });
     await waitFor(() => {
       // "Students" appears in both the tab content and the nav label
       expect(screen.getAllByText('Students').length).toBeGreaterThanOrEqual(1);
@@ -169,7 +169,10 @@ describe('Role-Based Tab Visibility', () => {
   });
 
   it('shows 5 tabs for readonly role (no Books or Settings)', async () => {
-    renderApp({ userRole: 'readonly', user: { name: 'Reader', role: 'readonly', assignedClassIds: [] } });
+    renderApp({
+      userRole: 'readonly',
+      user: { name: 'Reader', role: 'readonly', assignedClassIds: [] },
+    });
     await waitFor(() => {
       expect(screen.getAllByText('Students').length).toBeGreaterThanOrEqual(1);
     });

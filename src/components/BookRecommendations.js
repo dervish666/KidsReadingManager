@@ -958,6 +958,7 @@ const BookRecommendations = () => {
                       <BookCover
                         title={book.title}
                         author={book.author}
+                        isbn={book.isbn || null}
                         width={isMobile ? 100 : 120}
                         height={isMobile ? 150 : 180}
                       />

@@ -1,210 +1,149 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
-import { BookCoverProvider } from '../../contexts/BookCoverContext';
 import BookCover from '../../components/BookCover';
-import { _clearPendingRequests } from '../../hooks/useBookCover';
-
-// Wrapper component for providing context
-const wrapper = ({ children }) => <BookCoverProvider>{children}</BookCoverProvider>;
-
-const renderWithProvider = (ui) => {
-  return render(ui, { wrapper });
-};
 
 describe('BookCover Component', () => {
   beforeEach(() => {
-    // Clear localStorage before each test
-    localStorage.clear();
-    // Reset fetch mock before each test
     vi.resetAllMocks();
-    // Clear any pending requests from previous tests
-    _clearPendingRequests();
   });
 
   afterEach(() => {
-    localStorage.clear();
+    // Component shouldn't make any network calls itself; the browser loads
+    // the image URL directly. Confirming global.fetch was never called keeps
+    // us honest.
   });
 
-  describe('Loading State', () => {
-    it('should show placeholder while loading', async () => {
-      // Mock fetch to never resolve during the test
-      global.fetch = vi.fn(() => new Promise(() => {}));
-
-      renderWithProvider(<BookCover title="Harry Potter" author="J.K. Rowling" />);
-
-      // Should show the placeholder while loading
-      const placeholder = screen.getByTestId('placeholder-bg');
-      expect(placeholder).toBeInTheDocument();
-
-      // Should show the book icon from placeholder
-      const bookIcon = screen.getByTestId('book-icon');
-      expect(bookIcon).toBeInTheDocument();
-    });
-  });
-
-  describe('Cover Image Display', () => {
-    it('should show cover image when found', async () => {
-      // Mock successful OpenLibrary response
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            docs: [{ cover_i: 12345678 }],
-          }),
-      });
-
-      renderWithProvider(<BookCover title="Harry Potter" author="J.K. Rowling" />);
-
-      // Wait for the cover image to appear
-      await waitFor(() => {
-        const img = screen.getByRole('img', { name: /cover of harry potter/i });
-        expect(img).toBeInTheDocument();
-      });
-
-      // Verify the image has the correct src
+  describe('Source URL selection', () => {
+    it('uses the ISBN route when an ISBN is provided', () => {
+      render(<BookCover title="Harry Potter" author="J.K. Rowling" isbn="9780747532699" />);
       const img = screen.getByRole('img', { name: /cover of harry potter/i });
-      expect(img).toHaveAttribute('src', '/api/covers/id/12345678-M.jpg');
+      expect(img).toHaveAttribute('src', '/api/covers/isbn/9780747532699-M.jpg');
     });
 
-    it('should have correct alt text on cover image', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            docs: [{ cover_i: 99999 }],
-          }),
-      });
+    it('uses the search route when no ISBN is provided', () => {
+      render(<BookCover title="Harry Potter" author="J.K. Rowling" />);
+      const img = screen.getByRole('img', { name: /cover of harry potter/i });
+      expect(img).toHaveAttribute(
+        'src',
+        '/api/covers/search?title=Harry+Potter&author=J.K.+Rowling'
+      );
+    });
 
-      renderWithProvider(<BookCover title="The Cat in the Hat" />);
+    it('omits the author param when no author is provided', () => {
+      render(<BookCover title="Orphan Book" />);
+      const img = screen.getByRole('img');
+      expect(img).toHaveAttribute('src', '/api/covers/search?title=Orphan+Book');
+    });
+
+    it('URL-encodes special characters in title and author', () => {
+      render(<BookCover title="A&B: The Book" author="Smith, John" />);
+      const img = screen.getByRole('img');
+      expect(img).toHaveAttribute(
+        'src',
+        '/api/covers/search?title=A%26B%3A+The+Book&author=Smith%2C+John'
+      );
+    });
+  });
+
+  describe('ISBN → search fallback on image error', () => {
+    it('retries with the search URL when the ISBN image errors', async () => {
+      render(<BookCover title="Test Book" author="Some Author" isbn="1234567890" />);
+      const img = screen.getByRole('img');
+      expect(img).toHaveAttribute('src', '/api/covers/isbn/1234567890-M.jpg');
+
+      fireEvent.error(img);
 
       await waitFor(() => {
-        const img = screen.getByRole('img');
-        expect(img).toHaveAttribute('alt', 'Cover of The Cat in the Hat');
+        const retried = screen.getByRole('img');
+        expect(retried).toHaveAttribute(
+          'src',
+          '/api/covers/search?title=Test+Book&author=Some+Author'
+        );
+      });
+    });
+
+    it('shows the placeholder when both ISBN and search URLs error', async () => {
+      render(<BookCover title="Test Book" isbn="1234567890" />);
+      fireEvent.error(screen.getByRole('img'));
+
+      // After the first error we should be on the search URL
+      await waitFor(() => {
+        expect(screen.getByRole('img')).toHaveAttribute(
+          'src',
+          '/api/covers/search?title=Test+Book'
+        );
+      });
+
+      // Trigger a second error — no further fallback available
+      fireEvent.error(screen.getByRole('img'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('placeholder-bg')).toBeInTheDocument();
+        expect(document.querySelector('img')).not.toBeInTheDocument();
       });
     });
   });
 
-  describe('No Cover Found', () => {
-    it('should show placeholder when no cover found', async () => {
-      // Mock OpenLibrary response with no results
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            docs: [],
-          }),
-      });
+  describe('Placeholder behaviour', () => {
+    it('shows the placeholder when image errors with no ISBN to fall back from', async () => {
+      render(<BookCover title="Test Book" />);
+      fireEvent.error(screen.getByRole('img'));
 
-      renderWithProvider(<BookCover title="Unknown Book" author="Unknown Author" />);
-
-      // Wait for fetch to complete
       await waitFor(() => {
-        // After loading, should still show placeholder since no cover was found
-        const placeholder = screen.getByTestId('placeholder-bg');
-        expect(placeholder).toBeInTheDocument();
+        expect(screen.getByTestId('placeholder-bg')).toBeInTheDocument();
+        expect(document.querySelector('img')).not.toBeInTheDocument();
       });
+    });
 
-      // Verify no actual <img> element is shown (placeholder has role="img" for a11y but is not an <img>)
+    it('shows the placeholder when title is empty', () => {
+      render(<BookCover title="" />);
+      expect(screen.getByTestId('placeholder-bg')).toBeInTheDocument();
       expect(document.querySelector('img')).not.toBeInTheDocument();
     });
   });
 
-  describe('Image Error Handling', () => {
-    it('should hide broken image when image fails to load', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            docs: [{ cover_i: 12345 }],
-          }),
-      });
-
-      renderWithProvider(<BookCover title="Test Book" />);
-
-      // Wait for the cover image to appear
-      await waitFor(() => {
-        expect(screen.getByRole('img')).toBeInTheDocument();
-      });
-
-      const img = screen.getByRole('img');
-
-      // Simulate image load error
-      fireEvent.error(img);
-
-      // After error, the placeholder should appear alongside the hidden image
-      await waitFor(() => {
-        expect(screen.getByTestId('placeholder-bg')).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('Props and Dimensions', () => {
-    it('should use default dimensions when not specified', async () => {
-      global.fetch = vi.fn(() => new Promise(() => {}));
-
-      renderWithProvider(<BookCover title="Test Book" />);
-
+  describe('Props and dimensions', () => {
+    it('uses default dimensions when not specified', () => {
+      render(<BookCover title="" />);
       const placeholder = screen.getByTestId('placeholder-bg');
-      // Default width is 80, height is 120
       expect(placeholder).toHaveStyle({ width: '80px', height: '120px' });
     });
 
-    it('should use custom dimensions when specified', async () => {
-      global.fetch = vi.fn(() => new Promise(() => {}));
-
-      renderWithProvider(<BookCover title="Test Book" width={100} height={150} />);
-
+    it('uses custom dimensions when specified', () => {
+      render(<BookCover title="" width={100} height={150} />);
       const placeholder = screen.getByTestId('placeholder-bg');
       expect(placeholder).toHaveStyle({ width: '100px', height: '150px' });
     });
 
-    it('should pass dimensions to cover image', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            docs: [{ cover_i: 11111 }],
-          }),
-      });
-
-      renderWithProvider(<BookCover title="Test Book" width={100} height={150} />);
-
-      await waitFor(() => {
-        const img = screen.getByRole('img');
-        expect(img).toHaveStyle({ width: '100px', height: '150px' });
-      });
+    it('passes dimensions to the cover image', () => {
+      render(<BookCover title="Test Book" width={100} height={150} />);
+      const img = screen.getByRole('img');
+      expect(img).toHaveStyle({ width: '100px', height: '150px' });
     });
   });
 
-  describe('Edge Cases', () => {
-    it('should handle missing author prop gracefully', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            docs: [{ cover_i: 22222 }],
-          }),
-      });
-
-      renderWithProvider(<BookCover title="Orphan Book" />);
-
-      await waitFor(() => {
-        expect(screen.getByRole('img')).toBeInTheDocument();
-      });
+  describe('Edge cases', () => {
+    it('does not make any client-side fetch call', () => {
+      global.fetch = vi.fn();
+      render(<BookCover title="Harry Potter" author="J.K. Rowling" />);
+      expect(global.fetch).not.toHaveBeenCalled();
     });
 
-    it('should show placeholder when title is empty', async () => {
-      global.fetch = vi.fn();
+    it('resets fallback state when the book changes', async () => {
+      const { rerender } = render(<BookCover title="Book A" isbn="1111111111" />);
 
-      renderWithProvider(<BookCover title="" />);
+      fireEvent.error(screen.getByRole('img'));
+      await waitFor(() => {
+        expect(screen.getByRole('img')).toHaveAttribute('src', '/api/covers/search?title=Book+A');
+      });
 
-      // Should show placeholder
-      const placeholder = screen.getByTestId('placeholder-bg');
-      expect(placeholder).toBeInTheDocument();
+      // Switch to a different book — fallback state should reset
+      rerender(<BookCover title="Book B" isbn="2222222222" />);
 
-      // Fetch should not be called
-      expect(global.fetch).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(screen.getByRole('img')).toHaveAttribute('src', '/api/covers/isbn/2222222222-M.jpg');
+      });
     });
   });
 });

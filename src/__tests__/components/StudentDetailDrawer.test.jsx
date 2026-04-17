@@ -23,20 +23,20 @@ vi.mock('../../contexts/DataContext', () => ({
 
 // Mock child components to simplify drawer tests
 vi.mock('../../components/students/StudentReadView', () => ({
-  default: ({ student }) => <div data-testid="student-read-view">{student?.name}</div>
+  default: ({ student }) => <div data-testid="student-read-view">{student?.name}</div>,
 }));
 vi.mock('../../components/students/StudentEditForm', () => ({
-  default: React.forwardRef((props, ref) => <div data-testid="student-edit-form" />)
+  default: React.forwardRef((props, ref) => <div data-testid="student-edit-form" />),
 }));
 vi.mock('../../components/students/StudentTimeline', () => ({
   default: ({ sessions, loading }) => (
     <div data-testid="student-timeline">
       {loading ? 'Loading...' : `${sessions?.length || 0} sessions`}
     </div>
-  )
+  ),
 }));
 vi.mock('../../components/students/StreakBadge', () => ({
-  default: ({ streak }) => <span data-testid="streak-badge">{streak}</span>
+  default: ({ streak }) => <span data-testid="streak-badge">{streak}</span>,
 }));
 
 const mockStudent = {

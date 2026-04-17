@@ -31,13 +31,25 @@ describe('StudentInfoCard', () => {
   });
 
   it('shows empty state when no sessions and no reading level', () => {
-    const newStudent = { ...mockStudent, currentStreak: 0, readingLevelMin: null, readingLevelMax: null, totalSessionCount: 0, lastReadDate: null };
+    const newStudent = {
+      ...mockStudent,
+      currentStreak: 0,
+      readingLevelMin: null,
+      readingLevelMax: null,
+      totalSessionCount: 0,
+      lastReadDate: null,
+    };
     render(<StudentInfoCard student={newStudent} />);
     expect(screen.getByText(/No reading history/)).toBeInTheDocument();
   });
 
   it('shows reading level when no sessions but level exists', () => {
-    const studentWithLevel = { ...mockStudent, currentStreak: 0, totalSessionCount: 0, lastReadDate: null };
+    const studentWithLevel = {
+      ...mockStudent,
+      currentStreak: 0,
+      totalSessionCount: 0,
+      lastReadDate: null,
+    };
     render(<StudentInfoCard student={studentWithLevel} />);
     expect(screen.getByText(/Level 12-14/)).toBeInTheDocument();
     expect(screen.queryByText(/No reading history/)).not.toBeInTheDocument();
@@ -56,7 +68,15 @@ describe('StudentInfoCard', () => {
   });
 
   it('has accessible region in empty state', () => {
-    const newStudent = { ...mockStudent, name: 'Bob', currentStreak: 0, readingLevelMin: null, readingLevelMax: null, totalSessionCount: 0, lastReadDate: null };
+    const newStudent = {
+      ...mockStudent,
+      name: 'Bob',
+      currentStreak: 0,
+      readingLevelMin: null,
+      readingLevelMax: null,
+      totalSessionCount: 0,
+      lastReadDate: null,
+    };
     render(<StudentInfoCard student={newStudent} />);
     const region = screen.getByRole('region', { name: /Reading information for Bob/i });
     expect(region).toBeInTheDocument();

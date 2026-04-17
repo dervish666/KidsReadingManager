@@ -1,5 +1,22 @@
 # Changelog
 
+## [3.50.0] - 2026-04-17
+
+### Changed
+- **Book cover resolution moved entirely to the worker** — `BookCover` no longer depends on the client-side `BookCoverContext`/`useBookCover` hook (both deleted along with their tests). The component now renders `<img src="/api/covers/…">` directly, with an ISBN-first URL that falls through to a title+author search URL on image error, and finally to the gradient placeholder. All caching and provider fallback logic lives server-side. Removes 400+ lines of browser-state plumbing and eliminates a race where two components fetching the same book could double-populate localStorage.
+- **Cloudflare Email Service as primary transactional provider** — `src/utils/email.js` now calls `env.EMAIL_SENDER.send({ from, to, subject, text, html })` using the plain-object API Cloudflare shipped in public beta on 2026-04-16. Resend is retained as a fallback that catches transient Cloudflare failures during the beta (a failed CF send logs the error and falls through to Resend; if both are unavailable the original CF error bubbles up instead of a generic "not configured" message). Drops ~50 lines of MIME construction, the `cloudflare:email` dynamic import, and the base64 body encoding. All five transactional flows (password reset, welcome, signup notification, support ticket, trial reminder) use the new unified `sendEmail` helper.
+
+### Added
+- **`/api/covers/search` endpoint** — new public route that resolves a cover from `title` + optional `author`. Normalises input (NFC → lowercase → trim → collapse whitespace), hashes for a stable R2 key, and chains OpenLibrary search → Google Books → Hardcover using the same provider adapters as metadata enrichment. Declared before `/:type/:key` so the literal "search" segment isn't interpreted as a cover type.
+- **Google Books + Hardcover fallback for ISBN covers** — `/api/covers/isbn/{isbn}-M.jpg` no longer 404s the moment OpenLibrary has no record. On OpenLibrary miss it now consults the same Google Books and Hardcover providers we use for metadata enrichment, caches the winner in R2, and tags the serving source in logs for debuggability.
+- **Differentiated cache headers for cover responses** — hits get `max-age=2592000` (30 days), misses get `max-age=3600` (1 hour). Previously every response used the 30-day header, so a book that was once unresolvable stayed cached-as-404 for a month even after metadata enrichment filled in its ISBN.
+- **ISBN prop threaded through to `<BookCover>`** — `BookManager`, `ScanBookFlow`, `FullReadingView`, `SessionForm`, and `BookRecommendations` now pass `isbn` so the worker can serve the ISBN-keyed R2 entry directly instead of round-tripping through title/author search.
+- **`src/__tests__/integration/covers.test.js`** — new suite covering both cover endpoints, the fallback chain order, cache-hit vs miss headers, and invalid input handling.
+
+### Fixed
+- **CF Email send failures no longer lose the user-facing error** — when only Cloudflare is configured and send fails, callers previously got `'Email service not configured'`; they now get the actual CF error message, which is what Sentry and support triage expected.
+- **Prettier cleanup across nine test suites** — `BookManager`, `BookRecommendations`, `ClassAssignmentBanner`, `Login`, `StudentDetailDrawer`, `StudentInfoCard`, `StudentTable`, `StudentTimeline`, and `WelcomeDialog` test files had accumulated formatting drift; re-formatted to match `.prettierrc`. No behavioural changes.
+
 ## [3.49.0] - 2026-04-14
 
 ### Security

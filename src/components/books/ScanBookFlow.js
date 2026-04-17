@@ -184,7 +184,13 @@ const ScanBookFlow = ({ open, onClose, onBookSelected }) => {
             {book && book.title && (
               <Box sx={{ display: 'flex', gap: 2 }}>
                 <Box sx={{ flexShrink: 0 }}>
-                  <BookCover title={book.title} author={book.author} width={80} height={120} />
+                  <BookCover
+                    title={book.title}
+                    author={book.author}
+                    isbn={book.isbn || null}
+                    width={80}
+                    height={120}
+                  />
                 </Box>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography variant="h6" noWrap>

@@ -516,6 +516,7 @@ const SessionForm = () => {
                   <BookCover
                     title={selectedBook?.title || ''}
                     author={bookAuthor || null}
+                    isbn={selectedBook?.isbn || null}
                     width={40}
                     height={60}
                   />
@@ -923,6 +924,7 @@ const SessionForm = () => {
                         <BookCover
                           title={book?.title || 'Unknown'}
                           author={book?.author}
+                          isbn={book?.isbn || null}
                           width={70}
                           height={100}
                         />

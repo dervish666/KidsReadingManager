@@ -9,15 +9,15 @@ const TestDataContext = createContext();
 
 // Mock the context modules (BookManager uses useAuth and useData)
 vi.mock('../../contexts/AuthContext', () => ({
-  useAuth: () => useContext(TestAuthContext)
+  useAuth: () => useContext(TestAuthContext),
 }));
 vi.mock('../../contexts/DataContext', () => ({
-  useData: () => useContext(TestDataContext)
+  useData: () => useContext(TestDataContext),
 }));
 
 // Mock BookCover to avoid needing BookCoverProvider
 vi.mock('../../components/BookCover', () => ({
-  default: () => <div data-testid="book-cover" />
+  default: () => <div data-testid="book-cover" />,
 }));
 
 // Mock the bookMetadataApi module
@@ -26,7 +26,7 @@ vi.mock('../../utils/bookMetadataApi', () => ({
   findGenresForBook: vi.fn(),
   checkAvailability: vi.fn(),
   getProviderDisplayName: vi.fn(),
-  validateProviderConfig: vi.fn()
+  validateProviderConfig: vi.fn(),
 }));
 
 // Import after mocking
@@ -38,9 +38,7 @@ const createWrapper = (contextValue) => {
   const { fetchWithAuth, ...dataValues } = contextValue;
   return ({ children }) => (
     <TestAuthContext.Provider value={{ fetchWithAuth }}>
-      <TestDataContext.Provider value={dataValues}>
-        {children}
-      </TestDataContext.Provider>
+      <TestDataContext.Provider value={dataValues}>{children}</TestDataContext.Provider>
     </TestAuthContext.Provider>
   );
 };
@@ -53,17 +51,17 @@ const defaultBooks = [
     author: 'Dr. Seuss',
     readingLevel: '2.5',
     ageRange: '4-8',
-    description: 'A classic children\'s book',
-    genreIds: ['genre-1']
+    description: "A classic children's book",
+    genreIds: ['genre-1'],
   },
   {
     id: 'book-2',
-    title: 'Charlotte\'s Web',
+    title: "Charlotte's Web",
     author: 'E.B. White',
     readingLevel: '4.5',
     ageRange: '8-12',
     description: 'A story about friendship',
-    genreIds: ['genre-2']
+    genreIds: ['genre-2'],
   },
   {
     id: 'book-3',
@@ -72,7 +70,7 @@ const defaultBooks = [
     readingLevel: '5.5',
     ageRange: '10-14',
     description: null,
-    genreIds: ['genre-1', 'genre-2']
+    genreIds: ['genre-1', 'genre-2'],
   },
   {
     id: 'book-4',
@@ -81,8 +79,8 @@ const defaultBooks = [
     readingLevel: '3.0',
     ageRange: null,
     description: null,
-    genreIds: []
-  }
+    genreIds: [],
+  },
 ];
 
 const createMockContext = (overrides = {}) => {
@@ -106,13 +104,13 @@ const createMockContext = (overrides = {}) => {
     genres: [
       { id: 'genre-1', name: 'Fiction' },
       { id: 'genre-2', name: 'Adventure' },
-      { id: 'genre-3', name: 'Fantasy' }
+      { id: 'genre-3', name: 'Fantasy' },
     ],
     settings: {
       bookMetadata: {
         provider: 'openlibrary',
-        googleBooksApiKey: null
-      }
+        googleBooksApiKey: null,
+      },
     },
     addBook: vi.fn(),
     reloadDataFromServer: vi.fn(),
@@ -130,7 +128,7 @@ const createManyBooks = (count) => {
     readingLevel: `${(i % 5) + 1}.0`,
     ageRange: '6-10',
     description: i % 2 === 0 ? 'Has description' : null,
-    genreIds: i % 3 === 0 ? ['genre-1'] : []
+    genreIds: i % 3 === 0 ? ['genre-1'] : [],
   }));
 };
 
@@ -143,7 +141,7 @@ describe('BookManager Component', () => {
     bookMetadataApi.checkAvailability.mockResolvedValue(true);
     bookMetadataApi.getBookDetails.mockResolvedValue({
       coverUrl: 'https://example.com/cover.jpg',
-      description: 'Test description'
+      description: 'Test description',
     });
     bookMetadataApi.findGenresForBook.mockResolvedValue(['Fiction', 'Adventure']);
   });
@@ -301,7 +299,9 @@ describe('BookManager Component', () => {
       // Find selects and click the genre filter (second select after search)
       const genreSelects = screen.getAllByRole('combobox');
       // Genre filter is typically the first select dropdown after the search
-      const genreFilter = genreSelects.find(s => s.textContent === '' || s.getAttribute('aria-labelledby')?.includes('genre'));
+      const genreFilter = genreSelects.find(
+        (s) => s.textContent === '' || s.getAttribute('aria-labelledby')?.includes('genre')
+      );
       await user.click(genreSelects[0]); // First combobox is genre filter
 
       // Select "Adventure" genre from the dropdown
@@ -573,7 +573,7 @@ describe('BookManager Component', () => {
       const mockReload = vi.fn().mockResolvedValue();
       const context = createMockContext({
         addBook: mockAddBook,
-        reloadDataFromServer: mockReload
+        reloadDataFromServer: mockReload,
       });
       const user = userEvent.setup();
       render(<BookManager />, { wrapper: createWrapper(context) });
@@ -616,7 +616,7 @@ describe('BookManager Component', () => {
       const mockReload = vi.fn().mockResolvedValue();
       const context = createMockContext({
         addBook: mockAddBook,
-        reloadDataFromServer: mockReload
+        reloadDataFromServer: mockReload,
       });
       const user = userEvent.setup();
       render(<BookManager />, { wrapper: createWrapper(context) });
@@ -702,7 +702,7 @@ describe('BookManager Component', () => {
       const mockReload = vi.fn().mockResolvedValue();
       const context = createMockContext({
         fetchWithAuth: mockFetchWithAuth,
-        reloadDataFromServer: mockReload
+        reloadDataFromServer: mockReload,
       });
       const user = userEvent.setup();
       render(<BookManager />, { wrapper: createWrapper(context) });
@@ -725,7 +725,7 @@ describe('BookManager Component', () => {
         '/api/books/book-1',
         expect.objectContaining({
           method: 'PUT',
-          body: expect.stringContaining('Updated Title')
+          body: expect.stringContaining('Updated Title'),
         })
       );
     });
@@ -735,7 +735,7 @@ describe('BookManager Component', () => {
       const mockReload = vi.fn().mockResolvedValue();
       const context = createMockContext({
         fetchWithAuth: mockFetchWithAuth,
-        reloadDataFromServer: mockReload
+        reloadDataFromServer: mockReload,
       });
       const user = userEvent.setup();
       render(<BookManager />, { wrapper: createWrapper(context) });
@@ -803,7 +803,13 @@ describe('BookManager Component', () => {
         if (url.endsWith('/enrich'))
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ description: 'Enriched description', coverStored: true, genres: [], fieldsEnriched: ['description'] }),
+            json: () =>
+              Promise.resolve({
+                description: 'Enriched description',
+                coverStored: true,
+                genres: [],
+                fieldsEnriched: ['description'],
+              }),
           });
         return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
       });
@@ -847,7 +853,7 @@ describe('BookManager Component', () => {
       const mockReload = vi.fn().mockResolvedValue();
       const context = createMockContext({
         fetchWithAuth: mockFetchWithAuth,
-        reloadDataFromServer: mockReload
+        reloadDataFromServer: mockReload,
       });
       const user = userEvent.setup();
       render(<BookManager />, { wrapper: createWrapper(context) });
@@ -860,10 +866,7 @@ describe('BookManager Component', () => {
       const confirmButton = screen.getByRole('button', { name: /^delete$/i });
       await user.click(confirmButton);
 
-      expect(mockFetchWithAuth).toHaveBeenCalledWith(
-        '/api/books/book-1',
-        { method: 'DELETE' }
-      );
+      expect(mockFetchWithAuth).toHaveBeenCalledWith('/api/books/book-1', { method: 'DELETE' });
       expect(mockReload).toHaveBeenCalled();
     });
 
@@ -958,12 +961,13 @@ describe('BookManager Component', () => {
       const fileInput = document.querySelector('input[type="file"]');
 
       // Create a mock CSV file and simulate the change event
-      const csvContent = 'Title,Author,Reading Level,Age Range\n"Test Book","Test Author","3.0","6-10"';
+      const csvContent =
+        'Title,Author,Reading Level,Age Range\n"Test Book","Test Author","3.0","6-10"';
       const file = new File([csvContent], 'books.csv', { type: 'text/csv' });
 
       // Simulate file change with fireEvent
       Object.defineProperty(fileInput, 'files', {
-        value: [file]
+        value: [file],
       });
       fireEvent.change(fileInput);
 
@@ -975,12 +979,12 @@ describe('BookManager Component', () => {
     it('should call fetchWithAuth for bulk import when confirmed', async () => {
       const mockFetchWithAuth = vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({ imported: 1, duplicates: 0 })
+        json: () => Promise.resolve({ imported: 1, duplicates: 0 }),
       });
       const mockReload = vi.fn().mockResolvedValue();
       const context = createMockContext({
         fetchWithAuth: mockFetchWithAuth,
-        reloadDataFromServer: mockReload
+        reloadDataFromServer: mockReload,
       });
       const user = userEvent.setup();
       render(<BookManager />, { wrapper: createWrapper(context) });
@@ -989,11 +993,12 @@ describe('BookManager Component', () => {
       const fileInput = document.querySelector('input[type="file"]');
 
       // Create a mock CSV file
-      const csvContent = 'Title,Author,Reading Level,Age Range\n"Test Book","Test Author","3.0","6-10"';
+      const csvContent =
+        'Title,Author,Reading Level,Age Range\n"Test Book","Test Author","3.0","6-10"';
       const file = new File([csvContent], 'books.csv', { type: 'text/csv' });
 
       Object.defineProperty(fileInput, 'files', {
-        value: [file]
+        value: [file],
       });
       fireEvent.change(fileInput);
 
@@ -1009,7 +1014,7 @@ describe('BookManager Component', () => {
         expect(mockFetchWithAuth).toHaveBeenCalledWith(
           '/api/books/bulk',
           expect.objectContaining({
-            method: 'POST'
+            method: 'POST',
           })
         );
       });
@@ -1025,7 +1030,7 @@ describe('BookManager Component', () => {
       const file = new File(['test content'], 'books.txt', { type: 'text/plain' });
 
       Object.defineProperty(fileInput, 'files', {
-        value: [file]
+        value: [file],
       });
       fireEvent.change(fileInput);
 
@@ -1040,11 +1045,12 @@ describe('BookManager Component', () => {
       render(<BookManager />, { wrapper: createWrapper(context) });
 
       const fileInput = document.querySelector('input[type="file"]');
-      const csvContent = 'Title,Author,Reading Level,Age Range\n"Test Book","Test Author","3.0","6-10"';
+      const csvContent =
+        'Title,Author,Reading Level,Age Range\n"Test Book","Test Author","3.0","6-10"';
       const file = new File([csvContent], 'books.csv', { type: 'text/csv' });
 
       Object.defineProperty(fileInput, 'files', {
-        value: [file]
+        value: [file],
       });
       fireEvent.change(fileInput);
 
@@ -1066,12 +1072,12 @@ describe('BookManager Component', () => {
 
       const fileInput = document.querySelector('input[type="file"]');
       const jsonContent = JSON.stringify([
-        { title: 'Test Book', author: 'Test Author', readingLevel: '3.0', ageRange: '6-10' }
+        { title: 'Test Book', author: 'Test Author', readingLevel: '3.0', ageRange: '6-10' },
       ]);
       const file = new File([jsonContent], 'books.json', { type: 'application/json' });
 
       Object.defineProperty(fileInput, 'files', {
-        value: [file]
+        value: [file],
       });
       fireEvent.change(fileInput);
 
@@ -1094,7 +1100,7 @@ describe('BookManager Component', () => {
 
       mockLinkElement = {
         setAttribute: vi.fn(),
-        click: vi.fn()
+        click: vi.fn(),
       };
       originalCreateElement = document.createElement.bind(document);
       document.createElement = vi.fn((tag) => {
@@ -1119,7 +1125,10 @@ describe('BookManager Component', () => {
       const exportJsonItem = screen.getByText('Export JSON');
       await user.click(exportJsonItem);
 
-      expect(mockLinkElement.setAttribute).toHaveBeenCalledWith('download', expect.stringContaining('.json'));
+      expect(mockLinkElement.setAttribute).toHaveBeenCalledWith(
+        'download',
+        expect.stringContaining('.json')
+      );
       expect(mockLinkElement.click).toHaveBeenCalled();
     });
 
@@ -1134,7 +1143,10 @@ describe('BookManager Component', () => {
       const exportCsvItem = screen.getByText('Export CSV');
       await user.click(exportCsvItem);
 
-      expect(mockLinkElement.setAttribute).toHaveBeenCalledWith('download', expect.stringContaining('.csv'));
+      expect(mockLinkElement.setAttribute).toHaveBeenCalledWith(
+        'download',
+        expect.stringContaining('.csv')
+      );
       expect(mockLinkElement.click).toHaveBeenCalled();
     });
 
