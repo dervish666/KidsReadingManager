@@ -268,22 +268,37 @@ const UserManagement = () => {
 
     if (!userToEdit) return;
 
+    // Only send fields that actually changed. The backend rejects role changes
+    // on owner accounts, so echoing an unchanged role would block legitimate
+    // updates (e.g. moving an owner to a different school).
+    const updateData = {};
+    if (editFormData.name !== userToEdit.name) {
+      updateData.name = editFormData.name;
+    }
+    if (editFormData.role !== userToEdit.role) {
+      updateData.role = editFormData.role;
+    }
+    if (editFormData.organizationId !== userToEdit.organizationId) {
+      updateData.organizationId = editFormData.organizationId;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      setEditDialogOpen(false);
+      setUserToEdit(null);
+      return;
+    }
+
     setLoading(true);
     try {
-      const updateData = {
-        name: editFormData.name,
-        role: editFormData.role,
-      };
-
-      // Only include organizationId if it changed and user is owner
-      if (editFormData.organizationId !== userToEdit.organizationId) {
-        updateData.organizationId = editFormData.organizationId;
-      }
-
-      await fetchWithAuth(`/api/users/${userToEdit.id}`, {
+      const response = await fetchWithAuth(`/api/users/${userToEdit.id}`, {
         method: 'PUT',
         body: JSON.stringify(updateData),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Update failed (${response.status})`);
+      }
 
       setSuccess('User updated successfully');
       setEditDialogOpen(false);
@@ -831,7 +846,9 @@ const UserManagement = () => {
                 value={editFormData.role}
                 onChange={handleEditInputChange}
                 label="Role"
+                disabled={userToEdit?.role === 'owner'}
               >
+                {userToEdit?.role === 'owner' && <MenuItem value="owner">Owner</MenuItem>}
                 <MenuItem value="teacher">Teacher</MenuItem>
                 <MenuItem value="admin">Admin</MenuItem>
                 <MenuItem value="readonly">Read Only</MenuItem>

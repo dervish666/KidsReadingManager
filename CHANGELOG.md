@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.50.1] - 2026-04-17
+
+### Fixed
+- **Owner role guard no longer blocks unchanged-role owner edits** — the Edit User dialog echoed `role` in every PUT, which tripped the "Cannot change owner role" guard even when the field hadn't changed, blocking legitimate owner self-updates such as moving to a different school. The server now only runs the role-change guards when `role !== existingUser.role`, and the frontend only sends fields that actually changed. The Role dropdown is disabled for owner accounts in the dialog so the value can't drift, and failed PUTs now surface the real server error instead of pretending to succeed. Regression test added (`users.test.js`: "should allow other updates on owner when role echoed unchanged").
+
 ## [3.50.0] - 2026-04-17
 
 ### Changed

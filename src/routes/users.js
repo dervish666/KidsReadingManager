@@ -355,8 +355,10 @@ usersRouter.put('/:id', auditLog('update', 'user'), async (c) => {
       }
     }
 
-    // Only owners can change roles to/from admin
-    if (role !== undefined) {
+    // Only owners can change roles to/from admin — but only when the role
+    // is actually changing. The Edit User dialog echoes the current role in
+    // every PUT, and an unchanged role shouldn't trip the guards below.
+    if (role !== undefined && role !== existingUser.role) {
       if ((role === 'admin' || existingUser.role === 'admin') && !isOwner) {
         throw forbiddenError('Only owners can modify admin roles');
       }
@@ -392,7 +394,7 @@ usersRouter.put('/:id', auditLog('update', 'user'), async (c) => {
       params.push(name);
     }
 
-    if (role !== undefined && isAdmin) {
+    if (role !== undefined && role !== existingUser.role && isAdmin) {
       updates.push('role = ?');
       params.push(role);
     }

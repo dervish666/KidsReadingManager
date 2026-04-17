@@ -884,6 +884,56 @@ describe('Users API Routes', () => {
         expect(data.error).toBe('Cannot change owner role');
       });
 
+      it('should allow other updates on owner when role echoed unchanged', async () => {
+        // Regression: frontend Edit User dialog always echoes `role` in the
+        // payload, which previously tripped the "Cannot change owner role" guard
+        // even when the role value wasn't actually changing — blocking owner
+        // self-edits (e.g. moving their own account to a different school).
+        const { app, mockDB } = createTestApp({
+          userId: 'owner-user',
+          organizationId: 'org-456',
+          userRole: ROLES.OWNER,
+        });
+
+        let callIndex = 0;
+        mockDB._chain.first.mockImplementation(() => {
+          callIndex++;
+          if (callIndex === 1) {
+            // Existing user lookup
+            return Promise.resolve({
+              id: 'owner-user',
+              organization_id: 'org-456',
+              role: 'owner',
+              name: 'Owner User',
+              email: 'owner@example.com',
+            });
+          }
+          if (callIndex === 2) {
+            // Target organization validation
+            return Promise.resolve({
+              id: 'other-org-789',
+              is_active: 1,
+            });
+          }
+          // Final updated user fetch
+          return Promise.resolve({
+            id: 'owner-user',
+            organization_id: 'other-org-789',
+            organization_name: 'Other Org',
+            role: 'owner',
+            is_active: 1,
+          });
+        });
+
+        const response = await makeRequest(app, 'PUT', '/api/users/owner-user', {
+          name: 'Owner User',
+          role: 'owner',
+          organizationId: 'other-org-789',
+        });
+
+        expect(response.status).toBe(200);
+      });
+
       it('should prevent deactivating the owner', async () => {
         const { app, mockDB } = createTestApp({
           userId: 'admin-123',
