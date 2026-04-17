@@ -1244,6 +1244,62 @@ describe('Users API Routes', () => {
         expect(response.status).toBe(200);
         expect(data.message).toContain('Password reset successfully');
       });
+
+      it('returns 403 when a non-owner tries to reset an owner password', async () => {
+        const { app, mockDB } = createTestApp({
+          userId: 'admin-123',
+          organizationId: 'org-456',
+          userRole: ROLES.ADMIN,
+        });
+
+        mockDB._chain.first.mockImplementation(() =>
+          Promise.resolve({
+            id: 'owner-user',
+            organization_id: 'org-456',
+            organization_name: 'Test School',
+            email: 'owner@example.com',
+            name: 'Owner',
+            role: 'owner',
+            is_active: 1,
+          })
+        );
+
+        const response = await makeRequest(app, 'POST', '/api/users/owner-user/reset-password', {});
+
+        expect(response.status).toBe(403);
+        const data = await response.json();
+        expect(data.error).toMatch(/cannot reset owner password/i);
+      });
+
+      it('allows an owner to reset another owner password', async () => {
+        const { app, mockDB } = createTestApp({
+          userId: 'owner-1',
+          organizationId: 'org-456',
+          userRole: ROLES.OWNER,
+        });
+
+        let call = 0;
+        mockDB._chain.first.mockImplementation(() => {
+          call += 1;
+          return Promise.resolve(
+            call === 1
+              ? {
+                  id: 'owner-2',
+                  organization_id: 'org-456',
+                  organization_name: 'Test School',
+                  email: 'owner2@example.com',
+                  name: 'Owner Two',
+                  role: 'owner',
+                  is_active: 1,
+                }
+              : { id: 'owner-2', email: 'owner2@example.com', name: 'Owner Two' }
+          );
+        });
+
+        const response = await makeRequest(app, 'POST', '/api/users/owner-2/reset-password', {});
+
+        expect(response.status).toBe(200);
+      });
     });
 
     describe('Password reset behavior', () => {
