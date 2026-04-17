@@ -138,6 +138,9 @@ authRouter.get('/mode', async (c) => {
  * }
  */
 authRouter.post('/register', async (c) => {
+  if (c.env.PUBLIC_REGISTRATION_ENABLED !== 'true') {
+    return c.json({ error: 'Not found' }, 404);
+  }
   try {
     const db = getDB(c.env);
     const body = await c.req.json();

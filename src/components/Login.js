@@ -27,7 +27,6 @@ const Login = ({ onBackToLanding } = {}) => {
   const {
     login,
     loginWithEmail,
-    register,
     apiError,
     isMultiTenantMode,
     serverAuthModeDetected,

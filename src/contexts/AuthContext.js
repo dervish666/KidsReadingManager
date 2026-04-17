@@ -506,69 +506,6 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  // Register new organization and user
-  const register = useCallback(async (organizationName, userName, email, password) => {
-    setApiError(null);
-
-    try {
-      const response = await fetch(`${API_URL}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // Include httpOnly cookies in response
-        body: JSON.stringify({
-          organizationName,
-          name: userName,
-          email,
-          password,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Registration failed: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (!data.accessToken) {
-        throw new Error('No access token returned from server');
-      }
-
-      // Merge organization info into user object
-      const userWithOrg = data.user
-        ? {
-            ...data.user,
-            organizationId: data.organization?.id || data.user.organizationId,
-            organizationName: data.organization?.name || data.user.organizationName,
-            organizationSlug: data.organization?.slug || data.user.organizationSlug,
-          }
-        : null;
-
-      // Store tokens and user info
-      try {
-        if (typeof window !== 'undefined') {
-          window.localStorage.setItem(AUTH_STORAGE_KEY, data.accessToken);
-          window.localStorage.setItem(AUTH_MODE_KEY, 'multitenant');
-          if (userWithOrg) {
-            window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userWithOrg));
-          }
-        }
-      } catch (storageErr) {
-        // Storage error is non-critical
-      }
-
-      setAuthToken(data.accessToken);
-      setUser(userWithOrg);
-      setAuthMode('multitenant');
-      setApiError(null);
-
-      return userWithOrg;
-    } catch (err) {
-      setApiError(err.message || 'Registration failed');
-      throw err;
-    }
-  }, []);
-
   // Request password reset
   const forgotPassword = useCallback(async (email) => {
     setApiError(null);
@@ -817,7 +754,6 @@ export const AuthProvider = ({ children }) => {
       fetchWithAuth,
       login,
       loginWithEmail,
-      register,
       forgotPassword,
       resetPassword,
       logout,
@@ -847,7 +783,6 @@ export const AuthProvider = ({ children }) => {
       fetchWithAuth,
       login,
       loginWithEmail,
-      register,
       forgotPassword,
       resetPassword,
       logout,
