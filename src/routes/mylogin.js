@@ -98,7 +98,9 @@ myloginRouter.get('/callback', async (c) => {
     let stateValid = false;
     if (db) {
       const row = await db
-        .prepare('SELECT state FROM oauth_state WHERE state = ?')
+        .prepare(
+          "SELECT state FROM oauth_state WHERE state = ? AND created_at > datetime('now', '-10 minutes')"
+        )
         .bind(state)
         .first();
       if (row) {
