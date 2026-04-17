@@ -148,3 +148,19 @@ Not from the 14 Apr audit but tracked in user-memory. Independent of the audit.
 - Audit plan: `audit-plans/audit-plan-2026-04-14-1347.md`
 - Fix commit: `287e077` (v3.49.0, 14 Apr 2026)
 - Earlier audits for context: `docs/audit-2026-04-02.md`, `audit-plans/audit-report-2026-04-09.md`
+
+---
+
+## Post-v3.51.0 Findings (from pen-test smoke test)
+
+### `rateLimit` helper has D1 read-replica lag
+
+Production smoke test of H8 (covers rate-limit) showed the helper in `src/middleware/tenant.js:363-456` only starts returning 429 after roughly 2× the configured budget under sustained pressure: a 150-request burst against `/api/covers/search` returned **132 × 404 then 18 × 429** rather than the expected 60 × 404 then 90 × 429.
+
+**Cause:** `.first()` on the COUNT query can hit a D1 read replica that hasn't observed the previous requests' INSERTs yet. Each Worker request runs with its own D1 session, and the helper does not pin reads to the primary or use the D1 Sessions API bookmark.
+
+**Impact:** Affects every caller of `rateLimit()` — covers, contact, signup, and (most importantly) `authRateLimit` for login/register/reset-password. Under steady-state attack the rate limit still throttles, just with a 2–3× over-budget warmup. Not a regression from this PR — pre-existing behaviour surfaced by the H8 smoke test.
+
+**Fix direction:** Use D1 Sessions API with `c.env.READING_MANAGER_DB.withSession()` and reuse the bookmark across the SELECT/INSERT pair, or move the counter to KV with `put`/`get` on a per-(key,endpoint) counter. Needs benchmarking — KV is eventually consistent too, but with different lag characteristics.
+
+**Priority:** Medium. The existing behaviour delivers meaningful throttling for scripted attacks; making it precise matters for finer limits like `authRateLimit(10, 60000)` on login.
