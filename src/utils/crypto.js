@@ -50,6 +50,21 @@ export async function hashPassword(password) {
 }
 
 /**
+ * Precomputed PBKDF2 hash of the fixed string 'dummy-password-for-timing-parity'.
+ *
+ * Used by the login handler to run verifyPassword on the no-user branch so the
+ * compute path is identical to the user-found branch — closes the timing
+ * oracle where hashPassword (random salt) vs verifyPassword (stored salt) had
+ * subtly different code shapes.
+ *
+ * Hard-coded rather than computed at module init so Worker cold-starts don't
+ * shift the baseline for the first request. Regenerate if PBKDF2_ITERATIONS
+ * changes (see hashPassword above).
+ */
+export const DUMMY_PASSWORD_HASH =
+  'tXnJURGZsnlwQRgNAFeDWw==:z+lXJv0qvm0nESQF7KHFujK6P68nfD1M6vEMbFcWOH0=';
+
+/**
  * Verify a password against a stored hash with a specific iteration count
  * @param {string} password - Plain text password to verify
  * @param {string} storedHash - Stored hash in format: base64(salt):base64(hash)
