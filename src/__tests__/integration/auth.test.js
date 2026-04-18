@@ -268,7 +268,7 @@ describe('Auth API Routes', () => {
         return null;
       });
 
-      hashPassword.mockResolvedValueOnce('dummy-hash');
+      verifyPassword.mockResolvedValueOnce({ valid: false, needsRehash: false });
 
       const app = createTestApp(mockDB);
 
@@ -280,6 +280,72 @@ describe('Auth API Routes', () => {
       // Verify INSERT INTO login_attempts was called
       const insertCalls = mockDB._calls.filter((sql) => sql.includes('INSERT INTO login_attempts'));
       expect(insertCalls.length).toBeGreaterThan(0);
+    });
+  });
+
+  // ===========================================================================
+  // Login timing parity (M18): unknown-email branch must run the same PBKDF2
+  // path as the user-found branch, so the compute cost is identical.
+  // ===========================================================================
+  describe('POST /api/auth/login - timing parity (M18)', () => {
+    it('runs verifyPassword against DUMMY_PASSWORD_HASH when user does not exist', async () => {
+      const { DUMMY_PASSWORD_HASH } = await import('../../utils/crypto.js');
+
+      const mockDB = createMockDB((sql) => {
+        if (sql.includes('login_attempts') && sql.includes('COUNT')) {
+          return { count: 0 };
+        }
+        if (sql.includes('users u') && sql.includes('organizations o')) {
+          return null;
+        }
+        return null;
+      });
+
+      verifyPassword.mockResolvedValueOnce({ valid: false, needsRehash: false });
+
+      const app = createTestApp(mockDB);
+      const response = await makeRequest(app, 'POST', '/api/auth/login', {
+        email: 'nonexistent@example.com',
+        password: 'somepassword',
+      });
+
+      expect(response.status).toBe(401);
+      expect(verifyPassword).toHaveBeenCalledWith('somepassword', DUMMY_PASSWORD_HASH);
+      expect(hashPassword).not.toHaveBeenCalled();
+    });
+
+    it('runs verifyPassword against the stored user hash when user exists', async () => {
+      const mockDB = createMockDB((sql) => {
+        if (sql.includes('login_attempts') && sql.includes('COUNT')) {
+          return { count: 0 };
+        }
+        if (sql.includes('users u') && sql.includes('organizations o')) {
+          return {
+            id: 'user-123',
+            email: 'test@example.com',
+            password_hash: 'stored-salt:stored-hash',
+            name: 'Test User',
+            role: 'teacher',
+            is_active: 1,
+            organization_id: 'org-456',
+            org_name: 'Test School',
+            org_slug: 'test-school',
+            org_active: 1,
+          };
+        }
+        return null;
+      });
+
+      verifyPassword.mockResolvedValueOnce({ valid: false, needsRehash: false });
+
+      const app = createTestApp(mockDB);
+      const response = await makeRequest(app, 'POST', '/api/auth/login', {
+        email: 'test@example.com',
+        password: 'wrongpassword',
+      });
+
+      expect(response.status).toBe(401);
+      expect(verifyPassword).toHaveBeenCalledWith('wrongpassword', 'stored-salt:stored-hash');
     });
   });
 

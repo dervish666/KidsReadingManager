@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.53.0] - 2026-04-18
+
+### Security
+- **JWT header now asserts `alg` and `typ` (H10)** — `verifyAccessToken` decodes the header and rejects any token whose `alg !== 'HS256'` or whose `typ` is present but not `'JWT'`. Today's signature check implicitly forced HS256, but a future refactor that read `header.alg` would reopen algorithm-confusion (`alg: none`, `alg: RS256` with public-key-as-HMAC-secret). One-line guard, no token invalidation.
+- **JWT payload adds `iss` / `aud` / `jti` with validation (M16)** — tokens now carry `iss: 'tally-reading'`, `aud: 'tally-reading-api'`, and a per-token `jti` (crypto.randomUUID). `verifyAccessToken` rejects tokens whose `iss`/`aud` don't match ours, fail-closed on missing claims. `jti` is written but not yet consulted for revocation — that lookup + table lands in a follow-up. In-flight v3.52.0 tokens fail verify on first request after deploy and the client's existing refresh flow mints a new compliant token (invisible to users).
+- **Login handler uses constant-work verify for unknown emails (M18)** — the no-user branch previously called `hashPassword(password)` while the user-found branch called `verifyPassword`. Same cost in theory but different code shapes — 420–475ms delta measured at prod edge. New `DUMMY_PASSWORD_HASH` export (precomputed PBKDF2 output) lets the no-user branch call `verifyPassword(password, DUMMY_PASSWORD_HASH)` so both paths run the identical PBKDF2 + base64-decode + constant-time-compare sequence. Result is always 401. `recordLoginAttempt` stays synchronous.
+
+### Migrations
+None.
+
 ## [3.52.0] - 2026-04-17
 
 ### Security

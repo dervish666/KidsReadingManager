@@ -15,6 +15,7 @@ import {
   hashToken,
   buildRefreshCookie,
   buildClearRefreshCookie,
+  DUMMY_PASSWORD_HASH,
 } from '../utils/crypto.js';
 import { authRateLimit } from '../middleware/tenant.js';
 import { sendPasswordResetEmail } from '../utils/email.js';
@@ -416,8 +417,11 @@ authRouter.post('/login', async (c) => {
       .first();
 
     if (!user) {
-      // Perform a dummy hash to prevent timing-based email enumeration
-      await hashPassword(password);
+      // Timing parity (M18): run the same verify path as the user-found case
+      // against a fixed dummy hash. The result is always invalid, but the
+      // PBKDF2 compute shape matches exactly — closes the hashPassword vs
+      // verifyPassword code-path delta that leaked email existence.
+      await verifyPassword(password, DUMMY_PASSWORD_HASH);
       await recordLoginAttempt(db, email, ipAddress, userAgent, false);
       return c.json({ error: 'Invalid email or password' }, 401);
     }

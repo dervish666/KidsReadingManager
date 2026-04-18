@@ -50,6 +50,21 @@ export async function hashPassword(password) {
 }
 
 /**
+ * Precomputed PBKDF2 hash of the fixed string 'dummy-password-for-timing-parity'.
+ *
+ * Used by the login handler to run verifyPassword on the no-user branch so the
+ * compute path is identical to the user-found branch — closes the timing
+ * oracle where hashPassword (random salt) vs verifyPassword (stored salt) had
+ * subtly different code shapes.
+ *
+ * Hard-coded rather than computed at module init so Worker cold-starts don't
+ * shift the baseline for the first request. Regenerate if PBKDF2_ITERATIONS
+ * changes (see hashPassword above).
+ */
+export const DUMMY_PASSWORD_HASH =
+  'tXnJURGZsnlwQRgNAFeDWw==:z+lXJv0qvm0nESQF7KHFujK6P68nfD1M6vEMbFcWOH0=';
+
+/**
  * Verify a password against a stored hash with a specific iteration count
  * @param {string} password - Plain text password to verify
  * @param {string} storedHash - Stored hash in format: base64(salt):base64(hash)
@@ -114,6 +129,12 @@ const JWT_ALGORITHM = 'HS256';
 const ACCESS_TOKEN_TTL = 15 * 60 * 1000; // 15 minutes in ms
 const REFRESH_TOKEN_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days in ms
 
+// SECURITY: Standard JWT registered claims for issuer and audience.
+// These identify *us* as the issuer and *this API* as the intended recipient.
+// Hard-coded (not env-driven) because they identify the service, not the deploy.
+const JWT_ISSUER = 'tally-reading';
+const JWT_AUDIENCE = 'tally-reading-api';
+
 /**
  * Create a JWT access token
  * @param {Object} payload - Token payload (user data)
@@ -130,6 +151,9 @@ export async function createAccessToken(payload, secret, expiresIn = ACCESS_TOKE
   const now = Date.now();
   const tokenPayload = {
     ...payload,
+    iss: JWT_ISSUER,
+    aud: JWT_AUDIENCE,
+    jti: crypto.randomUUID(),
     iat: Math.floor(now / 1000),
     exp: Math.floor((now + expiresIn) / 1000),
   };
@@ -182,6 +206,22 @@ export async function verifyAccessToken(token, secret) {
 
     const [encodedHeader, encodedPayload, encodedSignature] = parts;
 
+    // Parse and assert header algorithm + type before trusting anything else.
+    // Today the signature check implicitly forces HS256, but a future refactor
+    // that respects header.alg would reopen algorithm-confusion attacks.
+    let header;
+    try {
+      header = JSON.parse(base64UrlDecode(encodedHeader));
+    } catch {
+      return { valid: false, error: 'Invalid token header' };
+    }
+    if (header.alg !== JWT_ALGORITHM) {
+      return { valid: false, error: 'Unsupported JWT algorithm' };
+    }
+    if (header.typ && header.typ !== 'JWT') {
+      return { valid: false, error: 'Unsupported JWT type' };
+    }
+
     // Verify signature
     const signatureInput = `${encodedHeader}.${encodedPayload}`;
     const expectedSignature = await signHS256(signatureInput, secret);
@@ -206,6 +246,16 @@ export async function verifyAccessToken(token, secret) {
     const now = Math.floor(Date.now() / 1000);
     if (payload.exp && payload.exp < now) {
       return { valid: false, error: 'Token expired' };
+    }
+
+    // Validate registered claims. iss/aud must match this service exactly.
+    // Missing claims fail closed — they indicate a token minted by an older
+    // version or a different issuer.
+    if (payload.iss !== JWT_ISSUER) {
+      return { valid: false, error: 'Invalid issuer' };
+    }
+    if (payload.aud !== JWT_AUDIENCE) {
+      return { valid: false, error: 'Invalid audience' };
     }
 
     return { valid: true, payload };
