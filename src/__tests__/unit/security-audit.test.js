@@ -311,12 +311,22 @@ describe('Encrypt/Decrypt Round-Trip', () => {
     ).rejects.toThrow();
   });
 
-  it('should pass through legacy unencrypted data (no colon separator) unchanged', async () => {
-    const legacyPlaintext = 'sk-old-api-key-without-encryption';
+  it('should throw on colon-less input (fail-closed plaintext rejection, M14)', async () => {
+    const plaintextLooking = 'sk-old-api-key-without-encryption';
+    await expect(decryptSensitiveData(plaintextLooking, testSecret)).rejects.toThrow(
+      'Invalid encrypted data format (no separator)'
+    );
+  });
 
-    const result = await decryptSensitiveData(legacyPlaintext, testSecret);
-
-    expect(result).toBe(legacyPlaintext);
+  it('still decrypts legacy iv:ciphertext format (no enc: prefix)', async () => {
+    // Manually produce a legacy-format payload by encrypting with the current
+    // path then stripping the 'enc:' prefix. This simulates rows written before
+    // the v3.49.0 migration to the prefixed format — we must still be able to
+    // read them after M14 tightens the no-separator guard.
+    const encrypted = await encryptSensitiveData('legacy-token', testSecret);
+    const legacyFormat = encrypted.replace(/^enc:/, '');
+    const result = await decryptSensitiveData(legacyFormat, testSecret);
+    expect(result).toBe('legacy-token');
   });
 
   it('should throw when encrypting with empty plaintext', async () => {
