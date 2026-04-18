@@ -573,6 +573,11 @@ async function deriveEncryptionKey(secret) {
   );
 }
 
+// Module-scoped flag: warn once per Worker instance, not per-call, so a
+// busy handler doesn't spam logs. Reset on cold-start, which is the signal
+// that the ENCRYPTION_KEY config is still missing.
+let _encryptionKeyWarnLogged = false;
+
 /**
  * Get the encryption secret from the environment.
  * Prefers a dedicated ENCRYPTION_KEY (limiting blast radius if JWT_SECRET is compromised),
@@ -581,7 +586,18 @@ async function deriveEncryptionKey(secret) {
  * @returns {string} - The encryption secret
  */
 export function getEncryptionSecret(env) {
-  return env.ENCRYPTION_KEY || env.JWT_SECRET;
+  if (!env.ENCRYPTION_KEY) {
+    if (env.ENVIRONMENT === 'production' && !_encryptionKeyWarnLogged) {
+      console.warn(
+        '[crypto] ENCRYPTION_KEY not set — falling back to JWT_SECRET. ' +
+          'Set a dedicated ENCRYPTION_KEY to limit blast radius of a ' +
+          'JWT_SECRET leak. See CHANGELOG v3.54.0 for ops step.'
+      );
+      _encryptionKeyWarnLogged = true;
+    }
+    return env.JWT_SECRET;
+  }
+  return env.ENCRYPTION_KEY;
 }
 
 /**

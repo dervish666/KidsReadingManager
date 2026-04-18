@@ -7,7 +7,11 @@ import {
   badRequestError,
   serverError,
 } from '../../middleware/errorHandler.js';
-import { encryptSensitiveData, decryptSensitiveData } from '../../utils/crypto.js';
+import {
+  encryptSensitiveData,
+  decryptSensitiveData,
+  getEncryptionSecret,
+} from '../../utils/crypto.js';
 import { validateSettings } from '../../utils/validation.js';
 
 // ============================================================================
@@ -481,4 +485,24 @@ describe('Settings Prototype Pollution Guard', () => {
   });
   // Other validateSettings tests covered by validation.test.js
   // JavaScript prototype/JSON.parse behavior tests removed (not testing production code)
+});
+
+// ============================================================================
+// getEncryptionSecret (M15)
+// ============================================================================
+
+describe('getEncryptionSecret', () => {
+  it('prefers ENCRYPTION_KEY when set', () => {
+    expect(getEncryptionSecret({ ENCRYPTION_KEY: 'dedicated', JWT_SECRET: 'jwt' })).toBe(
+      'dedicated'
+    );
+  });
+
+  it('falls back to JWT_SECRET when ENCRYPTION_KEY is absent', () => {
+    expect(getEncryptionSecret({ JWT_SECRET: 'jwt' })).toBe('jwt');
+  });
+
+  it('falls back to JWT_SECRET when ENCRYPTION_KEY is empty string', () => {
+    expect(getEncryptionSecret({ ENCRYPTION_KEY: '', JWT_SECRET: 'jwt' })).toBe('jwt');
+  });
 });
