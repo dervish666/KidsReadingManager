@@ -126,6 +126,27 @@ describe('JWT Tokens', () => {
       expect(result.payload.email).toBe(testPayload.email);
       expect(result.payload.role).toBe(testPayload.role);
     });
+
+    it('should include iss, aud, and jti claims in payload', async () => {
+      const token = await createAccessToken(testPayload, testSecret);
+      const result = await verifyAccessToken(token, testSecret);
+      expect(result.valid).toBe(true);
+      expect(result.payload.iss).toBe('tally-reading');
+      expect(result.payload.aud).toBe('tally-reading-api');
+      expect(result.payload.jti).toBeDefined();
+      expect(typeof result.payload.jti).toBe('string');
+      expect(result.payload.jti.length).toBeGreaterThan(0);
+    });
+
+    it('should generate a unique jti for each call', async () => {
+      const token1 = await createAccessToken(testPayload, testSecret);
+      const token2 = await createAccessToken(testPayload, testSecret);
+      const r1 = await verifyAccessToken(token1, testSecret);
+      const r2 = await verifyAccessToken(token2, testSecret);
+      expect(r1.payload.jti).toBeDefined();
+      expect(r2.payload.jti).toBeDefined();
+      expect(r1.payload.jti).not.toBe(r2.payload.jti);
+    });
   });
 
   describe('verifyAccessToken', () => {
@@ -254,6 +275,44 @@ describe('JWT Tokens', () => {
       const result = await verifyAccessToken(mangledToken, testSecret);
       expect(result.valid).toBe(false);
       expect(result.error).toBe('Invalid token header');
+    });
+
+    it('should reject token with wrong iss claim', async () => {
+      const now = Math.floor(Date.now() / 1000);
+      const token = await mintTokenWithHeader(
+        { alg: 'HS256', typ: 'JWT' },
+        { ...testPayload, iss: 'wrong-service', iat: now, exp: now + 900 },
+        testSecret
+      );
+      const result = await verifyAccessToken(token, testSecret);
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('Invalid issuer');
+    });
+
+    it('should reject token with wrong aud claim', async () => {
+      const now = Math.floor(Date.now() / 1000);
+      const token = await mintTokenWithHeader(
+        { alg: 'HS256', typ: 'JWT' },
+        { ...testPayload, aud: 'wrong-audience', iat: now, exp: now + 900 },
+        testSecret
+      );
+      const result = await verifyAccessToken(token, testSecret);
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('Invalid audience');
+    });
+
+    it('should reject token with missing iss claim', async () => {
+      // iss: undefined is preserved by the spread but dropped by JSON.stringify,
+      // so the resulting JWT payload has no iss field at all.
+      const now = Math.floor(Date.now() / 1000);
+      const token = await mintTokenWithHeader(
+        { alg: 'HS256', typ: 'JWT' },
+        { ...testPayload, iss: undefined, iat: now, exp: now + 900 },
+        testSecret
+      );
+      const result = await verifyAccessToken(token, testSecret);
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('Invalid issuer');
     });
   });
 });

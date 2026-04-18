@@ -114,6 +114,12 @@ const JWT_ALGORITHM = 'HS256';
 const ACCESS_TOKEN_TTL = 15 * 60 * 1000; // 15 minutes in ms
 const REFRESH_TOKEN_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days in ms
 
+// SECURITY: Standard JWT registered claims for issuer and audience.
+// These identify *us* as the issuer and *this API* as the intended recipient.
+// Hard-coded (not env-driven) because they identify the service, not the deploy.
+const JWT_ISSUER = 'tally-reading';
+const JWT_AUDIENCE = 'tally-reading-api';
+
 /**
  * Create a JWT access token
  * @param {Object} payload - Token payload (user data)
@@ -130,6 +136,9 @@ export async function createAccessToken(payload, secret, expiresIn = ACCESS_TOKE
   const now = Date.now();
   const tokenPayload = {
     ...payload,
+    iss: JWT_ISSUER,
+    aud: JWT_AUDIENCE,
+    jti: crypto.randomUUID(),
     iat: Math.floor(now / 1000),
     exp: Math.floor((now + expiresIn) / 1000),
   };
@@ -222,6 +231,16 @@ export async function verifyAccessToken(token, secret) {
     const now = Math.floor(Date.now() / 1000);
     if (payload.exp && payload.exp < now) {
       return { valid: false, error: 'Token expired' };
+    }
+
+    // Validate registered claims. iss/aud must match this service exactly.
+    // Missing claims fail closed — they indicate a token minted by an older
+    // version or a different issuer.
+    if (payload.iss !== JWT_ISSUER) {
+      return { valid: false, error: 'Invalid issuer' };
+    }
+    if (payload.aud !== JWT_AUDIENCE) {
+      return { valid: false, error: 'Invalid audience' };
     }
 
     return { valid: true, payload };
