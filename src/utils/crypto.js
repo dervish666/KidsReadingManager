@@ -573,6 +573,11 @@ async function deriveEncryptionKey(secret) {
   );
 }
 
+// Module-scoped flag: warn once per Worker instance, not per-call, so a
+// busy handler doesn't spam logs. Reset on cold-start, which is the signal
+// that the ENCRYPTION_KEY config is still missing.
+let _encryptionKeyWarnLogged = false;
+
 /**
  * Get the encryption secret from the environment.
  * Prefers a dedicated ENCRYPTION_KEY (limiting blast radius if JWT_SECRET is compromised),
@@ -581,7 +586,18 @@ async function deriveEncryptionKey(secret) {
  * @returns {string} - The encryption secret
  */
 export function getEncryptionSecret(env) {
-  return env.ENCRYPTION_KEY || env.JWT_SECRET;
+  if (!env.ENCRYPTION_KEY) {
+    if (env.ENVIRONMENT === 'production' && !_encryptionKeyWarnLogged) {
+      console.warn(
+        '[crypto] ENCRYPTION_KEY not set — falling back to JWT_SECRET. ' +
+          'Set a dedicated ENCRYPTION_KEY to limit blast radius of a ' +
+          'JWT_SECRET leak. See CHANGELOG v3.54.0 for ops step.'
+      );
+      _encryptionKeyWarnLogged = true;
+    }
+    return env.JWT_SECRET;
+  }
+  return env.ENCRYPTION_KEY;
 }
 
 /**
@@ -631,12 +647,14 @@ export async function decryptSensitiveData(encryptedData, secret) {
   //   "iv:ciphertext"     — legacy encrypted format (pre-prefix migration)
   //   no colons           — legacy plaintext (backward compat, will be re-encrypted on next update)
   if (!encryptedData.includes(':')) {
-    // Flag plaintext reads so we can detect fields that escaped encryption.
-    // Scheduled for fail-closed conversion once production telemetry is clean.
-    console.warn(
-      `[crypto] decryptSensitiveData plaintext fallback fired (length=${encryptedData.length})`
-    );
-    return encryptedData;
+    // Hard-fail. A read without a separator means a write bug stored
+    // plaintext in an encrypted column — we want that to surface as a
+    // decrypt error, not silently leak unencrypted data through the read
+    // path. Production audit at v3.54.0 confirmed zero plaintext rows
+    // across all encrypted columns, so this is safe to ship without a
+    // migration. If this fires post-deploy, investigate the write path
+    // that produced the plaintext.
+    throw new Error('Invalid encrypted data format (no separator)');
   }
 
   let ivBase64, ciphertextBase64;

@@ -1,5 +1,22 @@
 # Changelog
 
+## [3.54.0] - 2026-04-18
+
+### Security
+- **`decryptSensitiveData` fails closed on plaintext reads (M14)** — the legacy pass-through that returned colon-less input as plaintext (with a warn since v3.49.0) is removed. A read without a separator now throws. Production audit confirmed zero plaintext rows across all encrypted columns (`organizations.wonde_school_token`, `platform_ai_keys.api_key_encrypted`, `metadata_config.hardcover_api_key_encrypted`), so the change is safe without a migration. Legacy `iv:ciphertext` format (no `enc:` prefix) still decrypts — regression test added.
+- **`getEncryptionSecret` warns when falling back to `JWT_SECRET` in production (M15)** — today's behaviour is `env.ENCRYPTION_KEY || env.JWT_SECRET` with no signal, and production is currently running on the fallback, so a JWT_SECRET leak decrypts every encrypted field. Adds a once-per-cold-start `console.warn` when the fallback fires in `env.ENVIRONMENT === 'production'`. Fallback behaviour is preserved for this release — removing it would break decrypts of existing data. True blast-radius reduction (key rotation via re-encryption migration) is a separate follow-up spec.
+
+### Ops step (required after deploy)
+Set `ENCRYPTION_KEY` to the current `JWT_SECRET` value to silence the M15 warning:
+```bash
+npx wrangler secret put ENCRYPTION_KEY
+# Paste the current JWT_SECRET value when prompted
+```
+This leaves crypto behaviour unchanged (same key for signing and encryption) but sets up the follow-up key-rotation work, which will re-encrypt fields under a fresh `ENCRYPTION_KEY` distinct from `JWT_SECRET`.
+
+### Migrations
+None.
+
 ## [3.53.0] - 2026-04-18
 
 ### Security

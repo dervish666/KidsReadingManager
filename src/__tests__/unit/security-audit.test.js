@@ -7,7 +7,11 @@ import {
   badRequestError,
   serverError,
 } from '../../middleware/errorHandler.js';
-import { encryptSensitiveData, decryptSensitiveData } from '../../utils/crypto.js';
+import {
+  encryptSensitiveData,
+  decryptSensitiveData,
+  getEncryptionSecret,
+} from '../../utils/crypto.js';
 import { validateSettings } from '../../utils/validation.js';
 
 // ============================================================================
@@ -311,12 +315,22 @@ describe('Encrypt/Decrypt Round-Trip', () => {
     ).rejects.toThrow();
   });
 
-  it('should pass through legacy unencrypted data (no colon separator) unchanged', async () => {
-    const legacyPlaintext = 'sk-old-api-key-without-encryption';
+  it('should throw on colon-less input (fail-closed plaintext rejection, M14)', async () => {
+    const plaintextLooking = 'sk-old-api-key-without-encryption';
+    await expect(decryptSensitiveData(plaintextLooking, testSecret)).rejects.toThrow(
+      'Invalid encrypted data format (no separator)'
+    );
+  });
 
-    const result = await decryptSensitiveData(legacyPlaintext, testSecret);
-
-    expect(result).toBe(legacyPlaintext);
+  it('still decrypts legacy iv:ciphertext format (no enc: prefix)', async () => {
+    // Manually produce a legacy-format payload by encrypting with the current
+    // path then stripping the 'enc:' prefix. This simulates rows written before
+    // the v3.49.0 migration to the prefixed format — we must still be able to
+    // read them after M14 tightens the no-separator guard.
+    const encrypted = await encryptSensitiveData('legacy-token', testSecret);
+    const legacyFormat = encrypted.replace(/^enc:/, '');
+    const result = await decryptSensitiveData(legacyFormat, testSecret);
+    expect(result).toBe('legacy-token');
   });
 
   it('should throw when encrypting with empty plaintext', async () => {
@@ -471,4 +485,24 @@ describe('Settings Prototype Pollution Guard', () => {
   });
   // Other validateSettings tests covered by validation.test.js
   // JavaScript prototype/JSON.parse behavior tests removed (not testing production code)
+});
+
+// ============================================================================
+// getEncryptionSecret (M15)
+// ============================================================================
+
+describe('getEncryptionSecret', () => {
+  it('prefers ENCRYPTION_KEY when set', () => {
+    expect(getEncryptionSecret({ ENCRYPTION_KEY: 'dedicated', JWT_SECRET: 'jwt' })).toBe(
+      'dedicated'
+    );
+  });
+
+  it('falls back to JWT_SECRET when ENCRYPTION_KEY is absent', () => {
+    expect(getEncryptionSecret({ JWT_SECRET: 'jwt' })).toBe('jwt');
+  });
+
+  it('falls back to JWT_SECRET when ENCRYPTION_KEY is empty string', () => {
+    expect(getEncryptionSecret({ ENCRYPTION_KEY: '', JWT_SECRET: 'jwt' })).toBe('jwt');
+  });
 });

@@ -1,6 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Hono } from 'hono';
-import { booksRouter } from '../../routes/books.js';
+
+// Mock crypto so tests can pass literal placeholder strings for encrypted
+// columns without triggering the real M14 fail-closed guard. The handler
+// flow (not the encryption path) is what these tests exercise.
+vi.mock('../../utils/crypto.js', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    decryptSensitiveData: vi.fn().mockResolvedValue('decrypted-api-key'),
+  };
+});
 
 vi.mock('../../routes/metadata.js', () => ({
   getConfigWithKeys: vi.fn(),
@@ -9,6 +19,7 @@ vi.mock('../../services/metadataService.js', () => ({
   enrichBook: vi.fn(),
 }));
 
+const { booksRouter } = await import('../../routes/books.js');
 import { getConfigWithKeys } from '../../routes/metadata.js';
 import { enrichBook } from '../../services/metadataService.js';
 
