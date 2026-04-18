@@ -228,7 +228,10 @@ describe('POST /api/webhooks/stripe - processed flag', () => {
     // Dedup lookup filters on processed=1; returns null because prior attempt left processed=0.
     const mockDB = createMockDB((sql) => {
       if (sql.includes('FROM organizations WHERE stripe_customer_id')) return { id: 'org-1' };
-      if (sql.includes('FROM billing_events WHERE stripe_event_id') && sql.includes('processed = 1')) {
+      if (
+        sql.includes('FROM billing_events WHERE stripe_event_id') &&
+        sql.includes('processed = 1')
+      ) {
         return null;
       }
       return null;
@@ -252,7 +255,10 @@ describe('POST /api/webhooks/stripe - processed flag', () => {
     };
 
     const mockDB = createMockDB((sql) => {
-      if (sql.includes('FROM billing_events WHERE stripe_event_id') && sql.includes('processed = 1')) {
+      if (
+        sql.includes('FROM billing_events WHERE stripe_event_id') &&
+        sql.includes('processed = 1')
+      ) {
         return { id: 'billing-event-row-id' };
       }
       return null;

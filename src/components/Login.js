@@ -24,14 +24,8 @@ import TallyLogo from './TallyLogo';
 const API_URL = '/api';
 
 const Login = ({ onBackToLanding } = {}) => {
-  const {
-    login,
-    loginWithEmail,
-    apiError,
-    isMultiTenantMode,
-    serverAuthModeDetected,
-    ssoEnabled,
-  } = useAuth();
+  const { login, loginWithEmail, apiError, isMultiTenantMode, serverAuthModeDetected, ssoEnabled } =
+    useAuth();
 
   // Form state
   const [email, setEmail] = useState('');

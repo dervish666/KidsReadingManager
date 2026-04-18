@@ -153,9 +153,7 @@ describe('POST /api/webhooks/wonde - schoolApproved verification', () => {
     });
 
     expect(response.status).toBe(200);
-    const inserts = mockDB._runCalls.filter((c) =>
-      c.sql.includes('INSERT INTO organizations')
-    );
+    const inserts = mockDB._runCalls.filter((c) => c.sql.includes('INSERT INTO organizations'));
     expect(inserts.length).toBe(1);
   });
 
@@ -183,9 +181,7 @@ describe('POST /api/webhooks/wonde - schoolApproved verification', () => {
     });
 
     expect(response.status).toBe(200);
-    const updates = mockDB._runCalls.filter((c) =>
-      c.sql.includes('UPDATE organizations')
-    );
+    const updates = mockDB._runCalls.filter((c) => c.sql.includes('UPDATE organizations'));
     expect(updates.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -203,9 +199,7 @@ describe('POST /api/webhooks/wonde - schoolApproved verification', () => {
 
     expect(response.status).toBe(400);
     const writes = mockDB._runCalls.filter(
-      (c) =>
-        c.sql.includes('INSERT INTO organizations') ||
-        c.sql.includes('UPDATE organizations')
+      (c) => c.sql.includes('INSERT INTO organizations') || c.sql.includes('UPDATE organizations')
     );
     expect(writes.length).toBe(0);
   });
@@ -228,9 +222,7 @@ describe('POST /api/webhooks/wonde - schoolApproved verification', () => {
     });
 
     expect(response.status).toBe(400);
-    const updates = mockDB._runCalls.filter((c) =>
-      c.sql.includes('UPDATE organizations')
-    );
+    const updates = mockDB._runCalls.filter((c) => c.sql.includes('UPDATE organizations'));
     expect(updates.length).toBe(0);
   });
 
@@ -253,9 +245,7 @@ describe('POST /api/webhooks/wonde - schoolApproved verification', () => {
 
     expect(response.status).toBe(400);
     const writes = mockDB._runCalls.filter(
-      (c) =>
-        c.sql.includes('INSERT INTO organizations') ||
-        c.sql.includes('UPDATE organizations')
+      (c) => c.sql.includes('INSERT INTO organizations') || c.sql.includes('UPDATE organizations')
     );
     expect(writes.length).toBe(0);
   });
