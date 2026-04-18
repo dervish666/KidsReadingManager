@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.52.0] - 2026-04-17
+
+### Security
+- **Wonde webhook fail-hard on school verification (H5)** — `schoolApproved` now rejects with 400 if `fetchSchoolDetails` throws or returns a mismatched `school_id`. Wonde publishes no HMAC or timestamp mechanism, so the server-side API verification is the only defence against a leaked `WONDE_WEBHOOK_SECRET`. Applies to both the new-org create branch and the reactivation branch (the latter being the more attacker-valuable path — a leaked secret could previously flip a soft-deleted org back to `is_active=1` with a forged token).
+- **Enrich endpoint enforces tenant scope (H6)** — `POST /api/books/:id/enrich` now joins `org_book_selections` in the book lookup and filters by `organization_id + is_available`. Cross-org enrich attempts return 404 indistinguishably from a genuinely missing book. Closes the pre-existing hole where any admin could mutate shared catalog metadata, overwrite R2 covers other orgs depend on, and burn external API quota for books they had no relationship with.
+- **Stripe webhook stops silent subscription drift (H11)** — new `processed` column on `billing_events` (migration 0051) tracks whether the state-mutation switch committed. The dedup lookup now filters on `processed = 1`; a failed state mutation leaves the row at `processed = 0` and returns 500 so Stripe retries. `INSERT OR IGNORE` handles the retry's second attempt at the initial insert. Historic rows backfilled to `processed = 1` — under the old handler Stripe had already considered them complete.
+
+### Migrations
+- **0051** — Adds `processed INTEGER NOT NULL DEFAULT 0` and `processed_at TEXT` to `billing_events`. Forward-only. Backfills existing rows to `processed = 1`.
+
 ## [3.51.0] - 2026-04-17
 
 ### Security

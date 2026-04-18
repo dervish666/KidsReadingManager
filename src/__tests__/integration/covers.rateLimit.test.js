@@ -90,8 +90,7 @@ const createTestApp = () => {
   const env = { READING_MANAGER_DB: mockDB, BOOK_COVERS: mockR2 };
   const executionCtx = { waitUntil: vi.fn() };
 
-  const request = (path, headers = {}) =>
-    app.request(path, { headers }, env, executionCtx);
+  const request = (path, headers = {}) => app.request(path, { headers }, env, executionCtx);
 
   return { request, mockDB, mockR2 };
 };

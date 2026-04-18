@@ -49,6 +49,10 @@ vi.mock('../../services/wondeSync.js', () => ({
   }),
 }));
 
+vi.mock('../../utils/wondeApi.js', () => ({
+  fetchSchoolDetails: vi.fn(),
+}));
+
 vi.mock('../../utils/helpers.js', () => ({
   generateId: vi.fn().mockReturnValue('generated-id-1'),
   generateUniqueSlug: vi.fn().mockImplementation(async (_db, name) => {
@@ -72,6 +76,7 @@ import { encryptSensitiveData } from '../../utils/crypto.js';
 import { createJWTPayload, createAccessToken, createRefreshToken } from '../../utils/crypto.js';
 import { runFullSync } from '../../services/wondeSync.js';
 import { generateId } from '../../utils/helpers.js';
+import { fetchSchoolDetails } from '../../utils/wondeApi.js';
 
 // ---------------------------------------------------------------------------
 // Test constants
@@ -298,6 +303,13 @@ describe('Wonde + MyLogin Integration', () => {
     vi.clearAllMocks();
     originalFetch = global.fetch;
     app = createApp();
+    fetchSchoolDetails.mockResolvedValue({
+      id: WONDE_SCHOOL_ID,
+      name: 'Furlong School',
+      email: null,
+      phone_number: null,
+      address: {},
+    });
   });
 
   afterEach(() => {

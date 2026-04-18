@@ -1316,7 +1316,17 @@ booksRouter.post('/:id/enrich', requireAdmin(), async (c) => {
   const db = c.env.READING_MANAGER_DB;
   if (!db) throw notFoundError('Book not found');
 
-  const book = await db.prepare('SELECT * FROM books WHERE id = ?').bind(id).first();
+  const organizationId = c.get('organizationId');
+  if (!organizationId) throw notFoundError('Book not found');
+
+  const book = await db
+    .prepare(
+      `SELECT b.* FROM books b
+       INNER JOIN org_book_selections obs ON b.id = obs.book_id
+       WHERE b.id = ? AND obs.organization_id = ? AND obs.is_available = 1`
+    )
+    .bind(id, organizationId)
+    .first();
   if (!book) throw notFoundError('Book not found');
 
   const encSecret = getEncryptionSecret(c.env);
