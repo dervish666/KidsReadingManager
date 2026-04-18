@@ -526,7 +526,7 @@ const UserManagement = () => {
                           <EditIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                      {u.role !== 'owner' && (
+                      {u.id !== user.id && (user.role === 'owner' || u.role !== 'owner') && (
                         <Tooltip title="Delete user">
                           <IconButton
                             size="small"

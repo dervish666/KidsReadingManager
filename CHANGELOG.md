@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.54.1] - 2026-04-18
+
+### Fixed
+- **Owner can now delete other owner-role users** — frontend hid the delete button for all owner-role users and backend blocked deletion entirely, making it impossible to clean up pentest probe accounts. Owner can now delete any user except themselves; non-owners still cannot delete owner-role users. Both soft-delete and GDPR erase endpoints updated to allow cross-organization deletion for owners.
+
+### Migrations
+None.
+
 ## [3.54.0] - 2026-04-18
 
 ### Security

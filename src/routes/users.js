@@ -460,17 +460,22 @@ usersRouter.delete('/:id', requireAdmin(), auditLog('delete', 'user'), async (c)
     const db = getDB(c.env);
     const organizationId = c.get('organizationId');
     const currentUserId = c.get('userId');
+    const currentUserRole = c.get('userRole');
     const targetUserId = c.req.param('id');
 
-    // Check if user exists and belongs to organization
-    const existingUser = await db
-      .prepare(
-        `
-      SELECT * FROM users WHERE id = ? AND organization_id = ?
-    `
-      )
-      .bind(targetUserId, organizationId)
-      .first();
+    // Owners can delete users from any organization; others only within their own
+    let existingUser;
+    if (currentUserRole === ROLES.OWNER) {
+      existingUser = await db
+        .prepare('SELECT * FROM users WHERE id = ?')
+        .bind(targetUserId)
+        .first();
+    } else {
+      existingUser = await db
+        .prepare('SELECT * FROM users WHERE id = ? AND organization_id = ?')
+        .bind(targetUserId, organizationId)
+        .first();
+    }
 
     if (!existingUser) {
       throw notFoundError('User not found');
@@ -481,8 +486,8 @@ usersRouter.delete('/:id', requireAdmin(), auditLog('delete', 'user'), async (c)
       throw badRequestError('Cannot delete your own account');
     }
 
-    // Can't delete the owner
-    if (existingUser.role === 'owner') {
+    // Non-owners can't delete owner-role users
+    if (existingUser.role === 'owner' && currentUserRole !== ROLES.OWNER) {
       throw badRequestError('Cannot delete the organization owner');
     }
 
@@ -517,6 +522,7 @@ usersRouter.delete('/:id/erase', requireAdmin(), auditLog('erase', 'user'), asyn
     const db = getDB(c.env);
     const organizationId = c.get('organizationId');
     const currentUserId = c.get('userId');
+    const currentUserRole = c.get('userRole');
     const targetUserId = c.req.param('id');
 
     const body = await c.req.json().catch(() => ({}));
@@ -524,15 +530,19 @@ usersRouter.delete('/:id/erase', requireAdmin(), auditLog('erase', 'user'), asyn
       throw badRequestError('Erasure requires { "confirm": true } in request body');
     }
 
-    // Fetch the user (include inactive — erasure applies regardless)
-    const existingUser = await db
-      .prepare(
-        `
-      SELECT id, role FROM users WHERE id = ? AND organization_id = ?
-    `
-      )
-      .bind(targetUserId, organizationId)
-      .first();
+    // Owners can erase users from any organization; others only within their own
+    let existingUser;
+    if (currentUserRole === ROLES.OWNER) {
+      existingUser = await db
+        .prepare('SELECT id, role, organization_id FROM users WHERE id = ?')
+        .bind(targetUserId)
+        .first();
+    } else {
+      existingUser = await db
+        .prepare('SELECT id, role, organization_id FROM users WHERE id = ? AND organization_id = ?')
+        .bind(targetUserId, organizationId)
+        .first();
+    }
 
     if (!existingUser) {
       throw notFoundError('User not found');
@@ -543,8 +553,8 @@ usersRouter.delete('/:id/erase', requireAdmin(), auditLog('erase', 'user'), asyn
       throw badRequestError('Cannot erase your own account');
     }
 
-    // Cannot erase the owner
-    if (existingUser.role === 'owner') {
+    // Non-owners can't erase owner-role users
+    if (existingUser.role === 'owner' && currentUserRole !== ROLES.OWNER) {
       throw badRequestError('Cannot erase the organization owner');
     }
 
@@ -555,6 +565,8 @@ usersRouter.delete('/:id/erase', requireAdmin(), auditLog('erase', 'user'), asyn
       .first();
 
     // Log the erasure request BEFORE deleting
+    // Use the target user's org for log entries (matters for cross-org owner deletions)
+    const targetOrgId = existingUser.organization_id;
     const rightsLogId = generateId();
 
     await db.batch([
@@ -565,7 +577,7 @@ usersRouter.delete('/:id/erase', requireAdmin(), auditLog('erase', 'user'), asyn
         VALUES (?, ?, 'erasure', 'user', ?, ?, 'completed', datetime('now'))
       `
         )
-        .bind(rightsLogId, organizationId, targetUserId, currentUserId),
+        .bind(rightsLogId, targetOrgId, targetUserId, currentUserId),
 
       // Delete in FK order: tokens → password resets → user
       db.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').bind(targetUserId),
@@ -580,7 +592,7 @@ usersRouter.delete('/:id/erase', requireAdmin(), auditLog('erase', 'user'), asyn
         WHERE entity_type = 'user' AND entity_id = ? AND organization_id = ?
       `
         )
-        .bind(targetUserId, organizationId),
+        .bind(targetUserId, targetOrgId),
     ]);
 
     return c.json({
