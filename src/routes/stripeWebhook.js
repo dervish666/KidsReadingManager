@@ -48,9 +48,11 @@ stripeWebhookRouter.post('/', async (c) => {
     return c.json({ error: 'Invalid signature' }, 400);
   }
 
-  // Deduplicate: check if we've already processed this event
+  // Deduplicate: check if we've already processed this event. The dedup
+  // guard filters on processed=1 so a row left over from a failed prior
+  // attempt (processed=0) does not short-circuit the retry.
   const existing = await db
-    .prepare('SELECT id FROM billing_events WHERE stripe_event_id = ?')
+    .prepare('SELECT id FROM billing_events WHERE stripe_event_id = ? AND processed = 1')
     .bind(event.id)
     .first();
 
@@ -71,12 +73,14 @@ stripeWebhookRouter.post('/', async (c) => {
       .first();
   }
 
-  // Record the event BEFORE processing (so retries don't reprocess partial work)
+  // Record the event with processed=0 before touching state. INSERT OR
+  // IGNORE ensures a retry's second attempt at the same stripe_event_id
+  // does not collide with the row left behind by the first attempt.
   if (orgRecord) {
     await db
       .prepare(
-        `INSERT INTO billing_events (id, organization_id, event_type, stripe_event_id, data, created_at)
-         VALUES (?, ?, ?, ?, ?, datetime('now'))`
+        `INSERT OR IGNORE INTO billing_events (id, organization_id, event_type, stripe_event_id, data, created_at, processed)
+         VALUES (?, ?, ?, ?, ?, datetime('now'), 0)`
       )
       .bind(
         generateId(),
@@ -227,10 +231,22 @@ stripeWebhookRouter.post('/', async (c) => {
       default:
         console.log(`[Stripe Webhook] Unhandled event type: ${event.type}`);
     }
+
+    // Mark processed only after the state mutation committed. The dedup
+    // lookup at the top of the handler filters on processed=1, so leaving
+    // the row at 0 is how a retry knows to re-run the mutation.
+    if (orgRecord) {
+      await db
+        .prepare(
+          `UPDATE billing_events SET processed = 1, processed_at = datetime('now')
+           WHERE stripe_event_id = ?`
+        )
+        .bind(event.id)
+        .run();
+    }
   } catch (err) {
-    // Event already recorded in billing_events, so retries will be deduped.
-    // Log the error but return 200 to prevent Stripe infinite retries.
     console.error(`[Stripe Webhook] Error processing ${event.type}:`, err);
+    return c.json({ error: 'Webhook processing failed, retry expected' }, 500);
   }
 
   return c.json({ received: true });
