@@ -68,15 +68,26 @@ webhooksRouter.post('/wonde', async (c) => {
         getEncryptionSecret(c.env)
       );
 
-      // Fetch school contact details from Wonde (address, phone, email)
-      let schoolDetails = null;
+      // Verify school + token pair with Wonde before any DB write. This is the
+      // single load-bearing defence against a leaked WONDE_WEBHOOK_SECRET: an
+      // attacker who knows the secret must also supply a valid token that Wonde
+      // itself binds to the claimed school_id, which is equivalent to already
+      // having Wonde access for that school.
+      let schoolDetails;
       try {
         schoolDetails = await fetchSchoolDetails(body.school_token, body.school_id);
       } catch (err) {
-        // Org will be created with null contact/address fields. Escalate so ops can retry via Wonde admin.
-        console.error(
-          `[Webhook] schoolApproved: fetchSchoolDetails failed for school_id=${body.school_id}: ${err.message}`
+        console.warn(
+          `[Webhook] schoolApproved verification failed for school_id=${body.school_id}: ${err.message}`
         );
+        return c.json({ error: 'Could not verify school with Wonde' }, 400);
+      }
+
+      if (!schoolDetails || schoolDetails.id !== body.school_id) {
+        console.warn(
+          `[Webhook] schoolApproved verification returned mismatched school_id (expected=${body.school_id}, got=${schoolDetails?.id})`
+        );
+        return c.json({ error: 'Could not verify school with Wonde' }, 400);
       }
 
       const contactEmail = (schoolDetails?.email || '').trim().substring(0, 200) || null;

@@ -13,21 +13,13 @@ vi.mock('../../services/wondeSync.js', () => ({
 }));
 
 vi.mock('../../utils/wondeApi.js', () => ({
-  fetchSchoolDetails: vi.fn().mockResolvedValue({
-    name: 'Test School',
-    address: {
-      address_line_1: '1 Test St',
-      address_town: 'Testville',
-      address_postcode: 'TE1 1ST',
-    },
-    phone: '01onal234567',
-    email: 'office@testschool.example.com',
-  }),
+  fetchSchoolDetails: vi.fn(),
 }));
 
 import webhooksRouter from '../../routes/webhooks.js';
 import { encryptSensitiveData } from '../../utils/crypto.js';
 import { runFullSync } from '../../services/wondeSync.js';
+import { fetchSchoolDetails } from '../../utils/wondeApi.js';
 
 // ---------------------------------------------------------------------------
 // Helper: create a mock D1 database
@@ -102,6 +94,17 @@ describe('Wonde Webhook Handler', () => {
     // Default mock return values
     encryptSensitiveData.mockResolvedValue('encrypted-iv:encrypted-ciphertext');
     runFullSync.mockResolvedValue({ status: 'completed' });
+    fetchSchoolDetails.mockResolvedValue({
+      id: 'A1234567890',
+      name: 'Test School',
+      address: {
+        address_line_1: '1 Test St',
+        address_town: 'Testville',
+        address_postcode: 'TE1 1ST',
+      },
+      phone_number: '01234567890',
+      email: 'office@testschool.example.com',
+    });
   });
 
   // -------------------------------------------------------------------------
