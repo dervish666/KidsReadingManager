@@ -182,6 +182,22 @@ export async function verifyAccessToken(token, secret) {
 
     const [encodedHeader, encodedPayload, encodedSignature] = parts;
 
+    // Parse and assert header algorithm + type before trusting anything else.
+    // Today the signature check implicitly forces HS256, but a future refactor
+    // that respects header.alg would reopen algorithm-confusion attacks.
+    let header;
+    try {
+      header = JSON.parse(base64UrlDecode(encodedHeader));
+    } catch {
+      return { valid: false, error: 'Invalid token header' };
+    }
+    if (header.alg !== JWT_ALGORITHM) {
+      return { valid: false, error: 'Unsupported JWT algorithm' };
+    }
+    if (header.typ && header.typ !== 'JWT') {
+      return { valid: false, error: 'Unsupported JWT type' };
+    }
+
     // Verify signature
     const signatureInput = `${encodedHeader}.${encodedPayload}`;
     const expectedSignature = await signHS256(signatureInput, secret);

@@ -166,6 +166,95 @@ describe('JWT Tokens', () => {
 
       expect(result.valid).toBe(false);
     });
+
+    // Mint a token with a caller-supplied header so we can exercise the
+    // alg/typ guards (H10) and iss/aud validation (M16). The helper
+    // injects default iss/aud so H10 tests remain green once M16 lands;
+    // individual M16 tests override by passing explicit claims.
+    const mintTokenWithHeader = async (header, payload, secret) => {
+      const payloadWithDefaults = {
+        iss: 'tally-reading',
+        aud: 'tally-reading-api',
+        ...payload,
+      };
+      const encoder = new TextEncoder();
+      const base64Url = (bytes) =>
+        btoa(String.fromCharCode(...new Uint8Array(bytes)))
+          .replace(/\+/g, '-')
+          .replace(/\//g, '_')
+          .replace(/=+$/, '');
+      const encodedHeader = base64Url(encoder.encode(JSON.stringify(header)));
+      const encodedPayload = base64Url(encoder.encode(JSON.stringify(payloadWithDefaults)));
+      const key = await crypto.subtle.importKey(
+        'raw',
+        encoder.encode(secret),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+      );
+      const sig = await crypto.subtle.sign(
+        'HMAC',
+        key,
+        encoder.encode(`${encodedHeader}.${encodedPayload}`)
+      );
+      return `${encodedHeader}.${encodedPayload}.${base64Url(sig)}`;
+    };
+
+    it('should reject token with alg: none', async () => {
+      const now = Math.floor(Date.now() / 1000);
+      const token = await mintTokenWithHeader(
+        { alg: 'none', typ: 'JWT' },
+        { ...testPayload, iat: now, exp: now + 900 },
+        testSecret
+      );
+      const result = await verifyAccessToken(token, testSecret);
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('Unsupported JWT algorithm');
+    });
+
+    it('should reject token with alg: RS256', async () => {
+      const now = Math.floor(Date.now() / 1000);
+      const token = await mintTokenWithHeader(
+        { alg: 'RS256', typ: 'JWT' },
+        { ...testPayload, iat: now, exp: now + 900 },
+        testSecret
+      );
+      const result = await verifyAccessToken(token, testSecret);
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('Unsupported JWT algorithm');
+    });
+
+    it('should reject token with typ: JWE', async () => {
+      const now = Math.floor(Date.now() / 1000);
+      const token = await mintTokenWithHeader(
+        { alg: 'HS256', typ: 'JWE' },
+        { ...testPayload, iat: now, exp: now + 900 },
+        testSecret
+      );
+      const result = await verifyAccessToken(token, testSecret);
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('Unsupported JWT type');
+    });
+
+    it('should accept token with alg: HS256 and no typ claim', async () => {
+      const now = Math.floor(Date.now() / 1000);
+      const token = await mintTokenWithHeader(
+        { alg: 'HS256' },
+        { ...testPayload, iat: now, exp: now + 900 },
+        testSecret
+      );
+      const result = await verifyAccessToken(token, testSecret);
+      expect(result.valid).toBe(true);
+    });
+
+    it('should reject token with unparseable header', async () => {
+      const validToken = await createAccessToken(testPayload, testSecret);
+      const parts = validToken.split('.');
+      const mangledToken = `!!!not-base64!!!.${parts[1]}.${parts[2]}`;
+      const result = await verifyAccessToken(mangledToken, testSecret);
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('Invalid token header');
+    });
   });
 });
 
