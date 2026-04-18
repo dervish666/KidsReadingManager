@@ -1553,6 +1553,28 @@ describe('Books API Routes', () => {
       expect(res.status).toBe(404);
     });
 
+    it('returns 404 when the book is not linked to the caller org (cross-org isolation)', async () => {
+      // Simulate org-A admin trying to enrich a book linked only to org-B.
+      // The handler's SELECT joins org_book_selections filtered by the
+      // caller's organization_id, so it returns null and the handler 404s
+      // without ever reaching enrichBook.
+      const { app, mockDB } = createTestApp(
+        createUserContext({ userId: 'admin-1', organizationId: 'org-A', userRole: 'admin' }),
+        { firstResult: null }
+      );
+
+      const res = await makeRequest(app, 'POST', '/api/books/book-in-org-b/enrich');
+
+      expect(res.status).toBe(404);
+      expect(enrichBook).not.toHaveBeenCalled();
+
+      // Prove the lookup actually filtered by the join (post-fix behaviour).
+      const selectCall = mockDB.prepare.mock.calls.find(
+        (call) => call[0].includes('SELECT') && call[0].includes('FROM books')
+      );
+      expect(selectCall?.[0]).toContain('INNER JOIN org_book_selections');
+    });
+
     it('returns enriched fields when book is found and providers return data', async () => {
       const book = createMockBookRow({ id: 'book-1', isbn: '9780261102217', description: null });
       const mockDB = createMockDB({ firstResult: book });
