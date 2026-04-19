@@ -155,8 +155,8 @@ export default function LandingPage({ onSignIn }) {
               </button>
             </li>
             <li>
-              <a href="#contact" className="lp-btn lp-btn-primary">
-                Stay updated
+              <a href="#pricing" className="lp-btn lp-btn-primary">
+                Pricing
               </a>
             </li>
           </ul>
@@ -170,7 +170,7 @@ export default function LandingPage({ onSignIn }) {
         {/* HERO */}
         <section className="lp-hero">
           <div className="lp-hero-content">
-            <div className="lp-hero-badge">Coming soon for UK primary schools</div>
+            <div className="lp-hero-badge">Free trial for UK primary schools</div>
             <h1>
               Keep a <span className="lp-highlight">tally</span> of every
               <br />
@@ -189,8 +189,8 @@ export default function LandingPage({ onSignIn }) {
                 {demoLoading ? 'Loading demo...' : 'Try the demo'}
                 {!demoLoading && <ChevronRight />}
               </button>
-              <a href="#features" className="lp-btn lp-btn-outline">
-                Learn more
+              <a href="#pricing" className="lp-btn lp-btn-outline">
+                See pricing
               </a>
             </div>
           </div>
@@ -241,7 +241,7 @@ export default function LandingPage({ onSignIn }) {
               {
                 icon: '🏠',
                 title: 'Home reading without the hassle',
-                desc: 'Replace paper reading diaries with a quick digital register. One tap per child, per day — saving teachers roughly 10 minutes per class on admin alone.',
+                desc: 'Diaries come in, you tap a few buttons, and the register is done. One tap per child, per day — saving teachers roughly 10 minutes per class on admin alone.',
               },
               {
                 icon: '🏫',
@@ -294,7 +294,7 @@ export default function LandingPage({ onSignIn }) {
                 tagClass: 'lp-tag-coral',
                 tagIcon: '📋',
                 title: 'Save 10 minutes per class, every day',
-                desc: "No more chasing paper diaries or deciphering ticks. Parents record reading at home, teachers see the whole class in one register — who's read, how often, and what book they're on. That's roughly 10 minutes back per class, per day.",
+                desc: "Diaries come in, you tap a few buttons, and the whole class is logged — who's read, how often, and what book they're on. Simple, fast, and you don't even have to find a pen. That's roughly 10 minutes back per class, per day.",
                 img: screenshotRegister,
                 alt: 'Home reading register view',
               },
@@ -315,6 +315,16 @@ export default function LandingPage({ onSignIn }) {
                 desc: "Track reading patterns across your class with clear stats — sessions this week, streaks, home vs school reading, and who's leading the way. All at a glance.",
                 img: screenshotStats,
                 alt: 'Reading statistics dashboard',
+              },
+              {
+                tag: 'Badges & goals',
+                tagClass: 'lp-tag-amber',
+                tagIcon: '🏅',
+                title: 'Celebrate every milestone',
+                desc: 'Children earn reading badges and grow a class garden as they read. Teachers set goals, project progress on the classroom screen, and watch the whole class light up when a new flower blooms.',
+                img: screenshotStats,
+                imgNote: true,
+                alt: 'Reading badges and class garden',
               },
               {
                 tag: 'Book library',
@@ -354,7 +364,7 @@ export default function LandingPage({ onSignIn }) {
                 {
                   num: '1',
                   title: 'Set up your school',
-                  desc: "Import your pupil list from a CSV or connect to your school's management system. Add your reading volunteers.",
+                  desc: 'Import your pupil list from a CSV, or connect via Wonde and your classes, students, and teachers sync automatically from your MIS.',
                 },
                 {
                   num: '2',
@@ -390,7 +400,7 @@ export default function LandingPage({ onSignIn }) {
               {[
                 { icon: '🇪🇺', label: 'EU-hosted data' },
                 { icon: '🔒', label: 'GDPR compliant' },
-                { icon: '🏫', label: 'MIS integration ready' },
+                { icon: '🏫', label: 'Wonde MIS integration' },
                 { icon: '💬', label: 'Real human support' },
               ].map((item, i) => (
                 <div className="lp-trust-item" key={i}>
@@ -402,13 +412,58 @@ export default function LandingPage({ onSignIn }) {
           </div>
         </section>
 
+        {/* PRICING */}
+        <section className="lp-pricing" id="pricing">
+          <div className="lp-section-header lp-reveal" ref={addRevealRef}>
+            <h2>Simple, honest pricing</h2>
+            <p>£1 per pupil, per year. No surprises, no minimum spend.</p>
+          </div>
+          <div className="lp-pricing-cards">
+            <div className="lp-pricing-card lp-reveal" ref={addRevealRef}>
+              <div className="lp-pricing-tag">Core</div>
+              <div className="lp-pricing-price">
+                <span className="lp-pricing-amount">£1</span>
+                <span className="lp-pricing-period">/pupil/year</span>
+              </div>
+              <p className="lp-pricing-note">That's it. No hidden fees.</p>
+              <ul className="lp-pricing-features">
+                <li>Reading session tracking</li>
+                <li>Home reading register</li>
+                <li>Book library with barcode scanning</li>
+                <li>Reading stats dashboard</li>
+                <li>Badges and reading garden</li>
+                <li>Wonde MIS integration</li>
+                <li>CSV import/export</li>
+              </ul>
+              <a href="#contact" className="lp-btn lp-btn-outline lp-pricing-btn">
+                Start free trial
+              </a>
+            </div>
+            <div className="lp-pricing-card lp-pricing-card-highlight lp-reveal" ref={addRevealRef}>
+              <div className="lp-pricing-tag">Core + AI</div>
+              <div className="lp-pricing-price">
+                <span className="lp-pricing-amount">+£49</span>
+                <span className="lp-pricing-period">/year</span>
+              </div>
+              <p className="lp-pricing-note">Add to any plan, whole school</p>
+              <ul className="lp-pricing-features">
+                <li>Unlimited AI book recommendations</li>
+                <li>Personalised to each child's reading journey</li>
+                <li>Choice of AI provider</li>
+              </ul>
+              <a href="#contact" className="lp-btn lp-btn-primary lp-pricing-btn">
+                Start free trial
+              </a>
+            </div>
+          </div>
+        </section>
+
         {/* Get in Touch */}
         <section className="lp-cta" id="contact">
           <div className="lp-cta-box lp-reveal" ref={addRevealRef}>
-            <h2>Get in Touch</h2>
+            <h2>Start your free trial</h2>
             <p>
-              Interested in Tally Reading for your school? Drop us a message and we'll get back to
-              you.
+              Drop us a message and we'll get your school set up — no commitment, no card details.
             </p>
             <form className="lp-contact-form" onSubmit={handleContact}>
               {!contactSubmitted ? (

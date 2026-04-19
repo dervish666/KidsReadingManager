@@ -1,5 +1,20 @@
 # Changelog
 
+## [3.55.0] - 2026-04-19
+
+### Added
+- **Landing page pricing section** — two-card layout showing £1/pupil/year core plan and +£49/year AI add-on, with free trial CTAs
+- **Badges & goals showcase** — new "Celebrate every milestone" feature row in the landing page "See it in action" section
+- **Wonde named explicitly** — landing page now mentions Wonde by name in setup steps and trust badges
+
+### Changed
+- **Per-pupil Stripe pricing** — switched from £199/year flat to £1/pupil/year (price `price_1TO33fFvBYcaukPXGFpys0IW`). Subscription setup now counts active students and passes quantity to Stripe. Old flat price moved to legacy constants for existing subscriber compatibility.
+- **Landing page copy updates** — hero badge now says "Free trial", CTA section reworded to "Start your free trial", home reading copy clarified to reflect paper diary workflow
+- **Nav and hero CTAs** — "Stay updated" → "Pricing", "Learn more" → "See pricing", linking to new pricing section
+
+### Migrations
+None.
+
 ## [3.54.1] - 2026-04-18
 
 ### Fixed

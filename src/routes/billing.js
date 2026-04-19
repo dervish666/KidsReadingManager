@@ -13,8 +13,8 @@ export const billingRouter = new Hono();
 
 // ── Helper: build subscription line items ─────────────────────────────────
 
-function buildLineItems(includeAiAddon, env) {
-  const items = [{ price: getPriceId(env) }];
+function buildLineItems(includeAiAddon, env, studentCount) {
+  const items = [{ price: getPriceId(env), quantity: studentCount || 1 }];
   if (includeAiAddon && env.STRIPE_AI_ADDON_PRICE_ID) {
     items.push({ price: env.STRIPE_AI_ADDON_PRICE_ID });
   }
@@ -100,19 +100,27 @@ billingRouter.post('/setup', requireAdmin(), async (c) => {
 
     const customer = await stripe.customers.create(customerData);
 
-    // 2. Create Subscription with trial (base plan + optional AI add-on)
+    // 2. Count active students for per-pupil pricing
+    const studentCountResult = await db
+      .prepare('SELECT COUNT(*) as count FROM students WHERE organization_id = ?')
+      .bind(organizationId)
+      .first();
+    const studentCount = Math.max(studentCountResult?.count || 1, 1);
+
+    // 3. Create Subscription with trial (per-pupil base + optional AI add-on)
     const subscription = await stripe.subscriptions.create({
       customer: customer.id,
-      items: buildLineItems(includeAiAddon, c.env),
+      items: buildLineItems(includeAiAddon, c.env, studentCount),
       trial_period_days: 30,
       collection_method: 'send_invoice',
       days_until_due: 30,
       metadata: {
         organization_id: org.id,
+        student_count: String(studentCount),
       },
     });
 
-    // 3. Update organization record
+    // 4. Update organization record
     await db
       .prepare(
         `UPDATE organizations SET

@@ -11,10 +11,11 @@ export function getStripe(env) {
   });
 }
 
-// Legacy price IDs for existing subscribers (old pricing structure)
+// Legacy price IDs for existing subscribers (old pricing structures)
 const LEGACY_MONTHLY_PRICE = 'price_1TEYdAFvBYcaukPXJ0EaqNNX';
 const LEGACY_TERMLY_PRICE = 'price_1TEYd9FvBYcaukPXZPZ2lUjI';
 const LEGACY_ANNUAL_PRICE = 'price_1TEYd8FvBYcaukPXwLnIiDdp';
+const LEGACY_ANNUAL_FLAT_PRICE = 'price_1TJaLFFvBYcaukPXYXQmb5K7'; // £199/yr flat
 const LEGACY_AI_ADDON_PRICE = 'price_1TEbkYFvBYcaukPXPNfBZrre';
 
 /**
@@ -36,6 +37,7 @@ export function getPriceId(env) {
  */
 export function getPlanFromPriceId(priceId, env) {
   if (priceId === env.STRIPE_ANNUAL_PRICE_ID) return 'annual';
+  if (priceId === LEGACY_ANNUAL_FLAT_PRICE) return 'annual';
   if (priceId === LEGACY_ANNUAL_PRICE) return 'annual';
   if (priceId === LEGACY_MONTHLY_PRICE) return 'monthly';
   if (priceId === LEGACY_TERMLY_PRICE) return 'termly';

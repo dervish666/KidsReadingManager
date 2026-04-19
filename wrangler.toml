@@ -51,8 +51,8 @@ STORAGE_TYPE = "d1"
 ALLOWED_ORIGINS = "https://kids-reading-manager.brisflix.workers.dev,https://reading.brisflix.com,https://tallyreading.uk"
 EMAIL_FROM = "hello@tallyreading.uk"
 
-# Stripe billing — £199/yr base, £49/yr AI add-on
-STRIPE_ANNUAL_PRICE_ID = "price_1TJaLFFvBYcaukPXYXQmb5K7"
+# Stripe billing — £1/pupil/yr (per-unit), £49/yr AI add-on (flat)
+STRIPE_ANNUAL_PRICE_ID = "price_1TO33fFvBYcaukPXGFpys0IW"
 STRIPE_AI_ADDON_PRICE_ID = "price_1TJaLGFvBYcaukPXHtDPskIX"
 
 # MyLogin OAuth2 SSO (set via `wrangler secret put`)
