@@ -32,6 +32,7 @@ const BookCover = React.memo(({ title, author = null, isbn = null, width = 80, h
   const [isVisible, setIsVisible] = useState(false);
   const [triedSearchFallback, setTriedSearchFallback] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const containerRef = useRef(null);
 
   useEffect(() => {
@@ -61,7 +62,20 @@ const BookCover = React.memo(({ title, author = null, isbn = null, width = 80, h
   useEffect(() => {
     setTriedSearchFallback(false);
     setImageError(false);
+    setRetryCount(0);
   }, [title, author, isbn]);
+
+  // Auto-retry failed covers (e.g. after enrichment populates R2, or
+  // provider recovers from a transient outage).  Max 2 retries, 30 s apart.
+  useEffect(() => {
+    if (!imageError || retryCount >= 2) return;
+    const timer = setTimeout(() => {
+      setTriedSearchFallback(false);
+      setImageError(false);
+      setRetryCount((c) => c + 1);
+    }, 30_000);
+    return () => clearTimeout(timer);
+  }, [imageError, retryCount]);
 
   const handleImageError = useCallback(() => {
     // If we're currently showing the ISBN URL and we have a title to fall back

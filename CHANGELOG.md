@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.55.2] - 2026-04-23
+
+### Fixed
+- **Book cover auto-retry** — failed cover images now retry up to 2 times (30s apart), so covers appear automatically after metadata enrichment populates R2
+- **ISBN cover lookup in edit dialog** — BookEditDialog now passes the ISBN prop to BookCover, enabling direct ISBN-based cover resolution instead of title/author search only
+
+### Migrations
+None.
+
 ## [3.55.1] - 2026-04-23
 
 ### Fixed

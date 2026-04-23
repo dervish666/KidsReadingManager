@@ -167,7 +167,13 @@ const BookEditDialog = ({ book, onClose, onSave, genres }) => {
                 alignItems: 'flex-start',
               }}
             >
-              <BookCover title={editBookTitle} author={editBookAuthor} width={140} height={190} />
+              <BookCover
+                title={editBookTitle}
+                author={editBookAuthor}
+                isbn={book?.isbn || null}
+                width={140}
+                height={190}
+              />
             </Box>
 
             {/* Description beside cover */}
