@@ -617,7 +617,9 @@ const HomeReadingRegister = () => {
   // Handle recording a reading session
   const handleRecordReading = async (status, count = 1) => {
     if (!selectedStudent) return;
+    if (recordingStudents.has(selectedStudent.id)) return;
 
+    setRecordingStudents((prev) => new Set(prev).add(selectedStudent.id));
     try {
       // Clear existing HOME sessions for this date and any backfill sessions
       const studentSessions = sessionsByStudent[selectedStudent.id] || [];
@@ -740,6 +742,12 @@ const HomeReadingRegister = () => {
       setSnackbarMessage('Failed to record reading');
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
+    } finally {
+      setRecordingStudents((prev) => {
+        const next = new Set(prev);
+        next.delete(selectedStudent.id);
+        return next;
+      });
     }
   };
 
@@ -961,6 +969,7 @@ const HomeReadingRegister = () => {
           historyLoading={historyLoading}
           studentHistory={studentHistory}
           booksMap={booksMap}
+          isRecording={selectedStudent ? recordingStudents.has(selectedStudent.id) : false}
         />
       )}
 

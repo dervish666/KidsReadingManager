@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.55.1] - 2026-04-23
+
+### Fixed
+- **Prevent duplicate reading sessions** — added submit protection (loading state + button disabling) to SessionForm, QuickEntry, and FullReadingView to prevent double-tap/double-click creating duplicate sessions
+- **OpenLibrary fallback for non-ISBN covers** — when OpenLibrary is unavailable, non-ISBN cover lookups now fall back to Google Books and Hardcover search instead of returning 502
+- **Metadata enrichment resilience** — wrapped provider loop in try/catch so one provider failure doesn't abort the entire enrichment chain; batch errors now logged instead of silently swallowed
+
+### Changed
+- **Version badge hidden from teachers/readonly** — version number in the header now only visible to admin and owner roles
+
+### Migrations
+None.
+
 ## [3.55.0] - 2026-04-19
 
 ### Added

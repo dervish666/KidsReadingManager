@@ -75,6 +75,7 @@ const SessionForm = () => {
   const [notesAnchor, setNotesAnchor] = useState(null);
   const notesOpen = Boolean(notesAnchor);
   const [bookEnjoyment, setBookEnjoyment] = useState(null); // null | 'liked' | 'disliked'
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [celebrationBadges, setCelebrationBadges] = useState([]);
   const [pendingGoalCelebration, setPendingGoalCelebration] = useState(null);
   const [completedGoals, setCompletedGoals] = useState([]);
@@ -275,6 +276,8 @@ const SessionForm = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
+    if (isSubmitting) return;
+
     if (!selectedStudentId) {
       setError('Please select a student');
       return;
@@ -290,59 +293,64 @@ const SessionForm = () => {
       return;
     }
 
-    const result = await addReadingSession(selectedStudentId, {
-      date,
-      assessment,
-      notes,
-      bookId: selectedBookId || null,
-      location: 'school',
-    });
+    setIsSubmitting(true);
+    try {
+      const result = await addReadingSession(selectedStudentId, {
+        date,
+        assessment,
+        notes,
+        bookId: selectedBookId || null,
+        location: 'school',
+      });
 
-    if (result) {
-      if (result?.newBadges?.length > 0) {
-        setCelebrationBadges(result.newBadges);
-      }
-      if (result.completedGoals?.length) {
-        setPendingGoalCelebration(result.completedGoals);
-      }
-
-      // Save book enjoyment feedback (non-blocking)
-      if (bookEnjoyment && selectedBook?.title) {
-        const student = students.find((s) => s.id === selectedStudentId);
-        if (student) {
-          const currentLikes = student.likes || [];
-          const currentDislikes = student.dislikes || [];
-          const title = selectedBook.title;
-          const newLikes =
-            bookEnjoyment === 'liked'
-              ? [...new Set([...currentLikes, title])]
-              : currentLikes.filter((t) => t !== title);
-          const newDislikes =
-            bookEnjoyment === 'disliked'
-              ? [...new Set([...currentDislikes, title])]
-              : currentDislikes.filter((t) => t !== title);
-          fetchWithAuth(`/api/students/${selectedStudentId}/feedback`, {
-            method: 'PUT',
-            body: JSON.stringify({ likes: newLikes, dislikes: newDislikes }),
-          }).catch(() => {});
+      if (result) {
+        if (result?.newBadges?.length > 0) {
+          setCelebrationBadges(result.newBadges);
         }
-      }
+        if (result.completedGoals?.length) {
+          setPendingGoalCelebration(result.completedGoals);
+        }
 
-      // Reset form only on success
-      setNotes('');
-      setAssessment(null);
-      setSelectedBookId('');
-      setBookAuthor('');
-      setBookReadingLevel('');
-      setBookAgeRange('');
-      setBookGenres([]);
-      setBookEnjoyment(null);
-      setError('');
-      setSnackbarMessage('Reading session saved successfully');
-      setSnackbarOpen(true);
-      setHistoryRefresh((c) => c + 1);
-    } else {
-      setError('Failed to save reading session. Please try again.');
+        // Save book enjoyment feedback (non-blocking)
+        if (bookEnjoyment && selectedBook?.title) {
+          const student = students.find((s) => s.id === selectedStudentId);
+          if (student) {
+            const currentLikes = student.likes || [];
+            const currentDislikes = student.dislikes || [];
+            const title = selectedBook.title;
+            const newLikes =
+              bookEnjoyment === 'liked'
+                ? [...new Set([...currentLikes, title])]
+                : currentLikes.filter((t) => t !== title);
+            const newDislikes =
+              bookEnjoyment === 'disliked'
+                ? [...new Set([...currentDislikes, title])]
+                : currentDislikes.filter((t) => t !== title);
+            fetchWithAuth(`/api/students/${selectedStudentId}/feedback`, {
+              method: 'PUT',
+              body: JSON.stringify({ likes: newLikes, dislikes: newDislikes }),
+            }).catch(() => {});
+          }
+        }
+
+        // Reset form only on success
+        setNotes('');
+        setAssessment(null);
+        setSelectedBookId('');
+        setBookAuthor('');
+        setBookReadingLevel('');
+        setBookAgeRange('');
+        setBookGenres([]);
+        setBookEnjoyment(null);
+        setError('');
+        setSnackbarMessage('Reading session saved successfully');
+        setSnackbarOpen(true);
+        setHistoryRefresh((c) => c + 1);
+      } else {
+        setError('Failed to save reading session. Please try again.');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -807,11 +815,14 @@ const SessionForm = () => {
                 color="primary"
                 fullWidth
                 size="large"
+                disabled={isSubmitting}
                 sx={{
                   flex: 1,
                   height: 48,
                   borderRadius: '10px',
-                  background: 'linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%)',
+                  background: isSubmitting
+                    ? undefined
+                    : 'linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%)',
                   boxShadow: '0 4px 12px rgba(107, 142, 107, 0.2)',
                   fontSize: '1.1rem',
                   fontWeight: 700,
@@ -827,7 +838,14 @@ const SessionForm = () => {
                   },
                 }}
               >
-                Save Reading Session
+                {isSubmitting ? (
+                  <>
+                    Saving...
+                    <CircularProgress size={18} sx={{ ml: 1, color: 'inherit' }} />
+                  </>
+                ) : (
+                  'Save Reading Session'
+                )}
               </Button>
             </Box>
 

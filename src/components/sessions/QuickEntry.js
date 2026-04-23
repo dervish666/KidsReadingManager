@@ -44,6 +44,7 @@ const QuickEntry = () => {
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
   const [notesDrawerOpen, setNotesDrawerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [completedStudents, setCompletedStudents] = useState([]);
   const [count, setCount] = useState(priorityStudentCount);
 
@@ -90,6 +91,7 @@ const QuickEntry = () => {
 
   const handleSave = async () => {
     if (!currentStudent) return;
+    if (isSubmitting) return;
 
     if (assessment === null) {
       setSnackbarMessage('Please set a reading assessment');
@@ -97,6 +99,7 @@ const QuickEntry = () => {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       await addReadingSession(currentStudent.id, {
         assessment,
@@ -119,6 +122,8 @@ const QuickEntry = () => {
       setSnackbarMessage(`Failed to save session for ${currentStudent.name}`);
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -290,10 +295,10 @@ const QuickEntry = () => {
                 variant="contained"
                 color="primary"
                 onClick={handleSave}
-                disabled={isCompleted(currentStudent.id)}
+                disabled={isSubmitting || isCompleted(currentStudent.id)}
                 sx={{ flex: { sm: '0 0 35%', xs: '1 1 auto' }, width: { xs: '100%', sm: 'auto' } }}
               >
-                {isCompleted(currentStudent.id) ? 'Recorded' : 'Save'}
+                {isSubmitting ? 'Saving...' : isCompleted(currentStudent.id) ? 'Recorded' : 'Save'}
               </Button>
 
               <Button

@@ -342,6 +342,48 @@ coversRouter.get('/:type/:key', async (c) => {
     }
   }
 
+  // 3b. Non-ISBN fallback: when OpenLibrary origin threw for id/olid/ia types,
+  // try the search-based fallback (Google Books → Hardcover) using title+author
+  // query params if the caller supplied them.
+  if (!fetched && originThrew && type !== 'isbn') {
+    const title = c.req.query('title');
+    const author = c.req.query('author') || null;
+
+    if (title && typeof title === 'string' && title.trim()) {
+      let config = null;
+      if (c.env.READING_MANAGER_DB) {
+        try {
+          const encSecret = getEncryptionSecret(c.env);
+          config = await getConfigWithKeys(c.env.READING_MANAGER_DB, encSecret);
+        } catch (err) {
+          console.error('Non-ISBN fallback config error:', err);
+        }
+      }
+
+      const attempts = [
+        { name: 'google-books', fn: googleBooksFetch, apiKey: config?.googleBooksApiKey },
+        { name: 'hardcover', fn: hardcoverFetch, apiKey: config?.hardcoverApiKey },
+      ];
+
+      for (const { name, fn, apiKey } of attempts) {
+        if (!apiKey) continue;
+        try {
+          const result = await fn({ title: title.trim(), author }, apiKey);
+          if (!result?.coverUrl) continue;
+          const res = await fetchCoverImage(result.coverUrl);
+          if (res) {
+            fetched = res;
+            source = name;
+            console.log(`[covers] ${type}/${key} served via ${name} search fallback`);
+            break;
+          }
+        } catch (err) {
+          console.error(`Non-ISBN fallback ${name} error:`, err);
+        }
+      }
+    }
+  }
+
   if (!fetched) {
     if (originThrew) {
       return c.json({ message: 'Failed to fetch cover from origin' }, 502);

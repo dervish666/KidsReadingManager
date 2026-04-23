@@ -41,41 +41,46 @@ export async function enrichBook(book, config) {
     config.fetchCovers === false ? MERGE_FIELDS.filter((f) => f !== 'coverUrl') : MERGE_FIELDS;
 
   for (const providerName of config.providerChain) {
-    const provider = PROVIDERS[providerName];
-    if (!provider) continue;
+    try {
+      const provider = PROVIDERS[providerName];
+      if (!provider) continue;
 
-    // Skip providers that need a key if none is configured
-    if (provider.needsKey && !config[provider.keyField]) continue;
+      // Skip providers that need a key if none is configured
+      if (provider.needsKey && !config[provider.keyField]) continue;
 
-    // Call the provider
-    const apiKey = provider.needsKey ? config[provider.keyField] : undefined;
-    const result = await provider.fetch(book, apiKey);
+      // Call the provider
+      const apiKey = provider.needsKey ? config[provider.keyField] : undefined;
+      const result = await provider.fetch(book, apiKey);
 
-    if (result.rateLimited) {
-      rateLimited.push(providerName);
+      if (result.rateLimited) {
+        rateLimited.push(providerName);
+        continue;
+      }
+
+      // Merge: first non-empty value wins per field
+      const fieldsFromThisProvider = [];
+      for (const field of targetFields) {
+        if (merged[field] != null) continue; // Already filled by earlier provider
+        const value = result[field];
+        if (value == null) continue;
+        if (Array.isArray(value) && value.length === 0) continue;
+        if (typeof value === 'string' && !value.trim()) continue;
+
+        merged[field] = value;
+        fieldsFromThisProvider.push(field);
+      }
+
+      if (fieldsFromThisProvider.length > 0) {
+        log.push({ provider: providerName, fields: fieldsFromThisProvider });
+      }
+
+      // Short-circuit if all target fields are populated
+      const allFilled = targetFields.every((f) => merged[f] != null);
+      if (allFilled) break;
+    } catch (err) {
+      console.error(`Provider ${providerName} failed for "${book.title}":`, err.message);
       continue;
     }
-
-    // Merge: first non-empty value wins per field
-    const fieldsFromThisProvider = [];
-    for (const field of targetFields) {
-      if (merged[field] != null) continue; // Already filled by earlier provider
-      const value = result[field];
-      if (value == null) continue;
-      if (Array.isArray(value) && value.length === 0) continue;
-      if (typeof value === 'string' && !value.trim()) continue;
-
-      merged[field] = value;
-      fieldsFromThisProvider.push(field);
-    }
-
-    if (fieldsFromThisProvider.length > 0) {
-      log.push({ provider: providerName, fields: fieldsFromThisProvider });
-    }
-
-    // Short-circuit if all target fields are populated
-    const allFilled = targetFields.every((f) => merged[f] != null);
-    if (allFilled) break;
   }
 
   return { merged, log, rateLimited };
@@ -146,7 +151,8 @@ export async function processBatch(books, config, options = {}) {
       if (onBookResult) {
         onBookResult(book.id, result.merged, result.log);
       }
-    } catch {
+    } catch (err) {
+      console.error(`Enrichment failed for book "${book?.title}":`, err.message);
       errorCount++;
     }
 

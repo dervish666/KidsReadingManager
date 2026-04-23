@@ -219,23 +219,25 @@ const Header = ({ currentTab }) => {
             </FormControl>
           </Box>
         </Box>
-        <Typography
-          variant="caption"
-          sx={{
-            fontFamily: '"DM Sans", sans-serif',
-            fontWeight: 700,
-            color: 'primary.dark',
-            fontSize: { xs: '0.7rem', sm: '0.75rem' },
-            ml: 2,
-            backgroundColor: 'rgba(107, 142, 107, 0.15)',
-            px: 1.5,
-            py: 0.5,
-            borderRadius: '6px',
-            display: { xs: 'none', sm: 'block' },
-          }}
-        >
-          v{packageJson.version}
-        </Typography>
+        {(user?.role === 'owner' || user?.role === 'admin') && (
+          <Typography
+            variant="caption"
+            sx={{
+              fontFamily: '"DM Sans", sans-serif',
+              fontWeight: 700,
+              color: 'primary.dark',
+              fontSize: { xs: '0.7rem', sm: '0.75rem' },
+              ml: 2,
+              backgroundColor: 'rgba(107, 142, 107, 0.15)',
+              px: 1.5,
+              py: 0.5,
+              borderRadius: '6px',
+              display: { xs: 'none', sm: 'block' },
+            }}
+          >
+            v{packageJson.version}
+          </Typography>
+        )}
 
         {/* Logout Section - only show when authenticated */}
         {isAuthenticated && (

@@ -68,6 +68,7 @@ const FullReadingView = ({
   historyLoading,
   studentHistory,
   booksMap,
+  isRecording,
 }) => {
   return (
     <>
@@ -134,6 +135,7 @@ const FullReadingView = ({
                       color="success"
                       size="large"
                       aria-label="Mark as read"
+                      disabled={isRecording}
                       onClick={() => onRecordReading(READING_STATUS.READ)}
                       sx={{ minWidth: 80, fontSize: '1.5rem', py: 1.5 }}
                     >
@@ -147,6 +149,7 @@ const FullReadingView = ({
                       color="primary"
                       size="large"
                       aria-label="Read 2 times"
+                      disabled={isRecording}
                       onClick={() => onRecordReading(READING_STATUS.MULTIPLE, 2)}
                       sx={{ minWidth: 50, fontSize: '1.2rem', py: 1.5 }}
                     >
@@ -160,6 +163,7 @@ const FullReadingView = ({
                       color="primary"
                       size="large"
                       aria-label="Read 3 times"
+                      disabled={isRecording}
                       onClick={() => onRecordReading(READING_STATUS.MULTIPLE, 3)}
                       sx={{ minWidth: 50, fontSize: '1.2rem', py: 1.5 }}
                     >
@@ -173,6 +177,7 @@ const FullReadingView = ({
                       color="primary"
                       size="large"
                       aria-label="Read 4 times"
+                      disabled={isRecording}
                       onClick={() => onRecordReading(READING_STATUS.MULTIPLE, 4)}
                       sx={{ minWidth: 50, fontSize: '1.2rem', py: 1.5 }}
                     >
@@ -186,6 +191,7 @@ const FullReadingView = ({
                       color="primary"
                       size="large"
                       aria-label="Custom number of reading sessions"
+                      disabled={isRecording}
                       onClick={onMultipleClick}
                       sx={{ minWidth: 50, fontSize: '1.2rem', py: 1.5 }}
                     >
@@ -199,6 +205,7 @@ const FullReadingView = ({
                       color="warning"
                       size="large"
                       aria-label="Mark as absent"
+                      disabled={isRecording}
                       onClick={() => onRecordReading(READING_STATUS.ABSENT)}
                       sx={{ minWidth: 80, fontSize: '1.5rem', py: 1.5 }}
                     >
@@ -212,6 +219,7 @@ const FullReadingView = ({
                       color="inherit"
                       size="large"
                       aria-label="No reading record"
+                      disabled={isRecording}
                       onClick={() => onRecordReading(READING_STATUS.NO_RECORD)}
                       sx={{ minWidth: 80, fontSize: '1.5rem', py: 1.5 }}
                     >
