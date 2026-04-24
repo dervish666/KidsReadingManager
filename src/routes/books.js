@@ -56,20 +56,29 @@ booksRouter.get('/', requireReadonly(), async (c) => {
   const provider = await createProvider(c.env);
   const organizationId = c.get('organizationId');
   const db = c.env.READING_MANAGER_DB;
-  const { page, pageSize, search, all, fields } = c.req.query();
+  const { page, pageSize, search, all, fields, limit } = c.req.query();
 
   // In multi-tenant mode, always scope to organization's books
   if (organizationId && db) {
-    // Return minimal book list for autocomplete (avoids N+1 paginated fetches)
+    // Return minimal book list for autocomplete (avoids N+1 paginated fetches).
+    //
+    // Optional `limit` caps the response so the SPA doesn't pull megabytes
+    // of catalog on every reloadDataFromServer. We order by updated_at DESC
+    // so recently-touched books (the ones teachers are actively using) are
+    // always in the local cache; BookAutocomplete falls through to the
+    // external-provider search for anything further back.
     if (all === 'true') {
       const columns = fields === 'minimal' ? 'b.id, b.title, b.author' : 'b.*';
+      const parsedLimit = limit ? Math.max(1, Math.min(10000, parseInt(limit, 10) || 0)) : null;
+      const limitClause = parsedLimit ? ` LIMIT ${parsedLimit}` : '';
+      const orderClause = parsedLimit ? 'b.updated_at DESC, b.title' : 'b.title';
       const result = await db
         .prepare(
           `
         SELECT ${columns} FROM books b
         INNER JOIN org_book_selections obs ON b.id = obs.book_id
         WHERE obs.organization_id = ? AND obs.is_available = 1
-        ORDER BY b.title
+        ORDER BY ${orderClause}${limitClause}
       `
         )
         .bind(organizationId)

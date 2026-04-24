@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.57.1] - 2026-04-24
+
+### Performance
+- **Autocomplete payload capped** — `GET /api/books?all=true` now accepts an optional `limit` param; DataContext sends `limit=5000` so the SPA never pulls megabytes of catalog on reload. Rows are ordered by `updated_at DESC` so recently-touched books stay local; BookAutocomplete's external-provider search covers any tail-of-catalog misses, and HomeReadingRegister / SessionForm already fall back to the denormalised `currentBookTitle`/`currentBookAuthor` on the student row.
+
 ## [3.57.0] - 2026-04-24
 
 Audit remediation (Phase 1 + 2 + 3 from `audit-plans/audit-plan-2026-04-24-1948.md`).

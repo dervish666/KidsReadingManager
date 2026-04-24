@@ -76,7 +76,13 @@ export const DataProvider = ({ children }) => {
         await Promise.all([
           fetchWithAuth(`${API_URL}/students`, { signal }),
           fetchWithAuth(`${API_URL}/classes`, { signal }).catch(() => null),
-          fetchWithAuth(`${API_URL}/books?all=true&fields=minimal`, { signal }).catch(() => null),
+          // Cap the autocomplete payload. 5000 minimal rows ≈ 400 KB, which
+          // is fine on tent-wifi iPads. Orgs larger than this lose the tail
+          // of their catalog from local filtering but BookAutocomplete's
+          // external search covers misses.
+          fetchWithAuth(`${API_URL}/books?all=true&fields=minimal&limit=5000`, { signal }).catch(
+            () => null
+          ),
           fetchWithAuth(`${API_URL}/genres`, { signal }).catch(() => null),
           fetchWithAuth(`${API_URL}/settings`, { signal }).catch(() => null),
         ]);
