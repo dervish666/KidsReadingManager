@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.55.3] - 2026-04-24
+
+### Fixed
+- **Reading register session totals** — absences and no-record entries were incorrectly counted in the per-student total column; backfill sessions behind markers existed for streak calculation but were being double-counted in the visible total
+
+### Added
+- **Daily participation percentage** — the daily totals row in the full reading register now shows what percentage of the class read each day, replacing the previous read/multiple breakdown (full details still available in tooltip)
+
+### Migrations
+None.
+
 ## [3.55.2] - 2026-04-23
 
 ### Fixed

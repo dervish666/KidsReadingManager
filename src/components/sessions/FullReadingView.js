@@ -575,6 +575,16 @@ const FullReadingView = ({
                   </TableCell>
                   {dailyTotals.map((totals, index) => {
                     const isWeekend = dates[index].getDay() === 0 || dates[index].getDay() === 6;
+                    const totalStudents =
+                      totals.read +
+                      totals.multiple +
+                      totals.absent +
+                      totals.noRecord +
+                      totals.notEntered;
+                    const readPercent =
+                      totalStudents > 0
+                        ? Math.round(((totals.read + totals.multiple) / totalStudents) * 100)
+                        : null;
                     return (
                       <TableCell
                         key={index}
@@ -588,36 +598,28 @@ const FullReadingView = ({
                           fontSize: isMobile ? '0.75rem' : '0.8rem',
                         }}
                       >
-                        {totals.totalSessions > 0 && (
-                          <Tooltip
-                            title={`${totals.read} read, ${totals.multiple} multiple, ${totals.absent} absent, ${totals.noRecord} no record, ${totals.notEntered} not entered`}
-                          >
-                            <Box>
+                        <Tooltip
+                          title={`${totals.read} read, ${totals.multiple} multiple, ${totals.absent} absent, ${totals.noRecord} no record, ${totals.notEntered} not entered`}
+                        >
+                          <Box>
+                            {totals.totalSessions > 0 && (
                               <Typography
                                 variant="body2"
                                 sx={{ fontWeight: 'bold', color: 'success.main' }}
                               >
                                 {totals.totalSessions}
                               </Typography>
-                              {totals.read > 0 && (
-                                <Typography
-                                  variant="caption"
-                                  sx={{ color: 'success.dark', fontSize: '0.7rem' }}
-                                >
-                                  {totals.read}✓
-                                </Typography>
-                              )}
-                              {totals.multiple > 0 && (
-                                <Typography
-                                  variant="caption"
-                                  sx={{ color: 'success.dark', fontSize: '0.7rem' }}
-                                >
-                                  +{totals.multiple}
-                                </Typography>
-                              )}
-                            </Box>
-                          </Tooltip>
-                        )}
+                            )}
+                            {readPercent !== null && (
+                              <Typography
+                                variant="caption"
+                                sx={{ fontSize: '0.7rem', color: 'text.secondary' }}
+                              >
+                                {readPercent}%
+                              </Typography>
+                            )}
+                          </Box>
+                        </Tooltip>
                       </TableCell>
                     );
                   })}

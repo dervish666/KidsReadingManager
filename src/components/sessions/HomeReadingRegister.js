@@ -871,7 +871,6 @@ const HomeReadingRegister = () => {
   const getStudentTotalInRange = useCallback(
     (student) => {
       let total = 0;
-      const studentSessions = sessionsByStudent[student.id] || [];
       dates.forEach((date) => {
         const dateStr = formatDateISO(date);
         const { status, count } = getStudentReadingStatus(student, dateStr);
@@ -879,20 +878,13 @@ const HomeReadingRegister = () => {
           total += 1;
         } else if (status === READING_STATUS.MULTIPLE) {
           total += count;
-        } else if (status === READING_STATUS.ABSENT || status === READING_STATUS.NO_RECORD) {
-          // Count any real read sessions hidden behind markers
-          const readSessions = studentSessions.filter(
-            (s) =>
-              s.date === dateStr &&
-              !s.notes?.includes('[ABSENT]') &&
-              !s.notes?.includes('[NO_RECORD]')
-          );
-          total += readSessions.length;
         }
+        // ABSENT and NO_RECORD days don't count toward the total.
+        // Backfill sessions behind markers exist only for streak calculation.
       });
       return total;
     },
-    [dates, getStudentReadingStatus, sessionsByStudent]
+    [dates, getStudentReadingStatus]
   );
 
   return (
