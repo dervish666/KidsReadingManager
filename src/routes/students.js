@@ -240,16 +240,34 @@ studentsRouter.get('/', requireReadonly(), async (c) => {
     const db = getDB(c.env);
     const organizationId = c.get('organizationId');
 
+    // Pre-aggregate session and badge counts once per org (grouped subqueries)
+    // instead of a correlated subquery per student row. At 1000 students this
+    // is one pass over each child table rather than 2000 executions.
     const result = await db
       .prepare(
         `
       SELECT s.*, c.name as class_name, b.title as current_book_title, b.author as current_book_author,
-        (SELECT COUNT(*) FROM reading_sessions rs WHERE rs.student_id = s.id AND (rs.notes IS NULL OR (rs.notes NOT LIKE '%[ABSENT]%' AND rs.notes NOT LIKE '%[NO_RECORD]%'))) as total_session_count,
-        (SELECT COUNT(*) FROM student_badges sb WHERE sb.student_id = s.id) as badge_count
+        COALESCE(rs_counts.total_session_count, 0) as total_session_count,
+        COALESCE(sb_counts.badge_count, 0) as badge_count
       FROM students s
       LEFT JOIN classes c ON s.class_id = c.id
       LEFT JOIN books b ON s.current_book_id = b.id
-      WHERE s.organization_id = ? AND s.is_active = 1
+      LEFT JOIN (
+        SELECT rs.student_id, COUNT(*) AS total_session_count
+        FROM reading_sessions rs
+        JOIN students rs_s ON rs.student_id = rs_s.id
+        WHERE rs_s.organization_id = ?1
+          AND rs_s.is_active = 1
+          AND (rs.notes IS NULL OR (rs.notes NOT LIKE '%[ABSENT]%' AND rs.notes NOT LIKE '%[NO_RECORD]%'))
+        GROUP BY rs.student_id
+      ) rs_counts ON rs_counts.student_id = s.id
+      LEFT JOIN (
+        SELECT sb.student_id, COUNT(*) AS badge_count
+        FROM student_badges sb
+        WHERE sb.organization_id = ?1
+        GROUP BY sb.student_id
+      ) sb_counts ON sb_counts.student_id = s.id
+      WHERE s.organization_id = ?1 AND s.is_active = 1
       ORDER BY s.name ASC
     `
       )
@@ -1304,73 +1322,97 @@ studentsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
     }
 
     const sessionId = generateId();
+    const isMarkerSession =
+      body.notes && (body.notes.includes('[ABSENT]') || body.notes.includes('[NO_RECORD]'));
 
-    await db
-      .prepare(
-        `
+    // Core writes batched atomically: the session row plus the two summary
+    // updates on the student. Either all commit or none do, which means the
+    // register and student card can't disagree about whether this session
+    // happened. Side-effects (streak/stats/badges/goals) run afterwards and
+    // are allowed to fail without rolling back the session — the nightly
+    // cron reconciles them.
+    const coreWrites = [
+      db
+        .prepare(
+          `
       INSERT INTO reading_sessions (
         id, student_id, session_date, book_id, book_title_manual, book_author_manual,
         pages_read, duration_minutes, assessment, notes, location, recorded_by
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `
-      )
-      .bind(
-        sessionId,
-        id,
-        sessionDate,
-        body.bookId || null,
-        body.bookTitle || null,
-        body.bookAuthor || null,
-        body.pagesRead ?? null,
-        body.duration ?? null,
-        body.assessment ?? null,
-        body.notes ?? null,
-        body.location || 'school',
-        userId
-      )
-      .run();
+        )
+        .bind(
+          sessionId,
+          id,
+          sessionDate,
+          body.bookId || null,
+          body.bookTitle || null,
+          body.bookAuthor || null,
+          body.pagesRead ?? null,
+          body.duration ?? null,
+          body.assessment ?? null,
+          body.notes ?? null,
+          body.location || 'school',
+          userId
+        ),
+    ];
 
-    // Update student's current book if a book was provided
     if (body.bookId) {
-      await db
-        .prepare(
-          `
-        UPDATE students SET current_book_id = ?, updated_at = datetime("now")
-        WHERE id = ?
-      `
-        )
-        .bind(body.bookId, id)
-        .run();
+      coreWrites.push(
+        db
+          .prepare(
+            `UPDATE students SET current_book_id = ?, updated_at = datetime("now")
+             WHERE id = ? AND organization_id = ?`
+          )
+          .bind(body.bookId, id, organizationId)
+      );
     }
 
-    // Update student's last_read_date (skip for absent/no-record markers)
-    const isMarkerSession =
-      body.notes && (body.notes.includes('[ABSENT]') || body.notes.includes('[NO_RECORD]'));
     if (!isMarkerSession) {
-      await db
-        .prepare(
-          `
-        UPDATE students SET last_read_date = MAX(COALESCE(last_read_date, ''), ?), updated_at = datetime("now")
-        WHERE id = ? AND organization_id = ?
-      `
-        )
-        .bind(sessionDate, id, organizationId)
-        .run();
+      coreWrites.push(
+        db
+          .prepare(
+            `UPDATE students SET last_read_date = MAX(COALESCE(last_read_date, ''), ?), updated_at = datetime("now")
+             WHERE id = ? AND organization_id = ?`
+          )
+          .bind(sessionDate, id, organizationId)
+      );
     }
 
-    // Update student's reading streak
-    const streakData = await updateStudentStreak(db, id, organizationId, c.env);
+    await db.batch(coreWrites);
 
-    // Update reading stats and evaluate badges
-    await recalculateStats(db, id, organizationId);
-    const newBadges = isMarkerSession
-      ? []
-      : await evaluateRealTime(db, id, organizationId, student.year_group);
+    // Side-effects: best-effort. A streak/stats/badge/goal failure must not
+    // lose the session that just committed. Each runs in its own try/catch
+    // so one bad evaluator doesn't skip the others.
+    try {
+      await updateStudentStreak(db, id, organizationId, c.env);
+    } catch (err) {
+      console.error('[sessions] streak update failed', { sessionId, studentId: id, err });
+    }
 
-    // Update class goals
-    const completedGoals = isMarkerSession
-      ? []
-      : await updateClassGoalOnSession(db, id, organizationId);
+    try {
+      await recalculateStats(db, id, organizationId);
+    } catch (err) {
+      console.error('[sessions] stats recalc failed', { sessionId, studentId: id, err });
+    }
+
+    let newBadges = [];
+    if (!isMarkerSession) {
+      try {
+        newBadges = await evaluateRealTime(db, id, organizationId, student.year_group);
+      } catch (err) {
+        console.error('[sessions] badge evaluation failed', { sessionId, studentId: id, err });
+      }
+    }
+
+    let completedGoals = [];
+    if (!isMarkerSession) {
+      try {
+        completedGoals = await updateClassGoalOnSession(db, id, organizationId);
+      } catch (err) {
+        console.error('[sessions] class goal update failed', { sessionId, studentId: id, err });
+      }
+    }
 
     // Fetch the created session
     const session = await db

@@ -84,7 +84,7 @@ const ReadingStats = () => {
     setCurrentTab(newValue);
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (!stats) return;
 
     const periodLabel =
@@ -105,7 +105,7 @@ const ReadingStats = () => {
         ? classes.find((c) => c.id === globalClassFilter)
         : null;
 
-    generateStatsPDF({
+    await generateStatsPDF({
       schoolName: organization?.name || 'School',
       className: selectedClass?.name || null,
       periodLabel,

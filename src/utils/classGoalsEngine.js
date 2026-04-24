@@ -140,117 +140,81 @@ export async function recalculateClassGoalProgress(db, classId, orgId, startDate
   const goals = goalsResult.results || [];
   if (goals.length === 0) return;
 
-  // 2. Count real sessions (excluding marker sessions)
-  const sessionRow = await db
-    .prepare(
-      `SELECT COUNT(DISTINCT rs.id) AS count
-       FROM reading_sessions rs
-       JOIN students s ON rs.student_id = s.id
-       WHERE s.class_id = ?
-         AND s.organization_id = ?
-         AND rs.session_date >= ?
-         AND rs.session_date <= ?
-         AND (rs.notes NOT LIKE '%[ABSENT]%')
-         AND (rs.notes NOT LIKE '%[NO_RECORD]%')`
-    )
-    .bind(classId, orgId, startDate, endDate)
-    .first();
-  const sessionCount = sessionRow ? sessionRow.count : 0;
-
-  // 3. Count distinct books read
-  const bookRow = await db
-    .prepare(
-      `SELECT COUNT(DISTINCT rs.book_id) AS count
-       FROM reading_sessions rs
-       JOIN students s ON rs.student_id = s.id
-       WHERE s.class_id = ?
-         AND s.organization_id = ?
-         AND rs.session_date >= ?
-         AND rs.session_date <= ?
-         AND rs.book_id IS NOT NULL
-         AND (rs.notes NOT LIKE '%[ABSENT]%')
-         AND (rs.notes NOT LIKE '%[NO_RECORD]%')`
-    )
-    .bind(classId, orgId, startDate, endDate)
-    .first();
-  const bookCount = bookRow ? bookRow.count : 0;
-
-  // 4. Count distinct genres read (via json_each on books.genre_ids)
-  const genreRow = await db
-    .prepare(
-      `SELECT COUNT(DISTINCT je.value) AS count
-       FROM reading_sessions rs
-       JOIN students s ON rs.student_id = s.id
-       JOIN books b ON rs.book_id = b.id
-       JOIN json_each(b.genre_ids) je
-       WHERE s.class_id = ?
-         AND s.organization_id = ?
-         AND rs.session_date >= ?
-         AND rs.session_date <= ?
-         AND b.genre_ids IS NOT NULL
-         AND (rs.notes NOT LIKE '%[ABSENT]%')
-         AND (rs.notes NOT LIKE '%[NO_RECORD]%')`
-    )
-    .bind(classId, orgId, startDate, endDate)
-    .first();
-  const genreCount = genreRow ? genreRow.count : 0;
-
-  // 5. Count distinct reading days
-  const readingDaysRow = await db
-    .prepare(
-      `SELECT COUNT(DISTINCT rs.session_date) AS count
-       FROM reading_sessions rs
-       JOIN students s ON rs.student_id = s.id
-       WHERE s.class_id = ?
-         AND s.organization_id = ?
-         AND rs.session_date >= ?
-         AND rs.session_date <= ?
-         AND (rs.notes NOT LIKE '%[ABSENT]%')
-         AND (rs.notes NOT LIKE '%[NO_RECORD]%')`
-    )
-    .bind(classId, orgId, startDate, endDate)
-    .first();
-  const readingDaysCount = readingDaysRow ? readingDaysRow.count : 0;
-
-  // 6. Count distinct students who have read (participation)
-  const readersRow = await db
-    .prepare(
-      `SELECT COUNT(DISTINCT rs.student_id) AS count
-       FROM reading_sessions rs
-       JOIN students s ON rs.student_id = s.id
-       WHERE s.class_id = ?
-         AND s.organization_id = ?
-         AND rs.session_date >= ?
-         AND rs.session_date <= ?
-         AND (rs.notes NOT LIKE '%[ABSENT]%')
-         AND (rs.notes NOT LIKE '%[NO_RECORD]%')`
-    )
-    .bind(classId, orgId, startDate, endDate)
-    .first();
-  const readersCount = readersRow ? readersRow.count : 0;
-
-  // 7. Count total badges earned by class students this term
-  const badgesRow = await db
-    .prepare(
-      `SELECT COUNT(*) AS count
-       FROM student_badges sb
-       JOIN students s ON sb.student_id = s.id
-       WHERE s.class_id = ?
-         AND s.organization_id = ?
-         AND sb.earned_at >= ?
-         AND sb.earned_at <= ?`
-    )
-    .bind(classId, orgId, startDate, endDate)
-    .first();
-  const badgesCount = badgesRow ? badgesRow.count : 0;
+  // One round-trip instead of six. All session-derived counts share the same
+  // class/org/date filter, and the badges count reuses the same class/org
+  // scope. D1 runs each subquery independently but over one network hop.
+  // Wrapped so a transient D1 failure doesn't take down the whole goals
+  // endpoint — we keep the existing counters rather than overwriting them
+  // with zeros. The next successful call reconciles.
+  let countsRow;
+  try {
+    countsRow = await db
+      .prepare(
+        `SELECT
+         (SELECT COUNT(DISTINCT rs.id)
+            FROM reading_sessions rs
+            JOIN students s ON rs.student_id = s.id
+            WHERE s.class_id = ?1 AND s.organization_id = ?2
+              AND rs.session_date >= ?3 AND rs.session_date <= ?4
+              AND rs.notes NOT LIKE '%[ABSENT]%'
+              AND rs.notes NOT LIKE '%[NO_RECORD]%') AS sessions,
+         (SELECT COUNT(DISTINCT rs.book_id)
+            FROM reading_sessions rs
+            JOIN students s ON rs.student_id = s.id
+            WHERE s.class_id = ?1 AND s.organization_id = ?2
+              AND rs.session_date >= ?3 AND rs.session_date <= ?4
+              AND rs.book_id IS NOT NULL
+              AND rs.notes NOT LIKE '%[ABSENT]%'
+              AND rs.notes NOT LIKE '%[NO_RECORD]%') AS books,
+         (SELECT COUNT(DISTINCT je.value)
+            FROM reading_sessions rs
+            JOIN students s ON rs.student_id = s.id
+            JOIN books b ON rs.book_id = b.id
+            JOIN json_each(b.genre_ids) je
+            WHERE s.class_id = ?1 AND s.organization_id = ?2
+              AND rs.session_date >= ?3 AND rs.session_date <= ?4
+              AND b.genre_ids IS NOT NULL
+              AND rs.notes NOT LIKE '%[ABSENT]%'
+              AND rs.notes NOT LIKE '%[NO_RECORD]%') AS genres,
+         (SELECT COUNT(DISTINCT rs.session_date)
+            FROM reading_sessions rs
+            JOIN students s ON rs.student_id = s.id
+            WHERE s.class_id = ?1 AND s.organization_id = ?2
+              AND rs.session_date >= ?3 AND rs.session_date <= ?4
+              AND rs.notes NOT LIKE '%[ABSENT]%'
+              AND rs.notes NOT LIKE '%[NO_RECORD]%') AS reading_days,
+         (SELECT COUNT(DISTINCT rs.student_id)
+            FROM reading_sessions rs
+            JOIN students s ON rs.student_id = s.id
+            WHERE s.class_id = ?1 AND s.organization_id = ?2
+              AND rs.session_date >= ?3 AND rs.session_date <= ?4
+              AND rs.notes NOT LIKE '%[ABSENT]%'
+              AND rs.notes NOT LIKE '%[NO_RECORD]%') AS readers,
+         (SELECT COUNT(*)
+            FROM student_badges sb
+            JOIN students s ON sb.student_id = s.id
+            WHERE s.class_id = ?1 AND s.organization_id = ?2
+              AND sb.earned_at >= ?3 AND sb.earned_at <= ?4) AS badges`
+      )
+      .bind(classId, orgId, startDate, endDate)
+      .first();
+  } catch (err) {
+    console.error('[classGoals] aggregate query failed — preserving prior counts', {
+      classId,
+      orgId,
+      term,
+      err: err?.message,
+    });
+    return;
+  }
 
   const countsByMetric = {
-    sessions: sessionCount,
-    books: bookCount,
-    genres: genreCount,
-    reading_days: readingDaysCount,
-    readers: readersCount,
-    badges: badgesCount,
+    sessions: countsRow?.sessions ?? 0,
+    books: countsRow?.books ?? 0,
+    genres: countsRow?.genres ?? 0,
+    reading_days: countsRow?.reading_days ?? 0,
+    readers: countsRow?.readers ?? 0,
+    badges: countsRow?.badges ?? 0,
   };
 
   const now = new Date().toISOString();

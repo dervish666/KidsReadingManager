@@ -1,4 +1,6 @@
-import { jsPDF } from 'jspdf';
+// jsPDF is ~190KB minified. It's only loaded when a user clicks "Export PDF",
+// so the dynamic import below keeps the initial bundle free of it for the
+// ~95% of sessions that never export.
 
 // Brand colours
 const SAGE_GREEN = [107, 142, 107]; // #6B8E6B
@@ -25,7 +27,7 @@ const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
  * @param {Array} params.topStreaks  – enriched with .name
  * @param {Array} params.needsAttention
  */
-export function generateStatsPDF({
+export async function generateStatsPDF({
   schoolName,
   className,
   periodLabel,
@@ -34,6 +36,7 @@ export function generateStatsPDF({
   topStreaks,
   needsAttention,
 }) {
+  const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   let y = 0;
 

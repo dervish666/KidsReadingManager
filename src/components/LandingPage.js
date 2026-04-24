@@ -8,6 +8,7 @@ import screenshotRecommendations from '../assets/screenshots/screenshot-recommen
 import screenshotStats from '../assets/screenshots/screenshot-stats.png';
 import screenshotBooks from '../assets/screenshots/screenshot-books.png';
 import TallyLogo from './TallyLogo';
+import { useAuth } from '../contexts/AuthContext';
 
 const ChevronRight = () => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -22,6 +23,7 @@ const ChevronRight = () => (
 );
 
 export default function LandingPage({ onSignIn }) {
+  const { loginWithDemo } = useAuth();
   const [navScrolled, setNavScrolled] = useState(false);
   const [contactSubmitted, setContactSubmitted] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
@@ -33,22 +35,10 @@ export default function LandingPage({ onSignIn }) {
       const response = await fetch('/api/auth/demo', { method: 'POST' });
       if (!response.ok) throw new Error('Demo unavailable');
       const data = await response.json();
-      const userWithOrg = {
-        ...data.user,
-        organizationId: data.organization?.id,
-        organizationName: data.organization?.name,
-        organizationSlug: data.organization?.slug,
-      };
-      localStorage.setItem('krm_auth_token', data.accessToken);
-      localStorage.setItem('krm_user', JSON.stringify(userWithOrg));
-      localStorage.setItem('krm_auth_mode', 'multitenant');
-      // Auto-select the demo teacher's assigned class
-      if (data.user.assignedClassIds?.length > 0) {
-        sessionStorage.setItem(
-          'pendingClassAutoFilter',
-          JSON.stringify(data.user.assignedClassIds)
-        );
-      }
+      // Delegate storage + state updates to AuthContext so the demo path
+      // stays in sync with /auth/login and /auth/mylogin/callback. Hand-rolled
+      // localStorage writes used to drift from AuthContext whenever keys changed.
+      loginWithDemo(data);
       window.location.href = '/';
     } catch {
       setDemoLoading(false);

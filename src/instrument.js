@@ -13,12 +13,14 @@ Sentry.init({
     }),
   ],
 
-  // Tracing
-  tracesSampleRate: 0.1,
+  // Tracing — 2% is enough signal for latency regressions without paying
+  // for every transaction. Dial up temporarily when investigating.
+  tracesSampleRate: 0.02,
   tracePropagationTargets: ['localhost', /^https:\/\/tallyreading\.uk/],
 
-  // Session Replay
-  replaysSessionSampleRate: 0.1,
+  // Session Replay — 1% of normal sessions, 100% of sessions that hit an
+  // error. Replays at 10% were ~2-5MB each; iPads on tent wifi struggle.
+  replaysSessionSampleRate: 0.01,
   replaysOnErrorSampleRate: 1.0,
 
   // Logs

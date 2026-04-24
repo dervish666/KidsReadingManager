@@ -1,5 +1,37 @@
 # Changelog
 
+## [3.57.0] - 2026-04-24
+
+Audit remediation (Phase 1 + 2 + 3 from `audit-plans/audit-plan-2026-04-24-1948.md`).
+
+### Security
+- **`rateLimit` fails closed for cost-sensitive paths** — `/api/covers/*`, `/api/contact`, `/api/signup`, `/api/auth/demo` now return 503 during D1 outages instead of silently bypassing rate limits (closes pentest M20 carryover)
+- **`/api/auth/mode` trimmed** — drop `features.d1Database` and `features.kvStorage` from the public response; fewer unnecessary infra signals leak to unauthenticated clients
+- **User delete reads explicit columns** — replace `SELECT * FROM users` in the delete handler with `SELECT id, role, organization_id, email` so password hashes aren't unnecessarily loaded into memory
+- **Register slug collision retry fixed** — replace the undefined-variable `ReferenceError` with a random-suffix retry so the dormant `PUBLIC_REGISTRATION_ENABLED` path no longer crashes on slug collision (closes pentest H12)
+
+### Performance
+- **Class-goals recalc: 6 queries → 1** — `classGoalsEngine.recalculateClassGoalProgress` now runs one SELECT with six scalar subqueries instead of six separate round-trips; a wrapping try/catch keeps the existing counts on a transient failure
+- **Students list denormalised** — the `GET /api/students` hot path replaces two correlated subqueries with pre-aggregated `LEFT JOIN` subqueries scoped by org, avoiding O(N) subquery execution per row
+- **Reading-session POST batched atomically** — the core session INSERT plus `current_book_id`/`last_read_date` UPDATEs run in one `db.batch`; streak/stats/badge/goal side-effects run in isolated try/catch so a transient evaluator failure no longer loses the session
+- **Sentry sample rates trimmed** — browser `tracesSampleRate` 0.1 → 0.02, `replaysSessionSampleRate` 0.1 → 0.01 (errors still capture at 100%)
+- **jsPDF + react-joyride lazy-loaded** — both libraries now load on demand via dynamic import (stats export click / first tour trigger) instead of shipping in the initial bundle
+- **New compound indexes** — `idx_students_class_org` and `idx_student_badges_student_earned` cover the collapsed class-goals aggregate query (migration `0052`)
+
+### Reliability
+- **`DataContext.reloadDataFromServer` AbortController** — superseded reloads (rapid org switching, manual refresh) now cancel in-flight requests so stale responses can't overwrite fresher state
+- **`AchievementsPage` stats fetch AbortController** — cancel on tab switch / filter change to prevent the same stale-state issue
+- **Cover R2 put failures include structured context** — r2Key + provider logged so Sentry breadcrumbs have enough info to correlate with a failing upstream
+
+### Maintenance
+- **`LandingPage` demo via `AuthContext.loginWithDemo`** — stops duplicating localStorage write logic between LandingPage and AuthContext
+- **npm audit clean** — `uuid` bumped to ^14, transitive `hono`/`dompurify`/`postcss` advisories resolved (0 vulnerabilities)
+- **CI: coverage + Playwright E2E** — `build` job now runs `test:coverage` and uploads the report; new `e2e` job runs Playwright on PRs
+- **Removed unused assets** — `src/assets/ImageAssets.png` (2.3MB), `src/assets/shelf-decoration.png` (90KB)
+
+### Migrations
+- `0052_class_goal_query_indexes.sql` — `idx_students_class_org`, `idx_student_badges_student_earned`
+
 ## [3.56.0] - 2026-04-24
 
 ### Added

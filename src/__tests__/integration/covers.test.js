@@ -55,6 +55,23 @@ const createMockR2Object = (body = new Uint8Array([1, 2, 3]), overrides = {}) =>
  * Uses Hono's proper app.request(path, init, Env, executionCtx) API
  * to inject env and executionCtx, avoiding the read-only getter issue.
  */
+/**
+ * Minimal rate-limit DB mock. rateLimit() middleware in tenant.js now fails
+ * closed for /api/covers/ when the DB binding is missing (so a D1 outage
+ * can't be used to bypass the cover-endpoint rate limit and drive R2 cost).
+ * These tests care about provider/cache behaviour, not rate limiting, so a
+ * permissive mock is all we need here — the real limiter is covered in
+ * covers.rateLimit.test.js.
+ */
+const createPermissiveDB = () => ({
+  prepare: vi.fn(() => ({
+    bind: vi.fn().mockReturnThis(),
+    first: vi.fn().mockResolvedValue({ count: 0 }),
+    run: vi.fn().mockResolvedValue({ success: true }),
+    all: vi.fn().mockResolvedValue({ results: [], success: true }),
+  })),
+});
+
 const createTestApp = (envOverrides = {}) => {
   const app = new Hono();
   const mockR2 = createMockR2();
@@ -75,6 +92,7 @@ const createTestApp = (envOverrides = {}) => {
 
   const env = {
     BOOK_COVERS: mockR2,
+    READING_MANAGER_DB: createPermissiveDB(),
     ...envOverrides,
   };
 
@@ -587,7 +605,7 @@ describe('Cover Search Route', () => {
   describe('Google Books fallback', () => {
     it('falls back to Google Books when OpenLibrary finds nothing', async () => {
       const { request, mockR2 } = createTestApp({
-        READING_MANAGER_DB: {},
+        READING_MANAGER_DB: createPermissiveDB(),
         JWT_SECRET: 'test-secret',
       });
       mockR2.get.mockResolvedValue(null);
@@ -624,7 +642,7 @@ describe('Cover Search Route', () => {
   describe('Hardcover fallback', () => {
     it('falls back to Hardcover when OpenLibrary and Google Books miss', async () => {
       const { request, mockR2 } = createTestApp({
-        READING_MANAGER_DB: {},
+        READING_MANAGER_DB: createPermissiveDB(),
         JWT_SECRET: 'test-secret',
       });
       mockR2.get.mockResolvedValue(null);
@@ -657,7 +675,7 @@ describe('Cover Search Route', () => {
   describe('All providers miss', () => {
     it('returns 404 with a short Cache-Control when nothing resolves', async () => {
       const { request, mockR2 } = createTestApp({
-        READING_MANAGER_DB: {},
+        READING_MANAGER_DB: createPermissiveDB(),
         JWT_SECRET: 'test-secret',
       });
       mockR2.get.mockResolvedValue(null);
@@ -680,7 +698,7 @@ describe('Cover Search Route', () => {
   describe('Provider failure isolation', () => {
     it('continues to Hardcover when Google Books throws', async () => {
       const { request, mockR2 } = createTestApp({
-        READING_MANAGER_DB: {},
+        READING_MANAGER_DB: createPermissiveDB(),
         JWT_SECRET: 'test-secret',
       });
       mockR2.get.mockResolvedValue(null);

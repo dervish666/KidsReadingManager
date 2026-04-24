@@ -38,7 +38,7 @@ import iconStudents from './assets/icon-students.png';
 import iconReading from './assets/icon-reading.png';
 import iconRecord from './assets/icon-record.png';
 import iconStats from './assets/icon-stats.png';
-import iconAchievements from './assets/icon-achievements.svg';
+import iconAchievements from './assets/icon-achievements.png';
 import iconRecommend from './assets/icon-recommend.png';
 import iconBooks from './assets/icon-books.png';
 import iconSettings from './assets/icon-settings.png';

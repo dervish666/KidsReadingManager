@@ -506,6 +506,58 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  // Apply a multi-tenant login response from any issuing endpoint
+  // (/api/auth/login, /api/auth/demo, /api/auth/mylogin/callback). Keeps all
+  // the storage-key + state-update mechanics in one place so callers can't
+  // drift out of sync with loginWithEmail.
+  const applyAuthPayload = useCallback((data) => {
+    if (!data?.accessToken) return null;
+
+    const userWithOrg = data.user
+      ? {
+          ...data.user,
+          organizationId: data.organization?.id || data.user.organizationId,
+          organizationName: data.organization?.name || data.user.organizationName,
+          organizationSlug: data.organization?.slug || data.user.organizationSlug,
+        }
+      : null;
+
+    try {
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(AUTH_STORAGE_KEY, data.accessToken);
+        window.localStorage.setItem(AUTH_MODE_KEY, 'multitenant');
+        if (userWithOrg) {
+          window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userWithOrg));
+        }
+      }
+    } catch {
+      /* storage failure is non-critical */
+    }
+
+    setAuthToken(data.accessToken);
+    setUser(userWithOrg);
+    setAuthMode('multitenant');
+    setApiError(null);
+
+    if (data.user?.assignedClassIds?.length > 0) {
+      try {
+        window.sessionStorage.setItem(
+          'pendingClassAutoFilter',
+          JSON.stringify(data.user.assignedClassIds)
+        );
+      } catch {
+        /* ignore */
+      }
+    }
+
+    return userWithOrg;
+  }, []);
+
+  // Demo login: frontend POSTs /api/auth/demo and hands the response here.
+  // Exposing this helper means LandingPage doesn't need to hand-roll the
+  // localStorage writes (they were previously duplicated and would drift).
+  const loginWithDemo = useCallback((data) => applyAuthPayload(data), [applyAuthPayload]);
+
   // Request password reset
   const forgotPassword = useCallback(async (email) => {
     setApiError(null);
@@ -754,6 +806,7 @@ export const AuthProvider = ({ children }) => {
       fetchWithAuth,
       login,
       loginWithEmail,
+      loginWithDemo,
       forgotPassword,
       resetPassword,
       logout,
@@ -783,6 +836,7 @@ export const AuthProvider = ({ children }) => {
       fetchWithAuth,
       login,
       loginWithEmail,
+      loginWithDemo,
       forgotPassword,
       resetPassword,
       logout,

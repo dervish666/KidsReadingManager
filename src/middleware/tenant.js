@@ -8,6 +8,22 @@ import { PUBLIC_PATHS } from '../utils/constants.js';
 import { getCachedOrgStatus, setCachedOrgStatus } from '../utils/orgStatusCache.js';
 
 /**
+ * Paths where `rateLimit` must fail closed when D1 is unreachable.
+ * Covers credential-handling endpoints *and* cost-sensitive public surfaces
+ * (demo tokens, contact/signup email paths, R2-backed cover lookups).
+ */
+const FAIL_CLOSED_PATHS = [
+  '/api/auth/login',
+  '/api/auth/register',
+  '/api/auth/reset-password',
+  '/api/auth/forgot-password',
+  '/api/auth/demo',
+  '/api/contact',
+  '/api/signup',
+  '/api/covers/',
+];
+
+/**
  * JWT Authentication Middleware
  * Validates JWT token and extracts user/organization context
  *
@@ -364,15 +380,9 @@ export function rateLimit(maxRequests = 100, windowMs = 60000) {
   return async (c, next) => {
     const db = c.env.READING_MANAGER_DB;
 
-    // If no database, fail closed for sensitive auth endpoints, skip for others
+    // If no database, fail closed for auth + cost-sensitive endpoints, skip for others
     if (!db) {
-      const sensitiveAuthPaths = [
-        '/api/auth/login',
-        '/api/auth/register',
-        '/api/auth/reset-password',
-        '/api/auth/forgot-password',
-      ];
-      if (sensitiveAuthPaths.some((p) => c.req.path.startsWith(p))) {
+      if (FAIL_CLOSED_PATHS.some((p) => c.req.path.startsWith(p))) {
         return c.json({ error: 'Service temporarily unavailable' }, 503);
       }
       return next();
@@ -438,15 +448,11 @@ export function rateLimit(maxRequests = 100, windowMs = 60000) {
           .catch(() => {});
       }
     } catch (error) {
-      // If rate_limits table doesn't exist or other error, fail closed for auth paths
+      // If rate_limits table doesn't exist or other error, fail closed for
+      // auth + cost-sensitive paths so an outage can't be used to cheaply
+      // drain external API quota, R2, or email-provider budget.
       console.warn('Rate limiting error:', error.message);
-      const sensitiveAuthPaths = [
-        '/api/auth/login',
-        '/api/auth/register',
-        '/api/auth/reset-password',
-        '/api/auth/forgot-password',
-      ];
-      if (sensitiveAuthPaths.some((p) => c.req.path.startsWith(p))) {
+      if (FAIL_CLOSED_PATHS.some((p) => c.req.path.startsWith(p))) {
         return c.json({ error: 'Service temporarily unavailable' }, 503);
       }
     }

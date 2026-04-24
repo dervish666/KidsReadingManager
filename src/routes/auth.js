@@ -110,20 +110,16 @@ authRouter.post('/demo', async (c) => {
  * This endpoint is public and used by the frontend to determine which login UI to show
  */
 authRouter.get('/mode', async (c) => {
-  const hasJwtSecret = !!c.env.JWT_SECRET;
-  const hasD1 = !!c.env.READING_MANAGER_DB;
-
-  // Multi-tenant mode requires both JWT_SECRET and D1 database
-  const isMultiTenant = hasJwtSecret && hasD1;
+  // Multi-tenant mode requires both JWT_SECRET and D1 database.
+  // Only surface what the SPA actually consumes — the frontend reads `mode`
+  // to pick a login UI and `ssoEnabled` to show the SSO button. Exposing
+  // other infrastructure flags to an unauthenticated endpoint is a free
+  // reconnaissance signal for attackers.
+  const isMultiTenant = !!c.env.JWT_SECRET && !!c.env.READING_MANAGER_DB;
 
   return c.json({
     mode: isMultiTenant ? 'multitenant' : 'legacy',
     ssoEnabled: Boolean(c.env.MYLOGIN_CLIENT_ID),
-    features: {
-      multiTenant: isMultiTenant,
-      d1Database: hasD1,
-      kvStorage: !!c.env.READING_MANAGER_KV,
-    },
   });
 });
 
@@ -223,9 +219,10 @@ authRouter.post('/register', async (c) => {
     try {
       await createBatch(finalSlug);
     } catch (batchErr) {
-      // If slug collision (UNIQUE constraint), retry with incremented slug
+      // Retry once on UNIQUE collision with a random suffix. Collision chance
+      // with a 4-char random tail is ~1 in 1.6M, so a single retry is enough.
       if (batchErr.message?.includes('UNIQUE') || batchErr.message?.includes('constraint')) {
-        finalSlug = `${slug}-${slugCounter++}`;
+        finalSlug = `${finalSlug}-${crypto.randomUUID().slice(0, 4)}`;
         await createBatch(finalSlug);
       } else {
         throw batchErr;

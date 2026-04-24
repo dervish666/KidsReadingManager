@@ -51,8 +51,22 @@ export const DataProvider = ({ children }) => {
   // Track the previous activeOrganizationId to detect changes
   const prevActiveOrgId = useRef(activeOrganizationId);
 
+  // Most-recent reload's AbortController. A new reload (org switch, manual
+  // refresh) aborts the previous one so stale responses can't overwrite
+  // fresher state — matches the pattern already used in HomeReadingRegister.
+  const reloadControllerRef = useRef(null);
+
   // Load data from API
   const reloadDataFromServer = useCallback(async () => {
+    // Cancel any in-flight reload first — important for rapid org switching
+    // where parallel reloads would otherwise race on setState.
+    if (reloadControllerRef.current) {
+      reloadControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    reloadControllerRef.current = controller;
+    const { signal } = controller;
+
     setLoading(true);
     setApiError(null);
 
@@ -60,12 +74,17 @@ export const DataProvider = ({ children }) => {
       // Fetch all data in parallel for faster load
       const [studentsResponse, classesResponse, booksResponse, genresResponse, settingsResponse] =
         await Promise.all([
-          fetchWithAuth(`${API_URL}/students`),
-          fetchWithAuth(`${API_URL}/classes`).catch(() => null),
-          fetchWithAuth(`${API_URL}/books?all=true&fields=minimal`).catch(() => null),
-          fetchWithAuth(`${API_URL}/genres`).catch(() => null),
-          fetchWithAuth(`${API_URL}/settings`).catch(() => null),
+          fetchWithAuth(`${API_URL}/students`, { signal }),
+          fetchWithAuth(`${API_URL}/classes`, { signal }).catch(() => null),
+          fetchWithAuth(`${API_URL}/books?all=true&fields=minimal`, { signal }).catch(() => null),
+          fetchWithAuth(`${API_URL}/genres`, { signal }).catch(() => null),
+          fetchWithAuth(`${API_URL}/settings`, { signal }).catch(() => null),
         ]);
+
+      // If a newer reload superseded this one, drop everything.
+      if (signal.aborted) {
+        return { success: false, aborted: true };
+      }
 
       // Students (required)
       if (!studentsResponse.ok) {
@@ -114,12 +133,21 @@ export const DataProvider = ({ children }) => {
 
       return { success: true };
     } catch (error) {
+      // Aborted reloads are a normal signal, not an error to surface.
+      if (error.name === 'AbortError' || signal.aborted) {
+        return { success: false, aborted: true };
+      }
       if (error.message !== 'Unauthorized') {
         setApiError(error.message);
       }
       return { success: false, error: error.message };
     } finally {
-      setLoading(false);
+      // Only flip loading off if this controller is still the active one —
+      // otherwise a superseded reload would prematurely clear the spinner.
+      if (reloadControllerRef.current === controller) {
+        reloadControllerRef.current = null;
+        setLoading(false);
+      }
     }
   }, [fetchWithAuth, setApiError]);
 

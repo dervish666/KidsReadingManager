@@ -251,14 +251,21 @@ coversRouter.get('/search', async (c) => {
     });
   }
 
-  // 3. Cache in R2 via waitUntil (non-blocking)
+  // 3. Cache in R2 via waitUntil (non-blocking).
+  //    `console.error` is auto-forwarded to Sentry via the Cloudflare SDK's
+  //    consoleLoggingIntegration (see src/worker.js), so including the key
+  //    and provider gives ops enough context to spot a failing upstream.
   if (r2) {
     const r2PutPromise = r2
       .put(r2Key, fetched.imageData.slice(0), {
         httpMetadata: { contentType: fetched.contentType },
       })
       .catch((err) => {
-        console.error('R2 put error:', err);
+        console.error('[covers] R2 put failed on search hit', {
+          r2Key,
+          provider: fetched.source,
+          message: err?.message,
+        });
       });
     if (c.executionCtx?.waitUntil) {
       c.executionCtx.waitUntil(r2PutPromise);
@@ -394,14 +401,19 @@ coversRouter.get('/:type/:key', async (c) => {
     });
   }
 
-  // 4. Cache in R2 via waitUntil (non-blocking). Copy buffer so R2 and Response don't race.
+  // 4. Cache in R2 via waitUntil (non-blocking). Copy buffer so R2 and
+  //    Response don't race. console.error is auto-captured by Sentry.
   if (r2) {
     const r2PutPromise = r2
       .put(r2Key, fetched.imageData.slice(0), {
         httpMetadata: { contentType: fetched.contentType },
       })
       .catch((err) => {
-        console.error('R2 put error:', err);
+        console.error('[covers] R2 put failed on identifier hit', {
+          r2Key,
+          provider: fetched.source,
+          message: err?.message,
+        });
       });
     if (c.executionCtx?.waitUntil) {
       c.executionCtx.waitUntil(r2PutPromise);

@@ -33,24 +33,31 @@ const AchievementsPage = () => {
     });
   }, [students, classes, globalClassFilter]);
 
-  // Fetch stats for streaks (only when Streaks tab is active)
+  // Fetch stats for streaks (only when Streaks tab is active).
+  // AbortController cancels stale requests when the user flips tabs or
+  // changes the class filter — otherwise the slower response could clobber
+  // newer data.
   useEffect(() => {
     if (currentTab !== 1) return;
+    const controller = new AbortController();
     setStatsLoading(true);
     const params = new URLSearchParams();
     if (globalClassFilter && globalClassFilter !== 'all') {
       params.set('classId', globalClassFilter);
     }
-    fetchWithAuth(`/api/students/stats?${params}`)
+    fetchWithAuth(`/api/students/stats?${params}`, { signal: controller.signal })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
+        if (controller.signal.aborted) return;
         setStats(data);
         setStatsLoading(false);
       })
-      .catch(() => {
+      .catch((err) => {
+        if (err?.name === 'AbortError' || controller.signal.aborted) return;
         setStats(null);
         setStatsLoading(false);
       });
+    return () => controller.abort();
   }, [currentTab, globalClassFilter, fetchWithAuth]);
 
   const getStudentsWithStreaks = () => {

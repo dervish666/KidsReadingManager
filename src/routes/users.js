@@ -463,16 +463,21 @@ usersRouter.delete('/:id', requireAdmin(), auditLog('delete', 'user'), async (c)
     const currentUserRole = c.get('userRole');
     const targetUserId = c.req.param('id');
 
-    // Owners can delete users from any organization; others only within their own
+    // Owners can delete users from any organization; others only within their own.
+    // We only need the role (to gate non-owner → owner deletes) and the org id
+    // (for audit/logging). Reading password_hash via SELECT * risks leaking a
+    // hash into a future cache or log line, so list columns explicitly.
     let existingUser;
     if (currentUserRole === ROLES.OWNER) {
       existingUser = await db
-        .prepare('SELECT * FROM users WHERE id = ?')
+        .prepare('SELECT id, role, organization_id, email FROM users WHERE id = ?')
         .bind(targetUserId)
         .first();
     } else {
       existingUser = await db
-        .prepare('SELECT * FROM users WHERE id = ? AND organization_id = ?')
+        .prepare(
+          'SELECT id, role, organization_id, email FROM users WHERE id = ? AND organization_id = ?'
+        )
         .bind(targetUserId, organizationId)
         .first();
     }
