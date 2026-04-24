@@ -30,13 +30,13 @@ export default function OverviewTab({ stats, enrichedTopStreaks, onNavigate }) {
             label: 'Avg/Student',
             value: stats.averageSessionsPerStudent.toFixed(1),
             color: 'info.main',
-            tab: 3,
+            tab: 2,
           },
           {
             label: 'Never Read',
             value: stats.studentsWithNoSessions,
             color: 'status.needsAttention',
-            tab: 2,
+            tab: 1,
           },
         ].map(({ label, value, color, tab }) => {
           const content = (

@@ -1,5 +1,21 @@
 # Changelog
 
+## [3.56.0] - 2026-04-24
+
+### Added
+- **Achievements bottom nav tab** — Achievements promoted from a sub-tab inside Stats to its own dedicated tab in the bottom navigation bar, making badges and goals more discoverable for teachers
+- **Streaks inside Achievements** — Streaks tab moved from Stats into the new Achievements page as a second sub-tab (Badges & Goals + Streaks)
+- **Daily participation percentage** — daily totals row in the full reading register now shows what percentage of the class read each day
+
+### Fixed
+- **Reading register session totals** — absences and no-record entries no longer counted in per-student total column; backfill sessions behind markers existed for streak calculation but were being double-counted
+
+### Changed
+- **Stats tabs simplified** — Stats page now has 4 tabs (Overview, Needs Attention, Reading Frequency, Reading Timeline) after moving Streaks and Achievements out
+
+### Migrations
+None.
+
 ## [3.55.3] - 2026-04-24
 
 ### Fixed

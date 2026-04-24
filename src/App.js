@@ -23,6 +23,7 @@ import StudentList from './components/students/StudentList';
 const SessionForm = React.lazy(() => import('./components/sessions/SessionForm'));
 const HomeReadingRegister = React.lazy(() => import('./components/sessions/HomeReadingRegister'));
 const ReadingStats = React.lazy(() => import('./components/stats/ReadingStats'));
+const AchievementsPage = React.lazy(() => import('./components/AchievementsPage'));
 const BookRecommendations = React.lazy(() => import('./components/BookRecommendations'));
 const BookManager = React.lazy(() => import('./components/books/BookManager'));
 const SettingsPage = React.lazy(() => import('./components/SettingsPage'));
@@ -37,6 +38,7 @@ import iconStudents from './assets/icon-students.png';
 import iconReading from './assets/icon-reading.png';
 import iconRecord from './assets/icon-record.png';
 import iconStats from './assets/icon-stats.png';
+import iconAchievements from './assets/icon-achievements.svg';
 import iconRecommend from './assets/icon-recommend.png';
 import iconBooks from './assets/icon-books.png';
 import iconSettings from './assets/icon-settings.png';
@@ -126,6 +128,13 @@ function AppContent() {
         adminOnly: false,
       },
       { key: 'stats', label: 'Stats', icon: iconStats, Component: ReadingStats, adminOnly: false },
+      {
+        key: 'achievements',
+        label: 'Achievements',
+        icon: iconAchievements,
+        Component: AchievementsPage,
+        adminOnly: false,
+      },
       {
         key: 'recommend',
         label: 'Recommend',

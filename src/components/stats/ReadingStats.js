@@ -19,15 +19,11 @@ import MenuBookIcon from '@mui/icons-material/MenuBook';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import TimelineIcon from '@mui/icons-material/Timeline';
-import WhatshotIcon from '@mui/icons-material/Whatshot';
-import EmojiNatureIcon from '@mui/icons-material/EmojiNature';
 import DaysSinceReadingChart from './DaysSinceReadingChart';
 import ReadingTimelineChart from './ReadingTimelineChart';
 import OverviewTab from './OverviewTab';
 import NeedsAttentionTab from './NeedsAttentionTab';
 import FrequencyTab from './FrequencyTab';
-import StreaksTab from './StreaksTab';
-import AchievementsTab from './AchievementsTab';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
 import { generateStatsPDF } from '../../utils/statsExport';
@@ -37,7 +33,7 @@ import TourButton from '../tour/TourButton';
 
 const ReadingStats = () => {
   const { fetchWithAuth, organization } = useAuth();
-  const { students, classes, reloadDataFromServer } = useData();
+  const { students, classes } = useData();
   const { globalClassFilter, getReadingStatus } = useUI();
   const [currentTab, setCurrentTab] = useState(0);
   const { tourButtonProps } = useTour('stats');
@@ -48,7 +44,6 @@ const ReadingStats = () => {
       setTimeout(() => tourButtonProps.onClick(), 100);
     },
   };
-  const [recalculating, setRecalculating] = useState(false);
   const [termDates, setTermDates] = useState([]);
   const [selectedTerm, setSelectedTerm] = useState('all');
 
@@ -121,24 +116,7 @@ const ReadingStats = () => {
     });
   };
 
-  const handleRecalculateStreaks = async () => {
-    setRecalculating(true);
-    try {
-      const API_URL = '/api';
-      const response = await fetchWithAuth(`${API_URL}/students/recalculate-streaks`, {
-        method: 'POST',
-      });
-      if (response.ok) {
-        await reloadDataFromServer();
-      }
-    } catch (error) {
-      console.error('Failed to recalculate streaks:', error);
-    } finally {
-      setRecalculating(false);
-    }
-  };
-
-  // Shared active students filtered by class — used by stats, session sort, and streaks
+  // Shared active students filtered by class — used by stats and session sort
   const activeStudents = useMemo(() => {
     return students.filter((student) => {
       if (globalClassFilter && globalClassFilter !== 'all') {
@@ -194,23 +172,6 @@ const ReadingStats = () => {
     return [...activeStudents].sort(
       (a, b) => (a.totalSessionCount || 0) - (b.totalSessionCount || 0)
     );
-  };
-
-  // Get all students with streak data, sorted by current streak
-  const getStudentsWithStreaks = () => {
-    return activeStudents
-      .map((student) => ({
-        ...student,
-        currentStreak: student.currentStreak || 0,
-        longestStreak: student.longestStreak || 0,
-      }))
-      .sort((a, b) => {
-        // Sort by current streak descending, then by longest streak descending
-        if (b.currentStreak !== a.currentStreak) {
-          return b.currentStreak - a.currentStreak;
-        }
-        return b.longestStreak - a.longestStreak;
-      });
   };
 
   // Get students who haven't been read with recently
@@ -345,11 +306,9 @@ const ReadingStats = () => {
             }}
           >
             <Tab icon={<AssessmentIcon />} iconPosition="start" label="Overview" />
-            <Tab icon={<WhatshotIcon />} iconPosition="start" label="Streaks" />
             <Tab icon={<CalendarTodayIcon />} iconPosition="start" label="Needs Attention" />
             <Tab icon={<MenuBookIcon />} iconPosition="start" label="Reading Frequency" />
             <Tab icon={<TimelineIcon />} iconPosition="start" label="Reading Timeline" />
-            <Tab icon={<EmojiNatureIcon />} iconPosition="start" label="Achievements" />
           </Tabs>
         </Paper>
 
@@ -377,15 +336,8 @@ const ReadingStats = () => {
                   No data available yet. Add students and record reading sessions to see statistics.
                 </Typography>
               </Paper>
-            ) : statsLoading || !stats ? (
-              renderStatsLoading()
             ) : (
-              <StreaksTab
-                stats={stats}
-                studentsWithStreaks={getStudentsWithStreaks()}
-                recalculating={recalculating}
-                onRecalculate={handleRecalculateStreaks}
-              />
+              <NeedsAttentionTab students={getNeedsAttentionStudents()} />
             ))}
           {currentTab === 2 &&
             (students.length === 0 ? (
@@ -395,19 +347,9 @@ const ReadingStats = () => {
                 </Typography>
               </Paper>
             ) : (
-              <NeedsAttentionTab students={getNeedsAttentionStudents()} />
-            ))}
-          {currentTab === 3 &&
-            (students.length === 0 ? (
-              <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 4 }}>
-                <Typography variant="body1" color="text.secondary">
-                  No data available yet. Add students and record reading sessions to see statistics.
-                </Typography>
-              </Paper>
-            ) : (
               <FrequencyTab students={getStudentsBySessionCount()} />
             ))}
-          {currentTab === 4 &&
+          {currentTab === 3 &&
             (students.length === 0 ? (
               <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 4 }}>
                 <Typography variant="body1" color="text.secondary">
@@ -421,19 +363,6 @@ const ReadingStats = () => {
                   <ReadingTimelineChart />
                 </Box>
               </Box>
-            ))}
-          {currentTab === 5 &&
-            (students.length === 0 ? (
-              <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 4 }}>
-                <Typography variant="body1" color="text.secondary">
-                  No data available yet. Add students and record reading sessions to see statistics.
-                </Typography>
-              </Paper>
-            ) : (
-              <AchievementsTab
-                fetchWithAuth={fetchWithAuth}
-                globalClassFilter={globalClassFilter}
-              />
             ))}
         </Box>
       </Box>
