@@ -40,7 +40,13 @@ src/instrument.js - Sentry browser SDK initialization
 <!-- Backend Routes -->
 src/routes/auth.js - POST/GET register, login, refresh, logout, password reset
 src/routes/mylogin.js - MyLogin OAuth2 SSO (login, callback, logout)
-src/routes/students.js - GET/POST/PUT/DELETE student CRUD, bulk import
+src/routes/students.js - Core student CRUD (list, get, create, update, soft-delete) + current-book / feedback mutators; mounts students/* sub-routers; re-exports recalculateAllStreaks for the cron
+src/routes/students/_shared.js - Shared helpers: fetchStudentPreferences, saveStudentPreferences, getOrgStreakSettings (KV-cached), updateStudentStreak
+src/routes/students/sessions.js - GET /sessions, GET/POST /:id/sessions, DELETE/PUT /:id/sessions/:sessionId — POST is the batched hot-path session create
+src/routes/students/stats.js - GET /stats — org rollup: counts, weekly activity, day-of-week, status distribution, streak leaderboard, most-liked books
+src/routes/students/streak.js - GET /:id/streak, POST /recalculate-streaks; exports cron-time recalculateAllStreaks bulk-recalculator
+src/routes/students/bulk.js - POST /bulk — CSV bulk import with name dedup and chunked batch insert
+src/routes/students/gdpr.js - DELETE /:id/erase (Article 17), PUT /:id/restrict (Article 18), PUT /:id/ai-opt-out, GET /:id/export (Article 15 SAR JSON/CSV)
 src/routes/books.js - GET/POST/PUT/DELETE books, AI recommendations, search, CSV import
 src/routes/classes.js - GET/POST/PUT/DELETE class management, GET/PUT class goals
 src/routes/genres.js - GET/POST/PUT/DELETE genre management

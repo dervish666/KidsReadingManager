@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.57.2] - 2026-04-25
+
+### Changed
+- **`src/routes/students.js` split into a thin router + 6 sub-routers** under `src/routes/students/`. The mega-file (2486 LOC, 25 handlers) became `students.js` (508 LOC — core CRUD + composition) plus `_shared.js` (helpers), `sessions.js`, `stats.js`, `streak.js`, `bulk.js`, `gdpr.js`. Largest single file is now 561 LOC. No behaviour change; 1948/1948 tests still pass. Sub-routers are mounted before the bare `/:id` handlers so literal paths (`/sessions`, `/stats`, `/bulk`, `/recalculate-streaks`) resolve unambiguously. The cron-time `recalculateAllStreaks` lives in `students/streak.js` and is re-exported from `students.js` so worker.js's existing import keeps working.
+
 ## [3.57.1] - 2026-04-24
 
 ### Performance
