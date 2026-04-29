@@ -4,6 +4,38 @@ directories: [src/contexts/, src/hooks/]
 description: React context providers and custom hooks
 
 files:
+  contexts/data/useStudentOperations.js:
+    description: Student CRUD operations extracted from DataContext
+    exports:
+      - name: useStudentOperations
+        kind: function
+        params: [fetchWithAuth, setStudents, setApiError]
+        returns: "{ addStudent, bulkImportStudents, updateStudent, updateStudentClassId, updateStudentCurrentBook, deleteStudent }"
+
+  contexts/data/useBookOperations.js:
+    description: Book CRUD operations extracted from DataContext
+    exports:
+      - name: useBookOperations
+        kind: function
+        params: [fetchWithAuth, books, setBooks, setApiError]
+        returns: "{ addBook, updateBook, updateBookField, findOrCreateBook, fetchBookDetails }"
+
+  contexts/data/useSessionOperations.js:
+    description: Reading session operations extracted from DataContext
+    exports:
+      - name: useSessionOperations
+        kind: function
+        params: [fetchWithAuth, setStudents, setApiError]
+        returns: "{ addReadingSession, editReadingSession, deleteReadingSession }"
+
+  contexts/data/useClassOperations.js:
+    description: Class CRUD and genre operations extracted from DataContext
+    exports:
+      - name: useClassOperations
+        kind: function
+        params: [fetchWithAuth, setClasses, setStudents, setGenres, setApiError]
+        returns: "{ addClass, updateClass, deleteClass, addGenre }"
+
   contexts/AppContext.js:
     description: Central app state - auth, students, classes, books, genres, settings, multi-org
     exports:

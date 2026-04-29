@@ -137,7 +137,11 @@ src/utils/orgStatusCache.js - KV cache for organization is_active + subscription
 <!-- Contexts & Hooks -->
 
 src/contexts/AuthContext.js - Auth tokens, user, fetchWithAuth, login/logout, permissions, org switching
-src/contexts/DataContext.js - Students, classes, books, genres, settings, all CRUD operations
+src/contexts/DataContext.js - State declarations, server reload, org-switch effects, settings, data export/import; composes domain hooks
+src/contexts/data/useStudentOperations.js - Student CRUD operations (add, bulk import, update, delete, current book)
+src/contexts/data/useBookOperations.js - Book CRUD operations (add, update, find-or-create, fetch details)
+src/contexts/data/useSessionOperations.js - Reading session operations (add, edit, delete)
+src/contexts/data/useClassOperations.js - Class CRUD and genre add operations
 src/contexts/UIContext.js - Class filter, priority list, reading status, tours
 src/contexts/AppContext.js - Composite provider (nests Auth > Data > UI), re-exports hooks
 src/hooks/useEnrichmentPolling.js - Polling hook for metadata enrichment job progress
@@ -368,7 +372,7 @@ JWT lifecycle: access tokens (15 min) + refresh tokens (7 days). Client auto-ref
 **State Management**: Three domain-specific contexts replace the former single `AppContext`:
 
 - `AuthContext` (`src/contexts/AuthContext.js`) — auth tokens, user, login/logout, `fetchWithAuth`, permissions, org switching. Changes rarely (login/logout/org switch only).
-- `DataContext` (`src/contexts/DataContext.js`) — students, classes, books, genres, settings, all CRUD operations. Re-renders when entity data changes.
+- `DataContext` (`src/contexts/DataContext.js`) — students, classes, books, genres, settings. State + reload logic lives here; domain CRUD is in `src/contexts/data/` hooks (useStudentOperations, useBookOperations, useSessionOperations, useClassOperations). Re-renders when entity data changes.
 - `UIContext` (`src/contexts/UIContext.js`) — class filter, priority list, reading status, tours. Re-renders on filter/settings changes.
 
 Hooks: `useAuth()`, `useData()`, `useUI()`. The composite `AppProvider` in `src/contexts/AppContext.js` nests all three (`Auth > Data > UI`). All API calls go through `fetchWithAuth()` (from AuthContext) which auto-attaches JWT and handles 401 refresh. Concurrent requests share a single refresh promise to prevent thundering herd on token expiry.

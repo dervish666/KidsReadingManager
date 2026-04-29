@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.57.6] - 2026-04-29
+
+### Changed
+
+- **`src/contexts/DataContext.js` split into composer + 4 domain hooks** under `src/contexts/data/`. The god object (1129 LOC) became `DataContext.js` (425 LOC — state, reload, effects, settings, export/import) plus `useStudentOperations.js` (295 LOC), `useBookOperations.js` (138 LOC), `useSessionOperations.js` (153 LOC), `useClassOperations.js` (163 LOC). No consumer changes needed; `useData()` API is unchanged. Also fixed 16 exhaustive-deps warnings for state setters passed as hook parameters.
+
 ## [3.57.5] - 2026-04-29
 
 ### Changed
