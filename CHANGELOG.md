@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.57.3] - 2026-04-29
+
+### Changed
+
+- **`src/routes/books.js` split into a thin router + 3 sub-routers** under `src/routes/books/`. The mega-file (1941 LOC) became `books.js` (599 LOC — core CRUD + composition) plus `recommendations.js` (540 LOC — library-search, ai-suggestions), `isbn.js` (292 LOC — ISBN lookup, scan, external search), `import.js` (523 LOC — bulk, import preview/confirm). No behaviour change; 1948/1948 tests still pass. Sub-routers are mounted before the bare `/:id` handlers so literal paths resolve unambiguously. Same pattern as the v3.57.2 students split.
+
 ## [3.57.2] - 2026-04-25
 
 ### Changed

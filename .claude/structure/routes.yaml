@@ -38,12 +38,20 @@ files:
         description: Change password for authenticated user
     imports:
       - from: utils/crypto
-        items: [hashPassword, verifyPassword, createAccessToken, createRefreshToken, verifyAccessToken, createJWTPayload]
+        items:
+          [
+            hashPassword,
+            verifyPassword,
+            createAccessToken,
+            createRefreshToken,
+            verifyAccessToken,
+            createJWTPayload,
+          ]
       - from: utils/email
         items: [sendPasswordResetEmail]
 
   books.js:
-    description: Book catalog, search, AI recommendations, CSV import, ISBN lookup
+    description: Core book CRUD (list, search, count, get, create, update, delete, clear-library, enrich); mounts books/* sub-routers
     exports:
       - name: booksRouter
         kind: object
@@ -55,49 +63,97 @@ files:
       - route: GET /api/books/search
         description: Full-text search books by title/author
         requires: readonly
-      - route: GET /api/books/library-search
-        description: DB-only book search matching student profile
-        requires: readonly
-      - route: GET /api/books/ai-suggestions
-        description: AI-generated book recommendations for student
-        requires: readonly
       - route: GET /api/books/count
         description: Total book count for organization
         requires: readonly
       - route: POST /api/books
         description: Create new book in catalog
         requires: teacher
-      - route: GET /api/books/isbn/:isbn
-        description: Lookup book by ISBN via external APIs
-        requires: teacher
-      - route: POST /api/books/scan
-        description: Scan ISBN barcode and create book
-        requires: teacher
+      - route: GET /api/books/:id
+        description: Get single book by ID
+        requires: readonly
       - route: PUT /api/books/:id
         description: Update book details
         requires: teacher
       - route: DELETE /api/books/:id
         description: Delete book from organization library
         requires: teacher
-      - route: POST /api/books/bulk
-        description: Create multiple books (batched, 100 per chunk)
-        requires: teacher
       - route: DELETE /api/books/clear-library
         description: Remove all books from org library
         requires: admin
-      - route: POST /api/books/import/preview
-        description: Preview CSV import with deduplication (85% fuzzy match)
-        requires: teacher
-      - route: POST /api/books/import/confirm
-        description: Confirm and execute book import
-        requires: teacher
+      - route: POST /api/books/:id/enrich
+        description: Enrich single book via metadata cascade
+        requires: admin
+    imports:
+      - from: routes/books/recommendations
+        items: [recommendationsRouter]
+      - from: routes/books/isbn
+        items: [isbnRouter]
+      - from: routes/books/import
+        items: [importRouter]
+
+  books/recommendations.js:
+    description: AI and DB-powered book recommendation endpoints
+    exports:
+      - name: recommendationsRouter
+        kind: object
+        description: Hono sub-router for recommendation endpoints
+    endpoints:
+      - route: GET /api/books/library-search
+        description: DB-only book search matching student profile
+        requires: readonly
+      - route: GET /api/books/ai-suggestions
+        description: AI-generated book recommendations for student
+        requires: readonly
     imports:
       - from: services/aiService
-        items: [generateRecommendations, generateBroadSuggestions]
+        items: [generateBroadSuggestions]
       - from: utils/recommendationCache
         items: [getCachedRecommendations, cacheRecommendations]
       - from: utils/studentProfile
         items: [buildStudentReadingProfile]
+
+  books/isbn.js:
+    description: ISBN lookup, barcode scan, and external book search
+    exports:
+      - name: isbnRouter
+        kind: object
+        description: Hono sub-router for ISBN/scan endpoints
+    endpoints:
+      - route: GET /api/books/search-external
+        description: OpenLibrary typeahead search
+        requires: readonly
+      - route: GET /api/books/isbn/:isbn
+        description: Lookup book by ISBN (D1 then OpenLibrary)
+        requires: teacher
+      - route: POST /api/books/scan
+        description: Scan ISBN barcode — link, preview, or create
+        requires: teacher
+    imports:
+      - from: utils/isbn
+        items: [normalizeISBN]
+      - from: utils/isbnLookup
+        items: [lookupISBN]
+      - from: utils/stringMatching
+        items: [isFuzzyMatch, normalizeAuthorDisplay]
+
+  books/import.js:
+    description: Bulk and wizard-based book import with deduplication
+    exports:
+      - name: importRouter
+        kind: object
+        description: Hono sub-router for import endpoints
+    endpoints:
+      - route: POST /api/books/bulk
+        description: Create multiple books (batched, 100 per chunk)
+        requires: teacher
+      - route: POST /api/books/import/preview
+        description: Preview CSV import with deduplication (85% fuzzy match)
+        requires: admin
+      - route: POST /api/books/import/confirm
+        description: Confirm and execute book import
+        requires: admin
+    imports:
       - from: utils/stringMatching
         items: [isExactMatch, isFuzzyMatch, isAuthorMatch]
 

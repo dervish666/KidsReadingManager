@@ -32,22 +32,27 @@ After adding, removing, or renaming source files or public classes/functions, up
 <!-- One line per source file: relative path - brief description -->
 
 <!-- Entry point -->
+
 src/worker.js - Cloudflare Worker entry; middleware chain, route registration, scheduled tasks
 src/App.js - Main React app component; layout, routing, auth gate
 src/index.js - React app entry point
 src/instrument.js - Sentry browser SDK initialization
 
 <!-- Backend Routes -->
+
 src/routes/auth.js - POST/GET register, login, refresh, logout, password reset
 src/routes/mylogin.js - MyLogin OAuth2 SSO (login, callback, logout)
-src/routes/students.js - Core student CRUD (list, get, create, update, soft-delete) + current-book / feedback mutators; mounts students/* sub-routers; re-exports recalculateAllStreaks for the cron
-src/routes/students/_shared.js - Shared helpers: fetchStudentPreferences, saveStudentPreferences, getOrgStreakSettings (KV-cached), updateStudentStreak
+src/routes/students.js - Core student CRUD (list, get, create, update, soft-delete) + current-book / feedback mutators; mounts students/_ sub-routers; re-exports recalculateAllStreaks for the cron
+src/routes/students/\_shared.js - Shared helpers: fetchStudentPreferences, saveStudentPreferences, getOrgStreakSettings (KV-cached), updateStudentStreak
 src/routes/students/sessions.js - GET /sessions, GET/POST /:id/sessions, DELETE/PUT /:id/sessions/:sessionId — POST is the batched hot-path session create
 src/routes/students/stats.js - GET /stats — org rollup: counts, weekly activity, day-of-week, status distribution, streak leaderboard, most-liked books
 src/routes/students/streak.js - GET /:id/streak, POST /recalculate-streaks; exports cron-time recalculateAllStreaks bulk-recalculator
 src/routes/students/bulk.js - POST /bulk — CSV bulk import with name dedup and chunked batch insert
 src/routes/students/gdpr.js - DELETE /:id/erase (Article 17), PUT /:id/restrict (Article 18), PUT /:id/ai-opt-out, GET /:id/export (Article 15 SAR JSON/CSV)
-src/routes/books.js - GET/POST/PUT/DELETE books, AI recommendations, search, CSV import
+src/routes/books.js - Core book CRUD (list, search, count, get, create, update, delete, clear-library, enrich); mounts books/_ sub-routers
+src/routes/books/recommendations.js - GET /library-search (DB-only scoring), GET /ai-suggestions (AI provider + cache + GDPR checks)
+src/routes/books/isbn.js - GET /isbn/:isbn (D1 → OpenLibrary fallback), POST /scan (link/preview/create), GET /search-external (OpenLibrary typeahead)
+src/routes/books/import.js - POST /bulk (dedup + batch insert), POST /import/preview (categorise matches), POST /import/confirm (batched D1 execute)
 src/routes/classes.js - GET/POST/PUT/DELETE class management, GET/PUT class goals
 src/routes/genres.js - GET/POST/PUT/DELETE genre management
 src/routes/covers.js - GET book covers; R2 cache + OpenLibrary → Google Books → Hardcover fallback (ISBN via /:type/:key, title+author via /search)
@@ -69,11 +74,13 @@ src/routes/billing.js - POST/GET Stripe billing setup, status, portal, plan chan
 src/routes/stripeWebhook.js - POST Stripe webhook handler (signature verification, event dedup)
 
 <!-- Middleware -->
+
 src/middleware/tenant.js - JWT auth, tenant isolation, role guards, audit logging, rate limiting
 src/middleware/auth.js - Legacy password auth, token creation (deprecated)
 src/middleware/errorHandler.js - Global error handler, error constructors
 
 <!-- Data Providers -->
+
 src/data/index.js - Provider factory; auto-detects D1, KV, or JSON storage
 src/data/d1Provider.js - D1 SQL implementation with FTS5 search
 src/data/kvProvider.js - Cloudflare KV storage (legacy)
@@ -81,6 +88,7 @@ src/data/jsonProvider.js - File-based JSON storage (dev only)
 src/data/demoSnapshot.js - Learnalot demo data snapshot (auto-generated, used by demoReset)
 
 <!-- Services -->
+
 src/services/aiService.js - AI recommendation generation (Anthropic/OpenAI/Google)
 src/services/kvService.js - KV storage operations (legacy)
 src/services/wondeSync.js - Wonde delta/full sync orchestration
@@ -92,6 +100,7 @@ src/services/providers/googleBooksProvider.js - Google Books server-side adapter
 src/services/providers/hardcoverProvider.js - Hardcover GraphQL server-side adapter (requires API key, best series data)
 
 <!-- Utilities -->
+
 src/utils/crypto.js - PBKDF2 hashing, JWT, AES-GCM encryption, role constants
 src/utils/validation.js - Input validation (students, books, sessions, passwords, ranges, genres, classes)
 src/utils/helpers.js - ID generation, reading status, student sorting, csvRow, slug generation, fetchWithTimeout
@@ -122,6 +131,7 @@ src/utils/titleMatching.js - Title normalization and similarity scoring for meta
 src/utils/orgStatusCache.js - KV cache for organization is_active + subscription_status (tenantMiddleware reads, Stripe webhook/org deactivate/purge invalidate)
 
 <!-- Contexts & Hooks -->
+
 src/contexts/AuthContext.js - Auth tokens, user, fetchWithAuth, login/logout, permissions, org switching
 src/contexts/DataContext.js - Students, classes, books, genres, settings, all CRUD operations
 src/contexts/UIContext.js - Class filter, priority list, reading status, tours
@@ -129,6 +139,7 @@ src/contexts/AppContext.js - Composite provider (nests Auth > Data > UI), re-exp
 src/hooks/useEnrichmentPolling.js - Polling hook for metadata enrichment job progress
 
 <!-- Frontend Components - Root -->
+
 src/components/Header.js - App bar with nav, class filter, school switcher
 src/components/LandingPage.js - Marketing landing page with email signup
 src/components/LandingPage.css - Landing page styles (scroll animations, floating blobs, responsive)
@@ -165,6 +176,7 @@ src/components/schools/SchoolReadView.js - Read-only school detail cards (contac
 src/components/schools/SchoolEditForm.js - School edit form with save/cancel
 
 <!-- Frontend Components - Books -->
+
 src/components/books/BookManager.js - Book library with search, add, import, export
 src/components/books/BookImportWizard.js - CSV import with fuzzy matching
 src/components/books/AddBookModal.js - Add single book dialog
@@ -175,6 +187,7 @@ src/components/books/BookExportMenu.js - Book export menu (JSON/CSV download)
 src/components/books/bookImportUtils.js - Import utility functions (column detection, dedup)
 
 <!-- Frontend Components - Classes -->
+
 src/components/classes/ClassManager.js - Class CRUD with year groups
 
 src/components/tour/TourProvider.js - Tour context provider with lazy-loaded react-joyride
@@ -184,6 +197,7 @@ src/components/tour/tourSteps.js - Tour step definitions per page (targets, titl
 src/components/tour/useTour.js - Hook for auto-start, ready guard, and button props
 
 <!-- Frontend Components - Students -->
+
 src/components/students/StudentList.js - Student listing with filters and sorting
 src/components/students/StudentCard.js - Student card with status and streak
 src/components/students/StudentDetailDrawer.js - Student detail side drawer (read/edit modes)
@@ -197,6 +211,7 @@ src/components/students/StudentTimeline.js - Chronological reading session timel
 src/components/students/BulkImport.js - CSV bulk student import
 
 <!-- Frontend Components - Sessions -->
+
 src/components/sessions/HomeReadingRegister.js - Unified reading register with multi-day history columns
 src/components/sessions/homeReadingUtils.js - Reading status constants and helpers for home reading
 src/components/sessions/MultipleCountDialog.js - Dialog for entering multiple reading session count
@@ -210,6 +225,7 @@ src/components/sessions/SessionNotes.js - Session notes text area
 src/components/sessions/StudentInfoCard.js - Student info during session entry
 
 <!-- Frontend Components - Badges -->
+
 src/components/badges/BadgeIcon.js - Single badge circle with tier gradient and category icon
 src/components/badges/GardenHeader.js - Layered watercolor PNG garden header; 8 elements appear progressively as badges are earned (seedling→sprout→bloom→full garden)
 src/components/badges/BadgeCollection.js - Grid of earned badges + near-miss progress bars
@@ -217,10 +233,12 @@ src/components/badges/BadgeCelebration.js - Unlock celebration dialog shown afte
 src/components/badges/BadgeIndicators.js - Mini badge count chip for StudentCard
 
 <!-- Frontend Components - Goals -->
+
 src/components/goals/ClassGoalsEditor.js - Teacher modal for editing class goal targets
 src/components/goals/ClassGoalsDisplay.js - Fullscreen classroom projection view with garden and confetti
 
 <!-- Frontend Components - Stats -->
+
 src/components/stats/ReadingStats.js - Stats dashboard with metrics and charts
 src/components/stats/OverviewTab.js - Stats overview with summary cards and trend indicators
 src/components/stats/FrequencyTab.js - Reading frequency analysis tab
@@ -232,9 +250,11 @@ src/components/stats/DaysSinceReadingChart.js - Days since reading indicator
 src/components/stats/AchievementsTab.js - Achievements tab: class-wide badge progress with expandable per-student drill-down
 
 <!-- Styling -->
+
 src/styles/theme.js - Material-UI theme configuration
 
 <!-- Scripts -->
+
 scripts/build-and-deploy.sh - Full rebuild + deploy pipeline
 scripts/deploy.sh - Deployment script
 scripts/migration.js - Data migration from old format
@@ -257,6 +277,7 @@ scripts/export-demo-snapshot.js - Export Learnalot data from remote D1 into demo
 ## Development Commands
 
 ### Local Development
+
 ```bash
 # Start both frontend and backend (recommended)
 npm run start:dev
@@ -269,6 +290,7 @@ npm run dev        # Runs on http://localhost:8787
 ```
 
 ### Building & Deployment
+
 ```bash
 npm run build                 # Build React frontend (Rsbuild, outputs to build/)
 npm run go                    # Build + migrate remote D1 + deploy to Cloudflare production
@@ -277,6 +299,7 @@ npm run build:deploy:dev      # Build + deploy to dev environment
 ```
 
 ### Database
+
 ```bash
 npx wrangler d1 migrations apply reading-manager-db --local   # Local
 npx wrangler d1 migrations apply reading-manager-db --remote  # Production
@@ -284,6 +307,7 @@ npm run migrate                                                # Data migration 
 ```
 
 ### Testing
+
 ```bash
 npm test                                                    # Run all tests once
 npm run test:watch                                          # Watch mode
@@ -301,6 +325,7 @@ CI runs on push/PR to `main` via GitHub Actions (`.github/workflows/build.yml`):
 ## Architecture
 
 ### Tech Stack
+
 - **Frontend**: React 19, Material-UI v7, Rsbuild (build tool), plain JS (no TypeScript)
 - **Backend**: Cloudflare Workers, Hono framework, D1 database, KV storage
 - **Testing**: Vitest, happy-dom, @testing-library/react
@@ -328,6 +353,7 @@ JWT lifecycle: access tokens (15 min) + refresh tokens (7 days). Client auto-ref
 ### Frontend Architecture
 
 **State Management**: Three domain-specific contexts replace the former single `AppContext`:
+
 - `AuthContext` (`src/contexts/AuthContext.js`) — auth tokens, user, login/logout, `fetchWithAuth`, permissions, org switching. Changes rarely (login/logout/org switch only).
 - `DataContext` (`src/contexts/DataContext.js`) — students, classes, books, genres, settings, all CRUD operations. Re-renders when entity data changes.
 - `UIContext` (`src/contexts/UIContext.js`) — class filter, priority list, reading status, tours. Re-renders on filter/settings changes.
@@ -337,6 +363,7 @@ Hooks: `useAuth()`, `useData()`, `useUI()`. The composite `AppProvider` in `src/
 **Owner Organization Switching**: Owners can switch org context via `X-Organization-Id` header (set in `fetchWithAuth()` when `activeOrganizationId` is set). Backend validates this in `tenantMiddleware()` — only works for `owner` role.
 
 **Frontend-Backend Integration**:
+
 - Development: Rsbuild proxies `/api` to `http://localhost:8787` (see `rsbuild.config.mjs`)
 - Production: Worker serves both API (`/api/*`) and static assets from `build/` directory
 
@@ -350,6 +377,7 @@ Hooks: `useAuth()`, `useData()`, `useUI()`. The composite `AppProvider` in `src/
 **Critical**: D1 batch operations are limited to 100 statements. See batch pattern in `src/routes/books.js`.
 
 ### Naming Conventions
+
 - **Database**: snake_case columns (`organization_id`, `reading_level_min`)
 - **JavaScript**: camelCase properties (`organizationId`, `readingLevelMin`)
 - Data providers handle the conversion between these conventions.
@@ -389,6 +417,7 @@ Books use a shared global catalog with per-organization visibility via `org_book
 ### Book Recommendations (AI)
 
 Optimized for large collections (18,000+ books):
+
 1. SQL pre-filter by reading level range + genres, exclude already-read
 2. Randomize and limit to ~100 books
 3. Send to AI provider with student context and focus mode (balanced/consolidation/challenge)
@@ -410,6 +439,7 @@ Unified register for class-wide home reading: status buttons (read/multiple/abse
 ### Multi-School Library Import
 
 CSV import wizard (`src/components/books/BookImportWizard.js`) with:
+
 - Column auto-detection + manual override
 - Deduplication: exact match (auto-link), fuzzy match at 85% similarity (flagged for review), new books created
 - API: `POST /api/books/import/preview` and `POST /api/books/import/confirm`
@@ -426,6 +456,7 @@ Public paths are defined in `src/middleware/tenant.js` (jwtAuthMiddleware): `/ap
 ### Scheduled Tasks
 
 Cron triggers (all in `src/worker.js` `scheduled` handler):
+
 - **Every minute** — background metadata enrichment job processing (`src/services/metadataService.js`)
 - **Hourly** — demo environment reset (`src/services/demoReset.js`)
 - **2:00 AM UTC** — streak recalculation + GDPR purge (`src/utils/streakCalculator.js`, `src/services/orgPurge.js`)
@@ -469,6 +500,7 @@ When adding new data operations, implement in `d1Provider.js` (primary) and `kvP
 ## Local Development Setup
 
 Local dev requires two files in the project root:
+
 - `.env` — sets `STORAGE_TYPE=json` and `JWT_SECRET` for local multi-tenant mode
 - `.dev.vars` — sets `WORKER_ADMIN_PASSWORD` for legacy mode testing
 
@@ -521,9 +553,11 @@ The frontend dev server (port 3001) proxies `/api` requests to the worker (port 
 Full design context is maintained in `.impeccable.md` at the project root. Key principles for quick reference:
 
 ### Brand Personality
+
 **Warm, Practical, Caring** — like a trusted teaching assistant. Understated British voice: friendly but not patronising, helpful without being showy.
 
 ### Aesthetic Direction
+
 "Cozy Bookshelf" theme: warm creams, sage greens, soft earth tones. Light mode only. Glassmorphism surfaces with warm shadows. The app should feel like a well-loved school library corner, not an enterprise dashboard.
 
 ### Design Principles
