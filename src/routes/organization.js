@@ -1,19 +1,38 @@
 /**
- * Organization Management Routes
- * Handles organization settings and management
+ * Organization entry router.
+ *
+ * The organization surface area is split across files in
+ * `src/routes/organization/` for readability — settings/AI config and
+ * compliance (audit log, DPA consent, purge) each get their own module.
+ * This file owns the core CRUD (list, get, create, update, soft-delete)
+ * plus stats, and composes the sub-routers in.
+ *
+ * Order of mounting matters: the sub-routers carry literal paths
+ * (`/settings`, `/ai-config`, `/audit-log`, `/dpa-consent`) that must
+ * match before this file's `/:id` handlers. Hono's trie prefers static
+ * routes over params, but mounting sub-routers first keeps the precedence
+ * explicit and trivially auditable.
  */
 
 import { Hono } from 'hono';
 import { requireOwner, requireAdmin, requireReadonly, auditLog } from '../middleware/tenant.js';
 import { generateUniqueSlug } from '../utils/helpers.js';
-import { encryptSensitiveData } from '../utils/crypto.js';
 import { requireDB as getDB } from '../utils/routeHelpers.js';
 import { rowToOrganization } from '../utils/rowMappers.js';
-import { notFoundError, badRequestError, createError } from '../middleware/errorHandler.js';
-import { hardDeleteOrganization } from '../services/orgPurge.js';
+import { notFoundError, badRequestError } from '../middleware/errorHandler.js';
 import { invalidateOrgStatus } from '../utils/orgStatusCache.js';
 
+import { settingsRouter } from './organization/settings.js';
+import { complianceRouter } from './organization/compliance.js';
+
 export const organizationRouter = new Hono();
+
+// Mount sub-routers first so their literal paths take precedence over the
+// `/:id` core handlers below. The trie router would resolve this either way,
+// but explicit ordering means a future maintainer doesn't have to reason
+// about routing precedence.
+organizationRouter.route('/', settingsRouter);
+organizationRouter.route('/', complianceRouter);
 
 /**
  * GET /api/organization
@@ -259,355 +278,6 @@ organizationRouter.get('/stats', requireReadonly(), async (c) => {
 });
 
 /**
- * GET /api/organization/settings
- * Get all organization settings
- */
-organizationRouter.get('/settings', requireReadonly(), async (c) => {
-  try {
-    const db = getDB(c.env);
-    const organizationId = c.get('organizationId');
-
-    const result = await db
-      .prepare(
-        `
-      SELECT setting_key, setting_value FROM org_settings WHERE organization_id = ?
-    `
-      )
-      .bind(organizationId)
-      .all();
-
-    // Convert to object
-    const settings = {};
-    for (const row of result.results || []) {
-      try {
-        settings[row.setting_key] = JSON.parse(row.setting_value);
-      } catch {
-        settings[row.setting_key] = row.setting_value;
-      }
-    }
-
-    // Add defaults for missing settings
-    const defaults = {
-      readingStatusSettings: {
-        recentlyReadDays: 3,
-        needsAttentionDays: 7,
-      },
-      timezone: 'UTC',
-      academicYear: new Date().getFullYear().toString(),
-    };
-
-    return c.json({
-      settings: { ...defaults, ...settings },
-    });
-  } catch (error) {
-    console.error('Get organization settings error:', error);
-    return c.json({ error: 'Failed to get organization settings' }, 500);
-  }
-});
-
-/**
- * PUT /api/organization/settings
- * Update organization settings
- * Requires: admin role
- *
- * Body: {
- *   [key: string]: any
- * }
- */
-organizationRouter.put('/settings', requireAdmin(), auditLog('update', 'settings'), async (c) => {
-  try {
-    const db = getDB(c.env);
-    const organizationId = c.get('organizationId');
-    const userId = c.get('userId');
-    const body = await c.req.json();
-
-    // Validate settings keys
-    const allowedKeys = [
-      'readingStatusSettings',
-      'timezone',
-      'academicYear',
-      'defaultReadingLevel',
-      'schoolName',
-    ];
-
-    const updates = [];
-    for (const [key, value] of Object.entries(body)) {
-      if (!allowedKeys.includes(key)) {
-        continue;
-      }
-
-      const settingValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
-      updates.push({ key, value: settingValue });
-    }
-
-    if (updates.length === 0) {
-      throw badRequestError('No valid settings to update');
-    }
-
-    // Upsert settings
-    const statements = updates.map(({ key, value }) => {
-      return db
-        .prepare(
-          `
-        INSERT INTO org_settings (id, organization_id, setting_key, setting_value, updated_by)
-        VALUES (?, ?, ?, ?, ?)
-        ON CONFLICT(organization_id, setting_key)
-        DO UPDATE SET setting_value = ?, updated_by = ?, updated_at = datetime("now")
-      `
-        )
-        .bind(crypto.randomUUID(), organizationId, key, value, userId, value, userId);
-    });
-
-    await db.batch(statements);
-
-    return c.json({ message: 'Settings updated successfully' });
-  } catch (error) {
-    if (error.status) throw error;
-    console.error('Update organization settings error:', error);
-    return c.json({ error: 'Failed to update organization settings' }, 500);
-  }
-});
-
-/**
- * GET /api/organization/ai-config
- * Get AI configuration (without exposing API key)
- */
-organizationRouter.get('/ai-config', requireReadonly(), async (c) => {
-  try {
-    const db = getDB(c.env);
-    const organizationId = c.get('organizationId');
-
-    const config = await db
-      .prepare(
-        `
-      SELECT provider, model_preference, is_enabled, (api_key_encrypted IS NOT NULL) as has_key
-      FROM org_ai_config WHERE organization_id = ?
-    `
-      )
-      .bind(organizationId)
-      .first();
-
-    return c.json({
-      aiConfig: config
-        ? {
-            provider: config.provider,
-            modelPreference: config.model_preference,
-            isEnabled: Boolean(config.is_enabled),
-            hasApiKey: Boolean(config.has_key),
-          }
-        : {
-            provider: 'anthropic',
-            modelPreference: null,
-            isEnabled: false,
-            hasApiKey: false,
-          },
-    });
-  } catch (error) {
-    console.error('Get AI config error:', error);
-    return c.json({ error: 'Failed to get AI configuration' }, 500);
-  }
-});
-
-/**
- * PUT /api/organization/ai-config
- * Update AI configuration
- * Requires: admin role
- *
- * Body: {
- *   provider?: 'anthropic' | 'openai' | 'google',
- *   apiKey?: string,
- *   modelPreference?: string,
- *   isEnabled?: boolean
- * }
- */
-organizationRouter.put('/ai-config', requireAdmin(), auditLog('update', 'ai-config'), async (c) => {
-  // Delegate to the shared implementation in settings.js
-  // This endpoint is kept for backward compatibility but uses the same logic
-  const { upsertAiConfig } = await import('./settings.js');
-  return upsertAiConfig(c);
-});
-
-/**
- * GET /api/organization/audit-log
- * Get audit log entries
- * Requires: admin role
- */
-organizationRouter.get('/audit-log', requireAdmin(), async (c) => {
-  try {
-    const db = getDB(c.env);
-    const organizationId = c.get('organizationId');
-
-    const page = Math.max(parseInt(c.req.query('page')) || 1, 1);
-    const pageSize = Math.min(Math.max(parseInt(c.req.query('pageSize')) || 50, 1), 200);
-    const offset = (page - 1) * pageSize;
-
-    // Get total count
-    const countResult = await db
-      .prepare(
-        `
-      SELECT COUNT(*) as count FROM audit_log WHERE organization_id = ?
-    `
-      )
-      .bind(organizationId)
-      .first();
-
-    // Get audit entries
-    const result = await db
-      .prepare(
-        `
-      SELECT al.*, u.name as user_name, u.email as user_email
-      FROM audit_log al
-      LEFT JOIN users u ON al.user_id = u.id
-      WHERE al.organization_id = ?
-      ORDER BY al.created_at DESC
-      LIMIT ? OFFSET ?
-    `
-      )
-      .bind(organizationId, pageSize, offset)
-      .all();
-
-    const entries = (result.results || []).map((row) => ({
-      id: row.id,
-      action: row.action,
-      entityType: row.entity_type,
-      entityId: row.entity_id,
-      details: (() => {
-        try {
-          return row.details ? JSON.parse(row.details) : null;
-        } catch {
-          return row.details;
-        }
-      })(),
-      ipAddress: row.ip_address,
-      userAgent: row.user_agent,
-      createdAt: row.created_at,
-      user: row.user_id
-        ? {
-            id: row.user_id,
-            name: row.user_name,
-            email: row.user_email,
-          }
-        : null,
-    }));
-
-    return c.json({
-      entries,
-      pagination: {
-        page,
-        pageSize,
-        total: countResult?.count || 0,
-        totalPages: Math.ceil((countResult?.count || 0) / pageSize),
-      },
-    });
-  } catch (error) {
-    console.error('Get audit log error:', error);
-    return c.json({ error: 'Failed to get audit log' }, 500);
-  }
-});
-
-/**
- * GET /api/organization/dpa-consent
- * Get DPA consent status for the current organization
- */
-organizationRouter.get('/dpa-consent', async (c) => {
-  try {
-    const db = getDB(c.env);
-    const organizationId = c.get('organizationId');
-
-    const org = await db
-      .prepare(
-        `
-      SELECT consent_given_at, consent_version, consent_given_by
-      FROM organizations WHERE id = ?
-    `
-      )
-      .bind(organizationId)
-      .first();
-
-    if (!org) {
-      throw notFoundError('Organization not found');
-    }
-
-    let consentGivenByName = null;
-    if (org.consent_given_by) {
-      const user = await db
-        .prepare('SELECT name FROM users WHERE id = ?')
-        .bind(org.consent_given_by)
-        .first();
-      consentGivenByName = user?.name || null;
-    }
-
-    return c.json({
-      consent: {
-        given: Boolean(org.consent_given_at),
-        givenAt: org.consent_given_at || null,
-        version: org.consent_version || null,
-        givenBy: consentGivenByName,
-      },
-    });
-  } catch (error) {
-    if (error.status) throw error;
-    console.error('Get DPA consent error:', error);
-    return c.json({ error: 'Failed to get DPA consent status' }, 500);
-  }
-});
-
-/**
- * POST /api/organization/dpa-consent
- * Record DPA consent for the current organization
- * Requires: admin role
- *
- * Body: {
- *   version: string (e.g. "1.0")
- * }
- */
-organizationRouter.post(
-  '/dpa-consent',
-  requireAdmin(),
-  auditLog('consent', 'organization'),
-  async (c) => {
-    try {
-      const db = getDB(c.env);
-      const organizationId = c.get('organizationId');
-      const userId = c.get('userId');
-      const body = await c.req.json();
-
-      const { version } = body;
-      if (!version) {
-        throw badRequestError('DPA version is required');
-      }
-
-      await db
-        .prepare(
-          `
-      UPDATE organizations
-      SET consent_given_at = datetime('now'),
-          consent_version = ?,
-          consent_given_by = ?,
-          updated_at = datetime('now')
-      WHERE id = ?
-    `
-        )
-        .bind(version, userId, organizationId)
-        .run();
-
-      return c.json({
-        message: 'DPA consent recorded successfully',
-        consent: {
-          given: true,
-          version,
-          givenAt: new Date().toISOString(),
-        },
-      });
-    } catch (error) {
-      if (error.status) throw error;
-      console.error('Record DPA consent error:', error);
-      return c.json({ error: 'Failed to record DPA consent' }, 500);
-    }
-  }
-);
-
-/**
  * GET /api/organization/:id
  * Get a specific organization by ID
  * Requires: owner role
@@ -821,43 +491,6 @@ organizationRouter.put('/:id', requireOwner(), auditLog('update', 'organization'
     return c.json({ error: 'Failed to update organization' }, 500);
   }
 });
-
-/**
- * DELETE /api/organization/:id/purge
- * Permanently delete all org data (Article 17 erasure)
- * Requires: owner role, body { confirm: "<org name>" }
- */
-organizationRouter.delete(
-  '/:id/purge',
-  requireOwner(),
-  auditLog('purge', 'organization'),
-  async (c) => {
-    const db = getDB(c.env);
-    const orgId = c.req.param('id');
-
-    // Load org to check name confirmation
-    const org = await db
-      .prepare('SELECT id, name, legal_hold, purged_at FROM organizations WHERE id = ?')
-      .bind(orgId)
-      .first();
-
-    if (!org) {
-      throw notFoundError('Organization not found');
-    }
-
-    const body = await c.req.json();
-    const confirmName = (body.confirm || '').trim().toLowerCase();
-    const orgName = (org.name || '').trim().toLowerCase();
-
-    if (confirmName !== orgName) {
-      throw badRequestError('Confirmation name does not match the organization name');
-    }
-
-    // hardDeleteOrganization handles legal_hold and purged_at checks (throws 409)
-    const result = await hardDeleteOrganization(db, orgId, c.env);
-    return c.json(result);
-  }
-);
 
 /**
  * DELETE /api/organization/:id

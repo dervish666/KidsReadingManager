@@ -267,11 +267,14 @@ files:
         items: [createAccessToken, createRefreshToken, createJWTPayload, hashToken]
 
   organization.js:
-    description: Organization management - settings, AI config, audit log, multi-org
+    description: Organization entry router - core CRUD, stats; mounts organization/* sub-routers
     exports:
       - name: organizationRouter
         kind: object
         description: Hono router for organization endpoints
+    mounts:
+      - organization/settings.js
+      - organization/compliance.js
     endpoints:
       - route: GET /api/organization
         description: Get current organization details
@@ -280,19 +283,6 @@ files:
         requires: admin
       - route: GET /api/organization/stats
         description: Organization usage statistics
-      - route: GET /api/organization/settings
-        description: Get organization settings with defaults
-      - route: PUT /api/organization/settings
-        description: Update organization settings
-        requires: admin
-      - route: GET /api/organization/ai-config
-        description: Get AI config (key masked)
-      - route: PUT /api/organization/ai-config
-        description: Update AI config with encrypted key
-        requires: admin
-      - route: GET /api/organization/audit-log
-        description: Paginated audit log
-        requires: admin
       - route: GET /api/organization/:id
         description: Get specific organization
         requires: owner
@@ -308,9 +298,43 @@ files:
       - route: PUT /api/organization
         description: Update current org name
         requires: owner
-    imports:
-      - from: utils/crypto
-        items: [encryptSensitiveData, decryptSensitiveData]
+
+  organization/settings.js:
+    description: Organization settings and AI config sub-router
+    exports:
+      - name: settingsRouter
+        kind: object
+        description: Hono sub-router for settings and AI config endpoints
+    endpoints:
+      - route: GET /api/organization/settings
+        description: Get organization settings with defaults
+      - route: PUT /api/organization/settings
+        description: Update organization settings
+        requires: admin
+      - route: GET /api/organization/ai-config
+        description: Get AI config (key masked)
+      - route: PUT /api/organization/ai-config
+        description: Update AI config with encrypted key
+        requires: admin
+
+  organization/compliance.js:
+    description: Organization compliance sub-router - audit log, DPA consent, GDPR purge
+    exports:
+      - name: complianceRouter
+        kind: object
+        description: Hono sub-router for compliance endpoints
+    endpoints:
+      - route: GET /api/organization/audit-log
+        description: Paginated audit log
+        requires: admin
+      - route: GET /api/organization/dpa-consent
+        description: Get DPA consent status
+      - route: POST /api/organization/dpa-consent
+        description: Record DPA consent
+        requires: admin
+      - route: DELETE /api/organization/:id/purge
+        description: Permanently delete all org data (Article 17)
+        requires: owner
 
   settings.js:
     description: Application settings - reading status, timezone, AI, academic year
@@ -380,11 +404,14 @@ files:
         requires: teacher
 
   users.js:
-    description: User management - CRUD, role assignment, activation
+    description: User entry router - core CRUD, password reset; mounts users/ sub-routers
     exports:
       - name: usersRouter
         kind: object
         description: Hono router for user endpoints
+    mounts:
+      - users/gdpr.js
+      - users/classes.js
     endpoints:
       - route: GET /api/users
         description: List users in organization
@@ -401,23 +428,52 @@ files:
       - route: DELETE /api/users/:id
         description: Soft delete user
         requires: admin
-      - route: GET /api/users/:id/classes
-        description: Get Wonde class assignments for a user
-        requires: admin
-      - route: DELETE /api/users/:id/erase
-        description: GDPR Article 17 hard delete user and data
-        requires: admin
       - route: POST /api/users/:id/reset-password
         description: Reset user password (admin action)
         requires: admin
-      - route: GET /api/users/:id/export
-        description: GDPR Article 15 subject access request export
-        requires: owner
     imports:
       - from: utils/crypto
         items: [hashPassword]
       - from: utils/email
         items: [sendWelcomeEmail]
+
+  users/gdpr.js:
+    description: GDPR user endpoints - Article 17 erasure, Article 15 SAR export
+    exports:
+      - name: gdprRouter
+        kind: object
+        description: Hono sub-router for GDPR user endpoints
+    endpoints:
+      - route: DELETE /api/users/:id/erase
+        description: GDPR Article 17 hard delete user and data
+        requires: admin
+      - route: GET /api/users/:id/export
+        description: GDPR Article 15 subject access request export
+        requires: owner
+    imports:
+      - from: utils/helpers
+        items: [generateId, csvRow]
+      - from: utils/crypto
+        items: [ROLES]
+
+  users/classes.js:
+    description: User class assignment endpoints - get and replace assignments
+    exports:
+      - name: classesRouter
+        kind: object
+        description: Hono sub-router for user class assignment endpoints
+    endpoints:
+      - route: GET /api/users/:id/classes
+        description: Get class assignments for a user
+        requires: admin
+      - route: PUT /api/users/:id/classes
+        description: Replace class assignments atomically
+        requires: admin
+    imports:
+      - from: utils/helpers
+        items: [generateId]
+      - from: utils/crypto
+        items: [ROLES]
 
   webhooks.js:
     description: Wonde webhook handler - school approval, access changes

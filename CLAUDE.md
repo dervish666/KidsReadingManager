@@ -56,8 +56,12 @@ src/routes/books/import.js - POST /bulk (dedup + batch insert), POST /import/pre
 src/routes/classes.js - GET/POST/PUT/DELETE class management, GET/PUT class goals
 src/routes/genres.js - GET/POST/PUT/DELETE genre management
 src/routes/covers.js - GET book covers; R2 cache + OpenLibrary → Google Books → Hardcover fallback (ISBN via /:type/:key, title+author via /search)
-src/routes/users.js - GET/POST/PUT/DELETE user management (admin only)
-src/routes/organization.js - GET/POST/PUT/DELETE org settings, AI config, audit log, purge (Article 17)
+src/routes/users.js - Core user CRUD (list, get, create, update, soft-delete) + password reset; mounts users/_ sub-routers
+src/routes/users/gdpr.js - DELETE /:id/erase (Article 17 hard delete), GET /:id/export (Article 15 SAR JSON/CSV)
+src/routes/users/classes.js - GET /:id/classes, PUT /:id/classes — class assignment management per user
+src/routes/organization.js - Core org CRUD (list, get, create, update, soft-delete) + stats; mounts organization/_ sub-routers
+src/routes/organization/settings.js - GET/PUT /settings, GET/PUT /ai-config — org settings and AI configuration
+src/routes/organization/compliance.js - GET /audit-log, GET/POST /dpa-consent, DELETE /:id/purge (Article 17 erasure)
 src/routes/settings.js - GET/POST application settings and AI configuration
 src/routes/signup.js - POST email newsletter signup (rate limited)
 src/routes/data.js - GET/POST legacy data export/import

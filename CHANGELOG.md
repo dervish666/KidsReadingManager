@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.57.5] - 2026-04-29
+
+### Changed
+
+- **`src/routes/users.js` split into entry router + 2 sub-routers** under `src/routes/users/`. The monolith (1033 LOC) became `users.js` (630 LOC — core CRUD + password reset) plus `gdpr.js` (263 LOC — Article 17 erase, Article 15 SAR export) and `classes.js` (198 LOC — class assignment get/put). Same sub-router composition pattern as students and books.
+- **`src/routes/organization.js` split into entry router + 2 sub-routers** under `src/routes/organization/`. The monolith (971 LOC) became `organization.js` (604 LOC — core CRUD + stats) plus `settings.js` (182 LOC — org settings, AI config) and `compliance.js` (231 LOC — audit log, DPA consent, purge). No behaviour change; 1948/1948 tests still pass.
+
 ## [3.57.4] - 2026-04-29
 
 ### Added
