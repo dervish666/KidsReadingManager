@@ -131,8 +131,7 @@ export async function buildStudentReadingProfile(studentId, organizationId, db) 
   }
 
   // Parse likes/dislikes from JSON strings
-  let likes = [];
-  let dislikes = [];
+  let likes, dislikes;
 
   try {
     likes = student.likes ? JSON.parse(student.likes) : [];

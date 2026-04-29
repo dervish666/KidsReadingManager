@@ -129,7 +129,7 @@ statsRouter.get('/stats', requireReadonly(), async (c) => {
 
     for (const row of allSessionRows) {
       const loc = row.location || 'school';
-      if (locationCounts.hasOwnProperty(loc)) locationCounts[loc]++;
+      if (Object.hasOwn(locationCounts, loc)) locationCounts[loc]++;
       if (row.session_date) {
         const d = new Date(row.session_date);
         dayCounts[dayNames[d.getUTCDay()]]++;

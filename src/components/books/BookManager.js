@@ -181,7 +181,7 @@ const BookManager = () => {
 
   const handleImportConfirm = async () => {
     const { data } = confirmImport;
-    let importedBooks = [];
+    let importedBooks;
 
     try {
       if (Array.isArray(data)) {

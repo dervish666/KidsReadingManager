@@ -194,8 +194,9 @@ stripeWebhookRouter.post('/', async (c) => {
         console.log(
           `[Stripe Webhook] Trial ending in ~${trialDaysLeft} days for subscription ${obj.id}`
         );
+        let trialOrg;
         try {
-          const trialOrg = await db
+          trialOrg = await db
             .prepare(
               'SELECT id, name FROM organizations WHERE stripe_customer_id = ? AND is_active = 1'
             )

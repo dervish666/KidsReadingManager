@@ -367,7 +367,7 @@ export function buildBroadSuggestionsPrompt(studentProfile, focusMode = 'balance
   }
 
   // Build reading level context with AR explanation
-  let readingLevelContext = '';
+  let readingLevelContext;
   if (student.readingLevelMin != null && student.readingLevelMax != null) {
     const min = student.readingLevelMin;
     const max = student.readingLevelMax;

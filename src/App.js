@@ -95,6 +95,19 @@ const BookshelfBorder = ({ side }) => (
   </Box>
 );
 
+const PageFallback = () => (
+  <Box
+    sx={{
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      height: '100vh',
+    }}
+  >
+    <CircularProgress sx={{ color: 'primary.main' }} />
+  </Box>
+);
+
 function AppContent() {
   const { isAuthenticated, userRole, subscriptionBlock } = useAuth();
   const [currentTab, setCurrentTab] = useState(0);
@@ -163,19 +176,6 @@ function AppContent() {
   const ActiveTab = visibleTabs[safeTab].Component;
 
   // Standalone pages rendered outside of auth
-  const PageFallback = () => (
-    <Box
-      sx={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-      }}
-    >
-      <CircularProgress sx={{ color: 'primary.main' }} />
-    </Box>
-  );
-
   if (window.location.pathname === '/privacy') {
     return (
       <Suspense fallback={<PageFallback />}>

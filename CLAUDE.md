@@ -306,6 +306,15 @@ npx wrangler d1 migrations apply reading-manager-db --remote  # Production
 npm run migrate                                                # Data migration from old format
 ```
 
+### Linting
+
+```bash
+npm run lint                                                # Run ESLint on src/
+npm run lint:fix                                            # Auto-fix lint issues
+```
+
+ESLint 10 with flat config (`eslint.config.js`). Key rules: `no-undef` (error), `no-unused-vars` (warn), `react-hooks/rules-of-hooks` (error), `react-hooks/exhaustive-deps` (warn). Backend files get Cloudflare Workers globals; test files get Vitest globals.
+
 ### Testing
 
 ```bash
@@ -547,6 +556,7 @@ The frontend dev server (port 3001) proxies `/api` requests to the worker (port 
 - **Security headers applied after handler**: In `src/worker.js`, security headers are set in the `onResponse` callback, meaning they run after the route handler executes.
 - **Rate limiting uses D1**: Auth rate limiting stores attempts in the D1 `rate_limits` table, not Cloudflare's built-in rate limiting. See `authRateLimit()` in `src/middleware/tenant.js`.
 - **Prettier**: Configured via `.prettierrc` (single quotes, trailing commas, 100 char width). Auto-runs on edited files via Claude Code hook. Run `npx prettier --write "src/**/*.js"` to format the full codebase.
+- **ESLint**: ESLint 10 with flat config (`eslint.config.js`). Run `npm run lint` to check, `npm run lint:fix` to auto-fix. Zero errors required; warnings are informational. Backend files have Cloudflare Workers globals configured; `jsonProvider.js` is CJS (Node-only dev fallback).
 
 ## Design Context
 
