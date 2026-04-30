@@ -2,9 +2,17 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import StudentTimeline from '../../components/students/StudentTimeline';
 
+// Mock AuthContext (StudentTimeline uses useAuth for feedback API)
+vi.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => ({
+    fetchWithAuth: vi.fn(() => Promise.resolve({ ok: true })),
+  }),
+}));
+
 // Mock DataContext (StudentTimeline uses useData)
 vi.mock('../../contexts/DataContext', () => ({
   useData: () => ({
+    students: [{ id: 's1', name: 'Alice', likes: ['The Hobbit'], dislikes: [] }],
     books: [
       { id: 'book-1', title: 'The Hobbit', author: 'J.R.R. Tolkien' },
       { id: 'book-2', title: 'Percy Jackson', author: 'Rick Riordan' },

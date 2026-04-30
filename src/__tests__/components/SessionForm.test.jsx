@@ -51,12 +51,19 @@ import * as bookMetadataApi from '../../utils/bookMetadataApi';
 
 // Mock context provider wrapper — splits values across Auth, Data, UI contexts
 const createWrapper = (contextValue) => {
-  const { fetchWithAuth, recentlyAccessedStudents, globalClassFilter, ...dataValues } =
-    contextValue;
+  const {
+    fetchWithAuth,
+    recentlyAccessedStudents,
+    removeRecentlyAccessedStudent,
+    globalClassFilter,
+    ...dataValues
+  } = contextValue;
   return ({ children }) => (
     <TestAuthContext.Provider value={{ fetchWithAuth }}>
       <TestDataContext.Provider value={dataValues}>
-        <TestUIContext.Provider value={{ recentlyAccessedStudents, globalClassFilter }}>
+        <TestUIContext.Provider
+          value={{ recentlyAccessedStudents, removeRecentlyAccessedStudent, globalClassFilter }}
+        >
           {children}
         </TestUIContext.Provider>
       </TestDataContext.Provider>
@@ -114,6 +121,7 @@ const createMockContext = (overrides = {}) => ({
     { id: 'genre-2', name: 'Adventure' },
   ],
   recentlyAccessedStudents: ['student-1'],
+  removeRecentlyAccessedStudent: vi.fn(),
   globalClassFilter: null,
   settings: {
     bookMetadata: {

@@ -21,6 +21,9 @@ import {
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import ThumbUpIcon from '@mui/icons-material/ThumbUp';
+import ThumbDownIcon from '@mui/icons-material/ThumbDown';
+import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
 import BookAutocomplete from '../sessions/BookAutocomplete';
 import AssessmentSelector from '../sessions/AssessmentSelector';
@@ -64,7 +67,8 @@ function isWithin7Days(dateString) {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 const StudentTimeline = ({ sessions, loading, studentId, onSessionChange }) => {
-  const { books, editReadingSession, deleteReadingSession } = useData();
+  const { fetchWithAuth } = useAuth();
+  const { students, books, editReadingSession, deleteReadingSession } = useData();
 
   // O(1) lookup map for books
   const booksMap = useMemo(() => new Map(books.map((b) => [b.id, b])), [books]);
@@ -99,6 +103,7 @@ const StudentTimeline = ({ sessions, loading, studentId, onSessionChange }) => {
   const [editNotes, setEditNotes] = useState('');
   const [editBookId, setEditBookId] = useState('');
   const [editLocation, setEditLocation] = useState('school');
+  const [editBookEnjoyment, setEditBookEnjoyment] = useState(null);
 
   const handleEditClick = (e, session) => {
     e.stopPropagation();
@@ -108,6 +113,21 @@ const StudentTimeline = ({ sessions, loading, studentId, onSessionChange }) => {
     setEditNotes(session.notes || '');
     setEditBookId(session.bookId || '');
     setEditLocation(session.location || 'school');
+
+    // Pre-populate enjoyment from student's current likes/dislikes
+    const student = students.find((s) => s.id === studentId);
+    const book = session.bookId ? booksMap.get(session.bookId) : null;
+    if (student && book?.title) {
+      if ((student.likes || []).includes(book.title)) {
+        setEditBookEnjoyment('liked');
+      } else if ((student.dislikes || []).includes(book.title)) {
+        setEditBookEnjoyment('disliked');
+      } else {
+        setEditBookEnjoyment(null);
+      }
+    } else {
+      setEditBookEnjoyment(null);
+    }
   };
 
   const handleEditBookChange = (book) => {
@@ -123,6 +143,30 @@ const StudentTimeline = ({ sessions, loading, studentId, onSessionChange }) => {
         bookId: editBookId || null,
         location: editLocation || 'school',
       });
+
+      // Save book enjoyment feedback (non-blocking)
+      const editBook = editBookId ? booksMap.get(editBookId) : null;
+      if (editBookEnjoyment && editBook?.title) {
+        const student = students.find((s) => s.id === studentId);
+        if (student) {
+          const currentLikes = student.likes || [];
+          const currentDislikes = student.dislikes || [];
+          const title = editBook.title;
+          const newLikes =
+            editBookEnjoyment === 'liked'
+              ? [...new Set([...currentLikes, title])]
+              : currentLikes.filter((t) => t !== title);
+          const newDislikes =
+            editBookEnjoyment === 'disliked'
+              ? [...new Set([...currentDislikes, title])]
+              : currentDislikes.filter((t) => t !== title);
+          fetchWithAuth(`/api/students/${studentId}/feedback`, {
+            method: 'PUT',
+            body: JSON.stringify({ likes: newLikes, dislikes: newDislikes }),
+          }).catch(() => {});
+        }
+      }
+
       showSnackbar('Session updated successfully', 'success');
       setEditingSession(null);
       onSessionChange?.();
@@ -398,6 +442,50 @@ const StudentTimeline = ({ sessions, loading, studentId, onSessionChange }) => {
                 onChange={handleEditBookChange}
               />
             </Box>
+
+            {/* Book enjoyment thumbs — only visible when a book is selected */}
+            {editBookId && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Enjoying it?
+                </Typography>
+                <IconButton
+                  onClick={() =>
+                    setEditBookEnjoyment(editBookEnjoyment === 'liked' ? null : 'liked')
+                  }
+                  aria-label="Student is enjoying this book"
+                  size="small"
+                  sx={{
+                    color: editBookEnjoyment === 'liked' ? 'success.main' : 'text.secondary',
+                    border:
+                      editBookEnjoyment === 'liked' ? '2px solid' : '1px solid rgba(0,0,0,0.12)',
+                    borderColor: editBookEnjoyment === 'liked' ? 'success.main' : undefined,
+                    borderRadius: 2,
+                    bgcolor: editBookEnjoyment === 'liked' ? 'rgba(46, 125, 50, 0.08)' : undefined,
+                  }}
+                >
+                  <ThumbUpIcon fontSize="small" />
+                </IconButton>
+                <IconButton
+                  onClick={() =>
+                    setEditBookEnjoyment(editBookEnjoyment === 'disliked' ? null : 'disliked')
+                  }
+                  aria-label="Student is not enjoying this book"
+                  size="small"
+                  sx={{
+                    color: editBookEnjoyment === 'disliked' ? 'warning.main' : 'text.secondary',
+                    border:
+                      editBookEnjoyment === 'disliked' ? '2px solid' : '1px solid rgba(0,0,0,0.12)',
+                    borderColor: editBookEnjoyment === 'disliked' ? 'warning.main' : undefined,
+                    borderRadius: 2,
+                    bgcolor:
+                      editBookEnjoyment === 'disliked' ? 'rgba(237, 108, 2, 0.08)' : undefined,
+                  }}
+                >
+                  <ThumbDownIcon fontSize="small" />
+                </IconButton>
+              </Box>
+            )}
 
             <FormControl component="fieldset" sx={{ mt: 2 }}>
               <FormLabel component="legend">Location</FormLabel>

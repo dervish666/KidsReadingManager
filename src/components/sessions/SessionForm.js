@@ -53,7 +53,7 @@ const SessionForm = () => {
     fetchBookDetails,
     genres,
   } = useData();
-  const { globalClassFilter, recentlyAccessedStudents } = useUI();
+  const { globalClassFilter, recentlyAccessedStudents, removeRecentlyAccessedStudent } = useUI();
   const { tourButtonProps } = useTour('session-form');
 
   const [selectedStudentId, setSelectedStudentId] = useState('');
@@ -332,6 +332,9 @@ const SessionForm = () => {
             }).catch(() => {});
           }
         }
+
+        // Remove from recents — they just read, no need to prompt again
+        removeRecentlyAccessedStudent(selectedStudentId);
 
         // Reset form only on success
         setNotes('');

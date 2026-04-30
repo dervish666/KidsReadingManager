@@ -231,6 +231,21 @@ export const UIProvider = ({ children }) => {
     });
   }, [students]);
 
+  // Helper: Remove student from recently accessed list
+  const removeRecentlyAccessedStudent = useCallback((studentId) => {
+    setRecentlyAccessedStudents((prev) => {
+      const updated = prev.filter((id) => id !== studentId);
+      if (typeof window !== 'undefined') {
+        try {
+          window.sessionStorage.setItem('recentlyAccessedStudents', JSON.stringify(updated));
+        } catch (err) {
+          // Storage error is non-critical
+        }
+      }
+      return updated;
+    });
+  }, []);
+
   // Provider value - memoized to prevent unnecessary re-renders
   const value = useMemo(
     () => ({
@@ -244,6 +259,7 @@ export const UIProvider = ({ children }) => {
       // Helper functions
       getReadingStatus,
       addRecentlyAccessedStudent,
+      removeRecentlyAccessedStudent,
       updatePriorityStudentCount,
       prioritizedStudents,
       markedPriorityStudentIds,
@@ -262,6 +278,7 @@ export const UIProvider = ({ children }) => {
       recentlyAccessedStudents,
       getReadingStatus,
       addRecentlyAccessedStudent,
+      removeRecentlyAccessedStudent,
       updatePriorityStudentCount,
       prioritizedStudents,
       markedPriorityStudentIds,

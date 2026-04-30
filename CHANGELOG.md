@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.57.8] - 2026-04-30
+
+### Fixed
+
+- **Session edit dialog now includes book enjoyment toggle** — thumbs up/down buttons were missing from the edit flow in `StudentTimeline.js`. Now pre-populates from the student's current likes/dislikes and saves feedback on edit save (same non-blocking PUT as the create flow).
+- **Students removed from recents list after recording a session** — added `removeRecentlyAccessedStudent()` to `UIContext.js`; `SessionForm.js` calls it after a successful save so the student no longer appears in the "Recent" quick-access group.
+
+## [3.57.7] - 2026-04-30
+
+### Fixed
+
+- **All 114 ESLint warnings resolved** — removed unused imports, variables, and functions; prefixed intentionally unused params with `_`; fixed `react-hooks/exhaustive-deps` arrays; suppressed false-positive `no-unmodified-loop-condition` on Date mutation loops. Zero warnings now.
+
 ## [3.57.6] - 2026-04-29
 
 ### Changed
