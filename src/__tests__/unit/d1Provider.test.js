@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getFilteredBooksForRecommendations, READING_LEVEL_MAP } from '../../data/d1Provider';
+import { getFilteredBooksForRecommendations } from '../../data/d1Provider';
 
 // Helper: create a mock D1 database
 const createMockDB = () => {
@@ -205,7 +205,7 @@ describe('getFilteredBooksForRecommendations', () => {
     const fallbackIdRows = makeIdRows(30);
 
     let callCount = 0;
-    mockDB.prepare = vi.fn().mockImplementation((sql) => ({
+    mockDB.prepare = vi.fn().mockImplementation((_sql) => ({
       bind: vi.fn().mockReturnValue({
         all: vi.fn().mockImplementation(() => {
           callCount++;

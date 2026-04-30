@@ -219,7 +219,7 @@ describe('recalculateClassGoalProgress', () => {
     const mockDb = {
       prepare: vi.fn((sql) => ({
         bind: vi.fn((...args) => {
-          const stmt = { sql, args, boundArgs: args };
+          const _stmt = { sql, args, boundArgs: args };
           return {
             first: vi.fn(() => {
               if (sql.includes('COUNT') && !sql.includes('book_id') && !sql.includes('json_each')) {
@@ -271,7 +271,7 @@ describe('recalculateClassGoalProgress', () => {
     const existingAchievedAt = '2026-02-01T10:00:00.000Z';
     const mockDb = {
       prepare: vi.fn((sql) => ({
-        bind: vi.fn((...args) => ({
+        bind: vi.fn((..._args) => ({
           first: vi.fn(() => {
             if (sql.includes('COUNT') && !sql.includes('book_id') && !sql.includes('json_each')) {
               return { count: 600 };

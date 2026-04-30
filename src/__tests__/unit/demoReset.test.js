@@ -29,7 +29,7 @@ describe('resetDemoData', () => {
   beforeEach(() => {
     batchCalls = [];
     db = {
-      prepare: vi.fn((sql) => ({
+      prepare: vi.fn((_sql) => ({
         bind: vi.fn(() => ({
           run: vi.fn(),
           first: vi.fn(),

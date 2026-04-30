@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { createProvider } from '../../data/index.js';
-import { notFoundError, badRequestError } from '../../middleware/errorHandler.js';
+import { badRequestError } from '../../middleware/errorHandler.js';
 import { isFuzzyMatch, normalizeAuthorDisplay } from '../../utils/stringMatching.js';
 import { normalizeISBN } from '../../utils/isbn.js';
 import { lookupISBN } from '../../utils/isbnLookup.js';

@@ -1,5 +1,4 @@
 import '@testing-library/jest-dom';
-import { vi } from 'vitest';
 
 // Mock Web Crypto API for Node.js environment
 if (typeof globalThis.crypto === 'undefined' || !globalThis.crypto.subtle) {

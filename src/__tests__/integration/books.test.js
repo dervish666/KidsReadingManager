@@ -374,7 +374,7 @@ describe('Books API Routes', () => {
         const { app } = createTestApp(createUserContext({ userRole: 'readonly' }));
 
         const response = await makeRequest(app, 'GET', '/api/books/search?q=   ');
-        const data = await response.json();
+        const _data = await response.json();
 
         expect(response.status).toBe(400);
       });
@@ -894,7 +894,7 @@ describe('Books API Routes', () => {
         const response = await makeRequest(app, 'POST', '/api/books', {
           title: '',
         });
-        const data = await response.json();
+        const _data = await response.json();
 
         expect(response.status).toBe(400);
       });
@@ -1613,7 +1613,7 @@ describe('Books API Routes', () => {
 
       const { app } = createTestApp(createUserContext({ userRole: 'admin' }), {});
       // Inject our controlled mockDB
-      const res = await app.request('/api/books/book-1/enrich', {
+      const _res = await app.request('/api/books/book-1/enrich', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         env: { READING_MANAGER_DB: mockDB },

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React, { createContext, useContext } from 'react';
 
@@ -32,7 +32,7 @@ vi.mock('../../components/tour/TourButton', () => ({
 
 // Mock the StudentEditForm component
 vi.mock('../../components/students/StudentEditForm', () => ({
-  default: React.forwardRef(({ student, onSave, onCancel }, ref) => (
+  default: React.forwardRef(({ student, _onSave, _onCancel }, _ref) => (
     <div data-testid="student-edit-form">
       <span>Edit Form: {student?.name}</span>
     </div>

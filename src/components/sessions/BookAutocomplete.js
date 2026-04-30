@@ -133,7 +133,7 @@ const BookAutocomplete = ({
 
   // Handle selection from dropdown
   const handleSelection = useCallback(
-    async (event, newValue, reason) => {
+    async (event, newValue, _reason) => {
       if (typeof newValue === 'string') {
         // User typed and pressed Enter - keep existing behavior:
         // try create/find directly for speed
@@ -316,7 +316,7 @@ const BookAutocomplete = ({
           />
         )}
         renderOption={(props, option) => {
-          const { key, ...restProps } = props;
+          const { key: _key, ...restProps } = props;
 
           // Render group separator
           if (option._separator) {

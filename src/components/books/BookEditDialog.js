@@ -33,7 +33,7 @@ const BookEditDialog = ({ book, onClose, onSave, genres }) => {
   const [editBookGenreIds, setEditBookGenreIds] = useState([]);
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [_error, setError] = useState('');
   const [snackbar, setSnackbar] = useState(null);
 
   // Initialize edit fields when a new book is selected

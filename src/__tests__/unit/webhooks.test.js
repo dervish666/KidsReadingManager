@@ -173,7 +173,7 @@ describe('Wonde Webhook Handler', () => {
       };
       await postWebhook(app, payload, env);
 
-      const insertCall = mockDb.prepare.mock.calls.find((call) =>
+      const _insertCall = mockDb.prepare.mock.calls.find((call) =>
         call[0].includes('INSERT INTO organizations')
       );
       const bindArgs = mockDb.prepare.mock.results.find((result, idx) =>
@@ -186,7 +186,7 @@ describe('Wonde Webhook Handler', () => {
     });
 
     it('returns 400 when school_id is missing', async () => {
-      const { school_id, ...payload } = validPayload;
+      const { school_id: _school_id, ...payload } = validPayload;
       const res = await postWebhook(app, payload, env);
 
       expect(res.status).toBe(400);
@@ -195,7 +195,7 @@ describe('Wonde Webhook Handler', () => {
     });
 
     it('returns 400 when school_name is missing', async () => {
-      const { school_name, ...payload } = validPayload;
+      const { school_name: _school_name, ...payload } = validPayload;
       const res = await postWebhook(app, payload, env);
 
       expect(res.status).toBe(400);
@@ -204,7 +204,7 @@ describe('Wonde Webhook Handler', () => {
     });
 
     it('returns 400 when school_token is missing', async () => {
-      const { school_token, ...payload } = validPayload;
+      const { school_token: _school_token, ...payload } = validPayload;
       const res = await postWebhook(app, payload, env);
 
       expect(res.status).toBe(400);

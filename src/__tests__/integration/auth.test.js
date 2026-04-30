@@ -34,7 +34,7 @@ vi.mock('../../middleware/tenant.js', () => ({
 
 // Import after mocks
 const { authRouter } = await import('../../routes/auth.js');
-const { hashPassword, verifyPassword, hashToken } = await import('../../utils/crypto.js');
+const { hashPassword, verifyPassword } = await import('../../utils/crypto.js');
 const { sendPasswordResetEmail } = await import('../../utils/email.js');
 
 const TEST_SECRET = 'test-jwt-secret-for-testing-that-is-long-enough';

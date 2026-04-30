@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   jwtAuthMiddleware,
   tenantMiddleware,
@@ -9,7 +9,6 @@ import {
   requireReadonly,
   requireOrgOwnership,
   scopeToOrganization,
-  subscriptionGate,
 } from '../../middleware/tenant.js';
 import { createAccessToken } from '../../utils/crypto.js';
 

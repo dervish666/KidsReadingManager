@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Hono } from 'hono';
 
 // Mock the email module BEFORE importing the router
@@ -655,7 +655,7 @@ describe('Users API Routes', () => {
           role: 'teacher',
           organizationId: 'other-org-789',
         });
-        const data = await response.json();
+        const _data = await response.json();
 
         expect(response.status).toBe(201);
       });
@@ -778,7 +778,7 @@ describe('Users API Routes', () => {
           name: 'Updated',
           role: 'readonly',
         });
-        const data = await response.json();
+        const _data = await response.json();
 
         expect(response.status).toBe(200);
       });
@@ -857,7 +857,7 @@ describe('Users API Routes', () => {
         const response = await makeRequest(app, 'PUT', '/api/users/teacher-user', {
           role: 'admin',
         });
-        const data = await response.json();
+        const _data = await response.json();
 
         expect(response.status).toBe(200);
       });

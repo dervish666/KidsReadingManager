@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -103,6 +103,7 @@ const ReadingTimelineChart = () => {
     const dates = [];
     const currentDate = new Date(startDate);
 
+    // eslint-disable-next-line no-unmodified-loop-condition
     while (currentDate <= endDate) {
       dates.push(new Date(currentDate));
       currentDate.setDate(currentDate.getDate() + 1);

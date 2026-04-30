@@ -13,7 +13,7 @@ vi.mock('../../utils/crypto.js', async (importOriginal) => {
 
 // Now import the router after mocks are set up
 const { settingsRouter } = await import('../../routes/settings.js');
-const { ROLES, permissions } = await import('../../utils/crypto.js');
+const { ROLES, permissions: _permissions } = await import('../../utils/crypto.js');
 
 const TEST_SECRET = 'test-jwt-secret-for-testing';
 
@@ -225,7 +225,7 @@ describe('Settings API Routes', () => {
         });
 
         const response = await makeRequest(app, 'GET', '/api/settings');
-        const data = await response.json();
+        const _data = await response.json();
 
         expect(response.status).toBe(200);
         // In legacy mode, KV service is called
@@ -283,7 +283,7 @@ describe('Settings API Routes', () => {
         const response = await makeRequest(app, 'POST', '/api/settings', {
           timezone: 'America/Los_Angeles',
         });
-        const data = await response.json();
+        const _data = await response.json();
 
         expect(response.status).toBe(200);
         expect(mockDB.batch).toHaveBeenCalled();
@@ -304,7 +304,7 @@ describe('Settings API Routes', () => {
         const response = await makeRequest(app, 'POST', '/api/settings', {
           timezone: 'Europe/London',
         });
-        const data = await response.json();
+        const _data = await response.json();
 
         expect(response.status).toBe(200);
         expect(mockDB.batch).toHaveBeenCalled();

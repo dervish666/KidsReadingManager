@@ -162,7 +162,6 @@ const HomeReadingRegister = () => {
     const backStr = formatDateISO(backDate);
     return backStr < presetStart ? backStr : presetStart;
   }, [startDate, selectedDate]);
-  const startDateISO = useMemo(() => formatDateISO(startDate), [startDate]);
   const endDateISO = useMemo(() => formatDateISO(endDate), [endDate]);
 
   // Ref to track if we've already auto-set the class filter (prevents infinite loop)

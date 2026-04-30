@@ -16,11 +16,9 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useData } from '../../contexts/DataContext';
 import { useUI } from '../../contexts/UIContext';
-import { useTheme } from '@mui/material/styles';
 import { STATUS_TO_PALETTE } from '../../utils/helpers';
 
 const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
-  const theme = useTheme();
   const { getReadingStatus } = useUI();
 
   const status = getReadingStatus(student);
@@ -201,12 +199,11 @@ const PrioritizedStudentsList = ({ defaultCount = 8, filterClassId = 'all' }) =>
     setCount(priorityStudentCount);
   }, [priorityStudentCount]);
 
-  const safeClasses = Array.isArray(classes) ? classes : [];
-  const safeContextPrioritizedStudents = Array.isArray(contextPrioritizedStudents)
-    ? contextPrioritizedStudents
-    : [];
-
   const prioritizedStudents = useMemo(() => {
+    const safeClasses = Array.isArray(classes) ? classes : [];
+    const safeContextPrioritizedStudents = Array.isArray(contextPrioritizedStudents)
+      ? contextPrioritizedStudents
+      : [];
     const disabledClassIds = safeClasses.filter((cls) => cls.disabled).map((cls) => cls.id);
 
     const filtered = safeContextPrioritizedStudents.filter((student) => {
@@ -222,7 +219,7 @@ const PrioritizedStudentsList = ({ defaultCount = 8, filterClassId = 'all' }) =>
     return sliced.filter(
       (student) => !markedPriorityStudentIds || !markedPriorityStudentIds.has(student.id)
     );
-  }, [safeContextPrioritizedStudents, safeClasses, filterClassId, count, markedPriorityStudentIds]);
+  }, [contextPrioritizedStudents, classes, filterClassId, count, markedPriorityStudentIds]);
 
   const handleCountChange = (event, newValue) => {
     setCount(newValue);

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   createAuthToken,
   validateAuthToken,
@@ -123,7 +123,7 @@ describe('Legacy Auth Middleware', () => {
       const next = vi.fn().mockResolvedValue('next-result');
       const middleware = authMiddleware();
 
-      const result = await middleware(c, next);
+      await middleware(c, next);
 
       expect(next).toHaveBeenCalled();
     });
@@ -133,7 +133,7 @@ describe('Legacy Auth Middleware', () => {
       const next = vi.fn().mockResolvedValue('next-result');
       const middleware = authMiddleware();
 
-      const result = await middleware(c, next);
+      await middleware(c, next);
 
       expect(next).toHaveBeenCalled();
     });
@@ -143,7 +143,7 @@ describe('Legacy Auth Middleware', () => {
       const next = vi.fn();
       const middleware = authMiddleware();
 
-      const result = await middleware(c, next);
+      await middleware(c, next);
 
       expect(c.json).toHaveBeenCalledWith({ error: 'Unauthorized' }, 401);
       expect(next).not.toHaveBeenCalled();
@@ -154,7 +154,7 @@ describe('Legacy Auth Middleware', () => {
       const next = vi.fn();
       const middleware = authMiddleware();
 
-      const result = await middleware(c, next);
+      await middleware(c, next);
 
       expect(c.json).toHaveBeenCalledWith({ error: 'Unauthorized' }, 401);
     });

@@ -106,7 +106,7 @@ function createD1Provider(env) {
     // D1-specific methods for enhanced functionality
     searchBooks: (...args) => d1Provider.searchBooks(env || {}, ...args),
     getBooksPaginated: (...args) => d1Provider.getBooksPaginated(env || {}, ...args),
-    getBookCount: (...args) => d1Provider.getBookCount(env || {}),
+    getBookCount: (..._args) => d1Provider.getBookCount(env || {}),
     // AI recommendation filtering - optimized for large book collections
     getFilteredBooksForRecommendations: (...args) =>
       d1Provider.getFilteredBooksForRecommendations(env || {}, ...args),

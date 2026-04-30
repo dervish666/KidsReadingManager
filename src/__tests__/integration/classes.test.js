@@ -582,7 +582,7 @@ describe('Classes API Routes', () => {
         mockDB._chain.first.mockResolvedValue(null);
 
         const response = await makeRequest(app, 'GET', '/api/classes/other-org-class/students');
-        const data = await response.json();
+        const _data = await response.json();
 
         expect(response.status).toBe(404);
       });
@@ -1250,7 +1250,7 @@ describe('Classes API Routes', () => {
           name: 'Class Name',
           teacherName: '',
         });
-        const data = await response.json();
+        const _data = await response.json();
 
         expect(response.status).toBe(200);
       });

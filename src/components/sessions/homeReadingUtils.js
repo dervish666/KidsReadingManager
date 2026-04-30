@@ -100,6 +100,7 @@ export const formatDateHeader = (date) => {
 export const getDateRange = (start, end) => {
   const dates = [];
   const current = new Date(start);
+  // eslint-disable-next-line no-unmodified-loop-condition
   while (current <= end) {
     dates.push(new Date(current));
     current.setDate(current.getDate() + 1);

@@ -299,7 +299,7 @@ describe('BookManager Component', () => {
       // Find selects and click the genre filter (second select after search)
       const genreSelects = screen.getAllByRole('combobox');
       // Genre filter is typically the first select dropdown after the search
-      const genreFilter = genreSelects.find(
+      const _genreFilter = genreSelects.find(
         (s) => s.textContent === '' || s.getAttribute('aria-labelledby')?.includes('genre')
       );
       await user.click(genreSelects[0]); // First combobox is genre filter

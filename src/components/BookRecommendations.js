@@ -293,11 +293,6 @@ const BookRecommendations = () => {
     }
   };
 
-  // Handler for library search (wrapper for button, if needed)
-  const handleLibrarySearch = async () => {
-    await triggerLibrarySearch(selectedStudentId);
-  };
-
   // Handler for quick-pick card click
   const handleQuickPick = async (studentId) => {
     setSelectedStudentId(studentId);

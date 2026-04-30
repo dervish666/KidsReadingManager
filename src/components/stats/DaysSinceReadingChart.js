@@ -1,13 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { Box, Typography, Paper, Tooltip, LinearProgress, Button } from '@mui/material';
-import useMediaQuery from '@mui/material/useMediaQuery';
 import { useData } from '../../contexts/DataContext';
 import { useUI } from '../../contexts/UIContext';
 import { useTheme } from '@mui/material/styles';
 
 const DaysSinceReadingChart = () => {
   const theme = useTheme();
-  const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
   const { students, classes } = useData();
   const { globalClassFilter } = useUI();
 
@@ -31,7 +29,7 @@ const DaysSinceReadingChart = () => {
   }, [students, globalClassFilter, classes]);
 
   // Calculate days since last reading for each student
-  const calculateDaysSinceReading = () => {
+  const studentData = useMemo(() => {
     return activeStudents
       .map((student) => {
         const daysSinceReading = student.lastReadDate
@@ -52,9 +50,7 @@ const DaysSinceReadingChart = () => {
         if (!a.hasNeverRead && b.hasNeverRead) return 1;
         return (b.daysSinceReading || 0) - (a.daysSinceReading || 0);
       });
-  };
-
-  const studentData = useMemo(() => calculateDaysSinceReading(), [activeStudents]);
+  }, [activeStudents]);
 
   const [showAll, setShowAll] = useState(false);
   const displayStudents = showAll ? studentData : studentData.slice(0, 30);

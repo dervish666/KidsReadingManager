@@ -456,19 +456,19 @@ describe('Organization Routes', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: 'New School' }),
       });
-      const data = await response.json();
+      const _data = await response.json();
 
       expect(response.status).toBe(403);
     });
 
     it('should generate slug from name if not provided', async () => {
       const mockDb = createMockDB();
-      let capturedSlug = null;
+      let _capturedSlug = null;
 
       mockDb.prepare = vi.fn().mockReturnValue({
         bind: vi.fn().mockImplementation((...args) => {
           // Capture the slug from the INSERT statement
-          if (args.length > 2) capturedSlug = args[2];
+          if (args.length > 2) _capturedSlug = args[2];
           return {
             first: vi.fn().mockResolvedValue(null),
             run: vi.fn().mockResolvedValue({ success: true }),
@@ -694,7 +694,7 @@ describe('Organization Routes', () => {
       const response = await app.request('/api/organization/org-123', {
         method: 'DELETE',
       });
-      const data = await response.json();
+      const _data = await response.json();
 
       expect(response.status).toBe(403);
     });
@@ -1125,7 +1125,7 @@ describe('Organization Routes', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ provider: 'anthropic' }),
       });
-      const data = await response.json();
+      const _data = await response.json();
 
       expect(response.status).toBe(403);
     });
@@ -1174,7 +1174,7 @@ describe('Organization Routes', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ apiKey: 'sk-test-key' }),
       });
-      const data = await response.json();
+      const _data = await response.json();
 
       // With no JWT_SECRET, isMultiTenantMode returns false, so legacy mode returns 400
       expect([400, 500]).toContain(response.status);
@@ -1234,7 +1234,7 @@ describe('Organization Routes', () => {
       const app = createTestApp(mockDb, createUserContext({ userRole: 'teacher' }));
 
       const response = await app.request('/api/organization/audit-log');
-      const data = await response.json();
+      const _data = await response.json();
 
       expect(response.status).toBe(403);
     });

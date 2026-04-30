@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { classifyGenre, GENRE_CLASSIFICATION, recalculateStats } from '../../utils/badgeEngine.js';
+import { classifyGenre, recalculateStats } from '../../utils/badgeEngine.js';
 
 describe('classifyGenre', () => {
   it('classifies Adventure as fiction', () => {

@@ -4,7 +4,6 @@ import { notFoundError, badRequestError, serverError } from '../../middleware/er
 import { decryptSensitiveData, getEncryptionSecret } from '../../utils/crypto.js';
 import { buildStudentReadingProfile } from '../../utils/studentProfile.js';
 import { getCachedRecommendations, cacheRecommendations } from '../../utils/recommendationCache.js';
-import { rowToBook } from '../../utils/rowMappers.js';
 import { parseGenreIds } from '../../utils/helpers.js';
 import { requireReadonly } from '../../middleware/tenant.js';
 

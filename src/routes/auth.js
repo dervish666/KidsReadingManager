@@ -20,7 +20,6 @@ import {
 import { authRateLimit } from '../middleware/tenant.js';
 import { sendPasswordResetEmail } from '../utils/email.js';
 import { requireDB as getDB } from '../utils/routeHelpers.js';
-import { badRequestError } from '../middleware/errorHandler.js';
 
 export const authRouter = new Hono();
 

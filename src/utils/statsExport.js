@@ -251,7 +251,6 @@ export async function generateStatsPDF({
     const tableX = MARGIN;
     const rankW = 12;
     const nameW = CONTENT_WIDTH - rankW - 35;
-    const streakW = 35;
     const rowH = 7;
 
     // Header row
@@ -302,7 +301,6 @@ export async function generateStatsPDF({
     const tableX = MARGIN;
     const rankW = 12;
     const titleW = CONTENT_WIDTH - rankW - 25;
-    const sessionsW = 25;
     const rowH = 7;
 
     // Header row
@@ -365,7 +363,6 @@ export async function generateStatsPDF({
   } else {
     const tableX = MARGIN;
     const nameW = CONTENT_WIDTH - 35;
-    const dateW = 35;
     const rowH = 7;
 
     // Header row

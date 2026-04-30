@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -80,9 +80,14 @@ const StudentTable = React.memo(({ students }) => {
   }, [students, classes]);
 
   const getDaysSince = (student) => studentDerivedData.get(student.id)?.daysSince || 'Never read';
-  const getClassName = (student) => studentDerivedData.get(student.id)?.className || 'Unassigned';
-  const getMostRecentReadDate = (student) =>
-    studentDerivedData.get(student.id)?.mostRecentReadDate || null;
+  const getClassName = useCallback(
+    (student) => studentDerivedData.get(student.id)?.className || 'Unassigned',
+    [studentDerivedData]
+  );
+  const getMostRecentReadDate = useCallback(
+    (student) => studentDerivedData.get(student.id)?.mostRecentReadDate || null,
+    [studentDerivedData]
+  );
 
   const handleRowClick = (student) => {
     setSelectedStudent(student);
@@ -150,7 +155,7 @@ const StudentTable = React.memo(({ students }) => {
     };
 
     return [...students].sort(comparator);
-  }, [students, orderBy, order]);
+  }, [students, orderBy, order, getClassName, getMostRecentReadDate]);
 
   return (
     <>

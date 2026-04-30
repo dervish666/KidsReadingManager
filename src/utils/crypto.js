@@ -174,7 +174,7 @@ export async function createAccessToken(payload, secret, expiresIn = ACCESS_TOKE
  * @param {string} secret - JWT secret key
  * @returns {Promise<{token: string, hash: string, expiresAt: string}>}
  */
-export async function createRefreshToken(userId, secret) {
+export async function createRefreshToken(_userId, _secret) {
   // Generate a random token
   const tokenBytes = crypto.getRandomValues(new Uint8Array(32));
   const token = arrayBufferToBase64Url(tokenBytes);

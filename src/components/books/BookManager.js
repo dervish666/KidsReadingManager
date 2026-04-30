@@ -41,7 +41,7 @@ import BookCover from '../BookCover';
 
 const BookManager = () => {
   const { fetchWithAuth } = useAuth();
-  const { books: contextBooks, genres, addBook, reloadDataFromServer, settings } = useData();
+  const { books: contextBooks, genres, addBook, reloadDataFromServer } = useData();
   const [fullBooks, setFullBooks] = useState(null);
   const books = fullBooks || contextBooks;
 
@@ -137,11 +137,6 @@ const BookManager = () => {
   };
 
   const handleCancelDelete = () => setConfirmDelete(null);
-
-  // Import functions
-  const handleImportClick = () => {
-    fileInputRef.current.click();
-  };
 
   const handleFileChange = (event) => {
     const file = event.target.files[0];
@@ -241,17 +236,6 @@ const BookManager = () => {
 
   const handleCancelImport = () => {
     setConfirmImport({ open: false, file: null, data: null });
-  };
-
-  // Pagination helper functions
-  const getTotalPages = () => {
-    return Math.ceil(books.length / booksPerPage);
-  };
-
-  const getPaginatedBooks = () => {
-    const startIndex = (currentPage - 1) * booksPerPage;
-    const endIndex = startIndex + booksPerPage;
-    return books.slice(startIndex, endIndex);
   };
 
   const handlePageChange = (event, newPage) => {

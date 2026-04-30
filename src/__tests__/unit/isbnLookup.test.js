@@ -5,7 +5,7 @@ import { parseOpenLibraryBook, lookupISBN } from '../../utils/isbnLookup.js';
 const createMockKV = () => {
   const store = {};
   return {
-    get: vi.fn(async (key, type) => (store[key] ? JSON.parse(store[key]) : null)),
+    get: vi.fn(async (key, _type) => (store[key] ? JSON.parse(store[key]) : null)),
     put: vi.fn(async (key, value) => {
       store[key] = value;
     }),

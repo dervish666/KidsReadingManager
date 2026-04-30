@@ -3,7 +3,7 @@ import { Box, LinearProgress, Typography } from '@mui/material';
 import BadgeIcon from './BadgeIcon';
 import GardenHeader from './GardenHeader';
 
-export default function BadgeCollection({ studentName, badges = [], nearMisses = [], stats }) {
+export default function BadgeCollection({ studentName, badges = [], nearMisses = [], _stats }) {
   const earned = badges || [];
   const hasAny = earned.length > 0 || nearMisses.length > 0;
 

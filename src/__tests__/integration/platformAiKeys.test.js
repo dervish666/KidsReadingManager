@@ -247,7 +247,7 @@ describe('Platform AI Keys API Routes', () => {
         apiKey: 'sk-openai-test-key-1234567890',
         setActive: true,
       });
-      const data = await response.json();
+      const _data = await response.json();
 
       expect(response.status).toBe(200);
       // Verify batch was used (to atomically clear other providers + upsert)
@@ -309,7 +309,7 @@ describe('Platform AI Keys API Routes', () => {
         provider: 'anthropic',
         setActive: true,
       });
-      const data = await response.json();
+      const _data = await response.json();
 
       expect(response.status).toBe(200);
       // Should use batch to atomically clear others + set active
@@ -409,7 +409,7 @@ describe('Platform AI Keys API Routes', () => {
         setActive: true,
         modelPreference: 'claude-sonnet-4-6',
       });
-      const data = await response.json();
+      const _data = await response.json();
 
       expect(response.status).toBe(200);
       // Verify the SQL included model_preference

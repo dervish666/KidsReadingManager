@@ -81,7 +81,7 @@ describe('metadataService.processBatch', () => {
 
     const results = [];
     const progress = await processBatch(books, config, {
-      onBookResult: (bookId, merged, log) => results.push({ bookId, merged }),
+      onBookResult: (bookId, merged, _log) => results.push({ bookId, merged }),
       delayMs: 0,
     });
 

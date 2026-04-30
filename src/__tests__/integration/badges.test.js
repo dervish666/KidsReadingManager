@@ -1,10 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   recalculateStats,
   evaluateRealTime,
   calculateNearMisses,
 } from '../../utils/badgeEngine.js';
-import { BADGE_DEFINITIONS, resolveKeyStage } from '../../utils/badgeDefinitions.js';
 
 describe('Badge system integration', () => {
   // Test that the full flow works: recalculate stats → evaluate → near-misses

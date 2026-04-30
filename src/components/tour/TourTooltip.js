@@ -6,7 +6,7 @@ import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
 
 const TourTooltip = ({
-  continuous,
+  _continuous,
   index,
   step,
   size,

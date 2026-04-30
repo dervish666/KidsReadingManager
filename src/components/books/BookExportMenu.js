@@ -4,7 +4,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import ImportExportIcon from '@mui/icons-material/ImportExport';
 import UploadIcon from '@mui/icons-material/Upload';
 
-const BookExportMenu = ({ books, genres, onImportClick, onSnackbar }) => {
+const BookExportMenu = ({ books, _genres, onImportClick, onSnackbar }) => {
   const [anchorEl, setAnchorEl] = useState(null);
 
   const handleExportJSON = () => {

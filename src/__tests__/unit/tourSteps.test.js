@@ -12,7 +12,7 @@ describe('TOURS', () => {
   });
 
   it('each tour has a version and non-empty steps array', () => {
-    Object.entries(TOURS).forEach(([tourId, tour]) => {
+    Object.entries(TOURS).forEach(([_tourId, tour]) => {
       expect(tour.version).toBeGreaterThan(0);
       expect(tour.steps.length).toBeGreaterThan(0);
       expect(tour.steps.length).toBeLessThanOrEqual(5);

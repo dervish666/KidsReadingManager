@@ -75,7 +75,6 @@ import { myloginRouter } from '../../routes/mylogin.js';
 import { encryptSensitiveData } from '../../utils/crypto.js';
 import { createJWTPayload, createAccessToken, createRefreshToken } from '../../utils/crypto.js';
 import { runFullSync } from '../../services/wondeSync.js';
-import { generateId } from '../../utils/helpers.js';
 import { fetchSchoolDetails } from '../../utils/wondeApi.js';
 
 // ---------------------------------------------------------------------------

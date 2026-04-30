@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
   BADGE_DEFINITIONS,
-  getBadgesByCategory,
   getRealtimeBadges,
   getBatchBadges,
   resolveKeyStage,

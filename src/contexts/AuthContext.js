@@ -234,6 +234,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     detectAuthMode();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run once on mount
 
   // Clear all auth state
@@ -419,7 +420,7 @@ export const AuthProvider = ({ children }) => {
           window.localStorage.setItem(AUTH_STORAGE_KEY, token);
           window.localStorage.setItem(AUTH_MODE_KEY, 'legacy');
         }
-      } catch (storageErr) {
+      } catch (_storageErr) {
         // Storage error is non-critical
       }
 
@@ -477,7 +478,7 @@ export const AuthProvider = ({ children }) => {
             window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userWithOrg));
           }
         }
-      } catch (storageErr) {
+      } catch (_storageErr) {
         // Storage error is non-critical
       }
 

@@ -310,7 +310,7 @@ describe('runFullSync', () => {
 
   it('calls all three Wonde API endpoints', async () => {
     // Batch-fetch for existing classes returns empty
-    db.prepare = vi.fn().mockImplementation((sql) => ({
+    db.prepare = vi.fn().mockImplementation((_sql) => ({
       bind: vi.fn().mockReturnThis(),
       run: vi.fn().mockResolvedValue({ success: true }),
       first: vi.fn().mockResolvedValue(null),
@@ -657,7 +657,7 @@ describe('runFullSync', () => {
 
   it('assigns class_id from first wondeClassId via lookup map', async () => {
     // Existing classes batch-fetch returns empty (all classes will be created)
-    db.prepare = vi.fn().mockImplementation((sql) => ({
+    db.prepare = vi.fn().mockImplementation((_sql) => ({
       bind: vi.fn().mockReturnThis(),
       run: vi.fn().mockResolvedValue({ success: true }),
       first: vi.fn().mockResolvedValue(null),

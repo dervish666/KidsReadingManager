@@ -428,10 +428,10 @@ describe('Library Search Integration', () => {
       const inferredFavoriteScore = 2;
       const levelMatchScore = 1;
 
-      const bookA = { genres: ['fantasy'], level: 'intermediate' };
-      const bookB = { genres: ['mystery'], level: 'intermediate' };
+      const _bookA = { genres: ['fantasy'], level: 'intermediate' };
+      const _bookB = { genres: ['mystery'], level: 'intermediate' };
 
-      const studentProfile = {
+      const _studentProfile = {
         explicitFavorites: ['fantasy'],
         inferredFavorites: ['mystery'],
         readingLevel: 'intermediate',

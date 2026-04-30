@@ -202,7 +202,7 @@ describe('Book Import API', () => {
         { allResults: { results: existingBooks } }
       );
 
-      mockDB.prepare.mockImplementation((sql) => {
+      mockDB.prepare.mockImplementation((_sql) => {
         const chain = {
           bind: vi.fn().mockReturnThis(),
           all: vi.fn().mockResolvedValue({ results: [] }),
@@ -279,7 +279,7 @@ describe('Book Import API', () => {
         { allResults: { results: [] } }
       );
 
-      mockDB.prepare.mockImplementation((sql) => {
+      mockDB.prepare.mockImplementation((_sql) => {
         const chain = {
           bind: vi.fn().mockReturnThis(),
           all: vi.fn().mockResolvedValue({ results: [] }),

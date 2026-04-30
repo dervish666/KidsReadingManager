@@ -20,14 +20,13 @@ vi.mock('cloudflare:email', () => {
 
 describe('Email Service', () => {
   let originalFetch;
-  let consoleLogSpy;
   let consoleWarnSpy;
   let consoleErrorSpy;
 
   beforeEach(() => {
     originalFetch = global.fetch;
     global.fetch = vi.fn();
-    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'log').mockImplementation(() => {});
     consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
   });

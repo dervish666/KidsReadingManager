@@ -163,7 +163,7 @@ describe('Error Handler Middleware', () => {
         throw createError('DB connection pool exhausted', 500);
       };
 
-      const result = await middleware(mockContext, failingNext);
+      const _result = await middleware(mockContext, failingNext);
 
       expect(mockContext.json).toHaveBeenCalledWith(
         {

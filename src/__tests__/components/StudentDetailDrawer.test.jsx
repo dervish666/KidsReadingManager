@@ -26,7 +26,7 @@ vi.mock('../../components/students/StudentReadView', () => ({
   default: ({ student }) => <div data-testid="student-read-view">{student?.name}</div>,
 }));
 vi.mock('../../components/students/StudentEditForm', () => ({
-  default: React.forwardRef((props, ref) => <div data-testid="student-edit-form" />),
+  default: React.forwardRef((_props, _ref) => <div data-testid="student-edit-form" />),
 }));
 vi.mock('../../components/students/StudentTimeline', () => ({
   default: ({ sessions, loading }) => (
