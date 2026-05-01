@@ -22,6 +22,18 @@ const ChevronRight = () => (
   </svg>
 );
 
+const WondeLogo = ({ size = 24 }) => (
+  <svg
+    viewBox="0 0 40 48"
+    width={size}
+    height={size * 1.2}
+    fill="#4162fe"
+    aria-hidden="true"
+  >
+    <path d="M20,0A67.191,67.191,0,0,0,0,3V24.96C0,36.48,8,44.16,20,48c12-3.84,20-11.52,20-23.04V3A67.1959,67.1959,0,0,0,20,0M30,5V24L20,18,10,24V5c3-1,10-1,10-1s7,0,10,1M20,43.781A28.3649,28.3649,0,0,1,8.602,36.802L20,29.914l11.398,6.888A28.3783,28.3783,0,0,1,20,43.781" />
+  </svg>
+);
+
 export default function LandingPage({ onSignIn }) {
   const { loginWithDemo } = useAuth();
   const [navScrolled, setNavScrolled] = useState(false);
@@ -203,6 +215,22 @@ export default function LandingPage({ onSignIn }) {
           </div>
         </section>
 
+        {/* WONDE INTEGRATION */}
+        <section className="lp-wonde-strip">
+          <div className="lp-wonde-strip-inner lp-reveal" ref={addRevealRef}>
+            <div className="lp-wonde-strip-logo">
+              <WondeLogo size={30} />
+            </div>
+            <h3>
+              Integrated with <span className="lp-wonde-name">Wonde</span>
+            </h3>
+            <p>
+              Connect your school MIS and your classes, students, and teachers sync automatically —
+              with single sign-on for all staff. No spreadsheets, no manual data entry.
+            </p>
+          </div>
+        </section>
+
         {/* FEATURES */}
         <section className="lp-features" id="features">
           <div className="lp-section-header lp-reveal" ref={addRevealRef}>
@@ -234,9 +262,9 @@ export default function LandingPage({ onSignIn }) {
                 desc: 'Diaries come in, you tap a few buttons, and the register is done. One tap per child, per day — saving teachers roughly 10 minutes per class on admin alone.',
               },
               {
-                icon: '🏫',
-                title: 'Built for your school',
-                desc: 'Import pupil lists from your MIS, organise by class or group, and manage reading volunteers — all from one place. No spreadsheets required.',
+                icon: <WondeLogo size={22} />,
+                title: 'Syncs with your MIS',
+                desc: 'Connect via Wonde and your classes, students, and teachers arrive automatically from your school MIS. Or import from a CSV — either way, you’re set up in minutes.',
               },
               {
                 icon: '📝',
@@ -390,7 +418,7 @@ export default function LandingPage({ onSignIn }) {
               {[
                 { icon: '🇪🇺', label: 'EU-hosted data' },
                 { icon: '🔒', label: 'GDPR compliant' },
-                { icon: '🏫', label: 'Wonde MIS integration' },
+                { icon: <WondeLogo size={18} />, label: 'Wonde MIS integration' },
                 { icon: '💬', label: 'Real human support' },
               ].map((item, i) => (
                 <div className="lp-trust-item" key={i}>

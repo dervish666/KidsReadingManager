@@ -401,6 +401,51 @@
   transform: rotate(-1.5deg);
 }
 
+/* ---- WONDE INTEGRATION STRIP ---- */
+.lp-wonde-strip {
+  padding: 0 2rem 4rem;
+}
+
+.lp-wonde-strip-inner {
+  max-width: 620px;
+  margin: 0 auto;
+  text-align: center;
+  padding: 2.5rem 2.5rem 2rem;
+  background: var(--warm-white);
+  border-radius: 20px;
+  border: 1px solid rgba(65, 98, 254, 0.1);
+  box-shadow: 0 2px 16px rgba(65, 98, 254, 0.06);
+}
+
+.lp-wonde-strip-logo {
+  width: 64px;
+  height: 64px;
+  background: rgba(65, 98, 254, 0.06);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.2rem;
+}
+
+.lp-wonde-strip-inner h3 {
+  font-size: 1.4rem;
+  margin-bottom: 0.6rem;
+  letter-spacing: -0.01em;
+}
+
+.lp-wonde-name {
+  color: #4162fe;
+}
+
+.lp-wonde-strip-inner p {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.6;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
 /* ---- FEATURES ---- */
 .lp-features {
   padding: 6rem 2rem;
