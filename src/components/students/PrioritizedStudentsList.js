@@ -17,13 +17,14 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import { useData } from '../../contexts/DataContext';
 import { useUI } from '../../contexts/UIContext';
 import { STATUS_TO_PALETTE } from '../../utils/helpers';
-import { getCurrentGrowth, getSkyGradient, getGroundGradient } from '../badges/GardenHeader';
+import { getCurrentGrowth } from '../badges/GardenHeader';
 
 const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
   const { getReadingStatus } = useUI();
 
   const badgeCount = student.badgeCount || 0;
   const growth = getCurrentGrowth(badgeCount);
+  const sessionCount = student.totalSessionCount || 0;
 
   const status = getReadingStatus(student);
   const paletteKey = STATUS_TO_PALETTE[status] || 'notRead';
@@ -79,48 +80,6 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
     >
       <Box
         sx={{
-          position: 'relative',
-          overflow: 'hidden',
-          borderRadius: '12px 12px 0 0',
-          height: 44,
-          background: getSkyGradient(badgeCount),
-        }}
-      >
-        <Box
-          sx={{
-            position: 'absolute',
-            inset: 0,
-            background: getGroundGradient(badgeCount),
-          }}
-        />
-        {growth && (
-          <Box
-            component="img"
-            src={growth.src}
-            alt=""
-            sx={{
-              position: 'absolute',
-              left: '50%',
-              bottom: '8%',
-              transform: 'translateX(-50%)',
-              height:
-                badgeCount >= 13
-                  ? '85%'
-                  : badgeCount >= 9
-                    ? '78%'
-                    : badgeCount >= 5
-                      ? '70%'
-                      : '60%',
-              width: 'auto',
-              objectFit: 'contain',
-              pointerEvents: 'none',
-              filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.08))',
-            }}
-          />
-        )}
-      </Box>
-      <Box
-        sx={{
           position: 'absolute',
           top: -8,
           left: -8,
@@ -137,11 +96,12 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
           boxShadow: '2px 2px 6px rgba(107, 142, 107, 0.3)',
           border: '2px solid white',
           fontFamily: '"Nunito", sans-serif',
+          zIndex: 1,
         }}
       >
         {priorityRank}
       </Box>
-      <CardContent sx={{ pt: 2, pb: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
+      <CardContent sx={{ pt: 1, pb: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
         <Typography
           variant="body1"
           component="h3"
@@ -149,13 +109,38 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
             fontFamily: '"Nunito", sans-serif',
             fontWeight: 800,
             color: 'text.primary',
-            ml: 0.5,
+            ml: 3,
             mb: 0.5,
             fontSize: '0.95rem',
           }}
         >
           {student.name}
         </Typography>
+
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'flex-end',
+            height: 56,
+            mb: 1,
+          }}
+        >
+          {growth && (
+            <Box
+              component="img"
+              src={growth.src}
+              alt=""
+              sx={{
+                height: badgeCount >= 13 ? 56 : badgeCount >= 9 ? 50 : badgeCount >= 5 ? 44 : 38,
+                width: 'auto',
+                objectFit: 'contain',
+                pointerEvents: 'none',
+                filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.12))',
+              }}
+            />
+          )}
+        </Box>
 
         <Box
           sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}
@@ -195,19 +180,22 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
           />
         </Box>
 
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{
-            display: 'block',
-            textAlign: 'right',
-            fontStyle: 'italic',
-            fontWeight: 500,
-            fontSize: '0.7rem',
-          }}
-        >
-          {getDaysSinceReading()}
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ fontStyle: 'italic', fontWeight: 500, fontSize: '0.7rem' }}
+          >
+            {sessionCount} session{sessionCount === 1 ? '' : 's'}
+          </Typography>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ fontStyle: 'italic', fontWeight: 500, fontSize: '0.7rem' }}
+          >
+            {getDaysSinceReading()}
+          </Typography>
+        </Box>
       </CardContent>
     </Card>
   );

@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.58.2] - 2026-05-04
+
+### Changed
+
+- **Priority Reading List card layout** — reworked per design feedback. Removed the garden-strip background; the growth-stage plant now sits centred under the student's name on the card surface (transparent, no sky/ground gradient). Name moved up to sit beside the priority-rank badge (`pt: 1`, `ml: 3`). Added a session count next to the days-since-reading line ("12 sessions · 46 days ago") using `student.totalSessionCount` already returned by the list endpoint. Plant scales 38/44/50/56px at the same 1/5/9/13 badge thresholds.
+
 ## [3.58.1] - 2026-05-04
 
 ### Added
