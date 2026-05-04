@@ -34,8 +34,29 @@ function run(cmd) {
   }
 }
 
+function ensureDevVars() {
+  const devVarsPath = path.join(process.cwd(), '.dev.vars');
+  const jwtSecret = 'jhduNVfHPmujOj1nmTbdjVauShAzwn5kr9RG4Nye6e4=';
+
+  if (fs.existsSync(devVarsPath)) {
+    const content = fs.readFileSync(devVarsPath, 'utf8');
+    if (!content.includes('JWT_SECRET=')) {
+      fs.appendFileSync(devVarsPath, `\nJWT_SECRET=${jwtSecret}\n`);
+      console.log('   Added JWT_SECRET to .dev.vars');
+    }
+  } else {
+    fs.writeFileSync(devVarsPath, `JWT_SECRET=${jwtSecret}\n`);
+    console.log('   Created .dev.vars with JWT_SECRET');
+  }
+}
+
 async function main() {
   console.log('=== Tally Reading Local Dev Seed ===\n');
+
+  // Step 0: Ensure .dev.vars has JWT_SECRET (required for JWT auth mode)
+  console.log('0. Checking .dev.vars...');
+  ensureDevVars();
+  console.log('');
 
   // Step 1: Apply migrations
   console.log('1. Applying D1 migrations locally...');
