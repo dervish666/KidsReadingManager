@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.58.5] - 2026-05-04
+
+### Changed
+
+- **Help page contact email** — updated from sam@ to help@tallyreading.uk
+
 ## [3.58.4] - 2026-05-04
 
 ### Changed

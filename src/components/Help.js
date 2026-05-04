@@ -419,10 +419,10 @@ const Help = () => {
               >
                 Can't find what you need? Email{' '}
                 <Link
-                  href="mailto:sam@tallyreading.uk"
+                  href="mailto:help@tallyreading.uk"
                   sx={{ color: 'primary.main', fontWeight: 600 }}
                 >
-                  sam@tallyreading.uk
+                  help@tallyreading.uk
                 </Link>{' '}
                 and we'll get back to you within two working days.
               </Typography>
@@ -892,8 +892,8 @@ const Help = () => {
                   Privacy Policy
                 </Link>{' '}
                 or request our DPIA by emailing{' '}
-                <Link href="mailto:sam@tallyreading.uk" sx={{ color: 'primary.main' }}>
-                  sam@tallyreading.uk
+                <Link href="mailto:help@tallyreading.uk" sx={{ color: 'primary.main' }}>
+                  help@tallyreading.uk
                 </Link>
                 .
               </BodyText>
@@ -918,8 +918,8 @@ const Help = () => {
             rows={[
               [
                 <strong>Email</strong>,
-                <Link href="mailto:sam@tallyreading.uk" sx={{ color: 'primary.main' }}>
-                  sam@tallyreading.uk
+                <Link href="mailto:help@tallyreading.uk" sx={{ color: 'primary.main' }}>
+                  help@tallyreading.uk
                 </Link>,
               ],
               [
