@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.58.4] - 2026-05-04
+
+### Changed
+
+- **Help page redesign** — accordion FAQ (concertina expand/collapse), feature cards with icons, section heading icons, warmer header with gradient background, interactive TOC with icons. All content preserved, presentation significantly more engaging.
+
 ## [3.58.3] - 2026-05-04
 
 ### Changed
