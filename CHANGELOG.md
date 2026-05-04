@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.58.3] - 2026-05-04
+
+### Changed
+
+- **Priority Reading List card height reduced** — plant moved from a stacked row under the name to the right-hand side of the content row, alongside the Last read / sessions / days-ago text. Plant scales 30/34/38/44px (down from 38/44/50/56px). Net result: cards are noticeably shorter while the plant still grows visibly with badge count.
+
 ## [3.58.2] - 2026-05-04
 
 ### Changed

@@ -117,22 +117,80 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
           {student.name}
         </Typography>
 
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'flex-end',
-            height: 56,
-            mb: 1,
-          }}
-        >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                mb: 0.5,
+              }}
+            >
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                Last read:
+              </Typography>
+              <Chip
+                label={
+                  mostRecentReadDate || student.lastReadDate
+                    ? new Date(mostRecentReadDate || student.lastReadDate).toLocaleDateString(
+                        'en-GB',
+                        {
+                          day: 'numeric',
+                          month: 'short',
+                        }
+                      )
+                    : 'Never'
+                }
+                size="small"
+                sx={{
+                  height: 20,
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  borderRadius: 1.5,
+                  backgroundColor:
+                    paletteKey === 'notRead'
+                      ? 'rgba(158, 75, 75, 0.1)'
+                      : paletteKey === 'needsAttention'
+                        ? 'rgba(155, 110, 58, 0.1)'
+                        : 'rgba(74, 110, 74, 0.1)',
+                  color:
+                    paletteKey === 'notRead'
+                      ? 'error.main'
+                      : paletteKey === 'needsAttention'
+                        ? 'warning.main'
+                        : 'primary.main',
+                  border: 'none',
+                }}
+              />
+            </Box>
+
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ fontStyle: 'italic', fontWeight: 500, fontSize: '0.7rem' }}
+              >
+                {sessionCount} session{sessionCount === 1 ? '' : 's'}
+              </Typography>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ fontStyle: 'italic', fontWeight: 500, fontSize: '0.7rem' }}
+              >
+                {getDaysSinceReading()}
+              </Typography>
+            </Box>
+          </Box>
+
           {growth && (
             <Box
               component="img"
               src={growth.src}
               alt=""
               sx={{
-                height: badgeCount >= 13 ? 56 : badgeCount >= 9 ? 50 : badgeCount >= 5 ? 44 : 38,
+                flexShrink: 0,
+                height: badgeCount >= 13 ? 44 : badgeCount >= 9 ? 38 : badgeCount >= 5 ? 34 : 30,
                 width: 'auto',
                 objectFit: 'contain',
                 pointerEvents: 'none',
@@ -140,61 +198,6 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
               }}
             />
           )}
-        </Box>
-
-        <Box
-          sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}
-        >
-          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-            Last read:
-          </Typography>
-          <Chip
-            label={
-              mostRecentReadDate || student.lastReadDate
-                ? new Date(mostRecentReadDate || student.lastReadDate).toLocaleDateString('en-GB', {
-                    day: 'numeric',
-                    month: 'short',
-                  })
-                : 'Never'
-            }
-            size="small"
-            sx={{
-              height: 20,
-              fontSize: '0.7rem',
-              fontWeight: 700,
-              borderRadius: 1.5,
-              backgroundColor:
-                paletteKey === 'notRead'
-                  ? 'rgba(158, 75, 75, 0.1)'
-                  : paletteKey === 'needsAttention'
-                    ? 'rgba(155, 110, 58, 0.1)'
-                    : 'rgba(74, 110, 74, 0.1)',
-              color:
-                paletteKey === 'notRead'
-                  ? 'error.main'
-                  : paletteKey === 'needsAttention'
-                    ? 'warning.main'
-                    : 'primary.main',
-              border: 'none',
-            }}
-          />
-        </Box>
-
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ fontStyle: 'italic', fontWeight: 500, fontSize: '0.7rem' }}
-          >
-            {sessionCount} session{sessionCount === 1 ? '' : 's'}
-          </Typography>
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ fontStyle: 'italic', fontWeight: 500, fontSize: '0.7rem' }}
-          >
-            {getDaysSinceReading()}
-          </Typography>
         </Box>
       </CardContent>
     </Card>
