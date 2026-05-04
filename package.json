@@ -6,7 +6,8 @@
   "scripts": {
     "start": "rsbuild dev",
     "go": "npm run build && npx wrangler d1 migrations apply reading-manager-db --remote && npm run deploy",
-    "start:dev": "npm run dev & npm run start",
+    "start:dev": "concurrently -n worker,frontend -c blue,green \"npm run dev\" \"npm run start\"",
+    "seed:local": "node scripts/seed-local.js",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "migrate": "node scripts/migration.js",
@@ -49,6 +50,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@vitejs/plugin-react": "^5.1.2",
     "@vitest/coverage-v8": "^4.0.16",
+    "concurrently": "^9.2.1",
     "dotenv": "^17.3.1",
     "eslint": "^10.2.1",
     "eslint-plugin-react-hooks": "^7.1.1",

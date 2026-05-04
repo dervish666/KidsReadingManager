@@ -287,6 +287,9 @@ scripts/export-demo-snapshot.js - Export Learnalot data from remote D1 into demo
 ### Local Development
 
 ```bash
+# One-time setup (creates local D1 database with dev user)
+npm run seed:local
+
 # Start both frontend and backend (recommended)
 npm run start:dev
 
@@ -521,6 +524,8 @@ Local dev requires two files in the project root:
 - `.env` — sets `STORAGE_TYPE=json` and `JWT_SECRET` for local multi-tenant mode
 - `.dev.vars` — sets `WORKER_ADMIN_PASSWORD` for legacy mode testing
 
+After first checkout, run `npm run seed:local` once to create the local D1 database and seed it with a dev owner account (`dev@tallyreading.uk` / `password`).
+
 The frontend dev server (port 3001) proxies `/api` requests to the worker (port 8787). Use `npm run start:dev` to run both concurrently.
 
 ### Utility Scripts
@@ -528,6 +533,7 @@ The frontend dev server (port 3001) proxies `/api` requests to the worker (port 
 - `scripts/build-and-deploy.sh` — Full rebuild + deploy pipeline (supports `production` and `dev` args)
 - `scripts/migration.js` — Data migration from old format to new
 - `scripts/reset-admin-password.js` — Admin password reset utility
+- `scripts/seed-local.js` — Bootstrap local D1 with migrations and a dev owner account (dev@tallyreading.uk / password)
 
 ## Configuration
 
