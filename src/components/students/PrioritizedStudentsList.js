@@ -17,9 +17,13 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import { useData } from '../../contexts/DataContext';
 import { useUI } from '../../contexts/UIContext';
 import { STATUS_TO_PALETTE } from '../../utils/helpers';
+import { getCurrentGrowth, getSkyGradient, getGroundGradient } from '../badges/GardenHeader';
 
 const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
   const { getReadingStatus } = useUI();
+
+  const badgeCount = student.badgeCount || 0;
+  const growth = getCurrentGrowth(badgeCount);
 
   const status = getReadingStatus(student);
   const paletteKey = STATUS_TO_PALETTE[status] || 'notRead';
@@ -73,6 +77,48 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
         },
       }}
     >
+      <Box
+        sx={{
+          position: 'relative',
+          overflow: 'hidden',
+          borderRadius: '12px 12px 0 0',
+          height: 44,
+          background: getSkyGradient(badgeCount),
+        }}
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            background: getGroundGradient(badgeCount),
+          }}
+        />
+        {growth && (
+          <Box
+            component="img"
+            src={growth.src}
+            alt=""
+            sx={{
+              position: 'absolute',
+              left: '50%',
+              bottom: '8%',
+              transform: 'translateX(-50%)',
+              height:
+                badgeCount >= 13
+                  ? '85%'
+                  : badgeCount >= 9
+                    ? '78%'
+                    : badgeCount >= 5
+                      ? '70%'
+                      : '60%',
+              width: 'auto',
+              objectFit: 'contain',
+              pointerEvents: 'none',
+              filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.08))',
+            }}
+          />
+        )}
+      </Box>
       <Box
         sx={{
           position: 'absolute',

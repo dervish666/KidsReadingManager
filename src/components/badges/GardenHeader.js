@@ -16,26 +16,26 @@ import gardenButterfly from '../../assets/garden-butterfly.png';
 import gardenLargeTree from '../../assets/garden-large-tree.png';
 import gardenBird from '../../assets/garden-bird.png';
 
-const STAGES = [
+export const STAGES = [
   { name: 'Seedling', min: 0, max: 2 },
   { name: 'Sprout', min: 3, max: 7 },
   { name: 'Bloom', min: 8, max: 15 },
   { name: 'Full Garden', min: 16, max: Infinity },
 ];
 
-function getStage(badgeCount) {
+export function getStage(badgeCount) {
   return STAGES.find((s) => badgeCount >= s.min && badgeCount <= s.max) || STAGES[0];
 }
 
 // Growth stages: the central plant evolves through 4 images
-const GROWTH_STAGES = [
+export const GROWTH_STAGES = [
   { src: gardenGrow1, minBadges: 1, height: '40%' },
   { src: gardenGrow2, minBadges: 5, height: '50%' },
   { src: gardenGrow3, minBadges: 9, height: '58%' },
   { src: gardenGrow4, minBadges: 13, height: '65%' },
 ];
 
-function getCurrentGrowth(badgeCount) {
+export function getCurrentGrowth(badgeCount) {
   let current = null;
   for (const stage of GROWTH_STAGES) {
     if (badgeCount >= stage.minBadges) current = stage;
@@ -75,7 +75,7 @@ const GARDEN_ELEMENTS = [
   { src: gardenBird, alt: 'Robin', minBadges: 16, left: '18%', bottom: '50%', height: '28%' },
 ];
 
-function getGroundGradient(badgeCount) {
+export function getGroundGradient(badgeCount) {
   if (badgeCount < 3) {
     return 'linear-gradient(180deg, transparent 70%, #D4A574 85%, #C49A6C 100%)';
   }
@@ -88,7 +88,7 @@ function getGroundGradient(badgeCount) {
   return 'linear-gradient(180deg, transparent 65%, #A8D48C 78%, #8FBF6F 90%, #B8C49A 100%)';
 }
 
-function getSkyGradient(badgeCount) {
+export function getSkyGradient(badgeCount) {
   if (badgeCount < 1) {
     return 'linear-gradient(180deg, #F5EFD6 0%, #FFF8EE 100%)';
   }

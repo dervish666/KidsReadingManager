@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.58.1] - 2026-05-04
+
+### Added
+
+- **Mini garden on Priority Reading List cards** — each priority card now shows a 44px-tall garden strip at the top with the student's growth-stage plant (seedling → grow-2 → grow-3 → grow-4) on the same sky/ground gradients used by `GardenHeader`. Reads `student.badgeCount` (already returned by the list endpoint) and chooses image + height from the same thresholds (1/5/9/13 badges). Also exported `STAGES`, `GROWTH_STAGES`, `getStage`, `getCurrentGrowth`, `getSkyGradient`, `getGroundGradient` from `GardenHeader.js` so the mini view shares the source of truth.
+
 ## [3.58.0] - 2026-05-04
 
 ### Added
