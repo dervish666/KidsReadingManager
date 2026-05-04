@@ -2,8 +2,7 @@ import { useEffect, useCallback, useRef } from 'react';
 import { useTourContext } from './TourProvider';
 
 export const useTour = (tourId, { ready = true } = {}) => {
-  const { startTour, isTourAvailable, isTourCompleted, toursLoaded, running } =
-    useTourContext();
+  const { startTour, isTourAvailable, isTourCompleted, toursLoaded, running } = useTourContext();
   const hasAutoStarted = useRef(false);
 
   const isCompleted = isTourCompleted(tourId);

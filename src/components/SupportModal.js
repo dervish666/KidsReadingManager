@@ -11,6 +11,7 @@ import {
   Alert,
   CircularProgress,
   IconButton,
+  Link,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
@@ -141,6 +142,26 @@ const SupportModal = ({ open, onClose, currentPage }) => {
                 Sending as <strong>{user?.name}</strong> ({user?.email})
               </Typography>
             </Box>
+
+            <Typography
+              variant="body2"
+              sx={{
+                fontFamily: '"DM Sans", sans-serif',
+                color: 'text.secondary',
+                mb: 2,
+              }}
+            >
+              Before submitting, you might find your answer on the{' '}
+              <Link
+                href="/help"
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{ color: 'primary.main', fontWeight: 600 }}
+              >
+                Help page
+              </Link>
+              .
+            </Typography>
 
             {error && (
               <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>

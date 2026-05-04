@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.58.0] - 2026-05-04
+
+### Added
+
+- **Public help page at `/help`** — first item on the support scaling backlog. New `Help.js` standalone page (matches Privacy/Terms/Cookies pattern) with anchored table of contents and 5 sections: IT department setup, getting started, day-to-day features, FAQ (the predictable five — forgot password, can't see my class, "connection isn't private", importing books, what data syncs from Wonde), and contact. Linked from the landing page footer and the in-app `SupportModal` ("Before submitting, you might find your answer on the Help page") so it deflects predictable tickets before they're filed.
+- **Wonde integration prominently highlighted on landing page** — added Wonde shield logo SVG, dedicated integration section between the screenshot showcase and features, and updated the feature card and trust section to use Wonde brand blue (#4162fe).
+
 ## [3.57.8] - 2026-04-30
 
 ### Fixed

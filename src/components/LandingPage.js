@@ -23,13 +23,7 @@ const ChevronRight = () => (
 );
 
 const WondeLogo = ({ size = 24 }) => (
-  <svg
-    viewBox="0 0 40 48"
-    width={size}
-    height={size * 1.2}
-    fill="#4162fe"
-    aria-hidden="true"
-  >
+  <svg viewBox="0 0 40 48" width={size} height={size * 1.2} fill="#4162fe" aria-hidden="true">
     <path d="M20,0A67.191,67.191,0,0,0,0,3V24.96C0,36.48,8,44.16,20,48c12-3.84,20-11.52,20-23.04V3A67.1959,67.1959,0,0,0,20,0M30,5V24L20,18,10,24V5c3-1,10-1,10-1s7,0,10,1M20,43.781A28.3649,28.3649,0,0,1,8.602,36.802L20,29.914l11.398,6.888A28.3783,28.3783,0,0,1,20,43.781" />
   </svg>
 );
@@ -562,6 +556,11 @@ export default function LandingPage({ onSignIn }) {
             </span>
             <span className="lp-footer-text">&copy; 2026 Tally Reading. Made in Bristol.</span>
             <ul className="lp-footer-links">
+              <li>
+                <a href="/help" target="_blank" rel="noopener noreferrer">
+                  Help
+                </a>
+              </li>
               <li>
                 <a href="/privacy" target="_blank" rel="noopener noreferrer">
                   Privacy Policy

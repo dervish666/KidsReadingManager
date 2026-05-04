@@ -32,6 +32,7 @@ const SettingsPage = React.lazy(() => import('./components/SettingsPage'));
 const PrivacyPolicy = React.lazy(() => import('./components/PrivacyPolicy'));
 const TermsOfService = React.lazy(() => import('./components/TermsOfService'));
 const CookiePolicy = React.lazy(() => import('./components/CookiePolicy'));
+const Help = React.lazy(() => import('./components/Help'));
 
 // Import custom navigation icons
 import iconStudents from './assets/icon-students.png';
@@ -196,6 +197,14 @@ function AppContent() {
     return (
       <Suspense fallback={<PageFallback />}>
         <CookiePolicy />
+      </Suspense>
+    );
+  }
+
+  if (window.location.pathname === '/help') {
+    return (
+      <Suspense fallback={<PageFallback />}>
+        <Help />
       </Suspense>
     );
   }
