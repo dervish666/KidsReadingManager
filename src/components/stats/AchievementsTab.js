@@ -165,8 +165,9 @@ export default function AchievementsTab({ fetchWithAuth, globalClassFilter }) {
   }
 
   const stage = getClassGardenStage(data.totalBadgesEarned);
+  const totalPossible = enrichedBadges.length * data.totalStudents;
   const completionRate =
-    data.totalStudents > 0 ? Math.round((data.studentsWithBadges / data.totalStudents) * 100) : 0;
+    totalPossible > 0 ? Math.round((data.totalBadgesEarned / totalPossible) * 100) : 0;
 
   return (
     <Box>

@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.59.0] - 2026-05-05
+
+### Added
+
+- **Local dev seed script** — `npm run seed:local` bootstraps a local D1 database with migrations and a dev owner account (dev@tallyreading.uk / password). `npm run start:dev` runs frontend + worker concurrently.
+
+### Fixed
+
+- **Achievements completion rate** — was showing 100% whenever all students had at least one badge (students-with-badges / total-students). Now correctly calculates badges earned / total possible badges across the class.
+
 ## [3.58.5] - 2026-05-04
 
 ### Changed

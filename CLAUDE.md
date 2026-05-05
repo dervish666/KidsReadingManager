@@ -300,6 +300,15 @@ npm start          # Runs on http://localhost:3001
 npm run dev        # Runs on http://localhost:8787
 ```
 
+**Local dev account** (created by `seed:local`):
+
+| Field    | Value               |
+|----------|---------------------|
+| Email    | dev@tallyreading.uk |
+| Password | password            |
+| Role     | owner               |
+| Org      | Dev School          |
+
 ### Building & Deployment
 
 ```bash
