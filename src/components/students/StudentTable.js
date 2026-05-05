@@ -23,6 +23,7 @@ import StreakBadge from './StreakBadge';
 import { useTheme } from '@mui/material/styles';
 import StudentDetailDrawer from './StudentDetailDrawer';
 import { STATUS_TO_PALETTE } from '../../utils/helpers';
+import { getCurrentGrowth } from '../badges/GardenHeader';
 
 const StudentTable = React.memo(({ students }) => {
   const theme = useTheme();
@@ -244,6 +245,7 @@ const StudentTable = React.memo(({ students }) => {
                   Sessions
                 </TableSortLabel>
               </TableCell>
+              <TableCell sx={{ color: 'white', fontWeight: 600, width: 40, p: 0 }} />
             </TableRow>
           </TableHead>
           <TableBody>
@@ -420,6 +422,34 @@ const StudentTable = React.memo(({ students }) => {
                         minWidth: { xs: 40, sm: 36 },
                       }}
                     />
+                  </TableCell>
+                  <TableCell sx={{ p: 0, width: 40, textAlign: 'center' }}>
+                    {(() => {
+                      const badgeCount = student.badgeCount || 0;
+                      const growth = getCurrentGrowth(badgeCount);
+                      if (!growth) return null;
+                      return (
+                        <Box
+                          component="img"
+                          src={growth.src}
+                          alt=""
+                          sx={{
+                            height:
+                              badgeCount >= 13
+                                ? 36
+                                : badgeCount >= 9
+                                  ? 30
+                                  : badgeCount >= 5
+                                    ? 26
+                                    : 22,
+                            width: 'auto',
+                            objectFit: 'contain',
+                            pointerEvents: 'none',
+                            filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))',
+                          }}
+                        />
+                      );
+                    })()}
                   </TableCell>
                 </TableRow>
               );

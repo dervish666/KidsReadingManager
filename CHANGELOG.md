@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.59.1] - 2026-05-05
+
+### Added
+
+- **Student table growth plants** — growth-stage plant icon shown on the far right of each student row in the table view, matching the plants on the Priority Reading List cards. Scales with badge count (seedling → sprout → bloom → full growth).
+
 ## [3.59.0] - 2026-05-05
 
 ### Added
