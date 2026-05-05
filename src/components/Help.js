@@ -720,9 +720,40 @@ const Help = () => {
             </FeatureCard>
 
             <FeatureCard icon={<EmojiEventsIcon />} title="Achievements &amp; badges">
-              Students earn badges automatically as they read — for streaks, variety, milestones,
-              and more. The Achievements tab shows class-wide progress as a growing garden, perfect
-              for projecting on the classroom whiteboard.
+              Students earn badges automatically as they read — no manual input needed. Every time a
+              session is saved, Tally checks whether any new badges have been unlocked and shows a
+              celebration if so.
+              <Box component="ul" sx={{ mt: 1.5, mb: 0, pl: 2.5, '& li': { mb: 0.75 } }}>
+                <li>
+                  <strong>Milestones</strong> — First Finish (first book logged), Series Finisher
+                  (3+ books by the same author)
+                </li>
+                <li>
+                  <strong>Volume</strong> — Bookworm (books read) and Time Traveller (minutes read),
+                  each with four tiers (bronze → silver → gold → star). Targets automatically scale
+                  by year group so KS1 and KS2 students are measured fairly.
+                </li>
+                <li>
+                  <strong>Consistency</strong> — Steady Reader (3 days in a week), Week Warrior
+                  (every day in a week), Monthly Marvel (4+ days every week for a whole month)
+                </li>
+                <li>
+                  <strong>Exploration</strong> — Genre Explorer (3, 5, or 7 different genres read),
+                  Fiction &amp; Fact (at least one fiction and one non-fiction book)
+                </li>
+                <li>
+                  <strong>Secret badges</strong> — A couple of surprise badges that only reveal
+                  themselves when earned. Students discover them by reading enthusiastically.
+                </li>
+              </Box>
+              <Box sx={{ mt: 1.5 }}>
+                The <strong>Achievements tab</strong> shows the full class picture. Select a class
+                to see the class garden — a visual display that grows through four stages (Seedling
+                → Sprout → Bloom → Full Garden) as your class completes its goals for the term. The
+                garden view works well projected on a classroom whiteboard to celebrate progress
+                together. The <strong>Completion Rate</strong> shows what percentage of all possible
+                badges have been earned across every student in the class.
+              </Box>
             </FeatureCard>
           </Box>
 

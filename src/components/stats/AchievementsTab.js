@@ -164,7 +164,12 @@ export default function AchievementsTab({ fetchWithAuth, globalClassFilter }) {
     );
   }
 
-  const stage = getClassGardenStage(data.totalBadgesEarned);
+  const stageNameFromGoals = classGoals?.gardenStage
+    ? classGoals.gardenStage.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+    : null;
+  const stage = stageNameFromGoals
+    ? { name: stageNameFromGoals }
+    : getClassGardenStage(data.totalBadgesEarned);
   const totalPossible = enrichedBadges.length * data.totalStudents;
   const completionRate =
     totalPossible > 0 ? Math.round((data.totalBadgesEarned / totalPossible) * 100) : 0;

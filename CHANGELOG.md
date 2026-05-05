@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.59.3] - 2026-05-05
+
+### Fixed
+
+- **Garden Stage card now matches header** — when a class is selected, the Garden Stage summary card reads from the same class goals progression (Seedling → Sprout → Bloom → Full Garden based on goals achieved) as the garden header above it. Previously it used a separate badge-count scale, causing the two to show different stages simultaneously.
+
+### Changed
+
+- **Help page achievements section** — expanded from a single sentence to a full description of all badge categories (Milestones, Volume, Consistency, Exploration, Secret), tier progression, key stage scaling, and how the class garden and Completion Rate work.
+
 ## [3.59.2] - 2026-05-05
 
 ### Changed
