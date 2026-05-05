@@ -595,23 +595,19 @@ const CookiePolicy = () => {
             rows={[
               [
                 <strong>Email</strong>,
-                <Link href="mailto:sam@tallyreading.uk" sx={{ color: 'primary.main' }}>
-                  sam@tallyreading.uk
+                <Link href="mailto:help@tallyreading.uk" sx={{ color: 'primary.main' }}>
+                  help@tallyreading.uk
                 </Link>,
               ],
               [
                 <strong>Data Protection Officer</strong>,
                 <span>
                   Sam Castillo (
-                  <Link href="mailto:sam@tallyreading.uk" sx={{ color: 'primary.main' }}>
-                    sam@tallyreading.uk
+                  <Link href="mailto:help@tallyreading.uk" sx={{ color: 'primary.main' }}>
+                    help@tallyreading.uk
                   </Link>
                   )
                 </span>,
-              ],
-              [
-                <strong>Postal address</strong>,
-                'Scratch IT LTD, 247 Bishopsworth Road, Bristol, BS13 7LH',
               ],
             ]}
           />

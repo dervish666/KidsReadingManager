@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.61.0] - 2026-05-05
+
+### Added
+
+- **Cookie notice banner** — landing page now shows a fixed bottom banner informing EU visitors that one strictly-necessary security cookie is used (no tracking, no analytics, no third parties), with a link to the Cookie Policy and a persistent "Got it" dismiss.
+
+### Fixed
+
+- **Cookie policy contact email** — updated both email and DPO email addresses to help@tallyreading.uk.
+- **Cookie policy postal address removed** — removed the postal address row from the contact table on the Cookie Policy page.
+
 ## [3.60.2] - 2026-05-05
 
 ### Changed

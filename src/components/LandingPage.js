@@ -34,6 +34,22 @@ export default function LandingPage({ onSignIn }) {
   const [contactSubmitted, setContactSubmitted] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
   const revealRefs = useRef(new Set());
+  const [cookieBannerDismissed, setCookieBannerDismissed] = useState(() => {
+    try {
+      return localStorage.getItem('cookieBannerDismissed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const dismissCookieBanner = () => {
+    setCookieBannerDismissed(true);
+    try {
+      localStorage.setItem('cookieBannerDismissed', 'true');
+    } catch {
+      // ignore
+    }
+  };
 
   const handleTryDemo = async () => {
     setDemoLoading(true);
@@ -580,6 +596,21 @@ export default function LandingPage({ onSignIn }) {
           </div>
         </footer>
       </div>
+
+      {!cookieBannerDismissed && (
+        <div className="lp-cookie-banner" role="region" aria-label="Cookie notice">
+          <p className="lp-cookie-text">
+            We use one cookie to keep you securely signed in. No tracking, no analytics, no
+            third-party cookies.{' '}
+            <a href="/cookies" className="lp-cookie-link">
+              Cookie policy
+            </a>
+          </p>
+          <button className="lp-cookie-dismiss" onClick={dismissCookieBanner}>
+            Got it
+          </button>
+        </div>
+      )}
     </div>
   );
 }

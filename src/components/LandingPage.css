@@ -1041,6 +1041,60 @@
   color: var(--text-secondary);
 }
 
+/* ---- COOKIE BANNER ---- */
+
+.lp-cookie-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  padding: 0.875rem 1.5rem;
+  background: var(--cream-dark);
+  border-top: 1px solid rgba(139, 115, 85, 0.18);
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.06);
+  flex-wrap: wrap;
+}
+
+.lp-cookie-text {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.lp-cookie-link {
+  color: var(--sage);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.lp-cookie-link:hover {
+  color: var(--sage-dark);
+}
+
+.lp-cookie-dismiss {
+  flex-shrink: 0;
+  padding: 0.4rem 1rem;
+  background: var(--sage);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.lp-cookie-dismiss:hover {
+  background: var(--sage-dark);
+}
+
 /* ---- ANIMATIONS ---- */
 @keyframes lp-fadeUp {
   from {
