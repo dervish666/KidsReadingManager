@@ -322,7 +322,7 @@ const Header = ({ currentTab }) => {
             <IconButton
               onClick={() => setSupportOpen(true)}
               size="small"
-              aria-label="Contact support"
+              aria-label="Feedback & help"
               sx={{
                 color: 'primary.main',
                 '&:hover': { backgroundColor: 'rgba(107, 142, 107, 0.08)' },

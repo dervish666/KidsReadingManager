@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.60.1] - 2026-05-05
+
+### Changed
+
+- **Get in touch language** — "Contact Support" → "Get in touch", "Still need help? Contact us" → "Questions or feedback? Get in touch", replaced the "Before submitting, check the Help page" note with "Questions, ideas, or something not working? We'd love to hear from you." Button aria-label updated to "Feedback & help".
+
 ## [3.60.0] - 2026-05-05
 
 ### Added

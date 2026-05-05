@@ -11,7 +11,6 @@ import {
   Alert,
   CircularProgress,
   IconButton,
-  Link,
   Collapse,
   Divider,
 } from '@mui/material';
@@ -217,7 +216,7 @@ const SupportModal = ({ open, onClose, currentPage }) => {
           pb: 0,
         }}
       >
-        {pageHelp && !showForm && !success ? `${currentPage} help` : 'Contact Support'}
+        {pageHelp && !showForm && !success ? `${currentPage} help` : 'Get in touch'}
         <IconButton onClick={handleClose} size="small" aria-label="Close">
           <CloseIcon />
         </IconButton>
@@ -270,7 +269,7 @@ const SupportModal = ({ open, onClose, currentPage }) => {
                   '&:hover': { color: 'primary.main', backgroundColor: 'transparent' },
                 }}
               >
-                Still need help? Contact us
+                Questions or feedback? Get in touch
               </Button>
             )}
 
@@ -296,27 +295,16 @@ const SupportModal = ({ open, onClose, currentPage }) => {
                   </Typography>
                 </Box>
 
-                {!pageHelp && (
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontFamily: '"DM Sans", sans-serif',
-                      color: 'text.secondary',
-                      mb: 2,
-                    }}
-                  >
-                    Before submitting, you might find your answer on the{' '}
-                    <Link
-                      href="/help"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      sx={{ color: 'primary.main', fontWeight: 600 }}
-                    >
-                      Help page
-                    </Link>
-                    .
-                  </Typography>
-                )}
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontFamily: '"DM Sans", sans-serif',
+                    color: 'text.secondary',
+                    mb: 2,
+                  }}
+                >
+                  Questions, ideas, or something not working? We'd love to hear from you.
+                </Typography>
 
                 {error && (
                   <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
