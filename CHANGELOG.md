@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.60.0] - 2026-05-05
+
+### Added
+
+- **Contextual help in support modal** — tapping the ? button now shows relevant help for the current page (Students, School Reading, Home Reading, Stats, Achievements, Recommend, Books, Settings) before the contact form. The form is hidden behind a "Still need help? Contact us" toggle and slides in when needed, with a Back button to return to the help view.
+
 ## [3.59.3] - 2026-05-05
 
 ### Fixed

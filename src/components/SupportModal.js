@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -12,10 +12,126 @@ import {
   CircularProgress,
   IconButton,
   Link,
+  Collapse,
+  Divider,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useAuth } from '../contexts/AuthContext';
+
+const HelpBullets = ({ intro, bullets }) => (
+  <Box>
+    {intro && (
+      <Typography
+        variant="body2"
+        sx={{ color: 'text.secondary', lineHeight: 1.7, mb: bullets ? 1 : 0 }}
+      >
+        {intro}
+      </Typography>
+    )}
+    {bullets && (
+      <Box component="ul" sx={{ m: 0, pl: 2.5, '& li': { mb: 0.5 } }}>
+        {bullets.map((b, i) => (
+          <Typography
+            key={i}
+            component="li"
+            variant="body2"
+            sx={{ color: 'text.secondary', lineHeight: 1.7 }}
+          >
+            {b}
+          </Typography>
+        ))}
+      </Box>
+    )}
+  </Box>
+);
+
+const PAGE_HELP = {
+  Students: (
+    <HelpBullets
+      intro="The Students page shows everyone in your selected class with their current reading status."
+      bullets={[
+        'Colour coding: green = read recently, yellow = needs attention, red = overdue. Thresholds are set in Settings.',
+        'The Priority Reading List orders students by who needs reading the most — sorted by days since their last session.',
+        'Tap a student card to view their reading history, edit their details, or see badge progress.',
+      ]}
+    />
+  ),
+  'School Reading': (
+    <HelpBullets
+      intro="Record a reading session for any student in a few taps."
+      bullets={[
+        'Select the student, then optionally search for or scan the book they read.',
+        'Use the assessment slider to record how independently they read — from Needing Help to Independent.',
+        "Add a note if there's anything worth remembering about the session.",
+        "Sessions save immediately and update the student's status and streak.",
+      ]}
+    />
+  ),
+  'Home Reading': (
+    <HelpBullets
+      intro="The Home Reading Register lets you log the whole class at once in a grid view."
+      bullets={[
+        'Tap a cell to mark a student as read, absent, or multiple reads for that day.',
+        "The date range controls let you review or backfill sessions across several days — useful for marking up a week's worth at once.",
+        'Daily totals appear in the footer so you can see at a glance how many students read each day.',
+      ]}
+    />
+  ),
+  Stats: (
+    <HelpBullets
+      intro="The Stats tab gives you a class-wide view of reading activity."
+      bullets={[
+        'Overview: active reader counts, reading days, and session totals with trend indicators.',
+        'Frequency: which days of the week your class reads most — useful for spotting patterns.',
+        'Streaks: leaderboard showing students with the longest current streaks.',
+        "Needs Attention: a list of students who haven't read recently, sorted by urgency.",
+      ]}
+    />
+  ),
+  Achievements: (
+    <HelpBullets
+      intro="Students earn badges automatically as they read — no manual input needed."
+      bullets={[
+        'Milestones: First Finish (first book), Series Finisher (3+ books by same author).',
+        'Volume: Bookworm (books read) and Time Traveller (minutes read), each with four tiers. Targets scale by year group so KS1 and KS2 are measured fairly.',
+        'Consistency: Steady Reader (3 days in a week), Week Warrior (every day in a week), Monthly Marvel (4+ days every week for a month).',
+        'Exploration: Genre Explorer (3, 5, or 7 genres), Fiction & Fact (both fiction and non-fiction).',
+        'Select a class to see the class garden — it grows through Seedling → Sprout → Bloom → Full Garden as your class completes its term goals.',
+      ]}
+    />
+  ),
+  Recommend: (
+    <HelpBullets
+      intro="AI recommendations match books from your library to a student's reading level and interests."
+      bullets={[
+        'Choose a focus mode: Balanced (varied levels), Consolidation (confidence-building reads), or Challenge (stretch reads).',
+        "Recommendations are drawn only from your school's book library, so all suggestions are books you already have.",
+        "Requires the AI add-on to be enabled for your school — contact us below if you'd like to activate it.",
+      ]}
+    />
+  ),
+  Books: (
+    <HelpBullets
+      intro="The book library is shared across your school — books added by any teacher are visible to all."
+      bullets={[
+        'Add a single book manually, or import in bulk using a CSV from your library management system.',
+        'Use the barcode scanner on a phone or tablet to add books by scanning the ISBN.',
+        'Each book can be tagged with a genre, which powers the Genre Explorer badge and AI recommendations.',
+      ]}
+    />
+  ),
+  Settings: (
+    <HelpBullets
+      intro="Settings control how Tally Reading categorises student reading activity."
+      bullets={[
+        'Reading Status Durations: how many days before a student moves from green (recently read) to yellow (needs attention) to red (overdue).',
+        'Streak Settings: the grace period lets students miss a day without breaking their streak — useful for weekends.',
+      ]}
+    />
+  ),
+};
 
 const SupportModal = ({ open, onClose, currentPage }) => {
   const { user, fetchWithAuth } = useAuth();
@@ -25,6 +141,15 @@ const SupportModal = ({ open, onClose, currentPage }) => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   const [ticketId, setTicketId] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+
+  const pageHelp = PAGE_HELP[currentPage] || null;
+
+  useEffect(() => {
+    if (open) {
+      setShowForm(!pageHelp);
+    }
+  }, [open, currentPage, pageHelp]);
 
   const handleSubmit = async () => {
     setError(null);
@@ -62,6 +187,7 @@ const SupportModal = ({ open, onClose, currentPage }) => {
     setError(null);
     setSuccess(false);
     setTicketId(null);
+    setShowForm(false);
     onClose();
   };
 
@@ -91,7 +217,7 @@ const SupportModal = ({ open, onClose, currentPage }) => {
           pb: 0,
         }}
       >
-        Contact Support
+        {pageHelp && !showForm && !success ? `${currentPage} help` : 'Contact Support'}
         <IconButton onClick={handleClose} size="small" aria-label="Close">
           <CloseIcon />
         </IconButton>
@@ -126,74 +252,105 @@ const SupportModal = ({ open, onClose, currentPage }) => {
           </Box>
         ) : (
           <>
-            <Box
-              sx={{
-                backgroundColor: 'rgba(107, 142, 107, 0.08)',
-                borderRadius: '10px',
-                p: 2,
-                mb: 2,
-                mt: 1,
-              }}
-            >
-              <Typography
-                variant="body2"
-                sx={{ fontFamily: '"DM Sans", sans-serif', color: 'text.primary' }}
-              >
-                Sending as <strong>{user?.name}</strong> ({user?.email})
-              </Typography>
-            </Box>
+            {/* Page-specific help content */}
+            {pageHelp && <Box sx={{ mb: showForm ? 2.5 : 1 }}>{pageHelp}</Box>}
 
-            <Typography
-              variant="body2"
-              sx={{
-                fontFamily: '"DM Sans", sans-serif',
-                color: 'text.secondary',
-                mb: 2,
-              }}
-            >
-              Before submitting, you might find your answer on the{' '}
-              <Link
-                href="/help"
-                target="_blank"
-                rel="noopener noreferrer"
-                sx={{ color: 'primary.main', fontWeight: 600 }}
+            {/* "Still need help?" toggle — only shown when help is displayed and form is hidden */}
+            {pageHelp && !showForm && (
+              <Button
+                onClick={() => setShowForm(true)}
+                variant="text"
+                endIcon={<ChevronRightIcon />}
+                sx={{
+                  mt: 1.5,
+                  color: 'text.secondary',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  px: 0,
+                  '&:hover': { color: 'primary.main', backgroundColor: 'transparent' },
+                }}
               >
-                Help page
-              </Link>
-              .
-            </Typography>
-
-            {error && (
-              <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-                {error}
-              </Alert>
+                Still need help? Contact us
+              </Button>
             )}
 
-            <TextField
-              label="Subject"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              fullWidth
-              required
-              inputProps={{ maxLength: 200 }}
-              helperText={`${subject.length}/200`}
-              sx={{ mb: 2 }}
-              disabled={loading}
-              autoFocus
-            />
+            {/* Contact form */}
+            <Collapse in={showForm || !pageHelp}>
+              <Box>
+                {pageHelp && <Divider sx={{ borderColor: 'rgba(139, 115, 85, 0.12)', mb: 2 }} />}
 
-            <TextField
-              label="How can we help?"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              fullWidth
-              required
-              multiline
-              rows={6}
-              inputProps={{ maxLength: 5000 }}
-              helperText={`${message.length}/5000`}
-              disabled={loading}
-            />
+                <Box
+                  sx={{
+                    backgroundColor: 'rgba(107, 142, 107, 0.08)',
+                    borderRadius: '10px',
+                    p: 2,
+                    mb: 2,
+                    mt: pageHelp ? 0 : 1,
+                  }}
+                >
+                  <Typography
+                    variant="body2"
+                    sx={{ fontFamily: '"DM Sans", sans-serif', color: 'text.primary' }}
+                  >
+                    Sending as <strong>{user?.name}</strong> ({user?.email})
+                  </Typography>
+                </Box>
+
+                {!pageHelp && (
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontFamily: '"DM Sans", sans-serif',
+                      color: 'text.secondary',
+                      mb: 2,
+                    }}
+                  >
+                    Before submitting, you might find your answer on the{' '}
+                    <Link
+                      href="/help"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      sx={{ color: 'primary.main', fontWeight: 600 }}
+                    >
+                      Help page
+                    </Link>
+                    .
+                  </Typography>
+                )}
+
+                {error && (
+                  <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+                    {error}
+                  </Alert>
+                )}
+
+                <TextField
+                  label="Subject"
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  fullWidth
+                  required
+                  inputProps={{ maxLength: 200 }}
+                  helperText={`${subject.length}/200`}
+                  sx={{ mb: 2 }}
+                  disabled={loading}
+                  autoFocus={showForm}
+                />
+
+                <TextField
+                  label="How can we help?"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  fullWidth
+                  required
+                  multiline
+                  rows={4}
+                  inputProps={{ maxLength: 5000 }}
+                  helperText={`${message.length}/5000`}
+                  disabled={loading}
+                />
+              </Box>
+            </Collapse>
           </>
         )}
       </DialogContent>
@@ -216,14 +373,14 @@ const SupportModal = ({ open, onClose, currentPage }) => {
           >
             Close
           </Button>
-        ) : (
+        ) : showForm || !pageHelp ? (
           <>
             <Button
-              onClick={handleClose}
+              onClick={pageHelp ? () => setShowForm(false) : handleClose}
               disabled={loading}
               sx={{ color: 'text.secondary', textTransform: 'none', fontWeight: 600 }}
             >
-              Cancel
+              {pageHelp ? 'Back' : 'Cancel'}
             </Button>
             <Button
               onClick={handleSubmit}
@@ -243,6 +400,13 @@ const SupportModal = ({ open, onClose, currentPage }) => {
               {loading ? 'Sending...' : 'Send message'}
             </Button>
           </>
+        ) : (
+          <Button
+            onClick={handleClose}
+            sx={{ color: 'text.secondary', textTransform: 'none', fontWeight: 600 }}
+          >
+            Close
+          </Button>
         )}
       </DialogActions>
     </Dialog>
