@@ -52,7 +52,7 @@ const PAGE_HELP = {
       intro="The Students page shows everyone in your selected class with their current reading status."
       bullets={[
         'Colour coding: green = read recently, yellow = needs attention, red = overdue. Thresholds are set in Settings.',
-        'The Priority Reading List orders students by who needs reading the most — sorted by days since their last session.',
+        'The Priority Reading List orders students by who needs reading the most — sorted by days since their last session. These students also appear at the top of the School Reading page, so a teacher can plan ahead and hand the device to a colleague who will know exactly who to read with next.',
         'Tap a student card to view their reading history, edit their details, or see badge progress.',
       ]}
     />
@@ -103,11 +103,11 @@ const PAGE_HELP = {
   ),
   Recommend: (
     <HelpBullets
-      intro="AI recommendations match books from your library to a student's reading level and interests."
+      intro="Recommendations searches your school's own book library to find the best match for a student — no AI required."
       bullets={[
-        'Choose a focus mode: Balanced (varied levels), Consolidation (confidence-building reads), or Challenge (stretch reads).',
-        "Recommendations are drawn only from your school's book library, so all suggestions are books you already have.",
-        "Requires the AI add-on to be enabled for your school — contact us below if you'd like to activate it.",
+        'Choose a focus mode: Balanced (mix of levels), Consolidation (confidence-building reads at or below level), or Challenge (stretch reads above level).',
+        'All results come from books already in your library, so every suggestion is something you actually have on the shelf.',
+        "AI suggestions are a separate optional add-on — useful for broader recommendations beyond your library. Schools can bring their own API key or purchase the add-on. Get in touch if you'd like to know more.",
       ]}
     />
   ),
@@ -115,8 +115,8 @@ const PAGE_HELP = {
     <HelpBullets
       intro="The book library is shared across your school — books added by any teacher are visible to all."
       bullets={[
-        'Add a single book manually, or import in bulk using a CSV from your library management system.',
-        'Use the barcode scanner on a phone or tablet to add books by scanning the ISBN.',
+        'Add a single book manually, or use the barcode scanner on a phone or tablet to add books by scanning the ISBN.',
+        'Admins can bulk import books from a CSV exported from your library management system — a great way to get your full catalogue in quickly. Get in touch if you need help preparing or importing a CSV.',
         'Each book can be tagged with a genre, which powers the Genre Explorer badge and AI recommendations.',
       ]}
     />
@@ -127,6 +127,7 @@ const PAGE_HELP = {
       bullets={[
         'Reading Status Durations: how many days before a student moves from green (recently read) to yellow (needs attention) to red (overdue).',
         'Streak Settings: the grace period lets students miss a day without breaking their streak — useful for weekends.',
+        "Term Dates: set your school's term dates and half-terms for the academic year. These are used to calculate class goal progress and keep streak thresholds accurate across holidays.",
       ]}
     />
   ),

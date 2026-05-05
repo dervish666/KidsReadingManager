@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.60.2] - 2026-05-05
+
+### Changed
+
+- **Students help** — Priority Reading List bullet clarifies that prioritised students also appear at the top of the School Reading page, enabling a teacher to plan ahead and hand the device to a colleague.
+- **Books help** — CSV bulk import bullet now explicitly notes it is an admin-only feature and offers help preparing or importing a CSV.
+- **Settings help** — added Term Dates bullet explaining that term dates power class goal progress and keep streak thresholds accurate across holidays.
+
 ## [3.60.1] - 2026-05-05
 
 ### Changed
