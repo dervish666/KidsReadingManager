@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.59.2] - 2026-05-05
+
+### Changed
+
+- **Completion Rate card** — added subtitle "badges earned across all students & types" to clarify what the metric measures, distinguishing it from the class goal completion above it.
+
 ## [3.59.1] - 2026-05-05
 
 ### Added

@@ -195,13 +195,18 @@ export default function AchievementsTab({ fetchWithAuth, globalClassFilter }) {
         {[
           { label: 'Total Badges', value: data.totalBadgesEarned, color: '#86A86B' },
           { label: 'Students with Badges', value: data.studentsWithBadges, color: '#6B8F50' },
-          { label: 'Completion Rate', value: `${completionRate}%`, color: 'info.main' },
+          {
+            label: 'Completion Rate',
+            value: `${completionRate}%`,
+            color: 'info.main',
+            subtitle: 'badges earned across all students & types',
+          },
           {
             label: 'Garden Stage',
             value: `${STAGE_EMOJI[stage.name] || ''} ${stage.name}`,
             color: '#5D6B4A',
           },
-        ].map(({ label, value, color }) => (
+        ].map(({ label, value, color, subtitle }) => (
           <Card
             key={label}
             sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}
@@ -216,6 +221,15 @@ export default function AchievementsTab({ fetchWithAuth, globalClassFilter }) {
               >
                 {value}
               </Typography>
+              {subtitle && (
+                <Typography
+                  variant="caption"
+                  color="text.disabled"
+                  sx={{ display: 'block', mt: 0.5, lineHeight: 1.3 }}
+                >
+                  {subtitle}
+                </Typography>
+              )}
             </CardContent>
           </Card>
         ))}
