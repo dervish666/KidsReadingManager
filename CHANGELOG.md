@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.61.2] - 2026-05-06
+
+### Fixed
+
+- **Cloudflare deploy build failure** — pinned `wrangler` to exactly `4.77.0` to work around an upstream bug introduced in 4.78.0 ([workers-sdk#12996](https://github.com/cloudflare/workers-sdk/pull/12996)) where wrangler passes `supported: { "import-source": true }` to esbuild, but no released esbuild version recognises this feature name. The previous patch attempted to update wrangler within the existing semver range, which caused production deploys to fail with `"import-source" is not a valid feature name for the "supported" setting`.
+
 ## [3.61.1] - 2026-05-06
 
 ### Changed
