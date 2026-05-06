@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.61.1] - 2026-05-06
+
+### Changed
+
+- **Dependency updates** — bumped 15 packages within semver ranges (`@emotion/styled`, `@playwright/test`, `@sentry/cloudflare`, `@sentry/react`, `@testing-library/react`, `@vitest/coverage-v8`, `dotenv`, `eslint`, `globals`, `happy-dom`, `hono`, `prettier`, `react-joyride`, `vitest`, `wrangler`).
+- **CI Node.js bump** — GitHub Actions workflow upgraded from Node.js 20.x to 22.x ahead of the June 2026 deprecation deadline for Node 20 actions.
+
 ## [3.61.0] - 2026-05-05
 
 ### Added
