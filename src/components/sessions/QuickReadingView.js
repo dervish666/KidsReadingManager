@@ -356,6 +356,7 @@ const QuickReadingView = ({
                               }}
                               label=""
                               placeholder="Search for book..."
+                              autoFocus
                             />
                           </Box>
                         </ClickAwayListener>

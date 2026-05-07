@@ -21,6 +21,7 @@ const BookAutocomplete = ({
   label = 'Book (Optional)',
   placeholder = 'Select or type book title...',
   priorityBookIds = [],
+  autoFocus = false,
 }) => {
   const { fetchWithAuth } = useAuth();
   const { books, findOrCreateBook } = useData();
@@ -277,6 +278,7 @@ const BookAutocomplete = ({
         selectOnFocus
         clearOnBlur
         handleHomeEndKeys
+        openOnFocus
         freeSolo
         loading={isCreating || externalLoading}
         loadingText={externalLoading ? 'Searching online...' : 'Creating book...'}
@@ -286,6 +288,7 @@ const BookAutocomplete = ({
             label={label}
             placeholder={isCreating ? 'Creating book...' : placeholder}
             fullWidth
+            autoFocus={autoFocus}
             InputProps={{
               ...params.InputProps,
               endAdornment: (

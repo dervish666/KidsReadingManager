@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.61.4] - 2026-05-07
+
+### Changed
+
+- **Faster book change on Quick reading register** — tapping a student's book cell now auto-focuses the search input, opens the dropdown, and highlights the existing book title so typing replaces it. Reduces book change from 5 taps to 1 tap + typing. Added `autoFocus` prop to `BookAutocomplete` and `openOnFocus` on the underlying MUI Autocomplete; passed `autoFocus` from `QuickReadingView` when entering edit mode.
+
 ## [3.61.3] - 2026-05-07
 
 ### Fixed
