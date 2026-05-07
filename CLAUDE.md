@@ -133,6 +133,7 @@ src/utils/stripe.js - Stripe client factory, price ID helpers, AI add-on detecti
 src/utils/statsExport.js - PDF/CSV stats report generation (jsPDF)
 src/utils/titleMatching.js - Title normalization and similarity scoring for metadata APIs
 src/utils/orgStatusCache.js - KV cache for organization is_active + subscription_status (tenantMiddleware reads, Stripe webhook/org deactivate/purge invalidate)
+src/utils/coverPlaceholders.js - Shared SHA-256 hash set + helpers for rejecting upstream "image not available" cover placeholders (used by covers.js route + metadataService.js)
 
 <!-- Contexts & Hooks -->
 

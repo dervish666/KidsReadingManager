@@ -5,6 +5,7 @@
 import { fetchMetadata as openLibraryFetch } from './providers/openLibraryProvider.js';
 import { fetchMetadata as googleBooksFetch } from './providers/googleBooksProvider.js';
 import { fetchMetadata as hardcoverFetch } from './providers/hardcoverProvider.js';
+import { isKnownPlaceholder } from '../utils/coverPlaceholders.js';
 
 const PROVIDERS = {
   openlibrary: { fetch: openLibraryFetch, needsKey: false },
@@ -461,7 +462,9 @@ export async function processJobBatch(db, job, config, options = {}) {
     await db.batch(statements.slice(i, i + 100));
   }
 
-  // Cover fetching (non-blocking if waitUntil is available)
+  // Cover fetching (non-blocking if waitUntil is available).
+  // Skips known "image not available" placeholders so we don't poison R2 with
+  // upstream defaults — same hash list used by the on-demand cover route.
   if (config.fetchCovers && r2Bucket) {
     const coverPromises = bookUpdates
       .filter(({ merged }) => merged.coverUrl && merged.isbn)
@@ -470,14 +473,13 @@ export async function processJobBatch(db, job, config, options = {}) {
           const res = await fetch(merged.coverUrl, {
             headers: { 'User-Agent': 'TallyReading/1.0 (educational-app)' },
           });
-          if (res.ok) {
-            const imageData = await res.arrayBuffer();
-            if (imageData.byteLength > 1000) {
-              await r2Bucket.put(`isbn/${merged.isbn}-M.jpg`, imageData, {
-                httpMetadata: { contentType: res.headers.get('Content-Type') || 'image/jpeg' },
-              });
-            }
-          }
+          if (!res.ok) return;
+          const imageData = await res.arrayBuffer();
+          if (imageData.byteLength <= 1000) return;
+          if (await isKnownPlaceholder(imageData)) return;
+          await r2Bucket.put(`isbn/${merged.isbn}-M.jpg`, imageData, {
+            httpMetadata: { contentType: res.headers.get('Content-Type') || 'image/jpeg' },
+          });
         } catch {
           /* non-critical */
         }

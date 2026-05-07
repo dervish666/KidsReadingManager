@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.61.7] - 2026-05-07
+
+### Changed
+
+- **Shared cover-placeholder detection** — extracted `KNOWN_PLACEHOLDER_HASHES` and the SHA-256 helper into `src/utils/coverPlaceholders.js`. The metadata enrichment cover fetch in `metadataService.js` now uses the same hash check as the on-demand `covers.js` route, so "Fill Missing" / "Refresh All" with `Fetch covers` enabled will reject upstream "image not available" placeholders instead of caching them in R2.
+
 ## [3.61.6] - 2026-05-07
 
 ### Fixed

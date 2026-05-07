@@ -5,6 +5,7 @@ import { getEncryptionSecret, hashToken } from '../utils/crypto.js';
 import { rateLimit } from '../middleware/tenant.js';
 import { fetchMetadata as googleBooksFetch } from '../services/providers/googleBooksProvider.js';
 import { fetchMetadata as hardcoverFetch } from '../services/providers/hardcoverProvider.js';
+import { KNOWN_PLACEHOLDER_HASHES, sha256Hex } from '../utils/coverPlaceholders.js';
 
 const coversRouter = new Hono();
 
@@ -28,27 +29,9 @@ const CACHE_CONTROL_MISS = 'public, max-age=3600';
 // Minimum content-length for a real cover image (below this = placeholder)
 const MIN_IMAGE_SIZE = 1000;
 
-// SHA-256 hashes of known "image not available" placeholders that providers
-// (Hardcover, Google Books, OpenLibrary) sometimes serve with HTTP 200 instead
-// of a 404. These pass the size threshold so they need explicit fingerprinting.
-// Add new hashes here when more placeholder variants are spotted.
-const KNOWN_PLACEHOLDER_HASHES = new Set([
-  // 300x391 italic "image not available" PNG, ~15.5KB. Seen on Hardcover-sourced
-  // covers when the upstream record has no image.
-  '12557f8948b8bdc6af436e3a8b3adddd45f7f7d2b67c5832e799cdf4686f72bb',
-]);
-
 // Query param limits for /search
 const MAX_TITLE_LEN = 200;
 const MAX_AUTHOR_LEN = 200;
-
-/** SHA-256 hex digest of an ArrayBuffer (Web Crypto, available in Workers). */
-async function sha256Hex(buffer) {
-  const hash = await crypto.subtle.digest('SHA-256', buffer);
-  return Array.from(new Uint8Array(hash))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-}
 
 /**
  * Fetch an image URL. Returns:
