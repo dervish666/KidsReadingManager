@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.61.5] - 2026-05-07
+
+### Fixed
+
+- **Reading register header layout regression** — the sticky header introduced in v3.61.3 fought with `TableContainer`'s horizontal scroll context, causing misaligned day labels/numbers and body cells bleeding through the header. Removed `stickyHeader` from both Quick and Full reading register tables. Single page scroll is preserved (the original v3.61.3 fix). Tradeoff: on long student lists the column header scrolls out of view at the bottom — accepted as a smaller cost than the broken layout.
+
 ## [3.61.4] - 2026-05-07
 
 ### Changed

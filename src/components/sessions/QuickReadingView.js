@@ -92,8 +92,8 @@ const QuickReadingView = ({
             <CircularProgress size={40} />
           </Box>
         )}
-        <TableContainer sx={{ '& thead th': { top: { xs: 64, sm: 72 } } }}>
-          <Table stickyHeader size="small">
+        <TableContainer>
+          <Table size="small">
             <TableHead>
               <TableRow>
                 {previousDays.map((date, i) => {
