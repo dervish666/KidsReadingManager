@@ -92,7 +92,7 @@ const QuickReadingView = ({
             <CircularProgress size={40} />
           </Box>
         )}
-        <TableContainer sx={{ maxHeight: 'calc(100vh - 260px)' }}>
+        <TableContainer sx={{ '& thead th': { top: { xs: 64, sm: 72 } } }}>
           <Table stickyHeader size="small">
             <TableHead>
               <TableRow>

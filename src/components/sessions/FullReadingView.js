@@ -354,7 +354,7 @@ const FullReadingView = ({
         )}
         <TableContainer
           data-tour="register-table"
-          sx={{ maxHeight: { xs: 'calc(100vh - 340px)', sm: 'calc(100vh - 260px)' } }}
+          sx={{ '& thead th': { top: { xs: 64, sm: 72 } } }}
         >
           <Table stickyHeader size="small">
             <TableHead>

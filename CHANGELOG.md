@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.61.3] - 2026-05-07
+
+### Fixed
+
+- **Home Reading nested scroll trap** — removed the `maxHeight` cap on the reading register table in both Quick and Full views. The page now uses a single scroll context instead of a table-inside-page double scroll that made it fiddly to scroll back up. Sticky table headers now pin under the AppBar (`top: 64px` on mobile, `72px` on tablet+) instead of inside the inner scrollbox.
+
 ## [3.61.2] - 2026-05-06
 
 ### Fixed
