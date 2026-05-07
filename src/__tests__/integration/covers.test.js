@@ -41,6 +41,7 @@ const createMockR2Object = (body = new Uint8Array([1, 2, 3]), overrides = {}) =>
       controller.close();
     },
   }),
+  arrayBuffer: async () => body.buffer.slice(body.byteOffset, body.byteOffset + body.byteLength),
   httpMetadata: {
     contentType: 'image/jpeg',
     ...overrides.httpMetadata,

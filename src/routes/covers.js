@@ -28,14 +28,33 @@ const CACHE_CONTROL_MISS = 'public, max-age=3600';
 // Minimum content-length for a real cover image (below this = placeholder)
 const MIN_IMAGE_SIZE = 1000;
 
+// SHA-256 hashes of known "image not available" placeholders that providers
+// (Hardcover, Google Books, OpenLibrary) sometimes serve with HTTP 200 instead
+// of a 404. These pass the size threshold so they need explicit fingerprinting.
+// Add new hashes here when more placeholder variants are spotted.
+const KNOWN_PLACEHOLDER_HASHES = new Set([
+  // 300x391 italic "image not available" PNG, ~15.5KB. Seen on Hardcover-sourced
+  // covers when the upstream record has no image.
+  '12557f8948b8bdc6af436e3a8b3adddd45f7f7d2b67c5832e799cdf4686f72bb',
+]);
+
 // Query param limits for /search
 const MAX_TITLE_LEN = 200;
 const MAX_AUTHOR_LEN = 200;
 
+/** SHA-256 hex digest of an ArrayBuffer (Web Crypto, available in Workers). */
+async function sha256Hex(buffer) {
+  const hash = await crypto.subtle.digest('SHA-256', buffer);
+  return Array.from(new Uint8Array(hash))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
 /**
  * Fetch an image URL. Returns:
- *   { imageData, contentType } on success (image >= MIN_IMAGE_SIZE)
- *   null if origin returned non-OK or a placeholder
+ *   { imageData, contentType } on success (image >= MIN_IMAGE_SIZE and not a
+ *     known placeholder)
+ *   null if origin returned non-OK or a placeholder (size or hash match)
  * Throws on network error (caller decides whether to fall back or 502).
  */
 async function fetchCoverImage(url) {
@@ -47,6 +66,11 @@ async function fetchCoverImage(url) {
   if (!res.ok) return null;
   const imageData = await res.arrayBuffer();
   if (imageData.byteLength < MIN_IMAGE_SIZE) return null;
+  const hash = await sha256Hex(imageData);
+  if (KNOWN_PLACEHOLDER_HASHES.has(hash)) {
+    console.log(`[covers] rejected placeholder image from ${url} (hash: ${hash})`);
+    return null;
+  }
   return {
     imageData,
     contentType: res.headers.get('Content-Type') || 'image/jpeg',
@@ -163,20 +187,31 @@ coversRouter.get('/search', async (c) => {
   const r2Key = await searchKey(title, author);
   const r2 = c.env.BOOK_COVERS;
 
-  // 1. Check R2 cache
+  // 1. Check R2 cache, verifying it isn't a stale placeholder cached by an
+  //    older worker version that lacked hash detection.
   if (r2) {
     try {
       const cached = await r2.get(r2Key);
       if (cached) {
-        const contentType = cached.httpMetadata?.contentType || 'image/jpeg';
-        return new Response(cached.body, {
-          status: 200,
-          headers: {
-            'Content-Type': contentType,
-            'Cache-Control': CACHE_CONTROL_HIT,
-            'X-Cache-Source': 'r2',
-          },
-        });
+        const buffer = await cached.arrayBuffer();
+        const hash = await sha256Hex(buffer);
+        if (KNOWN_PLACEHOLDER_HASHES.has(hash)) {
+          console.log(`[covers] R2 had stale placeholder for ${r2Key}, deleting`);
+          if (c.executionCtx?.waitUntil) {
+            c.executionCtx.waitUntil(r2.delete(r2Key));
+          }
+          // Fall through to provider chain
+        } else {
+          const contentType = cached.httpMetadata?.contentType || 'image/jpeg';
+          return new Response(buffer, {
+            status: 200,
+            headers: {
+              'Content-Type': contentType,
+              'Cache-Control': CACHE_CONTROL_HIT,
+              'X-Cache-Source': 'r2',
+            },
+          });
+        }
       }
     } catch (err) {
       console.error('R2 get error:', err);
@@ -306,20 +341,31 @@ coversRouter.get('/:type/:key', async (c) => {
   const r2Key = `${type}/${key}`;
   const r2 = c.env.BOOK_COVERS;
 
-  // 1. Check R2 cache
+  // 1. Check R2 cache, verifying it isn't a stale placeholder cached by an
+  //    older worker version that lacked hash detection.
   if (r2) {
     try {
       const cached = await r2.get(r2Key);
       if (cached) {
-        const contentType = cached.httpMetadata?.contentType || 'image/jpeg';
-        return new Response(cached.body, {
-          status: 200,
-          headers: {
-            'Content-Type': contentType,
-            'Cache-Control': CACHE_CONTROL_HIT,
-            'X-Cache-Source': 'r2',
-          },
-        });
+        const buffer = await cached.arrayBuffer();
+        const hash = await sha256Hex(buffer);
+        if (KNOWN_PLACEHOLDER_HASHES.has(hash)) {
+          console.log(`[covers] R2 had stale placeholder for ${r2Key}, deleting`);
+          if (c.executionCtx?.waitUntil) {
+            c.executionCtx.waitUntil(r2.delete(r2Key));
+          }
+          // Fall through to provider chain
+        } else {
+          const contentType = cached.httpMetadata?.contentType || 'image/jpeg';
+          return new Response(buffer, {
+            status: 200,
+            headers: {
+              'Content-Type': contentType,
+              'Cache-Control': CACHE_CONTROL_HIT,
+              'X-Cache-Source': 'r2',
+            },
+          });
+        }
       }
     } catch (err) {
       console.error('R2 get error:', err);

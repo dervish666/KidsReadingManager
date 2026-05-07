@@ -64,19 +64,24 @@ const createMockDB = () => {
  * before any external provider call. We only care about whether rateLimit
  * rejects the 61st request.
  */
-const createMockR2 = () => ({
-  get: vi.fn().mockResolvedValue({
-    body: new ReadableStream({
-      start(controller) {
-        controller.enqueue(new Uint8Array([0xff, 0xd8, 0xff, 0xe0]));
-        controller.close();
-      },
+const createMockR2 = () => {
+  const bytes = new Uint8Array([0xff, 0xd8, 0xff, 0xe0]);
+  return {
+    get: vi.fn().mockResolvedValue({
+      body: new ReadableStream({
+        start(controller) {
+          controller.enqueue(bytes);
+          controller.close();
+        },
+      }),
+      arrayBuffer: async () => bytes.buffer.slice(0),
+      httpMetadata: { contentType: 'image/jpeg' },
+      size: 4,
     }),
-    httpMetadata: { contentType: 'image/jpeg' },
-    size: 4,
-  }),
-  put: vi.fn().mockResolvedValue(undefined),
-});
+    put: vi.fn().mockResolvedValue(undefined),
+    delete: vi.fn().mockResolvedValue(undefined),
+  };
+};
 
 const createTestApp = () => {
   const app = new Hono();

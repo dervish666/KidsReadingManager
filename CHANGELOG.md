@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.61.6] - 2026-05-07
+
+### Fixed
+
+- **"Image not available" placeholders cached as real covers** — some upstream providers (Hardcover and similar) return their "image not available" PNG with HTTP 200 when the underlying record has no image. The 15.5KB placeholder passed the `MIN_IMAGE_SIZE` (1000 bytes) threshold and was cached in R2 for 30 days, so users saw the placeholder instead of falling through to the next provider. Added a known-placeholder SHA-256 hash set to `covers.js`. Every fetched response is hashed before being accepted, and every R2-cached response is hashed before being served — stale placeholder R2 entries are deleted on read so the cache self-cleans on next access.
+
 ## [3.61.5] - 2026-05-07
 
 ### Fixed
