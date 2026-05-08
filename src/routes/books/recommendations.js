@@ -7,6 +7,7 @@ import { getCachedRecommendations, cacheRecommendations } from '../../utils/reco
 import { parseGenreIds } from '../../utils/helpers.js';
 import { requireReadonly } from '../../middleware/tenant.js';
 import { filterContentSafe } from '../../utils/contentModeration.js';
+import { checkAIBudget, recordAICall, getMonthlyLimit } from '../../utils/aiCostCap.js';
 
 const recommendationsRouter = new Hono();
 
@@ -466,11 +467,34 @@ recommendationsRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
       }
     }
 
+    // Per-org monthly cost cap. Demo users have their own 3/hour cap above;
+    // this is the ceiling for legitimate authenticated traffic. Counts only
+    // cache-misses since cache hits don't burn AI tokens. Owners can raise
+    // the limit via env var AI_MONTHLY_CALL_LIMIT (default 500/month).
+    const aiBudgetLimit = getMonthlyLimit(c.env);
+    const budget = await checkAIBudget(db, organizationId, aiBudgetLimit);
+    if (!budget.allowed) {
+      return c.json(
+        {
+          error: `Monthly AI recommendation limit reached (${budget.used}/${budget.limit} calls for ${budget.period}). Try "Find in Library" instead, or contact support to raise the limit.`,
+          code: 'AI_BUDGET_EXCEEDED',
+          used: budget.used,
+          limit: budget.limit,
+          period: budget.period,
+        },
+        429
+      );
+    }
+
     // Strip demographic and identifying fields before sending to the AI
     // provider. See toAISafeProfile() for the full whitelist — readingLevel
     // + genres + reading-history is sufficient for book recommendations.
     const safeProfile = toAISafeProfile(profile);
     const rawSuggestions = await generateBroadSuggestions(safeProfile, aiConfig, focusMode);
+
+    // Record the call against the org's monthly bucket. Sync (await) so
+    // back-to-back calls can't blow past the cap by racing the write.
+    await recordAICall(db, organizationId);
 
     // Content moderation safety net — filters any AI output whose title or
     // reason hits the explicit-terms denylist. Caller-facing audience is
