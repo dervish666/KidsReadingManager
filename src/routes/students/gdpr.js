@@ -62,6 +62,10 @@ gdprRouter.delete('/:id/erase', requireAdmin(), auditLog('erase', 'student'), as
     .prepare('SELECT COUNT(*) as count FROM student_preferences WHERE student_id = ?')
     .bind(id)
     .first();
+  const badgeCount = await db
+    .prepare('SELECT COUNT(*) as count FROM student_badges WHERE student_id = ?')
+    .bind(id)
+    .first();
 
   const rightsLogId = generateId();
   const statements = [
@@ -72,9 +76,15 @@ gdprRouter.delete('/:id/erase', requireAdmin(), auditLog('erase', 'student'), as
       )
       .bind(rightsLogId, organizationId, id, userId),
 
-    // FK order: sessions → preferences → student
+    // FK order: child rows first, then student. We delete badges + reading-stats
+    // explicitly rather than relying on FK CASCADE — D1 only enforces foreign
+    // keys when PRAGMA foreign_keys = ON is set per-connection, so explicit
+    // deletes are the only guaranteed defence against orphaned rows persisting
+    // after a student is erased.
     db.prepare('DELETE FROM reading_sessions WHERE student_id = ?').bind(id),
     db.prepare('DELETE FROM student_preferences WHERE student_id = ?').bind(id),
+    db.prepare('DELETE FROM student_badges WHERE student_id = ?').bind(id),
+    db.prepare('DELETE FROM student_reading_stats WHERE student_id = ?').bind(id),
     db.prepare('DELETE FROM students WHERE id = ?').bind(id),
 
     // Anonymise prior audit_log entries that referenced this student
@@ -104,6 +114,8 @@ gdprRouter.delete('/:id/erase', requireAdmin(), auditLog('erase', 'student'), as
     erased: {
       readingSessions: sessionCount.count,
       preferences: prefCount.count,
+      badges: badgeCount.count,
+      readingStats: 1,
       studentRecord: 1,
       auditEntriesAnonymised: true,
       wondeExcluded: Boolean(student.wonde_student_id),

@@ -7,6 +7,8 @@
  * updateClassGoalOnSession(db, studentId, orgId) — trigger recalc after a session save
  */
 
+import { assertBatchSize } from './d1Batch.js';
+
 // ── Term Resolution ─────────────────────────────────────────────────────────
 
 /**
@@ -233,6 +235,7 @@ export async function recalculateClassGoalProgress(db, classId, orgId, startDate
   });
 
   // 6. Batch all updates
+  assertBatchSize(updateStatements, 'classGoals recalculate');
   await db.batch(updateStatements);
 }
 

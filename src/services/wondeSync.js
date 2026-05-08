@@ -15,6 +15,7 @@
 
 import { fetchAllStudents, fetchAllClasses, fetchDeletions } from '../utils/wondeApi.js';
 import { syncUserClassAssignments } from '../utils/classAssignments.js';
+import { assertBatchSize } from '../utils/d1Batch.js';
 
 /**
  * Maps a Wonde student object to Tally student fields.
@@ -212,7 +213,9 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
 
     // Execute class upserts in batches of 100
     for (let i = 0; i < classStatements.length; i += 100) {
-      await db.batch(classStatements.slice(i, i + 100));
+      const chunk = classStatements.slice(i, i + 100);
+      assertBatchSize(chunk, 'wondeSync classes');
+      await db.batch(chunk);
     }
 
     // -----------------------------------------------------------------------
@@ -312,7 +315,9 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
 
     // Execute student upserts in batches of 100
     for (let i = 0; i < studentStatements.length; i += 100) {
-      await db.batch(studentStatements.slice(i, i + 100));
+      const chunk = studentStatements.slice(i, i + 100);
+      assertBatchSize(chunk, 'wondeSync students');
+      await db.batch(chunk);
     }
 
     // -----------------------------------------------------------------------
@@ -354,10 +359,13 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
     {
       // First batch: DELETE + up to 99 inserts (keeping total within D1's 100-statement limit)
       const firstBatch = [deleteStmt, ...employeeStatements.slice(0, 99)];
+      assertBatchSize(firstBatch, 'wondeSync employee-classes first');
       await db.batch(firstBatch);
       // Remaining batches of 100
       for (let i = 99; i < employeeStatements.length; i += 100) {
-        await db.batch(employeeStatements.slice(i, i + 100));
+        const chunk = employeeStatements.slice(i, i + 100);
+        assertBatchSize(chunk, 'wondeSync employee-classes');
+        await db.batch(chunk);
       }
     }
     // If there are no employee statements, still run the DELETE to clear stale mappings

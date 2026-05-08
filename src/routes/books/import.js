@@ -4,6 +4,7 @@ import { createProvider } from '../../data/index.js';
 import { badRequestError } from '../../middleware/errorHandler.js';
 import { isExactMatch, isFuzzyMatch, isAuthorMatch } from '../../utils/stringMatching.js';
 import { requireTeacher, requireAdmin, auditLog } from '../../middleware/tenant.js';
+import { assertBatchSize } from '../../utils/d1Batch.js';
 
 const importRouter = new Hono();
 
@@ -161,7 +162,9 @@ importRouter.post('/bulk', requireTeacher(), async (c) => {
         .bind(crypto.randomUUID(), organizationId, book.id)
     );
     for (let i = 0; i < linkStatements.length; i += 100) {
-      await db.batch(linkStatements.slice(i, i + 100));
+      const chunk = linkStatements.slice(i, i + 100);
+      assertBatchSize(chunk, 'books/bulk org_book_selections');
+      await db.batch(chunk);
     }
   }
 
@@ -501,7 +504,9 @@ importRouter.post('/import/confirm', requireAdmin(), auditLog('import', 'books')
   for (let i = 0; i < statements.length; i += BATCH_SIZE) {
     const batch = statements.slice(i, i + BATCH_SIZE);
     try {
-      await db.batch(batch.map((b) => b.stmt));
+      const stmts = batch.map((b) => b.stmt);
+      assertBatchSize(stmts, 'books/import/confirm');
+      await db.batch(stmts);
       // D1 batches are all-or-nothing — if we get here, all succeeded
       batch.forEach((b) => b.onSuccess());
     } catch (error) {

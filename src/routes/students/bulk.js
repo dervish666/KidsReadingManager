@@ -13,6 +13,7 @@ import { badRequestError, forbiddenError } from '../../middleware/errorHandler.j
 import { auditLog } from '../../middleware/tenant.js';
 import { permissions } from '../../utils/crypto.js';
 import { getDB, isMultiTenantMode } from '../../utils/routeHelpers.js';
+import { assertBatchSize } from '../../utils/d1Batch.js';
 import { addStudents as addStudentsKV } from '../../services/kvService.js';
 
 const bulkRouter = new Hono();
@@ -94,6 +95,7 @@ bulkRouter.post('/bulk', auditLog('import', 'student'), async (c) => {
           );
       });
 
+      assertBatchSize(statements, 'students/bulk');
       await db.batch(statements);
       savedStudents.push(...batch);
     }
