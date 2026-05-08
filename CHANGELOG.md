@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.63.0] - 2026-05-08
+
+Audit cycle 13 — Phase 2 #14 + #13 (AI safety completeness). Audit-plan item #20 (classGoalsEngine 6-query recalc) was re-verified and found already-fixed in v3.57.0 — third stale carryover this cycle, marked struck-through in the audit docs.
+
+### Added
+
+- **AI provider failover** (`src/services/aiService.js`). New `generateBroadSuggestionsWithFailover(profile, configs[], focusMode)` tries each config in order and returns the first successful response. The recommendations route now builds a chain — primary config (school key / platform key / first env key, as before) plus any other available env-key candidates appended as fallbacks. A transient outage on one provider (5xx, timeout, malformed response) flows through to the next rather than 500-ing the user. Aggregate error message includes each provider's specific failure when all configs fail.
+- **AI response schema validation** (`src/services/aiService.js`). New `AIValidationError` exception, plus `validateSuggestion()` / `validateSuggestionsArray()` helpers. `parseBroadSuggestionsResponse()` now rejects empty arrays, missing required fields (`title`, `author`, `reason`), invalid `readingLevel` values, and non-array responses. The failover wrapper treats validation failures the same as transport failures, so a malformed response from one provider transparently fails over to the next.
+
+### Documentation
+
+- Marked audit-2026-05-08 carryover #20 (classGoalsEngine 6-query recalc) as already-fixed in v3.57.0 — third stale carryover from cycle 13's "Still present" list. The earlier-shipped re-verify-carryovers rule in the global `codebase-audit` skill now has a concrete pattern of three stale items recorded as evidence.
+
 ## [3.62.1] - 2026-05-08
 
 Audit cycle 13 — Phase 2 quick wins. Two of the three planned items were already shipped in v3.57.0 (carryover entries inherited stale from the 2026-04-24 plan without re-verification — see lesson recorded in the audit report and the `codebase-audit` skill).

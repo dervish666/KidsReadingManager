@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { generateBroadSuggestions } from '../../services/aiService.js';
+import { generateBroadSuggestionsWithFailover } from '../../services/aiService.js';
 import { notFoundError, badRequestError, serverError } from '../../middleware/errorHandler.js';
 import { decryptSensitiveData, getEncryptionSecret } from '../../utils/crypto.js';
 import { buildStudentReadingProfile, toAISafeProfile } from '../../utils/studentProfile.js';
@@ -490,7 +490,35 @@ recommendationsRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
     // provider. See toAISafeProfile() for the full whitelist — readingLevel
     // + genres + reading-history is sufficient for book recommendations.
     const safeProfile = toAISafeProfile(profile);
-    const rawSuggestions = await generateBroadSuggestions(safeProfile, aiConfig, focusMode);
+
+    // Build the failover chain. The primary `aiConfig` selected above stays
+    // first; any env-key candidates that aren't already the primary are
+    // appended as fallbacks. A transient outage on the primary (5xx / timeout
+    // / malformed response that fails schema validation) flows through to
+    // the next provider rather than 5xx-ing the user. Note: env-key failover
+    // means a school-key failure can fall through to our platform spend —
+    // acceptable as a transient-outage handler, not a routing default.
+    const aiConfigs = [aiConfig];
+    const failoverCandidates = [
+      { provider: 'anthropic', envKey: 'ANTHROPIC_API_KEY' },
+      { provider: 'openai', envKey: 'OPENAI_API_KEY' },
+      { provider: 'google', envKey: 'GOOGLE_API_KEY' },
+    ];
+    for (const { provider, envKey } of failoverCandidates) {
+      const envApiKey = c.env[envKey];
+      if (
+        envApiKey &&
+        !aiConfigs.some((cfg) => cfg.apiKey === envApiKey && cfg.provider === provider)
+      ) {
+        aiConfigs.push({ provider, apiKey: envApiKey, model: null });
+      }
+    }
+
+    const rawSuggestions = await generateBroadSuggestionsWithFailover(
+      safeProfile,
+      aiConfigs,
+      focusMode
+    );
 
     // Record the call against the org's monthly bucket. Sync (await) so
     // back-to-back calls can't blow past the cap by racing the write.

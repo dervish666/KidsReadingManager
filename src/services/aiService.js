@@ -482,22 +482,104 @@ function normalizeBroadSuggestions(suggestions) {
   }));
 }
 
+// ── AI response validation (audit cycle 13 #13) ─────────────────────────────
+
 /**
- * Parse AI response for broad suggestions
+ * Errors thrown when an AI response fails parsing or schema validation. The
+ * failover wrapper treats these the same as transport failures so a
+ * malformed response from one provider transparently fails over to the next.
+ */
+export class AIValidationError extends Error {
+  constructor(message, raw) {
+    super(message);
+    this.name = 'AIValidationError';
+    this.raw = raw;
+  }
+}
+
+const ALLOWED_READING_LEVELS = new Set(['beginner', 'elementary', 'intermediate', 'advanced']);
+
+/**
+ * Validate one AI-generated suggestion against the expected shape. The
+ * required fields are the ones whose absence would surface as
+ * "Unknown Title — by Unknown Author" garbage in the UI; everything else is
+ * tolerated. Returns `{ valid, errors }` so the caller can log the specific
+ * field problems without exposing them to end users.
+ *
+ * @param {*} s - One suggestion from the parsed AI response
+ */
+export function validateSuggestion(s) {
+  const errors = [];
+  if (!s || typeof s !== 'object' || Array.isArray(s)) {
+    return { valid: false, errors: ['not an object'] };
+  }
+  for (const field of ['title', 'author', 'reason']) {
+    if (typeof s[field] !== 'string' || !s[field].trim()) {
+      errors.push(`missing or empty ${field}`);
+    }
+  }
+  for (const field of ['ageRange', 'readingLevel', 'whereToFind']) {
+    if (s[field] !== undefined && s[field] !== null && typeof s[field] !== 'string') {
+      errors.push(`${field} must be a string when present`);
+    }
+  }
+  if (
+    typeof s.readingLevel === 'string' &&
+    s.readingLevel.trim() &&
+    !ALLOWED_READING_LEVELS.has(s.readingLevel)
+  ) {
+    errors.push(`unknown readingLevel: ${s.readingLevel}`);
+  }
+  return { valid: errors.length === 0, errors };
+}
+
+/**
+ * Validate the full AI response (an array of 1–5 suggestions). Empty arrays
+ * count as failure — they typically signal the model gave up or refused. The
+ * failover wrapper retries with the next provider on this case too.
+ *
+ * @param {*} arr - Parsed AI response
+ */
+export function validateSuggestionsArray(arr) {
+  if (!Array.isArray(arr)) return { valid: false, errors: ['response is not an array'] };
+  if (arr.length === 0) return { valid: false, errors: ['response array is empty'] };
+  const errors = [];
+  arr.forEach((rec, i) => {
+    const result = validateSuggestion(rec);
+    if (!result.valid) errors.push(`item ${i}: ${result.errors.join('; ')}`);
+  });
+  return { valid: errors.length === 0, errors };
+}
+
+/**
+ * Parse AI response for broad suggestions. Throws `AIValidationError` for
+ * non-JSON responses, non-array responses, empty arrays, or items missing
+ * required fields. The failover wrapper handles those errors by trying the
+ * next provider in the chain.
  */
 function parseBroadSuggestionsResponse(text) {
+  let suggestions;
   try {
-    // Extract JSON from the response (in case of extra text)
-    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    // Extract JSON from the response (in case of extra text around the array)
+    const jsonMatch = text?.match(/\[[\s\S]*\]/);
     const jsonText = jsonMatch ? jsonMatch[0] : text;
-    const suggestions = JSON.parse(jsonText);
-
-    return normalizeBroadSuggestions(suggestions);
+    suggestions = JSON.parse(jsonText);
   } catch (error) {
-    console.error('Failed to parse AI broad suggestions response:', error);
+    console.error('Failed to parse AI broad suggestions response:', error?.message);
     console.error('Raw response (truncated):', text?.substring(0, 200));
-    throw new Error('Invalid response format from AI provider');
+    throw new AIValidationError('Invalid JSON in AI response', text?.substring(0, 200));
   }
+
+  const validation = validateSuggestionsArray(suggestions);
+  if (!validation.valid) {
+    console.error('AI response failed schema validation:', validation.errors);
+    throw new AIValidationError(
+      `AI response shape invalid: ${validation.errors.slice(0, 3).join('; ')}`,
+      typeof text === 'string' ? text.substring(0, 200) : null
+    );
+  }
+
+  return normalizeBroadSuggestions(suggestions);
 }
 
 /**
@@ -533,4 +615,50 @@ export async function generateBroadSuggestions(studentProfile, config, focusMode
   }
 
   return parseBroadSuggestionsResponse(response);
+}
+
+/**
+ * Generate broad AI suggestions, falling through a list of provider configs
+ * on failure. The first config's response is preferred; if it errors (network
+ * failure, 5xx, validation failure via `AIValidationError`), the next config
+ * is tried, and so on. Returns the first successful set of suggestions.
+ *
+ * Failure of every config throws an aggregate error including each provider's
+ * specific failure reason (truncated). Caller is responsible for translating
+ * that into a user-facing 5xx with the "Try Find in Library" copy — see the
+ * recommendations route's catch block.
+ *
+ * @param {Object} studentProfile - Profile from `toAISafeProfile`
+ * @param {Array<Object>} configs - Ordered list of `{provider, apiKey, model}`
+ *   to try. Index 0 is the primary; later indices are failover targets.
+ * @param {string} [focusMode='balanced']
+ * @returns {Promise<Array>} Validated, normalised suggestion array
+ */
+export async function generateBroadSuggestionsWithFailover(
+  studentProfile,
+  configs,
+  focusMode = 'balanced'
+) {
+  if (!Array.isArray(configs) || configs.length === 0) {
+    throw new Error('At least one AI config is required for failover');
+  }
+
+  const failures = [];
+  for (let i = 0; i < configs.length; i += 1) {
+    const config = configs[i];
+    const providerLabel = config?.provider || 'unknown';
+    try {
+      return await generateBroadSuggestions(studentProfile, config, focusMode);
+    } catch (err) {
+      const message = err?.message || 'unknown error';
+      failures.push(`${providerLabel}: ${message}`);
+      if (i < configs.length - 1) {
+        console.warn(
+          `[ai-failover] ${providerLabel} attempt ${i + 1}/${configs.length} failed (${message}); trying next provider`
+        );
+      }
+    }
+  }
+
+  throw new Error(`All ${configs.length} AI providers failed — ${failures.join('; ')}`);
 }

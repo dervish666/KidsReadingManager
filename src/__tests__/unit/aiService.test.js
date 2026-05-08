@@ -1,5 +1,12 @@
-import { describe, it, expect } from 'vitest';
-import { buildBroadSuggestionsPrompt, tagUserInput } from '../../services/aiService.js';
+import { describe, it, expect, vi } from 'vitest';
+import {
+  buildBroadSuggestionsPrompt,
+  tagUserInput,
+  validateSuggestion,
+  validateSuggestionsArray,
+  generateBroadSuggestionsWithFailover,
+  AIValidationError,
+} from '../../services/aiService.js';
 
 describe('aiService', () => {
   describe('buildBroadSuggestionsPrompt', () => {
@@ -524,5 +531,242 @@ describe('aiService', () => {
       const prompt = buildBroadSuggestionsPrompt(baseProfile());
       expect(prompt.toLowerCase()).toMatch(/mature|graphic|unsuitable/);
     });
+  });
+});
+
+// ── #13 AI response schema validation ─────────────────────────────────────────
+
+describe('validateSuggestion', () => {
+  const valid = () => ({
+    title: 'The Hobbit',
+    author: 'J.R.R. Tolkien',
+    ageRange: '8-12',
+    readingLevel: 'intermediate',
+    reason: 'A great fantasy adventure for confident readers.',
+    whereToFind: 'Available at most public libraries.',
+  });
+
+  it('accepts a fully-formed suggestion', () => {
+    expect(validateSuggestion(valid())).toEqual({ valid: true, errors: [] });
+  });
+
+  it('accepts when optional fields are missing', () => {
+    const s = valid();
+    delete s.ageRange;
+    delete s.whereToFind;
+    delete s.readingLevel;
+    expect(validateSuggestion(s).valid).toBe(true);
+  });
+
+  it('rejects when required fields are missing or empty', () => {
+    expect(validateSuggestion({ ...valid(), title: '' }).valid).toBe(false);
+    expect(validateSuggestion({ ...valid(), author: undefined }).valid).toBe(false);
+    expect(validateSuggestion({ ...valid(), reason: null }).valid).toBe(false);
+    expect(validateSuggestion({ ...valid(), title: '   ' }).valid).toBe(false);
+  });
+
+  it('rejects non-object input', () => {
+    expect(validateSuggestion(null).valid).toBe(false);
+    expect(validateSuggestion('a string').valid).toBe(false);
+    expect(validateSuggestion(['array']).valid).toBe(false);
+    expect(validateSuggestion(42).valid).toBe(false);
+  });
+
+  it('rejects unknown readingLevel values', () => {
+    expect(validateSuggestion({ ...valid(), readingLevel: 'expert' }).valid).toBe(false);
+    expect(validateSuggestion({ ...valid(), readingLevel: 'genius' }).valid).toBe(false);
+  });
+
+  it('accepts the four allowed readingLevel values', () => {
+    for (const level of ['beginner', 'elementary', 'intermediate', 'advanced']) {
+      expect(validateSuggestion({ ...valid(), readingLevel: level }).valid).toBe(true);
+    }
+  });
+
+  it('reports specific field errors so the caller can log them', () => {
+    const result = validateSuggestion({ title: 'X', author: '', reason: 5 });
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => /author/.test(e))).toBe(true);
+    expect(result.errors.some((e) => /reason/.test(e))).toBe(true);
+  });
+});
+
+describe('validateSuggestionsArray', () => {
+  const validItem = () => ({
+    title: 'X',
+    author: 'Y',
+    reason: 'because',
+  });
+
+  it('rejects non-arrays', () => {
+    expect(validateSuggestionsArray({ title: 'X' }).valid).toBe(false);
+    expect(validateSuggestionsArray('foo').valid).toBe(false);
+    expect(validateSuggestionsArray(null).valid).toBe(false);
+  });
+
+  it('rejects empty arrays', () => {
+    const result = validateSuggestionsArray([]);
+    expect(result.valid).toBe(false);
+    expect(result.errors[0]).toMatch(/empty/i);
+  });
+
+  it('accepts an array of valid suggestions', () => {
+    expect(validateSuggestionsArray([validItem(), validItem()]).valid).toBe(true);
+  });
+
+  it('reports per-item errors with index', () => {
+    const result = validateSuggestionsArray([validItem(), { title: '' }]);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.startsWith('item 1:'))).toBe(true);
+  });
+});
+
+// ── #14 AI provider failover ──────────────────────────────────────────────────
+
+describe('generateBroadSuggestionsWithFailover', () => {
+  // We mock the provider call indirectly via fetch — the simplest path is to
+  // throw at the provider call by passing configs with a known-bad apiKey
+  // shape. But easier: stub the global fetch so we can control responses.
+  const validResponseBody = JSON.stringify([
+    {
+      title: 'The Hobbit',
+      author: 'J.R.R. Tolkien',
+      ageRange: '8-12',
+      readingLevel: 'intermediate',
+      reason: 'Adventure for fantasy fans.',
+      whereToFind: 'Public libraries.',
+    },
+  ]);
+
+  const stubFetch = (handlers) => {
+    let callIndex = 0;
+    return vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+      const handler = handlers[callIndex] || handlers[handlers.length - 1];
+      callIndex += 1;
+      if (typeof handler === 'function') return handler(url);
+      return handler;
+    });
+  };
+
+  const buildAnthropicResponse = (body) =>
+    new Response(JSON.stringify({ content: [{ type: 'text', text: body }] }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+  const buildAnthropicError = (status = 500) =>
+    new Response('{"error":{"message":"Internal Server Error"}}', {
+      status,
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+  const profile = {
+    student: { readingLevel: 'intermediate', readingLevelMin: 4, readingLevelMax: 6 },
+    preferences: {
+      favoriteGenreIds: [],
+      favoriteGenreNames: ['Fantasy'],
+      likes: [],
+      dislikes: [],
+    },
+    inferredGenres: [],
+    recentReads: [],
+    readBookIds: [],
+    booksReadCount: 0,
+  };
+
+  it('throws when given no configs', async () => {
+    await expect(generateBroadSuggestionsWithFailover(profile, [])).rejects.toThrow(
+      /At least one AI config/
+    );
+    await expect(generateBroadSuggestionsWithFailover(profile, null)).rejects.toThrow(
+      /At least one AI config/
+    );
+  });
+
+  it('returns the first successful provider response', async () => {
+    const fetchSpy = stubFetch([buildAnthropicResponse(validResponseBody)]);
+    try {
+      const result = await generateBroadSuggestionsWithFailover(profile, [
+        { provider: 'anthropic', apiKey: 'sk-test-1', model: null },
+      ]);
+      expect(Array.isArray(result)).toBe(true);
+      expect(result[0].title).toBe('The Hobbit');
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
+
+  it('falls through to the second provider when the first 5xxs', async () => {
+    const fetchSpy = stubFetch([
+      buildAnthropicError(503),
+      buildAnthropicResponse(validResponseBody),
+    ]);
+    try {
+      const result = await generateBroadSuggestionsWithFailover(profile, [
+        { provider: 'anthropic', apiKey: 'sk-anthropic', model: null },
+        { provider: 'anthropic', apiKey: 'sk-fallback', model: null },
+      ]);
+      expect(result[0].title).toBe('The Hobbit');
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
+
+  it('falls through on AIValidationError (malformed response)', async () => {
+    // First provider returns an empty array — fails schema validation.
+    const fetchSpy = stubFetch([
+      buildAnthropicResponse('[]'),
+      buildAnthropicResponse(validResponseBody),
+    ]);
+    try {
+      const result = await generateBroadSuggestionsWithFailover(profile, [
+        { provider: 'anthropic', apiKey: 'sk-1', model: null },
+        { provider: 'anthropic', apiKey: 'sk-2', model: null },
+      ]);
+      expect(result[0].title).toBe('The Hobbit');
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
+
+  it('aggregates failure messages when every provider fails', async () => {
+    const fetchSpy = stubFetch([buildAnthropicError(503), buildAnthropicError(500)]);
+    try {
+      await expect(
+        generateBroadSuggestionsWithFailover(profile, [
+          { provider: 'anthropic', apiKey: 'sk-1', model: null },
+          { provider: 'openai', apiKey: 'sk-2', model: null },
+        ])
+      ).rejects.toThrow(/All 2 AI providers failed/);
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
+
+  it('does not retry the second provider after the first succeeds', async () => {
+    const handler2 = vi.fn(() => buildAnthropicResponse(validResponseBody));
+    const fetchSpy = stubFetch([buildAnthropicResponse(validResponseBody), handler2]);
+    try {
+      await generateBroadSuggestionsWithFailover(profile, [
+        { provider: 'anthropic', apiKey: 'sk-1', model: null },
+        { provider: 'anthropic', apiKey: 'sk-2', model: null },
+      ]);
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      expect(handler2).not.toHaveBeenCalled();
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
+});
+
+describe('AIValidationError', () => {
+  it('preserves the raw response (truncated) for debugging', () => {
+    const err = new AIValidationError('bad shape', '[truncated raw response]');
+    expect(err.name).toBe('AIValidationError');
+    expect(err.raw).toBe('[truncated raw response]');
+    expect(err.message).toBe('bad shape');
   });
 });
