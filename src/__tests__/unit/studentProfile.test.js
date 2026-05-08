@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { buildStudentReadingProfile } from '../../utils/studentProfile.js';
+import { buildStudentReadingProfile, toAISafeProfile } from '../../utils/studentProfile.js';
 
 describe('buildStudentReadingProfile', () => {
   let mockDb;
@@ -559,5 +559,88 @@ describe('buildStudentReadingProfile', () => {
     expect(profile.recentReads).toEqual([]);
     expect(profile.readBookIds).toEqual([]);
     expect(profile.booksReadCount).toBe(0);
+  });
+});
+
+describe('toAISafeProfile — demographic data minimisation', () => {
+  const fullProfile = () => ({
+    student: {
+      id: 'student-1',
+      readingLevel: 'intermediate',
+      readingLevelMin: 4.5,
+      readingLevelMax: 6.0,
+      ageRange: '8-10',
+      notes: 'Loves dragons. Father in armed forces.',
+      age: 9,
+      gender: 'F',
+      firstLanguage: 'Welsh',
+      ealDetailedStatus: 'A',
+      yearGroup: '4',
+    },
+    preferences: {
+      favoriteGenreIds: ['g1', 'g2'],
+      favoriteGenreNames: ['Fantasy', 'Adventure'],
+      likes: ['Harry Potter'],
+      dislikes: ['scary'],
+    },
+    inferredGenres: [{ id: 'g3', name: 'Mystery', count: 2 }],
+    recentReads: [{ title: 'The Hobbit', author: 'Tolkien' }],
+    readBookIds: ['b1', 'b2'],
+    booksReadCount: 2,
+  });
+
+  it('keeps only reading-level fields on the student sub-object', () => {
+    const safe = toAISafeProfile(fullProfile());
+    expect(Object.keys(safe.student).sort()).toEqual([
+      'readingLevel',
+      'readingLevelMax',
+      'readingLevelMin',
+    ]);
+    expect(safe.student.readingLevel).toBe('intermediate');
+    expect(safe.student.readingLevelMin).toBe(4.5);
+    expect(safe.student.readingLevelMax).toBe(6.0);
+  });
+
+  it('strips identifiers (id, notes)', () => {
+    const safe = toAISafeProfile(fullProfile());
+    expect(safe.student.id).toBeUndefined();
+    expect(safe.student.notes).toBeUndefined();
+  });
+
+  it('strips demographic fields (age, gender, EAL, year group, first language, age range)', () => {
+    const safe = toAISafeProfile(fullProfile());
+    expect(safe.student.age).toBeUndefined();
+    expect(safe.student.ageRange).toBeUndefined();
+    expect(safe.student.gender).toBeUndefined();
+    expect(safe.student.firstLanguage).toBeUndefined();
+    expect(safe.student.ealDetailedStatus).toBeUndefined();
+    expect(safe.student.yearGroup).toBeUndefined();
+  });
+
+  it('preserves preferences (genres, likes, dislikes — needed for personalisation)', () => {
+    const safe = toAISafeProfile(fullProfile());
+    expect(safe.preferences.favoriteGenreNames).toEqual(['Fantasy', 'Adventure']);
+    expect(safe.preferences.likes).toEqual(['Harry Potter']);
+    expect(safe.preferences.dislikes).toEqual(['scary']);
+  });
+
+  it('preserves recent-read titles + authors but drops opaque ID fields', () => {
+    const safe = toAISafeProfile(fullProfile());
+    expect(safe.recentReads).toEqual([{ title: 'The Hobbit', author: 'Tolkien' }]);
+    expect(safe.inferredGenres).toEqual([{ name: 'Mystery', count: 2 }]);
+    expect(safe.inferredGenres[0].id).toBeUndefined();
+  });
+
+  it('returns falsy input unchanged', () => {
+    expect(toAISafeProfile(null)).toBeNull();
+    expect(toAISafeProfile(undefined)).toBeUndefined();
+  });
+
+  it('handles partial input without throwing', () => {
+    const minimal = { student: { readingLevel: 'beginner' } };
+    const safe = toAISafeProfile(minimal);
+    expect(safe.student.readingLevel).toBe('beginner');
+    expect(safe.preferences.favoriteGenreNames).toEqual([]);
+    expect(safe.recentReads).toEqual([]);
   });
 });

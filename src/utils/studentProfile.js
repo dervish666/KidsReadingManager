@@ -176,3 +176,43 @@ export async function buildStudentReadingProfile(studentId, organizationId, db) 
     booksReadCount: readBookIds.length,
   };
 }
+
+/**
+ * Strip demographic fields from a student-reading profile before sending to
+ * an external AI provider.
+ *
+ * Tally is a children's-data product. The full profile carries DOB-derived
+ * `age`, `gender`, `firstLanguage`, `ealDetailedStatus`, `yearGroup`,
+ * `ageRange`, free-text `notes`, and the student `id` — none of which the
+ * AI needs to recommend appropriate books. Reading level + genre + reading
+ * history is sufficient. Stripping these fields at the boundary means a
+ * future commit that adds them to the prompt template can't accidentally
+ * exfiltrate them.
+ *
+ * @param {Object} profile - Output of buildStudentReadingProfile()
+ * @returns {Object} A profile with the same shape but no demographic data
+ */
+export function toAISafeProfile(profile) {
+  if (!profile) return profile;
+
+  const { student, preferences, inferredGenres, recentReads, readBookIds, booksReadCount } =
+    profile;
+
+  return {
+    student: {
+      readingLevel: student?.readingLevel ?? null,
+      readingLevelMin: student?.readingLevelMin ?? null,
+      readingLevelMax: student?.readingLevelMax ?? null,
+    },
+    preferences: {
+      favoriteGenreIds: preferences?.favoriteGenreIds ?? [],
+      favoriteGenreNames: preferences?.favoriteGenreNames ?? [],
+      likes: preferences?.likes ?? [],
+      dislikes: preferences?.dislikes ?? [],
+    },
+    inferredGenres: (inferredGenres ?? []).map((g) => ({ name: g.name, count: g.count })),
+    recentReads: (recentReads ?? []).map((b) => ({ title: b.title, author: b.author })),
+    readBookIds: readBookIds ?? [],
+    booksReadCount: booksReadCount ?? 0,
+  };
+}

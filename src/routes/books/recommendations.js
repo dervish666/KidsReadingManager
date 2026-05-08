@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { generateBroadSuggestions } from '../../services/aiService.js';
 import { notFoundError, badRequestError, serverError } from '../../middleware/errorHandler.js';
 import { decryptSensitiveData, getEncryptionSecret } from '../../utils/crypto.js';
-import { buildStudentReadingProfile } from '../../utils/studentProfile.js';
+import { buildStudentReadingProfile, toAISafeProfile } from '../../utils/studentProfile.js';
 import { getCachedRecommendations, cacheRecommendations } from '../../utils/recommendationCache.js';
 import { parseGenreIds } from '../../utils/helpers.js';
 import { requireReadonly } from '../../middleware/tenant.js';
@@ -465,8 +465,11 @@ recommendationsRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
       }
     }
 
-    // Generate AI suggestions
-    const suggestions = await generateBroadSuggestions(profile, aiConfig, focusMode);
+    // Strip demographic and identifying fields before sending to the AI
+    // provider. See toAISafeProfile() for the full whitelist — readingLevel
+    // + genres + reading-history is sufficient for book recommendations.
+    const safeProfile = toAISafeProfile(profile);
+    const suggestions = await generateBroadSuggestions(safeProfile, aiConfig, focusMode);
 
     // Set provider on cache inputs (now we know from aiConfig)
     cacheInputs.provider = aiConfig.provider;
