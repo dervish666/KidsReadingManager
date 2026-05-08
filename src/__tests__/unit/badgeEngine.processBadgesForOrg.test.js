@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { processBadgesForOrg } from '../../utils/badgeEngine.js';
+import {
+  processBadgesForOrg,
+  recalculateStats,
+  fetchGenreNameMap,
+} from '../../utils/badgeEngine.js';
 
 /**
  * Tests for the per-org badge processor — specifically the budget-aware
@@ -172,5 +176,104 @@ describe('processBadgesForOrg', () => {
     // student doesn't increment processedCount or advance lastProcessedId
     expect(result.exhausted).toBe(false);
     expect(result.processedCount).toBeGreaterThanOrEqual(3);
+  });
+
+  // Genre-fetch hoist (audit cycle 13 #16) ───────────────────────────────────
+  describe('genres-map hoist', () => {
+    const countGenreFetches = (db) =>
+      db.prepare.mock.calls.filter(([sql]) => /SELECT id, name FROM genres/.test(sql)).length;
+
+    it('fetches the genres map exactly once across many students', async () => {
+      const db = buildMockDB(buildStudents(5));
+      const deadlineMs = Date.now() + 60_000;
+
+      await processBadgesForOrg(db, 'org-1', null, deadlineMs);
+
+      // Without the hoist this would be 5+ (one per recalculateStats call)
+      expect(countGenreFetches(db)).toBe(1);
+    });
+
+    it('still fetches once when no students need processing', async () => {
+      const db = buildMockDB([]);
+      const deadlineMs = Date.now() + 60_000;
+
+      await processBadgesForOrg(db, 'org-1', null, deadlineMs);
+
+      // Hoist is unconditional — fine, the cost is negligible relative to
+      // the saved fetches and keeps the code path uniform.
+      expect(countGenreFetches(db)).toBe(1);
+    });
+  });
+});
+
+describe('fetchGenreNameMap', () => {
+  it('returns a Map of id → name from the genres table', async () => {
+    const db = {
+      prepare: vi.fn(() => ({
+        all: vi.fn().mockResolvedValue({
+          results: [
+            { id: 'g1', name: 'Fantasy' },
+            { id: 'g2', name: 'Adventure' },
+          ],
+        }),
+      })),
+    };
+
+    const map = await fetchGenreNameMap(db);
+
+    expect(map).toBeInstanceOf(Map);
+    expect(map.get('g1')).toBe('Fantasy');
+    expect(map.get('g2')).toBe('Adventure');
+    expect(map.size).toBe(2);
+  });
+
+  it('returns an empty Map if the table is empty', async () => {
+    const db = {
+      prepare: vi.fn(() => ({
+        all: vi.fn().mockResolvedValue({ results: [] }),
+      })),
+    };
+
+    const map = await fetchGenreNameMap(db);
+    expect(map.size).toBe(0);
+  });
+});
+
+describe('recalculateStats — genres-map injection', () => {
+  // Minimal mock D1 for `recalculateStats`: returns empty results for
+  // sessions / books / genres queries so the function exits with zero
+  // stats without throwing. We just need to count whether genres were
+  // fetched.
+  const buildStatsMockDB = () => {
+    const prepare = vi.fn(() => ({
+      bind: vi.fn().mockReturnThis(),
+      all: vi.fn().mockResolvedValue({ results: [], success: true }),
+      first: vi.fn().mockResolvedValue(null),
+      run: vi.fn().mockResolvedValue({ success: true }),
+    }));
+    return { prepare, batch: vi.fn().mockResolvedValue([]) };
+  };
+
+  it('lazy-fetches the genres map when no map is supplied (per-session callers)', async () => {
+    const db = buildStatsMockDB();
+
+    await recalculateStats(db, 'student-1', 'org-1');
+
+    const genreFetches = db.prepare.mock.calls.filter(([sql]) =>
+      /SELECT id, name FROM genres/.test(sql)
+    );
+    expect(genreFetches.length).toBe(1);
+  });
+
+  it('does NOT fetch genres when a map is supplied (cron hot path)', async () => {
+    const db = buildStatsMockDB();
+    const preExistingMap = new Map([['g1', 'Fantasy']]);
+
+    await recalculateStats(db, 'student-1', 'org-1', preExistingMap);
+
+    const genreFetches = db.prepare.mock.calls.filter(([sql]) =>
+      /SELECT id, name FROM genres/.test(sql)
+    );
+    expect(genreFetches.length).toBe(0);
   });
 });

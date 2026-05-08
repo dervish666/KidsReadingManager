@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.62.1] - 2026-05-08
+
+Audit cycle 13 — Phase 2 quick wins. Two of the three planned items were already shipped in v3.57.0 (carryover entries inherited stale from the 2026-04-24 plan without re-verification — see lesson recorded in the audit report and the `codebase-audit` skill).
+
+### Changed
+
+- **Badge cron — genres lookup hoisted out of per-student loop** (`src/utils/badgeEngine.js`). New exported `fetchGenreNameMap(db)`. `recalculateStats` now accepts an optional `genreNameMap` arg; when supplied, skips the lazy fetch. `processBadgesForOrg` fetches the map once per org-run and threads it through every `recalculateStats` call. At target scale (100 orgs × 500 students × ~1k genres), this collapses 50k full-table scans per nightly cron into 100 — same data, fraction of the row reads. Per-session callers (POST/PUT/DELETE) keep the old lazy-fetch behaviour unchanged.
+
+### Documentation
+
+- Marked audit-2026-05-08 carryover items #21 (register slug `ReferenceError`) and #22 (rateLimit fail-open) as already-fixed in v3.57.0. Added a "re-verify carryovers" step to the global `codebase-audit` skill so future cycles don't propagate stale entries.
+
 ## [3.62.0] - 2026-05-08
 
 Audit cycle 13 — 10 of 12 Phase 1 items shipped (the two deferred items, cover-lookup batching and per-student parental consent, are tracked separately; #6 was closed as superseded by the data-minimisation work below).

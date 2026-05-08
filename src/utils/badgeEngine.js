@@ -41,7 +41,31 @@ export const classifyGenre = (genreName) => GENRE_CLASSIFICATION[genreName] || '
 const isMarkerSession = (notes) =>
   notes && (notes.includes('[ABSENT]') || notes.includes('[NO_RECORD]'));
 
-export async function recalculateStats(db, studentId, organizationId) {
+/**
+ * Fetch the platform-wide genre id→name map. Genres are a single global
+ * reference table (only the owner role can create/edit them — see
+ * src/routes/genres.js — so no cross-tenant write path; reading unscoped
+ * is safe). Exposed as a helper so cron paths can fetch once and pass
+ * the map into many `recalculateStats` calls instead of re-querying per
+ * student. See `recalculateStats` and the cron orchestration in
+ * `processBadgesForOrg`.
+ *
+ * @param {Object} db - D1 database binding
+ * @returns {Promise<Map<string, string>>} id → name
+ */
+export async function fetchGenreNameMap(db) {
+  const result = await db.prepare('SELECT id, name FROM genres').all();
+  return new Map((result.results || []).map((g) => [g.id, g.name]));
+}
+
+/**
+ * Recompute a student's reading stats and persist them to
+ * `student_reading_stats`. Side-effecting — caller passes a `genreNameMap`
+ * if they're already iterating across many students (the nightly badge
+ * cron); other callers (per-session POST/PUT/DELETE) can omit it and the
+ * function will fetch it lazily.
+ */
+export async function recalculateStats(db, studentId, organizationId, genreNameMap = null) {
   // Fetch all sessions for the student
   const sessionsResult = await db
     .prepare(
@@ -67,11 +91,9 @@ export async function recalculateStats(db, studentId, organizationId) {
   const books = booksResult.results || [];
   const bookMap = new Map(books.map((b) => [b.id, b]));
 
-  // Fetch genre names for classification. Genres are a platform-wide reference
-  // table: only the owner role can create/edit them (see src/routes/genres.js),
-  // so there's no cross-tenant write path. Reading unscoped is safe.
-  const genresResult = await db.prepare('SELECT id, name FROM genres').all();
-  const genreNameMap = new Map((genresResult.results || []).map((g) => [g.id, g.name]));
+  // Use caller-provided genres map if available (cron hot path); otherwise
+  // lazy-fetch (per-request callers don't benefit from hoisting).
+  const resolvedGenreMap = genreNameMap ?? (await fetchGenreNameMap(db));
 
   // Calculate aggregate stats
   const bookIds = new Set();
@@ -104,7 +126,7 @@ export async function recalculateStats(db, studentId, organizationId) {
             const bookTypes = new Set();
             for (const gid of gids) {
               genreIdSet.add(gid);
-              const gname = genreNameMap.get(gid);
+              const gname = resolvedGenreMap.get(gid);
               if (gname) bookTypes.add(classifyGenre(gname));
             }
             // Count once per book per type
@@ -472,6 +494,14 @@ export async function processBadgesForOrg(db, orgId, cursor, deadlineMs) {
     .bind(orgId, cursor, cursor)
     .all();
 
+  // Fetch the platform-wide genres map once per org-run and pass it into
+  // every `recalculateStats` call below. Without this hoist, each student
+  // triggers a full-table `SELECT id, name FROM genres` scan; at 100 orgs
+  // × 500 students × 1k genres = 50M row reads per nightly cron, all of
+  // which return identical data. Fetching once collapses that to one scan
+  // per org.
+  const genreNameMap = await fetchGenreNameMap(db);
+
   let lastProcessedId = cursor;
   let processedCount = 0;
   let newBadgeCount = 0;
@@ -483,7 +513,7 @@ export async function processBadgesForOrg(db, orgId, cursor, deadlineMs) {
       break;
     }
     try {
-      await recalculateStats(db, student.id, orgId);
+      await recalculateStats(db, student.id, orgId, genreNameMap);
       const rtBadges = await evaluateRealTime(db, student.id, orgId, student.year_group);
       const batchBadges = await evaluateBatch(db, student.id, orgId, student.year_group);
       newBadgeCount += rtBadges.length + batchBadges.length;
