@@ -11,11 +11,20 @@ describe('isContentSafe', () => {
   it('returns safe for legitimate primary-school book recommendations', () => {
     const cases = [
       ['The Hobbit', 'A wonderful adventure for fans of fantasy.'],
-      ['Charlotte\'s Web', 'A classic tale of friendship between a pig and a spider.'],
-      ['The Boy in the Striped Pyjamas', 'A powerful story about the holocaust, suitable for upper key stage 2.'],
+      ["Charlotte's Web", 'A classic tale of friendship between a pig and a spider.'],
+      [
+        'The Boy in the Striped Pyjamas',
+        'A powerful story about the holocaust, suitable for upper key stage 2.',
+      ],
       ['Holes', 'A clever mystery with themes of injustice and friendship.'],
-      ["Wolfie", 'A book about a girl who finds a wolf cub. Some scenes show the wolf hunting prey.'],
-      ['The Boy at the Back of the Class', 'A story about a refugee classmate, exploring themes of belonging.'],
+      [
+        'Wolfie',
+        'A book about a girl who finds a wolf cub. Some scenes show the wolf hunting prey.',
+      ],
+      [
+        'The Boy at the Back of the Class',
+        'A story about a refugee classmate, exploring themes of belonging.',
+      ],
       ['Goodnight Mister Tom', 'A WW2-era evacuation story dealing with abuse and recovery.'],
     ];
     for (const [title, reason] of cases) {
@@ -127,7 +136,7 @@ describe('filterContentSafe', () => {
     const input = [
       { title: 'The Hobbit', reason: 'A great fantasy adventure.' },
       { title: 'Erotic Tales', reason: 'Adult.' },
-      { title: 'Charlotte\'s Web', reason: 'Classic friendship.' },
+      { title: "Charlotte's Web", reason: 'Classic friendship.' },
     ];
     const { kept, rejected } = filterContentSafe(input);
     expect(kept).toHaveLength(2);

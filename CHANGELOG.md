@@ -1,5 +1,31 @@
 # Changelog
 
+## [3.62.0] - 2026-05-08
+
+Audit cycle 13 — 10 of 12 Phase 1 items shipped (the two deferred items, cover-lookup batching and per-student parental consent, are tracked separately; #6 was closed as superseded by the data-minimisation work below).
+
+### Added
+
+- **Per-tenant monthly AI cost cap** — new `organization_ai_usage` table (migration 0054) with monthly call buckets keyed `(organization_id, period_start='YYYY-MM')`. Recommendations route checks the budget on cache miss and rejects 429 with `AI_BUDGET_EXCEEDED` when over. Default 500 calls/month per org; tunable via `AI_MONTHLY_CALL_LIMIT`. Cache hits don't burn budget. Both check and record fail open on D1 errors so accounting glitches don't 5xx legitimate requests.
+- **Content-moderation safety net for AI book recommendations** — new `src/utils/contentModeration.js`. Conservative term denylist (explicit sexual content, graphic violence, self-harm, suicide, hard-drug abuse, adult-only marketing) runs on every AI suggestion's title + reason between `generateBroadSuggestions` and the response. Rejected items are logged for telemetry but never surfaced. Tuned to pass legitimate primary-school content (sex education, war fiction, evacuation stories, refugee narratives, holocaust at upper KS2). Cache stores moderated suggestions only — a rejected item can't slip through via cache hit.
+- **Resumable badge cron** — migration 0053 adds `organizations.last_badge_cursor`. New `processBadgesForOrg(db, orgId, cursor, deadlineMs)` in `badgeEngine.js` orders students by id, filters `s.id > cursor`, and bails before each student if the deadline has passed. Worker.js cron persists the cursor on partial-run exhaustion, clears it on completion. Solves the previous failure mode where a school with 1000+ students would burn the whole 22s budget mid-iteration and never converge.
+- **Cross-tenant isolation regression suite** — new `src/__tests__/integration/cross-tenant.test.js`. Smart mock D1 that knows which student/session belongs to which org; calls each `:id`-bearing student route as Org A with Org B's IDs and asserts 4xx, never 200 with foreign data. Covers GET/PUT/DELETE `/:id`, current-book, feedback, streak, sessions (POST/PUT/DELETE), GDPR erase/restrict/ai-opt-out, Article 15 export. Plus a smoke test that every prepared `students` query includes the caller's `organization_id` in its bind args.
+
+### Security
+
+- **AI prompt-injection hardening** — student likes, dislikes, recent-read titles/authors, favorite genres are now wrapped in `<user_input>...</user_input>` delimiters with a security-notice instruction telling the model to treat tag contents as opaque data, never as instructions. Literal `<user_input>` strings in user values are replaced with `[REDACTED_TAG]` so the wrap can't be closed early by injected content.
+- **Demographic data minimisation at the AI boundary** — new `toAISafeProfile()` strips DOB-derived `age`, `yearGroup`, `ageRange`, `gender`, `firstLanguage`, `ealDetailedStatus`, free-text `notes`, and student `id` from the profile object before it leaves to the AI provider. Only reading-level + genres + book history reach the LLM. Removes the GDPR Article 8 / ICO age-appropriate-design profiling concern that had been flagged for per-student parental consent (#6).
+- **Sentry PII scrubber** — new `beforeSend` / `beforeSendTransaction` hook strips PII-shaped keys (student name, dob, email, sen, eal, fsm, gender, year group, reading level, etc.) from `event.extra`, `event.breadcrumbs[*].data`, `event.request.data`, and `event.user`. Reduced `replaysOnErrorSampleRate` from 1.0 to 0.1 — children's-data product, less casual capture of UI state on errors.
+- **Article 17 erasure completeness** — student GDPR erasure now explicitly deletes `student_badges` and `student_reading_stats` rather than relying on FK CASCADE. D1 only enforces foreign keys when `PRAGMA foreign_keys = ON` is set per-connection, so explicit deletes are the only guaranteed defence against orphaned rows post-erasure.
+
+### Changed
+
+- **30-second browser cache on `/api/students` list** — `Cache-Control: private, max-age=30, must-revalidate`. The student-list query is the teacher landing page and the single biggest D1-row-reads cost at scale (scans 3 child tables per request). At target scale this should cut row reads on this endpoint by ~80% by collapsing rapid-refresh patterns onto a single cache fill.
+
+### Fixed
+
+- **D1 batch-size pre-flight** — new `assertBatchSize` helper in `src/utils/d1Batch.js`. Applied before every dynamic `db.batch()` call (students/bulk, books/import ×2, classes ×2, classGoalsEngine, classAssignments, wondeSync ×4) so a future refactor that pushes a chunk to 101 statements throws a clear error at the call site instead of an opaque D1 rejection.
+
 ## [3.61.7] - 2026-05-07
 
 ### Changed
