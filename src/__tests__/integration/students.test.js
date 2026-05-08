@@ -374,6 +374,25 @@ describe('GET /api/students - Slim Response', () => {
       expect(query).not.toMatch(/JOIN\s+reading_sessions/);
     });
   });
+
+  describe('Cache-Control header', () => {
+    it('sets a 30-second private max-age header on the list response', async () => {
+      const { app } = createTestApp(
+        { organizationId: 'org-1', userId: 'user-1', userRole: 'teacher' },
+        { allResults: { results: [], success: true } }
+      );
+
+      const res = await makeRequest(app, 'GET', '/api/students');
+
+      expect(res.status).toBe(200);
+      const cacheControl = res.headers.get('Cache-Control');
+      expect(cacheControl).toBeTruthy();
+      expect(cacheControl).toMatch(/private/);
+      expect(cacheControl).toMatch(/max-age=30/);
+      // Public proxies must not share tenant data
+      expect(cacheControl).not.toMatch(/public/);
+    });
+  });
 });
 
 describe('GET /api/students/sessions', () => {

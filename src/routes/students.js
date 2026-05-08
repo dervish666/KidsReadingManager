@@ -107,6 +107,16 @@ studentsRouter.get('/', requireReadonly(), async (c) => {
       badgeCount: row.badge_count || 0,
     }));
 
+    // Cache for 30s in the browser. The student-list query scans 3 child
+    // tables (sessions, badges, classes/books) and is the teacher landing
+    // page — at target scale it is the single biggest D1-row-reads cost.
+    // Teachers opening their dashboard for a 20-minute reading session
+    // get one cache fill instead of 40 refreshes; live changes (a session
+    // saved by another teacher in the same class) are still picked up
+    // within 30s. `private` prevents intermediate proxies from sharing
+    // tenant data; `must-revalidate` tells the browser to confirm with
+    // the server after expiry rather than serving stale on offline.
+    c.header('Cache-Control', 'private, max-age=30, must-revalidate');
     return c.json(students);
   }
 
