@@ -6,6 +6,7 @@ import { buildStudentReadingProfile, toAISafeProfile } from '../../utils/student
 import { getCachedRecommendations, cacheRecommendations } from '../../utils/recommendationCache.js';
 import { parseGenreIds } from '../../utils/helpers.js';
 import { requireReadonly } from '../../middleware/tenant.js';
+import { filterContentSafe } from '../../utils/contentModeration.js';
 
 const recommendationsRouter = new Hono();
 
@@ -469,12 +470,27 @@ recommendationsRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
     // provider. See toAISafeProfile() for the full whitelist — readingLevel
     // + genres + reading-history is sufficient for book recommendations.
     const safeProfile = toAISafeProfile(profile);
-    const suggestions = await generateBroadSuggestions(safeProfile, aiConfig, focusMode);
+    const rawSuggestions = await generateBroadSuggestions(safeProfile, aiConfig, focusMode);
+
+    // Content moderation safety net — filters any AI output whose title or
+    // reason hits the explicit-terms denylist. Caller-facing audience is
+    // children aged 5-11, so we run this even for cache-bound output.
+    // Rejected items are logged for telemetry but never surfaced.
+    const { kept: suggestions, rejected: moderationRejected } = filterContentSafe(rawSuggestions);
+    if (moderationRejected.length > 0) {
+      console.warn('[content-moderation] dropped AI recommendations', {
+        organizationId,
+        studentId,
+        provider: aiConfig.provider,
+        rejected: moderationRejected.map((r) => ({ title: r.title, flags: r._flags })),
+      });
+    }
 
     // Set provider on cache inputs (now we know from aiConfig)
     cacheInputs.provider = aiConfig.provider;
 
-    // Cache the raw suggestions (non-blocking)
+    // Cache the moderated suggestions only — never the raw AI output.
+    // A rejected suggestion shouldn't reach a child via cache hit either.
     if (c.executionCtx?.waitUntil) {
       c.executionCtx.waitUntil(cacheRecommendations(c.env, cacheInputs, { suggestions }));
     } else {
