@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.63.1] - 2026-05-08
+
+Audit cycle 13 — Phase 2 #18. Audit-plan item #17 (Wonde sync KV lock release) was re-verified and found already-correct since v3.49.0 (`287e077`) — the agent's "no release" claim missed the deletes at `wondeSync.js:455` and `:475`. Fourth false-positive this cycle and the first that's not even a stale carryover, so the global `codebase-audit` skill's verify-before-publishing rule is broadened to cover any "X is missing" finding regardless of carryover status.
+
+### Changed
+
+- **Org-status cache TTL: 5 min → 60 s** (`src/utils/orgStatusCache.js`). The cache is invalidated explicitly by Stripe webhook, org-deactivate, and org-purge — happy-path TTL never fires. The 60s ceiling is now the maximum window during which a deactivated org's JWT-bearer can keep acting if any invalidation hook silently fails (KV outage during deploy, missed code path). Down from 5 min for fraud-driven deactivation safety. Still collapses ~60 D1 reads/min/org into 1 KV read so the original 15k-req/min read-storm protection is mostly preserved.
+
+### Documentation
+
+- Marked audit-2026-05-08 #17 (Wonde sync KV lock) as agent-misread: lock release exists at every return path since v3.49.0. Fourth false-positive this cycle (alongside #20, #21, #22 stale carryovers).
+- Extended the global `codebase-audit` skill's verification rule from "re-verify carryovers" to "re-verify every finding before publishing", with explicit guidance for negative-space claims like "no X" / "X is missing" that often span larger file ranges than a subagent's read window.
+
 ## [3.63.0] - 2026-05-08
 
 Audit cycle 13 — Phase 2 #14 + #13 (AI safety completeness). Audit-plan item #20 (classGoalsEngine 6-query recalc) was re-verified and found already-fixed in v3.57.0 — third stale carryover this cycle, marked struck-through in the audit docs.

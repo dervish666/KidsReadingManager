@@ -8,11 +8,18 @@
  * either field.
  *
  * Bindings: READING_MANAGER_KV (declared in wrangler.toml).
- * TTL: 5 minutes — short enough that a missed invalidation self-heals quickly,
- * long enough to absorb bursty traffic from a single org.
+ *
+ * TTL: 60 seconds. The cache is invalidated explicitly by the Stripe webhook,
+ * org-deactivate, and org-purge paths — so in the happy path the TTL never
+ * fires. The 60s ceiling is the maximum window during which a deactivated
+ * org's JWT-bearer can keep acting if any invalidation hook silently fails
+ * (KV outage during a deploy, missed code path, etc.). Shorter than the
+ * previous 5-minute ceiling for fraud-driven deactivation safety; still
+ * collapses ~60 D1 reads/min/org into 1 KV read so the read-storm protection
+ * is mostly preserved.
  */
 
-const TTL_SECONDS = 300;
+const TTL_SECONDS = 60;
 const keyFor = (orgId) => `org:status:${orgId}`;
 
 /** @returns {Promise<null | { is_active: 0|1, subscription_status: string }>} */
