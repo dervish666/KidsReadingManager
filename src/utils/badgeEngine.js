@@ -432,3 +432,70 @@ export function calculateNearMisses(stats, yearGroup, earnedBadgeIds) {
   nearMisses.sort((a, b) => a.remaining / a.target - b.remaining / b.target);
   return nearMisses.slice(0, 3);
 }
+
+// ── Cron-time per-org processor with budget + cursor ────────────────────────
+
+/**
+ * Run badge evaluation for every active student in `orgId`, honouring a
+ * deadline and resuming from a stored cursor.
+ *
+ * Strategy: students are ordered by `id` and filtered to `id > cursor` if
+ * a cursor is supplied, so a partial run can resume cleanly on the next
+ * cron invocation. The inner loop checks the deadline before every
+ * student so we stop *before* exceeding it rather than mid-evaluation.
+ *
+ * Returns `{ exhausted, lastProcessedId, processedCount, newBadgeCount }`.
+ * Caller is responsible for persisting `lastProcessedId` to
+ * `organizations.last_badge_cursor` when `exhausted` is true, and clearing
+ * the cursor (set NULL) when `exhausted` is false.
+ *
+ * @param {Object} db - D1 database binding
+ * @param {string} orgId - Organization id
+ * @param {string|null} cursor - Resume-after student id, or null to start at beginning
+ * @param {number} deadlineMs - `Date.now()` value at which to stop
+ * @returns {Promise<{exhausted: boolean, lastProcessedId: string|null, processedCount: number, newBadgeCount: number}>}
+ */
+export async function processBadgesForOrg(db, orgId, cursor, deadlineMs) {
+  // ORDER BY s.id is required for the cursor to be deterministic across runs.
+  // The cursor predicate uses two binds for the same value because some D1
+  // versions reject the same placeholder bound twice — explicit args are
+  // safest. (? IS NULL OR s.id > ?) lets us pass cursor=null on first run.
+  const students = await db
+    .prepare(
+      `SELECT DISTINCT s.id, s.year_group
+       FROM students s
+       INNER JOIN reading_sessions rs ON rs.student_id = s.id
+       WHERE s.organization_id = ? AND s.is_active = 1
+         AND (? IS NULL OR s.id > ?)
+       ORDER BY s.id`
+    )
+    .bind(orgId, cursor, cursor)
+    .all();
+
+  let lastProcessedId = cursor;
+  let processedCount = 0;
+  let newBadgeCount = 0;
+  let exhausted = false;
+
+  for (const student of students.results || []) {
+    if (Date.now() > deadlineMs) {
+      exhausted = true;
+      break;
+    }
+    try {
+      await recalculateStats(db, student.id, orgId);
+      const rtBadges = await evaluateRealTime(db, student.id, orgId, student.year_group);
+      const batchBadges = await evaluateBatch(db, student.id, orgId, student.year_group);
+      newBadgeCount += rtBadges.length + batchBadges.length;
+      lastProcessedId = student.id;
+      processedCount++;
+    } catch (err) {
+      // Don't break the run on a single bad student — log and continue.
+      // The cursor only advances on success, so a persistent failure on a
+      // particular student would re-attempt next run. Acceptable.
+      console.error(`[Cron] Badge evaluation error for student ${student.id}:`, err.message);
+    }
+  }
+
+  return { exhausted, lastProcessedId, processedCount, newBadgeCount };
+}

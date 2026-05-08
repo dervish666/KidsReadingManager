@@ -602,12 +602,15 @@ export default Sentry.withSentry(
       // Badge evaluation at 2:30 AM UTC (after streaks are recalculated)
       if (event.cron === '30 2 * * *') {
         try {
-          const { recalculateStats, evaluateRealTime, evaluateBatch } =
-            await import('./utils/badgeEngine.js');
+          const { processBadgesForOrg } = await import('./utils/badgeEngine.js');
 
-          // Get all active organizations
+          // Get all active organizations + their resume cursor.
+          // last_badge_cursor is non-null when a previous run exhausted the
+          // CPU budget mid-org; we resume after that cursor.
           const orgs = await db
-            .prepare('SELECT id FROM organizations WHERE is_active = 1')
+            .prepare(
+              'SELECT id, last_badge_cursor FROM organizations WHERE is_active = 1 ORDER BY id'
+            )
             .bind()
             .all();
 
@@ -615,13 +618,17 @@ export default Sentry.withSentry(
           let totalNewBadges = 0;
           let orgsProcessed = 0;
           let orgsSkipped = 0;
-          // Scheduled Workers have a 30s CPU limit; bail before we breach it so the
-          // cleanup logic still runs. Remaining orgs pick up on the next night's cron.
+          // Scheduled Workers have a 30s CPU limit; bail before we breach it
+          // so the cleanup logic still runs. The deadline is shared across
+          // org iteration AND per-student inner-loop bailout — see
+          // processBadgesForOrg() which checks Date.now() > deadlineMs
+          // before each student.
           const BUDGET_MS = 22_000;
           const cronStart = Date.now();
+          const deadlineMs = cronStart + BUDGET_MS;
 
           for (const org of orgs.results || []) {
-            if (Date.now() - cronStart > BUDGET_MS) {
+            if (Date.now() > deadlineMs) {
               orgsSkipped = (orgs.results || []).length - orgsProcessed;
               console.warn(
                 `[Cron] Badge budget exhausted after ${orgsProcessed} orgs; ${orgsSkipped} deferred to next run`
@@ -630,35 +637,37 @@ export default Sentry.withSentry(
             }
 
             const orgStart = Date.now();
-            // Get active students with at least one session
-            const students = await db
-              .prepare(
-                `SELECT DISTINCT s.id, s.year_group
-                 FROM students s
-                 INNER JOIN reading_sessions rs ON rs.student_id = s.id
-                 WHERE s.organization_id = ? AND s.is_active = 1`
-              )
-              .bind(org.id)
-              .all();
+            const cursor = org.last_badge_cursor || null;
+            const result = await processBadgesForOrg(db, org.id, cursor, deadlineMs);
 
-            for (const student of students.results || []) {
-              try {
-                await recalculateStats(db, student.id, org.id);
-                const rtBadges = await evaluateRealTime(db, student.id, org.id, student.year_group);
-                const batchBadges = await evaluateBatch(db, student.id, org.id, student.year_group);
-                totalNewBadges += rtBadges.length + batchBadges.length;
-                totalStudents++;
-              } catch (err) {
-                console.error(
-                  `[Cron] Badge evaluation error for student ${student.id}:`,
-                  err.message
-                );
+            totalStudents += result.processedCount;
+            totalNewBadges += result.newBadgeCount;
+
+            if (result.exhausted) {
+              // Persist cursor so next run resumes after this student.
+              // We deliberately do NOT increment orgsProcessed — this org
+              // isn't done yet.
+              await db
+                .prepare('UPDATE organizations SET last_badge_cursor = ? WHERE id = ?')
+                .bind(result.lastProcessedId, org.id)
+                .run();
+              console.warn(
+                `[Cron] Badge budget exhausted within org ${org.id} after ${result.processedCount} students; cursor saved at ${result.lastProcessedId}`
+              );
+              break;
+            } else {
+              orgsProcessed++;
+              // Org completed — clear any prior cursor.
+              if (cursor !== null) {
+                await db
+                  .prepare('UPDATE organizations SET last_badge_cursor = NULL WHERE id = ?')
+                  .bind(org.id)
+                  .run();
               }
+              console.log(
+                `[Cron] Badge org ${org.id}: ${result.processedCount} students in ${Date.now() - orgStart}ms${cursor ? ` (resumed from cursor)` : ''}`
+              );
             }
-            orgsProcessed++;
-            console.log(
-              `[Cron] Badge org ${org.id}: ${students.results?.length || 0} students in ${Date.now() - orgStart}ms`
-            );
           }
 
           console.log(
