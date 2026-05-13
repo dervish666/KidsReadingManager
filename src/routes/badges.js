@@ -65,6 +65,7 @@ badgesRouter.get('/students/:id', requireReadonly(), async (c) => {
     })
   );
 
+  c.header('Cache-Control', 'private, max-age=30, must-revalidate');
   return c.json({ earned, stats, nearMisses, progress: allProgress });
 });
 

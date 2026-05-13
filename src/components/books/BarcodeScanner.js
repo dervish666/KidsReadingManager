@@ -8,8 +8,6 @@ import {
   Box,
   Typography,
 } from '@mui/material';
-import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
-
 const SCANNER_ELEMENT_ID = 'barcode-scanner-viewfinder';
 
 const BarcodeScanner = ({ open, onScan, onClose }) => {
@@ -47,6 +45,7 @@ const BarcodeScanner = ({ open, onScan, onClose }) => {
 
     const startScanner = async () => {
       try {
+        const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import('html5-qrcode');
         const scanner = new Html5Qrcode(SCANNER_ELEMENT_ID);
         scannerRef.current = scanner;
 

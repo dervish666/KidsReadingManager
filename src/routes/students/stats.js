@@ -257,6 +257,7 @@ statsRouter.get('/stats', requireReadonly(), async (c) => {
     .slice(0, 5)
     .map(([title, count]) => ({ title, count }));
 
+  c.header('Cache-Control', 'private, max-age=60, must-revalidate');
   return c.json({
     totalStudents: studentList.length,
     ...sessionStats,

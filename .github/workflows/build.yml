@@ -32,6 +32,9 @@ jobs:
     - name: Check formatting
       run: npx prettier --check "src/**/*.js"
 
+    - name: Lint
+      run: npm run lint
+
     - name: Build
       run: npm run build
 

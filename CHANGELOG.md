@@ -1,5 +1,23 @@
 # Changelog
 
+## [3.64.0] - 2026-05-13
+
+Performance & process audit (cycle 14) — Phase 1 quick wins.
+
+### Added
+
+- **Cache-Control headers on hot-path API endpoints** — stats (60s), books list (60s), books search (30s), badges (30s). Reduces D1 load from repeated browser fetches.
+- **ESLint in CI pipeline** — `npm run lint` now runs in GitHub Actions before build, catching `no-undef` and `rules-of-hooks` errors that previously bypassed CI.
+
+### Fixed
+
+- **Recommendation cache key scoped to organization** — added `organizationId` to the cache key in `recommendationCache.js` and removed unused `studentId` field. Two orgs with identical student profiles no longer share cached recommendations.
+- **Batched Wonde school upserts** — `wondeAdmin.js` POST `/schools` now collects statements and batches in chunks of 100 instead of awaiting each individually.
+
+### Changed
+
+- **html5-qrcode lazy-loaded** — `BarcodeScanner.js` now uses dynamic `import()` so the ~50KB library only loads when the user opens the barcode scanner, not when any session form renders.
+
 ## [3.63.1] - 2026-05-08
 
 Audit cycle 13 — Phase 2 #18. Audit-plan item #17 (Wonde sync KV lock release) was re-verified and found already-correct since v3.49.0 (`287e077`) — the agent's "no release" claim missed the deletes at `wondeSync.js:455` and `:475`. Fourth false-positive this cycle and the first that's not even a stale carryover, so the global `codebase-audit` skill's verify-before-publishing rule is broadened to cover any "X is missing" finding regardless of carryover status.

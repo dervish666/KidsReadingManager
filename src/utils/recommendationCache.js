@@ -23,11 +23,11 @@ export async function generateCacheKey(inputs) {
   const normalised = JSON.stringify({
     focusMode: inputs.focusMode || 'balanced',
     genres: (inputs.genres || []).slice().sort(),
+    organizationId: inputs.organizationId || '',
     provider: inputs.provider || 'anthropic',
     readingLevelMax: inputs.readingLevelMax ?? '',
     readingLevelMin: inputs.readingLevelMin ?? '',
     recentBookIds: (inputs.recentBookIds || []).slice().sort(),
-    studentId: inputs.studentId || '',
   });
 
   const data = new TextEncoder().encode(normalised);

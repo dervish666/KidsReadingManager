@@ -103,6 +103,7 @@ wondeAdminRouter.post('/sync-all', requireOwner(), async (c) => {
 
   let created = 0;
   let updated = 0;
+  const statements = [];
 
   for (const school of allSchools) {
     const name = (school.name || '').trim().substring(0, 200);
@@ -114,35 +115,39 @@ wondeAdminRouter.post('/sync-all', requireOwner(), async (c) => {
     const existingOrg = existingMap.get(school.id);
 
     if (existingOrg) {
-      // Update address details for existing org
-      await db
-        .prepare(
-          `UPDATE organizations SET
-            name = ?,
-            address_line_1 = COALESCE(?, address_line_1),
-            address_line_2 = COALESCE(?, address_line_2),
-            town = COALESCE(?, town),
-            postcode = COALESCE(?, postcode),
-            updated_at = datetime('now')
-          WHERE id = ?`
-        )
-        .bind(name, addressLine1, addressLine2, town, postcode, existingOrg.id)
-        .run();
+      statements.push(
+        db
+          .prepare(
+            `UPDATE organizations SET
+              name = ?,
+              address_line_1 = COALESCE(?, address_line_1),
+              address_line_2 = COALESCE(?, address_line_2),
+              town = COALESCE(?, town),
+              postcode = COALESCE(?, postcode),
+              updated_at = datetime('now')
+            WHERE id = ?`
+          )
+          .bind(name, addressLine1, addressLine2, town, postcode, existingOrg.id)
+      );
       updated++;
     } else {
-      // Create new organization
       const orgId = crypto.randomUUID();
       const finalSlug = await generateUniqueSlug(db, name);
 
-      await db
-        .prepare(
-          `INSERT INTO organizations (id, name, slug, wonde_school_id, address_line_1, address_line_2, town, postcode, is_active, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'), datetime('now'))`
-        )
-        .bind(orgId, name, finalSlug, school.id, addressLine1, addressLine2, town, postcode)
-        .run();
+      statements.push(
+        db
+          .prepare(
+            `INSERT INTO organizations (id, name, slug, wonde_school_id, address_line_1, address_line_2, town, postcode, is_active, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'), datetime('now'))`
+          )
+          .bind(orgId, name, finalSlug, school.id, addressLine1, addressLine2, town, postcode)
+      );
       created++;
     }
+  }
+
+  for (let i = 0; i < statements.length; i += 100) {
+    await db.batch(statements.slice(i, i + 100));
   }
 
   return c.json({ success: true, total: allSchools.length, created, updated });

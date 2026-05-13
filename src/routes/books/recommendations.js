@@ -320,6 +320,7 @@ recommendationsRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
 
     // Build cache inputs from profile
     const cacheInputs = {
+      organizationId,
       readingLevelMin: profile.student.readingLevelMin,
       readingLevelMax: profile.student.readingLevelMax,
       genres: profile.preferences.favoriteGenreNames,
