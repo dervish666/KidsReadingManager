@@ -83,7 +83,7 @@ const createMockDB = (overrides = {}) => {
 
   return {
     prepare: vi.fn().mockReturnValue(prepareChain),
-    batch: vi.fn().mockResolvedValue([{ success: true }]),
+    batch: vi.fn((stmts) => Promise.all(stmts.map((s) => s.all()))),
     _prepareChain: prepareChain,
     ...overrides,
   };
@@ -556,7 +556,7 @@ const createSequenceMockDB = (queryResults) => {
         bind: vi.fn().mockReturnValue(boundMethods),
       };
     }),
-    batch: vi.fn().mockResolvedValue([{ success: true }]),
+    batch: vi.fn((stmts) => Promise.all(stmts.map((s) => s.all()))),
   };
   return db;
 };
@@ -619,22 +619,52 @@ describe('GET /api/students/stats', () => {
       },
     ];
 
-    const sessionRows = [
-      { student_id: 'student-1', session_date: today, location: 'home', book_title: 'The Hobbit' },
-      {
-        student_id: 'student-1',
-        session_date: today,
-        location: 'school',
-        book_title: 'The Hobbit',
-      },
-      { student_id: 'student-2', session_date: today, location: 'home', book_title: 'Dune' },
-    ];
-
     const { app } = createStatsTestApp(
       { organizationId: 'org-1', userId: 'user-1', userRole: 'teacher' },
       [
         { match: 'FROM students s', all: { results: studentRows, success: true } },
-        { match: 'FROM reading_sessions rs', all: { results: sessionRows, success: true } },
+        {
+          match: 'COUNT(*) as total',
+          all: {
+            results: [
+              {
+                total: 3,
+                home_count: 2,
+                school_count: 1,
+                this_week: 3,
+                last_week: 0,
+                d0: 0,
+                d1: 0,
+                d2: 3,
+                d3: 0,
+                d4: 0,
+                d5: 0,
+                d6: 0,
+              },
+            ],
+            success: true,
+          },
+        },
+        {
+          match: 'GROUP BY b.title',
+          all: {
+            results: [
+              { title: 'The Hobbit', cnt: 2 },
+              { title: 'Dune', cnt: 1 },
+            ],
+            success: true,
+          },
+        },
+        {
+          match: 'MAX(rs.session_date)',
+          all: {
+            results: [
+              { student_id: 'student-1', last_read: today },
+              { student_id: 'student-2', last_read: today },
+            ],
+            success: true,
+          },
+        },
         {
           match: 'org_settings',
           first: { setting_value: JSON.stringify({ recentlyReadDays: 3, needsAttentionDays: 7 }) },
@@ -679,27 +709,49 @@ describe('GET /api/students/stats', () => {
       },
     ];
 
-    // Only sessions within the requested date range should be returned by the query
-    const sessionRows = [
-      {
-        student_id: 'student-1',
-        session_date: '2026-03-01',
-        location: 'home',
-        book_title: 'Book A',
-      },
-      {
-        student_id: 'student-1',
-        session_date: '2026-03-02',
-        location: 'school',
-        book_title: 'Book B',
-      },
-    ];
-
     const { app, mockDB } = createStatsTestApp(
       { organizationId: 'org-1', userId: 'user-1', userRole: 'teacher' },
       [
         { match: 'FROM students s', all: { results: studentRows, success: true } },
-        { match: 'FROM reading_sessions rs', all: { results: sessionRows, success: true } },
+        {
+          match: 'COUNT(*) as total',
+          all: {
+            results: [
+              {
+                total: 2,
+                home_count: 1,
+                school_count: 1,
+                this_week: 0,
+                last_week: 0,
+                d0: 0,
+                d1: 0,
+                d2: 1,
+                d3: 1,
+                d4: 0,
+                d5: 0,
+                d6: 0,
+              },
+            ],
+            success: true,
+          },
+        },
+        {
+          match: 'GROUP BY b.title',
+          all: {
+            results: [
+              { title: 'Book A', cnt: 1 },
+              { title: 'Book B', cnt: 1 },
+            ],
+            success: true,
+          },
+        },
+        {
+          match: 'MAX(rs.session_date)',
+          all: {
+            results: [{ student_id: 'student-1', last_read: '2026-03-02' }],
+            success: true,
+          },
+        },
         { match: 'org_settings', first: null },
       ]
     );
@@ -752,7 +804,30 @@ describe('GET /api/students/stats', () => {
       { organizationId: 'org-1', userId: 'user-1', userRole: 'teacher' },
       [
         { match: 'FROM students s', all: { results: studentRows, success: true } },
-        { match: 'FROM reading_sessions rs', all: { results: [], success: true } },
+        {
+          match: 'COUNT(*) as total',
+          all: {
+            results: [
+              {
+                total: 0,
+                home_count: 0,
+                school_count: 0,
+                this_week: 0,
+                last_week: 0,
+                d0: 0,
+                d1: 0,
+                d2: 0,
+                d3: 0,
+                d4: 0,
+                d5: 0,
+                d6: 0,
+              },
+            ],
+            success: true,
+          },
+        },
+        { match: 'GROUP BY b.title', all: { results: [], success: true } },
+        { match: 'MAX(rs.session_date)', all: { results: [], success: true } },
         { match: 'org_settings', first: null },
       ]
     );

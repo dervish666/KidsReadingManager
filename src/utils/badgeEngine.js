@@ -261,17 +261,10 @@ export async function recalculateStats(db, studentId, organizationId, genreNameM
   return stats;
 }
 
-// ── Real-time Evaluation ────────────────────────────────────────────────────
+// ── Shared helpers ─────────────────────────────────────────────────────────
 
-export async function evaluateRealTime(db, studentId, organizationId, yearGroup) {
-  // Load current stats
-  const statsRow = await db
-    .prepare('SELECT * FROM student_reading_stats WHERE student_id = ?')
-    .bind(studentId)
-    .first();
-  if (!statsRow) return [];
-
-  const stats = {
+function parseStatsRow(statsRow) {
+  return {
     totalBooks: statsRow.total_books || 0,
     totalSessions: statsRow.total_sessions || 0,
     totalMinutes: statsRow.total_minutes || 0,
@@ -287,6 +280,19 @@ export async function evaluateRealTime(db, studentId, organizationId, yearGroup)
     weeksWith4PlusDays: statsRow.weeks_with_4plus_days || 0,
     weeksWithReading: statsRow.weeks_with_reading || 0,
   };
+}
+
+// ── Real-time Evaluation ────────────────────────────────────────────────────
+
+export async function evaluateRealTime(db, studentId, organizationId, yearGroup) {
+  // Load current stats
+  const statsRow = await db
+    .prepare('SELECT * FROM student_reading_stats WHERE student_id = ?')
+    .bind(studentId)
+    .first();
+  if (!statsRow) return [];
+
+  const stats = parseStatsRow(statsRow);
 
   // Load already-earned badge IDs
   const earnedResult = await db
@@ -338,22 +344,7 @@ export async function evaluateBatch(db, studentId, organizationId, yearGroup) {
     .first();
   if (!statsRow) return [];
 
-  const stats = {
-    totalBooks: statsRow.total_books || 0,
-    totalSessions: statsRow.total_sessions || 0,
-    totalMinutes: statsRow.total_minutes || 0,
-    totalPages: statsRow.total_pages || 0,
-    genresRead: JSON.parse(statsRow.genres_read || '[]'),
-    uniqueAuthorsCount: statsRow.unique_authors_count || 0,
-    fictionCount: statsRow.fiction_count || 0,
-    nonfictionCount: statsRow.nonfiction_count || 0,
-    poetryCount: statsRow.poetry_count || 0,
-    daysReadThisWeek: statsRow.days_read_this_week || 0,
-    daysReadThisTerm: statsRow.days_read_this_term || 0,
-    daysReadThisMonth: statsRow.days_read_this_month || 0,
-    weeksWith4PlusDays: statsRow.weeks_with_4plus_days || 0,
-    weeksWithReading: statsRow.weeks_with_reading || 0,
-  };
+  const stats = parseStatsRow(statsRow);
 
   // Load already-earned badge IDs
   const earnedResult = await db
@@ -507,6 +498,8 @@ export async function processBadgesForOrg(db, orgId, cursor, deadlineMs) {
   let newBadgeCount = 0;
   let exhausted = false;
 
+  const currentDate = new Date().toISOString().slice(0, 10);
+
   for (const student of students.results || []) {
     if (Date.now() > deadlineMs) {
       exhausted = true;
@@ -514,15 +507,82 @@ export async function processBadgesForOrg(db, orgId, cursor, deadlineMs) {
     }
     try {
       await recalculateStats(db, student.id, orgId, genreNameMap);
-      const rtBadges = await evaluateRealTime(db, student.id, orgId, student.year_group);
-      const batchBadges = await evaluateBatch(db, student.id, orgId, student.year_group);
-      newBadgeCount += rtBadges.length + batchBadges.length;
+
+      // Batch-fetch all data needed for both realtime + batch evaluation
+      // in a single D1 round-trip (was 6 separate queries before).
+      const [statsResult, earnedResult, sessionsResult, authorResult] = await db.batch([
+        db.prepare('SELECT * FROM student_reading_stats WHERE student_id = ?').bind(student.id),
+        db.prepare('SELECT badge_id FROM student_badges WHERE student_id = ?').bind(student.id),
+        db
+          .prepare(
+            `SELECT session_date as date, notes FROM reading_sessions
+             WHERE student_id = ? AND notes NOT LIKE '%[ABSENT]%' AND notes NOT LIKE '%[NO_RECORD]%'
+             ORDER BY session_date DESC`
+          )
+          .bind(student.id),
+        db
+          .prepare(
+            `SELECT b.author, COUNT(DISTINCT b.id) as book_count
+             FROM reading_sessions rs
+             INNER JOIN books b ON rs.book_id = b.id
+             WHERE rs.student_id = ? AND b.author IS NOT NULL AND b.author != ''
+             GROUP BY b.author`
+          )
+          .bind(student.id),
+      ]);
+
+      const statsRow = statsResult.results?.[0];
+      if (!statsRow) {
+        lastProcessedId = student.id;
+        processedCount++;
+        continue;
+      }
+
+      const stats = parseStatsRow(statsRow);
+      const earnedBadgeIds = new Set((earnedResult.results || []).map((r) => r.badge_id));
+      const sessions = sessionsResult.results || [];
+      const authorBookCounts = {};
+      for (const r of authorResult.results || []) {
+        authorBookCounts[r.author] = r.book_count;
+      }
+
+      const keyStage = resolveKeyStage(student.year_group);
+      const context = {
+        keyStage,
+        earnedBadgeIds,
+        currentDate,
+        sessions,
+        authorBookCounts,
+      };
+
+      // Evaluate both realtime and batch badges against shared data
+      const insertStatements = [];
+      const allBadges = [...getRealtimeBadges(), ...getBatchBadges()];
+      for (const badge of allBadges) {
+        if (earnedBadgeIds.has(badge.id)) continue;
+        if (badge.evaluate(stats, context)) {
+          insertStatements.push(
+            db
+              .prepare(
+                `INSERT INTO student_badges (id, student_id, organization_id, badge_id, tier)
+                 VALUES (?, ?, ?, ?, ?)`
+              )
+              .bind(generateId(), student.id, orgId, badge.id, badge.tier)
+          );
+        }
+      }
+
+      // Batch-insert all earned badges in one round-trip
+      if (insertStatements.length > 0) {
+        for (let i = 0; i < insertStatements.length; i += 100) {
+          await db.batch(insertStatements.slice(i, i + 100));
+        }
+        newBadgeCount += insertStatements.length;
+      }
+
       lastProcessedId = student.id;
       processedCount++;
     } catch (err) {
-      // Don't break the run on a single bad student — log and continue.
-      // The cursor only advances on success, so a persistent failure on a
-      // particular student would re-attempt next run. Acceptable.
       console.error(`[Cron] Badge evaluation error for student ${student.id}:`, err.message);
     }
   }

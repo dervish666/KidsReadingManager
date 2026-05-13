@@ -38,7 +38,7 @@ const buildMockDB = (studentResults) => {
   });
   return {
     prepare,
-    batch: vi.fn(() => Promise.resolve([])),
+    batch: vi.fn((stmts) => Promise.all(stmts.map((s) => s.all()))),
     _calls: calls,
     _getBoundArgs: () => calls.map((c) => c.args),
   };
@@ -251,7 +251,7 @@ describe('recalculateStats — genres-map injection', () => {
       first: vi.fn().mockResolvedValue(null),
       run: vi.fn().mockResolvedValue({ success: true }),
     }));
-    return { prepare, batch: vi.fn().mockResolvedValue([]) };
+    return { prepare, batch: vi.fn((stmts) => Promise.all(stmts.map((s) => s.all()))) };
   };
 
   it('lazy-fetches the genres map when no map is supplied (per-session callers)', async () => {

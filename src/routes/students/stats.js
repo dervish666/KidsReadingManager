@@ -92,31 +92,10 @@ statsRouter.get('/stats', requireReadonly(), async (c) => {
   const todayLocal = new Date(todayStr + 'T00:00:00Z');
 
   if (studentIds.length > 0) {
-    // 90 IDs per IN-clause keeps us comfortably under SQLite's bind ceiling
     const BIND_LIMIT = 90;
-    let allSessionRows = [];
-    for (let i = 0; i < studentIds.length; i += BIND_LIMIT) {
-      const chunk = studentIds.slice(i, i + BIND_LIMIT);
-      const placeholders = chunk.map(() => '?').join(',');
-      const dateFilter =
-        startDate && endDate ? ' AND rs.session_date >= ? AND rs.session_date <= ?' : '';
-      const binds = startDate && endDate ? [...chunk, startDate, endDate] : [...chunk];
-      const sessResult = await db
-        .prepare(
-          `SELECT rs.student_id, rs.session_date, rs.location, b.title as book_title
-           FROM reading_sessions rs
-           LEFT JOIN books b ON rs.book_id = b.id
-           WHERE rs.student_id IN (${placeholders})${dateFilter}
-             AND (rs.notes IS NULL OR (rs.notes NOT LIKE '%[ABSENT]%' AND rs.notes NOT LIKE '%[NO_RECORD]%'))`
-        )
-        .bind(...binds)
-        .all();
-      allSessionRows.push(...(sessResult.results || []));
-    }
-
     const locationCounts = { home: 0, school: 0 };
+    const dayKeys = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const dayCounts = { Sun: 0, Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0 };
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const bookCounts = {};
     const startOfWeek = new Date(todayLocal);
     startOfWeek.setUTCDate(todayLocal.getUTCDate() - todayLocal.getUTCDay());
@@ -124,26 +103,78 @@ statsRouter.get('/stats', requireReadonly(), async (c) => {
     startOfLastWeek.setUTCDate(startOfLastWeek.getUTCDate() - 7);
     const startOfWeekStr = startOfWeek.toISOString().split('T')[0];
     const startOfLastWeekStr = startOfLastWeek.toISOString().split('T')[0];
+    let totalSessions = 0;
     let thisWeek = 0;
     let lastWeek = 0;
 
-    for (const row of allSessionRows) {
-      const loc = row.location || 'school';
-      if (Object.hasOwn(locationCounts, loc)) locationCounts[loc]++;
-      if (row.session_date) {
-        const d = new Date(row.session_date);
-        dayCounts[dayNames[d.getUTCDay()]]++;
-        // Compare as YYYY-MM-DD strings so timezone doesn't skew week buckets
-        if (row.session_date >= startOfWeekStr) thisWeek++;
-        else if (row.session_date >= startOfLastWeekStr) lastWeek++;
+    const notMarker = `(rs.notes IS NULL OR (rs.notes NOT LIKE '%[ABSENT]%' AND rs.notes NOT LIKE '%[NO_RECORD]%'))`;
+
+    for (let i = 0; i < studentIds.length; i += BIND_LIMIT) {
+      const chunk = studentIds.slice(i, i + BIND_LIMIT);
+      const ph = chunk.map(() => '?').join(',');
+      const dateFilter =
+        startDate && endDate ? ' AND rs.session_date >= ? AND rs.session_date <= ?' : '';
+      const dateBinds = startDate && endDate ? [startDate, endDate] : [];
+
+      const [aggResult, bookResult, lastReadResult] = await db.batch([
+        db
+          .prepare(
+            `SELECT
+              COUNT(*) as total,
+              SUM(CASE WHEN rs.location = 'home' THEN 1 ELSE 0 END) as home_count,
+              SUM(CASE WHEN rs.location IS NULL OR rs.location = 'school' THEN 1 ELSE 0 END) as school_count,
+              SUM(CASE WHEN rs.session_date >= ? THEN 1 ELSE 0 END) as this_week,
+              SUM(CASE WHEN rs.session_date >= ? AND rs.session_date < ? THEN 1 ELSE 0 END) as last_week,
+              SUM(CASE WHEN strftime('%w', rs.session_date) = '0' THEN 1 ELSE 0 END) as d0,
+              SUM(CASE WHEN strftime('%w', rs.session_date) = '1' THEN 1 ELSE 0 END) as d1,
+              SUM(CASE WHEN strftime('%w', rs.session_date) = '2' THEN 1 ELSE 0 END) as d2,
+              SUM(CASE WHEN strftime('%w', rs.session_date) = '3' THEN 1 ELSE 0 END) as d3,
+              SUM(CASE WHEN strftime('%w', rs.session_date) = '4' THEN 1 ELSE 0 END) as d4,
+              SUM(CASE WHEN strftime('%w', rs.session_date) = '5' THEN 1 ELSE 0 END) as d5,
+              SUM(CASE WHEN strftime('%w', rs.session_date) = '6' THEN 1 ELSE 0 END) as d6
+             FROM reading_sessions rs
+             WHERE rs.student_id IN (${ph})${dateFilter} AND ${notMarker}`
+          )
+          .bind(...chunk, ...dateBinds, startOfWeekStr, startOfLastWeekStr, startOfWeekStr),
+        db
+          .prepare(
+            `SELECT b.title, COUNT(*) as cnt
+             FROM reading_sessions rs
+             LEFT JOIN books b ON rs.book_id = b.id
+             WHERE rs.student_id IN (${ph})${dateFilter} AND ${notMarker} AND b.title IS NOT NULL
+             GROUP BY b.title`
+          )
+          .bind(...chunk, ...dateBinds),
+        db
+          .prepare(
+            `SELECT rs.student_id, MAX(rs.session_date) as last_read
+             FROM reading_sessions rs
+             WHERE rs.student_id IN (${ph})${dateFilter} AND ${notMarker}
+             GROUP BY rs.student_id`
+          )
+          .bind(...chunk, ...dateBinds),
+      ]);
+
+      const agg = aggResult.results?.[0];
+      if (agg) {
+        totalSessions += agg.total || 0;
+        locationCounts.home += agg.home_count || 0;
+        locationCounts.school += agg.school_count || 0;
+        thisWeek += agg.this_week || 0;
+        lastWeek += agg.last_week || 0;
+        for (let d = 0; d < 7; d++) {
+          dayCounts[dayKeys[d]] += agg[`d${d}`] || 0;
+        }
       }
-      if (row.book_title) {
-        bookCounts[row.book_title] = (bookCounts[row.book_title] || 0) + 1;
+
+      for (const r of bookResult.results || []) {
+        bookCounts[r.title] = (bookCounts[r.title] || 0) + r.cnt;
       }
-      if (row.student_id && row.session_date) {
-        const existing = studentLastReadMap.get(row.student_id);
-        if (!existing || row.session_date > existing) {
-          studentLastReadMap.set(row.student_id, row.session_date);
+
+      for (const r of lastReadResult.results || []) {
+        const existing = studentLastReadMap.get(r.student_id);
+        if (!existing || r.last_read > existing) {
+          studentLastReadMap.set(r.student_id, r.last_read);
         }
       }
     }
@@ -154,7 +185,7 @@ statsRouter.get('/stats', requireReadonly(), async (c) => {
       .map(([title, count]) => ({ title, count }));
 
     sessionStats = {
-      totalSessions: allSessionRows.length,
+      totalSessions,
       locationDistribution: locationCounts,
       weeklyActivity: { thisWeek, lastWeek },
       readingByDay: dayCounts,

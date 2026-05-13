@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.64.1] - 2026-05-13
+
+Performance audit cycle 14 — Phase 2: SQL aggregation and badge cron consolidation.
+
+### Changed
+
+- **Stats endpoint SQL aggregation** — `stats.js` now computes totals, location distribution, weekly activity, day-of-week counts, book counts, and per-student last-read dates in 3 SQL queries (batched in a single D1 round-trip) instead of fetching every session row and aggregating in JS. Dramatically reduces data transfer for orgs with large session histories.
+- **Badge cron query consolidation** — `badgeEngine.js` `processBadgesForOrg` now fetches stats, earned badges, sessions, and author counts in a single `db.batch()` call per student (was 6–8 separate queries). New badges are also batch-inserted. Extracted shared `parseStatsRow()` helper to deduplicate realtime/batch evaluation code paths.
+
 ## [3.64.0] - 2026-05-13
 
 Performance & process audit (cycle 14) — Phase 1 quick wins.
