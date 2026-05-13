@@ -35,6 +35,9 @@ export default defineConfig({
     minify: true,
   },
   performance: {
+    preload: {
+      type: 'all-chunks',
+    },
     chunkSplit: {
       strategy: 'split-by-experience',
       override: {

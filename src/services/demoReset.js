@@ -123,13 +123,50 @@ async function batchExec(db, statements, label) {
 export async function resetDemoData(db) {
   console.log('[DemoReset] Starting reset...');
 
-  // Phase 1: Delete all demo org data — run each delete individually
-  // so a missing table doesn't abort the entire process
-  for (const { table, where } of DELETE_TABLES) {
+  // Phase 1: Delete all demo org data in FK-safe batched groups.
+  // Each group contains tables that are independent of each other
+  // but must complete before the next group's tables can be deleted.
+  const DELETE_GROUPS = [
+    ['support_ticket_notes'],
+    ['support_tickets', 'student_badges', 'student_reading_stats'],
+    [
+      'reading_sessions',
+      'student_preferences',
+      'class_assignments',
+      'class_goals',
+      'org_book_selections',
+      'org_settings',
+      'term_dates',
+      'audit_log',
+    ],
+    ['students', 'classes'],
+    [
+      'refresh_tokens',
+      'password_reset_tokens',
+      'user_tour_completions',
+      'rate_limits',
+      'login_attempts',
+    ],
+    ['users'],
+  ];
+  const deleteByTable = Object.fromEntries(DELETE_TABLES.map((d) => [d.table, d.where]));
+
+  for (const group of DELETE_GROUPS) {
+    const stmts = group
+      .filter((t) => deleteByTable[t])
+      .map((t) => db.prepare(`DELETE FROM ${t} WHERE ${deleteByTable[t]}`));
+    if (stmts.length === 0) continue;
     try {
-      await db.prepare(`DELETE FROM ${table} WHERE ${where}`).run();
-    } catch (error) {
-      console.warn(`[DemoReset] delete ${table} skipped: ${error.message}`);
+      await db.batch(stmts);
+    } catch {
+      // Fallback: run individually so a missing table doesn't block others
+      for (const t of group) {
+        try {
+          await db.prepare(`DELETE FROM ${t} WHERE ${deleteByTable[t]}`).run();
+        } catch (error) {
+          console.warn(`[DemoReset] delete ${t} skipped: ${error.message}`);
+        }
+      }
     }
   }
   console.log('[DemoReset] Deletes complete');

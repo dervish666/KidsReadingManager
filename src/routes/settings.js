@@ -136,6 +136,10 @@ settingsRouter.post('/', requireAdmin(), auditLog('update', 'settings'), async (
 
     await db.batch(statements);
 
+    if (body.streakGracePeriodDays !== undefined && c.env.READING_MANAGER_KV) {
+      await c.env.READING_MANAGER_KV.delete(`org-streak-settings:${organizationId}`);
+    }
+
     // Fetch updated settings
     const result = await db
       .prepare(

@@ -1,6 +1,6 @@
 {
   "name": "tally-reading",
-  "version": "3.64.1",
+  "version": "3.64.2",
   "description": "Cloudflare Workers implementation of Tally Reading API",
   "main": "src/index.js",
   "scripts": {
@@ -19,7 +19,9 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src/",
-    "lint:fix": "eslint src/ --fix"
+    "lint:fix": "eslint src/ --fix",
+    "analyze": "BUNDLE_ANALYZE=true rsbuild build",
+    "dev:debug": "node --inspect node_modules/.bin/wrangler dev"
   },
   "author": "",
   "license": "CC BY-NC 4.0",

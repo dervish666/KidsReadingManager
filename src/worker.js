@@ -406,6 +406,12 @@ export default Sentry.withSentry(
           'Content-Security-Policy',
           "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://covers.openlibrary.org https://*.r2.dev; connect-src 'self' https://*.ingest.de.sentry.io; frame-ancestors 'none'"
         );
+        const path = new URL(request.url).pathname;
+        if (/\.[a-f0-9]{8}\.(js|css)$/.test(path)) {
+          response.headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+        } else if (path === '/' || path.endsWith('.html')) {
+          response.headers.set('Cache-Control', 'no-cache, must-revalidate, public');
+        }
         return response;
       } catch (e) {
         console.error(`ASSETS fetch failed: ${e.message}`);
@@ -681,7 +687,13 @@ export default Sentry.withSentry(
 
             let totalClassesProcessed = 0;
 
+            let goalsExhausted = false;
             for (const org of orgs.results || []) {
+              if (Date.now() > deadlineMs) {
+                goalsExhausted = true;
+                break;
+              }
+
               const classes = await db
                 .prepare('SELECT id FROM classes WHERE organization_id = ? AND is_active = 1')
                 .bind(org.id)
@@ -701,6 +713,10 @@ export default Sentry.withSentry(
               );
 
               for (const cls of classes.results || []) {
+                if (Date.now() > deadlineMs) {
+                  goalsExhausted = true;
+                  break;
+                }
                 try {
                   await recalculateClassGoalProgress(db, cls.id, org.id, startDate, endDate, term);
                   totalClassesProcessed++;
@@ -708,9 +724,12 @@ export default Sentry.withSentry(
                   console.error(`[Cron] Class goal recalc error for class ${cls.id}:`, err.message);
                 }
               }
+              if (goalsExhausted) break;
             }
 
-            console.log(`[Cron] Class goals recalculated: ${totalClassesProcessed} classes`);
+            console.log(
+              `[Cron] Class goals recalculated: ${totalClassesProcessed} classes${goalsExhausted ? ' (budget exhausted)' : ''}`
+            );
           } catch (error) {
             console.error('[Cron] Class goals recalculation failed:', error.message);
           }

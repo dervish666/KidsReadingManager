@@ -1,5 +1,26 @@
 # Changelog
 
+## [3.64.2] - 2026-05-13
+
+Performance audit cycle 14 — Phases 3 & 4: caching, cron safety, DX tooling.
+
+### Added
+
+- **Static asset Cache-Control headers** — hash-busted `.js`/`.css` files get `immutable` 1-year cache; HTML gets `no-cache, must-revalidate`
+- **Bundle analyzer script** — `npm run analyze` opens Rsbuild's built-in bundle visualiser via `BUNDLE_ANALYZE=true`
+- **Composite badge index** — migration `0055`: `idx_student_badges_student_earned(student_id, earned_at DESC)` for faster badge lookups
+- **Dev debug script** — `npm run dev:debug` starts Wrangler with Node inspector attached
+- **Prefetch hints for lazy chunks** — Rsbuild `preload: { type: 'all-chunks' }` injects `<link rel="prefetch">` for async chunks
+
+### Changed
+
+- **Class goals cron budget guard** — deadline check added before each org and each class in the drift correction loop; logs when budget is exhausted
+- **Demo reset batched deletes** — 20 sequential DELETE statements grouped into 6 FK-safe `db.batch()` calls (fallback to individual on error)
+
+### Fixed
+
+- **Streak settings KV invalidation** — saving `streakGracePeriodDays` now immediately deletes the cached KV key so changes take effect without waiting for TTL expiry
+
 ## [3.64.1] - 2026-05-13
 
 Performance audit cycle 14 — Phase 2: SQL aggregation and badge cron consolidation.
