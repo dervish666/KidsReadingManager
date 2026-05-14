@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.64.3] - 2026-05-14
+
+### Fixed
+
+- **Last read date counts school sessions only** — `last_read_date` on students now only tracks school reading sessions, not home reading. Affects session create, update, delete recomputation, and stats aggregation queries. Uses `COALESCE(location, 'school') = 'school'` to handle legacy NULL locations.
+- **Students page labels clarified** — "Last Read" column renamed to "Last Read (School)" in table view and "Last read in school" in card view
+
 ## [3.64.2] - 2026-05-13
 
 Performance audit cycle 14 — Phases 3 & 4: caching, cron safety, DX tooling.

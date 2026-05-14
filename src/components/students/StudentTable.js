@@ -216,7 +216,7 @@ const StudentTable = React.memo(({ students }) => {
                   active={orderBy === 'lastRead'}
                   direction={orderBy === 'lastRead' ? order : 'asc'}
                   onClick={() => handleRequestSort('lastRead')}
-                  aria-label={`Sort by last read date, currently ${orderBy === 'lastRead' ? (order === 'asc' ? 'ascending' : 'descending') : 'unsorted'}`}
+                  aria-label={`Sort by last school read date, currently ${orderBy === 'lastRead' ? (order === 'asc' ? 'ascending' : 'descending') : 'unsorted'}`}
                   sx={{
                     color: 'white !important',
                     '&:hover': { color: 'white !important' },
@@ -225,7 +225,7 @@ const StudentTable = React.memo(({ students }) => {
                     '&.Mui-active .MuiTableSortLabel-icon': { color: 'white !important' },
                   }}
                 >
-                  Last Read
+                  Last Read (School)
                 </TableSortLabel>
               </TableCell>
               <TableCell sx={{ color: 'white', fontWeight: 600, textAlign: 'center' }}>

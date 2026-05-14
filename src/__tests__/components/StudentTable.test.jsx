@@ -154,7 +154,7 @@ describe('StudentTable Component', () => {
 
       expect(screen.getByText('Student')).toBeInTheDocument();
       expect(screen.getByText('Class')).toBeInTheDocument();
-      expect(screen.getByText('Last Read')).toBeInTheDocument();
+      expect(screen.getByText('Last Read (School)')).toBeInTheDocument();
       expect(screen.getByText('Sessions')).toBeInTheDocument();
     });
 
@@ -273,7 +273,9 @@ describe('StudentTable Component', () => {
       render(<StudentTable students={students} />, { wrapper: createWrapper(context) });
 
       // Click the Last Read column header
-      const lastReadSortLabel = screen.getByRole('button', { name: /sort by last read date/i });
+      const lastReadSortLabel = screen.getByRole('button', {
+        name: /sort by last school read date/i,
+      });
       fireEvent.click(lastReadSortLabel);
 
       // Charlie (never read) should come first with ascending order (null/0 timestamps)
@@ -558,9 +560,9 @@ describe('StudentTable Component', () => {
       const students = createTestStudents();
       render(<StudentTable students={students} />, { wrapper: createWrapper(context) });
 
-      const sortButton = screen.getByRole('button', { name: /sort by last read date/i });
+      const sortButton = screen.getByRole('button', { name: /sort by last school read date/i });
       expect(sortButton).toHaveAttribute('aria-label');
-      expect(sortButton.getAttribute('aria-label')).toContain('last read');
+      expect(sortButton.getAttribute('aria-label')).toContain('last school read');
     });
 
     it('should have aria-label on sessions sort button', () => {

@@ -150,6 +150,7 @@ statsRouter.get('/stats', requireReadonly(), async (c) => {
             `SELECT rs.student_id, MAX(rs.session_date) as last_read
              FROM reading_sessions rs
              WHERE rs.student_id IN (${ph})${dateFilter} AND ${notMarker}
+               AND COALESCE(rs.location, 'school') = 'school'
              GROUP BY rs.student_id`
           )
           .bind(...chunk, ...dateBinds),

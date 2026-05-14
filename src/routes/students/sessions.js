@@ -247,7 +247,7 @@ sessionsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
       );
     }
 
-    if (!isMarkerSession) {
+    if (!isMarkerSession && (body.location || 'school') === 'school') {
       coreWrites.push(
         db
           .prepare(
@@ -389,12 +389,13 @@ sessionsRouter.delete(
       await recalculateStats(db, id, organizationId);
       await updateClassGoalOnSession(db, id, organizationId);
 
-      // Recompute last_read_date from the remaining real sessions
+      // Recompute last_read_date from remaining school sessions only
       await db
         .prepare(
           `UPDATE students SET last_read_date = (
              SELECT MAX(session_date) FROM reading_sessions WHERE student_id = ?
                AND (notes IS NULL OR (notes NOT LIKE '%[ABSENT]%' AND notes NOT LIKE '%[NO_RECORD]%'))
+               AND COALESCE(location, 'school') = 'school'
            ), updated_at = datetime("now") WHERE id = ? AND organization_id = ?`
         )
         .bind(id, id, organizationId)
@@ -506,6 +507,7 @@ sessionsRouter.put(
           `UPDATE students SET last_read_date = (
              SELECT MAX(session_date) FROM reading_sessions WHERE student_id = ?
                AND (notes IS NULL OR (notes NOT LIKE '%[ABSENT]%' AND notes NOT LIKE '%[NO_RECORD]%'))
+               AND COALESCE(location, 'school') = 'school'
            ), updated_at = datetime("now") WHERE id = ? AND organization_id = ?`
         )
         .bind(id, id, organizationId)

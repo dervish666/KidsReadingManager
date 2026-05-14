@@ -191,7 +191,7 @@ const StudentCard = React.memo(({ student }) => {
                 }}
               >
                 <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                  Last read
+                  Last read in school
                 </Typography>
                 <Chip
                   label={formatDate(mostRecentReadDate || student.lastReadDate)}
