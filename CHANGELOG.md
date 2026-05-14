@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.65.1] - 2026-05-14
+
+### Fixed
+
+- **Stats bind parameter ordering** — SELECT-level `?` params (week/today counts) were bound after WHERE-level params, causing today's sessions tile to show 0 and weekly counts to be silently wrong. Reordered `.bind()` to match SQL text order.
+
 ## [3.65.0] - 2026-05-14
 
 ### Added

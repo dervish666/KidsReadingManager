@@ -140,13 +140,13 @@ statsRouter.get('/stats', requireReadonly(), async (c) => {
              WHERE rs.student_id IN (${ph})${dateFilter} AND ${notMarker}`
           )
           .bind(
-            ...chunk,
-            ...dateBinds,
             startOfWeekStr,
             startOfLastWeekStr,
             startOfWeekStr,
             todayStr,
-            todayStr
+            todayStr,
+            ...chunk,
+            ...dateBinds
           ),
         db
           .prepare(
