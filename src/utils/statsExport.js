@@ -157,7 +157,7 @@ export async function generateStatsPDF({
     ['Students', formatNumber(stats.totalStudents)],
     ['Sessions', formatNumber(stats.totalSessions)],
     ['Avg / Student', formatNumber(stats.averageSessionsPerStudent)],
-    ['Never Read', formatNumber(stats.studentsWithNoSessions)],
+    ['Today', formatNumber((stats.todaySessions?.school || 0) + (stats.todaySessions?.home || 0))],
   ];
 
   summaryItems.forEach(([label, value], i) => {

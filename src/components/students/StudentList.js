@@ -51,7 +51,7 @@ const StudentList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const studentsPerPage = 25;
+  const studentsPerPage = 35;
 
   const handleAddStudent = () => {
     if (!newStudentName.trim()) {

@@ -106,6 +106,8 @@ statsRouter.get('/stats', requireReadonly(), async (c) => {
     let totalSessions = 0;
     let thisWeek = 0;
     let lastWeek = 0;
+    let todaySchool = 0;
+    let todayHome = 0;
 
     const notMarker = `(rs.notes IS NULL OR (rs.notes NOT LIKE '%[ABSENT]%' AND rs.notes NOT LIKE '%[NO_RECORD]%'))`;
 
@@ -131,11 +133,21 @@ statsRouter.get('/stats', requireReadonly(), async (c) => {
               SUM(CASE WHEN strftime('%w', rs.session_date) = '3' THEN 1 ELSE 0 END) as d3,
               SUM(CASE WHEN strftime('%w', rs.session_date) = '4' THEN 1 ELSE 0 END) as d4,
               SUM(CASE WHEN strftime('%w', rs.session_date) = '5' THEN 1 ELSE 0 END) as d5,
-              SUM(CASE WHEN strftime('%w', rs.session_date) = '6' THEN 1 ELSE 0 END) as d6
+              SUM(CASE WHEN strftime('%w', rs.session_date) = '6' THEN 1 ELSE 0 END) as d6,
+              SUM(CASE WHEN rs.session_date = ? AND COALESCE(rs.location, 'school') = 'school' THEN 1 ELSE 0 END) as today_school,
+              SUM(CASE WHEN rs.session_date = ? AND rs.location = 'home' THEN 1 ELSE 0 END) as today_home
              FROM reading_sessions rs
              WHERE rs.student_id IN (${ph})${dateFilter} AND ${notMarker}`
           )
-          .bind(...chunk, ...dateBinds, startOfWeekStr, startOfLastWeekStr, startOfWeekStr),
+          .bind(
+            ...chunk,
+            ...dateBinds,
+            startOfWeekStr,
+            startOfLastWeekStr,
+            startOfWeekStr,
+            todayStr,
+            todayStr
+          ),
         db
           .prepare(
             `SELECT b.title, COUNT(*) as cnt
@@ -163,6 +175,8 @@ statsRouter.get('/stats', requireReadonly(), async (c) => {
         locationCounts.school += agg.school_count || 0;
         thisWeek += agg.this_week || 0;
         lastWeek += agg.last_week || 0;
+        todaySchool += agg.today_school || 0;
+        todayHome += agg.today_home || 0;
         for (let d = 0; d < 7; d++) {
           dayCounts[dayKeys[d]] += agg[`d${d}`] || 0;
         }
@@ -188,6 +202,7 @@ statsRouter.get('/stats', requireReadonly(), async (c) => {
     sessionStats = {
       totalSessions,
       locationDistribution: locationCounts,
+      todaySessions: { school: todaySchool, home: todayHome },
       weeklyActivity: { thisWeek, lastWeek },
       readingByDay: dayCounts,
       mostReadBooks,

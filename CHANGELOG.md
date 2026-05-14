@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.65.0] - 2026-05-14
+
+### Added
+
+- **Today's sessions list on School Reading** — when no student is selected, a live list of all sessions recorded today appears below the form, showing student name, book cover, title, assessment, and location. Refreshes after each save.
+- **Today's sessions stat tile** — replaced "Never Read" overview tile on Stats page with "Today" tile showing total sessions logged today, with school/home breakdown subtitle
+- **`todaySessions` in stats API** — `GET /stats` now returns `todaySessions: { school, home }` counts for the current day
+
+### Changed
+
+- **Students per page increased** — student list pagination raised from 25 to 35 to accommodate larger classes
+
 ## [3.64.3] - 2026-05-14
 
 ### Fixed

@@ -85,6 +85,10 @@ const SessionForm = () => {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyRefresh, setHistoryRefresh] = useState(0);
 
+  // Today's sessions across all students (shown when no student selected)
+  const [todaySessions, setTodaySessions] = useState([]);
+  const [todaySessionsRefresh, setTodaySessionsRefresh] = useState(0);
+
   const booksMap = useMemo(() => new Map(books.map((b) => [b.id, b])), [books]);
 
   // If there are no badges to show first, display goal celebration immediately
@@ -125,6 +129,30 @@ const SessionForm = () => {
       controller.abort();
     };
   }, [selectedStudentId, fetchWithAuth, historyRefresh]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const classParam = globalClassFilter && globalClassFilter !== 'all' ? globalClassFilter : 'all';
+    fetchWithAuth(
+      `/api/students/sessions?classId=${classParam}&startDate=${date}&endDate=${date}`,
+      { signal: controller.signal }
+    )
+      .then((r) => (r.ok ? r.json() : []))
+      .then((sessions) => {
+        const real = sessions.filter(
+          (s) =>
+            !s.notes?.includes('[ABSENT]') &&
+            !s.notes?.includes('[NO_RECORD]') &&
+            !s.notes?.includes('[COUNT:')
+        );
+        setTodaySessions(real);
+      })
+      .catch((err) => {
+        if (err.name === 'AbortError') return;
+        setTodaySessions([]);
+      });
+    return () => controller.abort();
+  }, [fetchWithAuth, date, globalClassFilter, todaySessionsRefresh]);
 
   const handleBookChange = async (book) => {
     const bookId = book ? book.id : '';
@@ -349,6 +377,7 @@ const SessionForm = () => {
         setSnackbarMessage('Reading session saved successfully');
         setSnackbarOpen(true);
         setHistoryRefresh((c) => c + 1);
+        setTodaySessionsRefresh((c) => c + 1);
       } else {
         setError('Failed to save reading session. Please try again.');
       }
@@ -997,6 +1026,66 @@ const SessionForm = () => {
               );
             })()
           )}
+        </Paper>
+      )}
+      {/* Today's sessions — shown when no student selected */}
+      {!selectedStudentId && todaySessions.length > 0 && (
+        <Paper sx={{ mt: 2, p: 2, borderRadius: '12px' }}>
+          <Typography
+            variant="subtitle1"
+            sx={{
+              fontWeight: 700,
+              fontFamily: '"Nunito", sans-serif',
+              color: 'text.primary',
+              mb: 1.5,
+            }}
+          >
+            Today&apos;s Sessions ({todaySessions.length})
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            {todaySessions.map((session) => (
+              <Box
+                key={session.id}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                  p: 1,
+                  borderRadius: '8px',
+                  backgroundColor: 'rgba(250, 248, 243, 0.8)',
+                }}
+              >
+                <BookCover
+                  title={session.bookTitle || 'No book'}
+                  author={session.bookAuthor}
+                  isbn={null}
+                  width={36}
+                  height={52}
+                />
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
+                    {session.studentName}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" noWrap>
+                    {session.bookTitle || 'No book recorded'}
+                  </Typography>
+                </Box>
+                {session.assessment && (
+                  <Chip
+                    label={session.assessment}
+                    size="small"
+                    sx={{ height: 22, fontSize: '0.7rem' }}
+                  />
+                )}
+                <Chip
+                  label={session.location === 'home' ? 'Home' : 'School'}
+                  size="small"
+                  variant="outlined"
+                  sx={{ height: 22, fontSize: '0.65rem' }}
+                />
+              </Box>
+            ))}
+          </Box>
         </Paper>
       )}
       <Snackbar

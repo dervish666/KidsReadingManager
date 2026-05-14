@@ -33,12 +33,12 @@ export default function OverviewTab({ stats, enrichedTopStreaks, onNavigate }) {
             tab: 2,
           },
           {
-            label: 'Never Read',
-            value: stats.studentsWithNoSessions,
-            color: 'status.needsAttention',
-            tab: 1,
+            label: 'Today',
+            value: (stats.todaySessions?.school || 0) + (stats.todaySessions?.home || 0),
+            color: 'success.main',
+            subtitle: `${stats.todaySessions?.school || 0} school · ${stats.todaySessions?.home || 0} home`,
           },
-        ].map(({ label, value, color, tab }) => {
+        ].map(({ label, value, color, tab, subtitle }) => {
           const content = (
             <CardContent sx={{ textAlign: 'center', py: 2, px: 1 }}>
               <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
@@ -50,6 +50,11 @@ export default function OverviewTab({ stats, enrichedTopStreaks, onNavigate }) {
               >
                 {value}
               </Typography>
+              {subtitle && (
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+                  {subtitle}
+                </Typography>
+              )}
             </CardContent>
           );
           return (
