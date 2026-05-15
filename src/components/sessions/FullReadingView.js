@@ -25,6 +25,8 @@ import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
+import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import BookAutocomplete from './BookAutocomplete';
 import BookCover from '../BookCover';
 import {
@@ -243,16 +245,41 @@ const FullReadingView = ({
         {/* Right Column - Date and Search Controls */}
         <Paper sx={{ p: 2, flex: isMobile ? 'none' : 1 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, height: '100%' }}>
-            {/* Date Picker */}
-            <TextField
-              label="Date"
-              type="date"
-              value={selectedDate}
-              onChange={(e) => onSelectedDateChange(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              fullWidth
-              inputProps={{ 'aria-label': 'Select date for reading session' }}
-            />
+            {/* Date Picker with Navigation */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <IconButton
+                size="small"
+                onClick={() => {
+                  const d = new Date(selectedDate + 'T12:00:00');
+                  d.setDate(d.getDate() - 1);
+                  onSelectedDateChange(formatDateISO(d));
+                }}
+                aria-label="Previous day"
+              >
+                <NavigateBeforeIcon />
+              </IconButton>
+              <TextField
+                label="Date"
+                type="date"
+                value={selectedDate}
+                onChange={(e) => onSelectedDateChange(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+                inputProps={{ 'aria-label': 'Select date for reading session' }}
+              />
+              <IconButton
+                size="small"
+                onClick={() => {
+                  const d = new Date(selectedDate + 'T12:00:00');
+                  d.setDate(d.getDate() + 1);
+                  onSelectedDateChange(formatDateISO(d));
+                }}
+                disabled={selectedDate >= formatDateISO(new Date())}
+                aria-label="Next day"
+              >
+                <NavigateNextIcon />
+              </IconButton>
+            </Box>
 
             {/* Date Range Preset */}
             <FormControl data-tour="register-date-range" size="small" fullWidth>

@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.65.6] - 2026-05-15
+
+### Added
+
+- **Date navigation on reading register** — previous/next day arrow buttons and a "Reset" chip (returns to yesterday) on both quick and full reading views
+
 ## [3.65.5] - 2026-05-15
 
 ### Changed

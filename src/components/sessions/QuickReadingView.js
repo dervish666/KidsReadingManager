@@ -15,11 +15,14 @@ import {
   InputAdornment,
   CircularProgress,
   ClickAwayListener,
+  Chip,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
+import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
+import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import BookAutocomplete from './BookAutocomplete';
-import { READING_STATUS, formatDateISO, formatDateHeader } from './homeReadingUtils';
+import { READING_STATUS, formatDateISO, formatDateHeader, getYesterday } from './homeReadingUtils';
 
 const QuickReadingView = ({
   selectedDate,
@@ -43,6 +46,17 @@ const QuickReadingView = ({
   return (
     <>
       <Box sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+        <IconButton
+          size="small"
+          onClick={() => {
+            const d = new Date(selectedDate + 'T12:00:00');
+            d.setDate(d.getDate() - 1);
+            onSelectedDateChange(formatDateISO(d));
+          }}
+          aria-label="Previous day"
+        >
+          <NavigateBeforeIcon />
+        </IconButton>
         <Typography variant="body1" sx={{ fontWeight: 700, color: 'text.primary' }}>
           {selectedDate &&
             new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'long' })}
@@ -57,6 +71,26 @@ const QuickReadingView = ({
           sx={{ width: 180 }}
           inputProps={{ 'aria-label': 'Select date for reading session' }}
         />
+        <IconButton
+          size="small"
+          onClick={() => {
+            const d = new Date(selectedDate + 'T12:00:00');
+            d.setDate(d.getDate() + 1);
+            onSelectedDateChange(formatDateISO(d));
+          }}
+          disabled={selectedDate >= formatDateISO(new Date())}
+          aria-label="Next day"
+        >
+          <NavigateNextIcon />
+        </IconButton>
+        {selectedDate !== getYesterday() && (
+          <Chip
+            label="Reset"
+            size="small"
+            onClick={() => onSelectedDateChange(getYesterday())}
+            sx={{ fontWeight: 600 }}
+          />
+        )}
         <TextField
           placeholder="Search student..."
           value={searchQuery}
