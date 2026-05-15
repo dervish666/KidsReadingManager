@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.65.5] - 2026-05-15
+
+### Changed
+
+- **Help modal layout** — tour replay button moved to the footer bar (left-aligned, inline with Close); "Questions or feedback?" link is now centered and smaller
+- **Day name before date picker** — swapped order on Home Reading quick view so the bold day name sits on the left edge
+
 ## [3.65.4] - 2026-05-15
 
 ### Fixed

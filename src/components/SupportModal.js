@@ -281,34 +281,16 @@ const SupportModal = ({ open, onClose, currentPage }) => {
             {pageHelp && <Box sx={{ mb: showForm ? 2.5 : 1 }}>{pageHelp}</Box>}
 
             {pageHelp && !showForm && (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 1.5 }}>
-                {hasTour && (
-                  <Button
-                    onClick={handleReplayTour}
-                    variant="text"
-                    startIcon={<ExploreOutlinedIcon />}
-                    sx={{
-                      color: tourCompleted ? 'text.secondary' : 'primary.main',
-                      textTransform: 'none',
-                      fontWeight: 600,
-                      px: 0,
-                      justifyContent: 'flex-start',
-                      '&:hover': { color: 'primary.main', backgroundColor: 'transparent' },
-                    }}
-                  >
-                    {tourCompleted ? 'Replay page tour' : 'Take a tour of this page'}
-                  </Button>
-                )}
+              <Box sx={{ textAlign: 'center', mt: 2 }}>
                 <Button
                   onClick={() => setShowForm(true)}
                   variant="text"
-                  endIcon={<ChevronRightIcon />}
+                  endIcon={<ChevronRightIcon sx={{ fontSize: 18 }} />}
                   sx={{
                     color: 'text.secondary',
                     textTransform: 'none',
                     fontWeight: 600,
-                    px: 0,
-                    justifyContent: 'flex-start',
+                    fontSize: '0.85rem',
                     '&:hover': { color: 'primary.main', backgroundColor: 'transparent' },
                   }}
                 >
@@ -433,12 +415,32 @@ const SupportModal = ({ open, onClose, currentPage }) => {
             </Button>
           </>
         ) : (
-          <Button
-            onClick={handleClose}
-            sx={{ color: 'text.secondary', textTransform: 'none', fontWeight: 600 }}
-          >
-            Close
-          </Button>
+          <>
+            {hasTour && (
+              <Button
+                onClick={handleReplayTour}
+                startIcon={<ExploreOutlinedIcon sx={{ fontSize: 18 }} />}
+                sx={{
+                  color: tourCompleted ? 'text.secondary' : 'primary.main',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  mr: 'auto',
+                  '&:hover': {
+                    color: 'primary.main',
+                    backgroundColor: 'rgba(107, 142, 107, 0.05)',
+                  },
+                }}
+              >
+                {tourCompleted ? 'Replay tour' : 'Page tour'}
+              </Button>
+            )}
+            <Button
+              onClick={handleClose}
+              sx={{ color: 'text.secondary', textTransform: 'none', fontWeight: 600 }}
+            >
+              Close
+            </Button>
+          </>
         )}
       </DialogActions>
     </Dialog>
