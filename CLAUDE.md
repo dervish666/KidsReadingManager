@@ -134,6 +134,10 @@ src/utils/statsExport.js - PDF/CSV stats report generation (jsPDF)
 src/utils/titleMatching.js - Title normalization and similarity scoring for metadata APIs
 src/utils/orgStatusCache.js - KV cache for organization is_active + subscription_status (tenantMiddleware reads, Stripe webhook/org deactivate/purge invalidate)
 src/utils/coverPlaceholders.js - Shared SHA-256 hash set + helpers for rejecting upstream "image not available" cover placeholders (used by covers.js route + metadataService.js)
+src/utils/aiCostCap.js - Per-tenant monthly AI cost cap enforcement (org_ai_usage table)
+src/utils/contentModeration.js - AI output content-moderation layer (age-appropriate filtering)
+src/utils/d1Batch.js - D1 batch operation guard (chunks statements to respect 100-statement limit)
+src/utils/sentryFilter.js - Sentry PII scrubbing filter for error reporting
 
 <!-- Contexts & Hooks -->
 
@@ -176,6 +180,8 @@ src/components/DataManagement.js - Export/import and Wonde sync UI
 src/components/BillingBanner.js - Subscription status banner (trial countdown, past-due warning)
 src/components/BillingDashboard.js - Billing management dashboard for admins
 src/components/SubscriptionBlockedScreen.js - Blocked state screen when subscription cancelled
+src/components/AchievementsPage.js - Standalone achievements route (promoted to main nav)
+src/components/Help.js - Public /help page
 src/components/ClassAssignmentBanner.js - Class assignment notification for new teachers
 src/components/WelcomeDialog.js - First-time user welcome dialog
 
@@ -200,6 +206,7 @@ src/components/books/bookImportUtils.js - Import utility functions (column detec
 src/components/classes/ClassManager.js - Class CRUD with year groups
 
 src/components/tour/TourProvider.js - Tour context provider with lazy-loaded react-joyride
+src/components/tour/TourRunner.js - Extracted tour runner (step logic, callbacks, scroll)
 src/components/tour/TourButton.js - Floating compass replay button (fixed bottom-right)
 src/components/tour/TourTooltip.js - Glassmorphism custom tooltip for tour steps
 src/components/tour/tourSteps.js - Tour step definitions per page (targets, titles, content)
@@ -481,7 +488,7 @@ Global error handler in `src/middleware/errorHandler.js` standardizes all error 
 
 ### Public Endpoints
 
-Public paths are defined in `src/middleware/tenant.js` (jwtAuthMiddleware): `/api/auth/mode`, `/api/auth/login`, `/api/auth/register`, `/api/auth/refresh`, `/api/auth/forgot-password`, `/api/auth/reset-password`, `/api/auth/mylogin/login`, `/api/auth/mylogin/callback`, `/api/webhooks/wonde`, `/api/health`, `/api/login` (legacy redirect), and `/api/covers/*`. When adding public paths, update the `publicPaths` array in BOTH `jwtAuthMiddleware()` in `src/middleware/tenant.js` AND the tenant middleware bypass in `src/worker.js`. **Important:** Each public path must be explicitly listed — do not use wildcard `startsWith` patterns for new path prefixes, as this creates unintended auth bypass for all future routes under that prefix. The `/api/webhooks/wonde` endpoint is public but implements its own shared-secret authentication via `WONDE_WEBHOOK_SECRET`.
+Public paths are defined in `PUBLIC_PATHS` in `src/utils/constants.js` (imported by `src/middleware/tenant.js`): `/api/auth/mode`, `/api/auth/login`, `/api/auth/register`, `/api/auth/refresh`, `/api/auth/forgot-password`, `/api/auth/reset-password`, `/api/auth/mylogin/login`, `/api/auth/mylogin/callback`, `/api/auth/demo`, `/api/webhooks/wonde`, `/api/webhooks/stripe`, `/api/health`, `/api/login` (legacy redirect), `/api/logout`, `/api/signup`, `/api/contact`, and `/api/covers/*`. When adding public paths, update `PUBLIC_PATHS` in `src/utils/constants.js` AND the tenant middleware bypass in `src/worker.js`. **Important:** Each public path must be explicitly listed — do not use wildcard `startsWith` patterns for new path prefixes, as this creates unintended auth bypass for all future routes under that prefix. The `/api/webhooks/wonde` endpoint is public but implements its own shared-secret authentication via `WONDE_WEBHOOK_SECRET`. The `/api/webhooks/stripe` endpoint verifies signatures via `STRIPE_WEBHOOK_SECRET`.
 
 ### Scheduled Tasks
 
@@ -562,6 +569,10 @@ The frontend dev server (port 3001) proxies `/api` requests to the worker (port 
 - `SENTRY_DSN` - Sentry error tracking DSN
 - `STRIPE_SECRET_KEY` - Stripe API secret key (set via `wrangler secret put`)
 - `STRIPE_WEBHOOK_SECRET` - Stripe webhook signing secret (set via `wrangler secret put`)
+- `STRIPE_ANNUAL_PRICE_ID` - Stripe price ID for annual plan
+- `STRIPE_AI_ADDON_PRICE_ID` - Stripe price ID for AI add-on
+- `APP_URL` - Application URL (used in MyLogin redirects and email links)
+- `PUBLIC_REGISTRATION_ENABLED` - Controls open registration (true/false)
 
 ### Wrangler Bindings (`wrangler.toml`)
 
