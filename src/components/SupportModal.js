@@ -24,7 +24,7 @@ import { useTourContext } from './tour/TourProvider';
 const PAGE_TOUR_MAP = {
   Students: 'students',
   'School Reading': 'session-form',
-  'Home Reading': 'home-reading',
+  'Home Reading': ['home-reading-quick', 'home-reading'],
   Recommend: 'recommendations',
   Stats: 'stats',
 };
@@ -155,13 +155,19 @@ const SupportModal = ({ open, onClose, currentPage }) => {
   const [showForm, setShowForm] = useState(false);
 
   const pageHelp = PAGE_HELP[currentPage] || null;
-  const tourId = PAGE_TOUR_MAP[currentPage];
-  const hasTour = tourId && isTourAvailable(tourId);
+  const tourMapping = PAGE_TOUR_MAP[currentPage];
+  const tourCandidates = Array.isArray(tourMapping)
+    ? tourMapping
+    : tourMapping
+      ? [tourMapping]
+      : [];
+  const tourId = tourCandidates.find((id) => isTourAvailable(id));
+  const hasTour = !!tourId;
   const tourCompleted = tourId && isTourCompleted(tourId);
 
   const handleReplayTour = () => {
     onClose();
-    setTimeout(() => startTour(tourId), 300);
+    setTimeout(() => tourCandidates.forEach((id) => startTour(id)), 300);
   };
 
   useEffect(() => {

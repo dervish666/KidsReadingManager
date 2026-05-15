@@ -53,6 +53,10 @@ const QuickReadingView = ({
           sx={{ width: 180 }}
           inputProps={{ 'aria-label': 'Select date for reading session' }}
         />
+        <Typography variant="body1" sx={{ fontWeight: 700, color: 'text.primary' }}>
+          {selectedDate &&
+            new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'long' })}
+        </Typography>
         <TextField
           placeholder="Search student..."
           value={searchQuery}

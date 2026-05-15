@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.65.3] - 2026-05-15
+
+### Fixed
+
+- **Home reading full tour scroll** — tooltips for the register table and daily totals now appear below their targets instead of above, preventing the page from scrolling off-screen
+- **Home reading quick tour not triggering** — the help modal now tries both quick and full tour variants, starting whichever matches the active view
+
+### Added
+
+- **Day name on quick reading date** — the selected date on the Home Reading quick view now shows the bold day name (e.g. "Wednesday") next to the date picker
+
 ## [3.65.2] - 2026-05-15
 
 ### Changed
