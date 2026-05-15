@@ -87,7 +87,7 @@ export const TOURS = {
     ],
   },
   'home-reading': {
-    version: 3,
+    version: 4,
     steps: [
       {
         target: '[data-tour="register-date-range"]',
@@ -98,14 +98,10 @@ export const TOURS = {
       {
         target: '[data-tour="register-table"]',
         title: 'The Register',
-        content: 'Each cell is a student and date. Tap to record their reading for that day.',
+        content:
+          'Each cell is a student and date. Tap to record their reading for that day. Daily totals appear at the bottom of the table.',
         placement: 'bottom',
-      },
-      {
-        target: '[data-tour="register-totals"]',
-        title: 'Daily Totals',
-        content: 'See at a glance how many students read each day.',
-        placement: 'bottom',
+        skipScroll: true,
       },
     ],
   },

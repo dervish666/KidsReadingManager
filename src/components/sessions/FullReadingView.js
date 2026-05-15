@@ -352,10 +352,10 @@ const FullReadingView = ({
             <CircularProgress size={40} />
           </Box>
         )}
-        <TableContainer data-tour="register-table">
+        <TableContainer>
           <Table size="small">
             <TableHead>
-              <TableRow>
+              <TableRow data-tour="register-table">
                 <TableCell
                   sx={{
                     fontWeight: 'bold',

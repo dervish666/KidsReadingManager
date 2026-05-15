@@ -1,10 +1,15 @@
 # Changelog
 
+## [3.65.4] - 2026-05-15
+
+### Fixed
+
+- **Home reading full tour scroll** — moved tour target from the entire table container to the header row and added `skipScroll` so the page no longer jumps off-screen; merged daily totals into the register step to avoid an unreachable spotlight target
+
 ## [3.65.3] - 2026-05-15
 
 ### Fixed
 
-- **Home reading full tour scroll** — tooltips for the register table and daily totals now appear below their targets instead of above, preventing the page from scrolling off-screen
 - **Home reading quick tour not triggering** — the help modal now tries both quick and full tour variants, starting whichever matches the active view
 
 ### Added
