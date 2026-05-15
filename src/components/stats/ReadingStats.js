@@ -29,21 +29,13 @@ import { useData } from '../../contexts/DataContext';
 import { generateStatsPDF } from '../../utils/statsExport';
 import { useUI } from '../../contexts/UIContext';
 import { useTour } from '../tour/useTour';
-import TourButton from '../tour/TourButton';
 
 const ReadingStats = () => {
   const { fetchWithAuth, organization } = useAuth();
   const { students, classes } = useData();
   const { globalClassFilter, getReadingStatus } = useUI();
   const [currentTab, setCurrentTab] = useState(0);
-  const { tourButtonProps } = useTour('stats');
-  const statsTourButtonProps = {
-    ...tourButtonProps,
-    onClick: () => {
-      setCurrentTab(0);
-      setTimeout(() => tourButtonProps.onClick(), 100);
-    },
-  };
+  useTour('stats');
   const [termDates, setTermDates] = useState([]);
   const [selectedTerm, setSelectedTerm] = useState('all');
 
@@ -366,7 +358,6 @@ const ReadingStats = () => {
             ))}
         </Box>
       </Box>
-      <TourButton {...statsTourButtonProps} />
     </Box>
   );
 };

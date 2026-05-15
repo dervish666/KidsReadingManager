@@ -27,7 +27,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
 import { useUI } from '../../contexts/UIContext';
 import { useTour } from '../tour/useTour';
-import TourButton from '../tour/TourButton';
 import BookCover from '../BookCover';
 import AssessmentSelector from './AssessmentSelector';
 import SessionNotes from './SessionNotes';
@@ -54,7 +53,7 @@ const SessionForm = () => {
     genres,
   } = useData();
   const { globalClassFilter, recentlyAccessedStudents, removeRecentlyAccessedStudent } = useUI();
-  const { tourButtonProps } = useTour('session-form');
+  useTour('session-form');
 
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [assessment, setAssessment] = useState(null);
@@ -1125,7 +1124,6 @@ const SessionForm = () => {
             : ''
         }
       />
-      <TourButton {...tourButtonProps} />
     </Box>
   );
 };

@@ -17,7 +17,17 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import ExploreOutlinedIcon from '@mui/icons-material/ExploreOutlined';
 import { useAuth } from '../contexts/AuthContext';
+import { useTourContext } from './tour/TourProvider';
+
+const PAGE_TOUR_MAP = {
+  Students: 'students',
+  'School Reading': 'session-form',
+  'Home Reading': 'home-reading',
+  Recommend: 'recommendations',
+  Stats: 'stats',
+};
 
 const HelpBullets = ({ intro, bullets }) => (
   <Box>
@@ -135,6 +145,7 @@ const PAGE_HELP = {
 
 const SupportModal = ({ open, onClose, currentPage }) => {
   const { user, fetchWithAuth } = useAuth();
+  const { startTour, isTourAvailable, isTourCompleted } = useTourContext();
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -144,6 +155,14 @@ const SupportModal = ({ open, onClose, currentPage }) => {
   const [showForm, setShowForm] = useState(false);
 
   const pageHelp = PAGE_HELP[currentPage] || null;
+  const tourId = PAGE_TOUR_MAP[currentPage];
+  const hasTour = tourId && isTourAvailable(tourId);
+  const tourCompleted = tourId && isTourCompleted(tourId);
+
+  const handleReplayTour = () => {
+    onClose();
+    setTimeout(() => startTour(tourId), 300);
+  };
 
   useEffect(() => {
     if (open) {
@@ -255,23 +274,41 @@ const SupportModal = ({ open, onClose, currentPage }) => {
             {/* Page-specific help content */}
             {pageHelp && <Box sx={{ mb: showForm ? 2.5 : 1 }}>{pageHelp}</Box>}
 
-            {/* "Still need help?" toggle — only shown when help is displayed and form is hidden */}
             {pageHelp && !showForm && (
-              <Button
-                onClick={() => setShowForm(true)}
-                variant="text"
-                endIcon={<ChevronRightIcon />}
-                sx={{
-                  mt: 1.5,
-                  color: 'text.secondary',
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  px: 0,
-                  '&:hover': { color: 'primary.main', backgroundColor: 'transparent' },
-                }}
-              >
-                Questions or feedback? Get in touch
-              </Button>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 1.5 }}>
+                {hasTour && (
+                  <Button
+                    onClick={handleReplayTour}
+                    variant="text"
+                    startIcon={<ExploreOutlinedIcon />}
+                    sx={{
+                      color: tourCompleted ? 'text.secondary' : 'primary.main',
+                      textTransform: 'none',
+                      fontWeight: 600,
+                      px: 0,
+                      justifyContent: 'flex-start',
+                      '&:hover': { color: 'primary.main', backgroundColor: 'transparent' },
+                    }}
+                  >
+                    {tourCompleted ? 'Replay page tour' : 'Take a tour of this page'}
+                  </Button>
+                )}
+                <Button
+                  onClick={() => setShowForm(true)}
+                  variant="text"
+                  endIcon={<ChevronRightIcon />}
+                  sx={{
+                    color: 'text.secondary',
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    px: 0,
+                    justifyContent: 'flex-start',
+                    '&:hover': { color: 'primary.main', backgroundColor: 'transparent' },
+                  }}
+                >
+                  Questions or feedback? Get in touch
+                </Button>
+              </Box>
             )}
 
             {/* Contact form */}

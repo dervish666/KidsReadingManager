@@ -47,7 +47,6 @@ import StudentEditForm from './students/StudentEditForm';
 import BookCover from './BookCover';
 import { STATUS_TO_PALETTE } from '../utils/helpers';
 import { useTour } from './tour/useTour';
-import TourButton from './tour/TourButton';
 
 const BookIllustration = () => (
   <svg
@@ -128,7 +127,7 @@ const BookRecommendations = () => {
   const [isCachedResult, setIsCachedResult] = useState(false);
 
   // Tour — ready once library results are showing so all targets exist in DOM
-  const { tourButtonProps } = useTour('recommendations', { ready: recommendations.length > 0 });
+  useTour('recommendations', { ready: recommendations.length > 0 });
 
   // State for collapsible profile details
   const [showDetails, setShowDetails] = useState(false);
@@ -1252,8 +1251,6 @@ const BookRecommendations = () => {
           </DialogActions>
         </Dialog>
       )}
-
-      <TourButton {...tourButtonProps} />
     </Box>
   );
 };

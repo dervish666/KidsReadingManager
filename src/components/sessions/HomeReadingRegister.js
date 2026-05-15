@@ -16,7 +16,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
 import { useUI } from '../../contexts/UIContext';
 import { useTour } from '../tour/useTour';
-import TourButton from '../tour/TourButton';
 import BadgeCelebration from '../badges/BadgeCelebration';
 import QuickReadingView from './QuickReadingView';
 import FullReadingView from './FullReadingView';
@@ -292,18 +291,10 @@ const HomeReadingRegister = () => {
     return classStudents.filter((s) => s.name.toLowerCase().includes(query));
   }, [classStudents, searchQuery]);
 
-  // Two tours: one for Quick view, one for Full view
-  const quickTour = useTour('home-reading-quick', {
+  useTour('home-reading-quick', {
     ready: viewMode === 'quick' && filteredStudents.length > 0,
   });
-  const fullTour = useTour('home-reading', { ready: viewMode === 'full' });
-
-  // Show the tour matching the current view; compass always works
-  const activeTour = viewMode === 'full' ? fullTour : quickTour;
-  const homeTourButtonProps = {
-    ...activeTour.tourButtonProps,
-    shouldPulse: quickTour.tourButtonProps.shouldPulse || fullTour.tourButtonProps.shouldPulse,
-  };
+  useTour('home-reading', { ready: viewMode === 'full' });
 
   // Previous 3 days relative to selectedDate (for Quick view history columns)
   const previousDays = useMemo(() => {
@@ -1024,7 +1015,6 @@ const HomeReadingRegister = () => {
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         message={goalCelebrationMessage}
       />
-      <TourButton {...homeTourButtonProps} />
     </Box>
   );
 };

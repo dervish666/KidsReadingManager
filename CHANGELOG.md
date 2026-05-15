@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.65.2] - 2026-05-15
+
+### Changed
+
+- **Tour replay moved to help modal** — removed the floating compass button from the bottom-right of every page; tour replay is now available inside the in-app help modal alongside the feedback form
+
 ## [3.65.1] - 2026-05-14
 
 ### Fixed

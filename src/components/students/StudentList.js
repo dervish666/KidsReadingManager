@@ -29,7 +29,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
 import { useUI } from '../../contexts/UIContext';
 import { useTour } from '../tour/useTour';
-import TourButton from '../tour/TourButton';
 import StudentTable from './StudentTable';
 import BulkImport from './BulkImport';
 import PrioritizedStudentsList from './PrioritizedStudentsList';
@@ -41,7 +40,7 @@ const StudentList = () => {
 
   const isWondeOrg = useMemo(() => classes.some((cls) => cls.wondeClassId), [classes]);
   const canManageStudents = user?.authProvider !== 'mylogin' && !isWondeOrg;
-  const { tourButtonProps } = useTour('students', { ready: students.length > 0 });
+  useTour('students', { ready: students.length > 0 });
 
   const [newStudentName, setNewStudentName] = useState('');
   const [selectedClassId, setSelectedClassId] = useState('');
@@ -524,8 +523,6 @@ const StudentList = () => {
       </Dialog>
 
       <BulkImport open={openBulkDialog} onClose={handleCloseBulkDialog} />
-
-      <TourButton {...tourButtonProps} />
     </Box>
   );
 };
