@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.65.7] - 2026-05-17
+
+### Changed
+
+- **Dependency updates** — React 19.1→19.2, Stripe 20→22, Rsbuild 1→2, Wrangler 4.77→4.92, Sentry 10.51→10.53, Vitest 4.1.5→4.1.6, Playwright 1.59→1.60, Hono patch, ESLint minor
+- **Removed stale overrides** — esbuild and undici overrides were pinning older-than-wanted versions; removed to let natural resolution apply
+
 ## [3.65.6] - 2026-05-15
 
 ### Added

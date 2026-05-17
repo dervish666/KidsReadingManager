@@ -7,23 +7,22 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
-  resolve: {
-    alias: {
-      // Mock Cloudflare-specific modules for testing
-      'cloudflare:email': path.resolve(__dirname, 'src/__tests__/mocks/cloudflare-email.js')
-    }
-  },
   esbuild: {
     loader: 'jsx',
     include: /src\/.*\.jsx?$/,
-    exclude: []
+    exclude: [],
   },
   optimizeDeps: {
     esbuildOptions: {
       loader: {
-        '.js': 'jsx'
-      }
-    }
+        '.js': 'jsx',
+      },
+    },
+  },
+  resolve: {
+    alias: {
+      'cloudflare:email': path.resolve(__dirname, 'src/__tests__/mocks/cloudflare-email.js'),
+    },
   },
   test: {
     globals: true,
@@ -34,11 +33,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
       include: ['src/**/*.js', 'src/**/*.jsx'],
-      exclude: [
-        'src/__tests__/**',
-        'src/index.js',
-        'node_modules/**'
-      ]
-    }
-  }
+      exclude: ['src/__tests__/**', 'src/index.js', 'node_modules/**'],
+    },
+  },
 });
