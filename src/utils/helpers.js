@@ -27,6 +27,17 @@ export function generateId() {
 }
 
 /**
+ * Generate a 128-bit URL-safe base64 token (22 chars).
+ * Used for parent portal access links.
+ * @returns {string} URL-safe base64 token
+ */
+export function generateToken() {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  const base64 = btoa(String.fromCharCode(...bytes));
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+/**
  * Get today's date in YYYY-MM-DD format, accounting for timezone.
  * On the frontend (browser), omit timezone to use the user's local timezone.
  * On the backend (Worker), pass the organisation's timezone.

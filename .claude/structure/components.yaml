@@ -392,6 +392,36 @@ files:
         props: [badges, maxVisible]
         description: "Shows garden chip + up to maxVisible (default 4) badge icons; returns null if empty"
 
+  # ---- parent/ ----
+
+  parent/ParentPortal.js:
+    description: Mobile-first parent view — reading progress, streak, session history, garden, home session logging via token-auth
+    exports:
+      - name: ParentPortal
+        kind: component
+        description: Full parent-facing view accessed via /parent/:token (no JWT auth, uses plain fetch)
+    state: [data, loading, error, showLogSheet, logSuccess, showBookSearch, bookQuery, bookResults, searchLoading, selectedBook, selectedDate, logLoading, showCelebration, celebrationBadges]
+
+  parent/QRCodeSheet.js:
+    description: Printable 3-column grid of QR code cards per class with @media print styles
+    exports:
+      - name: QRCodeSheet
+        kind: component
+        props: [classId, className, onClose]
+    imports:
+      - from: qrcode.react
+        items: [QRCodeSVG]
+      - from: components/TallyLogo
+        items: [TallyLogo]
+
+  parent/ParentQRButton.js:
+    description: Single-student QR dialog with print, copy link, regenerate actions
+    exports:
+      - name: ParentQRButton
+        kind: component
+        props: [studentId, studentName, variant]
+        description: "variant: 'icon' (default) or 'button'; renders IconButton or Button with QR dialog"
+
   # ---- goals/ ----
 
   goals/ClassGoalsEditor.js:

@@ -24,6 +24,7 @@ import StudentEditForm from './StudentEditForm';
 import StudentTimeline from './StudentTimeline';
 import BadgeCollection from '../badges/BadgeCollection';
 import { BADGE_DEFINITIONS } from '../../utils/badgeDefinitions';
+import ParentQRButton from '../parent/ParentQRButton';
 
 const BADGE_MAP = Object.fromEntries(BADGE_DEFINITIONS.map((b) => [b.id, b]));
 
@@ -270,20 +271,27 @@ const StudentDetailDrawer = ({ open, student, onClose }) => {
 
         {/* Edit / Save / Cancel buttons */}
         {!isProcessingRestricted && mode === 'read' && (
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<EditIcon />}
-            onClick={handleEditClick}
-            sx={{
-              flexShrink: 0,
-              borderColor: 'primary.main',
-              color: 'primary.main',
-              '&:hover': { borderColor: 'primary.dark', bgcolor: 'rgba(107,142,107,0.06)' },
-            }}
-          >
-            Edit
-          </Button>
+          <>
+            <ParentQRButton
+              studentId={displayStudent?.id}
+              studentName={displayStudent?.name}
+              variant="button"
+            />
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<EditIcon />}
+              onClick={handleEditClick}
+              sx={{
+                flexShrink: 0,
+                borderColor: 'primary.main',
+                color: 'primary.main',
+                '&:hover': { borderColor: 'primary.dark', bgcolor: 'rgba(107,142,107,0.06)' },
+              }}
+            >
+              Edit
+            </Button>
+          </>
         )}
         {mode === 'edit' && (
           <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>

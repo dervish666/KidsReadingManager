@@ -13,6 +13,10 @@ files:
         kind: function
         returns: string
         description: Generate UUID v4 via Web Crypto API
+      - name: generateToken
+        kind: function
+        returns: string
+        description: Generate 128-bit URL-safe base64 token (22 chars) for parent portal access
       - name: getTodayDate
         kind: function
         returns: string

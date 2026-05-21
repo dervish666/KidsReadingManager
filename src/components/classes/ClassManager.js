@@ -26,6 +26,7 @@ import {
   Collapse,
   Alert,
   CircularProgress,
+  Tooltip,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -34,8 +35,10 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import SyncIcon from '@mui/icons-material/Sync';
 import PeopleIcon from '@mui/icons-material/People';
+import QrCode2Icon from '@mui/icons-material/QrCode2';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
+import QRCodeSheet from '../parent/QRCodeSheet';
 
 // Year options for the dropdown (Year 1 to Year 11)
 const YEAR_OPTIONS = Array.from({ length: 11 }, (_, i) => `Year ${i + 1}`);
@@ -50,6 +53,7 @@ const ClassManager = () => {
   const [editTeacherName, setEditTeacherName] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [error, setError] = useState('');
+  const [qrClass, setQrClass] = useState(null);
 
   // Expandable student list state
   const [expandedClassId, setExpandedClassId] = useState(null);
@@ -215,6 +219,16 @@ const ClassManager = () => {
                 divider
                 secondaryAction={
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Tooltip title="Parent QR Codes">
+                      <IconButton
+                        edge="end"
+                        aria-label="parent qr codes"
+                        onClick={() => setQrClass(cls)}
+                        sx={{ color: '#2d5016' }}
+                      >
+                        <QrCode2Icon />
+                      </IconButton>
+                    </Tooltip>
                     <FormControlLabel
                       control={
                         <Switch
@@ -230,7 +244,7 @@ const ClassManager = () => {
                   </Box>
                 }
               >
-                <ListItemButton onClick={() => handleToggleExpand(cls.id)} sx={{ pr: 20 }}>
+                <ListItemButton onClick={() => handleToggleExpand(cls.id)} sx={{ pr: 24 }}>
                   <ListItemText
                     primary={
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -338,6 +352,16 @@ const ClassManager = () => {
                   divider
                   secondaryAction={
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Tooltip title="Parent QR Codes">
+                        <IconButton
+                          edge="end"
+                          aria-label="parent qr codes"
+                          onClick={() => setQrClass(cls)}
+                          sx={{ color: '#2d5016' }}
+                        >
+                          <QrCode2Icon />
+                        </IconButton>
+                      </Tooltip>
                       <FormControlLabel
                         control={
                           <Switch
@@ -468,6 +492,19 @@ const ClassManager = () => {
             Delete
           </Button>
         </DialogActions>
+      </Dialog>
+
+      {/* Parent QR Codes sheet */}
+      <Dialog open={!!qrClass} onClose={() => setQrClass(null)} maxWidth="md" fullWidth>
+        <DialogContent>
+          {qrClass && (
+            <QRCodeSheet
+              classId={qrClass.id}
+              className={qrClass.name}
+              onClose={() => setQrClass(null)}
+            />
+          )}
+        </DialogContent>
       </Dialog>
     </Paper>
   );

@@ -33,6 +33,7 @@ const PrivacyPolicy = React.lazy(() => import('./components/PrivacyPolicy'));
 const TermsOfService = React.lazy(() => import('./components/TermsOfService'));
 const CookiePolicy = React.lazy(() => import('./components/CookiePolicy'));
 const Help = React.lazy(() => import('./components/Help'));
+const ParentPortal = React.lazy(() => import('./components/parent/ParentPortal'));
 
 // Import custom navigation icons
 import iconStudents from './assets/icon-students.png';
@@ -205,6 +206,14 @@ function AppContent() {
     return (
       <Suspense fallback={<PageFallback />}>
         <Help />
+      </Suspense>
+    );
+  }
+
+  if (window.location.pathname.startsWith('/parent/')) {
+    return (
+      <Suspense fallback={<PageFallback />}>
+        <ParentPortal />
       </Suspense>
     );
   }

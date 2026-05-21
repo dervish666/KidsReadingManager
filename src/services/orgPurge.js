@@ -31,6 +31,7 @@ const DELETE_ORDER = [
     table: 'student_preferences',
     where: `student_id IN (SELECT id FROM students WHERE organization_id = ?)`,
   },
+  { table: 'parent_access_tokens', where: `organization_id = ?` },
   {
     table: 'class_assignments',
     where: `class_id IN (SELECT id FROM classes WHERE organization_id = ?)`,
@@ -140,7 +141,7 @@ export async function hardDeleteOrganization(db, orgId, env = null) {
   // Invalidate cached org status so tenantMiddleware won't serve a stale active row.
   if (env) await invalidateOrgStatus(env, orgId);
 
-  const tablesProcessed = DELETE_ORDER.length + 1; // 26 + data_rights_log cleanup
+  const tablesProcessed = DELETE_ORDER.length + 1; // 27 + data_rights_log cleanup
   console.log(`[OrgPurge] Purged org ${orgId}: ${tablesProcessed} tables, 0 errors`);
   return { orgId, tablesProcessed, errors: [] };
 }
