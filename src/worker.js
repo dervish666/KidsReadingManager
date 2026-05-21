@@ -38,6 +38,7 @@ import { termDatesRouter } from './routes/termDates.js';
 import { toursRouter } from './routes/tours.js';
 import { metadataRouter, getConfigWithKeys } from './routes/metadata.js';
 import badgesRouter from './routes/badges.js';
+import { parentRouter } from './routes/parent.js';
 import { processJobBatch } from './services/metadataService.js';
 import stripeWebhookRouter from './routes/stripeWebhook.js';
 import { billingRouter } from './routes/billing.js';
@@ -214,7 +215,11 @@ app.use('/api/*', async (c, next) => {
   // Skip tenant middleware for public endpoints
   const url = new URL(c.req.url);
 
-  if (PUBLIC_PATHS.includes(url.pathname) || url.pathname.startsWith('/api/covers/')) {
+  if (
+    PUBLIC_PATHS.includes(url.pathname) ||
+    url.pathname.startsWith('/api/covers/') ||
+    url.pathname.startsWith('/api/parent/')
+  ) {
     return next();
   }
 
@@ -230,7 +235,11 @@ app.use('/api/*', async (c, next) => {
 app.use('/api/*', async (c, next) => {
   // Skip for public endpoints (they bypass auth entirely and never reach here with user context)
   const url = new URL(c.req.url);
-  if (PUBLIC_PATHS.includes(url.pathname) || url.pathname.startsWith('/api/covers/')) {
+  if (
+    PUBLIC_PATHS.includes(url.pathname) ||
+    url.pathname.startsWith('/api/covers/') ||
+    url.pathname.startsWith('/api/parent/')
+  ) {
     return next();
   }
 
@@ -283,6 +292,7 @@ app.route('/api/billing', billingRouter);
 app.route('/api/tours', toursRouter);
 app.route('/api/metadata', metadataRouter);
 app.route('/api/badges', badgesRouter);
+app.route('/api/parent', parentRouter);
 
 // API health check (public)
 app.get('/api/health', async (c) => {
