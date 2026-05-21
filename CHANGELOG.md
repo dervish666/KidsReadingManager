@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.65.9] - 2026-05-21
+
+### Added
+
+- **Garden signpost** — watercolour wooden signpost with stage name label ("Seedling", "Sprout", "Bloom", "Full Garden") added to the reading garden scene, generated with ComfyUI and background-removed for transparent overlay
+
 ## [3.65.8] - 2026-05-21
 
 ### Fixed

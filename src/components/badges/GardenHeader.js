@@ -15,6 +15,7 @@ import gardenSmallTree from '../../assets/garden-small-tree.png';
 import gardenButterfly from '../../assets/garden-butterfly.png';
 import gardenLargeTree from '../../assets/garden-large-tree.png';
 import gardenBird from '../../assets/garden-bird.png';
+import gardenSignpost from '../../assets/garden-signpost-04.png';
 
 export const STAGES = [
   { name: 'Seedling', min: 0, max: 2 },
@@ -194,6 +195,50 @@ export default function GardenHeader({
           }}
         />
       ))}
+
+      {/* Signpost with stage label */}
+      <Box
+        sx={{
+          position: 'absolute',
+          right: '6%',
+          bottom: '6%',
+          height: '55%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          pointerEvents: 'none',
+          zIndex: 2,
+        }}
+      >
+        <Box
+          component="img"
+          src={gardenSignpost}
+          alt="Garden signpost"
+          sx={{
+            height: '100%',
+            width: 'auto',
+            objectFit: 'contain',
+            filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.12))',
+          }}
+        />
+        <Typography
+          sx={{
+            position: 'absolute',
+            color: '#5D4E37',
+            fontFamily: '"Nunito", "DM Sans", sans-serif',
+            fontWeight: 800,
+            fontSize: 'clamp(0.5rem, 1.8vw, 0.85rem)',
+            textAlign: 'center',
+            letterSpacing: '0.02em',
+            textShadow: '0 1px 0 rgba(255,255,255,0.3)',
+            mt: '-8%',
+            px: 1,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {stage.name}
+        </Typography>
+      </Box>
 
       {/* Text overlay */}
       {!hideLabel && (
