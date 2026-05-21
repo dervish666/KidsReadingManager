@@ -32,9 +32,9 @@ export const parentRouter = new Hono();
 function currentAcademicYear() {
   const now = new Date();
   const year = now.getUTCFullYear();
-  const month = now.getUTCMonth(); // 0-indexed; August = 7
-  if (month >= 7) {
-    // August or later → new academic year has started
+  const month = now.getUTCMonth(); // 0-indexed; September = 8
+  if (month >= 8) {
+    // September or later → new academic year has started
     return `${year}-${year + 1}`;
   }
   return `${year - 1}-${year}`;
@@ -366,7 +366,7 @@ parentRouter.get('/:token/books', rateLimit(30, 60000), async (c) => {
            FROM books b
            INNER JOIN org_book_selections obs ON b.id = obs.book_id
            INNER JOIN books_fts fts ON b.id = fts.id
-          WHERE obs.organization_id = ? AND fts MATCH ?
+          WHERE obs.organization_id = ? AND obs.is_available = 1 AND fts MATCH ?
           ORDER BY rank LIMIT 10`
       )
       .bind(organizationId, ftsQuery)
@@ -380,7 +380,7 @@ parentRouter.get('/:token/books', rateLimit(30, 60000), async (c) => {
         `SELECT b.id, b.title, b.author, b.isbn
            FROM books b
            INNER JOIN org_book_selections obs ON b.id = obs.book_id
-          WHERE obs.organization_id = ?
+          WHERE obs.organization_id = ? AND obs.is_available = 1
             AND (b.title LIKE ? OR b.author LIKE ?)
           ORDER BY b.title LIMIT 10`
       )
