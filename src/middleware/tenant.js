@@ -42,7 +42,12 @@ export function jwtAuthMiddleware() {
     const url = new URL(c.req.url);
 
     // Allow public endpoints
-    if (PUBLIC_PATHS.includes(url.pathname) || url.pathname.startsWith('/api/covers/') || url.pathname.startsWith('/api/parent/')) {
+    const isPublicParentRoute =
+      url.pathname.startsWith('/api/parent/') &&
+      !url.pathname.startsWith('/api/parent/generate/') &&
+      !url.pathname.startsWith('/api/parent/class/') &&
+      !url.pathname.startsWith('/api/parent/tokens/');
+    if (PUBLIC_PATHS.includes(url.pathname) || url.pathname.startsWith('/api/covers/') || isPublicParentRoute) {
       return next();
     }
 

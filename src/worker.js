@@ -210,6 +210,16 @@ app.use('/api/*', async (c, next) => {
   return next();
 });
 
+// Public parent routes use token-in-URL auth; teacher-facing parent routes need JWT
+function isPublicParentRoute(pathname) {
+  return (
+    pathname.startsWith('/api/parent/') &&
+    !pathname.startsWith('/api/parent/generate/') &&
+    !pathname.startsWith('/api/parent/class/') &&
+    !pathname.startsWith('/api/parent/tokens/')
+  );
+}
+
 // Apply tenant middleware for multi-tenant mode (only if JWT auth is enabled)
 app.use('/api/*', async (c, next) => {
   // Skip tenant middleware for public endpoints
@@ -218,7 +228,7 @@ app.use('/api/*', async (c, next) => {
   if (
     PUBLIC_PATHS.includes(url.pathname) ||
     url.pathname.startsWith('/api/covers/') ||
-    url.pathname.startsWith('/api/parent/')
+    isPublicParentRoute(url.pathname)
   ) {
     return next();
   }
@@ -238,7 +248,7 @@ app.use('/api/*', async (c, next) => {
   if (
     PUBLIC_PATHS.includes(url.pathname) ||
     url.pathname.startsWith('/api/covers/') ||
-    url.pathname.startsWith('/api/parent/')
+    isPublicParentRoute(url.pathname)
   ) {
     return next();
   }
