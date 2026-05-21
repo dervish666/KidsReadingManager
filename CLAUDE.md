@@ -76,6 +76,7 @@ src/routes/badges.js - GET/POST badge collection, notify, and class-wide summary
 src/routes/contact.js - POST landing page contact form enquiry (public, rate limited)
 src/routes/billing.js - POST/GET Stripe billing setup, status, portal, plan changes
 src/routes/stripeWebhook.js - POST Stripe webhook handler (signature verification, event dedup)
+src/routes/parent.js - Parent portal API: public token-auth view/session/book-search + teacher token management (generate, list, revoke)
 
 <!-- Middleware -->
 
@@ -252,6 +253,12 @@ src/components/badges/BadgeIndicators.js - Mini badge count chip for StudentCard
 
 src/components/goals/ClassGoalsEditor.js - Teacher modal for editing class goal targets
 src/components/goals/ClassGoalsDisplay.js - Fullscreen classroom projection view with garden and confetti
+
+<!-- Frontend Components - Parent Portal -->
+
+src/components/parent/ParentPortal.js - Mobile-first parent view: reading progress, streak, session history, garden, home session logging via token-auth
+src/components/parent/QRCodeSheet.js - Printable 3×4 grid of QR code cards per class (teacher print view)
+src/components/parent/ParentQRButton.js - Single-student QR dialog with print, copy link, regenerate actions
 
 <!-- Frontend Components - Stats -->
 
@@ -444,6 +451,7 @@ Permissions enforced via `requireOwner()`, `requireAdmin()`, `requireTeacher()`,
 - `org_book_selections` - Links books to organizations (controls per-school visibility)
 - `classes`, `genres`, `organization_settings` - Organization-scoped
 - `term_dates` - Academic year term dates per organization (half-terms, holidays)
+- `parent_access_tokens` - Token-based parent portal access per student per academic year (token auth, teacher-revocable)
 
 ### Book Visibility Model
 
@@ -488,7 +496,7 @@ Global error handler in `src/middleware/errorHandler.js` standardizes all error 
 
 ### Public Endpoints
 
-Public paths are defined in `PUBLIC_PATHS` in `src/utils/constants.js` (imported by `src/middleware/tenant.js`): `/api/auth/mode`, `/api/auth/login`, `/api/auth/register`, `/api/auth/refresh`, `/api/auth/forgot-password`, `/api/auth/reset-password`, `/api/auth/mylogin/login`, `/api/auth/mylogin/callback`, `/api/auth/demo`, `/api/webhooks/wonde`, `/api/webhooks/stripe`, `/api/health`, `/api/login` (legacy redirect), `/api/logout`, `/api/signup`, `/api/contact`, and `/api/covers/*`. When adding public paths, update `PUBLIC_PATHS` in `src/utils/constants.js` AND the tenant middleware bypass in `src/worker.js`. **Important:** Each public path must be explicitly listed — do not use wildcard `startsWith` patterns for new path prefixes, as this creates unintended auth bypass for all future routes under that prefix. The `/api/webhooks/wonde` endpoint is public but implements its own shared-secret authentication via `WONDE_WEBHOOK_SECRET`. The `/api/webhooks/stripe` endpoint verifies signatures via `STRIPE_WEBHOOK_SECRET`.
+Public paths are defined in `PUBLIC_PATHS` in `src/utils/constants.js` (imported by `src/middleware/tenant.js`): `/api/auth/mode`, `/api/auth/login`, `/api/auth/register`, `/api/auth/refresh`, `/api/auth/forgot-password`, `/api/auth/reset-password`, `/api/auth/mylogin/login`, `/api/auth/mylogin/callback`, `/api/auth/demo`, `/api/webhooks/wonde`, `/api/webhooks/stripe`, `/api/health`, `/api/login` (legacy redirect), `/api/logout`, `/api/signup`, `/api/contact`, `/api/covers/*`, and `/api/parent/*` (token-authenticated, bypasses JWT/tenant/subscription middleware). When adding public paths, update `PUBLIC_PATHS` in `src/utils/constants.js` AND the tenant middleware bypass in `src/worker.js`. **Important:** Each public path must be explicitly listed — do not use wildcard `startsWith` patterns for new path prefixes, as this creates unintended auth bypass for all future routes under that prefix. The `/api/webhooks/wonde` endpoint is public but implements its own shared-secret authentication via `WONDE_WEBHOOK_SECRET`. The `/api/webhooks/stripe` endpoint verifies signatures via `STRIPE_WEBHOOK_SECRET`. The `/api/parent/*` public endpoints use token-in-URL authentication — the token IS the auth; teacher-facing endpoints under the same router use JWT auth.
 
 ### Scheduled Tasks
 

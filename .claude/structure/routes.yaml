@@ -586,6 +586,45 @@ files:
       - from: utils/badgeEngine
         items: [calculateNearMisses]
 
+  parent.js:
+    description: Parent portal API - public token-auth view/session/book-search + teacher token management
+    exports:
+      - name: parentRouter
+        kind: object
+        description: Hono router for parent portal endpoints
+    endpoints:
+      - route: GET /api/parent/:token
+        description: Fetch parent view data (student name, current book, streak, sessions, badges, garden)
+        public: true
+        rate_limit: 60/min
+      - route: POST /api/parent/:token/sessions
+        description: Log home reading session (location=home, recorded_by=NULL)
+        public: true
+        rate_limit: 10/min
+      - route: GET /api/parent/:token/books
+        description: Search books (school library FTS5 first, then OpenLibrary fallback)
+        public: true
+        rate_limit: 30/min
+      - route: POST /api/parent/generate/:classId
+        description: Bulk generate tokens for all students in a class (idempotent)
+        requires: teacher
+      - route: GET /api/parent/class/:classId
+        description: List all tokens for a class (for QR print view)
+        requires: teacher
+      - route: POST /api/parent/generate/student/:studentId
+        description: Generate/regenerate token for single student (revokes old)
+        requires: teacher
+      - route: DELETE /api/parent/tokens/:tokenId
+        description: Revoke a specific parent access token
+        requires: teacher
+    imports:
+      - from: utils/helpers
+        items: [generateId, generateToken]
+      - from: utils/routeHelpers
+        items: [requireDB]
+      - from: middleware/tenant
+        items: [rateLimit, requireTeacher]
+
   metadata.js:
     description: Centralised metadata management - cascade config, enrichment jobs, status
     exports:
