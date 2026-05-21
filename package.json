@@ -36,6 +36,7 @@
     "hono": "^4.12.12",
     "html5-qrcode": "^2.3.8",
     "jspdf": "^4.2.1",
+    "qrcode.react": "^4.2.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-joyride": "^3.0.0",

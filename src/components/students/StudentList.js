@@ -20,11 +20,12 @@ import {
   Chip,
   InputAdornment,
   IconButton,
+  Tooltip,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
+import QrCode2Icon from '@mui/icons-material/QrCode2';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
 import { useUI } from '../../contexts/UIContext';
@@ -32,6 +33,7 @@ import { useTour } from '../tour/useTour';
 import StudentTable from './StudentTable';
 import BulkImport from './BulkImport';
 import PrioritizedStudentsList from './PrioritizedStudentsList';
+import QRCodeSheet from '../parent/QRCodeSheet';
 
 const StudentList = () => {
   const { user, apiError } = useAuth();
@@ -46,6 +48,7 @@ const StudentList = () => {
   const [selectedClassId, setSelectedClassId] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [openBulkDialog, setOpenBulkDialog] = useState(false);
+  const [showQRSheet, setShowQRSheet] = useState(false);
   const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
@@ -245,6 +248,27 @@ const StudentList = () => {
               <Box sx={{ display: { xs: 'inline', sm: 'none' } }}>Add</Box>
             </Button>
           )}
+          <Tooltip
+            title={
+              globalClassFilter === 'all'
+                ? 'Select a class filter first'
+                : 'Print Parent QR Codes'
+            }
+          >
+            <span>
+              <IconButton
+                aria-label="print parent qr codes"
+                onClick={() => setShowQRSheet(true)}
+                disabled={globalClassFilter === 'all' || globalClassFilter === 'unassigned'}
+                sx={{
+                  color: '#2d5016',
+                  '&.Mui-disabled': { color: 'action.disabled' },
+                }}
+              >
+                <QrCode2Icon />
+              </IconButton>
+            </span>
+          </Tooltip>
         </Box>
       </Box>
 
@@ -523,6 +547,30 @@ const StudentList = () => {
       </Dialog>
 
       <BulkImport open={openBulkDialog} onClose={handleCloseBulkDialog} />
+
+      {/* Parent QR Sheet — only available when a specific class is selected */}
+      <Dialog
+        open={showQRSheet && globalClassFilter !== 'all' && globalClassFilter !== 'unassigned'}
+        onClose={() => setShowQRSheet(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogContent>
+          {showQRSheet && globalClassFilter !== 'all' && globalClassFilter !== 'unassigned' && (
+            <>
+              {globalClassFilter ? (
+                <QRCodeSheet
+                  classId={globalClassFilter}
+                  className={classes.find((c) => c.id === globalClassFilter)?.name || 'Class'}
+                  onClose={() => setShowQRSheet(false)}
+                />
+              ) : (
+                <Alert severity="info">Select a class filter first to print QR codes.</Alert>
+              )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 };
