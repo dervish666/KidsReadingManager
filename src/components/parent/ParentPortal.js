@@ -149,7 +149,7 @@ const ParentPortal = () => {
         throw new Error(errBody.error || 'Failed to log reading');
       }
       const result = await res.json();
-      setLogSuccess(true);
+      setLogSuccess(result);
       if (result.newBadges && result.newBadges.length > 0) {
         setNewBadges(result.newBadges);
       }
@@ -462,7 +462,7 @@ const ParentPortal = () => {
                 Reading logged!
               </Typography>
               <StreakBadge
-                streak={(student?.currentStreak || 0) + 1}
+                streak={logSuccess?.streak?.current || (student?.currentStreak || 0) + 1}
                 size="large"
                 showLabel
               />
