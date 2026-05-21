@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.65.11] - 2026-05-21
+
+### Fixed
+
+- **Cloudflare Pages build** — added `@rspack/binding-linux-x64-gnu` as optional dependency to fix missing native binding on Linux CI (npm optional deps bug)
+
 ## [3.65.10] - 2026-05-21
 
 ### Fixed
