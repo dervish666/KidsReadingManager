@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.65.12] - 2026-05-21
+
+### Fixed
+
+- **Achievements tab garden** — hide term/stage text overlay from inline class goals garden (signpost now serves as stage label)
+
 ## [3.65.11] - 2026-05-21
 
 ### Fixed

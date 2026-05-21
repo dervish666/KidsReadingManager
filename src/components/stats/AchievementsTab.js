@@ -520,7 +520,7 @@ function ClassGoalsSection({
           <GardenHeader
             stage={classGoals.gardenStage}
             goalsCompleted={classGoals?.goalsCompleted}
-            label={classGoals.term || 'This Term'}
+            hideLabel
           />
           <CardContent sx={{ pt: 2, pb: 2 }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
