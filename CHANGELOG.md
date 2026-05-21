@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.65.10] - 2026-05-21
+
+### Fixed
+
+- **Class goals display** — removed redundant stage caption text below garden (signpost now shows stage name)
+
 ## [3.65.9] - 2026-05-21
 
 ### Added

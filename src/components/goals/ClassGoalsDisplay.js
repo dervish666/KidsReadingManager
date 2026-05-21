@@ -3,13 +3,6 @@ import { Dialog, Box, Typography, IconButton, Chip } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import GardenHeader from '../badges/GardenHeader';
 
-const STAGES_MAP = {
-  seedling: 'Seedling',
-  sprout: 'Sprout',
-  bloom: 'Bloom',
-  full_garden: 'Full Garden',
-};
-
 const CONFETTI_EMOJIS = ['🌸', '✨', '🎉', '🌟', '📚', '🌿'];
 
 const METRIC_CONFIG = {
@@ -356,7 +349,7 @@ export default function ClassGoalsDisplay({ open, onClose, classId, fetchWithAut
           sx={{
             borderRadius: 3,
             overflow: 'hidden',
-            mb: 1,
+            mb: 3,
           }}
         >
           <GardenHeader
@@ -366,20 +359,6 @@ export default function ClassGoalsDisplay({ open, onClose, classId, fetchWithAut
             hideLabel
           />
         </Box>
-        {/* Stage caption below garden */}
-        <Typography
-          sx={{
-            textAlign: 'center',
-            color: '#B8A88A',
-            fontSize: 14,
-            fontWeight: 600,
-            fontFamily: '"Nunito", "DM Sans", sans-serif',
-            mb: 3,
-          }}
-        >
-          {data ? `${STAGES_MAP[gardenStage] || gardenStage} stage` : ''}
-        </Typography>
-
         {/* Progress bars */}
         {data ? (
           <Box>
