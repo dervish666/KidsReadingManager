@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.65.13] - 2026-05-21
+
+### Changed
+
+- **Denser reading garden** — tripled garden elements from 7 to 21 with multiple clumps of each plant type at varied positions, new elements appear at every 1-2 badge thresholds for a lush, progressive fill
+
 ## [3.65.12] - 2026-05-21
 
 ### Fixed

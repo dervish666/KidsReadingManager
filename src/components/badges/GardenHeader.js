@@ -44,36 +44,106 @@ export function getCurrentGrowth(badgeCount) {
   return current;
 }
 
-// Static elements that appear at threshold
+// Static elements that appear progressively as badges are earned
 const GARDEN_ELEMENTS = [
-  { src: gardenFlower, alt: 'Wildflower', minBadges: 3, left: '58%', bottom: '10%', height: '48%' },
-  { src: gardenBush, alt: 'Bush', minBadges: 5, left: '70%', bottom: '14%', height: '38%' },
+  // First wildflowers (badges 2–3)
+  { src: gardenFlower, alt: 'Wildflower', minBadges: 2, left: '18%', bottom: '8%', height: '35%' },
+  { src: gardenFlower, alt: 'Wildflower', minBadges: 2, left: '62%', bottom: '10%', height: '30%' },
+  {
+    src: gardenFlowers,
+    alt: 'Flower patch',
+    minBadges: 3,
+    left: '28%',
+    bottom: '6%',
+    height: '42%',
+  },
+  { src: gardenFlower, alt: 'Wildflower', minBadges: 4, left: '8%', bottom: '10%', height: '28%' },
+
+  // Garden filling in (badges 5–7)
+  { src: gardenBush, alt: 'Bush', minBadges: 5, left: '70%', bottom: '12%', height: '35%' },
+  {
+    src: gardenFlowers,
+    alt: 'Flower patch',
+    minBadges: 5,
+    left: '52%',
+    bottom: '8%',
+    height: '38%',
+  },
+  { src: gardenFlower, alt: 'Wildflower', minBadges: 6, left: '38%', bottom: '12%', height: '26%' },
   {
     src: gardenFlowers,
     alt: 'Flower patch',
     minBadges: 7,
-    left: '28%',
-    bottom: '8%',
-    height: '52%',
+    left: '5%',
+    bottom: '6%',
+    height: '40%',
   },
+  { src: gardenBush, alt: 'Bush', minBadges: 7, left: '22%', bottom: '12%', height: '30%' },
+
+  // Trees and more life (badges 9–12)
   {
     src: gardenSmallTree,
     alt: 'Apple tree',
     minBadges: 9,
-    left: '78%',
-    bottom: '10%',
-    height: '60%',
+    left: '75%',
+    bottom: '8%',
+    height: '55%',
+  },
+  { src: gardenFlower, alt: 'Wildflower', minBadges: 9, left: '48%', bottom: '6%', height: '28%' },
+  {
+    src: gardenFlowers,
+    alt: 'Flower patch',
+    minBadges: 10,
+    left: '60%',
+    bottom: '5%',
+    height: '34%',
   },
   {
     src: gardenButterfly,
     alt: 'Butterfly',
     minBadges: 11,
-    left: '50%',
+    left: '55%',
     bottom: '55%',
+    height: '28%',
+  },
+  { src: gardenBush, alt: 'Bush', minBadges: 11, left: '42%', bottom: '10%', height: '32%' },
+  {
+    src: gardenFlower,
+    alt: 'Wildflower',
+    minBadges: 12,
+    left: '15%',
+    bottom: '14%',
+    height: '24%',
+  },
+
+  // Full garden (badges 13+)
+  { src: gardenLargeTree, alt: 'Oak tree', minBadges: 13, left: '2%', bottom: '8%', height: '75%' },
+  {
+    src: gardenFlowers,
+    alt: 'Flower patch',
+    minBadges: 13,
+    left: '35%',
+    bottom: '5%',
+    height: '36%',
+  },
+  {
+    src: gardenSmallTree,
+    alt: 'Small tree',
+    minBadges: 14,
+    left: '32%',
+    bottom: '10%',
+    height: '45%',
+  },
+  { src: gardenFlower, alt: 'Wildflower', minBadges: 15, left: '82%', bottom: '8%', height: '26%' },
+  { src: gardenBird, alt: 'Robin', minBadges: 16, left: '18%', bottom: '52%', height: '25%' },
+  {
+    src: gardenFlowers,
+    alt: 'Flower patch',
+    minBadges: 16,
+    left: '68%',
+    bottom: '6%',
     height: '32%',
   },
-  { src: gardenLargeTree, alt: 'Oak tree', minBadges: 13, left: '2%', bottom: '8%', height: '80%' },
-  { src: gardenBird, alt: 'Robin', minBadges: 16, left: '18%', bottom: '50%', height: '28%' },
 ];
 
 export function getGroundGradient(badgeCount) {
@@ -171,9 +241,9 @@ export default function GardenHeader({
       })}
 
       {/* Static garden elements */}
-      {GARDEN_ELEMENTS.map((el) => (
+      {GARDEN_ELEMENTS.map((el, i) => (
         <Box
-          key={el.alt}
+          key={i}
           component="img"
           src={el.src}
           alt={el.alt}
