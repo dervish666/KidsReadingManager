@@ -35,7 +35,7 @@ const QRCodeSheet = ({ classId, className, onClose }) => {
           throw new Error('Failed to load parent tokens');
         }
         const data = await res.json();
-        setStudents(data.students || []);
+        setStudents(data.tokens || []);
       } catch (err) {
         setError(err.message || 'Failed to generate QR codes');
       } finally {
@@ -47,11 +47,6 @@ const QRCodeSheet = ({ classId, className, onClose }) => {
       load();
     }
   }, [classId, fetchWithAuth]);
-
-  const getFirstName = (fullName) => {
-    if (!fullName) return '';
-    return fullName.split(' ')[0];
-  };
 
   const getParentUrl = (token) => `${window.location.origin}/parent/${token}`;
 
@@ -139,7 +134,7 @@ const QRCodeSheet = ({ classId, className, onClose }) => {
         >
           {students.map((student) => (
             <Box
-              key={student.id}
+              key={student.tokenId}
               sx={{
                 border: '1.5px dashed rgba(45, 80, 22, 0.35)',
                 borderRadius: 2,
@@ -157,7 +152,7 @@ const QRCodeSheet = ({ classId, className, onClose }) => {
             >
               {/* QR code */}
               <QRCodeSVG
-                value={getParentUrl(student.parentToken)}
+                value={getParentUrl(student.token)}
                 size={100}
                 level="M"
                 style={{ display: 'block' }}
@@ -174,7 +169,7 @@ const QRCodeSheet = ({ classId, className, onClose }) => {
                   textAlign: 'center',
                 }}
               >
-                {getFirstName(student.name)}
+                {student.studentFirstName}
               </Typography>
 
               {/* Tally branding */}

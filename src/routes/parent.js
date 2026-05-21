@@ -54,7 +54,8 @@ async function validateParentToken(db, token) {
               pat.academic_year,
               pat.revoked_at,
               s.is_active as student_active,
-              s.processing_restricted
+              s.processing_restricted,
+              s.year_group
          FROM parent_access_tokens pat
          JOIN students s ON s.id = pat.student_id
         WHERE pat.token = ?`
@@ -88,7 +89,7 @@ parentRouter.get('/:token', rateLimit(60, 60000), async (c) => {
   // Fetch student name + current_book_id + streak fields
   const student = await db
     .prepare(
-      `SELECT id, name, current_book_id, current_streak, streak_last_date
+      `SELECT id, name, current_book_id, current_streak, last_read_date
          FROM students
         WHERE id = ? AND organization_id = ? AND is_active = 1`
     )
@@ -121,7 +122,7 @@ parentRouter.get('/:token', rateLimit(60, 60000), async (c) => {
   // Streak — determine isActive by comparing streak_last_date to today/yesterday
   const today = getDateString(new Date(), 'UTC');
   const yesterday = getDateString(new Date(Date.now() - 86400000), 'UTC');
-  const streakLastDate = student.streak_last_date || '';
+  const streakLastDate = student.last_read_date || '';
   const streakIsActive = streakLastDate === today || streakLastDate === yesterday;
 
   const streak = {
@@ -294,7 +295,7 @@ parentRouter.post('/:token/sessions', rateLimit(10, 60000), async (c) => {
 
   let newBadges = [];
   try {
-    newBadges = await evaluateRealTime(db, studentId, organizationId);
+    newBadges = await evaluateRealTime(db, studentId, organizationId, tokenRow.year_group);
   } catch (err) {
     console.error('[parent/sessions] badge evaluation failed', { sessionId, studentId, err });
   }
@@ -460,13 +461,14 @@ parentRouter.post('/generate/:classId', requireTeacher(), async (c) => {
   }
 
   // Build insert statements and chunk to respect D1's 100-statement limit
+  const userId = c.get('userId');
   const inserts = students.map((s) =>
     db
       .prepare(
-        `INSERT INTO parent_access_tokens (id, token, student_id, organization_id, academic_year)
-         VALUES (?, ?, ?, ?, ?)`
+        `INSERT INTO parent_access_tokens (id, token, student_id, organization_id, academic_year, created_by)
+         VALUES (?, ?, ?, ?, ?, ?)`
       )
-      .bind(generateId(), generateToken(), s.id, organizationId, academicYear)
+      .bind(generateId(), generateToken(), s.id, organizationId, academicYear, userId)
   );
 
   const chunkSize = 50;
@@ -557,12 +559,13 @@ parentRouter.post('/generate/student/:studentId', requireTeacher(), async (c) =>
   const tokenId = generateId();
   const token = generateToken();
 
+  const userId = c.get('userId');
   await db
     .prepare(
-      `INSERT INTO parent_access_tokens (id, token, student_id, organization_id, academic_year)
-       VALUES (?, ?, ?, ?, ?)`
+      `INSERT INTO parent_access_tokens (id, token, student_id, organization_id, academic_year, created_by)
+       VALUES (?, ?, ?, ?, ?, ?)`
     )
-    .bind(tokenId, token, studentId, organizationId, academicYear)
+    .bind(tokenId, token, studentId, organizationId, academicYear, userId)
     .run();
 
   return c.json({ tokenId, token });

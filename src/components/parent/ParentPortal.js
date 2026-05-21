@@ -110,7 +110,7 @@ const ParentPortal = () => {
   }, [bookQuery, bookSearchOpen, apiBase]);
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
-  const firstName = data?.student?.name ? data.student.name.split(' ')[0] : '';
+  const firstName = data?.studentFirstName || '';
 
   const getLogDateValue = () => {
     if (logDate === 'today') return today;
@@ -124,7 +124,7 @@ const ParentPortal = () => {
 
   const formatSessionDate = (dateStr) => {
     if (!dateStr) return '';
-    const d = new Date(dateStr);
+    const d = new Date(dateStr + 'T12:00:00');
     return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
   };
 
@@ -134,10 +134,10 @@ const ParentPortal = () => {
     setLogError(null);
     try {
       const body = {
-        date: getLogDateValue(),
+        sessionDate: getLogDateValue(),
         bookId: logBook?.id || null,
-        bookTitle: logBook?.title || null,
-        source: 'home',
+        bookTitleManual: logBook?.source === 'external' ? logBook.title : null,
+        bookAuthorManual: logBook?.source === 'external' ? logBook.author : null,
       };
       const res = await fetch(`${apiBase}/sessions`, {
         method: 'POST',
@@ -227,7 +227,7 @@ const ParentPortal = () => {
     );
   }
 
-  const { student, currentBook, sessions = [], badgeCount = 0 } = data || {};
+  const { currentBook, streak, sessions = [], badgeCount = 0 } = data || {};
 
   return (
     <Box sx={{ maxWidth: 480, mx: 'auto', bgcolor: '#faf8f5', minHeight: '100vh', pb: 6 }}>
@@ -324,7 +324,7 @@ const ParentPortal = () => {
 
         {/* ── Streak + Read Today row ──────────────────────────────────── */}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-          <StreakBadge streak={student?.currentStreak || 0} size="large" showLabel />
+          <StreakBadge streak={streak?.current || 0} size="large" showLabel />
           <Button
             variant="contained"
             size="large"
@@ -377,7 +377,7 @@ const ParentPortal = () => {
                       width: 8,
                       height: 8,
                       borderRadius: '50%',
-                      bgcolor: session.sessionType === 'home' ? '#7c5ab8' : '#4a7c28',
+                      bgcolor: session.location === 'home' ? '#7c5ab8' : '#4a7c28',
                       flexShrink: 0,
                     }}
                   />
@@ -392,16 +392,16 @@ const ParentPortal = () => {
                     {formatSessionDate(session.date)}
                   </Typography>
                   <Chip
-                    label={session.sessionType === 'home' ? 'Home' : 'School'}
+                    label={session.location === 'home' ? 'Home' : 'School'}
                     size="small"
                     sx={{
                       height: 20,
                       fontSize: '0.65rem',
                       bgcolor:
-                        session.sessionType === 'home'
+                        session.location === 'home'
                           ? 'rgba(124, 90, 184, 0.1)'
                           : 'rgba(74, 124, 40, 0.1)',
-                      color: session.sessionType === 'home' ? '#7c5ab8' : '#4a7c28',
+                      color: session.location === 'home' ? '#7c5ab8' : '#4a7c28',
                       fontWeight: 600,
                       flexShrink: 0,
                     }}
@@ -462,7 +462,7 @@ const ParentPortal = () => {
                 Reading logged!
               </Typography>
               <StreakBadge
-                streak={logSuccess?.streak?.current || (student?.currentStreak || 0) + 1}
+                streak={logSuccess?.streak?.current || (streak?.current || 0) + 1}
                 size="large"
                 showLabel
               />
