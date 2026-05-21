@@ -3,6 +3,13 @@ import { Dialog, Box, Typography, IconButton, Chip } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import GardenHeader from '../badges/GardenHeader';
 
+const STAGES_MAP = {
+  seedling: 'Seedling',
+  sprout: 'Sprout',
+  bloom: 'Bloom',
+  full_garden: 'Full Garden',
+};
+
 const CONFETTI_EMOJIS = ['🌸', '✨', '🎉', '🌟', '📚', '🌿'];
 
 const METRIC_CONFIG = {
@@ -144,7 +151,15 @@ function ProgressBar({ goal }) {
             {config.label}
           </Typography>
           {config.description && (
-            <Typography sx={{ color: '#8B7E6A', fontSize: 12, fontStyle: 'italic', ml: 0.5 }}>
+            <Typography
+              sx={{
+                color: '#8B7E6A',
+                fontSize: 12,
+                fontStyle: 'italic',
+                ml: 0.5,
+                display: { xs: 'none', md: 'block' },
+              }}
+            >
               — {config.description}
             </Typography>
           )}
@@ -339,18 +354,31 @@ export default function ClassGoalsDisplay({ open, onClose, classId, fetchWithAut
         {/* Garden */}
         <Box
           sx={{
-            background: 'linear-gradient(135deg, #3D4A2D, #2D3A20)',
             borderRadius: 3,
             overflow: 'hidden',
-            mb: 4,
+            mb: 1,
           }}
         >
           <GardenHeader
             stage={gardenStage}
             goalsCompleted={data?.goalsCompleted}
-            label={`${displayName}'s Reading Garden`}
+            height={220}
+            hideLabel
           />
         </Box>
+        {/* Stage caption below garden */}
+        <Typography
+          sx={{
+            textAlign: 'center',
+            color: '#B8A88A',
+            fontSize: 14,
+            fontWeight: 600,
+            fontFamily: '"Nunito", "DM Sans", sans-serif',
+            mb: 3,
+          }}
+        >
+          {data ? `${STAGES_MAP[gardenStage] || gardenStage} stage` : ''}
+        </Typography>
 
         {/* Progress bars */}
         {data ? (

@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.65.8] - 2026-05-21
+
+### Fixed
+
+- **Class goals display layout** — garden header now 220px tall in fullscreen (was 130px), label text moved below garden as caption instead of overlapping plant illustrations, descriptions hidden on small screens for projection readability
+
 ## [3.65.7] - 2026-05-17
 
 ### Changed

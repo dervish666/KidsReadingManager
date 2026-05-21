@@ -108,6 +108,8 @@ export default function GardenHeader({
   stage: stageProp,
   label,
   goalsCompleted,
+  height = 130,
+  hideLabel = false,
 }) {
   const stage = stageProp
     ? STAGES.find((s) => s.name.toLowerCase().replace(/ /g, '_') === stageProp) || STAGES[0]
@@ -126,7 +128,7 @@ export default function GardenHeader({
         position: 'relative',
         overflow: 'hidden',
         borderRadius: '12px 12px 0 0',
-        height: 130,
+        height,
         background: getSkyGradient(effectiveBadgeCount),
       }}
     >
@@ -194,30 +196,32 @@ export default function GardenHeader({
       ))}
 
       {/* Text overlay */}
-      <Box
-        sx={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          textAlign: 'center',
-          pb: 0.5,
-          background: 'linear-gradient(transparent, rgba(255,254,249,0.7))',
-          pt: 2,
-        }}
-      >
-        <Typography
-          variant="subtitle2"
-          sx={{ color: '#5D6B4A', fontWeight: 600, fontSize: '0.75rem' }}
+      {!hideLabel && (
+        <Box
+          sx={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            textAlign: 'center',
+            pb: 0.5,
+            background: 'linear-gradient(transparent, rgba(255,254,249,0.7))',
+            pt: 2,
+          }}
         >
-          {subtitle}
-        </Typography>
-        <Typography variant="caption" sx={{ color: '#7A8B66', fontSize: '0.65rem' }}>
-          {stageProp
-            ? stage.name + ' stage'
-            : `${badgeCount} badge${badgeCount !== 1 ? 's' : ''} earned · ${stage.name} stage`}
-        </Typography>
-      </Box>
+          <Typography
+            variant="subtitle2"
+            sx={{ color: '#5D6B4A', fontWeight: 600, fontSize: '0.75rem' }}
+          >
+            {subtitle}
+          </Typography>
+          <Typography variant="caption" sx={{ color: '#7A8B66', fontSize: '0.65rem' }}>
+            {stageProp
+              ? stage.name + ' stage'
+              : `${badgeCount} badge${badgeCount !== 1 ? 's' : ''} earned · ${stage.name} stage`}
+          </Typography>
+        </Box>
+      )}
     </Box>
   );
 }
