@@ -39,7 +39,35 @@ const ParentQRButton = ({ studentId, studentName, variant = 'icon' }) => {
   const firstName = studentName ? studentName.split(' ')[0] : '';
   const parentUrl = token ? `${window.location.origin}/parent/${token}` : '';
 
-  const generateToken = useCallback(async () => {
+  const fetchExistingToken = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetchWithAuth(`/api/parent/token/student/${studentId}`);
+      if (!res.ok) {
+        throw new Error('Failed to load parent link');
+      }
+      const data = await res.json();
+      if (data.token) {
+        setToken(data.token);
+      } else {
+        const genRes = await fetchWithAuth(`/api/parent/generate/student/${studentId}`, {
+          method: 'POST',
+        });
+        if (!genRes.ok) {
+          throw new Error('Failed to generate parent link');
+        }
+        const genData = await genRes.json();
+        setToken(genData.token);
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to load parent link');
+    } finally {
+      setLoading(false);
+    }
+  }, [studentId, fetchWithAuth]);
+
+  const regenerateToken = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -47,12 +75,12 @@ const ParentQRButton = ({ studentId, studentName, variant = 'icon' }) => {
         method: 'POST',
       });
       if (!res.ok) {
-        throw new Error('Failed to generate parent link');
+        throw new Error('Failed to regenerate parent link');
       }
       const data = await res.json();
       setToken(data.token);
     } catch (err) {
-      setError(err.message || 'Failed to generate parent link');
+      setError(err.message || 'Failed to regenerate parent link');
     } finally {
       setLoading(false);
     }
@@ -61,7 +89,7 @@ const ParentQRButton = ({ studentId, studentName, variant = 'icon' }) => {
   const handleOpen = () => {
     setOpen(true);
     if (!token) {
-      generateToken();
+      fetchExistingToken();
     }
   };
 
@@ -72,7 +100,7 @@ const ParentQRButton = ({ studentId, studentName, variant = 'icon' }) => {
 
   const handleRegenerate = () => {
     setToken(null);
-    generateToken();
+    regenerateToken();
   };
 
   const handleCopyLink = async () => {

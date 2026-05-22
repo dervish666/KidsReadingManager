@@ -9,6 +9,7 @@
  * Teacher-authenticated endpoints (require JWT + teacher role):
  *   POST   /api/parent/generate/:classId        — bulk generate tokens for a class
  *   GET    /api/parent/class/:classId           — list tokens for print view
+ *   GET    /api/parent/token/student/:studentId — fetch existing active token (no side effects)
  *   POST   /api/parent/generate/student/:studentId — regenerate token for one student
  *   DELETE /api/parent/tokens/:tokenId          — revoke a token
  */
@@ -158,7 +159,7 @@ parentRouter.get('/:token', rateLimit(60, 60000), async (c) => {
     .first();
   const badgeCount = badgeCountRow?.count || 0;
 
-  c.header('Cache-Control', 'private, max-age=60, must-revalidate');
+  c.header('Cache-Control', 'no-store');
   return c.json({
     studentFirstName,
     currentBook,
@@ -408,9 +409,7 @@ parentRouter.get('/:token/books', rateLimit(30, 60000), async (c) => {
       external = (data.docs || []).map((doc) => ({
         title: doc.title || '',
         author: (doc.author_name || [])[0] || '',
-        coverUrl: doc.cover_i
-          ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`
-          : null,
+        coverUrl: doc.cover_i ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg` : null,
         source: 'external',
       }));
     }
@@ -526,6 +525,33 @@ parentRouter.get('/class/:classId', requireTeacher(), async (c) => {
 });
 
 // ============================================================================
+// GET /api/parent/token/student/:studentId
+// Fetch existing active token for a student (does NOT create one)
+// ============================================================================
+parentRouter.get('/token/student/:studentId', requireTeacher(), async (c) => {
+  const db = requireDB(c.env);
+  const organizationId = c.get('organizationId');
+  const { studentId } = c.req.param();
+
+  const academicYear = currentAcademicYear();
+
+  const row = await db
+    .prepare(
+      `SELECT id as tokenId, token
+         FROM parent_access_tokens
+        WHERE student_id = ? AND organization_id = ? AND academic_year = ? AND revoked_at IS NULL`
+    )
+    .bind(studentId, organizationId, academicYear)
+    .first();
+
+  if (!row) {
+    return c.json({ tokenId: null, token: null });
+  }
+
+  return c.json({ tokenId: row.tokenId, token: row.token });
+});
+
+// ============================================================================
 // POST /api/parent/generate/student/:studentId
 // Regenerate token for a single student
 // ============================================================================
@@ -581,9 +607,7 @@ parentRouter.delete('/tokens/:tokenId', requireTeacher(), async (c) => {
   const { tokenId } = c.req.param();
 
   const tokenRow = await db
-    .prepare(
-      'SELECT id FROM parent_access_tokens WHERE id = ? AND organization_id = ?'
-    )
+    .prepare('SELECT id FROM parent_access_tokens WHERE id = ? AND organization_id = ?')
     .bind(tokenId, organizationId)
     .first();
   if (!tokenRow) {
@@ -591,9 +615,7 @@ parentRouter.delete('/tokens/:tokenId', requireTeacher(), async (c) => {
   }
 
   await db
-    .prepare(
-      `UPDATE parent_access_tokens SET revoked_at = datetime('now') WHERE id = ?`
-    )
+    .prepare(`UPDATE parent_access_tokens SET revoked_at = datetime('now') WHERE id = ?`)
     .bind(tokenId)
     .run();
 

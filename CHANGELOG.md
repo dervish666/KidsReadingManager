@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.66.1] - 2026-05-22
+
+### Fixed
+
+- **Parent token regeneration** — revoked tokens now take effect immediately (removed 60-second browser cache on parent portal API)
+- **Parent link dialog** — opening the dialog no longer silently revokes the existing token; fetches the current active token instead and only generates when none exists
+
+### Added
+
+- **GET /api/parent/token/student/:studentId** — teacher endpoint to fetch existing active token without side effects
+
 ## [3.65.13] - 2026-05-21
 
 ### Changed
