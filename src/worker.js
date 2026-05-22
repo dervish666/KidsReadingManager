@@ -425,7 +425,7 @@ export default Sentry.withSentry(
         response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
         response.headers.set(
           'Content-Security-Policy',
-          "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://covers.openlibrary.org https://*.r2.dev; connect-src 'self' https://*.ingest.de.sentry.io; frame-ancestors 'none'"
+          "default-src 'self'; script-src 'self' 'sha256-Jtdt7P4E2ComOPZT00r7tuqL9szP31Qre5U8VApjero='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://covers.openlibrary.org https://*.r2.dev; connect-src 'self' https://*.ingest.de.sentry.io; worker-src 'self' blob:; frame-ancestors 'none'"
         );
         const path = new URL(request.url).pathname;
         if (/\.[a-f0-9]{8}\.(js|css)$/.test(path)) {

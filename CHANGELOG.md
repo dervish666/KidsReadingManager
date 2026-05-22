@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.66.3] - 2026-05-22
+
+### Fixed
+
+- **CSP inline script warning** — added Sentry SDK inline script hash and `worker-src blob:` to Content-Security-Policy
+- **Preload warnings** — changed Rsbuild preload strategy from `all-chunks` to `initial`, eliminating ~50 unused preload hints on page load
+
 ## [3.66.2] - 2026-05-22
 
 ### Fixed
