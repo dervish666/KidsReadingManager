@@ -1,11 +1,18 @@
 # Changelog
 
+## [3.66.4] - 2026-05-22
+
+### Fixed
+
+- **CSP inline script warning** — allow Sentry SDK inline scripts via `'unsafe-inline'` (hash changes per build so pinning doesn't work), added `worker-src 'self' blob:` for Sentry replay worker
+- **Preload warnings** — disabled Rsbuild preload entirely (was preloading ~50 async chunks and images not needed on initial page load)
+
 ## [3.66.3] - 2026-05-22
 
 ### Fixed
 
-- **CSP inline script warning** — added Sentry SDK inline script hash and `worker-src blob:` to Content-Security-Policy
-- **Preload warnings** — changed Rsbuild preload strategy from `all-chunks` to `initial`, eliminating ~50 unused preload hints on page load
+- **CSP inline script warning** — added Sentry SDK inline script hash and `worker-src blob:` to Content-Security-Policy (insufficient — hash is dynamic)
+- **Preload warnings** — changed Rsbuild preload strategy from `all-chunks` to `initial` (insufficient — still preloaded 22 images)
 
 ## [3.66.2] - 2026-05-22
 
