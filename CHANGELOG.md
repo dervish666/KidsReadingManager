@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.66.2] - 2026-05-22
+
+### Fixed
+
+- **Parent link 401** — new `/api/parent/token/` endpoint was missing from JWT auth bypass exclusion in tenant middleware, causing logout on dialog open
+
 ## [3.66.1] - 2026-05-22
 
 ### Fixed
