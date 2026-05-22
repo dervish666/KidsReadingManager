@@ -45,9 +45,14 @@ export function jwtAuthMiddleware() {
     const isPublicParentRoute =
       url.pathname.startsWith('/api/parent/') &&
       !url.pathname.startsWith('/api/parent/generate/') &&
+      !url.pathname.startsWith('/api/parent/token/') &&
       !url.pathname.startsWith('/api/parent/class/') &&
       !url.pathname.startsWith('/api/parent/tokens/');
-    if (PUBLIC_PATHS.includes(url.pathname) || url.pathname.startsWith('/api/covers/') || isPublicParentRoute) {
+    if (
+      PUBLIC_PATHS.includes(url.pathname) ||
+      url.pathname.startsWith('/api/covers/') ||
+      isPublicParentRoute
+    ) {
       return next();
     }
 
