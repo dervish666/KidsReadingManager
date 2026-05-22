@@ -169,7 +169,10 @@ const ParentPortal = () => {
 
   // ── Book selection ──────────────────────────────────────────────────────────
   const handleSelectBook = (book) => {
-    if (searchTarget === 'log') {
+    if (searchTarget === 'current') {
+      setData((prev) => ({ ...prev, currentBook: book }));
+      setLogBook(book);
+    } else {
       setLogBook(book);
     }
     setBookSearchOpen(false);
@@ -267,7 +270,7 @@ const ParentPortal = () => {
 
         {/* ── Current book card ────────────────────────────────────────── */}
         <Paper
-          onClick={() => handleOpenBookSearch('log')}
+          onClick={() => handleOpenBookSearch('current')}
           elevation={0}
           sx={{
             p: 2,
