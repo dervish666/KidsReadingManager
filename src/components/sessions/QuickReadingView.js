@@ -22,7 +22,12 @@ import SearchIcon from '@mui/icons-material/Search';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import BookAutocomplete from './BookAutocomplete';
-import { READING_STATUS, formatDateISO, formatDateHeader, getYesterday } from './homeReadingUtils';
+import {
+  READING_STATUS,
+  formatDateISO,
+  formatDateHeader,
+  getYesterday,
+} from './homeReadingUtils';
 
 const QuickReadingView = ({
   selectedDate,
@@ -181,6 +186,13 @@ const QuickReadingView = ({
                 const hasEntry = status !== READING_STATUS.NONE;
                 const isFirstRow = studentIdx === 0;
 
+                // Count unrecorded previous days + 1 for the selected date
+                const unrecordedPrev = previousDays.filter(
+                  (d) =>
+                    getStudentReadingStatus(student, formatDateISO(d)).status === READING_STATUS.NONE
+                ).length;
+                const maxMultiple = unrecordedPrev + 1;
+
                 const btnSx = { minWidth: 36, minHeight: 36, px: 0.5, borderRadius: 1.5 };
                 const numBtnSx = { ...btnSx, minWidth: 32, fontSize: '0.9rem' };
 
@@ -280,7 +292,7 @@ const QuickReadingView = ({
                                 : 'outlined'
                             }
                             color="primary"
-                            disabled={isRecording}
+                            disabled={isRecording || n > maxMultiple}
                             onClick={() => onQuickRecord(student, READING_STATUS.MULTIPLE, n)}
                             sx={numBtnSx}
                             aria-label={`Mark ${student.name} as read ${n} times`}
@@ -296,9 +308,9 @@ const QuickReadingView = ({
                           size="small"
                           variant="outlined"
                           color="primary"
-                          disabled={isRecording}
+                          disabled={isRecording || maxMultiple < 5}
                           onClick={() => {
-                            onQuickMultipleStudent(student);
+                            onQuickMultipleStudent(student, maxMultiple);
                             onMultipleCountDialogOpen();
                           }}
                           sx={numBtnSx}

@@ -75,6 +75,7 @@ const HomeReadingRegister = () => {
   const [recordingStudents, setRecordingStudents] = useState(new Set());
   const [editingBookStudentId, setEditingBookStudentId] = useState(null);
   const [quickMultipleStudent, setQuickMultipleStudent] = useState(null);
+  const [multipleMaxDays, setMultipleMaxDays] = useState(14);
 
   const [datePreset, setDatePreset] = useState(DATE_PRESETS.THIS_WEEK);
   const [customStartDate, setCustomStartDate] = useState('');
@@ -782,6 +783,7 @@ const HomeReadingRegister = () => {
     }
     setMultipleCountDialog(false);
     setMultipleCount(5);
+    setMultipleMaxDays(14);
   };
 
   const renderDateStatusCell = (student, date) => {
@@ -911,7 +913,10 @@ const HomeReadingRegister = () => {
           onEditBookStudent={setEditingBookStudentId}
           onQuickRecord={handleQuickRecord}
           onClearEntry={handleClearEntry}
-          onQuickMultipleStudent={setQuickMultipleStudent}
+          onQuickMultipleStudent={(student, max) => {
+            setQuickMultipleStudent(student);
+            if (max != null) setMultipleMaxDays(max);
+          }}
           onMultipleCountDialogOpen={() => setMultipleCountDialog(true)}
           updateStudentCurrentBook={updateStudentCurrentBook}
         />
@@ -995,6 +1000,7 @@ const HomeReadingRegister = () => {
         onConfirm={handleMultipleConfirm}
         count={multipleCount}
         onCountChange={setMultipleCount}
+        max={multipleMaxDays}
       />
 
       {/* Snackbar */}

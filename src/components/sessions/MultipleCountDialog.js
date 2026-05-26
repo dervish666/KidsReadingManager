@@ -8,7 +8,8 @@ import {
   Button,
 } from '@mui/material';
 
-const MultipleCountDialog = ({ open, onClose, onConfirm, count, onCountChange }) => {
+const MultipleCountDialog = ({ open, onClose, onConfirm, count, onCountChange, max = 14 }) => {
+  const effectiveMax = Math.max(2, max);
   return (
     <Dialog open={open} onClose={onClose}>
       <DialogTitle>How many days of reading?</DialogTitle>
@@ -16,8 +17,10 @@ const MultipleCountDialog = ({ open, onClose, onConfirm, count, onCountChange })
         <TextField
           type="number"
           value={count}
-          onChange={(e) => onCountChange(Math.max(2, parseInt(e.target.value) || 5))}
-          inputProps={{ min: 2, max: 14 }}
+          onChange={(e) =>
+            onCountChange(Math.min(effectiveMax, Math.max(2, parseInt(e.target.value) || 5)))
+          }
+          inputProps={{ min: 2, max: effectiveMax }}
           fullWidth
           sx={{ mt: 1 }}
         />

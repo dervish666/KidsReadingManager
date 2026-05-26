@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.67.1] - 2026-05-26
+
+### Changed
+
+- **Home reading — smart button limits** — numbered reading buttons (2, 3, 4, +) are now disabled when there aren't enough unrecorded days in the visible history to justify that count, preventing accidental over-recording
+
 ## [3.67.0] - 2026-05-26
 
 ### Added
