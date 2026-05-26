@@ -1,6 +1,6 @@
 export const TOURS = {
   students: {
-    version: 1,
+    version: 2,
     steps: [
       {
         target: '[data-tour="students-priority-list"]',
@@ -20,6 +20,13 @@ export const TOURS = {
         title: 'Filter by Status',
         content:
           'Filter students by reading status. Red means not read recently, orange needs attention, green is on track.',
+        placement: 'bottom',
+      },
+      {
+        target: '[data-tour="students-parent-qr"]',
+        title: 'Parent QR Codes',
+        content:
+          'Print QR codes for parents — they scan with their phone to see progress and log reading at home. Select a class first, then tap here.',
         placement: 'bottom',
       },
       {

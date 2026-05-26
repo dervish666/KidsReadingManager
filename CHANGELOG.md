@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.67.0] - 2026-05-26
+
+### Added
+
+- **Landing page — parent portal** — new feature card, "See it in action" row with screenshot, pricing mention, and "How it works" update
+- **Parent portal barcode scanner** — parents can scan ISBN barcodes when searching for books in the reading log
+- **Parent book search — ISBN match** — exact ISBN lookup before FTS/LIKE fallback for faster barcode results
+- **Tour — parent QR codes** — new tour step guiding teachers to the QR code print button on the students page
+
 ## [3.66.4] - 2026-05-22
 
 ### Fixed

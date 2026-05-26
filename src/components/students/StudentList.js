@@ -255,7 +255,7 @@ const StudentList = () => {
                 : 'Print Parent QR Codes'
             }
           >
-            <span>
+            <span data-tour="students-parent-qr">
               <IconButton
                 aria-label="print parent qr codes"
                 onClick={() => setShowQRSheet(true)}

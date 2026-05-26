@@ -13,7 +13,9 @@ import {
   InputAdornment,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
+import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import BookCover from '../BookCover';
+import BarcodeScanner from '../books/BarcodeScanner';
 import StreakBadge from '../students/StreakBadge';
 import GardenHeader from '../badges/GardenHeader';
 import BadgeCelebration from '../badges/BadgeCelebration';
@@ -48,6 +50,7 @@ const ParentPortal = () => {
   const [bookResults, setBookResults] = useState({ library: [], external: [] });
   const [bookSearchLoading, setBookSearchLoading] = useState(false);
   const [searchTarget, setSearchTarget] = useState('log'); // 'current' | 'log'
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   // ── Badge celebration state ─────────────────────────────────────────────────
   const [newBadges, setNewBadges] = useState([]);
@@ -643,24 +646,38 @@ const ParentPortal = () => {
             Find a Book
           </Typography>
 
-          <TextField
-            autoFocus
-            placeholder="Search by title or author..."
-            value={bookQuery}
-            onChange={(e) => setBookQuery(e.target.value)}
-            fullWidth
-            size="small"
-            sx={{ mb: 2 }}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon sx={{ color: '#2d5016' }} fontSize="small" />
-                  </InputAdornment>
-                ),
-              },
-            }}
-          />
+          <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+            <TextField
+              autoFocus
+              placeholder="Search by title or author..."
+              value={bookQuery}
+              onChange={(e) => setBookQuery(e.target.value)}
+              fullWidth
+              size="small"
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ color: '#2d5016' }} fontSize="small" />
+                    </InputAdornment>
+                  ),
+                },
+              }}
+            />
+            <Button
+              variant="outlined"
+              onClick={() => setScannerOpen(true)}
+              sx={{
+                minWidth: 44,
+                px: 1,
+                borderColor: 'rgba(45, 80, 22, 0.35)',
+                color: '#2d5016',
+                '&:hover': { borderColor: '#2d5016', bgcolor: 'rgba(45, 80, 22, 0.08)' },
+              }}
+            >
+              <QrCodeScannerIcon />
+            </Button>
+          </Box>
 
           {bookSearchLoading && (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
@@ -781,6 +798,16 @@ const ParentPortal = () => {
           </Box>
         </DialogContent>
       </Dialog>
+
+      {/* ── Barcode scanner ────────────────────────────────────────────── */}
+      <BarcodeScanner
+        open={scannerOpen}
+        onScan={(isbn) => {
+          setScannerOpen(false);
+          setBookQuery(isbn);
+        }}
+        onClose={() => setScannerOpen(false)}
+      />
 
       {/* ── Badge celebration ────────────────────────────────────────────── */}
       <BadgeCelebration badges={newBadges} onClose={() => setNewBadges([])} />

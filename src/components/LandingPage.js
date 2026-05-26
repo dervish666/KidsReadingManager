@@ -7,6 +7,7 @@ import screenshotRegister from '../assets/screenshots/screenshot-register.png';
 import screenshotRecommendations from '../assets/screenshots/screenshot-recommendations.png';
 import screenshotStats from '../assets/screenshots/screenshot-stats.png';
 import screenshotBooks from '../assets/screenshots/screenshot-books.png';
+import screenshotParent from '../assets/screenshots/screenshot-parent-portal.png';
 import TallyLogo from './TallyLogo';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -282,6 +283,11 @@ export default function LandingPage({ onSignIn }) {
                 desc: "Record observations, track vocabulary, note enjoyment levels. Build a rich picture of each child's reading journey that teachers can actually use.",
               },
               {
+                icon: '👨‍👩‍👧',
+                title: 'Parents in the loop',
+                desc: 'Print QR codes for each child, send them home, and parents can log reading from their phone — no app, no login. Progress stays connected between home and school.',
+              },
+              {
                 icon: '🔒',
                 title: 'Safe & simple',
                 desc: "GDPR-compliant, EU-hosted, and designed with children's data protection at its core. No ads, no tracking, no nonsense.",
@@ -325,6 +331,15 @@ export default function LandingPage({ onSignIn }) {
                 desc: "Diaries come in, you tap a few buttons, and the whole class is logged — who's read, how often, and what book they're on. Simple, fast, and you don't even have to find a pen. That's roughly 10 minutes back per class, per day.",
                 img: screenshotRegister,
                 alt: 'Home reading register view',
+              },
+              {
+                tag: 'Parent portal',
+                tagClass: 'lp-tag-green',
+                tagIcon: '👨‍👩‍👧',
+                title: 'Home reading, connected',
+                desc: 'Print a sheet of QR codes, send them home, and parents scan to see their child\'s progress and log reading — straight from their phone. No app to install, no password to remember.',
+                img: screenshotParent,
+                alt: 'Parent reading portal with QR codes',
               },
               {
                 tag: 'AI recommendations',
@@ -402,7 +417,7 @@ export default function LandingPage({ onSignIn }) {
                 {
                   num: '3',
                   title: 'Watch them grow',
-                  desc: 'Track reading patterns over time. Get book recommendations. Share progress with teachers and celebrate every milestone.',
+                  desc: 'Track reading patterns over time. Get book recommendations. Send QR codes home so parents can see progress and log reading too.',
                 },
               ].map((step, i) => (
                 <div className="lp-step lp-reveal" key={i} ref={addRevealRef}>
@@ -457,6 +472,7 @@ export default function LandingPage({ onSignIn }) {
               <ul className="lp-pricing-features">
                 <li>Reading session tracking</li>
                 <li>Home reading register</li>
+                <li>Parent portal with QR codes</li>
                 <li>Book library with barcode scanning</li>
                 <li>Reading stats dashboard</li>
                 <li>Badges and reading garden</li>

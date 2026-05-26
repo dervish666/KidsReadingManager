@@ -352,43 +352,63 @@ parentRouter.get('/:token/books', rateLimit(30, 60000), async (c) => {
     throw badRequestError('Search query must be at least 2 characters');
   }
 
-  // ── Library search (FTS5 with LIKE fallback) ──────────────────────────────
-  const ftsQuery = q
-    .replace(/['"*()^]/g, '')
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((t) => `"${t}"*`)
-    .join(' ');
+  // ── Library search (ISBN exact-match, then FTS5 with LIKE fallback) ──────
+  const isbnCandidate = q.replace(/[-\s]/g, '');
+  const looksLikeIsbn =
+    /^\d{10}(\d{3})?$/.test(isbnCandidate) || /^\d{9}[Xx]$/.test(isbnCandidate);
 
   let libraryResults;
-  try {
+
+  if (looksLikeIsbn) {
     const result = await db
       .prepare(
         `SELECT b.id, b.title, b.author, b.isbn
            FROM books b
            INNER JOIN org_book_selections obs ON b.id = obs.book_id
-           INNER JOIN books_fts fts ON b.id = fts.id
-          WHERE obs.organization_id = ? AND obs.is_available = 1 AND fts MATCH ?
-          ORDER BY rank LIMIT 10`
+          WHERE obs.organization_id = ? AND obs.is_available = 1 AND b.isbn = ?
+          LIMIT 1`
       )
-      .bind(organizationId, ftsQuery)
+      .bind(organizationId, isbnCandidate)
       .all();
     libraryResults = result.results || [];
-  } catch {
-    // FTS5 unavailable or malformed query — fall back to LIKE
-    const likeQuery = `%${q}%`;
-    const result = await db
-      .prepare(
-        `SELECT b.id, b.title, b.author, b.isbn
-           FROM books b
-           INNER JOIN org_book_selections obs ON b.id = obs.book_id
-          WHERE obs.organization_id = ? AND obs.is_available = 1
-            AND (b.title LIKE ? OR b.author LIKE ?)
-          ORDER BY b.title LIMIT 10`
-      )
-      .bind(organizationId, likeQuery, likeQuery)
-      .all();
-    libraryResults = result.results || [];
+  }
+
+  if (!looksLikeIsbn || libraryResults.length === 0) {
+    const ftsQuery = q
+      .replace(/['"*()^]/g, '')
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((t) => `"${t}"*`)
+      .join(' ');
+
+    try {
+      const result = await db
+        .prepare(
+          `SELECT b.id, b.title, b.author, b.isbn
+             FROM books b
+             INNER JOIN org_book_selections obs ON b.id = obs.book_id
+             INNER JOIN books_fts fts ON b.id = fts.id
+            WHERE obs.organization_id = ? AND obs.is_available = 1 AND fts MATCH ?
+            ORDER BY rank LIMIT 10`
+        )
+        .bind(organizationId, ftsQuery)
+        .all();
+      libraryResults = result.results || [];
+    } catch {
+      const likeQuery = `%${q}%`;
+      const result = await db
+        .prepare(
+          `SELECT b.id, b.title, b.author, b.isbn
+             FROM books b
+             INNER JOIN org_book_selections obs ON b.id = obs.book_id
+            WHERE obs.organization_id = ? AND obs.is_available = 1
+              AND (b.title LIKE ? OR b.author LIKE ?)
+            ORDER BY b.title LIMIT 10`
+        )
+        .bind(organizationId, likeQuery, likeQuery)
+        .all();
+      libraryResults = result.results || [];
+    }
   }
 
   const library = libraryResults.map((b) => ({
