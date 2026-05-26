@@ -34,6 +34,10 @@ const DELETE_TABLES = [
     where: `student_id IN (SELECT id FROM students WHERE organization_id = '${DEMO_ORG_ID}')`,
   },
   {
+    table: 'parent_access_tokens',
+    where: `organization_id = '${DEMO_ORG_ID}'`,
+  },
+  {
     table: 'class_assignments',
     where: `class_id IN (SELECT id FROM classes WHERE organization_id = '${DEMO_ORG_ID}')`,
   },
@@ -132,6 +136,7 @@ export async function resetDemoData(db) {
     [
       'reading_sessions',
       'student_preferences',
+      'parent_access_tokens',
       'class_assignments',
       'class_goals',
       'org_book_selections',

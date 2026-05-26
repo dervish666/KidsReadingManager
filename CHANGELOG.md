@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.67.2] - 2026-05-26
+
+### Fixed
+
+- **Demo reset — parent tokens** — add `parent_access_tokens` to demo reset delete tables, fixing FK constraint that silently blocked student deletion and caused class assignments to be lost
+
 ## [3.67.1] - 2026-05-26
 
 ### Changed
