@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.67.5] - 2026-05-29
+
+### Changed
+
+- **Faster reading-session saves** — the post-save work (streak, statistics, and class-goal updates) now runs in parallel instead of one after another, cutting the time to record a session. Badge, streak, and goal celebrations are unchanged.
+
 ## [3.67.4] - 2026-05-29
 
 ### Fixed
