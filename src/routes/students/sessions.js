@@ -260,45 +260,36 @@ sessionsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
 
     await db.batch(coreWrites);
 
-    // Side-effects: best-effort. A streak/stats/badge/goal failure must
-    // not lose the session that just committed. Each runs in its own
-    // try/catch so one bad evaluator doesn't skip the others.
-    try {
-      await updateStudentStreak(db, id, organizationId, c.env);
-    } catch (err) {
-      console.error('[sessions] streak update failed', { sessionId, studentId: id, err });
-    }
+    // Side-effects: best-effort, parallelised where safe. streak, stats and the
+    // class-goal update write disjoint tables (students / student_reading_stats /
+    // class_goals) and don't depend on each other, so they run concurrently.
+    // Badge evaluation reads the freshly-written stats row, so it runs after.
+    // Each is wrapped so one failure can't lose the committed session or abort
+    // the others.
+    const runSafe = async (label, fn) => {
+      try {
+        return await fn();
+      } catch (err) {
+        console.error(`[sessions] ${label} failed`, { sessionId, studentId: id, err });
+        return undefined;
+      }
+    };
 
-    try {
-      await recalculateStats(db, id, organizationId);
-    } catch (err) {
-      console.error('[sessions] stats recalc failed', { sessionId, studentId: id, err });
-    }
+    const [, , completedGoalsResult] = await Promise.all([
+      runSafe('streak update', () => updateStudentStreak(db, id, organizationId, c.env)),
+      runSafe('stats recalc', () => recalculateStats(db, id, organizationId)),
+      isMarkerSession
+        ? Promise.resolve(undefined)
+        : runSafe('class goal update', () => updateClassGoalOnSession(db, id, organizationId)),
+    ]);
+    const completedGoals = completedGoalsResult || [];
 
     let newBadges = [];
     if (!isMarkerSession) {
-      try {
-        newBadges = await evaluateRealTime(db, id, organizationId, student.year_group);
-      } catch (err) {
-        console.error('[sessions] badge evaluation failed', {
-          sessionId,
-          studentId: id,
-          err,
-        });
-      }
-    }
-
-    let completedGoals = [];
-    if (!isMarkerSession) {
-      try {
-        completedGoals = await updateClassGoalOnSession(db, id, organizationId);
-      } catch (err) {
-        console.error('[sessions] class goal update failed', {
-          sessionId,
-          studentId: id,
-          err,
-        });
-      }
+      newBadges =
+        (await runSafe('badge evaluation', () =>
+          evaluateRealTime(db, id, organizationId, student.year_group)
+        )) || [];
     }
 
     const session = await db

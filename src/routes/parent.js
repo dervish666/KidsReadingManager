@@ -283,33 +283,30 @@ parentRouter.post('/:token/sessions', rateLimit(10, 60000, 'parent:sessions'), a
 
   await db.batch(coreWrites);
 
-  // Side-effects: best-effort — a failure here must not lose the committed session
-  let updatedStreak = null;
-  try {
-    const streakData = await updateStudentStreak(db, studentId, organizationId, c.env);
-    updatedStreak = { current: streakData.currentStreak };
-  } catch (err) {
-    console.error('[parent/sessions] streak update failed', { sessionId, studentId, err });
-  }
+  // Side-effects: best-effort, parallelised where safe. streak, stats and the
+  // class-goal update write disjoint tables and don't depend on each other;
+  // badge evaluation reads the freshly-written stats row so it runs after.
+  // Each is wrapped so one failure can't lose the committed session.
+  const runSafe = async (label, fn) => {
+    try {
+      return await fn();
+    } catch (err) {
+      console.error(`[parent/sessions] ${label} failed`, { sessionId, studentId, err });
+      return undefined;
+    }
+  };
 
-  try {
-    await recalculateStats(db, studentId, organizationId);
-  } catch (err) {
-    console.error('[parent/sessions] stats recalc failed', { sessionId, studentId, err });
-  }
+  const [streakData] = await Promise.all([
+    runSafe('streak update', () => updateStudentStreak(db, studentId, organizationId, c.env)),
+    runSafe('stats recalc', () => recalculateStats(db, studentId, organizationId)),
+    runSafe('class goal update', () => updateClassGoalOnSession(db, studentId, organizationId)),
+  ]);
+  const updatedStreak = streakData ? { current: streakData.currentStreak } : null;
 
-  let newBadges = [];
-  try {
-    newBadges = await evaluateRealTime(db, studentId, organizationId, tokenRow.year_group);
-  } catch (err) {
-    console.error('[parent/sessions] badge evaluation failed', { sessionId, studentId, err });
-  }
-
-  try {
-    await updateClassGoalOnSession(db, studentId, organizationId);
-  } catch (err) {
-    console.error('[parent/sessions] class goal update failed', { sessionId, studentId, err });
-  }
+  const newBadges =
+    (await runSafe('badge evaluation', () =>
+      evaluateRealTime(db, studentId, organizationId, tokenRow.year_group)
+    )) || [];
 
   // Fetch the inserted session to build the response
   const session = await db
