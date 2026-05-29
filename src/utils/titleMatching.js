@@ -6,6 +6,20 @@
  */
 
 /**
+ * Strip characters that confuse search API query syntax (e.g. # in "#Goldilocks").
+ * Preserves case and meaningful punctuation like hyphens and apostrophes.
+ *
+ * @param {string} title
+ * @returns {string}
+ */
+export function sanitizeForSearch(title) {
+  return title
+    .replace(/[#@:;!?*~^{}[\]()]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
  * Normalize a title for comparison.
  * Lowercases, strips punctuation, collapses whitespace.
  *

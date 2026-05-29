@@ -3,6 +3,7 @@
  * Requires API key from metadata_config.
  */
 import { fetchWithTimeout } from '../../utils/helpers.js';
+import { sanitizeForSearch } from '../../utils/titleMatching.js';
 
 const VOLUMES_URL = 'https://www.googleapis.com/books/v1/volumes';
 const TIMEOUT = 5000;
@@ -33,7 +34,7 @@ export async function fetchMetadata(book, apiKey) {
     if (book.isbn) {
       q = `isbn:${book.isbn}`;
     } else {
-      q = `intitle:${book.title.trim()}`;
+      q = `intitle:${sanitizeForSearch(book.title)}`;
       if (book.author) q += `+inauthor:${book.author.trim()}`;
     }
 
@@ -74,11 +75,10 @@ export async function fetchMetadata(book, apiKey) {
     const isbn10 = ids.find((i) => i.type === 'ISBN_10');
     result.isbn = isbn13?.identifier || isbn10?.identifier || null;
 
-    // Cover URL — upgrade to higher res by removing edge=curl and zoom
+    // Cover URL — remove edge=curl for a cleaner image; keep zoom=1 because
+    // zoom=2 returns a placeholder for books with only low-res covers.
     if (vol.imageLinks?.thumbnail) {
-      result.coverUrl = vol.imageLinks.thumbnail
-        .replace('&edge=curl', '')
-        .replace('zoom=1', 'zoom=2');
+      result.coverUrl = vol.imageLinks.thumbnail.replace('&edge=curl', '');
     }
 
     return result;

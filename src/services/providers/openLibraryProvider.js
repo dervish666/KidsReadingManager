@@ -4,6 +4,7 @@
  * No API key required.
  */
 import { fetchWithTimeout } from '../../utils/helpers.js';
+import { sanitizeForSearch } from '../../utils/titleMatching.js';
 
 const SEARCH_URL = 'https://openlibrary.org/search.json';
 const COVERS_URL = 'https://covers.openlibrary.org/b';
@@ -37,7 +38,7 @@ export async function fetchMetadata(book) {
     if (book.isbn) {
       params.set('isbn', book.isbn);
     } else {
-      params.set('title', book.title);
+      params.set('title', sanitizeForSearch(book.title));
       if (book.author) params.set('author', book.author);
     }
 

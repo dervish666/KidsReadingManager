@@ -6,6 +6,7 @@ import { rateLimit } from '../middleware/tenant.js';
 import { fetchMetadata as googleBooksFetch } from '../services/providers/googleBooksProvider.js';
 import { fetchMetadata as hardcoverFetch } from '../services/providers/hardcoverProvider.js';
 import { KNOWN_PLACEHOLDER_HASHES, sha256Hex } from '../utils/coverPlaceholders.js';
+import { sanitizeForSearch } from '../utils/titleMatching.js';
 
 const coversRouter = new Hono();
 
@@ -65,7 +66,11 @@ async function fetchCoverImage(url) {
  * Returns the direct covers.openlibrary.org URL, or null.
  */
 async function openLibrarySearchCover(title, author) {
-  const params = new URLSearchParams({ title, limit: '1', fields: 'cover_i' });
+  const params = new URLSearchParams({
+    title: sanitizeForSearch(title),
+    limit: '1',
+    fields: 'cover_i',
+  });
   if (author) params.set('author', author);
   const url = `https://openlibrary.org/search.json?${params.toString()}`;
   try {

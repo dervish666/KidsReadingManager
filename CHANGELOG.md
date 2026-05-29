@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.67.7] - 2026-05-29
+
+### Fixed
+
+- **Book covers for tricky titles** — titles containing characters like `#`, `:`, or `!` (e.g. "#Goldilocks") are now cleaned before being sent to the OpenLibrary, Google Books, and Hardcover lookups and the on-demand cover search, so covers that previously fell back to the gradient placeholder now resolve. The Google Books lookup also no longer upgrades to a higher zoom level that returned a blank placeholder for books with only low-resolution scans. (Originally fixed in v3.62.1; restored after being lost on an unmerged branch.)
+
 ## [3.67.6] - 2026-05-29
 
 ### Fixed

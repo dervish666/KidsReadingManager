@@ -4,6 +4,7 @@
  * Best source for series data.
  */
 import { fetchWithTimeout } from '../../utils/helpers.js';
+import { sanitizeForSearch } from '../../utils/titleMatching.js';
 
 const GRAPHQL_URL = 'https://api.hardcover.app/v1/graphql';
 const TIMEOUT = 8000;
@@ -68,7 +69,9 @@ export async function fetchMetadata(book, apiKey) {
 
   try {
     // 1. Search for the book
-    const searchQ = book.author ? `${book.title} ${book.author}` : book.title;
+    const searchQ = book.author
+      ? `${sanitizeForSearch(book.title)} ${book.author}`
+      : sanitizeForSearch(book.title);
     const searchRes = await graphql(SEARCH_QUERY, { q: searchQ, perPage: 5 }, apiKey);
 
     if (!searchRes.ok) {
