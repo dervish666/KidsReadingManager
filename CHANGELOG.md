@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.67.3] - 2026-05-29
+
+### Fixed
+
+- **"Last read" / "days since last read" now school-only** — dropped three database triggers that were recomputing `last_read_date` over *all* sessions, which silently overrode the v3.64.3 fix. Marking a child absent or logging a home reading session no longer makes them show as having just read at school. (migration 0057)
+- **Parent portal — home sessions no longer advance "last read"** — logging a home reading session via the parent portal no longer touches the school-only `last_read_date`.
+
+### Security
+
+- **Pupil data minimisation** — protected characteristics (SEN, EAL, FSM, pupil premium, date of birth, gender, first language) are no longer returned to read-only accounts on the student list or detail endpoints; only staff (teacher and above) receive them.
+- **Parent portal rate limiting** — public parent endpoints now share a per-IP rate-limit counter rather than keying on the full URL (which included the token), so the limit can no longer be bypassed by varying the token.
+- **Parent portal — Article 18** — the parent view now honours the GDPR processing-restriction flag (previously only the session-logging endpoint did).
+
 ## [3.67.2] - 2026-05-26
 
 ### Fixed
