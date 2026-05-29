@@ -88,6 +88,13 @@ gdprRouter.delete('/:id/erase', requireAdmin(), auditLog('erase', 'user'), async
       // Delete in FK order: tokens → password resets → user
       db.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').bind(targetUserId),
       db.prepare('DELETE FROM password_reset_tokens WHERE user_id = ?').bind(targetUserId),
+      // Drop the erased user's id from parent_access_tokens.created_by so no
+      // identifier lingers in a child-data table. The column is NOT NULL, so
+      // clear it to an empty string rather than NULL. The tokens themselves are
+      // student-scoped and stay valid.
+      db
+        .prepare(`UPDATE parent_access_tokens SET created_by = '' WHERE created_by = ?`)
+        .bind(targetUserId),
       db.prepare('DELETE FROM users WHERE id = ?').bind(targetUserId),
 
       // Anonymise audit log entries that reference this user

@@ -270,6 +270,17 @@ studentsRouter.post('/', auditLog('create', 'student'), async (c) => {
       throw badRequestError(rangeValidation.errors[0]);
     }
 
+    // Don't let a student be created in a class outside the caller's org.
+    if (body.classId) {
+      const cls = await db
+        .prepare('SELECT 1 FROM classes WHERE id = ? AND organization_id = ?')
+        .bind(body.classId, organizationId)
+        .first();
+      if (!cls) {
+        throw badRequestError('Class not found');
+      }
+    }
+
     const studentId = generateId();
 
     await db
@@ -335,6 +346,17 @@ studentsRouter.put('/:id', auditLog('update', 'student'), async (c) => {
     }
 
     await requireStudent(db, id, organizationId);
+
+    // Don't let a student be reassigned to a class outside the caller's org.
+    if (body.classId) {
+      const cls = await db
+        .prepare('SELECT 1 FROM classes WHERE id = ? AND organization_id = ?')
+        .bind(body.classId, organizationId)
+        .first();
+      if (!cls) {
+        throw badRequestError('Class not found');
+      }
+    }
 
     const rangeValidation = validateReadingLevelRange(body.readingLevelMin, body.readingLevelMax);
     if (!rangeValidation.isValid) {

@@ -21,6 +21,7 @@ const FAIL_CLOSED_PATHS = [
   '/api/contact',
   '/api/signup',
   '/api/covers/',
+  '/api/parent/',
 ];
 
 /**

@@ -91,9 +91,9 @@ function buildPrompt(studentProfile, availableBooks) {
 
 STUDENT PROFILE:
 - Reading Level: ${studentProfile.readingLevel}
-- Favorite Genres: ${studentProfile.preferences.favoriteGenreIds?.join(', ') || 'Not specified'}
-- Likes: ${studentProfile.preferences.likes?.join(', ') || 'Not specified'}
-- Dislikes: ${studentProfile.preferences.dislikes?.join(', ') || 'Not specified'}
+- Favorite Genres: ${studentProfile.preferences.favoriteGenreIds?.length ? tagUserInput(studentProfile.preferences.favoriteGenreIds.join(', ')) : 'Not specified'}
+- Likes: ${studentProfile.preferences.likes?.length ? tagUserInput(studentProfile.preferences.likes.join(', ')) : 'Not specified'}
+- Dislikes: ${studentProfile.preferences.dislikes?.length ? tagUserInput(studentProfile.preferences.dislikes.join(', ')) : 'Not specified'}
 
 BOOKS ALREADY READ:
 ${booksReadText}
