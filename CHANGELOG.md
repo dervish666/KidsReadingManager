@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.67.4] - 2026-05-29
+
+### Fixed
+
+- **Reading register — custom day count restored** — the "+" custom-count button in the quick register was permanently disabled and could never be used; it now opens the multi-day dialog (up to 14 days) so catch-up reading beyond the four preset buttons can be logged again.
+- **Reading register — no more double-counted days** — multi-day catch-up entry no longer writes a second reading session on a day that already has a reading record, so totals, stats, and class goals stay accurate.
+
+### Security
+
+- **AI recommendations — moderation on cached results** — content moderation now runs on cached recommendations as well as freshly generated ones, so a denylist change can't let previously cached content through to pupils.
+- **MyLogin — no pupil PII in logs** — sign-in diagnostic logs now use the anonymous MyLogin identifier instead of the pupil's name or email.
+
 ## [3.67.3] - 2026-05-29
 
 ### Fixed
