@@ -542,6 +542,22 @@ const HomeReadingRegister = () => {
           sessionDate.setDate(sessionDate.getDate() - i);
           const dateStr = formatDateISO(sessionDate);
 
+          // Don't double-count a previous day that already has a genuine reading
+          // record (a school session or a directly-logged home read). Backfill
+          // sessions are deleted above and re-created, so they're excluded here.
+          if (
+            i > 0 &&
+            allStudentSessions.some(
+              (s) =>
+                s.date === dateStr &&
+                !s.notes?.includes('[ABSENT]') &&
+                !s.notes?.includes('[NO_RECORD]') &&
+                !s.notes?.includes('[BACKFILL]')
+            )
+          ) {
+            continue;
+          }
+
           const dayHasMarker =
             i > 0 &&
             allStudentSessions.some(
@@ -660,6 +676,22 @@ const HomeReadingRegister = () => {
           const sessionDate = new Date(selectedDate + 'T12:00:00');
           sessionDate.setDate(sessionDate.getDate() - i);
           const dateStr = formatDateISO(sessionDate);
+
+          // Don't double-count a previous day that already has a genuine reading
+          // record (a school session or a directly-logged home read). Backfill
+          // sessions are deleted above and re-created, so they're excluded here.
+          if (
+            i > 0 &&
+            studentSessions.some(
+              (s) =>
+                s.date === dateStr &&
+                !s.notes?.includes('[ABSENT]') &&
+                !s.notes?.includes('[NO_RECORD]') &&
+                !s.notes?.includes('[BACKFILL]')
+            )
+          ) {
+            continue;
+          }
 
           // Check if this day has a marker
           const dayHasMarker =

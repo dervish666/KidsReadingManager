@@ -22,12 +22,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import BookAutocomplete from './BookAutocomplete';
-import {
-  READING_STATUS,
-  formatDateISO,
-  formatDateHeader,
-  getYesterday,
-} from './homeReadingUtils';
+import { READING_STATUS, formatDateISO, formatDateHeader, getYesterday } from './homeReadingUtils';
 
 const QuickReadingView = ({
   selectedDate,
@@ -189,7 +184,8 @@ const QuickReadingView = ({
                 // Count unrecorded previous days + 1 for the selected date
                 const unrecordedPrev = previousDays.filter(
                   (d) =>
-                    getStudentReadingStatus(student, formatDateISO(d)).status === READING_STATUS.NONE
+                    getStudentReadingStatus(student, formatDateISO(d)).status ===
+                    READING_STATUS.NONE
                 ).length;
                 const maxMultiple = unrecordedPrev + 1;
 
@@ -308,9 +304,13 @@ const QuickReadingView = ({
                           size="small"
                           variant="outlined"
                           color="primary"
-                          disabled={isRecording || maxMultiple < 5}
+                          disabled={isRecording || maxMultiple < 2}
                           onClick={() => {
-                            onQuickMultipleStudent(student, maxMultiple);
+                            // Custom multi-day catch-up. Don't pass maxMultiple as
+                            // the dialog cap — it's bounded by the 3-day preview
+                            // window (≤4) which would make "+" pointless; the
+                            // dialog uses its own multipleMaxDays (14) instead.
+                            onQuickMultipleStudent(student);
                             onMultipleCountDialogOpen();
                           }}
                           sx={numBtnSx}

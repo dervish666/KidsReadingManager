@@ -193,7 +193,7 @@ myloginRouter.get('/callback', async (c) => {
     // 5. Match organization by wonde_school_id
     // -----------------------------------------------------------------------
     if (!wondeSchoolId) {
-      console.error('[MyLogin] No wonde_id in user profile for', email);
+      console.error('[MyLogin] No wonde_id in user profile', { myloginId });
       return c.redirect('/?auth=error&reason=no_school');
     }
 
@@ -205,7 +205,9 @@ myloginRouter.get('/callback', async (c) => {
       .first();
 
     if (!org) {
-      console.error('[MyLogin] No org found for wonde_school_id:', wondeSchoolId, '- user:', email);
+      console.error('[MyLogin] No org found for wonde_school_id:', wondeSchoolId, {
+        myloginId,
+      });
       return c.redirect('/?auth=error&reason=school_not_found');
     }
 
@@ -236,12 +238,14 @@ myloginRouter.get('/callback', async (c) => {
       } else {
         // IdP wants to elevate — keep existing role and log warning
         console.warn(
-          `[MyLogin] Blocked role elevation for ${name}: IdP wants ${idpRole} but user has ${existingUser.role}. Keeping existing role.`
+          `[MyLogin] Blocked role elevation for mylogin_id ${myloginId}: IdP wants ${idpRole} but user has ${existingUser.role}. Keeping existing role.`
         );
       }
 
       if (existingUser.role !== effectiveRole) {
-        console.log(`[MyLogin] Role changed for ${name}: ${existingUser.role} → ${effectiveRole}`);
+        console.log(
+          `[MyLogin] Role changed for mylogin_id ${myloginId}: ${existingUser.role} → ${effectiveRole}`
+        );
       }
       await db
         .prepare(
@@ -279,7 +283,9 @@ myloginRouter.get('/callback', async (c) => {
       try {
         const assignedCount = await syncUserClassAssignments(db, userId, wondeEmployeeId, org.id);
         if (assignedCount > 0) {
-          console.log(`[MyLogin] Synced ${assignedCount} class assignment(s) for ${name}`);
+          console.log(
+            `[MyLogin] Synced ${assignedCount} class assignment(s) for mylogin_id ${myloginId}`
+          );
         }
       } catch (err) {
         console.warn('[MyLogin] Could not sync class assignments:', err.message);

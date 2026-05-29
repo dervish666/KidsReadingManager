@@ -340,8 +340,14 @@ recommendationsRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
 
       const cached = await getCachedRecommendations(c.env, cacheInputs);
       if (cached) {
+        // Defence-in-depth: re-run content moderation on cache hits too. Only
+        // moderated output is cached today, but a denylist update, a stale
+        // entry, or any future code path that caches raw output must not
+        // surface unfiltered text to a child.
+        const { kept: cachedSuggestions } = filterContentSafe(cached.suggestions || []);
+
         // Library cross-check on cached suggestions
-        const suggestionTitles = (cached.suggestions || [])
+        const suggestionTitles = cachedSuggestions
           .filter((s) => s && s.title)
           .map((s) => s.title.toLowerCase());
         let libraryMatches = {};
@@ -362,7 +368,7 @@ recommendationsRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
           }
         }
 
-        const enriched = (cached.suggestions || []).map((s) => ({
+        const enriched = cachedSuggestions.map((s) => ({
           ...s,
           inLibrary: s?.title ? !!libraryMatches[s.title.toLowerCase()] : false,
           libraryBookId: s?.title ? libraryMatches[s.title.toLowerCase()] || null : null,
