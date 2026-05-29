@@ -28,6 +28,7 @@ vi.mock('../../utils/routeHelpers', async (importOriginal) => {
 
 vi.mock('../../utils/crypto', () => ({
   permissions: { MANAGE_STUDENTS: 'manage_students' },
+  ROLES: { OWNER: 'owner', ADMIN: 'admin', TEACHER: 'teacher', READONLY: 'readonly' },
 }));
 
 vi.mock('../../utils/validation', () => ({
@@ -391,6 +392,65 @@ describe('GET /api/students - Slim Response', () => {
       expect(cacheControl).toMatch(/max-age=30/);
       // Public proxies must not share tenant data
       expect(cacheControl).not.toMatch(/public/);
+    });
+  });
+
+  describe('protected characteristics by role', () => {
+    const studentRow = {
+      id: 'student-1',
+      name: 'Alice Smith',
+      class_id: 'class-1',
+      is_active: 1,
+      sen_status: 'EHCP',
+      pupil_premium: 1,
+      eal_status: 'A',
+      fsm: 1,
+      date_of_birth: '2018-04-01',
+      gender: 'female',
+      first_language: 'Polish',
+      eal_detailed_status: 'New to English',
+    };
+
+    it('strips SEN/EAL/FSM/PP/DOB/gender for the readonly role', async () => {
+      const { app } = createTestApp(
+        { organizationId: 'org-1', userId: 'student-user', userRole: 'readonly' },
+        { allResults: { results: [studentRow], success: true } }
+      );
+
+      const res = await makeRequest(app, 'GET', '/api/students');
+      expect(res.status).toBe(200);
+      const [student] = await res.json();
+
+      for (const field of [
+        'senStatus',
+        'pupilPremium',
+        'ealStatus',
+        'fsm',
+        'dateOfBirth',
+        'gender',
+        'firstLanguage',
+        'ealDetailedStatus',
+      ]) {
+        expect(student).not.toHaveProperty(field);
+      }
+      // Non-sensitive fields still present
+      expect(student.id).toBe('student-1');
+      expect(student.name).toBe('Alice Smith');
+    });
+
+    it('includes protected characteristics for the teacher role', async () => {
+      const { app } = createTestApp(
+        { organizationId: 'org-1', userId: 'teacher-user', userRole: 'teacher' },
+        { allResults: { results: [studentRow], success: true } }
+      );
+
+      const res = await makeRequest(app, 'GET', '/api/students');
+      expect(res.status).toBe(200);
+      const [student] = await res.json();
+
+      expect(student.senStatus).toBe('EHCP');
+      expect(student.fsm).toBe(true);
+      expect(student.dateOfBirth).toBe('2018-04-01');
     });
   });
 });

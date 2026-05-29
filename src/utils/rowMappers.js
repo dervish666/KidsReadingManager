@@ -73,6 +73,29 @@ export const rowToStudent = (row) => {
   };
 };
 
+// Protected characteristics — special-category data (SEN/health) and
+// socioeconomic/ethnic proxies (pupil premium, FSM, EAL) plus DOB/gender.
+// Only staff (teacher+) have a need-to-know; the readonly role (which MyLogin
+// students map to) must never receive these. See rowToStudentMinimal.
+export const PROTECTED_STUDENT_FIELDS = [
+  'senStatus',
+  'pupilPremium',
+  'ealStatus',
+  'fsm',
+  'dateOfBirth',
+  'gender',
+  'firstLanguage',
+  'ealDetailedStatus',
+];
+
+// Student shape with protected characteristics stripped, for the readonly role.
+export const rowToStudentMinimal = (row) => {
+  const student = rowToStudent(row);
+  if (!student) return null;
+  for (const field of PROTECTED_STUDENT_FIELDS) delete student[field];
+  return student;
+};
+
 // ── Classes ──────────────────────────────────────────────────────────────────
 
 export const rowToClass = (row) => {

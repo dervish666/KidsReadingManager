@@ -30,9 +30,9 @@ import {
 import { validateStudent, validateReadingLevelRange } from '../utils/validation.js';
 import { notFoundError, badRequestError, forbiddenError } from '../middleware/errorHandler.js';
 import { requireTeacher, requireReadonly, auditLog } from '../middleware/tenant.js';
-import { permissions } from '../utils/crypto.js';
+import { permissions, ROLES } from '../utils/crypto.js';
 import { getDB, isMultiTenantMode, requireStudent } from '../utils/routeHelpers.js';
-import { rowToStudent, rowToReadingStats } from '../utils/rowMappers.js';
+import { rowToStudent, rowToStudentMinimal, rowToReadingStats } from '../utils/rowMappers.js';
 import { calculateNearMisses } from '../utils/badgeEngine.js';
 
 import {
@@ -100,8 +100,11 @@ studentsRouter.get('/', requireReadonly(), async (c) => {
       .bind(organizationId)
       .all();
 
+    // Readonly accounts (MyLogin students map to this role) must not receive
+    // protected characteristics (SEN/EAL/FSM/pupil-premium/DOB/gender).
+    const mapStudent = c.get('userRole') === ROLES.READONLY ? rowToStudentMinimal : rowToStudent;
     const students = (result.results || []).map((row) => ({
-      ...rowToStudent(row),
+      ...mapStudent(row),
       className: row.class_name,
       totalSessionCount: row.total_session_count || 0,
       badgeCount: row.badge_count || 0,
@@ -157,7 +160,11 @@ studentsRouter.get('/:id', requireReadonly(), async (c) => {
       throw notFoundError('Student not found');
     }
 
-    const result = rowToStudent(student);
+    // Readonly accounts (MyLogin students) must not receive protected
+    // characteristics; gate the detail endpoint too so it can't be used to
+    // fetch what the list endpoint now withholds.
+    const mapStudent = c.get('userRole') === ROLES.READONLY ? rowToStudentMinimal : rowToStudent;
+    const result = mapStudent(student);
     result.className = student.class_name;
 
     const sessions = await db

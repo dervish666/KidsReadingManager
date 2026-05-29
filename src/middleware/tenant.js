@@ -386,7 +386,7 @@ export function auditLog(action, entityType) {
  * @param {number} windowMs - Time window in milliseconds (default: 60000 = 1 minute)
  * @returns {Function} Hono middleware
  */
-export function rateLimit(maxRequests = 100, windowMs = 60000) {
+export function rateLimit(maxRequests = 100, windowMs = 60000, bucket = null) {
   return async (c, next) => {
     const db = c.env.READING_MANAGER_DB;
 
@@ -405,7 +405,13 @@ export function rateLimit(maxRequests = 100, windowMs = 60000) {
       'unknown';
     const userId = c.get('userId');
     const key = userId || `ip:${ipAddress}`;
-    const endpoint = c.req.path;
+    // Rate-limit bucket. Prefer an explicit bucket name passed by the route;
+    // fall back to the concrete request path. WARNING: c.req.path includes any
+    // path params (e.g. the parent :token), so on parameterised public routes
+    // each distinct token gets its own counter — defeating per-IP enumeration
+    // and abuse caps. Such routes MUST pass an explicit, value-independent
+    // bucket so all requests from one IP share a single counter.
+    const endpoint = bucket || c.req.path;
 
     try {
       const windowSeconds = Math.ceil(windowMs / 1000);

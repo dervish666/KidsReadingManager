@@ -76,13 +76,23 @@ async function validateParentToken(db, token) {
 // GET /api/parent/:token
 // Parent-facing student view — rate limited 60/min
 // ============================================================================
-parentRouter.get('/:token', rateLimit(60, 60000), async (c) => {
+parentRouter.get('/:token', rateLimit(60, 60000, 'parent:view'), async (c) => {
   const db = requireDB(c.env);
   const { token } = c.req.param();
 
   const tokenRow = await validateParentToken(db, token);
   if (!tokenRow) {
     return c.json({ error: 'Invalid or expired access token' }, 404);
+  }
+
+  // GDPR Article 18: when processing is restricted, the record may be stored
+  // but not otherwise processed (including disclosure). Mirror the POST guard
+  // so a restricted student's reading data is not served to the parent view.
+  if (tokenRow.processing_restricted) {
+    return c.json(
+      { error: 'This reading record is temporarily unavailable.', restricted: true },
+      403
+    );
   }
 
   const { student_id: studentId, organization_id: organizationId } = tokenRow;
@@ -173,7 +183,7 @@ parentRouter.get('/:token', rateLimit(60, 60000), async (c) => {
 // POST /api/parent/:token/sessions
 // Log a home reading session — rate limited 10/min
 // ============================================================================
-parentRouter.post('/:token/sessions', rateLimit(10, 60000), async (c) => {
+parentRouter.post('/:token/sessions', rateLimit(10, 60000, 'parent:sessions'), async (c) => {
   const db = requireDB(c.env);
   const { token } = c.req.param();
 
@@ -265,17 +275,11 @@ parentRouter.post('/:token/sessions', rateLimit(10, 60000), async (c) => {
     );
   }
 
-  // Always update last_read_date for home sessions
-  coreWrites.push(
-    db
-      .prepare(
-        `UPDATE students
-            SET last_read_date = MAX(COALESCE(last_read_date, ''), ?),
-                updated_at = datetime('now')
-          WHERE id = ? AND organization_id = ?`
-      )
-      .bind(sessionDate, studentId, organizationId)
-  );
+  // NOTE: do NOT update students.last_read_date here. That column tracks
+  // *school* reading only (v3.64.3) and drives the teacher "needs attention"
+  // view; advancing it for a home session logged by a parent would wrongly
+  // show the child as having read at school. The current_streak below still
+  // reflects home reading via updateStudentStreak.
 
   await db.batch(coreWrites);
 
@@ -336,7 +340,7 @@ parentRouter.post('/:token/sessions', rateLimit(10, 60000), async (c) => {
 // GET /api/parent/:token/books?q=...
 // Book search — library + OpenLibrary — rate limited 30/min
 // ============================================================================
-parentRouter.get('/:token/books', rateLimit(30, 60000), async (c) => {
+parentRouter.get('/:token/books', rateLimit(30, 60000, 'parent:books'), async (c) => {
   const db = requireDB(c.env);
   const { token } = c.req.param();
 
@@ -354,8 +358,7 @@ parentRouter.get('/:token/books', rateLimit(30, 60000), async (c) => {
 
   // ── Library search (ISBN exact-match, then FTS5 with LIKE fallback) ──────
   const isbnCandidate = q.replace(/[-\s]/g, '');
-  const looksLikeIsbn =
-    /^\d{10}(\d{3})?$/.test(isbnCandidate) || /^\d{9}[Xx]$/.test(isbnCandidate);
+  const looksLikeIsbn = /^\d{10}(\d{3})?$/.test(isbnCandidate) || /^\d{9}[Xx]$/.test(isbnCandidate);
 
   let libraryResults;
 
