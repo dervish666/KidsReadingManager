@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.67.6] - 2026-05-29
+
+### Fixed
+
+- **One parent link per child per year** — a partial unique index now prevents duplicate active parent access tokens for the same student, so the printed QR sheet and the single-student QR dialog can no longer disagree on the live link (migration 0058 revokes any pre-existing duplicates).
+
+### Security
+
+- **Class assignment scoping** — creating or updating a student now rejects a class that belongs to another organisation.
+- **Parent portal fails safe** — parent portal endpoints now fail closed during a database outage rather than serving unthrottled.
+- **User erasure** — erasing a staff account now removes their identifier from any parent access tokens they created.
+- **AI prompt hardening** — the legacy recommendation prompt builder now wraps pupil-entered likes/dislikes the same way the active path does, closing a latent prompt-injection vector.
+
 ## [3.67.5] - 2026-05-29
 
 ### Changed
