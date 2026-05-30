@@ -57,8 +57,11 @@ import {
   costRateLimit,
 } from './middleware/tenant';
 import { PUBLIC_PATHS } from './utils/constants.js';
+import packageJson from '../package.json';
 
-const APP_VERSION = '3.43.1';
+// Single source of truth for the version — read from package.json so /api/health
+// never drifts from the released version again.
+const APP_VERSION = packageJson.version;
 
 // Create Hono app for the API
 const app = new Hono();

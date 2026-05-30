@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.67.8] - 2026-05-30
+
+### Fixed
+
+- **Accurate health-check version** — `/api/health` now reports the real released version by reading it from `package.json`, instead of a hardcoded `APP_VERSION` constant that had drifted ~24 versions behind. Deployment checks against the health endpoint are now trustworthy.
+
 ## [3.67.7] - 2026-05-29
 
 ### Fixed
