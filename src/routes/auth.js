@@ -16,6 +16,7 @@ import {
   buildRefreshCookie,
   buildClearRefreshCookie,
   DUMMY_PASSWORD_HASH,
+  ROLES,
 } from '../utils/crypto.js';
 import { authRateLimit } from '../middleware/tenant.js';
 import { sendPasswordResetEmail } from '../utils/email.js';
@@ -29,6 +30,13 @@ authRouter.use('*', authRateLimit());
 
 const DEMO_AUTH_PROVIDER = 'demo';
 const DEMO_TOKEN_TTL = 60 * 60 * 1000; // 1 hour
+// The public, credential-less demo must never mint a token above teacher.
+// Pin the role in code rather than trusting whatever the seeded demo account
+// carries in the DB — a misconfigured/elevated demo row (especially `owner`,
+// which unlocks the cross-org X-Organization-Id switch) would otherwise hand
+// anonymous users elevated privilege. Anything outside this allowlist fails
+// safe to readonly.
+const ALLOWED_DEMO_ROLES = [ROLES.READONLY, ROLES.TEACHER];
 
 /**
  * POST /api/auth/demo
@@ -71,12 +79,15 @@ authRouter.post('/demo', async (c) => {
     /* class_assignments table may not exist */
   }
 
+  // Hard-cap the demo role: never above teacher, regardless of the DB value.
+  const demoRole = ALLOWED_DEMO_ROLES.includes(demoUser.role) ? demoUser.role : ROLES.READONLY;
+
   const payload = createJWTPayload(
     {
       id: demoUser.id,
       email: demoUser.email,
       name: demoUser.name,
-      role: demoUser.role,
+      role: demoRole,
       authProvider: DEMO_AUTH_PROVIDER,
       assignedClassIds,
     },
@@ -91,7 +102,7 @@ authRouter.post('/demo', async (c) => {
       id: demoUser.id,
       email: demoUser.email,
       name: demoUser.name,
-      role: demoUser.role,
+      role: demoRole,
       authProvider: DEMO_AUTH_PROVIDER,
       assignedClassIds,
     },

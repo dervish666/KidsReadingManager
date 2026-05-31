@@ -12,6 +12,7 @@ vi.mock('../../utils/crypto.js', () => ({
   createAccessToken: vi.fn(),
   createRefreshToken: vi.fn(),
   hashToken: vi.fn(),
+  ROLES: { OWNER: 'owner', ADMIN: 'admin', TEACHER: 'teacher', READONLY: 'readonly' },
   ROLE_HIERARCHY: { owner: 4, admin: 3, teacher: 2, readonly: 1 },
   buildRefreshCookie: (token, isProduction) => {
     return [

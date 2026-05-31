@@ -1192,6 +1192,52 @@ describe('Books API Routes', () => {
     });
   });
 
+  describe('Demo account restrictions', () => {
+    // The demo user is a `teacher` (so it can record sessions to feel real),
+    // which means it can otherwise reach PUT/DELETE /:id. Because the books
+    // catalog is a SHARED global table, a demo edit would mutate rows other
+    // schools see — and the demo is public/credential-less. Demo accounts must
+    // not write to the shared library.
+    const demoTeacher = () =>
+      createUserContext({
+        userRole: 'teacher',
+        user: { sub: 'demo-user', org: 'org-456', role: 'teacher', authProvider: 'demo' },
+      });
+
+    it('blocks PUT /api/books/:id from demo accounts without writing to the shared catalog', async () => {
+      const { app, mockDB } = createTestApp(demoTeacher());
+      mockDB._chain.first.mockResolvedValue(createMockBookRow());
+
+      const response = await makeRequest(app, 'PUT', '/api/books/book-123', { title: 'Defaced' });
+
+      expect(response.status).toBe(403);
+      // Critical: no write reached the shared books row.
+      expect(mockDB._chain.run).not.toHaveBeenCalled();
+    });
+
+    it('blocks DELETE /api/books/:id from demo accounts without writing', async () => {
+      const { app, mockDB } = createTestApp(demoTeacher());
+      mockDB._chain.first.mockResolvedValue({ book_id: 'book-123' });
+
+      const response = await makeRequest(app, 'DELETE', '/api/books/book-123');
+
+      expect(response.status).toBe(403);
+      expect(mockDB._chain.run).not.toHaveBeenCalled();
+    });
+
+    it('still allows a normal (non-demo) teacher to update a book', async () => {
+      const { app, mockDB } = createTestApp(createUserContext({ userRole: 'teacher' }));
+      mockDB._chain.first.mockResolvedValue(createMockBookRow());
+      mockDB._chain.run.mockResolvedValue({ success: true });
+
+      const response = await makeRequest(app, 'PUT', '/api/books/book-123', {
+        title: 'Legit Update',
+      });
+
+      expect(response.status).toBe(200);
+    });
+  });
+
   describe('POST /api/books/bulk', () => {
     describe('Permission checks', () => {
       it('should reject requests from readonly users', async () => {

@@ -18,7 +18,7 @@
 import { Hono } from 'hono';
 
 import { createProvider } from '../data/index.js';
-import { notFoundError, badRequestError } from '../middleware/errorHandler';
+import { notFoundError, badRequestError, forbiddenError } from '../middleware/errorHandler';
 import { getEncryptionSecret } from '../utils/crypto.js';
 import { validateBook } from '../utils/validation.js';
 import { rowToBook } from '../utils/rowMappers.js';
@@ -394,6 +394,14 @@ booksRouter.get('/:id', requireReadonly(), async (c) => {
  * Requires authentication (at least teacher access)
  */
 booksRouter.put('/:id', requireTeacher(), async (c) => {
+  // Demo accounts are public and credential-less but carry the teacher role.
+  // The books catalog is a SHARED global table, so an edit here would mutate a
+  // row every linked school sees — and the hourly demo reset never restores the
+  // `books` table. Block demo writes to the shared library entirely.
+  if (c.get('user')?.authProvider === 'demo') {
+    throw forbiddenError('Demo accounts cannot modify the shared book library');
+  }
+
   const { id } = c.req.param();
   const bookData = await c.req.json();
   const organizationId = c.get('organizationId');
@@ -566,6 +574,11 @@ booksRouter.post('/:id/enrich', requireAdmin(), async (c) => {
  * Requires authentication (at least teacher access)
  */
 booksRouter.delete('/:id', requireTeacher(), async (c) => {
+  // Demo accounts must not mutate the shared library (see PUT /:id above).
+  if (c.get('user')?.authProvider === 'demo') {
+    throw forbiddenError('Demo accounts cannot modify the shared book library');
+  }
+
   const { id } = c.req.param();
 
   // In multi-tenant mode, only remove the org's link to the book (not the global book)

@@ -153,4 +153,50 @@ describe('POST /api/auth/demo', () => {
     expect(response.status).toBe(503);
     expect(data.error).toBe('Demo not available');
   });
+
+  it('caps the demo role so an elevated seeded account can never mint admin/owner', async () => {
+    // Defense-in-depth: if the seeded demo account is ever (mis)configured with
+    // an elevated role, the public, credential-less demo endpoint must NOT mint
+    // a token carrying that privilege (owner would even unlock the cross-org
+    // X-Organization-Id switch). The role is pinned in code, not trusted from DB.
+    const elevatedDemoUser = { ...DEMO_USER, role: 'owner' };
+    const mockDB = createMockDB((sql, args, method) => {
+      if (sql.includes('auth_provider') && method === 'first') {
+        return elevatedDemoUser;
+      }
+      return null;
+    });
+
+    const app = createTestApp(mockDB);
+    const response = await app.request('/api/auth/demo', { method: 'POST' });
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+
+    // The minted JWT payload must never carry an elevated role.
+    const mintedPayload = createAccessToken.mock.calls[0][0];
+    expect(mintedPayload.role).not.toBe('owner');
+    expect(mintedPayload.role).not.toBe('admin');
+    expect(mintedPayload.role).toBe('readonly');
+
+    // And the role surfaced to the client must match (no elevation leaks out).
+    expect(data.user.role).toBe('readonly');
+  });
+
+  it('preserves the normal teacher role for a correctly seeded demo account', async () => {
+    const mockDB = createMockDB((sql, args, method) => {
+      if (sql.includes('auth_provider') && method === 'first') {
+        return DEMO_USER; // role: 'teacher'
+      }
+      return null;
+    });
+
+    const app = createTestApp(mockDB);
+    const response = await app.request('/api/auth/demo', { method: 'POST' });
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(createAccessToken.mock.calls[0][0].role).toBe('teacher');
+    expect(data.user.role).toBe('teacher');
+  });
 });

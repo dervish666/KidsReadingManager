@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.67.9] - 2026-05-31
+
+### Security
+
+- **Demo role capped in code** — the public demo sign-in now pins the issued role to at most `teacher`, regardless of the demo account's stored role. A misconfigured or elevated demo account can no longer grant anonymous visitors admin/owner access (an owner-level demo would otherwise unlock cross-organisation switching).
+- **Demo accounts can't edit the shared library** — editing or deleting a book now rejects demo accounts, so an anonymous demo session can no longer alter the shared global book catalogue that every linked school sees (and which the hourly demo reset does not restore).
+
 ## [3.67.8] - 2026-05-30
 
 ### Fixed
