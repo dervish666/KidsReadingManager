@@ -789,18 +789,11 @@ describe('BookRecommendations Component', () => {
           });
         }
         if (url.startsWith('/api/books/library-search')) {
-          return new Promise((resolve) => {
-            setTimeout(() => {
-              resolve({
-                ok: true,
-                json: () =>
-                  Promise.resolve({
-                    studentProfile: { readingLevel: 2.5 },
-                    books: [],
-                  }),
-              });
-            }, 100);
-          });
+          // Never resolve so the component stays in its loading state for the
+          // whole assertion. A timed delay here is flaky: on slow CI runners
+          // userEvent's own async delays can exceed the timeout, letting the
+          // fetch resolve and the skeleton disappear before waitFor looks.
+          return new Promise(() => {});
         }
         return Promise.resolve({ ok: false });
       });
