@@ -92,9 +92,7 @@ const ParentPortal = () => {
     const timer = setTimeout(async () => {
       setBookSearchLoading(true);
       try {
-        const res = await fetch(
-          `${apiBase}/books?q=${encodeURIComponent(bookQuery.trim())}`
-        );
+        const res = await fetch(`${apiBase}/books?q=${encodeURIComponent(bookQuery.trim())}`);
         if (res.ok) {
           const json = await res.json();
           setBookResults({
@@ -358,7 +356,12 @@ const ParentPortal = () => {
           <Box sx={{ mb: 3 }}>
             <Typography
               variant="subtitle2"
-              sx={{ fontWeight: 700, color: '#2d5016', mb: 1.5, fontFamily: '"Nunito", sans-serif' }}
+              sx={{
+                fontWeight: 700,
+                color: '#2d5016',
+                mb: 1.5,
+                fontFamily: '"Nunito", sans-serif',
+              }}
             >
               Recent Sessions
             </Typography>
@@ -477,7 +480,12 @@ const ParentPortal = () => {
             <>
               <Typography
                 variant="h6"
-                sx={{ fontWeight: 700, color: '#2d5016', mb: 2, fontFamily: '"Nunito", sans-serif' }}
+                sx={{
+                  fontWeight: 700,
+                  color: '#2d5016',
+                  mb: 2,
+                  fontFamily: '"Nunito", sans-serif',
+                }}
               >
                 Log Reading
               </Typography>
@@ -489,7 +497,10 @@ const ParentPortal = () => {
               )}
 
               {/* Date selection chips */}
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, display: 'block', mb: 0.75 }}>
+              <Typography
+                variant="caption"
+                sx={{ color: 'text.secondary', fontWeight: 600, display: 'block', mb: 0.75 }}
+              >
                 When did they read?
               </Typography>
               <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
@@ -508,7 +519,9 @@ const ParentPortal = () => {
                       color: logDate === opt.value ? 'white' : '#2d5016',
                       border: '1.5px solid',
                       borderColor: logDate === opt.value ? '#2d5016' : 'rgba(45, 80, 22, 0.35)',
-                      '&:hover': { bgcolor: logDate === opt.value ? '#3a6b1e' : 'rgba(45, 80, 22, 0.08)' },
+                      '&:hover': {
+                        bgcolor: logDate === opt.value ? '#3a6b1e' : 'rgba(45, 80, 22, 0.08)',
+                      },
                     }}
                   />
                 ))}
@@ -537,7 +550,10 @@ const ParentPortal = () => {
               )}
 
               {/* Book selection */}
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, display: 'block', mb: 0.75 }}>
+              <Typography
+                variant="caption"
+                sx={{ color: 'text.secondary', fontWeight: 600, display: 'block', mb: 0.75 }}
+              >
                 Book
               </Typography>
               <Paper
@@ -638,7 +654,9 @@ const ParentPortal = () => {
         }}
         sx={{ '& .MuiDialog-container': { alignItems: 'flex-end' } }}
       >
-        <DialogContent sx={{ pt: 2, pb: 2, px: 2, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <DialogContent
+          sx={{ pt: 2, pb: 2, px: 2, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+        >
           <Typography
             variant="h6"
             sx={{ fontWeight: 700, color: '#2d5016', mb: 1.5, fontFamily: '"Nunito", sans-serif' }}
@@ -691,7 +709,13 @@ const ParentPortal = () => {
               <Box sx={{ mb: 2 }}>
                 <Typography
                   variant="caption"
-                  sx={{ color: 'text.secondary', fontWeight: 700, display: 'block', mb: 0.75, px: 0.5 }}
+                  sx={{
+                    color: 'text.secondary',
+                    fontWeight: 700,
+                    display: 'block',
+                    mb: 0.75,
+                    px: 0.5,
+                  }}
                 >
                   School Library
                 </Typography>
@@ -740,7 +764,13 @@ const ParentPortal = () => {
               <Box>
                 <Typography
                   variant="caption"
-                  sx={{ color: 'text.secondary', fontWeight: 700, display: 'block', mb: 0.75, px: 0.5 }}
+                  sx={{
+                    color: 'text.secondary',
+                    fontWeight: 700,
+                    display: 'block',
+                    mb: 0.75,
+                    px: 0.5,
+                  }}
                 >
                   Other Books
                 </Typography>
@@ -791,7 +821,11 @@ const ParentPortal = () => {
               bookQuery.trim() &&
               bookResults.library.length === 0 &&
               bookResults.external.length === 0 && (
-                <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 3 }}>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ textAlign: 'center', py: 3 }}
+                >
                   No books found for &quot;{bookQuery}&quot;
                 </Typography>
               )}

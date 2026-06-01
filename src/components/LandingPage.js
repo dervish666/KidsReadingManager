@@ -337,7 +337,7 @@ export default function LandingPage({ onSignIn }) {
                 tagClass: 'lp-tag-green',
                 tagIcon: '👨‍👩‍👧',
                 title: 'Home reading, connected',
-                desc: 'Print a sheet of QR codes, send them home, and parents scan to see their child\'s progress and log reading — straight from their phone. No app to install, no password to remember.',
+                desc: "Print a sheet of QR codes, send them home, and parents scan to see their child's progress and log reading — straight from their phone. No app to install, no password to remember.",
                 img: screenshotParent,
                 alt: 'Parent reading portal with QR codes',
               },

@@ -250,9 +250,7 @@ const StudentList = () => {
           )}
           <Tooltip
             title={
-              globalClassFilter === 'all'
-                ? 'Select a class filter first'
-                : 'Print Parent QR Codes'
+              globalClassFilter === 'all' ? 'Select a class filter first' : 'Print Parent QR Codes'
             }
           >
             <span data-tour="students-parent-qr">
