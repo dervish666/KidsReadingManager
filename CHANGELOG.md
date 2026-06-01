@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.67.10] - 2026-06-01
+
+### Changed
+
+- **CI ready for the Node 24 runtime swap** — GitHub Actions are bumped to `checkout@v6`, `setup-node@v6`, and `upload-artifact@v6`, all of which run on the Node 24 action runtime ahead of GitHub forcing it (16 Jun 2026) and removing Node 20 (16 Sep 2026). The build job now also runs a `[22.x, 24.x]` matrix to validate forward-compatibility, with coverage artifacts named per Node version to avoid upload collisions. Added an `engines.node >= 22` field and an `.nvmrc` so local and CI Node versions no longer drift silently. (Cloudflare's deployed Worker is unaffected — it runs on `workerd` via `compatibility_date`/`nodejs_compat`, independent of the build toolchain.)
+
 ## [3.67.9] - 2026-05-31
 
 ### Security
