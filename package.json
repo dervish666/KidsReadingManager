@@ -67,7 +67,8 @@
     "wrangler": "^4.92.0"
   },
   "optionalDependencies": {
-    "@rspack/binding-linux-x64-gnu": "2.0.3"
+    "@rspack/binding-linux-x64-gnu": "2.0.3",
+    "@rollup/rollup-linux-x64-gnu": "4.60.4"
   },
   "browserslist": {
     "production": [
