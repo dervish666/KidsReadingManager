@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.67.11] - 2026-06-01
+
+### Security
+
+- **DOMPurify bumped past CVE-2026-47423** — the transitive `dompurify` dependency (pulled in only as an optional dep of `jspdf`) moved `3.4.4` → `3.4.7`, clearing the high-severity `selectedcontent` sanitiser-bypass advisory (GHSA-87xg-pxx2-7hvx). The app was never exposed to it — DOMPurify is only reached via jsPDF's `doc.html()`, which we don't use (our PDF export uses the programmatic drawing API), and there are no `innerHTML` sinks — but the dependency tree is now clean and Dependabot is satisfied. Lockfile-only change.
+
 ## [3.67.10] - 2026-06-01
 
 ### Changed
