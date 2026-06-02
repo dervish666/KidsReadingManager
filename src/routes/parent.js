@@ -37,13 +37,13 @@ export const parentRouter = new Hono();
  * marker = parent_last_seen_band (NULL until first view); current = child's band.
  * Returns { bandUp, newSeen } — newSeen is the value to persist (never decreases).
  */
-export function decideParentBandCelebration(marker, currentBand) {
+export function decideParentBandCelebration(marker, currentBand, palette) {
   const current = currentBand || 0;
   if (marker === null || marker === undefined) {
     return { bandUp: null, newSeen: current }; // first view: adopt silently
   }
   if (current > marker) {
-    return { bandUp: bandTransition(marker, current), newSeen: current };
+    return { bandUp: bandTransition(marker, current, palette), newSeen: current };
   }
   return { bandUp: null, newSeen: marker };
 }
@@ -195,7 +195,7 @@ parentRouter.get('/:token', rateLimit(60, 60000, 'parent:view'), async (c) => {
 
   // Reading band: lazily reset for the academic year, then decide whether to
   // celebrate a climb the parent hasn't seen yet (e.g. a teacher's logs).
-  const { readsPerBand } = await getOrgBandSettings(db, organizationId, c.env || {});
+  const { readsPerBand, bandColors } = await getOrgBandSettings(db, organizationId, c.env || {});
   const { currentBand, bandReadsCount } = await ensureCurrentBand(
     db,
     student,
@@ -204,7 +204,8 @@ parentRouter.get('/:token', rateLimit(60, 60000, 'parent:view'), async (c) => {
   );
   const { bandUp, newSeen } = decideParentBandCelebration(
     tokenRow.parent_last_seen_band,
-    currentBand
+    currentBand,
+    bandColors
   );
   if (newSeen !== tokenRow.parent_last_seen_band) {
     await db
@@ -212,7 +213,7 @@ parentRouter.get('/:token', rateLimit(60, 60000, 'parent:view'), async (c) => {
       .bind(newSeen, tokenRow.token_id)
       .run();
   }
-  const band = bandForCount(bandReadsCount, readsPerBand);
+  const band = bandForCount(bandReadsCount, readsPerBand, bandColors);
 
   c.header('Cache-Control', 'no-store');
   return c.json({

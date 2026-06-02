@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { updateStudentBand } from '../../routes/students/_shared.js';
+import { updateStudentBand, getOrgBandSettings } from '../../routes/students/_shared.js';
 
 // Minimal D1 mock: prepare().bind().{first,all,run}
 function makeDb({ currentBand = 0, sessionNotes = [] }) {
@@ -26,6 +26,9 @@ function makeDb({ currentBand = 0, sessionNotes = [] }) {
           };
         },
       };
+    },
+    async batch() {
+      return [{ results: [] }, { results: [] }];
     },
   };
   return { db, calls };
@@ -58,5 +61,18 @@ describe('updateStudentBand', () => {
     });
     const result = await updateStudentBand(db, 'stu1', 'org1', env, { timezone: 'UTC' });
     expect(result.readsCount).toBe(6);
+  });
+});
+
+describe('getOrgBandSettings bandColors', () => {
+  it('returns default palette when unset', async () => {
+    const db = {
+      prepare: () => ({ bind: () => ({ first: async () => null }) }),
+      batch: async () => [{ results: [] }, { results: [] }],
+    };
+    const s = await getOrgBandSettings(db, 'org1', {});
+    expect(s.readsPerBand).toBe(20);
+    expect(Array.isArray(s.bandColors)).toBe(true);
+    expect(s.bandColors).toHaveLength(16);
   });
 });

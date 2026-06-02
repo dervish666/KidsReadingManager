@@ -15,7 +15,7 @@ import {
   academicYearStart,
   bandTransition,
 } from '../../utils/readingBandEngine.js';
-import { DEFAULT_READS_PER_BAND } from '../../utils/readingBandDefinitions.js';
+import { DEFAULT_READS_PER_BAND, DEFAULT_BAND_COLORS } from '../../utils/readingBandDefinitions.js';
 
 /**
  * Fetch student preferences from the student_preferences table.
@@ -194,9 +194,9 @@ export const updateStudentStreak = async (db, studentId, organizationId, env) =>
 };
 
 /**
- * Reads-per-band threshold for an org. KV-cached (1h), mirroring
- * getOrgStreakSettings — keeps the per-session-write band update off the D1
- * hot path. Stored as the `readsPerBand` key in the org_settings table.
+ * Reads-per-band threshold and band colour palette for an org. KV-cached (1h),
+ * mirroring getOrgStreakSettings — keeps the per-session-write band update off
+ * the D1 hot path. Stored as `readsPerBand` and `bandColors` keys in org_settings.
  */
 export const getOrgBandSettings = async (db, organizationId, env) => {
   const cacheKey = `org-band-settings:${organizationId}`;
@@ -211,24 +211,45 @@ export const getOrgBandSettings = async (db, organizationId, env) => {
     }
   }
 
-  const row = await db
-    .prepare(
-      `SELECT setting_value FROM org_settings WHERE organization_id = ? AND setting_key = 'readsPerBand'`
-    )
-    .bind(organizationId)
-    .first();
+  const [rpbRes, colorsRes] = await db.batch([
+    db
+      .prepare(
+        `SELECT setting_value FROM org_settings WHERE organization_id = ? AND setting_key = 'readsPerBand'`
+      )
+      .bind(organizationId),
+    db
+      .prepare(
+        `SELECT setting_value FROM org_settings WHERE organization_id = ? AND setting_key = 'bandColors'`
+      )
+      .bind(organizationId),
+  ]);
 
   let readsPerBand = DEFAULT_READS_PER_BAND;
-  if (row?.setting_value) {
+  const rpbRow = rpbRes?.results?.[0];
+  if (rpbRow?.setting_value) {
     try {
-      const parsed = parseInt(JSON.parse(row.setting_value), 10);
+      const parsed = parseInt(JSON.parse(rpbRow.setting_value), 10);
       if (parsed > 0) readsPerBand = parsed;
     } catch {
-      /* use default */
+      /* default */
     }
   }
 
-  const settings = { readsPerBand };
+  let bandColors = DEFAULT_BAND_COLORS;
+  const colorsRow = colorsRes?.results?.[0];
+  if (colorsRow?.setting_value) {
+    try {
+      const parsed = JSON.parse(colorsRow.setting_value);
+      const hex = /^#[0-9A-Fa-f]{6}$/;
+      if (Array.isArray(parsed) && parsed.length === 16 && parsed.every((c) => hex.test(c))) {
+        bandColors = parsed;
+      }
+    } catch {
+      /* default */
+    }
+  }
+
+  const settings = { readsPerBand, bandColors };
   if (KV) {
     try {
       await KV.put(cacheKey, JSON.stringify(settings), { expirationTtl: 3600 });
@@ -245,7 +266,7 @@ export const getOrgBandSettings = async (db, organizationId, env) => {
  * transition object when the band INCREASED (for celebration), else null.
  */
 export const updateStudentBand = async (db, studentId, organizationId, env, { timezone } = {}) => {
-  const { readsPerBand } = await getOrgBandSettings(db, organizationId, env || {});
+  const { readsPerBand, bandColors } = await getOrgBandSettings(db, organizationId, env || {});
   const tz = timezone || 'UTC';
   const yearStart = academicYearStart(getDateString(new Date(), tz));
 
@@ -271,7 +292,8 @@ export const updateStudentBand = async (db, studentId, organizationId, env, { ti
     .bind(readsCount, currentBand, yearStart, studentId)
     .run();
 
-  const bandUp = currentBand > previousBand ? bandTransition(previousBand, currentBand) : null;
+  const bandUp =
+    currentBand > previousBand ? bandTransition(previousBand, currentBand, bandColors) : null;
   return { previousBand, currentBand, readsCount, bandUp };
 };
 
