@@ -19,7 +19,12 @@ import { requireTeacher, rateLimit } from '../middleware/tenant.js';
 import { requireDB } from '../utils/routeHelpers.js';
 import { generateId, generateToken } from '../utils/helpers.js';
 import { notFoundError, badRequestError } from '../middleware/errorHandler.js';
-import { updateStudentStreak, ensureCurrentBand, getOrgBandSettings } from './students/_shared.js';
+import {
+  updateStudentStreak,
+  ensureCurrentBand,
+  getOrgBandSettings,
+  updateStudentBand,
+} from './students/_shared.js';
 import { getDateString } from '../utils/streakCalculator.js';
 import { recalculateStats, evaluateRealTime } from '../utils/badgeEngine.js';
 import { updateClassGoalOnSession } from '../utils/classGoalsEngine.js';
@@ -342,6 +347,7 @@ parentRouter.post('/:token/sessions', rateLimit(10, 60000, 'parent:sessions'), a
     runSafe('streak update', () => updateStudentStreak(db, studentId, organizationId, c.env)),
     runSafe('stats recalc', () => recalculateStats(db, studentId, organizationId)),
     runSafe('class goal update', () => updateClassGoalOnSession(db, studentId, organizationId)),
+    runSafe('band update', () => updateStudentBand(db, studentId, organizationId, c.env)),
   ]);
   const updatedStreak = streakData ? { current: streakData.currentStreak } : null;
 
