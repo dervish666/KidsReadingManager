@@ -92,7 +92,7 @@ const ParentPortal = () => {
     if (data?.bandUp) {
       setBandUpToShow(data.bandUp);
     }
-  }, [data?.bandUp]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [data?.bandUp]);
 
   // ── Book search debounce ────────────────────────────────────────────────────
   useEffect(() => {
