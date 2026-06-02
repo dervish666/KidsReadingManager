@@ -16,6 +16,7 @@ import { useTheme } from '@mui/material/styles';
 import StudentDetailDrawer from './StudentDetailDrawer';
 import StreakBadge from './StreakBadge';
 import BadgeIndicators from '../badges/BadgeIndicators';
+import { ReadingBandChip } from './ReadingBandChip';
 import { STATUS_TO_PALETTE } from '../../utils/helpers';
 
 const StudentCard = React.memo(({ student }) => {
@@ -155,6 +156,7 @@ const StudentCard = React.memo(({ student }) => {
             }
             action={
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <ReadingBandChip bandIndex={student.currentBand || 0} size="small" />
                 {student.currentStreak > 0 && (
                   <StreakBadge streak={student.currentStreak} size="small" />
                 )}

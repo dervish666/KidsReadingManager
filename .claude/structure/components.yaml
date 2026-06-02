@@ -294,6 +294,23 @@ files:
         kind: component
         props: [open, onClose]
 
+  students/ReadingBandChip.js:
+    description: Reading band chip + progress-to-next display (shared across student/parent surfaces)
+    exports:
+      - name: ReadingBandChip
+        kind: component
+        props: [bandIndex, size]
+        description: "Small coloured band chip for cards/tables; size: 'small'|'medium'"
+      - name: ReadingBandProgress
+        kind: component
+        props: [readsCount, readsPerBand]
+        description: Band chip + progress bar + caption for profile/parent surfaces
+    imports:
+      - from: utils/readingBandDefinitions
+        items: [getBandByIndex]
+      - from: utils/readingBandEngine
+        items: [bandForCount]
+
   # ---- sessions/ ----
 
   sessions/HomeReadingRegister.js:
@@ -383,6 +400,14 @@ files:
         kind: component
         props: [badges, onClose]
         description: Full-screen dialog showing first new badge with unlock message; returns null if badges empty
+
+  badges/BandCelebration.js:
+    description: Band-up celebration dialog shown when a student climbs to a new reading band
+    exports:
+      - name: BandCelebration
+        kind: component
+        props: [bandUp, studentName, onClose]
+        description: "Dialog with from→to BandPill transition; returns null if bandUp is falsy"
 
   badges/BadgeIndicators.js:
     description: Mini badge count chip for StudentCard showing garden emoji and total count

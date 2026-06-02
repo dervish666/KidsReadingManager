@@ -20,6 +20,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import RestoreIcon from '@mui/icons-material/Restore';
 import WhatshotIcon from '@mui/icons-material/Whatshot';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import ClassManager from './classes/ClassManager'; // Import ClassManager
@@ -53,6 +54,7 @@ const Settings = () => {
     recentlyReadDays: readingStatusSettings.recentlyReadDays,
     needsAttentionDays: readingStatusSettings.needsAttentionDays,
     streakGracePeriodDays: settings?.streakGracePeriodDays ?? 1,
+    readsPerBand: settings?.readsPerBand ?? 20,
   });
 
   const [saving, setSaving] = useState(false);
@@ -118,6 +120,7 @@ const Settings = () => {
           needsAttentionDays: localSettings.needsAttentionDays,
         },
         streakGracePeriodDays: localSettings.streakGracePeriodDays,
+        readsPerBand: localSettings.readsPerBand,
       });
       setSnackbar({
         open: true,
@@ -141,6 +144,7 @@ const Settings = () => {
       recentlyReadDays: readingStatusSettings.recentlyReadDays,
       needsAttentionDays: readingStatusSettings.needsAttentionDays,
       streakGracePeriodDays: settings?.streakGracePeriodDays ?? 1,
+      readsPerBand: settings?.readsPerBand ?? 20,
     });
     setSnackbar({
       open: true,
@@ -409,6 +413,35 @@ const Settings = () => {
               ? 'Students must read every day to maintain their streak.'
               : `Students can miss up to ${localSettings.streakGracePeriodDays} day${localSettings.streakGracePeriodDays > 1 ? 's' : ''} without breaking their streak.`}
           </Typography>
+        </Box>
+
+        <Divider sx={{ my: 3 }} />
+
+        {/* Reading Bands Section */}
+        <Box sx={{ mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+            <MenuBookIcon sx={{ color: 'primary.main' }} />
+            <Typography variant="subtitle1">Reading Bands</Typography>
+          </Box>
+          <Typography variant="body2" color="text.secondary" paragraph>
+            Configure how many reads a child needs to log to climb one reading band.
+          </Typography>
+
+          <TextField
+            label="Reads per band"
+            type="number"
+            inputProps={{ min: 1, step: 1 }}
+            value={localSettings.readsPerBand ?? 20}
+            onChange={(e) =>
+              setLocalSettings((s) => ({
+                ...s,
+                readsPerBand: Math.max(1, parseInt(e.target.value, 10) || 20),
+              }))
+            }
+            helperText="How many reads a child logs to climb one reading band (default 20)."
+            size="small"
+            sx={{ minWidth: 200 }}
+          />
         </Box>
 
         <Divider sx={{ my: 3 }} />

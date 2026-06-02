@@ -8,7 +8,14 @@
  */
 
 import { generateId } from '../../utils/helpers.js';
-import { calculateStreak } from '../../utils/streakCalculator.js';
+import { calculateStreak, getDateString } from '../../utils/streakCalculator.js';
+import {
+  countReads,
+  computeBandIndex,
+  academicYearStart,
+  bandTransition,
+} from '../../utils/readingBandEngine.js';
+import { DEFAULT_READS_PER_BAND } from '../../utils/readingBandDefinitions.js';
 
 /**
  * Fetch student preferences from the student_preferences table.
@@ -184,4 +191,106 @@ export const updateStudentStreak = async (db, studentId, organizationId, env) =>
     .run();
 
   return streakData;
+};
+
+/**
+ * Reads-per-band threshold for an org. KV-cached (1h), mirroring
+ * getOrgStreakSettings — keeps the per-session-write band update off the D1
+ * hot path. Stored as the `readsPerBand` key in the org_settings table.
+ */
+export const getOrgBandSettings = async (db, organizationId, env) => {
+  const cacheKey = `org-band-settings:${organizationId}`;
+  const KV = env?.READING_MANAGER_KV;
+
+  if (KV) {
+    try {
+      const cached = await KV.get(cacheKey);
+      if (cached) return JSON.parse(cached);
+    } catch {
+      /* fall through to D1 */
+    }
+  }
+
+  const row = await db
+    .prepare(
+      `SELECT setting_value FROM org_settings WHERE organization_id = ? AND setting_key = 'readsPerBand'`
+    )
+    .bind(organizationId)
+    .first();
+
+  let readsPerBand = DEFAULT_READS_PER_BAND;
+  if (row?.setting_value) {
+    try {
+      const parsed = parseInt(JSON.parse(row.setting_value), 10);
+      if (parsed > 0) readsPerBand = parsed;
+    } catch {
+      /* use default */
+    }
+  }
+
+  const settings = { readsPerBand };
+  if (KV) {
+    try {
+      await KV.put(cacheKey, JSON.stringify(settings), { expirationTtl: 3600 });
+    } catch {
+      /* non-critical */
+    }
+  }
+  return settings;
+};
+
+/**
+ * Recompute and persist a student's reading band from this academic year's
+ * reads. Called after any session create/update/delete. Returns a `bandUp`
+ * transition object when the band INCREASED (for celebration), else null.
+ */
+export const updateStudentBand = async (db, studentId, organizationId, env, { timezone } = {}) => {
+  const { readsPerBand } = await getOrgBandSettings(db, organizationId, env || {});
+  const tz = timezone || 'UTC';
+  const yearStart = academicYearStart(getDateString(new Date(), tz));
+
+  const prevRow = await db
+    .prepare('SELECT current_band FROM students WHERE id = ?')
+    .bind(studentId)
+    .first();
+  const previousBand = prevRow?.current_band || 0;
+
+  const rows = await db
+    .prepare(`SELECT notes FROM reading_sessions WHERE student_id = ? AND session_date >= ?`)
+    .bind(studentId, yearStart)
+    .all();
+
+  const readsCount = countReads(rows.results || []);
+  const currentBand = computeBandIndex(readsCount, readsPerBand);
+
+  await db
+    .prepare(
+      `UPDATE students SET band_reads_count = ?, current_band = ?, band_year_start = ?,
+         updated_at = datetime("now") WHERE id = ?`
+    )
+    .bind(readsCount, currentBand, yearStart, studentId)
+    .run();
+
+  const bandUp = currentBand > previousBand ? bandTransition(previousBand, currentBand) : null;
+  return { previousBand, currentBand, readsCount, bandUp };
+};
+
+/**
+ * Ensure a student's stored band matches the CURRENT academic year. If the
+ * stored band_year_start is stale (new year) or never computed, recompute.
+ * Used by read paths (parent portal, student detail) so the yearly reset
+ * happens lazily without a cron. Never celebrates (drops/first-compute are silent).
+ */
+export const ensureCurrentBand = async (db, studentRow, organizationId, env, { timezone } = {}) => {
+  const tz = timezone || 'UTC';
+  const yearStart = academicYearStart(getDateString(new Date(), tz));
+  if (studentRow.band_year_start === yearStart) {
+    return {
+      currentBand: studentRow.current_band || 0,
+      bandReadsCount: studentRow.band_reads_count || 0,
+      recomputed: false,
+    };
+  }
+  const r = await updateStudentBand(db, studentRow.id, organizationId, env, { timezone: tz });
+  return { currentBand: r.currentBand, bandReadsCount: r.readsCount, recomputed: true };
 };

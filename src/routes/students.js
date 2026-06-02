@@ -39,6 +39,7 @@ import {
   fetchStudentPreferences,
   saveStudentPreferences,
   getOrgStreakSettings,
+  ensureCurrentBand,
 } from './students/_shared.js';
 import { sessionsRouter } from './students/sessions.js';
 import { statsRouter } from './students/stats.js';
@@ -159,6 +160,11 @@ studentsRouter.get('/:id', requireReadonly(), async (c) => {
     if (!student) {
       throw notFoundError('Student not found');
     }
+
+    // Lazily reset the reading band for the current academic year (no cron).
+    const bandState = await ensureCurrentBand(db, student, organizationId, c.env, { timezone });
+    student.current_band = bandState.currentBand;
+    student.band_reads_count = bandState.bandReadsCount;
 
     // Readonly accounts (MyLogin students) must not receive protected
     // characteristics; gate the detail endpoint too so it can't be used to

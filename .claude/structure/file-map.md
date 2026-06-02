@@ -90,6 +90,8 @@ src/utils/helpers.js - ID generation, reading status, student sorting, csvRow, s
 src/utils/calculateAge.js - Age calculation from date of birth
 src/utils/email.js - Password reset/welcome/signup/support emails (multi-provider)
 src/utils/streakCalculator.js - Reading streak calculation with grace period
+src/utils/readingBandDefinitions.js - Reading band ladder (16 colour bands), default reads-per-band, band lookup
+src/utils/readingBandEngine.js - Pure reading-band maths: read counting, band index, academic-year start, display payload + transition
 src/utils/studentProfile.js - Build student reading profile for AI context
 src/utils/stringMatching.js - Levenshtein distance for book deduplication
 src/utils/recommendationCache.js - KV caching for AI recommendations
@@ -208,6 +210,7 @@ src/components/students/ReadingLevelRangeInput.js - Dual-slider for AR level ran
 src/components/students/PrioritizedStudentsList.js - Priority-ordered student list
 src/components/students/StudentTimeline.js - Chronological reading session timeline for a student
 src/components/students/BulkImport.js - CSV bulk student import
+src/components/students/ReadingBandChip.js - Reading band chip + progress-to-next display (shared across student/parent surfaces)
 
 ## Frontend Components - Sessions
 
@@ -229,6 +232,7 @@ src/components/badges/BadgeIcon.js - Single badge circle with tier gradient and 
 src/components/badges/GardenHeader.js - Layered watercolor PNG garden header; 8 elements appear progressively as badges are earned (seedling→sprout→bloom→full garden)
 src/components/badges/BadgeCollection.js - Grid of earned badges + near-miss progress bars
 src/components/badges/BadgeCelebration.js - Unlock celebration dialog shown after session save
+src/components/badges/BandCelebration.js - Band-up celebration dialog (from→to band transition)
 src/components/badges/BadgeIndicators.js - Mini badge count chip for StudentCard
 
 ## Frontend Components - Goals

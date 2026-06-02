@@ -27,7 +27,7 @@ import {
   getStudentById as getStudentByIdKV,
   saveStudent as saveStudentKV,
 } from '../../services/kvService.js';
-import { getOrgStreakSettings, updateStudentStreak } from './_shared.js';
+import { getOrgStreakSettings, updateStudentStreak, updateStudentBand } from './_shared.js';
 
 const sessionsRouter = new Hono();
 
@@ -275,14 +275,20 @@ sessionsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
       }
     };
 
-    const [, , completedGoalsResult] = await Promise.all([
+    const [, , completedGoalsResult, bandResult] = await Promise.all([
       runSafe('streak update', () => updateStudentStreak(db, id, organizationId, c.env)),
       runSafe('stats recalc', () => recalculateStats(db, id, organizationId)),
       isMarkerSession
         ? Promise.resolve(undefined)
         : runSafe('class goal update', () => updateClassGoalOnSession(db, id, organizationId)),
+      isMarkerSession
+        ? Promise.resolve(undefined)
+        : runSafe('band update', () =>
+            updateStudentBand(db, id, organizationId, c.env, { timezone })
+          ),
     ]);
     const completedGoals = completedGoalsResult || [];
+    const bandUp = bandResult?.bandUp || null;
 
     let newBadges = [];
     if (!isMarkerSession) {
@@ -317,6 +323,9 @@ sessionsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
         recordedBy: session.recorded_by,
         newBadges,
         completedGoals,
+        bandUp,
+        currentBand: bandResult?.currentBand,
+        bandReadsCount: bandResult?.readsCount,
       },
       201
     );
@@ -377,6 +386,7 @@ sessionsRouter.delete(
       // Streak / stats / class goals must reflect the deletion. Badges are
       // not revoked on delete — earning a badge is a one-way transition.
       await updateStudentStreak(db, id, organizationId, c.env);
+      await updateStudentBand(db, id, organizationId, c.env);
       await recalculateStats(db, id, organizationId);
       await updateClassGoalOnSession(db, id, organizationId);
 
@@ -479,6 +489,7 @@ sessionsRouter.put(
         .run();
 
       await updateStudentStreak(db, id, organizationId, c.env);
+      await updateStudentBand(db, id, organizationId, c.env, { timezone });
       await recalculateStats(db, id, organizationId);
 
       const studentForBadges = await db

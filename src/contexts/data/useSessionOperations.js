@@ -45,6 +45,8 @@ export function useSessionOperations(fetchWithAuth, setStudents, setApiError) {
               ...s,
               lastReadDate: newLastRead,
               totalSessionCount: (s.totalSessionCount || 0) + 1,
+              currentBand: savedSession.currentBand ?? s.currentBand,
+              bandReadsCount: savedSession.bandReadsCount ?? s.bandReadsCount,
               ...(sessionPayload.bookId && {
                 currentBookId: sessionPayload.bookId,
                 currentBookTitle: sessionPayload.bookTitle,

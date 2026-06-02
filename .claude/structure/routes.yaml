@@ -374,6 +374,40 @@ files:
         description: Register email for newsletter (5/min rate limit)
         public: true
 
+  students/_shared.js:
+    description: Shared helpers for all student route modules (preferences, streak settings, band settings, band updates)
+    exports:
+      - name: fetchStudentPreferences
+        kind: function
+        description: Fetch genre-scoped student preferences from student_preferences table
+      - name: saveStudentPreferences
+        kind: function
+        description: Replace genre-favourite preferences (wholesale overwrite)
+      - name: getOrgStreakSettings
+        kind: function
+        description: KV-cached (1h) streak settings (gracePeriodDays, timezone) for an org
+      - name: updateStudentStreak
+        kind: function
+        description: Recompute and persist a student's streak from reading sessions
+      - name: getOrgBandSettings
+        kind: function
+        description: KV-cached (1h) reading band settings (readsPerBand) for an org
+      - name: updateStudentBand
+        kind: function
+        description: Recompute and persist a student's reading band; returns bandUp transition when band climbs
+      - name: ensureCurrentBand
+        kind: function
+        description: Lazily recompute band if stored band_year_start is stale (new academic year)
+    imports:
+      - from: utils/helpers
+        items: [generateId]
+      - from: utils/streakCalculator
+        items: [calculateStreak, getDateString]
+      - from: utils/readingBandEngine
+        items: [countReads, computeBandIndex, academicYearStart, bandTransition]
+      - from: utils/readingBandDefinitions
+        items: [DEFAULT_READS_PER_BAND]
+
   students.js:
     description: Student management - CRUD, preferences, bulk import
     exports:
@@ -592,9 +626,12 @@ files:
       - name: parentRouter
         kind: object
         description: Hono router for parent portal endpoints
+      - name: decideParentBandCelebration
+        kind: function
+        description: Pure helper — given parent_last_seen_band marker and current band index, returns { bandUp, newSeen }. bandUp is null on first view (adopt silently) or no change; otherwise a bandTransition object. newSeen never decreases.
     endpoints:
       - route: GET /api/parent/:token
-        description: Fetch parent view data (student name, current book, streak, sessions, badges, garden)
+        description: Fetch parent view data (student name, current book, streak, sessions, badges, band display + deferred band-up celebration)
         public: true
         rate_limit: 60/min
       - route: POST /api/parent/:token/sessions
@@ -624,6 +661,10 @@ files:
         items: [requireDB]
       - from: middleware/tenant
         items: [rateLimit, requireTeacher]
+      - from: routes/students/_shared
+        items: [updateStudentStreak, ensureCurrentBand, getOrgBandSettings]
+      - from: utils/readingBandEngine
+        items: [bandForCount, bandTransition]
 
   metadata.js:
     description: Centralised metadata management - cascade config, enrichment jobs, status
