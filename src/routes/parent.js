@@ -224,6 +224,7 @@ parentRouter.get('/:token', rateLimit(60, 60000, 'parent:view'), async (c) => {
     badgeCount,
     band,
     bandUp,
+    bandColors,
   });
 });
 

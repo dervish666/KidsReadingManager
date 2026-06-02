@@ -205,7 +205,13 @@ export const getOrgBandSettings = async (db, organizationId, env) => {
   if (KV) {
     try {
       const cached = await KV.get(cacheKey);
-      if (cached) return JSON.parse(cached);
+      if (cached) {
+        const parsedCache = JSON.parse(cached);
+        if (!Array.isArray(parsedCache.bandColors) || parsedCache.bandColors.length !== 16) {
+          parsedCache.bandColors = DEFAULT_BAND_COLORS;
+        }
+        return parsedCache;
+      }
     } catch {
       /* fall through to D1 */
     }

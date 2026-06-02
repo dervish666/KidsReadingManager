@@ -30,7 +30,7 @@ export const DEFAULT_BAND_COLORS = READING_BAND_LADDER.map((b) => b.color);
 
 const DARK_TEXT = '#3A352E';
 const LIGHT_TEXT = '#FFFFFF';
-const HEX6 = /^#?[0-9A-Fa-f]{6}$/;
+const HEX6 = /^#[0-9A-Fa-f]{6}$/;
 
 // WCAG relative luminance of a #RRGGBB colour (0..1).
 function relativeLuminance(hex) {
