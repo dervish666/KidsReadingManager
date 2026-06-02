@@ -104,6 +104,10 @@ vi.mock('../../routes/students/_shared.js', () => ({
   saveStudentPreferences: vi.fn().mockResolvedValue({}),
   getOrgStreakSettings: vi.fn().mockResolvedValue({ timezone: 'UTC', graceDays: 1 }),
   updateStudentStreak: vi.fn().mockResolvedValue({}),
+  updateStudentBand: vi.fn().mockResolvedValue({ currentBand: 0, readsCount: 0, bandUp: null }),
+  ensureCurrentBand: vi
+    .fn()
+    .mockResolvedValue({ currentBand: 0, bandReadsCount: 0, recomputed: false }),
 }));
 
 import { studentsRouter } from '../../routes/students.js';

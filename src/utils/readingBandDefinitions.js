@@ -14,7 +14,7 @@ export const READING_BAND_LADDER = [
   { index: 6, name: 'Orange', color: '#E67E22', textColor: '#FFFFFF' },
   { index: 7, name: 'Turquoise', color: '#1ABC9C', textColor: '#FFFFFF' },
   { index: 8, name: 'Purple', color: '#8E44AD', textColor: '#FFFFFF' },
-  { index: 9, name: 'Gold', color: '#D4AF37', textColor: '#FFFFFF' },
+  { index: 9, name: 'Gold', color: '#D4AF37', textColor: '#3A352E' },
   { index: 10, name: 'White', color: '#FFFFFF', textColor: '#3A352E' },
   { index: 11, name: 'Lime', color: '#A4C639', textColor: '#3A352E' },
   { index: 12, name: 'Brown', color: '#8B5E3C', textColor: '#FFFFFF' },

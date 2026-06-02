@@ -257,6 +257,14 @@ export function validateSettings(settings) {
     }
   }
 
+  // Validate reading band threshold if provided
+  if (settings.readsPerBand !== undefined) {
+    const rpb = settings.readsPerBand;
+    if (!Number.isInteger(rpb) || rpb < 1 || rpb > 1000) {
+      errors.push('Reads per band must be a whole number between 1 and 1000');
+    }
+  }
+
   return {
     isValid: errors.length === 0,
     errors,

@@ -281,7 +281,11 @@ sessionsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
       isMarkerSession
         ? Promise.resolve(undefined)
         : runSafe('class goal update', () => updateClassGoalOnSession(db, id, organizationId)),
-      runSafe('band update', () => updateStudentBand(db, id, organizationId, c.env, { timezone })),
+      isMarkerSession
+        ? Promise.resolve(undefined)
+        : runSafe('band update', () =>
+            updateStudentBand(db, id, organizationId, c.env, { timezone })
+          ),
     ]);
     const completedGoals = completedGoalsResult || [];
     const bandUp = bandResult?.bandUp || null;
@@ -320,6 +324,8 @@ sessionsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
         newBadges,
         completedGoals,
         bandUp,
+        currentBand: bandResult?.currentBand,
+        bandReadsCount: bandResult?.readsCount,
       },
       201
     );
