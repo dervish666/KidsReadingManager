@@ -294,6 +294,23 @@ files:
         kind: component
         props: [open, onClose]
 
+  students/ReadingBandChip.js:
+    description: Reading band chip + progress-to-next display (shared across student/parent surfaces)
+    exports:
+      - name: ReadingBandChip
+        kind: component
+        props: [bandIndex, size]
+        description: "Small coloured band chip for cards/tables; size: 'small'|'medium'"
+      - name: ReadingBandProgress
+        kind: component
+        props: [readsCount, readsPerBand]
+        description: Band chip + progress bar + caption for profile/parent surfaces
+    imports:
+      - from: utils/readingBandDefinitions
+        items: [getBandByIndex]
+      - from: utils/readingBandEngine
+        items: [bandForCount]
+
   # ---- sessions/ ----
 
   sessions/HomeReadingRegister.js:
