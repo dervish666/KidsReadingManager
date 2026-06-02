@@ -19,12 +19,29 @@ import { requireTeacher, rateLimit } from '../middleware/tenant.js';
 import { requireDB } from '../utils/routeHelpers.js';
 import { generateId, generateToken } from '../utils/helpers.js';
 import { notFoundError, badRequestError } from '../middleware/errorHandler.js';
-import { updateStudentStreak } from './students/_shared.js';
+import { updateStudentStreak, ensureCurrentBand, getOrgBandSettings } from './students/_shared.js';
 import { getDateString } from '../utils/streakCalculator.js';
 import { recalculateStats, evaluateRealTime } from '../utils/badgeEngine.js';
 import { updateClassGoalOnSession } from '../utils/classGoalsEngine.js';
+import { bandForCount, bandTransition } from '../utils/readingBandEngine.js';
 
 export const parentRouter = new Hono();
+
+/**
+ * Decide whether to show a parent the band-up celebration on portal load.
+ * marker = parent_last_seen_band (NULL until first view); current = child's band.
+ * Returns { bandUp, newSeen } — newSeen is the value to persist (never decreases).
+ */
+export function decideParentBandCelebration(marker, currentBand) {
+  const current = currentBand || 0;
+  if (marker === null || marker === undefined) {
+    return { bandUp: null, newSeen: current }; // first view: adopt silently
+  }
+  if (current > marker) {
+    return { bandUp: bandTransition(marker, current), newSeen: current };
+  }
+  return { bandUp: null, newSeen: marker };
+}
 
 // ============================================================================
 // Helper: calculate current academic year string (e.g. "2025-2026")
@@ -54,6 +71,7 @@ async function validateParentToken(db, token) {
               pat.organization_id,
               pat.academic_year,
               pat.revoked_at,
+              pat.parent_last_seen_band,
               s.is_active as student_active,
               s.processing_restricted,
               s.year_group
@@ -97,10 +115,11 @@ parentRouter.get('/:token', rateLimit(60, 60000, 'parent:view'), async (c) => {
 
   const { student_id: studentId, organization_id: organizationId } = tokenRow;
 
-  // Fetch student name + current_book_id + streak fields
+  // Fetch student name + current_book_id + streak fields + band fields
   const student = await db
     .prepare(
-      `SELECT id, name, current_book_id, current_streak, last_read_date
+      `SELECT id, name, current_book_id, current_streak, last_read_date,
+              current_band, band_reads_count, band_year_start
          FROM students
         WHERE id = ? AND organization_id = ? AND is_active = 1`
     )
@@ -169,6 +188,27 @@ parentRouter.get('/:token', rateLimit(60, 60000, 'parent:view'), async (c) => {
     .first();
   const badgeCount = badgeCountRow?.count || 0;
 
+  // Reading band: lazily reset for the academic year, then decide whether to
+  // celebrate a climb the parent hasn't seen yet (e.g. a teacher's logs).
+  const { readsPerBand } = await getOrgBandSettings(db, organizationId, c.env || {});
+  const { currentBand, bandReadsCount } = await ensureCurrentBand(
+    db,
+    student,
+    organizationId,
+    c.env || {}
+  );
+  const { bandUp, newSeen } = decideParentBandCelebration(
+    tokenRow.parent_last_seen_band,
+    currentBand
+  );
+  if (newSeen !== tokenRow.parent_last_seen_band) {
+    await db
+      .prepare('UPDATE parent_access_tokens SET parent_last_seen_band = ? WHERE id = ?')
+      .bind(newSeen, tokenRow.token_id)
+      .run();
+  }
+  const band = bandForCount(bandReadsCount, readsPerBand);
+
   c.header('Cache-Control', 'no-store');
   return c.json({
     studentFirstName,
@@ -176,6 +216,8 @@ parentRouter.get('/:token', rateLimit(60, 60000, 'parent:view'), async (c) => {
     streak,
     sessions,
     badgeCount,
+    band,
+    bandUp,
   });
 });
 

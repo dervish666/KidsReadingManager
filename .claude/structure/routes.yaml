@@ -626,9 +626,12 @@ files:
       - name: parentRouter
         kind: object
         description: Hono router for parent portal endpoints
+      - name: decideParentBandCelebration
+        kind: function
+        description: Pure helper — given parent_last_seen_band marker and current band index, returns { bandUp, newSeen }. bandUp is null on first view (adopt silently) or no change; otherwise a bandTransition object. newSeen never decreases.
     endpoints:
       - route: GET /api/parent/:token
-        description: Fetch parent view data (student name, current book, streak, sessions, badges, garden)
+        description: Fetch parent view data (student name, current book, streak, sessions, badges, band display + deferred band-up celebration)
         public: true
         rate_limit: 60/min
       - route: POST /api/parent/:token/sessions
@@ -658,6 +661,10 @@ files:
         items: [requireDB]
       - from: middleware/tenant
         items: [rateLimit, requireTeacher]
+      - from: routes/students/_shared
+        items: [updateStudentStreak, ensureCurrentBand, getOrgBandSettings]
+      - from: utils/readingBandEngine
+        items: [bandForCount, bandTransition]
 
   metadata.js:
     description: Centralised metadata management - cascade config, enrichment jobs, status
