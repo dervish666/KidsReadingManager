@@ -24,6 +24,7 @@ import MenuBookIcon from '@mui/icons-material/MenuBook';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import ClassManager from './classes/ClassManager'; // Import ClassManager
+import { DEFAULT_BAND_COLORS, READING_BAND_LADDER } from '../utils/readingBandDefinitions';
 
 const TERM_NAMES = ['Autumn 1', 'Autumn 2', 'Spring 1', 'Spring 2', 'Summer 1', 'Summer 2'];
 
@@ -55,6 +56,7 @@ const Settings = () => {
     needsAttentionDays: readingStatusSettings.needsAttentionDays,
     streakGracePeriodDays: settings?.streakGracePeriodDays ?? 1,
     readsPerBand: settings?.readsPerBand ?? 20,
+    bandColors: settings?.bandColors ?? DEFAULT_BAND_COLORS,
   });
 
   const [saving, setSaving] = useState(false);
@@ -121,6 +123,7 @@ const Settings = () => {
         },
         streakGracePeriodDays: localSettings.streakGracePeriodDays,
         readsPerBand: localSettings.readsPerBand,
+        bandColors: localSettings.bandColors,
       });
       setSnackbar({
         open: true,
@@ -145,6 +148,7 @@ const Settings = () => {
       needsAttentionDays: readingStatusSettings.needsAttentionDays,
       streakGracePeriodDays: settings?.streakGracePeriodDays ?? 1,
       readsPerBand: settings?.readsPerBand ?? 20,
+      bandColors: settings?.bandColors ?? DEFAULT_BAND_COLORS,
     });
     setSnackbar({
       open: true,
@@ -442,6 +446,55 @@ const Settings = () => {
             size="small"
             sx={{ minWidth: 200 }}
           />
+
+          <Box sx={{ mt: 2 }}>
+            <Box
+              sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}
+            >
+              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                Band colours
+              </Typography>
+              <Button
+                size="small"
+                onClick={() =>
+                  setLocalSettings((s) => ({ ...s, bandColors: [...DEFAULT_BAND_COLORS] }))
+                }
+              >
+                Reset to defaults
+              </Button>
+            </Box>
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1.5 }}>
+              {READING_BAND_LADDER.map((band, i) => (
+                <Box
+                  key={band.index}
+                  sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}
+                >
+                  <input
+                    type="color"
+                    aria-label={`${band.name} band colour`}
+                    value={(localSettings.bandColors || DEFAULT_BAND_COLORS)[i]}
+                    onChange={(e) =>
+                      setLocalSettings((s) => {
+                        const next = [...(s.bandColors || DEFAULT_BAND_COLORS)];
+                        next[i] = e.target.value;
+                        return { ...s, bandColors: next };
+                      })
+                    }
+                    style={{
+                      width: 40,
+                      height: 28,
+                      border: 'none',
+                      background: 'none',
+                      cursor: 'pointer',
+                    }}
+                  />
+                  <Typography variant="caption" color="text.secondary">
+                    {band.name}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          </Box>
         </Box>
 
         <Divider sx={{ my: 3 }} />

@@ -7,6 +7,7 @@ import {
   bandForCount,
   bandTransition,
 } from '../../utils/readingBandEngine.js';
+import { DEFAULT_BAND_COLORS } from '../../utils/readingBandDefinitions.js';
 
 describe('readContribution', () => {
   it('plain session counts as 1', () => {
@@ -83,5 +84,24 @@ describe('bandTransition', () => {
     const t = bandTransition(2, 4);
     expect(t.from.name).toBe('Red');
     expect(t.to.name).toBe('Blue');
+  });
+});
+
+describe('palette threading', () => {
+  it('bandForCount uses the palette colour', () => {
+    const palette = [...DEFAULT_BAND_COLORS];
+    palette[2] = '#111111';
+    const b = bandForCount(47, 20, palette); // 47 reads -> band 2 (Red)
+    expect(b.color).toBe('#111111');
+    expect(b.textColor).toBe('#FFFFFF');
+  });
+  it('bandTransition uses the palette colours', () => {
+    const palette = [...DEFAULT_BAND_COLORS];
+    palette[4] = '#222222';
+    const t = bandTransition(2, 4, palette);
+    expect(t.to.color).toBe('#222222');
+  });
+  it('works without a palette (defaults)', () => {
+    expect(bandForCount(47, 20).color).toBe('#D7263D');
   });
 });

@@ -28,7 +28,7 @@ import { getCurrentGrowth } from '../badges/GardenHeader';
 
 const StudentTable = React.memo(({ students }) => {
   const theme = useTheme();
-  const { classes } = useData();
+  const { classes, settings } = useData();
   const { getReadingStatus, markStudentAsPriorityHandled, markedPriorityStudentIds } = useUI();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -448,7 +448,10 @@ const StudentTable = React.memo(({ students }) => {
                     />
                   </TableCell>
                   <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
-                    <ReadingBandChip bandIndex={student.currentBand || 0} />
+                    <ReadingBandChip
+                      bandIndex={student.currentBand || 0}
+                      palette={settings?.bandColors}
+                    />
                   </TableCell>
                   <TableCell sx={{ p: 0, width: 40, textAlign: 'center' }}>
                     {(() => {

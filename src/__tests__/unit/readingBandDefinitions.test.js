@@ -4,6 +4,8 @@ import {
   READING_BAND_COUNT,
   DEFAULT_READS_PER_BAND,
   getBandByIndex,
+  DEFAULT_BAND_COLORS,
+  pickTextColor,
 } from '../../utils/readingBandDefinitions.js';
 
 describe('readingBandDefinitions', () => {
@@ -29,5 +31,50 @@ describe('readingBandDefinitions', () => {
 
   it('default reads-per-band is 20', () => {
     expect(DEFAULT_READS_PER_BAND).toBe(20);
+  });
+});
+
+describe('pickTextColor (auto-contrast)', () => {
+  it('picks dark text on light/mid colours', () => {
+    expect(pickTextColor('#FFFFFF')).toBe('#3A352E');
+    expect(pickTextColor('#D4AF37')).toBe('#3A352E'); // Gold — the contrast fix
+    expect(pickTextColor('#F4D03F')).toBe('#3A352E'); // Yellow
+  });
+  it('picks white text on dark colours', () => {
+    expect(pickTextColor('#000000')).toBe('#FFFFFF');
+    expect(pickTextColor('#1F3A93')).toBe('#FFFFFF'); // Dark Blue
+    expect(pickTextColor('#2E86DE')).toBe('#FFFFFF'); // Blue — proves ratio method beats a naive threshold
+  });
+  it('falls back to dark text on bad input', () => {
+    expect(pickTextColor('not-a-colour')).toBe('#3A352E');
+    expect(pickTextColor(null)).toBe('#3A352E');
+  });
+});
+
+describe('DEFAULT_BAND_COLORS', () => {
+  it('is the 16 ladder colours in order', () => {
+    expect(DEFAULT_BAND_COLORS).toHaveLength(16);
+    expect(DEFAULT_BAND_COLORS[0]).toBe('#C8A2C8');
+    expect(DEFAULT_BAND_COLORS[15]).toBe('#6B4FA0');
+  });
+});
+
+describe('getBandByIndex with palette', () => {
+  it('uses the palette colour and auto-contrast text when given', () => {
+    const palette = [...DEFAULT_BAND_COLORS];
+    palette[2] = '#000000';
+    const b = getBandByIndex(2, palette);
+    expect(b.color).toBe('#000000');
+    expect(b.textColor).toBe('#FFFFFF');
+    expect(b.name).toBe('Red');
+  });
+  it('falls back to default colour without a palette', () => {
+    const b = getBandByIndex(9);
+    expect(b.color).toBe('#D4AF37');
+    expect(b.textColor).toBe('#3A352E');
+  });
+  it('ignores a malformed palette entry and uses the default', () => {
+    const b = getBandByIndex(2, ['bad']);
+    expect(b.color).toBe('#D7263D');
   });
 });

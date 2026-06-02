@@ -556,6 +556,24 @@ describe('validateBook', () => {
   });
 });
 
+describe('validateSettings bandColors', () => {
+  const ok = Array.from({ length: 16 }, () => '#AABBCC');
+  it('accepts 16 valid hex colours', () => {
+    expect(validateSettings({ bandColors: ok }).isValid).toBe(true);
+  });
+  it('rejects wrong length', () => {
+    expect(validateSettings({ bandColors: ok.slice(0, 15) }).isValid).toBe(false);
+  });
+  it('rejects a non-hex entry', () => {
+    const bad = [...ok];
+    bad[3] = 'red';
+    expect(validateSettings({ bandColors: bad }).isValid).toBe(false);
+  });
+  it('rejects a non-array', () => {
+    expect(validateSettings({ bandColors: '#AABBCC' }).isValid).toBe(false);
+  });
+});
+
 describe('isValidAssessment', () => {
   it('should accept null', () => {
     expect(isValidAssessment(null)).toBe(true);

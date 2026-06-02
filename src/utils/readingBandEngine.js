@@ -59,11 +59,11 @@ export function academicYearStart(today, startMonth = 9, startDay = 1) {
 }
 
 /** Display payload for a band, including progress to the next band. */
-export function bandForCount(readsCount, readsPerBand = DEFAULT_READS_PER_BAND) {
+export function bandForCount(readsCount, readsPerBand = DEFAULT_READS_PER_BAND, palette) {
   const per = effectivePer(readsPerBand);
   const count = Number(readsCount) || 0;
   const index = computeBandIndex(count, per);
-  const band = getBandByIndex(index);
+  const band = getBandByIndex(index, palette);
   const atTop = index >= READING_BAND_COUNT - 1;
   const nextAt = atTop ? null : (index + 1) * per;
   const toNext = atTop ? null : nextAt - count;
@@ -71,6 +71,6 @@ export function bandForCount(readsCount, readsPerBand = DEFAULT_READS_PER_BAND) 
 }
 
 /** Transition object for a celebration (from band -> to band). */
-export function bandTransition(fromIndex, toIndex) {
-  return { from: getBandByIndex(fromIndex), to: getBandByIndex(toIndex) };
+export function bandTransition(fromIndex, toIndex, palette) {
+  return { from: getBandByIndex(fromIndex, palette), to: getBandByIndex(toIndex, palette) };
 }
