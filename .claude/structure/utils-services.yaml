@@ -211,6 +211,56 @@ files:
         params: [{name: currentStreakData}, {name: newSessionDate}, {name: gracePeriodDays}, {name: timezone}]
         returns: boolean
 
+  utils/readingBandDefinitions.js:
+    description: Reading band ladder (16 colour bands) - gamified reading-volume rank
+    exports:
+      - name: READING_BAND_LADDER
+        kind: const
+        description: Ordered array of 16 bands {index,name,color,textColor} Lilac..Free Reader
+      - name: READING_BAND_COUNT
+        kind: const
+        returns: number
+      - name: DEFAULT_READS_PER_BAND
+        kind: const
+        returns: number
+        description: Default reads-per-band threshold (20)
+      - name: getBandByIndex
+        kind: function
+        params: [{name: i}]
+        returns: object
+        description: Band at clamped index [0,15]
+
+  utils/readingBandEngine.js:
+    description: Pure reading-band maths (no I/O), mirrors streakCalculator
+    exports:
+      - name: readContribution
+        kind: function
+        params: [{name: notes}]
+        returns: number
+        description: Reads from one session's notes marker (plain=1, [COUNT:n]=n, absent/no_record=0)
+      - name: countReads
+        kind: function
+        params: [{name: rows}]
+        returns: number
+      - name: computeBandIndex
+        kind: function
+        params: [{name: readsCount}, {name: readsPerBand}]
+        returns: number
+      - name: academicYearStart
+        kind: function
+        params: [{name: today}, {name: startMonth}, {name: startDay}]
+        returns: string
+        description: ISO date of 1 Sep on/before today
+      - name: bandForCount
+        kind: function
+        params: [{name: readsCount}, {name: readsPerBand}]
+        returns: object
+        description: Band display payload with progress to next
+      - name: bandTransition
+        kind: function
+        params: [{name: fromIndex}, {name: toIndex}]
+        returns: "{from, to}"
+
   utils/studentProfile.js:
     description: Build comprehensive student reading profile for AI context
     exports:
