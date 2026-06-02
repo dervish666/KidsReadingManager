@@ -20,6 +20,7 @@ import CheckIcon from '@mui/icons-material/Check';
 import { useData } from '../../contexts/DataContext';
 import { useUI } from '../../contexts/UIContext';
 import StreakBadge from './StreakBadge';
+import { ReadingBandChip } from './ReadingBandChip';
 import { useTheme } from '@mui/material/styles';
 import StudentDetailDrawer from './StudentDetailDrawer';
 import { STATUS_TO_PALETTE } from '../../utils/helpers';
@@ -142,6 +143,10 @@ const StudentTable = React.memo(({ students }) => {
           aValue = a.totalSessionCount || 0;
           bValue = b.totalSessionCount || 0;
           break;
+        case 'band':
+          aValue = a.currentBand || 0;
+          bValue = b.currentBand || 0;
+          break;
         default:
           return 0;
       }
@@ -243,6 +248,25 @@ const StudentTable = React.memo(({ students }) => {
                   }}
                 >
                   Sessions
+                </TableSortLabel>
+              </TableCell>
+              <TableCell
+                sx={{ color: 'white', fontWeight: 600, display: { xs: 'none', sm: 'table-cell' } }}
+              >
+                <TableSortLabel
+                  active={orderBy === 'band'}
+                  direction={orderBy === 'band' ? order : 'asc'}
+                  onClick={() => handleRequestSort('band')}
+                  aria-label={`Sort by reading band, currently ${orderBy === 'band' ? (order === 'asc' ? 'ascending' : 'descending') : 'unsorted'}`}
+                  sx={{
+                    color: 'white !important',
+                    '&:hover': { color: 'white !important' },
+                    '& .MuiTableSortLabel-icon': { color: 'white !important' },
+                    '&.Mui-active': { color: 'white !important' },
+                    '&.Mui-active .MuiTableSortLabel-icon': { color: 'white !important' },
+                  }}
+                >
+                  Band
                 </TableSortLabel>
               </TableCell>
               <TableCell sx={{ color: 'white', fontWeight: 600, width: 40, p: 0 }} />
@@ -422,6 +446,9 @@ const StudentTable = React.memo(({ students }) => {
                         minWidth: { xs: 40, sm: 36 },
                       }}
                     />
+                  </TableCell>
+                  <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
+                    <ReadingBandChip bandIndex={student.currentBand || 0} />
                   </TableCell>
                   <TableCell sx={{ p: 0, width: 40, textAlign: 'center' }}>
                     {(() => {

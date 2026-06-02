@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Typography, Chip } from '@mui/material';
 import { useData } from '../../contexts/DataContext';
+import { ReadingBandProgress } from './ReadingBandChip';
 
 const cardStyle = {
   bgcolor: 'rgba(250, 248, 243, 0.8)',
@@ -18,7 +19,7 @@ const NoneSet = () => (
 );
 
 const StudentReadView = ({ student, sessions }) => {
-  const { genres } = useData();
+  const { genres, settings } = useData();
 
   const preferences = student?.preferences || null;
   const favoriteGenreIds = preferences?.favoriteGenreIds || [];
@@ -135,6 +136,12 @@ const StudentReadView = ({ student, sessions }) => {
             <Typography variant="body2" fontWeight={500}>
               {bestStreak} {bestStreak === 1 ? 'day' : 'days'}
             </Typography>
+          </Box>
+          <Box sx={{ mt: 1.5 }}>
+            <ReadingBandProgress
+              readsCount={student.bandReadsCount || 0}
+              readsPerBand={settings?.readsPerBand ?? 20}
+            />
           </Box>
         </Box>
       </Box>
