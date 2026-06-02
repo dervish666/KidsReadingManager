@@ -90,6 +90,8 @@ src/utils/helpers.js - ID generation, reading status, student sorting, csvRow, s
 src/utils/calculateAge.js - Age calculation from date of birth
 src/utils/email.js - Password reset/welcome/signup/support emails (multi-provider)
 src/utils/streakCalculator.js - Reading streak calculation with grace period
+src/utils/readingBandDefinitions.js - Reading band ladder (16 colour bands), default reads-per-band, band lookup
+src/utils/readingBandEngine.js - Pure reading-band maths: read counting, band index, academic-year start, display payload + transition
 src/utils/studentProfile.js - Build student reading profile for AI context
 src/utils/stringMatching.js - Levenshtein distance for book deduplication
 src/utils/recommendationCache.js - KV caching for AI recommendations
