@@ -21,7 +21,7 @@ import { STATUS_TO_PALETTE } from '../../utils/helpers';
 
 const StudentCard = React.memo(({ student }) => {
   const theme = useTheme();
-  const { classes } = useData();
+  const { classes, settings } = useData();
   const { getReadingStatus } = useUI();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -156,7 +156,11 @@ const StudentCard = React.memo(({ student }) => {
             }
             action={
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <ReadingBandChip bandIndex={student.currentBand || 0} size="small" />
+                <ReadingBandChip
+                  bandIndex={student.currentBand || 0}
+                  size="small"
+                  palette={settings?.bandColors}
+                />
                 {student.currentStreak > 0 && (
                   <StreakBadge streak={student.currentStreak} size="small" />
                 )}

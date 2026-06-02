@@ -4,8 +4,8 @@ import { getBandByIndex } from '../../utils/readingBandDefinitions';
 import { bandForCount } from '../../utils/readingBandEngine';
 
 /** Small coloured band chip for cards/tables. */
-export function ReadingBandChip({ bandIndex = 0, size = 'small' }) {
-  const band = getBandByIndex(bandIndex);
+export function ReadingBandChip({ bandIndex = 0, size = 'small', palette }) {
+  const band = getBandByIndex(bandIndex, palette);
   const pad = size === 'small' ? '2px 8px' : '4px 12px';
   const font = size === 'small' ? 11 : 13;
   return (
@@ -32,13 +32,13 @@ export function ReadingBandChip({ bandIndex = 0, size = 'small' }) {
 }
 
 /** Band + progress-to-next bar for profile/parent surfaces. */
-export function ReadingBandProgress({ readsCount = 0, readsPerBand = 20 }) {
-  const band = bandForCount(readsCount, readsPerBand);
+export function ReadingBandProgress({ readsCount = 0, readsPerBand = 20, palette }) {
+  const band = bandForCount(readsCount, readsPerBand, palette);
   const within = band.atTop ? readsPerBand : readsPerBand - band.toNext;
   const pct = band.atTop ? 100 : Math.round((within / readsPerBand) * 100);
   return (
     <Box>
-      <ReadingBandChip bandIndex={band.index} size="medium" />
+      <ReadingBandChip bandIndex={band.index} size="medium" palette={palette} />
       <Box sx={{ height: 8, bgcolor: 'grey.200', borderRadius: 1, overflow: 'hidden', mt: 0.75 }}>
         <Box sx={{ width: `${pct}%`, height: '100%', bgcolor: band.color, borderRadius: 1 }} />
       </Box>
