@@ -105,6 +105,7 @@ settingsRouter.post('/', requireAdmin(), auditLog('update', 'settings'), async (
       'schoolName',
       'streakGracePeriodDays',
       'readsPerBand',
+      'bandColors',
     ];
 
     const updates = [];
@@ -141,7 +142,7 @@ settingsRouter.post('/', requireAdmin(), auditLog('update', 'settings'), async (
       await c.env.READING_MANAGER_KV.delete(`org-streak-settings:${organizationId}`);
     }
 
-    if (body.readsPerBand !== undefined) {
+    if (body.readsPerBand !== undefined || body.bandColors !== undefined) {
       try {
         await c.env.READING_MANAGER_KV?.delete(`org-band-settings:${organizationId}`);
       } catch {
