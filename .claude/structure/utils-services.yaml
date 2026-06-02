@@ -212,7 +212,7 @@ files:
         returns: boolean
 
   utils/readingBandDefinitions.js:
-    description: Reading band ladder (16 colour bands) - gamified reading-volume rank
+    description: Reading band ladder (16 colour bands) - gamified reading-volume rank; palette-aware colour resolution
     exports:
       - name: READING_BAND_LADDER
         kind: const
@@ -224,11 +224,19 @@ files:
         kind: const
         returns: number
         description: Default reads-per-band threshold (20)
+      - name: DEFAULT_BAND_COLORS
+        kind: const
+        description: Array of 16 default hex colour strings in ladder order (derived from READING_BAND_LADDER)
+      - name: pickTextColor
+        kind: function
+        params: [{name: hex}]
+        returns: string
+        description: Best-contrast text colour (#3A352E dark or #FFFFFF white) for a band background — uses WCAG contrast ratio, not a naive luminance threshold
       - name: getBandByIndex
         kind: function
-        params: [{name: i}]
+        params: [{name: i}, {name: palette, description: "optional array of 16 hex overrides"}]
         returns: object
-        description: Band at clamped index [0,15]
+        description: Band at clamped index [0,15]; uses palette colour when provided and valid, auto-computes textColor via pickTextColor
 
   utils/readingBandEngine.js:
     description: Pure reading-band maths (no I/O), mirrors streakCalculator

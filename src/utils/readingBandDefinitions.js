@@ -26,7 +26,48 @@ export const READING_BAND_LADDER = [
 export const READING_BAND_COUNT = READING_BAND_LADDER.length;
 export const DEFAULT_READS_PER_BAND = 20;
 
-export const getBandByIndex = (i) => {
+export const DEFAULT_BAND_COLORS = READING_BAND_LADDER.map((b) => b.color);
+
+const DARK_TEXT = '#3A352E';
+const LIGHT_TEXT = '#FFFFFF';
+const HEX6 = /^#?[0-9A-Fa-f]{6}$/;
+
+// WCAG relative luminance of a #RRGGBB colour (0..1).
+function relativeLuminance(hex) {
+  const c = String(hex == null ? '' : hex).replace('#', '');
+  const toLin = (pair) => {
+    const s = parseInt(pair, 16) / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+  return (
+    0.2126 * toLin(c.slice(0, 2)) + 0.7152 * toLin(c.slice(2, 4)) + 0.0722 * toLin(c.slice(4, 6))
+  );
+}
+
+function contrastRatio(l1, l2) {
+  const hi = Math.max(l1, l2);
+  const lo = Math.min(l1, l2);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+/**
+ * Best-contrast text colour for a band background. Compares the ACTUAL contrast
+ * ratio of the background against the two real text colours (#3A352E dark,
+ * #FFFFFF white) and returns the higher — a luminance threshold alone
+ * misclassifies mid-tones like Gold and Blue.
+ */
+export function pickTextColor(hex) {
+  if (!HEX6.test(String(hex || ''))) return DARK_TEXT;
+  const bg = relativeLuminance(hex);
+  const darkL = relativeLuminance(DARK_TEXT);
+  const lightL = 1.0;
+  return contrastRatio(bg, lightL) >= contrastRatio(bg, darkL) ? LIGHT_TEXT : DARK_TEXT;
+}
+
+export const getBandByIndex = (i, palette) => {
   const clamped = Math.max(0, Math.min(Number(i) || 0, READING_BAND_COUNT - 1));
-  return READING_BAND_LADDER[clamped];
+  const base = READING_BAND_LADDER[clamped];
+  const override = Array.isArray(palette) ? palette[clamped] : null;
+  const color = HEX6.test(String(override || '')) ? override : base.color;
+  return { index: base.index, name: base.name, color, textColor: pickTextColor(color) };
 };
