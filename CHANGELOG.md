@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.69.0] - 2026-06-02
+
+### Added
+
+- **Customisable reading-band colours** — schools can now recolour the 16 reading bands from **Settings → Reading Bands** (a colour swatch per band, plus one-click **Reset to defaults**). The chosen colours flow everywhere a band appears: the student card / detail / table chips, the parent portal, and the move-up celebration. Band names stay fixed (Lilac/Pink/Red…), and each band's label text now auto-picks black or white for best contrast against whatever colour is chosen — which also retires the previously low-contrast Gold and Grey defaults. Stored per school (a `bandColors` org setting, no migration); display-only, so it doesn't affect book recommendations.
+
 ## [3.68.0] - 2026-06-02
 
 ### Added
