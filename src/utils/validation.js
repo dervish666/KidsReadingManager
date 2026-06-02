@@ -265,6 +265,18 @@ export function validateSettings(settings) {
     }
   }
 
+  // Validate band colour palette if provided
+  if (settings.bandColors !== undefined) {
+    const hex = /^#[0-9A-Fa-f]{6}$/;
+    if (
+      !Array.isArray(settings.bandColors) ||
+      settings.bandColors.length !== 16 ||
+      !settings.bandColors.every((c) => typeof c === 'string' && hex.test(c))
+    ) {
+      errors.push('Band colours must be an array of exactly 16 hex colours (#RRGGBB)');
+    }
+  }
+
   return {
     isValid: errors.length === 0,
     errors,
