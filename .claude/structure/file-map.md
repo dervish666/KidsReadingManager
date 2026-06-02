@@ -232,6 +232,7 @@ src/components/badges/BadgeIcon.js - Single badge circle with tier gradient and 
 src/components/badges/GardenHeader.js - Layered watercolor PNG garden header; 8 elements appear progressively as badges are earned (seedling→sprout→bloom→full garden)
 src/components/badges/BadgeCollection.js - Grid of earned badges + near-miss progress bars
 src/components/badges/BadgeCelebration.js - Unlock celebration dialog shown after session save
+src/components/badges/BandCelebration.js - Band-up celebration dialog (from→to band transition)
 src/components/badges/BadgeIndicators.js - Mini badge count chip for StudentCard
 
 ## Frontend Components - Goals

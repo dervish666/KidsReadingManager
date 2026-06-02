@@ -19,6 +19,8 @@ import BarcodeScanner from '../books/BarcodeScanner';
 import StreakBadge from '../students/StreakBadge';
 import GardenHeader from '../badges/GardenHeader';
 import BadgeCelebration from '../badges/BadgeCelebration';
+import BandCelebration from '../badges/BandCelebration';
+import { ReadingBandProgress } from '../students/ReadingBandChip';
 import TallyLogo from '../TallyLogo';
 
 /**
@@ -55,6 +57,9 @@ const ParentPortal = () => {
   // ── Badge celebration state ─────────────────────────────────────────────────
   const [newBadges, setNewBadges] = useState([]);
 
+  // ── Band-up celebration state ────────────────────────────────────────────────
+  const [bandUpToShow, setBandUpToShow] = useState(null);
+
   const today = new Date().toISOString().split('T')[0];
 
   // ── Fetch portal data ───────────────────────────────────────────────────────
@@ -81,6 +86,13 @@ const ParentPortal = () => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Show band-up celebration whenever the portal data carries a bandUp payload.
+  useEffect(() => {
+    if (data?.bandUp) {
+      setBandUpToShow(data.bandUp);
+    }
+  }, [data?.bandUp]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Book search debounce ────────────────────────────────────────────────────
   useEffect(() => {
@@ -350,6 +362,27 @@ const ParentPortal = () => {
             Read Today
           </Button>
         </Box>
+
+        {/* ── Reading band progress ────────────────────────────────────── */}
+        {data?.band && (
+          <Box sx={{ mb: 3 }}>
+            <Typography
+              variant="subtitle2"
+              sx={{
+                fontWeight: 700,
+                color: '#2d5016',
+                mb: 1,
+                fontFamily: '"Nunito", sans-serif',
+              }}
+            >
+              Reading Band
+            </Typography>
+            <ReadingBandProgress
+              readsCount={data.band.readsCount}
+              readsPerBand={data.band.readsPerBand}
+            />
+          </Box>
+        )}
 
         {/* ── Recent sessions ──────────────────────────────────────────── */}
         {sessions.length > 0 && (
@@ -845,6 +878,13 @@ const ParentPortal = () => {
 
       {/* ── Badge celebration ────────────────────────────────────────────── */}
       <BadgeCelebration badges={newBadges} onClose={() => setNewBadges([])} />
+
+      {/* ── Band-up celebration ──────────────────────────────────────────── */}
+      <BandCelebration
+        bandUp={bandUpToShow}
+        studentName={firstName}
+        onClose={() => setBandUpToShow(null)}
+      />
     </Box>
   );
 };

@@ -401,6 +401,14 @@ files:
         props: [badges, onClose]
         description: Full-screen dialog showing first new badge with unlock message; returns null if badges empty
 
+  badges/BandCelebration.js:
+    description: Band-up celebration dialog shown when a student climbs to a new reading band
+    exports:
+      - name: BandCelebration
+        kind: component
+        props: [bandUp, studentName, onClose]
+        description: "Dialog with from→to BandPill transition; returns null if bandUp is falsy"
+
   badges/BadgeIndicators.js:
     description: Mini badge count chip for StudentCard showing garden emoji and total count
     exports:

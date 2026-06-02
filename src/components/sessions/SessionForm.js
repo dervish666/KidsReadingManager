@@ -33,6 +33,7 @@ import SessionNotes from './SessionNotes';
 import BookAutocomplete from './BookAutocomplete';
 import StudentInfoCard from './StudentInfoCard';
 import BadgeCelebration from '../badges/BadgeCelebration';
+import BandCelebration from '../badges/BandCelebration';
 import {
   getBookDetails,
   checkAvailability,
@@ -76,6 +77,7 @@ const SessionForm = () => {
   const [bookEnjoyment, setBookEnjoyment] = useState(null); // null | 'liked' | 'disliked'
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [celebrationBadges, setCelebrationBadges] = useState([]);
+  const [bandUp, setBandUp] = useState(null);
   const [pendingGoalCelebration, setPendingGoalCelebration] = useState(null);
   const [completedGoals, setCompletedGoals] = useState([]);
 
@@ -333,6 +335,9 @@ const SessionForm = () => {
       if (result) {
         if (result?.newBadges?.length > 0) {
           setCelebrationBadges(result.newBadges);
+        }
+        if (result?.bandUp) {
+          setBandUp(result.bandUp);
         }
         if (result.completedGoals?.length) {
           setPendingGoalCelebration(result.completedGoals);
@@ -1112,6 +1117,11 @@ const SessionForm = () => {
             setPendingGoalCelebration(null);
           }
         }}
+      />
+      <BandCelebration
+        bandUp={bandUp}
+        studentName={selectedStudent?.name}
+        onClose={() => setBandUp(null)}
       />
       <Snackbar
         open={completedGoals.length > 0}
