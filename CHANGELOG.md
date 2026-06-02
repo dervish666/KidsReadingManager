@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.68.0] - 2026-06-02
+
+### Added
+
+- **Reading bands** — every pupil now has a colour reading band (Lilac → Pink → Red → … → Free Reader) that climbs automatically as their reading is logged. A band is earned roughly every 20 reads — configurable per school under **Settings → Reading Bands** — counting reads across the current academic year and resetting each September so every child gets a fresh climb. Bands appear on the student card, the student detail view, the (sortable) student table, and the parent portal, and a celebration pops when a child moves up: immediately for whoever logs the read, and for parents on their next visit even when a teacher's logging caused the climb. Home and school reads both count; "absent"/"no record" markers don't, and the academic-year boundary is handled the same way as streaks. Bands are display-only — they don't influence book recommendations (AR reading levels still drive those). Backed by migration `0059` (new `students.current_band` / `band_reads_count` / `band_year_start`, `parent_access_tokens.parent_last_seen_band`, and the `readsPerBand` org setting) with a one-time backfill of existing reads.
+
 ## [3.67.11] - 2026-06-01
 
 ### Security
