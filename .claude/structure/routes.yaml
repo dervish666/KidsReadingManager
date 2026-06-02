@@ -374,6 +374,40 @@ files:
         description: Register email for newsletter (5/min rate limit)
         public: true
 
+  students/_shared.js:
+    description: Shared helpers for all student route modules (preferences, streak settings, band settings, band updates)
+    exports:
+      - name: fetchStudentPreferences
+        kind: function
+        description: Fetch genre-scoped student preferences from student_preferences table
+      - name: saveStudentPreferences
+        kind: function
+        description: Replace genre-favourite preferences (wholesale overwrite)
+      - name: getOrgStreakSettings
+        kind: function
+        description: KV-cached (1h) streak settings (gracePeriodDays, timezone) for an org
+      - name: updateStudentStreak
+        kind: function
+        description: Recompute and persist a student's streak from reading sessions
+      - name: getOrgBandSettings
+        kind: function
+        description: KV-cached (1h) reading band settings (readsPerBand) for an org
+      - name: updateStudentBand
+        kind: function
+        description: Recompute and persist a student's reading band; returns bandUp transition when band climbs
+      - name: ensureCurrentBand
+        kind: function
+        description: Lazily recompute band if stored band_year_start is stale (new academic year)
+    imports:
+      - from: utils/helpers
+        items: [generateId]
+      - from: utils/streakCalculator
+        items: [calculateStreak, getDateString]
+      - from: utils/readingBandEngine
+        items: [countReads, computeBandIndex, academicYearStart, bandTransition]
+      - from: utils/readingBandDefinitions
+        items: [DEFAULT_READS_PER_BAND]
+
   students.js:
     description: Student management - CRUD, preferences, bulk import
     exports:
