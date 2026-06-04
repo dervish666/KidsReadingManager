@@ -187,7 +187,31 @@ const ParentQRButton = ({ studentId, studentName, variant = 'icon' }) => {
                 py: 1,
               }}
             >
+              {/*
+                Print isolation: when the user prints, hide everything except the
+                QR card and centre it on the page so only a clean, cut-out card
+                comes out (not the whole modal). This <style> is only mounted while
+                the dialog is open, so it never affects other printing in the app.
+              */}
+              <style>{`
+                @media print {
+                  body * { visibility: hidden !important; }
+                  #qr-print-card, #qr-print-card * { visibility: visible !important; }
+                  #qr-print-card {
+                    position: fixed !important;
+                    top: 50% !important;
+                    left: 50% !important;
+                    transform: translate(-50%, -50%) scale(1.5) !important;
+                    margin: 0 !important;
+                    box-shadow: none !important;
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                  }
+                  @page { margin: 12mm; }
+                }
+              `}</style>
               <Box
+                id="qr-print-card"
                 sx={{
                   border: '1.5px dashed rgba(45, 80, 22, 0.35)',
                   borderRadius: 2,

@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.70.2] - 2026-06-04
+
+### Fixed
+
+- **Single-student parent QR print now prints just the QR card** — the "Print" button in the Parent QR Code dialog previously printed the entire modal (title, buttons and all). It now isolates and centres only the QR card on the page — scaled up for easy scanning — so it comes out as a clean, cut-out card. The print stylesheet is only active while the dialog is open, so it never affects printing elsewhere in the app.
+
+### Changed
+
+- **Whole-class QR sheet uses continuous cut lines** — the printable class sheet now lays the cards out on a single dashed grid (the grid draws the outer edges, each card its right/bottom edge) so the dashed lines run straight across the page and can be guillotined in one stroke, rather than every card carrying its own separate border. The final row is padded with blank cells so the lines reach the right edge, and a "✂ cut along the dashed lines" hint shows on screen (hidden when printing).
+
 ## [3.70.1] - 2026-06-04
 
 ### Security

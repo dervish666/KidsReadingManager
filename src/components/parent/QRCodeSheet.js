@@ -50,6 +50,14 @@ const QRCodeSheet = ({ classId, className, onClose }) => {
 
   const getParentUrl = (token) => `${window.location.origin}/parent/${token}`;
 
+  // Continuous dashed cut lines: the grid container draws the top + left edges,
+  // each cell draws its right + bottom edge. With no gap, neighbouring edges line
+  // up into straight dashed lines you can guillotine in one stroke.
+  const CUT_LINE = '1px dashed rgba(45, 80, 22, 0.5)';
+  const COLUMNS = 3;
+  // Pad the final row so the cut lines run straight across to the right edge.
+  const fillerCount = students.length ? (COLUMNS - (students.length % COLUMNS)) % COLUMNS : 0;
+
   return (
     <Box>
       {/* Print styles */}
@@ -121,77 +129,104 @@ const QRCodeSheet = ({ classId, className, onClose }) => {
       )}
 
       {!loading && !error && students.length > 0 && (
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: 2,
-            '@media print': {
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '8mm',
-            },
-          }}
-        >
-          {students.map((student) => (
-            <Box
-              key={student.tokenId}
-              sx={{
-                border: '1.5px dashed rgba(45, 80, 22, 0.35)',
-                borderRadius: 2,
-                bgcolor: '#faf8f5',
-                p: 2,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 1,
-                '@media print': {
-                  breakInside: 'avoid',
-                  pageBreakInside: 'avoid',
-                },
-              }}
-            >
-              {/* QR code */}
-              <QRCodeSVG
-                value={getParentUrl(student.token)}
-                size={100}
-                level="M"
-                style={{ display: 'block' }}
-              />
-
-              {/* Student first name */}
-              <Typography
-                variant="subtitle1"
-                sx={{
-                  fontWeight: 700,
-                  color: '#2d5016',
-                  fontFamily: '"Nunito", sans-serif',
-                  fontSize: '1rem',
-                  textAlign: 'center',
-                }}
-              >
-                {student.studentFirstName}
-              </Typography>
-
-              {/* Tally branding */}
+        <>
+          <Typography
+            className="no-print"
+            variant="caption"
+            sx={{ display: 'block', color: 'text.secondary', mb: 1 }}
+          >
+            ✂ Print, then cut along the dashed lines.
+          </Typography>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: `repeat(${COLUMNS}, 1fr)`,
+              borderTop: CUT_LINE,
+              borderLeft: CUT_LINE,
+              '@media print': {
+                WebkitPrintColorAdjust: 'exact',
+                printColorAdjust: 'exact',
+              },
+            }}
+          >
+            {students.map((student) => (
               <Box
+                key={student.tokenId}
                 sx={{
+                  borderRight: CUT_LINE,
+                  borderBottom: CUT_LINE,
+                  p: 2,
                   display: 'flex',
+                  flexDirection: 'column',
                   alignItems: 'center',
-                  gap: 0.5,
-                  opacity: 0.6,
+                  gap: 1,
+                  '@media print': {
+                    breakInside: 'avoid',
+                    pageBreakInside: 'avoid',
+                    WebkitPrintColorAdjust: 'exact',
+                    printColorAdjust: 'exact',
+                  },
                 }}
               >
-                <TallyLogo size={14} color="#2d5016" />
+                {/* QR code */}
+                <QRCodeSVG
+                  value={getParentUrl(student.token)}
+                  size={100}
+                  level="M"
+                  style={{ display: 'block' }}
+                />
+
+                {/* Student first name */}
                 <Typography
-                  variant="caption"
-                  sx={{ color: '#2d5016', fontWeight: 600, fontSize: '0.65rem' }}
+                  variant="subtitle1"
+                  sx={{
+                    fontWeight: 700,
+                    color: '#2d5016',
+                    fontFamily: '"Nunito", sans-serif',
+                    fontSize: '1rem',
+                    textAlign: 'center',
+                  }}
                 >
-                  Tally Reading
+                  {student.studentFirstName}
                 </Typography>
+
+                {/* Tally branding */}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    opacity: 0.6,
+                  }}
+                >
+                  <TallyLogo size={14} color="#2d5016" />
+                  <Typography
+                    variant="caption"
+                    sx={{ color: '#2d5016', fontWeight: 600, fontSize: '0.65rem' }}
+                  >
+                    Tally Reading
+                  </Typography>
+                </Box>
               </Box>
-            </Box>
-          ))}
-        </Box>
+            ))}
+
+            {/* Empty cells keep the cut lines straight across the final row */}
+            {Array.from({ length: fillerCount }).map((_, i) => (
+              <Box
+                key={`filler-${i}`}
+                aria-hidden
+                sx={{
+                  borderRight: CUT_LINE,
+                  borderBottom: CUT_LINE,
+                  '@media print': {
+                    WebkitPrintColorAdjust: 'exact',
+                    printColorAdjust: 'exact',
+                  },
+                }}
+              />
+            ))}
+          </Box>
+        </>
       )}
     </Box>
   );
