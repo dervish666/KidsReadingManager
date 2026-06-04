@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.70.1] - 2026-06-04
+
+### Security
+
+- **Hono bumped to 4.12.23** — clears four moderate advisories in `hono < 4.12.21` (Dependabot #83–#86): JWT middleware accepting non-Bearer Authorization schemes, `app.mount()` mishandling percent-encoded paths, IP-restriction bypass via non-canonical IPv6, and `Set-Cookie` injection through the cookie helper's unsanitised `sameSite`/`priority`. Patch-level bump within the existing `^4.12.12` range; no API changes. (The separate high-severity `dompurify` alert #82 was already fixed in v3.67.11 — the lockfile carries `3.4.7` — and is awaiting a Dependabot rescan.)
+
 ## [3.70.0] - 2026-06-04
 
 ### Added

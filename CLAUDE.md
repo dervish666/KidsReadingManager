@@ -298,7 +298,9 @@ School data sync and SSO login via two external services:
 1. Create `migrations/XXXX_description.sql` (next sequential number in `migrations/`)
 2. Use `IF NOT EXISTS` for safety (migrations are forward-only, no down migrations)
 3. Test locally: `npx wrangler d1 migrations apply reading-manager-db --local`
-4. Deploy: `npx wrangler d1 migrations apply reading-manager-db --remote`
+4. Apply to remote **before** pushing code that uses the new schema: `npx wrangler d1 migrations apply reading-manager-db --remote`
+
+**Migration + ship ordering (important):** CWB auto-deploys on every push to `main`, so apply the migration to remote prod **before** running `/ship`. If new code that writes new columns deploys before the columns exist, session/entity writes will 500 in prod during the deploy window. Order is always: apply `--remote` → then `/ship` (push). The `/ship` skill has no migration step — this is a manual pre-push release step. Keep migrations backward-compatible (additive, nullable columns) so they're safe against the currently-live code in the gap between applying and deploying.
 
 ### Working with Data Providers
 
