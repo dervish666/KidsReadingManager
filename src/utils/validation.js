@@ -2,6 +2,8 @@
  * Validation utilities for request data
  */
 
+import { OBSERVATION_KEYS, MAX_OBSERVATION_LABEL } from './readingObservations';
+
 /**
  * Validate password strength (8-128 chars, uppercase, lowercase, number).
  * @param {string} password - The password to validate
@@ -26,7 +28,7 @@ export function validatePassword(password) {
 
 /**
  * Validate reading session input fields (pagesRead, duration, date, notes, assessment,
- * location, and the optional reading observations readFluent/readExpressive/readPhonics).
+ * location, and the six optional reading-observation slots in OBSERVATION_KEYS).
  * Mutates numeric fields to parsed values in the returned data object.
  * @param {Object} body - The request body to validate
  * @returns {{ isValid: boolean, error: string, data: Object }}
@@ -75,9 +77,10 @@ export function validateSessionInput(body) {
   }
 
   // Reading observations ("how did they read today?") — optional, independent
-  // flags. Normalise provided values to 0/1; leave absent ones as null so paths
-  // that don't capture them (home/parent) don't overwrite with a false negative.
-  for (const key of ['readFluent', 'readExpressive', 'readPhonics']) {
+  // flags across the six configurable slots. Normalise provided values to 0/1;
+  // leave absent ones as null so paths that don't capture them (home/parent)
+  // don't overwrite with a false negative.
+  for (const key of OBSERVATION_KEYS) {
     if (data[key] === undefined || data[key] === null || data[key] === '') {
       data[key] = null;
     } else {
@@ -274,6 +277,38 @@ export function validateSettings(settings) {
     const rpb = settings.readsPerBand;
     if (!Number.isInteger(rpb) || rpb < 1 || rpb > 1000) {
       errors.push('Reads per band must be a whole number between 1 and 1000');
+    }
+  }
+
+  // Validate reading-observation config if provided. An array of up to six
+  // { key, label, enabled } slots; keys must be known observation keys.
+  if (settings.readingObservations !== undefined) {
+    const ro = settings.readingObservations;
+    if (!Array.isArray(ro) || ro.length > OBSERVATION_KEYS.length) {
+      errors.push(
+        `Reading observations must be an array of up to ${OBSERVATION_KEYS.length} items`
+      );
+    } else {
+      for (const item of ro) {
+        if (!item || typeof item !== 'object' || !OBSERVATION_KEYS.includes(item.key)) {
+          errors.push('Each reading observation must have a valid key');
+          break;
+        }
+        if (item.label !== undefined && typeof item.label !== 'string') {
+          errors.push('Reading observation labels must be text');
+          break;
+        }
+        if (typeof item.label === 'string' && item.label.length > MAX_OBSERVATION_LABEL) {
+          errors.push(
+            `Reading observation labels must be ${MAX_OBSERVATION_LABEL} characters or fewer`
+          );
+          break;
+        }
+        if (item.enabled !== undefined && typeof item.enabled !== 'boolean') {
+          errors.push('Reading observation enabled flag must be true or false');
+          break;
+        }
+      }
     }
   }
 

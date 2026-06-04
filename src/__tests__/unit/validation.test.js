@@ -170,6 +170,13 @@ describe('validateSessionInput - reading observations', () => {
     expect(result.data.readFluent).toBe(1);
     expect(result.data.readExpressive).toBe(0);
   });
+
+  it('normalises the custom observation slots too', () => {
+    const result = validateSessionInput({ readCustom1: true, readCustom2: false });
+    expect(result.data.readCustom1).toBe(1);
+    expect(result.data.readCustom2).toBe(0);
+    expect(result.data.readCustom3).toBeNull();
+  });
 });
 
 describe('validateSettings', () => {
@@ -612,6 +619,31 @@ describe('validateSettings bandColors', () => {
   });
   it('rejects a non-array', () => {
     expect(validateSettings({ bandColors: '#AABBCC' }).isValid).toBe(false);
+  });
+});
+
+describe('validateSettings readingObservations', () => {
+  it('accepts a valid config', () => {
+    const ro = [
+      { key: 'readFluent', label: 'Fluent & confident', enabled: true },
+      { key: 'readCustom1', label: 'Used expression', enabled: true },
+    ];
+    expect(validateSettings({ readingObservations: ro }).isValid).toBe(true);
+  });
+  it('rejects an unknown key', () => {
+    const ro = [{ key: 'readMystery', label: 'x', enabled: true }];
+    expect(validateSettings({ readingObservations: ro }).isValid).toBe(false);
+  });
+  it('rejects more than six items', () => {
+    const ro = Array.from({ length: 7 }, () => ({ key: 'readFluent', label: 'x', enabled: true }));
+    expect(validateSettings({ readingObservations: ro }).isValid).toBe(false);
+  });
+  it('rejects an over-long label', () => {
+    const ro = [{ key: 'readCustom1', label: 'x'.repeat(41), enabled: true }];
+    expect(validateSettings({ readingObservations: ro }).isValid).toBe(false);
+  });
+  it('rejects a non-array', () => {
+    expect(validateSettings({ readingObservations: 'nope' }).isValid).toBe(false);
   });
 });
 

@@ -207,7 +207,7 @@ const ParentQRButton = ({ studentId, studentName, variant = 'icon' }) => {
                     -webkit-print-color-adjust: exact !important;
                     print-color-adjust: exact !important;
                   }
-                  @page { margin: 12mm; }
+                  @page { size: portrait; margin: 12mm; }
                 }
               `}</style>
               <Box

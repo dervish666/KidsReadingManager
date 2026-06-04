@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.71.0] - 2026-06-04
+
+### Added
+
+- **Configurable reading observations** — the "How did they read today?" toggles on the School Reading page are now per-school. Under **Settings → Reading Observations** admins can switch any of the three built-ins off, rename them, and add up to three custom observations (six slots total, with Reset to defaults). The configured set flows everywhere observations appear: the session capture form, the student timeline (display + edit), and the GDPR export (which now lists each session's ticked observations by the school's current labels). Backed by migration `0061` (three nullable `read_custom1/2/3` columns) and a new `readingObservations` org setting. Display/config only — renaming or disabling a slot never rewrites observations already recorded on past sessions.
+
+### Changed
+
+- **Parent QR codes print in portrait** — the single-student and whole-class QR print sheets now request portrait orientation (`@page`), so more codes fit per page. (Honoured by Chrome/Edge; Safari/Firefox still default to the print-dialog setting.)
+
 ## [3.70.2] - 2026-06-04
 
 ### Fixed

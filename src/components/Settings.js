@@ -15,16 +15,23 @@ import {
   Select,
   MenuItem,
   CircularProgress,
+  Checkbox,
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import RestoreIcon from '@mui/icons-material/Restore';
 import WhatshotIcon from '@mui/icons-material/Whatshot';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
+import ChecklistIcon from '@mui/icons-material/Checklist';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import ClassManager from './classes/ClassManager'; // Import ClassManager
 import { DEFAULT_BAND_COLORS, READING_BAND_LADDER } from '../utils/readingBandDefinitions';
+import {
+  resolveObservationConfig,
+  DEFAULT_OBSERVATION_CONFIG,
+  MAX_OBSERVATION_LABEL,
+} from '../utils/readingObservations';
 
 const TERM_NAMES = ['Autumn 1', 'Autumn 2', 'Spring 1', 'Spring 2', 'Summer 1', 'Summer 2'];
 
@@ -57,6 +64,7 @@ const Settings = () => {
     streakGracePeriodDays: settings?.streakGracePeriodDays ?? 1,
     readsPerBand: settings?.readsPerBand ?? 20,
     bandColors: settings?.bandColors ?? DEFAULT_BAND_COLORS,
+    readingObservations: resolveObservationConfig(settings?.readingObservations),
   });
 
   const [saving, setSaving] = useState(false);
@@ -124,6 +132,7 @@ const Settings = () => {
         streakGracePeriodDays: localSettings.streakGracePeriodDays,
         readsPerBand: localSettings.readsPerBand,
         bandColors: localSettings.bandColors,
+        readingObservations: localSettings.readingObservations,
       });
       setSnackbar({
         open: true,
@@ -149,6 +158,7 @@ const Settings = () => {
       streakGracePeriodDays: settings?.streakGracePeriodDays ?? 1,
       readsPerBand: settings?.readsPerBand ?? 20,
       bandColors: settings?.bandColors ?? DEFAULT_BAND_COLORS,
+      readingObservations: resolveObservationConfig(settings?.readingObservations),
     });
     setSnackbar({
       open: true,
@@ -495,6 +505,69 @@ const Settings = () => {
               ))}
             </Box>
           </Box>
+        </Box>
+
+        <Divider sx={{ my: 3 }} />
+
+        {/* Reading Observations Section */}
+        <Box sx={{ mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+            <ChecklistIcon sx={{ color: 'primary.main' }} />
+            <Typography variant="subtitle1">Reading Observations</Typography>
+          </Box>
+          <Typography variant="body2" color="text.secondary" paragraph>
+            The optional “How did they read today?” toggles teachers can tick when logging a reading
+            session. Switch any off, rename them, or add your own — up to six.
+          </Typography>
+
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+            <Button
+              size="small"
+              onClick={() =>
+                setLocalSettings((s) => ({
+                  ...s,
+                  readingObservations: DEFAULT_OBSERVATION_CONFIG.map((o) => ({ ...o })),
+                }))
+              }
+            >
+              Reset to defaults
+            </Button>
+          </Box>
+
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            {localSettings.readingObservations.map((obs, i) => (
+              <Box key={obs.key} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Checkbox
+                  checked={obs.enabled}
+                  onChange={(e) =>
+                    setLocalSettings((s) => {
+                      const next = s.readingObservations.map((o) => ({ ...o }));
+                      next[i].enabled = e.target.checked;
+                      return { ...s, readingObservations: next };
+                    })
+                  }
+                  inputProps={{ 'aria-label': `Enable observation ${i + 1}` }}
+                />
+                <TextField
+                  value={obs.label}
+                  placeholder="Custom observation"
+                  size="small"
+                  fullWidth
+                  inputProps={{ maxLength: MAX_OBSERVATION_LABEL }}
+                  onChange={(e) =>
+                    setLocalSettings((s) => {
+                      const next = s.readingObservations.map((o) => ({ ...o }));
+                      next[i].label = e.target.value;
+                      return { ...s, readingObservations: next };
+                    })
+                  }
+                />
+              </Box>
+            ))}
+          </Box>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+            Enabled observations need a name to appear on the reading form.
+          </Typography>
         </Box>
 
         <Divider sx={{ my: 3 }} />

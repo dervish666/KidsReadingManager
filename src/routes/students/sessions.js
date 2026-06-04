@@ -28,18 +28,17 @@ import {
   saveStudent as saveStudentKV,
 } from '../../services/kvService.js';
 import { getOrgStreakSettings, updateStudentStreak, updateStudentBand } from './_shared.js';
+import { OBSERVATION_SLOTS } from '../../utils/readingObservations.js';
 
 const sessionsRouter = new Hono();
 
 /**
  * Map the stored reading-observation columns (nullable 0/1) onto the boolean
  * API shape used by the client. Null/0 -> false (unticked), 1 -> true.
+ * Covers all six configurable slots (read_fluent … read_custom3).
  */
-const readObservations = (row) => ({
-  readFluent: !!row.read_fluent,
-  readExpressive: !!row.read_expressive,
-  readPhonics: !!row.read_phonics,
-});
+const readObservations = (row) =>
+  Object.fromEntries(OBSERVATION_SLOTS.map((s) => [s.key, !!row[s.column]]));
 
 sessionsRouter.get('/sessions', requireReadonly(), async (c) => {
   if (!isMultiTenantMode(c)) {
@@ -230,8 +229,8 @@ sessionsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
           `INSERT INTO reading_sessions (
                id, student_id, session_date, book_id, book_title_manual, book_author_manual,
                pages_read, duration_minutes, assessment, notes, location, recorded_by,
-               read_fluent, read_expressive, read_phonics
-             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+               read_fluent, read_expressive, read_phonics, read_custom1, read_custom2, read_custom3
+             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         )
         .bind(
           sessionId,
@@ -248,7 +247,10 @@ sessionsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
           userId,
           body.readFluent ?? null,
           body.readExpressive ?? null,
-          body.readPhonics ?? null
+          body.readPhonics ?? null,
+          body.readCustom1 ?? null,
+          body.readCustom2 ?? null,
+          body.readCustom3 ?? null
         ),
     ];
 
@@ -368,6 +370,9 @@ sessionsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
     readFluent: body.readFluent ?? null,
     readExpressive: body.readExpressive ?? null,
     readPhonics: body.readPhonics ?? null,
+    readCustom1: body.readCustom1 ?? null,
+    readCustom2: body.readCustom2 ?? null,
+    readCustom3: body.readCustom3 ?? null,
   };
 
   student.readingSessions = student.readingSessions || [];
@@ -494,7 +499,10 @@ sessionsRouter.put(
              location = ?,
              read_fluent = ?,
              read_expressive = ?,
-             read_phonics = ?
+             read_phonics = ?,
+             read_custom1 = ?,
+             read_custom2 = ?,
+             read_custom3 = ?
            WHERE id = ?`
         )
         .bind(
@@ -510,6 +518,9 @@ sessionsRouter.put(
           body.readFluent ?? null,
           body.readExpressive ?? null,
           body.readPhonics ?? null,
+          body.readCustom1 ?? null,
+          body.readCustom2 ?? null,
+          body.readCustom3 ?? null,
           sessionId
         )
         .run();

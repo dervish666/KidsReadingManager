@@ -28,11 +28,14 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
 import BookAutocomplete from '../sessions/BookAutocomplete';
 import AssessmentSelector from '../sessions/AssessmentSelector';
-import ReadingObservationToggles, {
-  READING_OBSERVATIONS,
+import ReadingObservationToggles from '../sessions/ReadingObservationToggles';
+import {
+  OBSERVATION_SLOTS,
+  observationLabel,
+  enabledObservations,
   emptyObservations,
   observationsFromSession,
-} from '../sessions/ReadingObservationToggles';
+} from '../../utils/readingObservations';
 
 // ─── Colour constants (aligned with Cozy Bookshelf theme) ────────────────────
 const DOT_RECENT = '#6B8E6B'; // primary.main — within 7 days
@@ -74,7 +77,15 @@ function isWithin7Days(dateString) {
 
 const StudentTimeline = ({ sessions, loading, studentId, onSessionChange }) => {
   const { fetchWithAuth } = useAuth();
-  const { students, books, editReadingSession, deleteReadingSession } = useData();
+  const { students, books, editReadingSession, deleteReadingSession, settings } = useData();
+  const observationConfig = settings?.readingObservations;
+
+  // Observations ticked on a session, resolved to the school's current labels
+  // (built-in or custom). Slots with no resolvable label are skipped.
+  const tickedObservations = (session) =>
+    OBSERVATION_SLOTS.filter((slot) => session[slot.key])
+      .map((slot) => ({ key: slot.key, label: observationLabel(slot.key, observationConfig) }))
+      .filter((o) => o.label);
 
   // O(1) lookup map for books
   const booksMap = useMemo(() => new Map(books.map((b) => [b.id, b])), [books]);
@@ -381,9 +392,9 @@ const StudentTimeline = ({ sessions, loading, studentId, onSessionChange }) => {
                     </Typography>
 
                     {/* Reading observations */}
-                    {READING_OBSERVATIONS.some((o) => session[o.key]) && (
+                    {tickedObservations(session).length > 0 && (
                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
-                        {READING_OBSERVATIONS.filter((o) => session[o.key]).map((o) => (
+                        {tickedObservations(session).map((o) => (
                           <Chip
                             key={o.key}
                             label={o.label}
@@ -539,7 +550,11 @@ const StudentTimeline = ({ sessions, loading, studentId, onSessionChange }) => {
             </Box>
 
             <Box sx={{ mt: 2, mb: 1 }}>
-              <ReadingObservationToggles values={editObservations} onChange={setEditObservations} />
+              <ReadingObservationToggles
+                values={editObservations}
+                onChange={setEditObservations}
+                observations={enabledObservations(observationConfig)}
+              />
             </Box>
 
             <TextField

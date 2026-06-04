@@ -92,6 +92,7 @@ src/utils/email.js - Password reset/welcome/signup/support emails (multi-provide
 src/utils/streakCalculator.js - Reading streak calculation with grace period
 src/utils/readingBandDefinitions.js - Reading band ladder (16 colour bands), default reads-per-band, band lookup
 src/utils/readingBandEngine.js - Pure reading-band maths: read counting, band index, academic-year start, display payload + transition
+src/utils/readingObservations.js - Per-session reading-observation slots (6 fixed cols) + per-org config resolver (labels/enabled), shared by worker + app
 src/utils/studentProfile.js - Build student reading profile for AI context
 src/utils/stringMatching.js - Levenshtein distance for book deduplication
 src/utils/recommendationCache.js - KV caching for AI recommendations

@@ -22,6 +22,11 @@ import {
   safeJsonParse,
   requireStudent,
 } from '../../utils/routeHelpers.js';
+import {
+  OBSERVATION_SLOTS,
+  observationLabel,
+  resolveObservationConfig,
+} from '../../utils/readingObservations.js';
 
 const gdprRouter = new Hono();
 
@@ -246,6 +251,16 @@ gdprRouter.get('/:id/export', requireAdmin(), async (c) => {
     .bind(organizationId)
     .first();
 
+  // Reading-observation config so the export reflects the school's own labels
+  // (including any custom observations), not just the built-in three.
+  const obsRow = await db
+    .prepare(
+      `SELECT setting_value FROM org_settings WHERE organization_id = ? AND setting_key = 'readingObservations'`
+    )
+    .bind(organizationId)
+    .first();
+  const obsConfig = resolveObservationConfig(safeJsonParse(obsRow?.setting_value, null));
+
   const sessions = await db
     .prepare(
       `SELECT rs.*, b.title as book_title, b.author as book_author, u.name as recorded_by_name
@@ -323,9 +338,11 @@ gdprRouter.get('/:id/export', requireAdmin(), async (c) => {
       pagesRead: s.pages_read,
       durationMinutes: s.duration_minutes,
       assessment: s.assessment,
-      readFluent: !!s.read_fluent,
-      readExpressive: !!s.read_expressive,
-      readPhonics: !!s.read_phonics,
+      // Human-readable list of the observations ticked on this session, using
+      // the school's current labels (covers built-in + custom slots).
+      observations: OBSERVATION_SLOTS.filter((slot) => !!s[slot.column])
+        .map((slot) => observationLabel(slot.key, obsConfig))
+        .filter(Boolean),
       notes: s.notes,
       location: s.location || 'school',
       recordedBy: s.recorded_by_name || null,
@@ -384,7 +401,7 @@ gdprRouter.get('/:id/export', requireAdmin(), async (c) => {
 
     lines.push('## Reading Sessions');
     lines.push(
-      'Date,Book Title,Book Author,Pages Read,Duration (mins),Assessment,Fluent & Confident,Engaging & Expressive,Reliant on Phonics,Notes,Location,Recorded By'
+      'Date,Book Title,Book Author,Pages Read,Duration (mins),Assessment,Reading Observations,Notes,Location,Recorded By'
     );
     for (const rs of exportData.readingSessions) {
       lines.push(
@@ -395,9 +412,7 @@ gdprRouter.get('/:id/export', requireAdmin(), async (c) => {
           rs.pagesRead,
           rs.durationMinutes,
           rs.assessment,
-          rs.readFluent,
-          rs.readExpressive,
-          rs.readPhonics,
+          (rs.observations || []).join('; '),
           rs.notes,
           rs.location,
           rs.recordedBy,

@@ -269,6 +269,47 @@ files:
         params: [{name: fromIndex}, {name: toIndex}]
         returns: "{from, to}"
 
+  utils/readingObservations.js:
+    description: Shared definitions for per-session reading observations ("how did they read today?") — six fixed DB slots (3 built-in + 3 custom) with per-org config (label/enabled). Imported by both worker and React app.
+    exports:
+      - name: OBSERVATION_SLOTS
+        kind: const
+        description: Array of 6 {key, column, defaultLabel, defaultEnabled} mapping camelCase API key to snake_case DB column
+      - name: OBSERVATION_KEYS
+        kind: const
+        description: The 6 camelCase observation keys in canonical order
+      - name: MAX_OBSERVATION_LABEL
+        kind: const
+        returns: number
+        description: Max length of an observation label (40)
+      - name: DEFAULT_OBSERVATION_CONFIG
+        kind: const
+        description: Default per-org config — 3 built-ins enabled, 3 custom slots off
+      - name: resolveObservationConfig
+        kind: function
+        params: [{name: stored}]
+        returns: array
+        description: Normalise stored org config onto the 6 canonical slots; tolerant of partial/malformed input
+      - name: enabledObservations
+        kind: function
+        params: [{name: stored}]
+        returns: "array of {key,label}"
+        description: Enabled, labelled slots a teacher sees on the capture/edit form
+      - name: observationLabel
+        kind: function
+        params: [{name: key}, {name: stored}]
+        returns: string
+        description: Display label for one observation key (configured label, else built-in default)
+      - name: emptyObservations
+        kind: function
+        returns: object
+        description: All six slots unticked (false)
+      - name: observationsFromSession
+        kind: function
+        params: [{name: session}]
+        returns: object
+        description: Pull the six observation fields off a session as booleans
+
   utils/studentProfile.js:
     description: Build comprehensive student reading profile for AI context
     exports:

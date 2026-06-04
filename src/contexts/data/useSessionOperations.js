@@ -19,6 +19,9 @@ export function useSessionOperations(fetchWithAuth, setStudents, setApiError) {
         readFluent: sessionData.readFluent ?? null,
         readExpressive: sessionData.readExpressive ?? null,
         readPhonics: sessionData.readPhonics ?? null,
+        readCustom1: sessionData.readCustom1 ?? null,
+        readCustom2: sessionData.readCustom2 ?? null,
+        readCustom3: sessionData.readCustom3 ?? null,
       };
 
       try {
@@ -83,6 +86,9 @@ export function useSessionOperations(fetchWithAuth, setStudents, setApiError) {
         readFluent: updatedSessionData.readFluent ?? null,
         readExpressive: updatedSessionData.readExpressive ?? null,
         readPhonics: updatedSessionData.readPhonics ?? null,
+        readCustom1: updatedSessionData.readCustom1 ?? null,
+        readCustom2: updatedSessionData.readCustom2 ?? null,
+        readCustom3: updatedSessionData.readCustom3 ?? null,
       };
 
       try {

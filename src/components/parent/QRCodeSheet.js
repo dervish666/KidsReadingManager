@@ -65,7 +65,7 @@ const QRCodeSheet = ({ classId, className, onClose }) => {
         @media print {
           .no-print { display: none !important; }
           body { background: white !important; }
-          @page { margin: 10mm; }
+          @page { size: portrait; margin: 10mm; }
         }
       `}</style>
 

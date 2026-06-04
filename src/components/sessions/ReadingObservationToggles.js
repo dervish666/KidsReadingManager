@@ -1,41 +1,42 @@
 import React from 'react';
 import { Box, Chip, Typography } from '@mui/material';
 import CheckIcon from '@mui/icons-material/Check';
+import {
+  enabledObservations,
+  emptyObservations,
+  observationsFromSession,
+  DEFAULT_OBSERVATION_CONFIG,
+} from '../../utils/readingObservations';
+
+// Re-exported so existing imports (SessionForm, StudentTimeline) keep working.
+export { emptyObservations, observationsFromSession };
 
 /**
- * The three optional reading observations a teacher can record on a session
- * ("how did they read today?"). Independent on/off flags — none are required and
- * any combination is valid. Keys match the API/DB field names.
- */
-export const READING_OBSERVATIONS = [
-  { key: 'readFluent', label: 'Fluent & confident' },
-  { key: 'readExpressive', label: 'Engaging & expressive' },
-  { key: 'readPhonics', label: 'Reliant on phonics' },
-];
-
-/** Empty observation state — all unticked. */
-export const emptyObservations = () => ({
-  readFluent: false,
-  readExpressive: false,
-  readPhonics: false,
-});
-
-/** Pull just the observation fields out of a session object as booleans. */
-export const observationsFromSession = (session = {}) => ({
-  readFluent: !!session.readFluent,
-  readExpressive: !!session.readExpressive,
-  readPhonics: !!session.readPhonics,
-});
-
-/**
- * Tappable chip row for the three reading observations.
+ * Tappable chip row for the per-session reading observations
+ * ("how did they read today?"). Which chips appear is driven by the school's
+ * configuration — pass the enabled slots via `observations`; falls back to the
+ * built-in defaults when none are provided.
  *
- * @param {{ readFluent: boolean, readExpressive: boolean, readPhonics: boolean }} values
- * @param {(next) => void} onChange  receives the full updated values object
- * @param {string} [label]           caption shown above the chips (pass null to hide)
+ * @param {{ [key: string]: boolean }} values        current tick state, keyed by observation key
+ * @param {(next) => void} onChange                   receives the full updated values object
+ * @param {Array<{key,label}>} [observations]         enabled slots to render
+ * @param {string} [label]                            caption shown above the chips (pass null to hide)
  */
-const ReadingObservationToggles = ({ values, onChange, label = 'How did they read today?' }) => {
+const ReadingObservationToggles = ({
+  values,
+  onChange,
+  observations,
+  label = 'How did they read today?',
+}) => {
+  const items =
+    observations && observations.length >= 0
+      ? observations
+      : enabledObservations(DEFAULT_OBSERVATION_CONFIG);
+
   const toggle = (key) => onChange({ ...values, [key]: !values[key] });
+
+  // Nothing to show if the school has switched every observation off.
+  if (!items.length) return null;
 
   return (
     <Box>
@@ -51,7 +52,7 @@ const ReadingObservationToggles = ({ values, onChange, label = 'How did they rea
         </Typography>
       )}
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-        {READING_OBSERVATIONS.map(({ key, label: chipLabel }) => {
+        {items.map(({ key, label: chipLabel }) => {
           const active = !!values?.[key];
           return (
             <Chip

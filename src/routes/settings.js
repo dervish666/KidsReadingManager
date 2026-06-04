@@ -106,6 +106,7 @@ settingsRouter.post('/', requireAdmin(), auditLog('update', 'settings'), async (
       'streakGracePeriodDays',
       'readsPerBand',
       'bandColors',
+      'readingObservations',
     ];
 
     const updates = [];

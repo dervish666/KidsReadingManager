@@ -30,6 +30,7 @@ import { useTour } from '../tour/useTour';
 import BookCover from '../BookCover';
 import AssessmentSelector from './AssessmentSelector';
 import ReadingObservationToggles, { emptyObservations } from './ReadingObservationToggles';
+import { enabledObservations } from '../../utils/readingObservations';
 import SessionNotes from './SessionNotes';
 import BookAutocomplete from './BookAutocomplete';
 import StudentInfoCard from './StudentInfoCard';
@@ -56,6 +57,8 @@ const SessionForm = () => {
   } = useData();
   const { globalClassFilter, recentlyAccessedStudents, removeRecentlyAccessedStudent } = useUI();
   useTour('session-form');
+
+  const observationItems = enabledObservations(settings?.readingObservations);
 
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [assessment, setAssessment] = useState(null);
@@ -770,9 +773,13 @@ const SessionForm = () => {
               <AssessmentSelector value={assessment} onChange={handleAssessmentChange} />
             </Box>
 
-            {/* Reading observations — optional toggles */}
+            {/* Reading observations — optional toggles (school-configurable) */}
             <Box data-tour="session-observations">
-              <ReadingObservationToggles values={observations} onChange={setObservations} />
+              <ReadingObservationToggles
+                values={observations}
+                onChange={setObservations}
+                observations={observationItems}
+              />
             </Box>
 
             {/* Notes + Enjoyment + Save button on same row */}
