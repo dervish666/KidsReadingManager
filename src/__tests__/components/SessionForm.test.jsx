@@ -436,6 +436,9 @@ describe('SessionForm Component', () => {
       expect(mockAddReadingSession).toHaveBeenCalledWith('student-2', {
         date: expect.any(String),
         assessment: expect.any(Number),
+        readFluent: false,
+        readExpressive: false,
+        readPhonics: false,
         notes: '',
         bookId: null,
         location: 'school',
@@ -475,8 +478,50 @@ describe('SessionForm Component', () => {
       expect(mockAddReadingSession).toHaveBeenCalledWith('student-2', {
         date: expect.any(String),
         assessment: expect.any(Number),
+        readFluent: false,
+        readExpressive: false,
+        readPhonics: false,
         notes: '',
         bookId: 'book-1',
+        location: 'school',
+      });
+    });
+
+    it('should include reading observations when toggled', async () => {
+      const mockAddReadingSession = vi.fn();
+      const context = createMockContext({ addReadingSession: mockAddReadingSession });
+      const user = userEvent.setup();
+      render(<SessionForm />, { wrapper: createWrapper(context) });
+
+      // Select a student
+      const studentSelect = screen.getByLabelText('Student');
+      await user.click(studentSelect);
+      await user.click(screen.getByText('Bob Jones'));
+
+      // Set assessment
+      const promptText = screen.getByText(/tap to set reading assessment/i);
+      fireEvent.click(promptText.closest('[class*="MuiBox"]') || promptText.parentElement);
+      await waitFor(() => {
+        expect(screen.getByRole('slider')).toBeInTheDocument();
+      });
+      fireEvent.change(screen.getByRole('slider'), { target: { value: 7 } });
+
+      // Toggle two of the three observations
+      await user.click(screen.getByRole('button', { name: /fluent & confident/i }));
+      await user.click(screen.getByRole('button', { name: /reliant on phonics/i }));
+
+      // Submit
+      const submitButton = screen.getByRole('button', { name: /save reading session/i });
+      await user.click(submitButton);
+
+      expect(mockAddReadingSession).toHaveBeenCalledWith('student-2', {
+        date: expect.any(String),
+        assessment: expect.any(Number),
+        readFluent: true,
+        readExpressive: false,
+        readPhonics: true,
+        notes: '',
+        bookId: null,
         location: 'school',
       });
     });

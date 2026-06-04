@@ -18,6 +18,7 @@ import {
   Snackbar,
   Alert,
   Collapse,
+  Chip,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -27,6 +28,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
 import BookAutocomplete from '../sessions/BookAutocomplete';
 import AssessmentSelector from '../sessions/AssessmentSelector';
+import ReadingObservationToggles, {
+  READING_OBSERVATIONS,
+  emptyObservations,
+  observationsFromSession,
+} from '../sessions/ReadingObservationToggles';
 
 // ─── Colour constants (aligned with Cozy Bookshelf theme) ────────────────────
 const DOT_RECENT = '#6B8E6B'; // primary.main — within 7 days
@@ -100,6 +106,7 @@ const StudentTimeline = ({ sessions, loading, studentId, onSessionChange }) => {
   const [editingSession, setEditingSession] = useState(null);
   const [editDate, setEditDate] = useState('');
   const [editAssessment, setEditAssessment] = useState('');
+  const [editObservations, setEditObservations] = useState(emptyObservations);
   const [editNotes, setEditNotes] = useState('');
   const [editBookId, setEditBookId] = useState('');
   const [editLocation, setEditLocation] = useState('school');
@@ -110,6 +117,7 @@ const StudentTimeline = ({ sessions, loading, studentId, onSessionChange }) => {
     setEditingSession(session);
     setEditDate(session.date);
     setEditAssessment(session.assessment);
+    setEditObservations(observationsFromSession(session));
     setEditNotes(session.notes || '');
     setEditBookId(session.bookId || '');
     setEditLocation(session.location || 'school');
@@ -139,6 +147,7 @@ const StudentTimeline = ({ sessions, loading, studentId, onSessionChange }) => {
       await editReadingSession(studentId, editingSession.id, {
         date: editDate,
         assessment: editAssessment,
+        ...editObservations,
         notes: editNotes,
         bookId: editBookId || null,
         location: editLocation || 'school',
@@ -371,6 +380,25 @@ const StudentTimeline = ({ sessions, loading, studentId, onSessionChange }) => {
                           : 'Location not specified'}
                     </Typography>
 
+                    {/* Reading observations */}
+                    {READING_OBSERVATIONS.some((o) => session[o.key]) && (
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
+                        {READING_OBSERVATIONS.filter((o) => session[o.key]).map((o) => (
+                          <Chip
+                            key={o.key}
+                            label={o.label}
+                            size="small"
+                            sx={{
+                              height: 22,
+                              fontSize: '0.7rem',
+                              bgcolor: 'rgba(107,142,107,0.12)',
+                              color: 'primary.dark',
+                            }}
+                          />
+                        ))}
+                      </Box>
+                    )}
+
                     {/* Notes */}
                     {session.notes && (
                       <Typography
@@ -508,6 +536,10 @@ const StudentTimeline = ({ sessions, loading, studentId, onSessionChange }) => {
                 value={editAssessment}
                 onChange={(val) => setEditAssessment(val)}
               />
+            </Box>
+
+            <Box sx={{ mt: 2, mb: 1 }}>
+              <ReadingObservationToggles values={editObservations} onChange={setEditObservations} />
             </Box>
 
             <TextField

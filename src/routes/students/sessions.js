@@ -31,6 +31,16 @@ import { getOrgStreakSettings, updateStudentStreak, updateStudentBand } from './
 
 const sessionsRouter = new Hono();
 
+/**
+ * Map the stored reading-observation columns (nullable 0/1) onto the boolean
+ * API shape used by the client. Null/0 -> false (unticked), 1 -> true.
+ */
+const readObservations = (row) => ({
+  readFluent: !!row.read_fluent,
+  readExpressive: !!row.read_expressive,
+  readPhonics: !!row.read_phonics,
+});
+
 sessionsRouter.get('/sessions', requireReadonly(), async (c) => {
   if (!isMultiTenantMode(c)) {
     return c.json([]);
@@ -93,6 +103,7 @@ sessionsRouter.get('/sessions', requireReadonly(), async (c) => {
     location: s.location || 'school',
     recordedBy: s.recorded_by,
     studentName: s.student_name,
+    ...readObservations(s),
   }));
 
   return c.json(sessions);
@@ -146,6 +157,7 @@ sessionsRouter.get('/:id/sessions', requireReadonly(), async (c) => {
     notes: s.notes,
     location: s.location || 'school',
     recordedBy: s.recorded_by,
+    ...readObservations(s),
   }));
 
   return c.json(sessions);
@@ -217,8 +229,9 @@ sessionsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
         .prepare(
           `INSERT INTO reading_sessions (
                id, student_id, session_date, book_id, book_title_manual, book_author_manual,
-               pages_read, duration_minutes, assessment, notes, location, recorded_by
-             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+               pages_read, duration_minutes, assessment, notes, location, recorded_by,
+               read_fluent, read_expressive, read_phonics
+             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         )
         .bind(
           sessionId,
@@ -232,7 +245,10 @@ sessionsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
           body.assessment ?? null,
           body.notes ?? null,
           body.location || 'school',
-          userId
+          userId,
+          body.readFluent ?? null,
+          body.readExpressive ?? null,
+          body.readPhonics ?? null
         ),
     ];
 
@@ -321,6 +337,7 @@ sessionsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
         notes: session.notes,
         location: session.location || 'school',
         recordedBy: session.recorded_by,
+        ...readObservations(session),
         newBadges,
         completedGoals,
         bandUp,
@@ -348,6 +365,9 @@ sessionsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
     assessment: body.assessment,
     notes: body.notes,
     location: body.location || 'school',
+    readFluent: body.readFluent ?? null,
+    readExpressive: body.readExpressive ?? null,
+    readPhonics: body.readPhonics ?? null,
   };
 
   student.readingSessions = student.readingSessions || [];
@@ -471,7 +491,10 @@ sessionsRouter.put(
              duration_minutes = ?,
              assessment = ?,
              notes = ?,
-             location = ?
+             location = ?,
+             read_fluent = ?,
+             read_expressive = ?,
+             read_phonics = ?
            WHERE id = ?`
         )
         .bind(
@@ -484,6 +507,9 @@ sessionsRouter.put(
           body.assessment ?? null,
           body.notes ?? null,
           body.location ?? 'school',
+          body.readFluent ?? null,
+          body.readExpressive ?? null,
+          body.readPhonics ?? null,
           sessionId
         )
         .run();
@@ -535,6 +561,7 @@ sessionsRouter.put(
         duration: session.duration_minutes,
         assessment: session.assessment,
         notes: session.notes,
+        ...readObservations(session),
         newBadges,
         completedGoals,
       });

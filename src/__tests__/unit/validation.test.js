@@ -9,6 +9,7 @@ import {
   validateClass,
   validateBook,
   isValidAssessment,
+  validateSessionInput,
 } from '../../utils/validation.js';
 
 describe('validateStudent', () => {
@@ -128,6 +129,46 @@ describe('validateStudent', () => {
       expect(result.errors).toContain('Session at index 1 is missing an ID');
       expect(result.errors).toContain('Session at index 1 is missing a date');
     });
+  });
+});
+
+describe('validateSessionInput - reading observations', () => {
+  it('normalises provided observations to 0/1', () => {
+    const result = validateSessionInput({
+      assessment: 5,
+      readFluent: true,
+      readExpressive: false,
+      readPhonics: true,
+    });
+    expect(result.isValid).toBe(true);
+    expect(result.data.readFluent).toBe(1);
+    expect(result.data.readExpressive).toBe(0);
+    expect(result.data.readPhonics).toBe(1);
+  });
+
+  it('defaults absent observations to null (not 0)', () => {
+    const result = validateSessionInput({ assessment: 5 });
+    expect(result.isValid).toBe(true);
+    expect(result.data.readFluent).toBeNull();
+    expect(result.data.readExpressive).toBeNull();
+    expect(result.data.readPhonics).toBeNull();
+  });
+
+  it('treats explicit null/empty observations as null', () => {
+    const result = validateSessionInput({
+      readFluent: null,
+      readExpressive: '',
+      readPhonics: undefined,
+    });
+    expect(result.data.readFluent).toBeNull();
+    expect(result.data.readExpressive).toBeNull();
+    expect(result.data.readPhonics).toBeNull();
+  });
+
+  it('coerces truthy/falsy values to 1/0', () => {
+    const result = validateSessionInput({ readFluent: 1, readExpressive: 0 });
+    expect(result.data.readFluent).toBe(1);
+    expect(result.data.readExpressive).toBe(0);
   });
 });
 

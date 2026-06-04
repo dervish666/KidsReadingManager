@@ -29,6 +29,7 @@ import { useUI } from '../../contexts/UIContext';
 import { useTour } from '../tour/useTour';
 import BookCover from '../BookCover';
 import AssessmentSelector from './AssessmentSelector';
+import ReadingObservationToggles, { emptyObservations } from './ReadingObservationToggles';
 import SessionNotes from './SessionNotes';
 import BookAutocomplete from './BookAutocomplete';
 import StudentInfoCard from './StudentInfoCard';
@@ -58,6 +59,7 @@ const SessionForm = () => {
 
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [assessment, setAssessment] = useState(null);
+  const [observations, setObservations] = useState(emptyObservations);
   const [notes, setNotes] = useState('');
   const [date, setDate] = useState(() => new Date().toLocaleDateString('en-CA'));
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -327,6 +329,7 @@ const SessionForm = () => {
       const result = await addReadingSession(selectedStudentId, {
         date,
         assessment,
+        ...observations,
         notes,
         bookId: selectedBookId || null,
         location: 'school',
@@ -371,6 +374,7 @@ const SessionForm = () => {
         // Reset form only on success
         setNotes('');
         setAssessment(null);
+        setObservations(emptyObservations());
         setSelectedBookId('');
         setBookAuthor('');
         setBookReadingLevel('');
@@ -764,6 +768,11 @@ const SessionForm = () => {
             {/* Assessment */}
             <Box data-tour="session-assessment">
               <AssessmentSelector value={assessment} onChange={handleAssessmentChange} />
+            </Box>
+
+            {/* Reading observations — optional toggles */}
+            <Box data-tour="session-observations">
+              <ReadingObservationToggles values={observations} onChange={setObservations} />
             </Box>
 
             {/* Notes + Enjoyment + Save button on same row */}

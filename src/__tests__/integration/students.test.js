@@ -470,6 +470,9 @@ describe('GET /api/students/sessions', () => {
         pages_read: 20,
         duration_minutes: 15,
         assessment: 8,
+        read_fluent: 1,
+        read_expressive: 0,
+        read_phonics: 1,
         notes: null,
         location: 'home',
         recorded_by: 'user-1',
@@ -520,12 +523,20 @@ describe('GET /api/students/sessions', () => {
     expect(data[0].assessment).toBe(8);
     expect(data[0].location).toBe('home');
     expect(data[0].recordedBy).toBe('user-1');
+    // Reading observations mapped from 0/1 columns to booleans
+    expect(data[0].readFluent).toBe(true);
+    expect(data[0].readExpressive).toBe(false);
+    expect(data[0].readPhonics).toBe(true);
 
     // Second session — uses manual book title/author
     expect(data[1].id).toBe('sess-2');
     expect(data[1].bookTitle).toBe('Unknown Book');
     expect(data[1].bookAuthor).toBe('Unknown Author');
     expect(data[1].location).toBe('school'); // default when null
+    // No observation columns present -> default to false
+    expect(data[1].readFluent).toBe(false);
+    expect(data[1].readExpressive).toBe(false);
+    expect(data[1].readPhonics).toBe(false);
   });
 
   it('should require classId and startDate and endDate', async () => {

@@ -16,6 +16,9 @@ export function useSessionOperations(fetchWithAuth, setStudents, setApiError) {
         pagesRead: sessionData.pagesRead || null,
         duration: sessionData.duration || null,
         location: sessionData.location || 'school',
+        readFluent: sessionData.readFluent ?? null,
+        readExpressive: sessionData.readExpressive ?? null,
+        readPhonics: sessionData.readPhonics ?? null,
       };
 
       try {
@@ -77,6 +80,9 @@ export function useSessionOperations(fetchWithAuth, setStudents, setApiError) {
         duration: updatedSessionData.duration || null,
         assessment: updatedSessionData.assessment || null,
         notes: updatedSessionData.notes || null,
+        readFluent: updatedSessionData.readFluent ?? null,
+        readExpressive: updatedSessionData.readExpressive ?? null,
+        readPhonics: updatedSessionData.readPhonics ?? null,
       };
 
       try {

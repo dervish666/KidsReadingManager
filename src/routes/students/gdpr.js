@@ -323,6 +323,9 @@ gdprRouter.get('/:id/export', requireAdmin(), async (c) => {
       pagesRead: s.pages_read,
       durationMinutes: s.duration_minutes,
       assessment: s.assessment,
+      readFluent: !!s.read_fluent,
+      readExpressive: !!s.read_expressive,
+      readPhonics: !!s.read_phonics,
       notes: s.notes,
       location: s.location || 'school',
       recordedBy: s.recorded_by_name || null,
@@ -381,7 +384,7 @@ gdprRouter.get('/:id/export', requireAdmin(), async (c) => {
 
     lines.push('## Reading Sessions');
     lines.push(
-      'Date,Book Title,Book Author,Pages Read,Duration (mins),Assessment,Notes,Location,Recorded By'
+      'Date,Book Title,Book Author,Pages Read,Duration (mins),Assessment,Fluent & Confident,Engaging & Expressive,Reliant on Phonics,Notes,Location,Recorded By'
     );
     for (const rs of exportData.readingSessions) {
       lines.push(
@@ -392,6 +395,9 @@ gdprRouter.get('/:id/export', requireAdmin(), async (c) => {
           rs.pagesRead,
           rs.durationMinutes,
           rs.assessment,
+          rs.readFluent,
+          rs.readExpressive,
+          rs.readPhonics,
           rs.notes,
           rs.location,
           rs.recordedBy,

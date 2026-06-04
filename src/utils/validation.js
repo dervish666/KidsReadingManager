@@ -25,7 +25,8 @@ export function validatePassword(password) {
 }
 
 /**
- * Validate reading session input fields (pagesRead, duration, date, notes, assessment, location).
+ * Validate reading session input fields (pagesRead, duration, date, notes, assessment,
+ * location, and the optional reading observations readFluent/readExpressive/readPhonics).
  * Mutates numeric fields to parsed values in the returned data object.
  * @param {Object} body - The request body to validate
  * @returns {{ isValid: boolean, error: string, data: Object }}
@@ -71,6 +72,17 @@ export function validateSessionInput(body) {
   const validLocations = [null, undefined, '', 'school', 'home', 'library', 'other'];
   if (data.location && !validLocations.includes(data.location)) {
     return { isValid: false, error: 'Invalid location value', data };
+  }
+
+  // Reading observations ("how did they read today?") — optional, independent
+  // flags. Normalise provided values to 0/1; leave absent ones as null so paths
+  // that don't capture them (home/parent) don't overwrite with a false negative.
+  for (const key of ['readFluent', 'readExpressive', 'readPhonics']) {
+    if (data[key] === undefined || data[key] === null || data[key] === '') {
+      data[key] = null;
+    } else {
+      data[key] = data[key] ? 1 : 0;
+    }
   }
 
   return { isValid: true, error: '', data };

@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.70.0] - 2026-06-04
+
+### Added
+
+- **Reading observations on a session ("how did they read today?")** — the School Reading page now has three optional toggles below the assessment slider: **Fluent & confident**, **Engaging & expressive**, and **Reliant on phonics**. None are required and any combination can be ticked, capturing a quick qualitative read alongside the 1–10 independence assessment. The observations are saved with the session, shown on each entry in the student's reading history (and editable there), and included in the GDPR data export. Backed by migration `0060` (three nullable `read_fluent` / `read_expressive` / `read_phonics` columns on `reading_sessions`); display-only, so they don't affect bands, streaks, or book recommendations.
+
 ## [3.69.0] - 2026-06-02
 
 ### Added

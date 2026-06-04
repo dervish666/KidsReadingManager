@@ -223,6 +223,7 @@ src/components/sessions/SessionForm.js - Reading session form
 src/components/sessions/QuickEntry.js - Fast session entry for priority students
 src/components/sessions/BookAutocomplete.js - Book search autocomplete
 src/components/sessions/AssessmentSelector.js - Assessment level radio group
+src/components/sessions/ReadingObservationToggles.js - Optional "how did they read today?" toggle chips (fluent/expressive/phonics), shared by session form + timeline edit
 src/components/sessions/SessionNotes.js - Session notes text area
 src/components/sessions/StudentInfoCard.js - Student info during session entry
 
