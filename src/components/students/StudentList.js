@@ -32,6 +32,7 @@ import { useUI } from '../../contexts/UIContext';
 import { useTour } from '../tour/useTour';
 import StudentTable from './StudentTable';
 import BulkImport from './BulkImport';
+import BaselineReadsDialog from './BaselineReadsDialog';
 import PrioritizedStudentsList from './PrioritizedStudentsList';
 import QRCodeSheet from '../parent/QRCodeSheet';
 
@@ -48,6 +49,7 @@ const StudentList = () => {
   const [selectedClassId, setSelectedClassId] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [openBulkDialog, setOpenBulkDialog] = useState(false);
+  const [openBaselineDialog, setOpenBaselineDialog] = useState(false);
   const [showQRSheet, setShowQRSheet] = useState(false);
   const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -221,6 +223,30 @@ const StudentList = () => {
             >
               <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Bulk Input</Box>
               <Box sx={{ display: { xs: 'inline', sm: 'none' } }}>Input</Box>
+            </Button>
+          )}
+          {canManageStudents && (
+            <Button
+              variant="outlined"
+              onClick={() => setOpenBaselineDialog(true)}
+              size="medium"
+              sx={{
+                flex: { xs: 1, sm: 'none' },
+                minWidth: { xs: 'auto', sm: 120 },
+                borderRadius: 4,
+                border: '2px solid rgba(107, 142, 107, 0.2)',
+                color: 'primary.main',
+                fontWeight: 700,
+                '&:hover': {
+                  borderWidth: '2px',
+                  borderStyle: 'solid',
+                  borderColor: 'primary.main',
+                  backgroundColor: 'rgba(107, 142, 107, 0.05)',
+                },
+              }}
+            >
+              <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Starting Reads</Box>
+              <Box sx={{ display: { xs: 'inline', sm: 'none' } }}>Reads</Box>
             </Button>
           )}
           {canManageStudents && (
@@ -545,6 +571,12 @@ const StudentList = () => {
       </Dialog>
 
       <BulkImport open={openBulkDialog} onClose={handleCloseBulkDialog} />
+
+      <BaselineReadsDialog
+        open={openBaselineDialog}
+        onClose={() => setOpenBaselineDialog(false)}
+        initialClassId={globalClassFilter}
+      />
 
       {/* Parent QR Sheet — only available when a specific class is selected */}
       <Dialog

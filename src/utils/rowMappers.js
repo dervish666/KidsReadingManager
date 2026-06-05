@@ -61,6 +61,7 @@ export const rowToStudent = (row) => {
     streakStartDate: row.streak_start_date || null,
     currentBand: row.current_band || 0,
     bandReadsCount: row.band_reads_count || 0,
+    baselineReads: row.baseline_reads || 0,
     yearGroup: row.year_group || null,
     senStatus: row.sen_status || null,
     pupilPremium: Boolean(row.pupil_premium),

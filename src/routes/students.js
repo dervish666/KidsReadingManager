@@ -40,6 +40,7 @@ import {
   saveStudentPreferences,
   getOrgStreakSettings,
   ensureCurrentBand,
+  setStudentBaselineReads,
 } from './students/_shared.js';
 import { sessionsRouter } from './students/sessions.js';
 import { statsRouter } from './students/stats.js';
@@ -339,6 +340,61 @@ studentsRouter.post('/', auditLog('create', 'student'), async (c) => {
  * PUT /api/students/:id
  * Update student fields including likes/dislikes and genre preferences.
  */
+/**
+ * PUT /api/students/baseline-reads/bulk
+ * Set the mid-year "starting reads" baseline for many students at once (the
+ * roster table used when a school onboards partway through the year). Each
+ * entry seeds the Reading Band volume rank for the current academic year.
+ * Body: { updates: [{ id, baselineReads }] }. Org-scoped + admin/teacher only.
+ */
+studentsRouter.put('/baseline-reads/bulk', requireTeacher(), async (c) => {
+  if (!isMultiTenantMode(c)) {
+    throw badRequestError('Baseline reads require multi-tenant mode');
+  }
+
+  const db = getDB(c.env);
+  const organizationId = c.get('organizationId');
+
+  const userRole = c.get('userRole');
+  if (!permissions.canManageStudents(userRole)) {
+    throw forbiddenError();
+  }
+
+  const body = await c.req.json();
+  const updates = Array.isArray(body?.updates) ? body.updates : null;
+  if (!updates || updates.length === 0) {
+    throw badRequestError('updates must be a non-empty array');
+  }
+  if (updates.length > 500) {
+    throw badRequestError('Too many updates in one request (max 500)');
+  }
+
+  // Validate the whole batch up front so a bad entry doesn't leave a partial write.
+  for (const u of updates) {
+    if (!u || typeof u.id !== 'string') {
+      throw badRequestError('Each update needs a student id');
+    }
+    const v = validateStudent({ name: 'x', baselineReads: u.baselineReads });
+    if (!v.isValid) {
+      throw badRequestError(`Invalid starting reads for ${u.id}: ${v.errors.join(', ')}`);
+    }
+  }
+
+  const { timezone } = await getOrgStreakSettings(db, organizationId, c.env);
+
+  const results = [];
+  for (const u of updates) {
+    // requireStudent enforces the row belongs to this org (throws otherwise).
+    await requireStudent(db, u.id, organizationId);
+    const r = await setStudentBaselineReads(db, u.id, organizationId, c.env, u.baselineReads, {
+      timezone,
+    });
+    results.push({ id: u.id, currentBand: r.currentBand, bandReadsCount: r.readsCount });
+  }
+
+  return c.json({ updated: results.length, results });
+});
+
 studentsRouter.put('/:id', auditLog('update', 'student'), async (c) => {
   const { id } = c.req.param();
   const body = await c.req.json();
@@ -418,6 +474,20 @@ studentsRouter.put('/:id', auditLog('update', 'student'), async (c) => {
 
     if (body.preferences) {
       await saveStudentPreferences(db, id, body.preferences);
+    }
+
+    // Mid-year onboarding baseline — only recompute the band when the value
+    // actually changes, so ordinary profile saves stay off the band hot path.
+    if (body.baselineReads !== undefined && body.baselineReads !== null) {
+      const newBaseline = Math.max(0, Math.floor(Number(body.baselineReads) || 0));
+      const curRow = await db
+        .prepare('SELECT baseline_reads FROM students WHERE id = ?')
+        .bind(id)
+        .first();
+      if ((curRow?.baseline_reads || 0) !== newBaseline) {
+        const { timezone } = await getOrgStreakSettings(db, organizationId, c.env);
+        await setStudentBaselineReads(db, id, organizationId, c.env, newBaseline, { timezone });
+      }
     }
 
     const student = await db.prepare(`SELECT * FROM students WHERE id = ?`).bind(id).first();

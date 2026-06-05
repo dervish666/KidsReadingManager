@@ -11,5 +11,10 @@ describe('rowToStudent band fields', () => {
     const s = rowToStudent({ id: 's1', name: 'Aria' });
     expect(s.currentBand).toBe(0);
     expect(s.bandReadsCount).toBe(0);
+    expect(s.baselineReads).toBe(0);
+  });
+  it('maps baseline_reads', () => {
+    const s = rowToStudent({ id: 's1', name: 'Aria', baseline_reads: 30 });
+    expect(s.baselineReads).toBe(30);
   });
 });

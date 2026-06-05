@@ -63,6 +63,7 @@ const StudentEditForm = forwardRef(function StudentEditForm({ student, onSave, o
   const [likes, setLikes] = useState([]);
   const [dislikes, setDislikes] = useState([]);
   const [aiOptOut, setAiOptOut] = useState(false);
+  const [baselineReads, setBaselineReads] = useState('');
 
   // Validation state
   const [nameError, setNameError] = useState(false);
@@ -90,6 +91,7 @@ const StudentEditForm = forwardRef(function StudentEditForm({ student, onSave, o
     setReadingLevelMin(s.readingLevelMin ?? null);
     setReadingLevelMax(s.readingLevelMax ?? null);
     setAiOptOut(Boolean(s.aiOptOut));
+    setBaselineReads(s.baselineReads ? String(s.baselineReads) : '');
     const preferences = s.preferences || {};
     setSelectedGenres(preferences.favoriteGenreIds || []);
     setLikes(preferences.likes || []);
@@ -122,6 +124,8 @@ const StudentEditForm = forwardRef(function StudentEditForm({ student, onSave, o
           classId: classId || null,
           readingLevelMin,
           readingLevelMax,
+          baselineReads:
+            baselineReads === '' ? 0 : Math.max(0, Math.floor(Number(baselineReads) || 0)),
           preferences: {
             favoriteGenreIds: selectedGenres,
             likes,
@@ -146,6 +150,7 @@ const StudentEditForm = forwardRef(function StudentEditForm({ student, onSave, o
       selectedGenres,
       likes,
       dislikes,
+      baselineReads,
       student,
       onSave,
       onCancel,
@@ -284,6 +289,17 @@ const StudentEditForm = forwardRef(function StudentEditForm({ student, onSave, o
             disabled={false}
           />
         </Box>
+
+        {/* 3b. Starting reads (mid-year onboarding) */}
+        <TextField
+          label="Starting reads this year"
+          type="number"
+          value={baselineReads}
+          onChange={(e) => setBaselineReads(e.target.value)}
+          fullWidth
+          inputProps={{ min: 0, max: 100000, step: 1 }}
+          helperText="Joining mid-year? Enter the reads this child had already logged elsewhere this academic year to set their starting Reading Band. Resets each September."
+        />
 
         {/* 4. Favourite Genres */}
         <Box>

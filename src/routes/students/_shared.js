@@ -277,30 +277,71 @@ export const updateStudentBand = async (db, studentId, organizationId, env, { ti
   const yearStart = academicYearStart(getDateString(new Date(), tz));
 
   const prevRow = await db
-    .prepare('SELECT current_band FROM students WHERE id = ?')
+    .prepare('SELECT current_band, baseline_reads, baseline_year_start FROM students WHERE id = ?')
     .bind(studentId)
     .first();
   const previousBand = prevRow?.current_band || 0;
+
+  // Mid-year onboarding baseline (reads carried over from a previous system).
+  // It only counts for the academic year it was entered in: once the stored
+  // baseline_year_start no longer matches the current year, the baseline is
+  // stale — drop it from the count AND clear it so it never lingers into a new
+  // year (mirrors the band_year_start reset).
+  const baselineStale = prevRow?.baseline_year_start && prevRow.baseline_year_start !== yearStart;
+  const baselineReads = baselineStale ? 0 : prevRow?.baseline_reads || 0;
+  const baselineYearStart = baselineStale ? null : (prevRow?.baseline_year_start ?? null);
 
   const rows = await db
     .prepare(`SELECT notes FROM reading_sessions WHERE student_id = ? AND session_date >= ?`)
     .bind(studentId, yearStart)
     .all();
 
-  const readsCount = countReads(rows.results || []);
+  const readsCount = countReads(rows.results || []) + baselineReads;
   const currentBand = computeBandIndex(readsCount, readsPerBand);
 
   await db
     .prepare(
       `UPDATE students SET band_reads_count = ?, current_band = ?, band_year_start = ?,
+         baseline_reads = ?, baseline_year_start = ?,
          updated_at = datetime("now") WHERE id = ?`
     )
-    .bind(readsCount, currentBand, yearStart, studentId)
+    .bind(readsCount, currentBand, yearStart, baselineReads, baselineYearStart, studentId)
     .run();
 
   const bandUp =
     currentBand > previousBand ? bandTransition(previousBand, currentBand, bandColors) : null;
   return { previousBand, currentBand, readsCount, bandUp };
+};
+
+/**
+ * Set a student's mid-year baseline reads and recompute their band.
+ *
+ * Stamps baseline_year_start to the current academic year so the baseline only
+ * applies this year (auto-drops at the September rollover via updateStudentBand),
+ * then recomputes the band so band_reads_count/current_band reflect it
+ * immediately. Returns the band recompute result (incl. any `bandUp`).
+ */
+export const setStudentBaselineReads = async (
+  db,
+  studentId,
+  organizationId,
+  env,
+  value,
+  { timezone } = {}
+) => {
+  const tz = timezone || 'UTC';
+  const yearStart = academicYearStart(getDateString(new Date(), tz));
+  const reads = Math.max(0, Math.floor(Number(value) || 0));
+
+  await db
+    .prepare(
+      `UPDATE students SET baseline_reads = ?, baseline_year_start = ?,
+         updated_at = datetime("now") WHERE id = ? AND organization_id = ?`
+    )
+    .bind(reads, yearStart, studentId, organizationId)
+    .run();
+
+  return updateStudentBand(db, studentId, organizationId, env, { timezone: tz });
 };
 
 /**

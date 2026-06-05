@@ -191,6 +191,14 @@ export function validateStudent(student) {
     }
   }
 
+  // Validate baseline reads (mid-year onboarding starting total) if provided
+  if (student.baselineReads !== undefined && student.baselineReads !== null) {
+    const br = Number(student.baselineReads);
+    if (!Number.isInteger(br) || br < 0 || br > 100000) {
+      errors.push('Starting reads must be a whole number between 0 and 100000');
+    }
+  }
+
   return {
     isValid: errors.length === 0,
     errors,

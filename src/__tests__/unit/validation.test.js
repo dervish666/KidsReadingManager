@@ -74,6 +74,33 @@ describe('validateStudent', () => {
       expect(result.errors).toContain('Student name is required');
     });
 
+    it('should accept a valid baselineReads value', () => {
+      const result = validateStudent({ name: 'John', baselineReads: 150 });
+      expect(result.isValid).toBe(true);
+    });
+
+    it('should accept baselineReads of 0', () => {
+      const result = validateStudent({ name: 'John', baselineReads: 0 });
+      expect(result.isValid).toBe(true);
+    });
+
+    it('should reject negative baselineReads', () => {
+      const result = validateStudent({ name: 'John', baselineReads: -5 });
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain('Starting reads must be a whole number between 0 and 100000');
+    });
+
+    it('should reject non-integer baselineReads', () => {
+      const result = validateStudent({ name: 'John', baselineReads: 12.5 });
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain('Starting reads must be a whole number between 0 and 100000');
+    });
+
+    it('should reject baselineReads above the cap', () => {
+      const result = validateStudent({ name: 'John', baselineReads: 100001 });
+      expect(result.isValid).toBe(false);
+    });
+
     it('should reject non-string ID', () => {
       const result = validateStudent({ name: 'John', id: 123 });
       expect(result.isValid).toBe(false);

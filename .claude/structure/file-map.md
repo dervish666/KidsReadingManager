@@ -211,6 +211,7 @@ src/components/students/ReadingLevelRangeInput.js - Dual-slider for AR level ran
 src/components/students/PrioritizedStudentsList.js - Priority-ordered student list
 src/components/students/StudentTimeline.js - Chronological reading session timeline for a student
 src/components/students/BulkImport.js - CSV bulk student import
+src/components/students/BaselineReadsDialog.js - Roster table to seed mid-year "starting reads" per class (seeds Reading Band baseline)
 src/components/students/ReadingBandChip.js - Reading band chip + progress-to-next display (shared across student/parent surfaces)
 
 ## Frontend Components - Sessions

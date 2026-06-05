@@ -185,6 +185,13 @@ export function useStudentOperations(fetchWithAuth, setStudents, setApiError) {
         if (!response.ok) {
           throw new Error(`API error: ${response.status}`);
         }
+        // Merge the server's canonical record back in (e.g. a recomputed
+        // reading band after a baseline-reads change) without clobbering
+        // client-only fields like readingSessions that the PUT doesn't return.
+        const savedStudent = await response.json().catch(() => null);
+        if (savedStudent && typeof savedStudent === 'object') {
+          setStudents((prev) => prev.map((s) => (s.id === id ? { ...s, ...savedStudent } : s)));
+        }
         setApiError(null);
       } catch (error) {
         setApiError(error.message);

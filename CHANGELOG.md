@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.73.0] - 2026-06-05
+
+### Added
+
+- **Starting reads (mid-year onboarding)** — schools joining partway through the year can now seed each child's existing read total so their Reading Band picks up where their previous system left off. Enter it per-student on the profile edit form ("Starting reads this year"), or seed a whole class at once via the new **Starting Reads** roster on the Students page (pick a class, type each child's total, save). The number is added to the current academic year's session reads when computing the Reading Band — it does **not** create reading sessions, so streaks, the timeline, and session/stat totals stay based on what's actually logged in Tally. Year-scoped: it resets automatically each September. Backed by migration `0062` (two additive, nullable columns).
+
+### Fixed
+
+- **Student edits now reflect server-computed changes immediately** — saving the profile form merges the server's canonical record back into local state, so a recomputed Reading Band (e.g. after a starting-reads change) updates on screen without a refresh.
+
 ## [3.72.0] - 2026-06-05
 
 ### Changed
