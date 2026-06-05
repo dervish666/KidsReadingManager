@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.74.0] - 2026-06-05
+
+### Changed
+
+- **Landing page redesign** — the marketing landing page has been refreshed with a product-led layout: a two-column hero pairing the copy with a live screenshot and a floating recommendations card, a headline metric strip (£1 · ~10 min saved · 2,400+ books), product-tour rows with tick-marked highlights, a feature grid with the Wonde integration band, and pricing cards with itemised feature lists. The warm "Cozy Bookshelf" palette and fonts are unchanged. All existing behaviour is preserved — the live demo login, the contact-form trial enquiry (`/api/contact`), the sign-in flow, the GDPR cookie notice, and scroll-reveal animations. Styling stays fully scoped under `.landing-page` so nothing leaks into the app shell.
+
 ## [3.73.0] - 2026-06-05
 
 ### Added
