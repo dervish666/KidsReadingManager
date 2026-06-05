@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.72.0] - 2026-06-05
+
+### Changed
+
+- **Stats Overview: "Home vs School" replaced with "Reading Bands"** — the Overview tab now shows how students are distributed across the 16-band reading ladder instead of the home/school split. The card is collapsible: minimised by default it shows a compact stacked bar tinted with each band's colour plus a "_N students across M bands_" summary; expanding it reveals the full ladder (Lilac → Free Reader) as a vertical list, one row per band with a colour swatch, name, proportional bar, and count. Respects the active class filter and the school's custom band-colour palette. (The "Download Report" PDF still shows the Home/School metric box — unchanged for now.)
+
 ## [3.71.0] - 2026-06-04
 
 ### Added
@@ -110,7 +116,7 @@
 
 ### Fixed
 
-- **"Last read" / "days since last read" now school-only** — dropped three database triggers that were recomputing `last_read_date` over *all* sessions, which silently overrode the v3.64.3 fix. Marking a child absent or logging a home reading session no longer makes them show as having just read at school. (migration 0057)
+- **"Last read" / "days since last read" now school-only** — dropped three database triggers that were recomputing `last_read_date` over _all_ sessions, which silently overrode the v3.64.3 fix. Marking a child absent or logging a home reading session no longer makes them show as having just read at school. (migration 0057)
 - **Parent portal — home sessions no longer advance "last read"** — logging a home reading session via the parent portal no longer touches the school-only `last_read_date`.
 
 ### Security

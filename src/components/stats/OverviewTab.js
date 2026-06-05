@@ -1,16 +1,154 @@
-import React from 'react';
-import { Box, Typography, Card, CardContent, CardActionArea, Chip } from '@mui/material';
+import React, { useState } from 'react';
+import { Box, Typography, Card, CardContent, CardActionArea, Chip, Collapse } from '@mui/material';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import WhatshotIcon from '@mui/icons-material/Whatshot';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
-import HomeIcon from '@mui/icons-material/Home';
-import SchoolIcon from '@mui/icons-material/School';
 import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import ThumbDownIcon from '@mui/icons-material/ThumbDown';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import StreakBadge from '../students/StreakBadge';
+import { getBandByIndex } from '../../utils/readingBandDefinitions';
 
-export default function OverviewTab({ stats, enrichedTopStreaks, onNavigate }) {
+/**
+ * Collapsible Reading Bands card. Minimised by default — shows a compact
+ * stacked bar + totals — and expands to a vertical list of the full 16-band
+ * ladder with per-band counts. Bands use the recognisable UK book-band colours
+ * (overridable via the school's `palette`).
+ */
+function ReadingBandsCard({ distribution = [], palette }) {
+  const [expanded, setExpanded] = useState(false);
+  const total = distribution.reduce((sum, c) => sum + c, 0);
+  const maxCount = Math.max(...distribution, 1);
+  const occupiedBands = distribution.filter((c) => c > 0).length;
+
+  return (
+    <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
+      <CardActionArea
+        onClick={() => setExpanded((e) => !e)}
+        aria-expanded={expanded}
+        aria-label={expanded ? 'Collapse reading bands' : 'Expand reading bands'}
+        sx={{ borderRadius: 3 }}
+      >
+        <CardContent sx={{ py: 2 }}>
+          <Box
+            sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}
+          >
+            <Typography
+              variant="subtitle2"
+              sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}
+            >
+              Reading Bands
+            </Typography>
+            <ExpandMoreIcon
+              sx={{
+                fontSize: 20,
+                color: 'text.secondary',
+                transition: 'transform 0.2s',
+                transform: expanded ? 'rotate(180deg)' : 'none',
+              }}
+            />
+          </Box>
+
+          {/* Compact stacked bar — always visible, proportional to band counts */}
+          <Box
+            sx={{
+              display: 'flex',
+              height: 10,
+              borderRadius: 999,
+              overflow: 'hidden',
+              bgcolor: 'grey.100',
+            }}
+          >
+            {distribution.map((count, i) => {
+              if (count === 0) return null;
+              const band = getBandByIndex(i, palette);
+              return <Box key={i} sx={{ flexGrow: count, bgcolor: band.color, minWidth: 2 }} />;
+            })}
+          </Box>
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.75, display: 'block' }}>
+            {total} {total === 1 ? 'student' : 'students'} across {occupiedBands}{' '}
+            {occupiedBands === 1 ? 'band' : 'bands'}
+          </Typography>
+        </CardContent>
+      </CardActionArea>
+
+      <Collapse in={expanded} timeout="auto" unmountOnExit>
+        <CardContent sx={{ pt: 0, pb: 2 }}>
+          {distribution.map((count, i) => {
+            const band = getBandByIndex(i, palette);
+            const pct = Math.round((count / maxCount) * 100);
+            return (
+              <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.4 }}>
+                <Box
+                  sx={{
+                    width: 12,
+                    height: 12,
+                    borderRadius: 0.5,
+                    flexShrink: 0,
+                    bgcolor: band.color,
+                    border: '1px solid rgba(0,0,0,0.12)',
+                  }}
+                />
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontSize: '0.8rem',
+                    fontWeight: 500,
+                    width: 78,
+                    flexShrink: 0,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {band.name}
+                </Typography>
+                <Box
+                  sx={{
+                    flex: 1,
+                    height: 6,
+                    bgcolor: 'grey.100',
+                    borderRadius: 999,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: `${pct}%`,
+                      height: '100%',
+                      bgcolor: count > 0 ? band.color : 'transparent',
+                    }}
+                  />
+                </Box>
+                <Typography
+                  sx={{
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    color: count > 0 ? 'text.primary' : 'text.disabled',
+                    width: 20,
+                    textAlign: 'right',
+                    flexShrink: 0,
+                  }}
+                >
+                  {count}
+                </Typography>
+              </Box>
+            );
+          })}
+        </CardContent>
+      </Collapse>
+    </Card>
+  );
+}
+
+export default function OverviewTab({
+  stats,
+  enrichedTopStreaks,
+  bandDistribution = [],
+  bandColors,
+  onNavigate,
+}) {
   return (
     <Box>
       {/* Summary stats - responsive grid */}
@@ -138,64 +276,8 @@ export default function OverviewTab({ stats, enrichedTopStreaks, onNavigate }) {
           </CardContent>
         </Card>
 
-        {/* Home vs School Reading */}
-        <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>
-          <CardContent sx={{ py: 2 }}>
-            <Typography
-              variant="subtitle2"
-              gutterBottom
-              sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}
-            >
-              Home vs School
-            </Typography>
-            <Box sx={{ display: 'flex', justifyContent: 'space-around' }}>
-              <Box
-                sx={{
-                  textAlign: 'center',
-                  p: 1,
-                  borderRadius: 2,
-                  bgcolor: 'accent.schoolLight',
-                  minWidth: 80,
-                }}
-              >
-                <SchoolIcon sx={{ fontSize: 20, color: 'accent.school' }} />
-                <Typography
-                  variant="h5"
-                  sx={{
-                    color: 'accent.school',
-                    fontWeight: 800,
-                    fontFamily: '"Nunito", sans-serif',
-                  }}
-                >
-                  {stats.locationDistribution.school}
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'accent.school', fontWeight: 600 }}>
-                  School
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  textAlign: 'center',
-                  p: 1,
-                  borderRadius: 2,
-                  bgcolor: 'accent.homeLight',
-                  minWidth: 80,
-                }}
-              >
-                <HomeIcon sx={{ fontSize: 20, color: 'accent.home' }} />
-                <Typography
-                  variant="h5"
-                  sx={{ color: 'accent.home', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}
-                >
-                  {stats.locationDistribution.home}
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'accent.home', fontWeight: 600 }}>
-                  Home
-                </Typography>
-              </Box>
-            </Box>
-          </CardContent>
-        </Card>
+        {/* Reading Bands distribution (collapsible) */}
+        <ReadingBandsCard distribution={bandDistribution} palette={bandColors} />
 
         {/* Reading by Day of Week */}
         <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>

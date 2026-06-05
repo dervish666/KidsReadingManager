@@ -29,10 +29,11 @@ import { useData } from '../../contexts/DataContext';
 import { generateStatsPDF } from '../../utils/statsExport';
 import { useUI } from '../../contexts/UIContext';
 import { useTour } from '../tour/useTour';
+import { READING_BAND_COUNT } from '../../utils/readingBandDefinitions';
 
 const ReadingStats = () => {
   const { fetchWithAuth, organization } = useAuth();
-  const { students, classes } = useData();
+  const { students, classes, settings } = useData();
   const { globalClassFilter, getReadingStatus } = useUI();
   const [currentTab, setCurrentTab] = useState(0);
   useTour('stats');
@@ -158,6 +159,17 @@ const ReadingStats = () => {
       return { ...s, name: student?.name || 'Unknown' };
     });
   }, [stats, activeStudents]);
+
+  // Count students in each reading band (volume rank), respecting the class
+  // filter. Bands are a year-long rank, so this isn't term-scoped.
+  const bandDistribution = useMemo(() => {
+    const counts = new Array(READING_BAND_COUNT).fill(0);
+    for (const s of activeStudents) {
+      const idx = Math.max(0, Math.min(s.currentBand || 0, READING_BAND_COUNT - 1));
+      counts[idx]++;
+    }
+    return counts;
+  }, [activeStudents]);
 
   // Get students sorted by session count (least to most)
   const getStudentsBySessionCount = () => {
@@ -318,6 +330,8 @@ const ReadingStats = () => {
               <OverviewTab
                 stats={stats}
                 enrichedTopStreaks={enrichedTopStreaks}
+                bandDistribution={bandDistribution}
+                bandColors={settings?.bandColors}
                 onNavigate={setCurrentTab}
               />
             ))}
