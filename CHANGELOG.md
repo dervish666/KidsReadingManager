@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.75.0] - 2026-06-05
+
+### Added
+
+- **Merge duplicate books (owner)** — a new **Settings → Duplicate Books** tool finds duplicates in the shared global catalogue and merges them. Detection groups books that share an ISBN (ignoring formatting like hyphens) or an identical title + author. Merging keeps one book — every reading session, "currently reading" pointer, and school library link from the others is moved onto it, any metadata the survivor is missing is filled in from the duplicates, and the duplicates are then removed in a single atomic operation so nothing is lost. Because the catalogue is shared across all schools, the tool is owner-only and audit-logged. (Punctuation/word-order/typo near-duplicate detection is planned as a follow-up.)
+
 ## [3.74.0] - 2026-06-05
 
 ### Changed

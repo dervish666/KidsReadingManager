@@ -29,6 +29,7 @@ import { enrichBook } from '../services/metadataService.js';
 import { recommendationsRouter } from './books/recommendations.js';
 import { isbnRouter } from './books/isbn.js';
 import { importRouter } from './books/import.js';
+import { duplicatesRouter } from './books/duplicates.js';
 
 const booksRouter = new Hono();
 
@@ -37,6 +38,7 @@ const booksRouter = new Hono();
 booksRouter.route('/', recommendationsRouter);
 booksRouter.route('/', isbnRouter);
 booksRouter.route('/', importRouter);
+booksRouter.route('/', duplicatesRouter);
 
 /**
  * GET /api/books

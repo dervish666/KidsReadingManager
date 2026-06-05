@@ -91,6 +91,8 @@ files:
         items: [isbnRouter]
       - from: routes/books/import
         items: [importRouter]
+      - from: routes/books/duplicates
+        items: [duplicatesRouter]
 
   books/recommendations.js:
     description: AI and DB-powered book recommendation endpoints
@@ -156,6 +158,23 @@ files:
     imports:
       - from: utils/stringMatching
         items: [isExactMatch, isFuzzyMatch, isAuthorMatch]
+
+  books/duplicates.js:
+    description: Owner-only deduplication of the shared global book catalogue (detect clusters, atomic merge)
+    exports:
+      - name: duplicatesRouter
+        kind: object
+        description: Hono sub-router for duplicate detection and merge
+    endpoints:
+      - route: GET /api/books/duplicates
+        description: Duplicate clusters by shared ISBN or title+author (owner review)
+        requires: owner
+      - route: POST /api/books/merge
+        description: Merge duplicates into a survivor (repoint sessions/current-book/links, backfill metadata, delete) atomically
+        requires: owner
+    imports:
+      - from: utils/bookDedup
+        items: [clusterDuplicates, suggestCanonical, computeBackfill]
 
   classes.js:
     description: Class management - CRUD with student counts, and class goals

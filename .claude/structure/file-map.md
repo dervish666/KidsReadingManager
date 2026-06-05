@@ -31,6 +31,7 @@ src/routes/books.js - Core book CRUD (list, search, count, get, create, update, 
 src/routes/books/recommendations.js - GET /library-search (DB-only scoring), GET /ai-suggestions (AI provider + cache + GDPR checks)
 src/routes/books/isbn.js - GET /isbn/:isbn (D1 → OpenLibrary fallback), POST /scan (link/preview/create), GET /search-external (OpenLibrary typeahead)
 src/routes/books/import.js - POST /bulk (dedup + batch insert), POST /import/preview (categorise matches), POST /import/confirm (batched D1 execute)
+src/routes/books/duplicates.js - GET /duplicates (owner: ISBN + title/author dup clusters), POST /merge (owner: atomic repoint-then-delete merge)
 src/routes/classes.js - GET/POST/PUT/DELETE class management, GET/PUT class goals
 src/routes/genres.js - GET/POST/PUT/DELETE genre management
 src/routes/covers.js - GET book covers; R2 cache + OpenLibrary → Google Books → Hardcover fallback (ISBN via /:type/:key, title+author via /search)
@@ -95,6 +96,7 @@ src/utils/readingBandEngine.js - Pure reading-band maths: read counting, band in
 src/utils/readingObservations.js - Per-session reading-observation slots (6 fixed cols) + per-org config resolver (labels/enabled), shared by worker + app
 src/utils/studentProfile.js - Build student reading profile for AI context
 src/utils/stringMatching.js - Levenshtein distance for book deduplication
+src/utils/bookDedup.js - Pure dedup helpers (normalizeIsbn, clusterDuplicates union-find, suggestCanonical, computeBackfill) for the owner merge tool
 src/utils/recommendationCache.js - KV caching for AI recommendations
 src/utils/isbn.js - ISBN validation and normalization
 src/utils/isbnLookup.js - OpenLibrary ISBN lookup with KV caching
@@ -153,6 +155,7 @@ src/components/SupportTicketManager.js - Owner-only support ticket list with det
 src/components/PlatformSettings.js - Owner-only platform AI key management (per-provider keys, active provider selection)
 src/components/BookMetadataSettings.js - Simplified admin view: enrichment status + Fill Missing
 src/components/MetadataManagement.js - Owner metadata config, global enrichment, job history
+src/components/DuplicateBooks.js - Owner tool: review + merge duplicate books in the global catalogue (clusters, canonical pick)
 src/components/Settings.js - Reading status thresholds and streak settings
 src/components/SettingsPage.js - Settings hub with tabs
 src/components/AISettings.js - AI provider configuration

@@ -6,6 +6,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import StorageIcon from '@mui/icons-material/Storage';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import PeopleIcon from '@mui/icons-material/People';
 import SchoolIcon from '@mui/icons-material/School';
 import SupportAgentIcon from '@mui/icons-material/SupportAgent';
@@ -17,6 +18,7 @@ import DataManagement from './DataManagement';
 import AISettings from './AISettings';
 import BookMetadataSettings from './BookMetadataSettings';
 import MetadataManagement from './MetadataManagement';
+import DuplicateBooks from './DuplicateBooks';
 import UserManagement from './UserManagement';
 import SchoolManagement from './SchoolManagement';
 import SupportTicketManager from './SupportTicketManager';
@@ -57,6 +59,11 @@ const SettingsPage = () => {
       });
     }
     if (isOwner) {
+      allTabs.push({
+        label: 'Duplicate Books',
+        icon: <ContentCopyIcon />,
+        component: DuplicateBooks,
+      });
       allTabs.push({
         label: 'Platform',
         icon: <TuneIcon />,

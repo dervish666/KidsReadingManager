@@ -430,6 +430,34 @@ files:
         returns: boolean
         description: Check fuzzy match (default >85% title similarity)
 
+  utils/bookDedup.js:
+    description: Pure helpers for the owner book-merge tool (clustering + canonical pick + backfill)
+    exports:
+      - name: normalizeIsbn
+        kind: function
+        params: [{name: isbn}]
+        returns: string
+        description: Digits + trailing x, formatting stripped
+      - name: bookSignatures
+        kind: function
+        params: [{name: book}]
+        returns: "{isbn, titleAuthor}"
+      - name: clusterDuplicates
+        kind: function
+        params: [{name: books}]
+        returns: "Array<Array<book>>"
+        description: Union-find over shared ISBN + title/author; 2+ member clusters
+      - name: suggestCanonical
+        kind: function
+        params: [{name: cluster}, {name: sessionCounts}]
+        returns: string
+        description: Survivor by metadata completeness → sessions → oldest
+      - name: computeBackfill
+        kind: function
+        params: [{name: canonical}, {name: duplicates}]
+        returns: "{column: value}"
+        description: Empty survivor columns filled from duplicates
+
   utils/openLibraryApi.js:
     description: OpenLibrary API client for book metadata search
     exports:

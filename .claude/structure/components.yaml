@@ -94,6 +94,13 @@ files:
         kind: component
         description: Full owner view with cascade provider configuration, enrichment controls, and job history table
 
+  DuplicateBooks.js:
+    description: Owner tool — review and merge duplicate books in the shared global catalogue
+    exports:
+      - name: DuplicateBooks
+        kind: component
+        description: Lists duplicate clusters with a canonical radio-pick and atomic merge (Settings → Duplicate Books)
+
   ErrorBoundary.js:
     description: React error boundary with refresh button
     exports:
