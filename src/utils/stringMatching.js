@@ -1,5 +1,15 @@
 /**
- * String matching utilities for book import deduplication
+ * String/title matching utilities — the single home for "is this the same
+ * book?" logic. Two similarity strategies live here; pick deliberately:
+ *
+ *   - calculateSimilarity (Levenshtein, threshold ~0.85): strict edit-distance
+ *     similarity. Use for IMPORT DEDUPLICATION, where a false merge corrupts
+ *     a school's catalog (BookImportWizard, books/import, bookDedup).
+ *
+ *   - calculateTitleSimilarity (substring + word overlap + bigram Jaccard,
+ *     threshold ~0.3): tolerant partial matching. Use for RANKING METADATA
+ *     PROVIDER RESULTS, where the search APIs return subtitle/series variants
+ *     of the right book (openLibraryApi, googleBooksApi, hardcoverApi).
  */
 
 /**
@@ -110,6 +120,133 @@ export const isAuthorMatch = (a, b) => {
   if (!a || !b) return true; // missing author = don't block match
   return normalizeAuthor(a) === normalizeAuthor(b);
 };
+
+// ── Title-matching strategy (metadata provider ranking) ─────────────────────
+// Formerly src/utils/titleMatching.js; merged here so both similarity
+// strategies share one normalizer and one home.
+
+/**
+ * Strip characters that confuse search API query syntax (e.g. # in "#Goldilocks").
+ * Preserves case and meaningful punctuation like hyphens and apostrophes.
+ */
+export function sanitizeForSearch(title) {
+  return title
+    .replace(/[#@:;!?*~^{}[\]()]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Normalize a title for comparison. Same transformation as normalizeString —
+ * the alias survives because provider modules read clearer in title vocabulary.
+ */
+export const normalizeTitle = normalizeString;
+
+/**
+ * Calculate similarity between two titles using a fuzzy strategy tuned for
+ * partial matches (see file header for when to use this vs calculateSimilarity).
+ *
+ * Signals: substring coverage, word-overlap ratio, character-bigram Jaccard.
+ *
+ * @param {string} title1 - Normalized title
+ * @param {string} title2 - Normalized title
+ * @returns {number} Similarity between 0 and 1
+ */
+export function calculateTitleSimilarity(title1, title2) {
+  if (!title1 || !title2) return 0;
+
+  // Exact match
+  if (title1 === title2) return 1;
+
+  const words1 = title1.split(' ').filter(Boolean);
+  const words2 = title2.split(' ').filter(Boolean);
+
+  // Word overlap ratio
+  const set2 = new Set(words2);
+  let overlap = 0;
+  for (const w of words1) {
+    if (set2.has(w)) overlap++;
+  }
+  const wordScore = overlap / Math.max(words1.length, words2.length);
+
+  // Substring coverage: shorter fully contained in longer -> strong signal
+  const shorter = title1.length <= title2.length ? title1 : title2;
+  const longer = title1.length > title2.length ? title1 : title2;
+  const substringScore = longer.includes(shorter) ? shorter.length / longer.length : 0;
+
+  // Character bigram Jaccard for extra fuzziness tolerance
+  const bigrams = (s) => {
+    const res = [];
+    for (let i = 0; i < s.length - 1; i++) {
+      const bg = s.slice(i, i + 2);
+      if (bg.trim().length === 2) res.push(bg);
+    }
+    return res;
+  };
+
+  const b1 = bigrams(title1);
+  const b2 = bigrams(title2);
+  let charScore = 0;
+  if (b1.length && b2.length) {
+    const setB1 = new Set(b1);
+    const setB2 = new Set(b2);
+    let intersect = 0;
+    for (const bg of setB1) {
+      if (setB2.has(bg)) intersect++;
+    }
+    const union = setB1.size + setB2.size - intersect;
+    charScore = union > 0 ? intersect / union : 0;
+  }
+
+  // Weighted combination; emphasize partial/substring coverage
+  const combined = 0.5 * substringScore + 0.3 * wordScore + 0.2 * charScore;
+
+  return Math.max(0, Math.min(1, combined));
+}
+
+/**
+ * Find the best matching result from a list based on title similarity.
+ *
+ * @param {string} searchTitle - The title to search for
+ * @param {Array} results - Array of result objects with a `title` property
+ * @param {Object} [options]
+ * @param {number} [options.threshold=0.3] - Minimum similarity to accept
+ * @param {Function} [options.getTitle] - Extract title from a result (default: r => r.title)
+ * @param {Function} [options.hasAuthor] - Check if result has an author (default: () => true)
+ * @returns {Object|null} Best matching result with `similarity` added, or null
+ */
+export function findBestTitleMatch(searchTitle, results, options = {}) {
+  if (!results || results.length === 0) return null;
+
+  const { threshold = 0.3, getTitle = (r) => r.title || '', hasAuthor = () => true } = options;
+
+  const normalizedSearchTitle = normalizeTitle(searchTitle);
+
+  const scoredResults = results.map((result) => {
+    const normalizedResultTitle = normalizeTitle(getTitle(result));
+    const similarity = calculateTitleSimilarity(normalizedSearchTitle, normalizedResultTitle);
+    return {
+      ...result,
+      similarity,
+      _hasAuthor: hasAuthor(result),
+    };
+  });
+
+  // Sort by similarity (descending) and prefer results with authors
+  scoredResults.sort((a, b) => {
+    if (a._hasAuthor && !b._hasAuthor) return -1;
+    if (!a._hasAuthor && b._hasAuthor) return 1;
+    return b.similarity - a.similarity;
+  });
+
+  const bestMatch = scoredResults[0];
+  if (bestMatch && bestMatch.similarity > threshold) {
+    const { _hasAuthor, ...rest } = bestMatch;
+    return rest;
+  }
+
+  return null;
+}
 
 /**
  * Check if two books are a fuzzy match

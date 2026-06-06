@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { requireReadonly } from '../middleware/tenant';
+import { badRequestError } from '../middleware/errorHandler';
 
 const tours = new Hono();
 
@@ -26,7 +27,7 @@ tours.post('/:tourId/complete', requireReadonly(), async (c) => {
   const tourId = c.req.param('tourId');
 
   if (!tourId || tourId.length > 50 || !/^[\w-]+$/.test(tourId)) {
-    return c.json({ error: 'Invalid tour ID' }, 400);
+    throw badRequestError('Invalid tour ID');
   }
 
   const db = c.env.READING_MANAGER_DB;
@@ -35,12 +36,12 @@ tours.post('/:tourId/complete', requireReadonly(), async (c) => {
   try {
     body = await c.req.json();
   } catch {
-    return c.json({ error: 'Invalid JSON body' }, 400);
+    throw badRequestError('Invalid JSON body');
   }
 
   const { version } = body;
   if (typeof version !== 'number' || version < 1) {
-    return c.json({ error: 'version (number) is required' }, 400);
+    throw badRequestError('version (number) is required');
   }
 
   const now = new Date().toISOString();

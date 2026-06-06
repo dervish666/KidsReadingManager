@@ -18,7 +18,12 @@
 import { Hono } from 'hono';
 
 import { createProvider } from '../data/index.js';
-import { notFoundError, badRequestError, forbiddenError } from '../middleware/errorHandler';
+import {
+  notFoundError,
+  badRequestError,
+  forbiddenError,
+  serverError,
+} from '../middleware/errorHandler';
 import { getEncryptionSecret } from '../utils/crypto.js';
 import { validateBook } from '../utils/validation.js';
 import { rowToBook } from '../utils/rowMappers.js';
@@ -227,7 +232,7 @@ booksRouter.get('/search', requireReadonly(), async (c) => {
   const { q, limit } = c.req.query();
 
   if (!q || !q.trim()) {
-    return c.json({ error: 'Search query (q) is required' }, 400);
+    throw badRequestError('Search query (q) is required');
   }
 
   const maxResults = Math.min(Math.max(limit ? parseInt(limit, 10) : 50, 1), 100);
@@ -529,7 +534,7 @@ booksRouter.post('/:id/enrich', requireAdmin(), async (c) => {
 
   const encSecret = getEncryptionSecret(c.env);
   const config = await getConfigWithKeys(db, encSecret);
-  if (!config) return c.json({ error: 'Metadata configuration not found' }, 500);
+  if (!config) throw serverError('Metadata configuration not found');
   config.fetchCovers = Boolean(config.fetchCovers);
 
   const { merged, log } = await enrichBook(

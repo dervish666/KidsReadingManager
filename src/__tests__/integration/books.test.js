@@ -357,7 +357,7 @@ describe('Books API Routes', () => {
         const data = await response.json();
 
         expect(response.status).toBe(400);
-        expect(data.error).toContain('Search query (q) is required');
+        expect(data.error || data.message).toContain('Search query (q) is required');
       });
 
       it('should reject empty search query', async () => {
@@ -367,7 +367,7 @@ describe('Books API Routes', () => {
         const data = await response.json();
 
         expect(response.status).toBe(400);
-        expect(data.error).toContain('Search query (q) is required');
+        expect(data.error || data.message).toContain('Search query (q) is required');
       });
 
       it('should reject whitespace-only search query', async () => {

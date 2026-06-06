@@ -11,6 +11,9 @@ const mockDb = {
 
 const createApp = () => {
   const app = new Hono();
+  // Mirror the production errorHandler's status mapping so thrown
+  // badRequestError()s surface as 400s (not Hono's default 500).
+  app.onError((error, c) => c.json({ error: error.message }, error.status || 500));
   app.use('*', async (c, next) => {
     c.set('userId', 1);
     c.set('userRole', 'teacher');

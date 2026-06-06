@@ -115,7 +115,7 @@ organizationRouter.get('/all', requireAdmin(), async (c) => {
     const params = [];
 
     if (search && search.length < 2) {
-      return c.json({ error: 'Search term must be at least 2 characters' }, 400);
+      throw badRequestError('Search term must be at least 2 characters');
     }
 
     if (search) {

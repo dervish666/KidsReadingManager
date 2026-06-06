@@ -7,6 +7,7 @@ import {
 import { runFullSync } from '../services/wondeSync.js';
 import { fetchSchoolDetails, fetchWondeSchools } from '../utils/wondeApi.js';
 import { requireAdmin, requireOwner } from '../middleware/tenant.js';
+import { badRequestError, notFoundError, serverError } from '../middleware/errorHandler.js';
 import { generateSlug } from '../utils/helpers.js';
 
 const wondeAdminRouter = new Hono();
@@ -183,25 +184,24 @@ wondeAdminRouter.post('/sync', requireAdmin(), async (c) => {
     .first();
 
   if (!org || !org.wonde_school_id) {
-    return c.json({ error: 'This organization is not connected to Wonde' }, 400);
+    throw badRequestError('This organization is not connected to Wonde');
   }
 
   if (!org.wonde_school_token) {
-    return c.json(
-      { error: 'No Wonde school token configured. Set it via POST /api/wonde/token first.' },
-      400
+    throw badRequestError(
+      'No Wonde school token configured. Set it via POST /api/wonde/token first.'
     );
   }
 
   // Decrypt school token
   if (!c.env.JWT_SECRET) {
-    return c.json({ error: 'Server encryption not configured' }, 500);
+    throw serverError('Server encryption not configured');
   }
   let schoolToken;
   try {
     schoolToken = await decryptSensitiveData(org.wonde_school_token, getEncryptionSecret(c.env));
   } catch (err) {
-    return c.json({ error: 'Failed to decrypt school token. Token may need to be re-set.' }, 500);
+    throw serverError('Failed to decrypt school token. Token may need to be re-set.');
   }
 
   // Run full sync
@@ -229,22 +229,22 @@ wondeAdminRouter.post('/sync/:orgId', requireOwner(), async (c) => {
     .first();
 
   if (!org || !org.wonde_school_id) {
-    return c.json({ error: 'Organization not connected to Wonde' }, 400);
+    throw badRequestError('Organization not connected to Wonde');
   }
 
   if (!org.wonde_school_token) {
-    return c.json({ error: 'No Wonde school token configured' }, 400);
+    throw badRequestError('No Wonde school token configured');
   }
 
   if (!c.env.JWT_SECRET) {
-    return c.json({ error: 'Server encryption not configured' }, 500);
+    throw serverError('Server encryption not configured');
   }
 
   let schoolToken;
   try {
     schoolToken = await decryptSensitiveData(org.wonde_school_token, getEncryptionSecret(c.env));
   } catch {
-    return c.json({ error: 'Failed to decrypt school token' }, 500);
+    throw serverError('Failed to decrypt school token');
   }
 
   // Fetch and update school contact details
@@ -297,7 +297,7 @@ wondeAdminRouter.post('/token', requireOwner(), async (c) => {
   const { schoolToken, organizationId } = body;
 
   if (!schoolToken || typeof schoolToken !== 'string' || schoolToken.trim().length === 0) {
-    return c.json({ error: 'schoolToken is required' }, 400);
+    throw badRequestError('schoolToken is required');
   }
 
   // Owner can target any org; otherwise use the caller's org
@@ -310,16 +310,16 @@ wondeAdminRouter.post('/token', requireOwner(), async (c) => {
     .first();
 
   if (!org) {
-    return c.json({ error: 'Organization not found' }, 404);
+    throw notFoundError('Organization not found');
   }
 
   if (!org.wonde_school_id) {
-    return c.json({ error: 'Organization has no wonde_school_id — cannot set token' }, 400);
+    throw badRequestError('Organization has no wonde_school_id — cannot set token');
   }
 
   // Encrypt and store
   if (!c.env.JWT_SECRET) {
-    return c.json({ error: 'Server encryption not configured' }, 500);
+    throw serverError('Server encryption not configured');
   }
   const encryptedToken = await encryptSensitiveData(schoolToken.trim(), getEncryptionSecret(c.env));
   await db

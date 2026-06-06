@@ -6,7 +6,7 @@ import { rateLimit } from '../middleware/tenant.js';
 import { fetchMetadata as googleBooksFetch } from '../services/providers/googleBooksProvider.js';
 import { fetchMetadata as hardcoverFetch } from '../services/providers/hardcoverProvider.js';
 import { KNOWN_PLACEHOLDER_HASHES, sha256Hex } from '../utils/coverPlaceholders.js';
-import { sanitizeForSearch } from '../utils/titleMatching.js';
+import { sanitizeForSearch } from '../utils/stringMatching.js';
 
 const coversRouter = new Hono();
 

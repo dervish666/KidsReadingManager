@@ -179,7 +179,7 @@ import {
   normalizeTitle,
   calculateTitleSimilarity,
   findBestTitleMatch as _findBestTitleMatch,
-} from './titleMatching.js';
+} from './stringMatching.js';
 
 function findBestTitleMatch(searchTitle, results) {
   return _findBestTitleMatch(searchTitle, results, {

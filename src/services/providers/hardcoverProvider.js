@@ -4,7 +4,7 @@
  * Best source for series data.
  */
 import { fetchWithTimeout } from '../../utils/helpers.js';
-import { sanitizeForSearch } from '../../utils/titleMatching.js';
+import { sanitizeForSearch } from '../../utils/stringMatching.js';
 
 const GRAPHQL_URL = 'https://api.hardcover.app/v1/graphql';
 const TIMEOUT = 8000;

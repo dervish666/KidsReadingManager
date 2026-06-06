@@ -4,7 +4,7 @@
  * No API key required.
  */
 import { fetchWithTimeout } from '../../utils/helpers.js';
-import { sanitizeForSearch } from '../../utils/titleMatching.js';
+import { sanitizeForSearch } from '../../utils/stringMatching.js';
 
 const SEARCH_URL = 'https://openlibrary.org/search.json';
 const COVERS_URL = 'https://covers.openlibrary.org/b';

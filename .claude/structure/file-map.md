@@ -95,7 +95,7 @@ src/utils/readingBandDefinitions.js - Reading band ladder (16 colour bands), def
 src/utils/readingBandEngine.js - Pure reading-band maths: read counting, band index, academic-year start, display payload + transition
 src/utils/readingObservations.js - Per-session reading-observation slots (6 fixed cols) + per-org config resolver (labels/enabled), shared by worker + app
 src/utils/studentProfile.js - Build student reading profile for AI context
-src/utils/stringMatching.js - Levenshtein distance for book deduplication
+src/utils/stringMatching.js - All string/title matching: Levenshtein similarity (import dedup, ~0.85) + fuzzy title similarity & findBestTitleMatch (metadata-provider ranking, ~0.3) + sanitizeForSearch (absorbed titleMatching.js)
 src/utils/bookDedup.js - Pure dedup helpers (normalizeIsbn, clusterDuplicates union-find, suggestCanonical, computeBackfill) for the owner merge tool
 src/utils/recommendationCache.js - KV caching for AI recommendations
 src/utils/isbn.js - ISBN validation and normalization
@@ -115,7 +115,6 @@ src/utils/badgeDefinitions.js - Badge definitions with evaluate/progress functio
 src/utils/badgeEngine.js - Stats calculation, real-time/batch evaluation, genre classification, near-miss calculation
 src/utils/stripe.js - Stripe client factory, price ID helpers, AI add-on detection
 src/utils/statsExport.js - PDF/CSV stats report generation (jsPDF)
-src/utils/titleMatching.js - Title normalization and similarity scoring for metadata APIs
 src/utils/orgStatusCache.js - KV cache for organization is_active + subscription_status (tenantMiddleware reads, Stripe webhook/org deactivate/purge invalidate)
 src/utils/coverPlaceholders.js - Shared SHA-256 hash set + helpers for rejecting upstream "image not available" cover placeholders (used by covers.js route + metadataService.js)
 src/utils/aiCostCap.js - Per-tenant monthly AI cost cap enforcement (org_ai_usage table)

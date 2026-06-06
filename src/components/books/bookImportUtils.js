@@ -2,6 +2,7 @@
  * Pure utility functions for book import CSV parsing and duplicate detection.
  * Extracted from BookManager.js — no React, no state.
  */
+import { normalizeString } from '../../utils/stringMatching';
 
 export const parseCSVLine = (line) => {
   const result = [];
@@ -64,24 +65,11 @@ export const parseCSV = (csvText) => {
   return books;
 };
 
-// Duplicate detection helper function
+// Duplicate detection helper function. Normalisation comes from the shared
+// stringMatching module (Unicode-safe) instead of a local ASCII-only copy.
 export const isDuplicateBook = (newBook, existingBooks) => {
-  const normalizeTitle = (title) => {
-    return title
-      .toLowerCase()
-      .trim()
-      .replace(/[^\w\s]/g, '')
-      .replace(/\s+/g, ' ');
-  };
-
-  const normalizeAuthor = (author) => {
-    if (!author) return '';
-    return author
-      .toLowerCase()
-      .trim()
-      .replace(/[^\w\s]/g, '')
-      .replace(/\s+/g, ' ');
-  };
+  const normalizeTitle = normalizeString;
+  const normalizeAuthor = (author) => normalizeString(author || '');
 
   const newTitle = normalizeTitle(newBook.title || '');
   const newAuthor = normalizeAuthor(newBook.author || '');

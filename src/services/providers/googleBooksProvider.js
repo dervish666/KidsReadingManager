@@ -3,7 +3,7 @@
  * Requires API key from metadata_config.
  */
 import { fetchWithTimeout } from '../../utils/helpers.js';
-import { sanitizeForSearch } from '../../utils/titleMatching.js';
+import { sanitizeForSearch } from '../../utils/stringMatching.js';
 
 const VOLUMES_URL = 'https://www.googleapis.com/books/v1/volumes';
 const TIMEOUT = 5000;

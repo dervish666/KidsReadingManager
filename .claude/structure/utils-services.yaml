@@ -392,8 +392,28 @@ files:
         returns: Array
 
   utils/stringMatching.js:
-    description: String similarity for book deduplication (Levenshtein distance)
+    description: All string/title matching (absorbed titleMatching.js) - Levenshtein strategy for import dedup, fuzzy strategy for metadata-provider ranking
     exports:
+      - name: sanitizeForSearch
+        kind: function
+        params: [{name: title}]
+        returns: string
+        description: Strip characters that confuse search API query syntax
+      - name: normalizeTitle
+        kind: function
+        params: [{name: title}]
+        returns: string
+        description: Alias of normalizeString (title vocabulary for provider modules)
+      - name: calculateTitleSimilarity
+        kind: function
+        params: [{name: title1}, {name: title2}]
+        returns: number
+        description: Fuzzy similarity (substring + word overlap + bigram Jaccard) for provider-result ranking (~0.3 threshold)
+      - name: findBestTitleMatch
+        kind: function
+        params: [{name: searchTitle}, {name: results}, {name: options}]
+        returns: object|null
+        description: Best provider result by fuzzy title similarity, preferring results with authors
       - name: normalizeString
         kind: function
         params: [{name: str}]
