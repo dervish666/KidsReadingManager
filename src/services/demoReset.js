@@ -6,7 +6,7 @@
  */
 
 import { DEMO_ORG_ID, SNAPSHOT } from '../data/demoSnapshot.js';
-import { recalculateStats, evaluateRealTime, evaluateBatch } from '../utils/badgeEngine.js';
+import { processBadgesForOrg } from '../utils/badgeEngine.js';
 
 const BATCH_LIMIT = 100;
 
@@ -203,27 +203,14 @@ export async function resetDemoData(db) {
     }
   }
 
-  // Phase 3: Evaluate badges for all demo students with reading sessions
+  // Phase 3: Evaluate badges for all demo students with reading sessions.
+  // processBadgesForOrg is the same batched path the nightly cron uses —
+  // genre map hoisted once, per-student reads batched (the previous loop ran
+  // three legacy per-student functions = ~360 sequential queries per hour).
   try {
-    const students = await db
-      .prepare(
-        `SELECT DISTINCT s.id, s.year_group
-         FROM students s
-         INNER JOIN reading_sessions rs ON rs.student_id = s.id
-         WHERE s.organization_id = ? AND s.is_active = 1`
-      )
-      .bind(DEMO_ORG_ID)
-      .all();
-
-    let badgeCount = 0;
-    for (const student of students.results || []) {
-      await recalculateStats(db, student.id, DEMO_ORG_ID);
-      const rt = await evaluateRealTime(db, student.id, DEMO_ORG_ID, student.year_group);
-      const batch = await evaluateBatch(db, student.id, DEMO_ORG_ID, student.year_group);
-      badgeCount += rt.length + batch.length;
-    }
+    const res = await processBadgesForOrg(db, DEMO_ORG_ID, null, Date.now() + 25000);
     console.log(
-      `[DemoReset] Badges: ${badgeCount} awarded to ${(students.results || []).length} students`
+      `[DemoReset] Badges: ${res.newBadgeCount} awarded across ${res.processedCount} students`
     );
   } catch (error) {
     console.warn(`[DemoReset] Badge evaluation skipped: ${error.message}`);

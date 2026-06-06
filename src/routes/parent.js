@@ -453,22 +453,43 @@ parentRouter.get('/:token/books', rateLimit(30, 60000, 'parent:books'), async (c
     source: 'library',
   }));
 
-  // ── OpenLibrary external search ───────────────────────────────────────────
+  // ── OpenLibrary external search (KV-cached 24h — parents repeat the same
+  //    title searches, and each uncached query is a 5s external fetch) ───────
   let external = [];
-  try {
-    const olUrl = `https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=5&fields=title,author_name,first_publish_year,cover_i`;
-    const resp = await fetch(olUrl, { signal: AbortSignal.timeout(5000) });
-    if (resp.ok) {
-      const data = await resp.json();
-      external = (data.docs || []).map((doc) => ({
-        title: doc.title || '',
-        author: (doc.author_name || [])[0] || '',
-        coverUrl: doc.cover_i ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg` : null,
-        source: 'external',
-      }));
+  const KV = c.env?.READING_MANAGER_KV;
+  const olCacheKey = `ol:psearch:${q.toLowerCase().slice(0, 80)}`;
+  if (KV) {
+    try {
+      const cached = await KV.get(olCacheKey);
+      if (cached) external = JSON.parse(cached);
+    } catch {
+      /* cache miss/parse failure — fall through to live fetch */
     }
-  } catch (err) {
-    console.warn('[parent/books] OpenLibrary search failed', err.message);
+  }
+  if (external.length === 0) {
+    try {
+      const olUrl = `https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=5&fields=title,author_name,first_publish_year,cover_i`;
+      const resp = await fetch(olUrl, { signal: AbortSignal.timeout(5000) });
+      if (resp.ok) {
+        const data = await resp.json();
+        external = (data.docs || []).map((doc) => ({
+          title: doc.title || '',
+          author: (doc.author_name || [])[0] || '',
+          coverUrl: doc.cover_i ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg` : null,
+          source: 'external',
+        }));
+        // Only cache non-empty results so transient failures don't stick
+        if (KV && external.length > 0) {
+          try {
+            await KV.put(olCacheKey, JSON.stringify(external), { expirationTtl: 86400 });
+          } catch {
+            /* non-critical */
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[parent/books] OpenLibrary search failed', err.message);
+    }
   }
 
   return c.json({ library, external });

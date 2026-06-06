@@ -7,7 +7,7 @@ import {
 import { runFullSync } from '../services/wondeSync.js';
 import { fetchSchoolDetails, fetchWondeSchools } from '../utils/wondeApi.js';
 import { requireAdmin, requireOwner } from '../middleware/tenant.js';
-import { generateUniqueSlug } from '../utils/helpers.js';
+import { generateSlug } from '../utils/helpers.js';
 
 const wondeAdminRouter = new Hono();
 
@@ -105,6 +105,22 @@ wondeAdminRouter.post('/sync-all', requireOwner(), async (c) => {
   let updated = 0;
   const statements = [];
 
+  // Pre-fetch every existing slug once and resolve collisions locally —
+  // generateUniqueSlug awaited one SELECT per new school inside this loop.
+  const slugRows = await db.prepare('SELECT slug FROM organizations').all();
+  const takenSlugs = new Set((slugRows.results || []).map((r) => r.slug));
+  const claimSlug = (orgName) => {
+    const base = generateSlug(orgName);
+    let final = base;
+    let n = 1;
+    while (takenSlugs.has(final)) {
+      if (n > 100) throw new Error('Unable to generate unique organization slug');
+      final = `${base}-${n++}`;
+    }
+    takenSlugs.add(final);
+    return final;
+  };
+
   for (const school of allSchools) {
     const name = (school.name || '').trim().substring(0, 200);
     const addressLine1 = (school.address?.address_line_1 || '').trim().substring(0, 200) || null;
@@ -132,7 +148,7 @@ wondeAdminRouter.post('/sync-all', requireOwner(), async (c) => {
       updated++;
     } else {
       const orgId = crypto.randomUUID();
-      const finalSlug = await generateUniqueSlug(db, name);
+      const finalSlug = claimSlug(name);
 
       statements.push(
         db

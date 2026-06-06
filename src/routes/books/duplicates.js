@@ -146,15 +146,23 @@ duplicatesRouter.post('/verify-isbns', requireOwner(), async (c) => {
     if (normalized.length >= MAX_VERIFY) break;
   }
 
+  // Look up in parallel (chunks of 5) — sequential lookups against a 5s-timeout
+  // external API made a 20-ISBN request take up to ~100s.
+  const CONCURRENCY = 5;
   const results = [];
-  for (const isbn of normalized) {
-    const book = await lookupISBN(isbn, c.env).catch(() => null);
-    results.push({
-      isbn,
-      found: Boolean(book),
-      title: book?.title || null,
-      author: book?.author || null,
-    });
+  for (let i = 0; i < normalized.length; i += CONCURRENCY) {
+    const chunk = await Promise.all(
+      normalized.slice(i, i + CONCURRENCY).map(async (isbn) => {
+        const book = await lookupISBN(isbn, c.env).catch(() => null);
+        return {
+          isbn,
+          found: Boolean(book),
+          title: book?.title || null,
+          author: book?.author || null,
+        };
+      })
+    );
+    results.push(...chunk);
   }
 
   return c.json({ results });

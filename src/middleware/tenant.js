@@ -472,17 +472,9 @@ export function rateLimit(maxRequests = 100, windowMs = 60000, bucket = null) {
         .bind(crypto.randomUUID(), key, endpoint)
         .run();
 
-      // Cleanup old entries (async, don't wait) - only run occasionally
-      if (Math.random() < 0.01) {
-        // 1% chance to clean up
-        db.prepare(
-          `
-          DELETE FROM rate_limits WHERE created_at < datetime('now', '-1 hour')
-        `
-        )
-          .run()
-          .catch(() => {});
-      }
+      // Stale-row cleanup happens in the daily cron (src/worker.js), backed by
+      // the composite idx_rate_limits_key_endpoint_date index — no per-request
+      // probabilistic cleanup needed.
     } catch (error) {
       // If rate_limits table doesn't exist or other error, fail closed for
       // auth + cost-sensitive paths so an outage can't be used to cheaply
