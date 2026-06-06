@@ -25,10 +25,13 @@ import { badRequestError, notFoundError } from '../../middleware/errorHandler.js
 import { requireDB } from '../../utils/routeHelpers.js';
 import { rowToBook } from '../../utils/rowMappers.js';
 import { clusterDuplicates, suggestCanonical, computeBackfill } from '../../utils/bookDedup.js';
+import { lookupISBN } from '../../utils/isbnLookup.js';
+import { normalizeISBN } from '../../utils/isbn.js';
 
 export const duplicatesRouter = new Hono();
 
 const MAX_MERGE = 50;
+const MAX_VERIFY = 20;
 
 // Lenient SQL keys — JS clusterDuplicates does the precise grouping.
 const NORM_ISBN_SQL = "REPLACE(REPLACE(REPLACE(LOWER(isbn), '-', ''), ' ', ''), '_', '')";
@@ -117,6 +120,44 @@ duplicatesRouter.get('/duplicates', requireOwner(), async (c) => {
     totalClusters: clusters.length,
     totalDuplicateBooks: clusters.reduce((n, cl) => n + cl.books.length, 0),
   });
+});
+
+/**
+ * POST /api/books/verify-isbns
+ * Body: { isbns: [...] }
+ * Resolves each ISBN to its canonical title/author via OpenLibrary so the
+ * owner can confirm an ISBN-based grouping is genuine — and spot a book
+ * carrying the wrong ISBN (which would otherwise drive a false merge). ISBNs
+ * are normalised, de-duplicated, and capped; OpenLibrary results are KV-cached
+ * upstream so repeat checks are cheap.
+ */
+duplicatesRouter.post('/verify-isbns', requireOwner(), async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const raw = Array.isArray(body.isbns) ? body.isbns : [];
+
+  const normalized = [];
+  const seen = new Set();
+  for (const value of raw) {
+    const n = normalizeISBN(typeof value === 'string' ? value : '');
+    if (n && !seen.has(n)) {
+      seen.add(n);
+      normalized.push(n);
+    }
+    if (normalized.length >= MAX_VERIFY) break;
+  }
+
+  const results = [];
+  for (const isbn of normalized) {
+    const book = await lookupISBN(isbn, c.env).catch(() => null);
+    results.push({
+      isbn,
+      found: Boolean(book),
+      title: book?.title || null,
+      author: book?.author || null,
+    });
+  }
+
+  return c.json({ results });
 });
 
 /**

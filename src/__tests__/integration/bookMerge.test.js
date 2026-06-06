@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Hono } from 'hono';
+
+vi.mock('../../utils/isbnLookup.js', () => ({ lookupISBN: vi.fn() }));
+
 import { booksRouter } from '../../routes/books.js';
+import { lookupISBN } from '../../utils/isbnLookup.js';
 
 const TEST_SECRET = 'test-jwt-secret-for-testing';
 
@@ -187,6 +191,60 @@ describe('Book deduplication API', () => {
         body: JSON.stringify({ canonicalId: 'keep', duplicateIds: ['dup'] }),
       });
       expect(res.status).toBe(404);
+    });
+  });
+
+  // ── ISBN verification ───────────────────────────────────────────────────
+  describe('POST /api/books/verify-isbns', () => {
+    it('rejects non-owner', async () => {
+      const { app } = createTestApp({ userRole: 'teacher' });
+      const res = await app.request('/api/books/verify-isbns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isbns: ['9780140316476'] }),
+      });
+      expect(res.status).toBe(403);
+    });
+
+    it('resolves ISBNs to titles, de-duplicates, and reports found/not-found', async () => {
+      lookupISBN.mockImplementation(async (isbn) =>
+        isbn === '9780140316476' ? { isbn, title: 'Matilda', author: 'Roald Dahl' } : null
+      );
+      const { app } = createTestApp({ userRole: 'owner' });
+      const res = await app.request('/api/books/verify-isbns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        // first two are the same ISBN (hyphenated) → de-duped to one lookup
+        body: JSON.stringify({ isbns: ['9780140316476', '978-0-14-031647-6', '9780143120858'] }),
+      });
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.results).toHaveLength(2);
+      expect(data.results.find((r) => r.isbn === '9780140316476')).toMatchObject({
+        found: true,
+        title: 'Matilda',
+        author: 'Roald Dahl',
+      });
+      expect(data.results.find((r) => r.isbn === '9780143120858')).toMatchObject({
+        found: false,
+        title: null,
+      });
+      // The invalid/short entries never reach the lookup.
+      expect(lookupISBN).toHaveBeenCalledTimes(2);
+    });
+
+    it('ignores invalid ISBNs (bad check digit / wrong length)', async () => {
+      lookupISBN.mockResolvedValue(null);
+      const { app } = createTestApp({ userRole: 'owner' });
+      const res = await app.request('/api/books/verify-isbns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isbns: ['111', 'not-an-isbn', '9780140316470'] }),
+      });
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.results).toEqual([]);
+      expect(lookupISBN).not.toHaveBeenCalled();
     });
   });
 });

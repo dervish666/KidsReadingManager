@@ -17,7 +17,10 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import MergeTypeIcon from '@mui/icons-material/MergeType';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import FactCheckIcon from '@mui/icons-material/FactCheck';
 import { useAuth } from '../contexts/AuthContext';
+import { normalizeISBN } from '../utils/isbn';
+import { isFuzzyMatch } from '../utils/stringMatching';
 
 // Stable key for a cluster, independent of member order.
 const clusterKey = (cluster) =>
@@ -33,6 +36,8 @@ const DuplicateBooks = () => {
   const [clusters, setClusters] = useState([]);
   const [selection, setSelection] = useState({}); // clusterKey → canonical book id
   const [mergingKey, setMergingKey] = useState(null);
+  const [verifications, setVerifications] = useState({}); // clusterKey → { normalizedIsbn → {found,title,author} }
+  const [checkingKey, setCheckingKey] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
 
   const showSnackbar = (message, severity = 'info') =>
@@ -88,6 +93,45 @@ const DuplicateBooks = () => {
       showSnackbar(err.message || 'Merge failed', 'error');
     } finally {
       setMergingKey(null);
+    }
+  };
+
+  // Resolve the cluster's ISBNs to their real OpenLibrary title/author so the
+  // owner can confirm the grouping (or catch a book carrying the wrong ISBN).
+  const handleCheckIsbns = async (cluster) => {
+    const key = clusterKey(cluster);
+    const isbns = [...new Set(cluster.books.map((b) => b.isbn).filter(Boolean))];
+    if (isbns.length === 0) return;
+    setCheckingKey(key);
+    try {
+      const res = await fetchWithAuth('/api/books/verify-isbns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isbns }),
+      });
+      if (!res.ok) throw new Error('ISBN lookup failed');
+      const data = await res.json();
+      const byIsbn = Object.fromEntries((data.results || []).map((r) => [r.isbn, r]));
+      setVerifications((prev) => ({ ...prev, [key]: byIsbn }));
+      const mismatches = cluster.books.filter((b) => {
+        if (!b.isbn) return false;
+        const v = byIsbn[normalizeISBN(b.isbn)];
+        return (
+          v &&
+          v.found &&
+          !isFuzzyMatch({ title: v.title, author: v.author }, { title: b.title, author: b.author })
+        );
+      }).length;
+      showSnackbar(
+        mismatches > 0
+          ? `Checked — ${mismatches} ISBN${mismatches === 1 ? '' : 's'} resolve to a different book; review before merging`
+          : 'Checked — every ISBN matches its book',
+        mismatches > 0 ? 'warning' : 'success'
+      );
+    } catch (err) {
+      showSnackbar(err.message || 'ISBN lookup failed', 'error');
+    } finally {
+      setCheckingKey(null);
     }
   };
 
@@ -153,6 +197,8 @@ const DuplicateBooks = () => {
             const key = clusterKey(cluster);
             const selected = selection[key] || cluster.suggestedCanonicalId;
             const isMerging = mergingKey === key;
+            const isChecking = checkingKey === key;
+            const clusterHasIsbn = cluster.books.some((b) => b.isbn);
             return (
               <Paper key={key} sx={{ p: 3, mb: 2, borderRadius: 3 }}>
                 <Typography
@@ -228,6 +274,47 @@ const DuplicateBooks = () => {
                                 sx={{ height: 20, fontSize: '0.68rem' }}
                               />
                             </Box>
+                            {(() => {
+                              const v = book.isbn
+                                ? verifications[key]?.[normalizeISBN(book.isbn)]
+                                : null;
+                              if (!v) return null;
+                              if (!v.found) {
+                                return (
+                                  <Typography
+                                    variant="caption"
+                                    sx={{
+                                      display: 'block',
+                                      mt: 0.5,
+                                      color: 'text.disabled',
+                                      fontFamily: '"DM Sans", sans-serif',
+                                    }}
+                                  >
+                                    ISBN not found on OpenLibrary
+                                  </Typography>
+                                );
+                              }
+                              const ok = isFuzzyMatch(
+                                { title: v.title, author: v.author },
+                                { title: book.title, author: book.author }
+                              );
+                              return (
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    display: 'block',
+                                    mt: 0.5,
+                                    fontWeight: 600,
+                                    fontFamily: '"DM Sans", sans-serif',
+                                    color: ok ? 'success.main' : 'warning.main',
+                                  }}
+                                >
+                                  {ok
+                                    ? `✓ ISBN matches “${v.title}”`
+                                    : `⚠ ISBN resolves to “${v.title}”${v.author ? ` by ${v.author}` : ''} — differs from this book`}
+                                </Typography>
+                              );
+                            })()}
                           </Box>
                         }
                       />
@@ -236,7 +323,23 @@ const DuplicateBooks = () => {
                 </RadioGroup>
 
                 <Divider sx={{ my: 2 }} />
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5 }}>
+                  {clusterHasIsbn && (
+                    <Button
+                      variant="outlined"
+                      startIcon={isChecking ? <CircularProgress size={18} /> : <FactCheckIcon />}
+                      onClick={() => handleCheckIsbns(cluster)}
+                      disabled={isChecking}
+                      sx={{
+                        textTransform: 'none',
+                        fontFamily: '"DM Sans", sans-serif',
+                        fontWeight: 600,
+                        borderRadius: 2,
+                      }}
+                    >
+                      {isChecking ? 'Checking…' : 'Check ISBNs'}
+                    </Button>
+                  )}
                   <Button
                     variant="contained"
                     startIcon={

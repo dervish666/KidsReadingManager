@@ -31,7 +31,7 @@ src/routes/books.js - Core book CRUD (list, search, count, get, create, update, 
 src/routes/books/recommendations.js - GET /library-search (DB-only scoring), GET /ai-suggestions (AI provider + cache + GDPR checks)
 src/routes/books/isbn.js - GET /isbn/:isbn (D1 → OpenLibrary fallback), POST /scan (link/preview/create), GET /search-external (OpenLibrary typeahead)
 src/routes/books/import.js - POST /bulk (dedup + batch insert), POST /import/preview (categorise matches), POST /import/confirm (batched D1 execute)
-src/routes/books/duplicates.js - GET /duplicates (owner: ISBN + title/author dup clusters), POST /merge (owner: atomic repoint-then-delete merge)
+src/routes/books/duplicates.js - GET /duplicates (owner: ISBN + title/author dup clusters), POST /verify-isbns (owner: ISBN→title check via OpenLibrary), POST /merge (owner: atomic repoint-then-delete merge)
 src/routes/classes.js - GET/POST/PUT/DELETE class management, GET/PUT class goals
 src/routes/genres.js - GET/POST/PUT/DELETE genre management
 src/routes/covers.js - GET book covers; R2 cache + OpenLibrary → Google Books → Hardcover fallback (ISBN via /:type/:key, title+author via /search)

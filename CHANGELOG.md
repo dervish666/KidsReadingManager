@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.76.0] - 2026-06-06
+
+### Added
+
+- **Verify ISBNs in the duplicate-books tool (owner)** — each duplicate group now has a **Check ISBNs** button that looks up every ISBN in the group against OpenLibrary and shows what book it really belongs to. A green tick confirms the ISBN matches the book (safe to merge); an amber warning flags a book carrying the wrong ISBN (it resolves to a different title — worth reviewing before merging). Helps confirm a grouping is genuine and catches mis-scanned or mistyped ISBNs. Results are cached, so repeat checks are instant.
+
 ## [3.75.0] - 2026-06-05
 
 ### Added

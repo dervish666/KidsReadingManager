@@ -169,12 +169,17 @@ files:
       - route: GET /api/books/duplicates
         description: Duplicate clusters by shared ISBN or title+author (owner review)
         requires: owner
+      - route: POST /api/books/verify-isbns
+        description: Resolve ISBNs to canonical title/author via OpenLibrary to confirm a grouping / spot a wrong ISBN (owner)
+        requires: owner
       - route: POST /api/books/merge
         description: Merge duplicates into a survivor (repoint sessions/current-book/links, backfill metadata, delete) atomically
         requires: owner
     imports:
       - from: utils/bookDedup
         items: [clusterDuplicates, suggestCanonical, computeBackfill]
+      - from: utils/isbnLookup
+        items: [lookupISBN]
 
   classes.js:
     description: Class management - CRUD with student counts, and class goals
