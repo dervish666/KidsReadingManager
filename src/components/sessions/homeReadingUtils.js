@@ -107,3 +107,75 @@ export const getDateRange = (start, end) => {
   }
   return dates;
 };
+
+/**
+ * Build the session payloads for a multi-day catch-up entry of `count` days
+ * ending on `selectedDate` (walking backward day by day). Pure — used by the
+ * register's quick and full views, sent to POST /sessions/bulk in one request.
+ *
+ * Rules (mirroring the original per-day POST loop exactly):
+ * - A previous day that already holds a genuine reading record (school session
+ *   or directly-logged home read) is skipped — never double-counted.
+ * - A previous day with an ABSENT/NO_RECORD marker keeps its marker: the
+ *   catch-up read is written on that day (so streaks see it) AND an extra
+ *   session is written on selectedDate (so the selected date shows the count).
+ *
+ * @param {string} selectedDate - YYYY-MM-DD anchor date
+ * @param {number} count - days to record, including selectedDate
+ * @param {Array<{date: string, location?: string, notes?: string}>} studentSessions
+ * @param {string|null} bookId
+ * @returns {Array<object>} addReadingSession-shaped payloads
+ */
+export const buildMultiDaySessions = (selectedDate, count, studentSessions, bookId) => {
+  const sessions = [];
+  for (let i = 0; i < count; i++) {
+    const sessionDate = new Date(selectedDate + 'T12:00:00');
+    sessionDate.setDate(sessionDate.getDate() - i);
+    const dateStr = formatDateISO(sessionDate);
+
+    // Don't double-count a previous day that already has a genuine reading
+    // record. Backfill sessions are deleted by the caller and re-created,
+    // so they're excluded here.
+    if (
+      i > 0 &&
+      studentSessions.some(
+        (s) =>
+          s.date === dateStr &&
+          !s.notes?.includes('[ABSENT]') &&
+          !s.notes?.includes('[NO_RECORD]') &&
+          !s.notes?.includes('[BACKFILL]')
+      )
+    ) {
+      continue;
+    }
+
+    const dayHasMarker =
+      i > 0 &&
+      studentSessions.some(
+        (s) =>
+          s.date === dateStr &&
+          s.location === 'home' &&
+          (s.notes?.includes('[ABSENT]') || s.notes?.includes('[NO_RECORD]'))
+      );
+
+    // Session on the actual day (for streak calculation)
+    sessions.push({
+      date: dateStr,
+      assessment: null,
+      notes: i > 0 ? '[BACKFILL]' : '',
+      bookId,
+      location: 'home',
+    });
+    if (dayHasMarker) {
+      // Marker stays visible — also credit the selected date for display count
+      sessions.push({
+        date: selectedDate,
+        assessment: null,
+        notes: '',
+        bookId,
+        location: 'home',
+      });
+    }
+  }
+  return sessions;
+};

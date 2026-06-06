@@ -31,6 +31,7 @@ import {
   getStartOfMonth,
   getEndOfMonth,
   getDateRange,
+  buildMultiDaySessions,
 } from './homeReadingUtils';
 
 const HomeReadingRegister = () => {
@@ -43,6 +44,7 @@ const HomeReadingRegister = () => {
     classes,
     books,
     addReadingSession,
+    addReadingSessionsBulk,
     editReadingSession,
     deleteReadingSession,
     updateStudentCurrentBook,
@@ -539,71 +541,19 @@ const HomeReadingRegister = () => {
           location: 'home',
         });
       } else {
-        const allStudentSessions = sessionsByStudent[student.id] || [];
-        for (let i = 0; i < count; i++) {
-          const sessionDate = new Date(selectedDate + 'T12:00:00');
-          sessionDate.setDate(sessionDate.getDate() - i);
-          const dateStr = formatDateISO(sessionDate);
-
-          // Don't double-count a previous day that already has a genuine reading
-          // record (a school session or a directly-logged home read). Backfill
-          // sessions are deleted above and re-created, so they're excluded here.
-          if (
-            i > 0 &&
-            allStudentSessions.some(
-              (s) =>
-                s.date === dateStr &&
-                !s.notes?.includes('[ABSENT]') &&
-                !s.notes?.includes('[NO_RECORD]') &&
-                !s.notes?.includes('[BACKFILL]')
-            )
-          ) {
-            continue;
-          }
-
-          const dayHasMarker =
-            i > 0 &&
-            allStudentSessions.some(
-              (s) =>
-                s.date === dateStr &&
-                s.location === 'home' &&
-                (s.notes?.includes('[ABSENT]') || s.notes?.includes('[NO_RECORD]'))
-            );
-
-          if (dayHasMarker) {
-            const r1 = await addReadingSession(student.id, {
-              date: dateStr,
-              assessment: null,
-              notes: i > 0 ? '[BACKFILL]' : '',
-              bookId,
-              location: 'home',
-            });
-            if (r1?.newBadges?.length > 0) collectedBadges.push(...r1.newBadges);
-            if (r1?.completedGoals?.length > 0) collectedGoals.push(...r1.completedGoals);
-            if (r1?.bandUp) collectedBands.push({ bandUp: r1.bandUp, studentName: student.name });
-            const r2 = await addReadingSession(student.id, {
-              date: selectedDate,
-              assessment: null,
-              notes: '',
-              bookId,
-              location: 'home',
-            });
-            if (r2?.newBadges?.length > 0) collectedBadges.push(...r2.newBadges);
-            if (r2?.completedGoals?.length > 0) collectedGoals.push(...r2.completedGoals);
-            if (r2?.bandUp) collectedBands.push({ bandUp: r2.bandUp, studentName: student.name });
-          } else {
-            const r = await addReadingSession(student.id, {
-              date: dateStr,
-              assessment: null,
-              notes: i > 0 ? '[BACKFILL]' : '',
-              bookId,
-              location: 'home',
-            });
-            if (r?.newBadges?.length > 0) collectedBadges.push(...r.newBadges);
-            if (r?.completedGoals?.length > 0) collectedGoals.push(...r.completedGoals);
-            if (r?.bandUp) collectedBands.push({ bandUp: r.bandUp, studentName: student.name });
-          }
-        }
+        // Build the whole multi-day batch and send it in ONE request — the
+        // server inserts atomically and runs streak/stats/goals/band/badge
+        // side-effects once, instead of once per day.
+        const sessionsToCreate = buildMultiDaySessions(
+          selectedDate,
+          count,
+          sessionsByStudent[student.id] || [],
+          bookId
+        );
+        const r = await addReadingSessionsBulk(student.id, sessionsToCreate);
+        if (r?.newBadges?.length > 0) collectedBadges.push(...r.newBadges);
+        if (r?.completedGoals?.length > 0) collectedGoals.push(...r.completedGoals);
+        if (r?.bandUp) collectedBands.push({ bandUp: r.bandUp, studentName: student.name });
       }
 
       await refreshSessions();
@@ -673,84 +623,19 @@ const HomeReadingRegister = () => {
           location: 'home',
         });
       } else {
-        // Create individual sessions on consecutive days going backward.
-        // If a previous day has an ABSENT or NO_RECORD marker, create that
-        // session on the selected date instead (so the marker stays visible
-        // and the selected date shows the catch-up count).
-        // Sessions are also created on the actual day for streak calculation.
-        const studentSessions = sessionsByStudent[selectedStudent.id] || [];
-
-        for (let i = 0; i < count; i++) {
-          const sessionDate = new Date(selectedDate + 'T12:00:00');
-          sessionDate.setDate(sessionDate.getDate() - i);
-          const dateStr = formatDateISO(sessionDate);
-
-          // Don't double-count a previous day that already has a genuine reading
-          // record (a school session or a directly-logged home read). Backfill
-          // sessions are deleted above and re-created, so they're excluded here.
-          if (
-            i > 0 &&
-            studentSessions.some(
-              (s) =>
-                s.date === dateStr &&
-                !s.notes?.includes('[ABSENT]') &&
-                !s.notes?.includes('[NO_RECORD]') &&
-                !s.notes?.includes('[BACKFILL]')
-            )
-          ) {
-            continue;
-          }
-
-          // Check if this day has a marker
-          const dayHasMarker =
-            i > 0 &&
-            studentSessions.some(
-              (s) =>
-                s.date === dateStr &&
-                s.location === 'home' &&
-                (s.notes?.includes('[ABSENT]') || s.notes?.includes('[NO_RECORD]'))
-            );
-
-          if (dayHasMarker) {
-            // Create session on the actual day (for streak calculation)
-            const r1 = await addReadingSession(selectedStudent.id, {
-              date: dateStr,
-              assessment: null,
-              notes: i > 0 ? '[BACKFILL]' : '',
-              bookId,
-              location: 'home',
-            });
-            if (r1?.newBadges?.length > 0) collectedBadges.push(...r1.newBadges);
-            if (r1?.completedGoals?.length > 0) collectedGoals.push(...r1.completedGoals);
-            if (r1?.bandUp)
-              collectedBands.push({ bandUp: r1.bandUp, studentName: selectedStudent.name });
-            // Also create session on the selected date (for display count)
-            const r2 = await addReadingSession(selectedStudent.id, {
-              date: selectedDate,
-              assessment: null,
-              notes: '',
-              bookId,
-              location: 'home',
-            });
-            if (r2?.newBadges?.length > 0) collectedBadges.push(...r2.newBadges);
-            if (r2?.completedGoals?.length > 0) collectedGoals.push(...r2.completedGoals);
-            if (r2?.bandUp)
-              collectedBands.push({ bandUp: r2.bandUp, studentName: selectedStudent.name });
-          } else {
-            // Normal day — create session on that day
-            const r = await addReadingSession(selectedStudent.id, {
-              date: dateStr,
-              assessment: null,
-              notes: i > 0 ? '[BACKFILL]' : '',
-              bookId,
-              location: 'home',
-            });
-            if (r?.newBadges?.length > 0) collectedBadges.push(...r.newBadges);
-            if (r?.completedGoals?.length > 0) collectedGoals.push(...r.completedGoals);
-            if (r?.bandUp)
-              collectedBands.push({ bandUp: r.bandUp, studentName: selectedStudent.name });
-          }
-        }
+        // Build the whole multi-day batch and send it in ONE request (see
+        // buildMultiDaySessions for the marker/backfill rules).
+        const sessionsToCreate = buildMultiDaySessions(
+          selectedDate,
+          count,
+          sessionsByStudent[selectedStudent.id] || [],
+          bookId
+        );
+        const r = await addReadingSessionsBulk(selectedStudent.id, sessionsToCreate);
+        if (r?.newBadges?.length > 0) collectedBadges.push(...r.newBadges);
+        if (r?.completedGoals?.length > 0) collectedGoals.push(...r.completedGoals);
+        if (r?.bandUp)
+          collectedBands.push({ bandUp: r.bandUp, studentName: selectedStudent.name });
       }
 
       await refreshSessions();

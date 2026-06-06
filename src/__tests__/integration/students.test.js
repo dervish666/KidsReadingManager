@@ -35,7 +35,17 @@ vi.mock('../../utils/validation', () => ({
   validateStudent: () => ({ isValid: true }),
   validateBulkImport: () => ({ isValid: true }),
   validateReadingLevelRange: () => ({ isValid: true }),
-  validateSessionInput: (body) => ({ isValid: true, error: '', data: { ...body } }),
+  // Pass-through mock; assessment === 99 is a sentinel for "invalid input" so
+  // route-level rejection paths can be exercised (real validator behaviour is
+  // covered by unit/validation.test.js).
+  validateSessionInput: (body) =>
+    body && body.assessment === 99
+      ? {
+          isValid: false,
+          error: 'Assessment must be an integer between 1 and 10',
+          data: { ...body },
+        }
+      : { isValid: true, error: '', data: { ...body } },
 }));
 
 vi.mock('../../services/kvService', () => ({
@@ -1101,5 +1111,117 @@ describe('POST /api/students/:id/sessions - timezone-aware date defaults', () =>
 
     expect(res.status).toBe(201);
     expect(mockDB.batch).toHaveBeenCalled();
+  });
+});
+
+describe('POST /api/students/:id/sessions/bulk', () => {
+  const validBody = (n) => ({
+    sessions: Array.from({ length: n }, (_, i) => ({
+      date: `2026-06-${String(i + 1).padStart(2, '0')}`,
+      assessment: null,
+      notes: i === 0 ? '' : '[BACKFILL]',
+      bookId: null,
+      location: 'home',
+    })),
+  });
+
+  const studentMatch = {
+    match: 'FROM students WHERE',
+    first: { id: 'student-1', processing_restricted: 0, year_group: 'Year 3' },
+  };
+
+  it('rejects a missing or empty sessions array', async () => {
+    const { app } = createStatsTestApp(
+      { organizationId: 'org-1', userId: 'user-1', userRole: 'teacher' },
+      [studentMatch]
+    );
+
+    const res1 = await makeRequest(app, 'POST', '/api/students/student-1/sessions/bulk', {});
+    expect(res1.status).toBe(400);
+
+    const res2 = await makeRequest(app, 'POST', '/api/students/student-1/sessions/bulk', {
+      sessions: [],
+    });
+    expect(res2.status).toBe(400);
+  });
+
+  it('rejects more than 31 sessions', async () => {
+    const { app } = createStatsTestApp(
+      { organizationId: 'org-1', userId: 'user-1', userRole: 'teacher' },
+      [studentMatch]
+    );
+    const res = await makeRequest(
+      app,
+      'POST',
+      '/api/students/student-1/sessions/bulk',
+      validBody(32)
+    );
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.message).toContain('31');
+  });
+
+  it('creates all sessions in one atomic batch and returns aggregates', async () => {
+    const { app, mockDB } = createStatsTestApp(
+      { organizationId: 'org-1', userId: 'user-1', userRole: 'teacher' },
+      [studentMatch]
+    );
+
+    const res = await makeRequest(
+      app,
+      'POST',
+      '/api/students/student-1/sessions/bulk',
+      validBody(3)
+    );
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.created).toBe(3);
+    expect(body.sessions).toHaveLength(3);
+    expect(Array.isArray(body.newBadges)).toBe(true);
+    expect(Array.isArray(body.completedGoals)).toBe(true);
+
+    // All three INSERTs prepared (single db.batch holds them)
+    const insertPrepares = mockDB.prepare.mock.calls.filter((call) =>
+      call[0].includes('INSERT INTO reading_sessions')
+    );
+    expect(insertPrepares).toHaveLength(3);
+  });
+
+  it('blocks bulk creation for processing-restricted students (Article 18)', async () => {
+    const { app } = createStatsTestApp(
+      { organizationId: 'org-1', userId: 'user-1', userRole: 'teacher' },
+      [
+        {
+          match: 'FROM students WHERE',
+          first: { id: 'student-1', processing_restricted: 1, year_group: null },
+        },
+      ]
+    );
+    const res = await makeRequest(
+      app,
+      'POST',
+      '/api/students/student-1/sessions/bulk',
+      validBody(2)
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it('rejects the whole batch when any item fails validation', async () => {
+    const { app, mockDB } = createStatsTestApp(
+      { organizationId: 'org-1', userId: 'user-1', userRole: 'teacher' },
+      [studentMatch]
+    );
+    const body = validBody(2);
+    body.sessions[1].assessment = 99; // out of range
+
+    const res = await makeRequest(app, 'POST', '/api/students/student-1/sessions/bulk', body);
+    expect(res.status).toBe(400);
+    const resBody = await res.json();
+    expect(resBody.message).toContain('sessions[1]');
+    // Nothing inserted
+    const insertPrepares = mockDB.prepare.mock.calls.filter((call) =>
+      call[0].includes('INSERT INTO reading_sessions')
+    );
+    expect(insertPrepares).toHaveLength(0);
   });
 });

@@ -22,7 +22,7 @@ src/routes/auth.js - POST/GET register, login, refresh, logout, password reset
 src/routes/mylogin.js - MyLogin OAuth2 SSO (login, callback, logout)
 src/routes/students.js - Core student CRUD (list, get, create, update, soft-delete) + current-book / feedback mutators; mounts students/_ sub-routers; re-exports recalculateAllStreaks for the cron
 src/routes/students/\_shared.js - Shared helpers: fetchStudentPreferences, saveStudentPreferences, getOrgStreakSettings (KV-cached), updateStudentStreak
-src/routes/students/sessions.js - GET /sessions, GET/POST /:id/sessions, DELETE/PUT /:id/sessions/:sessionId — POST is the batched hot-path session create
+src/routes/students/sessions.js - GET /sessions, GET/POST /:id/sessions, POST /:id/sessions/bulk (multi-day batch, side-effects run once), DELETE/PUT /:id/sessions/:sessionId — creates use the shared runSessionSideEffects chain
 src/routes/students/stats.js - GET /stats — org rollup: counts, weekly activity, day-of-week, status distribution, streak leaderboard, most-liked books
 src/routes/students/streak.js - GET /:id/streak, POST /recalculate-streaks; exports cron-time recalculateAllStreaks bulk-recalculator
 src/routes/students/bulk.js - POST /bulk — CSV bulk import with name dedup and chunked batch insert

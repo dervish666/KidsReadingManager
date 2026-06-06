@@ -221,11 +221,8 @@ export const DataProvider = ({ children }) => {
   const { addBook, updateBook, updateBookField, findOrCreateBook, fetchBookDetails } =
     useBookOperations(fetchWithAuth, books, setBooks, setApiError);
 
-  const { addReadingSession, editReadingSession, deleteReadingSession } = useSessionOperations(
-    fetchWithAuth,
-    setStudents,
-    setApiError
-  );
+  const { addReadingSession, addReadingSessionsBulk, editReadingSession, deleteReadingSession } =
+    useSessionOperations(fetchWithAuth, setStudents, setApiError);
 
   const { addClass, updateClass, deleteClass, addGenre } = useClassOperations(
     fetchWithAuth,
@@ -367,6 +364,7 @@ export const DataProvider = ({ children }) => {
       deleteStudent,
       // Session CRUD
       addReadingSession,
+      addReadingSessionsBulk,
       editReadingSession,
       deleteReadingSession,
       // Book operations
@@ -403,6 +401,7 @@ export const DataProvider = ({ children }) => {
       updateStudentCurrentBook,
       deleteStudent,
       addReadingSession,
+      addReadingSessionsBulk,
       editReadingSession,
       deleteReadingSession,
       addBook,

@@ -27,7 +27,12 @@ import {
   getStudentById as getStudentByIdKV,
   saveStudent as saveStudentKV,
 } from '../../services/kvService.js';
-import { getOrgStreakSettings, updateStudentStreak, updateStudentBand } from './_shared.js';
+import {
+  getOrgStreakSettings,
+  updateStudentStreak,
+  updateStudentBand,
+  runSessionSideEffects,
+} from './_shared.js';
 import { OBSERVATION_SLOTS } from '../../utils/readingObservations.js';
 
 const sessionsRouter = new Hono();
@@ -285,43 +290,29 @@ sessionsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
 
     await db.batch(coreWrites);
 
-    // Side-effects: best-effort, parallelised where safe. streak, stats and the
-    // class-goal update write disjoint tables (students / student_reading_stats /
-    // class_goals) and don't depend on each other, so they run concurrently.
-    // Badge evaluation reads the freshly-written stats row, so it runs after.
-    // Each is wrapped so one failure can't lose the committed session or abort
-    // the others.
-    const runSafe = async (label, fn) => {
-      try {
-        return await fn();
-      } catch (err) {
-        console.error(`[sessions] ${label} failed`, { sessionId, studentId: id, err });
-        return undefined;
+    // Side-effects: shared best-effort chain (see runSessionSideEffects in
+    // _shared.js — single source of truth with the parent portal).
+    const { completedGoals, bandUp, bandResult, newBadges } = await runSessionSideEffects(
+      db,
+      c.env,
+      {
+        studentId: id,
+        organizationId,
+        yearGroup: student.year_group,
+        isMarkerSession: Boolean(isMarkerSession),
+        timezone,
+        newSessions: [
+          {
+            id: sessionId,
+            date: sessionDate,
+            bookId: body.bookId || null,
+            isMarker: Boolean(isMarkerSession),
+          },
+        ],
+        logPrefix: 'sessions',
+        logContext: { sessionId },
       }
-    };
-
-    const [, , completedGoalsResult, bandResult] = await Promise.all([
-      runSafe('streak update', () => updateStudentStreak(db, id, organizationId, c.env)),
-      runSafe('stats recalc', () => recalculateStats(db, id, organizationId)),
-      isMarkerSession
-        ? Promise.resolve(undefined)
-        : runSafe('class goal update', () => updateClassGoalOnSession(db, id, organizationId)),
-      isMarkerSession
-        ? Promise.resolve(undefined)
-        : runSafe('band update', () =>
-            updateStudentBand(db, id, organizationId, c.env, { timezone })
-          ),
-    ]);
-    const completedGoals = completedGoalsResult || [];
-    const bandUp = bandResult?.bandUp || null;
-
-    let newBadges = [];
-    if (!isMarkerSession) {
-      newBadges =
-        (await runSafe('badge evaluation', () =>
-          evaluateRealTime(db, id, organizationId, student.year_group)
-        )) || [];
-    }
+    );
 
     const session = await db
       .prepare(
@@ -390,6 +381,259 @@ sessionsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
 
   return c.json(newSession, 201);
 });
+
+// Maximum sessions per bulk create — covers a full month of register backfill.
+const MAX_BULK_SESSIONS = 31;
+
+/**
+ * POST /:id/sessions/bulk — create several sessions for one student in a
+ * single request. Replaces the register's sequential per-day POST loop: one
+ * atomic insert batch, then the side-effect chain (streak/stats/goals/band/
+ * badges) runs ONCE instead of once per day.
+ *
+ * Body: { sessions: [{ date, bookId, bookTitle, bookAuthor, pagesRead,
+ *         duration, assessment, notes, location, read* }] }
+ */
+sessionsRouter.post(
+  '/:id/sessions/bulk',
+  requireTeacher(),
+  auditLog('create', 'session'),
+  async (c) => {
+    const { id } = c.req.param();
+    const body = await c.req.json();
+    const items = Array.isArray(body?.sessions) ? body.sessions : null;
+
+    if (!items || items.length === 0) {
+      throw badRequestError('sessions must be a non-empty array');
+    }
+    if (items.length > MAX_BULK_SESSIONS) {
+      throw badRequestError(`Cannot create more than ${MAX_BULK_SESSIONS} sessions at once`);
+    }
+
+    // Validate every item up front — reject the whole batch on any bad item,
+    // so the client never has to reason about partial creation.
+    const validated = items.map((raw, i) => {
+      const v = validateSessionInput(raw || {});
+      if (!v.isValid) {
+        throw badRequestError(`sessions[${i}]: ${v.error}`);
+      }
+      return { ...raw, ...v.data };
+    });
+
+    if (isMultiTenantMode(c)) {
+      const db = getDB(c.env);
+      const organizationId = c.get('organizationId');
+      const userId = c.get('userId');
+
+      const { timezone } = await getOrgStreakSettings(db, organizationId, c.env || {});
+
+      const student = await db
+        .prepare(
+          `SELECT id, processing_restricted, year_group FROM students WHERE id = ? AND organization_id = ? AND is_active = 1`
+        )
+        .bind(id, organizationId)
+        .first();
+      if (!student) {
+        throw notFoundError('Student not found');
+      }
+
+      // GDPR Article 18: blocked students cannot record new sessions
+      if (student.processing_restricted) {
+        return c.json(
+          {
+            error: 'Processing is restricted for this student. No new sessions can be recorded.',
+          },
+          403
+        );
+      }
+
+      // Verify all referenced library books in one query
+      const bookIds = [...new Set(validated.map((s) => s.bookId).filter(Boolean))];
+      if (bookIds.length > 0) {
+        const ph = bookIds.map(() => '?').join(',');
+        const found = await db
+          .prepare(
+            `SELECT book_id FROM org_book_selections WHERE organization_id = ? AND is_available = 1 AND book_id IN (${ph})`
+          )
+          .bind(organizationId, ...bookIds)
+          .all();
+        const foundSet = new Set((found.results || []).map((r) => r.book_id));
+        if (bookIds.some((b) => !foundSet.has(b))) {
+          throw badRequestError("Book not found in this organization's library");
+        }
+      }
+
+      const newSessions = validated.map((s) => ({
+        ...s,
+        sessionId: generateId(),
+        sessionDate: s.date || getDateString(new Date(), timezone),
+        isMarker: Boolean(
+          s.notes && (s.notes.includes('[ABSENT]') || s.notes.includes('[NO_RECORD]'))
+        ),
+      }));
+
+      // Core writes batched atomically: all session rows plus the student
+      // summary updates (same invariants as the single-session POST).
+      const coreWrites = newSessions.map((s) =>
+        db
+          .prepare(
+            `INSERT INTO reading_sessions (
+               id, student_id, session_date, book_id, book_title_manual, book_author_manual,
+               pages_read, duration_minutes, assessment, notes, location, recorded_by,
+               read_fluent, read_expressive, read_phonics, read_custom1, read_custom2, read_custom3
+             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          )
+          .bind(
+            s.sessionId,
+            id,
+            s.sessionDate,
+            s.bookId || null,
+            s.bookTitle || null,
+            s.bookAuthor || null,
+            s.pagesRead ?? null,
+            s.duration ?? null,
+            s.assessment ?? null,
+            s.notes ?? null,
+            s.location || 'school',
+            userId,
+            s.readFluent ?? null,
+            s.readExpressive ?? null,
+            s.readPhonics ?? null,
+            s.readCustom1 ?? null,
+            s.readCustom2 ?? null,
+            s.readCustom3 ?? null
+          )
+      );
+
+      // current_book_id: most recent batch item carrying a bookId
+      const withBook = newSessions
+        .filter((s) => s.bookId)
+        .sort((a, b) => (a.sessionDate < b.sessionDate ? 1 : -1));
+      if (withBook.length > 0) {
+        coreWrites.push(
+          db
+            .prepare(
+              `UPDATE students SET current_book_id = ?, updated_at = datetime("now")
+                 WHERE id = ? AND organization_id = ?`
+            )
+            .bind(withBook[0].bookId, id, organizationId)
+        );
+      }
+
+      // last_read_date: max school non-marker date in the batch (school-only,
+      // per v3.64.3 — home sessions never advance the teacher-facing date)
+      const schoolDates = newSessions
+        .filter((s) => !s.isMarker && (s.location || 'school') === 'school')
+        .map((s) => s.sessionDate)
+        .sort();
+      if (schoolDates.length > 0) {
+        coreWrites.push(
+          db
+            .prepare(
+              `UPDATE students SET last_read_date = MAX(COALESCE(last_read_date, ''), ?), updated_at = datetime("now")
+                 WHERE id = ? AND organization_id = ?`
+            )
+            .bind(schoolDates[schoolDates.length - 1], id, organizationId)
+        );
+      }
+
+      await db.batch(coreWrites);
+
+      // Side-effects ONCE for the whole batch (the entire point of this route)
+      const allMarkers = newSessions.every((s) => s.isMarker);
+      const sideEffects = await runSessionSideEffects(db, c.env, {
+        studentId: id,
+        organizationId,
+        yearGroup: student.year_group,
+        isMarkerSession: allMarkers,
+        timezone,
+        newSessions: newSessions.map((s) => ({
+          id: s.sessionId,
+          date: s.sessionDate,
+          bookId: s.bookId || null,
+          isMarker: s.isMarker,
+        })),
+        logPrefix: 'sessions/bulk',
+        logContext: { count: newSessions.length },
+      });
+
+      c.set('auditDetails', {
+        bulk: true,
+        count: newSessions.length,
+        dates: newSessions.map((s) => s.sessionDate),
+      });
+
+      return c.json(
+        {
+          created: newSessions.length,
+          sessions: newSessions.map((s) => ({
+            id: s.sessionId,
+            date: s.sessionDate,
+            bookId: s.bookId || null,
+            location: s.location || 'school',
+            notes: s.notes ?? null,
+          })),
+          newBadges: sideEffects.newBadges,
+          completedGoals: sideEffects.completedGoals,
+          bandUp: sideEffects.bandUp,
+          currentBand: sideEffects.bandResult?.currentBand,
+          bandReadsCount: sideEffects.bandResult?.readsCount,
+          streak: sideEffects.streakData
+            ? { current: sideEffects.streakData.currentStreak }
+            : null,
+        },
+        201
+      );
+    }
+
+    // Legacy KV path — append all sessions to the student JSON in one save
+    const student = await getStudentByIdKV(c.env, id);
+    if (!student) {
+      throw notFoundError('Student not found');
+    }
+
+    student.readingSessions = student.readingSessions || [];
+    const created = validated.map((s) => {
+      const newSession = {
+        id: generateId(),
+        date: s.date || new Date().toLocaleDateString('en-CA'),
+        bookTitle: s.bookTitle,
+        bookAuthor: s.bookAuthor,
+        bookId: s.bookId,
+        pagesRead: s.pagesRead,
+        duration: s.duration,
+        assessment: s.assessment,
+        notes: s.notes,
+        location: s.location || 'school',
+        readFluent: s.readFluent ?? null,
+        readExpressive: s.readExpressive ?? null,
+        readPhonics: s.readPhonics ?? null,
+        readCustom1: s.readCustom1 ?? null,
+        readCustom2: s.readCustom2 ?? null,
+        readCustom3: s.readCustom3 ?? null,
+      };
+      student.readingSessions.unshift(newSession);
+      return newSession;
+    });
+
+    const nonMarkerDates = created
+      .filter(
+        (s) => !(s.notes && (s.notes.includes('[ABSENT]') || s.notes.includes('[NO_RECORD]')))
+      )
+      .map((s) => s.date)
+      .sort();
+    if (nonMarkerDates.length > 0) {
+      student.lastReadDate = nonMarkerDates[nonMarkerDates.length - 1];
+    }
+
+    await saveStudentKV(c.env, student);
+
+    return c.json(
+      { created: created.length, sessions: created, newBadges: [], completedGoals: [], bandUp: null },
+      201
+    );
+  }
+);
 
 sessionsRouter.delete(
   '/:id/sessions/:sessionId',

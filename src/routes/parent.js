@@ -20,14 +20,11 @@ import { requireDB } from '../utils/routeHelpers.js';
 import { generateId, generateToken } from '../utils/helpers.js';
 import { notFoundError, badRequestError } from '../middleware/errorHandler.js';
 import {
-  updateStudentStreak,
   ensureCurrentBand,
   getOrgBandSettings,
-  updateStudentBand,
+  runSessionSideEffects,
 } from './students/_shared.js';
 import { getDateString } from '../utils/streakCalculator.js';
-import { recalculateStats, evaluateRealTime } from '../utils/badgeEngine.js';
-import { updateClassGoalOnSession } from '../utils/classGoalsEngine.js';
 import { bandForCount, bandTransition } from '../utils/readingBandEngine.js';
 
 export const parentRouter = new Hono();
@@ -332,31 +329,18 @@ parentRouter.post('/:token/sessions', rateLimit(10, 60000, 'parent:sessions'), a
 
   await db.batch(coreWrites);
 
-  // Side-effects: best-effort, parallelised where safe. streak, stats and the
-  // class-goal update write disjoint tables and don't depend on each other;
-  // badge evaluation reads the freshly-written stats row so it runs after.
-  // Each is wrapped so one failure can't lose the committed session.
-  const runSafe = async (label, fn) => {
-    try {
-      return await fn();
-    } catch (err) {
-      console.error(`[parent/sessions] ${label} failed`, { sessionId, studentId, err });
-      return undefined;
-    }
-  };
-
-  const [streakData] = await Promise.all([
-    runSafe('streak update', () => updateStudentStreak(db, studentId, organizationId, c.env)),
-    runSafe('stats recalc', () => recalculateStats(db, studentId, organizationId)),
-    runSafe('class goal update', () => updateClassGoalOnSession(db, studentId, organizationId)),
-    runSafe('band update', () => updateStudentBand(db, studentId, organizationId, c.env)),
-  ]);
+  // Side-effects: shared best-effort chain (see runSessionSideEffects in
+  // students/_shared.js — single source of truth with the teacher route).
+  const { streakData, newBadges } = await runSessionSideEffects(db, c.env, {
+    studentId,
+    organizationId,
+    yearGroup: tokenRow.year_group,
+    isMarkerSession: false, // parents can only log real home reads
+    newSessions: [{ id: sessionId, date: sessionDate, bookId: bookId || null, isMarker: false }],
+    logPrefix: 'parent/sessions',
+    logContext: { sessionId },
+  });
   const updatedStreak = streakData ? { current: streakData.currentStreak } : null;
-
-  const newBadges =
-    (await runSafe('badge evaluation', () =>
-      evaluateRealTime(db, studentId, organizationId, tokenRow.year_group)
-    )) || [];
 
   // Fetch the inserted session to build the response
   const session = await db

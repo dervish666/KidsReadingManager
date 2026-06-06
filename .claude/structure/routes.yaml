@@ -422,11 +422,18 @@ files:
       - name: ensureCurrentBand
         kind: function
         description: Lazily recompute band if stored band_year_start is stale (new academic year)
+      - name: runSessionSideEffects
+        kind: function
+        description: Shared post-create side-effect chain (streak/stats/class-goal bump/band in parallel, then badges) — single source of truth for teacher route and parent portal; best-effort, never throws
     imports:
       - from: utils/helpers
         items: [generateId]
       - from: utils/streakCalculator
         items: [calculateStreak, getDateString]
+      - from: utils/badgeEngine
+        items: [recalculateStats, evaluateRealTime]
+      - from: utils/classGoalsEngine
+        items: [bumpClassGoalsOnSessions]
       - from: utils/readingBandEngine
         items: [countReads, computeBandIndex, academicYearStart, bandTransition]
       - from: utils/readingBandDefinitions

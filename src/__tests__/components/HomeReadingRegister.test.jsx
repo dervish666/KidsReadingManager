@@ -143,6 +143,9 @@ const createMockContext = (overrides = {}) => {
       { id: 'class-3', name: 'Disabled Class', disabled: true },
     ],
     addReadingSession: vi.fn(),
+    addReadingSessionsBulk: vi
+      .fn()
+      .mockResolvedValue({ created: 1, newBadges: [], completedGoals: [], bandUp: null }),
     deleteReadingSession: vi.fn(),
     updateStudentCurrentBook: vi.fn(),
     reloadDataFromServer: vi.fn(),
@@ -387,11 +390,13 @@ describe('HomeReadingRegister Component', () => {
       expect(screen.getByText('Recording for: Alice Smith')).toBeInTheDocument();
     });
 
-    it('should call addReadingSession when clicking Read button', async () => {
-      const mockAddReadingSession = vi.fn();
+    it('should call addReadingSessionsBulk when clicking Read button', async () => {
+      const mockBulk = vi
+        .fn()
+        .mockResolvedValue({ created: 1, newBadges: [], completedGoals: [], bandUp: null });
       const context = createMockContext({
         globalClassFilter: 'class-1',
-        addReadingSession: mockAddReadingSession,
+        addReadingSessionsBulk: mockBulk,
       });
       const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
@@ -405,14 +410,13 @@ describe('HomeReadingRegister Component', () => {
       await user.click(readButton);
 
       await waitFor(() => {
-        expect(mockAddReadingSession).toHaveBeenCalledWith(
-          'student-1',
+        expect(mockBulk).toHaveBeenCalledWith('student-1', [
           expect.objectContaining({
             date: getYesterday(),
             assessment: null,
             location: 'home',
-          })
-        );
+          }),
+        ]);
       });
     });
 
@@ -489,11 +493,13 @@ describe('HomeReadingRegister Component', () => {
       expect(screen.getByText('How many days of reading?')).toBeInTheDocument();
     });
 
-    it('should record backfill sessions for quick buttons', async () => {
-      const mockAddReadingSession = vi.fn();
+    it('should record backfill sessions for quick buttons in one bulk call', async () => {
+      const mockBulk = vi
+        .fn()
+        .mockResolvedValue({ created: 2, newBadges: [], completedGoals: [], bandUp: null });
       const context = createMockContext({
         globalClassFilter: 'class-1',
-        addReadingSession: mockAddReadingSession,
+        addReadingSessionsBulk: mockBulk,
       });
       const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
@@ -507,24 +513,23 @@ describe('HomeReadingRegister Component', () => {
       await user.click(twoButton);
 
       await waitFor(() => {
-        // Should be called twice (once per day)
-        expect(mockAddReadingSession).toHaveBeenCalledTimes(2);
-        // Both calls should be home sessions with no notes
-        expect(mockAddReadingSession).toHaveBeenCalledWith(
-          'student-1',
-          expect.objectContaining({
-            notes: '',
-            location: 'home',
-          })
-        );
+        // ONE bulk call carrying both days
+        expect(mockBulk).toHaveBeenCalledTimes(1);
+        const [studentId, sessions] = mockBulk.mock.calls[0];
+        expect(studentId).toBe('student-1');
+        expect(sessions).toHaveLength(2);
+        expect(sessions[0]).toMatchObject({ notes: '', location: 'home' });
+        expect(sessions[1]).toMatchObject({ notes: '[BACKFILL]', location: 'home' });
       });
     });
 
-    it('should record custom backfill days when confirming dialog', async () => {
-      const mockAddReadingSession = vi.fn();
+    it('should record custom backfill days in one bulk call when confirming dialog', async () => {
+      const mockBulk = vi
+        .fn()
+        .mockResolvedValue({ created: 5, newBadges: [], completedGoals: [], bandUp: null });
       const context = createMockContext({
         globalClassFilter: 'class-1',
-        addReadingSession: mockAddReadingSession,
+        addReadingSessionsBulk: mockBulk,
       });
       const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });
@@ -545,8 +550,9 @@ describe('HomeReadingRegister Component', () => {
       await user.click(confirmButton);
 
       await waitFor(() => {
-        // Should create 5 individual sessions (one per day)
-        expect(mockAddReadingSession).toHaveBeenCalledTimes(5);
+        // ONE bulk call carrying all 5 days
+        expect(mockBulk).toHaveBeenCalledTimes(1);
+        expect(mockBulk.mock.calls[0][1]).toHaveLength(5);
       });
     });
   });
@@ -963,10 +969,10 @@ describe('HomeReadingRegister Component', () => {
     });
 
     it('should show error snackbar when recording fails', async () => {
-      const mockAddReadingSession = vi.fn().mockRejectedValue(new Error('API Error'));
+      const mockBulk = vi.fn().mockRejectedValue(new Error('API Error'));
       const context = createMockContext({
         globalClassFilter: 'class-1',
-        addReadingSession: mockAddReadingSession,
+        addReadingSessionsBulk: mockBulk,
       });
       const user = userEvent.setup();
       render(<HomeReadingRegister />, { wrapper: createWrapper(context) });

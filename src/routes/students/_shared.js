@@ -9,6 +9,8 @@
 
 import { generateId } from '../../utils/helpers.js';
 import { calculateStreak, getDateString } from '../../utils/streakCalculator.js';
+import { recalculateStats, evaluateRealTime } from '../../utils/badgeEngine.js';
+import { bumpClassGoalsOnSessions } from '../../utils/classGoalsEngine.js';
 import {
   countReads,
   computeBandIndex,
@@ -342,6 +344,86 @@ export const setStudentBaselineReads = async (
     .run();
 
   return updateStudentBand(db, studentId, organizationId, env, { timezone: tz });
+};
+
+/**
+ * Run the post-create session side-effect chain — the single source of truth
+ * shared by the teacher route (students/sessions.js) and the parent portal
+ * (parent.js). Core session writes must already be committed; everything here
+ * is best-effort (a failure is logged, never thrown) because the nightly cron
+ * reconciles streaks/stats/badges/goals.
+ *
+ * Ordering: streak, stats, class goals and band write disjoint tables and run
+ * concurrently; badge evaluation reads the freshly-written stats row, so it
+ * runs after. Marker sessions ([ABSENT]/[NO_RECORD]) skip goals/band/badges.
+ *
+ * @param {object} db
+ * @param {object} env - Worker env (KV settings cache)
+ * @param {object} opts
+ * @param {string} opts.studentId
+ * @param {string} opts.organizationId
+ * @param {string|null} [opts.yearGroup] - for badge key-stage resolution
+ * @param {boolean} [opts.isMarkerSession]
+ * @param {string|null} [opts.timezone] - pass when already fetched (saves a KV read)
+ * @param {Array<{id: string, date: string, bookId?: string|null, isMarker?: boolean}>} [opts.newSessions]
+ *   The just-inserted sessions, for the incremental class-goal bump.
+ * @param {string} [opts.logPrefix]
+ * @param {object} [opts.logContext] - extra fields for error logs (e.g. sessionId)
+ * @returns {Promise<{streakData?: object, completedGoals: Array, bandResult?: object, bandUp: object|null, newBadges: Array}>}
+ */
+export const runSessionSideEffects = async (
+  db,
+  env,
+  {
+    studentId,
+    organizationId,
+    yearGroup = null,
+    isMarkerSession = false,
+    timezone = null,
+    newSessions = null,
+    logPrefix = 'sessions',
+    logContext = {},
+  }
+) => {
+  const runSafe = async (label, fn) => {
+    try {
+      return await fn();
+    } catch (err) {
+      console.error(`[${logPrefix}] ${label} failed`, { studentId, ...logContext, err });
+      return undefined;
+    }
+  };
+
+  const [streakData, , completedGoalsResult, bandResult] = await Promise.all([
+    runSafe('streak update', () => updateStudentStreak(db, studentId, organizationId, env)),
+    runSafe('stats recalc', () => recalculateStats(db, studentId, organizationId)),
+    isMarkerSession
+      ? Promise.resolve(undefined)
+      : runSafe('class goal update', () =>
+          bumpClassGoalsOnSessions(db, studentId, organizationId, newSessions || [])
+        ),
+    isMarkerSession
+      ? Promise.resolve(undefined)
+      : runSafe('band update', () =>
+          updateStudentBand(db, studentId, organizationId, env, { timezone })
+        ),
+  ]);
+
+  let newBadges = [];
+  if (!isMarkerSession) {
+    newBadges =
+      (await runSafe('badge evaluation', () =>
+        evaluateRealTime(db, studentId, organizationId, yearGroup)
+      )) || [];
+  }
+
+  return {
+    streakData,
+    completedGoals: completedGoalsResult || [],
+    bandResult,
+    bandUp: bandResult?.bandUp || null,
+    newBadges,
+  };
 };
 
 /**

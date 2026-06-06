@@ -26,7 +26,7 @@ files:
       - name: useSessionOperations
         kind: function
         params: [fetchWithAuth, setStudents, setApiError]
-        returns: "{ addReadingSession, editReadingSession, deleteReadingSession }"
+        returns: "{ addReadingSession, addReadingSessionsBulk, editReadingSession, deleteReadingSession }"
 
   contexts/data/useClassOperations.js:
     description: Class CRUD and genre operations extracted from DataContext
