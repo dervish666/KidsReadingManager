@@ -370,7 +370,17 @@ export function auditLog(action, entityType) {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `
         )
-        .bind(id, organizationId, userId, action, entityType, entityId, details, ipAddress, userAgent)
+        .bind(
+          id,
+          organizationId,
+          userId,
+          action,
+          entityType,
+          entityId,
+          details,
+          ipAddress,
+          userAgent
+        )
         .run();
     } catch (error) {
       // Don't fail the request if audit logging fails

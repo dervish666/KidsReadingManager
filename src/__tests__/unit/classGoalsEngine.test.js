@@ -325,7 +325,12 @@ describe('recalculateClassGoalProgress', () => {
 describe('bumpClassGoalsOnSessions', () => {
   // Mock DB factory keyed by SQL content. `pointResults` controls the
   // uniqueness point-checks; `goals` the class_goals rows.
-  const createBumpMockDb = ({ goals, readerHasOther = null, existingDates = [], existingBooks = [] }) => {
+  const createBumpMockDb = ({
+    goals,
+    readerHasOther = null,
+    existingDates = [],
+    existingBooks = [],
+  }) => {
     const batched = [];
     const db = {
       prepare: vi.fn((sql) => ({
@@ -426,7 +431,9 @@ describe('bumpClassGoalsOnSessions', () => {
   });
 
   it('counts only genuinely new reading days', async () => {
-    const goals = [{ id: 'g1', metric: 'reading_days', target: 100, current: 20, achieved_at: null }];
+    const goals = [
+      { id: 'g1', metric: 'reading_days', target: 100, current: 20, achieved_at: null },
+    ];
     // One of the two batch dates already has a class session
     const db = createBumpMockDb({ goals, existingDates: [today] });
 

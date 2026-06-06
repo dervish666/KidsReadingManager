@@ -162,7 +162,12 @@ const ParentQRButton = ({ studentId, studentName, variant = 'icon' }) => {
         }}
       >
         <DialogTitle
-          sx={{ fontWeight: 700, color: 'parent.accent', fontFamily: '"Nunito", sans-serif', pb: 1 }}
+          sx={{
+            fontWeight: 700,
+            color: 'parent.accent',
+            fontFamily: '"Nunito", sans-serif',
+            pb: 1,
+          }}
         >
           Parent QR Code
         </DialogTitle>
@@ -230,7 +235,11 @@ const ParentQRButton = ({ studentId, studentName, variant = 'icon' }) => {
 
                 <Typography
                   variant="h6"
-                  sx={{ fontWeight: 700, color: 'parent.accent', fontFamily: '"Nunito", sans-serif' }}
+                  sx={{
+                    fontWeight: 700,
+                    color: 'parent.accent',
+                    fontFamily: '"Nunito", sans-serif',
+                  }}
                 >
                   {firstName}
                 </Typography>

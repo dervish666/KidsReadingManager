@@ -578,9 +578,7 @@ sessionsRouter.post(
           bandUp: sideEffects.bandUp,
           currentBand: sideEffects.bandResult?.currentBand,
           bandReadsCount: sideEffects.bandResult?.readsCount,
-          streak: sideEffects.streakData
-            ? { current: sideEffects.streakData.currentStreak }
-            : null,
+          streak: sideEffects.streakData ? { current: sideEffects.streakData.currentStreak } : null,
         },
         201
       );
@@ -629,7 +627,13 @@ sessionsRouter.post(
     await saveStudentKV(c.env, student);
 
     return c.json(
-      { created: created.length, sessions: created, newBadges: [], completedGoals: [], bandUp: null },
+      {
+        created: created.length,
+        sessions: created,
+        newBadges: [],
+        completedGoals: [],
+        bandUp: null,
+      },
       201
     );
   }

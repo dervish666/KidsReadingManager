@@ -26,9 +26,7 @@ if (typeof globalThis.TextEncoder === 'undefined') {
 // offline (previously, an unawaited provider-failover fetch could escape its
 // test's mockRestore() and fire a real request to api.anthropic.com).
 globalThis.fetch = () =>
-  Promise.reject(
-    new Error('Network calls are disabled in unit tests — stub fetch in your test.')
-  );
+  Promise.reject(new Error('Network calls are disabled in unit tests — stub fetch in your test.'));
 
 // Mock IntersectionObserver for BookCover tests (happy-dom has it but doesn't fire callbacks)
 globalThis.IntersectionObserver = class IntersectionObserver {

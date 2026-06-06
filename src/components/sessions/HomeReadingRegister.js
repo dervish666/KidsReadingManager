@@ -634,8 +634,7 @@ const HomeReadingRegister = () => {
         const r = await addReadingSessionsBulk(selectedStudent.id, sessionsToCreate);
         if (r?.newBadges?.length > 0) collectedBadges.push(...r.newBadges);
         if (r?.completedGoals?.length > 0) collectedGoals.push(...r.completedGoals);
-        if (r?.bandUp)
-          collectedBands.push({ bandUp: r.bandUp, studentName: selectedStudent.name });
+        if (r?.bandUp) collectedBands.push({ bandUp: r.bandUp, studentName: selectedStudent.name });
       }
 
       await refreshSessions();

@@ -35,7 +35,9 @@ describe('buildMultiDaySessions', () => {
   });
 
   it('keeps a marker day visible: backfill on the day PLUS a session on the anchor', () => {
-    const existing = [{ date: '2026-06-03', location: 'home', notes: '[ABSENT] Student was absent' }];
+    const existing = [
+      { date: '2026-06-03', location: 'home', notes: '[ABSENT] Student was absent' },
+    ];
     const sessions = buildMultiDaySessions('2026-06-04', 2, existing, 'book-1');
     expect(sessions).toEqual([
       { date: '2026-06-04', assessment: null, notes: '', bookId: 'book-1', location: 'home' },

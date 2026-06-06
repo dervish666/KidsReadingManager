@@ -1,5 +1,25 @@
 # Changelog
 
+## [3.77.0] - 2026-06-06
+
+### Added
+
+- **Bulk session recording** — a new `POST /api/students/:id/sessions/bulk` endpoint creates a multi-day catch-up in one request. The reading register now sends the whole backfill batch at once instead of one request per day: all session rows are inserted atomically and the streak/stats/goals/band/badge updates run **once** per student rather than once per day (a 5-day catch-up drops from ~145 to ~40 database queries). Marker-day and already-read-day rules are unchanged.
+
+### Fixed
+
+- **Parent-logged sessions now count toward class goals** — a SQL quirk (`NULL NOT LIKE` evaluates to NULL in SQLite) meant sessions with no notes — exactly what the parent portal creates — were silently excluded from every class-goal count. All six goal metrics are now NULL-safe.
+- **Cover lookups share one rate-limit counter** — each distinct cover key previously got its own 60/min bucket, so scripted enumeration could bypass the cap and drain external provider quota. All `/api/covers/*` requests from one IP now share a single counter, and the rate limiter warns if a future parameterised route forgets to set a bucket.
+- **Book-merge audit entries now record their blast radius** — the canonical book, the absorbed duplicates, and every organisation whose reading data was repointed are stored in the audit log's details column.
+- **Unknown class IDs return 404** — the class sessions endpoint now says "Class not found" instead of returning an empty list for an ID that doesn't exist in your school.
+
+### Changed
+
+- **Faster class-goal updates on every session save** — recording a session previously rescanned the class's entire academic year of reading sessions to update goal progress; it now applies cheap incremental updates (the goals page and the nightly job still do full recounts, so totals stay exact).
+- **Faster admin operations** — parent-portal book searches are cached for 24 hours; the duplicate-books ISBN check runs lookups in parallel (a 20-ISBN check no longer takes up to ~100 seconds); the Wonde school import resolves URL slugs in one query instead of one per school; the hourly demo reset uses the same batched badge engine as the nightly job.
+- **AI privacy** — OpenAI recommendation requests now opt out of request storage (`store: false`).
+- **Internal restructuring (no behaviour change)** — the session side-effect chain is now shared between the teacher and parent routes (it previously existed as two copies that had to be edited in lockstep); `auth.js` and `settings.js` are split into focused sub-modules; the reading register's full view is decomposed into three child components; the three overlapping string/title-matching utilities are consolidated into one; the academic-year start month and D1 batch limit are single shared constants; books storage is now D1-only (the legacy KV/JSON book providers, which only ever covered part of the app, are removed — local development uses a local D1 database as documented).
+
 ## [3.76.0] - 2026-06-06
 
 ### Added

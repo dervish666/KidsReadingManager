@@ -116,7 +116,11 @@ export function useSessionOperations(fetchWithAuth, setStudents, setApiError) {
         const isMarker = (notes) =>
           notes && (notes.includes('[ABSENT]') || notes.includes('[NO_RECORD]'));
         const nonMarkers = sessions.filter((s) => !isMarker(s.notes));
-        const maxDate = nonMarkers.map((s) => s.date).sort().pop() || null;
+        const maxDate =
+          nonMarkers
+            .map((s) => s.date)
+            .sort()
+            .pop() || null;
         const lastWithBook = [...sessions].reverse().find((s) => s.bookId);
 
         setStudents((prev) =>
