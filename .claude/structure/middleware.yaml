@@ -99,12 +99,12 @@ files:
         kind: function
         params: [{name: action, type: string}, {name: entityType, type: string}]
         returns: Hono middleware
-        description: Log successful operations (2xx) to audit_log table
+        description: Log successful operations (2xx) to audit_log table; handlers may set c.set('auditEntityId') / c.set('auditDetails') for entity_id + JSON details
       - name: rateLimit
         kind: function
-        params: [{name: maxRequests, type: number, default: 100}, {name: windowMs, type: number, default: 60000}]
+        params: [{name: maxRequests, type: number, default: 100}, {name: windowMs, type: number, default: 60000}, {name: bucket, type: string, default: null}]
         returns: Hono middleware
-        description: D1-backed rate limiting using IP or userId key
+        description: D1-backed rate limiting using IP or userId key; parameterised routes MUST pass an explicit bucket (warns otherwise)
       - name: authRateLimit
         kind: function
         returns: Hono middleware

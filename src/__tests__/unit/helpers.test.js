@@ -3,8 +3,6 @@ import {
   generateId,
   getTodayDate,
   getReadingStatus,
-  sortStudentsByPriority,
-  getPrioritizedStudents,
   formatAssessmentDisplay,
 } from '../../utils/helpers.js';
 
@@ -110,107 +108,6 @@ describe('getReadingStatus', () => {
   it('should handle edge case at needsAttention boundary', () => {
     const student = { lastReadDate: '2024-06-08' }; // exactly 7 days ago
     expect(getReadingStatus(student, defaultSettings)).toBe('needsAttention');
-  });
-});
-
-describe('sortStudentsByPriority', () => {
-  it('should sort students with null lastReadDate first', () => {
-    const students = [
-      { name: 'A', lastReadDate: '2024-01-15' },
-      { name: 'B', lastReadDate: null },
-      { name: 'C', lastReadDate: '2024-01-10' },
-    ];
-
-    const sorted = sortStudentsByPriority(students);
-
-    expect(sorted[0].name).toBe('B');
-  });
-
-  it('should sort students by oldest read date first', () => {
-    const students = [
-      { name: 'A', lastReadDate: '2024-01-15' },
-      { name: 'B', lastReadDate: '2024-01-10' },
-      { name: 'C', lastReadDate: '2024-01-20' },
-    ];
-
-    const sorted = sortStudentsByPriority(students);
-
-    expect(sorted[0].name).toBe('B');
-    expect(sorted[1].name).toBe('A');
-    expect(sorted[2].name).toBe('C');
-  });
-
-  it('should not mutate original array', () => {
-    const students = [
-      { name: 'A', lastReadDate: '2024-01-15' },
-      { name: 'B', lastReadDate: '2024-01-10' },
-    ];
-    const originalFirst = students[0];
-
-    sortStudentsByPriority(students);
-
-    expect(students[0]).toBe(originalFirst);
-  });
-
-  it('should handle empty array', () => {
-    const sorted = sortStudentsByPriority([]);
-    expect(sorted).toEqual([]);
-  });
-
-  it('should handle all null dates', () => {
-    const students = [
-      { name: 'A', lastReadDate: null },
-      { name: 'B', lastReadDate: null },
-    ];
-
-    const sorted = sortStudentsByPriority(students);
-    expect(sorted).toHaveLength(2);
-  });
-});
-
-describe('getPrioritizedStudents', () => {
-  it('should return top N students by priority', () => {
-    const students = [
-      { name: 'A', lastReadDate: '2024-01-15', totalSessionCount: 0 },
-      { name: 'B', lastReadDate: '2024-01-10', totalSessionCount: 0 },
-      { name: 'C', lastReadDate: '2024-01-20', totalSessionCount: 0 },
-    ];
-
-    const prioritized = getPrioritizedStudents(students, 2);
-
-    expect(prioritized).toHaveLength(2);
-    expect(prioritized[0].name).toBe('B');
-    expect(prioritized[1].name).toBe('A');
-  });
-
-  it('should return all students if count exceeds length', () => {
-    const students = [{ name: 'A', lastReadDate: null, totalSessionCount: 0 }];
-
-    const prioritized = getPrioritizedStudents(students, 5);
-
-    expect(prioritized).toHaveLength(1);
-  });
-
-  it('should prioritize students without read date', () => {
-    const students = [
-      { name: 'A', lastReadDate: '2024-01-15', totalSessionCount: 0 },
-      { name: 'B', lastReadDate: null, totalSessionCount: 0 },
-    ];
-
-    const prioritized = getPrioritizedStudents(students, 2);
-
-    expect(prioritized[0].name).toBe('B');
-  });
-
-  it('should use session count as tiebreaker', () => {
-    const students = [
-      { name: 'A', lastReadDate: null, totalSessionCount: 3 },
-      { name: 'B', lastReadDate: null, totalSessionCount: 1 },
-    ];
-
-    const prioritized = getPrioritizedStudents(students, 2);
-
-    expect(prioritized[0].name).toBe('B'); // fewer sessions = higher priority
   });
 });
 

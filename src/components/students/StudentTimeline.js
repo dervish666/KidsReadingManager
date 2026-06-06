@@ -36,16 +36,27 @@ import {
   emptyObservations,
   observationsFromSession,
 } from '../../utils/readingObservations';
+import { alpha } from '@mui/material/styles';
+import theme from '../../styles/theme';
 
-// ─── Colour constants (aligned with Cozy Bookshelf theme) ────────────────────
-const DOT_RECENT = '#6B8E6B'; // primary.main — within 7 days
-const DOT_OLDER = '#d4c9b8'; // warm neutral — older
-const LINE_COLOR = '#d4c9b8'; // warm neutral — vertical timeline line
+// ─── Colour constants (from the Cozy Bookshelf theme palette) ────────────────
+const DOT_RECENT = theme.palette.primary.main; // within 7 days
+const DOT_OLDER = theme.palette.warmNeutral; // older
+const LINE_COLOR = theme.palette.warmNeutral; // vertical timeline line
 
-// Assessment pill colours (theme-aligned)
-const PILL_HIGH = { bg: 'rgba(74, 110, 74, 0.1)', text: '#4A6E4A' }; // status.recentlyRead
-const PILL_MID = { bg: 'rgba(155, 110, 58, 0.1)', text: '#9B6E3A' }; // status.needsAttention
-const PILL_LOW = { bg: 'rgba(158, 75, 75, 0.1)', text: '#9E4B4B' }; // status.notRead
+// Assessment pill colours (theme status palette)
+const PILL_HIGH = {
+  bg: alpha(theme.palette.status.recentlyRead, 0.1),
+  text: theme.palette.status.recentlyRead,
+};
+const PILL_MID = {
+  bg: alpha(theme.palette.status.needsAttention, 0.1),
+  text: theme.palette.status.needsAttention,
+};
+const PILL_LOW = {
+  bg: alpha(theme.palette.status.notRead, 0.1),
+  text: theme.palette.status.notRead,
+};
 
 function assessmentPillColors(value) {
   if (typeof value !== 'number') return null;

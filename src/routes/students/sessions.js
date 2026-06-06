@@ -70,6 +70,13 @@ sessionsRouter.get('/sessions', requireReadonly(), async (c) => {
     classClause = ' AND s.class_id IS NULL';
     binds = [organizationId, startDate, endDate];
   } else {
+    // Validate the class exists in this org — org scoping below already makes
+    // foreign ids harmless (zero rows), but a 404 beats a silently-empty list.
+    const cls = await db
+      .prepare(`SELECT id FROM classes WHERE id = ? AND organization_id = ?`)
+      .bind(classId, organizationId)
+      .first();
+    if (!cls) throw notFoundError('Class not found');
     classClause = ' AND s.class_id = ?';
     binds = [organizationId, classId, startDate, endDate];
   }

@@ -21,6 +21,15 @@ if (typeof globalThis.TextEncoder === 'undefined') {
   globalThis.TextDecoder = TextDecoder;
 }
 
+// Unit tests must never touch the network. Tests that need fetch should
+// vi.spyOn(globalThis, 'fetch') with a mock — this base stub fails fast and
+// offline (previously, an unawaited provider-failover fetch could escape its
+// test's mockRestore() and fire a real request to api.anthropic.com).
+globalThis.fetch = () =>
+  Promise.reject(
+    new Error('Network calls are disabled in unit tests — stub fetch in your test.')
+  );
+
 // Mock IntersectionObserver for BookCover tests (happy-dom has it but doesn't fire callbacks)
 globalThis.IntersectionObserver = class IntersectionObserver {
   constructor(callback) {

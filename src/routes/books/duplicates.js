@@ -203,6 +203,17 @@ duplicatesRouter.post('/merge', requireOwner(), auditLog('merge', 'books'), asyn
   const backfillCols = Object.keys(backfill);
 
   const dupPlaceholders = duplicateIds.map(() => '?').join(',');
+
+  // Capture which organisations hold links to the duplicates BEFORE the merge
+  // repoints them — the audit trail must record whose reading data was touched
+  // (the merge is global; the JWT org alone says nothing about blast radius).
+  const affectedOrgsRes = await db
+    .prepare(
+      `SELECT DISTINCT organization_id FROM org_book_selections WHERE book_id IN (${dupPlaceholders})`
+    )
+    .bind(...duplicateIds)
+    .all();
+  const affectedOrgIds = (affectedOrgsRes.results || []).map((r) => r.organization_id);
   const statements = [
     // 1. Repoint reading history + current-book pointers onto the survivor.
     db
@@ -261,6 +272,12 @@ duplicatesRouter.post('/merge', requireOwner(), auditLog('merge', 'books'), asyn
   }
 
   const results = await db.batch(statements);
+
+  // Surface the merge's blast radius to the auditLog middleware (runs after
+  // the handler): which book survived, which were absorbed, and which orgs
+  // had sessions/selections repointed.
+  c.set('auditEntityId', canonicalId);
+  c.set('auditDetails', { canonicalId, duplicateIds, affectedOrgIds });
 
   return c.json({
     success: true,

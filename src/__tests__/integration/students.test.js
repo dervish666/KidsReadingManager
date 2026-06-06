@@ -499,7 +499,10 @@ describe('GET /api/students/sessions', () => {
 
     const { app } = createTestApp(
       { organizationId: 'org-1', userId: 'user-1', userRole: 'teacher' },
-      { allResults: { results: sessionRows, success: true } }
+      {
+        allResults: { results: sessionRows, success: true },
+        firstResult: { id: 'class-1' }, // class-existence check
+      }
     );
 
     const res = await makeRequest(
@@ -568,7 +571,7 @@ describe('GET /api/students/sessions', () => {
   it('should scope sessions to the organization', async () => {
     const { app, mockDB } = createTestApp(
       { organizationId: 'org-42', userId: 'user-1', userRole: 'teacher' },
-      { allResults: { results: [], success: true } }
+      { allResults: { results: [], success: true }, firstResult: { id: 'class-1' } }
     );
 
     await makeRequest(
@@ -592,7 +595,7 @@ describe('GET /api/students/sessions', () => {
   it('should return empty array for no sessions in range', async () => {
     const { app } = createTestApp(
       { organizationId: 'org-1', userId: 'user-1', userRole: 'teacher' },
-      { allResults: { results: [], success: true } }
+      { allResults: { results: [], success: true }, firstResult: { id: 'class-1' } }
     );
 
     const res = await makeRequest(
@@ -603,6 +606,21 @@ describe('GET /api/students/sessions', () => {
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data).toEqual([]);
+  });
+
+  it('should 404 for a classId that does not exist in the organization', async () => {
+    // Default mock firstResult is null -> class-existence check finds nothing
+    const { app } = createTestApp(
+      { organizationId: 'org-1', userId: 'user-1', userRole: 'teacher' },
+      { allResults: { results: [], success: true } }
+    );
+
+    const res = await makeRequest(
+      app,
+      'GET',
+      '/api/students/sessions?classId=foreign-class&startDate=2026-01-01&endDate=2026-01-07'
+    );
+    expect(res.status).toBe(404);
   });
 });
 

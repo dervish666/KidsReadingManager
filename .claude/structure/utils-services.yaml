@@ -25,14 +25,6 @@ files:
         kind: function
         params: [{name: student}, {name: settings}]
         returns: "'recentlyRead'|'needsAttention'|'notRead'"
-      - name: sortStudentsByPriority
-        kind: function
-        params: [{name: students}]
-        returns: Array
-      - name: getPrioritizedStudents
-        kind: function
-        params: [{name: students}, {name: count}]
-        returns: Array
       - name: formatErrorResponse
         kind: function
         params: [{name: message}, {name: status}]

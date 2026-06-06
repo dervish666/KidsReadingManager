@@ -83,39 +83,6 @@ export function getReadingStatus(student, settings, timezone) {
 }
 
 /**
- * Sort students by reading priority
- * @param {Array} students - Array of students
- * @returns {Array} - Sorted array of students
- */
-export function sortStudentsByPriority(students) {
-  return [...students].sort((a, b) => {
-    if (!a.lastReadDate) return -1;
-    if (!b.lastReadDate) return 1;
-    return new Date(a.lastReadDate) - new Date(b.lastReadDate);
-  });
-}
-
-/**
- * Get prioritized students
- * @param {Array} students - Array of students
- * @param {number} count - Number of students to return
- * @returns {Array} - Array of prioritized students
- */
-export function getPrioritizedStudents(students, count) {
-  return [...students]
-    .sort((a, b) => {
-      if (!a.lastReadDate && !b.lastReadDate)
-        return (a.totalSessionCount || 0) - (b.totalSessionCount || 0);
-      if (!a.lastReadDate) return -1;
-      if (!b.lastReadDate) return 1;
-      const dateComparison = new Date(a.lastReadDate) - new Date(b.lastReadDate);
-      if (dateComparison !== 0) return dateComparison;
-      return (a.totalSessionCount || 0) - (b.totalSessionCount || 0);
-    })
-    .slice(0, count);
-}
-
-/**
  * Maps status values returned by AppContext's getReadingStatus()
  * ('never', 'recent', 'attention', 'overdue')
  * to theme.palette.status keys ('notRead', 'needsAttention', 'recentlyRead').

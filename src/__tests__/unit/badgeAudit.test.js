@@ -12,13 +12,7 @@ import {
   getRealtimeBadges,
   getBatchBadges,
 } from '../../utils/badgeDefinitions.js';
-import {
-  classifyGenre,
-  recalculateStats,
-  evaluateRealTime,
-  evaluateBatch,
-  calculateNearMisses,
-} from '../../utils/badgeEngine.js';
+import { classifyGenre, recalculateStats, calculateNearMisses } from '../../utils/badgeEngine.js';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 

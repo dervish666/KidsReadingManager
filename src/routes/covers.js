@@ -14,7 +14,7 @@ const coversRouter = new Hono();
 // normal classroom load (a single class rarely renders more than ~30
 // covers) while blocking scripted enumeration that would burn external
 // provider quota and fill R2 with orphan keys.
-coversRouter.use('*', rateLimit(60, 60000));
+coversRouter.use('*', rateLimit(60, 60000, 'covers'));
 
 // Valid cover types for /:type/:key
 const VALID_TYPES = new Set(['id', 'olid', 'isbn', 'ia']);

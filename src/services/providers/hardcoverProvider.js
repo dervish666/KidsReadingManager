@@ -117,8 +117,8 @@ export async function fetchMetadata(book, apiKey) {
           ? JSON.parse(b.cached_contributors)
           : b.cached_contributors;
       result.author = contributors?.[0]?.author?.name || null;
-    } catch (e) {
-      console.debug('Failed to parse cached data:', e?.message);
+    } catch {
+      // Best-effort parse of cached metadata — ignore malformed cache entries.
     }
 
     result.description = b.description || null;
@@ -130,8 +130,8 @@ export async function fetchMetadata(book, apiKey) {
     try {
       const tags = typeof b.cached_tags === 'string' ? JSON.parse(b.cached_tags) : b.cached_tags;
       result.genres = tags?.slice(0, 5).map((t) => t.tag || t) || null;
-    } catch (e) {
-      console.debug('Failed to parse cached data:', e?.message);
+    } catch {
+      // Best-effort parse of cached metadata — ignore malformed cache entries.
     }
 
     // ISBN from edition

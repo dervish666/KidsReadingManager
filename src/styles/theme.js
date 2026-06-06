@@ -40,6 +40,16 @@ const theme = createTheme({
       home: '#9E6B8A', // Home location accent (muted plum)
       homeLight: 'rgba(158, 107, 138, 0.12)',
     },
+    // Warm neutral for timeline lines/dots and subtle dividers
+    warmNeutral: '#d4c9b8',
+    // Parent-portal brand accents (QR cards, parent-facing dialogs)
+    parent: {
+      accent: '#2d5016', // Deep forest green
+      accentHover: '#4a7c28',
+      accentFaint: 'rgba(45, 80, 22, 0.05)', // Hover/background tint
+      accentBorder: 'rgba(45, 80, 22, 0.35)', // Dashed cut-out borders
+      surface: '#faf8f5', // Warm off-white card background
+    },
     success: {
       main: '#6B8E6B', // Sage Green
       light: '#8AAD8A',

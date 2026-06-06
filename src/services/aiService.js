@@ -201,6 +201,9 @@ async function callOpenAI(
         ],
         temperature: 0.7,
         response_format: { type: 'json_object' },
+        // Child-derived data: opt out of OpenAI request storage (30-day
+        // retention otherwise). See audit 2026-06-06 M2.
+        store: false,
       }),
     },
     10000

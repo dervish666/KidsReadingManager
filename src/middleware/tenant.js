@@ -349,7 +349,11 @@ export function auditLog(action, entityType) {
     try {
       const userId = c.get('userId');
       const organizationId = c.get('organizationId');
-      const entityId = c.req.param('id') || null;
+      // Handlers may override the entity id (e.g. routes without an :id param)
+      // and attach structured context via c.set('auditDetails', {...}).
+      const entityId = c.get('auditEntityId') || c.req.param('id') || null;
+      const auditDetails = c.get('auditDetails');
+      const details = auditDetails ? JSON.stringify(auditDetails) : null;
 
       // Get request details
       const ipAddress =
@@ -362,11 +366,11 @@ export function auditLog(action, entityType) {
       await db
         .prepare(
           `
-        INSERT INTO audit_log (id, organization_id, user_id, action, entity_type, entity_id, ip_address, user_agent)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO audit_log (id, organization_id, user_id, action, entity_type, entity_id, details, ip_address, user_agent)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `
         )
-        .bind(id, organizationId, userId, action, entityType, entityId, ipAddress, userAgent)
+        .bind(id, organizationId, userId, action, entityType, entityId, details, ipAddress, userAgent)
         .run();
     } catch (error) {
       // Don't fail the request if audit logging fails
@@ -387,6 +391,10 @@ export function auditLog(action, entityType) {
  * @param {number} windowMs - Time window in milliseconds (default: 60000 = 1 minute)
  * @returns {Function} Hono middleware
  */
+// Parameterised routes that have been warned about a missing rate-limit bucket
+// (once per isolate, to keep logs quiet under load).
+const warnedParamRoutes = new Set();
+
 export function rateLimit(maxRequests = 100, windowMs = 60000, bucket = null) {
   return async (c, next) => {
     const db = c.env.READING_MANAGER_DB;
@@ -413,6 +421,17 @@ export function rateLimit(maxRequests = 100, windowMs = 60000, bucket = null) {
     // and abuse caps. Such routes MUST pass an explicit, value-independent
     // bucket so all requests from one IP share a single counter.
     const endpoint = bucket || c.req.path;
+    if (!bucket) {
+      const routePath = c.req.routePath;
+      if (routePath && routePath.includes(':') && !warnedParamRoutes.has(routePath)) {
+        warnedParamRoutes.add(routePath);
+        console.warn(
+          `[rateLimit] Parameterised route ${routePath} has no explicit bucket — ` +
+            'each param value gets its own counter, defeating the per-IP cap. ' +
+            'Pass a bucket name: rateLimit(max, windowMs, "bucket-name").'
+        );
+      }
+    }
 
     try {
       const windowSeconds = Math.ceil(windowMs / 1000);

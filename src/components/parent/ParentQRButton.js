@@ -17,6 +17,7 @@ import PrintIcon from '@mui/icons-material/Print';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { QRCodeSVG } from 'qrcode.react';
+import { useTheme } from '@mui/material/styles';
 import TallyLogo from '../TallyLogo';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -29,6 +30,7 @@ import { useAuth } from '../../contexts/AuthContext';
  *   variant      {'icon' | 'button'}  Display variant
  */
 const ParentQRButton = ({ studentId, studentName, variant = 'icon' }) => {
+  const theme = useTheme();
   const { fetchWithAuth } = useAuth();
   const [open, setOpen] = useState(false);
   const [token, setToken] = useState(null);
@@ -126,7 +128,7 @@ const ParentQRButton = ({ studentId, studentName, variant = 'icon' }) => {
             size="small"
             aria-label="parent qr code"
             onClick={handleOpen}
-            sx={{ color: '#2d5016' }}
+            sx={{ color: 'parent.accent' }}
           >
             <QrCode2Icon fontSize="small" />
           </IconButton>
@@ -138,9 +140,9 @@ const ParentQRButton = ({ studentId, studentName, variant = 'icon' }) => {
           startIcon={<QrCode2Icon />}
           onClick={handleOpen}
           sx={{
-            borderColor: '#2d5016',
-            color: '#2d5016',
-            '&:hover': { borderColor: '#4a7c28', bgcolor: 'rgba(45, 80, 22, 0.05)' },
+            borderColor: 'parent.accent',
+            color: 'parent.accent',
+            '&:hover': { borderColor: 'parent.accentHover', bgcolor: 'parent.accentFaint' },
           }}
         >
           Parent Link
@@ -155,19 +157,19 @@ const ParentQRButton = ({ studentId, studentName, variant = 'icon' }) => {
         PaperProps={{
           sx: {
             borderRadius: 3,
-            bgcolor: '#faf8f5',
+            bgcolor: 'parent.surface',
           },
         }}
       >
         <DialogTitle
-          sx={{ fontWeight: 700, color: '#2d5016', fontFamily: '"Nunito", sans-serif', pb: 1 }}
+          sx={{ fontWeight: 700, color: 'parent.accent', fontFamily: '"Nunito", sans-serif', pb: 1 }}
         >
           Parent QR Code
         </DialogTitle>
         <DialogContent>
           {loading && (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-              <CircularProgress sx={{ color: '#2d5016' }} />
+              <CircularProgress sx={{ color: 'parent.accent' }} />
             </Box>
           )}
 
@@ -213,9 +215,10 @@ const ParentQRButton = ({ studentId, studentName, variant = 'icon' }) => {
               <Box
                 id="qr-print-card"
                 sx={{
-                  border: '1.5px dashed rgba(45, 80, 22, 0.35)',
+                  border: '1.5px dashed',
+                  borderColor: 'parent.accentBorder',
                   borderRadius: 2,
-                  bgcolor: '#faf8f5',
+                  bgcolor: 'parent.surface',
                   p: 2.5,
                   display: 'flex',
                   flexDirection: 'column',
@@ -227,16 +230,16 @@ const ParentQRButton = ({ studentId, studentName, variant = 'icon' }) => {
 
                 <Typography
                   variant="h6"
-                  sx={{ fontWeight: 700, color: '#2d5016', fontFamily: '"Nunito", sans-serif' }}
+                  sx={{ fontWeight: 700, color: 'parent.accent', fontFamily: '"Nunito", sans-serif' }}
                 >
                   {firstName}
                 </Typography>
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, opacity: 0.6 }}>
-                  <TallyLogo size={14} color="#2d5016" />
+                  <TallyLogo size={14} color={theme.palette.parent.accent} />
                   <Typography
                     variant="caption"
-                    sx={{ color: '#2d5016', fontWeight: 600, fontSize: '0.65rem' }}
+                    sx={{ color: 'parent.accent', fontWeight: 600, fontSize: '0.65rem' }}
                   >
                     Tally Reading
                   </Typography>
@@ -258,7 +261,7 @@ const ParentQRButton = ({ studentId, studentName, variant = 'icon' }) => {
             startIcon={<PrintIcon />}
             onClick={handlePrint}
             disabled={!token || loading}
-            sx={{ color: '#2d5016', borderColor: '#2d5016' }}
+            sx={{ color: 'parent.accent', borderColor: 'parent.accent' }}
             variant="outlined"
           >
             Print
@@ -269,7 +272,7 @@ const ParentQRButton = ({ studentId, studentName, variant = 'icon' }) => {
             onClick={handleCopyLink}
             disabled={!token || loading}
             variant="outlined"
-            sx={{ color: '#2d5016', borderColor: '#2d5016' }}
+            sx={{ color: 'parent.accent', borderColor: 'parent.accent' }}
           >
             {copied ? 'Copied!' : 'Copy Link'}
           </Button>
