@@ -8,6 +8,7 @@
  */
 
 import { generateId } from '../../utils/helpers.js';
+import { D1_BATCH_LIMIT } from '../../utils/d1Batch.js';
 import { calculateStreak, getDateString } from '../../utils/streakCalculator.js';
 import { recalculateStats, evaluateRealTime } from '../../utils/badgeEngine.js';
 import { bumpClassGoalsOnSessions } from '../../utils/classGoalsEngine.js';
@@ -82,7 +83,7 @@ export const saveStudentPreferences = async (db, studentId, preferences) => {
   }
 
   if (statements.length > 0) {
-    const batchSize = 100;
+    const batchSize = D1_BATCH_LIMIT;
     for (let i = 0; i < statements.length; i += batchSize) {
       const batch = statements.slice(i, i + batchSize);
       await db.batch(batch);

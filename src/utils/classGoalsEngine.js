@@ -10,6 +10,7 @@
  */
 
 import { assertBatchSize } from './d1Batch.js';
+import { ACADEMIC_YEAR_START_MONTH } from './constants.js';
 
 // ── Term Resolution ─────────────────────────────────────────────────────────
 
@@ -90,7 +91,7 @@ export function resolveAcademicYear(termDates, today) {
   // Fallback: UK academic year Sep–Aug
   const year = parseInt(today.slice(0, 4));
   const month = parseInt(today.slice(5, 7));
-  const startYear = month >= 9 ? year : year - 1;
+  const startYear = month >= ACADEMIC_YEAR_START_MONTH ? year : year - 1;
   return {
     term: `${startYear}/${String(startYear + 1).slice(2)}`,
     startDate: `${startYear}-09-01`,

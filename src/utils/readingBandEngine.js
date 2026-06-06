@@ -7,6 +7,7 @@ import {
   DEFAULT_READS_PER_BAND,
   getBandByIndex,
 } from './readingBandDefinitions.js';
+import { ACADEMIC_YEAR_START_MONTH } from './constants.js';
 
 const COUNT_MARKER = /\[COUNT:(\d+)\]/;
 
@@ -38,7 +39,7 @@ export function computeBandIndex(readsCount, readsPerBand = DEFAULT_READS_PER_BA
 }
 
 /** ISO date (YYYY-MM-DD) of the academic-year start (1 Sep) on/before `today`. */
-export function academicYearStart(today, startMonth = 9, startDay = 1) {
+export function academicYearStart(today, startMonth = ACADEMIC_YEAR_START_MONTH, startDay = 1) {
   const s = typeof today === 'string' ? today : null;
   let year;
   let month;

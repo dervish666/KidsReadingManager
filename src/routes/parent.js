@@ -25,6 +25,7 @@ import {
   runSessionSideEffects,
 } from './students/_shared.js';
 import { getDateString } from '../utils/streakCalculator.js';
+import { ACADEMIC_YEAR_START_MONTH } from '../utils/constants.js';
 import { bandForCount, bandTransition } from '../utils/readingBandEngine.js';
 
 export const parentRouter = new Hono();
@@ -52,8 +53,8 @@ export function decideParentBandCelebration(marker, currentBand, palette) {
 function currentAcademicYear() {
   const now = new Date();
   const year = now.getUTCFullYear();
-  const month = now.getUTCMonth(); // 0-indexed; September = 8
-  if (month >= 8) {
+  const month = now.getUTCMonth() + 1; // 1-indexed
+  if (month >= ACADEMIC_YEAR_START_MONTH) {
     // September or later → new academic year has started
     return `${year}-${year + 1}`;
   }

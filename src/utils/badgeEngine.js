@@ -7,6 +7,7 @@
  */
 
 import { generateId } from './helpers.js';
+import { D1_BATCH_LIMIT } from './d1Batch.js';
 import {
   resolveKeyStage,
   getRealtimeBadges,
@@ -574,8 +575,8 @@ export async function processBadgesForOrg(db, orgId, cursor, deadlineMs) {
 
       // Batch-insert all earned badges in one round-trip
       if (insertStatements.length > 0) {
-        for (let i = 0; i < insertStatements.length; i += 100) {
-          await db.batch(insertStatements.slice(i, i + 100));
+        for (let i = 0; i < insertStatements.length; i += D1_BATCH_LIMIT) {
+          await db.batch(insertStatements.slice(i, i + D1_BATCH_LIMIT));
         }
         newBadgeCount += insertStatements.length;
       }

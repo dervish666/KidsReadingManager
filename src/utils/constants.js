@@ -4,6 +4,15 @@
  */
 
 /**
+ * UK academic year starts 1 September (1-indexed month). Shared by the
+ * reading-band yearly reset (readingBandEngine), parent-token academic year
+ * (routes/parent), and the class-goals year fallback (classGoalsEngine) —
+ * these MUST stay in sync or bands, tokens, and goals roll over on
+ * different days.
+ */
+export const ACADEMIC_YEAR_START_MONTH = 9;
+
+/**
  * API paths that bypass JWT authentication and tenant middleware.
  * Each path must be explicitly listed — no wildcard prefixes.
  * Note: /api/covers/* uses a startsWith check separately.

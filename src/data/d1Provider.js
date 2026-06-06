@@ -7,6 +7,7 @@
  */
 
 import { rowToBook } from '../utils/rowMappers.js';
+import { D1_BATCH_LIMIT } from '../utils/d1Batch.js';
 
 /**
  * Get the D1 database instance
@@ -284,7 +285,7 @@ const addBooksBatch = async (env, newBooks) => {
 
     // Execute batch (D1 supports up to 100 statements per batch)
     // For larger batches, we need to chunk them
-    const BATCH_SIZE = 100;
+    const BATCH_SIZE = D1_BATCH_LIMIT;
     let completedCount = 0;
     for (let i = 0; i < statements.length; i += BATCH_SIZE) {
       const batch = statements.slice(i, i + BATCH_SIZE);
@@ -355,7 +356,7 @@ const updateBooksBatch = async (env, bookUpdates) => {
     });
 
     // Execute batch
-    const BATCH_SIZE = 100;
+    const BATCH_SIZE = D1_BATCH_LIMIT;
     let completedCount = 0;
     for (let i = 0; i < statements.length; i += BATCH_SIZE) {
       const batch = statements.slice(i, i + BATCH_SIZE);
