@@ -327,6 +327,60 @@ files:
         kind: component
         description: "Status buttons: read/multiple/absent/no record; date presets: This Week/Last Week/Last Month/Custom"
 
+  sessions/FullReadingView.js:
+    description: "Full register view: ReadingInputPanel + DateRangePanel columns, register table, StudentBooksRead"
+    exports:
+      - name: FullReadingView
+        kind: component
+        props:
+          [
+            isMobile,
+            selectedDate,
+            onSelectedDateChange,
+            selectedStudent,
+            onSelectedStudentChange,
+            searchQuery,
+            onSearchChange,
+            dateRange,
+            inputPanel,
+            register,
+            bookHistory,
+          ]
+        description: "dateRange/inputPanel/register/bookHistory are grouped prop objects (see JSDoc)"
+
+  sessions/ReadingInputPanel.js:
+    description: '"Recording for" panel - current book picker and quick status buttons, collapsible on mobile'
+    exports:
+      - name: ReadingInputPanel
+        kind: component
+        props:
+          [
+            isMobile,
+            selectedStudent,
+            showInputPanel,
+            onShowInputPanelChange,
+            getStudentLastBook,
+            onBookChange,
+            onRecordReading,
+            onMultipleClick,
+            isRecording,
+          ]
+
+  sessions/DateRangePanel.js:
+    description: "Date picker with prev/next nav, date range preset select (terms + custom), student search"
+    exports:
+      - name: DateRangePanel
+        kind: component
+        props:
+          [isMobile, selectedDate, onSelectedDateChange, searchQuery, onSearchChange, dateRange]
+
+  sessions/StudentBooksRead.js:
+    description: "Books Read panel - selected student's history grouped by book as a cover strip"
+    exports:
+      - name: StudentBooksRead
+        kind: component
+        props: [selectedStudent, loading, sessions, booksMap]
+
   sessions/SessionForm.js:
     description: Reading session form - student, book, assessment, date, notes
     exports:

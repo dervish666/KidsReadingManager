@@ -3,41 +3,49 @@ import {
   Box,
   Typography,
   Paper,
-  TextField,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Button,
   IconButton,
   Tooltip,
-  InputAdornment,
-  Collapse,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   CircularProgress,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import SearchIcon from '@mui/icons-material/Search';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
-import NavigateNextIcon from '@mui/icons-material/NavigateNext';
-import BookAutocomplete from './BookAutocomplete';
-import BookCover from '../BookCover';
-import {
-  READING_STATUS,
-  DATE_PRESETS,
-  formatDateISO,
-  formatDateHeader,
-  getStartOfWeek,
-  getEndOfWeek,
-} from './homeReadingUtils';
+import ReadingInputPanel from './ReadingInputPanel';
+import DateRangePanel from './DateRangePanel';
+import StudentBooksRead from './StudentBooksRead';
+import { READING_STATUS, formatDateISO, formatDateHeader } from './homeReadingUtils';
 
+/**
+ * Full register view for home reading: a two-column control area
+ * (ReadingInputPanel + DateRangePanel), the multi-day register table with
+ * daily totals, and the selected student's books-read history
+ * (StudentBooksRead).
+ *
+ * Related props are grouped into objects to keep the interface small:
+ *
+ * @param {object} props
+ * @param {boolean} props.isMobile - Mobile breakpoint flag
+ * @param {string} props.selectedDate - ISO date for the active register day
+ * @param {Function} props.onSelectedDateChange - Sets the active register day
+ * @param {object|null} props.selectedStudent - Currently selected student
+ * @param {Function} props.onSelectedStudentChange - Sets the selected student
+ * @param {string} props.searchQuery - Student name filter text
+ * @param {Function} props.onSearchChange - Sets the student name filter
+ * @param {object} props.dateRange - Date range preset controls (see DateRangePanel)
+ * @param {object} props.inputPanel - Recording panel state and handlers:
+ *   { show, onShowChange, getStudentLastBook, onBookChange, onRecordReading,
+ *     onMultipleClick, isRecording }
+ * @param {object} props.register - Register table data and handlers:
+ *   { sessionsLoading, filteredStudents, dates, dailyTotals,
+ *     getStudentReadingStatus, getStudentTotalInRange, onClearEntry,
+ *     renderDateStatusCell }
+ * @param {object} props.bookHistory - Selected student's reading history:
+ *   { loading, sessions, booksMap }
+ */
 const FullReadingView = ({
   isMobile,
   selectedDate,
@@ -46,32 +54,22 @@ const FullReadingView = ({
   onSelectedStudentChange,
   searchQuery,
   onSearchChange,
-  showInputPanel,
-  onShowInputPanelChange,
-  datePreset,
-  onDatePresetChange,
-  customStartDate,
-  onCustomStartDateChange,
-  customEndDate,
-  onCustomEndDateChange,
-  termDates,
-  sessionsLoading,
-  filteredStudents,
-  dates,
-  dailyTotals,
-  getStudentReadingStatus,
-  getStudentLastBook,
-  getStudentTotalInRange,
-  onRecordReading,
-  onMultipleClick,
-  onBookChange,
-  onClearEntry,
-  renderDateStatusCell,
-  historyLoading,
-  studentHistory,
-  booksMap,
-  isRecording,
+  dateRange,
+  inputPanel,
+  register,
+  bookHistory,
 }) => {
+  const {
+    sessionsLoading,
+    filteredStudents,
+    dates,
+    dailyTotals,
+    getStudentReadingStatus,
+    getStudentTotalInRange,
+    onClearEntry,
+    renderDateStatusCell,
+  } = register;
+
   return (
     <>
       {/* Two-column layout for Recording and Date sections */}
@@ -84,279 +82,27 @@ const FullReadingView = ({
         }}
       >
         {/* Left Column - Input Panel (Recording for) */}
-        <Paper sx={{ p: 2, flex: isMobile ? 'none' : 1 }}>
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              cursor: isMobile ? 'pointer' : 'default',
-            }}
-            onClick={() => isMobile && onShowInputPanelChange(!showInputPanel)}
-          >
-            <Typography variant="h6">
-              {selectedStudent
-                ? `Recording for: ${selectedStudent.name}`
-                : 'Select a student from the register'}
-            </Typography>
-            {isMobile && (
-              <IconButton size="small">
-                {showInputPanel ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-              </IconButton>
-            )}
-          </Box>
-
-          <Collapse in={showInputPanel || !isMobile}>
-            {selectedStudent ? (
-              <Box sx={{ mt: 2 }}>
-                {/* Book Selection */}
-                <Box sx={{ mb: 2 }}>
-                  <BookAutocomplete
-                    value={getStudentLastBook(selectedStudent.id)}
-                    onChange={onBookChange}
-                    label="Current Book"
-                    placeholder="Select or search for book..."
-                  />
-                  <Typography variant="caption" color="text.secondary">
-                    Book will be saved and synced across devices
-                  </Typography>
-                </Box>
-
-                {/* Quick Input Buttons */}
-                <Box
-                  sx={{
-                    display: 'flex',
-                    gap: 1,
-                    flexWrap: 'wrap',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Tooltip title="Read (✓)">
-                    <Button
-                      variant="contained"
-                      color="success"
-                      size="large"
-                      aria-label="Mark as read"
-                      disabled={isRecording}
-                      onClick={() => onRecordReading(READING_STATUS.READ)}
-                      sx={{ minWidth: 80, fontSize: '1.5rem', py: 1.5 }}
-                    >
-                      ✓
-                    </Button>
-                  </Tooltip>
-
-                  <Tooltip title="Read 2 times">
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      size="large"
-                      aria-label="Read 2 times"
-                      disabled={isRecording}
-                      onClick={() => onRecordReading(READING_STATUS.MULTIPLE, 2)}
-                      sx={{ minWidth: 50, fontSize: '1.2rem', py: 1.5 }}
-                    >
-                      2
-                    </Button>
-                  </Tooltip>
-
-                  <Tooltip title="Read 3 times">
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      size="large"
-                      aria-label="Read 3 times"
-                      disabled={isRecording}
-                      onClick={() => onRecordReading(READING_STATUS.MULTIPLE, 3)}
-                      sx={{ minWidth: 50, fontSize: '1.2rem', py: 1.5 }}
-                    >
-                      3
-                    </Button>
-                  </Tooltip>
-
-                  <Tooltip title="Read 4 times">
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      size="large"
-                      aria-label="Read 4 times"
-                      disabled={isRecording}
-                      onClick={() => onRecordReading(READING_STATUS.MULTIPLE, 4)}
-                      sx={{ minWidth: 50, fontSize: '1.2rem', py: 1.5 }}
-                    >
-                      4
-                    </Button>
-                  </Tooltip>
-
-                  <Tooltip title="Custom number of sessions">
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      size="large"
-                      aria-label="Custom number of reading sessions"
-                      disabled={isRecording}
-                      onClick={onMultipleClick}
-                      sx={{ minWidth: 50, fontSize: '1.2rem', py: 1.5 }}
-                    >
-                      +
-                    </Button>
-                  </Tooltip>
-
-                  <Tooltip title="Absent (A)">
-                    <Button
-                      variant="contained"
-                      color="warning"
-                      size="large"
-                      aria-label="Mark as absent"
-                      disabled={isRecording}
-                      onClick={() => onRecordReading(READING_STATUS.ABSENT)}
-                      sx={{ minWidth: 80, fontSize: '1.5rem', py: 1.5 }}
-                    >
-                      A
-                    </Button>
-                  </Tooltip>
-
-                  <Tooltip title="No Record (•)">
-                    <Button
-                      variant="outlined"
-                      color="inherit"
-                      size="large"
-                      aria-label="No reading record"
-                      disabled={isRecording}
-                      onClick={() => onRecordReading(READING_STATUS.NO_RECORD)}
-                      sx={{ minWidth: 80, fontSize: '1.5rem', py: 1.5 }}
-                    >
-                      •
-                    </Button>
-                  </Tooltip>
-                </Box>
-              </Box>
-            ) : (
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ mt: 2, textAlign: 'center' }}
-              >
-                Click on a student in the register below to record their reading
-              </Typography>
-            )}
-          </Collapse>
-        </Paper>
+        <ReadingInputPanel
+          isMobile={isMobile}
+          selectedStudent={selectedStudent}
+          showInputPanel={inputPanel.show}
+          onShowInputPanelChange={inputPanel.onShowChange}
+          getStudentLastBook={inputPanel.getStudentLastBook}
+          onBookChange={inputPanel.onBookChange}
+          onRecordReading={inputPanel.onRecordReading}
+          onMultipleClick={inputPanel.onMultipleClick}
+          isRecording={inputPanel.isRecording}
+        />
 
         {/* Right Column - Date and Search Controls */}
-        <Paper sx={{ p: 2, flex: isMobile ? 'none' : 1 }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, height: '100%' }}>
-            {/* Date Picker with Navigation */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <IconButton
-                size="small"
-                onClick={() => {
-                  const d = new Date(selectedDate + 'T12:00:00');
-                  d.setDate(d.getDate() - 1);
-                  onSelectedDateChange(formatDateISO(d));
-                }}
-                aria-label="Previous day"
-              >
-                <NavigateBeforeIcon />
-              </IconButton>
-              <TextField
-                label="Date"
-                type="date"
-                value={selectedDate}
-                onChange={(e) => onSelectedDateChange(e.target.value)}
-                InputLabelProps={{ shrink: true }}
-                fullWidth
-                inputProps={{ 'aria-label': 'Select date for reading session' }}
-              />
-              <IconButton
-                size="small"
-                onClick={() => {
-                  const d = new Date(selectedDate + 'T12:00:00');
-                  d.setDate(d.getDate() + 1);
-                  onSelectedDateChange(formatDateISO(d));
-                }}
-                disabled={selectedDate >= formatDateISO(new Date())}
-                aria-label="Next day"
-              >
-                <NavigateNextIcon />
-              </IconButton>
-            </Box>
-
-            {/* Date Range Preset */}
-            <FormControl data-tour="register-date-range" size="small" fullWidth>
-              <InputLabel id="date-preset-label">Date Range</InputLabel>
-              <Select
-                labelId="date-preset-label"
-                value={datePreset}
-                label="Date Range"
-                onChange={(e) => {
-                  const newPreset = e.target.value;
-                  onDatePresetChange(newPreset);
-                  if (newPreset === DATE_PRESETS.CUSTOM) {
-                    const today = new Date();
-                    onCustomStartDateChange(formatDateISO(getStartOfWeek(today)));
-                    onCustomEndDateChange(formatDateISO(getEndOfWeek(today)));
-                  }
-                }}
-              >
-                <MenuItem value={DATE_PRESETS.THIS_WEEK}>This Week</MenuItem>
-                <MenuItem value={DATE_PRESETS.LAST_WEEK}>Last Week</MenuItem>
-                <MenuItem value={DATE_PRESETS.LAST_MONTH}>Last Month</MenuItem>
-                {termDates.length > 0 && (
-                  <MenuItem value={DATE_PRESETS.CURRENT_TERM}>Current Term</MenuItem>
-                )}
-                {termDates.length > 0 && (
-                  <MenuItem value={DATE_PRESETS.SCHOOL_YEAR}>School Year</MenuItem>
-                )}
-                {termDates.length > 0 &&
-                  termDates.map((term) => (
-                    <MenuItem key={term.termOrder} value={`term_${term.termOrder}`}>
-                      {term.termName}
-                    </MenuItem>
-                  ))}
-                <MenuItem value={DATE_PRESETS.CUSTOM}>Custom</MenuItem>
-              </Select>
-            </FormControl>
-
-            {datePreset === DATE_PRESETS.CUSTOM && (
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <TextField
-                  label="Start"
-                  type="date"
-                  value={customStartDate}
-                  onChange={(e) => onCustomStartDateChange(e.target.value)}
-                  InputLabelProps={{ shrink: true }}
-                  size="small"
-                  sx={{ flex: 1 }}
-                />
-                <TextField
-                  label="End"
-                  type="date"
-                  value={customEndDate}
-                  onChange={(e) => onCustomEndDateChange(e.target.value)}
-                  InputLabelProps={{ shrink: true }}
-                  size="small"
-                  sx={{ flex: 1 }}
-                />
-              </Box>
-            )}
-
-            {/* Search */}
-            <TextField
-              placeholder="Search student..."
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              fullWidth
-              inputProps={{ 'aria-label': 'Search for a student by name' }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Box>
-        </Paper>
+        <DateRangePanel
+          isMobile={isMobile}
+          selectedDate={selectedDate}
+          onSelectedDateChange={onSelectedDateChange}
+          searchQuery={searchQuery}
+          onSearchChange={onSearchChange}
+          dateRange={dateRange}
+        />
       </Box>
 
       {/* Register Table */}
@@ -677,124 +423,12 @@ const FullReadingView = ({
 
       {/* Student Books Read */}
       {selectedStudent && (
-        <Paper sx={{ p: 2 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1.5 }}>
-            Books Read — {selectedStudent.name}
-          </Typography>
-          {historyLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-              <CircularProgress size={28} />
-            </Box>
-          ) : studentHistory.length === 0 ? (
-            <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
-              No reading sessions recorded yet
-            </Typography>
-          ) : (
-            (() => {
-              // Group sessions by bookId, ordered by most recent session
-              const bookGroups = new Map();
-              for (const session of studentHistory) {
-                const key = session.bookId || `no-book-${session.id}`;
-                if (!bookGroups.has(key)) {
-                  bookGroups.set(key, { bookId: session.bookId, sessions: [] });
-                }
-                bookGroups.get(key).sessions.push(session);
-              }
-              const booksRead = [...bookGroups.values()]
-                .filter((g) => g.bookId) // exclude sessions with no book
-                .map((g) => ({
-                  ...g,
-                  lastDate: g.sessions[0].date, // already sorted newest-first
-                  firstDate: g.sessions[g.sessions.length - 1].date,
-                  count: g.sessions.length,
-                }));
-              if (booksRead.length === 0)
-                return (
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ textAlign: 'center', py: 2 }}
-                  >
-                    No books recorded yet
-                  </Typography>
-                );
-              return (
-                <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 1 }}>
-                  {booksRead.slice(0, 30).map((entry) => {
-                    const book = booksMap.get(entry.bookId);
-                    const lastDate = new Date(entry.lastDate);
-                    const dateLabel = lastDate.toLocaleDateString('en-GB', {
-                      day: 'numeric',
-                      month: 'short',
-                    });
-                    return (
-                      <Box
-                        key={entry.bookId}
-                        sx={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          minWidth: 90,
-                          maxWidth: 90,
-                          flexShrink: 0,
-                        }}
-                      >
-                        <BookCover
-                          title={book?.title || 'Unknown'}
-                          author={book?.author}
-                          isbn={book?.isbn || null}
-                          width={70}
-                          height={100}
-                        />
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            mt: 0.5,
-                            fontWeight: 600,
-                            textAlign: 'center',
-                            lineHeight: 1.2,
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                            fontSize: '0.7rem',
-                            width: '100%',
-                          }}
-                        >
-                          {book?.title || 'Unknown'}
-                        </Typography>
-                        {book?.author && (
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            sx={{ fontSize: '0.6rem', textAlign: 'center', lineHeight: 1.1 }}
-                            noWrap
-                          >
-                            {book.author}
-                          </Typography>
-                        )}
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{ fontSize: '0.6rem' }}
-                        >
-                          {entry.count} {entry.count === 1 ? 'session' : 'sessions'}
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{ fontSize: '0.6rem' }}
-                        >
-                          {dateLabel}
-                        </Typography>
-                      </Box>
-                    );
-                  })}
-                </Box>
-              );
-            })()
-          )}
-        </Paper>
+        <StudentBooksRead
+          selectedStudent={selectedStudent}
+          loading={bookHistory.loading}
+          sessions={bookHistory.sessions}
+          booksMap={bookHistory.booksMap}
+        />
       )}
     </>
   );

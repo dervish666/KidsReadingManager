@@ -37,14 +37,14 @@ When you add, remove, or rename source files or public classes/functions, update
 | `src/` (root) | `worker.js` (Worker entry, middleware chain, cron), `App.js`, `index.js`, `instrument.js` |
 | `src/routes/` | REST handlers — auth, mylogin, students, books, classes, genres, covers, users, organization, billing, parent, webhooks, support, metadata, badges (+ `students/`, `books/`, `users/`, `organization/` sub-routers) |
 | `src/middleware/` | `tenant.js` (JWT auth, tenant isolation, role guards, audit, rate limit), `errorHandler.js`, legacy `auth.js` |
-| `src/data/` | Storage providers: `d1Provider`, `kvProvider`, `jsonProvider`, factory `index.js`, `demoSnapshot` |
+| `src/data/` | D1 books provider (`d1Provider`, factory `index.js`), `demoSnapshot` |
 | `src/services/` | `aiService`, `wondeSync`, `metadataService`, `demoReset`, `orgPurge`, and `providers/` (OpenLibrary, Google Books, Hardcover adapters) |
 | `src/utils/` | crypto, validation, helpers, streakCalculator, badge engine/definitions, stripe, rowMappers, routeHelpers, metadata API clients, content moderation, d1Batch, caches |
 | `src/contexts/` | `AuthContext`, `DataContext`, `UIContext`, composite `AppContext`, and `data/` CRUD hooks |
 | `src/hooks/` | `useEnrichmentPolling` |
 | `src/components/` | React UI — root-level pages plus subfolders: `students/`, `books/`, `sessions/`, `schools/`, `classes/`, `badges/`, `goals/`, `parent/`, `stats/`, `tour/` |
 | `src/styles/` | `theme.js` (Material-UI theme) |
-| `scripts/` | `build-and-deploy.sh`, `seed-local.js`, `migration.js`, `reset-admin-password.js`, `export-demo-snapshot.js`, `test-api.js` |
+| `scripts/` | `build-and-deploy.sh`, `seed-local.js`, `migration.js`, `reset-admin-password.js`, `export-demo-snapshot.js`, `test-api.js`, `graphify-refresh.sh` |
 
 ### Structure Detail Files
 
@@ -176,9 +176,7 @@ Hooks: `useAuth()`, `useData()`, `useUI()`. The composite `AppProvider` in `src/
 ### Data Storage
 
 **D1 (Multi-Tenant)**: Normalized SQL tables with organization scoping. Provider: `src/data/d1Provider.js`
-**KV (Legacy)**: JSON blobs in Cloudflare KV. Provider: `src/data/kvProvider.js`
-**JSON (Local Dev)**: File-based storage via `data.json`. Provider: `src/data/jsonProvider.js`
-**Provider Factory**: `src/data/index.js` auto-detects in priority order: D1 binding present → `STORAGE_TYPE` env var → KV binding present → JSON file fallback (Node.js only).
+**Provider**: `src/data/index.js` is D1-only — it throws without the `READING_MANAGER_DB` binding. The former KV/JSON book providers were removed (audit cycle 15): they covered only the books interface while everything else used D1 directly, so local "json mode" diverged from production. Local dev uses a local D1 database (`npm run seed:local`). KV remains in use for caching and the legacy shared-password mode (`services/kvService.js`).
 
 **Critical**: D1 batch operations are limited to 100 statements. See batch pattern in `src/routes/books.js`.
 
@@ -304,13 +302,13 @@ School data sync and SSO login via two external services:
 
 ### Working with Data Providers
 
-When adding new data operations, implement in `d1Provider.js` (primary) and `kvProvider.js`/`jsonProvider.js` for backward compatibility. All three providers export the same interface. The factory in `data/index.js` routes to the correct one.
+Books data operations live in `d1Provider.js`, exposed via `createProvider(env)` in `data/index.js` (D1-only). Other entities (students, sessions, classes, settings) are queried directly in their route modules — that is intentional, not a missing abstraction.
 
 ## Local Development Setup
 
 Local dev requires two files in the project root:
 
-- `.env` — sets `STORAGE_TYPE=json` and `JWT_SECRET` for local multi-tenant mode
+- `.env` — sets `JWT_SECRET` for local multi-tenant mode
 - `.dev.vars` — sets `WORKER_ADMIN_PASSWORD` for legacy mode testing
 
 After first checkout, run `npm run seed:local` once to create the local D1 database and seed it with a dev owner account (`dev@tallyreading.uk` / `password`).
@@ -323,6 +321,7 @@ The frontend dev server (port 3001) proxies `/api` requests to the worker (port 
 - `scripts/migration.js` — Data migration from old format to new
 - `scripts/reset-admin-password.js` — Admin password reset utility
 - `scripts/seed-local.js` — Bootstrap local D1 with migrations and a dev owner account (dev@tallyreading.uk / password)
+- `scripts/graphify-refresh.sh` — Rebuild the graphify knowledge graph from a scoped staging copy of `src/` (tests excluded); `--label` re-names communities via the local claude CLI
 
 ## Configuration
 
@@ -363,7 +362,7 @@ The frontend dev server (port 3001) proxies `/api` requests to the worker (port 
 - **Security headers applied after handler**: In `src/worker.js`, security headers are set in the `onResponse` callback, meaning they run after the route handler executes.
 - **Rate limiting uses D1**: Auth rate limiting stores attempts in the D1 `rate_limits` table, not Cloudflare's built-in rate limiting. See `authRateLimit()` in `src/middleware/tenant.js`.
 - **Prettier**: Configured via `.prettierrc` (single quotes, trailing commas, 100 char width). Auto-runs on edited files via Claude Code hook. Run `npx prettier --write "src/**/*.js"` to format the full codebase.
-- **ESLint**: ESLint 10 with flat config (`eslint.config.js`). Run `npm run lint` to check, `npm run lint:fix` to auto-fix. Zero errors required; warnings are informational. Backend files have Cloudflare Workers globals configured; `jsonProvider.js` is CJS (Node-only dev fallback).
+- **ESLint**: ESLint 10 with flat config (`eslint.config.js`). Run `npm run lint` to check, `npm run lint:fix` to auto-fix. Zero errors required; warnings are informational. Backend files have Cloudflare Workers globals configured.
 
 ## Design Context
 
@@ -384,3 +383,14 @@ Full design context is maintained in `.impeccable.md` at the project root. Key p
 3. **Warm, never clinical** — Cream over white, sage over blue, rounded over sharp. Every surface should feel cozy.
 4. **One glance, full picture** — Key info scannable without interaction. Colour, position, and size create natural hierarchy.
 5. **Trust through simplicity** — Schools trust tools that feel simple and safe. Every screen should feel manageable.
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `./scripts/graphify-refresh.sh` to keep the graph current (AST-only, no API cost). Do **not** run `graphify update .` from the repo root — the graph is built from a scoped staging copy of `src/` with tests excluded (graphify has no exclude flags), and a root rebuild would clobber it with test-fixture noise. Add `--label` to re-name communities (uses the local claude CLI).
+- Graph node paths are relative to `src/` (e.g. `components/BookManager.js`, not `src/components/BookManager.js`).

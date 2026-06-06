@@ -864,31 +864,39 @@ const HomeReadingRegister = () => {
           onSelectedStudentChange={setSelectedStudent}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          showInputPanel={showInputPanel}
-          onShowInputPanelChange={setShowInputPanel}
-          datePreset={datePreset}
-          onDatePresetChange={setDatePreset}
-          customStartDate={customStartDate}
-          onCustomStartDateChange={setCustomStartDate}
-          customEndDate={customEndDate}
-          onCustomEndDateChange={setCustomEndDate}
-          termDates={termDates}
-          sessionsLoading={sessionsLoading}
-          filteredStudents={filteredStudents}
-          dates={dates}
-          dailyTotals={dailyTotals}
-          getStudentReadingStatus={getStudentReadingStatus}
-          getStudentLastBook={getStudentLastBook}
-          getStudentTotalInRange={getStudentTotalInRange}
-          onRecordReading={handleRecordReading}
-          onMultipleClick={handleMultipleClick}
-          onBookChange={handleBookChange}
-          onClearEntry={handleClearEntry}
-          renderDateStatusCell={renderDateStatusCell}
-          historyLoading={historyLoading}
-          studentHistory={studentHistory}
-          booksMap={booksMap}
-          isRecording={selectedStudent ? recordingStudents.has(selectedStudent.id) : false}
+          dateRange={{
+            preset: datePreset,
+            onPresetChange: setDatePreset,
+            customStartDate,
+            onCustomStartDateChange: setCustomStartDate,
+            customEndDate,
+            onCustomEndDateChange: setCustomEndDate,
+            termDates,
+          }}
+          inputPanel={{
+            show: showInputPanel,
+            onShowChange: setShowInputPanel,
+            getStudentLastBook,
+            onBookChange: handleBookChange,
+            onRecordReading: handleRecordReading,
+            onMultipleClick: handleMultipleClick,
+            isRecording: selectedStudent ? recordingStudents.has(selectedStudent.id) : false,
+          }}
+          register={{
+            sessionsLoading,
+            filteredStudents,
+            dates,
+            dailyTotals,
+            getStudentReadingStatus,
+            getStudentTotalInRange,
+            onClearEntry: handleClearEntry,
+            renderDateStatusCell,
+          }}
+          bookHistory={{
+            loading: historyLoading,
+            sessions: studentHistory,
+            booksMap,
+          }}
         />
       )}
 

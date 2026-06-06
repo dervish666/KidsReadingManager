@@ -5,18 +5,65 @@ description: Hono route handlers for REST API endpoints
 
 files:
   auth.js:
-    description: Authentication endpoints - registration, login, token refresh, password management
+    description: Auth composition root - applies authRateLimit and mounts auth/* sub-routers; re-exports parseCookies for existing importers (mylogin.js)
     exports:
       - name: authRouter
         kind: object
-        description: Hono router for auth endpoints
+        description: Hono router for auth endpoints (mounts register, session, password sub-routers)
+      - name: parseCookies
+        kind: function
+        description: Re-export from auth/_shared.js (cookie header parser)
+
+  auth/_shared.js:
+    description: Shared helpers for the auth route modules (cookie parsing, login lockout)
+    exports:
+      - name: parseCookies
+        kind: function
+        description: Parse cookies from a request Cookie header into an object
+      - name: isAccountLocked
+        kind: function
+        description: Check if account is locked due to too many failed login attempts
+      - name: recordLoginAttempt
+        kind: function
+        description: Record a login attempt in login_attempts (+ async 24h cleanup)
+      - name: clearFailedAttempts
+        kind: function
+        description: Clear failed login attempts on successful login
+      - name: MAX_LOGIN_ATTEMPTS
+        kind: constant
+        description: Maximum failed attempts before lockout (5)
+      - name: LOCKOUT_DURATION_MINUTES
+        kind: constant
+        description: Lockout duration in minutes (15)
+
+  auth/register.js:
+    description: Account creation and auth-mode discovery (register, mode, demo)
+    exports:
+      - name: registerRouter
+        kind: object
+        description: Hono sub-router for registration/mode/demo endpoints
     endpoints:
+      - route: POST /api/auth/demo
+        description: Issue role-capped demo JWT for the seeded demo teacher (no credentials, no refresh token)
+        public: true
       - route: GET /api/auth/mode
         description: Check authentication mode (legacy vs multitenant)
         public: true
       - route: POST /api/auth/register
         description: Register new organization and owner account
         public: true
+    imports:
+      - from: utils/crypto
+        items:
+          [hashPassword, createAccessToken, createRefreshToken, createJWTPayload, buildRefreshCookie, ROLES]
+
+  auth/session.js:
+    description: JWT session lifecycle (login, refresh, logout, me)
+    exports:
+      - name: sessionRouter
+        kind: object
+        description: Hono sub-router for session endpoints
+    endpoints:
       - route: POST /api/auth/login
         description: Authenticate user with email/password; account lockout after 5 attempts
         public: true
@@ -26,16 +73,8 @@ files:
       - route: POST /api/auth/logout
         description: Revoke refresh token and clear cookie
         public: true
-      - route: POST /api/auth/forgot-password
-        description: Request password reset email
-        public: true
-      - route: POST /api/auth/reset-password
-        description: Reset password with token
-        public: true
       - route: GET /api/auth/me
         description: Get current authenticated user profile
-      - route: PUT /api/auth/password
-        description: Change password for authenticated user
     imports:
       - from: utils/crypto
         items:
@@ -44,9 +83,34 @@ files:
             verifyPassword,
             createAccessToken,
             createRefreshToken,
-            verifyAccessToken,
             createJWTPayload,
+            hashToken,
+            buildRefreshCookie,
+            buildClearRefreshCookie,
+            DUMMY_PASSWORD_HASH,
           ]
+      - from: routes/auth/_shared
+        items:
+          [parseCookies, isAccountLocked, recordLoginAttempt, clearFailedAttempts, LOCKOUT_DURATION_MINUTES]
+
+  auth/password.js:
+    description: Password management (forgot, reset, change)
+    exports:
+      - name: passwordRouter
+        kind: object
+        description: Hono sub-router for password endpoints
+    endpoints:
+      - route: POST /api/auth/forgot-password
+        description: Request password reset email
+        public: true
+      - route: POST /api/auth/reset-password
+        description: Reset password with token
+        public: true
+      - route: PUT /api/auth/password
+        description: Change password for authenticated user
+    imports:
+      - from: utils/crypto
+        items: [hashPassword, verifyPassword, hashToken]
       - from: utils/email
         items: [sendPasswordResetEmail]
 
@@ -361,27 +425,76 @@ files:
         requires: owner
 
   settings.js:
-    description: Application settings - reading status, timezone, AI, academic year
+    description: Settings entry router - mounts settings/* sub-routers
     exports:
       - name: settingsRouter
         kind: object
         description: Hono router for settings endpoints
+      - name: upsertAiConfig
+        kind: function
+        description: Re-export from settings/ai.js (kept for organization/settings.js's dynamic import)
+    mounts:
+      - settings/org.js
+      - settings/ai.js
+      - settings/platform-ai.js
+
+  settings/_shared.js:
+    description: Shared helpers for the settings route modules
+    exports:
+      - name: fetchProviderModels
+        kind: function
+        description: Call provider models API (anthropic/openai/google) and return [{id, name}] list
+
+  settings/org.js:
+    description: Organization settings CRUD - reading status, timezone, academic year, bands; invalidates KV streak/band caches on write
+    exports:
+      - name: orgSettingsRouter
+        kind: object
+        description: Hono sub-router for org settings endpoints
     endpoints:
       - route: GET /api/settings
         description: Get all settings with defaults
       - route: POST /api/settings
         description: Update settings (allowlisted keys)
         requires: admin
+
+  settings/ai.js:
+    description: Organization AI configuration and model listing
+    exports:
+      - name: aiSettingsRouter
+        kind: object
+        description: Hono sub-router for org AI config endpoints
+      - name: upsertAiConfig
+        kind: function
+        description: Shared AI config upsert - used by POST /settings/ai and PUT /organization/ai-config
+    endpoints:
       - route: GET /api/settings/ai
         description: Get AI config with availability status
       - route: POST /api/settings/ai
         description: Update AI config with encrypted key
         requires: admin
+      - route: GET /api/settings/ai/models
+        description: List models using the org's stored API key
+        requires: admin
+      - route: POST /api/settings/ai/models
+        description: List models for a provider using a supplied API key (backend proxy)
+        requires: admin
+
+  settings/platform-ai.js:
+    description: Platform AI keys (owner-only) - encrypted key storage and active-provider switching
+    exports:
+      - name: platformAiRouter
+        kind: object
+        description: Hono sub-router for platform AI key endpoints
+    endpoints:
       - route: GET /api/settings/platform-ai
         description: Get platform AI key status (never exposes keys)
         requires: owner
       - route: PUT /api/settings/platform-ai
         description: Upsert platform AI key and/or set active provider
+        requires: owner
+      - route: GET /api/settings/platform-ai/models
+        description: List models using the active platform key
         requires: owner
       - route: DELETE /api/settings/platform-ai/:provider
         description: Remove platform AI key for a provider

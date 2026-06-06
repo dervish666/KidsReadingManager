@@ -18,7 +18,11 @@ src/instrument.js - Sentry browser SDK initialization
 
 ## Backend Routes
 
-src/routes/auth.js - POST/GET register, login, refresh, logout, password reset
+src/routes/auth.js - Auth composition root; applies authRateLimit, mounts auth/_ sub-routers; re-exports parseCookies for mylogin.js
+src/routes/auth/\_shared.js - Shared auth helpers: parseCookies, login lockout (isAccountLocked, recordLoginAttempt, clearFailedAttempts)
+src/routes/auth/register.js - POST /demo (role-capped demo JWT), GET /mode (auth-mode discovery), POST /register (new org + owner)
+src/routes/auth/session.js - POST /login (with lockout), POST /refresh (token rotation + reuse detection), POST /logout, GET /me
+src/routes/auth/password.js - POST /forgot-password, POST /reset-password, PUT /password (authenticated change)
 src/routes/mylogin.js - MyLogin OAuth2 SSO (login, callback, logout)
 src/routes/students.js - Core student CRUD (list, get, create, update, soft-delete) + current-book / feedback mutators; mounts students/_ sub-routers; re-exports recalculateAllStreaks for the cron
 src/routes/students/\_shared.js - Shared helpers: fetchStudentPreferences, saveStudentPreferences, getOrgStreakSettings (KV-cached), updateStudentStreak
@@ -41,7 +45,11 @@ src/routes/users/classes.js - GET /:id/classes, PUT /:id/classes — class assig
 src/routes/organization.js - Core org CRUD (list, get, create, update, soft-delete) + stats; mounts organization/_ sub-routers
 src/routes/organization/settings.js - GET/PUT /settings, GET/PUT /ai-config — org settings and AI configuration
 src/routes/organization/compliance.js - GET /audit-log, GET/POST /dpa-consent, DELETE /:id/purge (Article 17 erasure)
-src/routes/settings.js - GET/POST application settings and AI configuration
+src/routes/settings.js - Settings entry router; mounts settings/_ sub-routers; re-exports upsertAiConfig for organization/settings.js
+src/routes/settings/\_shared.js - Shared helper: fetchProviderModels (provider models API → [{id, name}] list)
+src/routes/settings/org.js - GET/POST / — org settings CRUD (allowlisted keys, KV streak/band cache invalidation)
+src/routes/settings/ai.js - GET/POST /ai, GET/POST /ai/models — org AI config; exports shared upsertAiConfig
+src/routes/settings/platform-ai.js - GET/PUT /platform-ai, GET /platform-ai/models, DELETE /platform-ai/:provider — owner-only platform AI keys
 src/routes/signup.js - POST email newsletter signup (rate limited)
 src/routes/data.js - GET/POST legacy data export/import
 src/routes/hardcover.js - POST Hardcover GraphQL API proxy
@@ -65,10 +73,8 @@ src/middleware/errorHandler.js - Global error handler, error constructors
 
 ## Data Providers
 
-src/data/index.js - Provider factory; auto-detects D1, KV, or JSON storage
+src/data/index.js - D1-only books provider factory (throws without READING_MANAGER_DB binding)
 src/data/d1Provider.js - D1 SQL implementation with FTS5 search
-src/data/kvProvider.js - Cloudflare KV storage (legacy)
-src/data/jsonProvider.js - File-based JSON storage (dev only)
 src/data/demoSnapshot.js - Learnalot demo data snapshot (auto-generated, used by demoReset)
 
 ## Services
@@ -221,7 +227,10 @@ src/components/students/ReadingBandChip.js - Reading band chip + progress-to-nex
 src/components/sessions/HomeReadingRegister.js - Unified reading register with multi-day history columns
 src/components/sessions/homeReadingUtils.js - Reading status constants and helpers for home reading
 src/components/sessions/MultipleCountDialog.js - Dialog for entering multiple reading session count
-src/components/sessions/FullReadingView.js - Expanded reading session entry view
+src/components/sessions/FullReadingView.js - Expanded reading session entry view (composes ReadingInputPanel, DateRangePanel, StudentBooksRead around the register table)
+src/components/sessions/ReadingInputPanel.js - "Recording for" panel with book picker and quick status buttons (full view, left column)
+src/components/sessions/DateRangePanel.js - Date picker, date range preset, custom dates, and student search (full view, right column)
+src/components/sessions/StudentBooksRead.js - Selected student's books-read history strip with covers (full view)
 src/components/sessions/QuickReadingView.js - Compact quick-entry reading view
 src/components/sessions/SessionForm.js - Reading session form
 src/components/sessions/QuickEntry.js - Fast session entry for priority students

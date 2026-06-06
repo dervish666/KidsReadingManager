@@ -82,15 +82,6 @@ module.exports = [
     },
   },
   {
-    files: ['src/data/jsonProvider.js'],
-    languageOptions: {
-      sourceType: 'commonjs',
-      globals: {
-        ...globals.node,
-      },
-    },
-  },
-  {
     files: ['src/__tests__/**/*.js'],
     languageOptions: {
       globals: {
