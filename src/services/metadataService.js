@@ -295,11 +295,15 @@ export async function processJobBatch(db, job, config, options = {}) {
   const bookUpdates = [];
   const logEntries = [];
   let currentBook = '';
+  // Field→provider attribution for the most recently processed book, surfaced
+  // live so the UI can show what data was found and which provider supplied it.
+  let currentBookLog = [];
 
   const progress = await processBatch(books, config, {
     delayMs: config.rateLimitDelayMs,
     onBookResult: (bookId, merged, log) => {
       currentBook = books.find((b) => b.id === bookId)?.title || '';
+      currentBookLog = log;
       if (Object.values(merged).some((v) => v != null)) {
         bookUpdates.push({ bookId, merged });
       }
@@ -313,6 +317,18 @@ export async function processJobBatch(db, job, config, options = {}) {
       }
     },
   });
+
+  // Accumulate per-provider contribution counts onto the job's running tally.
+  let providerStats;
+  try {
+    providerStats = job.provider_stats ? JSON.parse(job.provider_stats) : {};
+  } catch {
+    providerStats = {};
+  }
+  for (const entry of logEntries) {
+    providerStats[entry.provider] =
+      (providerStats[entry.provider] || 0) + (entry.fields?.length || 0);
+  }
 
   // Genre name-to-ID mapping
   const genreNameToId = {};
@@ -468,9 +484,16 @@ export async function processJobBatch(db, job, config, options = {}) {
   statements.push(
     db
       .prepare(
-        `UPDATE metadata_jobs SET processed_books = ?, enriched_books = ?, error_count = ?, last_book_id = ?, updated_at = datetime('now') WHERE id = ?`
+        `UPDATE metadata_jobs SET processed_books = ?, enriched_books = ?, error_count = ?, last_book_id = ?, provider_stats = ?, updated_at = datetime('now') WHERE id = ?`
       )
-      .bind(newProcessed, newEnriched, newErrors, progress.lastBookId, job.id)
+      .bind(
+        newProcessed,
+        newEnriched,
+        newErrors,
+        progress.lastBookId,
+        JSON.stringify(providerStats),
+        job.id
+      )
   );
 
   for (let i = 0; i < statements.length; i += 100) {
@@ -512,6 +535,8 @@ export async function processJobBatch(db, job, config, options = {}) {
     enrichedBooks: newEnriched,
     errorCount: newErrors,
     currentBook,
+    currentBookLog,
+    providerStats,
     done: false,
     jobStatus: 'running',
   };

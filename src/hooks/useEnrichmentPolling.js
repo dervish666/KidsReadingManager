@@ -33,16 +33,27 @@ export function useEnrichmentPolling(fetchWithAuth, options = {}) {
           });
 
           if (!res.ok) {
-            consecutiveErrors++;
             // Try to read error body for useful info
             const errBody = await res.json().catch(() => ({}));
+
+            // Rate limited: the run is healthy, we're just polling faster than
+            // the cost cap. Back off (honouring retryAfter) and retry WITHOUT
+            // counting it as a hard error, so a busy run doesn't get killed.
+            if (res.status === 429) {
+              const waitSec = Number(errBody.retryAfter);
+              const waitMs = Number.isFinite(waitSec) && waitSec > 0 ? waitSec * 1000 : 5000;
+              await new Promise((r) => setTimeout(r, Math.min(waitMs, 15000)));
+              continue;
+            }
+
+            consecutiveErrors++;
             if (errBody.done || errBody.status === 'failed') {
               onError?.(errBody.error || 'Enrichment failed');
               break;
             }
             // Retry up to maxRetries on transient errors (e.g. Worker timeout)
             if (consecutiveErrors >= maxRetries) {
-              onError?.('Enrichment stopped after repeated errors — resume to continue');
+              onError?.('Enrichment stopped after repeated errors — use Resume to continue');
               break;
             }
             // Wait before retrying

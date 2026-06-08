@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.80.0] - 2026-06-08
+
+### Added
+
+- **Metadata enrichment is now debuggable and resumable.** When an enrichment job fails it records the actual reason (new nullable `error_message` column, migration `0065`), surfaced as a tooltip on the **Failed** chip in Job History — no more silent failures. Paused and failed jobs gain a **Resume** button that continues from the stored cursor (`last_book_id`) instead of restarting from scratch, so a `Refresh All` that dies at book 507 no longer re-fetches the first 506. Live progress now shows **what was found and which provider supplied it** per book (e.g. `author, genres ← Google Books`), plus a running per-provider contribution tally (new nullable `provider_stats` column) shown live and as a tooltip on the Enriched column.
+
+### Fixed
+
+- **Enrichment no longer rate-limits itself to death.** The `/api/metadata/enrich` cost cap (5/min) was lower than the foreground poller's natural cadence (~6–8 batches/min), so long runs hit 429s that the poller counted as fatal errors and gave up. Raised the cap to 60/min and taught the poller to treat 429 as a soft back-off (honouring `retryAfter`) rather than a hard failure. Background-cron failures now also persist their reason.
+
 ## [3.79.0] - 2026-06-08
 
 ### Added

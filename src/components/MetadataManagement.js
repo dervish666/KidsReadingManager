@@ -29,6 +29,7 @@ import {
   Switch,
   FormControlLabel,
   Slider,
+  Tooltip,
 } from '@mui/material';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import SaveIcon from '@mui/icons-material/Save';
@@ -114,6 +115,17 @@ const statusChipProps = (status) => {
     default:
       return { label: status || 'Unknown', sx: {} };
   }
+};
+
+// Human-readable per-provider contribution summary, e.g.
+// "Google Books: 88 · OpenLibrary: 312". Returns null when there's nothing yet.
+const formatProviderStats = (stats) => {
+  if (!stats || typeof stats !== 'object') return null;
+  const parts = Object.entries(stats)
+    .filter(([, n]) => n > 0)
+    .sort((a, b) => b[1] - a[1])
+    .map(([provider, n]) => `${PROVIDER_LABELS[provider] || provider}: ${n}`);
+  return parts.length ? parts.join(' · ') : null;
 };
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -409,6 +421,40 @@ const MetadataManagement = () => {
     setIsEnriching(false);
     setProgress(null);
     loadJobs();
+  };
+
+  // Resume a paused/failed job from its stored cursor. Background jobs are
+  // handed back to the cron; foreground jobs re-attach the poller.
+  const handleResume = async (job) => {
+    if (isEnriching) return;
+    try {
+      const res = await fetchWithAuth(`/api/metadata/jobs/${job.id}/resume`, { method: 'POST' });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to resume');
+      }
+      const data = await res.json();
+
+      if (data.background) {
+        showSnackbar('Resumed in background — check Job History for progress', 'success');
+        loadJobs();
+        return;
+      }
+
+      setIsEnriching(true);
+      setProgress({
+        jobId: data.jobId,
+        status: data.status,
+        totalBooks: data.totalBooks,
+        processedBooks: data.processedBooks,
+        enrichedBooks: data.enrichedBooks,
+        errorCount: data.errorCount,
+        done: false,
+      });
+      await startPolling(data.jobId);
+    } catch (err) {
+      showSnackbar(err.message || 'Failed to resume', 'error');
+    }
   };
 
   const progressPercent =
@@ -838,6 +884,32 @@ const MetadataManagement = () => {
                 {progress.errorCount > 0 ? `, ${progress.errorCount} errors` : ''}
               </Typography>
             )}
+
+            {/* Live attribution: what was found for the current book, and from where */}
+            {progress?.currentBookLog?.length > 0 && (
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1 }}>
+                {progress.currentBookLog.map((entry, i) => (
+                  <Chip
+                    key={`${entry.provider}-${i}`}
+                    size="small"
+                    variant="outlined"
+                    label={`${entry.fields.join(', ')} ← ${PROVIDER_LABELS[entry.provider] || entry.provider}`}
+                    sx={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.7rem' }}
+                  />
+                ))}
+              </Box>
+            )}
+
+            {/* Running per-provider contribution tally for this job */}
+            {formatProviderStats(progress?.providerStats) && (
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ fontFamily: '"DM Sans", sans-serif', mt: 1, display: 'block' }}
+              >
+                Contributions — {formatProviderStats(progress.providerStats)}
+              </Typography>
+            )}
           </Box>
         )}
       </Paper>
@@ -930,6 +1002,16 @@ const MetadataManagement = () => {
                   >
                     Errors
                   </TableCell>
+                  <TableCell
+                    align="right"
+                    sx={{
+                      fontFamily: '"Nunito", sans-serif',
+                      fontWeight: 700,
+                      color: 'text.secondary',
+                    }}
+                  >
+                    Actions
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -959,16 +1041,23 @@ const MetadataManagement = () => {
                         {job.jobType || '—'}
                       </TableCell>
                       <TableCell>
-                        <Chip
-                          label={chipProps.label}
-                          size="small"
-                          sx={{
-                            fontFamily: '"DM Sans", sans-serif',
-                            fontWeight: 600,
-                            fontSize: '0.75rem',
-                            ...chipProps.sx,
-                          }}
-                        />
+                        <Tooltip
+                          title={job.errorMessage || ''}
+                          disableHoverListener={!job.errorMessage}
+                          arrow
+                        >
+                          <Chip
+                            label={chipProps.label}
+                            size="small"
+                            sx={{
+                              fontFamily: '"DM Sans", sans-serif',
+                              fontWeight: 600,
+                              fontSize: '0.75rem',
+                              cursor: job.errorMessage ? 'help' : 'default',
+                              ...chipProps.sx,
+                            }}
+                          />
+                        </Tooltip>
                       </TableCell>
                       <TableCell sx={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.85rem' }}>
                         {job.processedBooks != null && job.totalBooks != null
@@ -976,7 +1065,21 @@ const MetadataManagement = () => {
                           : '—'}
                       </TableCell>
                       <TableCell sx={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.85rem' }}>
-                        {job.enrichedBooks ?? '—'}
+                        {formatProviderStats(job.providerStats) ? (
+                          <Tooltip
+                            title={`Contributions — ${formatProviderStats(job.providerStats)}`}
+                            arrow
+                          >
+                            <Box
+                              component="span"
+                              sx={{ cursor: 'help', borderBottom: '1px dotted' }}
+                            >
+                              {job.enrichedBooks ?? '—'}
+                            </Box>
+                          </Tooltip>
+                        ) : (
+                          (job.enrichedBooks ?? '—')
+                        )}
                       </TableCell>
                       <TableCell
                         sx={{
@@ -986,6 +1089,28 @@ const MetadataManagement = () => {
                         }}
                       >
                         {job.errorCount ?? 0}
+                      </TableCell>
+                      <TableCell align="right">
+                        {(job.status === 'paused' || job.status === 'failed') && (
+                          <Tooltip
+                            title={
+                              isEnriching ? 'Another job is running' : 'Resume where it left off'
+                            }
+                            arrow
+                          >
+                            <span>
+                              <IconButton
+                                size="small"
+                                color="primary"
+                                onClick={() => handleResume(job)}
+                                disabled={isEnriching}
+                                aria-label="Resume enrichment job"
+                              >
+                                <PlayArrowIcon fontSize="small" />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                        )}
                       </TableCell>
                     </TableRow>
                   );

@@ -11,6 +11,17 @@ const metadataRouter = new Hono();
 
 const DEFAULT_PROVIDER_CHAIN = ['openlibrary', 'googlebooks', 'hardcover'];
 
+/** Parse the per-provider contribution tally JSON, tolerating null/corrupt. */
+function parseProviderStats(raw) {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && Object.keys(parsed).length > 0 ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 async function getConfig(db) {
   const row = await db
     .prepare('SELECT * FROM metadata_config WHERE id = ?')
@@ -339,6 +350,9 @@ metadataRouter.get('/jobs', requireAdmin(), async (c) => {
     enrichedBooks: row.enriched_books,
     errorCount: row.error_count,
     includeCovers: Boolean(row.include_covers),
+    background: Boolean(row.background),
+    errorMessage: row.error_message || null,
+    providerStats: parseProviderStats(row.provider_stats),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }));
@@ -377,6 +391,64 @@ metadataRouter.delete('/jobs/:id', requireAdmin(), async (c) => {
 
   return c.json({ success: true });
 });
+
+/**
+ * POST /api/metadata/jobs/:id/resume
+ * Resume a paused or failed job from its stored cursor (last_book_id).
+ * Flips the job back to 'pending' and clears any stored error — the foreground
+ * poller (or the cron, for background jobs) then continues where it left off.
+ * Owner can resume any job; admin only their own org's jobs.
+ */
+metadataRouter.post(
+  '/jobs/:id/resume',
+  requireAdmin(),
+  auditLog('update', 'metadata_job'),
+  async (c) => {
+    const db = requireDB(c.env);
+    const { id } = c.req.param();
+    const userRole = c.get('userRole');
+    const organizationId = c.get('organizationId');
+
+    const job = await db.prepare('SELECT * FROM metadata_jobs WHERE id = ?').bind(id).first();
+    if (!job) return c.json({ error: 'Job not found' }, 404);
+
+    // Admin: only their own org's jobs (global jobs have a NULL org → owner-only)
+    if (userRole !== 'owner' && job.organization_id !== organizationId) {
+      return c.json({ error: 'Job not found' }, 404);
+    }
+
+    if (job.status !== 'paused' && job.status !== 'failed') {
+      return c.json({ error: `Cannot resume a ${job.status} job` }, 400);
+    }
+
+    // Concurrency guard: only one active job at a time.
+    const runningJob = await db
+      .prepare("SELECT id FROM metadata_jobs WHERE status IN ('pending', 'running') LIMIT 1")
+      .first();
+    if (runningJob) {
+      return c.json({ error: 'Another enrichment job is already running' }, 409);
+    }
+
+    await db
+      .prepare(
+        "UPDATE metadata_jobs SET status = 'pending', error_message = NULL, updated_at = datetime('now') WHERE id = ?"
+      )
+      .bind(id)
+      .run();
+
+    return c.json({
+      jobId: job.id,
+      status: 'pending',
+      background: Boolean(job.background),
+      jobType: job.job_type,
+      totalBooks: job.total_books,
+      processedBooks: job.processed_books,
+      enrichedBooks: job.enriched_books,
+      errorCount: job.error_count,
+      done: false,
+    });
+  }
+);
 
 // --- Enrich Endpoint (Admin+) ---
 
@@ -528,16 +600,20 @@ metadataRouter.post('/enrich', requireAdmin(), async (c) => {
       enrichedBooks: result.enrichedBooks,
       errorCount: result.errorCount,
       currentBook: result.currentBook,
+      currentBookLog: result.currentBookLog || [],
+      providerStats: result.providerStats || null,
       done: result.done,
     });
   } catch (err) {
     console.error('Enrich batch error:', err);
+    // Persist the reason so it survives in Job History (owner/admin-only).
+    // The immediate 500 stays generic — the stored reason is the diagnostic.
     try {
       await db
         .prepare(
-          "UPDATE metadata_jobs SET status = 'failed', updated_at = datetime('now') WHERE id = ?"
+          "UPDATE metadata_jobs SET status = 'failed', error_message = ?, updated_at = datetime('now') WHERE id = ?"
         )
-        .bind(job.id)
+        .bind(String(err?.message || 'Unknown error').slice(0, 500), job.id)
         .run();
     } catch {
       /* best effort */

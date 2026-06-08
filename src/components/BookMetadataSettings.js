@@ -9,12 +9,20 @@ import {
   Divider,
   Snackbar,
   LinearProgress,
+  Chip,
 } from '@mui/material';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import StopIcon from '@mui/icons-material/Stop';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import { useAuth } from '../contexts/AuthContext';
 import { useEnrichmentPolling } from '../hooks/useEnrichmentPolling';
+
+const PROVIDER_LABELS = {
+  hardcover: 'Hardcover',
+  googlebooks: 'Google Books',
+  openlibrary: 'OpenLibrary',
+  bookinfo: 'BookInfo',
+};
 
 const BookMetadataSettings = () => {
   const { fetchWithAuth } = useAuth();
@@ -274,6 +282,21 @@ const BookMetadataSettings = () => {
                 {progressPercent}% — {progress.enrichedBooks ?? 0} enriched
                 {progress.errorCount > 0 ? `, ${progress.errorCount} errors` : ''}
               </Typography>
+            )}
+
+            {/* Live attribution: what was found for the current book, and from where */}
+            {progress?.currentBookLog?.length > 0 && (
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1 }}>
+                {progress.currentBookLog.map((entry, i) => (
+                  <Chip
+                    key={`${entry.provider}-${i}`}
+                    size="small"
+                    variant="outlined"
+                    label={`${entry.fields.join(', ')} ← ${PROVIDER_LABELS[entry.provider] || entry.provider}`}
+                    sx={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.7rem' }}
+                  />
+                ))}
+              </Box>
             )}
           </Box>
         )}

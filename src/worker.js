@@ -269,7 +269,11 @@ app.use('/api/*', async (c, next) => {
 // Cost-sensitive endpoint rate limiting (AI APIs, external proxies)
 // ============================================================================
 app.use('/api/books/ai-suggestions', costRateLimit(10)); // 10/min — calls Anthropic/OpenAI/Google
-app.use('/api/metadata/enrich', costRateLimit(5)); // 5/min — bulk external API calls
+// The foreground poller drives this endpoint once per batch (a batch is already
+// capped at ~5 books / 20s server-side), so it legitimately fires several times
+// a minute. 60/min (~1/s) bounds abuse without throttling a normal run; the
+// poller also backs off on 429.
+app.use('/api/metadata/enrich', costRateLimit(60));
 app.use('/api/hardcover/graphql', costRateLimit(30)); // 30/min — proxied to Hardcover API
 
 // ============================================================================
@@ -865,9 +869,9 @@ export default Sentry.withSentry(
               try {
                 await db
                   .prepare(
-                    "UPDATE metadata_jobs SET status = 'failed', updated_at = datetime('now') WHERE id = ?"
+                    "UPDATE metadata_jobs SET status = 'failed', error_message = ?, updated_at = datetime('now') WHERE id = ?"
                   )
-                  .bind(bgJob.id)
+                  .bind(String(err?.message || 'Unknown error').slice(0, 500), bgJob.id)
                   .run();
               } catch {
                 /* best effort */

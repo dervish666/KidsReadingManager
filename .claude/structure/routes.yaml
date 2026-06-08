@@ -835,6 +835,9 @@ files:
       - route: DELETE /api/metadata/jobs/:id
         description: Cancel a running job (admin can cancel own org, owner any)
         requires: admin
+      - route: POST /api/metadata/jobs/:id/resume
+        description: Resume a paused/failed job from its stored cursor (clears error, flips to pending)
+        requires: admin
       - route: POST /api/metadata/enrich
         description: Create or advance an enrichment job (admin restricted to own org + fill_missing)
         requires: admin
