@@ -28,6 +28,10 @@ async function getConfig(db) {
     hasHardcoverApiKey: Boolean(row.hardcover_api_key_encrypted),
     hasGoogleBooksApiKey: Boolean(row.google_books_api_key_encrypted),
     bookInfoBaseUrl: row.bookinfo_base_url || null,
+    // Access service token: client id is a public identifier (returned for the
+    // UI); the secret is redacted to a boolean like the API keys.
+    bookInfoAccessClientId: row.bookinfo_access_client_id || null,
+    hasBookInfoAccessClientSecret: Boolean(row.bookinfo_access_client_secret_encrypted),
     rateLimitDelayMs: row.rate_limit_delay_ms,
     batchSize: row.batch_size,
     fetchCovers: Boolean(row.fetch_covers),
@@ -43,6 +47,7 @@ async function getConfigWithKeys(db, jwtSecret) {
 
   let hardcoverApiKey = null;
   let googleBooksApiKey = null;
+  let bookInfoAccessClientSecret = null;
 
   if (row.hardcover_api_key_encrypted && jwtSecret) {
     try {
@@ -54,6 +59,16 @@ async function getConfigWithKeys(db, jwtSecret) {
   if (row.google_books_api_key_encrypted && jwtSecret) {
     try {
       googleBooksApiKey = await decryptSensitiveData(row.google_books_api_key_encrypted, jwtSecret);
+    } catch {
+      /* plaintext or corrupt — ignore */
+    }
+  }
+  if (row.bookinfo_access_client_secret_encrypted && jwtSecret) {
+    try {
+      bookInfoAccessClientSecret = await decryptSensitiveData(
+        row.bookinfo_access_client_secret_encrypted,
+        jwtSecret
+      );
     } catch {
       /* plaintext or corrupt — ignore */
     }
@@ -70,6 +85,8 @@ async function getConfigWithKeys(db, jwtSecret) {
     hardcoverApiKey,
     googleBooksApiKey,
     bookInfoBaseUrl: row.bookinfo_base_url || null,
+    bookInfoAccessClientId: row.bookinfo_access_client_id || null,
+    bookInfoAccessClientSecret,
     rateLimitDelayMs: row.rate_limit_delay_ms,
     batchSize: row.batch_size,
     fetchCovers: Boolean(row.fetch_covers),
@@ -148,6 +165,14 @@ metadataRouter.put('/config', requireOwner(), auditLog('update', 'metadata_confi
       : null;
   }
 
+  // BookInfo Access service-token secret — encrypted like the API keys.
+  let bookInfoAccessSecretEncrypted = undefined;
+  if (body.bookInfoAccessClientSecret !== undefined && encSecret) {
+    bookInfoAccessSecretEncrypted = body.bookInfoAccessClientSecret
+      ? await encryptSensitiveData(body.bookInfoAccessClientSecret, encSecret)
+      : null;
+  }
+
   // UPSERT: INSERT ... ON CONFLICT DO UPDATE
   // Read current values first so we only overwrite what was sent
   const current = await db
@@ -159,13 +184,16 @@ metadataRouter.put('/config', requireOwner(), auditLog('update', 'metadata_confi
     .prepare(
       `
     INSERT INTO metadata_config (id, provider_chain, hardcover_api_key_encrypted, google_books_api_key_encrypted,
-      bookinfo_base_url, rate_limit_delay_ms, batch_size, fetch_covers, updated_by, updated_at)
-    VALUES ('default', ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      bookinfo_base_url, bookinfo_access_client_id, bookinfo_access_client_secret_encrypted,
+      rate_limit_delay_ms, batch_size, fetch_covers, updated_by, updated_at)
+    VALUES ('default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
     ON CONFLICT(id) DO UPDATE SET
       provider_chain = excluded.provider_chain,
       hardcover_api_key_encrypted = excluded.hardcover_api_key_encrypted,
       google_books_api_key_encrypted = excluded.google_books_api_key_encrypted,
       bookinfo_base_url = excluded.bookinfo_base_url,
+      bookinfo_access_client_id = excluded.bookinfo_access_client_id,
+      bookinfo_access_client_secret_encrypted = excluded.bookinfo_access_client_secret_encrypted,
       rate_limit_delay_ms = excluded.rate_limit_delay_ms,
       batch_size = excluded.batch_size,
       fetch_covers = excluded.fetch_covers,
@@ -186,6 +214,12 @@ metadataRouter.put('/config', requireOwner(), auditLog('update', 'metadata_confi
       body.bookInfoBaseUrl !== undefined
         ? body.bookInfoBaseUrl || null
         : current?.bookinfo_base_url || null,
+      body.bookInfoAccessClientId !== undefined
+        ? body.bookInfoAccessClientId || null
+        : current?.bookinfo_access_client_id || null,
+      bookInfoAccessSecretEncrypted !== undefined
+        ? bookInfoAccessSecretEncrypted
+        : current?.bookinfo_access_client_secret_encrypted || null,
       body.rateLimitDelayMs !== undefined
         ? parseInt(body.rateLimitDelayMs, 10)
         : current?.rate_limit_delay_ms || 1500,

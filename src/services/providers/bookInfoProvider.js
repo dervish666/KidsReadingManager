@@ -59,10 +59,15 @@ function parseYear(...values) {
 
 /**
  * @param {{ title: string, author?: string, isbn?: string }} book
- * @param {string} [baseUrl] - falls back to the public instance when empty
+ * @param {string|{ baseUrl?: string, accessClientId?: string, accessClientSecret?: string }} [options]
+ *   Either a base URL string (back-compat) or an options object. `baseUrl` falls
+ *   back to the public instance when empty. `accessClientId` / `accessClientSecret`
+ *   are a Cloudflare Access service token — sent as CF-Access-Client-Id /
+ *   CF-Access-Client-Secret so a self-hosted instance gated behind an Access
+ *   policy lets the request through. Both must be set for the headers to be added.
  * @returns {Promise<{ author, description, genres, isbn, pageCount, publicationYear, seriesName, seriesNumber, coverUrl, rateLimited? }>}
  */
-export async function fetchMetadata(book, baseUrl) {
+export async function fetchMetadata(book, options) {
   const empty = {
     author: null,
     description: null,
@@ -75,11 +80,20 @@ export async function fetchMetadata(book, baseUrl) {
     coverUrl: null,
   };
 
-  const base = (baseUrl || DEFAULT_BOOKINFO_BASE_URL).replace(/\/+$/, '');
+  const opts = typeof options === 'string' ? { baseUrl: options } : options || {};
+  const base = (opts.baseUrl || DEFAULT_BOOKINFO_BASE_URL).replace(/\/+$/, '');
   const headers = {
     'User-Agent': 'TallyReading/1.0 (educational-app)',
     Accept: 'application/json',
   };
+
+  // Cloudflare Access service token — required when the (self-hosted) instance is
+  // gated behind an Access policy. Only sent when both halves are present so the
+  // public-instance and ungated paths are unaffected.
+  if (opts.accessClientId && opts.accessClientSecret) {
+    headers['CF-Access-Client-Id'] = opts.accessClientId;
+    headers['CF-Access-Client-Secret'] = opts.accessClientSecret;
+  }
 
   try {
     // 1. Search → workId. The search endpoint has no ISBN param and returns

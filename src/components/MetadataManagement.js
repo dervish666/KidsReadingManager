@@ -59,7 +59,13 @@ const getKeyStatus = (providerId, config) => {
   if (providerId === 'openlibrary') return { label: 'Free', color: 'success' };
   if (providerId === 'bookinfo')
     return config.bookInfoBaseUrl
-      ? { label: 'Self-hosted', color: 'success' }
+      ? {
+          label:
+            config.bookInfoAccessClientId && config.hasBookInfoAccessClientSecret
+              ? 'Self-hosted · gated'
+              : 'Self-hosted',
+          color: 'success',
+        }
       : { label: 'Public instance', color: 'info' };
   if (providerId === 'hardcover' && config.hasHardcoverApiKey)
     return { label: 'Key configured', color: 'success' };
@@ -121,12 +127,15 @@ const MetadataManagement = () => {
     hasHardcoverApiKey: false,
     hasGoogleBooksApiKey: false,
     bookInfoBaseUrl: '',
+    bookInfoAccessClientId: '',
+    hasBookInfoAccessClientSecret: false,
     rateLimitDelayMs: 1500,
     batchSize: 10,
     fetchCovers: true,
   });
   const [hardcoverKey, setHardcoverKey] = useState('');
   const [googleBooksKey, setGoogleBooksKey] = useState('');
+  const [bookInfoAccessSecret, setBookInfoAccessSecret] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingConfig, setIsLoadingConfig] = useState(true);
 
@@ -179,6 +188,8 @@ const MetadataManagement = () => {
             hasHardcoverApiKey: data.hasHardcoverApiKey || false,
             hasGoogleBooksApiKey: data.hasGoogleBooksApiKey || false,
             bookInfoBaseUrl: data.bookInfoBaseUrl || '',
+            bookInfoAccessClientId: data.bookInfoAccessClientId || '',
+            hasBookInfoAccessClientSecret: data.hasBookInfoAccessClientSecret || false,
             rateLimitDelayMs: data.rateLimitDelayMs ?? 1500,
             batchSize: data.batchSize ?? 10,
             fetchCovers: data.fetchCovers ?? true,
@@ -288,12 +299,14 @@ const MetadataManagement = () => {
       const payload = {
         providerChain: config.providerChain,
         bookInfoBaseUrl: config.bookInfoBaseUrl.trim(),
+        bookInfoAccessClientId: config.bookInfoAccessClientId.trim(),
         rateLimitDelayMs: config.rateLimitDelayMs,
         batchSize: config.batchSize,
         fetchCovers: config.fetchCovers,
       };
       if (hardcoverKey) payload.hardcoverApiKey = hardcoverKey;
       if (googleBooksKey) payload.googleBooksApiKey = googleBooksKey;
+      if (bookInfoAccessSecret) payload.bookInfoAccessClientSecret = bookInfoAccessSecret;
 
       const res = await fetchWithAuth('/api/metadata/config', {
         method: 'PUT',
@@ -311,9 +324,13 @@ const MetadataManagement = () => {
         ...prev,
         hasHardcoverApiKey: data.hasHardcoverApiKey ?? prev.hasHardcoverApiKey,
         hasGoogleBooksApiKey: data.hasGoogleBooksApiKey ?? prev.hasGoogleBooksApiKey,
+        bookInfoAccessClientId: data.bookInfoAccessClientId ?? prev.bookInfoAccessClientId,
+        hasBookInfoAccessClientSecret:
+          data.hasBookInfoAccessClientSecret ?? prev.hasBookInfoAccessClientSecret,
       }));
       setHardcoverKey('');
       setGoogleBooksKey('');
+      setBookInfoAccessSecret('');
       showSnackbar('Configuration saved', 'success');
     } catch (err) {
       showSnackbar(err.message || 'Failed to save configuration', 'error');
@@ -533,7 +550,36 @@ const MetadataManagement = () => {
           onChange={(e) => setConfig((prev) => ({ ...prev, bookInfoBaseUrl: e.target.value }))}
           placeholder="https://api.bookinfo.pro"
           helperText="Readarr-style metadata (strong genres + series). Leave blank to use the public instance; set your self-hosted URL for unthrottled bulk enrichment."
+          sx={{ mb: 2 }}
+        />
+
+        {/* Cloudflare Access service token — only needed if the self-hosted
+            instance is gated behind a Cloudflare Access service-token policy. */}
+        <TextField
+          fullWidth
+          label="Access Client ID (optional)"
+          value={config.bookInfoAccessClientId}
+          onChange={(e) =>
+            setConfig((prev) => ({ ...prev, bookInfoAccessClientId: e.target.value }))
+          }
+          placeholder="xxxx…access"
+          helperText="Cloudflare Access service token. Only needed if your self-hosted instance is gated behind an Access policy. Leave blank otherwise."
+          sx={{ mb: 2 }}
+        />
+        <TextField
+          fullWidth
+          label="Access Client Secret"
+          type="password"
+          value={bookInfoAccessSecret}
+          onChange={(e) => setBookInfoAccessSecret(e.target.value)}
+          placeholder={
+            config.hasBookInfoAccessClientSecret
+              ? 'Secret configured — enter new secret to replace'
+              : 'Enter Access client secret'
+          }
+          helperText="Stored encrypted. Leave blank to keep the existing secret."
           sx={{ mb: 3 }}
+          autoComplete="new-password"
         />
 
         <Divider sx={{ my: 2 }} />

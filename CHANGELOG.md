@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.79.0] - 2026-06-08
+
+### Added
+
+- **BookInfo self-hosted instances can sit behind Cloudflare Access** — the BookInfo provider can now present a Cloudflare Access **service token** (`CF-Access-Client-Id` / `CF-Access-Client-Secret`) on every request, so a self-hosted `rreading-glasses` instance gated by an Access policy lets Tally's Worker through while staying closed to everyone else. The Metadata Management settings page gains an **Access Client ID** field and an encrypted **Access Client Secret** field (the secret is stored encrypted like the API keys; the client id is shown back). The token is only sent when both halves are set, so the public `api.bookinfo.pro` default and ungated self-hosted instances are unaffected. `metadata_config` gains nullable `bookinfo_access_client_id` + `bookinfo_access_client_secret_encrypted` columns (migration `0064`).
+
 ## [3.78.0] - 2026-06-08
 
 ### Added

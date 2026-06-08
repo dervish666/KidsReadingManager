@@ -136,4 +136,55 @@ describe('bookInfoProvider', () => {
 
     expect(result.author).toBeNull();
   });
+
+  it('accepts an options object with baseUrl (back-compat with string form)', async () => {
+    fetchWithTimeout
+      .mockResolvedValueOnce(okJson([{ workId: 4640799 }]))
+      .mockResolvedValueOnce(okJson(harryPotterWork));
+
+    await fetchMetadata(
+      { title: "Harry Potter and the Philosopher's Stone" },
+      { baseUrl: 'https://books.mylab.home/' }
+    );
+
+    expect(fetchWithTimeout.mock.calls[0][0]).toContain('https://books.mylab.home/search');
+    expect(fetchWithTimeout.mock.calls[1][0]).toBe('https://books.mylab.home/work/4640799');
+  });
+
+  it('sends Cloudflare Access service-token headers when both halves are set', async () => {
+    fetchWithTimeout
+      .mockResolvedValueOnce(okJson([{ workId: 4640799 }]))
+      .mockResolvedValueOnce(okJson(harryPotterWork));
+
+    await fetchMetadata(
+      { title: "Harry Potter and the Philosopher's Stone" },
+      {
+        baseUrl: 'https://bookinfo.tallyreading.uk',
+        accessClientId: 'client-id.access',
+        accessClientSecret: 'super-secret',
+      }
+    );
+
+    // Both the /search and /work calls must carry the Access headers.
+    for (const call of fetchWithTimeout.mock.calls) {
+      const headers = call[1]?.headers || {};
+      expect(headers['CF-Access-Client-Id']).toBe('client-id.access');
+      expect(headers['CF-Access-Client-Secret']).toBe('super-secret');
+    }
+  });
+
+  it('omits Access headers when only one half is provided', async () => {
+    fetchWithTimeout
+      .mockResolvedValueOnce(okJson([{ workId: 4640799 }]))
+      .mockResolvedValueOnce(okJson(harryPotterWork));
+
+    await fetchMetadata(
+      { title: "Harry Potter and the Philosopher's Stone" },
+      { baseUrl: 'https://bookinfo.tallyreading.uk', accessClientId: 'client-id.access' }
+    );
+
+    const headers = fetchWithTimeout.mock.calls[0][1]?.headers || {};
+    expect(headers['CF-Access-Client-Id']).toBeUndefined();
+    expect(headers['CF-Access-Client-Secret']).toBeUndefined();
+  });
 });

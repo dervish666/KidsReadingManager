@@ -55,11 +55,17 @@ export async function enrichBook(book, config) {
       if (provider.needsKey && !config[provider.keyField]) continue;
 
       // Call the provider. Key-based providers get their API key; baseUrl-based
-      // providers (bookinfo) get their configured endpoint instead (the adapter
-      // falls back to its public default when unset).
+      // providers (bookinfo) get an options object: their configured endpoint
+      // (adapter falls back to its public default when unset) plus an optional
+      // Cloudflare Access service token for instances gated behind an Access policy.
       let providerArg;
-      if (provider.baseUrlField) providerArg = config[provider.baseUrlField];
-      else if (provider.needsKey) providerArg = config[provider.keyField];
+      if (provider.baseUrlField) {
+        providerArg = {
+          baseUrl: config[provider.baseUrlField],
+          accessClientId: config.bookInfoAccessClientId,
+          accessClientSecret: config.bookInfoAccessClientSecret,
+        };
+      } else if (provider.needsKey) providerArg = config[provider.keyField];
       const result = await provider.fetch(book, providerArg);
 
       if (result.rateLimited) {
