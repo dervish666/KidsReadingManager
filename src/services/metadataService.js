@@ -359,6 +359,37 @@ export async function processJobBatch(db, job, config, options = {}) {
     await db.batch(genreCreateStatements.slice(i, i + 100));
   }
 
+  // De-collide ISBNs before writing. `books.isbn` has a UNIQUE index, and a D1
+  // batch is atomic — so if an enriched ISBN already belongs to a *different*
+  // book (a near-duplicate in the global catalog, or another book earlier in
+  // this same batch), the UPDATE throws and rolls back the ENTIRE batch,
+  // including the cursor. That stalls the whole job on the same book forever
+  // (refresh_all overwrites every ISBN, so it hits this; fill_missing rarely
+  // does). Drop the colliding ISBN for that book — keep its other fields — so
+  // one collision can't poison the batch.
+  const proposedIsbns = [...new Set(bookUpdates.map(({ merged }) => merged.isbn).filter(Boolean))];
+  if (proposedIsbns.length > 0) {
+    const claimed = new Map(); // isbn -> id of the book that owns/claims it
+    const placeholders = proposedIsbns.map(() => '?').join(',');
+    const existing = await db
+      .prepare(`SELECT id, isbn FROM books WHERE isbn IN (${placeholders})`)
+      .bind(...proposedIsbns)
+      .all();
+    for (const row of existing.results || []) {
+      claimed.set(row.isbn, row.id);
+    }
+    for (const { bookId, merged } of bookUpdates) {
+      if (!merged.isbn) continue;
+      const owner = claimed.get(merged.isbn);
+      if (owner == null) {
+        claimed.set(merged.isbn, bookId); // free → this book claims it
+      } else if (owner !== bookId) {
+        delete merged.isbn; // already owned by another book → don't overwrite
+      }
+      // owner === bookId → book already has this ISBN; re-setting it is a no-op
+    }
+  }
+
   // Build D1 statements for book updates and metadata log
   const statements = [];
 

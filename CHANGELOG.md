@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.80.1] - 2026-06-08
+
+### Fixed
+
+- **`Refresh All` enrichment no longer dies on a duplicate ISBN.** `books.isbn` is UNIQUE, and a D1 batch is atomic — so when enrichment resolved an ISBN that another catalogue book already held (common in `refresh_all`, which overwrites every ISBN; near-duplicate titles resolve to the same ISBN), the `UPDATE` threw `UNIQUE constraint failed: books.isbn` and rolled back the **entire batch including the cursor**, stalling the whole job on the same book forever (Resume just re-hit it). Enrichment now de-collides ISBNs before writing: an enriched ISBN already owned by a different book (in the catalogue or earlier in the same batch) is dropped for that book — its other fields still save — so one collision can't poison the batch. This was the root cause behind the "fails again at the same spot" reports surfaced by the new failure-reason capture in v3.80.0.
+
 ## [3.80.0] - 2026-06-08
 
 ### Added
