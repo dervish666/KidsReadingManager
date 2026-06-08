@@ -27,6 +27,7 @@ async function getConfig(db) {
     providerChain,
     hasHardcoverApiKey: Boolean(row.hardcover_api_key_encrypted),
     hasGoogleBooksApiKey: Boolean(row.google_books_api_key_encrypted),
+    bookInfoBaseUrl: row.bookinfo_base_url || null,
     rateLimitDelayMs: row.rate_limit_delay_ms,
     batchSize: row.batch_size,
     fetchCovers: Boolean(row.fetch_covers),
@@ -68,6 +69,7 @@ async function getConfigWithKeys(db, jwtSecret) {
     providerChain,
     hardcoverApiKey,
     googleBooksApiKey,
+    bookInfoBaseUrl: row.bookinfo_base_url || null,
     rateLimitDelayMs: row.rate_limit_delay_ms,
     batchSize: row.batch_size,
     fetchCovers: Boolean(row.fetch_covers),
@@ -98,12 +100,25 @@ metadataRouter.put('/config', requireOwner(), auditLog('update', 'metadata_confi
 
   // Validate provider chain if provided
   if (body.providerChain !== undefined) {
-    const validProviders = ['hardcover', 'googlebooks', 'openlibrary'];
+    const validProviders = ['hardcover', 'googlebooks', 'openlibrary', 'bookinfo'];
     if (
       !Array.isArray(body.providerChain) ||
       !body.providerChain.every((p) => validProviders.includes(p))
     ) {
       throw badRequestError('Invalid provider chain');
+    }
+  }
+
+  // Validate BookInfo base URL if provided (empty string / null clears it →
+  // adapter falls back to the public instance).
+  if (body.bookInfoBaseUrl) {
+    try {
+      const parsed = new URL(body.bookInfoBaseUrl);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        throw new Error('bad protocol');
+      }
+    } catch {
+      throw badRequestError('bookInfoBaseUrl must be a valid http(s) URL');
     }
   }
 
@@ -144,12 +159,13 @@ metadataRouter.put('/config', requireOwner(), auditLog('update', 'metadata_confi
     .prepare(
       `
     INSERT INTO metadata_config (id, provider_chain, hardcover_api_key_encrypted, google_books_api_key_encrypted,
-      rate_limit_delay_ms, batch_size, fetch_covers, updated_by, updated_at)
-    VALUES ('default', ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      bookinfo_base_url, rate_limit_delay_ms, batch_size, fetch_covers, updated_by, updated_at)
+    VALUES ('default', ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
     ON CONFLICT(id) DO UPDATE SET
       provider_chain = excluded.provider_chain,
       hardcover_api_key_encrypted = excluded.hardcover_api_key_encrypted,
       google_books_api_key_encrypted = excluded.google_books_api_key_encrypted,
+      bookinfo_base_url = excluded.bookinfo_base_url,
       rate_limit_delay_ms = excluded.rate_limit_delay_ms,
       batch_size = excluded.batch_size,
       fetch_covers = excluded.fetch_covers,
@@ -167,6 +183,9 @@ metadataRouter.put('/config', requireOwner(), auditLog('update', 'metadata_confi
       googleEncrypted !== undefined
         ? googleEncrypted
         : current?.google_books_api_key_encrypted || null,
+      body.bookInfoBaseUrl !== undefined
+        ? body.bookInfoBaseUrl || null
+        : current?.bookinfo_base_url || null,
       body.rateLimitDelayMs !== undefined
         ? parseInt(body.rateLimitDelayMs, 10)
         : current?.rate_limit_delay_ms || 1500,

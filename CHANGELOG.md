@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.78.0] - 2026-06-08
+
+### Added
+
+- **BookInfo metadata provider (rreading-glasses)** — a new server-side adapter adds a Readarr-compatible, Goodreads-schema metadata source to the enrichment cascade, strongest at the genres and series data the other providers are weakest on. It searches by title/author, fetches the work record, verifies the title to guard against bad matches, prefers the edition matching the book's ISBN, and filters Goodreads "shelf" noise out of genres. The endpoint **base URL is configurable** (owner setting): leave it blank to use the public `api.bookinfo.pro` instance, or point it at a self-hosted instance for unthrottled bulk enrichment. HTTP 429s flow through the existing rate-limit backoff. The Metadata Management settings page now lets owners add/remove providers from the cascade (not just reorder) and set the BookInfo base URL.
+
+### Changed
+
+- **Metadata config** — the cascade engine now passes a configurable endpoint (not just an API key) to providers that need one; `metadata_config` gains a nullable `bookinfo_base_url` column (migration `0063`).
+
 ## [3.77.0] - 2026-06-06
 
 ### Added

@@ -88,6 +88,7 @@ src/services/orgPurge.js - Cascade hard-delete all org data (26 tables FK-safe),
 src/services/providers/openLibraryProvider.js - OpenLibrary server-side adapter (no API key)
 src/services/providers/googleBooksProvider.js - Google Books server-side adapter (requires API key)
 src/services/providers/hardcoverProvider.js - Hardcover GraphQL server-side adapter (requires API key, best series data)
+src/services/providers/bookInfoProvider.js - BookInfo/rreading-glasses adapter (Readarr-compatible, configurable base URL, no key; strong genres+series)
 
 ## Utilities
 

@@ -808,6 +808,8 @@ files:
         items: [fetchMetadata]
       - from: services/providers/hardcoverProvider
         items: [fetchMetadata]
+      - from: services/providers/bookInfoProvider
+        items: [fetchMetadata]
 
   services/providers/openLibraryProvider.js:
     description: OpenLibrary server-side adapter — Search API + Works API for descriptions
@@ -831,4 +833,15 @@ files:
       - name: fetchMetadata
         kind: function
         params: [{name: book, type: "{title, author?, isbn?}"}, {name: apiKey, type: "string|null"}]
+        returns: "Promise<{author, description, genres, isbn, pageCount, publicationYear, seriesName, seriesNumber, coverUrl, rateLimited?}>"
+
+  services/providers/bookInfoProvider.js:
+    description: BookInfo/rreading-glasses adapter — Readarr-compatible Goodreads-schema metadata (strong genres+series). Searches then fetches /work; configurable base URL (defaults to public api.bookinfo.pro), no API key.
+    exports:
+      - name: DEFAULT_BOOKINFO_BASE_URL
+        kind: const
+        description: "Public instance fallback: https://api.bookinfo.pro"
+      - name: fetchMetadata
+        kind: function
+        params: [{name: book, type: "{title, author?, isbn?}"}, {name: baseUrl, type: "string?"}]
         returns: "Promise<{author, description, genres, isbn, pageCount, publicationYear, seriesName, seriesNumber, coverUrl, rateLimited?}>"

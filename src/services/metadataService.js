@@ -5,12 +5,17 @@
 import { fetchMetadata as openLibraryFetch } from './providers/openLibraryProvider.js';
 import { fetchMetadata as googleBooksFetch } from './providers/googleBooksProvider.js';
 import { fetchMetadata as hardcoverFetch } from './providers/hardcoverProvider.js';
+import { fetchMetadata as bookInfoFetch } from './providers/bookInfoProvider.js';
 import { isKnownPlaceholder } from '../utils/coverPlaceholders.js';
 
+// Most providers take an API key as their second arg. `baseUrlField` marks
+// providers that instead take a configurable endpoint (bookinfo) — handled in
+// enrichBook below.
 const PROVIDERS = {
   openlibrary: { fetch: openLibraryFetch, needsKey: false },
   googlebooks: { fetch: googleBooksFetch, needsKey: true, keyField: 'googleBooksApiKey' },
   hardcover: { fetch: hardcoverFetch, needsKey: true, keyField: 'hardcoverApiKey' },
+  bookinfo: { fetch: bookInfoFetch, needsKey: false, baseUrlField: 'bookInfoBaseUrl' },
 };
 
 const MERGE_FIELDS = [
@@ -49,9 +54,13 @@ export async function enrichBook(book, config) {
       // Skip providers that need a key if none is configured
       if (provider.needsKey && !config[provider.keyField]) continue;
 
-      // Call the provider
-      const apiKey = provider.needsKey ? config[provider.keyField] : undefined;
-      const result = await provider.fetch(book, apiKey);
+      // Call the provider. Key-based providers get their API key; baseUrl-based
+      // providers (bookinfo) get their configured endpoint instead (the adapter
+      // falls back to its public default when unset).
+      let providerArg;
+      if (provider.baseUrlField) providerArg = config[provider.baseUrlField];
+      else if (provider.needsKey) providerArg = config[provider.keyField];
+      const result = await provider.fetch(book, providerArg);
 
       if (result.rateLimited) {
         rateLimited.push(providerName);

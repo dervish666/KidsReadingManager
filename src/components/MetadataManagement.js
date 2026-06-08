@@ -37,6 +37,8 @@ import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import StopIcon from '@mui/icons-material/Stop';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import AddIcon from '@mui/icons-material/Add';
 import { useAuth } from '../contexts/AuthContext';
 import { useEnrichmentPolling } from '../hooks/useEnrichmentPolling';
 
@@ -46,10 +48,19 @@ const PROVIDER_LABELS = {
   hardcover: 'Hardcover',
   googlebooks: 'Google Books',
   openlibrary: 'OpenLibrary',
+  bookinfo: 'BookInfo (Readarr)',
 };
+
+// All providers Tally knows about, in default cascade order. Used to offer
+// providers that aren't yet in the chain (e.g. bookinfo, opt-in by default).
+const ALL_PROVIDERS = ['openlibrary', 'googlebooks', 'hardcover', 'bookinfo'];
 
 const getKeyStatus = (providerId, config) => {
   if (providerId === 'openlibrary') return { label: 'Free', color: 'success' };
+  if (providerId === 'bookinfo')
+    return config.bookInfoBaseUrl
+      ? { label: 'Self-hosted', color: 'success' }
+      : { label: 'Public instance', color: 'info' };
   if (providerId === 'hardcover' && config.hasHardcoverApiKey)
     return { label: 'Key configured', color: 'success' };
   if (providerId === 'googlebooks' && config.hasGoogleBooksApiKey)
@@ -109,6 +120,7 @@ const MetadataManagement = () => {
     providerChain: ['hardcover', 'googlebooks', 'openlibrary'],
     hasHardcoverApiKey: false,
     hasGoogleBooksApiKey: false,
+    bookInfoBaseUrl: '',
     rateLimitDelayMs: 1500,
     batchSize: 10,
     fetchCovers: true,
@@ -166,6 +178,7 @@ const MetadataManagement = () => {
             providerChain: data.providerChain || ['hardcover', 'googlebooks', 'openlibrary'],
             hasHardcoverApiKey: data.hasHardcoverApiKey || false,
             hasGoogleBooksApiKey: data.hasGoogleBooksApiKey || false,
+            bookInfoBaseUrl: data.bookInfoBaseUrl || '',
             rateLimitDelayMs: data.rateLimitDelayMs ?? 1500,
             batchSize: data.batchSize ?? 10,
             fetchCovers: data.fetchCovers ?? true,
@@ -252,11 +265,29 @@ const MetadataManagement = () => {
     setConfig((prev) => ({ ...prev, providerChain: chain }));
   };
 
+  const addProvider = (providerId) => {
+    setConfig((prev) =>
+      prev.providerChain.includes(providerId)
+        ? prev
+        : { ...prev, providerChain: [...prev.providerChain, providerId] }
+    );
+  };
+
+  const removeProvider = (providerId) => {
+    setConfig((prev) => ({
+      ...prev,
+      providerChain: prev.providerChain.filter((p) => p !== providerId),
+    }));
+  };
+
+  const availableProviders = ALL_PROVIDERS.filter((p) => !config.providerChain.includes(p));
+
   const handleSaveConfig = async () => {
     setIsSaving(true);
     try {
       const payload = {
         providerChain: config.providerChain,
+        bookInfoBaseUrl: config.bookInfoBaseUrl.trim(),
         rateLimitDelayMs: config.rateLimitDelayMs,
         batchSize: config.batchSize,
         fetchCovers: config.fetchCovers,
@@ -449,11 +480,61 @@ const MetadataManagement = () => {
                   >
                     <ArrowDownwardIcon fontSize="small" />
                   </IconButton>
+                  <IconButton
+                    size="small"
+                    onClick={() => removeProvider(providerId)}
+                    disabled={config.providerChain.length === 1}
+                    aria-label={`Remove ${PROVIDER_LABELS[providerId]} from chain`}
+                  >
+                    <DeleteOutlineIcon fontSize="small" />
+                  </IconButton>
                 </ListItemSecondaryAction>
               </ListItem>
             );
           })}
         </List>
+
+        {availableProviders.length > 0 && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 3 }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ fontFamily: '"DM Sans", sans-serif' }}
+            >
+              Add provider:
+            </Typography>
+            {availableProviders.map((providerId) => (
+              <Chip
+                key={providerId}
+                icon={<AddIcon />}
+                label={PROVIDER_LABELS[providerId] || providerId}
+                onClick={() => addProvider(providerId)}
+                variant="outlined"
+                size="small"
+                sx={{ fontFamily: '"DM Sans", sans-serif', cursor: 'pointer' }}
+              />
+            ))}
+          </Box>
+        )}
+
+        <Divider sx={{ my: 2 }} />
+
+        {/* BookInfo (rreading-glasses) endpoint */}
+        <Typography
+          variant="subtitle2"
+          sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, mb: 1 }}
+        >
+          BookInfo Endpoint
+        </Typography>
+        <TextField
+          fullWidth
+          label="BookInfo Base URL"
+          value={config.bookInfoBaseUrl}
+          onChange={(e) => setConfig((prev) => ({ ...prev, bookInfoBaseUrl: e.target.value }))}
+          placeholder="https://api.bookinfo.pro"
+          helperText="Readarr-style metadata (strong genres + series). Leave blank to use the public instance; set your self-hosted URL for unthrottled bulk enrichment."
+          sx={{ mb: 3 }}
+        />
 
         <Divider sx={{ my: 2 }} />
 
