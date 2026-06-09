@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.80.2] - 2026-06-09
+
+### Fixed
+
+- **Hardcover enrichment no longer 500s the job.** Hardcover's `cached_image` is an object (`{ url, color, … }`), but the provider adapter assigned it whole to `coverUrl` — so once a valid Hardcover key returned data, that object was bound to the `cover_url` TEXT column and D1's `.bind()` threw on the non-primitive, taking the whole atomic batch (and the job) down with a 500. The adapter now extracts `cached_image.url` (matching the older `hardcoverApi.js` client). The adapter's test fixture used a string `cached_image`, which is why CI never caught it — corrected to the real object shape.
+- **Engine hardening — a misshapen provider response can no longer poison a write.** The cascade now type-checks every merged value (`coerceField`): string fields must be strings, numeric fields finite numbers, genres an array of strings; anything else is dropped rather than carried into a D1 `.bind()`. One bad value from any provider degrades to "skip that field" instead of crashing the batch.
+- **API keys are cleaned on save.** A leading `Bearer ` (Hardcover's API page shows the token with it, and the adapter adds its own → `Bearer Bearer …` → 401) and stray whitespace are now stripped from saved keys/secrets.
+
 ## [3.80.1] - 2026-06-08
 
 ### Fixed

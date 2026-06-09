@@ -47,7 +47,8 @@ describe('hardcoverProvider', () => {
                 release_year: 1999,
                 cached_contributors: JSON.stringify([{ author: { name: 'Julia Donaldson' } }]),
                 cached_tags: JSON.stringify([{ tag: 'childrens' }, { tag: 'picture-books' }]),
-                cached_image: 'https://hardcover.app/covers/gruffalo.jpg',
+                // Real Hardcover shape: cached_image is an object, not a URL string
+                cached_image: { url: 'https://hardcover.app/covers/gruffalo.jpg', color: '#abc' },
                 book_series: [{ position: '1', series: { name: 'Gruffalo Series' } }],
                 editions: [{ isbn_13: '9780142403877', isbn_10: null, pages: 32 }],
               },

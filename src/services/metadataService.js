@@ -30,6 +30,34 @@ const MERGE_FIELDS = [
   'coverUrl',
 ];
 
+// Expected shape per field. Providers occasionally hand back the wrong type
+// (e.g. Hardcover's cached_image is an object, not a URL string). All of these
+// values eventually flow into D1 .bind(), which throws on a non-primitive and
+// takes the whole atomic batch — and the job — down with it. coerceField is the
+// chokepoint that drops/normalises mismatches so one bad value can't poison a write.
+const STRING_FIELDS = new Set(['author', 'description', 'isbn', 'seriesName', 'coverUrl']);
+const NUMBER_FIELDS = new Set(['pageCount', 'publicationYear', 'seriesNumber']);
+
+function coerceField(field, value) {
+  if (value == null) return null;
+  if (field === 'genres') {
+    if (!Array.isArray(value)) return null;
+    const cleaned = value.filter((g) => typeof g === 'string' && g.trim()).map((g) => g.trim());
+    return cleaned.length ? cleaned : null;
+  }
+  if (STRING_FIELDS.has(field)) return typeof value === 'string' ? value : null;
+  if (NUMBER_FIELDS.has(field)) {
+    const n =
+      typeof value === 'number'
+        ? value
+        : typeof value === 'string' && value.trim()
+          ? Number(value)
+          : NaN;
+    return Number.isFinite(n) ? n : null;
+  }
+  return value;
+}
+
 /**
  * Enrich a single book by calling providers in cascade order.
  *
@@ -73,11 +101,13 @@ export async function enrichBook(book, config) {
         continue;
       }
 
-      // Merge: first non-empty value wins per field
+      // Merge: first non-empty value wins per field. coerceField drops values
+      // of the wrong type (e.g. an object for coverUrl) so a misshapen provider
+      // response can't poison the eventual D1 write.
       const fieldsFromThisProvider = [];
       for (const field of targetFields) {
         if (merged[field] != null) continue; // Already filled by earlier provider
-        const value = result[field];
+        const value = coerceField(field, result[field]);
         if (value == null) continue;
         if (Array.isArray(value) && value.length === 0) continue;
         if (typeof value === 'string' && !value.trim()) continue;

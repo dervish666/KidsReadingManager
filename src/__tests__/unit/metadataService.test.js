@@ -169,4 +169,53 @@ describe('metadataService.enrichBook', () => {
     expect(gbLog.fields).toContain('description');
     expect(gbLog.fields).toContain('isbn');
   });
+
+  it('drops wrong-typed field values so a provider cannot poison the write', async () => {
+    // Hardcover-style misshape: coverUrl is an object (its raw cached_image),
+    // seriesNumber is a non-numeric string, a genre entry is an object.
+    hcFetch.mockResolvedValueOnce({
+      author: 'Julia Donaldson',
+      description: null,
+      genres: ['Picture Books', { tag: 'objectish' }],
+      isbn: null,
+      pageCount: null,
+      publicationYear: null,
+      seriesName: 'Gruffalo Series',
+      seriesNumber: 'not-a-number',
+      coverUrl: { url: 'https://example.com/c.jpg', color: '#abc' },
+    });
+    gbFetch.mockResolvedValueOnce({
+      author: null,
+      description: 'A story.',
+      genres: null,
+      isbn: '9780142403877',
+      pageCount: 32,
+      publicationYear: 1999,
+      seriesName: null,
+      seriesNumber: null,
+      coverUrl: null,
+    });
+
+    const result = await enrichBook(
+      { id: 'book1', title: 'The Gruffalo' },
+      { ...baseConfig, fetchCovers: true }
+    );
+
+    // Object coverUrl dropped — never reaches merged (would break D1 .bind())
+    expect(result.merged.coverUrl == null).toBe(true);
+    // Non-numeric seriesNumber dropped; valid string fields kept
+    expect(result.merged.seriesNumber == null).toBe(true);
+    expect(result.merged.author).toBe('Julia Donaldson');
+    expect(result.merged.seriesName).toBe('Gruffalo Series');
+    // Genres filtered to the string entry only
+    expect(result.merged.genres).toEqual(['Picture Books']);
+    // Every retained value is a D1-bindable primitive (or string[])
+    for (const [field, value] of Object.entries(result.merged)) {
+      if (field === 'genres') {
+        expect(value.every((g) => typeof g === 'string')).toBe(true);
+      } else {
+        expect(['string', 'number'].includes(typeof value)).toBe(true);
+      }
+    }
+  });
 });

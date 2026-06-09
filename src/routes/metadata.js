@@ -11,6 +11,16 @@ const metadataRouter = new Hono();
 
 const DEFAULT_PROVIDER_CHAIN = ['openlibrary', 'googlebooks', 'hardcover'];
 
+/**
+ * Normalise a pasted API key/token: trim whitespace and strip an accidental
+ * leading "Bearer " (Hardcover's API page shows the token WITH that prefix, and
+ * the adapter adds its own — a verbatim paste yields "Bearer Bearer …" → 401).
+ */
+function cleanApiKey(raw) {
+  if (typeof raw !== 'string') return raw;
+  return raw.trim().replace(/^Bearer\s+/i, '');
+}
+
 /** Parse the per-provider contribution tally JSON, tolerating null/corrupt. */
 function parseProviderStats(raw) {
   if (!raw) return null;
@@ -161,27 +171,24 @@ metadataRouter.put('/config', requireOwner(), auditLog('update', 'metadata_confi
     if (isNaN(size) || size < 5 || size > 50) throw badRequestError('batchSize must be 5-50');
   }
 
-  // Encrypt API keys if provided
+  // Encrypt API keys if provided (cleaned of stray whitespace / a "Bearer " prefix)
   let hardcoverEncrypted = undefined;
   if (body.hardcoverApiKey !== undefined && encSecret) {
-    hardcoverEncrypted = body.hardcoverApiKey
-      ? await encryptSensitiveData(body.hardcoverApiKey, encSecret)
-      : null;
+    const key = cleanApiKey(body.hardcoverApiKey);
+    hardcoverEncrypted = key ? await encryptSensitiveData(key, encSecret) : null;
   }
 
   let googleEncrypted = undefined;
   if (body.googleBooksApiKey !== undefined && encSecret) {
-    googleEncrypted = body.googleBooksApiKey
-      ? await encryptSensitiveData(body.googleBooksApiKey, encSecret)
-      : null;
+    const key = cleanApiKey(body.googleBooksApiKey);
+    googleEncrypted = key ? await encryptSensitiveData(key, encSecret) : null;
   }
 
   // BookInfo Access service-token secret — encrypted like the API keys.
   let bookInfoAccessSecretEncrypted = undefined;
   if (body.bookInfoAccessClientSecret !== undefined && encSecret) {
-    bookInfoAccessSecretEncrypted = body.bookInfoAccessClientSecret
-      ? await encryptSensitiveData(body.bookInfoAccessClientSecret, encSecret)
-      : null;
+    const secret = cleanApiKey(body.bookInfoAccessClientSecret);
+    bookInfoAccessSecretEncrypted = secret ? await encryptSensitiveData(secret, encSecret) : null;
   }
 
   // UPSERT: INSERT ... ON CONFLICT DO UPDATE

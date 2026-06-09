@@ -124,7 +124,11 @@ export async function fetchMetadata(book, apiKey) {
     result.description = b.description || null;
     result.pageCount = b.pages || b.editions?.[0]?.pages || null;
     result.publicationYear = b.release_year || null;
-    result.coverUrl = b.cached_image || null;
+    // Hardcover's `cached_image` is an object ({ url, color, ... }), not a URL
+    // string — extract `.url`. Assigning the raw object poisons downstream D1
+    // writes (cover_url is TEXT; .bind() rejects a non-primitive).
+    result.coverUrl =
+      (typeof b.cached_image === 'string' ? b.cached_image : b.cached_image?.url) || null;
 
     // Genres from cached_tags
     try {
