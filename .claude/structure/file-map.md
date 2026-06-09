@@ -275,11 +275,6 @@ src/components/stats/ReadingFrequencyChart.js - Reading frequency bar chart
 src/components/stats/DaysSinceReadingChart.js - Days since reading indicator
 src/components/stats/AchievementsTab.js - Achievements tab: class-wide badge progress with expandable per-student drill-down
 
-## Frontend Components - Noticeboard
-
-src/components/noticeboard/NoticeboardStrip.js - Reading Noticeboard container shown atop the Students tab (holds Top Books; future home for events + news feed)
-src/components/noticeboard/TopBooksCard.js - Celebratory most-read / most-loved book covers, fed by GET /api/students/top-books
-
 ## Styling
 
 src/styles/theme.js - Material-UI theme configuration

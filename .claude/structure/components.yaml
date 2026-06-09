@@ -558,15 +558,3 @@ files:
       - name: VisualIndicators
         kind: component
         props: [data]
-
-  noticeboard/NoticeboardStrip.js:
-    description: Reading Noticeboard container atop the Students tab; Phase 1 holds Top Books, later phases add literary-events + weekly news feed
-    exports:
-      - name: NoticeboardStrip
-        kind: component
-
-  noticeboard/TopBooksCard.js:
-    description: Celebratory most-read / most-loved (avg star rating) book covers; fetches GET /api/students/top-books, renders nothing until there is data
-    exports:
-      - name: TopBooksCard
-        kind: component

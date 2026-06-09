@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.82.1] - 2026-06-09
+
+### Removed
+
+- **Reverted the Students-tab Top Books strip** introduced in 3.82.0 (`src/components/noticeboard/` and the `GET /api/students/top-books` endpoint). The reading-news concept is moving to the **Stats page** — a news ticker plus a separate author-news page generated from cross-school top books/authors — so the standalone landing-tab card was superseded before it earned its keep. Top books will resurface as part of that news experience.
+
 ## [3.82.0] - 2026-06-09
 
 ### Added
