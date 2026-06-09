@@ -567,7 +567,7 @@ files:
         props: [data, onOpen]
 
   news/ReadingNewsPage.js:
-    description: Reading News newsletter shown as a Stats-page tab; masthead + "From your shelves" articles (with most-read placement badges) + "Dates for the diary" timeline (events/birthdays with live countdowns)
+    description: Reading News newsletter shown as a Stats-page tab; masthead, a rotating "Reading roundup" card (one general item per load, from curated general[] + derived closest-event/next-birthday), "From your shelves" articles (most-read placement badges), and "Dates for the diary" timeline (live countdowns)
     exports:
       - name: ReadingNewsPage
         kind: component

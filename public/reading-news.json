@@ -110,5 +110,28 @@
       "blurb": "The next World Book Day falls on the first Thursday of March. Worth pencilling in early for £1 book tokens, dressing-up and reading-for-pleasure activities.",
       "link": "https://www.worldbookday.com/"
     }
+  ],
+  "general": [
+    {
+      "id": "research-stress",
+      "label": "Reading research",
+      "text": "Research from the University of Sussex found that just six minutes of reading can reduce stress levels by up to 68% — more than music or a walk.",
+      "source": "University of Sussex",
+      "link": null
+    },
+    {
+      "id": "research-oecd",
+      "label": "Reading research",
+      "text": "OECD analysis found that reading for pleasure is one of the biggest indicators of a child's future success — a stronger predictor than the family's wealth or background.",
+      "source": "OECD",
+      "link": null
+    },
+    {
+      "id": "didyouknow-words",
+      "label": "Did you know?",
+      "text": "A child who reads for around 20 minutes a day meets roughly 1.8 million words a year — a big part of why regular readers pull ahead.",
+      "source": "Renaissance Learning",
+      "link": null
+    }
   ]
 }

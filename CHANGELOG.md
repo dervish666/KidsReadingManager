@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.87.0] - 2026-06-09
+
+### Added
+
+- **A rotating "Reading roundup" in Reading News.** A fresh general-reading item now sits near the top of the newsletter and changes on each visit — drawn from curated reading-research / "did you know?" facts plus an auto-derived "Coming up" (the closest event) and "Birthday watch" (the next author birthday, with their Wikipedia link). The `reading-news` skill gathers these into a new `general` list.
+
+### Changed
+
+- **"From your shelves" no longer orphans an odd item** — with five articles, the last now spans both columns instead of sitting alone in the grid.
+
 ## [3.86.0] - 2026-06-09
 
 ### Added

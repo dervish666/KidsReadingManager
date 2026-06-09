@@ -43,6 +43,15 @@ Also gather a short set of dated "diary" items for the newsletter's events secti
 - **Author birthdays**, especially of the Step 1 top authors (e.g. Michael Morpurgo, 5 October) and household names (Julia Donaldson, Beatrix Potter, Roald Dahl). Use the real birth date; flag a milestone if there is one (a 160th, say).
 - Keep dates **accurate** — confirm anything you're unsure of, and use the next future occurrence in `YYYY-MM-DD`. A wrong date in a teacher's diary is worse than no date.
 
+## Step 2c — General reading news (the rotating roundup)
+
+Gather a few general, mostly-evergreen items for the "Reading roundup" card — the app shows one at random on each visit so the page stays fresh. A mix of:
+
+- **Reading research / "did you know?"** — well-established findings (reading for pleasure and attainment, the word gap, reading and wellbeing). Attribute the source and keep the figure accurate.
+- **General children's-book news** not tied to a specific top author — a major award result, a national reading campaign, and so on.
+
+The app *also* auto-adds the closest upcoming event and the next author birthday to the rotation, so 2–4 curated `general` items is plenty.
+
 ## Step 3 — Vet every item (moderation + grounding)
 
 An item goes in only if ALL of these hold:
@@ -86,6 +95,15 @@ Write exactly this shape (the app consumes it; keep keys/spelling identical):
       "blurb": "<1–2 warm sentences for teachers>",
       "link": "<real URL, or null>"
     }
+  ],
+  "general": [
+    {
+      "id": "<unique-kebab-case>",
+      "label": "<short tag, e.g. Reading research | Did you know?>",
+      "text": "<1–2 sentences, grounded and attributed>",
+      "source": "<who it's from, or null>",
+      "link": "<real URL, or null>"
+    }
   ]
 }
 ```
@@ -94,6 +112,7 @@ Rules:
 
 - 4–8 items, ordered by `rank` (most-read first). `rank` is the author's 1-based position in Step 1's `topAuthors`; the app shows it as a "1st most-read" badge.
 - `events`: 3–6 dated diary items (`kind`: `event` or `birthday`), soonest first; use accurate `YYYY-MM-DD` dates. The app sorts them, shows a date badge, and computes a live countdown — so never store a countdown, just the date.
+- `general`: 2–4 rotating-roundup items (reading research / did-you-know / general book news). The app shows one at random per visit, plus the next event + birthday it derives — so a few is plenty. Accurate and attributed; never invent a research figure.
 - `kind`: `release` for new/upcoming books, `award` for prizes/shortlists, `news` for other genuine news, `spotlight` **only** as a fallback evergreen highlight when no dated news exists for an otherwise-loved author.
 - `link` must be a real URL or `null` — never a placeholder.
 - Validate it parses: `node -e "JSON.parse(require('fs').readFileSync('public/reading-news.json','utf8'))"`.
