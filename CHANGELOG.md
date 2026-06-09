@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.86.0] - 2026-06-09
+
+### Added
+
+- **Live countdowns + a timeline in Reading News.** The ticker now shows a live countdown on diary dates ("Summer Reading Challenge — in 25 days"), and "Dates for the diary" is now a vertical timeline — each entry has a date node, an "in N days" countdown chip, and a connecting rail. Countdowns are computed at render time, so they're always current.
+- **Most-read placement badges.** Each "From your shelves" article now shows a "1st most-read" badge (gold for #1) with the author's rank in your most-read list, and the section is ordered most-read first. The `reading-news` skill emits the `rank` and orders accordingly.
+
 ## [3.85.0] - 2026-06-09
 
 ### Changed

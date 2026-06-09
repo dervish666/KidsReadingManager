@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Typography, Fade } from '@mui/material';
 import AutoStoriesRoundedIcon from '@mui/icons-material/AutoStoriesRounded';
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
-import { shortDate } from './newsFormat';
+import { countdownLabel, shortDate } from './newsFormat';
 
 const ROTATE_MS = 6000;
 
@@ -12,8 +12,8 @@ function tickerLines(data) {
   const lines = (data.items || []).map((i) => i.headline).filter(Boolean);
   for (const e of data.events || []) {
     if (!e?.name) continue;
-    const d = shortDate(e.date);
-    lines.push(d ? `${e.name} — ${d}` : e.name);
+    const when = countdownLabel(e.date) || shortDate(e.date);
+    lines.push(when ? `${e.name} — ${when}` : e.name);
   }
   return lines;
 }

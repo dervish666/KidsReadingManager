@@ -278,8 +278,8 @@ src/components/stats/AchievementsTab.js - Achievements tab: class-wide badge pro
 ## Frontend Components - News
 
 src/components/news/ReadingNewsTicker.js - Reading News ticker on the Stats page; rotates item/event headlines from /reading-news.json, opens the Reading News tab
-src/components/news/ReadingNewsPage.js - Full Reading News newsletter (Stats-page tab): masthead, "From your shelves" author/book news, "Dates for the diary" events + author birthdays
-src/components/news/newsFormat.js - Shared date helpers for the news ticker/page (dateParts, shortDate, longDate, sortEvents)
+src/components/news/ReadingNewsPage.js - Full Reading News newsletter (Stats-page tab): masthead, "From your shelves" articles with most-read placement badges, "Dates for the diary" timeline with live countdowns
+src/components/news/newsFormat.js - Shared date helpers for the news ticker/page (dateParts, shortDate, longDate, sortEvents, countdownLabel, ordinal)
 
 ## Styling
 

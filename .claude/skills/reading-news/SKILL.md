@@ -70,6 +70,7 @@ Write exactly this shape (the app consumes it; keep keys/spelling identical):
       "headline": "<concise and specific>",
       "author": "<author name>",
       "book": "<a related title the schools read, or null>",
+      "rank": "<author's 1-based position in Step 1 topAuthors>",
       "kind": "release | news | award | spotlight",
       "summary": "<2–3 warm, practical sentences for teachers, grounded in the source>",
       "source": "<publication name>",
@@ -91,8 +92,8 @@ Write exactly this shape (the app consumes it; keep keys/spelling identical):
 
 Rules:
 
-- 4–8 items, most relevant first.
-- `events`: 3–6 dated diary items (`kind`: `event` or `birthday`), soonest first; use accurate `YYYY-MM-DD` dates (the app sorts them and shows a date badge).
+- 4–8 items, ordered by `rank` (most-read first). `rank` is the author's 1-based position in Step 1's `topAuthors`; the app shows it as a "1st most-read" badge.
+- `events`: 3–6 dated diary items (`kind`: `event` or `birthday`), soonest first; use accurate `YYYY-MM-DD` dates. The app sorts them, shows a date badge, and computes a live countdown — so never store a countdown, just the date.
 - `kind`: `release` for new/upcoming books, `award` for prizes/shortlists, `news` for other genuine news, `spotlight` **only** as a fallback evergreen highlight when no dated news exists for an otherwise-loved author.
 - `link` must be a real URL or `null` — never a placeholder.
 - Validate it parses: `node -e "JSON.parse(require('fs').readFileSync('public/reading-news.json','utf8'))"`.

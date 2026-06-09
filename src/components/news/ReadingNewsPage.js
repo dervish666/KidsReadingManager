@@ -3,7 +3,8 @@ import { Box, Paper, Typography, Chip, Link, Divider } from '@mui/material';
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import CakeRoundedIcon from '@mui/icons-material/CakeRounded';
 import EventRoundedIcon from '@mui/icons-material/EventRounded';
-import { dateParts, longDate, sortEvents } from './newsFormat';
+import EmojiEventsRoundedIcon from '@mui/icons-material/EmojiEventsRounded';
+import { dateParts, longDate, sortEvents, countdownLabel, ordinal } from './newsFormat';
 
 const KIND_LABEL = {
   release: 'New release',
@@ -17,6 +18,13 @@ const KIND_COLOR = {
   award: 'rgba(193, 154, 64, 0.18)',
   spotlight: 'rgba(107, 142, 107, 0.14)',
 };
+
+// Most-read placement badge tint — gold at the top of the chart, sage below.
+function rankSx(rank) {
+  if (rank === 1) return { bg: 'rgba(193, 154, 64, 0.24)', fg: '#7a5c12' };
+  if (rank <= 3) return { bg: 'rgba(139, 115, 85, 0.16)', fg: 'text.primary' };
+  return { bg: 'rgba(107, 142, 107, 0.12)', fg: 'text.primary' };
+}
 
 /** Small uppercase section heading with a hairline rule. */
 function SectionHeading({ children }) {
@@ -44,6 +52,21 @@ function Article({ item }) {
   return (
     <Box sx={{ breakInside: 'avoid' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.75, flexWrap: 'wrap' }}>
+        {item.rank != null && (
+          <Chip
+            icon={<EmojiEventsRoundedIcon sx={{ fontSize: 14 }} />}
+            label={`${ordinal(item.rank)} most-read`}
+            size="small"
+            sx={{
+              height: 20,
+              fontSize: '0.68rem',
+              fontWeight: 700,
+              backgroundColor: rankSx(item.rank).bg,
+              color: rankSx(item.rank).fg,
+              '& .MuiChip-icon': { color: 'inherit' },
+            }}
+          />
+        )}
         {item.kind && (
           <Chip
             label={KIND_LABEL[item.kind] || item.kind}
@@ -112,6 +135,7 @@ function Article({ item }) {
 function DiaryRow({ event }) {
   const parts = dateParts(event.date);
   const isBirthday = event.kind === 'birthday';
+  const cd = countdownLabel(event.date);
   return (
     <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
       <Box
@@ -121,8 +145,8 @@ function DiaryRow({ event }) {
           textAlign: 'center',
           borderRadius: '10px',
           py: 0.75,
-          backgroundColor: 'rgba(107, 142, 107, 0.1)',
-          border: '1px solid rgba(107, 142, 107, 0.2)',
+          backgroundColor: '#FFFDF7',
+          border: '1px solid rgba(107, 142, 107, 0.35)',
         }}
       >
         <Typography
@@ -149,6 +173,19 @@ function DiaryRow({ event }) {
             <EventRoundedIcon sx={{ fontSize: 16, color: 'primary.main' }} />
           )}
           <Typography sx={{ fontWeight: 700, color: 'text.primary' }}>{event.name}</Typography>
+          {cd && (
+            <Chip
+              label={cd}
+              size="small"
+              sx={{
+                height: 18,
+                fontSize: '0.65rem',
+                fontWeight: 700,
+                backgroundColor: 'rgba(107, 142, 107, 0.14)',
+                color: 'primary.dark',
+              }}
+            />
+          )}
         </Box>
         {event.blurb && (
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.25, lineHeight: 1.5 }}>
@@ -277,10 +314,23 @@ export default function ReadingNewsPage({ data }) {
       {events.length > 0 && (
         <>
           <SectionHeading>Dates for the diary</SectionHeading>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-            {events.map((event) => (
-              <DiaryRow key={event.id} event={event} />
-            ))}
+          <Box sx={{ position: 'relative' }}>
+            {/* Timeline rail behind the date nodes */}
+            <Box
+              sx={{
+                position: 'absolute',
+                left: 26,
+                top: 12,
+                bottom: 12,
+                width: 2,
+                backgroundColor: 'rgba(107, 142, 107, 0.25)',
+              }}
+            />
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, position: 'relative' }}>
+              {events.map((event) => (
+                <DiaryRow key={event.id} event={event} />
+              ))}
+            </Box>
           </Box>
         </>
       )}

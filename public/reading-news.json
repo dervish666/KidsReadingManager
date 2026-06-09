@@ -6,40 +6,11 @@
   "isPreview": false,
   "items": [
     {
-      "id": "morpurgo-2026-releases",
-      "headline": "Michael Morpurgo has a busy 2026 — including a memoir of life on the farm",
-      "author": "Michael Morpurgo",
-      "book": "Running Wild",
-      "kind": "release",
-      "summary": "The author of Running Wild has several titles due in 2026, among them a memoir of his fifty years on a working Devon farm and more retellings of Shakespeare for younger readers. Good news for a class already hooked on his animal stories.",
-      "source": "michaelmorpurgo.com",
-      "link": "https://www.michaelmorpurgo.com/news/"
-    },
-    {
-      "id": "lawrence-aeneid-tales",
-      "headline": "The Roman Mysteries author is retelling Virgil for younger readers",
-      "author": "Caroline Lawrence",
-      "book": "The Enemies of Jupiter",
-      "kind": "release",
-      "summary": "Caroline Lawrence, whose Roman Mysteries your readers enjoy, has been writing a set of short, accessible Tales from Virgil's Aeneid. A natural next step for a child who's caught the Ancient Rome bug.",
-      "source": "carolinelawrence.com",
-      "link": "https://carolinelawrence.com/"
-    },
-    {
-      "id": "deary-terrible-true-tales",
-      "headline": "More gory-fun history from the Horrible Histories author",
-      "author": "Terry Deary",
-      "book": "The Awful Egyptians",
-      "kind": "release",
-      "summary": "Terry Deary's Terrible True Tales bring the same grisly humour as Horrible Histories to newly-confident readers, in shorter illustrated stories. Handy for a child who loves the facts but wants a lighter read.",
-      "source": "ReadingZone",
-      "link": "https://www.readingzone.com/books/terrible-true-tales-the-stone-age-from-the-author-of-horrible-histories/"
-    },
-    {
       "id": "worst-witch-spotlight",
       "headline": "Why the Worst Witch keeps topping the reading logs",
       "author": "Jill Murphy",
       "book": "A Bad Spell for the Worst Witch",
+      "rank": 1,
       "kind": "spotlight",
       "summary": "Mildred Hubble's mishaps at Miss Cackle's Academy have charmed readers since 1974, and they're your most-read series right now. Children who race through the eight books can carry on with the CBBC television series.",
       "source": "Wikipedia",
@@ -50,10 +21,44 @@
       "headline": "Biff, Chip and Kipper — a watch-alike for your earliest readers",
       "author": "Roderick Hunt",
       "book": "A Cat in the Tree",
+      "rank": 4,
       "kind": "spotlight",
       "summary": "The Oxford Reading Tree trio your beginner readers meet have their own screen outings — the CBeebies series Biff & Chip and the classic Magic Key animation — worth pointing families to for a little reading support at home.",
       "source": "Wikipedia",
       "link": "https://en.wikipedia.org/wiki/The_Magic_Key"
+    },
+    {
+      "id": "lawrence-aeneid-tales",
+      "headline": "The Roman Mysteries author is retelling Virgil for younger readers",
+      "author": "Caroline Lawrence",
+      "book": "The Enemies of Jupiter",
+      "rank": 8,
+      "kind": "release",
+      "summary": "Caroline Lawrence, whose Roman Mysteries your readers enjoy, has been writing a set of short, accessible Tales from Virgil's Aeneid. A natural next step for a child who's caught the Ancient Rome bug.",
+      "source": "carolinelawrence.com",
+      "link": "https://carolinelawrence.com/"
+    },
+    {
+      "id": "morpurgo-2026-releases",
+      "headline": "Michael Morpurgo has a busy 2026 — including a memoir of life on the farm",
+      "author": "Michael Morpurgo",
+      "book": "Running Wild",
+      "rank": 10,
+      "kind": "release",
+      "summary": "The author of Running Wild has several titles due in 2026, among them a memoir of his fifty years on a working Devon farm and more retellings of Shakespeare for younger readers. Good news for a class already hooked on his animal stories.",
+      "source": "michaelmorpurgo.com",
+      "link": "https://www.michaelmorpurgo.com/news/"
+    },
+    {
+      "id": "deary-terrible-true-tales",
+      "headline": "More gory-fun history from the Horrible Histories author",
+      "author": "Terry Deary",
+      "book": "The Awful Egyptians",
+      "rank": 12,
+      "kind": "release",
+      "summary": "Terry Deary's Terrible True Tales bring the same grisly humour as Horrible Histories to newly-confident readers, in shorter illustrated stories. Handy for a child who loves the facts but wants a lighter read.",
+      "source": "ReadingZone",
+      "link": "https://www.readingzone.com/books/terrible-true-tales-the-stone-age-from-the-author-of-horrible-histories/"
     }
   ],
   "events": [

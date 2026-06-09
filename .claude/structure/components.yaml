@@ -567,14 +567,14 @@ files:
         props: [data, onOpen]
 
   news/ReadingNewsPage.js:
-    description: Reading News newsletter shown as a Stats-page tab; masthead + "From your shelves" author/book news + "Dates for the diary" events/birthdays from the feed
+    description: Reading News newsletter shown as a Stats-page tab; masthead + "From your shelves" articles (with most-read placement badges) + "Dates for the diary" timeline (events/birthdays with live countdowns)
     exports:
       - name: ReadingNewsPage
         kind: component
         props: [data]
 
   news/newsFormat.js:
-    description: Shared date helpers for the news ticker/page
+    description: Shared date helpers for the news ticker/page (incl. live countdownLabel + ordinal)
     exports:
       - name: dateParts
         kind: function
@@ -583,4 +583,8 @@ files:
       - name: longDate
         kind: function
       - name: sortEvents
+        kind: function
+      - name: countdownLabel
+        kind: function
+      - name: ordinal
         kind: function
