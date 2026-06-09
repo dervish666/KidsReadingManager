@@ -291,5 +291,6 @@ scripts/migration.js - Data migration from old format
 scripts/reset-admin-password.js - Admin password reset utility
 scripts/seed-local.js - Bootstrap local D1 with migrations and a dev owner account (dev@tallyreading.uk / password)
 scripts/merge-genres.mjs - One-time genre synonym merge: collapses synonyms/drops junk per genreSynonyms.js, remaps books.genre_ids, marks canonical set predefined (dry-run by default, --execute to apply, --local/--remote)
+scripts/reading-news-stats.mjs - Read-only aggregate of most-read books/authors across all schools from D1 (wrangler --remote --json); feeds the `reading-news` skill's weekly newsletter (--limit N, --local)
 scripts/test-api.js - API endpoint smoke tests
 scripts/export-demo-snapshot.js - Export Learnalot data from remote D1 into demoSnapshot.js

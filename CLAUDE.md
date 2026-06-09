@@ -322,6 +322,7 @@ The frontend dev server (port 3001) proxies `/api` requests to the worker (port 
 - `scripts/reset-admin-password.js` — Admin password reset utility
 - `scripts/seed-local.js` — Bootstrap local D1 with migrations and a dev owner account (dev@tallyreading.uk / password)
 - `scripts/graphify-refresh.sh` — Rebuild the graphify knowledge graph from a scoped staging copy of `src/` (tests excluded); `--label` re-names communities via the local claude CLI
+- `scripts/reading-news-stats.mjs` — Read-only aggregate of most-read books/authors across all schools from D1 (`wrangler ... --remote --json`); feeds the `reading-news` skill (`.claude/skills/reading-news/`) that generates `public/reading-news.json` for the Stats-page news ticker
 
 ## Configuration
 

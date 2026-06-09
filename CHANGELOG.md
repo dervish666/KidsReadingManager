@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.84.0] - 2026-06-09
+
+### Added
+
+- **`reading-news` skill — generates the weekly Reading News newsletter.** A project skill (`.claude/skills/reading-news/`) that pulls the most-read authors across all schools from production D1 (new read-only `scripts/reading-news-stats.mjs` — aggregate only, no per-school or per-student data leaves the database), web-searches genuine recent news and upcoming releases for those authors, vets every item for grounding and age-appropriateness, writes `public/reading-news.json`, and reminds for review rather than auto-publishing (human gate). Completes the reading-news feature: the skill feeds the Stats-page news ticker shipped in 3.83.0.
+
 ## [3.83.0] - 2026-06-09
 
 ### Added
