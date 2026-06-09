@@ -324,4 +324,115 @@ statsRouter.get('/stats', requireReadonly(), async (c) => {
   });
 });
 
+/**
+ * GET /top-books — celebratory "noticeboard" rollup: the org's most-read and
+ * most-enjoyed (by star rating) books, with author/isbn so the client can
+ * render covers.
+ *
+ * Deliberately lean: runs ONLY the book aggregation (no streak/status/likes
+ * work that /stats does) because this is fetched on the default landing tab
+ * for every user on every visit. Positive signals only — no "least liked".
+ */
+statsRouter.get('/top-books', requireReadonly(), async (c) => {
+  if (!isMultiTenantMode(c)) {
+    return c.json({ mostReadBooks: [], mostEnjoyedBooks: [] });
+  }
+  const db = getDB(c.env);
+  const organizationId = c.get('organizationId');
+  const { classId } = c.req.query();
+
+  // Active students in scope, excluding disabled classes (mirrors /stats).
+  let studentWhere = 's.organization_id = ? AND s.is_active = 1';
+  const studentBinds = [organizationId];
+  if (classId && classId !== 'all') {
+    if (classId === 'unassigned') {
+      studentWhere += ' AND s.class_id IS NULL';
+    } else {
+      studentWhere += ' AND s.class_id = ?';
+      studentBinds.push(classId);
+    }
+  }
+  const studentsResult = await db
+    .prepare(
+      `SELECT s.id FROM students s
+       LEFT JOIN classes c ON s.class_id = c.id
+       WHERE ${studentWhere} AND (s.class_id IS NULL OR c.disabled = 0)`
+    )
+    .bind(...studentBinds)
+    .all();
+  const studentIds = (studentsResult.results || []).map((s) => s.id);
+  if (studentIds.length === 0) {
+    return c.json({ mostReadBooks: [], mostEnjoyedBooks: [] });
+  }
+
+  // Exclude absence/no-record markers — same definition /stats uses so the
+  // two surfaces agree on what counts as "read".
+  const notMarker = `(rs.notes IS NULL OR (rs.notes NOT LIKE '%[ABSENT]%' AND rs.notes NOT LIKE '%[NO_RECORD]%'))`;
+  const BIND_LIMIT = 90;
+  // title -> accumulated stats (merged across student chunks)
+  const agg = {};
+
+  for (let i = 0; i < studentIds.length; i += BIND_LIMIT) {
+    const chunk = studentIds.slice(i, i + BIND_LIMIT);
+    const ph = chunk.map(() => '?').join(',');
+    const res = await db
+      .prepare(
+        `SELECT b.title,
+                COUNT(*) as cnt,
+                MAX(b.author) as author,
+                MAX(b.isbn) as isbn,
+                SUM(CASE WHEN rs.rating IS NOT NULL THEN rs.rating ELSE 0 END) as rating_sum,
+                SUM(CASE WHEN rs.rating IS NOT NULL THEN 1 ELSE 0 END) as rating_n
+         FROM reading_sessions rs
+         LEFT JOIN books b ON rs.book_id = b.id
+         WHERE rs.student_id IN (${ph}) AND ${notMarker} AND b.title IS NOT NULL
+         GROUP BY b.title`
+      )
+      .bind(...chunk)
+      .all();
+    for (const r of res.results || []) {
+      const e = agg[r.title] || {
+        count: 0,
+        ratingSum: 0,
+        ratingN: 0,
+        author: null,
+        isbn: null,
+      };
+      e.count += r.cnt || 0;
+      e.ratingSum += r.rating_sum || 0;
+      e.ratingN += r.rating_n || 0;
+      if (!e.author && r.author) e.author = r.author;
+      if (!e.isbn && r.isbn) e.isbn = r.isbn;
+      agg[r.title] = e;
+    }
+  }
+
+  const entries = Object.entries(agg);
+
+  const mostReadBooks = entries
+    .sort((a, b) => b[1].count - a[1].count)
+    .slice(0, 6)
+    .map(([title, e]) => ({ title, author: e.author, isbn: e.isbn, count: e.count }));
+
+  // Require a minimum number of ratings before a book can rank as "enjoyed",
+  // so a single 5-star session can't top the chart.
+  const MIN_RATINGS = 2;
+  const mostEnjoyedBooks = entries
+    .filter(([, e]) => e.ratingN >= MIN_RATINGS)
+    .map(([title, e]) => ({
+      title,
+      author: e.author,
+      isbn: e.isbn,
+      avgRating: Math.round((e.ratingSum / e.ratingN) * 10) / 10,
+      ratingCount: e.ratingN,
+    }))
+    .sort((a, b) => b.avgRating - a.avgRating || b.ratingCount - a.ratingCount)
+    .slice(0, 6);
+
+  // Celebratory, not real-time — a few minutes of staleness is fine and keeps
+  // this off the DB on every landing-page hit.
+  c.header('Cache-Control', 'private, max-age=300');
+  return c.json({ mostReadBooks, mostEnjoyedBooks });
+});
+
 export { statsRouter };

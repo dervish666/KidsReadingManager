@@ -580,6 +580,9 @@ files:
       - route: POST /api/students/import
         description: Import students from CSV
         requires: teacher
+      - route: GET /api/students/top-books
+        description: "Noticeboard rollup (students/stats.js): org's most-read + most-loved (avg star rating) books with author/isbn for covers; lean/cached, no streak work"
+        requires: readonly
 
   users.js:
     description: User entry router - core CRUD, password reset; mounts users/ sub-routers

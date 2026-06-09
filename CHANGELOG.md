@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.82.0] - 2026-06-09
+
+### Added
+
+- **Reading Noticeboard — a celebratory strip atop the Students tab.** New `src/components/noticeboard/` surface (Phase 1 of a planned noticeboard that will later also carry literary-events and weekly reading-news cards). Its first card, **Top Books**, shows the school's most-read titles (by reading-session count) and most-loved titles (by average star rating, with a minimum of 2 ratings so a single 5-star can't top the list), rendered as book covers with count/rating badges. This surfaces the previously-unused `reading_sessions.rating` signal. The strip renders nothing until there's data, so new schools never see an empty box, and it fails silently rather than affecting the rest of the landing page.
+- **`GET /api/students/top-books`** — a lean, org-scoped, 5-minute-cached endpoint that runs only the book aggregation (no streak/status work), kept deliberately light because it loads on the default landing tab for every user.
+
 ## [3.81.0] - 2026-06-09
 
 ### Added

@@ -18,6 +18,8 @@ import WelcomeDialog from './components/WelcomeDialog';
 
 // Eagerly load Students (default tab, always visible first)
 import StudentList from './components/students/StudentList';
+// Reading Noticeboard strip — sits atop the Students landing tab
+import NoticeboardStrip from './components/noticeboard/NoticeboardStrip';
 
 // Lazy-load all other tabs — only fetched when user navigates to them
 const SessionForm = React.lazy(() => import('./components/sessions/SessionForm'));
@@ -365,6 +367,7 @@ function AppContent() {
               </Box>
             }
           >
+            {visibleTabs[safeTab]?.key === 'students' && <NoticeboardStrip />}
             <ActiveTab />
           </Suspense>
         </Paper>
