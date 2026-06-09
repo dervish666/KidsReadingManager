@@ -10,7 +10,7 @@ Builds `public/reading-news.json` — the feed behind the Stats-page news ticker
 ## Guardrails — read before doing anything
 
 - **Never fabricate.** Every item must come from a real source you found via web search, with a real, working link. If you can't find genuine news for an author, **skip them**. A short honest newsletter beats invented headlines or guessed dates.
-- **Do NOT push or deploy.** Write the file, summarise, and stop. Sam reviews and publishes (his push triggers the Cloudflare deploy). Never run `git push` / `npm run go` / `wrangler deploy` from this skill.
+- **This auto-publishes.** The skill commits and pushes `public/reading-news.json`, and Cloudflare deploys it live (Sam watches the output rather than gating each push) — so accuracy and appropriateness are non-negotiable (see vetting). The push is the only deploy step; never run `npm run go` / `wrangler deploy`.
 - **Aggregate data only.** Step 1 pulls cross-school popularity (book titles, authors, counts). Never put any school name, student, or per-org data into the newsletter — the audience is every school.
 - **British English**, warm and understated — match the voice of the existing `public/reading-news.json` seed.
 
@@ -110,22 +110,19 @@ Write exactly this shape (the app consumes it; keep keys/spelling identical):
 
 Rules:
 
-- 4–8 items, ordered by `rank` (most-read first). `rank` is the author's 1-based position in Step 1's `topAuthors`; the app shows it as a "1st most-read" badge.
+- Aim for **6 items** (an even number fills the two-column grid cleanly; 4–8 works). Order by `rank` (most-read first). `rank` is the author's 1-based position in Step 1's `topAuthors`; the app shows it as a "1st most-read" badge.
 - `events`: 3–6 dated diary items (`kind`: `event` or `birthday`), soonest first; use accurate `YYYY-MM-DD` dates. The app sorts them, shows a date badge, and computes a live countdown — so never store a countdown, just the date.
 - `general`: 2–4 rotating-roundup items (reading research / did-you-know / general book news). The app shows one at random per visit, plus the next event + birthday it derives — so a few is plenty. Accurate and attributed; never invent a research figure.
 - `kind`: `release` for new/upcoming books, `award` for prizes/shortlists, `news` for other genuine news, `spotlight` **only** as a fallback evergreen highlight when no dated news exists for an otherwise-loved author.
 - `link` must be a real URL or `null` — never a placeholder.
 - Validate it parses: `node -e "JSON.parse(require('fs').readFileSync('public/reading-news.json','utf8'))"`.
 
-## Step 5 — Summarise and remind (do NOT push)
+## Step 5 — Publish
 
-1. Print a short summary: each item included (headline + source), plus anything you dropped in vetting and why.
-2. Send the reminder:
-   ```bash
-   cmux notify "Reading News draft ready — review public/reading-news.json and publish" 2>/dev/null || true
-   ```
-3. Tell Sam to review and publish when happy (and that **you won't** do it for him):
+1. Validate it parses (the command above).
+2. Print a short summary: the items (headline + most-read rank), the diary dates, and the roundup pool — plus anything you dropped in vetting and why.
+3. Commit and push — this auto-publishes (Sam watches the output rather than gating each push). Stage **only** `public/reading-news.json`, leaving any unrelated working-tree changes alone:
    ```bash
    git add public/reading-news.json && git commit -m "content: refresh reading news" && git push
    ```
-   CWB auto-deploys on that push. Stop here.
+4. Confirm it went live — e.g. `curl -s https://tallyreading.uk/reading-news.json | head` shows the new content (CWB redeploys on the push).
