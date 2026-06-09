@@ -17,6 +17,7 @@
  */
 import { fetchWithTimeout } from '../../utils/helpers.js';
 import { sanitizeForSearch, calculateTitleSimilarity } from '../../utils/stringMatching.js';
+import { isJunkGenre } from '../../utils/genreFilter.js';
 
 export const DEFAULT_BOOKINFO_BASE_URL = 'https://api.bookinfo.pro';
 const TIMEOUT = 8000;
@@ -131,10 +132,13 @@ export async function fetchMetadata(book, options) {
 
     const result = { ...empty };
 
-    // Genres — the primary reason to use this provider.
+    // Genres — the primary reason to use this provider. rreading-glasses returns
+    // ['none'] for works with no genres, and Goodreads shelves include plenty of
+    // non-genre noise; isJunkGenre is the shared filter (sentinels, catalog
+    // headings, years) and SHELF_STOPWORDS adds the Goodreads-specific shelves.
     if (Array.isArray(work.Genres)) {
       const genres = work.Genres.filter(
-        (g) => typeof g === 'string' && g.length < 50 && !SHELF_STOPWORDS.has(g.toLowerCase())
+        (g) => !isJunkGenre(g) && !SHELF_STOPWORDS.has(g.toLowerCase())
       ).slice(0, 5);
       result.genres = genres.length ? genres : null;
     }

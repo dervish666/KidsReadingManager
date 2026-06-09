@@ -7,6 +7,7 @@ import { fetchMetadata as googleBooksFetch } from './providers/googleBooksProvid
 import { fetchMetadata as hardcoverFetch } from './providers/hardcoverProvider.js';
 import { fetchMetadata as bookInfoFetch } from './providers/bookInfoProvider.js';
 import { isKnownPlaceholder } from '../utils/coverPlaceholders.js';
+import { filterGenres } from '../utils/genreFilter.js';
 
 // Most providers take an API key as their second arg. `baseUrlField` marks
 // providers that instead take a configurable endpoint (bookinfo) — handled in
@@ -42,7 +43,11 @@ function coerceField(field, value) {
   if (value == null) return null;
   if (field === 'genres') {
     if (!Array.isArray(value)) return null;
-    const cleaned = value.filter((g) => typeof g === 'string' && g.trim()).map((g) => g.trim());
+    // filterGenres drops catalog-heading junk (commas, embedded years, the
+    // "none" sentinel, over-long phrases) and de-dupes. This is the single
+    // chokepoint for every provider — without it metadataService creates a
+    // genres row for every distinct string and the dropdown balloons.
+    const cleaned = filterGenres(value);
     return cleaned.length ? cleaned : null;
   }
   if (STRING_FIELDS.has(field)) return typeof value === 'string' ? value : null;
