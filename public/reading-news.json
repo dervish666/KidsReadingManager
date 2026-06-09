@@ -1,48 +1,58 @@
 {
   "generatedAt": "2026-06-09",
   "title": "Reading News",
-  "intro": "Spotlights on the authors and books behind your readers' favourites. Preview edition — the weekly issue is generated from your school's most-read titles.",
-  "isPreview": true,
+  "intro": "What's new from the authors topping your reading logs — fresh releases, a few read-alikes, and where to take a keen reader next.",
+  "isPreview": false,
   "items": [
     {
-      "id": "seed-donaldson",
-      "headline": "Why Julia Donaldson's rhymes hook the very youngest readers",
-      "author": "Julia Donaldson",
-      "book": "The Gruffalo",
-      "kind": "spotlight",
-      "summary": "Donaldson's steady rhyme and repetition let pre-readers predict the next word and 'read' along from memory — a confidence-builder before decoding clicks. Pairs well with reading aloud in pairs.",
-      "source": "Tally Reading",
-      "link": null
+      "id": "morpurgo-2026-releases",
+      "headline": "Michael Morpurgo has a busy 2026 — including a memoir of life on the farm",
+      "author": "Michael Morpurgo",
+      "book": "Running Wild",
+      "kind": "release",
+      "summary": "The author of Running Wild has several titles due in 2026, among them a memoir of his fifty years on a working Devon farm and more retellings of Shakespeare for younger readers. Good news for a class already hooked on his animal stories.",
+      "source": "michaelmorpurgo.com",
+      "link": "https://www.michaelmorpurgo.com/news/"
     },
     {
-      "id": "seed-pilkey",
-      "headline": "Dog Man and the case for comics with reluctant readers",
-      "author": "Dav Pilkey",
-      "book": "Dog Man",
-      "kind": "spotlight",
-      "summary": "Pilkey, who has spoken openly about his own childhood reading struggles, designs his graphic novels for momentum — short, funny, visual. Often the book that turns a 'I don't like reading' child around.",
-      "source": "Tally Reading",
-      "link": null
+      "id": "lawrence-aeneid-tales",
+      "headline": "The Roman Mysteries author is retelling Virgil for younger readers",
+      "author": "Caroline Lawrence",
+      "book": "The Enemies of Jupiter",
+      "kind": "release",
+      "summary": "Caroline Lawrence, whose Roman Mysteries your readers enjoy, has been writing a set of short, accessible Tales from Virgil's Aeneid. A natural next step for a child who's caught the Ancient Rome bug.",
+      "source": "carolinelawrence.com",
+      "link": "https://carolinelawrence.com/"
     },
     {
-      "id": "seed-rauf",
-      "headline": "Onjali Q. Raúf's stories that spark a classroom conversation",
-      "author": "Onjali Q. Raúf",
-      "book": "The Boy at the Back of the Class",
-      "kind": "spotlight",
-      "summary": "Told through a child's-eye view of friendship and refugees, Raúf's books are popular read-aloud choices for upper-primary discussion — empathy without preachiness.",
-      "source": "Tally Reading",
-      "link": null
+      "id": "deary-terrible-true-tales",
+      "headline": "More gory-fun history from the Horrible Histories author",
+      "author": "Terry Deary",
+      "book": "The Awful Egyptians",
+      "kind": "release",
+      "summary": "Terry Deary's Terrible True Tales bring the same grisly humour as Horrible Histories to newly-confident readers, in shorter illustrated stories. Handy for a child who loves the facts but wants a lighter read.",
+      "source": "ReadingZone",
+      "link": "https://www.readingzone.com/books/terrible-true-tales-the-stone-age-from-the-author-of-horrible-histories/"
     },
     {
-      "id": "seed-cowell",
-      "headline": "How to Train Your Dragon: when a series carries a reader",
-      "author": "Cressida Cowell",
-      "book": "How to Train Your Dragon",
+      "id": "worst-witch-spotlight",
+      "headline": "Why the Worst Witch keeps topping the reading logs",
+      "author": "Jill Murphy",
+      "book": "A Bad Spell for the Worst Witch",
       "kind": "spotlight",
-      "summary": "Twelve books of the same world and hero give a child somewhere to keep going. Once a reader is hooked on Hiccup, the next book is the easiest recommendation you'll make.",
-      "source": "Tally Reading",
-      "link": null
+      "summary": "Mildred Hubble's mishaps at Miss Cackle's Academy have charmed readers since 1974, and they're your most-read series right now. Children who race through the eight books can carry on with the CBBC television series.",
+      "source": "Wikipedia",
+      "link": "https://en.wikipedia.org/wiki/The_Worst_Witch"
+    },
+    {
+      "id": "biff-chip-on-screen",
+      "headline": "Biff, Chip and Kipper — a watch-alike for your earliest readers",
+      "author": "Roderick Hunt",
+      "book": "A Cat in the Tree",
+      "kind": "spotlight",
+      "summary": "The Oxford Reading Tree trio your beginner readers meet have their own screen outings — the CBeebies series Biff & Chip and the classic Magic Key animation — worth pointing families to for a little reading support at home.",
+      "source": "Wikipedia",
+      "link": "https://en.wikipedia.org/wiki/The_Magic_Key"
     }
   ]
 }
