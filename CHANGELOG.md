@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.81.0] - 2026-06-09
+
+### Added
+
+- **Genre synonym merge — the books-page dropdown is now a curated set, not a catalogue dump.** The junk filter (v3.80.2) stopped new garbage, but ~214 near-duplicate genres remained: `Childrens` / `Children's stories` / `Juvenile Fiction` all meant the same thing, `Humor` / `Humorous stories` / `Comedy` were three entries, animal-specific tags (`Cats`, `Dogs`, `Owls`…) fragmented endlessly, and a long tail of library subject-headings (place names, character names like `Tom (Fictitious character : Blade)`, `Women household employees`) were never genres at all. New `src/utils/genreSynonyms.js` defines a curated "moderate" taxonomy (~53 genres): a synonym→canonical map plus a drop list. `canonicalGenre()` collapses spelling/heading variants onto one canonical name, drops the curated junk, and passes genuinely-new genres through unchanged.
+- **One-time prod merge applied (214 → 53 genres).** `scripts/merge-genres.mjs` collapsed the existing rows: 108 genres merged into canonicals, 53 junk headings deleted, 1,312 books' `genre_ids` remapped (de-duped, orphans stripped), and the canonical set marked predefined so it stays stable. 48 books that were tagged _only_ with dropped junk became genre-less. Verified: 0 books reference a deleted genre.
+
+### Changed
+
+- **Enrichment normalises genres at the chokepoint.** `filterGenres()` now routes every surviving genre through `canonicalGenre()` after junk-filtering, so metadata enrichment can no longer regrow a spelling variant of a genre that already exists — the curated list won't drift back to 200 entries.
+
 ## [3.80.2] - 2026-06-09
 
 ### Fixed

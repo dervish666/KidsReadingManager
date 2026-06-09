@@ -114,6 +114,8 @@ src/utils/bookMetadataApi.js - Unified metadata API with provider abstraction
 src/utils/csvParser.js - CSV parsing for book import
 src/utils/classAssignments.js - Sync class_assignments from wonde_employee_classes for a user
 src/utils/classGoalsEngine.js - Term resolution, auto-generation defaults, class goal progress recalculation
+src/utils/genreFilter.js - Junk-genre filter chokepoint (isJunkGenre/filterGenres): drops catalog sentinels/years/comma-headings, then canonicalises via genreSynonyms; keeps the dropdown clean during enrichment
+src/utils/genreSynonyms.js - Curated genre taxonomy: GENRE_MERGES (synonym→canonical), GENRE_DROP, CANONICAL_GENRES + canonicalGenre(); single source for filterGenres and the one-time merge script
 src/utils/routeHelpers.js - Shared route helpers (getDB, requireDB, isMultiTenantMode, requireStudent)
 src/utils/rowMappers.js - Centralized row-to-object mappers (rowToBook, rowToStudent, rowToClass, rowToUser, rowToOrganization, rowToGenre, rowToSupportTicket, rowToSupportNote, rowToTourCompletion, rowToBadge, rowToReadingStats, rowToClassGoal)
 src/utils/constants.js - Shared constants (PUBLIC_PATHS for auth bypass)
@@ -283,5 +285,6 @@ scripts/build-and-deploy.sh - Full rebuild + deploy pipeline (supports productio
 scripts/migration.js - Data migration from old format
 scripts/reset-admin-password.js - Admin password reset utility
 scripts/seed-local.js - Bootstrap local D1 with migrations and a dev owner account (dev@tallyreading.uk / password)
+scripts/merge-genres.mjs - One-time genre synonym merge: collapses synonyms/drops junk per genreSynonyms.js, remaps books.genre_ids, marks canonical set predefined (dry-run by default, --execute to apply, --local/--remote)
 scripts/test-api.js - API endpoint smoke tests
 scripts/export-demo-snapshot.js - Export Learnalot data from remote D1 into demoSnapshot.js

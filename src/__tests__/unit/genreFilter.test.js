@@ -89,4 +89,18 @@ describe('filterGenres', () => {
     expect(filterGenres('Fantasy')).toEqual([]);
     expect(filterGenres(['none', '', '1990'])).toEqual([]);
   });
+
+  it('canonicalises synonyms and re-dedupes the result', () => {
+    // Humor + Humorous stories + Comedy all collapse to a single "Humour".
+    expect(filterGenres(['Humor', 'Humorous stories', 'Comedy'])).toEqual(['Humour']);
+    // Science fiction synonyms collapse; unknowns pass through.
+    expect(filterGenres(['Science fiction', 'Aliens', 'Wizard School'])).toEqual([
+      'Science Fiction',
+      'Wizard School',
+    ]);
+  });
+
+  it('drops curated junk headings via the canonical map', () => {
+    expect(filterGenres(['Fantasy', 'Harry Potter', 'Egypt'])).toEqual(['Fantasy']);
+  });
 });

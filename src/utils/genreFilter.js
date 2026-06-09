@@ -16,7 +16,15 @@
  * It is intentionally conservative: it targets the *systematic* junk patterns
  * (commas, embedded years, sentinels, over-long phrases) rather than trying to
  * judge whether a short, plausible-looking name is a "real" genre.
+ *
+ * After junk-filtering, each surviving name is routed through canonicalGenre()
+ * (genreSynonyms.js) so spelling/heading variants collapse onto a single
+ * canonical genre ("Humor"/"Humorous stories" → "Humour") and a curated set of
+ * over-specific headings is dropped. This keeps enrichment from regrowing the
+ * synonym sprawl the one-time merge cleaned up.
  */
+
+import { canonicalGenre } from './genreSynonyms.js';
 
 // Exact, case-insensitive sentinels / placeholders that are never genres.
 const JUNK_EXACT = new Set([
@@ -86,7 +94,9 @@ function filterGenres(names, max = DEFAULT_MAX_GENRES) {
   const out = [];
   for (const name of names) {
     if (isJunkGenre(name)) continue;
-    const clean = name.trim().replace(/\s+/g, ' ');
+    // Collapse synonyms onto the canonical genre and drop curated junk.
+    const clean = canonicalGenre(name);
+    if (!clean) continue;
     const key = clean.toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);

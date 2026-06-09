@@ -671,6 +671,43 @@ files:
         returns: Promise<Array>
         description: Cheap incremental update for the session-CREATE hot path (point lookups, no year scan; genres/badges drift reconciled by view recalc + nightly cron)
 
+  utils/genreFilter.js:
+    description: Junk-genre filter chokepoint - drops catalog sentinels/years/comma-headings then canonicalises via genreSynonyms, keeping the books-page dropdown clean during metadata enrichment
+    exports:
+      - name: isJunkGenre
+        kind: function
+        params: [{name: name}]
+        returns: boolean
+        description: True if the string is a sentinel/year/comma-heading/over-long non-genre
+      - name: filterGenres
+        kind: function
+        params: [{name: names}, {name: max, default: 8}]
+        returns: string[]
+        description: Drop junk, canonicalise synonyms (canonicalGenre), de-dupe case-insensitively, cap count
+      - name: MAX_GENRE_LENGTH
+        kind: const
+        description: Max length before a genre string is treated as junk
+  utils/genreSynonyms.js:
+    description: Curated genre taxonomy - single source for filterGenres (runtime) and scripts/merge-genres.mjs (one-time). Moderate ~53-genre set; merges synonyms, drops over-specific library subject-headings, passes unknowns through
+    exports:
+      - name: canonicalGenre
+        kind: function
+        params: [{name: name}]
+        returns: "string|null"
+        description: Map a name to its canonical genre, null to drop, or the trimmed name if unknown (passthrough)
+      - name: GENRE_MERGES
+        kind: const
+        description: "{ canonicalName: [synonym source names] } merge groups"
+      - name: GENRE_DROP
+        kind: const
+        description: List of names to delete outright (place/character/language headings)
+      - name: CANONICAL_STANDALONE
+        kind: const
+        description: Curated canonicals that absorb no synonyms (Pirates, Dragons, etc.)
+      - name: CANONICAL_GENRES
+        kind: const
+        description: Full ordered list of canonical genres the taxonomy produces
+
   utils/wondeApi.js:
     description: Wonde REST API client for school data provisioning
     exports:
