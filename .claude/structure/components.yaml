@@ -560,14 +560,27 @@ files:
         props: [data]
 
   news/ReadingNewsTicker.js:
-    description: Stats-page Reading News ticker; fetches /reading-news.json, rotates headlines (reduced-motion aware), opens the newsletter dialog; renders nothing if the feed is missing/empty
+    description: Stats-page Reading News ticker; rotates item/event headlines (reduced-motion aware), opens the Reading News tab via onOpen; presentational (receives feed data), renders nothing if empty
     exports:
       - name: ReadingNewsTicker
         kind: component
+        props: [data, onOpen]
 
-  news/ReadingNewsDialog.js:
-    description: Reading News newsletter modal opened from the ticker; renders author/book spotlights + release news from the feed
+  news/ReadingNewsPage.js:
+    description: Reading News newsletter shown as a Stats-page tab; masthead + "From your shelves" author/book news + "Dates for the diary" events/birthdays from the feed
     exports:
-      - name: ReadingNewsDialog
+      - name: ReadingNewsPage
         kind: component
-        props: [open, data, onClose]
+        props: [data]
+
+  news/newsFormat.js:
+    description: Shared date helpers for the news ticker/page
+    exports:
+      - name: dateParts
+        kind: function
+      - name: shortDate
+        kind: function
+      - name: longDate
+        kind: function
+      - name: sortEvents
+        kind: function

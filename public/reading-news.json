@@ -1,7 +1,8 @@
 {
   "generatedAt": "2026-06-09",
+  "issue": "June 2026",
   "title": "Reading News",
-  "intro": "What's new from the authors topping your reading logs — fresh releases, a few read-alikes, and where to take a keen reader next.",
+  "intro": "What's new from the authors topping your reading logs — fresh releases, a few read-alikes, and some dates for the diary.",
   "isPreview": false,
   "items": [
     {
@@ -53,6 +54,48 @@
       "summary": "The Oxford Reading Tree trio your beginner readers meet have their own screen outings — the CBeebies series Biff & Chip and the classic Magic Key animation — worth pointing families to for a little reading support at home.",
       "source": "Wikipedia",
       "link": "https://en.wikipedia.org/wiki/The_Magic_Key"
+    }
+  ],
+  "events": [
+    {
+      "id": "beatrix-potter-160",
+      "date": "2026-07-28",
+      "name": "Beatrix Potter's 160th birthday",
+      "kind": "birthday",
+      "blurb": "The creator of Peter Rabbit was born on 28 July 1866. A lovely prompt for a Potter display or a read-aloud of the little tales with your youngest classes.",
+      "link": "https://en.wikipedia.org/wiki/Beatrix_Potter"
+    },
+    {
+      "id": "roald-dahl-day-2026",
+      "date": "2026-09-13",
+      "name": "Roald Dahl Day",
+      "kind": "event",
+      "blurb": "Marked each year on Dahl's birthday, 13 September — this year his 110th. Schools often celebrate with dressing-up, golden tickets and a chapter or two of the classics.",
+      "link": "https://www.roalddahl.com/"
+    },
+    {
+      "id": "julia-donaldson-birthday",
+      "date": "2026-09-16",
+      "name": "Julia Donaldson's birthday",
+      "kind": "birthday",
+      "blurb": "The Gruffalo author and former Children's Laureate was born on 16 September — a good excuse to share a rhyming favourite.",
+      "link": "https://en.wikipedia.org/wiki/Julia_Donaldson"
+    },
+    {
+      "id": "michael-morpurgo-birthday",
+      "date": "2026-10-05",
+      "name": "Michael Morpurgo's birthday",
+      "kind": "birthday",
+      "blurb": "One of your most-read authors turns a year older on 5 October — pair it with Running Wild or one of his 2026 releases above.",
+      "link": "https://www.michaelmorpurgo.com/"
+    },
+    {
+      "id": "world-book-day-2027",
+      "date": "2027-03-04",
+      "name": "World Book Day",
+      "kind": "event",
+      "blurb": "The next World Book Day falls on the first Thursday of March. Worth pencilling in early for £1 book tokens, dressing-up and reading-for-pleasure activities.",
+      "link": "https://www.worldbookday.com/"
     }
   ]
 }

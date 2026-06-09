@@ -35,6 +35,14 @@ For the top ~6–8 authors, use WebSearch to find **genuine, recent** news and u
 
 Tie items back to what the schools read (use Step 1) so each feels relevant — e.g. "your readers love the Worst Witch books — here's news on the series."
 
+## Step 2b — General reading news (events + author birthdays)
+
+Also gather a short set of dated "diary" items for the newsletter's events section. These are generic (not from Step 1) but bias toward relevance:
+
+- **Upcoming UK children's-book events** — World Book Day (first Thursday of March), the Reading Agency's Summer Reading Challenge, National Poetry Day, National Storytelling Week, Roald Dahl Day, etc. Search to confirm the actual upcoming date.
+- **Author birthdays**, especially of the Step 1 top authors (e.g. Michael Morpurgo, 5 October) and household names (Julia Donaldson, Beatrix Potter, Roald Dahl). Use the real birth date; flag a milestone if there is one (a 160th, say).
+- Keep dates **accurate** — confirm anything you're unsure of, and use the next future occurrence in `YYYY-MM-DD`. A wrong date in a teacher's diary is worse than no date.
+
 ## Step 3 — Vet every item (moderation + grounding)
 
 An item goes in only if ALL of these hold:
@@ -52,6 +60,7 @@ Write exactly this shape (the app consumes it; keep keys/spelling identical):
 ```json
 {
   "generatedAt": "<today YYYY-MM-DD, from Step 1's generatedAt>",
+  "issue": "<month + year, e.g. June 2026>",
   "title": "Reading News",
   "intro": "<one warm sentence introducing this issue>",
   "isPreview": false,
@@ -66,6 +75,16 @@ Write exactly this shape (the app consumes it; keep keys/spelling identical):
       "source": "<publication name>",
       "link": "<real URL, or null>"
     }
+  ],
+  "events": [
+    {
+      "id": "<unique-kebab-case>",
+      "date": "<YYYY-MM-DD, next occurrence>",
+      "name": "<event or author birthday>",
+      "kind": "event | birthday",
+      "blurb": "<1–2 warm sentences for teachers>",
+      "link": "<real URL, or null>"
+    }
   ]
 }
 ```
@@ -73,6 +92,7 @@ Write exactly this shape (the app consumes it; keep keys/spelling identical):
 Rules:
 
 - 4–8 items, most relevant first.
+- `events`: 3–6 dated diary items (`kind`: `event` or `birthday`), soonest first; use accurate `YYYY-MM-DD` dates (the app sorts them and shows a date badge).
 - `kind`: `release` for new/upcoming books, `award` for prizes/shortlists, `news` for other genuine news, `spotlight` **only** as a fallback evergreen highlight when no dated news exists for an otherwise-loved author.
 - `link` must be a real URL or `null` — never a placeholder.
 - Validate it parses: `node -e "JSON.parse(require('fs').readFileSync('public/reading-news.json','utf8'))"`.

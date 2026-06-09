@@ -19,12 +19,14 @@ import MenuBookIcon from '@mui/icons-material/MenuBook';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import TimelineIcon from '@mui/icons-material/Timeline';
+import NewspaperRoundedIcon from '@mui/icons-material/NewspaperRounded';
 import DaysSinceReadingChart from './DaysSinceReadingChart';
 import ReadingTimelineChart from './ReadingTimelineChart';
 import OverviewTab from './OverviewTab';
 import NeedsAttentionTab from './NeedsAttentionTab';
 import FrequencyTab from './FrequencyTab';
 import ReadingNewsTicker from '../news/ReadingNewsTicker';
+import ReadingNewsPage from '../news/ReadingNewsPage';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
 import { generateStatsPDF } from '../../utils/statsExport';
@@ -55,6 +57,21 @@ const ReadingStats = () => {
     };
     fetchTermDates();
   }, [fetchWithAuth]);
+
+  // Reading News feed (static, same-origin) — drives the ticker + news tab.
+  const [newsData, setNewsData] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    fetch('/reading-news.json', { cache: 'no-cache' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (alive && d && (Array.isArray(d.items) || Array.isArray(d.events))) setNewsData(d);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const termDateRange = useMemo(() => {
     if (selectedTerm === 'all' || termDates.length === 0) return null;
@@ -281,7 +298,7 @@ const ReadingStats = () => {
         </Box>
       </Box>
 
-      <ReadingNewsTicker />
+      <ReadingNewsTicker data={newsData} onOpen={() => setCurrentTab(4)} />
 
       <Box>
         <Paper
@@ -316,6 +333,7 @@ const ReadingStats = () => {
             <Tab icon={<CalendarTodayIcon />} iconPosition="start" label="Needs Attention" />
             <Tab icon={<MenuBookIcon />} iconPosition="start" label="Reading Frequency" />
             <Tab icon={<TimelineIcon />} iconPosition="start" label="Reading Timeline" />
+            <Tab icon={<NewspaperRoundedIcon />} iconPosition="start" label="Reading News" />
           </Tabs>
         </Paper>
 
@@ -373,6 +391,7 @@ const ReadingStats = () => {
                 </Box>
               </Box>
             ))}
+          {currentTab === 4 && <ReadingNewsPage data={newsData} />}
         </Box>
       </Box>
     </Box>

@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.85.0] - 2026-06-09
+
+### Changed
+
+- **Reading News moved from a pop-up to a Stats-page tab, and now reads like a newsletter.** Clicking the ticker (top of the Stats page) opens a dedicated "Reading News" tab with room to breathe — a masthead, a "From your shelves" two-column section of author/book news tied to your most-read titles, and a "Dates for the diary" section. The newsletter dialog is gone (`src/components/news/ReadingNewsPage.js`, shared `newsFormat.js`).
+
+### Added
+
+- **"Dates for the diary" — general children's reading news.** The feed now carries an `events` array (upcoming literary events + notable author birthdays, shown with date badges), and the `reading-news` skill gathers these alongside the author news. Seeded with World Book Day, Roald Dahl Day, and author birthdays (Beatrix Potter's 160th, Julia Donaldson, Michael Morpurgo's 5 October — one of your most-read authors).
+
 ## [3.84.0] - 2026-06-09
 
 ### Added
