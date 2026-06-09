@@ -58,11 +58,19 @@
   ],
   "events": [
     {
+      "id": "summer-reading-challenge-2026",
+      "date": "2026-07-04",
+      "name": "Summer Reading Challenge — Read to the Beat!",
+      "kind": "event",
+      "blurb": "The Reading Agency's free library challenge runs 4 July to 5 September, this year on a music-and-stories theme with Universal Music. A great nudge to keep children reading over the holidays.",
+      "link": "https://summerreadingchallenge.org.uk/"
+    },
+    {
       "id": "beatrix-potter-160",
       "date": "2026-07-28",
       "name": "Beatrix Potter's 160th birthday",
       "kind": "birthday",
-      "blurb": "The creator of Peter Rabbit was born on 28 July 1866. A lovely prompt for a Potter display or a read-aloud of the little tales with your youngest classes.",
+      "blurb": "The creator of Peter Rabbit was born on 28 July 1866 — a lovely prompt for a Potter display or a read-aloud of the little tales with your youngest classes.",
       "link": "https://en.wikipedia.org/wiki/Beatrix_Potter"
     },
     {
@@ -74,12 +82,12 @@
       "link": "https://www.roalddahl.com/"
     },
     {
-      "id": "julia-donaldson-birthday",
-      "date": "2026-09-16",
-      "name": "Julia Donaldson's birthday",
-      "kind": "birthday",
-      "blurb": "The Gruffalo author and former Children's Laureate was born on 16 September — a good excuse to share a rhyming favourite.",
-      "link": "https://en.wikipedia.org/wiki/Julia_Donaldson"
+      "id": "national-poetry-day-2026",
+      "date": "2026-10-01",
+      "name": "National Poetry Day — 'Wonder'",
+      "kind": "event",
+      "blurb": "Thursday 1 October, this year on the theme of Wonder. Free classroom resources go up via the Forward Arts Foundation and the National Literacy Trust.",
+      "link": "https://forwardartsfoundation.org/national-poetry-day/"
     },
     {
       "id": "michael-morpurgo-birthday",
