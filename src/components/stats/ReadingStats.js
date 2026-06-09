@@ -24,6 +24,7 @@ import ReadingTimelineChart from './ReadingTimelineChart';
 import OverviewTab from './OverviewTab';
 import NeedsAttentionTab from './NeedsAttentionTab';
 import FrequencyTab from './FrequencyTab';
+import ReadingNewsTicker from '../news/ReadingNewsTicker';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
 import { generateStatsPDF } from '../../utils/statsExport';
@@ -279,6 +280,8 @@ const ReadingStats = () => {
           </Button>
         </Box>
       </Box>
+
+      <ReadingNewsTicker />
 
       <Box>
         <Paper

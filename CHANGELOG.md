@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.83.0] - 2026-06-09
+
+### Added
+
+- **Reading News on the Stats page — a quiet headline ticker + a newsletter dialog.** A warm, rotating ticker sits at the top of the Stats page (reduced-motion aware, pauses on hover/focus) and opens a "Reading News" newsletter of author/book spotlights and release news. Fed by a static `public/reading-news.json` served same-origin — hand-seeded for now with evergreen author spotlights; a forthcoming skill will generate the weekly issue from each school's most-read titles and a moderated web search for author news. The ticker renders nothing if the feed is missing or empty, so it never shows an empty bar. (`src/components/news/`.)
+
 ## [3.82.1] - 2026-06-09
 
 ### Removed

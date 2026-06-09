@@ -275,6 +275,11 @@ src/components/stats/ReadingFrequencyChart.js - Reading frequency bar chart
 src/components/stats/DaysSinceReadingChart.js - Days since reading indicator
 src/components/stats/AchievementsTab.js - Achievements tab: class-wide badge progress with expandable per-student drill-down
 
+## Frontend Components - News
+
+src/components/news/ReadingNewsTicker.js - Reading News ticker on the Stats page; rotates headlines from /reading-news.json, opens the newsletter dialog
+src/components/news/ReadingNewsDialog.js - Full Reading News newsletter modal (author/book spotlights + release news), opened from the ticker
+
 ## Styling
 
 src/styles/theme.js - Material-UI theme configuration

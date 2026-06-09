@@ -42,7 +42,7 @@ When you add, remove, or rename source files or public classes/functions, update
 | `src/utils/` | crypto, validation, helpers, streakCalculator, badge engine/definitions, stripe, rowMappers, routeHelpers, metadata API clients, content moderation, d1Batch, caches |
 | `src/contexts/` | `AuthContext`, `DataContext`, `UIContext`, composite `AppContext`, and `data/` CRUD hooks |
 | `src/hooks/` | `useEnrichmentPolling` |
-| `src/components/` | React UI — root-level pages plus subfolders: `students/`, `books/`, `sessions/`, `schools/`, `classes/`, `badges/`, `goals/`, `parent/`, `stats/`, `tour/` |
+| `src/components/` | React UI — root-level pages plus subfolders: `students/`, `books/`, `sessions/`, `schools/`, `classes/`, `badges/`, `goals/`, `parent/`, `stats/`, `tour/`, `news/` |
 | `src/styles/` | `theme.js` (Material-UI theme) |
 | `scripts/` | `build-and-deploy.sh`, `seed-local.js`, `migration.js`, `reset-admin-password.js`, `export-demo-snapshot.js`, `test-api.js`, `graphify-refresh.sh` |
 

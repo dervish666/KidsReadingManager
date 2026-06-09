@@ -558,3 +558,16 @@ files:
       - name: VisualIndicators
         kind: component
         props: [data]
+
+  news/ReadingNewsTicker.js:
+    description: Stats-page Reading News ticker; fetches /reading-news.json, rotates headlines (reduced-motion aware), opens the newsletter dialog; renders nothing if the feed is missing/empty
+    exports:
+      - name: ReadingNewsTicker
+        kind: component
+
+  news/ReadingNewsDialog.js:
+    description: Reading News newsletter modal opened from the ticker; renders author/book spotlights + release news from the feed
+    exports:
+      - name: ReadingNewsDialog
+        kind: component
+        props: [open, data, onClose]
