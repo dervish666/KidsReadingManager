@@ -90,6 +90,7 @@ booksRouter.get('/', requireReadonly(), async (c) => {
         .bind(organizationId)
         .all();
       c.header('Cache-Control', 'private, max-age=60, must-revalidate');
+      c.header('Vary', 'X-Organization-Id');
       if (fields === 'minimal') {
         return c.json(
           (result.results || []).map((r) => ({ id: r.id, title: r.title, author: r.author }))
@@ -140,6 +141,7 @@ booksRouter.get('/', requireReadonly(), async (c) => {
           .all();
       }
       c.header('Cache-Control', 'private, max-age=30, must-revalidate');
+      c.header('Vary', 'X-Organization-Id');
       return c.json((result.results || []).map(rowToBook));
     }
 

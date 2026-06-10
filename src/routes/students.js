@@ -121,7 +121,10 @@ studentsRouter.get('/', requireReadonly(), async (c) => {
     // within 30s. `private` prevents intermediate proxies from sharing
     // tenant data; `must-revalidate` tells the browser to confirm with
     // the server after expiry rather than serving stale on offline.
+    // `Vary` partitions the browser cache by org so owner org-switching
+    // doesn't serve one school's list against another school's classes.
     c.header('Cache-Control', 'private, max-age=30, must-revalidate');
+    c.header('Vary', 'X-Organization-Id');
     return c.json(students);
   }
 

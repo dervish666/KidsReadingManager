@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.92.1] - 2026-06-10
+
+### Fixed
+
+- **Owner org-switching no longer shows stale data from the previous school.** The cached list endpoints (students, books, badge progress) send `Cache-Control: private, max-age=30/60`, but the browser keys its HTTP cache by URL only — the org switch travels in the `X-Organization-Id` request header, so switching schools within the cache window served the previous school's students against the new school's classes (every class filter matched nothing, students only appeared under "All Classes"). Those responses now also send `Vary: X-Organization-Id`, partitioning the browser cache per organization. Teacher-facing caching behaviour is unchanged.
+
 ## [3.92.0] - 2026-06-10
 
 ### Changed
