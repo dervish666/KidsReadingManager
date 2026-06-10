@@ -1,6 +1,11 @@
 # Changelog
 
-## [3.89.0] - 2026-06-10
+## [3.90.0] - 2026-06-10
+
+### Added
+
+- **Redesigned help centre at `/help`.** The single-column help page is now a full help centre: live article search (⌘K) with popular-topic chips, a sticky topic sidebar with scroll-spy, seven topic cards with inline-expanding articles (getting started, reading sessions, books & library, achievements & stats, accounts & access, school IT, troubleshooting), and a proper 8-question FAQ with accurate pricing (£1/pupil/year, £49 AI add-on, free trial term), data-protection, Wonde, and parent-portal answers. Includes a contact dialog that posts to the public `/api/contact` endpoint, so it works logged-out.
+- **Help centre link in the support modal.** A "Browse the help centre" button now sits next to "Questions or feedback? Get in touch" in the page-help modal, opening `/help` in a new tab.
 
 ### Added
 

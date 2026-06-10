@@ -18,6 +18,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import ExploreOutlinedIcon from '@mui/icons-material/ExploreOutlined';
+import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
 import { useAuth } from '../contexts/AuthContext';
 import { useTourContext } from './tour/TourProvider';
 
@@ -281,7 +282,33 @@ const SupportModal = ({ open, onClose, currentPage }) => {
             {pageHelp && <Box sx={{ mb: showForm ? 2.5 : 1 }}>{pageHelp}</Box>}
 
             {pageHelp && !showForm && (
-              <Box sx={{ textAlign: 'center', mt: 2 }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: 0.5,
+                  mt: 2,
+                }}
+              >
+                <Button
+                  component="a"
+                  href="/help"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  variant="text"
+                  startIcon={<MenuBookOutlinedIcon sx={{ fontSize: 18 }} />}
+                  sx={{
+                    color: 'text.secondary',
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                    '&:hover': { color: 'primary.main', backgroundColor: 'transparent' },
+                  }}
+                >
+                  Browse the help centre
+                </Button>
                 <Button
                   onClick={() => setShowForm(true)}
                   variant="text"
