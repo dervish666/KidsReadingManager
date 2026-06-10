@@ -12,9 +12,11 @@ import {
   TextField,
   InputAdornment,
 } from '@mui/material';
+import { useTheme, alpha } from '@mui/material/styles';
 import SearchIcon from '@mui/icons-material/Search';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import BookCover from '../BookCover';
+import BookCoverPlaceholder from '../BookCoverPlaceholder';
 import BarcodeScanner from '../books/BarcodeScanner';
 import StreakBadge from '../students/StreakBadge';
 import GardenHeader from '../badges/GardenHeader';
@@ -23,12 +25,41 @@ import BandCelebration from '../badges/BandCelebration';
 import { ReadingBandProgress } from '../students/ReadingBandChip';
 import TallyLogo from '../TallyLogo';
 
+const NUNITO = '"Nunito", sans-serif';
+
+const sectionTitleSx = {
+  fontWeight: 700,
+  color: 'parent.accent',
+  fontFamily: NUNITO,
+};
+
+// Tappable cards render as real <button> elements so they work for keyboard
+// and screen-reader users; these resets undo the native button styling.
+const tappableCardSx = {
+  display: 'flex',
+  alignItems: 'center',
+  cursor: 'pointer',
+  width: '100%',
+  textAlign: 'left',
+  font: 'inherit',
+  appearance: 'none',
+  '&:focus-visible': {
+    outline: '2px solid',
+    outlineColor: 'parent.accentHover',
+    outlineOffset: 2,
+  },
+};
+
 /**
  * ParentPortal - Public-facing parent view accessed via QR code token.
  * Renders student reading info and allows parents to log reading sessions.
  * Uses plain fetch() (no auth) — all API calls go to /api/parent/{token}.
  */
 const ParentPortal = () => {
+  const theme = useTheme();
+  const { accent, accentHover, surface, accentBorder } = theme.palette.parent;
+  const accentGradient = `linear-gradient(135deg, ${accent} 0%, ${accentHover} 100%)`;
+
   const token = window.location.pathname.split('/parent/')[1] || '';
   const apiBase = `/api/parent/${token}`;
 
@@ -141,6 +172,14 @@ const ParentPortal = () => {
     return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
   };
 
+  const resetLogSheet = () => {
+    setLogOpen(false);
+    setLogError(null);
+    setLogSuccess(false);
+    setLogDate('today');
+    setCustomDate('');
+  };
+
   // ── Log reading submit ──────────────────────────────────────────────────────
   const handleLogReading = async () => {
     setLogSubmitting(true);
@@ -168,9 +207,7 @@ const ParentPortal = () => {
       }
       // Auto-refresh and close after 2.5s
       setTimeout(async () => {
-        setLogOpen(false);
-        setLogSuccess(false);
-        setLogDate('today');
+        resetLogSheet();
         await fetchData();
       }, 2500);
     } catch (err) {
@@ -208,10 +245,10 @@ const ParentPortal = () => {
           justifyContent: 'center',
           alignItems: 'center',
           minHeight: '100vh',
-          bgcolor: '#faf8f5',
+          bgcolor: 'parent.surface',
         }}
       >
-        <CircularProgress sx={{ color: '#2d5016' }} />
+        <CircularProgress sx={{ color: 'parent.accent' }} />
       </Box>
     );
   }
@@ -225,14 +262,14 @@ const ParentPortal = () => {
           px: 2,
           pt: 8,
           textAlign: 'center',
-          bgcolor: '#faf8f5',
+          bgcolor: 'parent.surface',
           minHeight: '100vh',
         }}
       >
-        <TallyLogo size={48} color="#2d5016" />
+        <TallyLogo size={48} color={accent} />
         <Typography
           variant="h6"
-          sx={{ mt: 2, color: '#2d5016', fontFamily: '"Nunito", sans-serif', fontWeight: 700 }}
+          sx={{ mt: 2, color: 'parent.accent', fontFamily: NUNITO, fontWeight: 700 }}
         >
           Tally Reading
         </Typography>
@@ -246,11 +283,11 @@ const ParentPortal = () => {
   const { currentBook, streak, sessions = [], badgeCount = 0 } = data || {};
 
   return (
-    <Box sx={{ maxWidth: 480, mx: 'auto', bgcolor: '#faf8f5', minHeight: '100vh', pb: 6 }}>
+    <Box sx={{ maxWidth: 480, mx: 'auto', bgcolor: 'parent.surface', minHeight: '100vh', pb: 6 }}>
       {/* ── Header bar ──────────────────────────────────────────────────── */}
       <Box
         sx={{
-          background: 'linear-gradient(135deg, #2d5016 0%, #4a7c28 100%)',
+          background: accentGradient,
           px: 2,
           py: 1.5,
           display: 'flex',
@@ -261,7 +298,7 @@ const ParentPortal = () => {
         <TallyLogo size={24} color="white" />
         <Typography
           variant="subtitle1"
-          sx={{ color: 'white', fontWeight: 700, fontFamily: '"Nunito", sans-serif' }}
+          sx={{ color: 'white', fontWeight: 700, fontFamily: NUNITO }}
         >
           Tally Reading
         </Typography>
@@ -273,8 +310,8 @@ const ParentPortal = () => {
           variant="h5"
           sx={{
             fontWeight: 800,
-            color: '#2d5016',
-            fontFamily: '"Nunito", sans-serif',
+            color: 'parent.accent',
+            fontFamily: NUNITO,
             mb: 2.5,
           }}
         >
@@ -283,20 +320,19 @@ const ParentPortal = () => {
 
         {/* ── Current book card ────────────────────────────────────────── */}
         <Paper
+          component="button"
           onClick={() => handleOpenBookSearch('current')}
           elevation={0}
           sx={{
+            ...tappableCardSx,
             p: 2,
             mb: 2,
             borderRadius: 3,
-            border: '1px solid rgba(45, 80, 22, 0.15)',
+            border: `1px solid ${alpha(accent, 0.15)}`,
             bgcolor: 'white',
-            display: 'flex',
-            alignItems: 'center',
             gap: 2,
-            cursor: 'pointer',
             transition: 'box-shadow 0.2s ease',
-            '&:hover': { boxShadow: '0 4px 16px rgba(45, 80, 22, 0.12)' },
+            '&:hover': { boxShadow: `0 4px 16px ${alpha(accent, 0.12)}` },
           }}
         >
           {currentBook ? (
@@ -317,7 +353,7 @@ const ParentPortal = () => {
                 </Typography>
                 <Typography
                   variant="subtitle2"
-                  sx={{ fontWeight: 700, color: '#2d5016', noWrap: true }}
+                  sx={{ fontWeight: 700, color: 'parent.accent' }}
                   noWrap
                 >
                   {currentBook.title}
@@ -332,7 +368,7 @@ const ParentPortal = () => {
           ) : (
             <Box sx={{ flex: 1 }}>
               <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                No current book set — tap to select one
+                No current book yet. Tap to choose one
               </Typography>
             </Box>
           )}
@@ -346,16 +382,16 @@ const ParentPortal = () => {
             size="large"
             onClick={() => setLogOpen(true)}
             sx={{
-              background: 'linear-gradient(135deg, #2d5016 0%, #4a7c28 100%)',
+              background: accentGradient,
               borderRadius: 3,
               fontWeight: 700,
-              fontFamily: '"Nunito", sans-serif',
+              fontFamily: NUNITO,
               px: 3,
               py: 1.25,
-              boxShadow: '0 4px 16px rgba(45, 80, 22, 0.25)',
+              boxShadow: `0 4px 16px ${alpha(accent, 0.25)}`,
               '&:hover': {
-                background: 'linear-gradient(135deg, #3a6b1e 0%, #5a9232 100%)',
-                boxShadow: '0 6px 20px rgba(45, 80, 22, 0.35)',
+                background: accentGradient,
+                boxShadow: `0 6px 20px ${alpha(accent, 0.35)}`,
               },
             }}
           >
@@ -366,15 +402,7 @@ const ParentPortal = () => {
         {/* ── Reading band progress ────────────────────────────────────── */}
         {data?.band && (
           <Box sx={{ mb: 3 }}>
-            <Typography
-              variant="subtitle2"
-              sx={{
-                fontWeight: 700,
-                color: '#2d5016',
-                mb: 1,
-                fontFamily: '"Nunito", sans-serif',
-              }}
-            >
+            <Typography variant="subtitle2" sx={{ ...sectionTitleSx, mb: 1 }}>
               Reading Band
             </Typography>
             <ReadingBandProgress
@@ -386,81 +414,79 @@ const ParentPortal = () => {
         )}
 
         {/* ── Recent sessions ──────────────────────────────────────────── */}
-        {sessions.length > 0 && (
-          <Box sx={{ mb: 3 }}>
-            <Typography
-              variant="subtitle2"
-              sx={{
-                fontWeight: 700,
-                color: '#2d5016',
-                mb: 1.5,
-                fontFamily: '"Nunito", sans-serif',
-              }}
-            >
-              Recent Sessions
-            </Typography>
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="subtitle2" sx={{ ...sectionTitleSx, mb: 1.5 }}>
+            Recent Sessions
+          </Typography>
+          {sessions.length > 0 ? (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-              {sessions.slice(0, 10).map((session, i) => (
-                <Box
-                  key={session.id || i}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1.5,
-                    py: 0.75,
-                    px: 1,
-                    borderRadius: 2,
-                    bgcolor: 'white',
-                    border: '1px solid rgba(45, 80, 22, 0.08)',
-                  }}
-                >
-                  {/* Colored dot: green = school, purple = home */}
+              {sessions.slice(0, 10).map((session, i) => {
+                const isHome = session.location === 'home';
+                const locationColor = isHome
+                  ? theme.palette.accent.home
+                  : theme.palette.accent.school;
+                return (
                   <Box
+                    key={session.id || i}
                     sx={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: '50%',
-                      bgcolor: session.location === 'home' ? '#7c5ab8' : '#4a7c28',
-                      flexShrink: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1.5,
+                      py: 0.75,
+                      px: 1,
+                      borderRadius: 2,
+                      bgcolor: 'white',
+                      border: `1px solid ${alpha(accent, 0.08)}`,
                     }}
-                  />
-                  <Typography
-                    variant="body2"
-                    sx={{ flex: 1, color: '#2d3748', fontWeight: 500 }}
-                    noWrap
                   >
-                    {session.bookTitle || 'Unknown book'}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
-                    {formatSessionDate(session.date)}
-                  </Typography>
-                  <Chip
-                    label={session.location === 'home' ? 'Home' : 'School'}
-                    size="small"
-                    sx={{
-                      height: 20,
-                      fontSize: '0.65rem',
-                      bgcolor:
-                        session.location === 'home'
-                          ? 'rgba(124, 90, 184, 0.1)'
-                          : 'rgba(74, 124, 40, 0.1)',
-                      color: session.location === 'home' ? '#7c5ab8' : '#4a7c28',
-                      fontWeight: 600,
-                      flexShrink: 0,
-                    }}
-                  />
-                </Box>
-              ))}
+                    <Box
+                      sx={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        bgcolor: locationColor,
+                        flexShrink: 0,
+                      }}
+                    />
+                    <Typography
+                      variant="body2"
+                      sx={{ flex: 1, color: 'text.primary', fontWeight: 500 }}
+                      noWrap
+                    >
+                      {session.bookTitle || 'Unknown book'}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
+                      {formatSessionDate(session.date)}
+                    </Typography>
+                    <Chip
+                      label={isHome ? 'Home' : 'School'}
+                      size="small"
+                      sx={{
+                        height: 20,
+                        fontSize: '0.65rem',
+                        bgcolor: isHome
+                          ? theme.palette.accent.homeLight
+                          : theme.palette.accent.schoolLight,
+                        color: locationColor,
+                        fontWeight: 600,
+                        flexShrink: 0,
+                      }}
+                    />
+                  </Box>
+                );
+              })}
             </Box>
-          </Box>
-        )}
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              No reading logged yet. Tap Read Today after you read together to start {firstName}
+              &apos;s record.
+            </Typography>
+          )}
+        </Box>
 
         {/* ── Reading Garden ───────────────────────────────────────────── */}
         <Box sx={{ mb: 3 }}>
-          <Typography
-            variant="subtitle2"
-            sx={{ fontWeight: 700, color: '#2d5016', mb: 1, fontFamily: '"Nunito", sans-serif' }}
-          >
+          <Typography variant="subtitle2" sx={{ ...sectionTitleSx, mb: 1 }}>
             Reading Garden
           </Typography>
           <GardenHeader badgeCount={badgeCount} height={160} />
@@ -472,14 +498,12 @@ const ParentPortal = () => {
         open={logOpen}
         onClose={() => {
           if (!logSubmitting) {
-            setLogOpen(false);
-            setLogError(null);
-            setLogSuccess(false);
-            setLogDate('today');
+            resetLogSheet();
           }
         }}
         fullWidth
         maxWidth="sm"
+        aria-label="Log reading"
         PaperProps={{
           sx: {
             borderRadius: '16px 16px 0 0',
@@ -500,7 +524,7 @@ const ParentPortal = () => {
               <Typography sx={{ fontSize: 56, mb: 1 }}>🎉</Typography>
               <Typography
                 variant="h6"
-                sx={{ fontWeight: 700, color: '#2d5016', fontFamily: '"Nunito", sans-serif' }}
+                sx={{ fontWeight: 700, color: 'parent.accent', fontFamily: NUNITO }}
               >
                 Reading logged!
               </Typography>
@@ -514,12 +538,7 @@ const ParentPortal = () => {
             <>
               <Typography
                 variant="h6"
-                sx={{
-                  fontWeight: 700,
-                  color: '#2d5016',
-                  mb: 2,
-                  fontFamily: '"Nunito", sans-serif',
-                }}
+                sx={{ fontWeight: 700, color: 'parent.accent', mb: 2, fontFamily: NUNITO }}
               >
                 Log Reading
               </Typography>
@@ -541,20 +560,24 @@ const ParentPortal = () => {
                 {[
                   { value: 'today', label: 'Today' },
                   { value: 'yesterday', label: 'Yesterday' },
-                  { value: 'custom', label: 'Pick date...' },
+                  { value: 'custom', label: 'Pick a date' },
                 ].map((opt) => (
                   <Chip
                     key={opt.value}
                     label={opt.label}
                     onClick={() => setLogDate(opt.value)}
                     sx={{
+                      height: 44,
+                      borderRadius: '22px',
+                      px: 1,
+                      fontSize: '0.9rem',
                       fontWeight: 600,
-                      bgcolor: logDate === opt.value ? '#2d5016' : 'transparent',
-                      color: logDate === opt.value ? 'white' : '#2d5016',
+                      bgcolor: logDate === opt.value ? 'parent.accent' : 'transparent',
+                      color: logDate === opt.value ? 'white' : 'parent.accent',
                       border: '1.5px solid',
-                      borderColor: logDate === opt.value ? '#2d5016' : 'rgba(45, 80, 22, 0.35)',
+                      borderColor: logDate === opt.value ? 'parent.accent' : 'parent.accentBorder',
                       '&:hover': {
-                        bgcolor: logDate === opt.value ? '#3a6b1e' : 'rgba(45, 80, 22, 0.08)',
+                        bgcolor: logDate === opt.value ? 'parent.accentHover' : alpha(accent, 0.08),
                       },
                     }}
                   />
@@ -568,15 +591,16 @@ const ParentPortal = () => {
                     max={today}
                     value={customDate}
                     onChange={(e) => setCustomDate(e.target.value)}
+                    aria-label="Reading date"
                     style={{
                       width: '100%',
-                      padding: '10px 12px',
+                      padding: '12px',
                       borderRadius: 8,
-                      border: '1.5px solid rgba(45, 80, 22, 0.35)',
+                      border: `1.5px solid ${accentBorder}`,
                       fontFamily: 'inherit',
-                      fontSize: '0.9rem',
-                      color: '#2d5016',
-                      backgroundColor: '#faf8f5',
+                      fontSize: '1rem',
+                      color: accent,
+                      backgroundColor: surface,
                       outline: 'none',
                     }}
                   />
@@ -591,19 +615,18 @@ const ParentPortal = () => {
                 Book
               </Typography>
               <Paper
+                component="button"
                 onClick={() => handleOpenBookSearch('log')}
                 elevation={0}
                 sx={{
+                  ...tappableCardSx,
                   p: 1.5,
                   mb: 2.5,
                   borderRadius: 2,
-                  border: '1.5px solid rgba(45, 80, 22, 0.25)',
-                  bgcolor: '#faf8f5',
-                  display: 'flex',
-                  alignItems: 'center',
+                  border: `1.5px solid ${alpha(accent, 0.25)}`,
+                  bgcolor: 'parent.surface',
                   gap: 1.5,
-                  cursor: 'pointer',
-                  '&:hover': { borderColor: '#2d5016' },
+                  '&:hover': { borderColor: 'parent.accent' },
                 }}
               >
                 {logBook ? (
@@ -616,7 +639,11 @@ const ParentPortal = () => {
                       height={54}
                     />
                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 600, color: '#2d5016' }} noWrap>
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: 600, color: 'parent.accent' }}
+                        noWrap
+                      >
                         {logBook.title}
                       </Typography>
                       {logBook.author && (
@@ -625,13 +652,16 @@ const ParentPortal = () => {
                         </Typography>
                       )}
                     </Box>
-                    <Typography variant="caption" sx={{ color: '#4a7c28', fontWeight: 600 }}>
+                    <Typography
+                      variant="caption"
+                      sx={{ color: 'parent.accentHover', fontWeight: 600 }}
+                    >
                       Change
                     </Typography>
                   </>
                 ) : (
                   <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                    Tap to select a book...
+                    Tap to choose a book
                   </Typography>
                 )}
               </Paper>
@@ -641,17 +671,22 @@ const ParentPortal = () => {
                 variant="contained"
                 size="large"
                 onClick={handleLogReading}
-                disabled={logSubmitting}
+                disabled={logSubmitting || (logDate === 'custom' && !customDate)}
                 sx={{
-                  background: 'linear-gradient(135deg, #2d5016 0%, #4a7c28 100%)',
+                  background: accentGradient,
                   borderRadius: 3,
                   fontWeight: 700,
-                  fontFamily: '"Nunito", sans-serif',
+                  fontFamily: NUNITO,
                   py: 1.5,
                   fontSize: '1rem',
-                  boxShadow: '0 4px 16px rgba(45, 80, 22, 0.25)',
+                  boxShadow: `0 4px 16px ${alpha(accent, 0.25)}`,
                   '&:hover': {
-                    background: 'linear-gradient(135deg, #3a6b1e 0%, #5a9232 100%)',
+                    background: accentGradient,
+                    boxShadow: `0 6px 20px ${alpha(accent, 0.35)}`,
+                  },
+                  '&.Mui-disabled': {
+                    background: alpha(accent, 0.25),
+                    color: 'white',
                   },
                 }}
               >
@@ -671,6 +706,7 @@ const ParentPortal = () => {
         }}
         fullWidth
         maxWidth="sm"
+        aria-label="Find a book"
         PaperProps={{
           sx: {
             position: 'fixed',
@@ -693,7 +729,7 @@ const ParentPortal = () => {
         >
           <Typography
             variant="h6"
-            sx={{ fontWeight: 700, color: '#2d5016', mb: 1.5, fontFamily: '"Nunito", sans-serif' }}
+            sx={{ fontWeight: 700, color: 'parent.accent', mb: 1.5, fontFamily: NUNITO }}
           >
             Find a Book
           </Typography>
@@ -701,7 +737,7 @@ const ParentPortal = () => {
           <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
             <TextField
               autoFocus
-              placeholder="Search by title or author..."
+              placeholder="Search by title or author"
               value={bookQuery}
               onChange={(e) => setBookQuery(e.target.value)}
               fullWidth
@@ -710,7 +746,7 @@ const ParentPortal = () => {
                 input: {
                   startAdornment: (
                     <InputAdornment position="start">
-                      <SearchIcon sx={{ color: '#2d5016' }} fontSize="small" />
+                      <SearchIcon sx={{ color: 'parent.accent' }} fontSize="small" />
                     </InputAdornment>
                   ),
                 },
@@ -719,12 +755,13 @@ const ParentPortal = () => {
             <Button
               variant="outlined"
               onClick={() => setScannerOpen(true)}
+              aria-label="Scan a book barcode"
               sx={{
                 minWidth: 44,
                 px: 1,
-                borderColor: 'rgba(45, 80, 22, 0.35)',
-                color: '#2d5016',
-                '&:hover': { borderColor: '#2d5016', bgcolor: 'rgba(45, 80, 22, 0.08)' },
+                borderColor: 'parent.accentBorder',
+                color: 'parent.accent',
+                '&:hover': { borderColor: 'parent.accent', bgcolor: alpha(accent, 0.08) },
               }}
             >
               <QrCodeScannerIcon />
@@ -733,7 +770,7 @@ const ParentPortal = () => {
 
           {bookSearchLoading && (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-              <CircularProgress size={24} sx={{ color: '#2d5016' }} />
+              <CircularProgress size={24} sx={{ color: 'parent.accent' }} />
             </Box>
           )}
 
@@ -756,19 +793,18 @@ const ParentPortal = () => {
                 {bookResults.library.map((book) => (
                   <Paper
                     key={book.id}
+                    component="button"
                     onClick={() => handleSelectBook(book)}
                     elevation={0}
                     sx={{
+                      ...tappableCardSx,
                       p: 1.25,
                       mb: 0.75,
                       borderRadius: 2,
-                      border: '1px solid rgba(45, 80, 22, 0.12)',
+                      border: `1px solid ${alpha(accent, 0.12)}`,
                       bgcolor: 'white',
-                      display: 'flex',
-                      alignItems: 'center',
                       gap: 1.5,
-                      cursor: 'pointer',
-                      '&:hover': { bgcolor: 'rgba(45, 80, 22, 0.04)' },
+                      '&:hover': { bgcolor: alpha(accent, 0.04) },
                     }}
                   >
                     <BookCover
@@ -811,31 +847,39 @@ const ParentPortal = () => {
                 {bookResults.external.map((book, i) => (
                   <Paper
                     key={book.id || i}
+                    component="button"
                     onClick={() => handleSelectBook(book)}
                     elevation={0}
                     sx={{
+                      ...tappableCardSx,
                       p: 1.25,
                       mb: 0.75,
                       borderRadius: 2,
-                      border: '1px solid rgba(45, 80, 22, 0.08)',
+                      border: `1px solid ${alpha(accent, 0.08)}`,
                       bgcolor: 'white',
-                      display: 'flex',
-                      alignItems: 'center',
                       gap: 1.5,
-                      cursor: 'pointer',
-                      '&:hover': { bgcolor: 'rgba(45, 80, 22, 0.04)' },
+                      '&:hover': { bgcolor: alpha(accent, 0.04) },
                     }}
                   >
-                    {/* Grey placeholder for external books */}
-                    <Box
-                      sx={{
-                        width: 32,
-                        height: 48,
-                        bgcolor: 'rgba(0,0,0,0.08)',
-                        borderRadius: 1,
-                        flexShrink: 0,
-                      }}
-                    />
+                    {book.coverUrl ? (
+                      <Box
+                        component="img"
+                        src={book.coverUrl}
+                        alt=""
+                        loading="lazy"
+                        sx={{
+                          width: 32,
+                          height: 48,
+                          borderRadius: 1,
+                          objectFit: 'cover',
+                          flexShrink: 0,
+                        }}
+                      />
+                    ) : (
+                      <Box sx={{ flexShrink: 0 }}>
+                        <BookCoverPlaceholder title={book.title} width={32} height={48} />
+                      </Box>
+                    )}
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                       <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
                         {book.title}
@@ -849,6 +893,17 @@ const ParentPortal = () => {
                   </Paper>
                 ))}
               </Box>
+            )}
+
+            {!bookSearchLoading && !bookQuery.trim() && (
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ textAlign: 'center', py: 4, px: 2 }}
+              >
+                Search the school library by title or author, or scan the barcode on the back of the
+                book.
+              </Typography>
             )}
 
             {!bookSearchLoading &&

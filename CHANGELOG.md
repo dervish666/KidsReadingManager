@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.92.2] - 2026-06-10
+
+### Fixed
+
+- **Parent portal tidy-up.** `ParentPortal.js` now uses the `palette.parent.*` theme tokens (matching `ParentQRButton`) instead of ~30 hardcoded hexes; Home/School session colours align with the app-wide `accent.home`/`accent.school` vocabulary instead of one-off purple/green. Logging a session with "Pick a date" left empty is no longer possible (submit disabled until a date is chosen), and an invalid `noWrap` key inside an `sx` object was removed.
+- **Parent portal accessibility & polish.** Tappable cards (current book, book picker, search results) render as real buttons with focus-visible outlines; dialogs and the barcode-scanner button have aria-labels; date chips meet the 44px touch target. External search results show their actual OpenLibrary cover (falling back to the shared gradient placeholder) instead of a grey box, and the book-search and no-sessions-yet states now have helpful empty-state copy.
+
 ## [3.92.1] - 2026-06-10
 
 ### Fixed
