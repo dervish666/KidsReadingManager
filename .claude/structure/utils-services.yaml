@@ -581,6 +581,25 @@ files:
       - from: ./googleBooksApi
       - from: ./hardcoverApi
 
+  utils/gardenStages.js:
+    description: Single source of truth for Reading Garden stage thresholds and effective-badge-count mappings
+    exports:
+      - name: STAGES
+        kind: constant
+        description: "Seedling 0-2, Sprout 3-7, Bloom 8-15, Full Garden 16+"
+      - name: getStage
+        kind: function
+      - name: stageFromApiName
+        kind: function
+        description: "Maps API snake_case names ('full_garden') to stage objects"
+      - name: GOALS_BADGE_MAP
+        kind: constant
+      - name: goalsToEffectiveBadgeCount
+        kind: function
+      - name: getAggregateGarden
+        kind: function
+        description: Per-student scaled garden for whole-school/aggregate views (avg badges x2)
+
   utils/badgeDefinitions.js:
     description: Badge definitions with evaluate/progress functions and key stage resolution
     exports:

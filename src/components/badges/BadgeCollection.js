@@ -61,12 +61,12 @@ export default function BadgeCollection({ studentName, badges = [], nearMisses =
                       <Typography variant="body2" sx={{ fontWeight: 500, color: '#3D3427' }}>
                         {nm.name} {nm.tier !== 'single' ? `(${nm.tier})` : ''}
                       </Typography>
-                      <Typography variant="caption" sx={{ color: '#8B7E6A' }}>
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                         {nm.remaining} more to go!
                       </Typography>
                     </Box>
                   </Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#86A86B' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#557055' }}>
                     {nm.current}/{nm.target}
                   </Typography>
                 </Box>
@@ -79,7 +79,7 @@ export default function BadgeCollection({ studentName, badges = [], nearMisses =
                     borderRadius: 1,
                     backgroundColor: '#E8DFD0',
                     '& .MuiLinearProgress-bar': {
-                      background: 'linear-gradient(90deg, #86A86B, #A0C484)',
+                      background: 'linear-gradient(90deg, #8AAD8A, #6B8E6B)',
                       borderRadius: 1,
                     },
                   }}
@@ -91,7 +91,7 @@ export default function BadgeCollection({ studentName, badges = [], nearMisses =
 
         {/* Empty state */}
         {!hasAny && (
-          <Box sx={{ textAlign: 'center', py: 3, color: '#8B7E6A' }}>
+          <Box sx={{ textAlign: 'center', py: 3, color: 'text.secondary' }}>
             <Typography variant="body2">
               No badges earned yet. Every reading session helps the garden grow!
             </Typography>

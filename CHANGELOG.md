@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.92.0] - 2026-06-10
+
+### Changed
+
+- **Achievements page redesign.** The Reading Garden is now the hero of the page: the garden header leads, the four stat cards are replaced with compact stat chips, loading skeletons match the new layout, and the class-goals card surfaces a proper error state when the goals fetch fails (instead of silently showing nothing). The class selector is wired into the shared class filter, so switching class updates the whole Stats view.
+- **Badge details open in a tap-friendly popover.** Badge tooltips never fired on touch — iPads are the primary device — so badges are now focusable buttons that open a popover with the badge name, tier chip, and description. Keyboard- and screen-reader-accessible, with a visible focus ring.
+- **One source of truth for garden stages.** Stage thresholds (Seedling/Sprout/Bloom/Full Garden) were defined differently in `AchievementsTab` and `GardenHeader`, so the same class could show two different stages. The canonical tables now live in `src/utils/gardenStages.js`, including the goals→garden mapping and a per-student scaling for aggregate (whole-school) gardens.
+- **Shared class-goal metric config.** The six goal metrics (readers, reading days, sessions, badges, genres, books) now share one display config (`src/components/goals/goalMetrics.js`) between the achievements card and the whiteboard display, with colours pulled into the Cozy Bookshelf palette — the purple/blue corporate gradients are gone, including the star-tier badge gradient.
+- **Legibility fixes in the garden and goals displays.** Larger, higher-contrast caption text in the garden header and theme-token text colours (AA contrast) in the goals whiteboard display.
+
 ## [3.91.0] - 2026-06-10
 
 ### Added

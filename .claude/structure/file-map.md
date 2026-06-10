@@ -121,6 +121,7 @@ src/utils/rowMappers.js - Centralized row-to-object mappers (rowToBook, rowToStu
 src/utils/constants.js - Shared constants (PUBLIC_PATHS for auth bypass)
 src/utils/wondeApi.js - Wonde REST API client for school data sync
 src/utils/badgeDefinitions.js - Badge definitions with evaluate/progress functions, key stage resolution
+src/utils/gardenStages.js - Single source of truth for Reading Garden stage thresholds (STAGES, getStage, stageFromApiName, goalsToEffectiveBadgeCount, getAggregateGarden per-student scaling)
 src/utils/badgeEngine.js - Stats calculation, real-time/batch evaluation, genre classification, near-miss calculation
 src/utils/stripe.js - Stripe client factory, price ID helpers, AI add-on detection
 src/utils/statsExport.js - PDF/CSV stats report generation (jsPDF)
@@ -254,6 +255,7 @@ src/components/badges/BadgeIndicators.js - Mini badge count chip for StudentCard
 
 ## Frontend Components - Goals
 
+src/components/goals/goalMetrics.js - Shared METRIC_CONFIG/METRIC_ORDER for the six class-goal metrics (labels, descriptions, icons, theme-palette bar colours)
 src/components/goals/ClassGoalsEditor.js - Teacher modal for editing class goal targets
 src/components/goals/ClassGoalsDisplay.js - Fullscreen classroom projection view with garden and confetti
 

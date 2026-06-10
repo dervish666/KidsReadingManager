@@ -432,20 +432,28 @@ files:
   # ---- badges/ ----
 
   badges/BadgeIcon.js:
-    description: Single badge circle with tier gradient and category emoji icon
+    description: Single badge circle with tier gradient and category emoji icon; tap/click opens an accessible popover with name, tier, description (tooltips don't fire on iPad)
     exports:
       - name: BadgeIcon
         kind: component
         props: [badge, size, showLabel]
-        description: "size: 'small'|'medium'|'large'; renders tier gradient circle with category icon"
+        description: "size: 'small'|'medium'|'large'; focusable ButtonBase (div role=button) so it can sit inside accordion summaries without nested native buttons"
 
   badges/GardenHeader.js:
-    description: SVG garden header that evolves through 4 stages based on badge count
+    description: Illustrated garden header that evolves through 4 stages based on badge count; canonical stage tables live in utils/gardenStages (re-exported here)
     exports:
       - name: GardenHeader
         kind: component
-        props: [badgeCount, studentName]
-        description: "Stages: Seedling (0-2), Sprout (3-7), Bloom (8-15), Full Garden (16+)"
+        props: [badgeCount, studentName, stage, label, goalsCompleted, height, hideLabel]
+        description: "Stages: Seedling (0-2), Sprout (3-7), Bloom (8-15), Full Garden (16+); height accepts a responsive sx value"
+      - name: getCurrentGrowth
+        kind: function
+      - name: STAGES
+        kind: constant
+        description: Re-export from utils/gardenStages
+      - name: getStage
+        kind: function
+        description: Re-export from utils/gardenStages
 
   badges/BadgeCollection.js:
     description: Grid of earned badges with garden header and near-miss progress bars
@@ -509,6 +517,15 @@ files:
         description: "variant: 'icon' (default) or 'button'; renders IconButton or Button with QR dialog"
 
   # ---- goals/ ----
+
+  goals/goalMetrics.js:
+    description: Shared display config for the six class-goal metrics (Achievements garden card + whiteboard display)
+    exports:
+      - name: METRIC_CONFIG
+        kind: constant
+        description: Per-metric label, description, icon, color/colorEnd (Cozy Bookshelf palette only)
+      - name: METRIC_ORDER
+        kind: constant
 
   goals/ClassGoalsEditor.js:
     description: Teacher modal for editing class goal targets per term

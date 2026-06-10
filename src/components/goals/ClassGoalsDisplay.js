@@ -2,49 +2,9 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Dialog, Box, Typography, IconButton, Chip } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import GardenHeader from '../badges/GardenHeader';
+import { METRIC_CONFIG, METRIC_ORDER } from './goalMetrics';
 
 const CONFETTI_EMOJIS = ['🌸', '✨', '🎉', '🌟', '📚', '🌿'];
-
-const METRIC_CONFIG = {
-  sessions: {
-    label: 'Reading Sessions',
-    description: 'Total reading sessions across all students',
-    gradient: 'linear-gradient(90deg, #8AAD8A, #6B8E6B)',
-    icon: '📖',
-  },
-  genres: {
-    label: 'Genres Explored',
-    description: 'Different genres the class has read across',
-    gradient: 'linear-gradient(90deg, #C4956A, #A67B50)',
-    icon: '🎨',
-  },
-  books: {
-    label: 'Unique Books',
-    description: 'Different books the class has read',
-    gradient: 'linear-gradient(90deg, #7BA1C7, #5A86B0)',
-    icon: '📚',
-  },
-  reading_days: {
-    label: 'Reading Days',
-    description: 'Different days the class has read',
-    gradient: 'linear-gradient(90deg, #D4A06A, #B8864A)',
-    icon: '📅',
-  },
-  readers: {
-    label: 'Active Readers',
-    description: "Students who've read at least once",
-    gradient: 'linear-gradient(90deg, #9B8EC4, #7B6EA4)',
-    icon: '👥',
-  },
-  badges: {
-    label: 'Badges Earned',
-    description: 'Total badges collected by the class',
-    gradient: 'linear-gradient(90deg, #D4956A, #C47A4A)',
-    icon: '🏆',
-  },
-};
-
-const METRIC_ORDER = ['readers', 'reading_days', 'sessions', 'badges', 'genres', 'books'];
 
 function ConfettiPiece({ emoji, style }) {
   return (
@@ -106,7 +66,8 @@ function Confetti() {
 function ProgressBar({ goal }) {
   const config = METRIC_CONFIG[goal.metric] || {
     label: goal.metric,
-    gradient: 'linear-gradient(90deg, #8AAD8A, #6B8E6B)',
+    color: '#8AAD8A',
+    colorEnd: '#6B8E6B',
     icon: '📌',
   };
 
@@ -199,7 +160,7 @@ function ProgressBar({ goal }) {
       >
         <Box
           sx={{
-            background: config.gradient,
+            background: `linear-gradient(90deg, ${config.color}, ${config.colorEnd})`,
             borderRadius: 10,
             height: '100%',
             width: `${pct}%`,
