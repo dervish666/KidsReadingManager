@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('../../utils/wondeApi.js', () => ({
   fetchAllStudents: vi.fn(),
   fetchAllClasses: vi.fn(),
+  fetchAllGroups: vi.fn(),
   fetchDeletions: vi.fn(),
 }));
 
@@ -19,7 +20,12 @@ import {
   runFullSync,
 } from '../../services/wondeSync.js';
 
-import { fetchAllStudents, fetchAllClasses, fetchDeletions } from '../../utils/wondeApi.js';
+import {
+  fetchAllStudents,
+  fetchAllClasses,
+  fetchAllGroups,
+  fetchDeletions,
+} from '../../utils/wondeApi.js';
 
 import { syncUserClassAssignments } from '../../utils/classAssignments.js';
 
@@ -88,7 +94,29 @@ describe('mapWondeStudent', () => {
       firstLanguage: null,
       ealDetailedStatus: null,
       wondeClassIds: ['CLS_001', 'CLS_002'],
+      wondeRegistrationGroupIds: [],
     });
+  });
+
+  it('extracts registration group ids, ignoring other group types', () => {
+    const wondeStudent = {
+      id: 'G123',
+      forename: 'Grace',
+      surname: 'Hill',
+      classes: { data: [] },
+      groups: {
+        data: [
+          { id: 'GRP_YEAR', type: 'YEAR', name: '6' },
+          { id: 'GRP_HOUSE', type: 'HOUSE', name: 'Pegasus' },
+          { id: 'GRP_REG', type: 'REGISTRATION', name: '6A' },
+        ],
+      },
+    };
+
+    const result = mapWondeStudent(wondeStudent);
+
+    expect(result.wondeClassIds).toEqual([]);
+    expect(result.wondeRegistrationGroupIds).toEqual(['GRP_REG']);
   });
 
   it('handles missing education_details and extended_details gracefully', () => {
@@ -145,6 +173,7 @@ describe('mapWondeStudent', () => {
       firstLanguage: null,
       ealDetailedStatus: null,
       wondeClassIds: [],
+      wondeRegistrationGroupIds: [],
     });
   });
 
@@ -288,6 +317,7 @@ describe('runFullSync', () => {
 
     // Default API mocks
     fetchAllClasses.mockResolvedValue(sampleClasses);
+    fetchAllGroups.mockResolvedValue([]);
     fetchAllStudents.mockResolvedValue(sampleStudents);
     fetchDeletions.mockResolvedValue(sampleDeletions);
 
@@ -823,5 +853,169 @@ describe('runFullSync', () => {
 
     expect(result.status).toBe('completed');
     expect(syncUserClassAssignments).not.toHaveBeenCalled();
+  });
+
+  // -------------------------------------------------------------------------
+  // Registration-group fallback (schools whose MIS exposes no classes)
+  // -------------------------------------------------------------------------
+  describe('registration group fallback', () => {
+    const sampleGroups = [
+      {
+        id: 'WGRP_6A',
+        name: '6A',
+        type: 'REGISTRATION',
+        employees: { data: [{ id: 'WEMP_9', forename: 'Kim', surname: 'Wiltshire' }] },
+      },
+      {
+        id: 'WGRP_5D',
+        name: '5D',
+        type: 'REGISTRATION',
+        employees: { data: [{ id: 'WEMP_10', forename: 'Nicola', surname: 'Driscoll' }] },
+      },
+    ];
+
+    const groupStudents = [
+      {
+        id: 'WSTU_G1',
+        forename: 'Maisie',
+        surname: 'Park',
+        classes: { data: [] },
+        groups: { data: [{ id: 'WGRP_6A', type: 'REGISTRATION', name: '6A' }] },
+      },
+    ];
+
+    it('falls back to registration groups when full sync finds no classes', async () => {
+      fetchAllClasses.mockResolvedValue([]);
+      fetchAllGroups.mockResolvedValue(sampleGroups);
+      fetchAllStudents.mockResolvedValue(groupStudents);
+
+      const result = await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
+
+      expect(result.status).toBe('completed');
+      expect(fetchAllGroups).toHaveBeenCalledWith(
+        SCHOOL_TOKEN,
+        WONDE_SCHOOL_ID,
+        expect.any(Object)
+      );
+      expect(result.classesCreated).toBe(2);
+      expect(result.employeesSynced).toBe(2);
+      // Students are fetched with group memberships included
+      expect(fetchAllStudents).toHaveBeenCalledWith(
+        SCHOOL_TOKEN,
+        WONDE_SCHOOL_ID,
+        expect.objectContaining({ includeGroups: true })
+      );
+    });
+
+    it('persists wondeClassSource=groups on full sync fallback', async () => {
+      fetchAllClasses.mockResolvedValue([]);
+      fetchAllGroups.mockResolvedValue(sampleGroups);
+      fetchAllStudents.mockResolvedValue(groupStudents);
+
+      const settingStatement = {
+        bind: vi.fn().mockReturnThis(),
+        run: vi.fn().mockResolvedValue({ success: true }),
+      };
+      db.prepare = vi.fn().mockImplementation((sql) => {
+        if (sql.includes('INSERT INTO org_settings')) {
+          return settingStatement;
+        }
+        return {
+          bind: vi.fn().mockReturnThis(),
+          run: vi.fn().mockResolvedValue({ success: true }),
+          first: vi.fn().mockResolvedValue(null),
+          all: vi.fn().mockResolvedValue({ results: [] }),
+        };
+      });
+
+      await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
+
+      expect(settingStatement.bind).toHaveBeenCalledWith(expect.any(String), ORG_ID, 'groups');
+    });
+
+    it('does not fall back to groups when classes exist', async () => {
+      await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
+
+      expect(fetchAllGroups).not.toHaveBeenCalled();
+      expect(fetchAllStudents).toHaveBeenCalledWith(
+        SCHOOL_TOKEN,
+        WONDE_SCHOOL_ID,
+        expect.objectContaining({ includeGroups: false })
+      );
+    });
+
+    it('uses groups endpoint directly on delta sync when wondeClassSource=groups', async () => {
+      fetchAllGroups.mockResolvedValue(sampleGroups);
+      fetchAllStudents.mockResolvedValue(groupStudents);
+
+      db.prepare = vi.fn().mockImplementation((sql) => {
+        if (sql.includes('wondeClassSource') && sql.includes('SELECT')) {
+          return {
+            bind: vi.fn().mockReturnThis(),
+            first: vi.fn().mockResolvedValue({ setting_value: 'groups' }),
+          };
+        }
+        return {
+          bind: vi.fn().mockReturnThis(),
+          run: vi.fn().mockResolvedValue({ success: true }),
+          first: vi.fn().mockResolvedValue(null),
+          all: vi.fn().mockResolvedValue({ results: [] }),
+        };
+      });
+
+      const updatedAfter = '2026-06-09T00:00:00Z';
+      const result = await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db, { updatedAfter });
+
+      expect(result.status).toBe('completed');
+      expect(fetchAllClasses).not.toHaveBeenCalled();
+      expect(fetchAllGroups).toHaveBeenCalledWith(
+        SCHOOL_TOKEN,
+        WONDE_SCHOOL_ID,
+        expect.objectContaining({ updatedAfter })
+      );
+    });
+
+    it('does not fetch groups on delta sync for class-based schools', async () => {
+      fetchAllClasses.mockResolvedValue([]);
+
+      const result = await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db, {
+        updatedAfter: '2026-06-09T00:00:00Z',
+      });
+
+      expect(result.status).toBe('completed');
+      expect(fetchAllGroups).not.toHaveBeenCalled();
+    });
+
+    it('resolves student class_id from registration group membership', async () => {
+      fetchAllClasses.mockResolvedValue([]);
+      fetchAllGroups.mockResolvedValue(sampleGroups);
+      fetchAllStudents.mockResolvedValue(groupStudents);
+
+      // Capture student INSERT binds
+      const studentBinds = [];
+      db.prepare = vi.fn().mockImplementation((sql) => {
+        const statement = {
+          bind: vi.fn((...args) => {
+            if (sql.includes('INSERT INTO students')) {
+              studentBinds.push(args);
+            }
+            return statement;
+          }),
+          run: vi.fn().mockResolvedValue({ success: true }),
+          first: vi.fn().mockResolvedValue(null),
+          all: vi.fn().mockResolvedValue({ results: [] }),
+        };
+        return statement;
+      });
+
+      const result = await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
+
+      expect(result.studentsCreated).toBe(1);
+      expect(studentBinds.length).toBe(1);
+      // INSERT bind order: id, organization_id, name, class_id, wonde_student_id, ...
+      const classIdBind = studentBinds[0][3];
+      // class_id must be the tally id generated for WGRP_6A (a uuid-N), not null
+      expect(classIdBind).toMatch(/^uuid-\d+$/);
+    });
   });
 });

@@ -724,6 +724,11 @@ files:
         kind: function
         params: [{name: token}, {name: schoolId}, {name: options}]
         returns: Promise<Array>
+      - name: fetchAllGroups
+        kind: function
+        params: [{name: token}, {name: schoolId}, {name: options}]
+        returns: Promise<Array>
+        description: REGISTRATION groups (form classes for MIS configs that expose no classes)
       - name: fetchAllEmployees
         kind: function
         params: [{name: token}, {name: schoolId}, {name: options}]
@@ -807,7 +812,7 @@ files:
       - name: mapWondeStudent
         kind: function
         params: [{name: wondeStudent}]
-        returns: "{wondeStudentId, name, yearGroup, senStatus, pupilPremium, ealStatus, fsm, wondeClassIds}"
+        returns: "{wondeStudentId, name, yearGroup, senStatus, pupilPremium, ealStatus, fsm, wondeClassIds, wondeRegistrationGroupIds}"
       - name: mapWondeClass
         kind: function
         params: [{name: wondeClass}]
@@ -823,7 +828,7 @@ files:
         description: Run full or delta sync of school data
     imports:
       - from: utils/wondeApi
-        items: [fetchAllStudents, fetchAllClasses, fetchAllEmployees, fetchDeletions]
+        items: [fetchAllStudents, fetchAllClasses, fetchAllGroups, fetchDeletions]
 
   services/metadataService.js:
     description: Cascade engine for multi-provider book metadata enrichment

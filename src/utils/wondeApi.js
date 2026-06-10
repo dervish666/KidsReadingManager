@@ -118,6 +118,8 @@ export async function fetchSchoolDetails(token, schoolId) {
  * @param {string} schoolId - Wonde school ID
  * @param {Object} [options] - Options
  * @param {string} [options.updatedAfter] - ISO date string for delta sync
+ * @param {boolean} [options.includeGroups] - Also include group memberships
+ *   (used by schools whose form classes are Wonde REGISTRATION groups)
  * @returns {Promise<Array>} All student records
  */
 export async function fetchAllStudents(token, schoolId, options = {}) {
@@ -125,6 +127,10 @@ export async function fetchAllStudents(token, schoolId, options = {}) {
     include: 'education_details,extended_details,classes,year',
     per_page: '200',
   };
+
+  if (options.includeGroups) {
+    params.include += ',groups';
+  }
 
   if (options.updatedAfter) {
     params.updated_after = options.updatedAfter;
@@ -158,6 +164,36 @@ export async function fetchAllClasses(token, schoolId, options = {}) {
   }
 
   return wondeRequest(`/schools/${schoolId}/classes`, token, params);
+}
+
+/**
+ * Fetch all registration groups for a school from the Wonde API.
+ *
+ * Some MIS configurations (commonly primary schools) expose no timetabled
+ * classes — the form classes are published as Wonde groups of type
+ * REGISTRATION instead. Calls `/schools/{schoolId}/groups?type=REGISTRATION`
+ * with an employees include so each group carries its form teachers,
+ * mirroring the shape returned by fetchAllClasses. Supports delta sync via
+ * `options.updatedAfter`.
+ *
+ * @param {string} token - Wonde API bearer token
+ * @param {string} schoolId - Wonde school ID
+ * @param {Object} [options] - Options
+ * @param {string} [options.updatedAfter] - ISO date string for delta sync
+ * @returns {Promise<Array>} All registration group records
+ */
+export async function fetchAllGroups(token, schoolId, options = {}) {
+  const params = {
+    include: 'employees',
+    type: 'REGISTRATION',
+    per_page: '200',
+  };
+
+  if (options.updatedAfter) {
+    params.updated_after = options.updatedAfter;
+  }
+
+  return wondeRequest(`/schools/${schoolId}/groups`, token, params);
 }
 
 /**

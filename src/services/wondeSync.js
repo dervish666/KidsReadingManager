@@ -13,7 +13,12 @@
  * - Sync logging with status tracking
  */
 
-import { fetchAllStudents, fetchAllClasses, fetchDeletions } from '../utils/wondeApi.js';
+import {
+  fetchAllStudents,
+  fetchAllClasses,
+  fetchAllGroups,
+  fetchDeletions,
+} from '../utils/wondeApi.js';
 import { syncUserClassAssignments } from '../utils/classAssignments.js';
 import { assertBatchSize } from '../utils/d1Batch.js';
 
@@ -27,6 +32,7 @@ export function mapWondeStudent(wondeStudent) {
   const educationData = wondeStudent.education_details?.data;
   const extendedData = wondeStudent.extended_details?.data;
   const classesData = wondeStudent.classes?.data;
+  const groupsData = wondeStudent.groups?.data;
 
   return {
     wondeStudentId: wondeStudent.id,
@@ -43,6 +49,9 @@ export function mapWondeStudent(wondeStudent) {
     firstLanguage: extendedData?.first_language || extendedData?.home_language || null,
     ealDetailedStatus: extendedData?.english_as_additional_language_status || null,
     wondeClassIds: Array.isArray(classesData) ? classesData.map((c) => c.id) : [],
+    wondeRegistrationGroupIds: Array.isArray(groupsData)
+      ? groupsData.filter((g) => g.type === 'REGISTRATION').map((g) => g.id)
+      : [],
   };
 }
 
@@ -169,7 +178,50 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
     // -----------------------------------------------------------------------
     // Step 2: Fetch and upsert classes
     // -----------------------------------------------------------------------
-    const wondeClasses = await fetchAllClasses(schoolToken, wondeSchoolId, fetchOptions);
+    // Some MIS configurations (commonly primaries) expose no classes — the
+    // form classes are published as Wonde REGISTRATION groups instead. Full
+    // sync detects this and persists the source in org_settings so delta
+    // syncs query the right endpoint without risking registration-group
+    // noise in schools that have real classes.
+    let classSource = 'classes';
+    if (syncType === 'delta') {
+      const sourceRow = await db
+        .prepare(
+          `SELECT setting_value FROM org_settings
+         WHERE organization_id = ? AND setting_key = 'wondeClassSource'`
+        )
+        .bind(orgId)
+        .first();
+      if (sourceRow?.setting_value === 'groups') {
+        classSource = 'groups';
+      }
+    }
+
+    let wondeClasses;
+    if (classSource === 'groups') {
+      wondeClasses = await fetchAllGroups(schoolToken, wondeSchoolId, fetchOptions);
+    } else {
+      wondeClasses = await fetchAllClasses(schoolToken, wondeSchoolId, fetchOptions);
+      if (syncType === 'full' && wondeClasses.length === 0) {
+        const wondeGroups = await fetchAllGroups(schoolToken, wondeSchoolId, fetchOptions);
+        if (wondeGroups.length > 0) {
+          wondeClasses = wondeGroups;
+          classSource = 'groups';
+        }
+      }
+    }
+
+    if (syncType === 'full') {
+      await db
+        .prepare(
+          `INSERT INTO org_settings (id, organization_id, setting_key, setting_value)
+         VALUES (?, ?, 'wondeClassSource', ?)
+         ON CONFLICT(organization_id, setting_key) DO UPDATE SET
+           setting_value = excluded.setting_value, updated_at = datetime('now')`
+        )
+        .bind(crypto.randomUUID(), orgId, classSource)
+        .run();
+    }
 
     // Batch-fetch existing classes to avoid N+1 queries
     const existingClassesResult = await db
@@ -180,8 +232,13 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
       (existingClassesResult.results || []).map((r) => [r.wonde_class_id, r])
     );
 
-    // Map wonde_class_id → tally class id (built as we upsert)
+    // Map wonde_class_id → tally class id. Seeded with all existing classes
+    // so students can resolve classes not in this fetch (delta syncs only
+    // return updated classes).
     const classLookup = new Map();
+    for (const [wondeId, row] of existingClassMap) {
+      if (wondeId) classLookup.set(wondeId, row.id);
+    }
     const classStatements = [];
 
     for (const wc of wondeClasses) {
@@ -223,7 +280,10 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
     // (Employee-class mappings are built from wondeClasses in Step 4)
     // -----------------------------------------------------------------------
     const [wondeStudents, deletions] = await Promise.all([
-      fetchAllStudents(schoolToken, wondeSchoolId, fetchOptions),
+      fetchAllStudents(schoolToken, wondeSchoolId, {
+        ...fetchOptions,
+        includeGroups: classSource === 'groups',
+      }),
       fetchDeletions(schoolToken, wondeSchoolId, options.updatedAfter),
     ]);
 
@@ -249,9 +309,12 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
         continue;
       }
 
-      // Resolve class_id from first wondeClassId
+      // Resolve class_id from first wondeClassId; group-sourced schools carry
+      // the form class in registration groups instead
+      const classCandidates =
+        mapped.wondeClassIds.length > 0 ? mapped.wondeClassIds : mapped.wondeRegistrationGroupIds;
       const classId =
-        mapped.wondeClassIds.length > 0 ? classLookup.get(mapped.wondeClassIds[0]) || null : null;
+        classCandidates.length > 0 ? classLookup.get(classCandidates[0]) || null : null;
 
       const existingId = existingStudentMap.get(mapped.wondeStudentId);
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.91.0] - 2026-06-10
+
+### Added
+
+- **Wonde sync supports schools whose MIS exposes no classes.** Some MIS configurations (commonly primaries, e.g. Cheddar Grove) publish form classes as Wonde REGISTRATION groups rather than classes, so the sync created students with no classes. Full sync now falls back to `/groups?type=REGISTRATION` when `/classes` returns nothing, creates the registration groups as Tally classes (with their form teachers feeding `wonde_employee_classes`), and resolves each student's class from their registration-group membership. The detected source is persisted as a `wondeClassSource` org setting so nightly delta syncs query the right endpoint without risking registration-group noise in schools that have real classes.
+
+### Fixed
+
+- **Delta sync no longer drops class assignment for new students in unchanged classes.** The wonde-class → Tally-class lookup is now seeded from the org's existing classes, so a student added to a class that wasn't itself updated since the last sync still gets their `class_id` resolved.
+
 ## [3.90.0] - 2026-06-10
 
 ### Added
