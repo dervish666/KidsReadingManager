@@ -22,7 +22,10 @@ export const rowToBook = (row) => {
         return [];
       }
     })(),
-    readingLevel: row.reading_level,
+    // Per-org override (from org_book_selections.reading_level_override) wins over
+    // the shared global value when an org-scoped query selects it. Global-only
+    // queries don't select the column, so this falls back to books.reading_level.
+    readingLevel: row.reading_level_override ?? row.reading_level,
     ageRange: row.age_range,
     description: row.description,
     isbn: row.isbn || null,

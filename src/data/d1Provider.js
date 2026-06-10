@@ -80,7 +80,7 @@ const getBooksByOrganization = async (env, organizationId) => {
     const result = await db
       .prepare(
         `
-      SELECT b.* FROM books b
+      SELECT b.*, obs.reading_level_override FROM books b
       INNER JOIN org_book_selections obs ON b.id = obs.book_id
       WHERE obs.organization_id = ? AND obs.is_available = 1
       ORDER BY b.title

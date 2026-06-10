@@ -32,19 +32,19 @@ When you add, remove, or rename source files or public classes/functions, update
 
 ### Directory Index
 
-| Directory | What lives there |
-|-----------|------------------|
-| `src/` (root) | `worker.js` (Worker entry, middleware chain, cron), `App.js`, `index.js`, `instrument.js` |
-| `src/routes/` | REST handlers — auth, mylogin, students, books, classes, genres, covers, users, organization, billing, parent, webhooks, support, metadata, badges (+ `students/`, `books/`, `users/`, `organization/` sub-routers) |
-| `src/middleware/` | `tenant.js` (JWT auth, tenant isolation, role guards, audit, rate limit), `errorHandler.js`, legacy `auth.js` |
-| `src/data/` | D1 books provider (`d1Provider`, factory `index.js`), `demoSnapshot` |
-| `src/services/` | `aiService`, `wondeSync`, `metadataService`, `demoReset`, `orgPurge`, and `providers/` (OpenLibrary, Google Books, Hardcover adapters) |
-| `src/utils/` | crypto, validation, helpers, streakCalculator, badge engine/definitions, stripe, rowMappers, routeHelpers, metadata API clients, content moderation, d1Batch, caches |
-| `src/contexts/` | `AuthContext`, `DataContext`, `UIContext`, composite `AppContext`, and `data/` CRUD hooks |
-| `src/hooks/` | `useEnrichmentPolling` |
-| `src/components/` | React UI — root-level pages plus subfolders: `students/`, `books/`, `sessions/`, `schools/`, `classes/`, `badges/`, `goals/`, `parent/`, `stats/`, `tour/`, `news/` |
-| `src/styles/` | `theme.js` (Material-UI theme) |
-| `scripts/` | `build-and-deploy.sh`, `seed-local.js`, `migration.js`, `reset-admin-password.js`, `export-demo-snapshot.js`, `test-api.js`, `graphify-refresh.sh` |
+| Directory         | What lives there                                                                                                                                                                                                    |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/` (root)     | `worker.js` (Worker entry, middleware chain, cron), `App.js`, `index.js`, `instrument.js`                                                                                                                           |
+| `src/routes/`     | REST handlers — auth, mylogin, students, books, classes, genres, covers, users, organization, billing, parent, webhooks, support, metadata, badges (+ `students/`, `books/`, `users/`, `organization/` sub-routers) |
+| `src/middleware/` | `tenant.js` (JWT auth, tenant isolation, role guards, audit, rate limit), `errorHandler.js`, legacy `auth.js`                                                                                                       |
+| `src/data/`       | D1 books provider (`d1Provider`, factory `index.js`), `demoSnapshot`                                                                                                                                                |
+| `src/services/`   | `aiService`, `wondeSync`, `metadataService`, `demoReset`, `orgPurge`, and `providers/` (OpenLibrary, Google Books, Hardcover adapters)                                                                              |
+| `src/utils/`      | crypto, validation, helpers, streakCalculator, badge engine/definitions, stripe, rowMappers, routeHelpers, metadata API clients, content moderation, d1Batch, caches                                                |
+| `src/contexts/`   | `AuthContext`, `DataContext`, `UIContext`, composite `AppContext`, and `data/` CRUD hooks                                                                                                                           |
+| `src/hooks/`      | `useEnrichmentPolling`                                                                                                                                                                                              |
+| `src/components/` | React UI — root-level pages plus subfolders: `students/`, `books/`, `sessions/`, `schools/`, `classes/`, `badges/`, `goals/`, `parent/`, `stats/`, `tour/`, `news/`                                                 |
+| `src/styles/`     | `theme.js` (Material-UI theme)                                                                                                                                                                                      |
+| `scripts/`        | `build-and-deploy.sh`, `seed-local.js`, `migration.js`, `reset-admin-password.js`, `export-demo-snapshot.js`, `test-api.js`, `graphify-refresh.sh`                                                                  |
 
 ### Structure Detail Files
 
@@ -80,7 +80,7 @@ npm run dev        # Runs on http://localhost:8787
 **Local dev account** (created by `seed:local`):
 
 | Field    | Value               |
-|----------|---------------------|
+| -------- | ------------------- |
 | Email    | dev@tallyreading.uk |
 | Password | password            |
 | Role     | owner               |
@@ -216,6 +216,8 @@ Permissions enforced via `requireOwner()`, `requireAdmin()`, `requireTeacher()`,
 ### Book Visibility Model
 
 Books use a shared global catalog with per-organization visibility via `org_book_selections`. When schools import books, matching books are linked (not duplicated). Each school only sees books linked to them.
+
+**Shared catalog is owner-only for writes.** The `books` row is global — editing it affects every linked school. Only the `owner` role may edit shared metadata (title/author/description/isbn/etc.) via `PUT /api/books/:id`; non-owners attempting metadata edits get 403. A school customises a book's reading level for itself only, via the per-org `org_book_selections.reading_level_override` column (migration 0066). NULL = use the global `books.reading_level`. The read path COALESCEs the override over the global value — `rowToBook` (`src/utils/rowMappers.js`) prefers `reading_level_override` when an org-scoped query selects it, so every org-scoped book read must `SELECT … obs.reading_level_override` (or, for explicit column lists like recommendations, `COALESCE(obs.reading_level_override, b.reading_level)`). This rides on the `org_book_selections` row already INNER JOINed on every org book read — no extra query/round-trip. Non-owner reading-level edits (`PUT /api/books/:id`, import-confirm conflicts) write the override, never the global row. **Frontend follow-up:** the book-edit dialog should disable shared-metadata fields for non-owners so they don't hit the 403.
 
 ## Important Implementation Details
 
@@ -390,6 +392,7 @@ Full design context is maintained in `.impeccable.md` at the project root. Key p
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
 
 Rules:
+
 - For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
 - If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
 - Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.

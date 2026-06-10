@@ -73,7 +73,8 @@ booksRouter.get('/', requireReadonly(), async (c) => {
     // always in the local cache; BookAutocomplete falls through to the
     // external-provider search for anything further back.
     if (all === 'true') {
-      const columns = fields === 'minimal' ? 'b.id, b.title, b.author' : 'b.*';
+      const columns =
+        fields === 'minimal' ? 'b.id, b.title, b.author' : 'b.*, obs.reading_level_override';
       const parsedLimit = limit ? Math.max(1, Math.min(10000, parseInt(limit, 10) || 0)) : null;
       const limitClause = parsedLimit ? ` LIMIT ${parsedLimit}` : '';
       const orderClause = parsedLimit ? 'b.updated_at DESC, b.title' : 'b.title';
@@ -114,7 +115,7 @@ booksRouter.get('/', requireReadonly(), async (c) => {
         result = await db
           .prepare(
             `
-          SELECT b.* FROM books b
+          SELECT b.*, obs.reading_level_override FROM books b
           INNER JOIN org_book_selections obs ON b.id = obs.book_id
           INNER JOIN books_fts fts ON b.id = fts.id
           WHERE obs.organization_id = ? AND fts MATCH ?
@@ -129,7 +130,7 @@ booksRouter.get('/', requireReadonly(), async (c) => {
         result = await db
           .prepare(
             `
-          SELECT b.* FROM books b
+          SELECT b.*, obs.reading_level_override FROM books b
           INNER JOIN org_book_selections obs ON b.id = obs.book_id
           WHERE obs.organization_id = ? AND (b.title LIKE ? OR b.author LIKE ?)
           ORDER BY b.title LIMIT ?
@@ -157,7 +158,7 @@ booksRouter.get('/', requireReadonly(), async (c) => {
       const result = await db
         .prepare(
           `
-        SELECT b.* FROM books b
+        SELECT b.*, obs.reading_level_override FROM books b
         INNER JOIN org_book_selections obs ON b.id = obs.book_id
         WHERE obs.organization_id = ? AND obs.is_available = 1
         ORDER BY b.title LIMIT ? OFFSET ?
@@ -186,7 +187,7 @@ booksRouter.get('/', requireReadonly(), async (c) => {
     const result = await db
       .prepare(
         `
-      SELECT b.* FROM books b
+      SELECT b.*, obs.reading_level_override FROM books b
       INNER JOIN org_book_selections obs ON b.id = obs.book_id
       WHERE obs.organization_id = ? AND obs.is_available = 1
       ORDER BY b.title LIMIT ? OFFSET 0
@@ -253,7 +254,7 @@ booksRouter.get('/search', requireReadonly(), async (c) => {
       result = await db
         .prepare(
           `
-        SELECT b.* FROM books b
+        SELECT b.*, obs.reading_level_override FROM books b
         INNER JOIN org_book_selections obs ON b.id = obs.book_id
         INNER JOIN books_fts fts ON b.id = fts.id
         WHERE obs.organization_id = ? AND fts MATCH ?
@@ -268,7 +269,7 @@ booksRouter.get('/search', requireReadonly(), async (c) => {
       result = await db
         .prepare(
           `
-        SELECT b.* FROM books b
+        SELECT b.*, obs.reading_level_override FROM books b
         INNER JOIN org_book_selections obs ON b.id = obs.book_id
         WHERE obs.organization_id = ? AND (b.title LIKE ? OR b.author LIKE ?)
         ORDER BY b.title LIMIT ?
@@ -375,7 +376,7 @@ booksRouter.get('/:id', requireReadonly(), async (c) => {
   if (organizationId && db) {
     const row = await db
       .prepare(
-        `SELECT b.* FROM books b
+        `SELECT b.*, obs.reading_level_override FROM books b
        INNER JOIN org_book_selections obs ON obs.book_id = b.id
        WHERE b.id = ? AND obs.organization_id = ?`
       )
@@ -414,12 +415,16 @@ booksRouter.put('/:id', requireTeacher(), async (c) => {
   const organizationId = c.get('organizationId');
   const db = c.env.READING_MANAGER_DB;
 
-  // Single query: check book exists and org ownership in one round-trip
+  const userRole = c.get('userRole');
+
+  // Single query: check book exists and org ownership in one round-trip. Also
+  // read this org's reading-level override and the shared global level.
   let existingBook;
+  let globalReadingLevel;
   if (organizationId && db) {
     const row = await db
       .prepare(
-        `SELECT b.* FROM books b
+        `SELECT b.*, obs.reading_level_override FROM books b
        INNER JOIN org_book_selections obs ON obs.book_id = b.id
        WHERE b.id = ? AND obs.organization_id = ?`
       )
@@ -428,23 +433,86 @@ booksRouter.put('/:id', requireTeacher(), async (c) => {
     if (!row) {
       throw notFoundError(`Book with ID ${id} not found`);
     }
-    existingBook = rowToBook(row);
+    existingBook = rowToBook(row); // readingLevel reflects this org's override
+    globalReadingLevel = row.reading_level;
+
+    // `books` is a SHARED global catalog. Only the platform owner may edit the
+    // shared row; a tenant edit would corrupt that book for every other linked
+    // school (and a body-supplied id previously enabled cross-tenant writes).
+    // Non-owners can only set a reading level for THEIR OWN school, stored as a
+    // per-org override on org_book_selections.
+    if (userRole !== 'owner') {
+      const newLevel =
+        bookData.readingLevel !== undefined ? bookData.readingLevel : existingBook.readingLevel;
+
+      const SHARED_FIELDS = [
+        'title',
+        'author',
+        'genreIds',
+        'ageRange',
+        'description',
+        'isbn',
+        'pageCount',
+        'seriesName',
+        'seriesNumber',
+        'publicationYear',
+      ];
+      const norm = (v) => (v === '' || v === undefined ? null : v);
+      const changedShared = SHARED_FIELDS.some((f) => {
+        if (bookData[f] === undefined) return false;
+        if (Array.isArray(bookData[f]) || Array.isArray(existingBook[f])) {
+          return JSON.stringify(bookData[f] ?? []) !== JSON.stringify(existingBook[f] ?? []);
+        }
+        return norm(bookData[f]) !== norm(existingBook[f]);
+      });
+      if (changedShared) {
+        throw forbiddenError(
+          'Only the platform owner can edit shared book details. Your school can set its own reading level.'
+        );
+      }
+
+      const levelValidation = validateBook({ ...existingBook, readingLevel: newLevel });
+      if (!levelValidation.isValid) {
+        throw badRequestError(levelValidation.errors.join('; '));
+      }
+
+      // Store NULL when the override equals the global value so it stays sparse
+      // and a school can "reset to default" by clearing the level.
+      const override =
+        newLevel === null ||
+        newLevel === undefined ||
+        String(newLevel) === String(globalReadingLevel)
+          ? null
+          : newLevel;
+      await db
+        .prepare(
+          `UPDATE org_book_selections SET reading_level_override = ?, updated_at = datetime('now')
+           WHERE organization_id = ? AND book_id = ?`
+        )
+        .bind(override, organizationId, id)
+        .run();
+
+      return c.json({ ...existingBook, readingLevel: override ?? globalReadingLevel });
+    }
   } else {
     const provider = await createProvider(c.env);
     existingBook = await provider.getBookById(id);
     if (!existingBook) {
       throw notFoundError(`Book with ID ${id} not found`);
     }
+    globalReadingLevel = existingBook.readingLevel;
   }
 
-  // Update book with safe merge
+  // Owner (or legacy mode): update the shared global catalog row. Base the
+  // reading level on the GLOBAL value (not any org override) so an owner editing
+  // while switched into a school doesn't bake that school's override into the
+  // shared record.
   const updatedBook = {
     ...existingBook,
     title: bookData.title !== undefined ? bookData.title : existingBook.title,
     author: bookData.author !== undefined ? bookData.author : existingBook.author,
     genreIds: bookData.genreIds !== undefined ? bookData.genreIds : existingBook.genreIds,
-    readingLevel:
-      bookData.readingLevel !== undefined ? bookData.readingLevel : existingBook.readingLevel,
+    readingLevel: bookData.readingLevel !== undefined ? bookData.readingLevel : globalReadingLevel,
     ageRange: bookData.ageRange !== undefined ? bookData.ageRange : existingBook.ageRange,
     description:
       bookData.description !== undefined ? bookData.description : existingBook.description,
@@ -524,7 +592,7 @@ booksRouter.post('/:id/enrich', requireAdmin(), async (c) => {
 
   const book = await db
     .prepare(
-      `SELECT b.* FROM books b
+      `SELECT b.*, obs.reading_level_override FROM books b
        INNER JOIN org_book_selections obs ON b.id = obs.book_id
        WHERE b.id = ? AND obs.organization_id = ? AND obs.is_available = 1`
     )

@@ -984,6 +984,7 @@ describe('Books API Routes', () => {
         expect(data.error).toBe('Forbidden');
       });
 
+      // Non-owners may set a per-org reading-level override (not shared metadata).
       it('should allow requests from teachers', async () => {
         const { app, mockDB } = createTestApp(createUserContext({ userRole: 'teacher' }));
 
@@ -991,7 +992,7 @@ describe('Books API Routes', () => {
         mockDB._chain.run.mockResolvedValue({ success: true });
 
         const response = await makeRequest(app, 'PUT', '/api/books/book-123', {
-          title: 'Updated Title',
+          readingLevel: '6.0',
         });
 
         expect(response.status).toBe(200);
@@ -1004,10 +1005,45 @@ describe('Books API Routes', () => {
         mockDB._chain.run.mockResolvedValue({ success: true });
 
         const response = await makeRequest(app, 'PUT', '/api/books/book-123', {
-          title: 'Updated Title',
+          readingLevel: '6.0',
         });
 
         expect(response.status).toBe(200);
+      });
+
+      // The shared global catalog row is owner-only. A non-owner editing
+      // title/author/etc. is refused so one school cannot corrupt a book for all
+      // the others (this also closes the former cross-tenant write via a
+      // body-supplied book id).
+      it('should reject shared-metadata edits from teachers with 403', async () => {
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'teacher' }));
+
+        mockDB._chain.first.mockResolvedValue(createMockBookRow());
+        mockDB._chain.run.mockResolvedValue({ success: true });
+
+        const response = await makeRequest(app, 'PUT', '/api/books/book-123', {
+          title: 'Vandalised Title',
+        });
+
+        expect(response.status).toBe(403);
+      });
+
+      // A non-owner's reading-level change writes the per-org override row, never
+      // the shared books table.
+      it('writes the reading-level override to org_book_selections, not books', async () => {
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'teacher' }));
+
+        mockDB._chain.first.mockResolvedValue(createMockBookRow());
+        mockDB._chain.run.mockResolvedValue({ success: true });
+
+        const response = await makeRequest(app, 'PUT', '/api/books/book-123', {
+          readingLevel: '6.0',
+        });
+
+        expect(response.status).toBe(200);
+        const updateSql = mockDB.prepare.mock.calls.map((call) => call[0]).join('\n');
+        expect(updateSql).toContain('UPDATE org_book_selections SET reading_level_override');
+        expect(updateSql).not.toContain('UPDATE books');
       });
     });
 
@@ -1029,7 +1065,7 @@ describe('Books API Routes', () => {
 
     describe('Input validation', () => {
       it('should reject update that removes title', async () => {
-        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'teacher' }));
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'owner' }));
 
         mockDB._chain.first.mockResolvedValue(createMockBookRow());
 
@@ -1045,7 +1081,7 @@ describe('Books API Routes', () => {
 
     describe('Book update', () => {
       it('should update book fields', async () => {
-        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'teacher' }));
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'owner' }));
 
         mockDB._chain.first.mockResolvedValue(createMockBookRow());
         mockDB._chain.run.mockResolvedValue({ success: true });
@@ -1062,7 +1098,7 @@ describe('Books API Routes', () => {
       });
 
       it('should preserve existing fields when not provided in update', async () => {
-        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'teacher' }));
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'owner' }));
 
         mockDB._chain.first.mockResolvedValue(
           createMockBookRow({
@@ -1085,7 +1121,7 @@ describe('Books API Routes', () => {
       });
 
       it('should preserve book ID during update', async () => {
-        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'teacher' }));
+        const { app, mockDB } = createTestApp(createUserContext({ userRole: 'owner' }));
 
         mockDB._chain.first.mockResolvedValue(createMockBookRow({ id: 'book-123' }));
         mockDB._chain.run.mockResolvedValue({ success: true });
@@ -1225,13 +1261,13 @@ describe('Books API Routes', () => {
       expect(mockDB._chain.run).not.toHaveBeenCalled();
     });
 
-    it('still allows a normal (non-demo) teacher to update a book', async () => {
+    it('still allows a normal (non-demo) teacher to set a reading level', async () => {
       const { app, mockDB } = createTestApp(createUserContext({ userRole: 'teacher' }));
       mockDB._chain.first.mockResolvedValue(createMockBookRow());
       mockDB._chain.run.mockResolvedValue({ success: true });
 
       const response = await makeRequest(app, 'PUT', '/api/books/book-123', {
-        title: 'Legit Update',
+        readingLevel: '6.0',
       });
 
       expect(response.status).toBe(200);
@@ -1423,7 +1459,15 @@ describe('Books API Routes', () => {
       { method: 'GET', path: '/api/books/search?q=test', minRole: 'readonly' },
       { method: 'GET', path: '/api/books/count', minRole: 'readonly' },
       { method: 'POST', path: '/api/books', minRole: 'teacher', body: { title: 'Test' } },
-      { method: 'PUT', path: '/api/books/book-123', minRole: 'teacher', body: { title: 'Test' } },
+      // Reading-level update: allowed for teacher+ (non-owners set a per-org
+      // override). Shared-metadata edits are separately owner-only — covered in
+      // the PUT /api/books/:id suite.
+      {
+        method: 'PUT',
+        path: '/api/books/book-123',
+        minRole: 'teacher',
+        body: { readingLevel: '6.0' },
+      },
       { method: 'DELETE', path: '/api/books/book-123', minRole: 'teacher' },
       { method: 'POST', path: '/api/books/bulk', minRole: 'teacher', body: [{ title: 'Test' }] },
     ];
@@ -1507,7 +1551,8 @@ describe('Books API Routes', () => {
     });
 
     it('should handle database errors on update', async () => {
-      const { app, mockDB } = createTestApp(createUserContext({ userRole: 'teacher' }));
+      // Owner edits the shared row, so the failing write is provider.updateBook.
+      const { app, mockDB } = createTestApp(createUserContext({ userRole: 'owner' }));
 
       mockDB._chain.first.mockResolvedValue(createMockBookRow());
       mockDB._chain.run.mockRejectedValue(new Error('Update failed'));

@@ -461,42 +461,57 @@ importRouter.post('/import/confirm', requireAdmin(), auditLog('import', 'books')
     });
   }
 
-  // 3. Handle conflicts (update books if requested, then link)
+  // 3. Handle conflicts: link the book to this org and, if requested, set a
+  //    per-org reading-level override. `books` is a SHARED global catalog, so a
+  //    reading-level change must NOT write the global row (that would corrupt the
+  //    book for every other linked school, and a body-supplied existingBookId
+  //    previously allowed cross-tenant writes). The override rides on this org's
+  //    own org_book_selections row. When the level isn't being updated we leave
+  //    any existing override untouched.
   for (const conflict of conflicts) {
     if (conflict.updateReadingLevel) {
       statements.push({
         stmt: db
           .prepare(
             `
-          UPDATE books SET reading_level = ?, updated_at = datetime('now') WHERE id = ?
+          INSERT INTO org_book_selections (id, organization_id, book_id, is_available, reading_level_override, created_at)
+          VALUES (?, ?, ?, 1, ?, datetime('now'))
+          ON CONFLICT (organization_id, book_id) DO UPDATE SET is_available = 1, reading_level_override = excluded.reading_level_override, updated_at = datetime('now')
         `
           )
-          .bind(conflict.newReadingLevel, conflict.existingBookId),
+          .bind(
+            crypto.randomUUID(),
+            organizationId,
+            conflict.existingBookId,
+            conflict.newReadingLevel ?? null
+          ),
         onSuccess: () => {
           updated++;
+          linked++;
+        },
+        onError: (err) => {
+          errors.push({ type: 'conflict', bookId: conflict.existingBookId, error: err });
+        },
+      });
+    } else {
+      statements.push({
+        stmt: db
+          .prepare(
+            `
+          INSERT INTO org_book_selections (id, organization_id, book_id, is_available, created_at)
+          VALUES (?, ?, ?, 1, datetime('now'))
+          ON CONFLICT (organization_id, book_id) DO UPDATE SET is_available = 1, updated_at = datetime('now')
+        `
+          )
+          .bind(crypto.randomUUID(), organizationId, conflict.existingBookId),
+        onSuccess: () => {
+          linked++;
         },
         onError: (err) => {
           errors.push({ type: 'conflict', bookId: conflict.existingBookId, error: err });
         },
       });
     }
-    statements.push({
-      stmt: db
-        .prepare(
-          `
-        INSERT INTO org_book_selections (id, organization_id, book_id, is_available, created_at)
-        VALUES (?, ?, ?, 1, datetime('now'))
-        ON CONFLICT (organization_id, book_id) DO UPDATE SET is_available = 1, updated_at = datetime('now')
-      `
-        )
-        .bind(crypto.randomUUID(), organizationId, conflict.existingBookId),
-      onSuccess: () => {
-        linked++;
-      },
-      onError: (err) => {
-        errors.push({ type: 'conflict', bookId: conflict.existingBookId, error: err });
-      },
-    });
   }
 
   // Execute in batches of 100 (D1 batch limit)

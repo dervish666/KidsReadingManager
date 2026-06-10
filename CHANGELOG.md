@@ -1,5 +1,19 @@
 # Changelog
 
+## [3.88.0] - 2026-06-10
+
+### Security
+
+- **Closed a cross-tenant write to the shared book catalog.** `books` is a global catalog shared by every school, but an admin could overwrite a book's reading level on the shared row via `PUT /api/books/:id` or `POST /api/books/import/confirm` (which trusted a book id from the request body) — corrupting that book's level for every other linked school. Editing the shared catalog (title/author/level/etc.) is now owner-only; all tenant book reads/writes are scoped to the organization.
+
+### Added
+
+- **Per-organization reading-level override.** A school can now set its own reading level for a shared book without touching the global record, via a new `org_book_selections.reading_level_override` column (migration `0066`). NULL means "use the global level". The override rides on the `org_book_selections` row already joined on every org book read, so there is no extra query — the read path COALESCEs the override over the global value, including the AI recommendation level filter.
+
+### Changed
+
+- **Shared book metadata is owner-only.** Non-owner roles (teacher/admin) editing a book can only set their school's reading level; attempts to change shared metadata (title/author/description/ISBN/etc.) now return 403. (Frontend follow-up: hide shared-metadata fields from non-owners in the book-edit dialog.)
+
 ## [3.87.0] - 2026-06-09
 
 ### Added

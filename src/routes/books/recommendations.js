@@ -49,7 +49,9 @@ recommendationsRouter.get('/library-search', requireReadonly(), async (c) => {
 
     // Build query to find matching books, scoped to organization
     let query = `
-      SELECT DISTINCT b.id, b.title, b.author, b.reading_level, b.age_range, b.genre_ids, b.description,
+      SELECT DISTINCT b.id, b.title, b.author,
+        COALESCE(obs.reading_level_override, b.reading_level) AS reading_level,
+        b.age_range, b.genre_ids, b.description,
         b.isbn, b.page_count, b.series_name, b.series_number, b.publication_year
       FROM books b
       INNER JOIN org_book_selections obs ON b.id = obs.book_id AND obs.organization_id = ?
@@ -74,8 +76,9 @@ recommendationsRouter.get('/library-search', requireReadonly(), async (c) => {
     }
 
     if (effectiveMin !== null && effectiveMax !== null) {
-      query += ` AND (b.reading_level IS NULL OR (
-        CAST(b.reading_level AS REAL) >= ? AND CAST(b.reading_level AS REAL) <= ?
+      query += ` AND (COALESCE(obs.reading_level_override, b.reading_level) IS NULL OR (
+        CAST(COALESCE(obs.reading_level_override, b.reading_level) AS REAL) >= ?
+        AND CAST(COALESCE(obs.reading_level_override, b.reading_level) AS REAL) <= ?
       ))`;
       params.push(effectiveMin, effectiveMax);
     }
