@@ -8,6 +8,7 @@
 
 import { generateId } from './helpers.js';
 import { D1_BATCH_LIMIT } from './d1Batch.js';
+import { buildTickerMessages } from './tickerEvents.js';
 import {
   resolveKeyStage,
   getRealtimeBadges,
@@ -476,7 +477,7 @@ export async function processBadgesForOrg(db, orgId, cursor, deadlineMs) {
   // safest. (? IS NULL OR s.id > ?) lets us pass cursor=null on first run.
   const students = await db
     .prepare(
-      `SELECT DISTINCT s.id, s.year_group
+      `SELECT DISTINCT s.id, s.name, s.year_group
        FROM students s
        INNER JOIN reading_sessions rs ON rs.student_id = s.id
        WHERE s.organization_id = ? AND s.is_active = 1
@@ -558,10 +559,12 @@ export async function processBadgesForOrg(db, orgId, cursor, deadlineMs) {
 
       // Evaluate both realtime and batch badges against shared data
       const insertStatements = [];
+      const awardedBadges = [];
       const allBadges = [...getRealtimeBadges(), ...getBatchBadges()];
       for (const badge of allBadges) {
         if (earnedBadgeIds.has(badge.id)) continue;
         if (badge.evaluate(stats, context)) {
+          awardedBadges.push(badge);
           insertStatements.push(
             db
               .prepare(
@@ -573,12 +576,24 @@ export async function processBadgesForOrg(db, orgId, cursor, deadlineMs) {
         }
       }
 
-      // Batch-insert all earned badges in one round-trip
+      // Overnight awards join the header ticker rotation for the next day
+      for (const m of buildTickerMessages(student.name, { newBadges: awardedBadges })) {
+        insertStatements.push(
+          db
+            .prepare(
+              `INSERT INTO ticker_events (id, organization_id, student_id, type, message)
+               VALUES (?, ?, ?, ?, ?)`
+            )
+            .bind(generateId(), orgId, student.id, m.type, m.message)
+        );
+      }
+
+      // Batch-insert all earned badges + ticker events in one round-trip
       if (insertStatements.length > 0) {
         for (let i = 0; i < insertStatements.length; i += D1_BATCH_LIMIT) {
           await db.batch(insertStatements.slice(i, i + D1_BATCH_LIMIT));
         }
-        newBadgeCount += insertStatements.length;
+        newBadgeCount += awardedBadges.length;
       }
 
       lastProcessedId = student.id;

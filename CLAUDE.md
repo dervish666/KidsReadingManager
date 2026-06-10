@@ -212,7 +212,7 @@ Permissions enforced via `requireOwner()`, `requireAdmin()`, `requireTeacher()`,
 - `classes`, `genres`, `organization_settings` - Organization-scoped
 - `term_dates` - Academic year term dates per organization (half-terms, holidays)
 - `parent_access_tokens` - Token-based parent portal access per student per academic year (token auth, teacher-revocable)
-- `ticker_events` - Intra-day celebration events (band-ups, badge awards) for the header Reading News ticker; written by `runSessionSideEffects`, read via `GET /api/badges/ticker`, purged after 2 days by the 2 AM cron
+- `ticker_events` - Celebration events (band-ups, badge awards) for the header Reading News ticker; written by `runSessionSideEffects` (real-time) and `processBadgesForOrg` (overnight badge cron), read via `GET /api/badges/ticker`, purged after 2 days by the 2 AM cron
 
 ### Book Visibility Model
 

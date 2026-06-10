@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.94.0] - 2026-06-10
+
+### Added
+
+- **Overnight badge awards now join the ticker too.** Badges granted by the 2:30 AM batch evaluation cron (`processBadgesForOrg`) are recorded to `ticker_events` alongside the badge inserts, so they're celebrated in the header ticker throughout the next school day — v3.93.0 had deliberately limited the ticker to real-time awards, but every success deserves its moment. The ticker endpoint's 50-event cap keeps a large overnight batch from overwhelming the rotation.
+
 ## [3.93.0] - 2026-06-10
 
 ### Added

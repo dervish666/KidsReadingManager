@@ -178,6 +178,55 @@ describe('processBadgesForOrg', () => {
     expect(result.processedCount).toBeGreaterThanOrEqual(3);
   });
 
+  it('records ticker events alongside badges awarded by the cron', async () => {
+    const db = buildMockDB([{ id: 'student-001', name: 'Alice Smith', year_group: '4' }]);
+    const deadlineMs = Date.now() + 60_000;
+
+    // Return a stats row rich enough to award at least one badge
+    const originalPrepare = db.prepare;
+    db.prepare = vi.fn((sql) => {
+      const chain = originalPrepare(sql);
+      if (sql.includes('FROM student_reading_stats')) {
+        chain.all = vi.fn(() =>
+          Promise.resolve({
+            results: [
+              {
+                student_id: 'student-001',
+                total_books: 100,
+                total_sessions: 200,
+                total_minutes: 1000,
+                total_pages: 0,
+                genres_read: '[]',
+                unique_authors_count: 0,
+                fiction_count: 0,
+                nonfiction_count: 0,
+                poetry_count: 0,
+                days_read_this_week: 0,
+                days_read_this_term: 0,
+                days_read_this_month: 0,
+                weeks_with_4plus_days: 0,
+                weeks_with_reading: 0,
+              },
+            ],
+            success: true,
+          })
+        );
+      }
+      return chain;
+    });
+
+    await processBadgesForOrg(db, 'org-1', null, deadlineMs);
+
+    const badgeInserts = db._calls.filter((c) => c.sql.includes('INSERT INTO student_badges'));
+    const tickerInserts = db._calls.filter((c) => c.sql.includes('INSERT INTO ticker_events'));
+    expect(badgeInserts.length).toBeGreaterThan(0);
+    expect(tickerInserts.length).toBe(badgeInserts.length);
+    // (id, organization_id, student_id, type, message)
+    expect(tickerInserts[0].args[1]).toBe('org-1');
+    expect(tickerInserts[0].args[3]).toBe('badge');
+    expect(tickerInserts[0].args[4]).toContain('Alice Smith');
+  });
+
   // Genre-fetch hoist (audit cycle 13 #16) ───────────────────────────────────
   describe('genres-map hoist', () => {
     const countGenreFetches = (db) =>
