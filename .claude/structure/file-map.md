@@ -123,6 +123,7 @@ src/utils/wondeApi.js - Wonde REST API client for school data sync
 src/utils/badgeDefinitions.js - Badge definitions with evaluate/progress functions, key stage resolution
 src/utils/gardenStages.js - Single source of truth for Reading Garden stage thresholds (STAGES, getStage, stageFromApiName, goalsToEffectiveBadgeCount, getAggregateGarden per-student scaling)
 src/utils/badgeEngine.js - Stats calculation, real-time/batch evaluation, genre classification, near-miss calculation
+src/utils/tickerEvents.js - Build + record intra-day celebration ticker events (band-ups, badge awards) for the header ticker
 src/utils/stripe.js - Stripe client factory, price ID helpers, AI add-on detection
 src/utils/statsExport.js - PDF/CSV stats report generation (jsPDF)
 src/utils/orgStatusCache.js - KV cache for organization is_active + subscription_status (tenantMiddleware reads, Stripe webhook/org deactivate/purge invalidate)
@@ -146,7 +147,7 @@ src/hooks/useEnrichmentPolling.js - Polling hook for metadata enrichment job pro
 
 ## Frontend Components - Root
 
-src/components/Header.js - App bar with nav, class filter, school switcher
+src/components/Header.js - App bar with nav, class filter, school switcher, Reading News ticker (news feed + polled /api/badges/ticker celebration events)
 src/components/LandingPage.js - Marketing landing page with email signup
 src/components/LandingPage.css - Landing page styles (scroll animations, floating blobs, responsive)
 src/components/Login.js - Auth UI (legacy, email/password, MyLogin SSO)
@@ -279,7 +280,7 @@ src/components/stats/AchievementsTab.js - Achievements tab: class-wide badge pro
 
 ## Frontend Components - News
 
-src/components/news/ReadingNewsTicker.js - Reading News ticker on the Stats page; rotates item/event headlines from /reading-news.json, opens the Reading News tab
+src/components/news/ReadingNewsTicker.js - Reading News ticker (compact variant lives in the header); rotates today's celebration events + item/event headlines from /reading-news.json, opens the Reading News tab
 src/components/news/ReadingNewsPage.js - Full Reading News newsletter (Stats-page tab): masthead, rotating "Reading roundup" card (one per load), "From your shelves" articles with most-read placement badges, "Dates for the diary" timeline with live countdowns
 src/components/news/newsFormat.js - Shared date helpers for the news ticker/page (dateParts, shortDate, longDate, sortEvents, countdownLabel, ordinal)
 

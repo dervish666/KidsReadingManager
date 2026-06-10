@@ -1,4 +1,4 @@
-import React, { useState, Suspense, useMemo } from 'react';
+import React, { useState, Suspense, useMemo, useCallback } from 'react';
 import { Box, Container, Paper, CssBaseline, ThemeProvider, CircularProgress } from '@mui/material';
 import theme from './styles/theme';
 import BottomNavigation from '@mui/material/BottomNavigation';
@@ -177,6 +177,21 @@ function AppContent() {
   const safeTab = currentTab >= visibleTabs.length ? 0 : currentTab;
   const ActiveTab = visibleTabs[safeTab].Component;
 
+  // Header ticker click-through: switch to the Stats tab and ask ReadingStats
+  // to open its Reading News sub-tab (sessionStorage covers the not-yet-mounted
+  // case; the event covers the already-mounted case).
+  const openReadingNews = useCallback(() => {
+    const statsIndex = visibleTabs.findIndex((t) => t.key === 'stats');
+    if (statsIndex < 0) return;
+    try {
+      window.sessionStorage.setItem('openReadingNewsTab', '1');
+    } catch {
+      // non-critical — Stats still opens, just on its default sub-tab
+    }
+    window.dispatchEvent(new Event('tally:open-reading-news'));
+    setCurrentTab(statsIndex);
+  }, [visibleTabs]);
+
   // Standalone pages rendered outside of auth
   if (window.location.pathname === '/privacy') {
     return (
@@ -293,7 +308,7 @@ function AppContent() {
       >
         Skip to main content
       </a>
-      <Header currentTab={visibleTabs[safeTab]?.label || 'Students'} />
+      <Header currentTab={visibleTabs[safeTab]?.label || 'Students'} onOpenNews={openReadingNews} />
       <DpaConsentModal />
       <BillingBanner />
       <ClassAssignmentBanner />

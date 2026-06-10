@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   AppBar,
   Toolbar,
@@ -23,8 +23,12 @@ import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
 import SupportModal from './SupportModal';
+import ReadingNewsTicker from './news/ReadingNewsTicker';
 
-const Header = ({ currentTab }) => {
+// How often the header re-checks for new celebration events (band-ups, badges)
+const TICKER_EVENTS_POLL_MS = 5 * 60 * 1000;
+
+const Header = ({ currentTab, onOpenNews }) => {
   const {
     isAuthenticated,
     logout,
@@ -34,6 +38,7 @@ const Header = ({ currentTab }) => {
     switchOrganization,
     switchingOrganization,
     organization,
+    fetchWithAuth,
   } = useAuth();
   const { classes } = useData();
   const { globalClassFilter, setGlobalClassFilter } = useUI();
@@ -42,6 +47,50 @@ const Header = ({ currentTab }) => {
   const [schoolAnchorEl, setSchoolAnchorEl] = useState(null);
   const [supportOpen, setSupportOpen] = useState(false);
   const schoolMenuOpen = Boolean(schoolAnchorEl);
+
+  // Reading News feed (static, same-origin) — drives the header ticker.
+  const [newsData, setNewsData] = useState(null);
+  useEffect(() => {
+    if (!isAuthenticated) return undefined;
+    let alive = true;
+    fetch('/reading-news.json', { cache: 'no-cache' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (alive && d && (Array.isArray(d.items) || Array.isArray(d.events))) setNewsData(d);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [isAuthenticated]);
+
+  // Today's celebration events (band-ups, badges) — polled so awards made
+  // during the day join the ticker rotation for the rest of the day.
+  const [tickerEvents, setTickerEvents] = useState([]);
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setTickerEvents([]);
+      return undefined;
+    }
+    let alive = true;
+    const fetchEvents = async () => {
+      try {
+        const res = await fetchWithAuth('/api/badges/ticker');
+        if (res.ok) {
+          const data = await res.json();
+          if (alive) setTickerEvents(data.events || []);
+        }
+      } catch {
+        // non-critical — ticker just shows news headlines
+      }
+    };
+    fetchEvents();
+    const id = setInterval(fetchEvents, TICKER_EVENTS_POLL_MS);
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
+  }, [isAuthenticated, fetchWithAuth, activeOrganizationId]);
 
   const handleSchoolMenuClick = (event) => {
     setSchoolAnchorEl(event.currentTarget);
@@ -133,6 +182,18 @@ const Header = ({ currentTab }) => {
           >
             Tally Reading
           </Typography>
+
+          {/* Reading News ticker — rotates headlines + today's celebrations */}
+          {isAuthenticated && (
+            <Box sx={{ flex: 1, minWidth: 0, mr: 2, display: { xs: 'none', md: 'block' } }}>
+              <ReadingNewsTicker
+                data={newsData}
+                liveEvents={tickerEvents}
+                onOpen={onOpenNews}
+                compact
+              />
+            </Box>
+          )}
 
           {/* Global Class Filter Dropdown */}
           <Box

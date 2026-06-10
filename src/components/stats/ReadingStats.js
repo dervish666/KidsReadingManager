@@ -25,7 +25,6 @@ import ReadingTimelineChart from './ReadingTimelineChart';
 import OverviewTab from './OverviewTab';
 import NeedsAttentionTab from './NeedsAttentionTab';
 import FrequencyTab from './FrequencyTab';
-import ReadingNewsTicker from '../news/ReadingNewsTicker';
 import ReadingNewsPage from '../news/ReadingNewsPage';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
@@ -38,7 +37,32 @@ const ReadingStats = () => {
   const { fetchWithAuth, organization } = useAuth();
   const { students, classes, settings } = useData();
   const { globalClassFilter, getReadingStatus } = useUI();
-  const [currentTab, setCurrentTab] = useState(0);
+  // The header ticker can deep-link to the Reading News sub-tab (index 4):
+  // a sessionStorage flag covers arriving here freshly mounted, and the
+  // 'tally:open-reading-news' event covers the already-mounted case.
+  const [currentTab, setCurrentTab] = useState(() => {
+    try {
+      if (window.sessionStorage.getItem('openReadingNewsTab')) {
+        window.sessionStorage.removeItem('openReadingNewsTab');
+        return 4;
+      }
+    } catch {
+      // storage unavailable — default sub-tab
+    }
+    return 0;
+  });
+  useEffect(() => {
+    const openNews = () => {
+      try {
+        window.sessionStorage.removeItem('openReadingNewsTab');
+      } catch {
+        // storage unavailable — nothing to clear
+      }
+      setCurrentTab(4);
+    };
+    window.addEventListener('tally:open-reading-news', openNews);
+    return () => window.removeEventListener('tally:open-reading-news', openNews);
+  }, []);
   useTour('stats');
   const [termDates, setTermDates] = useState([]);
   const [selectedTerm, setSelectedTerm] = useState('all');
@@ -297,8 +321,6 @@ const ReadingStats = () => {
           </Button>
         </Box>
       </Box>
-
-      <ReadingNewsTicker data={newsData} onOpen={() => setCurrentTab(4)} />
 
       <Box>
         <Paper

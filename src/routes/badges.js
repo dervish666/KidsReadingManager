@@ -16,6 +16,36 @@ import { calculateNearMisses } from '../utils/badgeEngine.js';
 const badgesRouter = new Hono();
 
 /**
+ * GET /api/badges/ticker
+ * Today's celebration events (band-ups, badge awards) for the org — rotated
+ * through the header Reading News ticker for the rest of the day.
+ */
+badgesRouter.get('/ticker', requireReadonly(), async (c) => {
+  const db = requireDB(c.env);
+  const organizationId = c.get('organizationId');
+
+  const result = await db
+    .prepare(
+      `SELECT id, type, message, created_at FROM ticker_events
+       WHERE organization_id = ? AND created_at >= date('now')
+       ORDER BY created_at DESC LIMIT 50`
+    )
+    .bind(organizationId)
+    .all();
+
+  const events = (result.results || []).map((r) => ({
+    id: r.id,
+    type: r.type,
+    message: r.message,
+    createdAt: r.created_at,
+  }));
+
+  c.header('Cache-Control', 'private, max-age=60, must-revalidate');
+  c.header('Vary', 'X-Organization-Id');
+  return c.json({ events });
+});
+
+/**
  * GET /api/badges/students/:id
  * Full badge collection for a student: earned, progress, near-misses
  */

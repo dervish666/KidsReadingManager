@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.93.0] - 2026-06-10
+
+### Added
+
+- **Reading News ticker moved to the top bar, now with live celebrations.** The ticker leaves the Stats page and sits in the header next to the title (md+ screens), so news is visible from every page. When a student moves up a reading band or earns a badge during the day, the event joins the ticker rotation for the rest of the day: `runSessionSideEffects` records band-ups and real-time badge awards to the new `ticker_events` table (migration 0067, covers teacher and parent-portal logging alike), the header polls the new `GET /api/badges/ticker` endpoint every 5 minutes, and the 2 AM cron purges events older than 2 days. Clicking the ticker still opens the Reading News page on Stats. Overnight batch-cron badge awards deliberately stay out of the rotation to avoid a morning flood.
+
 ## [3.92.2] - 2026-06-10
 
 ### Fixed

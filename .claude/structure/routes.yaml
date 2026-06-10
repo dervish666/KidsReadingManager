@@ -746,6 +746,9 @@ files:
         kind: object
         description: Hono router for badge endpoints
     endpoints:
+      - route: GET /api/badges/ticker
+        description: Today's org-scoped celebration events (band-ups, badge awards) for the header ticker
+        requires: readonly
       - route: GET /api/badges/students/:id
         description: Full badge collection for a student (earned, progress, near-misses)
         requires: readonly

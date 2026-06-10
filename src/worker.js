@@ -515,6 +515,13 @@ export default Sentry.withSentry(
                 `[Cron] Cleaned up ${oldLogins.meta?.changes || 0} login attempts older than 30 days`
               );
 
+              const oldTickerEvents = await db
+                .prepare(`DELETE FROM ticker_events WHERE created_at < datetime('now', '-2 days')`)
+                .run();
+              console.log(
+                `[Cron] Cleaned up ${oldTickerEvents.meta?.changes || 0} ticker events older than 2 days`
+              );
+
               const anonAudit = await db
                 .prepare(
                   `UPDATE audit_log SET ip_address = 'anonymised', user_agent = 'anonymised' WHERE created_at < datetime('now', '-90 days') AND ip_address != 'anonymised' AND ip_address IS NOT NULL`

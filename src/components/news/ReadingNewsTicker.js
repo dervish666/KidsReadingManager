@@ -6,10 +6,11 @@ import { countdownLabel, shortDate } from './newsFormat';
 
 const ROTATE_MS = 6000;
 
-/** Headlines to rotate: the news items, then the diary dates. */
-function tickerLines(data) {
-  if (!data) return [];
-  const lines = (data.items || []).map((i) => i.headline).filter(Boolean);
+/** Headlines to rotate: live celebration events first, then news, then diary dates. */
+function tickerLines(data, liveEvents) {
+  const lines = (liveEvents || []).map((e) => e.message).filter(Boolean);
+  if (!data) return lines;
+  lines.push(...(data.items || []).map((i) => i.headline).filter(Boolean));
   for (const e of data.events || []) {
     if (!e?.name) continue;
     const when = countdownLabel(e.date) || shortDate(e.date);
@@ -19,13 +20,14 @@ function tickerLines(data) {
 }
 
 /**
- * Reading News ticker — a quiet, warm bar atop the Stats page that rotates the
- * latest headlines and opens the Reading News tab on click. Presentational: it
- * receives the already-fetched feed and an `onOpen` callback (which switches
- * the Stats tab). Renders nothing when there's no news.
+ * Reading News ticker — a quiet, warm bar that rotates today's celebration
+ * events (band-ups, badges) and the latest headlines, opening the Reading News
+ * tab on click. Presentational: it receives the already-fetched feed, today's
+ * live events, and an `onOpen` callback. Renders nothing when there's nothing
+ * to show. `compact` renders the slimmer header variant.
  */
-export default function ReadingNewsTicker({ data, onOpen }) {
-  const lines = useMemo(() => tickerLines(data), [data]);
+export default function ReadingNewsTicker({ data, liveEvents, onOpen, compact = false }) {
+  const lines = useMemo(() => tickerLines(data, liveEvents), [data, liveEvents]);
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
 
@@ -66,11 +68,11 @@ export default function ReadingNewsTicker({ data, onOpen }) {
       sx={{
         display: 'flex',
         alignItems: 'center',
-        gap: 1.5,
-        px: 2,
-        py: 1.25,
-        mb: 3,
-        borderRadius: '12px',
+        gap: compact ? 1 : 1.5,
+        px: compact ? 1.5 : 2,
+        py: compact ? 0.5 : 1.25,
+        mb: compact ? 0 : 3,
+        borderRadius: compact ? '10px' : '12px',
         cursor: 'pointer',
         backgroundColor: 'rgba(107, 142, 107, 0.08)',
         border: '1px solid rgba(107, 142, 107, 0.18)',
@@ -83,45 +85,57 @@ export default function ReadingNewsTicker({ data, onOpen }) {
         },
       }}
     >
-      <AutoStoriesRoundedIcon sx={{ color: 'primary.main', flexShrink: 0 }} />
-      <Typography
-        component="span"
-        sx={{
-          flexShrink: 0,
-          fontWeight: 800,
-          fontSize: '0.7rem',
-          letterSpacing: '0.06em',
-          textTransform: 'uppercase',
-          color: 'primary.dark',
-          display: { xs: 'none', sm: 'block' },
-        }}
-      >
-        Reading News
-      </Typography>
+      <AutoStoriesRoundedIcon
+        sx={{ color: 'primary.main', flexShrink: 0, fontSize: compact ? 18 : 24 }}
+      />
+      {!compact && (
+        <Typography
+          component="span"
+          sx={{
+            flexShrink: 0,
+            fontWeight: 800,
+            fontSize: '0.7rem',
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            color: 'primary.dark',
+            display: { xs: 'none', sm: 'block' },
+          }}
+        >
+          Reading News
+        </Typography>
+      )}
       <Box sx={{ flex: 1, minWidth: 0, position: 'relative' }}>
         <Fade in key={index} timeout={500}>
           <Typography
             noWrap
             title={current}
-            sx={{ fontWeight: 600, color: 'text.primary', fontSize: '0.9rem' }}
+            sx={{
+              fontWeight: 600,
+              color: 'text.primary',
+              fontSize: compact ? '0.8rem' : '0.9rem',
+            }}
           >
             {current}
           </Typography>
         </Fade>
       </Box>
-      <Typography
-        component="span"
-        sx={{
-          flexShrink: 0,
-          fontSize: '0.8rem',
-          fontWeight: 600,
-          color: 'text.secondary',
-          display: { xs: 'none', md: 'block' },
-        }}
-      >
-        Read more
-      </Typography>
-      <ChevronRightRoundedIcon sx={{ color: 'text.secondary', flexShrink: 0 }} />
+      {!compact && (
+        <Typography
+          component="span"
+          sx={{
+            flexShrink: 0,
+            fontSize: '0.8rem',
+            fontWeight: 600,
+            color: 'text.secondary',
+            display: { xs: 'none', md: 'block' },
+          }}
+        >
+          Read more
+        </Typography>
+      )}
+      <ChevronRightRoundedIcon
+        sx={{ color: 'text.secondary', flexShrink: 0, fontSize: compact ? 18 : 24 }}
+      />
     </Box>
   );
 }

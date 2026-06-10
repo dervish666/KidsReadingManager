@@ -11,6 +11,7 @@ import { generateId } from '../../utils/helpers.js';
 import { D1_BATCH_LIMIT } from '../../utils/d1Batch.js';
 import { calculateStreak, getDateString } from '../../utils/streakCalculator.js';
 import { recalculateStats, evaluateRealTime } from '../../utils/badgeEngine.js';
+import { recordSessionTickerEvents } from '../../utils/tickerEvents.js';
 import { bumpClassGoalsOnSessions } from '../../utils/classGoalsEngine.js';
 import {
   countReads,
@@ -418,11 +419,18 @@ export const runSessionSideEffects = async (
       )) || [];
   }
 
+  const bandUp = bandResult?.bandUp || null;
+  if (bandUp || newBadges.length > 0) {
+    await runSafe('ticker events', () =>
+      recordSessionTickerEvents(db, organizationId, studentId, { bandUp, newBadges })
+    );
+  }
+
   return {
     streakData,
     completedGoals: completedGoalsResult || [],
     bandResult,
-    bandUp: bandResult?.bandUp || null,
+    bandUp,
     newBadges,
   };
 };

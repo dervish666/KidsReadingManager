@@ -620,6 +620,20 @@ files:
         returns: Array
         description: Filter BADGE_DEFINITIONS to batch-only categories
 
+  utils/tickerEvents.js:
+    description: Intra-day celebration ticker events (band-ups, badge awards) - message builder + recorder for the ticker_events table
+    exports:
+      - name: buildTickerMessages
+        kind: function
+        params: [{name: studentName, type: string}, {name: opts, type: "{bandUp, newBadges}"}]
+        returns: "Array<{type, message}>"
+        description: Pure celebration-line builder (band first, then badges); empty without a student name
+      - name: recordSessionTickerEvents
+        kind: function
+        params: [{name: db}, {name: organizationId, type: string}, {name: studentId, type: string}, {name: opts, type: "{bandUp, newBadges}"}]
+        returns: Promise<void>
+        description: Look up student name and batch-insert ticker_events rows; best-effort, called from runSessionSideEffects
+
   utils/badgeEngine.js:
     description: Stats calculation, real-time/batch badge evaluation, genre classification, near-miss calculation
     exports:
