@@ -24,6 +24,7 @@ import {
   Select,
   MenuItem,
   InputAdornment,
+  Autocomplete,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
@@ -79,6 +80,7 @@ const BookManager = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [booksPerPage, setBooksPerPage] = useState(10);
   const [genreFilter, setGenreFilter] = useState('');
+  const [seriesFilter, setSeriesFilter] = useState(null);
   const [readingLevelFilter, setReadingLevelFilter] = useState('');
   const [levelRangeFilter, setLevelRangeFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -258,17 +260,29 @@ const BookManager = () => {
     return Array.from(levels).sort();
   }, [books]);
 
+  // Get unique series names from books
+  const seriesNames = useMemo(() => {
+    const names = new Set();
+    books.forEach((book) => {
+      if (book.seriesName) {
+        names.add(book.seriesName);
+      }
+    });
+    return Array.from(names).sort((a, b) => a.localeCompare(b));
+  }, [books]);
+
   // Memoized filtered books to avoid recalculating on every render
   const filteredBooks = useMemo(() => {
     let filtered = books;
 
-    // Search filter - search by title or author
+    // Search filter - search by title, author, or series
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
       filtered = filtered.filter((book) => {
         const title = (book.title || '').toLowerCase();
         const author = (book.author || '').toLowerCase();
-        return title.includes(query) || author.includes(query);
+        const series = (book.seriesName || '').toLowerCase();
+        return title.includes(query) || author.includes(query) || series.includes(query);
       });
     }
 
@@ -277,6 +291,12 @@ const BookManager = () => {
         const bookGenreIds = book.genreIds || [];
         return bookGenreIds.includes(genreFilter);
       });
+    }
+
+    if (seriesFilter) {
+      filtered = filtered
+        .filter((book) => book.seriesName === seriesFilter)
+        .sort((a, b) => (a.seriesNumber ?? Infinity) - (b.seriesNumber ?? Infinity));
     }
 
     // Reading level filter with optional range
@@ -298,7 +318,12 @@ const BookManager = () => {
     }
 
     return filtered;
-  }, [books, searchQuery, genreFilter, readingLevelFilter, levelRangeFilter]);
+  }, [books, searchQuery, genreFilter, seriesFilter, readingLevelFilter, levelRangeFilter]);
+
+  const handleSeriesFilterChange = (event, newValue) => {
+    setSeriesFilter(newValue);
+    setCurrentPage(1); // Reset to first page when changing filter
+  };
 
   const handleGenreFilterChange = (event) => {
     setGenreFilter(event.target.value);
@@ -456,7 +481,7 @@ const BookManager = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
             <Typography variant="subtitle1">
               Existing Books (
-              {genreFilter || readingLevelFilter || searchQuery
+              {genreFilter || seriesFilter || readingLevelFilter || searchQuery
                 ? `${filteredBooks.length} of ${books.length}`
                 : books.length}
               )
@@ -496,6 +521,18 @@ const BookManager = () => {
                   ))}
                 </Select>
               </FormControl>
+            )}
+
+            {/* Series Filter - searchable dropdown of all series */}
+            {seriesNames.length > 0 && (
+              <Autocomplete
+                size="small"
+                options={seriesNames}
+                value={seriesFilter}
+                onChange={handleSeriesFilterChange}
+                sx={{ minWidth: 200 }}
+                renderInput={(params) => <TextField {...params} label="Filter by Series" />}
+              />
             )}
 
             {/* Reading Level Filter */}
@@ -628,6 +665,25 @@ const BookManager = () => {
                             size="small"
                             variant="outlined"
                             sx={{ flexShrink: 0 }}
+                          />
+                        )}
+                        {/* Series chip */}
+                        {book.seriesName && (
+                          <Chip
+                            label={
+                              book.seriesNumber != null
+                                ? `${book.seriesName} #${book.seriesNumber}`
+                                : book.seriesName
+                            }
+                            size="small"
+                            color="secondary"
+                            variant="outlined"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSeriesFilter(book.seriesName);
+                              setCurrentPage(1);
+                            }}
+                            sx={{ flexShrink: 0, fontSize: '0.7rem', height: 20 }}
                           />
                         )}
                         {/* Reading Level chip */}

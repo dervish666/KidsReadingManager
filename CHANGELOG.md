@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.89.0] - 2026-06-10
+
+### Added
+
+- **Series info on the books page.** Books belonging to a series now show a clickable `Series #N` chip in the library list, a searchable "Filter by Series" dropdown lists every series in the school's library, and the search box matches series names as well as title/author. Filtering by a series orders the books by their number in the series.
+- **Full metadata in the book-edit dialog.** Series name, number in series, page count, publication year, and ISBN were stored (and enriched) but never displayed — they are now editable fields in the dialog.
+
+### Changed
+
+- **Book-edit dialog respects owner-only shared metadata.** Completes the 3.88.0 frontend follow-up: shared fields (title/author/description/genres/series/etc.) are disabled for non-owner roles, who previously got a 403 on save. Non-owners can still set their school's reading level (the dialog says so), and their save sends only that field.
+
 ## [3.88.0] - 2026-06-10
 
 ### Security

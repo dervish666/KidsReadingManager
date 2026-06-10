@@ -22,14 +22,24 @@ import { useData } from '../../contexts/DataContext';
 import BookCover from '../BookCover';
 
 const BookEditDialog = ({ book, onClose, onSave, genres }) => {
-  const { fetchWithAuth } = useAuth();
+  const { fetchWithAuth, userRole } = useAuth();
   const { reloadDataFromServer } = useData();
+
+  // The books catalog is shared across all schools — only the platform owner
+  // may edit shared metadata (the API 403s otherwise). Non-owners can only set
+  // a per-school reading level override.
+  const isOwner = userRole === 'owner';
 
   const [editBookTitle, setEditBookTitle] = useState('');
   const [editBookAuthor, setEditBookAuthor] = useState('');
   const [editBookReadingLevel, setEditBookReadingLevel] = useState('');
   const [editBookAgeRange, setEditBookAgeRange] = useState('');
   const [editBookDescription, setEditBookDescription] = useState('');
+  const [editBookSeriesName, setEditBookSeriesName] = useState('');
+  const [editBookSeriesNumber, setEditBookSeriesNumber] = useState('');
+  const [editBookPageCount, setEditBookPageCount] = useState('');
+  const [editBookPublicationYear, setEditBookPublicationYear] = useState('');
+  const [editBookIsbn, setEditBookIsbn] = useState('');
   const [editBookGenreIds, setEditBookGenreIds] = useState([]);
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -44,6 +54,11 @@ const BookEditDialog = ({ book, onClose, onSave, genres }) => {
       setEditBookReadingLevel(book.readingLevel || '');
       setEditBookAgeRange(book.ageRange || '');
       setEditBookDescription(book.description || '');
+      setEditBookSeriesName(book.seriesName || '');
+      setEditBookSeriesNumber(book.seriesNumber != null ? String(book.seriesNumber) : '');
+      setEditBookPageCount(book.pageCount != null ? String(book.pageCount) : '');
+      setEditBookPublicationYear(book.publicationYear != null ? String(book.publicationYear) : '');
+      setEditBookIsbn(book.isbn || '');
       setEditBookGenreIds(book.genreIds || []);
       setError('');
     }
@@ -111,18 +126,31 @@ const BookEditDialog = ({ book, onClose, onSave, genres }) => {
 
     setIsSaving(true);
     try {
+      // Non-owners may only change the per-school reading level override —
+      // sending shared metadata fields would 403 if they differ, so omit them.
+      const payload = isOwner
+        ? {
+            title: editBookTitle.trim(),
+            author: editBookAuthor.trim() || null,
+            readingLevel: editBookReadingLevel.trim() || null,
+            ageRange: editBookAgeRange.trim() || null,
+            description: editBookDescription.trim() || null,
+            seriesName: editBookSeriesName.trim() || null,
+            seriesNumber: editBookSeriesNumber ? parseInt(editBookSeriesNumber, 10) : null,
+            pageCount: editBookPageCount ? parseInt(editBookPageCount, 10) : null,
+            publicationYear: editBookPublicationYear ? parseInt(editBookPublicationYear, 10) : null,
+            isbn: editBookIsbn.trim() || null,
+            genreIds: editBookGenreIds,
+          }
+        : {
+            readingLevel: editBookReadingLevel.trim() || null,
+          };
+
       // Use authenticated helper for consistency with protected API
       const response = await fetchWithAuth(`/api/books/${book.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: editBookTitle.trim(),
-          author: editBookAuthor.trim() || null,
-          readingLevel: editBookReadingLevel.trim() || null,
-          ageRange: editBookAgeRange.trim() || null,
-          description: editBookDescription.trim() || null,
-          genreIds: editBookGenreIds,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -146,6 +174,11 @@ const BookEditDialog = ({ book, onClose, onSave, genres }) => {
     setEditBookReadingLevel('');
     setEditBookAgeRange('');
     setEditBookDescription('');
+    setEditBookSeriesName('');
+    setEditBookSeriesNumber('');
+    setEditBookPageCount('');
+    setEditBookPublicationYear('');
+    setEditBookIsbn('');
     setEditBookGenreIds([]);
     setError('');
     onClose();
@@ -187,6 +220,7 @@ const BookEditDialog = ({ book, onClose, onSave, genres }) => {
                 multiline
                 rows={4}
                 placeholder="Book description (can be fetched from OpenLibrary)"
+                disabled={!isOwner}
               />
             </Box>
 
@@ -224,8 +258,11 @@ const BookEditDialog = ({ book, onClose, onSave, genres }) => {
                         key={genreId}
                         label={genre.name}
                         size="small"
-                        onDelete={() =>
-                          setEditBookGenreIds((prev) => prev.filter((id) => id !== genreId))
+                        onDelete={
+                          isOwner
+                            ? () =>
+                                setEditBookGenreIds((prev) => prev.filter((id) => id !== genreId))
+                            : undefined
                         }
                         sx={{ height: 24 }}
                       />
@@ -239,7 +276,7 @@ const BookEditDialog = ({ book, onClose, onSave, genres }) => {
                 </Box>
               </Box>
               {/* Genre selector dropdown */}
-              <FormControl size="small" sx={{ mt: 1 }}>
+              <FormControl size="small" sx={{ mt: 1 }} disabled={!isOwner}>
                 <InputLabel id="edit-genre-select-label">Add Genre</InputLabel>
                 <Select
                   labelId="edit-genre-select-label"
@@ -274,6 +311,7 @@ const BookEditDialog = ({ book, onClose, onSave, genres }) => {
                 fullWidth
                 size="small"
                 required
+                disabled={!isOwner}
               />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
@@ -283,6 +321,7 @@ const BookEditDialog = ({ book, onClose, onSave, genres }) => {
                 onChange={(e) => setEditBookAuthor(e.target.value)}
                 fullWidth
                 size="small"
+                disabled={!isOwner}
               />
             </Grid>
             <Grid size={6}>
@@ -292,6 +331,7 @@ const BookEditDialog = ({ book, onClose, onSave, genres }) => {
                 onChange={(e) => setEditBookReadingLevel(e.target.value)}
                 fullWidth
                 size="small"
+                helperText={!isOwner ? 'Sets the level for your school only' : undefined}
               />
             </Grid>
             <Grid size={6}>
@@ -302,6 +342,58 @@ const BookEditDialog = ({ book, onClose, onSave, genres }) => {
                 fullWidth
                 size="small"
                 placeholder="e.g., 6-9"
+                disabled={!isOwner}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                label="Series"
+                value={editBookSeriesName}
+                onChange={(e) => setEditBookSeriesName(e.target.value)}
+                fullWidth
+                size="small"
+                placeholder="e.g., Harry Potter"
+                disabled={!isOwner}
+              />
+            </Grid>
+            <Grid size={{ xs: 4, sm: 2 }}>
+              <TextField
+                label="No. in Series"
+                value={editBookSeriesNumber}
+                onChange={(e) => setEditBookSeriesNumber(e.target.value.replace(/[^0-9]/g, ''))}
+                fullWidth
+                size="small"
+                disabled={!isOwner}
+              />
+            </Grid>
+            <Grid size={{ xs: 4, sm: 2 }}>
+              <TextField
+                label="Pages"
+                value={editBookPageCount}
+                onChange={(e) => setEditBookPageCount(e.target.value.replace(/[^0-9]/g, ''))}
+                fullWidth
+                size="small"
+                disabled={!isOwner}
+              />
+            </Grid>
+            <Grid size={{ xs: 4, sm: 2 }}>
+              <TextField
+                label="Published"
+                value={editBookPublicationYear}
+                onChange={(e) => setEditBookPublicationYear(e.target.value.replace(/[^0-9]/g, ''))}
+                fullWidth
+                size="small"
+                disabled={!isOwner}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                label="ISBN"
+                value={editBookIsbn}
+                onChange={(e) => setEditBookIsbn(e.target.value)}
+                fullWidth
+                size="small"
+                disabled={!isOwner}
               />
             </Grid>
           </Grid>

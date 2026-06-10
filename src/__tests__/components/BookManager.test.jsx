@@ -37,7 +37,7 @@ import * as bookMetadataApi from '../../utils/bookMetadataApi';
 const createWrapper = (contextValue) => {
   const { fetchWithAuth, ...dataValues } = contextValue;
   return ({ children }) => (
-    <TestAuthContext.Provider value={{ fetchWithAuth }}>
+    <TestAuthContext.Provider value={{ fetchWithAuth, userRole: 'owner' }}>
       <TestDataContext.Provider value={dataValues}>{children}</TestDataContext.Provider>
     </TestAuthContext.Provider>
   );
