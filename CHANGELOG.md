@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.94.1] - 2026-06-11
+
+### Security
+
+- **Bumped `concurrently` 9.2.1 → 10.0.3 (dev dependency)** to pull in `shell-quote` 1.8.4, clearing the critical Dependabot alert CVE-2026-9277 (`quote()` failed to escape newlines in object `.op` values). concurrently 9.x pinned shell-quote at exactly 1.8.3, so the major bump was the clean fix; it's only used by `npm run start:dev` and the invocation is unchanged. `npm audit` now reports 0 vulnerabilities.
+
 ## [3.94.0] - 2026-06-10
 
 ### Added
