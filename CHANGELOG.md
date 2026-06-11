@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.99.1] - 2026-06-11
+
+### Fixed
+
+- **Reading News ticker now visible on iPad portrait.** The header ticker was hidden below the 900px `md` breakpoint, so iPad portrait (~768–834px) never showed it; it now displays from `sm` (600px) up. To make room, the decorative filter-funnel icon next to the class dropdown was removed (it wasn't interactive and read as a mystery triangle) and the Logout button is now icon-only with a tooltip and aria-label.
+
 ## [3.99.0] - 2026-06-11
 
 ### Added

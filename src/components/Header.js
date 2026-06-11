@@ -7,13 +7,12 @@ import {
   FormControl,
   Select,
   MenuItem,
-  Button,
   Chip,
   Menu,
   CircularProgress,
   IconButton,
+  Tooltip,
 } from '@mui/material';
-import FilterListIcon from '@mui/icons-material/FilterList';
 import TallyLogo from './TallyLogo';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SchoolOutlined from '@mui/icons-material/SchoolOutlined';
@@ -185,7 +184,7 @@ const Header = ({ currentTab, onOpenNews }) => {
 
           {/* Reading News ticker — rotates headlines + today's celebrations */}
           {isAuthenticated && (
-            <Box sx={{ flex: 1, minWidth: 0, mr: 2, display: { xs: 'none', md: 'block' } }}>
+            <Box sx={{ flex: 1, minWidth: 0, mr: 2, display: { xs: 'none', sm: 'block' } }}>
               <ReadingNewsTicker
                 data={newsData}
                 liveEvents={tickerEvents}
@@ -204,14 +203,6 @@ const Header = ({ currentTab, onOpenNews }) => {
               ml: 'auto',
             }}
           >
-            <FilterListIcon
-              sx={{
-                mr: 1,
-                fontSize: { xs: '1rem', sm: '1.25rem' },
-                color: 'text.secondary',
-                display: { xs: 'none', sm: 'block' },
-              }}
-            />
             <FormControl
               size="small"
               sx={{
@@ -392,28 +383,24 @@ const Header = ({ currentTab, onOpenNews }) => {
               <HelpOutlineIcon sx={{ fontSize: 20 }} />
             </IconButton>
 
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={logout}
-              startIcon={<LogoutIcon sx={{ fontSize: 16 }} />}
-              sx={{
-                color: 'primary.main',
-                borderColor: 'rgba(107, 142, 107, 0.3)',
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                textTransform: 'none',
-                px: 1.5,
-                py: 0.5,
-                minHeight: 32,
-                '&:hover': {
-                  borderColor: 'primary.main',
-                  backgroundColor: 'rgba(107, 142, 107, 0.05)',
-                },
-              }}
-            >
-              Logout
-            </Button>
+            <Tooltip title="Logout">
+              <IconButton
+                onClick={logout}
+                size="small"
+                aria-label="Logout"
+                sx={{
+                  color: 'primary.main',
+                  border: '1px solid rgba(107, 142, 107, 0.3)',
+                  borderRadius: '10px',
+                  '&:hover': {
+                    borderColor: 'primary.main',
+                    backgroundColor: 'rgba(107, 142, 107, 0.05)',
+                  },
+                }}
+              >
+                <LogoutIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Tooltip>
           </Box>
         )}
       </Toolbar>
