@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.97.0] - 2026-06-11
+
+### Added
+
+- **Parent portal shows the child's badges under the Reading Garden.** The garden previously reported a badge count with no way to see what was earned. `GET /api/parent/:token` now returns the earned badges enriched server-side from `BADGE_DEFINITIONS` (name, tier, description, icon, earned date) via a new `enrichEarnedBadges()` helper — payload self-contained, retired badge ids dropped, `badgeCount` kept for the garden stage. The portal renders them as a centred wrapping row of tappable `BadgeIcon`s (the Achievements page's touch-first popover component: name + tier chip + description, keyboard/screen-reader accessible), newest first, with a gentle empty state before the first badge.
+
 ## [3.96.0] - 2026-06-11
 
 ### Added

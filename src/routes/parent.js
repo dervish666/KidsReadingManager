@@ -27,8 +27,31 @@ import {
 import { getDateString } from '../utils/streakCalculator.js';
 import { ACADEMIC_YEAR_START_MONTH } from '../utils/constants.js';
 import { bandForCount, bandTransition } from '../utils/readingBandEngine.js';
+import { BADGE_DEFINITIONS } from '../utils/badgeDefinitions.js';
 
 export const parentRouter = new Hono();
+
+/**
+ * Enrich earned-badge rows with their definitions so the parent payload is
+ * self-contained (name/description/icon, no badge_id lookups client-side).
+ * Rows for retired badge ids are dropped.
+ */
+export function enrichEarnedBadges(rows) {
+  return (rows || [])
+    .map((row) => {
+      const def = BADGE_DEFINITIONS.find((b) => b.id === row.badge_id);
+      if (!def) return null;
+      return {
+        badgeId: def.id,
+        name: def.name,
+        tier: row.tier || def.tier,
+        description: def.description,
+        icon: def.icon,
+        earnedAt: row.earned_at,
+      };
+    })
+    .filter(Boolean);
+}
 
 /**
  * Decide whether to show a parent the band-up celebration on portal load.
@@ -184,12 +207,15 @@ parentRouter.get('/:token', rateLimit(60, 60000, 'parent:view'), async (c) => {
     location: s.location || 'school',
   }));
 
-  // Badge count
-  const badgeCountRow = await db
-    .prepare('SELECT COUNT(*) as count FROM student_badges WHERE student_id = ?')
+  // Earned badges (see enrichEarnedBadges above)
+  const badgesResult = await db
+    .prepare(
+      'SELECT badge_id, tier, earned_at FROM student_badges WHERE student_id = ? ORDER BY earned_at DESC'
+    )
     .bind(studentId)
-    .first();
-  const badgeCount = badgeCountRow?.count || 0;
+    .all();
+  const badges = enrichEarnedBadges(badgesResult.results);
+  const badgeCount = badges.length;
 
   // Reading band: lazily reset for the academic year, then decide whether to
   // celebrate a climb the parent hasn't seen yet (e.g. a teacher's logs).
@@ -220,6 +246,7 @@ parentRouter.get('/:token', rateLimit(60, 60000, 'parent:view'), async (c) => {
     streak,
     sessions,
     badgeCount,
+    badges,
     band,
     bandUp,
     bandColors,

@@ -21,6 +21,7 @@ import BarcodeScanner from '../books/BarcodeScanner';
 import StreakBadge from '../students/StreakBadge';
 import GardenHeader from '../badges/GardenHeader';
 import BadgeCelebration from '../badges/BadgeCelebration';
+import BadgeIcon from '../badges/BadgeIcon';
 import BandCelebration from '../badges/BandCelebration';
 import { ReadingBandProgress } from '../students/ReadingBandChip';
 import TallyLogo from '../TallyLogo';
@@ -280,7 +281,7 @@ const ParentPortal = () => {
     );
   }
 
-  const { currentBook, streak, sessions = [], badgeCount = 0 } = data || {};
+  const { currentBook, streak, sessions = [], badgeCount = 0, badges = [] } = data || {};
 
   return (
     <Box sx={{ maxWidth: 480, mx: 'auto', bgcolor: 'parent.surface', minHeight: '100vh', pb: 6 }}>
@@ -490,6 +491,29 @@ const ParentPortal = () => {
             Reading Garden
           </Typography>
           <GardenHeader badgeCount={badgeCount} height={160} />
+          {badges.length > 0 ? (
+            <Box
+              sx={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                justifyContent: 'center',
+                gap: 1,
+                mt: 1.5,
+              }}
+            >
+              {badges.map((badge) => (
+                <BadgeIcon key={`${badge.badgeId}-${badge.earnedAt}`} badge={badge} />
+              ))}
+            </Box>
+          ) : (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ mt: 1.5, textAlign: 'center' }}
+            >
+              Badges {firstName} earns will appear here.
+            </Typography>
+          )}
         </Box>
       </Box>
 
