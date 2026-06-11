@@ -118,8 +118,8 @@ booksRouter.get('/', requireReadonly(), async (c) => {
             `
           SELECT b.*, obs.reading_level_override FROM books b
           INNER JOIN org_book_selections obs ON b.id = obs.book_id
-          INNER JOIN books_fts fts ON b.id = fts.id
-          WHERE obs.organization_id = ? AND fts MATCH ?
+          INNER JOIN books_fts ON b.id = books_fts.id
+          WHERE obs.organization_id = ? AND books_fts MATCH ?
           ORDER BY rank LIMIT ?
         `
           )
@@ -258,8 +258,8 @@ booksRouter.get('/search', requireReadonly(), async (c) => {
           `
         SELECT b.*, obs.reading_level_override FROM books b
         INNER JOIN org_book_selections obs ON b.id = obs.book_id
-        INNER JOIN books_fts fts ON b.id = fts.id
-        WHERE obs.organization_id = ? AND fts MATCH ?
+        INNER JOIN books_fts ON b.id = books_fts.id
+        WHERE obs.organization_id = ? AND books_fts MATCH ?
         ORDER BY rank LIMIT ?
       `
         )

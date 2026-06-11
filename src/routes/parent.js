@@ -449,8 +449,8 @@ parentRouter.get('/:token/books', rateLimit(30, 60000, 'parent:books'), async (c
           `SELECT b.id, b.title, b.author, b.isbn
              FROM books b
              INNER JOIN org_book_selections obs ON b.id = obs.book_id
-             INNER JOIN books_fts fts ON b.id = fts.id
-            WHERE obs.organization_id = ? AND obs.is_available = 1 AND fts MATCH ?
+             INNER JOIN books_fts ON b.id = books_fts.id
+            WHERE obs.organization_id = ? AND obs.is_available = 1 AND books_fts MATCH ?
             ORDER BY rank LIMIT 10`
         )
         .bind(organizationId, ftsQuery)

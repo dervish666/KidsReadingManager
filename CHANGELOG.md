@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.97.1] - 2026-06-11
+
+### Fixed
+
+- **Book FTS5 queries silently failed wherever `books_fts` was aliased as `fts`.** SQLite's FTS5 MATCH operator resolves against a hidden column named after the *table* (`books_fts`), so `INNER JOIN books_fts fts … WHERE fts MATCH ?` threw `no such column: fts` — and every call site swallowed the error in a bare `catch`. Worst impact: the CSV import preview matched nothing against the global catalog, so re-importing a school's own export reported every book as "new" and confirming would have duplicated the entire catalog (caught live with Cheddar Grove's 2,444-book export — 0 matched, 2444 new). Also affected the import-confirm dedup pass and book search in `books.js`/`parent.js`, which silently fell back to slower LIKE scans instead of FTS. All five queries now join `books_fts` unaliased; verified the fixed shapes (including `ORDER BY rank`) against production D1.
+
 ## [3.97.0] - 2026-06-11
 
 ### Added

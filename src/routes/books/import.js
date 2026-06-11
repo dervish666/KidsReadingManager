@@ -78,9 +78,9 @@ importRouter.post('/bulk', requireTeacher(), async (c) => {
       try {
         const ftsResult = await db
           .prepare(
-            `SELECT id, title, author FROM books
-           INNER JOIN books_fts fts ON books.id = fts.id
-           WHERE fts MATCH ? LIMIT 10`
+            `SELECT books.id, books.title, books.author FROM books
+           INNER JOIN books_fts ON books.id = books_fts.id
+           WHERE books_fts MATCH ? LIMIT 10`
           )
           .bind(`"${ftsQuery}"`)
           .all();
@@ -267,8 +267,8 @@ importRouter.post('/import/preview', requireAdmin(), async (c) => {
         const ftsResult = await db
           .prepare(
             `SELECT b.* FROM books b
-           INNER JOIN books_fts fts ON b.id = fts.id
-           WHERE fts MATCH ? LIMIT 20`
+           INNER JOIN books_fts ON b.id = books_fts.id
+           WHERE books_fts MATCH ? LIMIT 20`
           )
           .bind(`"${ftsQuery}"`)
           .all();
