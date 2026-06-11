@@ -2,8 +2,10 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Box, Typography, Paper, Tabs, Tab, CircularProgress } from '@mui/material';
 import WhatshotIcon from '@mui/icons-material/Whatshot';
 import EmojiNatureIcon from '@mui/icons-material/EmojiNature';
+import CelebrationIcon from '@mui/icons-material/Celebration';
 import StreaksTab from './stats/StreaksTab';
 import AchievementsTab from './stats/AchievementsTab';
+import TodaysAchievements from './badges/TodaysAchievements';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
@@ -122,6 +124,7 @@ const AchievementsPage = () => {
         >
           <Tab icon={<EmojiNatureIcon />} iconPosition="start" label="Badges & Goals" />
           <Tab icon={<WhatshotIcon />} iconPosition="start" label="Streaks" />
+          <Tab icon={<CelebrationIcon />} iconPosition="start" label="Today" />
         </Tabs>
       </Paper>
 
@@ -155,6 +158,10 @@ const AchievementsPage = () => {
             onRecalculate={handleRecalculateStreaks}
           />
         ))}
+
+      {currentTab === 2 && (
+        <TodaysAchievements fetchWithAuth={fetchWithAuth} globalClassFilter={globalClassFilter} />
+      )}
     </Box>
   );
 };

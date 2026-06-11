@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.95.0] - 2026-06-11
+
+### Added
+
+- **Today tab on the Achievements page.** A third tab lists everyone who earned a badge or moved up a reading band in the last 24 hours, so teachers can celebrate the day's wins at a glance. New `GET /api/badges/today` endpoint reads the existing `ticker_events` table (no migration — rows already live for two days) joined to students for name and class, and the tab honours the global class filter client-side. Summary chips show band-move and badge counts above a chronological feed: sage-tinted rows for band-ups, gold for badges, each timestamped ("9:42 am" / "Yesterday 3:15 pm"). The 24-hour window — rather than the header ticker's midnight-UTC cutoff — means the 2:30 AM badge-cron awards and yesterday afternoon's band-ups both show when a teacher checks in the morning.
+
 ## [3.94.1] - 2026-06-11
 
 ### Security

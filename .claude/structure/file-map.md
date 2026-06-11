@@ -253,6 +253,7 @@ src/components/badges/BadgeCollection.js - Grid of earned badges + near-miss pro
 src/components/badges/BadgeCelebration.js - Unlock celebration dialog shown after session save
 src/components/badges/BandCelebration.js - Band-up celebration dialog (from→to band transition)
 src/components/badges/BadgeIndicators.js - Mini badge count chip for StudentCard
+src/components/badges/TodaysAchievements.js - Today tab on Achievements page: last-day band-ups and badge awards from /api/badges/today, class-filterable
 
 ## Frontend Components - Goals
 

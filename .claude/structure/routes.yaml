@@ -749,6 +749,9 @@ files:
       - route: GET /api/badges/ticker
         description: Today's org-scoped celebration events (band-ups, badge awards) for the header ticker
         requires: readonly
+      - route: GET /api/badges/today
+        description: Last 24h of celebration events with student name/class for the Achievements page Today tab
+        requires: readonly
       - route: GET /api/badges/students/:id
         description: Full badge collection for a student (earned, progress, near-misses)
         requires: readonly

@@ -46,6 +46,45 @@ badgesRouter.get('/ticker', requireReadonly(), async (c) => {
 });
 
 /**
+ * GET /api/badges/today
+ * Celebration events (band-ups, badge awards) from the last 24 hours, joined
+ * to the student so the Today tab can show names and honour the class filter.
+ * Same source table as the ticker — rows are purged after two days, so the
+ * one-day window is always fully covered.
+ */
+badgesRouter.get('/today', requireReadonly(), async (c) => {
+  const db = requireDB(c.env);
+  const organizationId = c.get('organizationId');
+
+  const result = await db
+    .prepare(
+      `SELECT te.id, te.type, te.message, te.created_at, te.student_id,
+              s.name AS student_name, s.class_id
+       FROM ticker_events te
+       LEFT JOIN students s ON te.student_id = s.id AND s.is_active = 1
+       WHERE te.organization_id = ? AND te.created_at >= datetime('now', '-1 day')
+       ORDER BY te.created_at DESC
+       LIMIT 200`
+    )
+    .bind(organizationId)
+    .all();
+
+  const events = (result.results || []).map((r) => ({
+    id: r.id,
+    type: r.type,
+    message: r.message,
+    createdAt: r.created_at,
+    studentId: r.student_id || null,
+    studentName: r.student_name || null,
+    classId: r.class_id || null,
+  }));
+
+  c.header('Cache-Control', 'private, max-age=60, must-revalidate');
+  c.header('Vary', 'X-Organization-Id');
+  return c.json({ events });
+});
+
+/**
  * GET /api/badges/students/:id
  * Full badge collection for a student: earned, progress, near-misses
  */

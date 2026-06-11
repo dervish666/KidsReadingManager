@@ -462,6 +462,13 @@ files:
         kind: component
         props: [studentName, badges, nearMisses, stats]
 
+  badges/TodaysAchievements.js:
+    description: Today tab on the Achievements page — last-day band-ups and badge awards from /api/badges/today, filtered client-side by the global class filter
+    exports:
+      - name: TodaysAchievements
+        kind: component
+        props: [fetchWithAuth, globalClassFilter]
+
   badges/BadgeCelebration.js:
     description: Unlock celebration dialog shown after session save with new badges
     exports:
