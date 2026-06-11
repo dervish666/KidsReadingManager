@@ -22,7 +22,16 @@ import SearchIcon from '@mui/icons-material/Search';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import BookAutocomplete from './BookAutocomplete';
-import { READING_STATUS, formatDateISO, formatDateHeader, getYesterday } from './homeReadingUtils';
+import {
+  READING_STATUS,
+  READ_SOURCE_COLORS,
+  getReadSources,
+  sourcesBackground,
+  describeReadSources,
+  formatDateISO,
+  formatDateHeader,
+  getYesterday,
+} from './homeReadingUtils';
 
 const QuickReadingView = ({
   selectedDate,
@@ -175,7 +184,18 @@ const QuickReadingView = ({
             </TableHead>
             <TableBody>
               {filteredStudents.map((student, studentIdx) => {
-                const { status, count } = getStudentReadingStatus(student, selectedDate);
+                const statusInfo = getStudentReadingStatus(student, selectedDate);
+                const { status, count } = statusInfo;
+                const readSources =
+                  status === READING_STATUS.READ || status === READING_STATUS.MULTIPLE
+                    ? getReadSources(statusInfo)
+                    : null;
+                // Source-coloured fill for the selected read/multiple button —
+                // splits when the day's reads came from more than one place.
+                const sourceFillSx = readSources && {
+                  background: sourcesBackground(readSources, 'main'),
+                  '&:hover': { background: sourcesBackground(readSources, 'dark') },
+                };
                 const book = getStudentLastBook(student.id);
                 const isRecording = recordingStudents.has(student.id);
                 const hasEntry = status !== READING_STATUS.NONE;
@@ -200,17 +220,31 @@ const QuickReadingView = ({
                       let content = '-';
                       let cellColor = 'grey.400';
                       let bgColor = 'transparent';
+                      let bgOverride; // source-coloured background for read days
+                      let cellLabel;
                       switch (prevStatus.status) {
-                        case READING_STATUS.READ:
+                        case READING_STATUS.READ: {
+                          const sources = getReadSources(prevStatus);
                           content = '✓';
-                          cellColor = 'success.dark';
-                          bgColor = 'rgba(46, 125, 50, 0.1)';
+                          cellColor =
+                            sources.length === 1
+                              ? READ_SOURCE_COLORS[sources[0]].dark
+                              : 'text.primary';
+                          bgOverride = sourcesBackground(sources, 'soft');
+                          cellLabel = `Read — ${describeReadSources(sources)}`;
                           break;
-                        case READING_STATUS.MULTIPLE:
+                        }
+                        case READING_STATUS.MULTIPLE: {
+                          const sources = getReadSources(prevStatus);
                           content = prevStatus.count;
-                          cellColor = 'success.dark';
-                          bgColor = 'rgba(46, 125, 50, 0.15)';
+                          cellColor =
+                            sources.length === 1
+                              ? READ_SOURCE_COLORS[sources[0]].dark
+                              : 'text.primary';
+                          bgOverride = sourcesBackground(sources, 'soft');
+                          cellLabel = `Read ${prevStatus.count} times — ${describeReadSources(sources)}`;
                           break;
+                        }
                         case READING_STATUS.ABSENT:
                           content = 'A';
                           cellColor = 'warning.dark';
@@ -227,6 +261,8 @@ const QuickReadingView = ({
                       return (
                         <TableCell
                           key={dateStr}
+                          aria-label={cellLabel}
+                          title={cellLabel}
                           sx={{
                             textAlign: 'center',
                             padding: '4px',
@@ -236,6 +272,7 @@ const QuickReadingView = ({
                             color: cellColor,
                             minWidth: 36,
                             maxWidth: 44,
+                            ...(bgOverride && { background: bgOverride }),
                           }}
                         >
                           {content}
@@ -272,34 +309,48 @@ const QuickReadingView = ({
                           color="success"
                           disabled={isRecording}
                           onClick={() => onQuickRecord(student, READING_STATUS.READ)}
-                          sx={{ ...btnSx, fontSize: '1.1rem' }}
+                          sx={{
+                            ...btnSx,
+                            fontSize: '1.1rem',
+                            ...(status === READING_STATUS.READ && sourceFillSx),
+                          }}
+                          title={
+                            status === READING_STATUS.READ && readSources
+                              ? `Read — ${describeReadSources(readSources)}`
+                              : undefined
+                          }
                           aria-label={`Mark ${student.name} as read`}
                         >
                           ✓
                         </Button>
-                        {[2, 3, 4].map((n) => (
-                          <Button
-                            key={n}
-                            size="small"
-                            variant={
-                              status === READING_STATUS.MULTIPLE &&
-                              (n < 4 ? count === n : count >= 4)
-                                ? 'contained'
-                                : 'outlined'
-                            }
-                            color="primary"
-                            disabled={isRecording || n > maxMultiple}
-                            onClick={() => onQuickRecord(student, READING_STATUS.MULTIPLE, n)}
-                            sx={numBtnSx}
-                            aria-label={`Mark ${student.name} as read ${n} times`}
-                          >
-                            {n < 4
-                              ? n
-                              : status === READING_STATUS.MULTIPLE && count >= 4
-                                ? count
-                                : '4'}
-                          </Button>
-                        ))}
+                        {[2, 3, 4].map((n) => {
+                          const isActive =
+                            status === READING_STATUS.MULTIPLE &&
+                            (n < 4 ? count === n : count >= 4);
+                          return (
+                            <Button
+                              key={n}
+                              size="small"
+                              variant={isActive ? 'contained' : 'outlined'}
+                              color="primary"
+                              disabled={isRecording || n > maxMultiple}
+                              onClick={() => onQuickRecord(student, READING_STATUS.MULTIPLE, n)}
+                              sx={{ ...numBtnSx, ...(isActive && sourceFillSx) }}
+                              title={
+                                isActive && readSources
+                                  ? `Read ${count} times — ${describeReadSources(readSources)}`
+                                  : undefined
+                              }
+                              aria-label={`Mark ${student.name} as read ${n} times`}
+                            >
+                              {n < 4
+                                ? n
+                                : status === READING_STATUS.MULTIPLE && count >= 4
+                                  ? count
+                                  : '4'}
+                            </Button>
+                          );
+                        })}
                         <Button
                           size="small"
                           variant="outlined"

@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.96.0] - 2026-06-11
+
+### Added
+
+- **Read marks on the Reading Record are now coloured by source.** Sage green stays home reading recorded by a teacher, school sessions from the Reading Page show muted teal-blue (the theme's info colour), and home reading logged by a parent in the parent app shows soft plum — parent sessions are identified by their `recorded_by` being NULL, which only the parent portal writes. When a day's reads come from more than one place, the tick/count gets a hard-stop diagonal split of the colours involved (two- or three-way). Applies to the Quick view history columns and selected ✓/number buttons (with "Read — home + school" tooltips), the Full view date grid (matching aria-labels), and a small Home/School/Parent App dot legend in the summary chip row. New shared helpers (`getReadSources`, `sourcesBackground`, `describeReadSources`, `READ_SOURCE_COLORS`) live in `homeReadingUtils.js`, and `getStudentReadingStatus` now returns per-source counts. Absent/No Record markers keep their amber/grey priority.
+
 ## [3.95.0] - 2026-06-11
 
 ### Added

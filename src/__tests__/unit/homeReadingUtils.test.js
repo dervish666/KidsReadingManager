@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { buildMultiDaySessions } from '../../components/sessions/homeReadingUtils.js';
+import {
+  buildMultiDaySessions,
+  getReadSources,
+  sourcesBackground,
+  describeReadSources,
+  READ_SOURCE_COLORS,
+} from '../../components/sessions/homeReadingUtils.js';
 
 /**
  * buildMultiDaySessions — the pure decision logic behind the register's
@@ -63,5 +69,59 @@ describe('buildMultiDaySessions', () => {
   it('crosses month boundaries correctly', () => {
     const sessions = buildMultiDaySessions('2026-06-01', 2, [], null);
     expect(sessions.map((s) => s.date)).toEqual(['2026-06-01', '2026-05-31']);
+  });
+});
+
+/**
+ * Read-source helpers — drive the source-coloured read marks on the
+ * register (sage = home, teal = school, plum = parent app).
+ */
+describe('getReadSources', () => {
+  it('returns single sources', () => {
+    expect(getReadSources({ homeCount: 1, parentCount: 0, schoolCount: 0 })).toEqual(['home']);
+    expect(getReadSources({ homeCount: 0, parentCount: 0, schoolCount: 2 })).toEqual(['school']);
+    expect(getReadSources({ homeCount: 0, parentCount: 1, schoolCount: 0 })).toEqual(['parent']);
+  });
+
+  it('returns combined sources in stable order', () => {
+    expect(getReadSources({ homeCount: 1, parentCount: 1, schoolCount: 1 })).toEqual([
+      'home',
+      'parent',
+      'school',
+    ]);
+    expect(getReadSources({ homeCount: 1, schoolCount: 1 })).toEqual(['home', 'school']);
+  });
+
+  it('falls back to home when counts are missing (older status objects)', () => {
+    expect(getReadSources({})).toEqual(['home']);
+    expect(getReadSources()).toEqual(['home']);
+  });
+});
+
+describe('sourcesBackground', () => {
+  it('returns a solid colour for a single source', () => {
+    expect(sourcesBackground(['home'])).toBe(READ_SOURCE_COLORS.home.main);
+    expect(sourcesBackground(['school'], 'soft')).toBe(READ_SOURCE_COLORS.school.soft);
+  });
+
+  it('returns a hard-stop split gradient for multiple sources', () => {
+    const bg = sourcesBackground(['home', 'school']);
+    expect(bg).toBe(
+      `linear-gradient(135deg, ${READ_SOURCE_COLORS.home.main} 0% 50%, ${READ_SOURCE_COLORS.school.main} 50% 100%)`
+    );
+  });
+
+  it('splits three ways when all sources are present', () => {
+    const bg = sourcesBackground(['home', 'parent', 'school']);
+    expect(bg).toContain('0% 33.33');
+    expect(bg).toContain('% 100%');
+  });
+});
+
+describe('describeReadSources', () => {
+  it('joins human-readable labels', () => {
+    expect(describeReadSources(['home'])).toBe('home');
+    expect(describeReadSources(['home', 'school'])).toBe('home + school');
+    expect(describeReadSources(['parent'])).toBe('parent app');
   });
 });

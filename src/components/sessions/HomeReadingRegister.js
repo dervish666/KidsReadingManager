@@ -23,6 +23,11 @@ import FullReadingView from './FullReadingView';
 import MultipleCountDialog from './MultipleCountDialog';
 import {
   READING_STATUS,
+  READ_SOURCE_COLORS,
+  READ_SOURCE_LABELS,
+  getReadSources,
+  sourcesBackground,
+  describeReadSources,
   DATE_PRESETS,
   formatDateISO,
   getYesterday,
@@ -345,6 +350,12 @@ const HomeReadingRegister = () => {
         return { status: READING_STATUS.NO_RECORD, count: 0, sessions: homeSessions };
       }
 
+      // Split home sessions by who recorded them: parent-portal sessions are
+      // written with recorded_by NULL, teacher entries carry the user id.
+      const parentCount = homeSessions.filter((s) => !s.recordedBy).length;
+      const homeCount = homeSessions.length - parentCount;
+      const schoolCount = schoolSessions.length;
+
       // Count actual sessions (home + school)
       const totalCount = homeSessions.length + schoolSessions.length;
 
@@ -354,12 +365,18 @@ const HomeReadingRegister = () => {
         return {
           status: READING_STATUS.READ,
           count: 1,
+          homeCount,
+          parentCount,
+          schoolCount,
           sessions: [...homeSessions, ...schoolSessions],
         };
       } else {
         return {
           status: READING_STATUS.MULTIPLE,
           count: totalCount,
+          homeCount,
+          parentCount,
+          schoolCount,
           sessions: [...homeSessions, ...schoolSessions],
         };
       }
@@ -719,7 +736,8 @@ const HomeReadingRegister = () => {
 
   const renderDateStatusCell = (student, date) => {
     const dateStr = formatDateISO(date);
-    const { status, count } = getStudentReadingStatus(student, dateStr);
+    const statusInfo = getStudentReadingStatus(student, dateStr);
+    const { status, count } = statusInfo;
     const isSelectedDate = selectedDate === dateStr;
     const isSelected = selectedStudent?.id === student.id;
 
@@ -738,24 +756,29 @@ const HomeReadingRegister = () => {
     };
 
     let bgColor = 'transparent';
+    let bgOverride; // raw colour/gradient for read days (source split)
     let color = 'grey.400';
     let content = '-';
 
     let ariaLabel = 'Not entered';
 
     switch (status) {
-      case READING_STATUS.READ:
-        bgColor = 'success.light';
-        color = 'success.dark';
+      case READING_STATUS.READ: {
+        const sources = getReadSources(statusInfo);
+        bgOverride = sourcesBackground(sources, 'light');
+        color = sources.length === 1 ? READ_SOURCE_COLORS[sources[0]].dark : '#3D3D3D';
         content = '✓';
-        ariaLabel = 'Read';
+        ariaLabel = `Read — ${describeReadSources(sources)}`;
         break;
-      case READING_STATUS.MULTIPLE:
-        bgColor = 'success.main';
+      }
+      case READING_STATUS.MULTIPLE: {
+        const sources = getReadSources(statusInfo);
+        bgOverride = sourcesBackground(sources, 'main');
         color = 'white';
         content = count;
-        ariaLabel = 'Read multiple times';
+        ariaLabel = `Read multiple times — ${describeReadSources(sources)}`;
         break;
+      }
       case READING_STATUS.ABSENT:
         bgColor = 'warning.light';
         color = 'warning.dark';
@@ -774,13 +797,19 @@ const HomeReadingRegister = () => {
 
     if (isSelected && isSelectedDate) {
       bgColor = 'primary.light';
+      bgOverride = undefined;
     }
 
     return (
       <TableCell
         key={dateStr}
         aria-label={ariaLabel}
-        sx={{ ...cellStyle, backgroundColor: bgColor, color }}
+        sx={{
+          ...cellStyle,
+          backgroundColor: bgColor,
+          color,
+          ...(bgOverride && { background: bgOverride }),
+        }}
         onClick={() => {
           setSelectedDate(dateStr);
           setSelectedStudent(student);
@@ -930,6 +959,28 @@ const HomeReadingRegister = () => {
           size="small"
           sx={{ fontWeight: 'bold' }}
         />
+        {/* Source legend — read marks are coloured by where the read came from */}
+        <Box sx={{ display: 'flex', gap: 1.25, alignItems: 'center', ml: 0.5 }}>
+          {Object.keys(READ_SOURCE_COLORS).map((source) => (
+            <Box key={source} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Box
+                sx={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: '50%',
+                  backgroundColor: READ_SOURCE_COLORS[source].main,
+                }}
+              />
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ lineHeight: 1, textTransform: 'capitalize' }}
+              >
+                {READ_SOURCE_LABELS[source]}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
       </Box>
 
       {/* Multiple Days Dialog */}

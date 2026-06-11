@@ -230,7 +230,7 @@ src/components/students/ReadingBandChip.js - Reading band chip + progress-to-nex
 ## Frontend Components - Sessions
 
 src/components/sessions/HomeReadingRegister.js - Unified reading register with multi-day history columns
-src/components/sessions/homeReadingUtils.js - Reading status constants and helpers for home reading
+src/components/sessions/homeReadingUtils.js - Reading status constants, read-source colour helpers (home/school/parent app), and helpers for home reading
 src/components/sessions/MultipleCountDialog.js - Dialog for entering multiple reading session count
 src/components/sessions/FullReadingView.js - Expanded reading session entry view (composes ReadingInputPanel, DateRangePanel, StudentBooksRead around the register table)
 src/components/sessions/ReadingInputPanel.js - "Recording for" panel with book picker and quick status buttons (full view, left column)

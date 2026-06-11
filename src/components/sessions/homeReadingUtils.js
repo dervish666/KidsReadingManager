@@ -7,6 +7,42 @@ export const READING_STATUS = {
   NONE: 'none', // No entry yet
 };
 
+// Where a day's reads came from. Colours stay in the cozy palette:
+// sage = home (teacher-recorded), muted teal = school, soft plum = parent app.
+export const READ_SOURCE_COLORS = {
+  home: { main: '#6B8E6B', light: '#8AAD8A', dark: '#557055', soft: 'rgba(107, 142, 107, 0.18)' },
+  school: { main: '#7A9EAD', light: '#9BB7C3', dark: '#5F7E8B', soft: 'rgba(122, 158, 173, 0.22)' },
+  parent: { main: '#A58BB8', light: '#BCA9CA', dark: '#84699A', soft: 'rgba(165, 139, 184, 0.22)' },
+};
+
+export const READ_SOURCE_LABELS = {
+  home: 'home',
+  school: 'school',
+  parent: 'parent app',
+};
+
+// Derive the source list from a getStudentReadingStatus result
+export const getReadSources = ({ homeCount = 0, parentCount = 0, schoolCount = 0 } = {}) => {
+  const sources = [];
+  if (homeCount > 0) sources.push('home');
+  if (parentCount > 0) sources.push('parent');
+  if (schoolCount > 0) sources.push('school');
+  return sources.length > 0 ? sources : ['home'];
+};
+
+// CSS background for a set of sources: solid colour for one source,
+// hard-stop diagonal split when reads came from several places.
+export const sourcesBackground = (sources, tone = 'main') => {
+  const colors = sources.map((s) => READ_SOURCE_COLORS[s][tone]);
+  if (colors.length === 1) return colors[0];
+  const seg = 100 / colors.length;
+  const stops = colors.map((c, i) => `${c} ${i * seg}% ${(i + 1) * seg}%`).join(', ');
+  return `linear-gradient(135deg, ${stops})`;
+};
+
+export const describeReadSources = (sources) =>
+  sources.map((s) => READ_SOURCE_LABELS[s]).join(' + ');
+
 export const formatDateISO = (date) => {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
