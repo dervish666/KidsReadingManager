@@ -165,6 +165,95 @@ describe('CSV Parser', () => {
       expect(mapping.publicationYear).toBe(9);
       expect(mapping.isbn).toBe(10);
     });
+
+    it('should not map a Publisher column as publication year', () => {
+      const headers = ['Title', 'Author', 'Publisher'];
+      const mapping = detectColumnMapping(headers);
+
+      expect(mapping.publicationYear).toBeNull();
+    });
+
+    it('should not map a Published year column as author', () => {
+      const headers = ['Title', 'Published'];
+      const mapping = detectColumnMapping(headers);
+
+      expect(mapping.author).toBeNull();
+      expect(mapping.publicationYear).toBe(1);
+    });
+
+    it('should prefer Book Level over Interest Level', () => {
+      const headers = ['Title', 'Author', 'Interest Level', 'Book Level'];
+      const mapping = detectColumnMapping(headers);
+
+      expect(mapping.readingLevel).toBe(3);
+    });
+
+    it('should never claim an Interest Level column as reading level', () => {
+      const headers = ['Title', 'Author', 'Interest Level'];
+      const mapping = detectColumnMapping(headers);
+
+      expect(mapping.readingLevel).toBeNull();
+    });
+  });
+
+  describe('detectColumnMapping content sniffing', () => {
+    it('claims unrecognised columns whose values look like ISBNs and years', () => {
+      const headers = ['Title', 'Author', 'Field3', 'Field4'];
+      const rows = [
+        ['The BFG', 'Roald Dahl', '9780141365428', '1982'],
+        ['Matilda', 'Roald Dahl', '978-0-14-136546-6', '1988'],
+        ['Danny', 'Roald Dahl', '0140328734', '1975'],
+      ];
+      const mapping = detectColumnMapping(headers, rows);
+
+      expect(mapping.isbn).toBe(2);
+      expect(mapping.publicationYear).toBe(3);
+    });
+
+    it('claims AR-style decimal levels and page-count integers', () => {
+      const headers = ['Title', 'ColA', 'ColB'];
+      const rows = [
+        ['The BFG', '3.2', '208'],
+        ['Matilda', '4.0', '240'],
+        ['The Twits', '2.9', '96'],
+      ];
+      const mapping = detectColumnMapping(headers, rows);
+
+      expect(mapping.readingLevel).toBe(1);
+      expect(mapping.pageCount).toBe(2);
+    });
+
+    it('never overrides a header match and never claims a column twice', () => {
+      const headers = ['Title', 'ISBN', 'Mystery'];
+      const rows = [
+        ['The BFG', '9780141365428', '9780140328721'],
+        ['Matilda', '9780141365466', '9780140328738'],
+      ];
+      const mapping = detectColumnMapping(headers, rows);
+
+      // Header wins for isbn; the second ISBN-shaped column stays unclaimed
+      // rather than being grabbed by a lower-confidence sniffer.
+      expect(mapping.isbn).toBe(1);
+      expect(mapping.publicationYear).toBeNull();
+      expect(mapping.pageCount).toBeNull();
+    });
+
+    it('does not claim columns with mixed or non-matching values', () => {
+      const headers = ['Title', 'Notes'];
+      const rows = [
+        ['The BFG', 'lovely book'],
+        ['Matilda', '9780141365466'],
+        ['The Twits', 'tatty copy'],
+      ];
+      const mapping = detectColumnMapping(headers, rows);
+
+      expect(mapping.isbn).toBeNull();
+    });
+
+    it('is unchanged when no rows are provided (backward compatible)', () => {
+      const headers = ['Title', 'Notes'];
+      expect(detectColumnMapping(headers)).toEqual(detectColumnMapping(headers, []));
+    });
   });
 
   describe('mapCSVToBooks', () => {

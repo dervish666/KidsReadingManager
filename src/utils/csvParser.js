@@ -53,15 +53,25 @@ const parseCSVLine = (line) => {
 };
 
 /**
- * Auto-detect column mapping from headers
+ * Auto-detect column mapping from headers, with optional content sniffing.
+ *
+ * Pass the parsed data rows as the second argument to enable a fallback for
+ * unknown header names: columns whose values look like ISBNs, years, AR-style
+ * reading levels, or page counts are claimed by data shape when no header
+ * matched. Library-software exports name columns unpredictably, but an ISBN
+ * column is unmistakable from its values.
  */
-export const detectColumnMapping = (headers) => {
+export const detectColumnMapping = (headers, rows = []) => {
   const normalized = headers.map((h) => h.toLowerCase().trim());
 
   const titlePatterns = ['title', 'book title', 'book name', 'name'];
-  const authorPatterns = ['author', 'author name', 'writer', 'published by', 'by'];
+  // 'published by' is deliberately absent: it's a publisher column, and via
+  // substring matching it also captured plain 'Published' (a year column).
+  const authorPatterns = ['author', 'author name', 'writer', 'by'];
   const levelPatterns = [
     'reading level',
+    'book level',
+    'atos book level',
     'level',
     'reading_level',
     'readinglevel',
@@ -91,32 +101,97 @@ export const detectColumnMapping = (headers) => {
     'volume',
   ];
 
-  const findIndex = (patterns) => {
+  const findIndex = (patterns, exclude) => {
+    const usable = (h) => !exclude || !exclude.test(h);
     // First pass: exact match
     for (const pattern of patterns) {
-      const idx = normalized.findIndex((h) => h === pattern);
+      const idx = normalized.findIndex((h) => usable(h) && h === pattern);
       if (idx !== -1) return idx;
     }
     // Second pass: substring match (skip short patterns to avoid false positives like 'bl' matching 'publisher')
     for (const pattern of patterns) {
       if (pattern.length <= 2) continue;
-      const idx = normalized.findIndex((h) => h.includes(pattern) || pattern.includes(h));
+      const idx = normalized.findIndex(
+        (h) => usable(h) && (h.includes(pattern) || pattern.includes(h))
+      );
       if (idx !== -1) return idx;
     }
     return null;
   };
 
-  return {
+  const mapping = {
     title: findIndex(titlePatterns),
     author: findIndex(authorPatterns),
-    readingLevel: findIndex(levelPatterns),
+    // AR exports carry both Book Level and Interest Level; bare 'level' must
+    // never claim the interest column.
+    readingLevel: findIndex(levelPatterns, /interest/),
     isbn: findIndex(isbnPatterns),
     description: findIndex(descriptionPatterns),
     pageCount: findIndex(pageCountPatterns),
-    publicationYear: findIndex(yearPatterns),
+    // 'publisher' contains 'published' — without the guard a Publisher column
+    // is claimed as the year whenever no real year header exists.
+    publicationYear: findIndex(yearPatterns, /publisher/),
     seriesName: findIndex(seriesNamePatterns),
     seriesNumber: findIndex(seriesNumberPatterns),
   };
+
+  return sniffUnmappedColumns(mapping, headers, rows);
+};
+
+const SNIFF_SAMPLE_ROWS = 20;
+const SNIFF_MATCH_RATIO = 0.8;
+
+const isIsbnValue = (value) => {
+  const digits = value.replace(/[-\s]/g, '');
+  return /^(97[89]\d{10}|\d{9}[\dXx])$/.test(digits);
+};
+const isYearValue = (value) => /^(1[89]|20)\d{2}$/.test(value);
+const isLevelValue = (value) => {
+  if (!/^\d{1,2}\.\d$/.test(value)) return false;
+  const level = Number(value);
+  return level >= 0.1 && level <= 13.9;
+};
+const isPageCountValue = (value) =>
+  /^\d{1,4}$/.test(value) && !isYearValue(value) && Number(value) >= 1 && Number(value) <= 3000;
+
+/**
+ * Claim still-unmapped fields by data shape. Checked in confidence order —
+ * ISBNs are unambiguous, years and AR levels are strong, bare page-count
+ * integers are the loosest. Each column can be claimed once; the mapping
+ * step's manual dropdowns remain the override for anything sniffed wrong.
+ */
+const sniffUnmappedColumns = (mapping, headers, rows) => {
+  if (!rows || rows.length === 0) return mapping;
+
+  const sniffers = [
+    ['isbn', isIsbnValue],
+    ['publicationYear', isYearValue],
+    ['readingLevel', isLevelValue],
+    ['pageCount', isPageCountValue],
+  ];
+  const claimed = new Set(Object.values(mapping).filter((idx) => idx !== null));
+
+  for (const [field, matches] of sniffers) {
+    if (mapping[field] !== null) continue;
+    for (let idx = 0; idx < headers.length; idx++) {
+      if (claimed.has(idx)) continue;
+      const samples = [];
+      for (const row of rows) {
+        if (samples.length >= SNIFF_SAMPLE_ROWS) break;
+        const value = row[idx]?.trim();
+        if (value) samples.push(value);
+      }
+      if (samples.length === 0) continue;
+      const hits = samples.filter(matches).length;
+      if (hits / samples.length >= SNIFF_MATCH_RATIO) {
+        mapping[field] = idx;
+        claimed.add(idx);
+        break;
+      }
+    }
+  }
+
+  return mapping;
 };
 
 /**

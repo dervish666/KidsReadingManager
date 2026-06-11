@@ -13,6 +13,7 @@ import {
   LinearProgress,
   Alert,
   FormControl,
+  FormHelperText,
   InputLabel,
   Select,
   MenuItem,
@@ -78,7 +79,7 @@ const BookImportWizard = ({ open, onClose }) => {
     reader.onload = (e) => {
       try {
         const parsed = parseCSV(e.target.result);
-        const autoMapping = detectColumnMapping(parsed.headers);
+        const autoMapping = detectColumnMapping(parsed.headers, parsed.rows);
         setCsvData(parsed);
         setColumnMapping(autoMapping);
         setError(null);
@@ -291,6 +292,17 @@ const BookImportWizard = ({ open, onClose }) => {
               Map your CSV columns to book fields:
             </Typography>
             {(() => {
+              const sampleValues = (idx) => {
+                const values = [];
+                for (const row of csvData?.rows || []) {
+                  if (values.length >= 3) break;
+                  const value = row[idx]?.trim();
+                  if (value) values.push(value);
+                }
+                return values;
+              };
+              const truncate = (text, max = 46) =>
+                text.length > max ? `${text.slice(0, max - 1)}…` : text;
               const allFields = [
                 { key: 'title', label: 'Title *' },
                 { key: 'author', label: 'Author' },
@@ -317,14 +329,37 @@ const BookImportWizard = ({ open, onClose }) => {
                           value={columnMapping[field.key] ?? ''}
                           label={field.label}
                           onChange={(e) => handleMappingChange(field.key, e.target.value)}
+                          renderValue={(selected) => csvData?.headers[selected] ?? ''}
                         >
                           <MenuItem value="">Not mapped</MenuItem>
-                          {csvData?.headers.map((header, idx) => (
-                            <MenuItem key={idx} value={idx}>
-                              {header}
-                            </MenuItem>
-                          ))}
+                          {csvData?.headers.map((header, idx) => {
+                            const samples = sampleValues(idx);
+                            return (
+                              <MenuItem key={idx} value={idx}>
+                                <Box sx={{ minWidth: 0 }}>
+                                  {header}
+                                  {samples.length > 0 && (
+                                    <Typography
+                                      variant="caption"
+                                      color="text.secondary"
+                                      sx={{ display: 'block' }}
+                                    >
+                                      {truncate(samples.join(' · '))}
+                                    </Typography>
+                                  )}
+                                </Box>
+                              </MenuItem>
+                            );
+                          })}
                         </Select>
+                        {columnMapping[field.key] !== null && (
+                          <FormHelperText>
+                            {truncate(
+                              sampleValues(columnMapping[field.key]).join(' · ') || 'No data',
+                              60
+                            )}
+                          </FormHelperText>
+                        )}
                       </FormControl>
                     </React.Fragment>
                   ))}

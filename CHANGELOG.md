@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.99.0] - 2026-06-11
+
+### Added
+
+- **Import wizard detects columns by data shape, not just header names.** Schools' library software exports use unpredictable headers, so when no header matches, `detectColumnMapping` now sniffs the first 20 values of each unclaimed column: ISBN-shaped values (10/13-digit, dashes tolerated), years (1800–2099), AR-style decimal reading levels (0.1–13.9), and page counts (1–3000) claim the field when ≥80% of sampled values match, in confidence order. Each column can only be claimed once and header matches always win.
+- **Map Columns step shows sample data.** Each dropdown option lists the column's first three values, and mapped fields show their samples as helper text — so mis-mappings are visible at a glance instead of surfacing as garbage after import.
+
+### Fixed
+
+- **Column auto-detection false positives.** A `Publisher` column was claimed as Publication Year (substring match on 'published') whenever no real year header existed; a `Published` year column could be claimed as Author (via the 'published by' pattern, now removed); and AR exports' `Interest Level` could steal the Reading Level slot from `Book Level`. All three guarded, with `book level`/`atos book level` added as explicit reading-level headers.
+
 ## [3.98.0] - 2026-06-11
 
 ### Changed
