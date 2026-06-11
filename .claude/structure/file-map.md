@@ -195,7 +195,7 @@ src/components/books/AddBookModal.js - Add single book dialog
 src/components/books/BarcodeScanner.js - ISBN barcode scanner (html5-qrcode)
 src/components/books/ScanBookFlow.js - Scan-to-add workflow orchestrator
 src/components/books/BookEditDialog.js - Book editing dialog (title, author, ISBN, genre)
-src/components/books/BookExportMenu.js - Book export menu (JSON/CSV download)
+src/components/books/BookExportMenu.js - Book export menu (JSON/CSV download; exports buildBooksCsv — full-field CSV, headers auto-detected on re-import)
 src/components/books/bookImportUtils.js - Import utility functions (column detection, dedup)
 
 ## Frontend Components - Classes

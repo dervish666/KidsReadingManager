@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.98.0] - 2026-06-11
+
+### Changed
+
+- **CSV export now includes every book field.** Previously only Title / Author / Reading Level / Age Range were written, so a re-import had no ISBN to match on and lost description, page count, publication year, and series data for new books. The export (`buildBooksCsv` in `BookExportMenu.js`) now writes all ten columns with headers named so the import wizard's `detectColumnMapping` auto-maps every field, and the first four columns keep their legacy order for the positional BookManager parser. Quotes are escaped and embedded newlines in descriptions flattened to spaces (both CSV parsers split lines before honouring quotes). Safe on re-import: extra columns only populate brand-new books — matched books are linked, never overwritten.
+
 ## [3.97.1] - 2026-06-11
 
 ### Fixed

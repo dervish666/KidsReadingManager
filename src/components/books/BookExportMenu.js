@@ -4,6 +4,49 @@ import DownloadIcon from '@mui/icons-material/Download';
 import ImportExportIcon from '@mui/icons-material/ImportExport';
 import UploadIcon from '@mui/icons-material/Upload';
 
+// First four columns stay in the legacy order (Title, Author, Reading Level, Age
+// Range) for the positional BookManager parser; header names are chosen so the
+// import wizard's detectColumnMapping auto-maps every field on re-import.
+export const buildBooksCsv = (books) => {
+  const headers = [
+    'Title',
+    'Author',
+    'Reading Level',
+    'Age Range',
+    'ISBN',
+    'Description',
+    'Pages',
+    'Publication Year',
+    'Series',
+    'Series Number',
+  ];
+  // Both CSV parsers split on newlines before honouring quotes, so embedded
+  // newlines (common in descriptions) must be flattened to spaces.
+  const cell = (value) =>
+    `"${String(value ?? '')
+      .replace(/\r?\n/g, ' ')
+      .replace(/"/g, '""')}"`;
+  return [
+    headers.join(','),
+    ...books.map((book) =>
+      [
+        book.title,
+        book.author,
+        book.readingLevel,
+        book.ageRange,
+        book.isbn,
+        book.description,
+        book.pageCount,
+        book.publicationYear,
+        book.seriesName,
+        book.seriesNumber,
+      ]
+        .map(cell)
+        .join(',')
+    ),
+  ].join('\n');
+};
+
 const BookExportMenu = ({ books, _genres, onImportClick, onSnackbar }) => {
   const [anchorEl, setAnchorEl] = useState(null);
 
@@ -35,18 +78,7 @@ const BookExportMenu = ({ books, _genres, onImportClick, onSnackbar }) => {
 
   const handleExportCSV = () => {
     try {
-      const headers = ['Title', 'Author', 'Reading Level', 'Age Range'];
-      const csvContent = [
-        headers.join(','),
-        ...books.map((book) =>
-          [
-            `"${(book.title || '').replace(/"/g, '""')}"`,
-            `"${(book.author || '').replace(/"/g, '""')}"`,
-            `"${(book.readingLevel || '').replace(/"/g, '""')}"`,
-            `"${(book.ageRange || '').replace(/"/g, '""')}"`,
-          ].join(',')
-        ),
-      ].join('\n');
+      const csvContent = buildBooksCsv(books);
 
       const dataUri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvContent);
       const exportFileDefaultName = `books_export_${new Date().toISOString().split('T')[0]}.csv`;
