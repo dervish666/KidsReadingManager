@@ -1,20 +1,31 @@
 {
-  "generatedAt": "2026-06-09",
+  "generatedAt": "2026-06-11",
   "issue": "June 2026",
   "title": "Reading News",
   "intro": "What's new from the authors topping your reading logs — fresh releases, a few read-alikes, and some dates for the diary.",
   "isPreview": false,
   "items": [
     {
-      "id": "worst-witch-spotlight",
-      "headline": "Why the Worst Witch keeps topping the reading logs",
+      "id": "worst-witch-reissue",
+      "headline": "The Worst Witch is getting a fresh new look",
       "author": "Jill Murphy",
       "book": "A Bad Spell for the Worst Witch",
       "rank": 1,
+      "kind": "release",
+      "summary": "Your most-read series is being reissued by Puffin with energetic new covers, and the first book has joined the Puffin Clothbound Classics as a collectable 50th-anniversary edition. A nice excuse to refresh the Mildred Hubble shelf — and children who finish the books can carry on with the CBBC series.",
+      "source": "Penguin",
+      "link": "https://www.penguin.co.uk/series/wor/the-worst-witch.html"
+    },
+    {
+      "id": "glover-nowhere-boy",
+      "headline": "The Nowhere Boy comes from a teacher who knows her readers",
+      "author": "Sandra Glover",
+      "book": "The Nowhere Boy",
+      "rank": 3,
       "kind": "spotlight",
-      "summary": "Mildred Hubble's mishaps at Miss Cackle's Academy have charmed readers since 1974, and they're your most-read series right now. Children who race through the eight books can carry on with the CBBC television series.",
-      "source": "Wikipedia",
-      "link": "https://en.wikipedia.org/wiki/The_Worst_Witch"
+      "summary": "Sandra Glover was a head of history before she turned to writing, and The Nowhere Boy — one of your most-read titles — was her very first novel, shortlisted for the Lancashire Children's Book of the Year. Its mix of everyday foster-family life and a mysterious boy who speaks straight into Mandy's mind is a gentle way into science fiction for confident readers.",
+      "source": "sandraglover.co.uk",
+      "link": "http://www.sandraglover.co.uk/about.htm"
     },
     {
       "id": "biff-chip-on-screen",
@@ -28,37 +39,26 @@
       "link": "https://en.wikipedia.org/wiki/The_Magic_Key"
     },
     {
-      "id": "rob-childs-football",
-      "headline": "Football fiction that wins over reluctant readers",
-      "author": "Rob Childs",
-      "book": "A Blast from the Past",
-      "rank": 7,
-      "kind": "spotlight",
-      "summary": "Rob Childs, a former teacher, wrote more than seventy sports stories aimed squarely at children who say they don't like reading. Short, pacy and football-mad, his Big Match and Soccer Mad books are a reliable hook for a reluctant reader who lives for the game.",
-      "source": "LoveReading4Kids",
-      "link": "https://www.lovereading4kids.co.uk/author/1765/Rob-Childs.html"
-    },
-    {
-      "id": "lawrence-aeneid-tales",
-      "headline": "The Roman Mysteries author is retelling Virgil for younger readers",
-      "author": "Caroline Lawrence",
-      "book": "The Enemies of Jupiter",
-      "rank": 8,
-      "kind": "release",
-      "summary": "Caroline Lawrence, whose Roman Mysteries your readers enjoy, has been writing a set of short, accessible Tales from Virgil's Aeneid. A natural next step for a child who's caught the Ancient Rome bug.",
-      "source": "carolinelawrence.com",
-      "link": "https://carolinelawrence.com/"
-    },
-    {
       "id": "morpurgo-2026-releases",
       "headline": "Michael Morpurgo has a busy 2026 — including a memoir of life on the farm",
       "author": "Michael Morpurgo",
       "book": "Running Wild",
-      "rank": 10,
+      "rank": 8,
       "kind": "release",
-      "summary": "The author of Running Wild has several titles due in 2026, among them a memoir of his fifty years on a working Devon farm and more retellings of Shakespeare for younger readers. Good news for a class already hooked on his animal stories.",
-      "source": "michaelmorpurgo.com",
-      "link": "https://www.michaelmorpurgo.com/news/"
+      "summary": "The author of Running Wild has several titles due in 2026: a memoir of his fifty years on a working Devon farm arrives on 17 September, alongside More Tales from Shakespeare and a retelling of Black Beauty. Good news for a class already hooked on his animal stories.",
+      "source": "Waterstones",
+      "link": "https://www.waterstones.com/author/michael-morpurgo/28972"
+    },
+    {
+      "id": "lawrence-aeneid-tales",
+      "headline": "The Roman Mysteries author is retelling Virgil for older readers",
+      "author": "Caroline Lawrence",
+      "book": "The Enemies of Jupiter",
+      "rank": 9,
+      "kind": "release",
+      "summary": "Caroline Lawrence, whose Roman Mysteries your readers enjoy, has been writing a set of short, accessible Tales from Virgil's Aeneid — newly refreshed as ebooks and audiobooks, with more on the way. A natural next step for an older child who's caught the Ancient Rome bug.",
+      "source": "carolinelawrence.com",
+      "link": "https://carolinelawrence.com/series/virgil-retellings/"
     },
     {
       "id": "deary-terrible-true-tales",
@@ -78,7 +78,7 @@
       "date": "2026-07-04",
       "name": "Summer Reading Challenge — Read to the Beat!",
       "kind": "event",
-      "blurb": "The Reading Agency's free library challenge runs 4 July to 5 September, this year on a music-and-stories theme with Universal Music. A great nudge to keep children reading over the holidays.",
+      "blurb": "The Reading Agency's free library challenge runs 4 July to 5 September in England and Wales (from 20 June in Scotland and online), this year pairing stories with songs alongside Universal Music, with illustrations by Harry Woodgate. A great nudge to keep children reading over the holidays.",
       "link": "https://summerreadingchallenge.org.uk/"
     },
     {
@@ -110,7 +110,7 @@
       "date": "2026-10-05",
       "name": "Michael Morpurgo's birthday",
       "kind": "birthday",
-      "blurb": "One of your most-read authors turns a year older on 5 October — pair it with Running Wild or one of his 2026 releases above.",
+      "blurb": "One of your most-read authors turns a year older on 5 October — pair it with Running Wild or his farm memoir, out the month before.",
       "link": "https://www.michaelmorpurgo.com/"
     },
     {
