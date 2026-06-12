@@ -27,12 +27,14 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  IconButton,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Favorite as FavoriteIcon,
   ThumbUp as ThumbUpIcon,
   ThumbDown as ThumbDownIcon,
+  MenuBook as MenuBookIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
@@ -77,6 +79,10 @@ const StudentEditForm = forwardRef(function StudentEditForm({ student, onSave, o
   const [addGenreOpen, setAddGenreOpen] = useState(false);
   const [newGenreName, setNewGenreName] = useState('');
 
+  // Previously read books (deduped from the student's sessions, newest first)
+  const [readBooks, setReadBooks] = useState([]);
+  const [readBooksLoaded, setReadBooksLoaded] = useState(false);
+
   // Derive read book IDs from student sessions for priority ordering in autocomplete
   const priorityBookIds = useMemo(() => {
     const sessions = student?.readingSessions || [];
@@ -105,6 +111,44 @@ const StudentEditForm = forwardRef(function StudentEditForm({ student, onSave, o
       resetToStudent(student);
     }
   }, [student, resetToStudent]);
+
+  // Load the student's previously read books. The sessions endpoint resolves
+  // book titles server-side (including manual titles) and returns newest
+  // first, so the first occurrence of a title is its most recent read.
+  useEffect(() => {
+    if (!student?.id) {
+      setReadBooks([]);
+      setReadBooksLoaded(false);
+      return undefined;
+    }
+    const controller = new AbortController();
+    const loadReadBooks = async () => {
+      try {
+        const response = await fetchWithAuth(`/api/students/${student.id}/sessions`, {
+          signal: controller.signal,
+        });
+        const sessions = response.ok ? await response.json() : [];
+        const unique = new Map();
+        for (const session of sessions) {
+          const title = session.bookTitle;
+          if (!title || unique.has(title)) continue;
+          unique.set(title, {
+            title,
+            author: session.bookAuthor || null,
+            lastRead: session.date,
+          });
+        }
+        setReadBooks(Array.from(unique.values()));
+        setReadBooksLoaded(true);
+      } catch (error) {
+        if (error.name === 'AbortError') return;
+        setReadBooks([]);
+        setReadBooksLoaded(true);
+      }
+    };
+    loadReadBooks();
+    return () => controller.abort();
+  }, [student?.id, fetchWithAuth]);
 
   // Expose save() and cancel() to the parent via ref
   useImperativeHandle(
@@ -209,6 +253,22 @@ const StudentEditForm = forwardRef(function StudentEditForm({ student, onSave, o
 
   const handleRemoveDislike = (dislikeToRemove) => {
     setDislikes(dislikes.filter((dislike) => dislike !== dislikeToRemove));
+  };
+
+  // Thumb toggle on a previously read book — mutually exclusive with the
+  // other thumb, and a second tap on the active thumb clears the rating.
+  // Writes into the same likes/dislikes arrays the manual sections manage,
+  // so the form's normal save path persists it.
+  const handleReadBookRating = (title, rating) => {
+    const inLikes = likes.includes(title);
+    const inDislikes = dislikes.includes(title);
+    if (rating === 'liked') {
+      setLikes(inLikes ? likes.filter((t) => t !== title) : [...likes, title]);
+      if (inDislikes) setDislikes(dislikes.filter((t) => t !== title));
+    } else {
+      setDislikes(inDislikes ? dislikes.filter((t) => t !== title) : [...dislikes, title]);
+      if (inLikes) setLikes(likes.filter((t) => t !== title));
+    }
   };
 
   const handleAddGenre = async () => {
@@ -348,6 +408,84 @@ const StudentEditForm = forwardRef(function StudentEditForm({ student, onSave, o
               Add New Genre
             </Button>
           </Box>
+        </Box>
+
+        {/* 4b. Previously read books — thumb ratings feed Likes/Dislikes */}
+        <Box>
+          <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+            <MenuBookIcon sx={{ mr: 1 }} />
+            Books They&apos;ve Read
+            {readBooks.length > 0 && <Chip label={readBooks.length} size="small" sx={{ ml: 1 }} />}
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+            Tap a thumb to record whether they enjoyed each book — this fills in the Likes and
+            Dislikes below and feeds their recommendations.
+          </Typography>
+          {readBooks.length === 0 ? (
+            <Typography variant="body2" color="text.secondary" fontStyle="italic">
+              {readBooksLoaded ? 'No books recorded yet' : 'Loading reading history…'}
+            </Typography>
+          ) : (
+            <Box
+              sx={{
+                maxHeight: 280,
+                overflow: 'auto',
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 1,
+              }}
+            >
+              {readBooks.map((book, index) => (
+                <Box
+                  key={book.title}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    px: 1.5,
+                    py: 0.75,
+                    borderBottom: index < readBooks.length - 1 ? '1px solid' : 'none',
+                    borderColor: 'divider',
+                  }}
+                >
+                  <Box sx={{ minWidth: 0, flex: 1 }}>
+                    <Typography variant="body2" noWrap>
+                      {book.title}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      noWrap
+                      sx={{ display: 'block' }}
+                    >
+                      {book.author ? `${book.author} · ` : ''}
+                      last read {new Date(book.lastRead).toLocaleDateString()}
+                    </Typography>
+                  </Box>
+                  <IconButton
+                    onClick={() => handleReadBookRating(book.title, 'liked')}
+                    aria-label={`Mark "${book.title}" as enjoyed`}
+                    sx={{
+                      color: likes.includes(book.title) ? 'success.main' : 'action.disabled',
+                      '&:hover': { color: 'success.main' },
+                    }}
+                  >
+                    <ThumbUpIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton
+                    onClick={() => handleReadBookRating(book.title, 'disliked')}
+                    aria-label={`Mark "${book.title}" as not enjoyed`}
+                    sx={{
+                      color: dislikes.includes(book.title) ? 'error.main' : 'action.disabled',
+                      '&:hover': { color: 'error.main' },
+                    }}
+                  >
+                    <ThumbDownIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+              ))}
+            </Box>
+          )}
         </Box>
 
         {/* 5. Likes */}

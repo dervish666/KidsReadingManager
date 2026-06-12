@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.102.0] - 2026-06-12
+
+### Added
+
+- **Reading Preferences shows the books a student has read.** The student edit form (Reading Preferences dialog on the Recommendations page, and the edit view in the student drawer) now lists every book from the student's reading history — deduped, newest first, with author and last-read date — each with thumb up/down toggles to record whether they enjoyed it. Ratings are mutually exclusive, a second tap clears, and they write into the existing Likes/Dislikes lists so they persist through the normal save and feed the AI recommendation prompt. Sessions logged with a manual title (no linked catalogue book) are included; sessions with no title are skipped.
+
 ## [3.101.0] - 2026-06-12
 
 ### Added

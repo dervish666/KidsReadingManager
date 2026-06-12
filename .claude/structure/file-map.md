@@ -216,7 +216,7 @@ src/components/tour/useTour.js - Hook for auto-start, ready guard, and button pr
 src/components/students/StudentList.js - Student listing with filters and sorting
 src/components/students/StudentCard.js - Student card with status and streak
 src/components/students/StudentDetailDrawer.js - Student detail side drawer (read/edit modes)
-src/components/students/StudentEditForm.js - Student edit form with save/cancel
+src/components/students/StudentEditForm.js - Student edit form with save/cancel; previously-read books list with enjoyed/not thumb toggles feeding likes/dislikes
 src/components/students/StudentReadView.js - Read-only student detail cards
 src/components/students/StudentTable.js - Tabular student view
 src/components/students/StreakBadge.js - Flame icon streak counter
