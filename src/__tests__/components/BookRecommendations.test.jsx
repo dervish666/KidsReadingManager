@@ -950,6 +950,79 @@ describe('BookRecommendations Component', () => {
       expect(aiSuggestionsElements.length).toBeGreaterThan(0);
     });
 
+    it('should show a collapsed AI debug panel that expands to prompt and response', async () => {
+      const mockFetch = createMockFetch({
+        aiSuggestions: {
+          studentProfile: { readingLevel: 2.5, favoriteGenres: ['Fiction'], inferredGenres: [] },
+          suggestions: [
+            {
+              id: 'ai-1',
+              title: 'AI Suggested Book 1',
+              author: 'AI Author One',
+              level: '2.5',
+              reason: 'Based on reading history',
+              inLibrary: false,
+            },
+          ],
+          cached: false,
+          debug: {
+            provider: 'anthropic',
+            model: 'claude-haiku-4-5',
+            prompt: 'STUDENT PROFILE: debug prompt body',
+            rawResponse: '[{"title":"AI Suggested Book 1"}]',
+            failedAttempts: [],
+          },
+        },
+      });
+      const context = createMockContext({ fetchWithAuth: mockFetch });
+      const user = userEvent.setup();
+      render(<BookRecommendations />, { wrapper: createWrapper(context) });
+
+      const studentSelect = screen.getByLabelText(/student/i);
+      await user.click(studentSelect);
+      await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Recommended Book 1')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: /ask ai/i }));
+
+      // Collapsed header is shown with the provider/model chip
+      const toggle = await screen.findByRole('button', { name: /show ai request details/i });
+      expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      expect(screen.getByText(/What we sent to the AI/i)).toBeInTheDocument();
+      expect(screen.getByText(/Claude · claude-haiku-4-5/i)).toBeInTheDocument();
+
+      // Expanding reveals the prompt and raw response
+      await user.click(toggle);
+      expect(toggle).toHaveAttribute('aria-expanded', 'true');
+      expect(screen.getByText(/debug prompt body/i)).toBeInTheDocument();
+      expect(screen.getByText(/"title":"AI Suggested Book 1"/i)).toBeInTheDocument();
+    });
+
+    it('should not render the AI debug panel when the response has no debug info', async () => {
+      const mockFetch = createMockFetch();
+      const context = createMockContext({ fetchWithAuth: mockFetch });
+      const user = userEvent.setup();
+      render(<BookRecommendations />, { wrapper: createWrapper(context) });
+
+      const studentSelect = screen.getByLabelText(/student/i);
+      await user.click(studentSelect);
+      await user.click(screen.getByRole('option', { name: /Alice Smith/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Recommended Book 1')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: /ask ai/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('AI Suggested Book 1')).toBeInTheDocument();
+      });
+      expect(screen.queryByText(/What we sent to the AI/i)).not.toBeInTheDocument();
+    });
+
     it('should display "In library" chip for AI suggestions that are in library', async () => {
       const mockFetch = createMockFetch();
       const context = createMockContext({ fetchWithAuth: mockFetch });

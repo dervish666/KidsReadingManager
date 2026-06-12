@@ -120,17 +120,20 @@ Ensure recommendations are age-appropriate and match the student's reading level
  * @param {string} model - Model name
  * @param {string} baseUrl - Base URL for the API
  * @param {boolean} raw - If true, return raw text instead of parsed response
+ * @param {Object} [debug] - Optional capture object; receives model/rawResponse
  */
 async function callAnthropic(
   prompt,
   apiKey,
   model,
   baseUrl = 'https://api.anthropic.com/v1',
-  raw = false
+  raw = false,
+  debug = null
 ) {
   // Use direct fetch instead of the SDK — the SDK's AuthenticationError carries
   // status=401 which our error handler propagates to the client, triggering logout.
   const resolvedModel = model || 'claude-haiku-4-5';
+  if (debug) debug.model = resolvedModel;
   const url = `${baseUrl}/messages`;
 
   const response = await fetchWithTimeout(
@@ -158,6 +161,7 @@ async function callAnthropic(
 
   const data = await response.json();
   const text = data.content[0].text;
+  if (debug) debug.rawResponse = text;
   return raw ? text : parseResponse(text);
 }
 
@@ -168,15 +172,18 @@ async function callAnthropic(
  * @param {string} model - Model name
  * @param {string} baseUrl - Base URL for the API
  * @param {boolean} raw - If true, return raw text instead of parsed response
+ * @param {Object} [debug] - Optional capture object; receives model/rawResponse
  */
 async function callOpenAI(
   prompt,
   apiKey,
   model,
   baseUrl = 'https://api.openai.com/v1',
-  raw = false
+  raw = false,
+  debug = null
 ) {
   const resolvedModel = model || 'gpt-4o-mini';
+  if (debug) debug.model = resolvedModel;
   const url = `${baseUrl}/chat/completions`;
 
   const response = await fetchWithTimeout(
@@ -216,6 +223,7 @@ async function callOpenAI(
 
   const data = await response.json();
   const content = data.choices[0].message.content;
+  if (debug) debug.rawResponse = content;
 
   // Return raw text if requested
   if (raw) {
@@ -245,16 +253,19 @@ async function callOpenAI(
  * @param {string} model - Model name
  * @param {string} baseUrl - Base URL for the API
  * @param {boolean} raw - If true, return raw text instead of parsed response
+ * @param {Object} [debug] - Optional capture object; receives model/rawResponse
  */
 async function callGemini(
   prompt,
   apiKey,
   model,
   baseUrl = 'https://generativelanguage.googleapis.com/v1beta',
-  raw = false
+  raw = false,
+  debug = null
 ) {
   // Null/undefined model bypasses default params; resolve explicitly.
   const resolvedModel = model || 'gemini-2.0-flash';
+  if (debug) debug.model = resolvedModel;
   // Gemini API requires the key as a query parameter — this is a known API constraint.
   // Mitigate: use a dedicated Gemini-only API key and rotate periodically.
   const url = `${baseUrl}/models/${resolvedModel}:generateContent?key=${apiKey}`;
@@ -313,6 +324,7 @@ async function callGemini(
     throw new Error('Gemini API returned empty content');
   }
 
+  if (debug) debug.rawResponse = content;
   return raw ? content : parseResponse(content);
 }
 
@@ -590,9 +602,16 @@ function parseBroadSuggestionsResponse(text) {
  * @param {Object} studentProfile - Profile from buildStudentReadingProfile
  * @param {Object} config - AI configuration (provider, apiKey, model, baseUrl)
  * @param {string} focusMode - 'balanced' | 'consolidation' | 'challenge' (default: 'balanced')
+ * @param {Object} [debug] - Optional capture object; receives provider, model,
+ *   prompt and rawResponse for the attempt (surfaced in the UI debug panel)
  * @returns {Promise<Array>} - List of suggested books
  */
-export async function generateBroadSuggestions(studentProfile, config, focusMode = 'balanced') {
+export async function generateBroadSuggestions(
+  studentProfile,
+  config,
+  focusMode = 'balanced',
+  debug = null
+) {
   const { provider = 'anthropic', apiKey, baseUrl, model } = config;
 
   if (!apiKey) {
@@ -600,18 +619,22 @@ export async function generateBroadSuggestions(studentProfile, config, focusMode
   }
 
   const prompt = buildBroadSuggestionsPrompt(studentProfile, focusMode);
+  if (debug) {
+    debug.provider = provider;
+    debug.prompt = prompt;
+  }
 
   let response;
   switch (provider) {
     case 'anthropic':
-      response = await callAnthropic(prompt, apiKey, model, baseUrl, true);
+      response = await callAnthropic(prompt, apiKey, model, baseUrl, true, debug);
       break;
     case 'openai':
-      response = await callOpenAI(prompt, apiKey, model, baseUrl, true);
+      response = await callOpenAI(prompt, apiKey, model, baseUrl, true, debug);
       break;
     case 'gemini':
     case 'google':
-      response = await callGemini(prompt, apiKey, model, baseUrl, true);
+      response = await callGemini(prompt, apiKey, model, baseUrl, true, debug);
       break;
     default:
       throw new Error(`Unsupported AI provider: ${provider}`);
@@ -635,12 +658,16 @@ export async function generateBroadSuggestions(studentProfile, config, focusMode
  * @param {Array<Object>} configs - Ordered list of `{provider, apiKey, model}`
  *   to try. Index 0 is the primary; later indices are failover targets.
  * @param {string} [focusMode='balanced']
+ * @param {Object} [debug] - Optional capture object. On success it holds the
+ *   winning attempt's provider/model/prompt/rawResponse plus `failedAttempts`
+ *   (provider: reason strings for any configs that failed before it).
  * @returns {Promise<Array>} Validated, normalised suggestion array
  */
 export async function generateBroadSuggestionsWithFailover(
   studentProfile,
   configs,
-  focusMode = 'balanced'
+  focusMode = 'balanced',
+  debug = null
 ) {
   if (!Array.isArray(configs) || configs.length === 0) {
     throw new Error('At least one AI config is required for failover');
@@ -650,8 +677,21 @@ export async function generateBroadSuggestionsWithFailover(
   for (let i = 0; i < configs.length; i += 1) {
     const config = configs[i];
     const providerLabel = config?.provider || 'unknown';
+    // Fresh capture per attempt so a failed attempt's partial data (e.g. a
+    // raw response that failed validation) can't leak into the winner's debug.
+    const attemptDebug = debug ? {} : null;
     try {
-      return await generateBroadSuggestions(studentProfile, config, focusMode);
+      const result = await generateBroadSuggestions(
+        studentProfile,
+        config,
+        focusMode,
+        attemptDebug
+      );
+      if (debug) {
+        Object.assign(debug, attemptDebug);
+        debug.failedAttempts = failures.slice();
+      }
+      return result;
     } catch (err) {
       const message = err?.message || 'unknown error';
       failures.push(`${providerLabel}: ${message}`);

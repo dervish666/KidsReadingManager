@@ -43,6 +43,7 @@ import ThumbDownIcon from '@mui/icons-material/ThumbDown';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CloseIcon from '@mui/icons-material/Close';
+import CodeIcon from '@mui/icons-material/Code';
 import StudentEditForm from './students/StudentEditForm';
 import BookCover from './BookCover';
 import { STATUS_TO_PALETTE } from '../utils/helpers';
@@ -125,6 +126,10 @@ const BookRecommendations = () => {
 
   // State for cached result indicator
   const [isCachedResult, setIsCachedResult] = useState(false);
+
+  // State for the AI debug panel (prompt + raw response from the last Ask AI)
+  const [aiDebug, setAiDebug] = useState(null);
+  const [showAiDebug, setShowAiDebug] = useState(false);
 
   // Tour — ready once library results are showing so all targets exist in DOM
   useTour('recommendations', { ready: recommendations.length > 0 });
@@ -240,6 +245,8 @@ const BookRecommendations = () => {
     setError(null);
     setShowDetails(false);
     setBookRatings({});
+    setAiDebug(null);
+    setShowAiDebug(false);
 
     // Fetch sessions and library search in parallel
     if (studentId) {
@@ -300,6 +307,8 @@ const BookRecommendations = () => {
     setResultType(null);
     setError(null);
     setShowDetails(false);
+    setAiDebug(null);
+    setShowAiDebug(false);
 
     // Pre-populate ratings from student's existing likes/dislikes
     const student = students.find((s) => s.id === studentId);
@@ -333,6 +342,8 @@ const BookRecommendations = () => {
     setRecommendations([]);
     setResultType('ai');
     setIsCachedResult(false);
+    setAiDebug(null);
+    setShowAiDebug(false);
 
     try {
       let url = `/api/books/ai-suggestions?studentId=${selectedStudentId}&focusMode=${effectiveFocus}`;
@@ -350,6 +361,7 @@ const BookRecommendations = () => {
       setStudentProfile(data.studentProfile);
       setRecommendations(data.suggestions || []);
       setIsCachedResult(data.cached === true);
+      setAiDebug(data.debug || null);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -1144,6 +1156,98 @@ const BookRecommendations = () => {
             </Grid>
           ))}
         </Grid>
+      )}
+
+      {/* Collapsed AI exchange panel — the exact prompt sent and raw response */}
+      {resultType === 'ai' && !aiLoading && aiDebug?.prompt && (
+        <Paper variant="outlined" sx={{ mt: 3, overflow: 'hidden' }}>
+          <Box
+            onClick={() => setShowAiDebug(!showAiDebug)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setShowAiDebug(!showAiDebug);
+              }
+            }}
+            tabIndex={0}
+            role="button"
+            aria-expanded={showAiDebug}
+            aria-label={showAiDebug ? 'Hide AI request details' : 'Show AI request details'}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              p: 1.5,
+              cursor: 'pointer',
+              '&:hover': { bgcolor: 'rgba(107, 142, 107, 0.06)' },
+            }}
+          >
+            <CodeIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+            <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+              What we sent to the AI
+            </Typography>
+            {aiDebug.provider && (
+              <Chip
+                label={`${getProviderDisplayName(aiDebug.provider)}${aiDebug.model ? ` · ${aiDebug.model}` : ''}`}
+                size="small"
+                variant="outlined"
+                sx={{ fontSize: '0.7rem' }}
+              />
+            )}
+            <Box sx={{ ml: 'auto', display: 'flex', color: 'text.secondary' }}>
+              {showAiDebug ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            </Box>
+          </Box>
+          <Collapse in={showAiDebug}>
+            <Box sx={{ px: 2, pb: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+              {aiDebug.failedAttempts?.length > 0 && (
+                <Alert severity="warning" sx={{ mt: 2 }}>
+                  Fell back after failed attempts: {aiDebug.failedAttempts.join('; ')}
+                </Alert>
+              )}
+              <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 2, mb: 0.5 }}>
+                Prompt sent
+              </Typography>
+              <Box
+                component="pre"
+                sx={{
+                  m: 0,
+                  p: 1.5,
+                  bgcolor: 'rgba(139, 115, 85, 0.05)',
+                  borderRadius: 1,
+                  fontFamily: 'monospace',
+                  fontSize: '0.75rem',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  maxHeight: 320,
+                  overflow: 'auto',
+                }}
+              >
+                {aiDebug.prompt}
+              </Box>
+              <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 2, mb: 0.5 }}>
+                AI response
+              </Typography>
+              <Box
+                component="pre"
+                sx={{
+                  m: 0,
+                  p: 1.5,
+                  bgcolor: 'rgba(107, 142, 107, 0.06)',
+                  borderRadius: 1,
+                  fontFamily: 'monospace',
+                  fontSize: '0.75rem',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  maxHeight: 320,
+                  overflow: 'auto',
+                }}
+              >
+                {aiDebug.rawResponse || 'No response captured'}
+              </Box>
+            </Box>
+          </Collapse>
+        </Paper>
       )}
 
       {/* AI suggestion banner - shown after library results */}

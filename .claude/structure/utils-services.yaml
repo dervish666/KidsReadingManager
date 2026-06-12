@@ -786,8 +786,13 @@ files:
         returns: string
       - name: generateBroadSuggestions
         kind: function
-        params: [{name: studentProfile}, {name: config}, {name: focusMode}]
+        params: [{name: studentProfile}, {name: config}, {name: focusMode}, {name: debug, optional: true}]
         returns: Promise<Array>
+      - name: generateBroadSuggestionsWithFailover
+        kind: function
+        params: [{name: studentProfile}, {name: configs}, {name: focusMode}, {name: debug, optional: true}]
+        returns: Promise<Array>
+        description: Tries configs in order; optional debug object captures provider/model/prompt/rawResponse/failedAttempts
 
   services/kvService.js:
     description: Cloudflare KV storage abstraction (legacy/fallback)

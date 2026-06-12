@@ -524,10 +524,15 @@ recommendationsRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
       }
     }
 
+    // Capture the exact prompt/response exchange for the collapsed debug
+    // panel on the recommendations page. Contains no student PII — the
+    // prompt is built from the AI-safe profile (toAISafeProfile output).
+    const aiDebug = {};
     const rawSuggestions = await generateBroadSuggestionsWithFailover(
       safeProfile,
       aiConfigs,
-      focusMode
+      focusMode,
+      aiDebug
     );
 
     // Record the call against the org's monthly bucket. Sync (await) so
@@ -603,6 +608,13 @@ recommendationsRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
         recentReads: profile.recentReads.map((r) => r.title),
       },
       cached: false,
+      debug: {
+        provider: aiDebug.provider || null,
+        model: aiDebug.model || null,
+        prompt: aiDebug.prompt || null,
+        rawResponse: aiDebug.rawResponse || null,
+        failedAttempts: aiDebug.failedAttempts || [],
+      },
     });
   } catch (error) {
     // Re-throw known errors (badRequestError, notFoundError, etc.)

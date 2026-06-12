@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.101.0] - 2026-06-12
+
+### Added
+
+- **AI exchange visible on the Recommendations page.** After Ask AI, a collapsed "What we sent to the AI" panel appears below the suggestions showing the provider and model used, the exact prompt sent, and the raw response received — useful for understanding what the AI sees and for comparing models. If the primary provider failed and a fallback answered, the failed attempts and their reasons are listed too. The capture rides the existing failover path (`generateBroadSuggestionsWithFailover` takes an optional debug object threaded down to the provider calls) and is returned as a `debug` field on `/api/books/ai-suggestions`; cached results carry no debug since no AI call was made. The prompt contains no student PII — it is built from the AI-safe profile.
+
 ## [3.100.0] - 2026-06-12
 
 ### Changed

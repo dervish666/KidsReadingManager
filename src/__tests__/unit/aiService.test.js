@@ -746,6 +746,51 @@ describe('generateBroadSuggestionsWithFailover', () => {
     }
   });
 
+  it('captures prompt, model and raw response into the debug object', async () => {
+    const fetchSpy = stubFetch([buildAnthropicResponse(validResponseBody)]);
+    const debug = {};
+    try {
+      await generateBroadSuggestionsWithFailover(
+        profile,
+        [{ provider: 'anthropic', apiKey: 'sk-test-1', model: null }],
+        'balanced',
+        debug
+      );
+      expect(debug.provider).toBe('anthropic');
+      expect(debug.model).toBe('claude-haiku-4-5');
+      expect(debug.prompt).toContain('STUDENT PROFILE');
+      expect(debug.rawResponse).toBe(validResponseBody);
+      expect(debug.failedAttempts).toEqual([]);
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
+
+  it('debug reflects the winning provider and lists earlier failures', async () => {
+    const fetchSpy = stubFetch([
+      buildAnthropicError(503),
+      buildAnthropicResponse(validResponseBody),
+    ]);
+    const debug = {};
+    try {
+      await generateBroadSuggestionsWithFailover(
+        profile,
+        [
+          { provider: 'anthropic', apiKey: 'sk-broken', model: null },
+          { provider: 'anthropic', apiKey: 'sk-works', model: 'claude-sonnet-4-6' },
+        ],
+        'balanced',
+        debug
+      );
+      expect(debug.model).toBe('claude-sonnet-4-6');
+      expect(debug.rawResponse).toBe(validResponseBody);
+      expect(debug.failedAttempts).toHaveLength(1);
+      expect(debug.failedAttempts[0]).toMatch(/^anthropic:/);
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
+
   it('does not retry the second provider after the first succeeds', async () => {
     const handler2 = vi.fn(() => buildAnthropicResponse(validResponseBody));
     const fetchSpy = stubFetch([buildAnthropicResponse(validResponseBody), handler2]);
