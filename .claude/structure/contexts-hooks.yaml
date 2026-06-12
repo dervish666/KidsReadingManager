@@ -18,7 +18,7 @@ files:
       - name: useBookOperations
         kind: function
         params: [fetchWithAuth, books, setBooks, setApiError]
-        returns: "{ addBook, updateBook, updateBookField, findOrCreateBook, fetchBookDetails }"
+        returns: "{ addBook, updateBook, updateBookField, findOrCreateBook, fetchBookDetails, upsertBookLocal, removeBookLocal }"
 
   contexts/data/useSessionOperations.js:
     description: Reading session operations extracted from DataContext
@@ -98,6 +98,8 @@ files:
       # Data loading
       - name: reloadDataFromServer
         description: Reload all data from API
+      - name: reloadBooks
+        description: Books-only refresh (minimal fields) for bulk book mutations
       # Student CRUD
       - name: addStudent
         params: [name, classId]

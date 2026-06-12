@@ -32,9 +32,9 @@ import { parseCSV, detectColumnMapping, mapCSVToBooks } from '../../utils/csvPar
 
 const steps = ['Upload CSV', 'Map Columns', 'Review Matches', 'Confirm Import'];
 
-const BookImportWizard = ({ open, onClose }) => {
+const BookImportWizard = ({ open, onClose, onImported }) => {
   const { fetchWithAuth } = useAuth();
-  const { reloadDataFromServer } = useData();
+  const { reloadBooks } = useData();
   const [activeStep, setActiveStep] = useState(0);
   const [csvData, setCsvData] = useState(null);
   const [columnMapping, setColumnMapping] = useState({
@@ -224,7 +224,10 @@ const BookImportWizard = ({ open, onClose }) => {
         success: totals.errors.length === 0,
       });
       setActiveStep(3);
-      await reloadDataFromServer();
+      // Books-only refresh — an import can't change students/classes/settings.
+      // onImported lets the parent refresh its own full-detail list too.
+      await reloadBooks();
+      if (onImported) await onImported();
     } catch (err) {
       setError(err.message);
     } finally {

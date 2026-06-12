@@ -206,7 +206,7 @@ files:
     exports:
       - name: BookImportWizard
         kind: component
-        props: [open, onClose]
+        props: [open, onClose, onImported]
         description: "4-step wizard: upload, column map, preview, confirm"
 
   books/AddBookModal.js:

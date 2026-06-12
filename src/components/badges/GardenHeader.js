@@ -2,20 +2,20 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 
 // Growth stages for the central plant (swapped as badges accumulate)
-import gardenGrow1 from '../../assets/garden-seedling.png';
-import gardenGrow2 from '../../assets/garden-grow-2.png';
-import gardenGrow3 from '../../assets/garden-grow-3.png';
-import gardenGrow4 from '../../assets/garden-grow-4.png';
+import gardenGrow1 from '../../assets/garden-seedling.webp';
+import gardenGrow2 from '../../assets/garden-grow-2.webp';
+import gardenGrow3 from '../../assets/garden-grow-3.webp';
+import gardenGrow4 from '../../assets/garden-grow-4.webp';
 
 // Static garden elements
-import gardenFlower from '../../assets/garden-flower.png';
-import gardenBush from '../../assets/garden-bush.png';
-import gardenFlowers from '../../assets/garden-flowers.png';
-import gardenSmallTree from '../../assets/garden-small-tree.png';
-import gardenButterfly from '../../assets/garden-butterfly.png';
-import gardenLargeTree from '../../assets/garden-large-tree.png';
-import gardenBird from '../../assets/garden-bird.png';
-import gardenSignpost from '../../assets/garden-signpost-04.png';
+import gardenFlower from '../../assets/garden-flower.webp';
+import gardenBush from '../../assets/garden-bush.webp';
+import gardenFlowers from '../../assets/garden-flowers.webp';
+import gardenSmallTree from '../../assets/garden-small-tree.webp';
+import gardenButterfly from '../../assets/garden-butterfly.webp';
+import gardenLargeTree from '../../assets/garden-large-tree.webp';
+import gardenBird from '../../assets/garden-bird.webp';
+import gardenSignpost from '../../assets/garden-signpost-04.webp';
 import {
   STAGES,
   getStage,

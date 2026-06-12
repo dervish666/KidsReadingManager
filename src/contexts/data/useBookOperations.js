@@ -113,6 +113,29 @@ export function useBookOperations(fetchWithAuth, books, setBooks, setApiError) {
     [books, addBook, updateBook]
   );
 
+  // Local-only state patches for callers that performed their own API call
+  // (e.g. BookManager's role-aware edit/delete, ScanBookFlow's confirm) — no
+  // network, just keeps the shared minimal books list in sync without a full
+  // reload. Upsert: merges into the existing entry or appends if absent.
+  const upsertBookLocal = useCallback(
+    (book) => {
+      if (!book?.id) return;
+      setBooks((prev) =>
+        prev.some((b) => b.id === book.id)
+          ? prev.map((b) => (b.id === book.id ? { ...b, ...book } : b))
+          : [...prev, book]
+      );
+    },
+    [setBooks]
+  );
+
+  const removeBookLocal = useCallback(
+    (id) => {
+      setBooks((prev) => prev.filter((b) => b.id !== id));
+    },
+    [setBooks]
+  );
+
   const fetchBookDetails = useCallback(
     async (bookId) => {
       try {
@@ -134,5 +157,7 @@ export function useBookOperations(fetchWithAuth, books, setBooks, setApiError) {
     updateBookField,
     findOrCreateBook,
     fetchBookDetails,
+    upsertBookLocal,
+    removeBookLocal,
   };
 }

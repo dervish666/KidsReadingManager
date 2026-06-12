@@ -19,14 +19,21 @@ import { useUI } from '../../contexts/UIContext';
 import { STATUS_TO_PALETTE } from '../../utils/helpers';
 import { getCurrentGrowth } from '../badges/GardenHeader';
 
-const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
-  const { getReadingStatus } = useUI();
-
+// Memoized: cards re-render only when their own student (or status) changes,
+// not on every context update. Status is computed by the parent — consuming
+// useUI() here would subscribe every card to all UIContext changes and defeat
+// the memo. onClick receives the student id, so the parent can pass one
+// stable callback instead of a fresh closure per card.
+const StudentPriorityCard = React.memo(function StudentPriorityCard({
+  student,
+  priorityRank,
+  status,
+  onClick,
+}) {
   const badgeCount = student.badgeCount || 0;
   const growth = getCurrentGrowth(badgeCount);
   const sessionCount = student.totalSessionCount || 0;
 
-  const status = getReadingStatus(student);
   const paletteKey = STATUS_TO_PALETTE[status] || 'notRead';
 
   const mostRecentReadDate = student.lastReadDate || null;
@@ -45,11 +52,11 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
 
   return (
     <Card
-      onClick={onClick}
+      onClick={() => onClick(student.id)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          onClick();
+          onClick(student.id);
         }
       }}
       tabIndex={0}
@@ -202,7 +209,7 @@ const StudentPriorityCard = ({ student, priorityRank, onClick }) => {
       </CardContent>
     </Card>
   );
-};
+});
 
 const PrioritizedStudentsList = ({ defaultCount = 8, filterClassId = 'all' }) => {
   const [expanded, setExpanded] = useState(true);
@@ -215,6 +222,7 @@ const PrioritizedStudentsList = ({ defaultCount = 8, filterClassId = 'all' }) =>
     markedPriorityStudentIds,
     markStudentAsPriorityHandled,
     resetPriorityList,
+    getReadingStatus,
   } = useUI();
 
   const handleStudentClick = useCallback(
@@ -361,7 +369,8 @@ const PrioritizedStudentsList = ({ defaultCount = 8, filterClassId = 'all' }) =>
               <StudentPriorityCard
                 student={student}
                 priorityRank={index + 1}
-                onClick={() => handleStudentClick(student.id)}
+                status={getReadingStatus(student)}
+                onClick={handleStudentClick}
               />
             </Grid>
           ))}

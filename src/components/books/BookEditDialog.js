@@ -23,7 +23,7 @@ import BookCover from '../BookCover';
 
 const BookEditDialog = ({ book, onClose, onSave, genres }) => {
   const { fetchWithAuth, userRole } = useAuth();
-  const { reloadDataFromServer } = useData();
+  const { upsertBookLocal } = useData();
 
   // The books catalog is shared across all schools — only the platform owner
   // may edit shared metadata (the API 403s otherwise). Non-owners can only set
@@ -157,9 +157,20 @@ const BookEditDialog = ({ book, onClose, onSave, genres }) => {
         throw new Error(`API error: ${response.status}`);
       }
 
-      await reloadDataFromServer();
+      // PUT returns the saved book (with any per-org reading-level override
+      // applied) — patch it into the shared books list locally instead of
+      // reloading the whole dataset.
+      let savedBook = null;
+      try {
+        savedBook = await response.json();
+      } catch {
+        savedBook = null;
+      }
+      if (savedBook?.id) {
+        upsertBookLocal(savedBook);
+      }
       setError('');
-      onSave('Book updated successfully');
+      onSave('Book updated successfully', savedBook);
       onClose();
     } catch (error) {
       setError('Failed to update book');

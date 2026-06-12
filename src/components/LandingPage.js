@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import './LandingPage.css';
 
-import screenshotStudents from '../assets/screenshots/screenshot-students.png';
-import screenshotReading from '../assets/screenshots/screenshot-reading.png';
-import screenshotRegister from '../assets/screenshots/screenshot-register.png';
-import screenshotRecommendations from '../assets/screenshots/screenshot-recommendations.png';
-import screenshotStats from '../assets/screenshots/screenshot-stats.png';
-import screenshotParent from '../assets/screenshots/screenshot-parent-portal.png';
+import screenshotStudents from '../assets/screenshots/screenshot-students.webp';
+import screenshotReading from '../assets/screenshots/screenshot-reading.webp';
+import screenshotRegister from '../assets/screenshots/screenshot-register.webp';
+import screenshotRecommendations from '../assets/screenshots/screenshot-recommendations.webp';
+import screenshotStats from '../assets/screenshots/screenshot-stats.webp';
+import screenshotParent from '../assets/screenshots/screenshot-parent-portal.webp';
 import TallyLogo from './TallyLogo';
 import { useAuth } from '../contexts/AuthContext';
 

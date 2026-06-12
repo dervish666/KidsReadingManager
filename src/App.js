@@ -36,18 +36,18 @@ const Help = React.lazy(() => import('./components/Help'));
 const ParentPortal = React.lazy(() => import('./components/parent/ParentPortal'));
 
 // Import custom navigation icons
-import iconStudents from './assets/icon-students.png';
-import iconReading from './assets/icon-reading.png';
-import iconRecord from './assets/icon-record.png';
-import iconStats from './assets/icon-stats.png';
-import iconAchievements from './assets/icon-achievements.png';
-import iconRecommend from './assets/icon-recommend.png';
-import iconBooks from './assets/icon-books.png';
-import iconSettings from './assets/icon-settings.png';
+import iconStudents from './assets/icon-students.webp';
+import iconReading from './assets/icon-reading.webp';
+import iconRecord from './assets/icon-record.webp';
+import iconStats from './assets/icon-stats.webp';
+import iconAchievements from './assets/icon-achievements.webp';
+import iconRecommend from './assets/icon-recommend.webp';
+import iconBooks from './assets/icon-books.webp';
+import iconSettings from './assets/icon-settings.webp';
 
 // Import bookshelf images
-import bookshelfLeft from './assets/bookshelf-left.png';
-import bookshelfRight from './assets/bookshelf-right.png';
+import bookshelfLeft from './assets/bookshelf-left.webp';
+import bookshelfRight from './assets/bookshelf-right.webp';
 
 // Custom icon component for navigation
 const NavIcon = ({ src, alt, selected }) => (

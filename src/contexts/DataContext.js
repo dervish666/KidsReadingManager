@@ -171,6 +171,21 @@ export const DataProvider = ({ children }) => {
     }
   }, [fetchWithAuth, setApiError]);
 
+  // Books-only refresh for bulk book mutations (CSV import, ISBN scan) —
+  // avoids refetching students/classes/settings when only the catalog changed.
+  // Same minimal-fields cap as the full reload (see comment there).
+  const reloadBooks = useCallback(async () => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/books?all=true&fields=minimal&limit=5000`);
+      if (!response.ok) return { success: false };
+      const booksData = await response.json();
+      setBooks(Array.isArray(booksData) ? booksData : booksData.books || []);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }, [fetchWithAuth]);
+
   // Initial load / auth-aware — only reload all data on first auth, not on token refresh
   useEffect(() => {
     if (isAuthenticated) {
@@ -218,8 +233,15 @@ export const DataProvider = ({ children }) => {
     deleteStudent,
   } = useStudentOperations(fetchWithAuth, setStudents, setApiError);
 
-  const { addBook, updateBook, updateBookField, findOrCreateBook, fetchBookDetails } =
-    useBookOperations(fetchWithAuth, books, setBooks, setApiError);
+  const {
+    addBook,
+    updateBook,
+    updateBookField,
+    findOrCreateBook,
+    fetchBookDetails,
+    upsertBookLocal,
+    removeBookLocal,
+  } = useBookOperations(fetchWithAuth, books, setBooks, setApiError);
 
   const { addReadingSession, addReadingSessionsBulk, editReadingSession, deleteReadingSession } =
     useSessionOperations(fetchWithAuth, setStudents, setApiError);
@@ -373,6 +395,8 @@ export const DataProvider = ({ children }) => {
       fetchBookDetails,
       updateBook,
       updateBookField,
+      upsertBookLocal,
+      removeBookLocal,
       // Class operations
       addClass,
       updateClass,
@@ -383,6 +407,7 @@ export const DataProvider = ({ children }) => {
       updateSettings,
       // Data operations
       reloadDataFromServer,
+      reloadBooks,
       exportToJson,
       importFromJson,
     }),
@@ -409,12 +434,15 @@ export const DataProvider = ({ children }) => {
       fetchBookDetails,
       updateBook,
       updateBookField,
+      upsertBookLocal,
+      removeBookLocal,
       addClass,
       updateClass,
       deleteClass,
       addGenre,
       updateSettings,
       reloadDataFromServer,
+      reloadBooks,
       exportToJson,
       importFromJson,
     ]

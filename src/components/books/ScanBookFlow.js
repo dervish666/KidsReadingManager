@@ -36,7 +36,7 @@ const STEPS = {
 
 const ScanBookFlow = ({ open, onClose, onBookSelected }) => {
   const { fetchWithAuth } = useAuth();
-  const { reloadDataFromServer } = useData();
+  const { upsertBookLocal } = useData();
 
   const [step, setStep] = useState(STEPS.SCANNING);
   const [isbn, setIsbn] = useState(null);
@@ -101,7 +101,11 @@ const ScanBookFlow = ({ open, onClose, onBookSelected }) => {
         throw new Error(errData.message || `Failed to add book (${response.status})`);
       }
       const result = await response.json();
-      await reloadDataFromServer();
+      // The scan endpoint returns the saved/linked book — patch it into the
+      // shared books list locally instead of reloading the whole dataset.
+      if (result.book) {
+        upsertBookLocal(result.book);
+      }
       if (onBookSelected) {
         onBookSelected(result.book);
       }
@@ -111,7 +115,7 @@ const ScanBookFlow = ({ open, onClose, onBookSelected }) => {
       setStep(STEPS.ERROR);
       setIsAdding(false);
     }
-  }, [isbn, fetchWithAuth, reloadDataFromServer, onBookSelected, resetState]);
+  }, [isbn, fetchWithAuth, upsertBookLocal, onBookSelected, resetState]);
 
   const handleSelectBook = useCallback(() => {
     if (lookupResult && lookupResult.book && onBookSelected) {

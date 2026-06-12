@@ -113,6 +113,9 @@ const createMockContext = (overrides = {}) => {
       },
     },
     addBook: vi.fn(),
+    upsertBookLocal: vi.fn(),
+    removeBookLocal: vi.fn(),
+    reloadBooks: vi.fn().mockResolvedValue({ success: true }),
     reloadDataFromServer: vi.fn(),
     ...overrides,
     fetchWithAuth,
@@ -569,7 +572,11 @@ describe('BookManager Component', () => {
 
   describe('Add Book Functionality', () => {
     it('should call addBook when form is submitted with valid data', async () => {
-      const mockAddBook = vi.fn().mockResolvedValue();
+      // addBook resolves the saved book; BookManager patches its local list
+      // from the return value instead of reloading the whole dataset.
+      const mockAddBook = vi
+        .fn()
+        .mockResolvedValue({ id: 'new-1', title: 'New Test Book', author: 'Test Author' });
       const mockReload = vi.fn().mockResolvedValue();
       const context = createMockContext({
         addBook: mockAddBook,
@@ -590,7 +597,7 @@ describe('BookManager Component', () => {
       await user.click(addButton);
 
       expect(mockAddBook).toHaveBeenCalledWith('New Test Book', 'Test Author');
-      expect(mockReload).toHaveBeenCalled();
+      expect(mockReload).not.toHaveBeenCalled();
     });
 
     it('should not call addBook when title is empty', async () => {
@@ -612,7 +619,9 @@ describe('BookManager Component', () => {
     });
 
     it('should clear form fields after successful add', async () => {
-      const mockAddBook = vi.fn().mockResolvedValue();
+      const mockAddBook = vi
+        .fn()
+        .mockResolvedValue({ id: 'new-1', title: 'New Book', author: 'New Author' });
       const mockReload = vi.fn().mockResolvedValue();
       const context = createMockContext({
         addBook: mockAddBook,
@@ -867,7 +876,9 @@ describe('BookManager Component', () => {
       await user.click(confirmButton);
 
       expect(mockFetchWithAuth).toHaveBeenCalledWith('/api/books/book-1', { method: 'DELETE' });
-      expect(mockReload).toHaveBeenCalled();
+      // Delete patches the shared books list locally — no full reload.
+      expect(context.removeBookLocal).toHaveBeenCalledWith('book-1');
+      expect(mockReload).not.toHaveBeenCalled();
     });
 
     it('should close confirmation dialog when cancel is clicked', async () => {

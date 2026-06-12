@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.100.0] - 2026-06-12
+
+### Changed
+
+- **All bundled images converted to WebP — asset payload down 81% (8.6 MB → 1.6 MB).** The 28 PNGs in `src/assets` (landing screenshots ~700 KB each, garden/bookshelf artwork, navigation icons) are now WebP at quality 85 (80 for screenshots). Navigation icons were also downscaled 256px → 128px — they render at 36–42px, so 128px keeps 3× retina headroom — taking each from ~180 KB to under 22 KB. Built image output dropped from 7.8 MB to 1.5 MB.
+- **Book mutations no longer reload the whole dataset.** Add, edit, delete, ISBN scan, and imports previously called `reloadDataFromServer()` — five parallel API calls refetching all students, classes, 5,000 books, genres, and settings (a 0.5–1.5 s stall on school wifi) after changing one row. Single-book mutations now patch state locally via new `upsertBookLocal`/`removeBookLocal` DataContext operations and the saved book returned by the API; bulk paths (CSV wizard, JSON import) use a new books-only `reloadBooks()` plus a full-detail refetch scoped to the Books page.
+- **Priority Reading List cards are memoized.** `StudentPriorityCard` is wrapped in `React.memo` with its reading status computed by the parent (consuming `useUI()` inside the card subscribed every card to all UIContext changes, defeating the memo) and one stable click handler instead of a fresh closure per card. Logging a session now re-renders only the affected card instead of all 8–15, and growth-stage images stop remounting.
+
+### Fixed
+
+- **Books page went stale after add/edit/delete (v3.98.0 regression).** The full-detail `fullBooks` list added for CSV export was fetched once on mount, but mutations only refreshed the DataContext minimal list — and the page renders `fullBooks` first, so new books didn't appear, edits didn't show, and deleted books lingered until a remount. All mutation paths now update `fullBooks` in place (add appends the saved book, `BookEditDialog` passes the saved book up through `onSave`, delete filters it out, scan and imports refresh it).
+
 ## [3.99.1] - 2026-06-11
 
 ### Fixed

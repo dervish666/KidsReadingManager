@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import {
   Box,
   Paper,
@@ -42,7 +42,7 @@ import BookCover from '../BookCover';
 
 const BookManager = () => {
   const { fetchWithAuth } = useAuth();
-  const { books: contextBooks, genres, addBook, reloadDataFromServer } = useData();
+  const { books: contextBooks, genres, addBook, removeBookLocal, reloadBooks } = useData();
   const [fullBooks, setFullBooks] = useState(null);
   const books = fullBooks || contextBooks;
 
@@ -50,20 +50,29 @@ const BookManager = () => {
   // DataContext loads books with ?fields=minimal (id, title, author only).
   // BookManager needs full details (readingLevel, genreIds, description, etc.)
   // for filtering, display, and export — so this separate fetch is required.
-  useEffect(() => {
-    let cancelled = false;
-    fetchWithAuth('/api/books?all=true')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (!cancelled && data) {
+  // Single-book mutations patch fullBooks in place; only bulk paths (import,
+  // scan) refetch via loadFullBooks.
+  const loadFullBooks = useCallback(
+    async (signal) => {
+      try {
+        const r = await fetchWithAuth('/api/books?all=true', signal ? { signal } : undefined);
+        if (!r.ok) return;
+        const data = await r.json();
+        if (!signal?.aborted && data) {
           setFullBooks(Array.isArray(data) ? data : data.books || []);
         }
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [fetchWithAuth]);
+      } catch {
+        // Ignore — fall back to contextBooks until the next successful load
+      }
+    },
+    [fetchWithAuth]
+  );
+
+  useEffect(() => {
+    const controller = new AbortController();
+    loadFullBooks(controller.signal);
+    return () => controller.abort();
+  }, [loadFullBooks]);
 
   const [newBookTitle, setNewBookTitle] = useState('');
   const [newBookAuthor, setNewBookAuthor] = useState('');
@@ -103,8 +112,12 @@ const BookManager = () => {
     };
 
     try {
-      await addBook(bookData.title, bookData.author);
-      await reloadDataFromServer();
+      const savedBook = await addBook(bookData.title, bookData.author);
+      if (!savedBook) {
+        setError('Failed to add book');
+        return;
+      }
+      setFullBooks((prev) => (prev ? [...prev, savedBook] : prev));
       setNewBookTitle('');
       setNewBookAuthor('');
       setNewBookReadingLevel('');
@@ -131,7 +144,8 @@ const BookManager = () => {
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);
       }
-      await reloadDataFromServer();
+      setFullBooks((prev) => (prev ? prev.filter((b) => b.id !== confirmDelete.id) : prev));
+      removeBookLocal(confirmDelete.id);
       setConfirmDelete(null);
     } catch (error) {
       setError('Failed to delete book');
@@ -209,7 +223,7 @@ const BookManager = () => {
 
       const result = await response.json();
 
-      await reloadDataFromServer();
+      await Promise.all([reloadBooks(), loadFullBooks()]);
       setConfirmImport({ open: false, file: null, data: null });
 
       // Create detailed message from bulk import result
@@ -762,7 +776,14 @@ const BookManager = () => {
       <BookEditDialog
         book={editingBook}
         onClose={() => setEditingBook(null)}
-        onSave={(message) => setSnackbar({ open: true, message, severity: 'success' })}
+        onSave={(message, savedBook) => {
+          if (savedBook?.id) {
+            setFullBooks((prev) =>
+              prev ? prev.map((b) => (b.id === savedBook.id ? { ...b, ...savedBook } : b)) : prev
+            );
+          }
+          setSnackbar({ open: true, message, severity: 'success' });
+        }}
         genres={genres}
       />
 
@@ -863,7 +884,11 @@ const BookManager = () => {
       </Dialog>
 
       {/* Book Import Wizard */}
-      <BookImportWizard open={showImportWizard} onClose={() => setShowImportWizard(false)} />
+      <BookImportWizard
+        open={showImportWizard}
+        onClose={() => setShowImportWizard(false)}
+        onImported={loadFullBooks}
+      />
 
       {/* ISBN Scanner Flow */}
       <ScanBookFlow
@@ -871,7 +896,15 @@ const BookManager = () => {
         onClose={() => setScannerOpen(false)}
         onBookSelected={(book) => {
           setScannerOpen(false);
-          reloadDataFromServer();
+          if (book?.id) {
+            setFullBooks((prev) =>
+              prev
+                ? prev.some((b) => b.id === book.id)
+                  ? prev.map((b) => (b.id === book.id ? { ...b, ...book } : b))
+                  : [...prev, book]
+                : prev
+            );
+          }
           setSnackbar({
             open: true,
             message: `Added "${book.title}" to library`,
