@@ -704,8 +704,10 @@ describe('Settings API Routes', () => {
         });
         // Second call: organization ai_addon_active query
         mockDB._chain.first.mockResolvedValueOnce({ ai_addon_active: 1 });
-        // Third call: platform_ai_keys query (active platform key)
-        mockDB._chain.first.mockResolvedValueOnce({ provider: 'anthropic', is_active: 1 });
+        // platform_ai_keys query (active platform key) — read via .all()
+        mockDB._chain.all.mockResolvedValueOnce({
+          results: [{ provider: 'anthropic', is_active: 1 }],
+        });
 
         const response = await makeRequest(app, 'GET', '/api/settings/ai');
         const data = await response.json();
@@ -730,8 +732,10 @@ describe('Settings API Routes', () => {
         });
         // Second call: organization ai_addon_active query
         mockDB._chain.first.mockResolvedValueOnce({ ai_addon_active: 1 });
-        // Third call: platform_ai_keys query (active platform key for anthropic)
-        mockDB._chain.first.mockResolvedValueOnce({ provider: 'anthropic', is_active: 1 });
+        // platform_ai_keys query (active platform key for anthropic) — read via .all()
+        mockDB._chain.all.mockResolvedValueOnce({
+          results: [{ provider: 'anthropic', is_active: 1 }],
+        });
 
         const response = await makeRequest(app, 'GET', '/api/settings/ai');
         const data = await response.json();

@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.103.0] - 2026-06-12
+
+### Fixed
+
+- **AI Settings now reflects all configured platform keys.** The Provider Status panel only showed the *active* platform key as available, so Anthropic and Google appeared unconfigured even though their owner-managed keys were stored — only the single active provider is the primary by design, but configured-inactive keys now show ✓. Same availability logic applied to the POST /settings/ai response.
+- **Model dropdown loads the live model list on platform keys.** `GET /api/settings/ai/models` only used an org-level key, so schools on the owner-managed platform key fell back to a stale hardcoded list (GPT-4o Mini / GPT-3.5 Turbo era). The endpoint now falls back to a stored platform key (matching the org's provider, else the active one), and the settings page fetches live models whenever `keySource` is `platform`.
+- **AI failover restored.** The recommendation failover chain only considered env-var keys, which are no longer set on the worker — so a primary-provider outage failed the request instead of failing over. Other configured platform keys (decrypted, with their model preference) are now appended as fallbacks ahead of the env-var candidates.
+
+### Changed
+
+- **Refreshed the static fallback model lists** in AI Settings to current generations (Claude Haiku 4.5 / Sonnet 4.6 / Opus 4.8, GPT-5.4 Nano / GPT-5.1 / GPT-4.1, Gemini 2.5 Flash / Pro); default models for OpenAI and Google bumped to `gpt-5.4-nano` and `gemini-2.5-flash`.
+
 ## [3.102.0] - 2026-06-12
 
 ### Added

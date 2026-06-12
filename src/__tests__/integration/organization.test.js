@@ -472,10 +472,12 @@ describe('Organization Routes', () => {
           return {
             first: vi.fn().mockResolvedValue(null),
             run: vi.fn().mockResolvedValue({ success: true }),
+            all: vi.fn().mockResolvedValue({ results: [] }),
           };
         }),
         first: vi.fn().mockResolvedValue(null),
         run: vi.fn().mockResolvedValue({ success: true }),
+        all: vi.fn().mockResolvedValue({ results: [] }),
       });
 
       const app = createTestApp(mockDb, createUserContext({ userRole: 'owner' }));
@@ -1060,6 +1062,7 @@ describe('Organization Routes', () => {
         bind: vi.fn().mockReturnThis(),
         first: vi.fn().mockResolvedValue({ id: 'existing-config' }),
         run: vi.fn().mockResolvedValue({ success: true }),
+        all: vi.fn().mockResolvedValue({ results: [] }),
       }));
 
       const app = createTestApp(mockDb, createUserContext({ userRole: 'admin' }));
@@ -1086,6 +1089,7 @@ describe('Organization Routes', () => {
         bind: vi.fn().mockReturnThis(),
         first: vi.fn().mockResolvedValue(null),
         run: vi.fn().mockResolvedValue({ success: true }),
+        all: vi.fn().mockResolvedValue({ results: [] }),
       }));
 
       const app = createTestApp(mockDb, createUserContext({ userRole: 'admin' }));
@@ -1136,6 +1140,7 @@ describe('Organization Routes', () => {
         bind: vi.fn().mockReturnThis(),
         first: vi.fn().mockResolvedValue({ id: 'existing-config' }),
         run: vi.fn().mockResolvedValue({ success: true }),
+        all: vi.fn().mockResolvedValue({ results: [] }),
       }));
 
       const app = createTestApp(mockDb, createUserContext({ userRole: 'admin' }));
@@ -1159,6 +1164,7 @@ describe('Organization Routes', () => {
         bind: vi.fn().mockReturnThis(),
         first: vi.fn().mockResolvedValue({ id: 'existing-config' }),
         run: vi.fn().mockResolvedValue({ success: true }),
+        all: vi.fn().mockResolvedValue({ results: [] }),
       }));
 
       const app = createTestApp(mockDb, {

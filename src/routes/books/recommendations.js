@@ -502,13 +502,32 @@ recommendationsRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
     const safeProfile = toAISafeProfile(profile);
 
     // Build the failover chain. The primary `aiConfig` selected above stays
-    // first; any env-key candidates that aren't already the primary are
-    // appended as fallbacks. A transient outage on the primary (5xx / timeout
-    // / malformed response that fails schema validation) flows through to
-    // the next provider rather than 5xx-ing the user. Note: env-key failover
-    // means a school-key failure can fall through to our platform spend —
-    // acceptable as a transient-outage handler, not a routing default.
+    // first; other configured platform keys, then any env-key candidates,
+    // are appended as fallbacks. A transient outage on the primary (5xx /
+    // timeout / malformed response that fails schema validation) flows
+    // through to the next provider rather than 5xx-ing the user. Note:
+    // platform/env failover means a school-key failure can fall through to
+    // our platform spend — acceptable as a transient-outage handler, not a
+    // routing default.
     const aiConfigs = [aiConfig];
+    try {
+      const platformKeyRows = await db
+        .prepare(
+          'SELECT provider, api_key_encrypted, model_preference FROM platform_ai_keys WHERE api_key_encrypted IS NOT NULL'
+        )
+        .all();
+      for (const row of platformKeyRows.results || []) {
+        if (aiConfigs.some((cfg) => cfg.provider === row.provider)) continue;
+        try {
+          const key = await decryptSensitiveData(row.api_key_encrypted, encSecret);
+          aiConfigs.push({ provider: row.provider, apiKey: key, model: row.model_preference });
+        } catch {
+          // Undecryptable fallback key — skip it, the primary still works
+        }
+      }
+    } catch (platformErr) {
+      console.error('Failed to load platform failover keys:', platformErr.message);
+    }
     const failoverCandidates = [
       { provider: 'anthropic', envKey: 'ANTHROPIC_API_KEY' },
       { provider: 'openai', envKey: 'OPENAI_API_KEY' },
@@ -516,10 +535,7 @@ recommendationsRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
     ];
     for (const { provider, envKey } of failoverCandidates) {
       const envApiKey = c.env[envKey];
-      if (
-        envApiKey &&
-        !aiConfigs.some((cfg) => cfg.apiKey === envApiKey && cfg.provider === provider)
-      ) {
+      if (envApiKey && !aiConfigs.some((cfg) => cfg.provider === provider)) {
         aiConfigs.push({ provider, apiKey: envApiKey, model: null });
       }
     }

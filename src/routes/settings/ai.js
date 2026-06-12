@@ -56,12 +56,18 @@ aiSettingsRouter.get('/ai', async (c) => {
       .first();
     const aiAddonActive = Boolean(org?.ai_addon_active);
 
-    // Check platform-level keys (owner-managed fallback)
-    const platformKeyRow = await db
-      .prepare('SELECT provider, is_active FROM platform_ai_keys WHERE is_active = 1')
-      .first();
-    const hasPlatformKey = Boolean(platformKeyRow);
-    const platformProvider = platformKeyRow?.provider || null;
+    // Check platform-level keys (owner-managed fallback). All configured keys
+    // count as available — inactive ones still serve as failover candidates
+    // in the recommendations chain; only the active one is the primary.
+    const platformKeys = await db
+      .prepare(
+        'SELECT provider, is_active FROM platform_ai_keys WHERE api_key_encrypted IS NOT NULL'
+      )
+      .all();
+    const platformRows = platformKeys.results || [];
+    const hasPlatformKey = platformRows.some((r) => r.is_active);
+    const platformProvider = platformRows.find((r) => r.is_active)?.provider || null;
+    const platformConfigured = (p) => platformRows.some((r) => r.provider === p);
 
     const hasOrgKey = Boolean(config?.api_key_encrypted);
     // Use org provider if configured, otherwise fall back to platform provider
@@ -76,15 +82,15 @@ aiSettingsRouter.get('/ai', async (c) => {
       availableProviders: {
         anthropic:
           (hasOrgKey && activeProvider === 'anthropic') ||
-          (hasPlatformKey && platformProvider === 'anthropic') ||
+          platformConfigured('anthropic') ||
           envKeys.anthropic,
         openai:
           (hasOrgKey && activeProvider === 'openai') ||
-          (hasPlatformKey && platformProvider === 'openai') ||
+          platformConfigured('openai') ||
           envKeys.openai,
         google:
           (hasOrgKey && activeProvider === 'google') ||
-          (hasPlatformKey && platformProvider === 'google') ||
+          platformConfigured('google') ||
           envKeys.google,
       },
       // Indicate the source of the active key
@@ -260,12 +266,15 @@ export async function upsertAiConfig(c) {
     google: Boolean(c.env.GOOGLE_API_KEY),
   };
 
-  // Check platform-level keys (owner-managed fallback)
-  const platformKeyRow = await db
-    .prepare('SELECT provider, is_active FROM platform_ai_keys WHERE is_active = 1')
-    .first();
-  const hasPlatformKey = Boolean(platformKeyRow);
-  const platformProvider = platformKeyRow?.provider || null;
+  // Check platform-level keys (owner-managed fallback) — same availability
+  // semantics as GET /ai above: any configured platform key counts.
+  const platformKeys = await db
+    .prepare('SELECT provider, is_active FROM platform_ai_keys WHERE api_key_encrypted IS NOT NULL')
+    .all();
+  const platformRows = platformKeys.results || [];
+  const hasPlatformKey = platformRows.some((r) => r.is_active);
+  const platformProvider = platformRows.find((r) => r.is_active)?.provider || null;
+  const platformConfigured = (p) => platformRows.some((r) => r.provider === p);
 
   const hasOrgKey = Boolean(config?.api_key_encrypted);
   const activeProvider = config?.provider || platformProvider || 'anthropic';
@@ -284,15 +293,15 @@ export async function upsertAiConfig(c) {
     availableProviders: {
       anthropic:
         (hasOrgKey && activeProvider === 'anthropic') ||
-        (hasPlatformKey && platformProvider === 'anthropic') ||
+        platformConfigured('anthropic') ||
         envKeys.anthropic,
       openai:
         (hasOrgKey && activeProvider === 'openai') ||
-        (hasPlatformKey && platformProvider === 'openai') ||
+        platformConfigured('openai') ||
         envKeys.openai,
       google:
         (hasOrgKey && activeProvider === 'google') ||
-        (hasPlatformKey && platformProvider === 'google') ||
+        platformConfigured('google') ||
         envKeys.google,
     },
     keySource: hasOrgKey
@@ -312,7 +321,10 @@ aiSettingsRouter.post('/ai', requireAdmin(), auditLog('update', 'ai_settings'), 
 
 /**
  * GET /api/settings/ai/models
- * Fetch available models using the organization's stored API key.
+ * Fetch available models using the organization's stored API key, falling
+ * back to a platform key (matching the org's provider if one is stored for
+ * it, else the active platform key) so schools on the owner-managed key
+ * still see a live model list instead of the static fallback.
  */
 aiSettingsRouter.get('/ai/models', requireAdmin(), async (c) => {
   if (!isMultiTenantMode(c)) {
@@ -327,7 +339,24 @@ aiSettingsRouter.get('/ai/models', requireAdmin(), async (c) => {
     .bind(organizationId)
     .first();
 
-  if (!config?.api_key_encrypted) {
+  let provider = config?.provider || null;
+  let keyEncrypted = config?.api_key_encrypted || null;
+
+  if (!keyEncrypted) {
+    const platformKeys = await db
+      .prepare(
+        'SELECT provider, api_key_encrypted, is_active FROM platform_ai_keys WHERE api_key_encrypted IS NOT NULL'
+      )
+      .all();
+    const rows = platformKeys.results || [];
+    const row = rows.find((r) => r.provider === provider) || rows.find((r) => r.is_active);
+    if (row) {
+      provider = row.provider;
+      keyEncrypted = row.api_key_encrypted;
+    }
+  }
+
+  if (!keyEncrypted) {
     return c.json({ models: [] });
   }
 
@@ -338,13 +367,13 @@ aiSettingsRouter.get('/ai/models', requireAdmin(), async (c) => {
 
   let apiKey;
   try {
-    apiKey = await decryptSensitiveData(config.api_key_encrypted, encSecret);
+    apiKey = await decryptSensitiveData(keyEncrypted, encSecret);
   } catch {
     return c.json({ models: [] });
   }
 
   try {
-    const models = await fetchProviderModels(config.provider || 'anthropic', apiKey);
+    const models = await fetchProviderModels(provider || 'anthropic', apiKey);
     return c.json({ models: models || [] });
   } catch {
     return c.json({ models: [] });

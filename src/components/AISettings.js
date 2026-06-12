@@ -28,24 +28,20 @@ const API_URL = '/api';
 const STATIC_MODELS = {
   anthropic: [
     { id: 'claude-haiku-4-5', name: 'Claude Haiku 4.5 (Fast)' },
-    { id: 'claude-sonnet-4-5', name: 'Claude Sonnet 4.5 (Balanced)' },
-    { id: 'claude-opus-4-5', name: 'Claude Opus 4.5 (Most Capable)' },
-    { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku' },
-    { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet' },
-    { id: 'claude-3-haiku-20240307', name: 'Claude 3 Haiku' },
+    { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6 (Balanced)' },
+    { id: 'claude-opus-4-8', name: 'Claude Opus 4.8 (Most Capable)' },
   ],
   openai: [
-    { id: 'gpt-4o-mini', name: 'GPT-4o Mini (Fast)' },
-    { id: 'gpt-4o', name: 'GPT-4o (Balanced)' },
-    { id: 'gpt-4-turbo', name: 'GPT-4 Turbo' },
-    { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo' },
+    { id: 'gpt-5.4-nano', name: 'GPT-5.4 Nano (Fast)' },
+    { id: 'gpt-5.1', name: 'GPT-5.1 (Balanced)' },
+    { id: 'gpt-4.1', name: 'GPT-4.1' },
+    { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
   ],
   google: [
-    { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash (Fast)' },
-    { id: 'gemini-2.0-flash-lite', name: 'Gemini 2.0 Flash Lite' },
-    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro' },
-    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash' },
-    { id: 'gemini-1.0-pro', name: 'Gemini 1.0 Pro' },
+    { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash (Fast)' },
+    { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite' },
+    { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' },
+    { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash' },
   ],
 };
 
@@ -78,8 +74,10 @@ const AISettings = () => {
           setAvailableProviders(config.availableProviders || {});
           setKeySource(config.keySource || 'none');
 
-          // If a key is already saved, silently fetch the live model list
-          if (config.hasApiKey) {
+          // If a usable key exists (org-level or owner-managed platform key),
+          // silently fetch the live model list — the backend resolves which
+          // stored key to use.
+          if (config.hasApiKey || config.keySource === 'platform') {
             try {
               const modelsRes = await fetchWithAuth(`${API_URL}/settings/ai/models`);
               if (modelsRes.ok) {
@@ -110,9 +108,9 @@ const AISettings = () => {
       case 'anthropic':
         return 'claude-haiku-4-5';
       case 'openai':
-        return 'gpt-4o-mini';
+        return 'gpt-5.4-nano';
       case 'google':
-        return 'gemini-2.0-flash';
+        return 'gemini-2.5-flash';
       default:
         return '';
     }
