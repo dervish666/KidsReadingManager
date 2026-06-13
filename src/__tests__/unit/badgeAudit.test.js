@@ -327,11 +327,17 @@ describe('Audit: Key stage variation (Reception vs Y6)', () => {
     expect(resolveKeyStage('Y6')).toBe('UpperKS2');
   });
 
-  it('unknown year group falls back to LowerKS2 (mid-range)', () => {
+  it('unknown/unparseable year group falls back to LowerKS2 (mid-range)', () => {
     expect(resolveKeyStage(undefined)).toBe('LowerKS2');
     expect(resolveKeyStage(null)).toBe('LowerKS2');
-    expect(resolveKeyStage('Nursery')).toBe('LowerKS2');
-    expect(resolveKeyStage('Year 3')).toBe('LowerKS2');
+    expect(resolveKeyStage('Willow')).toBe('LowerKS2'); // tree-named class, no year
+  });
+
+  it('resolves the real stored year-group formats, not just "Y2" codes', () => {
+    expect(resolveKeyStage('Year 3')).toBe('LowerKS2'); // demo format
+    expect(resolveKeyStage('2')).toBe('KS1'); // Wonde current_nc_year
+    expect(resolveKeyStage('5')).toBe('UpperKS2'); // class-derived "5D" → "5"
+    expect(resolveKeyStage('Nursery')).toBe('KS1'); // EYFS, like Reception
   });
 });
 

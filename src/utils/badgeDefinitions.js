@@ -11,17 +11,13 @@
 
 // ── Key Stage Resolution ────────────────────────────────────────────────────
 
-const KEY_STAGE_MAP = {
-  Reception: 'KS1',
-  Y1: 'KS1',
-  Y2: 'KS1',
-  Y3: 'LowerKS2',
-  Y4: 'LowerKS2',
-  Y5: 'UpperKS2',
-  Y6: 'UpperKS2',
-};
-
-export const resolveKeyStage = (yearGroup) => KEY_STAGE_MAP[yearGroup] || 'LowerKS2';
+// Delegates to the shared, format-robust resolver. The old hardcoded map keyed
+// on "Y2"/"Reception" only, but year groups actually arrive as "Year 2" (demo),
+// "2"/"R" (Wonde), or empty (registration-groups schools) — so it silently
+// resolved everyone to LowerKS2. yearGroupToKeyStage handles every shape; pass
+// `year_group || classNameToYearGroup(className)` so empty year groups still
+// resolve from the class name.
+export { yearGroupToKeyStage as resolveKeyStage } from './yearGroup.js';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 

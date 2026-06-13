@@ -33,6 +33,7 @@ import { requireTeacher, requireReadonly, auditLog } from '../middleware/tenant.
 import { permissions, ROLES } from '../utils/crypto.js';
 import { getDB, isMultiTenantMode, requireStudent } from '../utils/routeHelpers.js';
 import { rowToStudent, rowToStudentMinimal, rowToReadingStats } from '../utils/rowMappers.js';
+import { classNameToYearGroup } from '../utils/yearGroup.js';
 import { calculateNearMisses } from '../utils/badgeEngine.js';
 
 import {
@@ -246,7 +247,11 @@ studentsRouter.get('/:id', requireReadonly(), async (c) => {
     }
     const earnedBadgeIds = new Set(result.badges.map((b) => b.badgeId));
     result.nearMisses = statsRow
-      ? calculateNearMisses(rowToReadingStats(statsRow), student.year_group, earnedBadgeIds)
+      ? calculateNearMisses(
+          rowToReadingStats(statsRow),
+          student.year_group || classNameToYearGroup(student.class_name),
+          earnedBadgeIds
+        )
       : [];
 
     return c.json(result);

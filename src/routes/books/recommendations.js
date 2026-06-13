@@ -2,11 +2,8 @@ import { Hono } from 'hono';
 import { generateBroadSuggestionsWithFailover } from '../../services/aiService.js';
 import { notFoundError, badRequestError, serverError } from '../../middleware/errorHandler.js';
 import { decryptSensitiveData, getEncryptionSecret } from '../../utils/crypto.js';
-import {
-  buildStudentReadingProfile,
-  toAISafeProfile,
-  yearGroupToAgeBand,
-} from '../../utils/studentProfile.js';
+import { buildStudentReadingProfile, toAISafeProfile } from '../../utils/studentProfile.js';
+import { yearGroupToAgeBand } from '../../utils/yearGroup.js';
 import { getCachedRecommendations, cacheRecommendations } from '../../utils/recommendationCache.js';
 import { parseGenreIds } from '../../utils/helpers.js';
 import { requireReadonly } from '../../middleware/tenant.js';

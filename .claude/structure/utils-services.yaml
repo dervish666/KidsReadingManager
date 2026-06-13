@@ -309,21 +309,30 @@ files:
         kind: function
         params: [{name: studentId}, {name: organizationId}, {name: db}]
         returns: Promise<object|null>
-      - name: yearGroupToAgeBand
-        kind: function
-        params: [{name: yearGroup}]
-        returns: "{min,max}|null"
-        description: Coarse UK year-group → approximate age band (Wonde current_nc_year format primary)
-      - name: classNameToYearGroup
-        kind: function
-        params: [{name: className}]
-        returns: string|null
-        description: Best-effort year group from a registration-group class name ("5D"→"5", "RF"→"R"); fallback when MIS syncs no year_group
       - name: toAISafeProfile
         kind: function
         params: [{name: profile}]
         returns: object
         description: Data-minimised profile for AI; strips demographics but forwards coarse ageBand
+
+  utils/yearGroup.js:
+    description: Pure UK year-group parsing (shared by recommendations + badge key stage); robust to Wonde "2"/"R", demo "Year 2", "Y2", and class-name fallback
+    exports:
+      - name: yearGroupToAgeBand
+        kind: function
+        params: [{name: yearGroup}]
+        returns: "{min,max}|null"
+        description: Coarse UK year-group → approximate age band (any format)
+      - name: classNameToYearGroup
+        kind: function
+        params: [{name: className}]
+        returns: string|null
+        description: Best-effort year group from a registration-group class name ("5D"→"5", "RF"→"R"); fallback when MIS syncs no year_group
+      - name: yearGroupToKeyStage
+        kind: function
+        params: [{name: yearGroup}]
+        returns: "'KS1'|'LowerKS2'|'UpperKS2'"
+        description: Robust year-group → badge key stage; backs badgeDefinitions.resolveKeyStage
 
   utils/recommendationCache.js:
     description: KV caching for AI book recommendations (7-day TTL)

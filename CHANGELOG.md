@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.104.2] - 2026-06-13
+
+### Fixed
+
+- **Badge key stage now resolves correctly — it was silently `LowerKS2` for every student in production.** `resolveKeyStage` was keyed on `"Y1"`–`"Y6"`/`"Reception"`, but year groups are actually stored as `"Year 2"` (demo) or empty (Wonde registration-groups schools like Cheddar Grove), so every student fell through to the `LowerKS2` default and got the wrong key-stage badge thresholds. Year-group parsing is now centralised in `utils/yearGroup.js` (robust to `"Year 2"`, `"2"`, `"Y2"`, `"R"`/`"Reception"`, nursery), and **every** badge path — the overnight evaluation cron, near-miss/progress displays, real-time award on session log, and the parent portal — falls back to the **class name** (`5D` → Year 5, `RF` → Reception) when the year group is empty, so registration-groups schools resolve correctly with no re-sync. Nursery now maps to KS1 (consistent with Reception). The pure year helpers (`yearGroupToAgeBand`, `classNameToYearGroup`, new `yearGroupToKeyStage`) moved from `studentProfile.js` to the shared `yearGroup.js` so recommendations and badges interpret year groups identically.
+
 ## [3.104.1] - 2026-06-13
 
 ### Fixed

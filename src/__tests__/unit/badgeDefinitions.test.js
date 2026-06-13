@@ -22,11 +22,18 @@ describe('resolveKeyStage', () => {
     expect(resolveKeyStage('Y5')).toBe('UpperKS2');
     expect(resolveKeyStage('Y6')).toBe('UpperKS2');
   });
-  it('falls back to LowerKS2 for null', () => {
+  it('falls back to LowerKS2 for null/unparseable', () => {
     expect(resolveKeyStage(null)).toBe('LowerKS2');
+    expect(resolveKeyStage('Willow')).toBe('LowerKS2');
   });
-  it('falls back to LowerKS2 for unrecognised value', () => {
+  it('resolves the real stored formats, not just "Y2" codes', () => {
+    // These used to fall through to the LowerKS2 default — the bug that left
+    // every production student on LowerKS2 thresholds.
+    expect(resolveKeyStage('Year 2')).toBe('KS1'); // demo data format
     expect(resolveKeyStage('Year 3')).toBe('LowerKS2');
+    expect(resolveKeyStage('2')).toBe('KS1'); // Wonde current_nc_year
+    expect(resolveKeyStage('5')).toBe('UpperKS2'); // class-derived "5D" → "5"
+    expect(resolveKeyStage('R')).toBe('KS1'); // Reception
   });
 });
 

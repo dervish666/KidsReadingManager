@@ -28,6 +28,7 @@ import { getDateString } from '../utils/streakCalculator.js';
 import { ACADEMIC_YEAR_START_MONTH } from '../utils/constants.js';
 import { bandForCount, bandTransition } from '../utils/readingBandEngine.js';
 import { BADGE_DEFINITIONS } from '../utils/badgeDefinitions.js';
+import { classNameToYearGroup } from '../utils/yearGroup.js';
 
 export const parentRouter = new Hono();
 
@@ -100,9 +101,11 @@ async function validateParentToken(db, token) {
               pat.parent_last_seen_band,
               s.is_active as student_active,
               s.processing_restricted,
-              s.year_group
+              s.year_group,
+              c.name as class_name
          FROM parent_access_tokens pat
          JOIN students s ON s.id = pat.student_id
+         LEFT JOIN classes c ON c.id = s.class_id
         WHERE pat.token = ?`
     )
     .bind(token)
@@ -362,7 +365,7 @@ parentRouter.post('/:token/sessions', rateLimit(10, 60000, 'parent:sessions'), a
   const { streakData, newBadges } = await runSessionSideEffects(db, c.env, {
     studentId,
     organizationId,
-    yearGroup: tokenRow.year_group,
+    yearGroup: tokenRow.year_group || classNameToYearGroup(tokenRow.class_name),
     isMarkerSession: false, // parents can only log real home reads
     newSessions: [{ id: sessionId, date: sessionDate, bookId: bookId || null, isMarker: false }],
     logPrefix: 'parent/sessions',

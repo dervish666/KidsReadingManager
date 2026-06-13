@@ -1,10 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  buildStudentReadingProfile,
-  toAISafeProfile,
-  yearGroupToAgeBand,
-  classNameToYearGroup,
-} from '../../utils/studentProfile.js';
+import { buildStudentReadingProfile, toAISafeProfile } from '../../utils/studentProfile.js';
 
 describe('buildStudentReadingProfile', () => {
   let mockDb;
@@ -719,71 +714,5 @@ describe('toAISafeProfile — demographic data minimisation', () => {
   });
 });
 
-describe('yearGroupToAgeBand', () => {
-  it('maps Wonde current_nc_year numeric codes to (N+4)-(N+5)', () => {
-    // Wonde stores bare numbers — "2" is Year 2 ≈ 6-7 years old.
-    expect(yearGroupToAgeBand('2')).toEqual({ min: 6, max: 7 });
-    expect(yearGroupToAgeBand('1')).toEqual({ min: 5, max: 6 });
-    expect(yearGroupToAgeBand('6')).toEqual({ min: 10, max: 11 });
-    expect(yearGroupToAgeBand('11')).toEqual({ min: 15, max: 16 });
-    expect(yearGroupToAgeBand('13')).toEqual({ min: 17, max: 18 });
-    expect(yearGroupToAgeBand(2)).toEqual({ min: 6, max: 7 }); // numeric type
-  });
-
-  it('maps Reception (Wonde "R") and nursery', () => {
-    expect(yearGroupToAgeBand('R')).toEqual({ min: 4, max: 5 });
-    expect(yearGroupToAgeBand('reception')).toEqual({ min: 4, max: 5 });
-    expect(yearGroupToAgeBand('0')).toEqual({ min: 4, max: 5 });
-    expect(yearGroupToAgeBand('N1')).toEqual({ min: 3, max: 4 });
-    expect(yearGroupToAgeBand('nursery')).toEqual({ min: 3, max: 4 });
-  });
-
-  it('also parses the other formats found in this codebase ("Year 2", "Y2")', () => {
-    expect(yearGroupToAgeBand('Year 2')).toEqual({ min: 6, max: 7 });
-    expect(yearGroupToAgeBand('Y2')).toEqual({ min: 6, max: 7 });
-    expect(yearGroupToAgeBand('yr 6')).toEqual({ min: 10, max: 11 });
-  });
-
-  it('returns null for missing or unparseable values', () => {
-    expect(yearGroupToAgeBand(null)).toBeNull();
-    expect(yearGroupToAgeBand(undefined)).toBeNull();
-    expect(yearGroupToAgeBand('')).toBeNull();
-    expect(yearGroupToAgeBand('   ')).toBeNull();
-    expect(yearGroupToAgeBand('unknown')).toBeNull();
-    expect(yearGroupToAgeBand('99')).toBeNull(); // out of range
-  });
-});
-
-describe('classNameToYearGroup', () => {
-  it('derives the year from numeric registration-group names (real Cheddar Grove classes)', () => {
-    expect(classNameToYearGroup('1P')).toBe('1');
-    expect(classNameToYearGroup('2A')).toBe('2');
-    expect(classNameToYearGroup('3CD')).toBe('3');
-    expect(classNameToYearGroup('4PP')).toBe('4');
-    expect(classNameToYearGroup('5D')).toBe('5');
-    expect(classNameToYearGroup('6W')).toBe('6');
-  });
-
-  it('maps Reception groups (R-prefixed) to Reception', () => {
-    expect(classNameToYearGroup('RF')).toBe('R');
-    expect(classNameToYearGroup('RJM')).toBe('R');
-    expect(classNameToYearGroup('R')).toBe('R');
-  });
-
-  it('also handles "Year N" / "YN" class names', () => {
-    expect(classNameToYearGroup('Year 5')).toBe('5');
-    expect(classNameToYearGroup('Y6')).toBe('6');
-  });
-
-  it('returns null for tree/colour names that encode no year', () => {
-    expect(classNameToYearGroup('Willow')).toBeNull();
-    expect(classNameToYearGroup('Cherry')).toBeNull();
-    expect(classNameToYearGroup(null)).toBeNull();
-    expect(classNameToYearGroup('')).toBeNull();
-  });
-
-  it('round-trips through yearGroupToAgeBand to a coarse band', () => {
-    expect(yearGroupToAgeBand(classNameToYearGroup('5D'))).toEqual({ min: 9, max: 10 });
-    expect(yearGroupToAgeBand(classNameToYearGroup('RF'))).toEqual({ min: 4, max: 5 });
-  });
-});
+// yearGroupToAgeBand / classNameToYearGroup / yearGroupToKeyStage now live in
+// utils/yearGroup.js and are covered by yearGroup.test.js.

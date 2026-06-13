@@ -102,6 +102,7 @@ src/utils/readingBandDefinitions.js - Reading band ladder (16 colour bands), def
 src/utils/readingBandEngine.js - Pure reading-band maths: read counting, band index, academic-year start, display payload + transition
 src/utils/readingObservations.js - Per-session reading-observation slots (6 fixed cols) + per-org config resolver (labels/enabled), shared by worker + app
 src/utils/studentProfile.js - Build student reading profile for AI context
+src/utils/yearGroup.js - Pure UK year-group parsing: age band, class-name fallback, badge key stage (shared by recommendations + badges)
 src/utils/stringMatching.js - All string/title matching: Levenshtein similarity (import dedup, ~0.85) + fuzzy title similarity & findBestTitleMatch (metadata-provider ranking, ~0.3) + sanitizeForSearch (absorbed titleMatching.js)
 src/utils/bookDedup.js - Pure dedup helpers (normalizeIsbn, clusterDuplicates union-find, suggestCanonical, computeBackfill) for the owner merge tool
 src/utils/recommendationCache.js - KV caching for AI recommendations

@@ -15,6 +15,7 @@ import {
   getBatchBadges,
   BADGE_DEFINITIONS,
 } from './badgeDefinitions.js';
+import { classNameToYearGroup } from './yearGroup.js';
 
 // ── Genre Classification ────────────────────────────────────────────────────
 
@@ -477,9 +478,10 @@ export async function processBadgesForOrg(db, orgId, cursor, deadlineMs) {
   // safest. (? IS NULL OR s.id > ?) lets us pass cursor=null on first run.
   const students = await db
     .prepare(
-      `SELECT DISTINCT s.id, s.name, s.year_group
+      `SELECT DISTINCT s.id, s.name, s.year_group, c.name AS class_name
        FROM students s
        INNER JOIN reading_sessions rs ON rs.student_id = s.id
+       LEFT JOIN classes c ON c.id = s.class_id
        WHERE s.organization_id = ? AND s.is_active = 1
          AND (? IS NULL OR s.id > ?)
        ORDER BY s.id`
@@ -548,7 +550,9 @@ export async function processBadgesForOrg(db, orgId, cursor, deadlineMs) {
         authorBookCounts[r.author] = r.book_count;
       }
 
-      const keyStage = resolveKeyStage(student.year_group);
+      const keyStage = resolveKeyStage(
+        student.year_group || classNameToYearGroup(student.class_name)
+      );
       const context = {
         keyStage,
         earnedBadgeIds,

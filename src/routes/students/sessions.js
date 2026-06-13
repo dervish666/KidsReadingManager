@@ -22,6 +22,7 @@ import { notFoundError, badRequestError } from '../../middleware/errorHandler.js
 import { requireReadonly, requireTeacher, auditLog } from '../../middleware/tenant.js';
 import { getDB, isMultiTenantMode, requireStudent } from '../../utils/routeHelpers.js';
 import { recalculateStats, evaluateRealTime } from '../../utils/badgeEngine.js';
+import { classNameToYearGroup } from '../../utils/yearGroup.js';
 import { updateClassGoalOnSession } from '../../utils/classGoalsEngine.js';
 import {
   getStudentById as getStudentByIdKV,
@@ -194,7 +195,10 @@ sessionsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
 
     const student = await db
       .prepare(
-        `SELECT id, processing_restricted, year_group FROM students WHERE id = ? AND organization_id = ? AND is_active = 1`
+        `SELECT s.id, s.processing_restricted, s.year_group, c.name AS class_name
+         FROM students s
+         LEFT JOIN classes c ON c.id = s.class_id
+         WHERE s.id = ? AND s.organization_id = ? AND s.is_active = 1`
       )
       .bind(id, organizationId)
       .first();
@@ -298,7 +302,7 @@ sessionsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
       {
         studentId: id,
         organizationId,
-        yearGroup: student.year_group,
+        yearGroup: student.year_group || classNameToYearGroup(student.class_name),
         isMarkerSession: Boolean(isMarkerSession),
         timezone,
         newSessions: [
@@ -429,7 +433,10 @@ sessionsRouter.post(
 
       const student = await db
         .prepare(
-          `SELECT id, processing_restricted, year_group FROM students WHERE id = ? AND organization_id = ? AND is_active = 1`
+          `SELECT s.id, s.processing_restricted, s.year_group, c.name AS class_name
+           FROM students s
+           LEFT JOIN classes c ON c.id = s.class_id
+           WHERE s.id = ? AND s.organization_id = ? AND s.is_active = 1`
         )
         .bind(id, organizationId)
         .first();
@@ -544,7 +551,7 @@ sessionsRouter.post(
       const sideEffects = await runSessionSideEffects(db, c.env, {
         studentId: id,
         organizationId,
-        yearGroup: student.year_group,
+        yearGroup: student.year_group || classNameToYearGroup(student.class_name),
         isMarkerSession: allMarkers,
         timezone,
         newSessions: newSessions.map((s) => ({
@@ -785,14 +792,18 @@ sessionsRouter.put(
       await recalculateStats(db, id, organizationId);
 
       const studentForBadges = await db
-        .prepare('SELECT year_group FROM students WHERE id = ?')
+        .prepare(
+          `SELECT s.year_group, c.name AS class_name
+           FROM students s LEFT JOIN classes c ON c.id = s.class_id
+           WHERE s.id = ?`
+        )
         .bind(id)
         .first();
       const newBadges = await evaluateRealTime(
         db,
         id,
         organizationId,
-        studentForBadges?.year_group
+        studentForBadges?.year_group || classNameToYearGroup(studentForBadges?.class_name)
       );
       const completedGoals = await updateClassGoalOnSession(db, id, organizationId);
 

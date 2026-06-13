@@ -1005,7 +1005,7 @@ describe('POST /api/students/:id/sessions - timezone-aware date defaults', () =>
       { organizationId: 'org-1', userId: 'user-1', userRole: 'teacher' },
       [
         // Student exists check
-        { match: 'FROM students WHERE', first: { id: 'student-1', processing_restricted: 0 } },
+        { match: 'FROM students s', first: { id: 'student-1', processing_restricted: 0 } },
         // Fetch created session (SELECT rs.* ... WHERE rs.id = ?)
         { match: 'FROM reading_sessions rs', first: createdSession },
         // Session listing for streak calc
@@ -1051,7 +1051,7 @@ describe('POST /api/students/:id/sessions - timezone-aware date defaults', () =>
     const { app, mockDB } = createStatsTestApp(
       { organizationId: 'org-1', userId: 'user-1', userRole: 'teacher' },
       [
-        { match: 'FROM students WHERE', first: { id: 'student-1', processing_restricted: 0 } },
+        { match: 'FROM students s', first: { id: 'student-1', processing_restricted: 0 } },
         { match: 'FROM reading_sessions rs', first: createdSession },
         { match: 'FROM reading_sessions\n', all: { results: [], success: true } },
       ]
@@ -1092,7 +1092,7 @@ describe('POST /api/students/:id/sessions - timezone-aware date defaults', () =>
     const { app, mockDB } = createStatsTestApp(
       { organizationId: 'org-1', userId: 'user-1', userRole: 'teacher' },
       [
-        { match: 'FROM students WHERE', first: { id: 'student-1', processing_restricted: 0 } },
+        { match: 'FROM students s', first: { id: 'student-1', processing_restricted: 0 } },
         { match: 'FROM reading_sessions rs', first: createdSession },
         { match: 'FROM reading_sessions\n', all: { results: [], success: true } },
       ]
@@ -1126,7 +1126,7 @@ describe('POST /api/students/:id/sessions/bulk', () => {
   });
 
   const studentMatch = {
-    match: 'FROM students WHERE',
+    match: 'FROM students s',
     first: { id: 'student-1', processing_restricted: 0, year_group: 'Year 3' },
   };
 
@@ -1192,7 +1192,7 @@ describe('POST /api/students/:id/sessions/bulk', () => {
       { organizationId: 'org-1', userId: 'user-1', userRole: 'teacher' },
       [
         {
-          match: 'FROM students WHERE',
+          match: 'FROM students s',
           first: { id: 'student-1', processing_restricted: 1, year_group: null },
         },
       ]

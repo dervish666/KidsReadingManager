@@ -12,6 +12,7 @@ import { requireDB } from '../utils/routeHelpers.js';
 import { rowToBadge, rowToReadingStats } from '../utils/rowMappers.js';
 import { BADGE_DEFINITIONS, resolveKeyStage } from '../utils/badgeDefinitions.js';
 import { calculateNearMisses } from '../utils/badgeEngine.js';
+import { classNameToYearGroup } from '../utils/yearGroup.js';
 
 const badgesRouter = new Hono();
 
@@ -93,16 +94,22 @@ badgesRouter.get('/students/:id', requireReadonly(), async (c) => {
   const organizationId = c.get('organizationId');
   const { id } = c.req.param();
 
-  // Verify student belongs to org
+  // Verify student belongs to org (class name lets key stage resolve when the
+  // MIS synced no year group — see classNameToYearGroup)
   const student = await db
     .prepare(
-      'SELECT id, year_group FROM students WHERE id = ? AND organization_id = ? AND is_active = 1'
+      `SELECT s.id, s.year_group, c.name AS class_name
+       FROM students s
+       LEFT JOIN classes c ON c.id = s.class_id
+       WHERE s.id = ? AND s.organization_id = ? AND s.is_active = 1`
     )
     .bind(id, organizationId)
     .first();
   if (!student) {
     return c.json({ error: 'Student not found' }, 404);
   }
+
+  const effectiveYearGroup = student.year_group || classNameToYearGroup(student.class_name);
 
   // Fetch earned badges and stats in parallel
   const [badgesResult, statsRow] = await Promise.all([
@@ -118,10 +125,10 @@ badgesRouter.get('/students/:id', requireReadonly(), async (c) => {
   const earnedBadgeIds = new Set(earned.map((b) => b.badgeId));
 
   // Calculate near-misses
-  const nearMisses = stats ? calculateNearMisses(stats, student.year_group, earnedBadgeIds) : [];
+  const nearMisses = stats ? calculateNearMisses(stats, effectiveYearGroup, earnedBadgeIds) : [];
 
   // Build progress for all non-secret, non-earned badges
-  const keyStage = resolveKeyStage(student.year_group);
+  const keyStage = resolveKeyStage(effectiveYearGroup);
   const context = { keyStage, earnedBadgeIds };
   const allProgress = BADGE_DEFINITIONS.filter((b) => !b.isSecret && !earnedBadgeIds.has(b.id)).map(
     (b) => ({
@@ -187,7 +194,7 @@ badgesRouter.get('/summary', requireReadonly(), async (c) => {
 
   // Build student query with class filter
   let studentSql = `
-    SELECT s.id, s.name, s.year_group
+    SELECT s.id, s.name, s.year_group, c.name AS class_name
     FROM students s
     LEFT JOIN classes c ON s.class_id = c.id
     WHERE s.organization_id = ? AND s.is_active = 1`;
@@ -265,7 +272,7 @@ badgesRouter.get('/summary', requireReadonly(), async (c) => {
       // Compute progress — authorBookCounts intentionally omitted (too expensive for summary);
       // series_finisher falls back to { current: 0, target: 3 }
       const stats = statsByStudent[s.id] || {};
-      const keyStage = resolveKeyStage(s.year_group);
+      const keyStage = resolveKeyStage(s.year_group || classNameToYearGroup(s.class_name));
       const progress = def.progress(stats, { keyStage });
       return {
         id: s.id,
