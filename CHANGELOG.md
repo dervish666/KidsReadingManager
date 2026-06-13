@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.105.0] - 2026-06-13
+
+### Added
+
+- **Admins can assign a year group to a class (Settings → Manage Classes).** For Wonde schools whose MIS doesn't sync per-student year groups — and whose class names don't always encode the year (e.g. nursery classes named "Willow"/"Cherry") — each class row now has a **Year** selector (Nursery, Reception, Year 1–6). The chosen year fills in a student's year group when the MIS provides none, and takes precedence over the name-based guess. Full precedence: the student's own synced year → the class's assigned year → parsed from the class name. The default **"Auto"** leaves it to the name guess and shows what was detected (e.g. "Auto (Year 5)" for a class named `5D`). It works on synced Wonde classes via a dedicated endpoint without touching their read-only name/teacher, and drives both age-appropriate AI recommendations and badge key stage. (No migration — the `classes.year_group` column has existed since the original schema; it was simply never surfaced.)
+
 ## [3.104.2] - 2026-06-13
 
 ### Fixed

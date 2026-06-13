@@ -478,7 +478,8 @@ export async function processBadgesForOrg(db, orgId, cursor, deadlineMs) {
   // safest. (? IS NULL OR s.id > ?) lets us pass cursor=null on first run.
   const students = await db
     .prepare(
-      `SELECT DISTINCT s.id, s.name, s.year_group, c.name AS class_name
+      `SELECT DISTINCT s.id, s.name, COALESCE(s.year_group, c.year_group) AS year_group,
+              c.name AS class_name
        FROM students s
        INNER JOIN reading_sessions rs ON rs.student_id = s.id
        LEFT JOIN classes c ON c.id = s.class_id

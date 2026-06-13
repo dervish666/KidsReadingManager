@@ -39,13 +39,22 @@ import QrCode2Icon from '@mui/icons-material/QrCode2';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
 import QRCodeSheet from '../parent/QRCodeSheet';
+import { CLASS_YEAR_GROUP_OPTIONS } from '../../utils/constants';
+import { classNameToYearGroup } from '../../utils/yearGroup';
 
 // Year options for the dropdown (Year 1 to Year 11)
 const YEAR_OPTIONS = Array.from({ length: 11 }, (_, i) => `Year ${i + 1}`);
 
+// Year group auto-detected from the class name, as a display label (or null).
+const autoYearLabel = (cls) => {
+  const token = classNameToYearGroup(cls?.name);
+  if (!token) return null;
+  return token === 'R' ? 'Reception' : `Year ${token}`;
+};
+
 const ClassManager = () => {
   const { fetchWithAuth } = useAuth();
-  const { classes, addClass, updateClass, deleteClass } = useData();
+  const { classes, addClass, updateClass, setClassYearGroup, deleteClass } = useData();
   const [newClassName, setNewClassName] = useState('');
   const [newTeacherName, setNewTeacherName] = useState('');
   const [editingClass, setEditingClass] = useState(null);
@@ -228,6 +237,24 @@ const ClassManager = () => {
                 divider
                 secondaryAction={
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <FormControl size="small" sx={{ minWidth: 130 }}>
+                      <InputLabel id={`year-group-${cls.id}`}>Year</InputLabel>
+                      <Select
+                        labelId={`year-group-${cls.id}`}
+                        label="Year"
+                        value={cls.yearGroup || ''}
+                        onChange={(e) => setClassYearGroup(cls.id, e.target.value || null)}
+                      >
+                        <MenuItem value="">
+                          <em>{autoYearLabel(cls) ? `Auto (${autoYearLabel(cls)})` : 'Auto'}</em>
+                        </MenuItem>
+                        {CLASS_YEAR_GROUP_OPTIONS.map((year) => (
+                          <MenuItem key={year} value={year}>
+                            {year}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
                     <Tooltip title="Parent QR Codes">
                       <IconButton
                         edge="end"
@@ -253,7 +280,7 @@ const ClassManager = () => {
                   </Box>
                 }
               >
-                <ListItemButton onClick={() => handleToggleExpand(cls.id)} sx={{ pr: 24 }}>
+                <ListItemButton onClick={() => handleToggleExpand(cls.id)} sx={{ pr: 38 }}>
                   <ListItemText
                     primary={
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

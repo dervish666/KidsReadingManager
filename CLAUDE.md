@@ -209,7 +209,7 @@ Permissions enforced via `requireOwner()`, `requireAdmin()`, `requireTeacher()`,
 - `reading_sessions` - Session data linked to students (hard delete)
 - `books` - Global catalog with FTS5 search (`books_fts` virtual table)
 - `org_book_selections` - Links books to organizations (controls per-school visibility)
-- `classes`, `genres`, `organization_settings` - Organization-scoped
+- `classes`, `genres`, `organization_settings` - Organization-scoped. `classes.year_group` is an optional admin-set year group used to resolve a student's year when the MIS syncs none and the class name doesn't encode it (precedence: `students.year_group` → `classes.year_group` → parsed from class name; see `src/utils/yearGroup.js`)
 - `term_dates` - Academic year term dates per organization (half-terms, holidays)
 - `parent_access_tokens` - Token-based parent portal access per student per academic year (token auth, teacher-revocable)
 - `ticker_events` - Celebration events (band-ups, badge awards) for the header Reading News ticker; written by `runSessionSideEffects` (real-time) and `processBadgesForOrg` (overnight badge cron), read via `GET /api/badges/ticker`, purged after 2 days by the 2 AM cron

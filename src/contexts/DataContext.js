@@ -246,7 +246,7 @@ export const DataProvider = ({ children }) => {
   const { addReadingSession, addReadingSessionsBulk, editReadingSession, deleteReadingSession } =
     useSessionOperations(fetchWithAuth, setStudents, setApiError);
 
-  const { addClass, updateClass, deleteClass, addGenre } = useClassOperations(
+  const { addClass, updateClass, setClassYearGroup, deleteClass, addGenre } = useClassOperations(
     fetchWithAuth,
     setClasses,
     setStudents,
@@ -400,6 +400,7 @@ export const DataProvider = ({ children }) => {
       // Class operations
       addClass,
       updateClass,
+      setClassYearGroup,
       deleteClass,
       // Genre operations
       addGenre,
@@ -438,6 +439,7 @@ export const DataProvider = ({ children }) => {
       removeBookLocal,
       addClass,
       updateClass,
+      setClassYearGroup,
       deleteClass,
       addGenre,
       updateSettings,

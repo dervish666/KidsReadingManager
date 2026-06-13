@@ -195,7 +195,8 @@ sessionsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
 
     const student = await db
       .prepare(
-        `SELECT s.id, s.processing_restricted, s.year_group, c.name AS class_name
+        `SELECT s.id, s.processing_restricted,
+                COALESCE(s.year_group, c.year_group) AS year_group, c.name AS class_name
          FROM students s
          LEFT JOIN classes c ON c.id = s.class_id
          WHERE s.id = ? AND s.organization_id = ? AND s.is_active = 1`
@@ -433,7 +434,8 @@ sessionsRouter.post(
 
       const student = await db
         .prepare(
-          `SELECT s.id, s.processing_restricted, s.year_group, c.name AS class_name
+          `SELECT s.id, s.processing_restricted,
+                  COALESCE(s.year_group, c.year_group) AS year_group, c.name AS class_name
            FROM students s
            LEFT JOIN classes c ON c.id = s.class_id
            WHERE s.id = ? AND s.organization_id = ? AND s.is_active = 1`
@@ -793,7 +795,7 @@ sessionsRouter.put(
 
       const studentForBadges = await db
         .prepare(
-          `SELECT s.year_group, c.name AS class_name
+          `SELECT COALESCE(s.year_group, c.year_group) AS year_group, c.name AS class_name
            FROM students s LEFT JOIN classes c ON c.id = s.class_id
            WHERE s.id = ?`
         )

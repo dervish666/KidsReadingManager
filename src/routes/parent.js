@@ -101,7 +101,7 @@ async function validateParentToken(db, token) {
               pat.parent_last_seen_band,
               s.is_active as student_active,
               s.processing_restricted,
-              s.year_group,
+              COALESCE(s.year_group, c.year_group) as year_group,
               c.name as class_name
          FROM parent_access_tokens pat
          JOIN students s ON s.id = pat.student_id

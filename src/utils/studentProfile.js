@@ -24,7 +24,8 @@ export async function buildStudentReadingProfile(studentId, organizationId, db) 
       `
     SELECT s.id, s.name, s.reading_level, s.reading_level_min, s.reading_level_max, s.age_range,
            s.likes, s.dislikes, s.notes, s.date_of_birth, s.gender, s.first_language,
-           s.eal_detailed_status, s.year_group, c.name AS class_name
+           s.eal_detailed_status, COALESCE(s.year_group, c.year_group) AS year_group,
+           c.name AS class_name
     FROM students s
     LEFT JOIN classes c ON c.id = s.class_id
     WHERE s.id = ? AND s.organization_id = ?

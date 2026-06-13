@@ -111,6 +111,7 @@ export const rowToClass = (row) => {
     name: row.name,
     teacherName: row.teacher_name,
     academicYear: row.academic_year,
+    yearGroup: row.year_group || null,
     isActive: Boolean(row.is_active),
     disabled: Boolean(row.disabled),
     wondeClassId: row.wonde_class_id || null,

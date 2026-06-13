@@ -1308,6 +1308,76 @@ describe('Classes API Routes', () => {
     });
   });
 
+  describe('PUT /api/classes/:id/year-group', () => {
+    const adminCtx = { userId: 'admin-1', organizationId: 'org-456', userRole: ROLES.ADMIN };
+
+    it('sets the admin year group and returns the updated class', async () => {
+      const { app, mockDB } = createTestApp(adminCtx);
+      let callIndex = 0;
+      mockDB._chain.first.mockImplementation(() => {
+        callIndex++;
+        if (callIndex === 1) return Promise.resolve({ id: 'class-1' }); // existence check
+        return Promise.resolve(createMockClass({ id: 'class-1', year_group: 'Nursery' }));
+      });
+
+      const res = await makeRequest(app, 'PUT', '/api/classes/class-1/year-group', {
+        yearGroup: 'Nursery',
+      });
+      const data = await res.json();
+
+      expect(res.status).toBe(200);
+      expect(data.yearGroup).toBe('Nursery');
+      const updateCall = mockDB.prepare.mock.calls.find((call) =>
+        call[0].includes('UPDATE classes SET year_group')
+      );
+      expect(updateCall).toBeDefined();
+      expect(mockDB._chain.bind).toHaveBeenCalledWith('Nursery', 'class-1');
+    });
+
+    it('clears the year group when given null', async () => {
+      const { app, mockDB } = createTestApp(adminCtx);
+      let callIndex = 0;
+      mockDB._chain.first.mockImplementation(() => {
+        callIndex++;
+        if (callIndex === 1) return Promise.resolve({ id: 'class-1' });
+        return Promise.resolve(createMockClass({ id: 'class-1', year_group: null }));
+      });
+
+      const res = await makeRequest(app, 'PUT', '/api/classes/class-1/year-group', {
+        yearGroup: null,
+      });
+
+      expect(res.status).toBe(200);
+      expect(mockDB._chain.bind).toHaveBeenCalledWith(null, 'class-1');
+    });
+
+    it('rejects an unknown year-group value with 400', async () => {
+      const { app } = createTestApp(adminCtx);
+      const res = await makeRequest(app, 'PUT', '/api/classes/class-1/year-group', {
+        yearGroup: 'Year 99',
+      });
+      expect(res.status).toBe(400);
+    });
+
+    it('forbids teachers from setting the year group', async () => {
+      const { app, mockDB } = createTestApp({ ...adminCtx, userRole: ROLES.TEACHER });
+      mockDB._chain.first.mockResolvedValue({ id: 'class-1' });
+      const res = await makeRequest(app, 'PUT', '/api/classes/class-1/year-group', {
+        yearGroup: 'Year 3',
+      });
+      expect(res.status).toBe(403);
+    });
+
+    it('returns 404 when the class does not exist', async () => {
+      const { app, mockDB } = createTestApp(adminCtx);
+      mockDB._chain.first.mockResolvedValue(null);
+      const res = await makeRequest(app, 'PUT', '/api/classes/missing/year-group', {
+        yearGroup: 'Year 3',
+      });
+      expect(res.status).toBe(404);
+    });
+  });
+
   describe('DELETE /api/classes/:id', () => {
     describe('Permission checks', () => {
       it('should reject requests from teachers (requires admin)', async () => {

@@ -264,6 +264,9 @@ files:
       - route: PUT /api/classes/:id
         description: Update class details
         requires: teacher
+      - route: PUT /api/classes/:id/year-group
+        description: Set/clear admin year group for a class (works on synced Wonde classes; fallback when MIS gives none)
+        requires: admin
       - route: DELETE /api/classes/:id
         description: Soft delete class and unassign students
         requires: teacher

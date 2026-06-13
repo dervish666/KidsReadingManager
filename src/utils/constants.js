@@ -13,6 +13,24 @@
 export const ACADEMIC_YEAR_START_MONTH = 9;
 
 /**
+ * Year groups an admin can assign to a class (Settings → Manage Classes).
+ * Used both as the dropdown options (ClassManager) and the server-side
+ * allowlist (routes/classes year-group endpoint). Labels are chosen so the
+ * shared year-group parsers (utils/yearGroup) resolve them directly:
+ * "Nursery" → ages 3-4 / KS1, "Reception" → 4-5 / KS1, "Year N" → its band.
+ */
+export const CLASS_YEAR_GROUP_OPTIONS = [
+  'Nursery',
+  'Reception',
+  'Year 1',
+  'Year 2',
+  'Year 3',
+  'Year 4',
+  'Year 5',
+  'Year 6',
+];
+
+/**
  * API paths that bypass JWT authentication and tenant middleware.
  * Each path must be explicitly listed — no wildcard prefixes.
  * Note: /api/covers/* uses a startsWith check separately.

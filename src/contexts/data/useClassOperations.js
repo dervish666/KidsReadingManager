@@ -83,6 +83,40 @@ export function useClassOperations(fetchWithAuth, setClasses, setStudents, setGe
     [fetchWithAuth, setClasses, setApiError]
   );
 
+  // Set/clear the admin-assigned year group for a class (works for synced
+  // Wonde classes too — hits the dedicated endpoint, doesn't touch name/teacher).
+  const setClassYearGroup = useCallback(
+    async (id, yearGroup) => {
+      let previousClasses;
+      setClasses((prev) => {
+        previousClasses = prev;
+        return prev.map((c) => (c.id === id ? { ...c, yearGroup: yearGroup || null } : c));
+      });
+
+      try {
+        const response = await fetchWithAuth(`${API_URL}/classes/${id}/year-group`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ yearGroup: yearGroup || null }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+
+        const savedClass = await response.json();
+        setClasses((prev) => prev.map((c) => (c.id === id ? savedClass : c)));
+        setApiError(null);
+        return savedClass;
+      } catch (error) {
+        setApiError(error.message);
+        setClasses(previousClasses);
+        return null;
+      }
+    },
+    [fetchWithAuth, setClasses, setApiError]
+  );
+
   const deleteClass = useCallback(
     async (id) => {
       let previousClasses;
@@ -157,6 +191,7 @@ export function useClassOperations(fetchWithAuth, setClasses, setStudents, setGe
   return {
     addClass,
     updateClass,
+    setClassYearGroup,
     deleteClass,
     addGenre,
   };

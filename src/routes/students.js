@@ -150,7 +150,9 @@ studentsRouter.get('/:id', requireReadonly(), async (c) => {
       getOrgStreakSettings(db, organizationId, c.env),
       db
         .prepare(
-          `SELECT s.*, c.name as class_name, b.title as current_book_title, b.author as current_book_author
+          `SELECT s.*, c.name as class_name,
+                  COALESCE(s.year_group, c.year_group) as resolved_year_group,
+                  b.title as current_book_title, b.author as current_book_author
            FROM students s
            LEFT JOIN classes c ON s.class_id = c.id
            LEFT JOIN books b ON s.current_book_id = b.id
@@ -249,7 +251,7 @@ studentsRouter.get('/:id', requireReadonly(), async (c) => {
     result.nearMisses = statsRow
       ? calculateNearMisses(
           rowToReadingStats(statsRow),
-          student.year_group || classNameToYearGroup(student.class_name),
+          student.resolved_year_group || classNameToYearGroup(student.class_name),
           earnedBadgeIds
         )
       : [];

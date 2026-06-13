@@ -22,9 +22,13 @@ import {
   recalculateClassGoalProgress,
 } from '../utils/classGoalsEngine.js';
 import { assertBatchSize } from '../utils/d1Batch.js';
+import { CLASS_YEAR_GROUP_OPTIONS } from '../utils/constants.js';
 
 // Create router
 const classesRouter = new Hono();
+
+// Server-side allowlist for the admin-assigned class year group.
+const ALLOWED_CLASS_YEAR_GROUPS = new Set(CLASS_YEAR_GROUP_OPTIONS);
 
 /**
  * GET /api/classes
@@ -368,6 +372,53 @@ classesRouter.put('/:id', auditLog('update', 'class'), async (c) => {
 
   const savedClass = await saveClassKV(c.env, updatedClass);
   return c.json(savedClass);
+});
+
+/**
+ * PUT /api/classes/:id/year-group
+ * Set (or clear) the admin-assigned year group for a class. Separate from the
+ * full class update because it works on Wonde-synced classes too — those have
+ * a read-only name/teacher but still need a year group when the MIS doesn't
+ * provide one and the class name doesn't encode it (e.g. nursery classes named
+ * "Willow"/"Cherry"). Send `{ yearGroup: null }` (or "") to clear back to auto.
+ */
+classesRouter.put('/:id/year-group', auditLog('update', 'class'), async (c) => {
+  const { id } = c.req.param();
+  const body = await c.req.json();
+
+  if (!isMultiTenantMode(c)) {
+    throw badRequestError('Year group requires multi-tenant mode');
+  }
+
+  const db = getDB(c.env);
+  const organizationId = c.get('organizationId');
+
+  if (!permissions.canManageClasses(c.get('userRole'))) {
+    throw forbiddenError();
+  }
+
+  // Normalise + validate: null/'' clears it; otherwise must be a known label.
+  const raw = body.yearGroup == null ? null : String(body.yearGroup).trim();
+  const yearGroup = raw ? raw : null;
+  if (yearGroup && !ALLOWED_CLASS_YEAR_GROUPS.has(yearGroup)) {
+    throw badRequestError(`Invalid year group: ${yearGroup}`);
+  }
+
+  const existing = await db
+    .prepare('SELECT id FROM classes WHERE id = ? AND organization_id = ? AND is_active = 1')
+    .bind(id, organizationId)
+    .first();
+  if (!existing) {
+    throw notFoundError(`Class with ID ${id} not found`);
+  }
+
+  await db
+    .prepare(`UPDATE classes SET year_group = ?, updated_at = datetime("now") WHERE id = ?`)
+    .bind(yearGroup, id)
+    .run();
+
+  const cls = await db.prepare('SELECT * FROM classes WHERE id = ?').bind(id).first();
+  return c.json(rowToClass(cls));
 });
 
 /**

@@ -98,7 +98,7 @@ badgesRouter.get('/students/:id', requireReadonly(), async (c) => {
   // MIS synced no year group — see classNameToYearGroup)
   const student = await db
     .prepare(
-      `SELECT s.id, s.year_group, c.name AS class_name
+      `SELECT s.id, COALESCE(s.year_group, c.year_group) AS year_group, c.name AS class_name
        FROM students s
        LEFT JOIN classes c ON c.id = s.class_id
        WHERE s.id = ? AND s.organization_id = ? AND s.is_active = 1`
@@ -194,7 +194,7 @@ badgesRouter.get('/summary', requireReadonly(), async (c) => {
 
   // Build student query with class filter
   let studentSql = `
-    SELECT s.id, s.name, s.year_group, c.name AS class_name
+    SELECT s.id, s.name, COALESCE(s.year_group, c.year_group) AS year_group, c.name AS class_name
     FROM students s
     LEFT JOIN classes c ON s.class_id = c.id
     WHERE s.organization_id = ? AND s.is_active = 1`;
