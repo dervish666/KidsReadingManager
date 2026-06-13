@@ -21,10 +21,12 @@ export async function buildStudentReadingProfile(studentId, organizationId, db) 
   const student = await db
     .prepare(
       `
-    SELECT id, name, reading_level, reading_level_min, reading_level_max, age_range, likes, dislikes, notes,
-           date_of_birth, gender, first_language, eal_detailed_status, year_group
-    FROM students
-    WHERE id = ? AND organization_id = ?
+    SELECT s.id, s.name, s.reading_level, s.reading_level_min, s.reading_level_max, s.age_range,
+           s.likes, s.dislikes, s.notes, s.date_of_birth, s.gender, s.first_language,
+           s.eal_detailed_status, s.year_group, c.name AS class_name
+    FROM students s
+    LEFT JOIN classes c ON c.id = s.class_id
+    WHERE s.id = ? AND s.organization_id = ?
   `
     )
     .bind(studentId, organizationId)
@@ -162,7 +164,11 @@ export async function buildStudentReadingProfile(studentId, organizationId, db) 
       gender: student.gender || null,
       firstLanguage: student.first_language || null,
       ealDetailedStatus: student.eal_detailed_status || null,
-      yearGroup: student.year_group || null,
+      // Fall back to the class name when the MIS didn't sync a year group.
+      // Some Wonde connections (registration-groups schools like Cheddar Grove)
+      // return no education data, so year_group is empty — but the class name
+      // usually encodes the NC year ("5D" → Year 5, "RF" → Reception).
+      yearGroup: student.year_group || classNameToYearGroup(student.class_name),
     },
     preferences: {
       favoriteGenreIds,
@@ -218,6 +224,39 @@ export function yearGroupToAgeBand(yearGroup) {
   if (year === 0) return { min: 4, max: 5 }; // Reception expressed as Year 0
 
   return { min: year + 4, max: year + 5 };
+}
+
+/**
+ * Best-effort UK year group from a class / registration-group name.
+ *
+ * Some Wonde connections (registration-groups schools) return no education
+ * data, leaving `students.year_group` empty — but the class name usually
+ * encodes the year: "5D" → "5", "6A" → "6", "RF"/"RJM" → "R" (Reception).
+ * Tree/colour-named classes ("Willow", "Cherry") carry no year and return
+ * null. Output is a year-group token suitable for yearGroupToAgeBand(); this
+ * is only ever a fallback when the real year group is missing.
+ *
+ * @param {string|null} className
+ * @returns {string|null} Year-group token ("5", "R", …), or null if not derivable
+ */
+export function classNameToYearGroup(className) {
+  if (className == null) return null;
+  const raw = String(className).trim().toLowerCase();
+  if (!raw) return null;
+
+  // Leading school-year number, optionally "y"/"year" prefixed: "5d", "y5", "year 5"
+  const yearMatch = raw.match(/^(?:year\s*|y)?(\d{1,2})/);
+  if (yearMatch) {
+    const year = parseInt(yearMatch[1], 10);
+    if (year >= 1 && year <= 13) return String(year);
+    if (year === 0) return 'R'; // Reception expressed as "0…"
+    return null;
+  }
+
+  // Reception registration groups: "rf", "rjm", "r" (leading R, then only letters)
+  if (/^r[a-z]*$/.test(raw)) return 'R';
+
+  return null;
 }
 
 /**

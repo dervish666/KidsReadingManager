@@ -314,6 +314,11 @@ files:
         params: [{name: yearGroup}]
         returns: "{min,max}|null"
         description: Coarse UK year-group → approximate age band (Wonde current_nc_year format primary)
+      - name: classNameToYearGroup
+        kind: function
+        params: [{name: className}]
+        returns: string|null
+        description: Best-effort year group from a registration-group class name ("5D"→"5", "RF"→"R"); fallback when MIS syncs no year_group
       - name: toAISafeProfile
         kind: function
         params: [{name: profile}]

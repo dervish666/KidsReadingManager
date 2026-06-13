@@ -3,6 +3,7 @@ import {
   buildStudentReadingProfile,
   toAISafeProfile,
   yearGroupToAgeBand,
+  classNameToYearGroup,
 } from '../../utils/studentProfile.js';
 
 describe('buildStudentReadingProfile', () => {
@@ -197,6 +198,60 @@ describe('buildStudentReadingProfile', () => {
     expect(profile.student.ageRange).toBeNull();
     expect(profile.preferences.likes).toEqual([]);
     expect(profile.preferences.dislikes).toEqual([]);
+  });
+
+  it('falls back to the class name for year group when the MIS synced none', async () => {
+    // Cheddar Grove case: Wonde returned no education data, so year_group is
+    // null, but the class name ("5D") encodes Year 5.
+    const studentQuery = {
+      bind: vi.fn().mockReturnThis(),
+      first: vi.fn().mockResolvedValue({
+        id: 'student-5d',
+        name: 'Reg Group Student',
+        reading_level: null,
+        year_group: null,
+        class_name: '5D',
+      }),
+    };
+    const emptyAll = {
+      bind: vi.fn().mockReturnThis(),
+      all: vi.fn().mockResolvedValue({ results: [] }),
+    };
+
+    mockDb.prepare
+      .mockReturnValueOnce(studentQuery)
+      .mockReturnValueOnce(emptyAll)
+      .mockReturnValueOnce(emptyAll);
+
+    const profile = await buildStudentReadingProfile('student-5d', 'org-456', mockDb);
+    expect(profile.student.yearGroup).toBe('5');
+    // And it flows through to a coarse age band on the AI-safe profile.
+    expect(toAISafeProfile(profile).student.ageBand).toEqual({ min: 9, max: 10 });
+  });
+
+  it('prefers a real synced year group over the class-name fallback', async () => {
+    const studentQuery = {
+      bind: vi.fn().mockReturnThis(),
+      first: vi.fn().mockResolvedValue({
+        id: 'student-yr',
+        name: 'Synced Student',
+        reading_level: null,
+        year_group: '3',
+        class_name: 'Willow', // unparseable — must not override the real value
+      }),
+    };
+    const emptyAll = {
+      bind: vi.fn().mockReturnThis(),
+      all: vi.fn().mockResolvedValue({ results: [] }),
+    };
+
+    mockDb.prepare
+      .mockReturnValueOnce(studentQuery)
+      .mockReturnValueOnce(emptyAll)
+      .mockReturnValueOnce(emptyAll);
+
+    const profile = await buildStudentReadingProfile('student-yr', 'org-456', mockDb);
+    expect(profile.student.yearGroup).toBe('3');
   });
 
   it('should only return top 3 inferred genres sorted by count', async () => {
@@ -696,5 +751,39 @@ describe('yearGroupToAgeBand', () => {
     expect(yearGroupToAgeBand('   ')).toBeNull();
     expect(yearGroupToAgeBand('unknown')).toBeNull();
     expect(yearGroupToAgeBand('99')).toBeNull(); // out of range
+  });
+});
+
+describe('classNameToYearGroup', () => {
+  it('derives the year from numeric registration-group names (real Cheddar Grove classes)', () => {
+    expect(classNameToYearGroup('1P')).toBe('1');
+    expect(classNameToYearGroup('2A')).toBe('2');
+    expect(classNameToYearGroup('3CD')).toBe('3');
+    expect(classNameToYearGroup('4PP')).toBe('4');
+    expect(classNameToYearGroup('5D')).toBe('5');
+    expect(classNameToYearGroup('6W')).toBe('6');
+  });
+
+  it('maps Reception groups (R-prefixed) to Reception', () => {
+    expect(classNameToYearGroup('RF')).toBe('R');
+    expect(classNameToYearGroup('RJM')).toBe('R');
+    expect(classNameToYearGroup('R')).toBe('R');
+  });
+
+  it('also handles "Year N" / "YN" class names', () => {
+    expect(classNameToYearGroup('Year 5')).toBe('5');
+    expect(classNameToYearGroup('Y6')).toBe('6');
+  });
+
+  it('returns null for tree/colour names that encode no year', () => {
+    expect(classNameToYearGroup('Willow')).toBeNull();
+    expect(classNameToYearGroup('Cherry')).toBeNull();
+    expect(classNameToYearGroup(null)).toBeNull();
+    expect(classNameToYearGroup('')).toBeNull();
+  });
+
+  it('round-trips through yearGroupToAgeBand to a coarse band', () => {
+    expect(yearGroupToAgeBand(classNameToYearGroup('5D'))).toEqual({ min: 9, max: 10 });
+    expect(yearGroupToAgeBand(classNameToYearGroup('RF'))).toEqual({ min: 4, max: 5 });
   });
 });

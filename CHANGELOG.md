@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.104.1] - 2026-06-13
+
+### Fixed
+
+- **Age-aware recommendations now work for registration-groups Wonde schools.** v3.104.0 derived the recommendation age band from the synced year group, but schools like Cheddar Grove run a Wonde connection that returns no education data — every student's `year_group` (along with DOB, gender, SEN, EAL) is empty, so the age band never fired and the prompt carried no age. The recommendation profile now falls back to parsing the year from the **class name** when the year group is missing: registration-group names encode it (`5D` → Year 5 → ages 9–10, `RF` → Reception), covering ~399/437 Cheddar Grove students; tree/colour-named classes (Willow, Cherry) carry no year and are left without a band (the prompt omits age, as before). A real synced year group always takes precedence over the fallback. (Underlying cause — the Wonde connection returning no education data at all — is a connection-scope matter to raise with Wonde; this makes recommendations work regardless.)
+
 ## [3.104.0] - 2026-06-13
 
 ### Added
