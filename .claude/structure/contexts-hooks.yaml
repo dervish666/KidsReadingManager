@@ -34,7 +34,7 @@ files:
       - name: useClassOperations
         kind: function
         params: [fetchWithAuth, setClasses, setStudents, setGenres, setApiError]
-        returns: "{ addClass, updateClass, deleteClass, addGenre }"
+        returns: "{ addClass, updateClass, setClassYearGroup, deleteClass, addGenre }"
 
   contexts/AppContext.js:
     description: Central app state - auth, students, classes, books, genres, settings, multi-org
