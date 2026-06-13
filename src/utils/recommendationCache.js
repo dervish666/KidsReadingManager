@@ -17,10 +17,12 @@
  * @param {number|string} [inputs.readingLevelMin] - Minimum reading level
  * @param {number|string} [inputs.readingLevelMax] - Maximum reading level
  * @param {number[]} [inputs.recentBookIds] - Recently read book IDs to exclude
+ * @param {string} [inputs.ageBand] - Coarse age band (e.g. "6-7") from year group
  * @returns {Promise<string>} Cache key in format `rec:{64-char-hex}`
  */
 export async function generateCacheKey(inputs) {
   const normalised = JSON.stringify({
+    ageBand: inputs.ageBand || '',
     focusMode: inputs.focusMode || 'balanced',
     genres: (inputs.genres || []).slice().sort(),
     organizationId: inputs.organizationId || '',

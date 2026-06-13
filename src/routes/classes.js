@@ -50,9 +50,40 @@ classesRouter.get('/', requireReadonly(), async (c) => {
       .bind(organizationId)
       .all();
 
+    // Attach assigned teacher names per class. For Wonde-synced schools the
+    // teacher↔class link lives in wonde_employee_classes (employee_name is
+    // populated at sync for every employee, even before they first log in),
+    // keyed by wonde_class_id — the classes table's free-text teacher_name is
+    // only used by manual-mode orgs, so it stays empty under Wonde.
+    const teacherRows = await db
+      .prepare(
+        `
+      SELECT c.id AS class_id, wec.employee_name AS teacher_name
+      FROM classes c
+      JOIN wonde_employee_classes wec
+        ON wec.wonde_class_id = c.wonde_class_id
+       AND wec.organization_id = c.organization_id
+      WHERE c.organization_id = ? AND c.is_active = 1
+        AND wec.employee_name IS NOT NULL AND TRIM(wec.employee_name) != ''
+    `
+      )
+      .bind(organizationId)
+      .all();
+
+    const teacherNamesByClass = {};
+    for (const row of teacherRows.results || []) {
+      if (!teacherNamesByClass[row.class_id]) {
+        teacherNamesByClass[row.class_id] = [];
+      }
+      teacherNamesByClass[row.class_id].push(row.teacher_name);
+    }
+
     const classes = (result.results || []).map((row) => ({
       ...rowToClass(row),
       studentCount: row.student_count,
+      teacherNames: teacherNamesByClass[row.id]
+        ? [...new Set(teacherNamesByClass[row.id])].sort()
+        : [],
     }));
 
     return c.json(classes);
@@ -91,9 +122,29 @@ classesRouter.get('/:id', requireReadonly(), async (c) => {
       throw notFoundError(`Class with ID ${id} not found`);
     }
 
+    // Assigned teacher names — see GET /api/classes. For Wonde orgs these come
+    // from wonde_employee_classes (keyed by wonde_class_id); manual orgs rely
+    // on the free-text teacher_name instead.
+    const teacherRows = await db
+      .prepare(
+        `
+      SELECT wec.employee_name AS teacher_name
+      FROM wonde_employee_classes wec
+      WHERE wec.organization_id = ? AND wec.wonde_class_id = ?
+        AND wec.employee_name IS NOT NULL AND TRIM(wec.employee_name) != ''
+    `
+      )
+      .bind(organizationId, cls.wonde_class_id)
+      .all();
+
+    const teacherNames = cls.wonde_class_id
+      ? [...new Set((teacherRows.results || []).map((r) => r.teacher_name))].sort()
+      : [];
+
     return c.json({
       ...rowToClass(cls),
       studentCount: cls.student_count,
+      teacherNames,
     });
   }
 

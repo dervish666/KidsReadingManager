@@ -178,6 +178,49 @@ export async function buildStudentReadingProfile(studentId, organizationId, db) 
 }
 
 /**
+ * Map a UK year group to a coarse, approximate age band.
+ *
+ * Tally syncs `year_group` from Wonde's `current_nc_year` (National Curriculum
+ * year), which is a bare code: "R" for Reception, "1".."13" for school years,
+ * "N1"/"N2" for nursery. Other places in this codebase store it differently
+ * ("Year 2", "Y2"), so we parse defensively rather than assuming one format.
+ *
+ * Returns a coarse two-year band ({ min, max }) — never an exact age. A child
+ * in Year N is age (N+4) at the September start of the school year and turns
+ * (N+5) during it, so the band is [N+4, N+5]. This band is the ONLY age signal
+ * that crosses the AI boundary (see toAISafeProfile): it's the granularity
+ * needed to keep recommended content age-appropriate, without exposing DOB,
+ * exact age, or the raw year group.
+ *
+ * @param {string|number|null} yearGroup
+ * @returns {{min: number, max: number}|null} Age band, or null if unparseable
+ */
+export function yearGroupToAgeBand(yearGroup) {
+  if (yearGroup == null) return null;
+  const raw = String(yearGroup).trim().toLowerCase();
+  if (!raw) return null;
+
+  // Nursery (Wonde "N1"/"N2", or "nursery")
+  if (raw.includes('nursery') || /^n\d*$/.test(raw)) {
+    return { min: 3, max: 4 };
+  }
+
+  // Reception (Wonde "R", or "YR"/"reception")
+  if (raw.includes('reception') || raw === 'r' || raw === 'yr') {
+    return { min: 4, max: 5 };
+  }
+
+  // Numeric school year — pull the first integer from "2", "Year 2", "Y2", "yr 2"
+  const match = raw.match(/\d+/);
+  if (!match) return null;
+  const year = parseInt(match[0], 10);
+  if (!Number.isInteger(year) || year < 0 || year > 13) return null;
+  if (year === 0) return { min: 4, max: 5 }; // Reception expressed as Year 0
+
+  return { min: year + 4, max: year + 5 };
+}
+
+/**
  * Strip demographic fields from a student-reading profile before sending to
  * an external AI provider.
  *
@@ -188,6 +231,12 @@ export async function buildStudentReadingProfile(studentId, organizationId, db) 
  * history is sufficient. Stripping these fields at the boundary means a
  * future commit that adds them to the prompt template can't accidentally
  * exfiltrate them.
+ *
+ * One deliberate exception: a coarse `ageBand` ({ min, max }, a two-year span)
+ * derived from the year group IS forwarded. Reading level governs difficulty
+ * but not the maturity of themes/content, so without an age signal the AI was
+ * recommending books a year or two too old. The band is intentionally coarse
+ * and non-identifying — the raw year group, DOB and exact age never cross.
  *
  * @param {Object} profile - Output of buildStudentReadingProfile()
  * @returns {Object} A profile with the same shape but no demographic data
@@ -203,6 +252,7 @@ export function toAISafeProfile(profile) {
       readingLevel: student?.readingLevel ?? null,
       readingLevelMin: student?.readingLevelMin ?? null,
       readingLevelMax: student?.readingLevelMax ?? null,
+      ageBand: yearGroupToAgeBand(student?.yearGroup),
     },
     preferences: {
       favoriteGenreIds: preferences?.favoriteGenreIds ?? [],

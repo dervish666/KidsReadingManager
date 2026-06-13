@@ -247,12 +247,16 @@ myloginRouter.get('/callback', async (c) => {
           `[MyLogin] Role changed for mylogin_id ${myloginId}: ${existingUser.role} → ${effectiveRole}`
         );
       }
+      // Refresh wonde_employee_id from the current profile (COALESCE keeps the
+      // stored value if MyLogin omits it on a later login). Users created before
+      // their Wonde linkage existed otherwise keep a stale/null id forever, which
+      // breaks class auto-assignment and the nightly Wonde delta sync.
       await db
         .prepare(
-          `UPDATE users SET name = ?, email = ?, role = ?, last_login_at = datetime("now"), updated_at = datetime("now")
+          `UPDATE users SET name = ?, email = ?, role = ?, wonde_employee_id = COALESCE(?, wonde_employee_id), last_login_at = datetime("now"), updated_at = datetime("now")
          WHERE id = ?`
         )
-        .bind(name, email, effectiveRole, userId)
+        .bind(name, email, effectiveRole, wondeEmployeeId, userId)
         .run();
     } else {
       // Create new user
@@ -278,7 +282,9 @@ myloginRouter.get('/callback', async (c) => {
         .run();
     }
 
-    // Sync class assignments for teachers (runs for both new and existing users)
+    // Sync class assignments for teachers (runs for both new and existing users).
+    // This is what lets the app auto-open the teacher's class on login, so the
+    // two ways it can silently no-op are logged loudly to ease first-login triage.
     if (role === 'teacher' && wondeEmployeeId) {
       try {
         const assignedCount = await syncUserClassAssignments(db, userId, wondeEmployeeId, org.id);
@@ -286,10 +292,22 @@ myloginRouter.get('/callback', async (c) => {
           console.log(
             `[MyLogin] Synced ${assignedCount} class assignment(s) for mylogin_id ${myloginId}`
           );
+        } else {
+          // Has a Wonde employee id but matched 0 classes — usually means
+          // wonde_employee_classes hasn't synced yet, or the MyLogin
+          // service_provider_id doesn't match the id the Wonde sync stored.
+          console.warn(
+            `[MyLogin] 0 class assignments for mylogin_id ${myloginId} (wonde_employee_id ${wondeEmployeeId}, org ${org.id}). Check wonde_employee_classes is populated and the employee id matches; class auto-open will not work until it resolves.`
+          );
         }
       } catch (err) {
         console.warn('[MyLogin] Could not sync class assignments:', err.message);
       }
+    } else if (role === 'teacher') {
+      // No Wonde employee id in the MyLogin profile → class auto-assignment can't run.
+      console.warn(
+        `[MyLogin] Teacher mylogin_id ${myloginId} has no Wonde service_provider_id in profile; skipping class assignment sync (class auto-open will not work).`
+      );
     }
 
     // -----------------------------------------------------------------------

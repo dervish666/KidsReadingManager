@@ -51,6 +51,22 @@ describe('aiService', () => {
       expect(prompt).not.toContain('Age Range');
     });
 
+    it('omits the AGE section when no age band is present', () => {
+      const prompt = buildBroadSuggestionsPrompt(createMockProfile());
+      expect(prompt).not.toContain('AGE (most important');
+    });
+
+    it('includes coarse age-band guidance when an age band is present', () => {
+      const profile = createMockProfile({ student: { ageBand: { min: 6, max: 7 } } });
+      const prompt = buildBroadSuggestionsPrompt(profile);
+
+      // The band must surface as a content-suitability guardrail, but no exact
+      // age or raw year group (only the coarse band crosses toAISafeProfile).
+      expect(prompt).toContain('AGE (most important');
+      expect(prompt).toContain('approximately 6-7 years old');
+      expect(prompt).toContain('around 6-7 years old');
+    });
+
     it('should include explicit favorite genres', () => {
       const profile = createMockProfile();
       const prompt = buildBroadSuggestionsPrompt(profile);

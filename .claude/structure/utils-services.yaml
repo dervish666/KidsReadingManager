@@ -309,6 +309,16 @@ files:
         kind: function
         params: [{name: studentId}, {name: organizationId}, {name: db}]
         returns: Promise<object|null>
+      - name: yearGroupToAgeBand
+        kind: function
+        params: [{name: yearGroup}]
+        returns: "{min,max}|null"
+        description: Coarse UK year-group → approximate age band (Wonde current_nc_year format primary)
+      - name: toAISafeProfile
+        kind: function
+        params: [{name: profile}]
+        returns: object
+        description: Data-minimised profile for AI; strips demographics but forwards coarse ageBand
 
   utils/recommendationCache.js:
     description: KV caching for AI book recommendations (7-day TTL)

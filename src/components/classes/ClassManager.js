@@ -161,6 +161,15 @@ const ClassManager = () => {
     return `up to ${max}`;
   };
 
+  // Teacher(s) shown under each class. Wonde orgs get assigned teacher names
+  // from the API (teacherNames); manual orgs use the free-text teacherName.
+  const classTeacherLabel = (cls) => {
+    if (cls.teacherNames && cls.teacherNames.length > 0) {
+      return cls.teacherNames.join(', ');
+    }
+    return cls.teacherName ? String(cls.teacherName) : null;
+  };
+
   // ── Shared: expandable student sub-list ──────────────────────────────────
   const renderStudentExpansion = (cls) => {
     const isExpanded = expandedClassId === cls.id;
@@ -263,7 +272,7 @@ const ClassManager = () => {
                         )}
                       </Box>
                     }
-                    secondary={cls.teacherName ? String(cls.teacherName) : null}
+                    secondary={classTeacherLabel(cls)}
                   />
                   {expandedClassId === cls.id ? (
                     <ExpandLessIcon color="action" />
@@ -407,7 +416,7 @@ const ClassManager = () => {
                           )}
                         </Box>
                       }
-                      secondary={cls.teacherName ? String(cls.teacherName) : ''}
+                      secondary={classTeacherLabel(cls)}
                     />
                     {expandedClassId === cls.id ? (
                       <ExpandLessIcon color="action" />

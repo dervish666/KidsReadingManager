@@ -285,6 +285,57 @@ describe('Classes API Routes', () => {
         expect(data[0].studentCount).toBe(30);
       });
 
+      it('attaches assigned teacher names from wonde_employee_classes (deduped + sorted)', async () => {
+        const classes = [
+          createMockClass({ id: 'class-1', name: 'Year 2', teacher_name: null }),
+          createMockClass({ id: 'class-2', name: 'Year 3', teacher_name: null }),
+        ];
+        // Second .all() in the route resolves the class→teacher mapping.
+        const teacherRows = [
+          { class_id: 'class-1', teacher_name: 'Mrs Apple' },
+          { class_id: 'class-1', teacher_name: 'Mr Birch' },
+          { class_id: 'class-1', teacher_name: 'Mrs Apple' }, // duplicate
+          { class_id: 'class-2', teacher_name: 'Ms Cedar' },
+        ];
+
+        const { app, mockDB } = createTestApp({
+          userId: 'user-123',
+          organizationId: 'org-456',
+          userRole: ROLES.TEACHER,
+        });
+        mockDB._chain.all
+          .mockResolvedValueOnce({ results: classes, success: true })
+          .mockResolvedValueOnce({ results: teacherRows, success: true });
+
+        const response = await makeRequest(app, 'GET', '/api/classes');
+        const data = await response.json();
+
+        expect(response.status).toBe(200);
+        const c1 = data.find((c) => c.id === 'class-1');
+        const c2 = data.find((c) => c.id === 'class-2');
+        expect(c1.teacherNames).toEqual(['Mr Birch', 'Mrs Apple']);
+        expect(c2.teacherNames).toEqual(['Ms Cedar']);
+      });
+
+      it('returns an empty teacherNames array when no teachers are assigned', async () => {
+        const { app, mockDB } = createTestApp({
+          userId: 'user-123',
+          organizationId: 'org-456',
+          userRole: ROLES.TEACHER,
+        });
+        mockDB._chain.all
+          .mockResolvedValueOnce({
+            results: [createMockClass({ id: 'class-1', teacher_name: null })],
+            success: true,
+          })
+          .mockResolvedValueOnce({ results: [], success: true });
+
+        const response = await makeRequest(app, 'GET', '/api/classes');
+        const data = await response.json();
+
+        expect(data[0].teacherNames).toEqual([]);
+      });
+
       it('should convert is_active to boolean', async () => {
         const classes = [
           createMockClass({ id: 'c1', is_active: 1 }),

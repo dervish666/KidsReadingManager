@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { buildStudentReadingProfile, toAISafeProfile } from '../../utils/studentProfile.js';
+import {
+  buildStudentReadingProfile,
+  toAISafeProfile,
+  yearGroupToAgeBand,
+} from '../../utils/studentProfile.js';
 
 describe('buildStudentReadingProfile', () => {
   let mockDb;
@@ -589,9 +593,10 @@ describe('toAISafeProfile — demographic data minimisation', () => {
     booksReadCount: 2,
   });
 
-  it('keeps only reading-level fields on the student sub-object', () => {
+  it('keeps only reading-level fields plus a coarse age band on the student sub-object', () => {
     const safe = toAISafeProfile(fullProfile());
     expect(Object.keys(safe.student).sort()).toEqual([
+      'ageBand',
       'readingLevel',
       'readingLevelMax',
       'readingLevelMin',
@@ -599,6 +604,20 @@ describe('toAISafeProfile — demographic data minimisation', () => {
     expect(safe.student.readingLevel).toBe('intermediate');
     expect(safe.student.readingLevelMin).toBe(4.5);
     expect(safe.student.readingLevelMax).toBe(6.0);
+  });
+
+  it('forwards a coarse age band derived from year group (not the raw year group or DOB age)', () => {
+    // Fixture yearGroup is '4' → ages 8-9; the band is the only age signal that crosses.
+    const safe = toAISafeProfile(fullProfile());
+    expect(safe.student.ageBand).toEqual({ min: 8, max: 9 });
+    expect(safe.student.yearGroup).toBeUndefined();
+    expect(safe.student.age).toBeUndefined();
+  });
+
+  it('sets ageBand to null when the year group is missing', () => {
+    const profile = fullProfile();
+    profile.student.yearGroup = null;
+    expect(toAISafeProfile(profile).student.ageBand).toBeNull();
   });
 
   it('strips identifiers (id, notes)', () => {
@@ -642,5 +661,40 @@ describe('toAISafeProfile — demographic data minimisation', () => {
     expect(safe.student.readingLevel).toBe('beginner');
     expect(safe.preferences.favoriteGenreNames).toEqual([]);
     expect(safe.recentReads).toEqual([]);
+  });
+});
+
+describe('yearGroupToAgeBand', () => {
+  it('maps Wonde current_nc_year numeric codes to (N+4)-(N+5)', () => {
+    // Wonde stores bare numbers — "2" is Year 2 ≈ 6-7 years old.
+    expect(yearGroupToAgeBand('2')).toEqual({ min: 6, max: 7 });
+    expect(yearGroupToAgeBand('1')).toEqual({ min: 5, max: 6 });
+    expect(yearGroupToAgeBand('6')).toEqual({ min: 10, max: 11 });
+    expect(yearGroupToAgeBand('11')).toEqual({ min: 15, max: 16 });
+    expect(yearGroupToAgeBand('13')).toEqual({ min: 17, max: 18 });
+    expect(yearGroupToAgeBand(2)).toEqual({ min: 6, max: 7 }); // numeric type
+  });
+
+  it('maps Reception (Wonde "R") and nursery', () => {
+    expect(yearGroupToAgeBand('R')).toEqual({ min: 4, max: 5 });
+    expect(yearGroupToAgeBand('reception')).toEqual({ min: 4, max: 5 });
+    expect(yearGroupToAgeBand('0')).toEqual({ min: 4, max: 5 });
+    expect(yearGroupToAgeBand('N1')).toEqual({ min: 3, max: 4 });
+    expect(yearGroupToAgeBand('nursery')).toEqual({ min: 3, max: 4 });
+  });
+
+  it('also parses the other formats found in this codebase ("Year 2", "Y2")', () => {
+    expect(yearGroupToAgeBand('Year 2')).toEqual({ min: 6, max: 7 });
+    expect(yearGroupToAgeBand('Y2')).toEqual({ min: 6, max: 7 });
+    expect(yearGroupToAgeBand('yr 6')).toEqual({ min: 10, max: 11 });
+  });
+
+  it('returns null for missing or unparseable values', () => {
+    expect(yearGroupToAgeBand(null)).toBeNull();
+    expect(yearGroupToAgeBand(undefined)).toBeNull();
+    expect(yearGroupToAgeBand('')).toBeNull();
+    expect(yearGroupToAgeBand('   ')).toBeNull();
+    expect(yearGroupToAgeBand('unknown')).toBeNull();
+    expect(yearGroupToAgeBand('99')).toBeNull(); // out of range
   });
 });

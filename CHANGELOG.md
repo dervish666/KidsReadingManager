@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.104.0] - 2026-06-13
+
+### Added
+
+- **AI recommendations now consider the child's age, not just reading level.** Reading level (AR) drives book _difficulty_ but says nothing about the maturity of themes, so a strong young reader was being recommended books a year or two too old (e.g. a Year 2 child offered 8–11 titles). The student's year group is now mapped to a coarse two-year age band (Year 2 → ages 6–7; handles Wonde's `current_nc_year` format primarily — `"R"`, `"2"`, `"N1"` — plus `"Year 2"`/`"Y2"`) and added to the recommendation prompt as the primary guardrail for content suitability: difficulty still follows reading level, but themes and subject matter must suit the child's age. The age band is also part of the recommendation cache key so same-level children of different ages no longer share a result. **Privacy:** the existing AI data-minimisation boundary is preserved — only the coarse band crosses to the provider; DOB, exact age and the raw year group are still stripped.
+- **Manage Classes shows the assigned teacher on each class row.** For Wonde-synced schools the class table's free-text teacher field is never populated (the teacher↔class link lives in `wonde_employee_classes`), so rows showed no teacher. `GET /api/classes` and `/api/classes/:id` now return the assigned teacher name(s) per class — sourced from the Wonde employee↔class mapping (populated at sync for every teacher, even before their first login), deduped and sorted — and the Manage Classes list renders them, falling back to the manual teacher name for non-Wonde orgs.
+
+### Fixed
+
+- **MyLogin keeps a teacher's Wonde employee id fresh, with first-login diagnostics.** The login class-assignment sync (which powers auto-opening a teacher's class on login) only ran when the MyLogin profile carried a Wonde `service_provider_id`. Returning users now have their `wonde_employee_id` refreshed on each login (`COALESCE`, so it's never wiped), closing a stale-id gap that could also starve the nightly Wonde delta sync. The sync now logs loudly in its two silent-failure cases — a teacher matching 0 classes, or a teacher profile with no Wonde id — so the first real Wonde login surfaces immediately which link (if any) needs attention.
+
 ## [3.103.0] - 2026-06-12
 
 ### Fixed

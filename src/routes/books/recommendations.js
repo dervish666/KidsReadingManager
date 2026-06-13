@@ -2,7 +2,11 @@ import { Hono } from 'hono';
 import { generateBroadSuggestionsWithFailover } from '../../services/aiService.js';
 import { notFoundError, badRequestError, serverError } from '../../middleware/errorHandler.js';
 import { decryptSensitiveData, getEncryptionSecret } from '../../utils/crypto.js';
-import { buildStudentReadingProfile, toAISafeProfile } from '../../utils/studentProfile.js';
+import {
+  buildStudentReadingProfile,
+  toAISafeProfile,
+  yearGroupToAgeBand,
+} from '../../utils/studentProfile.js';
 import { getCachedRecommendations, cacheRecommendations } from '../../utils/recommendationCache.js';
 import { parseGenreIds } from '../../utils/helpers.js';
 import { requireReadonly } from '../../middleware/tenant.js';
@@ -321,7 +325,10 @@ recommendationsRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
       throw notFoundError(`Student with ID ${studentId} not found`);
     }
 
-    // Build cache inputs from profile
+    // Build cache inputs from profile. The age band (derived from year group)
+    // is part of the key — otherwise two students with the same reading level
+    // but different ages could share a cached, age-inappropriate result.
+    const ageBand = yearGroupToAgeBand(profile.student.yearGroup);
     const cacheInputs = {
       organizationId,
       readingLevelMin: profile.student.readingLevelMin,
@@ -329,6 +336,7 @@ recommendationsRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
       genres: profile.preferences.favoriteGenreNames,
       focusMode,
       recentBookIds: profile.readBookIds || [],
+      ageBand: ageBand ? `${ageBand.min}-${ageBand.max}` : '',
       provider: null, // set after we know which provider
     };
 
