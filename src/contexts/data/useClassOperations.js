@@ -71,7 +71,11 @@ export function useClassOperations(fetchWithAuth, setClasses, setStudents, setGe
         }
 
         const savedClass = await response.json();
-        setClasses((prev) => prev.map((c) => (c.id === id ? savedClass : c)));
+        // Merge, don't replace: these class endpoints return a bare rowToClass()
+        // without the derived join fields (teacherNames, studentCount) that the
+        // list endpoint attaches. A wholesale replace drops the teacher names and
+        // student-count chip from the row until the next full reload.
+        setClasses((prev) => prev.map((c) => (c.id === id ? { ...c, ...savedClass } : c)));
         setApiError(null);
         return savedClass;
       } catch (error) {
@@ -105,7 +109,11 @@ export function useClassOperations(fetchWithAuth, setClasses, setStudents, setGe
         }
 
         const savedClass = await response.json();
-        setClasses((prev) => prev.map((c) => (c.id === id ? savedClass : c)));
+        // Merge, don't replace: these class endpoints return a bare rowToClass()
+        // without the derived join fields (teacherNames, studentCount) that the
+        // list endpoint attaches. A wholesale replace drops the teacher names and
+        // student-count chip from the row until the next full reload.
+        setClasses((prev) => prev.map((c) => (c.id === id ? { ...c, ...savedClass } : c)));
         setApiError(null);
         return savedClass;
       } catch (error) {

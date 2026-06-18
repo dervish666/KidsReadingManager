@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.105.1] - 2026-06-18
+
+### Fixed
+
+- **Setting a class's year group no longer wipes the teacher name (and student-count chip) from the row.** The Manage Classes list shows two fields the database doesn't store directly — `teacherNames` (joined from `wonde_employee_classes`) and `studentCount` (a `COUNT()` subquery) — which only the list endpoint (`GET /api/classes`) computes. The focused write endpoints (`PUT /:id/year-group` and `PUT /:id`) return a bare class row without them, and the client was _replacing_ the whole class object with that response, so choosing a Year (or toggling Active / editing a class) dropped the teacher name until a full page reload. The client now merges the saved fields over the existing row instead of replacing it, preserving the derived join fields. Client-only change — no migration; existing rows recover on reload.
+
 ## [3.105.0] - 2026-06-13
 
 ### Added
