@@ -6,13 +6,11 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import StorageIcon from '@mui/icons-material/Storage';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import PeopleIcon from '@mui/icons-material/People';
 import SchoolIcon from '@mui/icons-material/School';
 import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 import PaymentIcon from '@mui/icons-material/Payment';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
-import TuneIcon from '@mui/icons-material/Tune';
 import Settings from './Settings';
 import DataManagement from './DataManagement';
 import AISettings from './AISettings';
@@ -26,6 +24,42 @@ import BillingDashboard from './BillingDashboard';
 import PlatformSettings from './PlatformSettings';
 import SupportModal from './SupportModal';
 import { useAuth } from '../contexts/AuthContext';
+
+// Combined "AI" tab: this school's AI config (all admins), plus the platform-wide
+// fallback keys below it for owners. Replaces the former separate AI Integration +
+// Platform tabs — they were the same domain (AI provider/keys) split across two tabs.
+const AISettingsPanel = () => {
+  const { user } = useAuth();
+  return (
+    <>
+      <AISettings />
+      {user?.role === 'owner' && (
+        <Box sx={{ mt: 3 }}>
+          <PlatformSettings />
+        </Box>
+      )}
+    </>
+  );
+};
+
+// Combined "Book Catalogue" tab: metadata enrichment (admins get the lighter
+// BookMetadataSettings, owners the full MetadataManagement) plus the owner-only
+// duplicate-merge tool below it. Replaces the former separate Book Metadata +
+// Duplicate Books tabs — both are global-catalogue maintenance.
+const BookCataloguePanel = () => {
+  const { user } = useAuth();
+  const isOwner = user?.role === 'owner';
+  return (
+    <>
+      {isOwner ? <MetadataManagement /> : <BookMetadataSettings />}
+      {isOwner && (
+        <Box sx={{ mt: 3 }}>
+          <DuplicateBooks />
+        </Box>
+      )}
+    </>
+  );
+};
 
 const SettingsPage = () => {
   const [currentTab, setCurrentTab] = useState(0);
@@ -44,13 +78,16 @@ const SettingsPage = () => {
     const allTabs = [
       { label: 'Application Settings', icon: <SettingsIcon />, component: Settings },
       { label: 'Data Management', icon: <StorageIcon />, component: DataManagement },
-      { label: 'AI Integration', icon: <SmartToyIcon />, component: AISettings },
+      // AISettingsPanel adds the owner-only platform keys section internally.
+      { label: 'AI', icon: <SmartToyIcon />, component: AISettingsPanel },
     ];
     if (canManageUsers) {
+      // BookCataloguePanel picks the owner/admin metadata variant and adds the
+      // owner-only duplicate-merge tool internally.
       allTabs.push({
-        label: 'Book Metadata',
+        label: 'Book Catalogue',
         icon: <MenuBookIcon />,
-        component: isOwner ? MetadataManagement : BookMetadataSettings,
+        component: BookCataloguePanel,
       });
       allTabs.push({
         label: 'User Management',
@@ -59,16 +96,6 @@ const SettingsPage = () => {
       });
     }
     if (isOwner) {
-      allTabs.push({
-        label: 'Duplicate Books',
-        icon: <ContentCopyIcon />,
-        component: DuplicateBooks,
-      });
-      allTabs.push({
-        label: 'Platform',
-        icon: <TuneIcon />,
-        component: PlatformSettings,
-      });
       allTabs.push({
         label: 'School Management',
         icon: <SchoolIcon />,

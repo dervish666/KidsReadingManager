@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.105.2] - 2026-06-18
+
+### Changed
+
+- **Settings tabs consolidated by domain — owners drop from 10 tabs to 8.** Two pairs of tabs that covered the same area were merged: the separate **AI Integration** + **Platform** tabs are now one **AI** tab (this school's AI config for all admins, with the platform-wide fallback keys stacked below for owners), and the separate **Book Metadata** + **Duplicate Books** tabs are now one **Book Catalogue** tab (metadata enrichment plus the owner-only duplicate-merge tool). Nothing was removed — every screen is still reachable, just grouped more sensibly. Admins still see the same five tabs; the role gating is unchanged (the whole Settings area remains owner/admin only). Pure front-end reorganisation, no API or schema changes.
+
 ## [3.105.1] - 2026-06-18
 
 ### Fixed
