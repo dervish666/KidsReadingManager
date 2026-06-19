@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.105.3] - 2026-06-19
+
+### Changed
+
+- **Settings split into two clear areas: "School Settings" and "Platform".** Owners now get a School ⇄ Platform toggle at the top of the Settings page — **School Settings** holds everything scoped to the active school (Application Settings, Data Management, AI, Book Metadata, User Management) and **Platform** holds the cross-school operator tools (Schools, Book Catalogue, AI Keys, Billing, Support Tickets). Admins only ever see the five School tabs and no toggle. This finishes the consolidation begun in 3.105.2: per-school AI config (`/api/settings/ai`) lives under School while the platform-wide provider keys moved to Platform → AI Keys; the org-scoped Book Metadata enrichment view stays under School while the cross-school catalogue management (all-schools metadata + duplicate merge) moved to Platform → Book Catalogue. No screens were removed and no backend/route/schema changes — a pure front-end reorganisation. The whole Settings area remains owner/admin only.
+
 ## [3.105.2] - 2026-06-18
 
 ### Changed

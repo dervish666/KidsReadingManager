@@ -1,5 +1,16 @@
-import React, { useState, useMemo } from 'react';
-import { Box, Typography, Paper, Tabs, Tab, Chip, Link, Button } from '@mui/material';
+import React, { useState } from 'react';
+import {
+  Box,
+  Typography,
+  Paper,
+  Tabs,
+  Tab,
+  Chip,
+  Link,
+  Button,
+  ToggleButton,
+  ToggleButtonGroup,
+} from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import PolicyIcon from '@mui/icons-material/Policy';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -11,6 +22,8 @@ import SchoolIcon from '@mui/icons-material/School';
 import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 import PaymentIcon from '@mui/icons-material/Payment';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import VpnKeyIcon from '@mui/icons-material/VpnKey';
+import TuneIcon from '@mui/icons-material/Tune';
 import Settings from './Settings';
 import DataManagement from './DataManagement';
 import AISettings from './AISettings';
@@ -25,91 +38,62 @@ import PlatformSettings from './PlatformSettings';
 import SupportModal from './SupportModal';
 import { useAuth } from '../contexts/AuthContext';
 
-// Combined "AI" tab: this school's AI config (all admins), plus the platform-wide
-// fallback keys below it for owners. Replaces the former separate AI Integration +
-// Platform tabs — they were the same domain (AI provider/keys) split across two tabs.
-const AISettingsPanel = () => {
-  const { user } = useAuth();
-  return (
-    <>
-      <AISettings />
-      {user?.role === 'owner' && (
-        <Box sx={{ mt: 3 }}>
-          <PlatformSettings />
-        </Box>
-      )}
-    </>
-  );
-};
+// Owner Platform area → "Book Catalogue" tab: the cross-school catalogue tools.
+// MetadataManagement operates across all schools (selectable), and DuplicateBooks
+// dedupes the global catalogue — both are owner-only, so this panel renders inside
+// the owner-only Platform area without further role checks.
+const PlatformCataloguePanel = () => (
+  <>
+    <MetadataManagement />
+    <Box sx={{ mt: 3 }}>
+      <DuplicateBooks />
+    </Box>
+  </>
+);
 
-// Combined "Book Catalogue" tab: metadata enrichment (admins get the lighter
-// BookMetadataSettings, owners the full MetadataManagement) plus the owner-only
-// duplicate-merge tool below it. Replaces the former separate Book Metadata +
-// Duplicate Books tabs — both are global-catalogue maintenance.
-const BookCataloguePanel = () => {
-  const { user } = useAuth();
-  const isOwner = user?.role === 'owner';
-  return (
-    <>
-      {isOwner ? <MetadataManagement /> : <BookMetadataSettings />}
-      {isOwner && (
-        <Box sx={{ mt: 3 }}>
-          <DuplicateBooks />
-        </Box>
-      )}
-    </>
-  );
-};
+// School area (admin + owner): everything scoped to the active school.
+const SCHOOL_TABS = [
+  { label: 'Application Settings', icon: <SettingsIcon />, component: Settings },
+  { label: 'Data Management', icon: <StorageIcon />, component: DataManagement },
+  { label: 'AI', icon: <SmartToyIcon />, component: AISettings },
+  { label: 'Book Metadata', icon: <MenuBookIcon />, component: BookMetadataSettings },
+  { label: 'User Management', icon: <PeopleIcon />, component: UserManagement },
+];
+
+// Platform area (owner only): cross-school / business operations.
+const PLATFORM_TABS = [
+  { label: 'Schools', icon: <SchoolIcon />, component: SchoolManagement },
+  { label: 'Book Catalogue', icon: <MenuBookIcon />, component: PlatformCataloguePanel },
+  { label: 'AI Keys', icon: <VpnKeyIcon />, component: PlatformSettings },
+  { label: 'Billing', icon: <PaymentIcon />, component: BillingDashboard },
+  { label: 'Support Tickets', icon: <SupportAgentIcon />, component: SupportTicketManager },
+];
 
 const SettingsPage = () => {
   const [currentTab, setCurrentTab] = useState(0);
-  const { canManageUsers, user } = useAuth();
+  const { user } = useAuth();
 
-  // Only owners can manage schools
+  // Only owners get the Platform area (cross-school operator tools). The Settings
+  // page itself is admin+owner only (gated by `adminOnly` in App.js nav).
   const isOwner = user?.role === 'owner';
+  const [area, setArea] = useState('school'); // 'school' | 'platform'
   const [supportOpen, setSupportOpen] = useState(false);
 
   const handleTabChange = (event, newValue) => {
     setCurrentTab(newValue);
   };
 
-  // Build tab configuration dynamically based on permissions
-  const tabs = useMemo(() => {
-    const allTabs = [
-      { label: 'Application Settings', icon: <SettingsIcon />, component: Settings },
-      { label: 'Data Management', icon: <StorageIcon />, component: DataManagement },
-      // AISettingsPanel adds the owner-only platform keys section internally.
-      { label: 'AI', icon: <SmartToyIcon />, component: AISettingsPanel },
-    ];
-    if (canManageUsers) {
-      // BookCataloguePanel picks the owner/admin metadata variant and adds the
-      // owner-only duplicate-merge tool internally.
-      allTabs.push({
-        label: 'Book Catalogue',
-        icon: <MenuBookIcon />,
-        component: BookCataloguePanel,
-      });
-      allTabs.push({
-        label: 'User Management',
-        icon: <PeopleIcon />,
-        component: UserManagement,
-      });
+  const handleAreaChange = (event, newArea) => {
+    // ToggleButtonGroup fires null when the active button is re-clicked — ignore.
+    if (newArea && newArea !== area) {
+      setArea(newArea);
+      setCurrentTab(0);
     }
-    if (isOwner) {
-      allTabs.push({
-        label: 'School Management',
-        icon: <SchoolIcon />,
-        component: SchoolManagement,
-      });
-      allTabs.push({ label: 'Billing', icon: <PaymentIcon />, component: BillingDashboard });
-      allTabs.push({
-        label: 'Support Tickets',
-        icon: <SupportAgentIcon />,
-        component: SupportTicketManager,
-      });
-    }
-    return allTabs;
-  }, [canManageUsers, isOwner]);
+  };
+
+  const tabs = isOwner && area === 'platform' ? PLATFORM_TABS : SCHOOL_TABS;
+  // Guard against a stale index if the active tab set ever shrinks.
+  const safeTab = currentTab >= tabs.length ? 0 : currentTab;
 
   return (
     <Box>
@@ -141,6 +125,38 @@ const SettingsPage = () => {
       </Box>
 
       <Box>
+        {/* Owner-only School ↔ Platform switch. School = this school's settings
+            (admin + owner); Platform = cross-school operator tools (owner only). */}
+        {isOwner && (
+          <ToggleButtonGroup
+            value={area}
+            exclusive
+            onChange={handleAreaChange}
+            color="primary"
+            sx={{
+              mb: 2,
+              '& .MuiToggleButton-root': {
+                fontFamily: '"Nunito", sans-serif',
+                fontWeight: 700,
+                textTransform: 'none',
+                px: 3,
+                py: 1,
+                borderRadius: 3,
+              },
+            }}
+            aria-label="Settings area"
+          >
+            <ToggleButton value="school">
+              <SchoolIcon sx={{ mr: 1, fontSize: 20 }} />
+              School Settings
+            </ToggleButton>
+            <ToggleButton value="platform">
+              <TuneIcon sx={{ mr: 1, fontSize: 20 }} />
+              Platform
+            </ToggleButton>
+          </ToggleButtonGroup>
+        )}
+
         <Paper
           sx={{
             mb: 3,
@@ -150,7 +166,7 @@ const SettingsPage = () => {
           }}
         >
           <Tabs
-            value={currentTab}
+            value={safeTab}
             onChange={handleTabChange}
             variant="scrollable"
             scrollButtons="auto"
@@ -175,7 +191,7 @@ const SettingsPage = () => {
         </Paper>
 
         <Box sx={{ p: 0 }}>
-          {tabs[currentTab]?.component && React.createElement(tabs[currentTab].component)}
+          {tabs[safeTab]?.component && React.createElement(tabs[safeTab].component)}
         </Box>
       </Box>
 
