@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.105.4] - 2026-06-22
+
+### Fixed
+
+- **Stripe webhooks no longer 500 on the new subscription schema.** Stripe API version `2025-03-31` (basil) moved `current_period_end` off the subscription object and onto each subscription _item_. The `customer.subscription.created`/`.updated` handler read it only from the top level, so on a basil-or-later payload `new Date(undefined * 1000).toISOString()` threw — returning 500 and forcing Stripe to retry indefinitely. The effect: `ai_addon_active` (only ever set by this webhook) never applied, `current_period_end` never stored, and continuous delivery failures risked Stripe auto-disabling the endpoint (which would then break `past_due` read-only gating). The handler now reads the period end from whichever location the payload provides, falling back to `null` with an error log (never a throw) if it's absent. No schema change. Added integration tests covering the basil item-level payload and the missing-period-end path.
+
 ## [3.105.3] - 2026-06-19
 
 ### Changed

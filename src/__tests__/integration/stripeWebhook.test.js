@@ -171,6 +171,79 @@ describe('POST /api/webhooks/stripe - processed flag', () => {
     expect(processedUpdates.length).toBe(1);
   });
 
+  it('basil schema: current_period_end on the subscription item (not top-level) is read, returns 200', async () => {
+    // Stripe API 2025-03-31 (basil) moved current_period_end off the subscription
+    // and onto each item. The old code read obj.current_period_end (undefined here)
+    // → new Date(NaN).toISOString() → 500. The fix falls back to the item.
+    const periodEnd = Math.floor(Date.now() / 1000) + 86400;
+    const event = {
+      id: 'evt_test_basil',
+      type: 'customer.subscription.updated',
+      data: {
+        object: {
+          customer: 'cus_abc',
+          id: 'sub_abc',
+          status: 'active',
+          // no top-level current_period_end — basil payload
+          items: { data: [{ current_period_end: periodEnd, price: { id: 'price_x' } }] },
+        },
+      },
+    };
+
+    const mockDB = createMockDB((sql) => {
+      if (sql.includes('FROM organizations WHERE stripe_customer_id')) return { id: 'org-1' };
+      if (sql.includes('FROM billing_events WHERE stripe_event_id')) return null;
+      return null;
+    });
+
+    const app = createTestApp(mockDB, { eventPayload: event });
+    const response = await postWebhook(app);
+
+    expect(response.status).toBe(200);
+
+    // The org UPDATE must have fired with a non-null ISO period end (3rd bound param).
+    const orgUpdate = mockDB._runCalls.find((c) =>
+      c.sql.includes('UPDATE organizations SET stripe_subscription_id')
+    );
+    expect(orgUpdate).toBeDefined();
+    expect(orgUpdate.args[2]).toBe(new Date(periodEnd * 1000).toISOString());
+
+    // No error logged for the missing-period-end path.
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  it('no period end anywhere: stores null and logs (does not throw), returns 200', async () => {
+    const event = {
+      id: 'evt_test_noperiod',
+      type: 'customer.subscription.updated',
+      data: {
+        object: {
+          customer: 'cus_abc',
+          id: 'sub_abc',
+          status: 'active',
+          items: { data: [] },
+        },
+      },
+    };
+
+    const mockDB = createMockDB((sql) => {
+      if (sql.includes('FROM organizations WHERE stripe_customer_id')) return { id: 'org-1' };
+      if (sql.includes('FROM billing_events WHERE stripe_event_id')) return null;
+      return null;
+    });
+
+    const app = createTestApp(mockDB, { eventPayload: event });
+    const response = await postWebhook(app);
+
+    expect(response.status).toBe(200);
+
+    const orgUpdate = mockDB._runCalls.find((c) =>
+      c.sql.includes('UPDATE organizations SET stripe_subscription_id')
+    );
+    expect(orgUpdate.args[2]).toBe(null);
+    expect(consoleErrorSpy).toHaveBeenCalled();
+  });
+
   it('failure path: state mutation throws → processed stays 0, returns 500', async () => {
     const event = {
       id: 'evt_test_2',

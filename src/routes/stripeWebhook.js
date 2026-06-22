@@ -111,6 +111,20 @@ stripeWebhookRouter.post('/', async (c) => {
         // Check if AI add-on is present
         const aiAddon = hasAiAddon(obj, c.env);
 
+        // current_period_end lived on the subscription until Stripe API
+        // 2025-03-31 (basil), which moved it onto each subscription item.
+        // Read whichever the webhook payload provides so we don't depend on
+        // the endpoint's pinned API version.
+        const periodEndUnix =
+          obj.current_period_end ?? obj.items?.data?.[0]?.current_period_end ?? null;
+        if (periodEndUnix == null) {
+          // Surface (don't swallow) — a created/updated subscription with no
+          // period end anywhere means an unexpected payload shape worth ops eyes.
+          console.error(
+            `[Stripe Webhook] No current_period_end on ${event.type} for subscription ${obj.id} (event ${event.id})`
+          );
+        }
+
         const updates = [
           'stripe_subscription_id = ?',
           'subscription_status = ?',
@@ -121,7 +135,7 @@ stripeWebhookRouter.post('/', async (c) => {
         const params = [
           obj.id,
           normalizeSubscriptionStatus(obj.status),
-          new Date(obj.current_period_end * 1000).toISOString(),
+          periodEndUnix ? new Date(periodEndUnix * 1000).toISOString() : null,
           obj.trial_end ? new Date(obj.trial_end * 1000).toISOString() : null,
           aiAddon ? 1 : 0,
         ];
