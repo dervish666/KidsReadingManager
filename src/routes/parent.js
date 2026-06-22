@@ -59,13 +59,13 @@ export function enrichEarnedBadges(rows) {
  * marker = parent_last_seen_band (NULL until first view); current = child's band.
  * Returns { bandUp, newSeen } — newSeen is the value to persist (never decreases).
  */
-export function decideParentBandCelebration(marker, currentBand, palette) {
+export function decideParentBandCelebration(marker, currentBand, bands) {
   const current = currentBand || 0;
   if (marker === null || marker === undefined) {
     return { bandUp: null, newSeen: current }; // first view: adopt silently
   }
   if (current > marker) {
-    return { bandUp: bandTransition(marker, current, palette), newSeen: current };
+    return { bandUp: bandTransition(marker, current, bands), newSeen: current };
   }
   return { bandUp: null, newSeen: marker };
 }
@@ -222,7 +222,7 @@ parentRouter.get('/:token', rateLimit(60, 60000, 'parent:view'), async (c) => {
 
   // Reading band: lazily reset for the academic year, then decide whether to
   // celebrate a climb the parent hasn't seen yet (e.g. a teacher's logs).
-  const { readsPerBand, bandColors } = await getOrgBandSettings(db, organizationId, c.env || {});
+  const { readsPerBand, bands } = await getOrgBandSettings(db, organizationId, c.env || {});
   const { currentBand, bandReadsCount } = await ensureCurrentBand(
     db,
     student,
@@ -232,7 +232,7 @@ parentRouter.get('/:token', rateLimit(60, 60000, 'parent:view'), async (c) => {
   const { bandUp, newSeen } = decideParentBandCelebration(
     tokenRow.parent_last_seen_band,
     currentBand,
-    bandColors
+    bands
   );
   if (newSeen !== tokenRow.parent_last_seen_band) {
     await db
@@ -240,7 +240,7 @@ parentRouter.get('/:token', rateLimit(60, 60000, 'parent:view'), async (c) => {
       .bind(newSeen, tokenRow.token_id)
       .run();
   }
-  const band = bandForCount(bandReadsCount, readsPerBand, bandColors);
+  const band = bandForCount(bandReadsCount, readsPerBand, bands);
 
   c.header('Cache-Control', 'no-store');
   return c.json({
@@ -252,7 +252,7 @@ parentRouter.get('/:token', rateLimit(60, 60000, 'parent:view'), async (c) => {
     badges,
     band,
     bandUp,
-    bandColors,
+    bands,
   });
 });
 

@@ -16,6 +16,8 @@ import {
   MenuItem,
   CircularProgress,
   Checkbox,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import RestoreIcon from '@mui/icons-material/Restore';
@@ -23,10 +25,12 @@ import WhatshotIcon from '@mui/icons-material/Whatshot';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import ChecklistIcon from '@mui/icons-material/Checklist';
+import AddIcon from '@mui/icons-material/Add';
+import CloseIcon from '@mui/icons-material/Close';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import ClassManager from './classes/ClassManager'; // Import ClassManager
-import { DEFAULT_BAND_COLORS, READING_BAND_LADDER } from '../utils/readingBandDefinitions';
+import { DEFAULT_BANDS, MIN_BANDS, MAX_BANDS } from '../utils/readingBandDefinitions';
 import {
   resolveObservationConfig,
   DEFAULT_OBSERVATION_CONFIG,
@@ -63,7 +67,7 @@ const Settings = () => {
     needsAttentionDays: readingStatusSettings.needsAttentionDays,
     streakGracePeriodDays: settings?.streakGracePeriodDays ?? 1,
     readsPerBand: settings?.readsPerBand ?? 20,
-    bandColors: settings?.bandColors ?? DEFAULT_BAND_COLORS,
+    bands: settings?.bands ?? DEFAULT_BANDS,
     readingObservations: resolveObservationConfig(settings?.readingObservations),
   });
 
@@ -131,7 +135,11 @@ const Settings = () => {
         },
         streakGracePeriodDays: localSettings.streakGracePeriodDays,
         readsPerBand: localSettings.readsPerBand,
-        bandColors: localSettings.bandColors,
+        // Backfill blank names so the saved ladder always has a label per band.
+        bands: (localSettings.bands || DEFAULT_BANDS).map((b, i) => ({
+          name: (b.name || '').trim() || `Band ${i + 1}`,
+          color: b.color,
+        })),
         readingObservations: localSettings.readingObservations,
       });
       setSnackbar({
@@ -157,7 +165,7 @@ const Settings = () => {
       needsAttentionDays: readingStatusSettings.needsAttentionDays,
       streakGracePeriodDays: settings?.streakGracePeriodDays ?? 1,
       readsPerBand: settings?.readsPerBand ?? 20,
-      bandColors: settings?.bandColors ?? DEFAULT_BAND_COLORS,
+      bands: settings?.bands ?? DEFAULT_BANDS,
       readingObservations: resolveObservationConfig(settings?.readingObservations),
     });
     setSnackbar({
@@ -462,48 +470,114 @@ const Settings = () => {
               sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}
             >
               <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                Band colours
+                Bands
               </Typography>
               <Button
                 size="small"
                 onClick={() =>
-                  setLocalSettings((s) => ({ ...s, bandColors: [...DEFAULT_BAND_COLORS] }))
+                  setLocalSettings((s) => ({ ...s, bands: DEFAULT_BANDS.map((b) => ({ ...b })) }))
                 }
               >
                 Reset to defaults
               </Button>
             </Box>
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1.5 }}>
-              {READING_BAND_LADDER.map((band, i) => (
-                <Box
-                  key={band.index}
-                  sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}
-                >
-                  <input
-                    type="color"
-                    aria-label={`${band.name} band colour`}
-                    value={(localSettings.bandColors || DEFAULT_BAND_COLORS)[i]}
-                    onChange={(e) =>
-                      setLocalSettings((s) => {
-                        const next = [...(s.bandColors || DEFAULT_BAND_COLORS)];
-                        next[i] = e.target.value;
-                        return { ...s, bandColors: next };
-                      })
-                    }
-                    style={{
-                      width: 40,
-                      height: 28,
-                      border: 'none',
-                      background: 'none',
-                      cursor: 'pointer',
-                    }}
-                  />
-                  <Typography variant="caption" color="text.secondary">
-                    {band.name}
-                  </Typography>
-                </Box>
-              ))}
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+              Name and colour each band, lowest first. Add or remove bands to set how many rungs the
+              ladder has ({MIN_BANDS}–{MAX_BANDS}). Reducing the number of bands caps any child
+              already above the new top at the highest band.
+            </Typography>
+
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {(localSettings.bands || DEFAULT_BANDS).map((band, i) => {
+                const list = localSettings.bands || DEFAULT_BANDS;
+                return (
+                  <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ width: 22, textAlign: 'right', flexShrink: 0 }}
+                    >
+                      {i + 1}
+                    </Typography>
+                    <input
+                      type="color"
+                      aria-label={`Band ${i + 1} colour`}
+                      value={band.color}
+                      onChange={(e) =>
+                        setLocalSettings((s) => {
+                          const next = (s.bands || DEFAULT_BANDS).map((b) => ({ ...b }));
+                          next[i] = { ...next[i], color: e.target.value };
+                          return { ...s, bands: next };
+                        })
+                      }
+                      style={{
+                        width: 40,
+                        height: 32,
+                        border: 'none',
+                        background: 'none',
+                        cursor: 'pointer',
+                        flexShrink: 0,
+                      }}
+                    />
+                    <TextField
+                      size="small"
+                      fullWidth
+                      placeholder={`Band ${i + 1}`}
+                      value={band.name}
+                      inputProps={{ maxLength: 30, 'aria-label': `Band ${i + 1} name` }}
+                      onChange={(e) =>
+                        setLocalSettings((s) => {
+                          const next = (s.bands || DEFAULT_BANDS).map((b) => ({ ...b }));
+                          next[i] = { ...next[i], name: e.target.value };
+                          return { ...s, bands: next };
+                        })
+                      }
+                    />
+                    <Tooltip
+                      title={
+                        list.length <= MIN_BANDS
+                          ? `At least ${MIN_BANDS} bands are required`
+                          : 'Remove band'
+                      }
+                    >
+                      <span>
+                        <IconButton
+                          size="small"
+                          aria-label={`Remove band ${i + 1}`}
+                          disabled={list.length <= MIN_BANDS}
+                          onClick={() =>
+                            setLocalSettings((s) => {
+                              const cur = s.bands || DEFAULT_BANDS;
+                              if (cur.length <= MIN_BANDS) return s;
+                              return { ...s, bands: cur.filter((_, j) => j !== i) };
+                            })
+                          }
+                        >
+                          <CloseIcon fontSize="small" />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                  </Box>
+                );
+              })}
             </Box>
+
+            <Button
+              size="small"
+              startIcon={<AddIcon />}
+              sx={{ mt: 1 }}
+              disabled={(localSettings.bands || DEFAULT_BANDS).length >= MAX_BANDS}
+              onClick={() =>
+                setLocalSettings((s) => {
+                  const cur = (s.bands || DEFAULT_BANDS).map((b) => ({ ...b }));
+                  if (cur.length >= MAX_BANDS) return s;
+                  const seed = DEFAULT_BANDS[cur.length] || { name: '', color: '#9AA0A6' };
+                  return { ...s, bands: [...cur, { name: seed.name, color: seed.color }] };
+                })
+              }
+            >
+              Add band
+            </Button>
           </Box>
         </Box>
 

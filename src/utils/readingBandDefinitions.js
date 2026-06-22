@@ -1,7 +1,10 @@
 /**
  * Reading Band ladder — a gamified VOLUME rank (not a difficulty level).
  * A child climbs one band per `readsPerBand` reads logged in the academic year.
- * Fixed in v1; only the reads-per-band threshold is configurable per school.
+ * The ladder below is the DEFAULT; schools may customise each band's name and
+ * colour and the total number of bands (3–20) via Settings — stored per-org as
+ * the `bands` setting (an array of { name, color }). The threshold
+ * (`readsPerBand`) is also per-school.
  */
 
 export const READING_BAND_LADDER = [
@@ -23,10 +26,20 @@ export const READING_BAND_LADDER = [
   { index: 15, name: 'Free Reader', color: '#6B4FA0', textColor: '#FFFFFF' },
 ];
 
+// Default band count. Per-org `bands` may differ; treat this only as the
+// fallback ladder length, never as a fixed cap on a school's configured count.
 export const READING_BAND_COUNT = READING_BAND_LADDER.length;
 export const DEFAULT_READS_PER_BAND = 20;
 
+// Bounds on a school's configurable band count.
+export const MIN_BANDS = 3;
+export const MAX_BANDS = 20;
+
 export const DEFAULT_BAND_COLORS = READING_BAND_LADDER.map((b) => b.color);
+
+// Default per-org band list: { name, color } per rung. The canonical shape that
+// flows through the engine and display layer once names are customisable.
+export const DEFAULT_BANDS = READING_BAND_LADDER.map((b) => ({ name: b.name, color: b.color }));
 
 const DARK_TEXT = '#3A352E';
 const LIGHT_TEXT = '#FFFFFF';
@@ -64,10 +77,41 @@ export function pickTextColor(hex) {
   return contrastRatio(bg, lightL) >= contrastRatio(bg, darkL) ? LIGHT_TEXT : DARK_TEXT;
 }
 
-export const getBandByIndex = (i, palette) => {
-  const clamped = Math.max(0, Math.min(Number(i) || 0, READING_BAND_COUNT - 1));
-  const base = READING_BAND_LADDER[clamped];
-  const override = Array.isArray(palette) ? palette[clamped] : null;
-  const color = HEX6.test(String(override || '')) ? override : base.color;
-  return { index: base.index, name: base.name, color, textColor: pickTextColor(color) };
+/**
+ * Normalise a stored/incoming band list to canonical { name, color } entries.
+ * Accepts the new object form or a legacy colour-string array (names then come
+ * from the default ladder). Returns DEFAULT_BANDS when given nothing usable.
+ */
+export const resolveBands = (bands) => {
+  if (!Array.isArray(bands) || bands.length === 0) return DEFAULT_BANDS;
+  return bands.map((entry, i) => {
+    const fallback = READING_BAND_LADDER[Math.min(i, READING_BAND_LADDER.length - 1)];
+    const isObj = entry && typeof entry === 'object';
+    const rawColor = isObj ? entry.color : entry; // legacy: bare colour string
+    const rawName = isObj ? entry.name : null;
+    const color = HEX6.test(String(rawColor || '')) ? rawColor : fallback.color;
+    const name = typeof rawName === 'string' && rawName.trim() ? rawName.trim() : fallback.name;
+    return { name, color };
+  });
+};
+
+/** Number of bands in a resolved/raw list, falling back to the ladder length. */
+export const bandCountOf = (bands) =>
+  Array.isArray(bands) && bands.length ? bands.length : READING_BAND_COUNT;
+
+/**
+ * Resolve a single band by index against a band list (new { name, color } form
+ * or legacy colour-string array). Clamps the index to the list's own length, so
+ * a child whose stored band exceeds a now-shorter list shows the top band.
+ */
+export const getBandByIndex = (i, bands) => {
+  const list = resolveBands(bands);
+  const clamped = Math.max(0, Math.min(Number(i) || 0, list.length - 1));
+  const entry = list[clamped];
+  return {
+    index: clamped,
+    name: entry.name,
+    color: entry.color,
+    textColor: pickTextColor(entry.color),
+  };
 };

@@ -141,7 +141,7 @@ const StudentReadView = ({ student, sessions }) => {
             <ReadingBandProgress
               readsCount={student.bandReadsCount || 0}
               readsPerBand={settings?.readsPerBand ?? 20}
-              palette={settings?.bandColors}
+              bands={settings?.bands}
             />
           </Box>
         </Box>

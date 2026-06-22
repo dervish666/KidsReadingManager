@@ -12,11 +12,11 @@ import { getBandByIndex } from '../../utils/readingBandDefinitions';
 
 /**
  * Collapsible Reading Bands card. Minimised by default — shows a compact
- * stacked bar + totals — and expands to a vertical list of the full 16-band
- * ladder with per-band counts. Bands use the recognisable UK book-band colours
- * (overridable via the school's `palette`).
+ * stacked bar + totals — and expands to a vertical list of the school's band
+ * ladder with per-band counts. Bands default to the recognisable UK book-band
+ * names/colours but are customisable per school (passed in as `bands`).
  */
-function ReadingBandsCard({ distribution = [], palette }) {
+function ReadingBandsCard({ distribution = [], bands }) {
   const [expanded, setExpanded] = useState(false);
   const total = distribution.reduce((sum, c) => sum + c, 0);
   const maxCount = Math.max(...distribution, 1);
@@ -62,7 +62,7 @@ function ReadingBandsCard({ distribution = [], palette }) {
           >
             {distribution.map((count, i) => {
               if (count === 0) return null;
-              const band = getBandByIndex(i, palette);
+              const band = getBandByIndex(i, bands);
               return <Box key={i} sx={{ flexGrow: count, bgcolor: band.color, minWidth: 2 }} />;
             })}
           </Box>
@@ -76,7 +76,7 @@ function ReadingBandsCard({ distribution = [], palette }) {
       <Collapse in={expanded} timeout="auto" unmountOnExit>
         <CardContent sx={{ pt: 0, pb: 2 }}>
           {distribution.map((count, i) => {
-            const band = getBandByIndex(i, palette);
+            const band = getBandByIndex(i, bands);
             const pct = Math.round((count / maxCount) * 100);
             return (
               <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.4 }}>
@@ -146,7 +146,7 @@ export default function OverviewTab({
   stats,
   enrichedTopStreaks,
   bandDistribution = [],
-  bandColors,
+  bands,
   onNavigate,
 }) {
   return (
@@ -277,7 +277,7 @@ export default function OverviewTab({
         </Card>
 
         {/* Reading Bands distribution (collapsible) */}
-        <ReadingBandsCard distribution={bandDistribution} palette={bandColors} />
+        <ReadingBandsCard distribution={bandDistribution} bands={bands} />
 
         {/* Reading by Day of Week */}
         <Card sx={{ borderRadius: 3, boxShadow: '4px 4px 12px rgba(139, 115, 85, 0.08)' }}>

@@ -448,10 +448,7 @@ const StudentTable = React.memo(({ students }) => {
                     />
                   </TableCell>
                   <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
-                    <ReadingBandChip
-                      bandIndex={student.currentBand || 0}
-                      palette={settings?.bandColors}
-                    />
+                    <ReadingBandChip bandIndex={student.currentBand || 0} bands={settings?.bands} />
                   </TableCell>
                   <TableCell sx={{ p: 0, width: 40, textAlign: 'center' }}>
                     {(() => {

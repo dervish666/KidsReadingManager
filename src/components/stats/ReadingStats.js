@@ -204,14 +204,15 @@ const ReadingStats = () => {
 
   // Count students in each reading band (volume rank), respecting the class
   // filter. Bands are a year-long rank, so this isn't term-scoped.
+  const bandCount = settings?.bands?.length || READING_BAND_COUNT;
   const bandDistribution = useMemo(() => {
-    const counts = new Array(READING_BAND_COUNT).fill(0);
+    const counts = new Array(bandCount).fill(0);
     for (const s of activeStudents) {
-      const idx = Math.max(0, Math.min(s.currentBand || 0, READING_BAND_COUNT - 1));
+      const idx = Math.max(0, Math.min(s.currentBand || 0, bandCount - 1));
       counts[idx]++;
     }
     return counts;
-  }, [activeStudents]);
+  }, [activeStudents, bandCount]);
 
   // Get students sorted by session count (least to most)
   const getStudentsBySessionCount = () => {
@@ -374,7 +375,7 @@ const ReadingStats = () => {
                 stats={stats}
                 enrichedTopStreaks={enrichedTopStreaks}
                 bandDistribution={bandDistribution}
-                bandColors={settings?.bandColors}
+                bands={settings?.bands}
                 onNavigate={setCurrentTab}
               />
             ))}

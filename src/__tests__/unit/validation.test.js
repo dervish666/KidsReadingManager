@@ -631,13 +631,18 @@ describe('validateBook', () => {
   });
 });
 
-describe('validateSettings bandColors', () => {
+describe('validateSettings bandColors (legacy colour-only palette)', () => {
   const ok = Array.from({ length: 16 }, () => '#AABBCC');
-  it('accepts 16 valid hex colours', () => {
+  it('accepts an in-bounds palette', () => {
     expect(validateSettings({ bandColors: ok }).isValid).toBe(true);
   });
-  it('rejects wrong length', () => {
-    expect(validateSettings({ bandColors: ok.slice(0, 15) }).isValid).toBe(false);
+  it('rejects fewer than the minimum bands', () => {
+    expect(validateSettings({ bandColors: ok.slice(0, 2) }).isValid).toBe(false);
+  });
+  it('rejects more than the maximum bands', () => {
+    expect(
+      validateSettings({ bandColors: Array.from({ length: 21 }, () => '#AABBCC') }).isValid
+    ).toBe(false);
   });
   it('rejects a non-hex entry', () => {
     const bad = [...ok];
@@ -646,6 +651,33 @@ describe('validateSettings bandColors', () => {
   });
   it('rejects a non-array', () => {
     expect(validateSettings({ bandColors: '#AABBCC' }).isValid).toBe(false);
+  });
+});
+
+describe('validateSettings bands (named, variable-length ladder)', () => {
+  const band = (name) => ({ name, color: '#AABBCC' });
+  const okList = ['Bronze', 'Silver', 'Gold', 'Platinum'].map(band);
+
+  it('accepts a valid named band list', () => {
+    expect(validateSettings({ bands: okList }).isValid).toBe(true);
+  });
+  it('rejects fewer than the minimum bands', () => {
+    expect(validateSettings({ bands: [band('A'), band('B')] }).isValid).toBe(false);
+  });
+  it('rejects more than the maximum bands', () => {
+    const tooMany = Array.from({ length: 21 }, (_, i) => band(`B${i}`));
+    expect(validateSettings({ bands: tooMany }).isValid).toBe(false);
+  });
+  it('rejects a band with a blank name', () => {
+    expect(validateSettings({ bands: [band('A'), band('   '), band('C')] }).isValid).toBe(false);
+  });
+  it('rejects a band with a bad colour', () => {
+    expect(
+      validateSettings({ bands: [band('A'), { name: 'B', color: 'red' }, band('C')] }).isValid
+    ).toBe(false);
+  });
+  it('rejects a non-array', () => {
+    expect(validateSettings({ bands: 'nope' }).isValid).toBe(false);
   });
 });
 

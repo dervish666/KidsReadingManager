@@ -531,7 +531,7 @@ files:
         description: Recompute and persist a student's streak from reading sessions
       - name: getOrgBandSettings
         kind: function
-        description: KV-cached (1h) reading band settings (readsPerBand) for an org
+        description: "KV-cached (1h, v2 key) reading band settings for an org: { readsPerBand, bands:[{name,color}] }; resolves new `bands` setting, legacy colour-only `bandColors`, or default ladder"
       - name: updateStudentBand
         kind: function
         description: Recompute and persist a student's reading band; returns bandUp transition when band climbs

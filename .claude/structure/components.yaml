@@ -306,12 +306,12 @@ files:
     exports:
       - name: ReadingBandChip
         kind: component
-        props: [bandIndex, size]
-        description: "Small coloured band chip for cards/tables; size: 'small'|'medium'"
+        props: [bandIndex, size, bands]
+        description: "Small coloured band chip for cards/tables; size: 'small'|'medium'; bands = per-org [{name,color}] list"
       - name: ReadingBandProgress
         kind: component
-        props: [readsCount, readsPerBand]
-        description: Band chip + progress bar + caption for profile/parent surfaces
+        props: [readsCount, readsPerBand, bands]
+        description: Band chip + progress bar + caption for profile/parent surfaces; bands = per-org [{name,color}] list
     imports:
       - from: utils/readingBandDefinitions
         items: [getBandByIndex]

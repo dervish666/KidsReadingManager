@@ -98,7 +98,7 @@ src/utils/helpers.js - ID generation, reading status, student sorting, csvRow, s
 src/utils/calculateAge.js - Age calculation from date of birth
 src/utils/email.js - Password reset/welcome/signup/support emails (multi-provider)
 src/utils/streakCalculator.js - Reading streak calculation with grace period
-src/utils/readingBandDefinitions.js - Reading band ladder (16 colour bands), default reads-per-band, band lookup
+src/utils/readingBandDefinitions.js - Reading band ladder (default 16 bands), per-org customisable names/colours/count (3–20), resolveBands, bandCountOf, band lookup
 src/utils/readingBandEngine.js - Pure reading-band maths: read counting, band index, academic-year start, display payload + transition
 src/utils/readingObservations.js - Per-session reading-observation slots (6 fixed cols) + per-org config resolver (labels/enabled), shared by worker + app
 src/utils/studentProfile.js - Build student reading profile for AI context

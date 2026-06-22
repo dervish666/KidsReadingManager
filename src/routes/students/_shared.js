@@ -19,7 +19,13 @@ import {
   academicYearStart,
   bandTransition,
 } from '../../utils/readingBandEngine.js';
-import { DEFAULT_READS_PER_BAND, DEFAULT_BAND_COLORS } from '../../utils/readingBandDefinitions.js';
+import {
+  DEFAULT_READS_PER_BAND,
+  DEFAULT_BANDS,
+  resolveBands,
+  MIN_BANDS,
+  MAX_BANDS,
+} from '../../utils/readingBandDefinitions.js';
 
 /**
  * Fetch student preferences from the student_preferences table.
@@ -197,13 +203,21 @@ export const updateStudentStreak = async (db, studentId, organizationId, env) =>
   return streakData;
 };
 
+// A band list is usable if it sits within the configurable bounds; out-of-bounds
+// or unparseable values fall back to the default ladder.
+const bandsInBounds = (list) =>
+  Array.isArray(list) && list.length >= MIN_BANDS && list.length <= MAX_BANDS;
+
 /**
- * Reads-per-band threshold and band colour palette for an org. KV-cached (1h),
- * mirroring getOrgStreakSettings — keeps the per-session-write band update off
- * the D1 hot path. Stored as `readsPerBand` and `bandColors` keys in org_settings.
+ * Reads-per-band threshold and the band list ({ name, color }) for an org.
+ * KV-cached (1h), mirroring getOrgStreakSettings — keeps the per-session-write
+ * band update off the D1 hot path. Stored as `readsPerBand` and `bands` keys in
+ * org_settings; honours the legacy colour-only `bands`/`bandColors` form for
+ * schools that customised colours before names/count were configurable.
  */
 export const getOrgBandSettings = async (db, organizationId, env) => {
-  const cacheKey = `org-band-settings:${organizationId}`;
+  // v2 key: the cached shape changed from { bandColors } to { bands }.
+  const cacheKey = `org-band-settings-v2:${organizationId}`;
   const KV = env?.READING_MANAGER_KV;
 
   if (KV) {
@@ -211,8 +225,8 @@ export const getOrgBandSettings = async (db, organizationId, env) => {
       const cached = await KV.get(cacheKey);
       if (cached) {
         const parsedCache = JSON.parse(cached);
-        if (!Array.isArray(parsedCache.bandColors) || parsedCache.bandColors.length !== 16) {
-          parsedCache.bandColors = DEFAULT_BAND_COLORS;
+        if (!bandsInBounds(parsedCache.bands)) {
+          parsedCache.bands = DEFAULT_BANDS;
         }
         return parsedCache;
       }
@@ -221,10 +235,15 @@ export const getOrgBandSettings = async (db, organizationId, env) => {
     }
   }
 
-  const [rpbRes, colorsRes] = await db.batch([
+  const [rpbRes, bandsRes, colorsRes] = await db.batch([
     db
       .prepare(
         `SELECT setting_value FROM org_settings WHERE organization_id = ? AND setting_key = 'readsPerBand'`
+      )
+      .bind(organizationId),
+    db
+      .prepare(
+        `SELECT setting_value FROM org_settings WHERE organization_id = ? AND setting_key = 'bands'`
       )
       .bind(organizationId),
     db
@@ -245,21 +264,22 @@ export const getOrgBandSettings = async (db, organizationId, env) => {
     }
   }
 
-  let bandColors = DEFAULT_BAND_COLORS;
-  const colorsRow = colorsRes?.results?.[0];
-  if (colorsRow?.setting_value) {
+  // Prefer the new `bands` setting; fall back to legacy `bandColors` (colour-only
+  // array — resolveBands zips ladder names); else the default ladder.
+  const readBands = (row) => {
+    if (!row?.setting_value) return null;
     try {
-      const parsed = JSON.parse(colorsRow.setting_value);
-      const hex = /^#[0-9A-Fa-f]{6}$/;
-      if (Array.isArray(parsed) && parsed.length === 16 && parsed.every((c) => hex.test(c))) {
-        bandColors = parsed;
-      }
+      const parsed = JSON.parse(row.setting_value);
+      const resolved = resolveBands(parsed);
+      return bandsInBounds(resolved) ? resolved : null;
     } catch {
-      /* default */
+      return null;
     }
-  }
+  };
+  const bands =
+    readBands(bandsRes?.results?.[0]) || readBands(colorsRes?.results?.[0]) || DEFAULT_BANDS;
 
-  const settings = { readsPerBand, bandColors };
+  const settings = { readsPerBand, bands };
   if (KV) {
     try {
       await KV.put(cacheKey, JSON.stringify(settings), { expirationTtl: 3600 });
@@ -276,7 +296,7 @@ export const getOrgBandSettings = async (db, organizationId, env) => {
  * transition object when the band INCREASED (for celebration), else null.
  */
 export const updateStudentBand = async (db, studentId, organizationId, env, { timezone } = {}) => {
-  const { readsPerBand, bandColors } = await getOrgBandSettings(db, organizationId, env || {});
+  const { readsPerBand, bands } = await getOrgBandSettings(db, organizationId, env || {});
   const tz = timezone || 'UTC';
   const yearStart = academicYearStart(getDateString(new Date(), tz));
 
@@ -301,7 +321,7 @@ export const updateStudentBand = async (db, studentId, organizationId, env, { ti
     .all();
 
   const readsCount = countReads(rows.results || []) + baselineReads;
-  const currentBand = computeBandIndex(readsCount, readsPerBand);
+  const currentBand = computeBandIndex(readsCount, readsPerBand, bands.length);
 
   await db
     .prepare(
@@ -313,7 +333,7 @@ export const updateStudentBand = async (db, studentId, organizationId, env, { ti
     .run();
 
   const bandUp =
-    currentBand > previousBand ? bandTransition(previousBand, currentBand, bandColors) : null;
+    currentBand > previousBand ? bandTransition(previousBand, currentBand, bands) : null;
   return { previousBand, currentBand, readsCount, bandUp };
 };
 

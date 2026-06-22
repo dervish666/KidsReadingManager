@@ -105,3 +105,38 @@ describe('palette threading', () => {
     expect(bandForCount(47, 20).color).toBe('#D7263D');
   });
 });
+
+describe('variable band count', () => {
+  const bands = [
+    { name: 'Bronze', color: '#CD7F32' },
+    { name: 'Silver', color: '#C0C0C0' },
+    { name: 'Gold', color: '#FFD700' },
+  ];
+
+  it('computeBandIndex caps at a custom band count', () => {
+    expect(computeBandIndex(40, 20, 3)).toBe(2); // would be 2 anyway
+    expect(computeBandIndex(200, 20, 3)).toBe(2); // capped at top of a 3-band ladder
+    expect(computeBandIndex(200, 20, 5)).toBe(4); // capped at top of a 5-band ladder
+  });
+
+  it('bandForCount reports the top band of a short ladder', () => {
+    const b = bandForCount(200, 20, bands);
+    expect(b.name).toBe('Gold');
+    expect(b.atTop).toBe(true);
+    expect(b.toNext).toBeNull();
+  });
+
+  it('bandForCount shows progress toward the next custom band', () => {
+    const b = bandForCount(25, 20, bands); // band 1 of 3
+    expect(b.name).toBe('Silver');
+    expect(b.atTop).toBe(false);
+    expect(b.nextAt).toBe(40);
+    expect(b.toNext).toBe(15);
+  });
+
+  it('bandTransition uses custom names', () => {
+    const t = bandTransition(0, 2, bands);
+    expect(t.from.name).toBe('Bronze');
+    expect(t.to.name).toBe('Gold');
+  });
+});

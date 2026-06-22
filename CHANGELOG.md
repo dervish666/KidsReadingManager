@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.106.0] - 2026-06-22
+
+### Added
+
+- **Reading bands are now fully customisable per school — names, colours, and how many.** Settings → Reading Bands gains a row-based editor where each band has an editable name and colour, with **Add band** / remove controls so a school can run anywhere from 3 to 20 bands instead of the fixed 16. Previously only the colours could be changed and the names (Lilac, Pink, Red…) and count were hard-coded. The band list is stored per-org as a single `bands` setting (`[{ name, color }]`); count is simply the list length, and the default UK book-band ladder is still the starting point and the fallback. Reducing the number of bands caps any child already above the new top at the highest band (their stored band self-corrects on their next logged read). Custom names and colours flow everywhere bands are shown — student cards/tables, the profile and parent-portal progress bars, band-up celebrations, and the Stats distribution.
+
+### Changed
+
+- **Band engine and storage are now count-aware.** `computeBandIndex`/`bandForCount`/`getBandByIndex` derive the top band from the school's configured list rather than a hard-coded 16, and `getOrgBandSettings` returns the resolved `{ name, color }` list (KV cache key bumped to `v2`). Schools that had only customised colours under the old model are migrated transparently on read — their colours are kept and zipped with the default band names, with nothing to re-save. Settings validation accepts 3–20 bands, each needing a name (1–30 chars) and a hex colour.
+
 ## [3.105.4] - 2026-06-22
 
 ### Fixed
@@ -57,7 +67,7 @@
 
 ### Fixed
 
-- **AI Settings now reflects all configured platform keys.** The Provider Status panel only showed the *active* platform key as available, so Anthropic and Google appeared unconfigured even though their owner-managed keys were stored — only the single active provider is the primary by design, but configured-inactive keys now show ✓. Same availability logic applied to the POST /settings/ai response.
+- **AI Settings now reflects all configured platform keys.** The Provider Status panel only showed the _active_ platform key as available, so Anthropic and Google appeared unconfigured even though their owner-managed keys were stored — only the single active provider is the primary by design, but configured-inactive keys now show ✓. Same availability logic applied to the POST /settings/ai response.
 - **Model dropdown loads the live model list on platform keys.** `GET /api/settings/ai/models` only used an org-level key, so schools on the owner-managed platform key fell back to a stale hardcoded list (GPT-4o Mini / GPT-3.5 Turbo era). The endpoint now falls back to a stored platform key (matching the org's provider, else the active one), and the settings page fetches live models whenever `keySource` is `platform`.
 - **AI failover restored.** The recommendation failover chain only considered env-var keys, which are no longer set on the worker — so a primary-provider outage failed the request instead of failing over. Other configured platform keys (decrypted, with their model preference) are now appended as fallbacks ahead of the env-var candidates.
 
@@ -116,7 +126,7 @@
 
 ### Fixed
 
-- **Book FTS5 queries silently failed wherever `books_fts` was aliased as `fts`.** SQLite's FTS5 MATCH operator resolves against a hidden column named after the *table* (`books_fts`), so `INNER JOIN books_fts fts … WHERE fts MATCH ?` threw `no such column: fts` — and every call site swallowed the error in a bare `catch`. Worst impact: the CSV import preview matched nothing against the global catalog, so re-importing a school's own export reported every book as "new" and confirming would have duplicated the entire catalog (caught live with Cheddar Grove's 2,444-book export — 0 matched, 2444 new). Also affected the import-confirm dedup pass and book search in `books.js`/`parent.js`, which silently fell back to slower LIKE scans instead of FTS. All five queries now join `books_fts` unaliased; verified the fixed shapes (including `ORDER BY rank`) against production D1.
+- **Book FTS5 queries silently failed wherever `books_fts` was aliased as `fts`.** SQLite's FTS5 MATCH operator resolves against a hidden column named after the _table_ (`books_fts`), so `INNER JOIN books_fts fts … WHERE fts MATCH ?` threw `no such column: fts` — and every call site swallowed the error in a bare `catch`. Worst impact: the CSV import preview matched nothing against the global catalog, so re-importing a school's own export reported every book as "new" and confirming would have duplicated the entire catalog (caught live with Cheddar Grove's 2,444-book export — 0 matched, 2444 new). Also affected the import-confirm dedup pass and book search in `books.js`/`parent.js`, which silently fell back to slower LIKE scans instead of FTS. All five queries now join `books_fts` unaliased; verified the fixed shapes (including `ORDER BY rank`) against production D1.
 
 ## [3.97.0] - 2026-06-11
 

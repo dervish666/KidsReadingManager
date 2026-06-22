@@ -3,6 +3,9 @@
  */
 
 import { OBSERVATION_KEYS, MAX_OBSERVATION_LABEL } from './readingObservations';
+import { MIN_BANDS, MAX_BANDS } from './readingBandDefinitions';
+
+const MAX_BAND_NAME = 30;
 
 /**
  * Validate password strength (8-128 chars, uppercase, lowercase, number).
@@ -320,15 +323,41 @@ export function validateSettings(settings) {
     }
   }
 
-  // Validate band colour palette if provided
-  if (settings.bandColors !== undefined) {
-    const hex = /^#[0-9A-Fa-f]{6}$/;
-    if (
-      !Array.isArray(settings.bandColors) ||
-      settings.bandColors.length !== 16 ||
-      !settings.bandColors.every((c) => typeof c === 'string' && hex.test(c))
+  const HEX6 = /^#[0-9A-Fa-f]{6}$/;
+
+  // Validate the band list if provided: per-org names + colours, MIN..MAX bands.
+  if (settings.bands !== undefined) {
+    const list = settings.bands;
+    if (!Array.isArray(list) || list.length < MIN_BANDS || list.length > MAX_BANDS) {
+      errors.push(`Reading bands must be a list of between ${MIN_BANDS} and ${MAX_BANDS} bands`);
+    } else if (
+      !list.every(
+        (b) =>
+          b &&
+          typeof b === 'object' &&
+          typeof b.name === 'string' &&
+          b.name.trim().length > 0 &&
+          b.name.trim().length <= MAX_BAND_NAME &&
+          typeof b.color === 'string' &&
+          HEX6.test(b.color)
+      )
     ) {
-      errors.push('Band colours must be an array of exactly 16 hex colours (#RRGGBB)');
+      errors.push(
+        `Each reading band needs a name (1–${MAX_BAND_NAME} characters) and a hex colour (#RRGGBB)`
+      );
+    }
+  }
+
+  // Legacy colour-only palette (pre-names): tolerate any in-bounds length.
+  if (settings.bandColors !== undefined) {
+    const list = settings.bandColors;
+    if (
+      !Array.isArray(list) ||
+      list.length < MIN_BANDS ||
+      list.length > MAX_BANDS ||
+      !list.every((c) => typeof c === 'string' && HEX6.test(c))
+    ) {
+      errors.push(`Band colours must be ${MIN_BANDS}–${MAX_BANDS} hex colours (#RRGGBB)`);
     }
   }
 

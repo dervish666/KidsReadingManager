@@ -409,7 +409,7 @@ const ParentPortal = () => {
             <ReadingBandProgress
               readsCount={data.band.readsCount}
               readsPerBand={data.band.readsPerBand}
-              palette={data.bandColors}
+              bands={data.bands}
             />
           </Box>
         )}

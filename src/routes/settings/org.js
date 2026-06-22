@@ -22,6 +22,7 @@ import { auditLog, requireReadonly, requireAdmin } from '../../middleware/tenant
 import { permissions } from '../../utils/crypto';
 
 import { getDB, isMultiTenantMode } from '../../utils/routeHelpers';
+import { resolveBands } from '../../utils/readingBandDefinitions';
 
 const orgSettingsRouter = new Hono();
 
@@ -66,6 +67,11 @@ orgSettingsRouter.get('/', requireReadonly(), async (c) => {
       }
     }
 
+    // Always hand the client a canonical band list ({ name, color }) — resolving
+    // the new `bands` setting, the legacy colour-only `bandColors`, or defaults —
+    // so the UI never has to know which form an org stored.
+    settings.bands = resolveBands(settings.bands || settings.bandColors);
+
     return c.json(settings);
   }
 
@@ -109,6 +115,7 @@ orgSettingsRouter.post('/', requireAdmin(), auditLog('update', 'settings'), asyn
       'streakGracePeriodDays',
       'readsPerBand',
       'bandColors',
+      'bands',
       'readingObservations',
     ];
 
@@ -146,9 +153,13 @@ orgSettingsRouter.post('/', requireAdmin(), auditLog('update', 'settings'), asyn
       await c.env.READING_MANAGER_KV.delete(`org-streak-settings:${organizationId}`);
     }
 
-    if (body.readsPerBand !== undefined || body.bandColors !== undefined) {
+    if (
+      body.readsPerBand !== undefined ||
+      body.bandColors !== undefined ||
+      body.bands !== undefined
+    ) {
       try {
-        await c.env.READING_MANAGER_KV?.delete(`org-band-settings:${organizationId}`);
+        await c.env.READING_MANAGER_KV?.delete(`org-band-settings-v2:${organizationId}`);
       } catch {
         // non-critical
       }
@@ -172,6 +183,8 @@ orgSettingsRouter.post('/', requireAdmin(), auditLog('update', 'settings'), asyn
         settings[row.setting_key] = row.setting_value;
       }
     }
+
+    settings.bands = resolveBands(settings.bands || settings.bandColors);
 
     return c.json(settings);
   }

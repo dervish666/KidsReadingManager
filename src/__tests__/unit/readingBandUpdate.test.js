@@ -118,15 +118,57 @@ describe('setStudentBaselineReads', () => {
   });
 });
 
-describe('getOrgBandSettings bandColors', () => {
-  it('returns default palette when unset', async () => {
-    const db = {
-      prepare: () => ({ bind: () => ({ first: async () => null }) }),
-      batch: async () => [{ results: [] }, { results: [] }],
-    };
-    const s = await getOrgBandSettings(db, 'org1', {});
+describe('getOrgBandSettings bands', () => {
+  const batchDb = (rows) => ({
+    prepare: () => ({ bind: () => ({ first: async () => null }) }),
+    batch: async () => rows,
+  });
+
+  it('returns the default band ladder when unset', async () => {
+    const s = await getOrgBandSettings(
+      batchDb([{ results: [] }, { results: [] }, { results: [] }]),
+      'org1',
+      {}
+    );
     expect(s.readsPerBand).toBe(20);
-    expect(Array.isArray(s.bandColors)).toBe(true);
-    expect(s.bandColors).toHaveLength(16);
+    expect(Array.isArray(s.bands)).toBe(true);
+    expect(s.bands).toHaveLength(16);
+    expect(s.bands[0]).toEqual({ name: 'Lilac', color: '#C8A2C8' });
+  });
+
+  it('returns a custom band list when the `bands` setting is stored', async () => {
+    const custom = [
+      { name: 'Bronze', color: '#CD7F32' },
+      { name: 'Silver', color: '#C0C0C0' },
+      { name: 'Gold', color: '#FFD700' },
+    ];
+    const s = await getOrgBandSettings(
+      batchDb([
+        { results: [] },
+        { results: [{ setting_value: JSON.stringify(custom) }] },
+        { results: [] },
+      ]),
+      'org1',
+      {}
+    );
+    expect(s.bands).toEqual(custom);
+  });
+
+  it('falls back to legacy colour-only `bandColors`, zipping ladder names', async () => {
+    const colours = ['#111111', '#222222', '#333333'];
+    const s = await getOrgBandSettings(
+      batchDb([
+        { results: [] },
+        { results: [] },
+        { results: [{ setting_value: JSON.stringify(colours) }] },
+      ]),
+      'org1',
+      {}
+    );
+    expect(s.bands).toEqual([
+      { name: 'Lilac', color: '#111111' },
+      { name: 'Pink', color: '#222222' },
+      { name: 'Red', color: '#333333' },
+    ]);
   });
 });

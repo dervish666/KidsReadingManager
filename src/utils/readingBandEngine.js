@@ -6,6 +6,7 @@ import {
   READING_BAND_COUNT,
   DEFAULT_READS_PER_BAND,
   getBandByIndex,
+  bandCountOf,
 } from './readingBandDefinitions.js';
 import { ACADEMIC_YEAR_START_MONTH } from './constants.js';
 
@@ -31,11 +32,16 @@ function effectivePer(readsPerBand) {
   return per > 0 ? per : DEFAULT_READS_PER_BAND;
 }
 
-/** Band index (0..15) for a read count. */
-export function computeBandIndex(readsCount, readsPerBand = DEFAULT_READS_PER_BAND) {
+/** Band index for a read count, clamped to the top band of a `bandCount`-rung ladder. */
+export function computeBandIndex(
+  readsCount,
+  readsPerBand = DEFAULT_READS_PER_BAND,
+  bandCount = READING_BAND_COUNT
+) {
   const per = effectivePer(readsPerBand);
+  const count = Number(bandCount) > 0 ? Math.floor(Number(bandCount)) : READING_BAND_COUNT;
   const idx = Math.floor((Number(readsCount) || 0) / per);
-  return Math.max(0, Math.min(idx, READING_BAND_COUNT - 1));
+  return Math.max(0, Math.min(idx, count - 1));
 }
 
 /** ISO date (YYYY-MM-DD) of the academic-year start (1 Sep) on/before `today`. */
@@ -60,18 +66,19 @@ export function academicYearStart(today, startMonth = ACADEMIC_YEAR_START_MONTH,
 }
 
 /** Display payload for a band, including progress to the next band. */
-export function bandForCount(readsCount, readsPerBand = DEFAULT_READS_PER_BAND, palette) {
+export function bandForCount(readsCount, readsPerBand = DEFAULT_READS_PER_BAND, bands) {
   const per = effectivePer(readsPerBand);
   const count = Number(readsCount) || 0;
-  const index = computeBandIndex(count, per);
-  const band = getBandByIndex(index, palette);
-  const atTop = index >= READING_BAND_COUNT - 1;
+  const bandCount = bandCountOf(bands);
+  const index = computeBandIndex(count, per, bandCount);
+  const band = getBandByIndex(index, bands);
+  const atTop = index >= bandCount - 1;
   const nextAt = atTop ? null : (index + 1) * per;
   const toNext = atTop ? null : nextAt - count;
   return { ...band, readsCount: count, readsPerBand: per, nextAt, toNext, atTop };
 }
 
 /** Transition object for a celebration (from band -> to band). */
-export function bandTransition(fromIndex, toIndex, palette) {
-  return { from: getBandByIndex(fromIndex, palette), to: getBandByIndex(toIndex, palette) };
+export function bandTransition(fromIndex, toIndex, bands) {
+  return { from: getBandByIndex(fromIndex, bands), to: getBandByIndex(toIndex, bands) };
 }

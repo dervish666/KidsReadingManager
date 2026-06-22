@@ -159,7 +159,7 @@ const StudentCard = React.memo(({ student }) => {
                 <ReadingBandChip
                   bandIndex={student.currentBand || 0}
                   size="small"
-                  palette={settings?.bandColors}
+                  bands={settings?.bands}
                 />
                 {student.currentStreak > 0 && (
                   <StreakBadge streak={student.currentStreak} size="small" />
