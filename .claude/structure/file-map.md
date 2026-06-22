@@ -100,6 +100,7 @@ src/utils/email.js - Password reset/welcome/signup/support emails (multi-provide
 src/utils/streakCalculator.js - Reading streak calculation with grace period
 src/utils/readingBandDefinitions.js - Reading band ladder (default 16 bands), per-org customisable names/colours/count (3–20), resolveBands, bandCountOf, band lookup
 src/utils/readingBandEngine.js - Pure reading-band maths: read counting, band index, academic-year start, display payload + transition
+src/utils/bandTeamNames.js - Suggest band names from colours: HSL colourFamily classifier + colour-word / fun-team-name pools (Settings quick-fill)
 src/utils/readingObservations.js - Per-session reading-observation slots (6 fixed cols) + per-org config resolver (labels/enabled), shared by worker + app
 src/utils/studentProfile.js - Build student reading profile for AI context
 src/utils/yearGroup.js - Pure UK year-group parsing: age band, class-name fallback, badge key stage (shared by recommendations + badges)

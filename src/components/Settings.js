@@ -27,10 +27,13 @@ import MenuBookIcon from '@mui/icons-material/MenuBook';
 import ChecklistIcon from '@mui/icons-material/Checklist';
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import ColorLensIcon from '@mui/icons-material/ColorLens';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import ClassManager from './classes/ClassManager'; // Import ClassManager
 import { DEFAULT_BANDS, MIN_BANDS, MAX_BANDS } from '../utils/readingBandDefinitions';
+import { suggestColourNames, suggestTeamNames } from '../utils/bandTeamNames';
 import {
   resolveObservationConfig,
   DEFAULT_OBSERVATION_CONFIG,
@@ -135,9 +138,10 @@ const Settings = () => {
         },
         streakGracePeriodDays: localSettings.streakGracePeriodDays,
         readsPerBand: localSettings.readsPerBand,
-        // Backfill blank names so the saved ladder always has a label per band.
+        // Backfill blank names so the saved ladder always has a label per band,
+        // and clamp to 30 chars to match the field/validation bound.
         bands: (localSettings.bands || DEFAULT_BANDS).map((b, i) => ({
-          name: (b.name || '').trim() || `Band ${i + 1}`,
+          name: ((b.name || '').trim() || `Band ${i + 1}`).slice(0, 30),
           color: b.color,
         })),
         readingObservations: localSettings.readingObservations,
@@ -174,6 +178,14 @@ const Settings = () => {
       severity: 'info',
     });
   };
+
+  // Quick-fill band names from their colours (keeps the colours, replaces names).
+  const fillBandNames = (suggester) =>
+    setLocalSettings((s) => {
+      const list = (s.bands || DEFAULT_BANDS).map((b) => ({ ...b }));
+      const names = suggester(list);
+      return { ...s, bands: list.map((b, i) => ({ ...b, name: names[i] })) };
+    });
 
   // Handle streak grace period change
   const handleStreakGracePeriodChange = (event) => {
@@ -481,11 +493,33 @@ const Settings = () => {
                 Reset to defaults
               </Button>
             </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
               Name and colour each band, lowest first. Add or remove bands to set how many rungs the
               ladder has ({MIN_BANDS}–{MAX_BANDS}). Reducing the number of bands caps any child
               already above the new top at the highest band.
             </Typography>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 1.5 }}>
+              <Typography variant="caption" color="text.secondary">
+                Quick-fill names from colours:
+              </Typography>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<AutoAwesomeIcon />}
+                onClick={() => fillBandNames(suggestTeamNames)}
+              >
+                Fun team names
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<ColorLensIcon />}
+                onClick={() => fillBandNames(suggestColourNames)}
+              >
+                Colour names
+              </Button>
+            </Box>
 
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               {(localSettings.bands || DEFAULT_BANDS).map((band, i) => {

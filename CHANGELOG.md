@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.107.0] - 2026-06-22
+
+### Added
+
+- **Quick-fill band names from their colours — fun team names or plain colour words.** The band editor (Settings → Reading Bands) gains two one-tap links: **✨ Fun team names** fills every band with a primary-school-friendly team name based on its colour (Blue Crew, Pink Posse, Mellow Yellows, Teal Turtles…), and **Colour names** fills them with plain colour words (Blue, Rose, Forest…). Both keep your chosen colours and only replace the names, and you can still hand-edit any band afterwards. Names are derived from each band's actual colour (not its position), so they work for any custom palette or band count, and repeated colour families across the ladder get distinct names rather than duplicates. The colour→name classifier was adversarially tested across ~70 colours (including the tricky pink-vs-red, brown-vs-orange and neutral boundaries).
+
 ## [3.106.0] - 2026-06-22
 
 ### Added
