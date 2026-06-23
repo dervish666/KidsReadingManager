@@ -1,20 +1,31 @@
 {
-  "generatedAt": "2026-06-11",
+  "generatedAt": "2026-06-23",
   "issue": "June 2026",
   "title": "Reading News",
-  "intro": "What's new from the authors topping your reading logs — fresh releases, a few read-alikes, and some dates for the diary.",
+  "intro": "What's topping your reading logs this month — a brand-new memoir from Michael Morpurgo, fresh chapter books for children who've outgrown the early readers, and a few dates for the diary.",
   "isPreview": false,
   "items": [
     {
-      "id": "worst-witch-reissue",
-      "headline": "The Worst Witch is getting a fresh new look",
+      "id": "worst-witch-fresh-look",
+      "headline": "The Worst Witch — still topping your logs, on the page and on screen",
       "author": "Jill Murphy",
       "book": "A Bad Spell for the Worst Witch",
       "rank": 1,
-      "kind": "release",
-      "summary": "Your most-read series is being reissued by Puffin with energetic new covers, and the first book has joined the Puffin Clothbound Classics as a collectable 50th-anniversary edition. A nice excuse to refresh the Mildred Hubble shelf — and children who finish the books can carry on with the CBBC series.",
+      "kind": "spotlight",
+      "summary": "Mildred Hubble is comfortably your most-read character. Puffin keep the series fresh with bright new covers, and children who finish the books can carry straight on with the much-loved CBBC television series. A safe recommendation for any child who likes a bit of magic and mischief.",
       "source": "Penguin",
       "link": "https://www.penguin.co.uk/series/wor/the-worst-witch.html"
+    },
+    {
+      "id": "brandon-ravens-hall",
+      "headline": "From A Box of Socks to spooky chapter books — Amanda Brandon moves up a band",
+      "author": "Amanda Brandon",
+      "book": "A Box of Socks (Early Reader)",
+      "rank": 2,
+      "kind": "release",
+      "summary": "Amanda Brandon — whose A Box of Socks early reader is one of your most-read titles — has new chapter books out, including The Curse of Raven's Hall, an illustrated adventure about pupils trapped in a creepy old house. A natural next step for a child who's outgrown her early readers but still wants that same warmth and humour.",
+      "source": "Amanda Brandon",
+      "link": "https://www.amandabrandon.co.uk/books/"
     },
     {
       "id": "glover-nowhere-boy",
@@ -39,26 +50,15 @@
       "link": "https://en.wikipedia.org/wiki/The_Magic_Key"
     },
     {
-      "id": "morpurgo-2026-releases",
-      "headline": "Michael Morpurgo has a busy 2026 — including a memoir of life on the farm",
+      "id": "morpurgo-down-burrow-lane",
+      "headline": "Michael Morpurgo's most personal book yet — fifty years on a Devon farm",
       "author": "Michael Morpurgo",
       "book": "Running Wild",
       "rank": 8,
       "kind": "release",
-      "summary": "The author of Running Wild has several titles due in 2026: a memoir of his fifty years on a working Devon farm arrives on 17 September, alongside More Tales from Shakespeare and a retelling of Black Beauty. Good news for a class already hooked on his animal stories.",
+      "summary": "The author of Running Wild publishes Down Burrow Lane: Life and Love on the Farm on 17 September — a memoir of the fifty years he and his wife Clare spent on the Devon farm that inspired War Horse and Private Peaceful, and where they founded the Farms for City Children charity. Lovely background for a class already hooked on his animal stories.",
       "source": "Waterstones",
       "link": "https://www.waterstones.com/author/michael-morpurgo/28972"
-    },
-    {
-      "id": "lawrence-aeneid-tales",
-      "headline": "The Roman Mysteries author is retelling Virgil for older readers",
-      "author": "Caroline Lawrence",
-      "book": "The Enemies of Jupiter",
-      "rank": 9,
-      "kind": "release",
-      "summary": "Caroline Lawrence, whose Roman Mysteries your readers enjoy, has been writing a set of short, accessible Tales from Virgil's Aeneid — newly refreshed as ebooks and audiobooks, with more on the way. A natural next step for an older child who's caught the Ancient Rome bug.",
-      "source": "carolinelawrence.com",
-      "link": "https://carolinelawrence.com/series/virgil-retellings/"
     },
     {
       "id": "deary-terrible-true-tales",
@@ -66,7 +66,7 @@
       "author": "Terry Deary",
       "book": "The Awful Egyptians",
       "rank": 12,
-      "kind": "release",
+      "kind": "spotlight",
       "summary": "Terry Deary's Terrible True Tales bring the same grisly humour as Horrible Histories to newly-confident readers, in shorter illustrated stories. Handy for a child who loves the facts but wants a lighter read.",
       "source": "ReadingZone",
       "link": "https://www.readingzone.com/books/terrible-true-tales-the-stone-age-from-the-author-of-horrible-histories/"
@@ -78,7 +78,7 @@
       "date": "2026-07-04",
       "name": "Summer Reading Challenge — Read to the Beat!",
       "kind": "event",
-      "blurb": "The Reading Agency's free library challenge runs 4 July to 5 September in England and Wales (from 20 June in Scotland and online), this year pairing stories with songs alongside Universal Music, with illustrations by Harry Woodgate. A great nudge to keep children reading over the holidays.",
+      "blurb": "The Reading Agency's free library challenge runs 4 July to 5 September in England and Wales (from 20 June in Scotland), this year pairing stories with songs alongside Universal Music, with illustrations by Harry Woodgate. A great nudge to keep children reading over the holidays.",
       "link": "https://summerreadingchallenge.org.uk/"
     },
     {
@@ -110,7 +110,7 @@
       "date": "2026-10-05",
       "name": "Michael Morpurgo's birthday",
       "kind": "birthday",
-      "blurb": "One of your most-read authors turns a year older on 5 October — pair it with Running Wild or his farm memoir, out the month before.",
+      "blurb": "One of your most-read authors turns a year older on 5 October — pair it with Running Wild, or his new farm memoir Down Burrow Lane, out the month before.",
       "link": "https://www.michaelmorpurgo.com/"
     },
     {
@@ -118,7 +118,7 @@
       "date": "2027-03-04",
       "name": "World Book Day",
       "kind": "event",
-      "blurb": "The next World Book Day falls on the first Thursday of March. Worth pencilling in early for £1 book tokens, dressing-up and reading-for-pleasure activities.",
+      "blurb": "The next World Book Day falls on Thursday 4 March 2027. Worth pencilling in early for £1 book tokens, dressing-up and reading-for-pleasure activities.",
       "link": "https://www.worldbookday.com/"
     }
   ],
