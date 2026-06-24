@@ -28,6 +28,9 @@
   },
   "author": "",
   "license": "CC BY-NC 4.0",
+  "overrides": {
+    "esbuild": "^0.28.1"
+  },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.96.0",
     "@emotion/react": "^11.11.0",

@@ -727,10 +727,7 @@ const PrivacyPolicy = () => {
           <PolicyTable
             headers={['Detail', 'Value']}
             rows={[
-              [
-                <strong>Provider</strong>,
-                'Sentry (Functional Software, Inc., US-headquartered)',
-              ],
+              [<strong>Provider</strong>, 'Sentry (Functional Software, Inc., US-headquartered)'],
               [
                 <strong>Data shared</strong>,
                 'Technical diagnostic data captured when an error occurs (error messages, stack traces, request metadata). May incidentally include a user or organisation identifier from the request context. Reading records and pupil contact details are not intentionally sent.',
