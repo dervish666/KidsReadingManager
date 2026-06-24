@@ -147,7 +147,7 @@ If you have any questions about our use of cookies, please contact us:
 |---|---|
 | **Email** | sam@tallyreading.uk |
 | **Data Protection Officer** | Sam Castillo (sam@tallyreading.uk) |
-| **Postal address** | Scratch IT LTD, 247 Bishopsworth Road, Bristol, BS13 7LH |
+| **Postal address** | Scratch IT LTD, 4 Highridge Walk, Bristol, BS13 8BA |
 
 For full details of how we handle personal data, please see our
 [Privacy Policy](https://tallyreading.uk/privacy).

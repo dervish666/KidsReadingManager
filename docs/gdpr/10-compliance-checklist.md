@@ -40,8 +40,8 @@ schools until all items in this section are complete.
   all GDPR documents (privacy policy, DPIA, ROPA).
 
 - [x] **Obtain company details for all GDPR document placeholders.**
-  **COMPLETED 2026-02-25:** Scratch IT LTD (08151576), 247 Bishopsworth
-  Road, Bristol, BS13 7LH. Updated across all GDPR documents.
+  **COMPLETED 2026-02-25:** Scratch IT LTD (08151576), 4 Highridge
+  Walk, Bristol, BS13 8BA. Updated across all GDPR documents.
 
 - [x] **Appoint a Data Protection Officer (DPO) or document why one is not
   required.** **COMPLETED 2026-02-25:** DPO not formally required under

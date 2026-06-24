@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.107.1] - 2026-06-24
+
+### Fixed
+
+- **Registered company address corrected across all legal documents.** The privacy policy, terms of service, cookie policy, Data Processing Agreement and GDPR compliance checklist (and their rendered React pages) showed an out-of-date registered office; all now state the current Companies House address (4 Highridge Walk, Bristol, BS13 8BA). The previous address (247 Bishopsworth Road, BS13 7LH) was inconsistent with Companies House and with the school-facing data-protection paperwork.
+
+### Changed
+
+- **Privacy policy subprocessor list brought up to date.** Added Wonde (MIS data sync), Sentry (error monitoring) and MyLogin (single sign-on) to "Who we share data with" (§5) — these integrations post-dated the February policy and were missing — and bumped the "Last updated" date. Keeps the published policy consistent with what a school's DPO sees in the Wonde app-directory data-protection pack.
+- **Favicon now matches the app logo.** Replaced the stale browser-tab icon with the tally-mark badge: new vector `favicon.svg`, regenerated multi-resolution `favicon.ico`, plus `apple-touch-icon.png` and `icon-192/512.png` for iOS and the PWA manifest, wired through `index.html` and `manifest.json`.
+
 ## [3.107.0] - 2026-06-22
 
 ### Added

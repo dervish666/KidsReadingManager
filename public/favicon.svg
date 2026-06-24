@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Tally Reading">
+  <defs>
+    <linearGradient id="tallyBg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#85A885"/>
+      <stop offset="1" stop-color="#6F926F"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="11" fill="url(#tallyBg)"/>
+  <g stroke="#ffffff" stroke-width="3" stroke-linecap="round">
+    <line x1="18" y1="14" x2="18" y2="50"/>
+    <line x1="27" y1="14" x2="27" y2="50"/>
+    <line x1="36" y1="14" x2="36" y2="50"/>
+    <line x1="45" y1="14" x2="45" y2="50"/>
+    <line x1="13" y1="44" x2="50" y2="20"/>
+  </g>
+</svg>

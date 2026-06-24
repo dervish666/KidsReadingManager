@@ -3,7 +3,7 @@
 **Tally** (trading as Tally Reading)
 
 **Effective date:** 23-02-2026
-**Last updated:** 23-02-2026
+**Last updated:** 24-06-2026
 
 > **DRAFT -- NOT YET LEGALLY REVIEWED**
 >
@@ -27,7 +27,7 @@ AI-powered book recommendations.
 | **Website** | https://tallyreading.uk |
 | **Company name** | Scratch IT LTD |
 | **Company number** | 08151576 |
-| **Registered address** | 247 Bishopsworth Road, Bristol, BS13 7LH |
+| **Registered address** | 4 Highridge Walk, Bristol, BS13 8BA |
 | **Data Protection Officer** | Sam Castillo (sam@tallyreading.uk) |
 | **ICO registration number** | ZC098130 |
 
@@ -211,7 +211,34 @@ Only pseudonymised reading profile data is now sent to AI providers.*
 | **Data shared** | Staff user email addresses and email content (password-reset links, welcome messages) |
 | **Purpose** | Transactional emails only (password resets, account invitations). No marketing emails are sent. |
 
-### 5.5 No other sharing
+### 5.5 Wonde -- MIS data sync
+
+| Detail | Value |
+|---|---|
+| **Provider** | Wonde Ltd (UK-based MIS data provider) |
+| **Data shared** | Pupil names, class and year-group membership, and (where published by the school's MIS) staff-class assignments, read from the school's Management Information System via Wonde. Tally does not write data back to the MIS. |
+| **Purpose** | Keeping pupil and class lists in sync with the school's MIS without manual entry |
+| **Safeguards** | Wonde acts under the school's authorisation and its own data processing terms; access is granted per school and can be revoked by the school at any time. |
+
+### 5.6 Sentry -- error monitoring
+
+| Detail | Value |
+|---|---|
+| **Provider** | Sentry (Functional Software, Inc., US-headquartered) |
+| **Data shared** | Technical diagnostic data captured when an error occurs (error messages, stack traces, request metadata). May incidentally include a user or organisation identifier from the request context. Reading records and pupil contact details are not intentionally sent. |
+| **Purpose** | Detecting, diagnosing and fixing faults to keep the service reliable and secure |
+| **Safeguards** | Used under Sentry's data processing terms; diagnostic data is retained only for a limited period. |
+
+### 5.7 MyLogin -- single sign-on (optional)
+
+| Detail | Value |
+|---|---|
+| **Provider** | MyLogin (provided via Wonde) |
+| **Data shared** | Staff identity and authentication details needed to verify a sign-in (e.g. name, email/identifier and school). No pupil data is shared with MyLogin. |
+| **Purpose** | Allowing school staff to sign in securely using their existing school credentials |
+| **Safeguards** | Operates under the Wonde/MyLogin terms; used only for schools that enable single sign-on. |
+
+### 5.8 No other sharing
 
 We do not sell personal data. We do not share personal data with
 advertisers, data brokers, social media platforms, or any other third parties
@@ -406,7 +433,7 @@ our data protection practices, please contact us:
 | Channel | Detail |
 |---|---|
 | **Email** | privacy@tallyreading.uk |
-| **Post** | Scratch IT LTD, 247 Bishopsworth Road, Bristol, BS13 7LH |
+| **Post** | Scratch IT LTD, 4 Highridge Walk, Bristol, BS13 8BA |
 | **Data Protection Lead** | Sam Castillo (sam@tallyreading.uk). Note: A formal DPO has not been appointed as Scratch IT LTD does not meet the mandatory appointment thresholds under Article 37 of UK GDPR. Sam Castillo acts as the named privacy contact for all data protection matters. |
 
 For requests concerning pupil data, parents and carers should contact their

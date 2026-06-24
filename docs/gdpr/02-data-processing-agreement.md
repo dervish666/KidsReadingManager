@@ -49,7 +49,7 @@ Scratch IT LTD
 
 Company Registration Number: 08151576
 
-Registered Address: 247 Bishopsworth Road, Bristol, BS13 7LH
+Registered Address: 4 Highridge Walk, Bristol, BS13 8BA
 
 Contact Name: Sam Castillo
 

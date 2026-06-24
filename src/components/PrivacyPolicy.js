@@ -209,7 +209,7 @@ const PrivacyPolicy = () => {
             variant="body2"
             sx={{ color: 'text.secondary', mb: 3, fontFamily: '"DM Sans", sans-serif' }}
           >
-            Last updated: 23 February 2026
+            Last updated: 24 June 2026
           </Typography>
 
           <Divider sx={{ borderColor: 'rgba(139, 115, 85, 0.15)', mb: 3 }} />
@@ -243,7 +243,7 @@ const PrivacyPolicy = () => {
               ],
               [<strong>Company name</strong>, 'Scratch IT LTD'],
               [<strong>Company number</strong>, '08151576'],
-              [<strong>Registered address</strong>, '247 Bishopsworth Road, Bristol, BS13 7LH'],
+              [<strong>Registered address</strong>, '4 Highridge Walk, Bristol, BS13 8BA'],
               [
                 <strong>Data Protection Officer</strong>,
                 <span>
@@ -701,7 +701,73 @@ const PrivacyPolicy = () => {
             ]}
           />
 
-          <SubsectionHeading>5.5 No other sharing</SubsectionHeading>
+          <SubsectionHeading>5.5 Wonde — MIS data sync</SubsectionHeading>
+
+          <PolicyTable
+            headers={['Detail', 'Value']}
+            rows={[
+              [<strong>Provider</strong>, 'Wonde Ltd (UK-based MIS data provider)'],
+              [
+                <strong>Data shared</strong>,
+                "Pupil names, class and year-group membership, and (where published by the school's MIS) staff-class assignments, read from the school's Management Information System via Wonde. Tally does not write data back to the MIS.",
+              ],
+              [
+                <strong>Purpose</strong>,
+                "Keeping pupil and class lists in sync with the school's MIS without manual entry",
+              ],
+              [
+                <strong>Safeguards</strong>,
+                "Wonde acts under the school's authorisation and its own data processing terms; access is granted per school and can be revoked by the school at any time.",
+              ],
+            ]}
+          />
+
+          <SubsectionHeading>5.6 Sentry — error monitoring</SubsectionHeading>
+
+          <PolicyTable
+            headers={['Detail', 'Value']}
+            rows={[
+              [
+                <strong>Provider</strong>,
+                'Sentry (Functional Software, Inc., US-headquartered)',
+              ],
+              [
+                <strong>Data shared</strong>,
+                'Technical diagnostic data captured when an error occurs (error messages, stack traces, request metadata). May incidentally include a user or organisation identifier from the request context. Reading records and pupil contact details are not intentionally sent.',
+              ],
+              [
+                <strong>Purpose</strong>,
+                'Detecting, diagnosing and fixing faults to keep the service reliable and secure',
+              ],
+              [
+                <strong>Safeguards</strong>,
+                "Used under Sentry's data processing terms; diagnostic data is retained only for a limited period.",
+              ],
+            ]}
+          />
+
+          <SubsectionHeading>5.7 MyLogin — single sign-on (optional)</SubsectionHeading>
+
+          <PolicyTable
+            headers={['Detail', 'Value']}
+            rows={[
+              [<strong>Provider</strong>, 'MyLogin (provided via Wonde)'],
+              [
+                <strong>Data shared</strong>,
+                'Staff identity and authentication details needed to verify a sign-in (e.g. name, email/identifier and school). No pupil data is shared with MyLogin.',
+              ],
+              [
+                <strong>Purpose</strong>,
+                'Allowing school staff to sign in securely using their existing school credentials',
+              ],
+              [
+                <strong>Safeguards</strong>,
+                'Operates under the Wonde/MyLogin terms; used only for schools that enable single sign-on.',
+              ],
+            ]}
+          />
+
+          <SubsectionHeading>5.8 No other sharing</SubsectionHeading>
 
           <BodyText>
             We do not sell personal data. We do not share personal data with advertisers, data
@@ -1303,7 +1369,7 @@ const PrivacyPolicy = () => {
                   privacy@tallyreading.uk
                 </Link>,
               ],
-              [<strong>Post</strong>, 'Scratch IT LTD, 247 Bishopsworth Road, Bristol, BS13 7LH'],
+              [<strong>Post</strong>, 'Scratch IT LTD, 4 Highridge Walk, Bristol, BS13 8BA'],
               [
                 <strong>Data Protection Lead</strong>,
                 <span>
