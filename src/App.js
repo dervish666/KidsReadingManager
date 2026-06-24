@@ -32,6 +32,8 @@ const SettingsPage = React.lazy(() => import('./components/SettingsPage'));
 const PrivacyPolicy = React.lazy(() => import('./components/PrivacyPolicy'));
 const TermsOfService = React.lazy(() => import('./components/TermsOfService'));
 const CookiePolicy = React.lazy(() => import('./components/CookiePolicy'));
+const LegalHub = React.lazy(() => import('./components/legal/LegalHub'));
+const LegalDocPage = React.lazy(() => import('./components/legal/LegalDocPage'));
 const Help = React.lazy(() => import('./components/Help'));
 const ParentPortal = React.lazy(() => import('./components/parent/ParentPortal'));
 
@@ -213,6 +215,25 @@ function AppContent() {
     return (
       <Suspense fallback={<PageFallback />}>
         <CookiePolicy />
+      </Suspense>
+    );
+  }
+
+  // Legal & Compliance hub and individual documents (rendered outside auth).
+  // /legal -> hub; /legal/<slug> -> a single document.
+  if (window.location.pathname === '/legal' || window.location.pathname === '/legal/') {
+    return (
+      <Suspense fallback={<PageFallback />}>
+        <LegalHub />
+      </Suspense>
+    );
+  }
+
+  if (window.location.pathname.startsWith('/legal/')) {
+    const legalSlug = window.location.pathname.replace(/^\/legal\//, '').replace(/\/$/, '');
+    return (
+      <Suspense fallback={<PageFallback />}>
+        <LegalDocPage slug={legalSlug} />
       </Suspense>
     );
   }

@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.108.0] - 2026-06-24
+
+### Added
+
+- **`/legal` — a single Legal & Compliance hub.** One page gathering every Tally legal and data-protection document, each with its own shareable URL, so schools and their DPOs can reference them directly (e.g. when completing a Wonde DPIA or supplier due-diligence form). Linked from the landing-page footer and the Help page.
+- **Five GDPR documents now published as public pages**, rendered from cleaned markdown (`public/legal/`) in the cozy house style: the Data Processing Agreement (`/legal/data-processing-agreement`), Sub-Processor Register (`/legal/sub-processors`), Technical & Organisational Security Measures (`/legal/security-measures`), Data Retention Policy (`/legal/data-retention`) and Data Subject Rights (`/legal/data-subject-rights`). The existing Privacy, Terms and Cookies pages are indexed alongside them.
+
+### Changed
+
+- The published security, retention and data-subject-rights documents are outward-facing rewrites of the internal `docs/gdpr/` working copies: internal "draft / not yet reviewed" banners, source-file/line-number references, SQL, internal table names and implementation gap-notes were removed. The internal-only documents (DPIA, ROPA, breach-response plan, compliance checklist) are deliberately **not** published.
+
 ## [3.107.2] - 2026-06-24
 
 ### Fixed

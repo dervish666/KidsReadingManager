@@ -660,6 +660,11 @@ export default function LandingPage({ onSignIn }) {
                 Cookies
               </a>
             </li>
+            <li>
+              <a href="/legal" target="_blank" rel="noopener noreferrer">
+                Legal
+              </a>
+            </li>
           </ul>
         </div>
       </footer>

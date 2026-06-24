@@ -1951,6 +1951,7 @@ const Help = () => {
               { label: 'Privacy', href: '/privacy' },
               { label: 'Terms', href: '/terms' },
               { label: 'Cookies', href: '/cookies' },
+              { label: 'Legal', href: '/legal' },
             ].map((l) => (
               <Link
                 key={l.label}

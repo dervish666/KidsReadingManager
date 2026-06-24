@@ -161,6 +161,10 @@ src/components/TermsOfService.js - Terms of Service standalone page
 src/components/CookiePolicy.js - Cookie Policy standalone page
 src/components/DpaConsentModal.js - DPA consent dialog for data processing agreement
 src/components/PrivacyPolicy.js - Privacy Policy standalone page
+src/components/legal/legalDocs.js - Catalogue/manifest of legal & compliance docs (LEGAL_GROUPS, LEGAL_DOCS, getMarkdownDoc)
+src/components/legal/LegalPageShell.js - Shared chrome (back link + cream paper) for /legal pages
+src/components/legal/LegalHub.js - /legal index hub linking all legal & compliance documents
+src/components/legal/LegalDocPage.js - Renders a public/legal/*.md document at /legal/<slug> (react-markdown)
 src/components/BookRecommendations.js - AI recommendations with library search
 src/components/SupportModal.js - Support contact form modal (subject, message, email notification)
 src/components/SupportTicketManager.js - Owner-only support ticket list with detail panel, status management, internal notes
