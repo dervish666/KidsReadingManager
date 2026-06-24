@@ -34,6 +34,17 @@ export default defineConfig({
     // Minimize in production
     minify: true,
   },
+  // Icon links are injected here (not via public/index.html): the htmlPlugin
+  // hook below wipes templateContent, so the template <head> is discarded.
+  // `html` is a top-level key — `output.html` above is ignored by rsbuild.
+  html: {
+    tags: [
+      { tag: 'link', head: true, publicPath: false, attrs: { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' } },
+      { tag: 'link', head: true, publicPath: false, attrs: { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' } },
+      { tag: 'link', head: true, publicPath: false, attrs: { rel: 'manifest', href: '/manifest.json' } },
+      { tag: 'meta', head: true, attrs: { name: 'theme-color', content: '#6b4d57' } },
+    ],
+  },
   performance: {
     preload: false,
     chunkSplit: {

@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.107.2] - 2026-06-24
+
+### Fixed
+
+- **Home-screen and PWA icons now actually reach the page.** v3.107.1 made `favicon.ico` the logo, but the build pipeline (rsbuild) discards `public/index.html`'s `<head>` — its `tools.htmlPlugin` hook wipes `templateContent`, and `html` is a top-level key so the config's `output.html.template` was being ignored entirely — so the `apple-touch-icon`, web-app `manifest`, SVG-favicon and `theme-color` `<link>`/`<meta>` tags never made it into the built HTML. They're now injected via rsbuild's top-level `html.tags`. Result: iOS "Add to Home Screen" uses the Tally logo (180×180 apple-touch-icon), Android/PWA installs use the manifest icons, modern browsers get the crisp SVG favicon, and mobile browser chrome picks up the brand theme colour. Verified in the built `build/index.html` and on the live site.
+
 ## [3.107.1] - 2026-06-24
 
 ### Fixed
