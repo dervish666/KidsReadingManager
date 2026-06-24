@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.108.1] - 2026-06-24
+
+### Changed
+
+- **Removed the registered street address from all public-facing legal pages.** The Privacy Policy, Terms of Service and Data Processing Agreement no longer display the company's registered postal address; the controller/processor remains identified by company name, company number (08151576) and ICO registration (ZC098130), with contact by email. The registered office remains publicly available via Companies House. Also scrubbed from the internal `docs/` GDPR reference copies.
+
 ## [3.108.0] - 2026-06-24
 
 ### Added
@@ -21,7 +27,7 @@
 
 ### Fixed
 
-- **Registered company address corrected across all legal documents.** The privacy policy, terms of service, cookie policy, Data Processing Agreement and GDPR compliance checklist (and their rendered React pages) showed an out-of-date registered office; all now state the current Companies House address (4 Highridge Walk, Bristol, BS13 8BA). The previous address (247 Bishopsworth Road, BS13 7LH) was inconsistent with Companies House and with the school-facing data-protection paperwork.
+- **Registered company address corrected across all legal documents.** The privacy policy, terms of service, cookie policy, Data Processing Agreement and GDPR compliance checklist (and their rendered React pages) showed an out-of-date registered office; all now state the current Companies House registered office. The previous address was inconsistent with Companies House and with the school-facing data-protection paperwork.
 
 ### Changed
 

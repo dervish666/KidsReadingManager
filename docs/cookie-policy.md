@@ -34,11 +34,12 @@ website that created it.
 
 We set **one** cookie:
 
-| Name | Purpose | Duration | Type |
-|---|---|---|---|
-| `refresh_token` | Authentication. Keeps you signed in by allowing the browser to obtain a new access token without re-entering your credentials. | 7 days | Strictly necessary |
+| Name            | Purpose                                                                                                                        | Duration | Type               |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------ | -------- | ------------------ |
+| `refresh_token` | Authentication. Keeps you signed in by allowing the browser to obtain a new access token without re-entering your credentials. | 7 days   | Strictly necessary |
 
 **Technical details:**
+
 - **HttpOnly** — cannot be read by JavaScript (protects against cross-site
   scripting attacks)
 - **Secure** — transmitted only over HTTPS in production
@@ -61,20 +62,20 @@ the following purposes:
 
 ### localStorage (persists until cleared)
 
-| Key | Purpose | Category |
-|---|---|---|
-| Auth token | Stores your short-lived access token (15-minute expiry) so you remain signed in as you navigate the app. Removed on logout. | Strictly necessary |
-| User profile | Stores your name, email, and role so the app can display them without making an API call on every page. Removed on logout. | Strictly necessary |
-| Auth mode | Records whether the platform is using SSO or email/password authentication. | Strictly necessary |
-| Book covers | Caches book cover image URLs to reduce external API calls. Limited to 500 entries, auto-expires after 7 days. Contains no personal data. | Performance |
+| Key          | Purpose                                                                                                                                  | Category           |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| Auth token   | Stores your short-lived access token (15-minute expiry) so you remain signed in as you navigate the app. Removed on logout.              | Strictly necessary |
+| User profile | Stores your name, email, and role so the app can display them without making an API call on every page. Removed on logout.               | Strictly necessary |
+| Auth mode    | Records whether the platform is using SSO or email/password authentication.                                                              | Strictly necessary |
+| Book covers  | Caches book cover image URLs to reduce external API calls. Limited to 500 entries, auto-expires after 7 days. Contains no personal data. | Performance        |
 
 ### sessionStorage (cleared when you close the tab)
 
-| Key | Purpose | Category |
-|---|---|---|
-| Class filter | Remembers your selected class filter within the current session. | Functional |
+| Key                        | Purpose                                                                                                     | Category   |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------- |
+| Class filter               | Remembers your selected class filter within the current session.                                            | Functional |
 | Recently accessed students | Tracks up to 20 recently viewed student IDs for quick access. Contains IDs only, no names or personal data. | Functional |
-| Priority list state | Tracks which students you have marked or hidden from the priority list during this session. | Functional |
+| Priority list state        | Tracks which students you have marked or hidden from the priority list during this session.                 | Functional |
 
 All browser storage is cleared on logout. sessionStorage is also
 automatically cleared when the browser tab is closed.
@@ -124,6 +125,7 @@ banner. You can delete cookies at any time through your browser settings,
 but doing so will sign you out of the Service.
 
 **To delete cookies in common browsers:**
+
 - **Chrome:** Settings > Privacy and Security > Cookies > See all cookies
 - **Safari:** Preferences > Privacy > Manage Website Data
 - **Firefox:** Settings > Privacy & Security > Cookies and Site Data
@@ -143,11 +145,10 @@ the top of this page indicates when the policy was last revised.
 
 If you have any questions about our use of cookies, please contact us:
 
-| | |
-|---|---|
-| **Email** | sam@tallyreading.uk |
+|                             |                                    |
+| --------------------------- | ---------------------------------- |
+| **Email**                   | sam@tallyreading.uk                |
 | **Data Protection Officer** | Sam Castillo (sam@tallyreading.uk) |
-| **Postal address** | Scratch IT LTD, 4 Highridge Walk, Bristol, BS13 8BA |
 
 For full details of how we handle personal data, please see our
 [Privacy Policy](https://tallyreading.uk/privacy).

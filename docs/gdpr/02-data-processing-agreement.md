@@ -33,13 +33,13 @@ Effective Date: [TODO: Insert effective date]
 
 **Controller:**
 
-Name of School: ______________________________
+Name of School: **************\_\_**************
 
-Address: ______________________________
+Address: **************\_\_**************
 
-Contact Name: ______________________________
+Contact Name: **************\_\_**************
 
-Contact Email: ______________________________
+Contact Email: **************\_\_**************
 
 (hereinafter referred to as the **"Controller"** or **"School"**)
 
@@ -48,8 +48,6 @@ Contact Email: ______________________________
 Scratch IT LTD
 
 Company Registration Number: 08151576
-
-Registered Address: 4 Highridge Walk, Bristol, BS13 8BA
 
 Contact Name: Sam Castillo
 
@@ -119,21 +117,21 @@ Each a **"Party"** and together the **"Parties"**.
 
 3.1 The Processor shall process Personal Data solely for the purpose of providing the Services to the Controller, which comprise the Tally Reading student reading tracking and management platform. The nature and purpose of the processing includes, but is not limited to:
 
-   (a) **Reading progress tracking** -- recording and managing individual student reading sessions, including books read, reading levels, and session details;
+(a) **Reading progress tracking** -- recording and managing individual student reading sessions, including books read, reading levels, and session details;
 
-   (b) **Session logging** -- storing records of reading activity including dates, durations, and teacher observations;
+(b) **Session logging** -- storing records of reading activity including dates, durations, and teacher observations;
 
-   (c) **Book recommendations** -- generating personalised book suggestions based on student reading level, preferences, and reading history, which may involve the use of artificial intelligence services;
+(c) **Book recommendations** -- generating personalised book suggestions based on student reading level, preferences, and reading history, which may involve the use of artificial intelligence services;
 
-   (d) **Reporting and analytics** -- producing reports on individual and class-level reading progress, reading streaks, and attainment for use by school staff;
+(d) **Reporting and analytics** -- producing reports on individual and class-level reading progress, reading streaks, and attainment for use by school staff;
 
-   (e) **Class management** -- organising students into classes and groups, assigning teachers, and managing the school's use of the platform;
+(e) **Class management** -- organising students into classes and groups, assigning teachers, and managing the school's use of the platform;
 
-   (f) **User account management** -- creating and maintaining staff accounts for the purpose of accessing and administering the platform;
+(f) **User account management** -- creating and maintaining staff accounts for the purpose of accessing and administering the platform;
 
-   (g) **Home reading register** -- facilitating home reading tracking through class-wide status recording;
+(g) **Home reading register** -- facilitating home reading tracking through class-wide status recording;
 
-   (h) **Book library management** -- maintaining the school's book catalogue, including import, search, and organisation of books.
+(h) **Book library management** -- maintaining the school's book catalogue, including import, search, and organisation of books.
 
 3.2 The Processor shall not process Personal Data for any purpose other than those set out in this Section 3, unless required to do so by Applicable Data Protection Law, in which case the Processor shall, to the extent permitted by law, inform the Controller of that legal requirement before carrying out the processing.
 
@@ -143,9 +141,9 @@ Each a **"Party"** and together the **"Parties"**.
 
 4.1 The Personal Data processed under this Agreement relates to the following categories of Data Subjects:
 
-   (a) **Students (pupils)** -- children attending the Controller's school, typically aged between 4 and 11 years. These Data Subjects are children, and the Processor acknowledges that particular care must be taken when processing children's personal data, in accordance with Recital 38 and Article 8 of the UK GDPR.
+(a) **Students (pupils)** -- children attending the Controller's school, typically aged between 4 and 11 years. These Data Subjects are children, and the Processor acknowledges that particular care must be taken when processing children's personal data, in accordance with Recital 38 and Article 8 of the UK GDPR.
 
-   (b) **School staff** -- teachers, administrators, and other authorised personnel of the Controller who use the platform in the course of their professional duties.
+(b) **School staff** -- teachers, administrators, and other authorised personnel of the Controller who use the platform in the course of their professional duties.
 
 ---
 
@@ -153,31 +151,31 @@ Each a **"Party"** and together the **"Parties"**.
 
 5.1 The categories of Personal Data processed in relation to **students** include:
 
-   (a) First name and surname;
+(a) First name and surname;
 
-   (b) Reading level range (minimum and maximum, expressed as AR levels);
+(b) Reading level range (minimum and maximum, expressed as AR levels);
 
-   (c) Age range or year group (as implied by class assignment);
+(c) Age range or year group (as implied by class assignment);
 
-   (d) Reading preferences and interests (including genre preferences);
+(d) Reading preferences and interests (including genre preferences);
 
-   (e) Reading history (books read, session dates, session details, enjoyment ratings);
+(e) Reading history (books read, session dates, session details, enjoyment ratings);
 
-   (f) Teacher observations and notes relating to reading progress;
+(f) Teacher observations and notes relating to reading progress;
 
-   (g) Reading streak data (consecutive reading days);
+(g) Reading streak data (consecutive reading days);
 
-   (h) Class and group membership.
+(h) Class and group membership.
 
 5.2 The categories of Personal Data processed in relation to **school staff** include:
 
-   (a) First name and surname;
+(a) First name and surname;
 
-   (b) Email address;
+(b) Email address;
 
-   (c) Role within the platform (e.g., teacher, administrator);
+(c) Role within the platform (e.g., teacher, administrator);
 
-   (d) Account credentials (stored in hashed form only; the Processor does not have access to plain-text passwords).
+(d) Account credentials (stored in hashed form only; the Processor does not have access to plain-text passwords).
 
 5.3 The Processor does not knowingly collect or process special category data (as defined in Article 9 of the UK GDPR) in connection with the Services. Should the Controller or any Data Subject include special category data within free-text fields (such as teacher notes), the Controller acknowledges that it is responsible for ensuring an appropriate lawful basis for such processing.
 
@@ -227,15 +225,15 @@ The Processor shall, in relation to the processing of Personal Data under this A
 
 6.6.1 Taking into account the nature of the processing and the information available to the Processor, assist the Controller in ensuring compliance with the obligations pursuant to Articles 32 to 36 of the UK GDPR, including in particular:
 
-   (a) The obligation to implement appropriate security measures (Article 32);
+(a) The obligation to implement appropriate security measures (Article 32);
 
-   (b) The obligation to notify a Personal Data Breach to the Information Commissioner (Article 33);
+(b) The obligation to notify a Personal Data Breach to the Information Commissioner (Article 33);
 
-   (c) The obligation to communicate a Personal Data Breach to the Data Subject (Article 34);
+(c) The obligation to communicate a Personal Data Breach to the Data Subject (Article 34);
 
-   (d) The obligation to carry out a Data Protection Impact Assessment (Article 35);
+(d) The obligation to carry out a Data Protection Impact Assessment (Article 35);
 
-   (e) The obligation to consult the Information Commissioner prior to processing where a DPIA indicates that processing would result in a high risk (Article 36).
+(e) The obligation to consult the Information Commissioner prior to processing where a DPIA indicates that processing would result in a high risk (Article 36).
 
 ### 6.7 Deletion or Return of Data
 
@@ -253,15 +251,15 @@ The Processor shall, in relation to the processing of Personal Data under this A
 
 6.8.2 Allow for and contribute to audits, including inspections, conducted by the Controller or another auditor mandated by the Controller (Article 28(3)(h)). Such audits shall be subject to the following conditions:
 
-   (a) The Controller shall give the Processor reasonable prior written notice of any audit (not less than thirty (30) calendar days, except in the case of an audit required by the Information Commissioner or following a Personal Data Breach, in which case reasonable notice shall be given);
+(a) The Controller shall give the Processor reasonable prior written notice of any audit (not less than thirty (30) calendar days, except in the case of an audit required by the Information Commissioner or following a Personal Data Breach, in which case reasonable notice shall be given);
 
-   (b) Audits shall be conducted during normal business hours and shall not unreasonably interfere with the Processor's business operations;
+(b) Audits shall be conducted during normal business hours and shall not unreasonably interfere with the Processor's business operations;
 
-   (c) The Controller shall bear its own costs in connection with any audit;
+(c) The Controller shall bear its own costs in connection with any audit;
 
-   (d) The Controller's auditor shall be bound by appropriate confidentiality obligations;
+(d) The Controller's auditor shall be bound by appropriate confidentiality obligations;
 
-   (e) The Processor may satisfy audit requests by providing relevant third-party certifications, audit reports, or compliance documentation where available (such as SOC 2 reports from Sub-processors).
+(e) The Processor may satisfy audit requests by providing relevant third-party certifications, audit reports, or compliance documentation where available (such as SOC 2 reports from Sub-processors).
 
 ---
 
@@ -285,21 +283,21 @@ The Processor shall, in relation to the processing of Personal Data under this A
 
 8.1 The Processor shall not transfer Personal Data to a country outside the United Kingdom unless:
 
-   (a) The transfer is to a country, territory, sector, or international organisation that is the subject of a UK Adequacy Decision; or
+(a) The transfer is to a country, territory, sector, or international organisation that is the subject of a UK Adequacy Decision; or
 
-   (b) Appropriate safeguards are in place in accordance with Article 46 of the UK GDPR, including but not limited to the International Data Transfer Agreement (IDTA) or the UK Addendum to the EU Standard Contractual Clauses; or
+(b) Appropriate safeguards are in place in accordance with Article 46 of the UK GDPR, including but not limited to the International Data Transfer Agreement (IDTA) or the UK Addendum to the EU Standard Contractual Clauses; or
 
-   (c) A derogation under Article 49 of the UK GDPR applies; or
+(c) A derogation under Article 49 of the UK GDPR applies; or
 
-   (d) The Controller has given prior written consent to the transfer.
+(d) The Controller has given prior written consent to the transfer.
 
 8.2 Where a transfer is made in reliance on appropriate safeguards under Article 46, the Processor shall ensure that the relevant transfer mechanism is in place before the transfer occurs and shall provide a copy to the Controller upon request.
 
 8.3 The Parties acknowledge that the following international transfers take place in connection with the Services:
 
-   (a) **Cloudflare, Inc.** (United States) -- The Processor's infrastructure provider. The Tally Reading platform is hosted on Cloudflare's edge network and data storage services (including Cloudflare Workers, D1 database, KV storage, and R2 object storage). Cloudflare processes Personal Data as a Sub-processor. Data may be processed in the United States and other jurisdictions in which Cloudflare operates. Cloudflare maintains appropriate safeguards including the UK International Data Transfer Agreement (IDTA) and implements technical measures as described in its Data Processing Addendum.
+(a) **Cloudflare, Inc.** (United States) -- The Processor's infrastructure provider. The Tally Reading platform is hosted on Cloudflare's edge network and data storage services (including Cloudflare Workers, D1 database, KV storage, and R2 object storage). Cloudflare processes Personal Data as a Sub-processor. Data may be processed in the United States and other jurisdictions in which Cloudflare operates. Cloudflare maintains appropriate safeguards including the UK International Data Transfer Agreement (IDTA) and implements technical measures as described in its Data Processing Addendum.
 
-   (b) **AI Service Providers** (United States) -- Where the book recommendations feature is enabled, limited Personal Data (reading level range, genre preferences, and reading history summary, but not student names or other directly identifying information) may be transmitted to AI service providers (such as Anthropic, OpenAI, or Google) for the purpose of generating personalised book recommendations. These providers process data as Sub-processors and are listed in Schedule 2.
+(b) **AI Service Providers** (United States) -- Where the book recommendations feature is enabled, limited Personal Data (reading level range, genre preferences, and reading history summary, but not student names or other directly identifying information) may be transmitted to AI service providers (such as Anthropic, OpenAI, or Google) for the purpose of generating personalised book recommendations. These providers process data as Sub-processors and are listed in Schedule 2.
 
 8.4 The Processor shall carry out a transfer impact assessment where required by Applicable Data Protection Law and shall implement supplementary measures where necessary to ensure that the level of protection afforded to Personal Data is not undermined by the transfer.
 
@@ -323,13 +321,13 @@ The Processor shall, in relation to the processing of Personal Data under this A
 
 10.2 Such notification shall include, to the extent reasonably available at the time of notification:
 
-   (a) A description of the nature of the Personal Data Breach, including where possible the categories and approximate number of Data Subjects concerned, and the categories and approximate number of Personal Data records concerned (Article 33(3)(a));
+(a) A description of the nature of the Personal Data Breach, including where possible the categories and approximate number of Data Subjects concerned, and the categories and approximate number of Personal Data records concerned (Article 33(3)(a));
 
-   (b) The name and contact details of the Processor's data protection contact from whom further information may be obtained (Article 33(3)(b));
+(b) The name and contact details of the Processor's data protection contact from whom further information may be obtained (Article 33(3)(b));
 
-   (c) A description of the likely consequences of the Personal Data Breach (Article 33(3)(c));
+(c) A description of the likely consequences of the Personal Data Breach (Article 33(3)(c));
 
-   (d) A description of the measures taken or proposed to be taken by the Processor to address the Personal Data Breach, including, where appropriate, measures to mitigate its possible adverse effects (Article 33(3)(d)).
+(d) A description of the measures taken or proposed to be taken by the Processor to address the Personal Data Breach, including, where appropriate, measures to mitigate its possible adverse effects (Article 33(3)(d)).
 
 10.3 Where it is not possible to provide all of the information referred to in Section 10.2 at the time of the initial notification, the Processor shall provide the information in phases, without further undue delay.
 
@@ -347,11 +345,11 @@ The Processor shall, in relation to the processing of Personal Data under this A
 
 11.2 Nothing in this Agreement shall exclude or limit the liability of either Party for:
 
-   (a) Death or personal injury caused by its negligence;
+(a) Death or personal injury caused by its negligence;
 
-   (b) Fraud or fraudulent misrepresentation;
+(b) Fraud or fraudulent misrepresentation;
 
-   (c) Any other liability that cannot be excluded or limited by Applicable Data Protection Law.
+(c) Any other liability that cannot be excluded or limited by Applicable Data Protection Law.
 
 11.3 The Processor shall be liable for the damage caused by processing only where it has not complied with obligations of the UK GDPR specifically directed to processors, or where it has acted outside of or contrary to the Controller's lawful instructions, in accordance with Article 82 of the UK GDPR.
 
@@ -369,11 +367,11 @@ The Processor shall, in relation to the processing of Personal Data under this A
 
 12.3 Either Party may terminate this Agreement immediately by written notice to the other Party if:
 
-   (a) The other Party commits a material breach of this Agreement and (where such breach is capable of remedy) fails to remedy it within thirty (30) calendar days of receiving written notice to do so;
+(a) The other Party commits a material breach of this Agreement and (where such breach is capable of remedy) fails to remedy it within thirty (30) calendar days of receiving written notice to do so;
 
-   (b) The other Party is unable to comply with its obligations under this Agreement due to a change in Applicable Data Protection Law;
+(b) The other Party is unable to comply with its obligations under this Agreement due to a change in Applicable Data Protection Law;
 
-   (c) In the circumstances described in Section 7.4 (unresolved Sub-processor objection).
+(c) In the circumstances described in Section 7.4 (unresolved Sub-processor objection).
 
 12.4 The obligations of the Processor under Sections 6.2 (Confidentiality), 6.7 (Deletion or Return of Data), 6.8 (Audit and Compliance), 10 (Data Breach Notification), and 11 (Liability) shall survive the termination or expiry of this Agreement.
 
@@ -405,23 +403,23 @@ This Agreement has been entered into on the date stated above.
 
 **Signed for and on behalf of the Controller:**
 
-| | |
-|---|---|
-| Name: | ______________________________ |
-| Position: | ______________________________ |
-| School: | ______________________________ |
-| Signature: | ______________________________ |
-| Date: | ______________________________ |
+|            |                                  |
+| ---------- | -------------------------------- |
+| Name:      | **************\_\_************** |
+| Position:  | **************\_\_************** |
+| School:    | **************\_\_************** |
+| Signature: | **************\_\_************** |
+| Date:      | **************\_\_************** |
 
 **Signed for and on behalf of the Processor:**
 
-| | |
-|---|---|
-| Name: | Sam Castillo |
-| Position: | Director |
-| Organisation: | Scratch IT LTD |
-| Signature: | ______________________________ |
-| Date: | ______________________________ |
+|               |                                  |
+| ------------- | -------------------------------- |
+| Name:         | Sam Castillo                     |
+| Position:     | Director                         |
+| Organisation: | Scratch IT LTD                   |
+| Signature:    | **************\_\_************** |
+| Date:         | **************\_\_************** |
 
 ---
 
@@ -431,62 +429,62 @@ This Schedule describes the technical and organisational security measures imple
 
 ### 1. Authentication and Access Control
 
-| Measure | Description |
-|---|---|
-| Password hashing | PBKDF2 with 100,000 iterations using cryptographically secure random salts. Plain-text passwords are never stored or logged. |
-| Encryption of secrets | API keys and other secrets are encrypted at rest using AES-GCM. |
-| Role-based access control | Four-tier role hierarchy (Owner, Admin, Teacher, Readonly) with permission enforcement at the application layer. Each role is restricted to a defined set of operations. |
-| Token-based authentication | JWT access tokens (15-minute expiry) with refresh tokens (7-day expiry). Tokens are automatically rotated prior to expiry. |
-| Rate limiting | Authentication endpoints are subject to rate limiting to prevent brute-force attacks, with attempt counts stored per-user. |
+| Measure                    | Description                                                                                                                                                              |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Password hashing           | PBKDF2 with 100,000 iterations using cryptographically secure random salts. Plain-text passwords are never stored or logged.                                             |
+| Encryption of secrets      | API keys and other secrets are encrypted at rest using AES-GCM.                                                                                                          |
+| Role-based access control  | Four-tier role hierarchy (Owner, Admin, Teacher, Readonly) with permission enforcement at the application layer. Each role is restricted to a defined set of operations. |
+| Token-based authentication | JWT access tokens (15-minute expiry) with refresh tokens (7-day expiry). Tokens are automatically rotated prior to expiry.                                               |
+| Rate limiting              | Authentication endpoints are subject to rate limiting to prevent brute-force attacks, with attempt counts stored per-user.                                               |
 
 ### 2. Data Isolation and Multi-Tenancy
 
-| Measure | Description |
-|---|---|
+| Measure                     | Description                                                                                                                                                       |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Organisation-scoped queries | All database queries are scoped to the authenticated organisation, enforced by middleware. No cross-tenant data access is possible through the application layer. |
-| Tenant middleware | A dedicated middleware layer injects and enforces organisation context on every authenticated request. |
-| Soft delete | Deactivated organisations and user accounts are soft-deleted (marked inactive) rather than hard-deleted, preventing accidental data loss while allowing recovery. |
+| Tenant middleware           | A dedicated middleware layer injects and enforces organisation context on every authenticated request.                                                            |
+| Soft delete                 | Deactivated organisations and user accounts are soft-deleted (marked inactive) rather than hard-deleted, preventing accidental data loss while allowing recovery. |
 
 ### 3. Transport Security
 
-| Measure | Description |
-|---|---|
-| TLS encryption | All data in transit is encrypted using TLS 1.2 or higher, enforced by the infrastructure provider (Cloudflare). |
-| HSTS | HTTP Strict Transport Security headers are applied to all responses, preventing protocol downgrade attacks. |
+| Measure          | Description                                                                                                                                     |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| TLS encryption   | All data in transit is encrypted using TLS 1.2 or higher, enforced by the infrastructure provider (Cloudflare).                                 |
+| HSTS             | HTTP Strict Transport Security headers are applied to all responses, preventing protocol downgrade attacks.                                     |
 | Security headers | Additional security headers are applied, including Content Security Policy (CSP), X-Content-Type-Options, X-Frame-Options, and Referrer-Policy. |
 
 ### 4. Infrastructure Security
 
-| Measure | Description |
-|---|---|
-| Edge hosting | The platform is hosted on Cloudflare's global edge network, benefiting from Cloudflare's enterprise-grade DDoS protection, Web Application Firewall, and network security. |
-| Serverless architecture | The application runs on Cloudflare Workers (serverless), eliminating the need to manage or patch servers and reducing the attack surface. |
-| Database encryption | Data at rest in Cloudflare D1 is encrypted using Cloudflare's encryption at rest capabilities. |
+| Measure                 | Description                                                                                                                                                                |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Edge hosting            | The platform is hosted on Cloudflare's global edge network, benefiting from Cloudflare's enterprise-grade DDoS protection, Web Application Firewall, and network security. |
+| Serverless architecture | The application runs on Cloudflare Workers (serverless), eliminating the need to manage or patch servers and reducing the attack surface.                                  |
+| Database encryption     | Data at rest in Cloudflare D1 is encrypted using Cloudflare's encryption at rest capabilities.                                                                             |
 
 ### 5. Application Security
 
-| Measure | Description |
-|---|---|
-| Input validation | All user inputs are validated and sanitised before processing. |
-| Error handling | A global error handler sanitises all 5xx error responses to prevent leakage of internal system details. |
-| Audit logging | Administrative actions are logged for audit trail purposes, including the user, action, and timestamp. |
-| CORS policy | Cross-Origin Resource Sharing is restricted to explicitly whitelisted domains. |
+| Measure          | Description                                                                                             |
+| ---------------- | ------------------------------------------------------------------------------------------------------- |
+| Input validation | All user inputs are validated and sanitised before processing.                                          |
+| Error handling   | A global error handler sanitises all 5xx error responses to prevent leakage of internal system details. |
+| Audit logging    | Administrative actions are logged for audit trail purposes, including the user, action, and timestamp.  |
+| CORS policy      | Cross-Origin Resource Sharing is restricted to explicitly whitelisted domains.                          |
 
 ### 6. Data Minimisation
 
-| Measure | Description |
-|---|---|
-| AI recommendations | When generating book recommendations, only non-identifying data is sent to AI providers (reading level, genre preferences, and reading history summary). Student names and other directly identifying information are not transmitted. |
-| No special category data | The platform is not designed to collect or process special category data. Free-text fields are provided for teacher observations but are not intended for recording sensitive personal characteristics. |
+| Measure                  | Description                                                                                                                                                                                                                            |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AI recommendations       | When generating book recommendations, only non-identifying data is sent to AI providers (reading level, genre preferences, and reading history summary). Student names and other directly identifying information are not transmitted. |
+| No special category data | The platform is not designed to collect or process special category data. Free-text fields are provided for teacher observations but are not intended for recording sensitive personal characteristics.                                |
 
 ### 7. Organisational Measures
 
-| Measure | Description |
-|---|---|
-| Confidentiality obligations | All personnel with access to Personal Data are subject to confidentiality obligations. |
-| Access on need-to-know basis | Access to production systems and data is limited to authorised personnel who require it for the performance of their duties. |
-| Incident response | The Processor maintains an incident response procedure for identifying, containing, and reporting Personal Data Breaches. |
-| Regular review | Security measures are reviewed and updated on a regular basis to reflect changes in technology, threats, and Applicable Data Protection Law. |
+| Measure                      | Description                                                                                                                                  |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Confidentiality obligations  | All personnel with access to Personal Data are subject to confidentiality obligations.                                                       |
+| Access on need-to-know basis | Access to production systems and data is limited to authorised personnel who require it for the performance of their duties.                 |
+| Incident response            | The Processor maintains an incident response procedure for identifying, containing, and reporting Personal Data Breaches.                    |
+| Regular review               | Security measures are reviewed and updated on a regular basis to reflect changes in technology, threats, and Applicable Data Protection Law. |
 
 ---
 
@@ -494,13 +492,13 @@ This Schedule describes the technical and organisational security measures imple
 
 The following Sub-processors are approved by the Controller as at the date of this Agreement:
 
-| Sub-processor | Registered Country | Processing Activity | Data Processed | Transfer Mechanism |
-|---|---|---|---|---|
-| Cloudflare, Inc. | United States | Infrastructure hosting, content delivery, database storage (D1), key-value storage (KV), object storage (R2), edge compute (Workers) | All Personal Data processed through the platform | UK IDTA / Cloudflare DPA |
-| Anthropic, PBC | United States | AI book recommendation generation (where enabled by Controller) | Reading level, genre preferences, reading history summary (no names or directly identifying data) | UK IDTA / Anthropic DPA |
-| OpenAI, Inc. | United States | AI book recommendation generation (where enabled by Controller) | Reading level, genre preferences, reading history summary (no names or directly identifying data) | UK IDTA / OpenAI DPA |
-| Google LLC | United States | AI book recommendation generation (where enabled by Controller) | Reading level, genre preferences, reading history summary (no names or directly identifying data) | UK IDTA / Google DPA |
-| Open Library (Internet Archive) | United States | Book metadata and cover image retrieval | Book titles, authors, ISBNs (no student Personal Data) | Publicly available API; no student Personal Data transferred |
+| Sub-processor                   | Registered Country | Processing Activity                                                                                                                  | Data Processed                                                                                    | Transfer Mechanism                                           |
+| ------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Cloudflare, Inc.                | United States      | Infrastructure hosting, content delivery, database storage (D1), key-value storage (KV), object storage (R2), edge compute (Workers) | All Personal Data processed through the platform                                                  | UK IDTA / Cloudflare DPA                                     |
+| Anthropic, PBC                  | United States      | AI book recommendation generation (where enabled by Controller)                                                                      | Reading level, genre preferences, reading history summary (no names or directly identifying data) | UK IDTA / Anthropic DPA                                      |
+| OpenAI, Inc.                    | United States      | AI book recommendation generation (where enabled by Controller)                                                                      | Reading level, genre preferences, reading history summary (no names or directly identifying data) | UK IDTA / OpenAI DPA                                         |
+| Google LLC                      | United States      | AI book recommendation generation (where enabled by Controller)                                                                      | Reading level, genre preferences, reading history summary (no names or directly identifying data) | UK IDTA / Google DPA                                         |
+| Open Library (Internet Archive) | United States      | Book metadata and cover image retrieval                                                                                              | Book titles, authors, ISBNs (no student Personal Data)                                            | Publicly available API; no student Personal Data transferred |
 
 **Notes:**
 

@@ -19,8 +19,7 @@
 These Terms of Service ("Terms") govern your access to and use of the Tally
 Reading platform ("Tally", "the Service"), operated by Scratch IT LTD
 ("we", "us", "our"), a company registered in England and Wales
-(company number 08151576), with registered address at 4 Highridge Walk,
-Bristol, BS13 8BA.
+(company number 08151576).
 
 By accessing or using the Service, you agree to be bound by these Terms. If
 you are entering into these Terms on behalf of a school or organisation, you
@@ -311,9 +310,8 @@ waiver of that provision.
 
 If you have any questions about these Terms, please contact us:
 
-| | |
-|---|---|
-| **Email** | sam@tallyreading.uk |
+|                             |                                    |
+| --------------------------- | ---------------------------------- |
+| **Email**                   | sam@tallyreading.uk                |
 | **Data Protection Officer** | Sam Castillo (sam@tallyreading.uk) |
-| **Postal address** | Scratch IT LTD, 4 Highridge Walk, Bristol, BS13 8BA |
-| **ICO registration** | ZC098130 |
+| **ICO registration**        | ZC098130                           |

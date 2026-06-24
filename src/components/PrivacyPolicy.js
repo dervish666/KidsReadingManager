@@ -243,7 +243,6 @@ const PrivacyPolicy = () => {
               ],
               [<strong>Company name</strong>, 'Scratch IT LTD'],
               [<strong>Company number</strong>, '08151576'],
-              [<strong>Registered address</strong>, '4 Highridge Walk, Bristol, BS13 8BA'],
               [
                 <strong>Data Protection Officer</strong>,
                 <span>
@@ -1366,7 +1365,6 @@ const PrivacyPolicy = () => {
                   privacy@tallyreading.uk
                 </Link>,
               ],
-              [<strong>Post</strong>, 'Scratch IT LTD, 4 Highridge Walk, Bristol, BS13 8BA'],
               [
                 <strong>Data Protection Lead</strong>,
                 <span>

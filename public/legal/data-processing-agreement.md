@@ -49,8 +49,6 @@ Scratch IT LTD
 
 Company Registration Number: 08151576
 
-Registered Address: 4 Highridge Walk, Bristol, BS13 8BA
-
 Contact Name: Sam Castillo
 
 Contact Email: privacy@tallyreading.uk

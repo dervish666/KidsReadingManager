@@ -36,22 +36,21 @@ schools until all items in this section are complete.
 ### Registration and Governance
 
 - [x] **Register with the ICO as a data processor.**
-  **COMPLETED 2026-03-01:** ICO registration number ZC098130. Updated across
-  all GDPR documents (privacy policy, DPIA, ROPA).
+      **COMPLETED 2026-03-01:** ICO registration number ZC098130. Updated across
+      all GDPR documents (privacy policy, DPIA, ROPA).
 
 - [x] **Obtain company details for all GDPR document placeholders.**
-  **COMPLETED 2026-02-25:** Scratch IT LTD (08151576), 4 Highridge
-  Walk, Bristol, BS13 8BA. Updated across all GDPR documents.
+      **COMPLETED 2026-02-25:** Scratch IT LTD (company 08151576). Updated across all GDPR documents.
 
 - [x] **Appoint a Data Protection Officer (DPO) or document why one is not
-  required.** **COMPLETED 2026-02-25:** DPO not formally required under
-  Article 37 — Scratch IT LTD does not carry out large-scale systematic
-  monitoring or large-scale processing of special category data as a core
-  activity. Sam Castillo appointed as named Data Protection Lead and
-  privacy contact. Documented across all GDPR documents.
+      required.** **COMPLETED 2026-02-25:** DPO not formally required under
+      Article 37 — Scratch IT LTD does not carry out large-scale systematic
+      monitoring or large-scale processing of special category data as a core
+      activity. Sam Castillo appointed as named Data Protection Lead and
+      privacy contact. Documented across all GDPR documents.
 
 - [ ] **Get legal review of Privacy Policy and DPA template.** Commission
-  a qualified UK data protection solicitor to review:
+      a qualified UK data protection solicitor to review:
   - `docs/gdpr/01-privacy-policy.md`
   - DPA template (once drafted)
   - This compliance checklist (for completeness)
@@ -60,19 +59,19 @@ schools until all items in this section are complete.
 ### Application Integration
 
 - [ ] **Add privacy policy link to the application login page.** The login
-  form and registration form should include a visible link to the published
-  privacy policy (e.g., "By logging in, you agree to our
-  [Privacy Policy](https://tallyreading.uk/privacy)").
+      form and registration form should include a visible link to the published
+      privacy policy (e.g., "By logging in, you agree to our
+      [Privacy Policy](https://tallyreading.uk/privacy)").
 
 - [ ] **Add privacy policy link to the application footer.** All pages of
-  the application should include a footer link to the privacy policy.
+      the application should include a footer link to the privacy policy.
 
 - [ ] **Implement cookie/storage consent mechanism (if required).** The
-  current assessment (see `docs/gdpr/01-privacy-policy.md`, Section 9.4)
-  concludes that all client-side storage is strictly necessary under PECR
-  and no consent banner is required. Confirm this assessment with legal
-  counsel. If analytics or non-essential tracking is added in future, a
-  consent mechanism will be required.
+      current assessment (see `docs/gdpr/01-privacy-policy.md`, Section 9.4)
+      concludes that all client-side storage is strictly necessary under PECR
+      and no consent banner is required. Confirm this assessment with legal
+      counsel. If analytics or non-essential tracking is added in future, a
+      consent mechanism will be required.
 
 ---
 
@@ -84,11 +83,11 @@ the relevant source file(s).
 ### Data Minimisation
 
 - [x] **Remove student names from AI recommendation prompts.** ~~Currently,
-  the student's name is included in prompts sent to AI providers
-  (Anthropic, OpenAI, Google Gemini).~~ **COMPLETED 2026-02-25:** Removed
-  all student name references from AI prompts in `src/services/aiService.js`.
-  Student names are no longer sent to any AI provider. Replaced with
-  "this student" in task descriptions and reason instructions.
+      the student's name is included in prompts sent to AI providers
+      (Anthropic, OpenAI, Google Gemini).~~ **COMPLETED 2026-02-25:** Removed
+      all student name references from AI prompts in `src/services/aiService.js`.
+      Student names are no longer sent to any AI provider. Replaced with
+      "this student" in task descriptions and reason instructions.
 
   After deployment, update `docs/gdpr/08-sub-processor-register.md`
   (Section 3.2) to confirm that no directly identifying data is sent to
@@ -97,8 +96,8 @@ the relevant source file(s).
 ### Right to Erasure (Article 17)
 
 - [ ] **Implement hard delete for student data.** Currently, there is no
-  mechanism to permanently delete a student and all associated records.
-  Schools need this to comply with erasure requests from parents.
+      mechanism to permanently delete a student and all associated records.
+      Schools need this to comply with erasure requests from parents.
 
   Tables requiring cascading hard delete when a student is deleted:
   - `students` (the student record itself)
@@ -112,8 +111,8 @@ the relevant source file(s).
   deleting students with many sessions.
 
 - [ ] **Implement hard delete for user data.** Currently, users are
-  soft-deleted (`is_active = 0`). Schools and individual users may
-  request permanent erasure.
+      soft-deleted (`is_active = 0`). Schools and individual users may
+      request permanent erasure.
 
   Tables requiring cleanup when a user is hard-deleted:
   - `users` (the user record)
@@ -129,9 +128,9 @@ the relevant source file(s).
 ### Data Subject Access Requests
 
 - [ ] **Add data export endpoint for Subject Access Requests (SARs).**
-  Schools (as controllers) may receive SARs from parents or staff and
-  will need Tally (as processor) to provide a complete export of all
-  data held about the data subject.
+      Schools (as controllers) may receive SARs from parents or staff and
+      will need Tally (as processor) to provide a complete export of all
+      data held about the data subject.
 
   Implement:
   - `GET /api/admin/export/student/:id` -- returns all data held about
@@ -142,7 +141,7 @@ the relevant source file(s).
     (where the user is the actor), any sessions they recorded
 
   Require admin role. Return as JSON with a `Content-Disposition:
-  attachment` header for download.
+attachment` header for download.
 
 ### Automated Cleanup Jobs
 
@@ -150,44 +149,44 @@ All cleanup jobs should be added to the existing scheduled handler in
 `src/worker.js` (the daily cron trigger at 02:00 UTC, line 309).
 
 - [x] **Add automated cleanup for expired refresh tokens.**
-  **COMPLETED 2026-02-25:** Added to daily cron handler in `src/worker.js`.
-  Deletes expired and revoked refresh tokens. Logs count of deleted records.
+      **COMPLETED 2026-02-25:** Added to daily cron handler in `src/worker.js`.
+      Deletes expired and revoked refresh tokens. Logs count of deleted records.
 
 - [x] **Add automated cleanup for expired/used password reset tokens.**
-  **COMPLETED 2026-02-25:** Added to daily cron handler in `src/worker.js`.
-  Deletes expired and used password reset tokens. Logs count of deleted records.
+      **COMPLETED 2026-02-25:** Added to daily cron handler in `src/worker.js`.
+      Deletes expired and used password reset tokens. Logs count of deleted records.
 
 - [x] **Add automated cleanup for old login attempt records.**
-  **COMPLETED 2026-02-25:** Added to daily cron handler in `src/worker.js`.
-  Deletes login attempts older than 30 days. Logs count of deleted records.
+      **COMPLETED 2026-02-25:** Added to daily cron handler in `src/worker.js`.
+      Deletes login attempts older than 30 days. Logs count of deleted records.
 
 - [x] **Add IP address anonymisation for old audit log entries.**
-  **COMPLETED 2026-02-25:** Added to daily cron handler in `src/worker.js`.
-  Anonymises IP addresses and user-agents in audit log entries older than
-  90 days. Preserves the audit trail while removing personal data.
+      **COMPLETED 2026-02-25:** Added to daily cron handler in `src/worker.js`.
+      Anonymises IP addresses and user-agents in audit log entries older than
+      90 days. Preserves the audit trail while removing personal data.
 
 ### Data Storage
 
 - [ ] **Add R2 lifecycle rules for book cover cache.** Configure a 90-day
-  expiry on the `book-covers` R2 bucket to prevent unbounded storage
-  growth. While book covers are not personal data, this is good practice.
-  Check Cloudflare dashboard for R2 object lifecycle configuration.
+      expiry on the `book-covers` R2 bucket to prevent unbounded storage
+      growth. While book covers are not personal data, this is good practice.
+      Check Cloudflare dashboard for R2 object lifecycle configuration.
 
 - [ ] **Ensure all D1 batch operations respect the 100-statement limit
-  during bulk deletions.** When implementing hard delete for students
-  with many reading sessions, chunk DELETE operations into batches of
-  100 statements per `db.batch()` call. See the existing pattern in
-  `src/routes/books.js` for reference.
+      during bulk deletions.** When implementing hard delete for students
+      with many reading sessions, chunk DELETE operations into batches of
+      100 statements per `db.batch()` call. See the existing pattern in
+      `src/routes/books.js` for reference.
 
 ### Right to Restriction (Article 18)
 
 - [ ] **Consider adding a `processing_restricted` flag to the `students`
-  table.** When a school or parent invokes the Right to Restriction,
-  the student's data must be stored but not actively processed (e.g.,
-  excluded from AI recommendations, excluded from streak calculations,
-  read-only in the UI). A boolean column on the students table, enforced
-  in query logic, would support this. Assess whether this is needed
-  before launch or can be deferred.
+      table.** When a school or parent invokes the Right to Restriction,
+      the student's data must be stored but not actively processed (e.g.,
+      excluded from AI recommendations, excluded from streak calculations,
+      read-only in the UI). A boolean column on the students table, enforced
+      in query logic, would support this. Assess whether this is needed
+      before launch or can be deferred.
 
 ---
 
@@ -196,30 +195,30 @@ All cleanup jobs should be added to the existing scheduled handler in
 ### Cloudflare Configuration
 
 - [ ] **Configure Cloudflare D1 for EU/UK jurisdiction.** Check the
-  Cloudflare dashboard for D1 database location settings. If available,
-  configure the `reading-manager-db` database to use EU/UK jurisdiction.
-  Document the result in `docs/gdpr/08-sub-processor-register.md`
-  (Section 3.1).
+      Cloudflare dashboard for D1 database location settings. If available,
+      configure the `reading-manager-db` database to use EU/UK jurisdiction.
+      Document the result in `docs/gdpr/08-sub-processor-register.md`
+      (Section 3.1).
 
 - [ ] **Set up the Cloudflare DPA.** Download and review the Cloudflare
-  Customer DPA from https://www.cloudflare.com/cloudflare-customer-dpa/.
-  Sign and retain a copy. Record completion in
-  `docs/gdpr/08-sub-processor-register.md`.
+      Customer DPA from https://www.cloudflare.com/cloudflare-customer-dpa/.
+      Sign and retain a copy. Record completion in
+      `docs/gdpr/08-sub-processor-register.md`.
 
 - [ ] **Review Cloudflare's current sub-processor list.** Available at
-  https://www.cloudflare.com/cloudflare-sub-processors/. Document any
-  sub-processors that process personal data on Tally's behalf (beyond
-  Cloudflare itself).
+      https://www.cloudflare.com/cloudflare-sub-processors/. Document any
+      sub-processors that process personal data on Tally's behalf (beyond
+      Cloudflare itself).
 
 - [ ] **Enable Cloudflare audit logs for Worker access.** Check whether
-  your Cloudflare plan includes audit logs for Worker deployments and
-  configuration changes. If available, enable them.
+      your Cloudflare plan includes audit logs for Worker deployments and
+      configuration changes. If available, enable them.
 
 ### Email Provider
 
 - [x] **Set up DPA with email provider.** **COMPLETED 2026-02-25:**
-  Confirmed using Cloudflare Email Routing only — covered by the
-  Cloudflare DPA. No separate email provider DPA required.
+      Confirmed using Cloudflare Email Routing only — covered by the
+      Cloudflare DPA. No separate email provider DPA required.
 
 ---
 
@@ -228,8 +227,8 @@ All cleanup jobs should be added to the existing scheduled handler in
 ### Agreements and Templates
 
 - [ ] **Finalise the DPA template with legal counsel.** The DPA governs
-  the relationship between Tally (processor) and each school
-  (controller). It must comply with Article 28 of UK GDPR and include:
+      the relationship between Tally (processor) and each school
+      (controller). It must comply with Article 28 of UK GDPR and include:
   - Subject matter and duration of processing
   - Nature and purpose of processing
   - Types of personal data and categories of data subjects
@@ -241,12 +240,12 @@ All cleanup jobs should be added to the existing scheduled handler in
   - Audit rights
 
 - [ ] **Create standard terms of service.** Separate from the DPA, these
-  govern the commercial relationship (pricing, payment terms, liability,
-  termination). The current pricing is GBP 100/month per school with a
-  one-month free trial.
+      govern the commercial relationship (pricing, payment terms, liability,
+      termination). The current pricing is GBP 100/month per school with a
+      one-month free trial.
 
 - [ ] **Document the school onboarding process for GDPR compliance.**
-  Create a step-by-step internal process document covering:
+      Create a step-by-step internal process document covering:
   1. School signs up for free trial
   2. School receives and signs DPA (before entering any pupil data)
   3. School admin configures organisation settings
@@ -254,8 +253,8 @@ All cleanup jobs should be added to the existing scheduled handler in
   5. School optionally configures AI features (with BYOK guidance)
 
 - [ ] **Prepare a "Security and Compliance" one-pager for school
-  procurement teams.** Many schools require a summary document for their
-  governors or local authority procurement review. Include:
+      procurement teams.** Many schools require a summary document for their
+      governors or local authority procurement review. Include:
   - Data hosting location
   - Encryption standards
   - Access controls
@@ -265,11 +264,11 @@ All cleanup jobs should be added to the existing scheduled handler in
   - Sub-processor summary
 
 - [ ] **If pursuing MIS integrations (Bromcom/Wonde): prepare additional
-  DPA addendums for student data import.** Importing pupil data from a
-  Management Information System introduces additional processing
-  activities (syncing names, classes, demographics). The DPA should
-  cover these activities, and the school must authorise the MIS
-  integration.
+      DPA addendums for student data import.** Importing pupil data from a
+      Management Information System introduces additional processing
+      activities (syncing names, classes, demographics). The DPA should
+      cover these activities, and the school must authorise the MIS
+      integration.
 
 ---
 
@@ -280,49 +279,49 @@ These items require recurring attention. Set calendar reminders.
 ### Annual Reviews
 
 - [ ] **Set annual calendar reminder: review all GDPR documentation.**
-  Review all documents in `docs/gdpr/` for accuracy against the current
-  codebase and infrastructure. Update as needed. Next review due:
-  February 2027.
+      Review all documents in `docs/gdpr/` for accuracy against the current
+      codebase and infrastructure. Update as needed. Next review due:
+      February 2027.
 
 - [ ] **Set annual calendar reminder: review and update DPIA.** If a Data
-  Protection Impact Assessment has been conducted, review it annually
-  or whenever processing activities change materially.
+      Protection Impact Assessment has been conducted, review it annually
+      or whenever processing activities change materially.
 
 - [ ] **Set annual calendar reminder: breach response plan tabletop
-  exercise.** Walk through a simulated data breach scenario to test the
-  response process. Document findings and improvements.
+      exercise.** Walk through a simulated data breach scenario to test the
+      response process. Document findings and improvements.
 
 - [ ] **Set annual calendar reminder: review sub-processor register.**
-  Verify all sub-processors in `docs/gdpr/08-sub-processor-register.md`
-  are current. Check for new Cloudflare sub-processors. Verify DPA
-  status for each.
+      Verify all sub-processors in `docs/gdpr/08-sub-processor-register.md`
+      are current. Check for new Cloudflare sub-processors. Verify DPA
+      status for each.
 
 ### Monitoring
 
 - [ ] **Monitor ICO guidance updates for EdTech and children's data.**
-  The ICO periodically issues guidance relevant to educational
-  technology providers and processors of children's data. Subscribe to
-  ICO updates at https://ico.org.uk/about-the-ico/media-centre/.
+      The ICO periodically issues guidance relevant to educational
+      technology providers and processors of children's data. Subscribe to
+      ICO updates at https://ico.org.uk/about-the-ico/media-centre/.
 
 - [ ] **Keep the breach register up to date.** Maintain a register of all
-  personal data breaches, including those that do not meet the threshold
-  for ICO notification (Article 33(5)). Record: date discovered, nature
-  of breach, data subjects affected, likely consequences, measures taken.
+      personal data breaches, including those that do not meet the threshold
+      for ICO notification (Article 33(5)). Record: date discovered, nature
+      of breach, data subjects affected, likely consequences, measures taken.
 
 - [ ] **Review the ICO Age Appropriate Design Code (Children's Code) for
-  applicability.** Although children do not directly interact with Tally,
-  the platform processes their personal data. Review all 15 standards
-  and document compliance or non-applicability for each.
-  See: https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/childrens-information/childrens-code-guidance-and-resources/.
+      applicability.** Although children do not directly interact with Tally,
+      the platform processes their personal data. Review all 15 standards
+      and document compliance or non-applicability for each.
+      See: https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/childrens-information/childrens-code-guidance-and-resources/.
 
 ### Certification
 
 - [ ] **Consider Cyber Essentials certification.** Cost: approximately
-  GBP 320/year for self-assessment. Many UK schools require or prefer
-  suppliers with Cyber Essentials certification. The serverless
-  architecture simplifies compliance (no servers to patch, no network
-  perimeter to manage). Apply at
-  https://www.ncsc.gov.uk/cyberessentials/overview.
+      GBP 320/year for self-assessment. Many UK schools require or prefer
+      suppliers with Cyber Essentials certification. The serverless
+      architecture simplifies compliance (no servers to patch, no network
+      perimeter to manage). Apply at
+      https://www.ncsc.gov.uk/cyberessentials/overview.
 
 ---
 
@@ -335,36 +334,36 @@ platform scales.
 ### Automation and Tooling
 
 - [ ] **Implement automated data retention enforcement.** Build the
-  cleanup jobs described in the CODE CHANGES section into a robust
-  scheduled task framework with logging, error handling, and monitoring.
+      cleanup jobs described in the CODE CHANGES section into a robust
+      scheduled task framework with logging, error handling, and monitoring.
 
 - [ ] **Add a GDPR-related admin dashboard.** Provide admin users with
-  a view that includes:
+      a view that includes:
   - Data subject request log (SARs received, status, response date)
   - Breach register (internal log of any incidents)
   - Consent status for AI features (which schools have opted in)
   - Data retention statistics (record counts, oldest records)
 
 - [ ] **Implement consent management for AI features.** Currently,
-  enabling AI is a school-level setting. Consider adding per-student
-  opt-in/opt-out to give schools finer-grained control (e.g., a parent
-  requests their child's data not be sent to AI providers).
+      enabling AI is a school-level setting. Consider adding per-student
+      opt-in/opt-out to give schools finer-grained control (e.g., a parent
+      requests their child's data not be sent to AI providers).
 
 - [ ] **Add data portability export in a standard format.** Currently,
-  schools can export data via CSV. Consider supporting a standard
-  educational data format (e.g., Common Education Data Standards, SIF UK)
-  for interoperability with other school systems.
+      schools can export data via CSV. Consider supporting a standard
+      educational data format (e.g., Common Education Data Standards, SIF UK)
+      for interoperability with other school systems.
 
 - [ ] **Implement automated breach detection.** Monitor audit logs for
-  anomalous patterns that might indicate unauthorised access:
+      anomalous patterns that might indicate unauthorised access:
   - Multiple failed login attempts from the same IP
   - Access from unusual IP ranges or countries
   - Bulk data exports outside normal usage patterns
   - Rapid role escalation attempts
 
 - [ ] **Consider ISO 27001 certification.** For larger school contracts
-  and multi-academy trust procurement, ISO 27001 certification may be
-  required or advantageous. This is a significant investment but
-  demonstrates security maturity.
+      and multi-academy trust procurement, ISO 27001 certification may be
+      required or advantageous. This is a significant investment but
+      demonstrates security maturity.
 
 ---

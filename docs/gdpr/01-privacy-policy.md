@@ -21,15 +21,14 @@ management platform designed for UK primary schools. Schools use Tally to
 track pupil reading progress, manage book libraries, and optionally generate
 AI-powered book recommendations.
 
-| Detail | Value |
-|---|---|
-| **Product name** | Tally (trading as Tally Reading) |
-| **Website** | https://tallyreading.uk |
-| **Company name** | Scratch IT LTD |
-| **Company number** | 08151576 |
-| **Registered address** | 4 Highridge Walk, Bristol, BS13 8BA |
+| Detail                      | Value                              |
+| --------------------------- | ---------------------------------- |
+| **Product name**            | Tally (trading as Tally Reading)   |
+| **Website**                 | https://tallyreading.uk            |
+| **Company name**            | Scratch IT LTD                     |
+| **Company number**          | 08151576                           |
 | **Data Protection Officer** | Sam Castillo (sam@tallyreading.uk) |
-| **ICO registration number** | ZC098130 |
+| **ICO registration number** | ZC098130                           |
 
 ### Controller and processor roles
 
@@ -55,15 +54,15 @@ your relationship with Tally.
 
 Schools enter the following data about their pupils into the platform:
 
-| Category | Data fields |
-|---|---|
-| **Identity** | First name, surname (or combined display name as entered by the school) |
-| **Reading profile** | Minimum and maximum reading level (Accelerated Reader levels 1.0 to 13.0), age range |
-| **Preferences** | Likes and dislikes (free-text lists), favourite genre preferences |
+| Category             | Data fields                                                                                                                                 |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Identity**         | First name, surname (or combined display name as entered by the school)                                                                     |
+| **Reading profile**  | Minimum and maximum reading level (Accelerated Reader levels 1.0 to 13.0), age range                                                        |
+| **Preferences**      | Likes and dislikes (free-text lists), favourite genre preferences                                                                           |
 | **Reading sessions** | Date, duration, number of pages read, location (school or home), teacher assessment notes (free text), enjoyment rating (1 to 5), book read |
-| **Progress data** | Current book, reading streak (current and longest), streak start date |
-| **Teacher notes** | Free-text observations recorded by the teacher |
-| **Class membership** | Assignment to one or more classes within the school |
+| **Progress data**    | Current book, reading streak (current and longest), streak start date                                                                       |
+| **Teacher notes**    | Free-text observations recorded by the teacher                                                                                              |
+| **Class membership** | Assignment to one or more classes within the school                                                                                         |
 
 **Important:** Tally does not knowingly collect pupil email addresses, dates
 of birth, home addresses, or photographs. Schools are responsible for
@@ -72,21 +71,21 @@ do not contain inappropriate or excessive personal data.
 
 ### 2.2 Staff user data (teachers, administrators)
 
-| Category | Data fields |
-|---|---|
-| **Identity** | Full name |
-| **Contact** | Email address |
-| **Authentication** | Password (stored as a salted hash using PBKDF2 with 100,000 iterations; the plaintext password is never stored or logged) |
-| **Role and organisation** | Assigned role (owner, admin, teacher, or read-only), school/organisation membership |
-| **Activity** | Login timestamps, last-active timestamps |
+| Category                  | Data fields                                                                                                               |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **Identity**              | Full name                                                                                                                 |
+| **Contact**               | Email address                                                                                                             |
+| **Authentication**        | Password (stored as a salted hash using PBKDF2 with 100,000 iterations; the plaintext password is never stored or logged) |
+| **Role and organisation** | Assigned role (owner, admin, teacher, or read-only), school/organisation membership                                       |
+| **Activity**              | Login timestamps, last-active timestamps                                                                                  |
 
 ### 2.3 Technical and security data
 
-| Category | Data fields |
-|---|---|
-| **Audit logs** | IP address (derived from the `cf-connecting-ip` header provided by Cloudflare), user-agent string, action performed, entity affected, timestamp |
-| **Rate-limiting records** | Hashed identifier, endpoint, timestamp (used to prevent brute-force attacks on authentication endpoints) |
-| **Request logs** | Standard HTTP request metadata processed by Cloudflare in the course of delivering the service |
+| Category                  | Data fields                                                                                                                                     |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Audit logs**            | IP address (derived from the `cf-connecting-ip` header provided by Cloudflare), user-agent string, action performed, entity affected, timestamp |
+| **Rate-limiting records** | Hashed identifier, endpoint, timestamp (used to prevent brute-force attacks on authentication endpoints)                                        |
+| **Request logs**          | Standard HTTP request metadata processed by Cloudflare in the course of delivering the service                                                  |
 
 ### 2.4 Data we do NOT collect
 
@@ -105,16 +104,16 @@ do not contain inappropriate or excessive personal data.
 UK GDPR requires that every processing activity has a lawful basis. The
 table below sets out the lawful basis we rely on for each purpose.
 
-| Purpose | Data used | Lawful basis | Notes |
-|---|---|---|---|
-| Providing the reading management service to schools | Pupil data, staff user data | **Article 6(1)(b) -- Contract** | Processing is necessary to perform the contract between Tally and the subscribing school. |
-| User authentication and session management | Email, password hash, authentication tokens | **Article 6(1)(b) -- Contract** | Necessary to provide secure access to the service. |
-| AI-powered book recommendations (optional) | Pupil reading level, preferences, likes/dislikes, books read, genre preferences | **Article 6(1)(b) -- Contract** with **Article 6(1)(a) -- Consent** as a secondary basis at the school level | Schools actively opt in by configuring their own AI API keys. Individual recommendations are triggered by teacher action. See Section 5.2 for details. |
-| Audit logging and security monitoring | IP address, user-agent, action details | **Article 6(1)(f) -- Legitimate interests** | Our legitimate interest in maintaining the security and integrity of the platform and detecting unauthorised access. |
-| Rate limiting on authentication endpoints | Hashed IP/identifier, timestamp | **Article 6(1)(f) -- Legitimate interests** | Our legitimate interest in preventing brute-force attacks. |
-| Sending password-reset and welcome emails | Email address | **Article 6(1)(b) -- Contract** | Necessary to operate the account system. |
-| Calculating and displaying reading streaks | Reading session dates | **Article 6(1)(b) -- Contract** | Core product feature for tracking reading progress. |
-| Platform improvement and bug fixing | Aggregated, anonymised usage patterns | **Article 6(1)(f) -- Legitimate interests** | We do not use identifiable personal data for this purpose. |
+| Purpose                                             | Data used                                                                       | Lawful basis                                                                                                 | Notes                                                                                                                                                  |
+| --------------------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Providing the reading management service to schools | Pupil data, staff user data                                                     | **Article 6(1)(b) -- Contract**                                                                              | Processing is necessary to perform the contract between Tally and the subscribing school.                                                              |
+| User authentication and session management          | Email, password hash, authentication tokens                                     | **Article 6(1)(b) -- Contract**                                                                              | Necessary to provide secure access to the service.                                                                                                     |
+| AI-powered book recommendations (optional)          | Pupil reading level, preferences, likes/dislikes, books read, genre preferences | **Article 6(1)(b) -- Contract** with **Article 6(1)(a) -- Consent** as a secondary basis at the school level | Schools actively opt in by configuring their own AI API keys. Individual recommendations are triggered by teacher action. See Section 5.2 for details. |
+| Audit logging and security monitoring               | IP address, user-agent, action details                                          | **Article 6(1)(f) -- Legitimate interests**                                                                  | Our legitimate interest in maintaining the security and integrity of the platform and detecting unauthorised access.                                   |
+| Rate limiting on authentication endpoints           | Hashed IP/identifier, timestamp                                                 | **Article 6(1)(f) -- Legitimate interests**                                                                  | Our legitimate interest in preventing brute-force attacks.                                                                                             |
+| Sending password-reset and welcome emails           | Email address                                                                   | **Article 6(1)(b) -- Contract**                                                                              | Necessary to operate the account system.                                                                                                               |
+| Calculating and displaying reading streaks          | Reading session dates                                                           | **Article 6(1)(b) -- Contract**                                                                              | Core product feature for tracking reading progress.                                                                                                    |
+| Platform improvement and bug fixing                 | Aggregated, anonymised usage patterns                                           | **Article 6(1)(f) -- Legitimate interests**                                                                  | We do not use identifiable personal data for this purpose.                                                                                             |
 
 Where we rely on legitimate interests (Article 6(1)(f)), we have conducted a
 Legitimate Interests Assessment (LIA) and concluded that the processing is
@@ -174,69 +173,69 @@ the extent necessary for the stated purpose.
 
 ### 5.1 Infrastructure provider -- Cloudflare, Inc.
 
-| Detail | Value |
-|---|---|
-| **Provider** | Cloudflare, Inc. (US-headquartered, with UK/EU data regions available) |
-| **Services used** | Workers (serverless compute), D1 (SQL database), KV (key-value storage), R2 (object storage), CDN, DNS, email routing |
-| **Data shared** | All data processed by the platform passes through Cloudflare infrastructure |
-| **Safeguards** | Cloudflare is certified under ISO 27001 and SOC 2 Type II. For international transfer safeguards, see Section 6. |
-| **Data region** | D1 database located in Western Europe (Germany) with `location_hint=weur` and replication off. Workers compute and CDN operate globally. Cloudflare DPA v6.3 covers international transfers (EU SCCs + UK IDTA). Cloudflare is certified under the EU-US Data Privacy Framework + UK Extension. |
+| Detail            | Value                                                                                                                                                                                                                                                                                           |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Provider**      | Cloudflare, Inc. (US-headquartered, with UK/EU data regions available)                                                                                                                                                                                                                          |
+| **Services used** | Workers (serverless compute), D1 (SQL database), KV (key-value storage), R2 (object storage), CDN, DNS, email routing                                                                                                                                                                           |
+| **Data shared**   | All data processed by the platform passes through Cloudflare infrastructure                                                                                                                                                                                                                     |
+| **Safeguards**    | Cloudflare is certified under ISO 27001 and SOC 2 Type II. For international transfer safeguards, see Section 6.                                                                                                                                                                                |
+| **Data region**   | D1 database located in Western Europe (Germany) with `location_hint=weur` and replication off. Workers compute and CDN operate globally. Cloudflare DPA v6.3 covers international transfers (EU SCCs + UK IDTA). Cloudflare is certified under the EU-US Data Privacy Framework + UK Extension. |
 
 ### 5.2 AI recommendation providers (optional, school-controlled)
 
-| Detail | Value |
-|---|---|
-| **Providers** | Anthropic (Claude), OpenAI, Google (Gemini) -- at the school's choice |
-| **Activation** | Schools must actively opt in by providing their own API key (BYOK model). The feature is disabled by default. |
+| Detail          | Value                                                                                                                                                                                              |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Providers**   | Anthropic (Claude), OpenAI, Google (Gemini) -- at the school's choice                                                                                                                              |
+| **Activation**  | Schools must actively opt in by providing their own API key (BYOK model). The feature is disabled by default.                                                                                      |
 | **Data shared** | Pupil reading level, favourite genres, likes/dislikes, and a list of books previously read (title, author, genre). **No directly identifying pupil data (such as names) is sent to AI providers.** |
-| **Purpose** | Generating personalised book recommendations for the teacher to review |
-| **Safeguards** | Each school controls whether to enable this feature and which provider to use. Schools provide their own API keys and are bound by their own agreements with the chosen AI provider. |
+| **Purpose**     | Generating personalised book recommendations for the teacher to review                                                                                                                             |
+| **Safeguards**  | Each school controls whether to enable this feature and which provider to use. Schools provide their own API keys and are bound by their own agreements with the chosen AI provider.               |
 
-*Updated 2026-02-25: Student names have been removed from all AI prompts.
-Only pseudonymised reading profile data is now sent to AI providers.*
+_Updated 2026-02-25: Student names have been removed from all AI prompts.
+Only pseudonymised reading profile data is now sent to AI providers._
 
 ### 5.3 OpenLibrary (Internet Archive)
 
-| Detail | Value |
-|---|---|
-| **Provider** | OpenLibrary / Internet Archive |
-| **Data shared** | Book metadata only (ISBN, title, author). **No personal data is sent.** |
-| **Purpose** | Looking up book cover images and supplementary book metadata (page count, publication year) |
+| Detail          | Value                                                                                       |
+| --------------- | ------------------------------------------------------------------------------------------- |
+| **Provider**    | OpenLibrary / Internet Archive                                                              |
+| **Data shared** | Book metadata only (ISBN, title, author). **No personal data is sent.**                     |
+| **Purpose**     | Looking up book cover images and supplementary book metadata (page count, publication year) |
 
 ### 5.4 Email provider
 
-| Detail | Value |
-|---|---|
-| **Provider** | Cloudflare Email Routing (covered under Cloudflare DPA) |
-| **Data shared** | Staff user email addresses and email content (password-reset links, welcome messages) |
-| **Purpose** | Transactional emails only (password resets, account invitations). No marketing emails are sent. |
+| Detail          | Value                                                                                           |
+| --------------- | ----------------------------------------------------------------------------------------------- |
+| **Provider**    | Cloudflare Email Routing (covered under Cloudflare DPA)                                         |
+| **Data shared** | Staff user email addresses and email content (password-reset links, welcome messages)           |
+| **Purpose**     | Transactional emails only (password resets, account invitations). No marketing emails are sent. |
 
 ### 5.5 Wonde -- MIS data sync
 
-| Detail | Value |
-|---|---|
-| **Provider** | Wonde Ltd (UK-based MIS data provider) |
+| Detail          | Value                                                                                                                                                                                                                       |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Provider**    | Wonde Ltd (UK-based MIS data provider)                                                                                                                                                                                      |
 | **Data shared** | Pupil names, class and year-group membership, and (where published by the school's MIS) staff-class assignments, read from the school's Management Information System via Wonde. Tally does not write data back to the MIS. |
-| **Purpose** | Keeping pupil and class lists in sync with the school's MIS without manual entry |
-| **Safeguards** | Wonde acts under the school's authorisation and its own data processing terms; access is granted per school and can be revoked by the school at any time. |
+| **Purpose**     | Keeping pupil and class lists in sync with the school's MIS without manual entry                                                                                                                                            |
+| **Safeguards**  | Wonde acts under the school's authorisation and its own data processing terms; access is granted per school and can be revoked by the school at any time.                                                                   |
 
 ### 5.6 Sentry -- error monitoring
 
-| Detail | Value |
-|---|---|
-| **Provider** | Sentry (Functional Software, Inc., US-headquartered) |
+| Detail          | Value                                                                                                                                                                                                                                                                |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Provider**    | Sentry (Functional Software, Inc., US-headquartered)                                                                                                                                                                                                                 |
 | **Data shared** | Technical diagnostic data captured when an error occurs (error messages, stack traces, request metadata). May incidentally include a user or organisation identifier from the request context. Reading records and pupil contact details are not intentionally sent. |
-| **Purpose** | Detecting, diagnosing and fixing faults to keep the service reliable and secure |
-| **Safeguards** | Used under Sentry's data processing terms; diagnostic data is retained only for a limited period. |
+| **Purpose**     | Detecting, diagnosing and fixing faults to keep the service reliable and secure                                                                                                                                                                                      |
+| **Safeguards**  | Used under Sentry's data processing terms; diagnostic data is retained only for a limited period.                                                                                                                                                                    |
 
 ### 5.7 MyLogin -- single sign-on (optional)
 
-| Detail | Value |
-|---|---|
-| **Provider** | MyLogin (provided via Wonde) |
+| Detail          | Value                                                                                                                                                |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Provider**    | MyLogin (provided via Wonde)                                                                                                                         |
 | **Data shared** | Staff identity and authentication details needed to verify a sign-in (e.g. name, email/identifier and school). No pupil data is shared with MyLogin. |
-| **Purpose** | Allowing school staff to sign in securely using their existing school credentials |
-| **Safeguards** | Operates under the Wonde/MyLogin terms; used only for schools that enable single sign-on. |
+| **Purpose**     | Allowing school staff to sign in securely using their existing school credentials                                                                    |
+| **Safeguards**  | Operates under the Wonde/MyLogin terms; used only for schools that enable single sign-on.                                                            |
 
 ### 5.8 No other sharing
 
@@ -253,9 +252,9 @@ Inc. is headquartered in the United States. Where personal data is
 transferred outside the United Kingdom, we rely on the following safeguards
 as required by Articles 44 to 49 of UK GDPR:
 
-| Transfer | Mechanism |
-|---|---|
-| **Cloudflare (US-headquartered)** | Cloudflare DPA v6.3 (auto-applies with service agreement), incorporating EU SCCs and UK IDTA (Version B1.0). Cloudflare is certified under the EU-US Data Privacy Framework and UK Extension. D1 database is located in Western Europe (Germany). |
+| Transfer                                          | Mechanism                                                                                                                                                                                                                                                                                          |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Cloudflare (US-headquartered)**                 | Cloudflare DPA v6.3 (auto-applies with service agreement), incorporating EU SCCs and UK IDTA (Version B1.0). Cloudflare is certified under the EU-US Data Privacy Framework and UK Extension. D1 database is located in Western Europe (Germany).                                                  |
 | **AI providers (US)** -- if enabled by the school | Schools that enable AI recommendations are responsible for ensuring that their use of the chosen AI provider complies with their own data transfer obligations. Tally facilitates the school's BYOK configuration but does not itself hold a contract with the AI provider on the school's behalf. |
 
 Cloudflare transfers are covered by the Cloudflare DPA v6.3 and EU-US Data Privacy Framework certification. AI provider transfers are the responsibility of the school as controller (BYOK model — schools hold their own agreements with AI providers).
@@ -267,20 +266,20 @@ Cloudflare transfers are covered by the Cloudflare DPA v6.3 and EU-US Data Priva
 We retain personal data only for as long as necessary for the purpose for
 which it was collected, or as required by law.
 
-| Data category | Retention period | Rationale |
-|---|---|---|
-| **Pupil data** (reading sessions, preferences, progress) | Retained while the school's subscription is active. Deleted within 90 days of subscription termination or upon school request. | Necessary to provide the service. Schools may request earlier deletion at any time. |
-| **Staff user accounts** | Retained while the school's subscription is active. Soft-deleted (deactivated) upon account removal; hard-deleted within 90 days of subscription termination. | Necessary to provide access to the service. |
-| **Audit logs** (IP addresses, user-agents, actions) | IP addresses and user-agents automatically anonymised after 90 days. Audit trail (action, actor, timestamp) retained for 2 years, then automatically purged. | Necessary for security monitoring and incident investigation. |
-| **Rate-limiting records** | Automatically purged after 1 hour. | Short-lived records used solely for brute-force prevention. |
-| **Authentication tokens** | Access tokens: 15 minutes. Refresh tokens: 7 days. Password-reset links: 1 hour. | Minimised to reduce risk of token theft. |
-| **AI recommendation cache** | 7 days in KV cache, then automatically expired. | Temporary cache to avoid redundant API calls. |
-| **Book cover image cache** | Cached in browser localStorage for 7 days. Cached in R2 object storage indefinitely (non-personal data: book cover images only). | Performance optimisation. No personal data is stored in the cover cache. |
-| **Cloudflare request logs** | Managed by Cloudflare in accordance with their data processing terms. Typically retained for a limited period (see Cloudflare's privacy policy). | Infrastructure-level logging outside Tally's direct control. |
+| Data category                                            | Retention period                                                                                                                                              | Rationale                                                                           |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| **Pupil data** (reading sessions, preferences, progress) | Retained while the school's subscription is active. Deleted within 90 days of subscription termination or upon school request.                                | Necessary to provide the service. Schools may request earlier deletion at any time. |
+| **Staff user accounts**                                  | Retained while the school's subscription is active. Soft-deleted (deactivated) upon account removal; hard-deleted within 90 days of subscription termination. | Necessary to provide access to the service.                                         |
+| **Audit logs** (IP addresses, user-agents, actions)      | IP addresses and user-agents automatically anonymised after 90 days. Audit trail (action, actor, timestamp) retained for 2 years, then automatically purged.  | Necessary for security monitoring and incident investigation.                       |
+| **Rate-limiting records**                                | Automatically purged after 1 hour.                                                                                                                            | Short-lived records used solely for brute-force prevention.                         |
+| **Authentication tokens**                                | Access tokens: 15 minutes. Refresh tokens: 7 days. Password-reset links: 1 hour.                                                                              | Minimised to reduce risk of token theft.                                            |
+| **AI recommendation cache**                              | 7 days in KV cache, then automatically expired.                                                                                                               | Temporary cache to avoid redundant API calls.                                       |
+| **Book cover image cache**                               | Cached in browser localStorage for 7 days. Cached in R2 object storage indefinitely (non-personal data: book cover images only).                              | Performance optimisation. No personal data is stored in the cover cache.            |
+| **Cloudflare request logs**                              | Managed by Cloudflare in accordance with their data processing terms. Typically retained for a limited period (see Cloudflare's privacy policy).              | Infrastructure-level logging outside Tally's direct control.                        |
 
-*Updated 2026-02-25: Automated cleanup jobs have been implemented for expired
+_Updated 2026-02-25: Automated cleanup jobs have been implemented for expired
 tokens, login attempts (30-day purge), and audit log IP anonymisation (90-day
-anonymisation). Post-termination data deletion still requires implementation.*
+anonymisation). Post-termination data deletion still requires implementation._
 
 ---
 
@@ -291,15 +290,15 @@ Under the UK General Data Protection Regulation and the Data Protection Act
 right depends on whether you are a school staff member or a parent/carer
 acting on behalf of a pupil.
 
-| Right | Description | How to exercise |
-|---|---|---|
-| **Right of access** (Article 15) | You have the right to obtain confirmation of whether we process your personal data and, if so, to receive a copy of that data. | Staff: contact privacy@tallyreading.uk. Parents/carers: contact your child's school, which will liaise with Tally if needed. |
-| **Right to rectification** (Article 16) | You have the right to have inaccurate personal data corrected without undue delay. | Staff can update their own name and email in the platform. For pupil data, contact the school. |
-| **Right to erasure** (Article 17) | You have the right to request deletion of your personal data in certain circumstances. | Staff: contact privacy@tallyreading.uk. Parents/carers: contact the school. Schools can delete pupil records directly within the platform. |
-| **Right to restriction** (Article 18) | You have the right to request that we restrict processing of your personal data in certain circumstances. | Contact privacy@tallyreading.uk or the school. |
-| **Right to data portability** (Article 20) | You have the right to receive your personal data in a structured, commonly used, and machine-readable format. | Schools can export pupil and reading data via CSV export from the platform. Staff can request their data by contacting privacy@tallyreading.uk. |
-| **Right to object** (Article 21) | You have the right to object to processing based on legitimate interests. | Contact privacy@tallyreading.uk. We will cease processing unless we demonstrate compelling legitimate grounds. |
-| **Rights related to automated decision-making** (Article 22) | You have the right not to be subject to decisions based solely on automated processing that produce legal or similarly significant effects. | AI book recommendations are advisory suggestions for teachers, not automated decisions. Teachers retain full discretion. |
+| Right                                                        | Description                                                                                                                                 | How to exercise                                                                                                                                 |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Right of access** (Article 15)                             | You have the right to obtain confirmation of whether we process your personal data and, if so, to receive a copy of that data.              | Staff: contact privacy@tallyreading.uk. Parents/carers: contact your child's school, which will liaise with Tally if needed.                    |
+| **Right to rectification** (Article 16)                      | You have the right to have inaccurate personal data corrected without undue delay.                                                          | Staff can update their own name and email in the platform. For pupil data, contact the school.                                                  |
+| **Right to erasure** (Article 17)                            | You have the right to request deletion of your personal data in certain circumstances.                                                      | Staff: contact privacy@tallyreading.uk. Parents/carers: contact the school. Schools can delete pupil records directly within the platform.      |
+| **Right to restriction** (Article 18)                        | You have the right to request that we restrict processing of your personal data in certain circumstances.                                   | Contact privacy@tallyreading.uk or the school.                                                                                                  |
+| **Right to data portability** (Article 20)                   | You have the right to receive your personal data in a structured, commonly used, and machine-readable format.                               | Schools can export pupil and reading data via CSV export from the platform. Staff can request their data by contacting privacy@tallyreading.uk. |
+| **Right to object** (Article 21)                             | You have the right to object to processing based on legitimate interests.                                                                   | Contact privacy@tallyreading.uk. We will cease processing unless we demonstrate compelling legitimate grounds.                                  |
+| **Rights related to automated decision-making** (Article 22) | You have the right not to be subject to decisions based solely on automated processing that produce legal or similarly significant effects. | AI book recommendations are advisory suggestions for teachers, not automated decisions. Teachers retain full discretion.                        |
 
 ### Exercising rights for children
 
@@ -336,26 +335,26 @@ which are strictly necessary for the operation of the service.
 
 ### 9.1 Cookies
 
-| Name | Type | Purpose | Duration | Scope |
-|---|---|---|---|---|
-| `refresh_token` | httpOnly, Secure (production), SameSite=Strict | Stores the refresh token for maintaining authenticated sessions. Not accessible to JavaScript. | 7 days | `Path=/api/auth` only |
+| Name            | Type                                           | Purpose                                                                                        | Duration | Scope                 |
+| --------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------- | -------- | --------------------- |
+| `refresh_token` | httpOnly, Secure (production), SameSite=Strict | Stores the refresh token for maintaining authenticated sessions. Not accessible to JavaScript. | 7 days   | `Path=/api/auth` only |
 
 ### 9.2 localStorage
 
-| Key | Purpose | Duration |
-|---|---|---|
-| `krm_auth_token` | Stores the short-lived JWT access token for API authentication. | 15 minutes (token TTL; cleared on logout) |
-| `krm_user` | Stores non-sensitive user profile data (name, email, role, organisation name) for UI display. | Until logout |
-| `krm_auth_mode` | Records whether the instance uses multi-tenant or legacy authentication. | Until logout |
-| `bookCovers` | Caches book cover image URLs to reduce network requests to the cover proxy. | 7 days (entries expire individually) |
+| Key              | Purpose                                                                                       | Duration                                  |
+| ---------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| `krm_auth_token` | Stores the short-lived JWT access token for API authentication.                               | 15 minutes (token TTL; cleared on logout) |
+| `krm_user`       | Stores non-sensitive user profile data (name, email, role, organisation name) for UI display. | Until logout                              |
+| `krm_auth_mode`  | Records whether the instance uses multi-tenant or legacy authentication.                      | Until logout                              |
+| `bookCovers`     | Caches book cover image URLs to reduce network requests to the cover proxy.                   | 7 days (entries expire individually)      |
 
 ### 9.3 sessionStorage
 
-| Key | Purpose | Duration |
-|---|---|---|
-| `globalClassFilter` | Remembers the currently selected class filter within the session. | Until the browser tab is closed |
-| `recentlyAccessedStudents` | Tracks recently viewed students for quick navigation. | Until the browser tab is closed |
-| `markedPriorityStudents` | Tracks students marked as priority within the current session. | Until the browser tab is closed |
+| Key                        | Purpose                                                           | Duration                        |
+| -------------------------- | ----------------------------------------------------------------- | ------------------------------- |
+| `globalClassFilter`        | Remembers the currently selected class filter within the session. | Until the browser tab is closed |
+| `recentlyAccessedStudents` | Tracks recently viewed students for quick navigation.             | Until the browser tab is closed |
+| `markedPriorityStudents`   | Tracks students marked as priority within the current session.    | Until the browser tab is closed |
 
 All sessionStorage data is automatically cleared when the browser tab is
 closed and is never transmitted to the server.
@@ -374,18 +373,18 @@ Privacy and Electronic Communications Regulations (PECR) 2003.
 We implement appropriate technical and organisational measures to protect
 personal data, including:
 
-| Measure | Detail |
-|---|---|
-| **Encryption in transit** | All data transmitted between the user's browser and the Tally platform is encrypted using TLS (HTTPS). |
-| **Password security** | Passwords are hashed using PBKDF2 with 100,000 iterations and a unique salt per account. Plaintext passwords are never stored or logged. |
-| **Token security** | JWT access tokens have a 15-minute lifetime. Refresh tokens are stored in httpOnly cookies with Secure, SameSite=Strict, and Path-restricted attributes. |
-| **Multi-tenant isolation** | All database queries are scoped to the requesting organisation. Pupils and staff from one school cannot access data belonging to another school. |
-| **Role-based access control** | Four permission levels (owner, admin, teacher, read-only) restrict access to data and actions appropriate to each role. |
-| **Audit logging** | Sensitive operations (user creation, modification, deletion, settings changes) are recorded in an audit log with timestamp, actor, action, and IP address. |
-| **Rate limiting** | Authentication endpoints are rate-limited to mitigate brute-force and credential-stuffing attacks. |
-| **Soft deletion** | User and organisation records are soft-deleted (deactivated) rather than immediately removed, preventing accidental data loss while supporting eventual hard deletion. |
-| **Minimal client-side data** | Only essential data is stored in the browser. Sensitive tokens use httpOnly cookies inaccessible to JavaScript. |
-| **Infrastructure security** | Hosted on Cloudflare's platform, which provides DDoS protection, Web Application Firewall (WAF), and is certified to ISO 27001, SOC 2 Type II, and PCI DSS. |
+| Measure                       | Detail                                                                                                                                                                 |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Encryption in transit**     | All data transmitted between the user's browser and the Tally platform is encrypted using TLS (HTTPS).                                                                 |
+| **Password security**         | Passwords are hashed using PBKDF2 with 100,000 iterations and a unique salt per account. Plaintext passwords are never stored or logged.                               |
+| **Token security**            | JWT access tokens have a 15-minute lifetime. Refresh tokens are stored in httpOnly cookies with Secure, SameSite=Strict, and Path-restricted attributes.               |
+| **Multi-tenant isolation**    | All database queries are scoped to the requesting organisation. Pupils and staff from one school cannot access data belonging to another school.                       |
+| **Role-based access control** | Four permission levels (owner, admin, teacher, read-only) restrict access to data and actions appropriate to each role.                                                |
+| **Audit logging**             | Sensitive operations (user creation, modification, deletion, settings changes) are recorded in an audit log with timestamp, actor, action, and IP address.             |
+| **Rate limiting**             | Authentication endpoints are rate-limited to mitigate brute-force and credential-stuffing attacks.                                                                     |
+| **Soft deletion**             | User and organisation records are soft-deleted (deactivated) rather than immediately removed, preventing accidental data loss while supporting eventual hard deletion. |
+| **Minimal client-side data**  | Only essential data is stored in the browser. Sensitive tokens use httpOnly cookies inaccessible to JavaScript.                                                        |
+| **Infrastructure security**   | Hosted on Cloudflare's platform, which provides DDoS protection, Web Application Firewall (WAF), and is certified to ISO 27001, SOC 2 Type II, and PCI DSS.            |
 
 [TODO: Document incident response procedures and data breach notification
 process (Article 33: notify ICO within 72 hours; Article 34: notify data
@@ -430,10 +429,9 @@ We encourage you to review this policy periodically.
 If you have any questions about this privacy policy, your personal data, or
 our data protection practices, please contact us:
 
-| Channel | Detail |
-|---|---|
-| **Email** | privacy@tallyreading.uk |
-| **Post** | Scratch IT LTD, 4 Highridge Walk, Bristol, BS13 8BA |
+| Channel                  | Detail                                                                                                                                                                                                                                                          |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Email**                | privacy@tallyreading.uk                                                                                                                                                                                                                                         |
 | **Data Protection Lead** | Sam Castillo (sam@tallyreading.uk). Note: A formal DPO has not been appointed as Scratch IT LTD does not meet the mandatory appointment thresholds under Article 37 of UK GDPR. Sam Castillo acts as the named privacy contact for all data protection matters. |
 
 For requests concerning pupil data, parents and carers should contact their
@@ -455,4 +453,3 @@ This privacy policy is made under and governed by:
 
 References to "UK GDPR" throughout this policy mean the UK General Data
 Protection Regulation as described above.
-

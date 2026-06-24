@@ -223,8 +223,7 @@ const TermsOfService = () => {
             These Terms of Service (&ldquo;Terms&rdquo;) govern your access to and use of the Tally
             Reading platform (&ldquo;Tally&rdquo;, &ldquo;the Service&rdquo;), operated by Scratch
             IT LTD (&ldquo;we&rdquo;, &ldquo;us&rdquo;, &ldquo;our&rdquo;), a company registered in
-            England and Wales (company number 08151576), with registered address at 4 Highridge
-            Walk, Bristol, BS13 8BA.
+            England and Wales (company number 08151576).
           </BodyText>
 
           <BodyText>
@@ -777,10 +776,6 @@ const TermsOfService = () => {
                   </Link>
                   )
                 </span>,
-              ],
-              [
-                <strong>Postal address</strong>,
-                'Scratch IT LTD, 4 Highridge Walk, Bristol, BS13 8BA',
               ],
               [<strong>ICO registration</strong>, 'ZC098130'],
             ]}
