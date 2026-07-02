@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.112.0] - 2026-07-02
+
+### Added
+
+- **Barcode scanner: a 2× zoom button and sharper capture for small codes.** Scanning small ISBN barcodes was awkward — you had to get so close the camera lost focus. The scanner now requests a high-resolution stream so small codes resolve from a comfortable, in-focus distance, and a **2× button** on the scan screen zooms in: real hardware zoom on devices that support it (most Android phones), and a magnified aim view elsewhere (e.g. iPads, where iOS Safari doesn't expose camera zoom to web apps). Applies everywhere the scanner is used — the main app and the parent portal.
+
 ## [3.111.0] - 2026-07-02
 
 ### Added
