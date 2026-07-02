@@ -81,11 +81,12 @@ describe('shapeParentRecommendations', () => {
       readingLevel: 'intermediate',
       reason: 'A perfect next step for a confident reader.',
       whereToFind: 'Available at most public libraries',
+      synopsis: 'A giant metal man appears and a boy befriends him.',
       inLibrary: true,
     },
   ]);
 
-  it('maps stored snapshot to the parent display shape', () => {
+  it('maps stored snapshot to the parent display shape (synopsis → description)', () => {
     const out = shapeParentRecommendations(oneRec, false);
     expect(out).toEqual([
       {
@@ -95,6 +96,7 @@ describe('shapeParentRecommendations', () => {
         reason: 'A perfect next step for a confident reader.',
         whereToFind: 'Available at most public libraries',
         inLibrary: true,
+        description: 'A giant metal man appears and a boy befriends him.',
       },
     ]);
     // readingLevel (raw AR / teacher-facing) and libraryBookId must not leak to parents
@@ -128,7 +130,23 @@ describe('shapeParentRecommendations', () => {
       reason: '',
       whereToFind: null,
       inLibrary: false,
+      description: null,
     });
+  });
+
+  it('blanks a denylisted synopsis but keeps the rest of the card', () => {
+    const raw = JSON.stringify([
+      {
+        title: 'The Iron Man',
+        author: 'Ted Hughes',
+        reason: 'A gentle classic.',
+        synopsis: 'erotica for adults',
+      },
+    ]);
+    const out = shapeParentRecommendations(raw, false);
+    expect(out).toHaveLength(1);
+    expect(out[0].title).toBe('The Iron Man');
+    expect(out[0].description).toBeNull();
   });
 
   it('re-moderates on read so a denylisted item never reaches a parent', () => {

@@ -36,6 +36,7 @@ function snapshotStudentRecommendations(c, { studentId, organizationId, focusMod
       reason: s.reason || '',
       whereToFind: s.whereToFind || null,
       inLibrary: !!s.inLibrary,
+      synopsis: s.synopsis || '',
     }));
   if (display.length === 0) return;
 

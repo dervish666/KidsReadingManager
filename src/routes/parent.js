@@ -79,14 +79,22 @@ export function shapeParentRecommendations(suggestionsJson, aiOptOut) {
   const { kept } = filterContentSafe(Array.isArray(parsed) ? parsed : []);
   return kept
     .filter((s) => s && s.title)
-    .map((s) => ({
-      title: s.title,
-      author: s.author || '',
-      ageRange: s.ageRange || null,
-      reason: s.reason || '',
-      whereToFind: s.whereToFind || null,
-      inLibrary: !!s.inLibrary,
-    }));
+    .map((s) => {
+      // The AI synopsis powers the "What it's about" section. It's separately
+      // re-moderated (the outer filterContentSafe only checks title + reason) so
+      // a denylist hit blanks only the synopsis, not the whole card.
+      const synopsisSafe =
+        !s.synopsis || filterContentSafe([{ title: s.title, reason: s.synopsis }]).kept.length > 0;
+      return {
+        title: s.title,
+        author: s.author || '',
+        ageRange: s.ageRange || null,
+        reason: s.reason || '',
+        whereToFind: s.whereToFind || null,
+        inLibrary: !!s.inLibrary,
+        description: synopsisSafe ? s.synopsis || null : null,
+      };
+    });
 }
 
 /**

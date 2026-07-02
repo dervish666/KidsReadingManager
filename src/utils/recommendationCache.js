@@ -20,12 +20,17 @@
  * @param {string} [inputs.ageBand] - Coarse age band (e.g. "6-7") from year group
  * @returns {Promise<string>} Cache key in format `rec:{64-char-hex}`
  */
+// Bump when the shape of a cached recommendation changes (new fields, prompt
+// changes) so stale entries miss and regenerate. v2: added `synopsis`.
+const PROMPT_VERSION = 2;
+
 export async function generateCacheKey(inputs) {
   const normalised = JSON.stringify({
     ageBand: inputs.ageBand || '',
     focusMode: inputs.focusMode || 'balanced',
     genres: (inputs.genres || []).slice().sort(),
     organizationId: inputs.organizationId || '',
+    promptVersion: PROMPT_VERSION,
     provider: inputs.provider || 'anthropic',
     readingLevelMax: inputs.readingLevelMax ?? '',
     readingLevelMin: inputs.readingLevelMin ?? '',

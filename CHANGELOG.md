@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.112.1] - 2026-07-02
+
+### Fixed
+
+- **AI book suggestions now have a "What it's about" too.** In the parent portal's Book Ideas detail sheet, AI-recommended books showed only "Why we suggested it" — the synopsis section was empty (unlike school-library books, which have one from the catalogue). The AI now returns a short, spoiler-free synopsis with each suggestion, so both kinds of recommendation explain what the book is actually about. (Recommendations regenerate to pick this up — use "Get fresh suggestions" if an older set is still cached.)
+
 ## [3.112.0] - 2026-07-02
 
 ### Added

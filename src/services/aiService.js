@@ -481,6 +481,7 @@ For EACH recommendation, provide:
 4. **readingLevel**: One of: beginner, elementary, intermediate, advanced
 5. **reason**: 2-3 sentences explaining why this specific book is perfect for this student, referencing their preferences and reading history
 6. **whereToFind**: Where to get the book (e.g., "Available at most public libraries", "Popular on Amazon and in bookstores")
+7. **synopsis**: 1-2 sentences describing what the book is actually about — its plot or premise — to help a parent decide if their child will like it. No spoilers.
 
 Format your response as a valid JSON array with exactly 5 objects.
 Example format:
@@ -491,7 +492,8 @@ Example format:
     "ageRange": "8-10",
     "readingLevel": "intermediate",
     "reason": "This book is perfect because...",
-    "whereToFind": "Available at..."
+    "whereToFind": "Available at...",
+    "synopsis": "A short, spoiler-free description of what the book is about."
   }
 ]`;
 }
@@ -511,6 +513,7 @@ function normalizeBroadSuggestions(suggestions) {
     readingLevel: rec.readingLevel || 'intermediate',
     reason: rec.reason || 'Recommended based on reading preferences',
     whereToFind: rec.whereToFind || 'Available at most public libraries and bookstores',
+    synopsis: rec.synopsis || '',
   }));
 }
 
@@ -550,7 +553,7 @@ export function validateSuggestion(s) {
       errors.push(`missing or empty ${field}`);
     }
   }
-  for (const field of ['ageRange', 'readingLevel', 'whereToFind']) {
+  for (const field of ['ageRange', 'readingLevel', 'whereToFind', 'synopsis']) {
     if (s[field] !== undefined && s[field] !== null && typeof s[field] !== 'string') {
       errors.push(`${field} must be a string when present`);
     }
