@@ -97,7 +97,7 @@ describe('shapeParentRecommendations', () => {
         inLibrary: true,
       },
     ]);
-    // libraryBookId / readingLevel must not leak into the read-only parent view
+    // readingLevel (raw AR / teacher-facing) and libraryBookId must not leak to parents
     expect(out[0]).not.toHaveProperty('readingLevel');
     expect(out[0]).not.toHaveProperty('libraryBookId');
   });

@@ -371,14 +371,29 @@ parentRouter.get('/:token/book-ideas', rateLimit(30, 60000, 'parent:book-ideas')
       const aiTitles = new Set(ai.map((r) => (r.title || '').toLowerCase()));
       const shaped = result.books
         .filter((b) => b.title && !aiTitles.has(b.title.toLowerCase()))
-        .map((b) => ({
-          title: b.title,
-          author: b.author || '',
-          ageRange: b.ageRange || null,
-          reason: b.matchReason || '',
-          isbn: b.isbn || null,
-          inLibrary: true,
-        }));
+        .map((b) => {
+          // The catalogue description is external-sourced metadata — re-moderate
+          // it (defence-in-depth) before showing it on a child's parent view.
+          // A denylist hit blanks only the description; the rest of the card stays.
+          const descSafe =
+            !b.description ||
+            filterContentSafe([{ title: b.title, reason: b.description }]).kept.length > 0;
+          return {
+            bookId: b.id,
+            title: b.title,
+            author: b.author || '',
+            ageRange: b.ageRange || null,
+            reason: b.matchReason || '', // why it was recommended
+            description: descSafe ? b.description || '' : '', // what it's about
+            genres: b.genres || [],
+            pageCount: b.pageCount || null,
+            seriesName: b.seriesName || null,
+            seriesNumber: b.seriesNumber || null,
+            publicationYear: b.publicationYear || null,
+            isbn: b.isbn || null,
+            inLibrary: true,
+          };
+        });
       library = filterContentSafe(shaped).kept;
     }
   } catch (err) {

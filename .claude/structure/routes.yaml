@@ -791,7 +791,7 @@ files:
         public: true
         rate_limit: 60/min
       - route: GET /api/parent/:token/book-ideas
-        description: Book Ideas tab (lazy-loaded). Returns { ai, aiGeneratedAt, library } — ai is the latest AI recommendation snapshot (suppressed on ai_opt_out); library is live matches from the school's own catalogue via computeLibraryRecommendations (shown regardless of ai_opt_out, deduped vs ai, re-moderated). Both lookups fail-open.
+        description: Book Ideas tab (lazy-loaded). Returns { ai, aiGeneratedAt, library }. ai = latest AI snapshot (suppressed on ai_opt_out; carries title/author/ageRange/readingLevel/reason/whereToFind). library = live catalogue matches via computeLibraryRecommendations (shown regardless of ai_opt_out, deduped vs ai), each carrying description/genres/pageCount/series/publicationYear/readingLevel for the tap-through detail sheet — the description is re-moderated per item (denylist hit blanks only the description). Both lookups fail-open.
         public: true
         rate_limit: 30/min
       - route: POST /api/parent/:token/sessions

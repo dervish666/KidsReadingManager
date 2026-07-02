@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.111.0] - 2026-07-02
+
+### Added
+
+- **Tap any Book Idea for the full story.** Every recommendation on the parent portal is now tappable and opens a detail sheet to help decide if it's a good fit — the book's synopsis ("What it's about"), why it was suggested, genres, age range, length and series. For school-library books this is instant and complete (drawn from the catalogue); AI suggestions show their tailored "why we suggested it" reason.
+- **School-library suggestions now show a description.** Library recommendation cards previously looked sparse next to the AI picks — they now show a two-line blurb of what the book is about, drawn from the catalogue.
+
 ## [3.110.1] - 2026-07-02
 
 ### Fixed

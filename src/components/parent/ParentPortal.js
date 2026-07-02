@@ -101,6 +101,7 @@ const ParentPortal = () => {
   const [bookIdeas, setBookIdeas] = useState({ ai: [], library: [] });
   const [bookIdeasLoading, setBookIdeasLoading] = useState(false);
   const [bookIdeasLoaded, setBookIdeasLoaded] = useState(false);
+  const [detailRec, setDetailRec] = useState(null); // rec shown in the detail sheet
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -280,84 +281,100 @@ const ParentPortal = () => {
     setBookResults({ library: [], external: [] });
   };
 
-  // ── Book Ideas card (shared by the AI + library sections) ────────────────────
-  const renderRecCard = (rec, key) => (
-    <Paper
-      key={key}
-      elevation={0}
-      sx={{
-        display: 'flex',
-        gap: 1.5,
-        p: 1.5,
-        borderRadius: 3,
-        border: `1px solid ${alpha(accent, 0.15)}`,
-        bgcolor: 'white',
-      }}
-    >
-      <Box sx={{ flexShrink: 0 }}>
-        <BookCover title={rec.title} author={rec.author} isbn={rec.isbn} width={56} height={84} />
-      </Box>
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography
-          variant="subtitle2"
-          sx={{ fontWeight: 700, color: 'parent.accent', lineHeight: 1.3 }}
-        >
-          {rec.title}
-        </Typography>
-        {rec.author && (
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-            by {rec.author}
-          </Typography>
-        )}
-        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mb: rec.reason ? 0.75 : 0 }}>
-          {rec.ageRange && (
-            <Chip
-              label={`Ages ${rec.ageRange}`}
-              size="small"
-              sx={{
-                height: 20,
-                fontSize: '0.65rem',
-                bgcolor: alpha(accent, 0.08),
-                color: 'parent.accent',
-                fontWeight: 600,
-              }}
-            />
-          )}
-          {rec.inLibrary && (
-            <Chip
-              label="✓ In school library"
-              size="small"
-              sx={{
-                height: 20,
-                fontSize: '0.65rem',
-                bgcolor: theme.palette.accent.schoolLight,
-                color: theme.palette.accent.school,
-                fontWeight: 600,
-              }}
-            />
-          )}
+  // ── Book Ideas card (shared by the AI + library sections). Tappable → detail
+  //    sheet. Card blurb prefers the description ("what it's about") and falls
+  //    back to the reason ("why we suggested it"). ──────────────────────────────
+  const renderRecCard = (rec, key) => {
+    const blurb = rec.description || rec.reason;
+    return (
+      <Paper
+        key={key}
+        component="button"
+        onClick={() => setDetailRec(rec)}
+        elevation={0}
+        sx={{
+          ...tappableCardSx,
+          alignItems: 'flex-start',
+          gap: 1.5,
+          p: 1.5,
+          borderRadius: 3,
+          border: `1px solid ${alpha(accent, 0.15)}`,
+          bgcolor: 'white',
+          transition: 'box-shadow 0.2s ease',
+          '&:hover': { boxShadow: `0 4px 16px ${alpha(accent, 0.12)}` },
+        }}
+      >
+        <Box sx={{ flexShrink: 0 }}>
+          <BookCover title={rec.title} author={rec.author} isbn={rec.isbn} width={56} height={84} />
         </Box>
-        {rec.reason && (
+        <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography
-            variant="body2"
-            sx={{
-              fontStyle: 'italic',
-              color: 'text.secondary',
-              fontSize: '0.85rem',
-              lineHeight: 1.4,
-            }}
+            variant="subtitle2"
+            sx={{ fontWeight: 700, color: 'parent.accent', lineHeight: 1.3 }}
           >
-            {rec.reason}
+            {rec.title}
           </Typography>
-        )}
-        {rec.whereToFind && (
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-            {rec.whereToFind}
+          {rec.author && (
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+              by {rec.author}
+            </Typography>
+          )}
+          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mb: blurb ? 0.75 : 0 }}>
+            {rec.ageRange && (
+              <Chip
+                label={`Ages ${rec.ageRange}`}
+                size="small"
+                sx={{
+                  height: 20,
+                  fontSize: '0.65rem',
+                  bgcolor: alpha(accent, 0.08),
+                  color: 'parent.accent',
+                  fontWeight: 600,
+                }}
+              />
+            )}
+            {rec.inLibrary && (
+              <Chip
+                label="✓ In school library"
+                size="small"
+                sx={{
+                  height: 20,
+                  fontSize: '0.65rem',
+                  bgcolor: theme.palette.accent.schoolLight,
+                  color: theme.palette.accent.school,
+                  fontWeight: 600,
+                }}
+              />
+            )}
+          </Box>
+          {blurb && (
+            <Typography
+              variant="body2"
+              sx={{
+                color: 'text.secondary',
+                fontSize: '0.85rem',
+                lineHeight: 1.4,
+                fontStyle: rec.description ? 'normal' : 'italic',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+              }}
+            >
+              {blurb}
+            </Typography>
+          )}
+          <Typography
+            variant="caption"
+            sx={{ color: 'parent.accentHover', fontWeight: 600, display: 'block', mt: 0.5 }}
+          >
+            More about this book →
           </Typography>
-        )}
-      </Box>
-    </Paper>
-  );
+        </Box>
+      </Paper>
+    );
+  };
 
   // ── Loading / Error states ──────────────────────────────────────────────────
   if (loading) {
@@ -1196,6 +1213,209 @@ const ParentPortal = () => {
                 </Typography>
               )}
           </Box>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Book detail bottom sheet ─────────────────────────────────────── */}
+      <Dialog
+        open={!!detailRec}
+        onClose={() => setDetailRec(null)}
+        fullWidth
+        maxWidth="sm"
+        aria-label="Book details"
+        PaperProps={{
+          sx: {
+            position: 'fixed',
+            bottom: 0,
+            top: 40,
+            left: 0,
+            right: 0,
+            m: 0,
+            maxWidth: '100% !important',
+            width: '100%',
+            borderRadius: '16px 16px 0 0',
+            display: 'flex',
+            flexDirection: 'column',
+          },
+        }}
+        sx={{ '& .MuiDialog-container': { alignItems: 'flex-end' } }}
+      >
+        <DialogContent sx={{ p: 2.5, overflow: 'auto' }}>
+          {detailRec && (
+            <>
+              <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                <Box sx={{ flexShrink: 0 }}>
+                  <BookCover
+                    title={detailRec.title}
+                    author={detailRec.author}
+                    isbn={detailRec.isbn}
+                    width={100}
+                    height={150}
+                  />
+                </Box>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      fontWeight: 800,
+                      color: 'parent.accent',
+                      fontFamily: NUNITO,
+                      lineHeight: 1.25,
+                    }}
+                  >
+                    {detailRec.title}
+                  </Typography>
+                  {detailRec.author && (
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      by {detailRec.author}
+                    </Typography>
+                  )}
+                  <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                    {detailRec.ageRange && (
+                      <Chip
+                        label={`Ages ${detailRec.ageRange}`}
+                        size="small"
+                        sx={{
+                          height: 22,
+                          fontSize: '0.68rem',
+                          bgcolor: alpha(accent, 0.08),
+                          color: 'parent.accent',
+                          fontWeight: 600,
+                        }}
+                      />
+                    )}
+                    {detailRec.pageCount && (
+                      <Chip
+                        label={`${detailRec.pageCount} pages`}
+                        size="small"
+                        sx={{
+                          height: 22,
+                          fontSize: '0.68rem',
+                          bgcolor: alpha(accent, 0.08),
+                          color: 'parent.accent',
+                          fontWeight: 600,
+                        }}
+                      />
+                    )}
+                    {detailRec.inLibrary && (
+                      <Chip
+                        label="✓ In school library"
+                        size="small"
+                        sx={{
+                          height: 22,
+                          fontSize: '0.68rem',
+                          bgcolor: theme.palette.accent.schoolLight,
+                          color: theme.palette.accent.school,
+                          fontWeight: 600,
+                        }}
+                      />
+                    )}
+                  </Box>
+                  {detailRec.seriesName && (
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ display: 'block', mt: 0.75 }}
+                    >
+                      {detailRec.seriesName}
+                      {detailRec.seriesNumber ? ` · Book ${detailRec.seriesNumber}` : ''}
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
+
+              {detailRec.description && (
+                <Box sx={{ mb: 2 }}>
+                  <Typography
+                    variant="caption"
+                    sx={{ ...sectionTitleSx, display: 'block', mb: 0.5, fontSize: '0.8rem' }}
+                  >
+                    What it&apos;s about
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.55 }}>
+                    {detailRec.description}
+                  </Typography>
+                </Box>
+              )}
+
+              {detailRec.reason && (
+                <Box sx={{ mb: 2 }}>
+                  <Typography
+                    variant="caption"
+                    sx={{ ...sectionTitleSx, display: 'block', mb: 0.5, fontSize: '0.8rem' }}
+                  >
+                    Why we suggested it
+                  </Typography>
+                  <Box
+                    sx={{
+                      borderLeft: '3px solid',
+                      borderColor: 'parent.accentBorder',
+                      pl: 1.5,
+                      py: 0.5,
+                      borderRadius: '0 4px 4px 0',
+                      bgcolor: alpha(accent, 0.04),
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
+                      sx={{ fontStyle: 'italic', color: 'text.secondary', lineHeight: 1.5 }}
+                    >
+                      {detailRec.reason}
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
+
+              {detailRec.genres?.length > 0 && (
+                <Box sx={{ mb: 2 }}>
+                  <Typography
+                    variant="caption"
+                    sx={{ ...sectionTitleSx, display: 'block', mb: 0.5, fontSize: '0.8rem' }}
+                  >
+                    Genres
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                    {detailRec.genres.map((g, i) => (
+                      <Chip
+                        key={`${g}-${i}`}
+                        label={g}
+                        size="small"
+                        sx={{
+                          height: 22,
+                          fontSize: '0.68rem',
+                          bgcolor: alpha(accent, 0.06),
+                          color: 'text.secondary',
+                        }}
+                      />
+                    ))}
+                  </Box>
+                </Box>
+              )}
+
+              {detailRec.whereToFind && (
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  {detailRec.whereToFind}
+                </Typography>
+              )}
+
+              <Button
+                fullWidth
+                variant="contained"
+                onClick={() => setDetailRec(null)}
+                sx={{
+                  mt: 1,
+                  background: accentGradient,
+                  borderRadius: 3,
+                  fontWeight: 700,
+                  fontFamily: NUNITO,
+                  py: 1.25,
+                  '&:hover': { background: accentGradient },
+                }}
+              >
+                Close
+              </Button>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 
