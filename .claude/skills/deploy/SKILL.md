@@ -17,10 +17,10 @@ Build and deploy TallyReading to Cloudflare Workers.
    Compare against local `migrations/` directory. If there are unapplied migrations, warn the user and ask whether to apply them first.
 
 2. Ask which environment (if not specified):
-   - **Production**: `npm run go` (builds + deploys to tallyreading.uk)
+   - **Production**: push to `main` — Cloudflare Workers Builds auto-deploys every push (use `/ship`). Do **not** run `npm run go`: it races CWB and fails with "route with the same pattern already exists" (code 10020). Only run `npm run go` as an emergency manual deploy when CWB itself is broken, and say so explicitly.
    - **Dev**: `npm run build:deploy:dev` (builds + deploys to dev environment)
 
-3. Run the build + deploy command.
+3. Run the deploy (push for production, build command for dev).
 
 4. After deploy, verify:
    ```bash

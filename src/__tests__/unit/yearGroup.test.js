@@ -54,6 +54,18 @@ describe('classNameToYearGroup', () => {
     expect(classNameToYearGroup('RF')).toBe('R');
     expect(classNameToYearGroup('RJM')).toBe('R');
     expect(classNameToYearGroup('R')).toBe('R');
+    expect(classNameToYearGroup('Reception')).toBe('R');
+    expect(classNameToYearGroup('Reception Blue')).toBe('R');
+  });
+
+  it('does not mistake word class names starting with R for Reception', () => {
+    // Regression: /^r[a-z]*$/ used to classify any all-letters R-word as
+    // Reception, sending "Rowan" Year 5s KS1 badges and age-4 book recs.
+    expect(classNameToYearGroup('Rowan')).toBeNull();
+    expect(classNameToYearGroup('Robins')).toBeNull();
+    expect(classNameToYearGroup('Redwood')).toBeNull();
+    expect(classNameToYearGroup('Rockets')).toBeNull();
+    expect(classNameToYearGroup('red')).toBeNull();
   });
 
   it('also handles "Year N" / "YN" class names', () => {

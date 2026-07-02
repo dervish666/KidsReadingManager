@@ -413,11 +413,16 @@ classesRouter.put('/:id/year-group', auditLog('update', 'class'), async (c) => {
   }
 
   await db
-    .prepare(`UPDATE classes SET year_group = ?, updated_at = datetime("now") WHERE id = ?`)
-    .bind(yearGroup, id)
+    .prepare(
+      `UPDATE classes SET year_group = ?, updated_at = datetime("now") WHERE id = ? AND organization_id = ?`
+    )
+    .bind(yearGroup, id, organizationId)
     .run();
 
-  const cls = await db.prepare('SELECT * FROM classes WHERE id = ?').bind(id).first();
+  const cls = await db
+    .prepare('SELECT * FROM classes WHERE id = ? AND organization_id = ?')
+    .bind(id, organizationId)
+    .first();
   return c.json(rowToClass(cls));
 });
 

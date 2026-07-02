@@ -182,7 +182,9 @@ async function callOpenAI(
   raw = false,
   debug = null
 ) {
-  const resolvedModel = model || 'gpt-4o-mini';
+  // Keep in step with getDefaultModel() in src/components/AISettings.js —
+  // schools that never picked a model should get what the UI advertises.
+  const resolvedModel = model || 'gpt-5.4-nano';
   if (debug) debug.model = resolvedModel;
   const url = `${baseUrl}/chat/completions`;
 
@@ -264,7 +266,8 @@ async function callGemini(
   debug = null
 ) {
   // Null/undefined model bypasses default params; resolve explicitly.
-  const resolvedModel = model || 'gemini-2.0-flash';
+  // Keep in step with getDefaultModel() in src/components/AISettings.js.
+  const resolvedModel = model || 'gemini-2.5-flash';
   if (debug) debug.model = resolvedModel;
   // Gemini API requires the key as a query parameter — this is a known API constraint.
   // Mitigate: use a dedicated Gemini-only API key and rotate periodically.
@@ -677,6 +680,13 @@ export async function generateBroadSuggestions(
  *   (provider: reason strings for any configs that failed before it).
  * @returns {Promise<Array>} Validated, normalised suggestion array
  */
+// Strip anything key-shaped from provider error text before it reaches the
+// client-visible debug panel — upstream auth errors echo masked key fragments
+// ("Incorrect API key provided: sk-proj-****…"), and the panel is shown to
+// any authenticated school user, not just the key's owner.
+const redactKeyMaterial = (text) =>
+  String(text).replace(/\b(?:sk-|AIza)[A-Za-z0-9*_-]{4,}/g, '[redacted-key]');
+
 export async function generateBroadSuggestionsWithFailover(
   studentProfile,
   configs,
@@ -703,7 +713,7 @@ export async function generateBroadSuggestionsWithFailover(
       );
       if (debug) {
         Object.assign(debug, attemptDebug);
-        debug.failedAttempts = failures.slice();
+        debug.failedAttempts = failures.map(redactKeyMaterial);
       }
       return result;
     } catch (err) {

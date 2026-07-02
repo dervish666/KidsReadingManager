@@ -35,14 +35,14 @@ When you add, remove, or rename source files or public classes/functions, update
 | Directory         | What lives there                                                                                                                                                                                                    |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/` (root)     | `worker.js` (Worker entry, middleware chain, cron), `App.js`, `index.js`, `instrument.js`                                                                                                                           |
-| `src/routes/`     | REST handlers — auth, mylogin, students, books, classes, genres, covers, users, organization, billing, parent, webhooks, support, metadata, badges (+ `students/`, `books/`, `users/`, `organization/` sub-routers) |
+| `src/routes/`     | REST handlers — auth, mylogin, students, books, classes, genres, covers, users, organization, billing, parent, webhooks, stripeWebhook, support, contact, signup, metadata, badges, termDates, tours, settings, wondeAdmin, hardcover, data (+ `students/`, `books/`, `users/`, `organization/`, `settings/`, `auth/` sub-routers) |
 | `src/middleware/` | `tenant.js` (JWT auth, tenant isolation, role guards, audit, rate limit), `errorHandler.js`, legacy `auth.js`                                                                                                       |
 | `src/data/`       | D1 books provider (`d1Provider`, factory `index.js`), `demoSnapshot`                                                                                                                                                |
 | `src/services/`   | `aiService`, `wondeSync`, `metadataService`, `demoReset`, `orgPurge`, and `providers/` (OpenLibrary, Google Books, Hardcover adapters)                                                                              |
 | `src/utils/`      | crypto, validation, helpers, streakCalculator, badge engine/definitions, stripe, rowMappers, routeHelpers, metadata API clients, content moderation, d1Batch, caches                                                |
 | `src/contexts/`   | `AuthContext`, `DataContext`, `UIContext`, composite `AppContext`, and `data/` CRUD hooks                                                                                                                           |
 | `src/hooks/`      | `useEnrichmentPolling`                                                                                                                                                                                              |
-| `src/components/` | React UI — root-level pages plus subfolders: `students/`, `books/`, `sessions/`, `schools/`, `classes/`, `badges/`, `goals/`, `parent/`, `stats/`, `tour/`, `news/`                                                 |
+| `src/components/` | React UI — root-level pages plus subfolders: `students/`, `books/`, `sessions/`, `schools/`, `classes/`, `badges/`, `goals/`, `parent/`, `stats/`, `tour/`, `news/`, `legal/`                                       |
 | `src/styles/`     | `theme.js` (Material-UI theme)                                                                                                                                                                                      |
 | `scripts/`        | `build-and-deploy.sh`, `seed-local.js`, `migration.js`, `reset-admin-password.js`, `export-demo-snapshot.js`, `test-api.js`, `graphify-refresh.sh`                                                                  |
 
@@ -110,7 +110,7 @@ npm run lint                                                # Run ESLint on src/
 npm run lint:fix                                            # Auto-fix lint issues
 ```
 
-ESLint 10 with flat config (`eslint.config.js`). Key rules: `no-undef` (error), `no-unused-vars` (warn), `react-hooks/rules-of-hooks` (error), `react-hooks/exhaustive-deps` (warn). Backend files get Cloudflare Workers globals; test files get Vitest globals.
+ESLint 10 with flat config (`eslint.config.js`). Key rules: `no-undef` (error), `no-unused-vars` (warn), `react-hooks/rules-of-hooks` (error), `react-hooks/exhaustive-deps` (warn). Backend files get Cloudflare Workers globals; test files get Vitest globals. Zero errors required; warnings are informational.
 
 ### Testing
 
@@ -366,7 +366,7 @@ The frontend dev server (port 3001) proxies `/api` requests to the worker (port 
 - **Security headers applied after handler**: In `src/worker.js`, security headers are set in the `onResponse` callback, meaning they run after the route handler executes.
 - **Rate limiting uses D1**: Auth rate limiting stores attempts in the D1 `rate_limits` table, not Cloudflare's built-in rate limiting. See `authRateLimit()` in `src/middleware/tenant.js`.
 - **Prettier**: Configured via `.prettierrc` (single quotes, trailing commas, 100 char width). Auto-runs on edited files via Claude Code hook. Run `npx prettier --write "src/**/*.js"` to format the full codebase.
-- **ESLint**: ESLint 10 with flat config (`eslint.config.js`). Run `npm run lint` to check, `npm run lint:fix` to auto-fix. Zero errors required; warnings are informational. Backend files have Cloudflare Workers globals configured.
+- **ESLint**: see the Linting section under Development Commands.
 
 ## Design Context
 

@@ -160,8 +160,10 @@ orgSettingsRouter.post('/', requireAdmin(), auditLog('update', 'settings'), asyn
     ) {
       try {
         await c.env.READING_MANAGER_KV?.delete(`org-band-settings-v2:${organizationId}`);
-      } catch {
-        // non-critical
+      } catch (err) {
+        // Self-heals on the 1h TTL, but warn — a failed delete means admins
+        // see stale band settings for up to an hour after saving.
+        console.warn('[band-settings] KV cache invalidation failed:', err?.message);
       }
     }
 

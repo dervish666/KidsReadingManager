@@ -343,16 +343,24 @@ aiSettingsRouter.get('/ai/models', requireAdmin(), async (c) => {
   let keyEncrypted = config?.api_key_encrypted || null;
 
   if (!keyEncrypted) {
-    const platformKeys = await db
-      .prepare(
-        'SELECT provider, api_key_encrypted, is_active FROM platform_ai_keys WHERE api_key_encrypted IS NOT NULL'
-      )
-      .all();
-    const rows = platformKeys.results || [];
-    const row = rows.find((r) => r.provider === provider) || rows.find((r) => r.is_active);
-    if (row) {
-      provider = row.provider;
-      keyEncrypted = row.api_key_encrypted;
+    // Platform keys are the owner's credentials — only orgs with the paid AI
+    // add-on may exercise them (mirrors the recommendations entitlement gate).
+    const org = await db
+      .prepare('SELECT ai_addon_active FROM organizations WHERE id = ?')
+      .bind(organizationId)
+      .first();
+    if (org?.ai_addon_active) {
+      const platformKeys = await db
+        .prepare(
+          'SELECT provider, api_key_encrypted, is_active FROM platform_ai_keys WHERE api_key_encrypted IS NOT NULL'
+        )
+        .all();
+      const rows = platformKeys.results || [];
+      const row = rows.find((r) => r.provider === provider) || rows.find((r) => r.is_active);
+      if (row) {
+        provider = row.provider;
+        keyEncrypted = row.api_key_encrypted;
+      }
     }
   }
 

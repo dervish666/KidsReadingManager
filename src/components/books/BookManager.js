@@ -56,13 +56,19 @@ const BookManager = () => {
     async (signal) => {
       try {
         const r = await fetchWithAuth('/api/books?all=true', signal ? { signal } : undefined);
-        if (!r.ok) return;
+        if (!r.ok) {
+          console.warn('Full book list load failed:', r.status);
+          return;
+        }
         const data = await r.json();
         if (!signal?.aborted && data) {
           setFullBooks(Array.isArray(data) ? data : data.books || []);
         }
-      } catch {
-        // Ignore — fall back to contextBooks until the next successful load
+      } catch (err) {
+        // Fall back to contextBooks until the next successful load — but
+        // warn, or a failed fetch silently strips level/genre data (and the
+        // filters/export that depend on it) from the whole Books page.
+        if (!signal?.aborted) console.warn('Full book list load failed:', err?.message);
       }
     },
     [fetchWithAuth]
@@ -112,7 +118,10 @@ const BookManager = () => {
     };
 
     try {
-      const savedBook = await addBook(bookData.title, bookData.author);
+      const savedBook = await addBook(bookData.title, bookData.author, {
+        readingLevel: bookData.readingLevel,
+        ageRange: bookData.ageRange,
+      });
       if (!savedBook) {
         setError('Failed to add book');
         return;

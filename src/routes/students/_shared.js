@@ -230,8 +230,10 @@ export const getOrgBandSettings = async (db, organizationId, env) => {
         }
         return parsedCache;
       }
-    } catch {
-      /* fall through to D1 */
+    } catch (err) {
+      // Fall through to D1 — but surface it: a persistently failing KV
+      // namespace silently puts every session write on the D1 hot path.
+      console.warn('[band-settings] KV cache read failed:', err?.message);
     }
   }
 
@@ -283,8 +285,9 @@ export const getOrgBandSettings = async (db, organizationId, env) => {
   if (KV) {
     try {
       await KV.put(cacheKey, JSON.stringify(settings), { expirationTtl: 3600 });
-    } catch {
-      /* non-critical */
+    } catch (err) {
+      // Non-critical (D1 stays authoritative) but must not fail silently.
+      console.warn('[band-settings] KV cache write failed:', err?.message);
     }
   }
   return settings;

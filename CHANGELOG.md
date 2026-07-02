@@ -1,5 +1,20 @@
 # Changelog
 
+## [3.108.2] - 2026-07-02
+
+### Fixed
+
+- **Class-name year-group parsing no longer mistakes word names for Reception.** `classNameToYearGroup` matched any all-letters class name starting with "r" ("Rowan", "Robins", "Redwood") as a Reception registration group, so in schools whose MIS syncs no year group those classes got age 4–5 AI recommendation bands and KS1 badge thresholds. Only explicit "Reception…" names, a bare "R", and short all-caps registration codes ("RF", "RJM") now qualify; regression tests added.
+- **AI recommendation cache now actually hits for schools on a platform key.** The cache read derived its provider from the org's own AI config (defaulting to Anthropic) while the write used the resolved provider, so any school running on a non-Anthropic platform key missed the cache on every request — burning a paid AI call each time. The cache check now runs after provider resolution, sharing one source of truth. A lapsed AI add-on also stops being served cached recommendations immediately, rather than for up to 7 more days.
+- **Quick-add book form no longer discards the reading level and age range** typed into it — they're now sent with the new book instead of silently saving as empty.
+- Default AI models used when a school hasn't picked one now match what the settings UI advertises (`gpt-5.4-nano` for OpenAI, `gemini-2.5-flash` for Google).
+
+### Security
+
+- **Provider error text in the AI debug panel is now redacted.** Failover error strings can echo masked API-key fragments from upstream auth errors; anything key-shaped is stripped before the panel renders them.
+- **`GET /api/settings/ai/models` now requires the AI add-on before using a platform key**, matching the recommendations entitlement gate — schools without the add-on can no longer exercise the owner's provider credentials for live model lists.
+- The class year-group update statement is now tenant-scoped (`AND organization_id = ?`) as defence-in-depth, and six silent catch blocks (KV band-settings cache read/write/invalidation, undecryptable failover keys, full-book-list and read-history fetches) now log a warning instead of swallowing failures.
+
 ## [3.108.1] - 2026-06-24
 
 ### Changed

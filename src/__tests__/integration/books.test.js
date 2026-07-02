@@ -659,13 +659,11 @@ describe('Books API Routes', () => {
           .mockResolvedValueOnce({ processing_restricted: 0, ai_opt_out: 0 })
           // 2. buildStudentReadingProfile student query
           .mockResolvedValueOnce(createMockStudent())
-          // 3. Cache check configRow
-          .mockResolvedValueOnce({ provider: 'anthropic' })
-          // 4. AI config: no org key
+          // 3. AI config: no org key
           .mockResolvedValueOnce(null)
-          // 5. Organization: addon active
+          // 4. Organization: addon active
           .mockResolvedValueOnce({ ai_addon_active: 1 })
-          // 6. Platform key: none
+          // 5. Platform key: none
           .mockResolvedValueOnce(null);
 
         // Mock remaining queries (sessions, books, genres for profile building)
@@ -692,13 +690,11 @@ describe('Books API Routes', () => {
           .mockResolvedValueOnce({ processing_restricted: 0, ai_opt_out: 0 })
           // 2. buildStudentReadingProfile student query
           .mockResolvedValueOnce(createMockStudent())
-          // 3. Cache check configRow
-          .mockResolvedValueOnce({ provider: 'anthropic' })
-          // 4. AI config: no org key
+          // 3. AI config: no org key
           .mockResolvedValueOnce(null)
-          // 5. Organization: addon active
+          // 4. Organization: addon active
           .mockResolvedValueOnce({ ai_addon_active: 1 })
-          // 6. Platform key: found
+          // 5. Platform key: found
           .mockResolvedValueOnce({
             provider: 'anthropic',
             api_key_encrypted: 'encrypted-platform-key',
@@ -728,13 +724,11 @@ describe('Books API Routes', () => {
           .mockResolvedValueOnce({ processing_restricted: 0, ai_opt_out: 0 })
           // 2. buildStudentReadingProfile student query
           .mockResolvedValueOnce(createMockStudent())
-          // 3. Cache check configRow
-          .mockResolvedValueOnce({ provider: 'anthropic' })
-          // 4. AI config: no org key
+          // 3. AI config: no org key
           .mockResolvedValueOnce(null)
-          // 5. Organization: addon active
+          // 4. Organization: addon active
           .mockResolvedValueOnce({ ai_addon_active: 1 })
-          // 6. Platform key: none
+          // 5. Platform key: none
           .mockResolvedValueOnce(null);
 
         // Mock remaining queries
@@ -761,13 +755,11 @@ describe('Books API Routes', () => {
           .mockResolvedValueOnce({ processing_restricted: 0, ai_opt_out: 0 })
           // 2. buildStudentReadingProfile student query
           .mockResolvedValueOnce(createMockStudent())
-          // 3. Cache check configRow
+          // 3. AI config: no org key
           .mockResolvedValueOnce(null)
-          // 4. AI config: no org key
-          .mockResolvedValueOnce(null)
-          // 5. Organization: addon active
+          // 4. Organization: addon active
           .mockResolvedValueOnce({ ai_addon_active: 1 })
-          // 6. Platform key: none
+          // 5. Platform key: none
           .mockResolvedValueOnce(null);
 
         // Mock remaining queries

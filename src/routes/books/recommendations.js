@@ -337,64 +337,6 @@ recommendationsRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
       provider: null, // set after we know which provider
     };
 
-    // Check cache (unless skipCache requested)
-    if (skipCache !== 'true') {
-      // Quick-read AI config just for provider name (for cache key)
-      const configRow = await db
-        .prepare('SELECT provider FROM org_ai_config WHERE organization_id = ?')
-        .bind(organizationId)
-        .first();
-      cacheInputs.provider = configRow?.provider || 'anthropic';
-
-      const cached = await getCachedRecommendations(c.env, cacheInputs);
-      if (cached) {
-        // Defence-in-depth: re-run content moderation on cache hits too. Only
-        // moderated output is cached today, but a denylist update, a stale
-        // entry, or any future code path that caches raw output must not
-        // surface unfiltered text to a child.
-        const { kept: cachedSuggestions } = filterContentSafe(cached.suggestions || []);
-
-        // Library cross-check on cached suggestions
-        const suggestionTitles = cachedSuggestions
-          .filter((s) => s && s.title)
-          .map((s) => s.title.toLowerCase());
-        let libraryMatches = {};
-
-        if (suggestionTitles.length > 0) {
-          const placeholders = suggestionTitles.map(() => '?').join(',');
-          const booksResult = await db
-            .prepare(
-              `SELECT b.id, b.title FROM books b
-             INNER JOIN org_book_selections obs ON b.id = obs.book_id
-             WHERE obs.organization_id = ? AND obs.is_available = 1
-             AND LOWER(b.title) IN (${placeholders})`
-            )
-            .bind(organizationId, ...suggestionTitles)
-            .all();
-          for (const book of booksResult.results || []) {
-            libraryMatches[book.title.toLowerCase()] = book.id;
-          }
-        }
-
-        const enriched = cachedSuggestions.map((s) => ({
-          ...s,
-          inLibrary: s?.title ? !!libraryMatches[s.title.toLowerCase()] : false,
-          libraryBookId: s?.title ? libraryMatches[s.title.toLowerCase()] || null : null,
-        }));
-
-        return c.json({
-          suggestions: enriched,
-          studentProfile: {
-            readingLevel: profile.student.readingLevel,
-            favoriteGenres: profile.preferences.favoriteGenreNames,
-            inferredGenres: profile.inferredGenres.map((g) => g.name),
-            recentReads: profile.recentReads.map((r) => r.title),
-          },
-          cached: true,
-        });
-      }
-    }
-
     // Get AI configuration
     const dbConfig = await db
       .prepare(
@@ -482,6 +424,63 @@ recommendationsRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
       }
     }
 
+    // Check cache (unless skipCache requested). Runs after provider
+    // resolution so the read key hashes the same provider the write key
+    // will use — deriving it separately here used to default to 'anthropic'
+    // and permanently miss for platform-key orgs on other providers. A side
+    // benefit: a lapsed AI add-on now stops serving cached recommendations
+    // immediately (the entitlement check above) instead of for up to 7 days.
+    cacheInputs.provider = aiConfig.provider;
+    if (skipCache !== 'true') {
+      const cached = await getCachedRecommendations(c.env, cacheInputs);
+      if (cached) {
+        // Defence-in-depth: re-run content moderation on cache hits too. Only
+        // moderated output is cached today, but a denylist update, a stale
+        // entry, or any future code path that caches raw output must not
+        // surface unfiltered text to a child.
+        const { kept: cachedSuggestions } = filterContentSafe(cached.suggestions || []);
+
+        // Library cross-check on cached suggestions
+        const suggestionTitles = cachedSuggestions
+          .filter((s) => s && s.title)
+          .map((s) => s.title.toLowerCase());
+        let libraryMatches = {};
+
+        if (suggestionTitles.length > 0) {
+          const placeholders = suggestionTitles.map(() => '?').join(',');
+          const booksResult = await db
+            .prepare(
+              `SELECT b.id, b.title FROM books b
+             INNER JOIN org_book_selections obs ON b.id = obs.book_id
+             WHERE obs.organization_id = ? AND obs.is_available = 1
+             AND LOWER(b.title) IN (${placeholders})`
+            )
+            .bind(organizationId, ...suggestionTitles)
+            .all();
+          for (const book of booksResult.results || []) {
+            libraryMatches[book.title.toLowerCase()] = book.id;
+          }
+        }
+
+        const enriched = cachedSuggestions.map((s) => ({
+          ...s,
+          inLibrary: s?.title ? !!libraryMatches[s.title.toLowerCase()] : false,
+          libraryBookId: s?.title ? libraryMatches[s.title.toLowerCase()] || null : null,
+        }));
+
+        return c.json({
+          suggestions: enriched,
+          studentProfile: {
+            readingLevel: profile.student.readingLevel,
+            favoriteGenres: profile.preferences.favoriteGenreNames,
+            inferredGenres: profile.inferredGenres.map((g) => g.name),
+            recentReads: profile.recentReads.map((r) => r.title),
+          },
+          cached: true,
+        });
+      }
+    }
+
     // Per-org monthly cost cap. Demo users have their own 3/hour cap above;
     // this is the ceiling for legitimate authenticated traffic. Counts only
     // cache-misses since cache hits don't burn AI tokens. Owners can raise
@@ -527,7 +526,9 @@ recommendationsRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
           const key = await decryptSensitiveData(row.api_key_encrypted, encSecret);
           aiConfigs.push({ provider: row.provider, apiKey: key, model: row.model_preference });
         } catch {
-          // Undecryptable fallback key — skip it, the primary still works
+          // Undecryptable fallback key — skip it, the primary still works.
+          // Warn so a rotated ENCRYPTION_KEY doesn't silently thin the chain.
+          console.warn(`[ai-failover] skipping undecryptable platform key for ${row.provider}`);
         }
       }
     } catch (platformErr) {
@@ -573,9 +574,6 @@ recommendationsRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
         rejected: moderationRejected.map((r) => ({ title: r.title, flags: r._flags })),
       });
     }
-
-    // Set provider on cache inputs (now we know from aiConfig)
-    cacheInputs.provider = aiConfig.provider;
 
     // Cache the moderated suggestions only — never the raw AI output.
     // A rejected suggestion shouldn't reach a child via cache hit either.

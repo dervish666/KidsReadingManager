@@ -596,7 +596,10 @@ describe('BookManager Component', () => {
       const addButton = within(form).getByRole('button', { name: /add/i });
       await user.click(addButton);
 
-      expect(mockAddBook).toHaveBeenCalledWith('New Test Book', 'Test Author');
+      expect(mockAddBook).toHaveBeenCalledWith('New Test Book', 'Test Author', {
+        readingLevel: null,
+        ageRange: null,
+      });
       expect(mockReload).not.toHaveBeenCalled();
     });
 

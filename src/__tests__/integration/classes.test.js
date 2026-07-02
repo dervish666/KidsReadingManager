@@ -1331,7 +1331,7 @@ describe('Classes API Routes', () => {
         call[0].includes('UPDATE classes SET year_group')
       );
       expect(updateCall).toBeDefined();
-      expect(mockDB._chain.bind).toHaveBeenCalledWith('Nursery', 'class-1');
+      expect(mockDB._chain.bind).toHaveBeenCalledWith('Nursery', 'class-1', 'org-456');
     });
 
     it('clears the year group when given null', async () => {
@@ -1348,7 +1348,7 @@ describe('Classes API Routes', () => {
       });
 
       expect(res.status).toBe(200);
-      expect(mockDB._chain.bind).toHaveBeenCalledWith(null, 'class-1');
+      expect(mockDB._chain.bind).toHaveBeenCalledWith(null, 'class-1', 'org-456');
     });
 
     it('rejects an unknown year-group value with 400', async () => {

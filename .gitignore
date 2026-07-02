@@ -71,6 +71,14 @@ graphify-out/
 # sota-scan artifacts
 .sota/
 
+# Impeccable + understand-anything plugin artifacts (generated; .impeccable.md stays tracked)
+.impeccable/
+.understand-anything/
+
+# Screen recordings dropped into the source tree (a 44MB .mov sat here untracked once)
+src/**/*.mov
+src/**/*.webm
+
 # Local launcher config
 .claude/launch.json
 

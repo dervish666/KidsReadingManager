@@ -78,8 +78,14 @@ export function classNameToYearGroup(className) {
     return null;
   }
 
-  // Reception registration groups: "rf", "rjm", "r" (leading R, then only letters)
-  if (/^r[a-z]*$/.test(raw)) return 'R';
+  // Reception: explicit "Reception…" names, or short registration codes.
+  // Bare "R" (any case) and all-caps initial codes ("RF", "RJM") count;
+  // word class names starting with R ("Rowan", "Robins", "Redwood") encode
+  // no year and must fall through to null — case and length are the only
+  // signals that separate a reg code from a name once the string is letters.
+  if (raw.startsWith('reception')) return 'R';
+  const orig = String(className).trim();
+  if (/^r$/i.test(orig) || /^R[A-Z]{1,2}$/.test(orig)) return 'R';
 
   return null;
 }

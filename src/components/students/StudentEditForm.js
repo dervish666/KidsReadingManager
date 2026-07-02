@@ -142,6 +142,9 @@ const StudentEditForm = forwardRef(function StudentEditForm({ student, onSave, o
         setReadBooksLoaded(true);
       } catch (error) {
         if (error.name === 'AbortError') return;
+        // Renders the same as an empty history — warn so a transient failure
+        // masquerading as "no books recorded yet" is at least traceable.
+        console.warn('Read-books history load failed:', error?.message);
         setReadBooks([]);
         setReadBooksLoaded(true);
       }

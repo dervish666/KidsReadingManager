@@ -62,7 +62,7 @@ Every route MUST have all of these. Do not skip any:
    app.route('/api/{resource}', requireTeacher(), {resourceName}Routes);
    ```
 4. If this is a public endpoint, add the path to BOTH:
-   - `publicPaths` array in `jwtAuthMiddleware()` in `src/middleware/tenant.js`
+   - `PUBLIC_PATHS` in `src/utils/constants.js` (imported by `src/middleware/tenant.js`)
    - Tenant middleware bypass in `src/worker.js`
    - **Important**: Use exact path strings, never wildcard `startsWith` patterns
 
