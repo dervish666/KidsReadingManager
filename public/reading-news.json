@@ -1,31 +1,31 @@
 {
-  "generatedAt": "2026-06-23",
-  "issue": "June 2026",
+  "generatedAt": "2026-07-02",
+  "issue": "July 2026",
   "title": "Reading News",
-  "intro": "What's topping your reading logs this month — a brand-new memoir from Michael Morpurgo, fresh chapter books for children who've outgrown the early readers, and a few dates for the diary.",
+  "intro": "As the summer term winds down, here's what's topping your reading logs — Horrible Histories back on stage, a new Michael Morpurgo memoir on the way, this year's Carnegie winners, and the Summer Reading Challenge under way.",
   "isPreview": false,
   "items": [
     {
       "id": "worst-witch-fresh-look",
-      "headline": "The Worst Witch — still topping your logs, on the page and on screen",
+      "headline": "The Worst Witch — 50 years on and still your most-read series",
       "author": "Jill Murphy",
       "book": "A Bad Spell for the Worst Witch",
       "rank": 1,
       "kind": "spotlight",
-      "summary": "Mildred Hubble is comfortably your most-read character. Puffin keep the series fresh with bright new covers, and children who finish the books can carry straight on with the much-loved CBBC television series. A safe recommendation for any child who likes a bit of magic and mischief.",
+      "summary": "Mildred Hubble is comfortably your most-read character across Tally schools. Jill Murphy's series turned 50 in 2024 and the anniversary edition is in shops, with the much-loved CBBC television series to carry on with once the books are finished. A safe recommendation for any child who likes a little magic and mischief.",
       "source": "Penguin",
-      "link": "https://www.penguin.co.uk/series/wor/the-worst-witch.html"
+      "link": "https://www.penguin.co.uk/discover/childrens-articles/why-we-love-jill-murphy"
     },
     {
       "id": "brandon-ravens-hall",
-      "headline": "From A Box of Socks to spooky chapter books — Amanda Brandon moves up a band",
+      "headline": "From A Box of Socks to a creepy mansion — Amanda Brandon's new chapter reader",
       "author": "Amanda Brandon",
       "book": "A Box of Socks (Early Reader)",
       "rank": 2,
       "kind": "release",
-      "summary": "Amanda Brandon — whose A Box of Socks early reader is one of your most-read titles — has new chapter books out, including The Curse of Raven's Hall, an illustrated adventure about pupils trapped in a creepy old house. A natural next step for a child who's outgrown her early readers but still wants that same warmth and humour.",
+      "summary": "Amanda Brandon — whose A Box of Socks is one of your most-read titles — has The Curse of Raven's Hall out now (Maverick, May 2026): a comic-strip-style illustrated chapter reader set in a spooky old mansion, pitched at ages 5–8. A natural next step for a child who's outgrown her early readers but still wants that warmth and humour.",
       "source": "Amanda Brandon",
-      "link": "https://www.amandabrandon.co.uk/books/"
+      "link": "https://www.amandabrandon.co.uk/"
     },
     {
       "id": "glover-nowhere-boy",
@@ -56,20 +56,20 @@
       "book": "Running Wild",
       "rank": 8,
       "kind": "release",
-      "summary": "The author of Running Wild publishes Down Burrow Lane: Life and Love on the Farm on 17 September — a memoir of the fifty years he and his wife Clare spent on the Devon farm that inspired War Horse and Private Peaceful, and where they founded the Farms for City Children charity. Lovely background for a class already hooked on his animal stories.",
+      "summary": "The author of Running Wild publishes Down Burrow Lane: Life and Love on the Farm on 17 September — a memoir of the fifty years he and his wife Clare spent on the Devon farm that inspired War Horse and Private Peaceful, and where they founded the Farms for City Children charity. One for the staffroom, and lovely background for a class already hooked on his animal stories.",
       "source": "Waterstones",
       "link": "https://www.waterstones.com/author/michael-morpurgo/28972"
     },
     {
-      "id": "deary-terrible-true-tales",
-      "headline": "More gory-fun history from the Horrible Histories author",
+      "id": "horrible-histories-on-stage",
+      "headline": "Horrible Histories on stage: Awful Egyptians & Terrible Tudors on tour",
       "author": "Terry Deary",
       "book": "The Awful Egyptians",
       "rank": 12,
-      "kind": "spotlight",
-      "summary": "Terry Deary's Terrible True Tales bring the same grisly humour as Horrible Histories to newly-confident readers, in shorter illustrated stories. Handy for a child who loves the facts but wants a lighter read.",
-      "source": "ReadingZone",
-      "link": "https://www.readingzone.com/books/terrible-true-tales-the-stone-age-from-the-author-of-horrible-histories/"
+      "kind": "news",
+      "summary": "The very titles your classes are reading are live on stage: Birmingham Stage Company's Awful Egyptians and Terrible Tudors are touring UK theatres through 2026, with dates running into late October — actors, songs and eye-popping 3D effects. This year marks 20 years of Horrible Histories on stage. A brilliant tie-in for a history topic.",
+      "source": "Birmingham Stage Company",
+      "link": "https://birminghamstage.com/shows/terrible-tudors-awful-egyptians/"
     }
   ],
   "events": [
@@ -78,7 +78,7 @@
       "date": "2026-07-04",
       "name": "Summer Reading Challenge — Read to the Beat!",
       "kind": "event",
-      "blurb": "The Reading Agency's free library challenge runs 4 July to 5 September in England and Wales (from 20 June in Scotland), this year pairing stories with songs alongside Universal Music, with illustrations by Harry Woodgate. A great nudge to keep children reading over the holidays.",
+      "blurb": "The Reading Agency's free library challenge runs from 4 July in England and Wales (20 June in Scotland), this year pairing stories with songs alongside Universal Music, with illustrations by Harry Woodgate. A great nudge to keep children aged 4–11 reading over the holidays.",
       "link": "https://summerreadingchallenge.org.uk/"
     },
     {
@@ -94,7 +94,7 @@
       "date": "2026-09-13",
       "name": "Roald Dahl Day",
       "kind": "event",
-      "blurb": "Marked each year on Dahl's birthday, 13 September — this year his 110th. Schools often celebrate with dressing-up, golden tickets and a chapter or two of the classics.",
+      "blurb": "Marked each year on Dahl's birthday, 13 September. Schools often celebrate with dressing-up, golden tickets and a chapter or two of the classics.",
       "link": "https://www.roalddahl.com/"
     },
     {
@@ -102,7 +102,7 @@
       "date": "2026-10-01",
       "name": "National Poetry Day — 'Wonder'",
       "kind": "event",
-      "blurb": "Thursday 1 October, this year on the theme of Wonder. Free classroom resources go up via the Forward Arts Foundation and the National Literacy Trust.",
+      "blurb": "Thursday 1 October, this year on the theme of Wonder, with free classroom resources from the Forward Arts Foundation and trained poets going into schools. A perfect prompt for a class poem or a favourite verse read aloud.",
       "link": "https://forwardartsfoundation.org/national-poetry-day/"
     },
     {
@@ -110,7 +110,7 @@
       "date": "2026-10-05",
       "name": "Michael Morpurgo's birthday",
       "kind": "birthday",
-      "blurb": "One of your most-read authors turns a year older on 5 October — pair it with Running Wild, or his new farm memoir Down Burrow Lane, out the month before.",
+      "blurb": "One of your most-read authors was born on 5 October — pair it with Running Wild, or his new farm memoir Down Burrow Lane, out the month before.",
       "link": "https://www.michaelmorpurgo.com/"
     },
     {
@@ -124,11 +124,18 @@
   ],
   "general": [
     {
-      "id": "research-stress",
+      "id": "carnegie-medals-2026",
+      "label": "Book award",
+      "text": "The 2026 Carnegie Medals were announced in June: Kate Rolfe won the Illustration Medal for Wiggling Words, a picture book about what reading feels like with dyslexia, and Beth O'Brien won the Writing Medal for Wolf Siren.",
+      "source": "ReadingZone",
+      "link": "https://www.readingzone.com/news/winners-of-the-2026-carnegie-medals-announced/"
+    },
+    {
+      "id": "reading-enjoyment-nlt",
       "label": "Reading research",
-      "text": "Research from the University of Sussex found that just six minutes of reading can reduce stress levels by up to 68% — more than music or a walk.",
-      "source": "University of Sussex",
-      "link": null
+      "text": "Just 1 in 3 children aged 8–18 said they enjoyed reading in their free time in 2025 — a 20-year low — though the National Literacy Trust's 2026 report shows a small rise. Children who enjoy reading report better wellbeing and do better at school, which makes every reading session count.",
+      "source": "National Literacy Trust",
+      "link": "https://literacytrust.org.uk/research-services/research-reports/children-and-young-peoples-reading-in-2026/"
     },
     {
       "id": "research-oecd",
