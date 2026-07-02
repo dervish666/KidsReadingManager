@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.110.0] - 2026-07-02
+
+### Added
+
+- **Book Ideas now shows live school-library suggestions.** The parent portal's Book Ideas tab previously only populated after a teacher generated AI recommendations — so schools without the AI add-on (or before anyone clicked "Ask AI") saw an empty screen. It now also shows **live** matches from the school's own catalogue: books at the child's reading level, in genres they enjoy, that they haven't read yet — all borrowable from school. AI picks (when present) appear under "✨ Chosen for {name}" and library matches under "📖 From the school library — ready to borrow". Lazy-loaded via a new token-authed `GET /api/parent/:token/book-ideas` endpoint; the library matching logic is shared with the teacher's Find-in-Library so the two never drift.
+
+### Changed
+
+- The library recommendation matching logic was extracted into a shared utility (`computeLibraryRecommendations`) used by both the teacher recommendations page and the parent portal.
+
 ## [3.109.0] - 2026-07-02
 
 ### Added

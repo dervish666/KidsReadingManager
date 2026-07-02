@@ -97,6 +97,11 @@ const ParentPortal = () => {
   // ── Active tab: 'reading' (default) | 'ideas' ────────────────────────────────
   const [activeTab, setActiveTab] = useState('reading');
 
+  // ── Book Ideas: lazy-loaded when the tab is first opened ─────────────────────
+  const [bookIdeas, setBookIdeas] = useState({ ai: [], library: [] });
+  const [bookIdeasLoading, setBookIdeasLoading] = useState(false);
+  const [bookIdeasLoaded, setBookIdeasLoaded] = useState(false);
+
   const today = new Date().toISOString().split('T')[0];
 
   // ── Fetch portal data ───────────────────────────────────────────────────────
@@ -130,6 +135,35 @@ const ParentPortal = () => {
       setBandUpToShow(data.bandUp);
     }
   }, [data?.bandUp]);
+
+  // Lazy-load Book Ideas the first time the tab is opened (keeps the main portal
+  // load light — the live library match runs only when a parent actually looks).
+  useEffect(() => {
+    if (activeTab !== 'ideas' || bookIdeasLoaded) return;
+    let cancelled = false;
+    setBookIdeasLoading(true);
+    (async () => {
+      try {
+        const res = await fetch(`${apiBase}/book-ideas`);
+        if (res.ok) {
+          const json = await res.json();
+          if (!cancelled) {
+            setBookIdeas({ ai: json.ai || [], library: json.library || [] });
+          }
+        }
+      } catch {
+        // Fail-open — the empty state covers a failed fetch.
+      } finally {
+        if (!cancelled) {
+          setBookIdeasLoading(false);
+          setBookIdeasLoaded(true);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, bookIdeasLoaded, apiBase]);
 
   // ── Book search debounce ────────────────────────────────────────────────────
   useEffect(() => {
@@ -242,6 +276,85 @@ const ParentPortal = () => {
     setBookResults({ library: [], external: [] });
   };
 
+  // ── Book Ideas card (shared by the AI + library sections) ────────────────────
+  const renderRecCard = (rec, key) => (
+    <Paper
+      key={key}
+      elevation={0}
+      sx={{
+        display: 'flex',
+        gap: 1.5,
+        p: 1.5,
+        borderRadius: 3,
+        border: `1px solid ${alpha(accent, 0.15)}`,
+        bgcolor: 'white',
+      }}
+    >
+      <Box sx={{ flexShrink: 0 }}>
+        <BookCover title={rec.title} author={rec.author} isbn={rec.isbn} width={56} height={84} />
+      </Box>
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography
+          variant="subtitle2"
+          sx={{ fontWeight: 700, color: 'parent.accent', lineHeight: 1.3 }}
+        >
+          {rec.title}
+        </Typography>
+        {rec.author && (
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+            by {rec.author}
+          </Typography>
+        )}
+        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mb: rec.reason ? 0.75 : 0 }}>
+          {rec.ageRange && (
+            <Chip
+              label={`Ages ${rec.ageRange}`}
+              size="small"
+              sx={{
+                height: 20,
+                fontSize: '0.65rem',
+                bgcolor: alpha(accent, 0.08),
+                color: 'parent.accent',
+                fontWeight: 600,
+              }}
+            />
+          )}
+          {rec.inLibrary && (
+            <Chip
+              label="✓ In school library"
+              size="small"
+              sx={{
+                height: 20,
+                fontSize: '0.65rem',
+                bgcolor: theme.palette.accent.schoolLight,
+                color: theme.palette.accent.school,
+                fontWeight: 600,
+              }}
+            />
+          )}
+        </Box>
+        {rec.reason && (
+          <Typography
+            variant="body2"
+            sx={{
+              fontStyle: 'italic',
+              color: 'text.secondary',
+              fontSize: '0.85rem',
+              lineHeight: 1.4,
+            }}
+          >
+            {rec.reason}
+          </Typography>
+        )}
+        {rec.whereToFind && (
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+            {rec.whereToFind}
+          </Typography>
+        )}
+      </Box>
+    </Paper>
+  );
+
   // ── Loading / Error states ──────────────────────────────────────────────────
   if (loading) {
     return (
@@ -286,15 +399,7 @@ const ParentPortal = () => {
     );
   }
 
-  const {
-    currentBook,
-    streak,
-    sessions = [],
-    badgeCount = 0,
-    badges = [],
-    recommendations = [],
-    recommendationsGeneratedAt = null,
-  } = data || {};
+  const { currentBook, streak, sessions = [], badgeCount = 0, badges = [] } = data || {};
 
   return (
     <Box sx={{ maxWidth: 480, mx: 'auto', bgcolor: 'parent.surface', minHeight: '100vh', pb: 6 }}>
@@ -605,126 +710,57 @@ const ParentPortal = () => {
             <Typography variant="subtitle2" sx={{ ...sectionTitleSx, mb: 0.5 }}>
               Book ideas for {firstName}
             </Typography>
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ mb: recommendationsGeneratedAt && recommendations.length > 0 ? 0.5 : 2 }}
-            >
-              Reading suggestions chosen for {firstName} — great next books to enjoy together.
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Great next books for {firstName} to enjoy — ones to borrow from school and ideas to
+              discover together.
             </Typography>
-            {recommendationsGeneratedAt && recommendations.length > 0 && (
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ display: 'block', mb: 2, fontStyle: 'italic' }}
-              >
-                Updated {formatSessionDate(recommendationsGeneratedAt.slice(0, 10))}
-              </Typography>
-            )}
 
-            {recommendations.length > 0 ? (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                {recommendations.map((rec, i) => (
-                  <Paper
-                    key={`${rec.title}-${i}`}
-                    elevation={0}
-                    sx={{
-                      display: 'flex',
-                      gap: 1.5,
-                      p: 1.5,
-                      borderRadius: 3,
-                      border: `1px solid ${alpha(accent, 0.15)}`,
-                      bgcolor: 'white',
-                    }}
-                  >
-                    <Box sx={{ flexShrink: 0 }}>
-                      <BookCover title={rec.title} author={rec.author} width={56} height={84} />
-                    </Box>
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography
-                        variant="subtitle2"
-                        sx={{ fontWeight: 700, color: 'parent.accent', lineHeight: 1.3 }}
-                      >
-                        {rec.title}
-                      </Typography>
-                      {rec.author && (
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{ display: 'block', mb: 0.5 }}
-                        >
-                          by {rec.author}
-                        </Typography>
-                      )}
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          gap: 0.5,
-                          flexWrap: 'wrap',
-                          mb: rec.reason ? 0.75 : 0,
-                        }}
-                      >
-                        {rec.ageRange && (
-                          <Chip
-                            label={`Ages ${rec.ageRange}`}
-                            size="small"
-                            sx={{
-                              height: 20,
-                              fontSize: '0.65rem',
-                              bgcolor: alpha(accent, 0.08),
-                              color: 'parent.accent',
-                              fontWeight: 600,
-                            }}
-                          />
-                        )}
-                        {rec.inLibrary && (
-                          <Chip
-                            label="✓ In school library"
-                            size="small"
-                            sx={{
-                              height: 20,
-                              fontSize: '0.65rem',
-                              bgcolor: theme.palette.accent.schoolLight,
-                              color: theme.palette.accent.school,
-                              fontWeight: 600,
-                            }}
-                          />
-                        )}
-                      </Box>
-                      {rec.reason && (
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            fontStyle: 'italic',
-                            color: 'text.secondary',
-                            fontSize: '0.85rem',
-                            lineHeight: 1.4,
-                          }}
-                        >
-                          {rec.reason}
-                        </Typography>
-                      )}
-                      {rec.whereToFind && (
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{ display: 'block', mt: 0.5 }}
-                        >
-                          {rec.whereToFind}
-                        </Typography>
-                      )}
-                    </Box>
-                  </Paper>
-                ))}
+            {bookIdeasLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}>
+                <CircularProgress sx={{ color: 'parent.accent' }} />
               </Box>
-            ) : (
+            ) : bookIdeas.ai.length === 0 && bookIdeas.library.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 5, px: 2 }}>
                 <Typography sx={{ fontSize: 44, mb: 1 }}>📚</Typography>
                 <Typography variant="body2" color="text.secondary">
-                  No book ideas yet. When {firstName}&apos;s teacher shares reading suggestions,
-                  they&apos;ll appear here for you to explore together.
+                  No book ideas just yet. As {firstName} reads more, suggestions will appear here
+                  for you to explore together.
                 </Typography>
               </Box>
+            ) : (
+              <>
+                {/* Teacher/AI-chosen picks */}
+                {bookIdeas.ai.length > 0 && (
+                  <Box sx={{ mb: bookIdeas.library.length > 0 ? 3 : 0 }}>
+                    <Typography
+                      variant="caption"
+                      sx={{ ...sectionTitleSx, display: 'block', mb: 1, fontSize: '0.8rem' }}
+                    >
+                      ✨ Chosen for {firstName}
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                      {bookIdeas.ai.map((rec, i) => renderRecCard(rec, `ai-${rec.title}-${i}`))}
+                    </Box>
+                  </Box>
+                )}
+
+                {/* Live matches from the school's own library — borrowable */}
+                {bookIdeas.library.length > 0 && (
+                  <Box>
+                    <Typography
+                      variant="caption"
+                      sx={{ ...sectionTitleSx, display: 'block', mb: 1, fontSize: '0.8rem' }}
+                    >
+                      📖 From the school library — ready to borrow
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                      {bookIdeas.library.map((rec, i) =>
+                        renderRecCard(rec, `lib-${rec.title}-${i}`)
+                      )}
+                    </Box>
+                  </Box>
+                )}
+              </>
             )}
           </Box>
         )}

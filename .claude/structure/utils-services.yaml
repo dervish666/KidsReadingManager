@@ -334,6 +334,14 @@ files:
         returns: "'KS1'|'LowerKS2'|'UpperKS2'"
         description: Robust year-group → badge key stage; backs badgeDefinitions.resolveKeyStage
 
+  utils/libraryRecommendations.js:
+    description: Profile-based library recommendation matching (pure DB logic, no auth context) — reading-level + genre scoring over a school's own catalogue. Shared by the teacher /library-search endpoint and the parent portal's live Book Ideas, so the two never drift.
+    exports:
+      - name: computeLibraryRecommendations
+        kind: function
+        params: [{name: db}, {name: opts, fields: [studentId, organizationId, focusMode, limit]}]
+        returns: Promise<{books, studentProfile}|null>
+        description: Returns scored/formatted library matches (null if student not found); excludes already-read + disliked titles, narrows level range by focus mode
   utils/recommendationCache.js:
     description: KV caching for AI book recommendations (7-day TTL)
     exports:

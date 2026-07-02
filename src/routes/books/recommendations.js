@@ -5,7 +5,7 @@ import { decryptSensitiveData, getEncryptionSecret } from '../../utils/crypto.js
 import { buildStudentReadingProfile, toAISafeProfile } from '../../utils/studentProfile.js';
 import { yearGroupToAgeBand } from '../../utils/yearGroup.js';
 import { getCachedRecommendations, cacheRecommendations } from '../../utils/recommendationCache.js';
-import { parseGenreIds } from '../../utils/helpers.js';
+import { computeLibraryRecommendations } from '../../utils/libraryRecommendations.js';
 import { requireReadonly } from '../../middleware/tenant.js';
 import { filterContentSafe } from '../../utils/contentModeration.js';
 import { checkAIBudget, recordAICall, getMonthlyLimit } from '../../utils/aiCostCap.js';
@@ -91,188 +91,19 @@ recommendationsRouter.get('/library-search', requireReadonly(), async (c) => {
       throw badRequestError('Multi-tenant mode required for library search');
     }
 
-    // Build student profile
-    const profile = await buildStudentReadingProfile(studentId, organizationId, db);
+    // Matching logic is shared with the parent portal's live Book Ideas
+    // (routes/parent.js → GET /:token/book-ideas) so the two never drift.
+    const result = await computeLibraryRecommendations(db, {
+      studentId,
+      organizationId,
+      focusMode,
+    });
 
-    if (!profile) {
+    if (!result) {
       throw notFoundError(`Student with ID ${studentId} not found`);
     }
 
-    // Build the search query
-    const { student, preferences, inferredGenres, readBookIds } = profile;
-
-    // Build query to find matching books, scoped to organization
-    let query = `
-      SELECT DISTINCT b.id, b.title, b.author,
-        COALESCE(obs.reading_level_override, b.reading_level) AS reading_level,
-        b.age_range, b.genre_ids, b.description,
-        b.isbn, b.page_count, b.series_name, b.series_number, b.publication_year
-      FROM books b
-      INNER JOIN org_book_selections obs ON b.id = obs.book_id AND obs.organization_id = ?
-      WHERE 1=1
-    `;
-    const params = [organizationId];
-
-    // Filter by reading level range if student has one set
-    const minLevel = student.readingLevelMin;
-    const maxLevel = student.readingLevelMax;
-
-    // Adjust effective range based on focus mode
-    let effectiveMin = minLevel;
-    let effectiveMax = maxLevel;
-    if (minLevel !== null && maxLevel !== null) {
-      const midpoint = (minLevel + maxLevel) / 2;
-      if (focusMode === 'consolidation') {
-        effectiveMax = midpoint;
-      } else if (focusMode === 'challenge') {
-        effectiveMin = midpoint;
-      }
-    }
-
-    if (effectiveMin !== null && effectiveMax !== null) {
-      query += ` AND (COALESCE(obs.reading_level_override, b.reading_level) IS NULL OR (
-        CAST(COALESCE(obs.reading_level_override, b.reading_level) AS REAL) >= ?
-        AND CAST(COALESCE(obs.reading_level_override, b.reading_level) AS REAL) <= ?
-      ))`;
-      params.push(effectiveMin, effectiveMax);
-    }
-
-    // Exclude already-read books (chunked to stay within SQLite bind limit of 999)
-    if (readBookIds.length > 0) {
-      const CHUNK_SIZE = 400;
-      for (let i = 0; i < readBookIds.length; i += CHUNK_SIZE) {
-        const chunk = readBookIds.slice(i, i + CHUNK_SIZE);
-        const placeholders = chunk.map(() => '?').join(',');
-        query += ` AND b.id NOT IN (${placeholders})`;
-        params.push(...chunk);
-      }
-    }
-
-    // Exclude disliked books (by title match, with SQL wildcard escaping)
-    if (preferences.dislikes.length > 0) {
-      for (const disliked of preferences.dislikes) {
-        const escaped = disliked.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
-        query += ` AND b.title NOT LIKE ? ESCAPE '\\'`;
-        params.push(`%${escaped}%`);
-      }
-    }
-
-    query += ` LIMIT 100`; // Get more than we need for scoring
-
-    const booksResult = await db
-      .prepare(query)
-      .bind(...params)
-      .all();
-    let books = booksResult.results || [];
-
-    // Score and sort books by genre match
-    const scoredBooks = books.map((book) => {
-      let score = 0;
-      const matchReasons = [];
-      const bookGenreIds = parseGenreIds(book.genre_ids);
-
-      // Score for matching favorite genres
-      for (const genreId of bookGenreIds) {
-        if (preferences.favoriteGenreIds.includes(genreId)) {
-          score += 3; // Explicit favorite gets higher weight
-          matchReasons.push('favorite genre');
-        } else if (inferredGenres.some((g) => g.id === genreId)) {
-          score += 2; // Inferred favorite
-          matchReasons.push('matches reading history');
-        }
-      }
-
-      // Score for books well within the target reading level range
-      if (effectiveMin !== null && effectiveMax !== null && book.reading_level) {
-        const bookLevel = parseFloat(book.reading_level);
-        if (!isNaN(bookLevel)) {
-          const targetCenter = (effectiveMin + effectiveMax) / 2;
-          const targetHalf = (effectiveMax - effectiveMin) / 2;
-          const distanceFromCenter = Math.abs(bookLevel - targetCenter);
-          // Bonus for books closer to the center of the target range
-          if (targetHalf > 0 && distanceFromCenter <= targetHalf * 0.5) {
-            score += 1;
-            matchReasons.push(
-              focusMode === 'consolidation'
-                ? 'consolidation level'
-                : focusMode === 'challenge'
-                  ? 'challenge level'
-                  : 'ideal level match'
-            );
-          }
-        }
-      }
-
-      return { ...book, score, matchReasons: [...new Set(matchReasons)] };
-    });
-
-    // Sort by score (highest first) and take top 10
-    scoredBooks.sort((a, b) => b.score - a.score);
-    const topBooks = scoredBooks.slice(0, 10);
-
-    // Get genre names for display
-    const allGenreIds = [...new Set(topBooks.flatMap((b) => parseGenreIds(b.genre_ids)))];
-
-    let genreNameMap = {};
-    if (allGenreIds.length > 0) {
-      const placeholders = allGenreIds.map(() => '?').join(',');
-      const genresResult = await db
-        .prepare(
-          `
-        SELECT id, name FROM genres WHERE id IN (${placeholders})
-      `
-        )
-        .bind(...allGenreIds)
-        .all();
-
-      for (const row of genresResult.results || []) {
-        genreNameMap[row.id] = row.name;
-      }
-    }
-
-    // Format response
-    const formattedBooks = topBooks.map((book) => {
-      const genreIds = parseGenreIds(book.genre_ids);
-      // Only include genres that have a name in the map (filter out invalid IDs)
-      const genres = genreIds.filter((id) => genreNameMap[id]).map((id) => genreNameMap[id]);
-
-      // Build match reason string
-      let matchReason = 'Matches your reading level';
-      if (book.matchReasons.includes('favorite genre')) {
-        const matchingGenre = genres.find((g) => preferences.favoriteGenreNames.includes(g));
-        matchReason = `Matches favorite genre: ${matchingGenre || genres[0] || 'General'}`;
-      } else if (book.matchReasons.includes('matches reading history')) {
-        matchReason = "Similar to books you've enjoyed";
-      }
-
-      return {
-        id: book.id,
-        title: book.title,
-        author: book.author,
-        readingLevel: book.reading_level,
-        ageRange: book.age_range,
-        description: book.description,
-        isbn: book.isbn,
-        pageCount: book.page_count,
-        seriesName: book.series_name,
-        seriesNumber: book.series_number,
-        publicationYear: book.publication_year,
-        genres,
-        matchReason,
-      };
-    });
-
-    return c.json({
-      books: formattedBooks,
-      studentProfile: {
-        readingLevel: student.readingLevel,
-        readingLevelMin: student.readingLevelMin,
-        readingLevelMax: student.readingLevelMax,
-        favoriteGenres: preferences.favoriteGenreNames,
-        inferredGenres: inferredGenres.map((g) => g.name),
-        booksRead: profile.booksReadCount,
-      },
-    });
+    return c.json({ books: result.books, studentProfile: result.studentProfile });
   } catch (error) {
     // Re-throw known errors (badRequestError, notFoundError)
     if (error.status) {

@@ -787,9 +787,13 @@ files:
         description: Pure helper — shapes a stored student_recommendations snapshot (JSON string) into the read-only parent display array. Returns [] when ai_opt_out, missing/corrupt JSON, or non-array; re-runs filterContentSafe (defence-in-depth); drops entries without a title; exposes only display fields.
     endpoints:
       - route: GET /api/parent/:token
-        description: Fetch parent view data (student name, current book, streak, sessions, badges, band display + deferred band-up celebration, latest AI recommendation snapshot for the Book Ideas tab)
+        description: Fetch parent view data (student name, current book, streak, sessions, badges, band display + deferred band-up celebration)
         public: true
         rate_limit: 60/min
+      - route: GET /api/parent/:token/book-ideas
+        description: Book Ideas tab (lazy-loaded). Returns { ai, aiGeneratedAt, library } — ai is the latest AI recommendation snapshot (suppressed on ai_opt_out); library is live matches from the school's own catalogue via computeLibraryRecommendations (shown regardless of ai_opt_out, deduped vs ai, re-moderated). Both lookups fail-open.
+        public: true
+        rate_limit: 30/min
       - route: POST /api/parent/:token/sessions
         description: Log home reading session (location=home, recorded_by=NULL)
         public: true

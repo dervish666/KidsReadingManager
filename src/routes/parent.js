@@ -30,6 +30,7 @@ import { bandForCount, bandTransition } from '../utils/readingBandEngine.js';
 import { BADGE_DEFINITIONS } from '../utils/badgeDefinitions.js';
 import { classNameToYearGroup } from '../utils/yearGroup.js';
 import { filterContentSafe } from '../utils/contentModeration.js';
+import { computeLibraryRecommendations } from '../utils/libraryRecommendations.js';
 
 export const parentRouter = new Hono();
 
@@ -182,7 +183,7 @@ parentRouter.get('/:token', rateLimit(60, 60000, 'parent:view'), async (c) => {
   const student = await db
     .prepare(
       `SELECT id, name, current_book_id, current_streak, last_read_date,
-              current_band, band_reads_count, band_year_start, ai_opt_out
+              current_band, band_reads_count, band_year_start
          FROM students
         WHERE id = ? AND organization_id = ? AND is_active = 1`
     )
@@ -276,37 +277,6 @@ parentRouter.get('/:token', rateLimit(60, 60000, 'parent:view'), async (c) => {
   }
   const band = bandForCount(bandReadsCount, readsPerBand, bands);
 
-  // ── Book Ideas: latest AI recommendation snapshot (see routes/books/
-  //    recommendations.js). Read-only take-away for parents — no AI is run on
-  //    this public endpoint. Suppressed when the student is opted out of AI.
-  let recommendations = [];
-  let recommendationsGeneratedAt = null;
-  if (!student.ai_opt_out) {
-    // Fail-open: Book Ideas is enrichment. A recs-query error (e.g. the table
-    // not yet migrated during a deploy window, or a transient D1 failure) must
-    // never 500 the whole portal — the core reading data still renders. Logged,
-    // never silently swallowed.
-    try {
-      const recRow = await db
-        .prepare(
-          `SELECT suggestions, generated_at
-             FROM student_recommendations
-            WHERE student_id = ? AND organization_id = ?`
-        )
-        .bind(studentId, organizationId)
-        .first();
-      if (recRow?.suggestions) {
-        recommendations = shapeParentRecommendations(recRow.suggestions, student.ai_opt_out);
-        recommendationsGeneratedAt = recommendations.length ? recRow.generated_at || null : null;
-      }
-    } catch (err) {
-      console.warn('[parent/view] recommendations lookup failed', {
-        studentId,
-        error: err.message,
-      });
-    }
-  }
-
   c.header('Cache-Control', 'no-store');
   return c.json({
     studentFirstName,
@@ -318,9 +288,108 @@ parentRouter.get('/:token', rateLimit(60, 60000, 'parent:view'), async (c) => {
     band,
     bandUp,
     bands,
-    recommendations,
-    recommendationsGeneratedAt,
   });
+});
+
+// ============================================================================
+// GET /api/parent/:token/book-ideas
+// Book Ideas tab — lazy-loaded when the parent opens it. Returns:
+//   • ai:      the latest AI recommendation snapshot (written by teachers via
+//              /api/books/ai-suggestions; suppressed when the student is AI
+//              opted-out). No AI runs here — snapshot read only.
+//   • library: live matches from the school's own catalogue, computed with the
+//              same logic as the teacher's library-search. Always fresh, always
+//              borrowable, so the tab isn't empty for schools without AI.
+// Rate limited 30/min. Both lookups are fail-open — a book-ideas error never
+// blocks the parent portal.
+// ============================================================================
+parentRouter.get('/:token/book-ideas', rateLimit(30, 60000, 'parent:book-ideas'), async (c) => {
+  const db = requireDB(c.env);
+  const { token } = c.req.param();
+
+  const tokenRow = await validateParentToken(db, token);
+  if (!tokenRow) {
+    return c.json({ error: 'Invalid or expired access token' }, 404);
+  }
+
+  // GDPR Article 18: mirror the main view's restriction guard.
+  if (tokenRow.processing_restricted) {
+    return c.json(
+      { error: 'This reading record is temporarily unavailable.', restricted: true },
+      403
+    );
+  }
+
+  const { student_id: studentId, organization_id: organizationId } = tokenRow;
+
+  const student = await db
+    .prepare(
+      'SELECT ai_opt_out FROM students WHERE id = ? AND organization_id = ? AND is_active = 1'
+    )
+    .bind(studentId, organizationId)
+    .first();
+  if (!student) {
+    return c.json({ error: 'Student not found' }, 404);
+  }
+
+  // ── AI snapshot (fail-open, opt-out-gated) ──────────────────────────────────
+  let ai = [];
+  let aiGeneratedAt = null;
+  if (!student.ai_opt_out) {
+    try {
+      const recRow = await db
+        .prepare(
+          `SELECT suggestions, generated_at
+             FROM student_recommendations
+            WHERE student_id = ? AND organization_id = ?`
+        )
+        .bind(studentId, organizationId)
+        .first();
+      if (recRow?.suggestions) {
+        ai = shapeParentRecommendations(recRow.suggestions, student.ai_opt_out);
+        aiGeneratedAt = ai.length ? recRow.generated_at || null : null;
+      }
+    } catch (err) {
+      console.warn('[parent/book-ideas] AI snapshot lookup failed', {
+        studentId,
+        error: err.message,
+      });
+    }
+  }
+
+  // ── Live library matches (fail-open). Deterministic catalogue query — no AI —
+  //    so shown regardless of ai_opt_out. Deduped against AI titles, re-moderated
+  //    as defence-in-depth, and all borrowable (inLibrary: true). ────────────────
+  let library = [];
+  try {
+    const result = await computeLibraryRecommendations(db, {
+      studentId,
+      organizationId,
+      limit: 8,
+    });
+    if (result?.books?.length) {
+      const aiTitles = new Set(ai.map((r) => (r.title || '').toLowerCase()));
+      const shaped = result.books
+        .filter((b) => b.title && !aiTitles.has(b.title.toLowerCase()))
+        .map((b) => ({
+          title: b.title,
+          author: b.author || '',
+          ageRange: b.ageRange || null,
+          reason: b.matchReason || '',
+          isbn: b.isbn || null,
+          inLibrary: true,
+        }));
+      library = filterContentSafe(shaped).kept;
+    }
+  } catch (err) {
+    console.warn('[parent/book-ideas] library lookup failed', {
+      studentId,
+      error: err.message,
+    });
+  }
+
+  c.header('Cache-Control', 'no-store');
+  return c.json({ ai, aiGeneratedAt, library });
 });
 
 // ============================================================================

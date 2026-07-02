@@ -107,6 +107,7 @@ src/utils/yearGroup.js - Pure UK year-group parsing: age band, class-name fallba
 src/utils/stringMatching.js - All string/title matching: Levenshtein similarity (import dedup, ~0.85) + fuzzy title similarity & findBestTitleMatch (metadata-provider ranking, ~0.3) + sanitizeForSearch (absorbed titleMatching.js)
 src/utils/bookDedup.js - Pure dedup helpers (normalizeIsbn, clusterDuplicates union-find, suggestCanonical, computeBackfill) for the owner merge tool
 src/utils/recommendationCache.js - KV caching for AI recommendations
+src/utils/libraryRecommendations.js - computeLibraryRecommendations: profile-based match over a school's own catalogue (reading level + genre scoring), shared by teacher /library-search and the parent portal's live Book Ideas
 src/utils/isbn.js - ISBN validation and normalization
 src/utils/isbnLookup.js - OpenLibrary ISBN lookup with KV caching
 src/utils/openLibraryApi.js - OpenLibrary API client for book metadata
