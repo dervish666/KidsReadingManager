@@ -3,6 +3,13 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import React, { createContext, useContext } from 'react';
 
+// These tests drive long chains of async userEvent interactions (type →
+// autocomplete → open popover → edit → submit) that run 3–5s each locally and
+// tip over Vitest's 5s default on loaded CI runners. Raise the ceiling for the
+// whole file so the heavy tests don't flake (seen failing "should call
+// updateBook from context when clicked" on CI, 2026-07-02).
+vi.setConfig({ testTimeout: 15000 });
+
 // Create test contexts to mock AuthContext, DataContext, and UIContext
 const TestAuthContext = createContext();
 const TestDataContext = createContext();
