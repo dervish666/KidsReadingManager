@@ -143,6 +143,7 @@ const ParentPortal = () => {
     let cancelled = false;
     setBookIdeasLoading(true);
     (async () => {
+      let ok = false;
       try {
         const res = await fetch(`${apiBase}/book-ideas`);
         if (res.ok) {
@@ -150,13 +151,16 @@ const ParentPortal = () => {
           if (!cancelled) {
             setBookIdeas({ ai: json.ai || [], library: json.library || [] });
           }
+          ok = true;
         }
       } catch {
         // Fail-open — the empty state covers a failed fetch.
       } finally {
         if (!cancelled) {
           setBookIdeasLoading(false);
-          setBookIdeasLoaded(true);
+          // Only cache a successful load — a transient failure should retry the
+          // next time the tab is opened, not stick on an empty state.
+          if (ok) setBookIdeasLoaded(true);
         }
       }
     })();

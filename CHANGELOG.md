@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.110.1] - 2026-07-02
+
+### Fixed
+
+- **Book Ideas retries after a transient load failure.** A one-off network blip when opening the Book Ideas tab no longer sticks on an empty state until the page is reloaded — the load is only cached on success, so re-opening the tab tries again.
+
 ## [3.110.0] - 2026-07-02
 
 ### Added
