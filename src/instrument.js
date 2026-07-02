@@ -5,7 +5,9 @@ Sentry.init({
   dsn: 'https://25b3acc2fef842c15c0498a337f57d15@o4511076878057472.ingest.de.sentry.io/4511076934942800',
   // Version injected at build time by rsbuild (source.define) from package.json,
   // so Sentry tags each error with the real release. Falls back to 'dev' when
-  // the define isn't applied (e.g. tests).
+  // the define isn't applied (e.g. tests). `process` is compile-time-replaced,
+  // not a runtime browser global — hence the no-undef suppression.
+  // eslint-disable-next-line no-undef
   release: `tally-reading@${process.env.APP_VERSION || 'dev'}`,
 
   integrations: [
