@@ -15,6 +15,8 @@ import {
 import { useTheme, alpha } from '@mui/material/styles';
 import SearchIcon from '@mui/icons-material/Search';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
+import AutoStoriesIcon from '@mui/icons-material/AutoStories';
+import LightbulbIcon from '@mui/icons-material/Lightbulb';
 import BookCover from '../BookCover';
 import BookCoverPlaceholder from '../BookCoverPlaceholder';
 import BarcodeScanner from '../books/BarcodeScanner';
@@ -91,6 +93,9 @@ const ParentPortal = () => {
 
   // ── Band-up celebration state ────────────────────────────────────────────────
   const [bandUpToShow, setBandUpToShow] = useState(null);
+
+  // ── Active tab: 'reading' (default) | 'ideas' ────────────────────────────────
+  const [activeTab, setActiveTab] = useState('reading');
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -281,7 +286,15 @@ const ParentPortal = () => {
     );
   }
 
-  const { currentBook, streak, sessions = [], badgeCount = 0, badges = [] } = data || {};
+  const {
+    currentBook,
+    streak,
+    sessions = [],
+    badgeCount = 0,
+    badges = [],
+    recommendations = [],
+    recommendationsGeneratedAt = null,
+  } = data || {};
 
   return (
     <Box sx={{ maxWidth: 480, mx: 'auto', bgcolor: 'parent.surface', minHeight: '100vh', pb: 6 }}>
@@ -313,208 +326,408 @@ const ParentPortal = () => {
             fontWeight: 800,
             color: 'parent.accent',
             fontFamily: NUNITO,
-            mb: 2.5,
+            mb: 2,
           }}
         >
           {firstName}&apos;s Reading
         </Typography>
 
-        {/* ── Current book card ────────────────────────────────────────── */}
-        <Paper
-          component="button"
-          onClick={() => handleOpenBookSearch('current')}
-          elevation={0}
+        {/* ── Tab switcher: Reading | Book Ideas ────────────────────────── */}
+        <Box
+          role="tablist"
+          aria-label="Reading and book ideas"
           sx={{
-            ...tappableCardSx,
-            p: 2,
-            mb: 2,
-            borderRadius: 3,
-            border: `1px solid ${alpha(accent, 0.15)}`,
-            bgcolor: 'white',
-            gap: 2,
-            transition: 'box-shadow 0.2s ease',
-            '&:hover': { boxShadow: `0 4px 16px ${alpha(accent, 0.12)}` },
+            display: 'flex',
+            gap: 0.5,
+            p: 0.5,
+            mb: 3,
+            borderRadius: '999px',
+            bgcolor: alpha(accent, 0.08),
           }}
         >
-          {currentBook ? (
-            <>
-              <BookCover
-                title={currentBook.title}
-                author={currentBook.author}
-                isbn={currentBook.isbn}
-                width={48}
-                height={72}
-              />
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography
-                  variant="caption"
-                  sx={{ color: 'text.secondary', fontWeight: 500, display: 'block' }}
-                >
-                  Currently reading
-                </Typography>
-                <Typography
-                  variant="subtitle2"
-                  sx={{ fontWeight: 700, color: 'parent.accent' }}
-                  noWrap
-                >
-                  {currentBook.title}
-                </Typography>
-                {currentBook.author && (
-                  <Typography variant="caption" color="text.secondary" noWrap>
-                    {currentBook.author}
-                  </Typography>
-                )}
+          {[
+            {
+              value: 'reading',
+              label: 'Reading',
+              icon: <AutoStoriesIcon sx={{ fontSize: 18 }} />,
+            },
+            {
+              value: 'ideas',
+              label: 'Book Ideas',
+              icon: <LightbulbIcon sx={{ fontSize: 18 }} />,
+            },
+          ].map((tab) => {
+            const selected = activeTab === tab.value;
+            return (
+              <Box
+                key={tab.value}
+                component="button"
+                role="tab"
+                aria-selected={selected}
+                onClick={() => setActiveTab(tab.value)}
+                sx={{
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 0.75,
+                  minHeight: 44,
+                  border: 'none',
+                  cursor: 'pointer',
+                  borderRadius: '999px',
+                  fontFamily: NUNITO,
+                  fontWeight: 700,
+                  fontSize: '0.95rem',
+                  color: selected ? 'white' : 'parent.accent',
+                  background: selected ? accentGradient : 'transparent',
+                  boxShadow: selected ? `0 2px 8px ${alpha(accent, 0.25)}` : 'none',
+                  transition: 'all 0.2s ease',
+                  '&:focus-visible': {
+                    outline: '2px solid',
+                    outlineColor: accentHover,
+                    outlineOffset: 2,
+                  },
+                }}
+              >
+                {tab.icon}
+                {tab.label}
               </Box>
-            </>
-          ) : (
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                No current book yet. Tap to choose one
-              </Typography>
-            </Box>
-          )}
-        </Paper>
-
-        {/* ── Streak + Read Today row ──────────────────────────────────── */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-          <StreakBadge streak={streak?.current || 0} size="large" showLabel />
-          <Button
-            variant="contained"
-            size="large"
-            onClick={() => setLogOpen(true)}
-            sx={{
-              background: accentGradient,
-              borderRadius: 3,
-              fontWeight: 700,
-              fontFamily: NUNITO,
-              px: 3,
-              py: 1.25,
-              boxShadow: `0 4px 16px ${alpha(accent, 0.25)}`,
-              '&:hover': {
-                background: accentGradient,
-                boxShadow: `0 6px 20px ${alpha(accent, 0.35)}`,
-              },
-            }}
-          >
-            Read Today
-          </Button>
+            );
+          })}
         </Box>
 
-        {/* ── Reading band progress ────────────────────────────────────── */}
-        {data?.band && (
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle2" sx={{ ...sectionTitleSx, mb: 1 }}>
-              Reading Band
-            </Typography>
-            <ReadingBandProgress
-              readsCount={data.band.readsCount}
-              readsPerBand={data.band.readsPerBand}
-              bands={data.bands}
-            />
-          </Box>
-        )}
-
-        {/* ── Recent sessions ──────────────────────────────────────────── */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="subtitle2" sx={{ ...sectionTitleSx, mb: 1.5 }}>
-            Recent Sessions
-          </Typography>
-          {sessions.length > 0 ? (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-              {sessions.slice(0, 10).map((session, i) => {
-                const isHome = session.location === 'home';
-                const locationColor = isHome
-                  ? theme.palette.accent.home
-                  : theme.palette.accent.school;
-                return (
-                  <Box
-                    key={session.id || i}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1.5,
-                      py: 0.75,
-                      px: 1,
-                      borderRadius: 2,
-                      bgcolor: 'white',
-                      border: `1px solid ${alpha(accent, 0.08)}`,
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: '50%',
-                        bgcolor: locationColor,
-                        flexShrink: 0,
-                      }}
-                    />
-                    <Typography
-                      variant="body2"
-                      sx={{ flex: 1, color: 'text.primary', fontWeight: 500 }}
-                      noWrap
-                    >
-                      {session.bookTitle || 'Unknown book'}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
-                      {formatSessionDate(session.date)}
-                    </Typography>
-                    <Chip
-                      label={isHome ? 'Home' : 'School'}
-                      size="small"
-                      sx={{
-                        height: 20,
-                        fontSize: '0.65rem',
-                        bgcolor: isHome
-                          ? theme.palette.accent.homeLight
-                          : theme.palette.accent.schoolLight,
-                        color: locationColor,
-                        fontWeight: 600,
-                        flexShrink: 0,
-                      }}
-                    />
-                  </Box>
-                );
-              })}
-            </Box>
-          ) : (
-            <Typography variant="body2" color="text.secondary">
-              No reading logged yet. Tap Read Today after you read together to start {firstName}
-              &apos;s record.
-            </Typography>
-          )}
-        </Box>
-
-        {/* ── Reading Garden ───────────────────────────────────────────── */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="subtitle2" sx={{ ...sectionTitleSx, mb: 1 }}>
-            Reading Garden
-          </Typography>
-          <GardenHeader badgeCount={badgeCount} height={160} />
-          {badges.length > 0 ? (
-            <Box
+        {activeTab === 'reading' && (
+          <>
+            {/* ── Current book card ────────────────────────────────────────── */}
+            <Paper
+              component="button"
+              onClick={() => handleOpenBookSearch('current')}
+              elevation={0}
               sx={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                justifyContent: 'center',
-                gap: 1,
-                mt: 1.5,
+                ...tappableCardSx,
+                p: 2,
+                mb: 2,
+                borderRadius: 3,
+                border: `1px solid ${alpha(accent, 0.15)}`,
+                bgcolor: 'white',
+                gap: 2,
+                transition: 'box-shadow 0.2s ease',
+                '&:hover': { boxShadow: `0 4px 16px ${alpha(accent, 0.12)}` },
               }}
             >
-              {badges.map((badge) => (
-                <BadgeIcon key={`${badge.badgeId}-${badge.earnedAt}`} badge={badge} />
-              ))}
+              {currentBook ? (
+                <>
+                  <BookCover
+                    title={currentBook.title}
+                    author={currentBook.author}
+                    isbn={currentBook.isbn}
+                    width={48}
+                    height={72}
+                  />
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography
+                      variant="caption"
+                      sx={{ color: 'text.secondary', fontWeight: 500, display: 'block' }}
+                    >
+                      Currently reading
+                    </Typography>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{ fontWeight: 700, color: 'parent.accent' }}
+                      noWrap
+                    >
+                      {currentBook.title}
+                    </Typography>
+                    {currentBook.author && (
+                      <Typography variant="caption" color="text.secondary" noWrap>
+                        {currentBook.author}
+                      </Typography>
+                    )}
+                  </Box>
+                </>
+              ) : (
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                    No current book yet. Tap to choose one
+                  </Typography>
+                </Box>
+              )}
+            </Paper>
+
+            {/* ── Streak + Read Today row ──────────────────────────────────── */}
+            <Box
+              sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}
+            >
+              <StreakBadge streak={streak?.current || 0} size="large" showLabel />
+              <Button
+                variant="contained"
+                size="large"
+                onClick={() => setLogOpen(true)}
+                sx={{
+                  background: accentGradient,
+                  borderRadius: 3,
+                  fontWeight: 700,
+                  fontFamily: NUNITO,
+                  px: 3,
+                  py: 1.25,
+                  boxShadow: `0 4px 16px ${alpha(accent, 0.25)}`,
+                  '&:hover': {
+                    background: accentGradient,
+                    boxShadow: `0 6px 20px ${alpha(accent, 0.35)}`,
+                  },
+                }}
+              >
+                Read Today
+              </Button>
             </Box>
-          ) : (
+
+            {/* ── Reading band progress ────────────────────────────────────── */}
+            {data?.band && (
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="subtitle2" sx={{ ...sectionTitleSx, mb: 1 }}>
+                  Reading Band
+                </Typography>
+                <ReadingBandProgress
+                  readsCount={data.band.readsCount}
+                  readsPerBand={data.band.readsPerBand}
+                  bands={data.bands}
+                />
+              </Box>
+            )}
+
+            {/* ── Recent sessions ──────────────────────────────────────────── */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle2" sx={{ ...sectionTitleSx, mb: 1.5 }}>
+                Recent Sessions
+              </Typography>
+              {sessions.length > 0 ? (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                  {sessions.slice(0, 10).map((session, i) => {
+                    const isHome = session.location === 'home';
+                    const locationColor = isHome
+                      ? theme.palette.accent.home
+                      : theme.palette.accent.school;
+                    return (
+                      <Box
+                        key={session.id || i}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1.5,
+                          py: 0.75,
+                          px: 1,
+                          borderRadius: 2,
+                          bgcolor: 'white',
+                          border: `1px solid ${alpha(accent, 0.08)}`,
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            bgcolor: locationColor,
+                            flexShrink: 0,
+                          }}
+                        />
+                        <Typography
+                          variant="body2"
+                          sx={{ flex: 1, color: 'text.primary', fontWeight: 500 }}
+                          noWrap
+                        >
+                          {session.bookTitle || 'Unknown book'}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
+                          {formatSessionDate(session.date)}
+                        </Typography>
+                        <Chip
+                          label={isHome ? 'Home' : 'School'}
+                          size="small"
+                          sx={{
+                            height: 20,
+                            fontSize: '0.65rem',
+                            bgcolor: isHome
+                              ? theme.palette.accent.homeLight
+                              : theme.palette.accent.schoolLight,
+                            color: locationColor,
+                            fontWeight: 600,
+                            flexShrink: 0,
+                          }}
+                        />
+                      </Box>
+                    );
+                  })}
+                </Box>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  No reading logged yet. Tap Read Today after you read together to start {firstName}
+                  &apos;s record.
+                </Typography>
+              )}
+            </Box>
+
+            {/* ── Reading Garden ───────────────────────────────────────────── */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle2" sx={{ ...sectionTitleSx, mb: 1 }}>
+                Reading Garden
+              </Typography>
+              <GardenHeader badgeCount={badgeCount} height={160} />
+              {badges.length > 0 ? (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    justifyContent: 'center',
+                    gap: 1,
+                    mt: 1.5,
+                  }}
+                >
+                  {badges.map((badge) => (
+                    <BadgeIcon key={`${badge.badgeId}-${badge.earnedAt}`} badge={badge} />
+                  ))}
+                </Box>
+              ) : (
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mt: 1.5, textAlign: 'center' }}
+                >
+                  Badges {firstName} earns will appear here.
+                </Typography>
+              )}
+            </Box>
+          </>
+        )}
+
+        {/* ── Book Ideas tab ───────────────────────────────────────────── */}
+        {activeTab === 'ideas' && (
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle2" sx={{ ...sectionTitleSx, mb: 0.5 }}>
+              Book ideas for {firstName}
+            </Typography>
             <Typography
               variant="body2"
               color="text.secondary"
-              sx={{ mt: 1.5, textAlign: 'center' }}
+              sx={{ mb: recommendationsGeneratedAt && recommendations.length > 0 ? 0.5 : 2 }}
             >
-              Badges {firstName} earns will appear here.
+              Reading suggestions chosen for {firstName} — great next books to enjoy together.
             </Typography>
-          )}
-        </Box>
+            {recommendationsGeneratedAt && recommendations.length > 0 && (
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: 'block', mb: 2, fontStyle: 'italic' }}
+              >
+                Updated {formatSessionDate(recommendationsGeneratedAt.slice(0, 10))}
+              </Typography>
+            )}
+
+            {recommendations.length > 0 ? (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                {recommendations.map((rec, i) => (
+                  <Paper
+                    key={`${rec.title}-${i}`}
+                    elevation={0}
+                    sx={{
+                      display: 'flex',
+                      gap: 1.5,
+                      p: 1.5,
+                      borderRadius: 3,
+                      border: `1px solid ${alpha(accent, 0.15)}`,
+                      bgcolor: 'white',
+                    }}
+                  >
+                    <Box sx={{ flexShrink: 0 }}>
+                      <BookCover title={rec.title} author={rec.author} width={56} height={84} />
+                    </Box>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ fontWeight: 700, color: 'parent.accent', lineHeight: 1.3 }}
+                      >
+                        {rec.title}
+                      </Typography>
+                      {rec.author && (
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: 'block', mb: 0.5 }}
+                        >
+                          by {rec.author}
+                        </Typography>
+                      )}
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          gap: 0.5,
+                          flexWrap: 'wrap',
+                          mb: rec.reason ? 0.75 : 0,
+                        }}
+                      >
+                        {rec.ageRange && (
+                          <Chip
+                            label={`Ages ${rec.ageRange}`}
+                            size="small"
+                            sx={{
+                              height: 20,
+                              fontSize: '0.65rem',
+                              bgcolor: alpha(accent, 0.08),
+                              color: 'parent.accent',
+                              fontWeight: 600,
+                            }}
+                          />
+                        )}
+                        {rec.inLibrary && (
+                          <Chip
+                            label="✓ In school library"
+                            size="small"
+                            sx={{
+                              height: 20,
+                              fontSize: '0.65rem',
+                              bgcolor: theme.palette.accent.schoolLight,
+                              color: theme.palette.accent.school,
+                              fontWeight: 600,
+                            }}
+                          />
+                        )}
+                      </Box>
+                      {rec.reason && (
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontStyle: 'italic',
+                            color: 'text.secondary',
+                            fontSize: '0.85rem',
+                            lineHeight: 1.4,
+                          }}
+                        >
+                          {rec.reason}
+                        </Typography>
+                      )}
+                      {rec.whereToFind && (
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: 'block', mt: 0.5 }}
+                        >
+                          {rec.whereToFind}
+                        </Typography>
+                      )}
+                    </Box>
+                  </Paper>
+                ))}
+              </Box>
+            ) : (
+              <Box sx={{ textAlign: 'center', py: 5, px: 2 }}>
+                <Typography sx={{ fontSize: 44, mb: 1 }}>📚</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  No book ideas yet. When {firstName}&apos;s teacher shares reading suggestions,
+                  they&apos;ll appear here for you to explore together.
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        )}
       </Box>
 
       {/* ── Log Reading bottom sheet (Dialog) ────────────────────────────── */}

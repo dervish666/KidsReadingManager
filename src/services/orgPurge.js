@@ -1,7 +1,7 @@
 /**
  * Organization Hard Delete (Data Retention Purge)
  *
- * Atomically cascade-deletes all org-scoped data across 26 tables in FK-safe
+ * Atomically cascade-deletes all org-scoped data across 28 tables in FK-safe
  * order, anonymises the organizations row, and keeps the purge log entry.
  *
  * All destructive work runs inside a single D1 `batch`, so the org is either
@@ -32,6 +32,7 @@ const DELETE_ORDER = [
     where: `student_id IN (SELECT id FROM students WHERE organization_id = ?)`,
   },
   { table: 'parent_access_tokens', where: `organization_id = ?` },
+  { table: 'student_recommendations', where: `organization_id = ?` },
   {
     table: 'class_assignments',
     where: `class_id IN (SELECT id FROM classes WHERE organization_id = ?)`,
@@ -127,7 +128,7 @@ export async function hardDeleteOrganization(db, orgId, env = null) {
       .bind(orgId),
   ];
 
-  // 3. Execute atomically. D1's 100-statement batch limit is well above our 29.
+  // 3. Execute atomically. D1's 100-statement batch limit is well above our 31.
   try {
     await db.batch(statements);
   } catch (error) {
@@ -141,7 +142,7 @@ export async function hardDeleteOrganization(db, orgId, env = null) {
   // Invalidate cached org status so tenantMiddleware won't serve a stale active row.
   if (env) await invalidateOrgStatus(env, orgId);
 
-  const tablesProcessed = DELETE_ORDER.length + 1; // 27 + data_rights_log cleanup
+  const tablesProcessed = DELETE_ORDER.length + 1; // 28 + data_rights_log cleanup
   console.log(`[OrgPurge] Purged org ${orgId}: ${tablesProcessed} tables, 0 errors`);
   return { orgId, tablesProcessed, errors: [] };
 }

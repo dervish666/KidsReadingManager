@@ -13,6 +13,59 @@ import { checkAIBudget, recordAICall, getMonthlyLimit } from '../../utils/aiCost
 const recommendationsRouter = new Hono();
 
 /**
+ * Persist the latest AI recommendation set for a student so the parent portal
+ * can surface it read-only (see routes/parent.js). One row per student — the
+ * newest generation upserts over the previous one. Only the display fields are
+ * stored (no libraryBookId — it can go stale and the parent view is read-only).
+ *
+ * Fire-and-forget: wrapped in waitUntil so it never blocks the response, and a
+ * write failure must not break recommendations. Demo students are skipped —
+ * their data resets hourly, so snapshots would only churn.
+ */
+function snapshotStudentRecommendations(c, { studentId, organizationId, focusMode, suggestions }) {
+  if (c.get('user')?.authProvider === 'demo') return;
+  if (!Array.isArray(suggestions) || suggestions.length === 0) return;
+
+  const display = suggestions
+    .filter((s) => s && s.title)
+    .map((s) => ({
+      title: s.title,
+      author: s.author || '',
+      ageRange: s.ageRange || null,
+      readingLevel: s.readingLevel || null,
+      reason: s.reason || '',
+      whereToFind: s.whereToFind || null,
+      inLibrary: !!s.inLibrary,
+    }));
+  if (display.length === 0) return;
+
+  const db = c.env.READING_MANAGER_DB;
+  const write = db
+    .prepare(
+      `INSERT INTO student_recommendations
+         (student_id, organization_id, focus_mode, suggestions, generated_at)
+       VALUES (?, ?, ?, ?, datetime('now'))
+       ON CONFLICT(student_id) DO UPDATE SET
+         organization_id = excluded.organization_id,
+         focus_mode = excluded.focus_mode,
+         suggestions = excluded.suggestions,
+         generated_at = excluded.generated_at`
+    )
+    .bind(studentId, organizationId, focusMode || null, JSON.stringify(display))
+    .run()
+    .catch((err) =>
+      console.warn('[recommendations] snapshot write failed', {
+        studentId,
+        error: err.message,
+      })
+    );
+
+  if (c.executionCtx?.waitUntil) {
+    c.executionCtx.waitUntil(write);
+  }
+}
+
+/**
  * GET /api/books/library-search
  * Find books from the library matching a student's profile
  * No AI - pure database search
@@ -468,6 +521,14 @@ recommendationsRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
           libraryBookId: s?.title ? libraryMatches[s.title.toLowerCase()] || null : null,
         }));
 
+        // Mirror the latest set to the parent portal snapshot (see parent.js).
+        snapshotStudentRecommendations(c, {
+          studentId,
+          organizationId,
+          focusMode,
+          suggestions: enriched,
+        });
+
         return c.json({
           suggestions: enriched,
           studentProfile: {
@@ -617,6 +678,14 @@ recommendationsRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
         ? libraryMatches[suggestion.title.toLowerCase()] || null
         : null,
     }));
+
+    // Mirror the latest set to the parent portal snapshot (see parent.js).
+    snapshotStudentRecommendations(c, {
+      studentId,
+      organizationId,
+      focusMode,
+      suggestions: enrichedSuggestions,
+    });
 
     return c.json({
       suggestions: enrichedSuggestions,

@@ -91,6 +91,7 @@ gdprRouter.delete('/:id/erase', requireAdmin(), auditLog('erase', 'student'), as
     db.prepare('DELETE FROM student_badges WHERE student_id = ?').bind(id),
     db.prepare('DELETE FROM student_reading_stats WHERE student_id = ?').bind(id),
     db.prepare('DELETE FROM parent_access_tokens WHERE student_id = ?').bind(id),
+    db.prepare('DELETE FROM student_recommendations WHERE student_id = ?').bind(id),
     db.prepare('DELETE FROM students WHERE id = ?').bind(id),
 
     // Anonymise prior audit_log entries that referenced this student

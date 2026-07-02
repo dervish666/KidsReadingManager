@@ -29,6 +29,7 @@ import { ACADEMIC_YEAR_START_MONTH } from '../utils/constants.js';
 import { bandForCount, bandTransition } from '../utils/readingBandEngine.js';
 import { BADGE_DEFINITIONS } from '../utils/badgeDefinitions.js';
 import { classNameToYearGroup } from '../utils/yearGroup.js';
+import { filterContentSafe } from '../utils/contentModeration.js';
 
 export const parentRouter = new Hono();
 
@@ -52,6 +53,39 @@ export function enrichEarnedBadges(rows) {
       };
     })
     .filter(Boolean);
+}
+
+/**
+ * Shape a stored AI recommendation snapshot for the parent payload. Pure so it
+ * can be unit-tested without a DB (same pattern as decideParentBandCelebration).
+ *
+ * Returns [] when the student is opted out of AI, the snapshot is missing, or
+ * the stored JSON is corrupt. Re-runs content moderation as defence-in-depth —
+ * the text was filtered at write time, but a denylist update must never surface
+ * stale unfiltered text to a child's parent. Only display fields are exposed
+ * (no libraryBookId — the parent view is read-only).
+ */
+export function shapeParentRecommendations(suggestionsJson, aiOptOut) {
+  if (aiOptOut || !suggestionsJson) return [];
+
+  let parsed;
+  try {
+    parsed = JSON.parse(suggestionsJson);
+  } catch {
+    return [];
+  }
+
+  const { kept } = filterContentSafe(Array.isArray(parsed) ? parsed : []);
+  return kept
+    .filter((s) => s && s.title)
+    .map((s) => ({
+      title: s.title,
+      author: s.author || '',
+      ageRange: s.ageRange || null,
+      reason: s.reason || '',
+      whereToFind: s.whereToFind || null,
+      inLibrary: !!s.inLibrary,
+    }));
 }
 
 /**
@@ -148,7 +182,7 @@ parentRouter.get('/:token', rateLimit(60, 60000, 'parent:view'), async (c) => {
   const student = await db
     .prepare(
       `SELECT id, name, current_book_id, current_streak, last_read_date,
-              current_band, band_reads_count, band_year_start
+              current_band, band_reads_count, band_year_start, ai_opt_out
          FROM students
         WHERE id = ? AND organization_id = ? AND is_active = 1`
     )
@@ -242,6 +276,37 @@ parentRouter.get('/:token', rateLimit(60, 60000, 'parent:view'), async (c) => {
   }
   const band = bandForCount(bandReadsCount, readsPerBand, bands);
 
+  // ── Book Ideas: latest AI recommendation snapshot (see routes/books/
+  //    recommendations.js). Read-only take-away for parents — no AI is run on
+  //    this public endpoint. Suppressed when the student is opted out of AI.
+  let recommendations = [];
+  let recommendationsGeneratedAt = null;
+  if (!student.ai_opt_out) {
+    // Fail-open: Book Ideas is enrichment. A recs-query error (e.g. the table
+    // not yet migrated during a deploy window, or a transient D1 failure) must
+    // never 500 the whole portal — the core reading data still renders. Logged,
+    // never silently swallowed.
+    try {
+      const recRow = await db
+        .prepare(
+          `SELECT suggestions, generated_at
+             FROM student_recommendations
+            WHERE student_id = ? AND organization_id = ?`
+        )
+        .bind(studentId, organizationId)
+        .first();
+      if (recRow?.suggestions) {
+        recommendations = shapeParentRecommendations(recRow.suggestions, student.ai_opt_out);
+        recommendationsGeneratedAt = recommendations.length ? recRow.generated_at || null : null;
+      }
+    } catch (err) {
+      console.warn('[parent/view] recommendations lookup failed', {
+        studentId,
+        error: err.message,
+      });
+    }
+  }
+
   c.header('Cache-Control', 'no-store');
   return c.json({
     studentFirstName,
@@ -253,6 +318,8 @@ parentRouter.get('/:token', rateLimit(60, 60000, 'parent:view'), async (c) => {
     band,
     bandUp,
     bands,
+    recommendations,
+    recommendationsGeneratedAt,
   });
 });
 

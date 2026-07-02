@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.109.0] - 2026-07-02
+
+### Added
+
+- **Book Ideas on the parent portal.** The AI book recommendations a teacher or child generates for a student are now snapshotted and surfaced read-only on the parent QR-code page under a new "Reading | Book Ideas" tab — so the recommendations a child liked can travel home for parents to see and explore together. Each pick shows the cover, author, the reason it was chosen, an age-range chip, a "✓ In school library" badge where it applies, and where to find the book. No AI runs on the public parent endpoint (parents read the stored snapshot, so there's no cost or abuse surface, and they see exactly the same picks as the child). Suppressed for students opted out of AI, and content is re-moderated on read. New `student_recommendations` table (migration 0068), cleaned up on student erasure and org purge.
+
 ## [3.108.2] - 2026-07-02
 
 ### Fixed

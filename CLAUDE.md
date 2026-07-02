@@ -212,6 +212,7 @@ Permissions enforced via `requireOwner()`, `requireAdmin()`, `requireTeacher()`,
 - `classes`, `genres`, `organization_settings` - Organization-scoped. `classes.year_group` is an optional admin-set year group used to resolve a student's year when the MIS syncs none and the class name doesn't encode it (precedence: `students.year_group` → `classes.year_group` → parsed from class name; see `src/utils/yearGroup.js`)
 - `term_dates` - Academic year term dates per organization (half-terms, holidays)
 - `parent_access_tokens` - Token-based parent portal access per student per academic year (token auth, teacher-revocable)
+- `student_recommendations` - Latest AI recommendation snapshot per student (one row per student, `student_id` PK, `suggestions` JSON). Written (upsert) by `GET /api/books/ai-suggestions` whenever recs are generated/served for a student; read read-only by the parent portal's "Book Ideas" tab (`GET /api/parent/:token`) so parents can see the same picks as a take-away — no AI is run on the public endpoint. Suppressed when `students.ai_opt_out` is set; purged on student erase / org purge (migration 0068)
 - `ticker_events` - Celebration events (band-ups, badge awards) for the header Reading News ticker; written by `runSessionSideEffects` (real-time) and `processBadgesForOrg` (overnight badge cron), read via `GET /api/badges/ticker`, purged after 2 days by the 2 AM cron
 
 ### Book Visibility Model

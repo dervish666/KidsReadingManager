@@ -114,6 +114,9 @@ describe('DELETE /api/students/:id/erase — Article 17 erasure completeness', (
     expect(
       batchedSql.some((s) => /DELETE FROM student_reading_stats WHERE student_id/.test(s))
     ).toBe(true);
+    expect(
+      batchedSql.some((s) => /DELETE FROM student_recommendations WHERE student_id/.test(s))
+    ).toBe(true);
 
     // Existing erasure semantics still hold
     expect(batchedSql.some((s) => /DELETE FROM reading_sessions/.test(s))).toBe(true);
@@ -140,6 +143,7 @@ describe('DELETE /api/students/:id/erase — Article 17 erasure completeness', (
     const prefsIdx = indexOf('DELETE FROM student_preferences');
     const badgesIdx = indexOf('DELETE FROM student_badges');
     const statsIdx = indexOf('DELETE FROM student_reading_stats');
+    const recsIdx = indexOf('DELETE FROM student_recommendations');
     const studentIdx = indexOf('DELETE FROM students WHERE id');
 
     // All child deletes must precede the parent delete
@@ -147,6 +151,7 @@ describe('DELETE /api/students/:id/erase — Article 17 erasure completeness', (
     expect(prefsIdx).toBeLessThan(studentIdx);
     expect(badgesIdx).toBeLessThan(studentIdx);
     expect(statsIdx).toBeLessThan(studentIdx);
+    expect(recsIdx).toBeLessThan(studentIdx);
   });
 
   it('rejects without confirm flag', async () => {

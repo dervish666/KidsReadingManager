@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { decideParentBandCelebration, enrichEarnedBadges } from '../../routes/parent.js';
+import {
+  decideParentBandCelebration,
+  enrichEarnedBadges,
+  shapeParentRecommendations,
+} from '../../routes/parent.js';
 import { DEFAULT_BAND_COLORS } from '../../utils/readingBandDefinitions.js';
 import { BADGE_DEFINITIONS } from '../../utils/badgeDefinitions.js';
 
@@ -65,5 +69,74 @@ describe('enrichEarnedBadges', () => {
   it('handles missing input', () => {
     expect(enrichEarnedBadges(null)).toEqual([]);
     expect(enrichEarnedBadges([])).toEqual([]);
+  });
+});
+
+describe('shapeParentRecommendations', () => {
+  const oneRec = JSON.stringify([
+    {
+      title: 'The Iron Man',
+      author: 'Ted Hughes',
+      ageRange: '7-9',
+      readingLevel: 'intermediate',
+      reason: 'A perfect next step for a confident reader.',
+      whereToFind: 'Available at most public libraries',
+      inLibrary: true,
+    },
+  ]);
+
+  it('maps stored snapshot to the parent display shape', () => {
+    const out = shapeParentRecommendations(oneRec, false);
+    expect(out).toEqual([
+      {
+        title: 'The Iron Man',
+        author: 'Ted Hughes',
+        ageRange: '7-9',
+        reason: 'A perfect next step for a confident reader.',
+        whereToFind: 'Available at most public libraries',
+        inLibrary: true,
+      },
+    ]);
+    // libraryBookId / readingLevel must not leak into the read-only parent view
+    expect(out[0]).not.toHaveProperty('readingLevel');
+    expect(out[0]).not.toHaveProperty('libraryBookId');
+  });
+
+  it('returns [] when the student is opted out of AI', () => {
+    expect(shapeParentRecommendations(oneRec, true)).toEqual([]);
+    expect(shapeParentRecommendations(oneRec, 1)).toEqual([]);
+  });
+
+  it('returns [] for missing or corrupt snapshots', () => {
+    expect(shapeParentRecommendations(null, false)).toEqual([]);
+    expect(shapeParentRecommendations('', false)).toEqual([]);
+    expect(shapeParentRecommendations('{not json', false)).toEqual([]);
+    expect(shapeParentRecommendations('{"not":"an array"}', false)).toEqual([]);
+  });
+
+  it('drops entries without a title and defaults optional fields', () => {
+    const raw = JSON.stringify([
+      { author: 'Nobody' }, // no title → dropped
+      { title: 'Just a Title' }, // minimal → defaults applied
+    ]);
+    const out = shapeParentRecommendations(raw, false);
+    expect(out).toHaveLength(1);
+    expect(out[0]).toEqual({
+      title: 'Just a Title',
+      author: '',
+      ageRange: null,
+      reason: '',
+      whereToFind: null,
+      inLibrary: false,
+    });
+  });
+
+  it('re-moderates on read so a denylisted item never reaches a parent', () => {
+    const raw = JSON.stringify([
+      { title: 'The Iron Man', author: 'Ted Hughes', reason: 'A gentle classic.' },
+      { title: 'Explicit Sex Guide', author: 'X', reason: 'erotica for adults' },
+    ]);
+    const out = shapeParentRecommendations(raw, false);
+    expect(out.map((r) => r.title)).toEqual(['The Iron Man']);
   });
 });

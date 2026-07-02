@@ -782,9 +782,12 @@ files:
       - name: decideParentBandCelebration
         kind: function
         description: Pure helper — given parent_last_seen_band marker and current band index, returns { bandUp, newSeen }. bandUp is null on first view (adopt silently) or no change; otherwise a bandTransition object. newSeen never decreases.
+      - name: shapeParentRecommendations
+        kind: function
+        description: Pure helper — shapes a stored student_recommendations snapshot (JSON string) into the read-only parent display array. Returns [] when ai_opt_out, missing/corrupt JSON, or non-array; re-runs filterContentSafe (defence-in-depth); drops entries without a title; exposes only display fields.
     endpoints:
       - route: GET /api/parent/:token
-        description: Fetch parent view data (student name, current book, streak, sessions, badges, band display + deferred band-up celebration)
+        description: Fetch parent view data (student name, current book, streak, sessions, badges, band display + deferred band-up celebration, latest AI recommendation snapshot for the Book Ideas tab)
         public: true
         rate_limit: 60/min
       - route: POST /api/parent/:token/sessions

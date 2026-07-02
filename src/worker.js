@@ -569,12 +569,15 @@ export default Sentry.withSentry(
 
               const studentIds = (staleStudents.results || []).map((s) => s.id);
               if (studentIds.length > 0) {
-                const STUDENT_CHUNK = 33;
+                // 4 DELETEs per student — keep chunk × 4 under D1's 100-statement
+                // batch limit (24 × 4 = 96).
+                const STUDENT_CHUNK = 24;
                 for (let i = 0; i < studentIds.length; i += STUDENT_CHUNK) {
                   const chunk = studentIds.slice(i, i + STUDENT_CHUNK);
                   const statements = chunk.flatMap((id) => [
                     db.prepare('DELETE FROM reading_sessions WHERE student_id = ?').bind(id),
                     db.prepare('DELETE FROM student_preferences WHERE student_id = ?').bind(id),
+                    db.prepare('DELETE FROM student_recommendations WHERE student_id = ?').bind(id),
                     db.prepare('DELETE FROM students WHERE id = ?').bind(id),
                   ]);
                   await db.batch(statements);
