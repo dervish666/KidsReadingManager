@@ -1,5 +1,10 @@
+import { readFileSync } from 'node:fs';
 import { defineConfig } from '@rsbuild/core';
 import { pluginReact } from '@rsbuild/plugin-react';
+
+// Read the app version at build time so Sentry (src/instrument.js) tags errors
+// with the actual release instead of a hardcoded one.
+const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8'));
 
 export default defineConfig({
   plugins: [pluginReact()],
@@ -16,8 +21,10 @@ export default defineConfig({
     entry: {
       index: './src/index.js',
     },
+    define: {
+      'process.env.APP_VERSION': JSON.stringify(pkg.version),
+    },
   },
-  define: {},
   output: {
     distPath: {
       root: 'build',
@@ -39,9 +46,24 @@ export default defineConfig({
   // `html` is a top-level key — `output.html` above is ignored by rsbuild.
   html: {
     tags: [
-      { tag: 'link', head: true, publicPath: false, attrs: { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' } },
-      { tag: 'link', head: true, publicPath: false, attrs: { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' } },
-      { tag: 'link', head: true, publicPath: false, attrs: { rel: 'manifest', href: '/manifest.json' } },
+      {
+        tag: 'link',
+        head: true,
+        publicPath: false,
+        attrs: { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+      },
+      {
+        tag: 'link',
+        head: true,
+        publicPath: false,
+        attrs: { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
+      },
+      {
+        tag: 'link',
+        head: true,
+        publicPath: false,
+        attrs: { rel: 'manifest', href: '/manifest.json' },
+      },
       { tag: 'meta', head: true, attrs: { name: 'theme-color', content: '#6b4d57' } },
     ],
   },

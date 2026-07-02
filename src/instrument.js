@@ -3,7 +3,10 @@ import { scrubSentryEvent } from './utils/sentryFilter.js';
 
 Sentry.init({
   dsn: 'https://25b3acc2fef842c15c0498a337f57d15@o4511076878057472.ingest.de.sentry.io/4511076934942800',
-  release: 'tally-reading@3.24.0',
+  // Version injected at build time by rsbuild (source.define) from package.json,
+  // so Sentry tags each error with the real release. Falls back to 'dev' when
+  // the define isn't applied (e.g. tests).
+  release: `tally-reading@${process.env.APP_VERSION || 'dev'}`,
 
   integrations: [
     Sentry.browserTracingIntegration(),
