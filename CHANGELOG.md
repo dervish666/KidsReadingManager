@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.113.0] - 2026-07-03
+
+### Added
+
+- **"Put Tally on your home screen" nudge.** A dismissible banner in the main app suggests installing Tally for full-screen, one-tap access. On Android and desktop Chrome/Edge it shows an **Install** button that opens the browser's real install dialog; on iOS Safari it explains the Share → 'Add to Home Screen' route (with the share glyph, since iOS offers no install API). It stays hidden when Tally is already running from the home screen, in iOS browsers that can't pin (Chrome/Firefox on iOS, Outlook/Teams in-app views), and permanently once dismissed.
+
 ## [3.112.1] - 2026-07-02
 
 ### Fixed

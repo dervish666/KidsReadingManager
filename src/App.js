@@ -14,6 +14,7 @@ import DpaConsentModal from './components/DpaConsentModal';
 import BillingBanner from './components/BillingBanner';
 import SubscriptionBlockedScreen from './components/SubscriptionBlockedScreen';
 import ClassAssignmentBanner from './components/ClassAssignmentBanner';
+import InstallAppNudge from './components/InstallAppNudge';
 import WelcomeDialog from './components/WelcomeDialog';
 
 // Eagerly load Students (default tab, always visible first)
@@ -333,6 +334,7 @@ function AppContent() {
       <DpaConsentModal />
       <BillingBanner />
       <ClassAssignmentBanner />
+      <InstallAppNudge />
       <WelcomeDialog />
 
       <Container

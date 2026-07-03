@@ -165,7 +165,7 @@ src/components/PrivacyPolicy.js - Privacy Policy standalone page
 src/components/legal/legalDocs.js - Catalogue/manifest of legal & compliance docs (LEGAL_GROUPS, LEGAL_DOCS, getMarkdownDoc)
 src/components/legal/LegalPageShell.js - Shared chrome (back link + cream paper) for /legal pages
 src/components/legal/LegalHub.js - /legal index hub linking all legal & compliance documents
-src/components/legal/LegalDocPage.js - Renders a public/legal/*.md document at /legal/<slug> (react-markdown)
+src/components/legal/LegalDocPage.js - Renders a public/legal/\*.md document at /legal/<slug> (react-markdown)
 src/components/BookRecommendations.js - AI recommendations with library search
 src/components/SupportModal.js - Support contact form modal (subject, message, email notification)
 src/components/SupportTicketManager.js - Owner-only support ticket list with detail panel, status management, internal notes
@@ -185,6 +185,7 @@ src/components/SubscriptionBlockedScreen.js - Blocked state screen when subscrip
 src/components/AchievementsPage.js - Standalone achievements route (promoted to main nav)
 src/components/Help.js - Public /help page
 src/components/ClassAssignmentBanner.js - Class assignment notification for new teachers
+src/components/InstallAppNudge.js - Home-screen install nudge (iOS Safari instructions / Chromium install prompt)
 src/components/WelcomeDialog.js - First-time user welcome dialog
 
 ## Frontend Components - Schools
