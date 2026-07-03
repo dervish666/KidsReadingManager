@@ -93,7 +93,13 @@ export default function InstallAppNudge() {
       icon={false}
       sx={{
         mb: 2,
-        backgroundColor: 'rgba(107, 142, 107, 0.08)',
+        // Clear the fixed-position bookshelf borders (see BookshelfBorder in App.js):
+        // margins match the main Container's, and the solid background + zIndex keep
+        // the banner readable if anything still overlaps
+        mx: { xs: 2, md: '100px', lg: '120px' },
+        position: 'relative',
+        zIndex: 1,
+        backgroundColor: '#F0F3EA',
         border: '1px solid rgba(107, 142, 107, 0.25)',
         color: 'text.primary',
         alignItems: 'center',

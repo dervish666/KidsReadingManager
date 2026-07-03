@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.113.1] - 2026-07-03
+
+### Fixed
+
+- **Install nudge no longer hides behind the bookshelf borders.** On desktop, the fixed-position bookshelf decorations painted over the banner's left edge, clipping the text. The banner now uses the same side margins as the main content column, sits above the decorations, and has a solid background.
+
 ## [3.113.0] - 2026-07-03
 
 ### Added
