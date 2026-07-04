@@ -320,7 +320,7 @@ export async function evaluateRealTime(db, studentId, organizationId, yearGroup)
       };
       await db
         .prepare(
-          `INSERT INTO student_badges (id, student_id, organization_id, badge_id, tier)
+          `INSERT OR IGNORE INTO student_badges (id, student_id, organization_id, badge_id, tier)
            VALUES (?, ?, ?, ?, ?)`
         )
         .bind(badgeRecord.id, studentId, organizationId, badge.id, badge.tier)
@@ -405,7 +405,7 @@ export async function evaluateBatch(db, studentId, organizationId, yearGroup) {
       };
       await db
         .prepare(
-          `INSERT INTO student_badges (id, student_id, organization_id, badge_id, tier)
+          `INSERT OR IGNORE INTO student_badges (id, student_id, organization_id, badge_id, tier)
            VALUES (?, ?, ?, ?, ?)`
         )
         .bind(badgeRecord.id, studentId, organizationId, badge.id, badge.tier)
@@ -573,7 +573,7 @@ export async function processBadgesForOrg(db, orgId, cursor, deadlineMs) {
           insertStatements.push(
             db
               .prepare(
-                `INSERT INTO student_badges (id, student_id, organization_id, badge_id, tier)
+                `INSERT OR IGNORE INTO student_badges (id, student_id, organization_id, badge_id, tier)
                  VALUES (?, ?, ?, ?, ?)`
               )
               .bind(generateId(), student.id, orgId, badge.id, badge.tier)

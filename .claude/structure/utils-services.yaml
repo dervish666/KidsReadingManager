@@ -33,6 +33,16 @@ files:
         kind: function
         params: [{name: data}, {name: message}]
         returns: object
+      - name: sanitizeCsvCell
+        kind: function
+        params: [{name: str}]
+        returns: string
+        description: Prefix ' to cells starting with =+-@ tab/CR (spreadsheet formula-injection guard)
+      - name: csvRow
+        kind: function
+        params: [{name: values}]
+        returns: string
+        description: Format values as an RFC-quoted CSV row (applies sanitizeCsvCell)
 
   utils/rowMappers.js:
     description: Centralized snake_case→camelCase mappers for all DB tables

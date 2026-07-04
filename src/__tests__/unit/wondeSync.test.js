@@ -665,6 +665,58 @@ describe('runFullSync', () => {
     expect(bindArgs).toContain('delta');
   });
 
+  // Audit cycle 16 H1: a delta sync must never org-wide-wipe teacher→class
+  // mappings — only a full sync rebuilds wonde_employee_classes wholesale.
+  describe('employee-class mapping scope (H1)', () => {
+    const findEmployeeDeletes = () =>
+      db.prepare.mock.calls
+        .map((call) => call[0])
+        .filter((sql) => sql.includes('DELETE FROM wonde_employee_classes'));
+
+    it('delta sync with no changed classes leaves wonde_employee_classes untouched', async () => {
+      fetchAllClasses.mockResolvedValue([]);
+      fetchAllStudents.mockResolvedValue([]);
+      fetchDeletions.mockResolvedValue([]);
+
+      const result = await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db, {
+        updatedAfter: '2026-02-20T00:00:00Z',
+      });
+
+      expect(result.status).toBe('completed');
+      expect(findEmployeeDeletes()).toHaveLength(0);
+      // Step 4b is skipped too — no per-user class-assignment re-derivation
+      expect(syncUserClassAssignments).not.toHaveBeenCalled();
+    });
+
+    it('delta sync with one changed class deletes only that class mapping', async () => {
+      fetchAllClasses.mockResolvedValue([sampleClasses[0]]);
+      fetchAllStudents.mockResolvedValue([]);
+      fetchDeletions.mockResolvedValue([]);
+
+      await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db, {
+        updatedAfter: '2026-02-20T00:00:00Z',
+      });
+
+      const deletes = findEmployeeDeletes();
+      expect(deletes).toHaveLength(1);
+      expect(deletes[0]).toMatch(/wonde_class_id IN/);
+    });
+
+    it('full sync still rebuilds the whole org, even with no employees', async () => {
+      fetchAllClasses.mockResolvedValue([
+        { id: 'WCLS_1', name: 'Year 3 Red', employees: { data: [] } },
+      ]);
+      fetchAllStudents.mockResolvedValue([]);
+      fetchDeletions.mockResolvedValue([]);
+
+      await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
+
+      const deletes = findEmployeeDeletes();
+      expect(deletes).toHaveLength(1);
+      expect(deletes[0]).not.toMatch(/wonde_class_id IN/);
+    });
+  });
+
   it('handles empty API responses gracefully', async () => {
     fetchAllClasses.mockResolvedValue([]);
     fetchAllStudents.mockResolvedValue([]);

@@ -25,6 +25,18 @@ describe('CSV Parser', () => {
 
       expect(result.rows[0][0]).toBe('The "Big" Book');
     });
+
+    it('strips the formula-injection guard quote, but only when it shields a trigger char', () => {
+      const csv = `Title,Author\n"'=HYPERLINK(""x"")","'@someone"\n'Tis the Season,'-Author`;
+      const result = parseCSV(csv);
+
+      expect(result.rows[0][0]).toBe('=HYPERLINK("x")');
+      expect(result.rows[0][1]).toBe('@someone');
+      // Genuine leading apostrophes survive
+      expect(result.rows[1][0]).toBe("'Tis the Season");
+      // ...unless they shield a trigger char
+      expect(result.rows[1][1]).toBe('-Author');
+    });
   });
 
   describe('detectColumnMapping', () => {

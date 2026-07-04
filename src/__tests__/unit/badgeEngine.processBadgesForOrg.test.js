@@ -217,7 +217,9 @@ describe('processBadgesForOrg', () => {
 
     await processBadgesForOrg(db, 'org-1', null, deadlineMs);
 
-    const badgeInserts = db._calls.filter((c) => c.sql.includes('INSERT INTO student_badges'));
+    const badgeInserts = db._calls.filter((c) =>
+      c.sql.includes('INSERT OR IGNORE INTO student_badges')
+    );
     const tickerInserts = db._calls.filter((c) => c.sql.includes('INSERT INTO ticker_events'));
     expect(badgeInserts.length).toBeGreaterThan(0);
     expect(tickerInserts.length).toBe(badgeInserts.length);

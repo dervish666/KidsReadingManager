@@ -70,26 +70,53 @@ importRouter.post('/bulk', requireTeacher(), async (c) => {
       }
     }
 
-    // 2. FTS5 title search for books without ISBNs (or as fallback)
-    for (const book of validBooks) {
-      if (book.isbn && existingByIsbn.has(book.isbn)) continue; // already matched by ISBN
-      const ftsQuery = book.title.trim().replace(/['"*()]/g, '');
-      if (!ftsQuery) continue;
+    // 2. FTS5 title search for books without ISBNs (or as fallback).
+    // Titles are OR'd as quoted phrases into one MATCH per chunk so a large
+    // sparse-ISBN import costs ~N/20 D1 subrequests instead of N (Workers cap
+    // subrequests at 1000 per request).
+    const needingTitleLookup = validBooks.filter((b) => !(b.isbn && existingByIsbn.has(b.isbn)));
+    const collectTitleMatches = (rows) => {
+      for (const match of rows || []) {
+        const key = match.title.toLowerCase().trim();
+        if (!existingByTitle.has(key)) existingByTitle.set(key, match);
+      }
+    };
+    const FTS_CHUNK = 20;
+    for (let i = 0; i < needingTitleLookup.length; i += FTS_CHUNK) {
+      const phrases = needingTitleLookup
+        .slice(i, i + FTS_CHUNK)
+        .map((b) => b.title.trim().replace(/['"*()]/g, ''))
+        .filter(Boolean)
+        .map((t) => `"${t}"`);
+      if (phrases.length === 0) continue;
       try {
         const ftsResult = await db
           .prepare(
             `SELECT books.id, books.title, books.author FROM books
            INNER JOIN books_fts ON books.id = books_fts.id
-           WHERE books_fts MATCH ? LIMIT 10`
+           WHERE books_fts MATCH ? LIMIT ?`
           )
-          .bind(`"${ftsQuery}"`)
+          .bind(phrases.join(' OR '), phrases.length * 10)
           .all();
-        for (const match of ftsResult.results || []) {
-          const key = match.title.toLowerCase().trim();
-          if (!existingByTitle.has(key)) existingByTitle.set(key, match);
-        }
+        collectTitleMatches(ftsResult.results);
       } catch {
-        // FTS match failed (e.g. special chars) — skip
+        // Combined MATCH failed — retry per title so one bad token doesn't
+        // cost the whole chunk its duplicate detection.
+        for (const phrase of phrases) {
+          try {
+            const ftsResult = await db
+              .prepare(
+                `SELECT books.id, books.title, books.author FROM books
+               INNER JOIN books_fts ON books.id = books_fts.id
+               WHERE books_fts MATCH ? LIMIT 10`
+              )
+              .bind(phrase)
+              .all();
+            collectTitleMatches(ftsResult.results);
+          } catch {
+            // FTS match failed (e.g. special chars) — skip
+          }
+        }
       }
     }
   } else {
@@ -235,6 +262,45 @@ importRouter.post('/import/preview', requireAdmin(), async (c) => {
     }
   }
 
+  // Step 1b: Batched FTS candidate prefetch for books that won't match by
+  // ISBN. Titles are OR'd as quoted phrases into one MATCH per chunk of 20,
+  // keeping subrequests ~N/20 instead of N. Books in a chunk share the
+  // chunk's candidate rows — the exact/fuzzy matchers below filter per book.
+  const ftsCandidates = new Map();
+  const needsFtsLookup = importBooks.filter(
+    (b) => b.title && b.title.trim() && !(b.isbn && isbnBookMap.has(b.isbn))
+  );
+  const CONFIRM_FTS_CHUNK = 20;
+  const candidateSql = `SELECT b.* FROM books b
+       INNER JOIN books_fts ON b.id = books_fts.id
+       WHERE books_fts MATCH ? LIMIT ?`;
+  for (let i = 0; i < needsFtsLookup.length; i += CONFIRM_FTS_CHUNK) {
+    const chunk = needsFtsLookup.slice(i, i + CONFIRM_FTS_CHUNK);
+    const withPhrases = chunk
+      .map((book) => ({ book, phrase: book.title.trim().replace(/['"*()]/g, '') }))
+      .filter(({ phrase }) => phrase);
+    if (withPhrases.length === 0) continue;
+    try {
+      const ftsResult = await db
+        .prepare(candidateSql)
+        .bind(withPhrases.map(({ phrase }) => `"${phrase}"`).join(' OR '), withPhrases.length * 20)
+        .all();
+      const rows = ftsResult.results || [];
+      for (const { book } of withPhrases) ftsCandidates.set(book, rows);
+    } catch {
+      // Combined MATCH failed — retry per title so one bad token doesn't
+      // cost the whole chunk its duplicate detection.
+      for (const { book, phrase } of withPhrases) {
+        try {
+          const ftsResult = await db.prepare(candidateSql).bind(`"${phrase}"`, 20).all();
+          ftsCandidates.set(book, ftsResult.results || []);
+        } catch {
+          // FTS match failed (e.g. special chars) — book falls through to newBooks
+        }
+      }
+    }
+  }
+
   // Step 2: Process each imported book
   for (const importedBook of importBooks) {
     if (!importedBook.title || !importedBook.title.trim()) continue;
@@ -258,25 +324,8 @@ importRouter.post('/import/preview', requireAdmin(), async (c) => {
       continue;
     }
 
-    // FTS5 title search for exact and fuzzy matching candidates
-    let candidates = [];
-    try {
-      // Escape FTS5 special characters and search by title
-      const ftsQuery = importedBook.title.trim().replace(/['"*()]/g, '');
-      if (ftsQuery) {
-        const ftsResult = await db
-          .prepare(
-            `SELECT b.* FROM books b
-           INNER JOIN books_fts ON b.id = books_fts.id
-           WHERE books_fts MATCH ? LIMIT 20`
-          )
-          .bind(`"${ftsQuery}"`)
-          .all();
-        candidates = ftsResult.results || [];
-      }
-    } catch {
-      // FTS match failed (e.g. special chars) — skip to newBooks
-    }
+    // Exact and fuzzy matching candidates from the batched prefetch above
+    const candidates = ftsCandidates.get(importedBook) || [];
 
     // Check for exact title/author match in candidates
     const exactMatch = candidates.find(

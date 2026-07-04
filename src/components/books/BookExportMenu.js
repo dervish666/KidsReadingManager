@@ -3,6 +3,7 @@ import { Button, Menu, MenuItem } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import ImportExportIcon from '@mui/icons-material/ImportExport';
 import UploadIcon from '@mui/icons-material/Upload';
+import { sanitizeCsvCell } from '../../utils/helpers.js';
 
 // First four columns stay in the legacy order (Title, Author, Reading Level, Age
 // Range) for the positional BookManager parser; header names are chosen so the
@@ -23,9 +24,7 @@ export const buildBooksCsv = (books) => {
   // Both CSV parsers split on newlines before honouring quotes, so embedded
   // newlines (common in descriptions) must be flattened to spaces.
   const cell = (value) =>
-    `"${String(value ?? '')
-      .replace(/\r?\n/g, ' ')
-      .replace(/"/g, '""')}"`;
+    `"${sanitizeCsvCell(String(value ?? '').replace(/\r?\n/g, ' ')).replace(/"/g, '""')}"`;
   return [
     headers.join(','),
     ...books.map((book) =>

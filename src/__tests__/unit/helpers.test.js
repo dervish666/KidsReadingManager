@@ -4,7 +4,40 @@ import {
   getTodayDate,
   getReadingStatus,
   formatAssessmentDisplay,
+  sanitizeCsvCell,
+  csvRow,
 } from '../../utils/helpers.js';
+
+describe('sanitizeCsvCell', () => {
+  it('prefixes formula-trigger characters with a quote', () => {
+    expect(sanitizeCsvCell('=HYPERLINK("http://evil")')).toBe(`'=HYPERLINK("http://evil")`);
+    expect(sanitizeCsvCell('+1234')).toBe(`'+1234`);
+    expect(sanitizeCsvCell('-cmd')).toBe(`'-cmd`);
+    expect(sanitizeCsvCell('@SUM(A1)')).toBe(`'@SUM(A1)`);
+    expect(sanitizeCsvCell('\tpayload')).toBe(`'\tpayload`);
+    expect(sanitizeCsvCell('\rpayload')).toBe(`'\rpayload`);
+  });
+
+  it('leaves ordinary values untouched', () => {
+    expect(sanitizeCsvCell('The Gruffalo')).toBe('The Gruffalo');
+    expect(sanitizeCsvCell("'Tis the Season")).toBe("'Tis the Season");
+    expect(sanitizeCsvCell('')).toBe('');
+  });
+});
+
+describe('csvRow formula neutralisation', () => {
+  it('neutralises formula injection in cells', () => {
+    expect(csvRow(['=2+2', 'safe'])).toBe(`'=2+2,safe`);
+  });
+
+  it('still quotes cells containing commas and escapes quotes', () => {
+    expect(csvRow(['a,b', 'say "hi"'])).toBe('"a,b","say ""hi"""');
+  });
+
+  it('renders null and undefined as empty cells', () => {
+    expect(csvRow([null, undefined, 'x'])).toBe(',,x');
+  });
+});
 
 describe('generateId', () => {
   it('should generate a valid UUID v4 format', () => {

@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.113.2] - 2026-07-04
+
+### Fixed
+
+- **Wonde delta sync no longer wipes teacher→class assignments.** The nightly delta sync rebuilt the org's entire teacher→class mapping table from only the classes changed since the last sync — usually none — silently erasing every teacher's class list. A delta now refreshes just the classes it actually contains; only a full sync rebuilds the whole table.
+- **Badges can no longer be awarded twice.** A unique index on (student, badge) plus `INSERT OR IGNORE` makes badge awards idempotent, so overlapping real-time and overnight evaluations can't duplicate an award. Existing duplicate rows are cleaned up by the migration.
+- **Book imports scale without hitting Cloudflare's subrequest cap.** Title duplicate-detection during CSV import now batches 20 titles per search query instead of one query per book, so large imports with sparse ISBNs stay fast and well under the Worker's 1,000-subrequest limit.
+
+### Security
+
+- **CSV exports neutralise spreadsheet formula injection.** Cell values starting with `=`, `+`, `-`, `@`, tab or CR (e.g. a book title of `=HYPERLINK(...)`) are prefixed with a quote on export so Excel/Sheets treat them as text; the import parser strips the guard so titles round-trip unchanged.
+
 ## [3.113.1] - 2026-07-03
 
 ### Fixed

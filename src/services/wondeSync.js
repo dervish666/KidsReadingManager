@@ -388,16 +388,20 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
     // -----------------------------------------------------------------------
     // Build from classes data (which includes employees) — more reliable than
     // the employees endpoint which may not return classes.data consistently.
-    // DELETE included in the first INSERT batch for atomicity
-    const deleteStmt = db
-      .prepare(`DELETE FROM wonde_employee_classes WHERE organization_id = ?`)
-      .bind(orgId);
+    //
+    // Full sync: authoritative rebuild — org-wide DELETE then re-insert.
+    // Delta sync: wondeClasses holds only the classes changed since the
+    // watermark (often none), so an org-wide rebuild would wipe every
+    // unchanged teacher→class mapping. Refresh only the classes present
+    // in this delta and leave the rest untouched.
     const employeeStatements = [];
     const seenEmployeeIds = new Set();
+    const refreshedClassIds = [];
 
     for (const wc of wondeClasses) {
       const employeesData = wc.employees?.data;
       if (!Array.isArray(employeesData)) continue;
+      refreshedClassIds.push(wc.id);
 
       for (const emp of employeesData) {
         const mappingId = crypto.randomUUID();
@@ -416,35 +420,51 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
 
     counts.employeesSynced = seenEmployeeIds.size;
 
-    // Execute employee-class inserts in batches of 100.
-    // The DELETE is included in the first batch for atomicity — if the batch fails,
-    // neither the delete nor the inserts are applied.
-    {
-      // First batch: DELETE + up to 99 inserts (keeping total within D1's 100-statement limit)
-      const firstBatch = [deleteStmt, ...employeeStatements.slice(0, 99)];
-      assertBatchSize(firstBatch, 'wondeSync employee-classes first');
-      await db.batch(firstBatch);
-      // Remaining batches of 100
-      for (let i = 99; i < employeeStatements.length; i += 100) {
-        const chunk = employeeStatements.slice(i, i + 100);
-        assertBatchSize(chunk, 'wondeSync employee-classes');
-        await db.batch(chunk);
+    const deleteStatements = [];
+    if (syncType === 'full') {
+      deleteStatements.push(
+        db.prepare(`DELETE FROM wonde_employee_classes WHERE organization_id = ?`).bind(orgId)
+      );
+    } else {
+      const IN_CHUNK = 50;
+      for (let i = 0; i < refreshedClassIds.length; i += IN_CHUNK) {
+        const chunk = refreshedClassIds.slice(i, i + IN_CHUNK);
+        const placeholders = chunk.map(() => '?').join(',');
+        deleteStatements.push(
+          db
+            .prepare(
+              `DELETE FROM wonde_employee_classes
+               WHERE organization_id = ? AND wonde_class_id IN (${placeholders})`
+            )
+            .bind(orgId, ...chunk)
+        );
       }
     }
-    // If there are no employee statements, still run the DELETE to clear stale mappings
-    if (employeeStatements.length === 0) {
-      await deleteStmt.run();
+
+    // Deletes lead so each batch clears before it re-inserts. A full sync with
+    // zero employees still runs its lone DELETE to clear stale mappings; a
+    // delta touching no classes runs nothing at all.
+    const step4Statements = [...deleteStatements, ...employeeStatements];
+    for (let i = 0; i < step4Statements.length; i += 100) {
+      const chunk = step4Statements.slice(i, i + 100);
+      assertBatchSize(chunk, 'wondeSync employee-classes');
+      await db.batch(chunk);
     }
 
     // -----------------------------------------------------------------------
     // Step 4b: Refresh class_assignments for users with wonde_employee_ids
     // -----------------------------------------------------------------------
-    const usersWithWonde = await db
-      .prepare(
-        'SELECT id, wonde_employee_id FROM users WHERE organization_id = ? AND wonde_employee_id IS NOT NULL AND is_active = 1'
-      )
-      .bind(orgId)
-      .all();
+    // Skipped when a delta sync touched no class mappings — there is nothing
+    // to re-derive, and running it for every user is D1 round-trips for free.
+    const usersWithWonde =
+      syncType === 'delta' && refreshedClassIds.length === 0
+        ? { results: [] }
+        : await db
+            .prepare(
+              'SELECT id, wonde_employee_id FROM users WHERE organization_id = ? AND wonde_employee_id IS NOT NULL AND is_active = 1'
+            )
+            .bind(orgId)
+            .all();
 
     // Process class assignments concurrently in batches of 5
     const wondeUsers = usersWithWonde.results || [];

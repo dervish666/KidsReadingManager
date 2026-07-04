@@ -67,6 +67,22 @@ describe('buildBooksCsv', () => {
     });
   });
 
+  // Audit cycle 16 SEC-H1: formula injection neutralised on export, guard
+  // stripped again on import so titles round-trip unchanged.
+  it('neutralises formula-injection titles and round-trips them', () => {
+    const hostile = { title: '=HYPERLINK("http://evil.example","click")', author: '@author' };
+    const csv = buildBooksCsv([hostile]);
+    const dataRow = csv.split('\n')[1];
+    expect(dataRow.startsWith(`"'=HYPERLINK`)).toBe(true);
+    expect(dataRow).toContain(`"'@author"`);
+
+    const parsed = parseCSV(csv);
+    const mapping = detectColumnMapping(parsed.headers);
+    const [book] = mapCSVToBooks(parsed.rows, mapping);
+    expect(book.title).toBe(hostile.title);
+    expect(book.author).toBe(hostile.author);
+  });
+
   it('stays parseable by the legacy positional importer', () => {
     const books = legacyParseCSV(buildBooksCsv([fullBook]));
     expect(books).toEqual([

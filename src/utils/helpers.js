@@ -151,6 +151,17 @@ export function formatRelativeTime(dateString) {
 }
 
 /**
+ * Neutralise spreadsheet formula injection: cells starting with =, +, -, @,
+ * tab or CR are treated as formulas by Excel/Sheets, so prefix a single quote.
+ * User-supplied text (titles, notes) can reach exported CSVs verbatim.
+ * @param {string} str - Raw cell value
+ * @returns {string} - Value safe to open in a spreadsheet
+ */
+export function sanitizeCsvCell(str) {
+  return /^[=+\-@\t\r]/.test(str) ? `'${str}` : str;
+}
+
+/**
  * CSV helper: escape a value and wrap in quotes if needed, then join with commas.
  * @param {Array} values - Array of values to format as a CSV row
  * @returns {string} - CSV-formatted row string
@@ -159,7 +170,7 @@ export function csvRow(values) {
   return values
     .map((v) => {
       if (v === null || v === undefined) return '';
-      const str = String(v);
+      const str = sanitizeCsvCell(String(v));
       if (str.includes(',') || str.includes('"') || str.includes('\n')) {
         return `"${str.replace(/"/g, '""')}"`;
       }

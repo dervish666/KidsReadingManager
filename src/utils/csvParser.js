@@ -23,6 +23,13 @@ export const parseCSV = (csvText) => {
 };
 
 /**
+ * Undo the formula-injection guard applied on export (sanitizeCsvCell in
+ * helpers.js): a leading ' is only stripped when it shields a formula
+ * trigger char, so genuine apostrophe-leading titles survive.
+ */
+const stripFormulaGuard = (value) => (/^'[=+\-@\t\r]/.test(value) ? value.slice(1) : value);
+
+/**
  * Parse a single CSV line, handling quotes and commas
  */
 const parseCSVLine = (line) => {
@@ -41,14 +48,14 @@ const parseCSVLine = (line) => {
         inQuotes = !inQuotes;
       }
     } else if (char === ',' && !inQuotes) {
-      result.push(current.trim());
+      result.push(stripFormulaGuard(current.trim()));
       current = '';
     } else {
       current += char;
     }
   }
 
-  result.push(current.trim());
+  result.push(stripFormulaGuard(current.trim()));
   return result;
 };
 
