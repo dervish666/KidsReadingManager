@@ -717,6 +717,80 @@ describe('runFullSync', () => {
     });
   });
 
+  // Audit cycle 16 M5: classes deleted in the MIS must deactivate on a full
+  // sync — but never from a delta or an empty (failed/partial) fetch.
+  describe('orphaned class reconcile (M5)', () => {
+    const findDeactivations = () =>
+      db.prepare.mock.calls
+        .map((call) => call[0])
+        .filter((sql) => sql.includes('UPDATE classes SET is_active = 0'));
+
+    const withExistingClasses = (rows) => {
+      db.prepare = vi.fn().mockImplementation((sql) => {
+        if (
+          sql.includes('SELECT wonde_class_id, id, name FROM classes') &&
+          sql.includes('organization_id')
+        ) {
+          return {
+            bind: vi.fn().mockReturnThis(),
+            all: vi.fn().mockResolvedValue({ results: rows }),
+          };
+        }
+        return {
+          bind: vi.fn().mockReturnThis(),
+          run: vi.fn().mockResolvedValue({ success: true }),
+          first: vi.fn().mockResolvedValue(null),
+          all: vi.fn().mockResolvedValue({ results: [] }),
+        };
+      });
+    };
+
+    it('full sync deactivates Wonde classes missing from the fetch, sparing manual ones', async () => {
+      withExistingClasses([
+        { wonde_class_id: 'WCLS_1', id: 'class-1', name: 'Year 3 Red' },
+        { wonde_class_id: 'WCLS_GONE', id: 'class-gone', name: 'Deleted In MIS' },
+        { wonde_class_id: null, id: 'class-manual', name: 'Manual Club' },
+      ]);
+      fetchAllClasses.mockResolvedValue([sampleClasses[0]]); // only WCLS_1 still exists
+      fetchAllStudents.mockResolvedValue([]);
+      fetchDeletions.mockResolvedValue([]);
+
+      await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
+
+      const deactivations = findDeactivations();
+      expect(deactivations).toHaveLength(1);
+      const deactivateCall = db.prepare.mock.calls.find((call) =>
+        call[0].includes('UPDATE classes SET is_active = 0')
+      );
+      expect(deactivateCall[0]).toContain('WHERE id IN');
+    });
+
+    it('delta sync never deactivates classes', async () => {
+      withExistingClasses([{ wonde_class_id: 'WCLS_GONE', id: 'class-gone', name: 'Old' }]);
+      fetchAllClasses.mockResolvedValue([sampleClasses[0]]);
+      fetchAllStudents.mockResolvedValue([]);
+      fetchDeletions.mockResolvedValue([]);
+
+      await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db, {
+        updatedAfter: '2026-02-20T00:00:00Z',
+      });
+
+      expect(findDeactivations()).toHaveLength(0);
+    });
+
+    it('an empty full-sync fetch deactivates nothing (partial-fetch guard)', async () => {
+      withExistingClasses([{ wonde_class_id: 'WCLS_1', id: 'class-1', name: 'Year 3 Red' }]);
+      fetchAllClasses.mockResolvedValue([]);
+      fetchAllGroups.mockResolvedValue([]);
+      fetchAllStudents.mockResolvedValue([]);
+      fetchDeletions.mockResolvedValue([]);
+
+      await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db);
+
+      expect(findDeactivations()).toHaveLength(0);
+    });
+  });
+
   it('handles empty API responses gracefully', async () => {
     fetchAllClasses.mockResolvedValue([]);
     fetchAllStudents.mockResolvedValue([]);

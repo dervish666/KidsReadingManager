@@ -60,7 +60,7 @@ describe('hardDeleteOrganization', () => {
   // ---------------------------------------------------------------
   // 1. Happy path
   // ---------------------------------------------------------------
-  it('runs a single atomic batch: log insert, 27 deletes, log cleanup, tombstone', async () => {
+  it('runs a single atomic batch: log insert, 29 deletes, log cleanup, tombstone', async () => {
     const db = createMockDB({ firstResult: activeOrg });
 
     const result = await hardDeleteOrganization(db, ORG_ID);
@@ -72,16 +72,16 @@ describe('hardDeleteOrganization', () => {
     // -- Single atomic batch invocation for all destructive work
     expect(db.batch).toHaveBeenCalledTimes(1);
     const batchStatements = db.batch.mock.calls[0][0];
-    // 1 log insert + 28 deletes + 1 log cleanup + 1 tombstone = 31
-    expect(batchStatements).toHaveLength(31);
+    // 1 log insert + 29 deletes + 1 log cleanup + 1 tombstone = 32
+    expect(batchStatements).toHaveLength(32);
 
     // -- data_rights_log INSERT comes first inside the batch (sqlLog index 1)
     expect(sqlLog[1].sql).toContain('INSERT INTO data_rights_log');
     expect(sqlLog[1].binds).toEqual(['purge-log-uuid', ORG_ID, ORG_ID]);
 
-    // -- 28 DELETEs from DELETE_ORDER (indexes 2..29)
-    const deleteSqls = sqlLog.slice(2, 30);
-    expect(deleteSqls).toHaveLength(28);
+    // -- 29 DELETEs from DELETE_ORDER (indexes 2..30)
+    const deleteSqls = sqlLog.slice(2, 31);
+    expect(deleteSqls).toHaveLength(29);
     for (const entry of deleteSqls) {
       expect(entry.sql).toMatch(/^DELETE FROM /);
       expect(entry.binds).toEqual([ORG_ID]);
@@ -101,19 +101,19 @@ describe('hardDeleteOrganization', () => {
     expect(tableOrder.indexOf('class_goals')).toBeLessThan(tableOrder.indexOf('classes'));
     expect(tableOrder[tableOrder.length - 1]).toBe('users');
 
-    // -- data_rights_log cleanup DELETE (sqlLog index 30)
-    expect(sqlLog[30].sql).toContain('DELETE FROM data_rights_log');
-    expect(sqlLog[30].binds).toEqual([ORG_ID, 'purge-log-uuid']);
+    // -- data_rights_log cleanup DELETE (sqlLog index 31)
+    expect(sqlLog[31].sql).toContain('DELETE FROM data_rights_log');
+    expect(sqlLog[31].binds).toEqual([ORG_ID, 'purge-log-uuid']);
 
-    // -- Anonymise UPDATE (sqlLog index 31)
-    expect(sqlLog[31].sql).toContain('UPDATE organizations SET');
-    expect(sqlLog[31].sql).toContain("name = 'Deleted Organisation'");
-    expect(sqlLog[31].sql).toContain('purged_at');
-    expect(sqlLog[31].binds).toEqual([ORG_ID]);
+    // -- Anonymise UPDATE (sqlLog index 32)
+    expect(sqlLog[32].sql).toContain('UPDATE organizations SET');
+    expect(sqlLog[32].sql).toContain("name = 'Deleted Organisation'");
+    expect(sqlLog[32].sql).toContain('purged_at');
+    expect(sqlLog[32].binds).toEqual([ORG_ID]);
 
     // -- Return value
     expect(result.orgId).toBe(ORG_ID);
-    expect(result.tablesProcessed).toBe(29); // 28 DELETE_ORDER + 1 data_rights_log
+    expect(result.tablesProcessed).toBe(30); // 29 DELETE_ORDER + 1 data_rights_log
     expect(result.errors).toEqual([]);
   });
 

@@ -41,6 +41,7 @@ const BookImportWizard = ({ open, onClose, onImported }) => {
     title: null,
     author: null,
     readingLevel: null,
+    ageRange: null,
     isbn: null,
     description: null,
     pageCount: null,
@@ -243,6 +244,7 @@ const BookImportWizard = ({ open, onClose, onImported }) => {
       title: null,
       author: null,
       readingLevel: null,
+      ageRange: null,
       isbn: null,
       description: null,
       pageCount: null,
@@ -282,8 +284,8 @@ const BookImportWizard = ({ open, onClose, onImported }) => {
               </Button>
             </label>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-              Only Title is required. Optional columns: Author, Reading Level, ISBN, Description,
-              Page Count, Year, Series
+              Only Title is required. Optional columns: Author, Reading Level, Age Range, ISBN,
+              Description, Page Count, Year, Series
             </Typography>
           </Box>
         );
@@ -310,6 +312,7 @@ const BookImportWizard = ({ open, onClose, onImported }) => {
                 { key: 'title', label: 'Title *' },
                 { key: 'author', label: 'Author' },
                 { key: 'readingLevel', label: 'Reading Level' },
+                { key: 'ageRange', label: 'Age Range' },
                 { key: 'isbn', label: 'ISBN' },
                 { key: 'description', label: 'Description' },
                 { key: 'pageCount', label: 'Page Count' },

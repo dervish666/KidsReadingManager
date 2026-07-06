@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.113.3] - 2026-07-06
+
+### Fixed
+
+- **Automatic data-retention deletion now removes everything the manual erase does.** The overnight 90-day retention job previously missed a student's badges, reading stats and — most importantly — their parent portal access tokens. It now uses the exact same deletion list as the interactive "erase student" action, so nothing is left behind. Celebration ticker events are also now removed by every erasure path, including full organisation purges.
+- **Age Range survives a CSV round-trip.** Exported book CSVs include an Age Range column, but the import wizard couldn't map it back — it's now auto-detected on import (and available in the manual column mapping), and saved for newly created books.
+- **Multi-line book descriptions no longer corrupt CSV imports.** The import parser now handles quoted newlines properly, so a description spanning several lines imports as one book instead of splitting into phantom rows.
+- **Smarter CSV column detection.** Value-based column sniffing now requires corroboration: ISBN columns must pass real ISBN check-digit validation (so accession numbers aren't mis-imported as ISBNs), columns of small integers aren't claimed as page counts (they're likelier grade levels), and sequential ID runs aren't claimed as publication years.
+- **Home-reading ticks keep the right colour when a teacher leaves.** Who recorded a read (teacher vs parent app) is now stored explicitly on each session, so deleting a teacher's account no longer flips their historical home-reading ticks to "parent app". Existing sessions are backfilled.
+- **Classes deleted in the school's MIS now disappear from Tally.** A full Wonde sync deactivates classes the MIS no longer reports (guarded so a failed fetch can't deactivate anything, and manually created classes are never touched). A class re-added in the MIS reactivates automatically.
+
 ## [3.113.2] - 2026-07-04
 
 ### Fixed

@@ -209,6 +209,7 @@ studentsRouter.get('/:id', requireReadonly(), async (c) => {
       notes: s.notes,
       location: s.location || 'school',
       recordedBy: s.recorded_by,
+      readSource: s.read_source || null,
     }));
 
     // Recalculate streak on-the-fly from the sessions we just loaded so the

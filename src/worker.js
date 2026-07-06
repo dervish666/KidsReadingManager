@@ -45,6 +45,7 @@ import { billingRouter } from './routes/billing.js';
 import { runFullSync } from './services/wondeSync.js';
 import { resetDemoData } from './services/demoReset.js';
 import { hardDeleteOrganization } from './services/orgPurge.js';
+import { studentEraseStatements, STUDENT_ERASE_STATEMENT_COUNT } from './utils/studentErase.js';
 import { decryptSensitiveData, getEncryptionSecret } from './utils/crypto.js';
 
 // Import middleware
@@ -569,17 +570,13 @@ export default Sentry.withSentry(
 
               const studentIds = (staleStudents.results || []).map((s) => s.id);
               if (studentIds.length > 0) {
-                // 4 DELETEs per student — keep chunk × 4 under D1's 100-statement
-                // batch limit (24 × 4 = 96).
-                const STUDENT_CHUNK = 24;
+                // Same statement set as the interactive Article 17 erase —
+                // chunk sized so chunk × statements stays under D1's
+                // 100-statement batch limit.
+                const STUDENT_CHUNK = Math.floor(100 / STUDENT_ERASE_STATEMENT_COUNT);
                 for (let i = 0; i < studentIds.length; i += STUDENT_CHUNK) {
                   const chunk = studentIds.slice(i, i + STUDENT_CHUNK);
-                  const statements = chunk.flatMap((id) => [
-                    db.prepare('DELETE FROM reading_sessions WHERE student_id = ?').bind(id),
-                    db.prepare('DELETE FROM student_preferences WHERE student_id = ?').bind(id),
-                    db.prepare('DELETE FROM student_recommendations WHERE student_id = ?').bind(id),
-                    db.prepare('DELETE FROM students WHERE id = ?').bind(id),
-                  ]);
+                  const statements = chunk.flatMap((id) => studentEraseStatements(db, id));
                   await db.batch(statements);
                 }
                 console.log(

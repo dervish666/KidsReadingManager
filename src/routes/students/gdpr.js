@@ -13,6 +13,7 @@
 
 import { Hono } from 'hono';
 import { generateId, csvRow } from '../../utils/helpers.js';
+import { studentEraseStatements } from '../../utils/studentErase.js';
 import { forbiddenError } from '../../middleware/errorHandler.js';
 import { requireAdmin, auditLog } from '../../middleware/tenant.js';
 import { permissions } from '../../utils/crypto.js';
@@ -81,18 +82,9 @@ gdprRouter.delete('/:id/erase', requireAdmin(), auditLog('erase', 'student'), as
       )
       .bind(rightsLogId, organizationId, id, userId),
 
-    // FK order: child rows first, then student. We delete badges + reading-stats
-    // explicitly rather than relying on FK CASCADE — D1 only enforces foreign
-    // keys when PRAGMA foreign_keys = ON is set per-connection, so explicit
-    // deletes are the only guaranteed defence against orphaned rows persisting
-    // after a student is erased.
-    db.prepare('DELETE FROM reading_sessions WHERE student_id = ?').bind(id),
-    db.prepare('DELETE FROM student_preferences WHERE student_id = ?').bind(id),
-    db.prepare('DELETE FROM student_badges WHERE student_id = ?').bind(id),
-    db.prepare('DELETE FROM student_reading_stats WHERE student_id = ?').bind(id),
-    db.prepare('DELETE FROM parent_access_tokens WHERE student_id = ?').bind(id),
-    db.prepare('DELETE FROM student_recommendations WHERE student_id = ?').bind(id),
-    db.prepare('DELETE FROM students WHERE id = ?').bind(id),
+    // Canonical child-tables-then-student delete set, shared with the
+    // retention cron so the two erasure paths cannot drift.
+    ...studentEraseStatements(db, id),
 
     // Anonymise prior audit_log entries that referenced this student
     db

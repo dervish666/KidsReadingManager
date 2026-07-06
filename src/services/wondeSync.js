@@ -246,9 +246,14 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
       const existing = existingClassMap.get(mapped.wondeClassId);
 
       if (existing) {
+        // is_active = 1 self-heals a class the reconcile below deactivated
+        // if the MIS later re-adds it (the MIS is the source of truth for
+        // Wonde-linked classes).
         classStatements.push(
           db
-            .prepare(`UPDATE classes SET name = ?, updated_at = datetime('now') WHERE id = ?`)
+            .prepare(
+              `UPDATE classes SET name = ?, is_active = 1, updated_at = datetime('now') WHERE id = ?`
+            )
             .bind(mapped.name, existing.id)
         );
         classLookup.set(mapped.wondeClassId, existing.id);
@@ -273,6 +278,34 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
       const chunk = classStatements.slice(i, i + 100);
       assertBatchSize(chunk, 'wondeSync classes');
       await db.batch(chunk);
+    }
+
+    // Full-sync reconcile: deactivate Wonde-linked classes the MIS no longer
+    // reports, so deleted classes/groups stop cluttering Manage Classes and
+    // dropdowns. Full sync only — a delta legitimately omits unchanged
+    // classes — and gated on a non-empty fetch so a failed/partial fetch
+    // can't deactivate the whole school. Manually-created classes
+    // (wonde_class_id IS NULL) are never touched.
+    if (syncType === 'full' && wondeClasses.length > 0) {
+      const seenWondeIds = new Set(wondeClasses.map((wc) => wc.id));
+      const orphanedClassIds = (existingClassesResult.results || [])
+        .filter((r) => r.wonde_class_id && !seenWondeIds.has(r.wonde_class_id))
+        .map((r) => r.id);
+      for (let i = 0; i < orphanedClassIds.length; i += 100) {
+        const chunk = orphanedClassIds.slice(i, i + 100);
+        const placeholders = chunk.map(() => '?').join(',');
+        await db
+          .prepare(
+            `UPDATE classes SET is_active = 0, updated_at = datetime('now') WHERE id IN (${placeholders})`
+          )
+          .bind(...chunk)
+          .run();
+      }
+      if (orphanedClassIds.length > 0) {
+        console.log(
+          `[WondeSync] Deactivated ${orphanedClassIds.length} classes no longer in Wonde for org ${orgId}`
+        );
+      }
     }
 
     // -----------------------------------------------------------------------

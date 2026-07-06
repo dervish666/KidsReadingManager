@@ -114,6 +114,7 @@ sessionsRouter.get('/sessions', requireReadonly(), async (c) => {
     notes: s.notes,
     location: s.location || 'school',
     recordedBy: s.recorded_by,
+    readSource: s.read_source || null,
     studentName: s.student_name,
     ...readObservations(s),
   }));
@@ -169,6 +170,7 @@ sessionsRouter.get('/:id/sessions', requireReadonly(), async (c) => {
     notes: s.notes,
     location: s.location || 'school',
     recordedBy: s.recorded_by,
+    readSource: s.read_source || null,
     ...readObservations(s),
   }));
 
@@ -245,9 +247,9 @@ sessionsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
         .prepare(
           `INSERT INTO reading_sessions (
                id, student_id, session_date, book_id, book_title_manual, book_author_manual,
-               pages_read, duration_minutes, assessment, notes, location, recorded_by,
+               pages_read, duration_minutes, assessment, notes, location, recorded_by, read_source,
                read_fluent, read_expressive, read_phonics, read_custom1, read_custom2, read_custom3
-             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'teacher', ?, ?, ?, ?, ?, ?)`
         )
         .bind(
           sessionId,
@@ -342,6 +344,7 @@ sessionsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
         notes: session.notes,
         location: session.location || 'school',
         recordedBy: session.recorded_by,
+        readSource: session.read_source || null,
         ...readObservations(session),
         newBadges,
         completedGoals,
@@ -488,9 +491,9 @@ sessionsRouter.post(
           .prepare(
             `INSERT INTO reading_sessions (
                id, student_id, session_date, book_id, book_title_manual, book_author_manual,
-               pages_read, duration_minutes, assessment, notes, location, recorded_by,
+               pages_read, duration_minutes, assessment, notes, location, recorded_by, read_source,
                read_fluent, read_expressive, read_phonics, read_custom1, read_custom2, read_custom3
-             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'teacher', ?, ?, ?, ?, ?, ?)`
           )
           .bind(
             s.sessionId,

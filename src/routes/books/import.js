@@ -471,8 +471,8 @@ importRouter.post('/import/confirm', requireAdmin(), auditLog('import', 'books')
       stmt: db
         .prepare(
           `
-        INSERT INTO books (id, title, author, reading_level, isbn, description, page_count, publication_year, series_name, series_number, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+        INSERT INTO books (id, title, author, reading_level, age_range, isbn, description, page_count, publication_year, series_name, series_number, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
       `
         )
         .bind(
@@ -480,6 +480,7 @@ importRouter.post('/import/confirm', requireAdmin(), auditLog('import', 'books')
           book.title,
           book.author || null,
           book.readingLevel || null,
+          book.ageRange || null,
           isbn,
           book.description || null,
           pageCount,

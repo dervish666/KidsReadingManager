@@ -350,9 +350,13 @@ const HomeReadingRegister = () => {
         return { status: READING_STATUS.NO_RECORD, count: 0, sessions: homeSessions };
       }
 
-      // Split home sessions by who recorded them: parent-portal sessions are
-      // written with recorded_by NULL, teacher entries carry the user id.
-      const parentCount = homeSessions.filter((s) => !s.recordedBy).length;
+      // Split home sessions by who recorded them. read_source is the explicit
+      // stamp (migration 0070); the recorded_by inference remains only as a
+      // fallback for rows without it (e.g. demo fixtures) — it mislabels a
+      // deleted teacher's entries as parent, which is why the column exists.
+      const parentCount = homeSessions.filter((s) =>
+        s.readSource ? s.readSource === 'parent' : !s.recordedBy
+      ).length;
       const homeCount = homeSessions.length - parentCount;
       const schoolCount = schoolSessions.length;
 

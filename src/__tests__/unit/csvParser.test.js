@@ -26,6 +26,24 @@ describe('CSV Parser', () => {
       expect(result.rows[0][0]).toBe('The "Big" Book');
     });
 
+    it('keeps quoted newlines inside the cell instead of splitting phantom rows', () => {
+      const csv =
+        'Title,Description\n"The BFG","A giant story.\nWith a second line."\nMatilda,Plain';
+      const result = parseCSV(csv);
+
+      expect(result.rows).toHaveLength(2);
+      expect(result.rows[0][1]).toBe('A giant story.\nWith a second line.');
+      expect(result.rows[1]).toEqual(['Matilda', 'Plain']);
+    });
+
+    it('handles CRLF line endings and skips blank lines', () => {
+      const csv = 'Title,Author\r\nThe BFG,Roald Dahl\r\n\r\nMatilda,Roald Dahl\r\n';
+      const result = parseCSV(csv);
+
+      expect(result.headers).toEqual(['Title', 'Author']);
+      expect(result.rows).toHaveLength(2);
+    });
+
     it('strips the formula-injection guard quote, but only when it shields a trigger char', () => {
       const csv = `Title,Author\n"'=HYPERLINK(""x"")","'@someone"\n'Tis the Season,'-Author`;
       const result = parseCSV(csv);
@@ -262,6 +280,43 @@ describe('CSV Parser', () => {
       expect(mapping.isbn).toBeNull();
     });
 
+    it('rejects accession numbers and catalog IDs that fail the ISBN checksum', () => {
+      const headers = ['Title', 'Accession'];
+      const rows = [
+        ['The BFG', '1000000001'],
+        ['Matilda', '1000000002'],
+        ['The Twits', '1000000003'],
+      ];
+      expect(detectColumnMapping(headers, rows).isbn).toBeNull();
+    });
+
+    it('does not claim grade-level integers as page counts', () => {
+      const headers = ['Title', 'Grade'];
+      const rows = [
+        ['The BFG', '3'],
+        ['Matilda', '4'],
+        ['The Twits', '2'],
+      ];
+      expect(detectColumnMapping(headers, rows).pageCount).toBeNull();
+    });
+
+    it('does not claim sequential catalog IDs as publication years', () => {
+      const headers = ['Title', 'CatalogNo'];
+      const rows = [
+        ['The BFG', '2001'],
+        ['Matilda', '2002'],
+        ['The Twits', '2003'],
+      ];
+      expect(detectColumnMapping(headers, rows).publicationYear).toBeNull();
+    });
+
+    it('maps an Age Range header without letting it steal the Pages column', () => {
+      const headers = ['Title', 'Age Range', 'Pages'];
+      const mapping = detectColumnMapping(headers);
+      expect(mapping.ageRange).toBe(1);
+      expect(mapping.pageCount).toBe(2);
+    });
+
     it('is unchanged when no rows are provided (backward compatible)', () => {
       const headers = ['Title', 'Notes'];
       expect(detectColumnMapping(headers)).toEqual(detectColumnMapping(headers, []));
@@ -282,6 +337,7 @@ describe('CSV Parser', () => {
         description: null,
         pageCount: null,
         publicationYear: null,
+        ageRange: null,
         seriesName: null,
         seriesNumber: null,
       };
@@ -297,6 +353,7 @@ describe('CSV Parser', () => {
         description: null,
         pageCount: null,
         publicationYear: null,
+        ageRange: null,
         seriesName: null,
         seriesNumber: null,
       });
@@ -316,6 +373,7 @@ describe('CSV Parser', () => {
         description: null,
         pageCount: null,
         publicationYear: null,
+        ageRange: null,
         seriesName: null,
         seriesNumber: null,
       };
@@ -337,6 +395,7 @@ describe('CSV Parser', () => {
         description: null,
         pageCount: null,
         publicationYear: null,
+        ageRange: null,
         seriesName: null,
         seriesNumber: null,
       };
@@ -352,6 +411,7 @@ describe('CSV Parser', () => {
         description: null,
         pageCount: null,
         publicationYear: null,
+        ageRange: null,
         seriesName: null,
         seriesNumber: null,
       });
@@ -368,6 +428,7 @@ describe('CSV Parser', () => {
         description: null,
         pageCount: null,
         publicationYear: null,
+        ageRange: null,
         seriesName: null,
         seriesNumber: null,
       };
@@ -387,6 +448,7 @@ describe('CSV Parser', () => {
         description: null,
         pageCount: null,
         publicationYear: null,
+        ageRange: null,
         seriesName: null,
         seriesNumber: null,
       };
@@ -428,6 +490,7 @@ describe('CSV Parser', () => {
         title: 'The BFG',
         author: 'Roald Dahl',
         readingLevel: '3.0',
+        ageRange: null,
         isbn: '9780142410387',
         description: 'A friendly giant story',
         pageCount: '208',
@@ -447,6 +510,7 @@ describe('CSV Parser', () => {
         description: null,
         pageCount: null,
         publicationYear: null,
+        ageRange: null,
         seriesName: null,
         seriesNumber: null,
       };

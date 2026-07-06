@@ -1,0 +1,981 @@
+# utils/ and services/ structure detail
+module: tally-reading
+directories: [src/utils/, src/services/]
+description: Utility functions and service layer
+
+files:
+  # ---- UTILITIES ----
+
+  utils/helpers.js:
+    description: General utility functions - ID generation, reading status, sorting
+    exports:
+      - name: generateId
+        kind: function
+        returns: string
+        description: Generate UUID v4 via Web Crypto API
+      - name: generateToken
+        kind: function
+        returns: string
+        description: Generate 128-bit URL-safe base64 token (22 chars) for parent portal access
+      - name: getTodayDate
+        kind: function
+        returns: string
+        description: Today's date in ISO format (YYYY-MM-DD)
+      - name: getReadingStatus
+        kind: function
+        params: [{name: student}, {name: settings}]
+        returns: "'recentlyRead'|'needsAttention'|'notRead'"
+      - name: formatErrorResponse
+        kind: function
+        params: [{name: message}, {name: status}]
+        returns: object
+      - name: formatSuccessResponse
+        kind: function
+        params: [{name: data}, {name: message}]
+        returns: object
+      - name: sanitizeCsvCell
+        kind: function
+        params: [{name: str}]
+        returns: string
+        description: Prefix ' to cells starting with =+-@ tab/CR (spreadsheet formula-injection guard)
+      - name: csvRow
+        kind: function
+        params: [{name: values}]
+        returns: string
+        description: Format values as an RFC-quoted CSV row (applies sanitizeCsvCell)
+
+  utils/studentErase.js:
+    description: Canonical per-student erasure statement set shared by interactive Art-17 erase and the 90-day retention cron
+    exports:
+      - name: studentEraseStatements
+        kind: function
+        params: [{name: db}, {name: studentId}]
+        returns: array
+        description: FK-ordered DELETE statements across all 8 student tables (children first, students last)
+      - name: STUDENT_ERASE_STATEMENT_COUNT
+        kind: const
+        description: Statements per student — callers size D1 batch chunks from this
+
+  utils/rowMappers.js:
+    description: Centralized snake_case→camelCase mappers for all DB tables
+    exports:
+      - name: rowToBook
+        kind: function
+        params: [{name: row}]
+        returns: object|null
+      - name: rowToStudent
+        kind: function
+        params: [{name: row}]
+        returns: object|null
+      - name: rowToClass
+        kind: function
+        params: [{name: row}]
+        returns: object|null
+      - name: rowToUser
+        kind: function
+        params: [{name: row}]
+        returns: object|null
+      - name: rowToOrganization
+        kind: function
+        params: [{name: row}]
+        returns: object|null
+      - name: rowToGenre
+        kind: function
+        params: [{name: row}]
+        returns: object|null
+      - name: rowToSupportTicket
+        kind: function
+        params: [{name: row}]
+        returns: object|null
+      - name: rowToSupportNote
+        kind: function
+        params: [{name: row}]
+        returns: object|null
+      - name: rowToTourCompletion
+        kind: function
+        params: [{name: row}]
+        returns: object|null
+      - name: rowToBadge
+        kind: function
+        params: [{name: row}]
+        returns: object|null
+      - name: rowToReadingStats
+        kind: function
+        params: [{name: row}]
+        returns: object|null
+      - name: rowToClassGoal
+        kind: function
+        params: [{name: row}]
+        returns: object|null
+        description: Maps class_goals DB row to camelCase object
+
+  utils/crypto.js:
+    description: Cryptographic utilities - passwords, JWT, AES-GCM encryption, roles
+    exports:
+      - name: hashPassword
+        kind: function
+        params: [{name: password}]
+        returns: Promise<string>
+        description: PBKDF2 hash with 100,000 iterations + random salt
+      - name: verifyPassword
+        kind: function
+        params: [{name: password}, {name: storedHash}]
+        returns: "Promise<{valid, needsRehash}>"
+      - name: createAccessToken
+        kind: function
+        params: [{name: payload}, {name: secret}, {name: expiresIn}]
+        returns: Promise<string>
+        description: Create JWT access token (15min default)
+      - name: createRefreshToken
+        kind: function
+        params: [{name: userId}, {name: secret}]
+        returns: "Promise<{token, hash, expiresAt}>"
+        description: Create refresh token (7 days)
+      - name: verifyAccessToken
+        kind: function
+        params: [{name: token}, {name: secret}]
+        returns: "Promise<{valid, payload?, error?}>"
+      - name: verifyRefreshToken
+        kind: function
+        params: [{name: token}, {name: storedHash}]
+        returns: Promise<boolean>
+      - name: hashToken
+        kind: function
+        params: [{name: token}]
+        returns: Promise<string>
+        description: SHA-256 hash
+      - name: createJWTPayload
+        kind: function
+        params: [{name: user}, {name: organization}]
+        returns: object
+      - name: encryptSensitiveData
+        kind: function
+        params: [{name: plaintext}, {name: secret}]
+        returns: Promise<string>
+        description: AES-GCM encryption with HKDF-derived key
+      - name: decryptSensitiveData
+        kind: function
+        params: [{name: encryptedData}, {name: secret}]
+        returns: Promise<string>
+      - name: constantTimeEqual
+        kind: function
+        params: [{name: a}, {name: b}]
+        returns: boolean
+      - name: constantTimeStringEqual
+        kind: function
+        params: [{name: a}, {name: b}]
+        returns: boolean
+      - name: ROLES
+        kind: object
+        description: "Role constants: {OWNER, ADMIN, TEACHER, READONLY}"
+      - name: ROLE_HIERARCHY
+        kind: object
+        description: "Role levels: {owner:4, admin:3, teacher:2, readonly:1}"
+      - name: hasPermission
+        kind: function
+        params: [{name: userRole}, {name: requiredRole}]
+        returns: boolean
+
+  utils/validation.js:
+    description: Request data validation utilities
+    exports:
+      - name: validateReadingLevelRange
+        kind: function
+        params: [{name: min}, {name: max}]
+        returns: "{isValid, errors?, normalizedMin?, normalizedMax?}"
+        description: Validate AR reading level range (1.0-13.0)
+      - name: validateStudent
+        kind: function
+        params: [{name: student}]
+        returns: "{isValid, errors}"
+      - name: validateSettings
+        kind: function
+        params: [{name: settings}]
+        returns: "{isValid, errors}"
+      - name: validateBulkImport
+        kind: function
+        params: [{name: students}]
+        returns: "{isValid, errors}"
+      - name: validateDataImport
+        kind: function
+        params: [{name: data}]
+        returns: "{isValid, errors}"
+
+  utils/streakCalculator.js:
+    description: Reading streak calculation with configurable grace period
+    exports:
+      - name: getDateString
+        kind: function
+        params: [{name: date}, {name: timezone}]
+        returns: string
+      - name: getUniqueReadingDates
+        kind: function
+        params: [{name: sessions}, {name: timezone}]
+        returns: string[]
+      - name: daysBetween
+        kind: function
+        params: [{name: date1}, {name: date2}]
+        returns: number
+      - name: calculateStreak
+        kind: function
+        params: [{name: sessions}, {name: options}]
+        returns: "{currentStreak, longestStreak, streakStartDate, lastReadDate}"
+      - name: wouldExtendStreak
+        kind: function
+        params: [{name: currentStreakData}, {name: newSessionDate}, {name: gracePeriodDays}, {name: timezone}]
+        returns: boolean
+
+  utils/readingBandDefinitions.js:
+    description: Reading band ladder (16 colour bands) - gamified reading-volume rank; palette-aware colour resolution
+    exports:
+      - name: READING_BAND_LADDER
+        kind: const
+        description: Ordered array of 16 bands {index,name,color,textColor} Lilac..Free Reader
+      - name: READING_BAND_COUNT
+        kind: const
+        returns: number
+      - name: DEFAULT_READS_PER_BAND
+        kind: const
+        returns: number
+        description: Default reads-per-band threshold (20)
+      - name: DEFAULT_BAND_COLORS
+        kind: const
+        description: Array of 16 default hex colour strings in ladder order (derived from READING_BAND_LADDER)
+      - name: pickTextColor
+        kind: function
+        params: [{name: hex}]
+        returns: string
+        description: Best-contrast text colour (#3A352E dark or #FFFFFF white) for a band background — uses WCAG contrast ratio, not a naive luminance threshold
+      - name: getBandByIndex
+        kind: function
+        params: [{name: i}, {name: palette, description: "optional array of 16 hex overrides"}]
+        returns: object
+        description: Band at clamped index [0,15]; uses palette colour when provided and valid, auto-computes textColor via pickTextColor
+
+  utils/readingBandEngine.js:
+    description: Pure reading-band maths (no I/O), mirrors streakCalculator
+    exports:
+      - name: readContribution
+        kind: function
+        params: [{name: notes}]
+        returns: number
+        description: Reads from one session's notes marker (plain=1, [COUNT:n]=n, absent/no_record=0)
+      - name: countReads
+        kind: function
+        params: [{name: rows}]
+        returns: number
+      - name: computeBandIndex
+        kind: function
+        params: [{name: readsCount}, {name: readsPerBand}]
+        returns: number
+      - name: academicYearStart
+        kind: function
+        params: [{name: today}, {name: startMonth}, {name: startDay}]
+        returns: string
+        description: ISO date of 1 Sep on/before today
+      - name: bandForCount
+        kind: function
+        params: [{name: readsCount}, {name: readsPerBand}]
+        returns: object
+        description: Band display payload with progress to next
+      - name: bandTransition
+        kind: function
+        params: [{name: fromIndex}, {name: toIndex}]
+        returns: "{from, to}"
+
+  utils/readingObservations.js:
+    description: Shared definitions for per-session reading observations ("how did they read today?") — six fixed DB slots (3 built-in + 3 custom) with per-org config (label/enabled). Imported by both worker and React app.
+    exports:
+      - name: OBSERVATION_SLOTS
+        kind: const
+        description: Array of 6 {key, column, defaultLabel, defaultEnabled} mapping camelCase API key to snake_case DB column
+      - name: OBSERVATION_KEYS
+        kind: const
+        description: The 6 camelCase observation keys in canonical order
+      - name: MAX_OBSERVATION_LABEL
+        kind: const
+        returns: number
+        description: Max length of an observation label (40)
+      - name: DEFAULT_OBSERVATION_CONFIG
+        kind: const
+        description: Default per-org config — 3 built-ins enabled, 3 custom slots off
+      - name: resolveObservationConfig
+        kind: function
+        params: [{name: stored}]
+        returns: array
+        description: Normalise stored org config onto the 6 canonical slots; tolerant of partial/malformed input
+      - name: enabledObservations
+        kind: function
+        params: [{name: stored}]
+        returns: "array of {key,label}"
+        description: Enabled, labelled slots a teacher sees on the capture/edit form
+      - name: observationLabel
+        kind: function
+        params: [{name: key}, {name: stored}]
+        returns: string
+        description: Display label for one observation key (configured label, else built-in default)
+      - name: emptyObservations
+        kind: function
+        returns: object
+        description: All six slots unticked (false)
+      - name: observationsFromSession
+        kind: function
+        params: [{name: session}]
+        returns: object
+        description: Pull the six observation fields off a session as booleans
+
+  utils/studentProfile.js:
+    description: Build comprehensive student reading profile for AI context
+    exports:
+      - name: buildStudentReadingProfile
+        kind: function
+        params: [{name: studentId}, {name: organizationId}, {name: db}]
+        returns: Promise<object|null>
+      - name: toAISafeProfile
+        kind: function
+        params: [{name: profile}]
+        returns: object
+        description: Data-minimised profile for AI; strips demographics but forwards coarse ageBand
+
+  utils/yearGroup.js:
+    description: Pure UK year-group parsing (shared by recommendations + badge key stage); robust to Wonde "2"/"R", demo "Year 2", "Y2", and class-name fallback
+    exports:
+      - name: yearGroupToAgeBand
+        kind: function
+        params: [{name: yearGroup}]
+        returns: "{min,max}|null"
+        description: Coarse UK year-group → approximate age band (any format)
+      - name: classNameToYearGroup
+        kind: function
+        params: [{name: className}]
+        returns: string|null
+        description: Best-effort year group from a registration-group class name ("5D"→"5", "RF"→"R"); fallback when MIS syncs no year_group
+      - name: yearGroupToKeyStage
+        kind: function
+        params: [{name: yearGroup}]
+        returns: "'KS1'|'LowerKS2'|'UpperKS2'"
+        description: Robust year-group → badge key stage; backs badgeDefinitions.resolveKeyStage
+
+  utils/libraryRecommendations.js:
+    description: Profile-based library recommendation matching (pure DB logic, no auth context) — reading-level + genre scoring over a school's own catalogue. Shared by the teacher /library-search endpoint and the parent portal's live Book Ideas, so the two never drift.
+    exports:
+      - name: computeLibraryRecommendations
+        kind: function
+        params: [{name: db}, {name: opts, fields: [studentId, organizationId, focusMode, limit]}]
+        returns: Promise<{books, studentProfile}|null>
+        description: Returns scored/formatted library matches (null if student not found); excludes already-read + disliked titles, narrows level range by focus mode
+  utils/recommendationCache.js:
+    description: KV caching for AI book recommendations (7-day TTL)
+    exports:
+      - name: generateCacheKey
+        kind: function
+        params: [{name: inputs}]
+        returns: Promise<string>
+        description: Deterministic SHA-256 cache key
+      - name: getCachedRecommendations
+        kind: function
+        params: [{name: env}, {name: inputs}]
+        returns: Promise<object|null>
+      - name: cacheRecommendations
+        kind: function
+        params: [{name: env}, {name: inputs}, {name: result}]
+        returns: Promise<void>
+
+  utils/isbn.js:
+    description: ISBN validation and normalization (ISBN-10 and ISBN-13)
+    exports:
+      - name: validateISBN
+        kind: function
+        params: [{name: isbn}]
+        returns: boolean
+      - name: isbn10ToIsbn13
+        kind: function
+        params: [{name: isbn10}]
+        returns: string|null
+      - name: normalizeISBN
+        kind: function
+        params: [{name: isbn}]
+        returns: string|null
+        description: Normalize to ISBN-13 without hyphens
+
+  utils/isbnLookup.js:
+    description: OpenLibrary ISBN lookup with KV caching
+    exports:
+      - name: parseOpenLibraryBook
+        kind: function
+        params: [{name: olData}]
+        returns: "{title, pageCount, publicationYear, coverId, seriesName, seriesNumber}"
+      - name: lookupISBN
+        kind: function
+        params: [{name: isbn}, {name: env}]
+        returns: Promise<object|null>
+    imports:
+      - from: ./isbn
+        items: [normalizeISBN]
+
+  utils/email.js:
+    description: Email sending - multi-provider (Resend, Cloudflare Email, SMTP)
+    exports:
+      - name: sendPasswordResetEmail
+        kind: function
+        params: [{name: env}, {name: recipientEmail}, {name: recipientName}, {name: resetToken}, {name: baseUrl}]
+        returns: "Promise<{success, error?}>"
+      - name: sendSignupNotificationEmail
+        kind: function
+        params: [{name: env}, {name: signupEmail}]
+        returns: "Promise<{success, error?}>"
+      - name: sendWelcomeEmail
+        kind: function
+        params: [{name: env}, {name: recipientEmail}, {name: recipientName}, {name: organizationName}, {name: temporaryPassword}, {name: baseUrl}]
+        returns: "Promise<{success, error?}>"
+
+  utils/csvParser.js:
+    description: CSV parsing for book import
+    exports:
+      - name: parseCSV
+        kind: function
+        params: [{name: csvText}]
+        returns: "{headers, rows}"
+      - name: detectColumnMapping
+        kind: function
+        params: [{name: headers}]
+        returns: "{title?, author?, readingLevel?, isbn?, ...}"
+      - name: mapCSVToBooks
+        kind: function
+        params: [{name: rows}, {name: mapping}]
+        returns: Array
+
+  utils/stringMatching.js:
+    description: All string/title matching (absorbed titleMatching.js) - Levenshtein strategy for import dedup, fuzzy strategy for metadata-provider ranking
+    exports:
+      - name: sanitizeForSearch
+        kind: function
+        params: [{name: title}]
+        returns: string
+        description: Strip characters that confuse search API query syntax
+      - name: normalizeTitle
+        kind: function
+        params: [{name: title}]
+        returns: string
+        description: Alias of normalizeString (title vocabulary for provider modules)
+      - name: calculateTitleSimilarity
+        kind: function
+        params: [{name: title1}, {name: title2}]
+        returns: number
+        description: Fuzzy similarity (substring + word overlap + bigram Jaccard) for provider-result ranking (~0.3 threshold)
+      - name: findBestTitleMatch
+        kind: function
+        params: [{name: searchTitle}, {name: results}, {name: options}]
+        returns: object|null
+        description: Best provider result by fuzzy title similarity, preferring results with authors
+      - name: normalizeString
+        kind: function
+        params: [{name: str}]
+        returns: string
+      - name: normalizeAuthor
+        kind: function
+        params: [{name: str}]
+        returns: string
+        description: "Handles 'Last, First' vs 'First Last'"
+      - name: calculateSimilarity
+        kind: function
+        params: [{name: a}, {name: b}]
+        returns: number
+        description: Levenshtein similarity (0-1)
+      - name: isExactMatch
+        kind: function
+        params: [{name: a}, {name: b}]
+        returns: boolean
+      - name: isAuthorMatch
+        kind: function
+        params: [{name: a}, {name: b}]
+        returns: boolean
+      - name: isFuzzyMatch
+        kind: function
+        params: [{name: bookA}, {name: bookB}, {name: threshold}]
+        returns: boolean
+        description: Check fuzzy match (default >85% title similarity)
+
+  utils/bookDedup.js:
+    description: Pure helpers for the owner book-merge tool (clustering + canonical pick + backfill)
+    exports:
+      - name: normalizeIsbn
+        kind: function
+        params: [{name: isbn}]
+        returns: string
+        description: Digits + trailing x, formatting stripped
+      - name: bookSignatures
+        kind: function
+        params: [{name: book}]
+        returns: "{isbn, titleAuthor}"
+      - name: clusterDuplicates
+        kind: function
+        params: [{name: books}]
+        returns: "Array<Array<book>>"
+        description: Union-find over shared ISBN + title/author; 2+ member clusters
+      - name: suggestCanonical
+        kind: function
+        params: [{name: cluster}, {name: sessionCounts}]
+        returns: string
+        description: Survivor by metadata completeness → sessions → oldest
+      - name: computeBackfill
+        kind: function
+        params: [{name: canonical}, {name: duplicates}]
+        returns: "{column: value}"
+        description: Empty survivor columns filled from duplicates
+
+  utils/openLibraryApi.js:
+    description: OpenLibrary API client for book metadata search
+    exports:
+      - name: checkOpenLibraryAvailability
+        kind: function
+        returns: Promise<boolean>
+      - name: searchBooksByTitle
+        kind: function
+        params: [{name: title}, {name: limit}]
+        returns: Promise<Array>
+      - name: findAuthorForBook
+        kind: function
+        params: [{name: title}]
+        returns: Promise<string|null>
+      - name: getBookDetails
+        kind: function
+        params: [{name: title}, {name: author}]
+        returns: Promise<object|null>
+      - name: batchFindMissingAuthors
+        kind: function
+        params: [{name: books}, {name: onProgress}]
+        returns: Promise<Array>
+      - name: batchFindMissingDescriptions
+        kind: function
+        params: [{name: books}, {name: onProgress}]
+        returns: Promise<Array>
+      - name: batchFindMissingGenres
+        kind: function
+        params: [{name: books}, {name: onProgress}]
+        returns: Promise<Array>
+      - name: fetchAllMetadata
+        kind: function
+        params: [{name: title}, {name: author}]
+        returns: Promise<object|null>
+
+  utils/googleBooksApi.js:
+    description: Google Books API client for book metadata
+    exports:
+      - name: checkGoogleBooksAvailability
+        kind: function
+        params: [{name: apiKey}, {name: timeout}]
+        returns: Promise<boolean>
+      - name: searchBooksByTitle
+        kind: function
+        params: [{name: title}, {name: apiKey}, {name: limit}]
+        returns: Promise<Array>
+      - name: findAuthorForBook
+        kind: function
+        params: [{name: title}, {name: apiKey}]
+        returns: Promise<string|null>
+      - name: getBookDetails
+        kind: function
+        params: [{name: title}, {name: author}, {name: apiKey}]
+        returns: Promise<object|null>
+      - name: fetchAllMetadata
+        kind: function
+        params: [{name: title}, {name: author}, {name: apiKey}]
+        returns: Promise<object|null>
+
+  utils/hardcoverApi.js:
+    description: Hardcover GraphQL API client with rate limiting (60 req/min)
+    exports:
+      - name: checkHardcoverAvailability
+        kind: function
+        params: [{name: apiKey}, {name: timeout}]
+        returns: Promise<boolean>
+      - name: isHardcoverRateLimited
+        kind: function
+        returns: boolean
+      - name: searchBooksByTitle
+        kind: function
+        params: [{name: title}, {name: apiKey}, {name: limit}]
+        returns: Promise<Array>
+      - name: getBookDetails
+        kind: function
+        params: [{name: title}, {name: author}, {name: apiKey}]
+        returns: Promise<object|null>
+      - name: fetchAllMetadata
+        kind: function
+        params: [{name: title}, {name: author}, {name: apiKey}]
+        returns: Promise<object|null>
+
+  utils/bookMetadataApi.js:
+    description: Unified metadata API with provider abstraction and auto-fallback
+    exports:
+      - name: METADATA_PROVIDERS
+        kind: object
+        description: "Provider constants: {OPEN_LIBRARY, GOOGLE_BOOKS, HARDCOVER}"
+      - name: getMetadataConfig
+        kind: function
+        params: [{name: settings}]
+        returns: "{provider, apiKey, hardcoverApiKey, batchSize, speedPreset, autoFallback}"
+      - name: checkAvailability
+        kind: function
+        params: [{name: settings}, {name: timeout}]
+        returns: Promise<boolean>
+      - name: searchBooksByTitle
+        kind: function
+        params: [{name: title}, {name: settings}, {name: limit}]
+        returns: Promise<Array>
+        description: Search with failover support
+      - name: batchFetchAllMetadata
+        kind: function
+        params: [{name: books}, {name: settings}, {name: onProgress}, {name: options}]
+        returns: Promise<Array>
+        description: Batch metadata fetch with adaptive delay and auto-fallback
+    imports:
+      - from: ./openLibraryApi
+      - from: ./googleBooksApi
+      - from: ./hardcoverApi
+
+  utils/gardenStages.js:
+    description: Single source of truth for Reading Garden stage thresholds and effective-badge-count mappings
+    exports:
+      - name: STAGES
+        kind: constant
+        description: "Seedling 0-2, Sprout 3-7, Bloom 8-15, Full Garden 16+"
+      - name: getStage
+        kind: function
+      - name: stageFromApiName
+        kind: function
+        description: "Maps API snake_case names ('full_garden') to stage objects"
+      - name: GOALS_BADGE_MAP
+        kind: constant
+      - name: goalsToEffectiveBadgeCount
+        kind: function
+      - name: getAggregateGarden
+        kind: function
+        description: Per-student scaled garden for whole-school/aggregate views (avg badges x2)
+
+  utils/badgeDefinitions.js:
+    description: Badge definitions with evaluate/progress functions and key stage resolution
+    exports:
+      - name: resolveKeyStage
+        kind: function
+        params: [{name: yearGroup, type: string}]
+        returns: "'KS1'|'LowerKS2'|'UpperKS2'"
+        description: Map year group string to key stage constant
+      - name: BADGE_DEFINITIONS
+        kind: object
+        description: Array of all badge definitions (id, name, tier, category, evaluate, progress)
+      - name: getRealtimeBadges
+        kind: function
+        returns: Array
+        description: Filter BADGE_DEFINITIONS to real-time categories (volume, consistency_realtime, milestone)
+      - name: getBatchBadges
+        kind: function
+        returns: Array
+        description: Filter BADGE_DEFINITIONS to batch-only categories
+
+  utils/tickerEvents.js:
+    description: Intra-day celebration ticker events (band-ups, badge awards) - message builder + recorder for the ticker_events table
+    exports:
+      - name: buildTickerMessages
+        kind: function
+        params: [{name: studentName, type: string}, {name: opts, type: "{bandUp, newBadges}"}]
+        returns: "Array<{type, message}>"
+        description: Pure celebration-line builder (band first, then badges); empty without a student name
+      - name: recordSessionTickerEvents
+        kind: function
+        params: [{name: db}, {name: organizationId, type: string}, {name: studentId, type: string}, {name: opts, type: "{bandUp, newBadges}"}]
+        returns: Promise<void>
+        description: Look up student name and batch-insert ticker_events rows; best-effort, called from runSessionSideEffects
+
+  utils/badgeEngine.js:
+    description: Stats calculation, real-time/batch badge evaluation, genre classification, near-miss calculation
+    exports:
+      - name: GENRE_CLASSIFICATION
+        kind: object
+        description: Mapping of genre name to fiction/nonfiction/poetry classification
+      - name: classifyGenre
+        kind: function
+        params: [{name: genreName, type: string}]
+        returns: "'fiction'|'nonfiction'|'poetry'"
+      - name: recalculateStats
+        kind: function
+        params: [{name: db}, {name: studentId, type: string}, {name: organizationId, type: string}]
+        returns: Promise<void>
+        description: Full rebuild of student_reading_stats from reading_sessions
+      - name: evaluateRealTime
+        kind: function
+        params: [{name: db}, {name: studentId, type: string}, {name: organizationId, type: string}, {name: yearGroup, type: string}]
+        returns: "Promise<Array>"
+        description: Check and insert newly earned real-time badges; returns array of new badge objects
+      - name: evaluateBatch
+        kind: function
+        params: [{name: db}, {name: studentId, type: string}, {name: organizationId, type: string}, {name: yearGroup, type: string}]
+        returns: "Promise<Array>"
+        description: Check and insert newly earned batch/exploration badges; returns array of new badge objects
+      - name: calculateNearMisses
+        kind: function
+        params: [{name: stats, type: object}, {name: yearGroup, type: string}, {name: earnedBadgeIds, type: "Set<string>"}]
+        returns: "Array<{id, name, icon, tier, current, target, pct}>"
+        description: Return up to 3 unearned badges closest to completion (>=50%)
+    imports:
+      - from: utils/helpers
+        items: [generateId]
+      - from: utils/badgeDefinitions
+        items: [resolveKeyStage, getRealtimeBadges, getBatchBadges, BADGE_DEFINITIONS]
+
+  utils/classGoalsEngine.js:
+    description: Class goal utilities - term resolution, auto-generation defaults, progress recalculation (full + incremental)
+    exports:
+      - name: resolveCurrentTerm
+        kind: function
+        params: [{name: termDates}, {name: today}]
+        returns: "{ term, startDate, endDate }"
+        description: Find which term today falls in (calendar-quarter fallback)
+      - name: resolveAcademicYear
+        kind: function
+        params: [{name: termDates}, {name: today}]
+        returns: "{ term, startDate, endDate }"
+        description: Full academic-year window from term_dates (Sep-Aug fallback)
+      - name: getAutoGeneratedTargets
+        kind: function
+        params: [{name: classSize}]
+        returns: object
+        description: Default goal targets derived from class size
+      - name: recalculateClassGoalProgress
+        kind: function
+        params: [{name: db}, {name: classId}, {name: orgId}, {name: startDate}, {name: endDate}, {name: term}]
+        returns: Promise<void>
+        description: Full recount of all goal metrics via one 6-subquery aggregate (used by goals view, nightly cron, session edit/delete)
+      - name: updateClassGoalOnSession
+        kind: function
+        params: [{name: db}, {name: studentId}, {name: orgId}]
+        returns: Promise<Array>
+        description: Full recalc after a session EDIT/DELETE; returns newly-completed goals
+      - name: bumpClassGoalsOnSessions
+        kind: function
+        params: [{name: db}, {name: studentId}, {name: orgId}, {name: newSessions}]
+        returns: Promise<Array>
+        description: Cheap incremental update for the session-CREATE hot path (point lookups, no year scan; genres/badges drift reconciled by view recalc + nightly cron)
+
+  utils/genreFilter.js:
+    description: Junk-genre filter chokepoint - drops catalog sentinels/years/comma-headings then canonicalises via genreSynonyms, keeping the books-page dropdown clean during metadata enrichment
+    exports:
+      - name: isJunkGenre
+        kind: function
+        params: [{name: name}]
+        returns: boolean
+        description: True if the string is a sentinel/year/comma-heading/over-long non-genre
+      - name: filterGenres
+        kind: function
+        params: [{name: names}, {name: max, default: 8}]
+        returns: string[]
+        description: Drop junk, canonicalise synonyms (canonicalGenre), de-dupe case-insensitively, cap count
+      - name: MAX_GENRE_LENGTH
+        kind: const
+        description: Max length before a genre string is treated as junk
+  utils/genreSynonyms.js:
+    description: Curated genre taxonomy - single source for filterGenres (runtime) and scripts/merge-genres.mjs (one-time). Moderate ~53-genre set; merges synonyms, drops over-specific library subject-headings, passes unknowns through
+    exports:
+      - name: canonicalGenre
+        kind: function
+        params: [{name: name}]
+        returns: "string|null"
+        description: Map a name to its canonical genre, null to drop, or the trimmed name if unknown (passthrough)
+      - name: GENRE_MERGES
+        kind: const
+        description: "{ canonicalName: [synonym source names] } merge groups"
+      - name: GENRE_DROP
+        kind: const
+        description: List of names to delete outright (place/character/language headings)
+      - name: CANONICAL_STANDALONE
+        kind: const
+        description: Curated canonicals that absorb no synonyms (Pirates, Dragons, etc.)
+      - name: CANONICAL_GENRES
+        kind: const
+        description: Full ordered list of canonical genres the taxonomy produces
+
+  utils/wondeApi.js:
+    description: Wonde REST API client for school data provisioning
+    exports:
+      - name: wondeRequest
+        kind: function
+        params: [{name: path}, {name: token}, {name: params}]
+        returns: Promise<Array>
+        description: Paginated GET request to Wonde API
+      - name: fetchAllStudents
+        kind: function
+        params: [{name: token}, {name: schoolId}, {name: options}]
+        returns: Promise<Array>
+      - name: fetchAllClasses
+        kind: function
+        params: [{name: token}, {name: schoolId}, {name: options}]
+        returns: Promise<Array>
+      - name: fetchAllGroups
+        kind: function
+        params: [{name: token}, {name: schoolId}, {name: options}]
+        returns: Promise<Array>
+        description: REGISTRATION groups (form classes for MIS configs that expose no classes)
+      - name: fetchAllEmployees
+        kind: function
+        params: [{name: token}, {name: schoolId}, {name: options}]
+        returns: Promise<Array>
+      - name: fetchDeletions
+        kind: function
+        params: [{name: token}, {name: schoolId}, {name: updatedAfter}]
+        returns: Promise<Array>
+
+  # ---- SERVICES ----
+
+  services/aiService.js:
+    description: AI provider abstraction for book recommendations (Anthropic, OpenAI, Google Gemini)
+    exports:
+      - name: generateRecommendations
+        kind: function
+        params: [{name: studentProfile}, {name: availableBooks}, {name: config}]
+        returns: Promise<Array>
+      - name: buildBroadSuggestionsPrompt
+        kind: function
+        params: [{name: studentProfile}, {name: focusMode}]
+        returns: string
+      - name: generateBroadSuggestions
+        kind: function
+        params: [{name: studentProfile}, {name: config}, {name: focusMode}, {name: debug, optional: true}]
+        returns: Promise<Array>
+      - name: generateBroadSuggestionsWithFailover
+        kind: function
+        params: [{name: studentProfile}, {name: configs}, {name: focusMode}, {name: debug, optional: true}]
+        returns: Promise<Array>
+        description: Tries configs in order; optional debug object captures provider/model/prompt/rawResponse/failedAttempts
+
+  services/kvService.js:
+    description: Cloudflare KV storage abstraction (legacy/fallback)
+    exports:
+      - name: DEFAULT_DATA
+        kind: object
+        description: Default app data structure
+      - name: APP_DATA_KEY
+        kind: export
+        description: "'app_data' KV key"
+      - name: getData
+        kind: function
+        params: [{name: env}]
+        returns: Promise<object>
+      - name: saveData
+        kind: function
+        params: [{name: env}, {name: data}]
+        returns: Promise<boolean>
+      - name: getStudents
+        kind: function
+        params: [{name: env}]
+        returns: Promise<Array>
+      - name: getStudentById
+        kind: function
+        params: [{name: env}, {name: id}]
+        returns: Promise<object|null>
+      - name: saveStudent
+        kind: function
+        params: [{name: env}, {name: student}]
+        returns: Promise<object>
+      - name: deleteStudent
+        kind: function
+        params: [{name: env}, {name: id}]
+        returns: Promise<boolean>
+      - name: getBooks
+        kind: function
+        params: [{name: env}]
+        returns: Promise<Array>
+      - name: getClasses
+        kind: function
+        params: [{name: env}]
+        returns: Promise<Array>
+      - name: getGenres
+        kind: function
+        params: [{name: env}]
+        returns: Promise<Array>
+      - name: getSettings
+        kind: function
+        params: [{name: env}]
+        returns: Promise<object>
+
+  services/wondeSync.js:
+    description: Orchestrates Wonde school data sync into D1 database
+    exports:
+      - name: mapWondeStudent
+        kind: function
+        params: [{name: wondeStudent}]
+        returns: "{wondeStudentId, name, yearGroup, senStatus, pupilPremium, ealStatus, fsm, wondeClassIds, wondeRegistrationGroupIds}"
+      - name: mapWondeClass
+        kind: function
+        params: [{name: wondeClass}]
+        returns: "{wondeClassId, name}"
+      - name: mapWondeEmployee
+        kind: function
+        params: [{name: wondeEmployee}]
+        returns: "{wondeEmployeeId, name, wondeClassIds}"
+      - name: runFullSync
+        kind: function
+        params: [{name: orgId}, {name: schoolToken}, {name: wondeSchoolId}, {name: db}, {name: options}]
+        returns: "Promise<{status, syncId, ...counts, errorMessage?}>"
+        description: Run full or delta sync of school data
+    imports:
+      - from: utils/wondeApi
+        items: [fetchAllStudents, fetchAllClasses, fetchAllGroups, fetchDeletions]
+
+  services/metadataService.js:
+    description: Cascade engine for multi-provider book metadata enrichment
+    exports:
+      - name: enrichBook
+        kind: function
+        params: [{name: book, type: "{id, title, author?, isbn?}"}, {name: config, type: "{providerChain, hardcoverApiKey?, googleBooksApiKey?, fetchCovers}"}]
+        returns: "Promise<{merged, log, rateLimited}>"
+        description: Enrich a single book by calling providers in cascade order, merging best-of results per field
+      - name: processBatch
+        kind: function
+        params: [{name: books}, {name: config}, {name: options, type: "{onBookResult, delayMs?}"}]
+        returns: "Promise<{processedBooks, enrichedBooks, errorCount, rateLimitedProviders, lastBookId}>"
+        description: Process a batch of books with rate-limit adaptation and wall-clock safety cutoff
+    imports:
+      - from: services/providers/openLibraryProvider
+        items: [fetchMetadata]
+      - from: services/providers/googleBooksProvider
+        items: [fetchMetadata]
+      - from: services/providers/hardcoverProvider
+        items: [fetchMetadata]
+      - from: services/providers/bookInfoProvider
+        items: [fetchMetadata]
+
+  services/providers/openLibraryProvider.js:
+    description: OpenLibrary server-side adapter — Search API + Works API for descriptions
+    exports:
+      - name: fetchMetadata
+        kind: function
+        params: [{name: book, type: "{title, author?, isbn?}"}]
+        returns: "Promise<{author, description, genres, isbn, pageCount, publicationYear, seriesName, seriesNumber, coverUrl}>"
+
+  services/providers/googleBooksProvider.js:
+    description: Google Books server-side adapter — requires API key
+    exports:
+      - name: fetchMetadata
+        kind: function
+        params: [{name: book, type: "{title, author?, isbn?}"}, {name: apiKey, type: "string|null"}]
+        returns: "Promise<{author, description, genres, isbn, pageCount, publicationYear, seriesName, seriesNumber, coverUrl, rateLimited?}>"
+
+  services/providers/hardcoverProvider.js:
+    description: Hardcover GraphQL server-side adapter — best for series data, requires API key
+    exports:
+      - name: fetchMetadata
+        kind: function
+        params: [{name: book, type: "{title, author?, isbn?}"}, {name: apiKey, type: "string|null"}]
+        returns: "Promise<{author, description, genres, isbn, pageCount, publicationYear, seriesName, seriesNumber, coverUrl, rateLimited?}>"
+
+  services/providers/bookInfoProvider.js:
+    description: BookInfo/rreading-glasses adapter — Readarr-compatible Goodreads-schema metadata (strong genres+series). Searches then fetches /work; configurable base URL (defaults to public api.bookinfo.pro), no API key.
+    exports:
+      - name: DEFAULT_BOOKINFO_BASE_URL
+        kind: const
+        description: "Public instance fallback: https://api.bookinfo.pro"
+      - name: fetchMetadata
+        kind: function
+        params: [{name: book, type: "{title, author?, isbn?}"}, {name: baseUrl, type: "string?"}]
+        returns: "Promise<{author, description, genres, isbn, pageCount, publicationYear, seriesName, seriesNumber, coverUrl, rateLimited?}>"

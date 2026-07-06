@@ -487,8 +487,8 @@ parentRouter.post('/:token/sessions', rateLimit(10, 60000, 'parent:sessions'), a
       .prepare(
         `INSERT INTO reading_sessions
            (id, student_id, session_date, book_id, book_title_manual, book_author_manual,
-            location, recorded_by)
-         VALUES (?, ?, ?, ?, ?, ?, 'home', NULL)`
+            location, recorded_by, read_source)
+         VALUES (?, ?, ?, ?, ?, ?, 'home', NULL, 'parent')`
       )
       .bind(
         sessionId,

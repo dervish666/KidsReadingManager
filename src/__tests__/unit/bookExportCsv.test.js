@@ -47,6 +47,7 @@ describe('buildBooksCsv', () => {
     expect(mapping.title).not.toBeNull();
     expect(mapping.author).not.toBeNull();
     expect(mapping.readingLevel).not.toBeNull();
+    expect(mapping.ageRange).not.toBeNull();
     expect(mapping.isbn).not.toBeNull();
     expect(mapping.description).not.toBeNull();
     expect(mapping.pageCount).not.toBeNull();
@@ -59,6 +60,7 @@ describe('buildBooksCsv', () => {
       title: fullBook.title,
       author: fullBook.author,
       readingLevel: fullBook.readingLevel,
+      ageRange: fullBook.ageRange,
       isbn: fullBook.isbn,
       pageCount: '32',
       publicationYear: '2011',

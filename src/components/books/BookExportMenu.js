@@ -21,8 +21,9 @@ export const buildBooksCsv = (books) => {
     'Series',
     'Series Number',
   ];
-  // Both CSV parsers split on newlines before honouring quotes, so embedded
-  // newlines (common in descriptions) must be flattened to spaces.
+  // The legacy positional parser (bookImportUtils) still splits on newlines
+  // before honouring quotes, so embedded newlines (common in descriptions)
+  // must be flattened to spaces even though the wizard parser is quote-aware.
   const cell = (value) =>
     `"${sanitizeCsvCell(String(value ?? '').replace(/\r?\n/g, ' ')).replace(/"/g, '""')}"`;
   return [
