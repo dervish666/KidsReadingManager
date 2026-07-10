@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.113.7] - 2026-07-10
+
+### Changed
+
+- **Internal restructure of the parent portal.** The single 1,400-line portal component is now five focused pieces (portal shell, Book Ideas tab, book card, book detail sheet, log-reading sheet, book-search sheet with the barcode scanner). No visual or behaviour changes intended — this makes the portal safer to work on.
+
 ## [3.113.6] - 2026-07-10
 
 ### Fixed

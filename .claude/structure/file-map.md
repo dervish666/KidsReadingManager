@@ -272,7 +272,13 @@ src/components/goals/ClassGoalsDisplay.js - Fullscreen classroom projection view
 
 ## Frontend Components - Parent Portal
 
-src/components/parent/ParentPortal.js - Mobile-first parent view: reading progress, streak, session history, garden, home session logging via token-auth
+src/components/parent/ParentPortal.js - Parent portal shell: data fetch, tabs, chosen log book, celebrations (decomposed audit-16)
+src/components/parent/BookIdeasTab.js - Book Ideas tab body (presentational; fetch state stays in shell)
+src/components/parent/RecCard.js - Tappable Book Ideas recommendation card
+src/components/parent/RecDetailSheet.js - Book detail bottom sheet for a tapped recommendation
+src/components/parent/LogReadingSheet.js - Log Reading bottom sheet (date choice, submit, success beat)
+src/components/parent/BookSearchSheet.js - Find-a-Book bottom sheet: debounced search + barcode scanner
+src/components/parent/parentPortalStyles.js - Shared parent-portal style fragments (NUNITO, sectionTitleSx, tappableCardSx)
 src/components/parent/QRCodeSheet.js - Printable 3×4 grid of QR code cards per class (teacher print view)
 src/components/parent/ParentQRButton.js - Single-student QR dialog with print, copy link, regenerate actions
 
