@@ -1,8 +1,31 @@
 /**
- * Error handler middleware for Hono
+ * Error handling for Hono.
  *
- * This middleware catches errors and formats them consistently.
+ * IMPORTANT (Hono ≥4): an error thrown in a ROUTE HANDLER does not reject
+ * middleware's `next()` — Hono routes it straight to `app.onError`. The
+ * `errorHandler()` middleware below therefore only sees errors thrown by
+ * downstream MIDDLEWARE; `onError` is the piece that turns thrown
+ * badRequestError/notFoundError/... into proper JSON responses. Both are
+ * registered in worker.js and produce the same response shape.
  */
+
+/** app.onError handler — install with `app.onError(onError)`. */
+export const onError = (err, c) => {
+  console.error(`Error in request to ${c.req.path}:`, err.message);
+  const status = err.status || 500;
+  // For 5xx errors, don't leak internal details to client
+  const message = status >= 500 ? 'Internal Server Error' : err.message || 'An error occurred';
+
+  return c.json(
+    {
+      status: 'error',
+      error: message,
+      message,
+      path: c.req.path,
+    },
+    status
+  );
+};
 
 export const errorHandler = () => {
   return async (c, next) => {

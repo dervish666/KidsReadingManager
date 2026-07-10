@@ -15,6 +15,7 @@ import { ROLES } from '../../utils/crypto.js';
 import { requireAdmin, auditLog } from '../../middleware/tenant.js';
 import { requireDB as getDB } from '../../utils/routeHelpers.js';
 import { notFoundError, badRequestError } from '../../middleware/errorHandler.js';
+import { D1_BATCH_LIMIT } from '../../utils/d1Batch.js';
 
 export const classesRouter = new Hono();
 
@@ -182,8 +183,8 @@ classesRouter.put('/:id/classes', requireAdmin(), auditLog('update', 'user'), as
     }
 
     // Chunk batches to stay under D1's 100-statement limit
-    for (let i = 0; i < statements.length; i += 100) {
-      await db.batch(statements.slice(i, i + 100));
+    for (let i = 0; i < statements.length; i += D1_BATCH_LIMIT) {
+      await db.batch(statements.slice(i, i + D1_BATCH_LIMIT));
     }
 
     return c.json({

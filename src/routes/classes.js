@@ -558,7 +558,7 @@ classesRouter.put('/:id/goals', requireTeacher(), async (c) => {
   const { goals } = await c.req.json();
 
   if (!Array.isArray(goals)) {
-    return c.json({ error: 'goals must be an array' }, 400);
+    throw badRequestError('goals must be an array');
   }
 
   const updates = [];
@@ -568,7 +568,7 @@ classesRouter.put('/:id/goals', requireTeacher(), async (c) => {
       typeof target !== 'number' ||
       target < 1
     ) {
-      return c.json({ error: `Invalid goal: metric=${metric}, target=${target}` }, 400);
+      throw badRequestError(`Invalid goal: metric=${metric}, target=${target}`);
     }
     // Clear achieved_at if target raised above current
     updates.push(

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { Hono } from 'hono';
 import { classesRouter } from '../../routes/classes.js';
+import { errorHandler, onError } from '../../middleware/errorHandler.js';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -11,6 +12,10 @@ import { classesRouter } from '../../routes/classes.js';
 function buildApp({ db, organizationId = 'org-1', userRole = 'teacher' } = {}) {
   const app = new Hono();
 
+  // Same error handling as production (worker.js) — handler throws land in
+  // onError (Hono ≥4 routes them there, not through middleware next()).
+  app.onError(onError);
+  app.use('*', errorHandler());
   app.use('*', async (c, next) => {
     c.set('organizationId', organizationId);
     c.set('userRole', userRole);

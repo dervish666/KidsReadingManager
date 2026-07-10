@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { requireOwner, requireAdmin, auditLog } from '../middleware/tenant';
-import { badRequestError } from '../middleware/errorHandler';
+import { badRequestError, notFoundError, forbiddenError, serverError, createError } from '../middleware/errorHandler';
 import { encryptSensitiveData, decryptSensitiveData, getEncryptionSecret } from '../utils/crypto';
 import { requireDB } from '../utils/routeHelpers';
 import { processJobBatch } from '../services/metadataService';
@@ -385,7 +385,7 @@ metadataRouter.delete('/jobs/:id', requireAdmin(), async (c) => {
       .bind(id)
       .first();
     if (!job || job.organization_id !== organizationId) {
-      return c.json({ error: 'Job not found' }, 404);
+      throw notFoundError('Job not found');
     }
   }
 
@@ -417,15 +417,15 @@ metadataRouter.post(
     const organizationId = c.get('organizationId');
 
     const job = await db.prepare('SELECT * FROM metadata_jobs WHERE id = ?').bind(id).first();
-    if (!job) return c.json({ error: 'Job not found' }, 404);
+    if (!job) throw notFoundError('Job not found');
 
     // Admin: only their own org's jobs (global jobs have a NULL org → owner-only)
     if (userRole !== 'owner' && job.organization_id !== organizationId) {
-      return c.json({ error: 'Job not found' }, 404);
+      throw notFoundError('Job not found');
     }
 
     if (job.status !== 'paused' && job.status !== 'failed') {
-      return c.json({ error: `Cannot resume a ${job.status} job` }, 400);
+      throw badRequestError(`Cannot resume a ${job.status} job`);
     }
 
     // Concurrency guard: only one active job at a time.
@@ -433,7 +433,7 @@ metadataRouter.post(
       .prepare("SELECT id FROM metadata_jobs WHERE status IN ('pending', 'running') LIMIT 1")
       .first();
     if (runningJob) {
-      return c.json({ error: 'Another enrichment job is already running' }, 409);
+      throw createError('Another enrichment job is already running', 409);
     }
 
     await db
@@ -482,7 +482,7 @@ metadataRouter.post('/enrich', requireAdmin(), async (c) => {
     // Admin: force own org, force fill_missing
     organizationId = callerOrgId;
     if (jobType !== 'fill_missing') {
-      return c.json({ error: 'Only fill_missing is available for admin users' }, 403);
+      throw forbiddenError('Only fill_missing is available for admin users');
     }
   }
 
@@ -583,14 +583,14 @@ metadataRouter.post('/enrich', requireAdmin(), async (c) => {
 
   // --- Batch processing (with jobId) ---
   const job = await db.prepare('SELECT * FROM metadata_jobs WHERE id = ?').bind(body.jobId).first();
-  if (!job) return c.json({ error: 'Job not found' }, 404);
+  if (!job) throw notFoundError('Job not found');
   if (job.status === 'paused' || job.status === 'completed' || job.status === 'failed') {
-    return c.json({ error: `Job is ${job.status}` }, 400);
+    throw badRequestError(`Job is ${job.status}`);
   }
 
   // Load config with decrypted keys
   const config = await getConfigWithKeys(db, encSecret);
-  if (!config) return c.json({ error: 'Metadata configuration not found' }, 500);
+  if (!config) throw serverError('Metadata configuration not found');
   config.fetchCovers = job.include_covers && config.fetchCovers;
 
   try {

@@ -16,6 +16,7 @@ import { permissions } from '../../utils/crypto.js';
 import { getDB, isMultiTenantMode } from '../../utils/routeHelpers.js';
 import { getStudentById as getStudentByIdKV } from '../../services/kvService.js';
 import { getOrgStreakSettings } from './_shared.js';
+import { D1_BATCH_LIMIT } from '../../utils/d1Batch.js';
 
 const streakRouter = new Hono();
 
@@ -148,8 +149,8 @@ streakRouter.post('/recalculate-streaks', async (c) => {
     }
   }
 
-  for (let i = 0; i < updateStatements.length; i += 100) {
-    await db.batch(updateStatements.slice(i, i + 100));
+  for (let i = 0; i < updateStatements.length; i += D1_BATCH_LIMIT) {
+    await db.batch(updateStatements.slice(i, i + D1_BATCH_LIMIT));
   }
 
   return c.json(results);

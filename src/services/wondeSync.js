@@ -20,7 +20,7 @@ import {
   fetchDeletions,
 } from '../utils/wondeApi.js';
 import { syncUserClassAssignments } from '../utils/classAssignments.js';
-import { assertBatchSize } from '../utils/d1Batch.js';
+import { assertBatchSize, D1_BATCH_LIMIT } from '../utils/d1Batch.js';
 
 /**
  * Maps a Wonde student object to Tally student fields.
@@ -281,8 +281,8 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
     }
 
     // Execute class upserts in batches of 100
-    for (let i = 0; i < classStatements.length; i += 100) {
-      const chunk = classStatements.slice(i, i + 100);
+    for (let i = 0; i < classStatements.length; i += D1_BATCH_LIMIT) {
+      const chunk = classStatements.slice(i, i + D1_BATCH_LIMIT);
       assertBatchSize(chunk, 'wondeSync classes');
       await db.batch(chunk);
     }
@@ -298,8 +298,8 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
       const orphanedClassIds = (existingClassesResult.results || [])
         .filter((r) => r.wonde_class_id && !seenWondeIds.has(r.wonde_class_id))
         .map((r) => r.id);
-      for (let i = 0; i < orphanedClassIds.length; i += 100) {
-        const chunk = orphanedClassIds.slice(i, i + 100);
+      for (let i = 0; i < orphanedClassIds.length; i += D1_BATCH_LIMIT) {
+        const chunk = orphanedClassIds.slice(i, i + D1_BATCH_LIMIT);
         const placeholders = chunk.map(() => '?').join(',');
         await db
           .prepare(
@@ -417,8 +417,8 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
     }
 
     // Execute student upserts in batches of 100
-    for (let i = 0; i < studentStatements.length; i += 100) {
-      const chunk = studentStatements.slice(i, i + 100);
+    for (let i = 0; i < studentStatements.length; i += D1_BATCH_LIMIT) {
+      const chunk = studentStatements.slice(i, i + D1_BATCH_LIMIT);
       assertBatchSize(chunk, 'wondeSync students');
       await db.batch(chunk);
     }
@@ -485,8 +485,8 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
     // zero employees still runs its lone DELETE to clear stale mappings; a
     // delta touching no classes runs nothing at all.
     const step4Statements = [...deleteStatements, ...employeeStatements];
-    for (let i = 0; i < step4Statements.length; i += 100) {
-      const chunk = step4Statements.slice(i, i + 100);
+    for (let i = 0; i < step4Statements.length; i += D1_BATCH_LIMIT) {
+      const chunk = step4Statements.slice(i, i + D1_BATCH_LIMIT);
       assertBatchSize(chunk, 'wondeSync employee-classes');
       await db.batch(chunk);
     }
@@ -540,8 +540,8 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
         );
       }
     }
-    for (let i = 0; i < deactivateStatements.length; i += 100) {
-      await db.batch(deactivateStatements.slice(i, i + 100));
+    for (let i = 0; i < deactivateStatements.length; i += D1_BATCH_LIMIT) {
+      await db.batch(deactivateStatements.slice(i, i + D1_BATCH_LIMIT));
     }
     counts.studentsDeactivated = deactivateStatements.length;
 

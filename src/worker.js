@@ -46,10 +46,11 @@ import { runFullSync } from './services/wondeSync.js';
 import { resetDemoData } from './services/demoReset.js';
 import { hardDeleteOrganization } from './services/orgPurge.js';
 import { studentEraseStatements, STUDENT_ERASE_STATEMENT_COUNT } from './utils/studentErase.js';
+import { D1_BATCH_LIMIT } from './utils/d1Batch.js';
 import { decryptSensitiveData, getEncryptionSecret } from './utils/crypto.js';
 
 // Import middleware
-import { errorHandler } from './middleware/errorHandler';
+import { errorHandler, onError } from './middleware/errorHandler';
 import { authMiddleware, handleLogin } from './middleware/auth';
 import {
   jwtAuthMiddleware,
@@ -372,19 +373,11 @@ app.post('/api/logout', async (c) => {
 });
 
 // Error handler
-app.onError((err, c) => {
-  console.error(`Error: ${err.message}`);
-  const status = err.status || 500;
-  const message = status >= 500 ? 'Internal Server Error' : err.message || 'An error occurred';
-
-  return c.json(
-    {
-      status: 'error',
-      message,
-    },
-    status
-  );
-});
+// Handler-thrown errors (badRequestError & co) land here, not in the
+// errorHandler middleware — see the note in middleware/errorHandler.js.
+// The shared handler includes both `error` and `message` fields so clients
+// reading either keep working.
+app.onError(onError);
 
 /**
  * IMPORTANT: Frontend serving is handled automatically by Cloudflare Workers Sites
@@ -573,7 +566,7 @@ export default Sentry.withSentry(
                 // Same statement set as the interactive Article 17 erase —
                 // chunk sized so chunk × statements stays under D1's
                 // 100-statement batch limit.
-                const STUDENT_CHUNK = Math.floor(100 / STUDENT_ERASE_STATEMENT_COUNT);
+                const STUDENT_CHUNK = Math.floor(D1_BATCH_LIMIT / STUDENT_ERASE_STATEMENT_COUNT);
                 for (let i = 0; i < studentIds.length; i += STUDENT_CHUNK) {
                   const chunk = studentIds.slice(i, i + STUDENT_CHUNK);
                   const statements = chunk.flatMap((id) => studentEraseStatements(db, id));

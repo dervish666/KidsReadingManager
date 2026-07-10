@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.113.6] - 2026-07-10
+
+### Fixed
+
+- **API error responses are consistent again.** An internal quirk of the web framework meant errors thrown by route handlers skipped the app's error formatter and could lose the `error` field some screens read. All error responses now carry the same shape regardless of which path produced them.
+
+### Changed
+
+- Internal housekeeping from the audit's quality sweep: removed a dead legacy AI prompt builder, made the install-nudge tests order-independent, centralised the database batch-size constant, and moved five route files' error responses onto the shared error helpers.
+
 ## [3.113.5] - 2026-07-10
 
 ### Changed

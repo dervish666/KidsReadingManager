@@ -10,7 +10,7 @@
 import { Hono } from 'hono';
 
 // Import utilities
-import { badRequestError } from '../../middleware/errorHandler';
+import { badRequestError, serverError, createError } from '../../middleware/errorHandler';
 import { auditLog, requireAdmin } from '../../middleware/tenant';
 import {
   encryptSensitiveData,
@@ -189,7 +189,7 @@ export async function upsertAiConfig(c) {
     if (apiKey !== undefined) {
       const encSecret = getEncryptionSecret(c.env);
       if (!encSecret) {
-        return c.json({ error: 'Server configuration error - encryption not available' }, 500);
+        throw serverError('Server configuration error - encryption not available');
       }
       const encryptedApiKey = await encryptSensitiveData(apiKey, encSecret);
       updates.push('api_key_encrypted = ?');
@@ -226,7 +226,7 @@ export async function upsertAiConfig(c) {
     if (apiKey) {
       const encSecret = getEncryptionSecret(c.env);
       if (!encSecret) {
-        return c.json({ error: 'Server configuration error - encryption not available' }, 500);
+        throw serverError('Server configuration error - encryption not available');
       }
       encryptedApiKey = await encryptSensitiveData(apiKey, encSecret);
     }
@@ -408,11 +408,11 @@ aiSettingsRouter.post('/ai/models', requireAdmin(), async (c) => {
   try {
     const models = await fetchProviderModels(provider, apiKey);
     if (models === null) {
-      return c.json({ error: 'Invalid API key' }, 400);
+      throw badRequestError('Invalid API key');
     }
     return c.json({ models });
   } catch {
-    return c.json({ error: 'Failed to reach provider API' }, 502);
+    throw createError('Failed to reach provider API', 502);
   }
 });
 

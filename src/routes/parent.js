@@ -172,7 +172,7 @@ parentRouter.get('/:token', rateLimit(60, 60000, 'parent:view'), async (c) => {
 
   const tokenRow = await validateParentToken(db, token);
   if (!tokenRow) {
-    return c.json({ error: 'Invalid or expired access token' }, 404);
+    throw notFoundError('Invalid or expired access token');
   }
 
   // GDPR Article 18: when processing is restricted, the record may be stored
@@ -199,7 +199,7 @@ parentRouter.get('/:token', rateLimit(60, 60000, 'parent:view'), async (c) => {
     .first();
 
   if (!student) {
-    return c.json({ error: 'Student not found' }, 404);
+    throw notFoundError('Student not found');
   }
 
   const studentFirstName = (student.name || '').split(' ')[0];
@@ -323,7 +323,7 @@ parentRouter.get('/:token/book-ideas', rateLimit(30, 60000, 'parent:book-ideas')
 
   const tokenRow = await validateParentToken(db, token);
   if (!tokenRow) {
-    return c.json({ error: 'Invalid or expired access token' }, 404);
+    throw notFoundError('Invalid or expired access token');
   }
 
   // GDPR Article 18: mirror the main view's restriction guard.
@@ -343,7 +343,7 @@ parentRouter.get('/:token/book-ideas', rateLimit(30, 60000, 'parent:book-ideas')
     .bind(studentId, organizationId)
     .first();
   if (!student) {
-    return c.json({ error: 'Student not found' }, 404);
+    throw notFoundError('Student not found');
   }
 
   // ── AI snapshot (fail-open, opt-out-gated) ──────────────────────────────────
@@ -467,7 +467,7 @@ parentRouter.post('/:token/sessions', rateLimit(10, 60000, 'parent:sessions'), a
 
   const tokenRow = await validateParentToken(db, token);
   if (!tokenRow) {
-    return c.json({ error: 'Invalid or expired access token' }, 404);
+    throw notFoundError('Invalid or expired access token');
   }
 
   const { student_id: studentId, organization_id: organizationId } = tokenRow;
@@ -609,7 +609,7 @@ parentRouter.get('/:token/books', rateLimit(30, 60000, 'parent:books'), async (c
 
   const tokenRow = await validateParentToken(db, token);
   if (!tokenRow) {
-    return c.json({ error: 'Invalid or expired access token' }, 404);
+    throw notFoundError('Invalid or expired access token');
   }
 
   const { organization_id: organizationId } = tokenRow;

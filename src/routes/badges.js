@@ -8,6 +8,7 @@
 
 import { Hono } from 'hono';
 import { requireReadonly, requireTeacher } from '../middleware/tenant.js';
+import { notFoundError, badRequestError } from '../middleware/errorHandler.js';
 import { requireDB } from '../utils/routeHelpers.js';
 import { rowToBadge, rowToReadingStats } from '../utils/rowMappers.js';
 import { BADGE_DEFINITIONS, resolveKeyStage } from '../utils/badgeDefinitions.js';
@@ -119,7 +120,7 @@ badgesRouter.get('/students/:id', requireReadonly(), async (c) => {
     .bind(id, organizationId)
     .first();
   if (!student) {
-    return c.json({ error: 'Student not found' }, 404);
+    throw notFoundError('Student not found');
   }
 
   const effectiveYearGroup = student.year_group || classNameToYearGroup(student.class_name);
@@ -170,7 +171,7 @@ badgesRouter.post('/students/:id/notify', requireTeacher(), async (c) => {
   const { badgeIds } = await c.req.json();
 
   if (!Array.isArray(badgeIds) || badgeIds.length === 0) {
-    return c.json({ error: 'badgeIds array required' }, 400);
+    throw badRequestError('badgeIds array required');
   }
 
   // Update notified flag for matching badges
@@ -202,7 +203,7 @@ badgesRouter.get('/summary', requireReadonly(), async (c) => {
       .prepare('SELECT id FROM classes WHERE id = ? AND organization_id = ?')
       .bind(classId, organizationId)
       .first();
-    if (!cls) return c.json({ error: 'Class not found' }, 404);
+    if (!cls) throw notFoundError('Class not found');
   }
 
   // Build student query with class filter

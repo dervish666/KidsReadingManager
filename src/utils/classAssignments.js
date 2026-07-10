@@ -1,4 +1,4 @@
-import { assertBatchSize } from './d1Batch.js';
+import { assertBatchSize, D1_BATCH_LIMIT } from './d1Batch.js';
 
 /**
  * Sync class assignments for a user from wonde_employee_classes.
@@ -40,8 +40,8 @@ export async function syncUserClassAssignments(db, userId, wondeEmployeeId, orgI
       )
       .bind(crypto.randomUUID(), row.class_id, userId)
   );
-  for (let i = 0; i < statements.length; i += 100) {
-    const chunk = statements.slice(i, i + 100);
+  for (let i = 0; i < statements.length; i += D1_BATCH_LIMIT) {
+    const chunk = statements.slice(i, i + D1_BATCH_LIMIT);
     assertBatchSize(chunk, 'classAssignments sync');
     await db.batch(chunk);
   }

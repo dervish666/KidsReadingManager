@@ -9,6 +9,7 @@ import { fetchSchoolDetails, fetchWondeSchools } from '../utils/wondeApi.js';
 import { requireAdmin, requireOwner } from '../middleware/tenant.js';
 import { badRequestError, notFoundError, serverError } from '../middleware/errorHandler.js';
 import { generateSlug } from '../utils/helpers.js';
+import { D1_BATCH_LIMIT } from '../utils/d1Batch.js';
 
 const wondeAdminRouter = new Hono();
 
@@ -163,8 +164,8 @@ wondeAdminRouter.post('/sync-all', requireOwner(), async (c) => {
     }
   }
 
-  for (let i = 0; i < statements.length; i += 100) {
-    await db.batch(statements.slice(i, i + 100));
+  for (let i = 0; i < statements.length; i += D1_BATCH_LIMIT) {
+    await db.batch(statements.slice(i, i + D1_BATCH_LIMIT));
   }
 
   return c.json({ success: true, total: allSchools.length, created, updated });

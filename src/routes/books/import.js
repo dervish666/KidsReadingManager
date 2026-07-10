@@ -4,7 +4,7 @@ import { createProvider } from '../../data/index.js';
 import { badRequestError } from '../../middleware/errorHandler.js';
 import { isExactMatch, isFuzzyMatch, isAuthorMatch } from '../../utils/stringMatching.js';
 import { requireTeacher, requireAdmin, auditLog } from '../../middleware/tenant.js';
-import { assertBatchSize } from '../../utils/d1Batch.js';
+import { assertBatchSize, D1_BATCH_LIMIT } from '../../utils/d1Batch.js';
 
 const importRouter = new Hono();
 
@@ -188,8 +188,8 @@ importRouter.post('/bulk', requireTeacher(), async (c) => {
         )
         .bind(crypto.randomUUID(), organizationId, book.id)
     );
-    for (let i = 0; i < linkStatements.length; i += 100) {
-      const chunk = linkStatements.slice(i, i + 100);
+    for (let i = 0; i < linkStatements.length; i += D1_BATCH_LIMIT) {
+      const chunk = linkStatements.slice(i, i + D1_BATCH_LIMIT);
       assertBatchSize(chunk, 'books/bulk org_book_selections');
       await db.batch(chunk);
     }

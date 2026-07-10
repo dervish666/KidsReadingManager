@@ -8,6 +8,7 @@ import { fetchMetadata as hardcoverFetch } from './providers/hardcoverProvider.j
 import { fetchMetadata as bookInfoFetch } from './providers/bookInfoProvider.js';
 import { isKnownPlaceholder } from '../utils/coverPlaceholders.js';
 import { filterGenres } from '../utils/genreFilter.js';
+import { D1_BATCH_LIMIT } from '../utils/d1Batch.js';
 
 // Most providers take an API key as their second arg. `baseUrlField` marks
 // providers that instead take a configurable endpoint (bookinfo) — handled in
@@ -390,8 +391,8 @@ export async function processJobBatch(db, job, config, options = {}) {
     merged.genreIds = genreIds;
   }
 
-  for (let i = 0; i < genreCreateStatements.length; i += 100) {
-    await db.batch(genreCreateStatements.slice(i, i + 100));
+  for (let i = 0; i < genreCreateStatements.length; i += D1_BATCH_LIMIT) {
+    await db.batch(genreCreateStatements.slice(i, i + D1_BATCH_LIMIT));
   }
 
   // De-collide ISBNs before writing. `books.isbn` has a UNIQUE index, and a D1
@@ -562,8 +563,8 @@ export async function processJobBatch(db, job, config, options = {}) {
       )
   );
 
-  for (let i = 0; i < statements.length; i += 100) {
-    await db.batch(statements.slice(i, i + 100));
+  for (let i = 0; i < statements.length; i += D1_BATCH_LIMIT) {
+    await db.batch(statements.slice(i, i + D1_BATCH_LIMIT));
   }
 
   // Cover fetching (non-blocking if waitUntil is available).
