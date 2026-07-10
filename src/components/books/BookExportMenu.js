@@ -47,20 +47,28 @@ export const buildBooksCsv = (books) => {
   ].join('\n');
 };
 
+// Blob download rather than a data: URI — data: URIs hit browser URL-length
+// limits on large catalogues (an 18k-book school's CSV is several MB).
+const downloadBlob = (content, mimeType, filename) => {
+  const url = URL.createObjectURL(new Blob([content], { type: mimeType }));
+  const linkElement = document.createElement('a');
+  linkElement.setAttribute('href', url);
+  linkElement.setAttribute('download', filename);
+  linkElement.click();
+  URL.revokeObjectURL(url);
+};
+
 const BookExportMenu = ({ books, _genres, onImportClick, onSnackbar }) => {
   const [anchorEl, setAnchorEl] = useState(null);
 
   const handleExportJSON = () => {
     try {
       const dataStr = JSON.stringify(books, null, 2);
-      const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-
-      const exportFileDefaultName = `books_export_${new Date().toISOString().split('T')[0]}.json`;
-
-      const linkElement = document.createElement('a');
-      linkElement.setAttribute('href', dataUri);
-      linkElement.setAttribute('download', exportFileDefaultName);
-      linkElement.click();
+      downloadBlob(
+        dataStr,
+        'application/json;charset=utf-8',
+        `books_export_${new Date().toISOString().split('T')[0]}.json`
+      );
 
       onSnackbar({
         open: true,
@@ -79,14 +87,11 @@ const BookExportMenu = ({ books, _genres, onImportClick, onSnackbar }) => {
   const handleExportCSV = () => {
     try {
       const csvContent = buildBooksCsv(books);
-
-      const dataUri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvContent);
-      const exportFileDefaultName = `books_export_${new Date().toISOString().split('T')[0]}.csv`;
-
-      const linkElement = document.createElement('a');
-      linkElement.setAttribute('href', dataUri);
-      linkElement.setAttribute('download', exportFileDefaultName);
-      linkElement.click();
+      downloadBlob(
+        csvContent,
+        'text/csv;charset=utf-8',
+        `books_export_${new Date().toISOString().split('T')[0]}.csv`
+      );
 
       onSnackbar({
         open: true,

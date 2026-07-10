@@ -13,6 +13,8 @@ import { rowToBadge, rowToReadingStats } from '../utils/rowMappers.js';
 import { BADGE_DEFINITIONS, resolveKeyStage } from '../utils/badgeDefinitions.js';
 import { calculateNearMisses } from '../utils/badgeEngine.js';
 import { classNameToYearGroup } from '../utils/yearGroup.js';
+import { getDateString } from '../utils/streakCalculator.js';
+import { getOrgStreakSettings } from './students/_shared.js';
 
 const badgesRouter = new Hono();
 
@@ -25,21 +27,32 @@ badgesRouter.get('/ticker', requireReadonly(), async (c) => {
   const db = requireDB(c.env);
   const organizationId = c.get('organizationId');
 
+  // "Today" is the org's local day, not UTC — during BST a 00:00–01:00
+  // celebration belongs to the new local day even though UTC hasn't rolled
+  // over. Pull a generous UTC window, then filter to the local date in JS
+  // (SQLite has no timezone tables).
+  const { timezone } = await getOrgStreakSettings(db, organizationId, c.env || {});
+  const todayLocal = getDateString(new Date(), timezone);
+
   const result = await db
     .prepare(
       `SELECT id, type, message, created_at FROM ticker_events
-       WHERE organization_id = ? AND created_at >= date('now')
+       WHERE organization_id = ? AND created_at >= datetime('now', '-1 day')
        ORDER BY created_at DESC LIMIT 50`
     )
     .bind(organizationId)
     .all();
 
-  const events = (result.results || []).map((r) => ({
-    id: r.id,
-    type: r.type,
-    message: r.message,
-    createdAt: r.created_at,
-  }));
+  const events = (result.results || [])
+    .filter(
+      (r) => getDateString(new Date(r.created_at.replace(' ', 'T') + 'Z'), timezone) === todayLocal
+    )
+    .map((r) => ({
+      id: r.id,
+      type: r.type,
+      message: r.message,
+      createdAt: r.created_at,
+    }));
 
   c.header('Cache-Control', 'private, max-age=60, must-revalidate');
   c.header('Vary', 'X-Organization-Id');

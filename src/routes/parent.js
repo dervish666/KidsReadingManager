@@ -278,10 +278,16 @@ parentRouter.get('/:token', rateLimit(60, 60000, 'parent:view'), async (c) => {
     bands
   );
   if (newSeen !== tokenRow.parent_last_seen_band) {
-    await db
-      .prepare('UPDATE parent_access_tokens SET parent_last_seen_band = ? WHERE id = ?')
-      .bind(newSeen, tokenRow.token_id)
-      .run();
+    // Best-effort: a failed marker write must not 500 the portal — worst case
+    // the same celebration shows again next visit.
+    try {
+      await db
+        .prepare('UPDATE parent_access_tokens SET parent_last_seen_band = ? WHERE id = ?')
+        .bind(newSeen, tokenRow.token_id)
+        .run();
+    } catch (err) {
+      console.warn(`[Parent] Could not persist last-seen band for token: ${err.message}`);
+    }
   }
   const band = bandForCount(bandReadsCount, readsPerBand, bands);
 
@@ -376,9 +382,18 @@ parentRouter.get('/:token/book-ideas', rateLimit(30, 60000, 'parent:book-ideas')
       limit: 8,
     });
     if (result?.books?.length) {
-      const aiTitles = new Set(ai.map((r) => (r.title || '').toLowerCase()));
+      // Dedupe on title+author, not title alone — two different books can
+      // share a title, and title-only matching dropped the borrowable
+      // library copy. (AI suggestions carry no catalogue id to key on.)
+      const aiKeys = new Set(
+        ai.map((r) => `${(r.title || '').toLowerCase()}|${(r.author || '').toLowerCase()}`)
+      );
       const shaped = result.books
-        .filter((b) => b.title && !aiTitles.has(b.title.toLowerCase()))
+        .filter(
+          (b) =>
+            b.title &&
+            !aiKeys.has(`${b.title.toLowerCase()}|${(b.author || '').toLowerCase()}`)
+        )
         .map((b) => {
           // The catalogue description is external-sourced metadata — re-moderate
           // it (defence-in-depth) before showing it on a child's parent view.

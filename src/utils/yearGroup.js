@@ -69,6 +69,11 @@ export function classNameToYearGroup(className) {
   const raw = String(className).trim().toLowerCase();
   if (!raw) return null;
 
+  // Mixed-year classes ("Year 1/2", "Y3-4") span two year groups — claiming
+  // the first would age half the class wrong. Return null so the student's
+  // own year_group (or nothing) decides.
+  if (/^(?:year\s*|y)?\d{1,2}\s*[/\-–]\s*\d/.test(raw)) return null;
+
   // Leading school-year number, optionally "y"/"year" prefixed: "5d", "y5", "year 5"
   const yearMatch = raw.match(/^(?:year\s*|y)?(\d{1,2})/);
   if (yearMatch) {
@@ -85,7 +90,16 @@ export function classNameToYearGroup(className) {
   // signals that separate a reg code from a name once the string is letters.
   if (raw.startsWith('reception')) return 'R';
   const orig = String(className).trim();
-  if (/^r$/i.test(orig) || /^R[A-Z]{1,2}$/.test(orig)) return 'R';
+  // "RE"/"RS" are curriculum subject codes (religious education/studies),
+  // not Reception registration codes — real reg codes observed in the wild
+  // are "RF"/"RJM" (R + teacher initials), which must keep resolving.
+  const R_CODE_SUBJECT_COLLISIONS = new Set(['RE', 'RS']);
+  if (
+    /^r$/i.test(orig) ||
+    (/^R[A-Z]{1,2}$/.test(orig) && !R_CODE_SUBJECT_COLLISIONS.has(orig))
+  ) {
+    return 'R';
+  }
 
   return null;
 }

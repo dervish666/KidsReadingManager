@@ -68,18 +68,30 @@ export async function fetchGenreNameMap(db) {
  * cron); other callers (per-session POST/PUT/DELETE) can omit it and the
  * function will fetch it lazily.
  */
-export async function recalculateStats(db, studentId, organizationId, genreNameMap = null) {
-  // Fetch all sessions for the student
-  const sessionsResult = await db
-    .prepare(
-      `SELECT rs.session_date, rs.book_id, rs.duration_minutes, rs.pages_read, rs.notes
+export async function recalculateStats(
+  db,
+  studentId,
+  organizationId,
+  genreNameMap = null,
+  preloadedSessions = null
+) {
+  // The nightly cron loads each student's sessions once and shares them with
+  // badge evaluation (see processBadgesForOrg); per-request callers omit the
+  // param and fetch here. Preloaded rows must be session_date-ASC with
+  // session_date, book_id, duration_minutes, pages_read, notes.
+  let sessions = preloadedSessions;
+  if (!sessions) {
+    const sessionsResult = await db
+      .prepare(
+        `SELECT rs.session_date, rs.book_id, rs.duration_minutes, rs.pages_read, rs.notes
        FROM reading_sessions rs
        WHERE rs.student_id = ?
        ORDER BY rs.session_date ASC`
-    )
-    .bind(studentId)
-    .all();
-  const sessions = sessionsResult.results || [];
+      )
+      .bind(studentId)
+      .all();
+    sessions = sessionsResult.results || [];
+  }
 
   // Fetch book details for genre/author info
   const booksResult = await db
@@ -511,20 +523,26 @@ export async function processBadgesForOrg(db, orgId, cursor, deadlineMs) {
       break;
     }
     try {
-      await recalculateStats(db, student.id, orgId, genreNameMap);
+      // Load the student's sessions once and share them between the stats
+      // recalc and badge evaluation — this loop previously read the same
+      // rows three times per student (recalc, badge-eval, author counts).
+      const allSessionsResult = await db
+        .prepare(
+          `SELECT rs.session_date, rs.book_id, rs.duration_minutes, rs.pages_read, rs.notes
+           FROM reading_sessions rs
+           WHERE rs.student_id = ?
+           ORDER BY rs.session_date ASC`
+        )
+        .bind(student.id)
+        .all();
+      const allSessions = allSessionsResult.results || [];
 
-      // Batch-fetch all data needed for both realtime + batch evaluation
-      // in a single D1 round-trip (was 6 separate queries before).
-      const [statsResult, earnedResult, sessionsResult, authorResult] = await db.batch([
+      await recalculateStats(db, student.id, orgId, genreNameMap, allSessions);
+
+      // Batch-fetch the remaining evaluation data in a single D1 round-trip.
+      const [statsResult, earnedResult, authorResult] = await db.batch([
         db.prepare('SELECT * FROM student_reading_stats WHERE student_id = ?').bind(student.id),
         db.prepare('SELECT badge_id FROM student_badges WHERE student_id = ?').bind(student.id),
-        db
-          .prepare(
-            `SELECT session_date as date, notes FROM reading_sessions
-             WHERE student_id = ? AND notes NOT LIKE '%[ABSENT]%' AND notes NOT LIKE '%[NO_RECORD]%'
-             ORDER BY session_date DESC`
-          )
-          .bind(student.id),
         db
           .prepare(
             `SELECT b.author, COUNT(DISTINCT b.id) as book_count
@@ -545,7 +563,17 @@ export async function processBadgesForOrg(db, orgId, cursor, deadlineMs) {
 
       const stats = parseStatsRow(statsRow);
       const earnedBadgeIds = new Set((earnedResult.results || []).map((r) => r.badge_id));
-      const sessions = sessionsResult.results || [];
+      // Badge-eval view of the shared sessions, replicating the old SQL
+      // exactly: `notes NOT LIKE …` in SQLite excludes NULL-notes rows, so
+      // the JS filter must too (changing that would change which secret
+      // badges evaluate — a separate decision, not a perf refactor).
+      const sessions = [...allSessions]
+        .reverse()
+        .filter(
+          (s) =>
+            s.notes != null && !s.notes.includes('[ABSENT]') && !s.notes.includes('[NO_RECORD]')
+        )
+        .map((s) => ({ date: s.session_date, notes: s.notes }));
       const authorBookCounts = {};
       for (const r of authorResult.results || []) {
         authorBookCounts[r.author] = r.book_count;

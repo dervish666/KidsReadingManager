@@ -73,6 +73,22 @@ describe('classNameToYearGroup', () => {
     expect(classNameToYearGroup('Y6')).toBe('6');
   });
 
+  it('does not mistake curriculum subject codes for Reception (audit 16 L3)', () => {
+    expect(classNameToYearGroup('RE')).toBeNull();
+    expect(classNameToYearGroup('RS')).toBeNull();
+    // ...while genuine R+initials codes keep resolving
+    expect(classNameToYearGroup('RF')).toBe('R');
+    expect(classNameToYearGroup('RJM')).toBe('R');
+  });
+
+  it('returns null for mixed-year classes instead of claiming the first year (audit 16 L3)', () => {
+    expect(classNameToYearGroup('Year 1/2')).toBeNull();
+    expect(classNameToYearGroup('Y3-4')).toBeNull();
+    expect(classNameToYearGroup('5/6M')).toBeNull();
+    // A separator NOT followed by a digit is decoration, not a year range
+    expect(classNameToYearGroup('Year 6 - Owls')).toBe('6');
+  });
+
   it('returns null for tree/colour names that encode no year', () => {
     expect(classNameToYearGroup('Willow')).toBeNull();
     expect(classNameToYearGroup('Cherry')).toBeNull();

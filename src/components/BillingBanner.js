@@ -11,13 +11,27 @@ export default function BillingBanner() {
     if (!user || (user.role !== 'admin' && user.role !== 'owner')) return;
 
     fetchWithAuth('/api/billing/status')
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`billing status ${r.status}`);
+        return r.json();
+      })
       .then(setBilling)
-      .catch(() => {});
+      // A failed check must not silently hide a past-due warning — show a
+      // quiet "couldn't check" state instead of nothing.
+      .catch(() => setBilling({ status: 'unknown' }));
   }, [fetchWithAuth, user]);
 
   if (!billing || billing.status === 'active' || billing.status === 'none') {
     return null;
+  }
+
+  if (billing.status === 'unknown') {
+    return (
+      <Alert severity="warning" sx={{ mb: 2 }}>
+        We couldn&apos;t check your billing status just now — if you were expecting a billing
+        notice, refresh the page or check Settings → Billing.
+      </Alert>
+    );
   }
 
   const handleManageBilling = async () => {

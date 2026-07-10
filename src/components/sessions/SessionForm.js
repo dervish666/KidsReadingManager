@@ -367,7 +367,11 @@ const SessionForm = () => {
             fetchWithAuth(`/api/students/${selectedStudentId}/feedback`, {
               method: 'PUT',
               body: JSON.stringify({ likes: newLikes, dislikes: newDislikes }),
-            }).catch(() => {});
+            }).catch(() => {
+              // The session itself saved — only the preference write failed.
+              setSnackbarMessage('Session saved, but the book preference didn’t save — try again');
+              setSnackbarOpen(true);
+            });
           }
         }
 

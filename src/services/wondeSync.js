@@ -160,7 +160,14 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
       .run();
   } catch (err) {
     // If we can't even log, release the lock and return failed immediately
-    if (kv) await kv.delete(lockKey).catch(() => {});
+    if (kv)
+      await kv
+        .delete(lockKey)
+        .catch((err) =>
+          console.warn(
+            `[WondeSync] Lock release failed for ${orgId} (self-clears in ≤10 min): ${err.message}`
+          )
+        );
     return {
       status: 'failed',
       syncId,
@@ -568,7 +575,14 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
       )
       .run();
 
-    if (kv) await kv.delete(lockKey).catch(() => {});
+    if (kv)
+      await kv
+        .delete(lockKey)
+        .catch((err) =>
+          console.warn(
+            `[WondeSync] Lock release failed for ${orgId} (self-clears in ≤10 min): ${err.message}`
+          )
+        );
     return {
       status: 'completed',
       syncId,
@@ -588,7 +602,14 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
       // Best-effort sync log update
     }
 
-    if (kv) await kv.delete(lockKey).catch(() => {});
+    if (kv)
+      await kv
+        .delete(lockKey)
+        .catch((err) =>
+          console.warn(
+            `[WondeSync] Lock release failed for ${orgId} (self-clears in ≤10 min): ${err.message}`
+          )
+        );
     return {
       status: 'failed',
       syncId,

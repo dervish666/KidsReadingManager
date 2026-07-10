@@ -84,10 +84,19 @@ const Header = ({ currentTab, onOpenNews }) => {
       }
     };
     fetchEvents();
-    const id = setInterval(fetchEvents, TICKER_EVENTS_POLL_MS);
+    // Idle background tabs (teachers leave Tally open all day) shouldn't keep
+    // polling — skip while hidden, catch up as soon as the tab is visible again.
+    const id = setInterval(() => {
+      if (!document.hidden) fetchEvents();
+    }, TICKER_EVENTS_POLL_MS);
+    const onVisible = () => {
+      if (!document.hidden) fetchEvents();
+    };
+    document.addEventListener('visibilitychange', onVisible);
     return () => {
       alive = false;
       clearInterval(id);
+      document.removeEventListener('visibilitychange', onVisible);
     };
   }, [isAuthenticated, fetchWithAuth, activeOrganizationId]);
 

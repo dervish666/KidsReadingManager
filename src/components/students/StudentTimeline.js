@@ -194,7 +194,11 @@ const StudentTimeline = ({ sessions, loading, studentId, onSessionChange }) => {
           fetchWithAuth(`/api/students/${studentId}/feedback`, {
             method: 'PUT',
             body: JSON.stringify({ likes: newLikes, dislikes: newDislikes }),
-          }).catch(() => {});
+          }).catch(() => {
+            // The session save already succeeded — only the preference write
+            // failed, so say exactly that rather than swallowing it.
+            showSnackbar('Session saved, but the book preference didn’t save — try again', 'warning');
+          });
         }
       }
 

@@ -1,5 +1,21 @@
 # Changelog
 
+## [3.113.4] - 2026-07-10
+
+### Fixed
+
+- **Book Ideas keeps distinct books that share a title.** Library recommendations were dropped whenever an AI suggestion had the same title, even for a different book — deduplication now compares title and author together.
+- **Celebrations land on the right day during British Summer Time.** The header ticker's idea of "today" now follows the school's timezone instead of UTC, so a badge earned just after midnight no longer shows up a day early or late.
+- **"RE"/"RS" class names are no longer treated as Reception**, and mixed-year classes ("Year 1/2", "Y3-4") no longer claim the first year for the whole class — both now fall back to each student's own year group.
+- **A glitch saving the "seen celebration" marker can no longer break the parent portal** — it's now best-effort (worst case the celebration shows again next visit).
+- **Failed saves are no longer silent.** If a book enjoyment preference fails to save after a session, a message says so; if the billing status check fails, admins see a "couldn't check billing" notice instead of nothing; Wonde sync lock cleanup failures are now logged.
+
+### Changed
+
+- **Idle background tabs stop polling for ticker events** and catch up the moment the tab becomes visible again.
+- **The nightly badge run reads each student's session history once instead of three times.**
+- **Book exports download via Blob**, so very large catalogues no longer risk hitting browser URL-size limits.
+
 ## [3.113.3] - 2026-07-06
 
 ### Fixed
