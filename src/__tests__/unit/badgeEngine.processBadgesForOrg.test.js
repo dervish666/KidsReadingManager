@@ -103,12 +103,13 @@ describe('processBadgesForOrg', () => {
 
     await processBadgesForOrg(db, 'org-1', 'student-005', deadlineMs);
 
-    // The student-fetch query should have been bound with (orgId, cursor, cursor)
+    // The student-fetch query should have been bound with
+    // (orgId, cursor, cursor, watermark, watermark)
     const studentFetchCall = db._calls.find(
       (c) => c.sql.includes('FROM students s') && c.sql.includes('reading_sessions rs')
     );
     expect(studentFetchCall).toBeDefined();
-    expect(studentFetchCall.args).toEqual(['org-1', 'student-005', 'student-005']);
+    expect(studentFetchCall.args).toEqual(['org-1', 'student-005', 'student-005', null, null]);
   });
 
   it('passes null cursor on first run', async () => {
@@ -120,7 +121,7 @@ describe('processBadgesForOrg', () => {
     const studentFetchCall = db._calls.find(
       (c) => c.sql.includes('FROM students s') && c.sql.includes('reading_sessions rs')
     );
-    expect(studentFetchCall.args).toEqual(['org-1', null, null]);
+    expect(studentFetchCall.args).toEqual(['org-1', null, null, null, null]);
   });
 
   it('returns lastProcessedId === cursor when no students match', async () => {

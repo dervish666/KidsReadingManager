@@ -45,6 +45,53 @@ const isMarkerSession = (notes) =>
   notes && (notes.includes('[ABSENT]') || notes.includes('[NO_RECORD]'));
 
 /**
+ * UTC boundaries for the rolling stat windows: the Mon–Sun week containing
+ * today, and the current calendar month. Shared by the per-student full
+ * recalc and the cheap org-wide window refresh so they can never disagree.
+ */
+export function currentStatWindows(now = new Date()) {
+  const currentYear = now.getUTCFullYear();
+  const currentMonth = now.getUTCMonth(); // 0-indexed
+  const todayDay = now.getUTCDay(); // 0=Sun
+  const mondayOffset = todayDay === 0 ? -6 : 1 - todayDay;
+  const monday = new Date(now);
+  monday.setUTCDate(monday.getUTCDate() + mondayOffset);
+  const mondayStr = monday.toISOString().slice(0, 10);
+  const sundayEnd = new Date(monday);
+  sundayEnd.setUTCDate(sundayEnd.getUTCDate() + 6);
+  const sundayStr = sundayEnd.toISOString().slice(0, 10);
+  const monthStart = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`;
+  const nextMonth =
+    currentMonth === 11
+      ? `${currentYear + 1}-01-01`
+      : `${currentYear}-${String(currentMonth + 2).padStart(2, '0')}-01`;
+  return { mondayStr, sundayStr, monthStart, nextMonth };
+}
+
+const weekMondayKey = (dateStr) => {
+  const dt = new Date(dateStr);
+  const dayOfWeek = dt.getUTCDay();
+  const offset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const weekMonday = new Date(dt);
+  weekMonday.setUTCDate(weekMonday.getUTCDate() + offset);
+  return weekMonday.toISOString().slice(0, 10);
+};
+
+/** Window-scoped stats from a student's distinct reading dates. */
+function computeWindowStats(datesArray, { mondayStr, sundayStr, monthStart, nextMonth }) {
+  const daysReadThisWeek = datesArray.filter((d) => d >= mondayStr && d <= sundayStr).length;
+  const monthDates = datesArray.filter((d) => d >= monthStart && d < nextMonth);
+  const daysReadThisMonth = monthDates.length;
+  const weekBuckets = {};
+  for (const d of monthDates) {
+    const weekKey = weekMondayKey(d);
+    weekBuckets[weekKey] = (weekBuckets[weekKey] || 0) + 1;
+  }
+  const weeksWith4PlusDays = Object.values(weekBuckets).filter((c) => c >= 4).length;
+  return { daysReadThisWeek, daysReadThisMonth, weeksWith4PlusDays };
+}
+
+/**
  * Fetch the platform-wide genre id→name map. Genres are a single global
  * reference table (only the owner role can create/edit them — see
  * src/routes/genres.js — so no cross-tenant write path; reading unscoped
@@ -157,42 +204,12 @@ export async function recalculateStats(
   }
 
   // Time-window calculations
-  const now = new Date();
-  const currentYear = now.getUTCFullYear();
-  const currentMonth = now.getUTCMonth(); // 0-indexed
   const datesArray = [...readingDates].sort();
-
-  // Days read this week (Mon-Sun containing today)
-  const todayDay = now.getUTCDay(); // 0=Sun
-  const mondayOffset = todayDay === 0 ? -6 : 1 - todayDay;
-  const monday = new Date(now);
-  monday.setUTCDate(monday.getUTCDate() + mondayOffset);
-  const mondayStr = monday.toISOString().slice(0, 10);
-  const sundayEnd = new Date(monday);
-  sundayEnd.setUTCDate(sundayEnd.getUTCDate() + 6);
-  const sundayStr = sundayEnd.toISOString().slice(0, 10);
-  const daysReadThisWeek = datesArray.filter((d) => d >= mondayStr && d <= sundayStr).length;
-
-  // Days read this month
-  const monthStart = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`;
-  const nextMonth =
-    currentMonth === 11
-      ? `${currentYear + 1}-01-01`
-      : `${currentYear}-${String(currentMonth + 2).padStart(2, '0')}-01`;
-  const daysReadThisMonth = datesArray.filter((d) => d >= monthStart && d < nextMonth).length;
-
-  // Weeks with 4+ days this month
-  const weekBuckets = {};
-  for (const d of datesArray.filter((d) => d >= monthStart && d < nextMonth)) {
-    const dt = new Date(d);
-    const dayOfWeek = dt.getUTCDay();
-    const weekMondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-    const weekMonday = new Date(dt);
-    weekMonday.setUTCDate(weekMonday.getUTCDate() + weekMondayOffset);
-    const weekKey = weekMonday.toISOString().slice(0, 10);
-    weekBuckets[weekKey] = (weekBuckets[weekKey] || 0) + 1;
-  }
-  const weeksWith4PlusDays = Object.values(weekBuckets).filter((c) => c >= 4).length;
+  const { mondayStr, sundayStr, monthStart, nextMonth } = currentStatWindows();
+  const { daysReadThisWeek, daysReadThisMonth, weeksWith4PlusDays } = computeWindowStats(
+    datesArray,
+    { mondayStr, sundayStr, monthStart, nextMonth }
+  );
 
   // Days read this term and weeks with reading (use full dataset for term — simplified to calendar year term)
   // For MVP, "term" = current academic term. We use all dates in the dataset for now.
@@ -483,11 +500,92 @@ export function calculateNearMisses(stats, yearGroup, earnedBadgeIds) {
  * @param {number} deadlineMs - `Date.now()` value at which to stop
  * @returns {Promise<{exhausted: boolean, lastProcessedId: string|null, processedCount: number, newBadgeCount: number}>}
  */
-export async function processBadgesForOrg(db, orgId, cursor, deadlineMs) {
+/**
+ * Cheap org-wide refresh of the rolling window stats (days this week/month,
+ * 4+-day weeks) for every student with a stats row. The watermark skip in
+ * processBadgesForOrg means students without new sessions no longer get a
+ * full recalc — but their window stats still decay as time passes (a student
+ * who read 5 days last week must show 0 this week). One read of the org's
+ * in-window reading dates + one stats read + UPDATEs only for changed rows.
+ *
+ * Marker-session filtering matches recalculateStats' isMarkerSession
+ * semantics: NULL-notes sessions count as reading.
+ */
+export async function refreshWindowStats(db, orgId) {
+  const windows = currentStatWindows();
+  const { mondayStr, sundayStr, monthStart, nextMonth } = windows;
+  // The week can straddle a month boundary — fetch the union of both windows.
+  const windowStart = mondayStr < monthStart ? mondayStr : monthStart;
+  const windowEnd = sundayStr > nextMonth ? sundayStr : nextMonth;
+
+  const [datesResult, statsResult] = await db.batch([
+    db
+      .prepare(
+        `SELECT rs.student_id, rs.session_date FROM reading_sessions rs
+         INNER JOIN students s ON s.id = rs.student_id
+         WHERE s.organization_id = ? AND s.is_active = 1
+           AND rs.session_date >= ? AND rs.session_date <= ?
+           AND (rs.notes IS NULL OR (rs.notes NOT LIKE '%[ABSENT]%' AND rs.notes NOT LIKE '%[NO_RECORD]%'))
+         GROUP BY rs.student_id, rs.session_date`
+      )
+      .bind(orgId, windowStart, windowEnd),
+    db
+      .prepare(
+        `SELECT student_id, days_read_this_week, days_read_this_month, weeks_with_4plus_days
+         FROM student_reading_stats WHERE organization_id = ?`
+      )
+      .bind(orgId),
+  ]);
+
+  const datesByStudent = new Map();
+  for (const r of datesResult.results || []) {
+    const list = datesByStudent.get(r.student_id) || [];
+    list.push(r.session_date);
+    datesByStudent.set(r.student_id, list);
+  }
+
+  const updates = [];
+  for (const row of statsResult.results || []) {
+    const dates = (datesByStudent.get(row.student_id) || []).sort();
+    const { daysReadThisWeek, daysReadThisMonth, weeksWith4PlusDays } = computeWindowStats(
+      dates,
+      windows
+    );
+    if (
+      daysReadThisWeek !== row.days_read_this_week ||
+      daysReadThisMonth !== row.days_read_this_month ||
+      weeksWith4PlusDays !== row.weeks_with_4plus_days
+    ) {
+      updates.push(
+        db
+          .prepare(
+            `UPDATE student_reading_stats
+             SET days_read_this_week = ?, days_read_this_month = ?, weeks_with_4plus_days = ?,
+                 updated_at = datetime('now')
+             WHERE student_id = ?`
+          )
+          .bind(daysReadThisWeek, daysReadThisMonth, weeksWith4PlusDays, row.student_id)
+      );
+    }
+  }
+  for (let i = 0; i < updates.length; i += D1_BATCH_LIMIT) {
+    await db.batch(updates.slice(i, i + D1_BATCH_LIMIT));
+  }
+  return { studentsChecked: (statsResult.results || []).length, statsUpdated: updates.length };
+}
+
+export async function processBadgesForOrg(db, orgId, cursor, deadlineMs, watermark = null) {
   // ORDER BY s.id is required for the cursor to be deterministic across runs.
   // The cursor predicate uses two binds for the same value because some D1
   // versions reject the same placeholder bound twice — explicit args are
   // safest. (? IS NULL OR s.id > ?) lets us pass cursor=null on first run.
+  //
+  // The watermark (PERF-M2) restricts the full recalc to students with a
+  // session CREATED since the last completed run — created_at, not
+  // session_date, so backdated catch-up entries still count as dirty.
+  // NULL watermark (first run / legacy orgs) processes everyone. Students
+  // skipped here still get their time-window stats refreshed cheaply by
+  // refreshWindowStats().
   const students = await db
     .prepare(
       `SELECT DISTINCT s.id, s.name, COALESCE(s.year_group, c.year_group) AS year_group,
@@ -497,9 +595,10 @@ export async function processBadgesForOrg(db, orgId, cursor, deadlineMs) {
        LEFT JOIN classes c ON c.id = s.class_id
        WHERE s.organization_id = ? AND s.is_active = 1
          AND (? IS NULL OR s.id > ?)
+         AND (? IS NULL OR rs.created_at > ?)
        ORDER BY s.id`
     )
-    .bind(orgId, cursor, cursor)
+    .bind(orgId, cursor, cursor, watermark, watermark)
     .all();
 
   // Fetch the platform-wide genres map once per org-run and pass it into

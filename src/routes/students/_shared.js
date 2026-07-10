@@ -442,6 +442,14 @@ export const runSessionSideEffects = async (
       )) || [];
   }
 
+  // A new session changes the student's read-set, so the cached parent
+  // library recommendations (parent.js /book-ideas) are stale — drop them.
+  await runSafe('parent rec cache invalidation', async () => {
+    if (env?.RECOMMENDATIONS_CACHE) {
+      await env.RECOMMENDATIONS_CACHE.delete(`parentLibRecs:v1:${studentId}`);
+    }
+  });
+
   const bandUp = bandResult?.bandUp || null;
   if (bandUp || newBadges.length > 0) {
     await runSafe('ticker events', () =>

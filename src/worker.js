@@ -643,14 +643,19 @@ export default Sentry.withSentry(
       // Badge evaluation at 2:30 AM UTC (after streaks are recalculated)
       if (event.cron === '30 2 * * *') {
         try {
-          const { processBadgesForOrg } = await import('./utils/badgeEngine.js');
+          const { processBadgesForOrg, refreshWindowStats } = await import(
+            './utils/badgeEngine.js'
+          );
 
-          // Get all active organizations + their resume cursor.
+          // Get all active organizations + their resume cursor + watermark.
           // last_badge_cursor is non-null when a previous run exhausted the
           // CPU budget mid-org; we resume after that cursor.
+          // last_badge_watermark is the start of the last COMPLETED run for
+          // the org — only students with a session created after it get the
+          // full stats recalc (PERF-M2).
           const orgs = await db
             .prepare(
-              'SELECT id, last_badge_cursor FROM organizations WHERE is_active = 1 ORDER BY id'
+              'SELECT id, last_badge_cursor, last_badge_watermark FROM organizations WHERE is_active = 1 ORDER BY id'
             )
             .bind()
             .all();
@@ -679,15 +684,20 @@ export default Sentry.withSentry(
 
             const orgStart = Date.now();
             const cursor = org.last_badge_cursor || null;
-            const result = await processBadgesForOrg(db, org.id, cursor, deadlineMs);
+            // Captured BEFORE processing in SQLite datetime format, so a
+            // session created mid-run lands after the next watermark and is
+            // re-picked next night rather than missed.
+            const runStart = new Date().toISOString().slice(0, 19).replace('T', ' ');
+            const watermark = org.last_badge_watermark || null;
+            const result = await processBadgesForOrg(db, org.id, cursor, deadlineMs, watermark);
 
             totalStudents += result.processedCount;
             totalNewBadges += result.newBadgeCount;
 
             if (result.exhausted) {
-              // Persist cursor so next run resumes after this student.
-              // We deliberately do NOT increment orgsProcessed — this org
-              // isn't done yet.
+              // Persist cursor so next run resumes after this student — the
+              // watermark deliberately does NOT advance until the org
+              // completes a full pass.
               await db
                 .prepare('UPDATE organizations SET last_badge_cursor = ? WHERE id = ?')
                 .bind(result.lastProcessedId, org.id)
@@ -698,13 +708,29 @@ export default Sentry.withSentry(
               break;
             } else {
               orgsProcessed++;
-              // Org completed — clear any prior cursor.
-              if (cursor !== null) {
-                await db
-                  .prepare('UPDATE organizations SET last_badge_cursor = NULL WHERE id = ?')
-                  .bind(org.id)
-                  .run();
+              // Org completed — clear any prior cursor and advance the
+              // watermark to this run's start.
+              await db
+                .prepare(
+                  'UPDATE organizations SET last_badge_cursor = NULL, last_badge_watermark = ? WHERE id = ?'
+                )
+                .bind(runStart, org.id)
+                .run();
+
+              // Rolling window stats decay with time even for students with
+              // no new sessions — refresh them cheaply org-wide (they no
+              // longer get the full recalc above).
+              try {
+                const refreshed = await refreshWindowStats(db, org.id);
+                if (refreshed.statsUpdated > 0) {
+                  console.log(
+                    `[Cron] Window stats refreshed for org ${org.id}: ${refreshed.statsUpdated}/${refreshed.studentsChecked} students`
+                  );
+                }
+              } catch (err) {
+                console.error(`[Cron] Window-stat refresh failed for org ${org.id}:`, err.message);
               }
+
               console.log(
                 `[Cron] Badge org ${org.id}: ${result.processedCount} students in ${Date.now() - orgStart}ms${cursor ? ` (resumed from cursor)` : ''}`
               );

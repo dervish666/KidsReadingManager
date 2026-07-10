@@ -372,59 +372,86 @@ parentRouter.get('/:token/book-ideas', rateLimit(30, 60000, 'parent:book-ideas')
   }
 
   // ── Live library matches (fail-open). Deterministic catalogue query — no AI —
-  //    so shown regardless of ai_opt_out. Deduped against AI titles, re-moderated
-  //    as defence-in-depth, and all borrowable (inLibrary: true). ────────────────
-  let library = [];
-  try {
-    const result = await computeLibraryRecommendations(db, {
-      studentId,
-      organizationId,
-      limit: 8,
-    });
-    if (result?.books?.length) {
-      // Dedupe on title+author, not title alone — two different books can
-      // share a title, and title-only matching dropped the borrowable
-      // library copy. (AI suggestions carry no catalogue id to key on.)
-      const aiKeys = new Set(
-        ai.map((r) => `${(r.title || '').toLowerCase()}|${(r.author || '').toLowerCase()}`)
-      );
-      const shaped = result.books
-        .filter(
-          (b) =>
-            b.title &&
-            !aiKeys.has(`${b.title.toLowerCase()}|${(b.author || '').toLowerCase()}`)
-        )
-        .map((b) => {
-          // The catalogue description is external-sourced metadata — re-moderate
-          // it (defence-in-depth) before showing it on a child's parent view.
-          // A denylist hit blanks only the description; the rest of the card stays.
-          const descSafe =
-            !b.description ||
-            filterContentSafe([{ title: b.title, reason: b.description }]).kept.length > 0;
-          return {
-            bookId: b.id,
-            title: b.title,
-            author: b.author || '',
-            ageRange: b.ageRange || null,
-            reason: b.matchReason || '', // why it was recommended
-            description: descSafe ? b.description || '' : '', // what it's about
-            genres: b.genres || [],
-            pageCount: b.pageCount || null,
-            seriesName: b.seriesName || null,
-            seriesNumber: b.seriesNumber || null,
-            publicationYear: b.publicationYear || null,
-            isbn: b.isbn || null,
-            inLibrary: true,
-          };
-        });
-      library = filterContentSafe(shaped).kept;
+  //    so shown regardless of ai_opt_out. Re-moderated as defence-in-depth and
+  //    all borrowable (inLibrary: true).
+  //
+  //    KV-cached per student (PERF-M3): the computation is deterministic per
+  //    (student, catalogue, read-set), so recomputing ~6 D1 queries on every
+  //    tab open was pure waste. Cached UN-deduped and shaped; the AI-title
+  //    dedupe runs at serve time so a teacher regenerating AI recs doesn't
+  //    serve stale dedupe. Invalidated on session write (runSessionSideEffects)
+  //    + a TTL backstop for catalogue changes. ────────────────────────────────
+  let libraryAll = null;
+  const kv = c.env.RECOMMENDATIONS_CACHE;
+  const cacheKey = `parentLibRecs:v1:${studentId}`;
+  if (kv) {
+    try {
+      libraryAll = await kv.get(cacheKey, 'json');
+    } catch {
+      // cache miss path below covers it
     }
-  } catch (err) {
-    console.warn('[parent/book-ideas] library lookup failed', {
-      studentId,
-      error: err.message,
-    });
   }
+
+  if (!Array.isArray(libraryAll)) {
+    libraryAll = [];
+    try {
+      const result = await computeLibraryRecommendations(db, {
+        studentId,
+        organizationId,
+        limit: 8,
+      });
+      if (result?.books?.length) {
+        const shaped = result.books
+          .filter((b) => b.title)
+          .map((b) => {
+            // The catalogue description is external-sourced metadata — re-moderate
+            // it (defence-in-depth) before showing it on a child's parent view.
+            // A denylist hit blanks only the description; the rest of the card stays.
+            const descSafe =
+              !b.description ||
+              filterContentSafe([{ title: b.title, reason: b.description }]).kept.length > 0;
+            return {
+              bookId: b.id,
+              title: b.title,
+              author: b.author || '',
+              ageRange: b.ageRange || null,
+              reason: b.matchReason || '', // why it was recommended
+              description: descSafe ? b.description || '' : '', // what it's about
+              genres: b.genres || [],
+              pageCount: b.pageCount || null,
+              seriesName: b.seriesName || null,
+              seriesNumber: b.seriesNumber || null,
+              publicationYear: b.publicationYear || null,
+              isbn: b.isbn || null,
+              inLibrary: true,
+            };
+          });
+        libraryAll = filterContentSafe(shaped).kept;
+        if (kv) {
+          c.executionCtx?.waitUntil?.(
+            kv
+              .put(cacheKey, JSON.stringify(libraryAll), { expirationTtl: 6 * 60 * 60 })
+              .catch((err) => console.warn('[parent/book-ideas] cache write failed', err.message))
+          );
+        }
+      }
+    } catch (err) {
+      console.warn('[parent/book-ideas] library lookup failed', {
+        studentId,
+        error: err.message,
+      });
+    }
+  }
+
+  // Dedupe on title+author, not title alone — two different books can share
+  // a title, and title-only matching dropped the borrowable library copy.
+  // (AI suggestions carry no catalogue id to key on.)
+  const aiKeys = new Set(
+    ai.map((r) => `${(r.title || '').toLowerCase()}|${(r.author || '').toLowerCase()}`)
+  );
+  const library = libraryAll.filter(
+    (b) => !aiKeys.has(`${b.title.toLowerCase()}|${(b.author || '').toLowerCase()}`)
+  );
 
   c.header('Cache-Control', 'no-store');
   return c.json({ ai, aiGeneratedAt, library });

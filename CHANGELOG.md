@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.113.5] - 2026-07-10
+
+### Changed
+
+- **The nightly badge run now scales.** Instead of rebuilding every student's stats from their full reading history every night, the run only fully recalculates students who logged a session since the last completed run; everyone else's rolling stats (days read this week/month) are refreshed with a single cheap pass per school. Large schools no longer risk deferring badge awards to the next night.
+- **Parents' school-library Book Ideas are cached.** The library suggestions are now cached per student for up to six hours (and refreshed immediately when a new reading session is logged), so busy evenings don't recompute identical results on every tab open.
+
 ## [3.113.4] - 2026-07-10
 
 ### Fixed
