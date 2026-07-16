@@ -197,9 +197,15 @@ myloginRouter.get('/callback', async (c) => {
       return c.redirect('/?auth=error&reason=no_school');
     }
 
+    // Deliberately unfiltered on is_active so a deactivated school can be told
+    // apart from one that was never onboarded — the two are indistinguishable to
+    // the caller otherwise, and "get in touch to set it up" is the wrong advice
+    // for a school that was set up and then switched off.
+    // wonde_school_id has no UNIQUE constraint (only plain indexes), so an active
+    // row must still win if a stale duplicate ever exists.
     const org = await db
       .prepare(
-        'SELECT id, slug, name FROM organizations WHERE wonde_school_id = ? AND is_active = 1'
+        'SELECT id, slug, name, is_active FROM organizations WHERE wonde_school_id = ? ORDER BY is_active DESC LIMIT 1'
       )
       .bind(wondeSchoolId)
       .first();
@@ -211,17 +217,38 @@ myloginRouter.get('/callback', async (c) => {
       return c.redirect('/?auth=error&reason=school_not_found');
     }
 
+    if (!org.is_active) {
+      console.error('[MyLogin] Org is deactivated for wonde_school_id:', wondeSchoolId, {
+        myloginId,
+        orgId: org.id,
+      });
+      return c.redirect('/?auth=error&reason=school_inactive');
+    }
+
     // -----------------------------------------------------------------------
     // 6. Match or create user by mylogin_id
     // -----------------------------------------------------------------------
     let userId;
 
+    // Also unfiltered on is_active: a deactivated user previously fell through to
+    // the INSERT below and violated the UNIQUE constraints on users.email and
+    // mylogin_id, surfacing as a generic "unexpected error". Deactivation is not
+    // self-reversible by logging back in — that would undo an admin's action — so
+    // this reports the state instead of healing it.
     const existingUser = await db
       .prepare(
-        'SELECT id, organization_id, name, email, role FROM users WHERE mylogin_id = ? AND is_active = 1'
+        'SELECT id, organization_id, name, email, role, is_active FROM users WHERE mylogin_id = ?'
       )
       .bind(String(myloginId))
       .first();
+
+    if (existingUser && !existingUser.is_active) {
+      console.error('[MyLogin] Deactivated user attempted login', {
+        myloginId,
+        userId: existingUser.id,
+      });
+      return c.redirect('/?auth=error&reason=account_inactive');
+    }
 
     if (existingUser) {
       // Update existing user — sync name and email from IdP.

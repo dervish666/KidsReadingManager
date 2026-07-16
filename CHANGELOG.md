@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.113.8] - 2026-07-16
+
+### Fixed
+
+- **Sign-in errors no longer blame the wrong thing.** A school whose account had been deactivated was told it "hasn't been set up on Tally Reading yet" — indistinguishable from a school that had never been onboarded, and it sent people chasing setup that had already happened. Deactivated schools now say so. A deactivated *user* previously hit a database conflict and got a generic "unexpected error"; they now get a clear message pointing them at their school administrator. Logging back in still won't reactivate a deactivated account.
+
 ## [3.113.7] - 2026-07-10
 
 ### Changed

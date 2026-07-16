@@ -157,6 +157,10 @@ export const AuthProvider = ({ children }) => {
             "Your account isn't linked to a school. Please contact your school administrator.",
           school_not_found:
             "Your school hasn't been set up on Tally Reading yet. Please ask your school administrator to get in touch with us.",
+          school_inactive:
+            "Your school's Tally Reading account is currently inactive. Please ask your school administrator to get in touch with us.",
+          account_inactive:
+            'Your Tally Reading account has been deactivated. Please contact your school administrator.',
           internal: 'An unexpected error occurred. Please try again.',
         };
         setApiError(reasonMessages[authReason] || `Login failed: ${authReason || 'unknown error'}`);

@@ -382,7 +382,7 @@ describe('Wonde + MyLogin Integration', () => {
   // =========================================================================
   describe('MyLogin callback -> new teacher user created', () => {
     it('creates a new teacher user with correct role, auth_provider, and JWT', async () => {
-      const orgData = { id: 'org-id-1', slug: 'furlong-school', name: SCHOOL_NAME };
+      const orgData = { id: 'org-id-1', slug: 'furlong-school', name: SCHOOL_NAME, is_active: 1 };
       const env = createMockEnv({
         orgByWondeId: orgData,
         userByMyloginId: null, // no existing user
@@ -471,7 +471,7 @@ describe('Wonde + MyLogin Integration', () => {
   // =========================================================================
   describe('MyLogin callback -> existing user found', () => {
     it('updates existing user and issues JWT without creating a duplicate', async () => {
-      const orgData = { id: 'org-id-1', slug: 'furlong-school', name: SCHOOL_NAME };
+      const orgData = { id: 'org-id-1', slug: 'furlong-school', name: SCHOOL_NAME, is_active: 1 };
       const existingUser = {
         id: 'existing-user-id',
         organization_id: 'org-id-1',
@@ -479,6 +479,7 @@ describe('Wonde + MyLogin Integration', () => {
         email: 'jane.old@school.org',
         role: 'teacher',
         mylogin_id: String(MYLOGIN_USER_PROFILE.id),
+        is_active: 1,
       };
 
       const env = createMockEnv({
@@ -528,7 +529,7 @@ describe('Wonde + MyLogin Integration', () => {
   describe('Webhook accessRevoked -> org soft-deleted', () => {
     it('sets is_active = 0 on the organization', async () => {
       const env = createMockEnv({
-        orgByWondeId: { id: 'org-id-1', slug: 'furlong-school', name: SCHOOL_NAME },
+        orgByWondeId: { id: 'org-id-1', slug: 'furlong-school', name: SCHOOL_NAME, is_active: 1 },
       });
 
       const res = await app.request(
@@ -604,7 +605,7 @@ describe('Wonde + MyLogin Integration', () => {
       vi.clearAllMocks();
 
       // Step 2: Teacher logs in via MyLogin (first time - creates user)
-      const orgData = { id: createdOrgId, slug: 'furlong-school', name: SCHOOL_NAME };
+      const orgData = { id: createdOrgId, slug: 'furlong-school', name: SCHOOL_NAME, is_active: 1 };
       const step2Env = createMockEnv({
         orgByWondeId: orgData,
         userByMyloginId: null,
@@ -637,6 +638,7 @@ describe('Wonde + MyLogin Integration', () => {
         name: 'Jane Teacher',
         email: 'jane@furlongschool.org',
         role: 'teacher',
+        is_active: 1,
       };
       const step3Env = createMockEnv({
         orgByWondeId: orgData,

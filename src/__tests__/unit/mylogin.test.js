@@ -259,7 +259,12 @@ describe('MyLogin OAuth Routes', () => {
      * Helper to set up DB mock for callback tests
      */
     function setupDbForCallback(options = {}) {
-      const { orgFound = true, existingUser = null, employeeClasses = [] } = options;
+      const {
+        orgFound = true,
+        orgActive = true,
+        existingUser = null,
+        employeeClasses = [],
+      } = options;
 
       const db = env.READING_MANAGER_DB;
 
@@ -272,13 +277,16 @@ describe('MyLogin OAuth Routes', () => {
         ) {
           return {
             bind: vi.fn().mockReturnValue({
-              first: vi
-                .fn()
-                .mockResolvedValue(
-                  orgFound
-                    ? { id: 'org-id-1', slug: 'cheddar-grove', name: 'Cheddar Grove Primary' }
-                    : null
-                ),
+              first: vi.fn().mockResolvedValue(
+                orgFound
+                  ? {
+                      id: 'org-id-1',
+                      slug: 'cheddar-grove',
+                      name: 'Cheddar Grove Primary',
+                      is_active: orgActive ? 1 : 0,
+                    }
+                  : null
+              ),
             }),
           };
         }
@@ -512,6 +520,7 @@ describe('MyLogin OAuth Routes', () => {
         email: 'jane.old@school.org',
         role: 'teacher',
         mylogin_id: 'ml-user-123',
+        is_active: 1,
       };
 
       setupFetchMock();
@@ -554,6 +563,7 @@ describe('MyLogin OAuth Routes', () => {
         email: 'jane.smith@school.org',
         role: 'teacher',
         mylogin_id: 'ml-user-123',
+        is_active: 1,
       };
 
       syncUserClassAssignments.mockResolvedValue(2);
@@ -588,6 +598,7 @@ describe('MyLogin OAuth Routes', () => {
         email: 'admin@school.org',
         role: 'admin',
         mylogin_id: 'ml-user-123',
+        is_active: 1,
       };
 
       setupFetchMock(makeUserProfile({ type: 'admin' }));
@@ -607,6 +618,7 @@ describe('MyLogin OAuth Routes', () => {
         email: 'jane.smith@school.org',
         role: 'teacher',
         mylogin_id: 'ml-user-123',
+        is_active: 1,
       };
 
       syncUserClassAssignments.mockRejectedValue(new Error('DB error'));
@@ -645,9 +657,11 @@ describe('MyLogin OAuth Routes', () => {
     });
 
     // -----------------------------------------------------------------------
-    // Org not found
+    // Org not found / inactive — these must stay distinguishable. Collapsing
+    // them tells a deactivated school it was never set up, which sent Wonde's
+    // integration testers chasing a non-existent onboarding step.
     // -----------------------------------------------------------------------
-    it('returns error when school is not set up in Tally', async () => {
+    it('redirects with school_not_found when no org matches the wonde_school_id', async () => {
       setupFetchMock();
       setupDbForCallback({ orgFound: false });
       env.READING_MANAGER_KV.get.mockResolvedValue('1');
@@ -658,13 +672,81 @@ describe('MyLogin OAuth Routes', () => {
         env
       );
 
-      const status = res.status;
-      if (status === 302) {
-        const location = res.headers.get('Location');
-        expect(location).toContain('error');
-      } else {
-        expect(status).toBe(400);
-      }
+      expect(res.status).toBe(302);
+      expect(res.headers.get('Location')).toBe('/?auth=error&reason=school_not_found');
+    });
+
+    it('redirects with school_inactive when the org exists but is deactivated', async () => {
+      setupFetchMock();
+      setupDbForCallback({ orgFound: true, orgActive: false });
+      env.READING_MANAGER_KV.get.mockResolvedValue('1');
+
+      const res = await app.request(
+        '/api/auth/mylogin/callback?code=code&state=state',
+        { method: 'GET' },
+        env
+      );
+
+      expect(res.status).toBe(302);
+      expect(res.headers.get('Location')).toBe('/?auth=error&reason=school_inactive');
+    });
+
+    it('redirects with account_inactive rather than colliding on the UNIQUE user INSERT', async () => {
+      setupFetchMock();
+      setupDbForCallback({
+        orgFound: true,
+        existingUser: {
+          id: 'deactivated-user-id',
+          organization_id: 'org-id-1',
+          name: 'Jane Smith',
+          email: 'jane.smith@school.org',
+          role: 'teacher',
+          mylogin_id: 'ml-user-123',
+          is_active: 0,
+        },
+      });
+      env.READING_MANAGER_KV.get.mockResolvedValue('1');
+
+      const res = await app.request(
+        '/api/auth/mylogin/callback?code=code&state=state',
+        { method: 'GET' },
+        env
+      );
+
+      expect(res.status).toBe(302);
+      expect(res.headers.get('Location')).toBe('/?auth=error&reason=account_inactive');
+
+      // Must not attempt the INSERT — email and mylogin_id are both UNIQUE, so it
+      // would throw and surface as a generic "unexpected error".
+      const insert = env.READING_MANAGER_DB.prepare.mock.calls.find((call) =>
+        call[0].includes('INSERT INTO users')
+      );
+      expect(insert).toBeUndefined();
+    });
+
+    it('does not reactivate a deactivated user on login', async () => {
+      setupFetchMock();
+      setupDbForCallback({
+        orgFound: true,
+        existingUser: {
+          id: 'deactivated-user-id',
+          organization_id: 'org-id-1',
+          name: 'Jane Smith',
+          email: 'jane.smith@school.org',
+          role: 'teacher',
+          mylogin_id: 'ml-user-123',
+          is_active: 0,
+        },
+      });
+      env.READING_MANAGER_KV.get.mockResolvedValue('1');
+
+      await app.request('/api/auth/mylogin/callback?code=code&state=state', { method: 'GET' }, env);
+
+      // Logging back in must not undo an admin's deactivation.
+      const reactivate = env.READING_MANAGER_DB.prepare.mock.calls.find(
+        (call) => call[0].includes('UPDATE users') && call[0].includes('is_active')
+      );
+      expect(reactivate).toBeUndefined();
     });
 
     // -----------------------------------------------------------------------
