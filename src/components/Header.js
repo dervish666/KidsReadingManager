@@ -17,6 +17,7 @@ import TallyLogo from './TallyLogo';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SchoolOutlined from '@mui/icons-material/SchoolOutlined';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import packageJson from '../../package.json';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
@@ -127,6 +128,9 @@ const Header = ({ currentTab, onOpenNews }) => {
     }
     return cls.name;
   };
+
+  // Sentence-case the stored role ('teacher' → 'Teacher') for display
+  const roleLabel = user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : '';
 
   // Get display name for current filter
   const getFilterDisplayName = () => {
@@ -378,6 +382,38 @@ const Header = ({ currentTab, onOpenNews }) => {
                   ))}
                 </Menu>
               </Box>
+            )}
+
+            {/* Signed-in identity — lets anyone confirm at a glance whose
+                account is in use, on a shared classroom device or otherwise. */}
+            {user?.name && (
+              <Tooltip
+                title={`Signed in as ${user.name}${user.email ? ` (${user.email})` : ''}${
+                  roleLabel ? ` · ${roleLabel}` : ''
+                }`}
+              >
+                <Chip
+                  icon={<PersonOutlineIcon sx={{ fontSize: 16 }} />}
+                  label={user.name}
+                  aria-label={`Signed in as ${user.name}${roleLabel ? `, ${roleLabel}` : ''}`}
+                  sx={{
+                    backgroundColor: 'rgba(107, 142, 107, 0.15)',
+                    color: 'primary.dark',
+                    fontFamily: '"DM Sans", sans-serif',
+                    fontWeight: 600,
+                    fontSize: '0.75rem',
+                    '& .MuiChip-icon': {
+                      color: 'primary.dark',
+                    },
+                    '& .MuiChip-label': {
+                      maxWidth: { xs: 90, sm: 160 },
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    },
+                  }}
+                />
+              </Tooltip>
             )}
 
             <IconButton

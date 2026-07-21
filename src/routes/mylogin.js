@@ -30,20 +30,20 @@ export const myloginRouter = new Hono();
 // ---------------------------------------------------------------------------
 
 /**
- * Map MyLogin user type to Tally role.
+ * MyLogin user types permitted to sign in, mapped to their Tally role.
+ *
+ * Tally Reading is a staff tool. Students are synced from Wonde as *records*
+ * (the `students` table) and are never account holders — a pupil signing in
+ * would see every class, student and teacher in the school.
+ *
+ * Anything not in this map is refused at the callback rather than falling back
+ * to a default role, so a MyLogin user type we haven't seen (parent, governor,
+ * a type added later) can't quietly inherit access to a whole school's data.
  */
-function mapMyLoginTypeToRole(type) {
-  switch (type) {
-    case 'admin':
-      return 'admin';
-    case 'employee':
-      return 'teacher';
-    case 'student':
-      return 'readonly';
-    default:
-      return 'readonly';
-  }
-}
+const STAFF_ROLE_BY_MYLOGIN_TYPE = {
+  admin: 'admin',
+  employee: 'teacher',
+};
 
 // ---------------------------------------------------------------------------
 // GET /login
@@ -185,9 +185,16 @@ myloginRouter.get('/callback', async (c) => {
     const name = `${profile.first_name} ${profile.last_name}`.trim();
     const email = profile.email;
     const userType = profile.type;
-    const role = mapMyLoginTypeToRole(userType);
     const wondeEmployeeId = profile.service_providers?.wonde?.service_provider_id || null;
     const wondeSchoolId = profile.organisation?.wonde_id || null;
+
+    // Refuse non-staff before any org lookup or user row is touched — a pupil
+    // should never get as far as having an account created for them.
+    const role = STAFF_ROLE_BY_MYLOGIN_TYPE[userType];
+    if (!role) {
+      console.warn('[MyLogin] Refused non-staff login', { myloginId, userType });
+      return c.redirect('/?auth=error&reason=staff_only');
+    }
 
     // -----------------------------------------------------------------------
     // 5. Match organization by wonde_school_id

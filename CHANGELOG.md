@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.114.0] - 2026-07-21
+
+### Security
+
+- **Pupils can no longer sign in.** Tally Reading is a staff tool, but a pupil signing in through Wonde/MyLogin was given a read-only account that could see every class, student and teacher in their school. Only staff accounts (admin and employee) can now sign in; pupils — and any other account type — are turned away with a clear message before an account is ever created for them. Pupil *records* continue to sync from Wonde exactly as before; this only affects who can log in. Found by Wonde's integration testers.
+
+### Added
+
+- **You can see who you're signed in as.** The header now shows your name and role, with your email on hover, so it's obvious whose account is in use on a shared classroom device.
+
 ## [3.113.8] - 2026-07-16
 
 ### Fixed

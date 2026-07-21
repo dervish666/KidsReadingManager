@@ -161,6 +161,8 @@ export const AuthProvider = ({ children }) => {
             "Your school's Tally Reading account is currently inactive. Please ask your school administrator to get in touch with us.",
           account_inactive:
             'Your Tally Reading account has been deactivated. Please contact your school administrator.',
+          staff_only:
+            'Tally Reading is for school staff only, so you cannot sign in with a pupil account. If you are a member of staff, please ask your school administrator to check your MyLogin account type.',
           internal: 'An unexpected error occurred. Please try again.',
         };
         setApiError(reasonMessages[authReason] || `Login failed: ${authReason || 'unknown error'}`);

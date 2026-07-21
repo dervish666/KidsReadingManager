@@ -752,7 +752,7 @@ describe('MyLogin OAuth Routes', () => {
     // -----------------------------------------------------------------------
     // Student login
     // -----------------------------------------------------------------------
-    it('creates a student user with readonly role', async () => {
+    it('refuses a student login and creates no user', async () => {
       setupFetchMock(
         makeUserProfile({
           type: 'student',
@@ -764,17 +764,65 @@ describe('MyLogin OAuth Routes', () => {
       setupDbForCallback({ orgFound: true, existingUser: null });
       env.READING_MANAGER_KV.get.mockResolvedValue('1');
 
-      await app.request('/api/auth/mylogin/callback?code=code&state=state', { method: 'GET' }, env);
+      const res = await app.request(
+        '/api/auth/mylogin/callback?code=code&state=state',
+        { method: 'GET' },
+        env
+      );
 
-      // The INSERT INTO users call should use 'readonly' as the role
+      expect(res.status).toBe(302);
+      expect(res.headers.get('location')).toBe('/?auth=error&reason=staff_only');
+
+      // A pupil must never get an account created for them
       const insertCallIdx = env.READING_MANAGER_DB.prepare.mock.calls.findIndex((call) =>
         call[0].includes('INSERT INTO users')
       );
-      expect(insertCallIdx).not.toBe(-1);
+      expect(insertCallIdx).toBe(-1);
+    });
 
-      const bindArgs =
-        env.READING_MANAGER_DB.prepare.mock.results[insertCallIdx].value.bind.mock.calls[0];
-      expect(bindArgs).toContain('readonly');
+    it('refuses an unrecognised MyLogin user type rather than defaulting to a role', async () => {
+      setupFetchMock(makeUserProfile({ type: 'parent' }));
+      setupDbForCallback({ orgFound: true, existingUser: null });
+      env.READING_MANAGER_KV.get.mockResolvedValue('1');
+
+      const res = await app.request(
+        '/api/auth/mylogin/callback?code=code&state=state',
+        { method: 'GET' },
+        env
+      );
+
+      expect(res.status).toBe(302);
+      expect(res.headers.get('location')).toBe('/?auth=error&reason=staff_only');
+    });
+
+    it('refuses an existing user whose MyLogin type has become non-staff', async () => {
+      setupFetchMock(makeUserProfile({ type: 'student' }));
+      setupDbForCallback({
+        orgFound: true,
+        existingUser: {
+          id: 'user-1',
+          organization_id: 'org-1',
+          name: 'Ex Staff',
+          email: 'ex@school.test',
+          role: 'teacher',
+          is_active: 1,
+        },
+      });
+      env.READING_MANAGER_KV.get.mockResolvedValue('1');
+
+      const res = await app.request(
+        '/api/auth/mylogin/callback?code=code&state=state',
+        { method: 'GET' },
+        env
+      );
+
+      expect(res.status).toBe(302);
+      expect(res.headers.get('location')).toBe('/?auth=error&reason=staff_only');
+
+      const updateCallIdx = env.READING_MANAGER_DB.prepare.mock.calls.findIndex((call) =>
+        call[0].includes('UPDATE users SET')
+      );
+      expect(updateCallIdx).toBe(-1);
     });
 
     // -----------------------------------------------------------------------
