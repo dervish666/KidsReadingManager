@@ -7,6 +7,7 @@ import React, {
   useCallback,
   useRef,
 } from 'react';
+import * as Sentry from '@sentry/react';
 import { setFetchFunction as setHardcoverFetch } from '../utils/hardcoverApi.js';
 
 // Create context
@@ -706,6 +707,37 @@ export const AuthProvider = ({ children }) => {
     },
     [user]
   );
+
+  /**
+   * Keep Sentry's identity in sync with the signed-in user.
+   *
+   * One effect rather than a call at each setUser site — login, SSO callback,
+   * refresh-restore and logout all flow through this state, so there's no way
+   * to add an auth path later and forget to tag it.
+   *
+   * Deliberately NO email or name: this is a children's-data product and
+   * `scrubSentryEvent` redacts both anyway. What ships is the opaque user id
+   * plus the school — enough to answer the only question that matters during
+   * triage ("is this one school or all of them?") without identifying a person.
+   */
+  useEffect(() => {
+    if (!user) {
+      Sentry.setUser(null);
+      Sentry.setTag('organization', undefined);
+      Sentry.setTag('role', undefined);
+      Sentry.setTag('auth_provider', undefined);
+      return;
+    }
+
+    Sentry.setUser({
+      id: user.id,
+      organizationId: user.organizationId,
+    });
+    // Tags (not user fields) so they're filterable/groupable in the issue list.
+    Sentry.setTag('organization', user.organizationName || user.organizationId);
+    Sentry.setTag('role', user.role);
+    Sentry.setTag('auth_provider', user.authProvider || 'local');
+  }, [user]);
 
   // Fetch available organizations for owners after user is loaded
   useEffect(() => {

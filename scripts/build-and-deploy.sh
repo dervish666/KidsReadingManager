@@ -52,6 +52,11 @@ else
   exit 1
 fi
 
+# Step 3b: Upload source maps to Sentry, then strip them from build/
+# Must run before deploy — otherwise the .map files ship as public assets.
+echo -e "${YELLOW}Processing source maps...${NC}"
+SENTRY_ENVIRONMENT="$ENVIRONMENT" ./scripts/sentry-release.sh
+
 # Step 4: Install Wrangler dependencies if needed
 echo -e "${YELLOW}Checking Wrangler dependencies...${NC}"
 if ! command -v wrangler &> /dev/null; then
@@ -66,7 +71,8 @@ npx wrangler d1 migrations apply reading-manager-db --remote $ENV_FLAG
 # Step 6: Deploy to Cloudflare Workers
 echo -e "${YELLOW}Deploying to Cloudflare Workers ($ENVIRONMENT environment)...${NC}"
 echo -e "${YELLOW}This will deploy both the API and the frontend...${NC}"
-wrangler deploy $ENV_FLAG
+APP_VERSION="$(node -p "require('./package.json').version")"
+wrangler deploy $ENV_FLAG --var "APP_VERSION:${APP_VERSION}"
 
 # Step 4: Verify deployment
 if [ $? -eq 0 ]; then

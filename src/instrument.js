@@ -1,8 +1,30 @@
 import * as Sentry from '@sentry/react';
 import { scrubSentryEvent } from './utils/sentryFilter.js';
 
+/**
+ * Which deployment this browser is talking to.
+ *
+ * Derived from the hostname at runtime rather than NODE_ENV, because the dev
+ * *deploy* (`build:deploy:dev`) is also a production-mode build — NODE_ENV
+ * can't tell the two apart. Without this every environment shared one
+ * undifferentiated issue stream, so a localhost typo looked identical to a
+ * school outage.
+ */
+function detectEnvironment() {
+  if (typeof window === 'undefined') return 'unknown';
+  const host = window.location.hostname;
+  if (host === 'localhost' || host === '127.0.0.1' || host.endsWith('.local')) {
+    return 'development';
+  }
+  if (host === 'tallyreading.uk' || host === 'www.tallyreading.uk') return 'production';
+  return 'preview';
+}
+
+const environment = detectEnvironment();
+
 Sentry.init({
   dsn: 'https://25b3acc2fef842c15c0498a337f57d15@o4511076878057472.ingest.de.sentry.io/4511076934942800',
+  environment,
   // Version injected at build time by rsbuild (source.define) from package.json,
   // so Sentry tags each error with the real release. Falls back to 'dev' when
   // the define isn't applied (e.g. tests). `process` is compile-time-replaced,
@@ -12,7 +34,10 @@ Sentry.init({
 
   integrations: [
     Sentry.browserTracingIntegration(),
-    Sentry.consoleLoggingIntegration({ levels: ['log', 'warn', 'error'] }),
+    // 'log' is deliberately excluded: console.log is used freely as dev noise
+    // throughout the app, and shipping every line burns Sentry log quota for
+    // no diagnostic gain. Warnings and errors are the signal.
+    Sentry.consoleLoggingIntegration({ levels: ['warn', 'error'] }),
     Sentry.replayIntegration({
       maskAllText: true,
       blockAllMedia: true,

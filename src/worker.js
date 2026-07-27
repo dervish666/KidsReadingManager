@@ -394,9 +394,19 @@ app.onError(onError);
 export default Sentry.withSentry(
   (env) => ({
     dsn: env.SENTRY_DSN,
+    // `ENVIRONMENT` comes from [vars] in wrangler.toml ("production"); the dev
+    // deploy overrides it. Without this, prod and dev errors share one stream.
+    environment: env.ENVIRONMENT || 'development',
+    // APP_VERSION is injected at deploy time by `npm run deploy`
+    // (--var APP_VERSION:$npm_package_version), so it always tracks
+    // package.json without a second place to bump. Matches the frontend's
+    // release string so a single release links both sides.
+    release: `tally-reading@${env.APP_VERSION || 'dev'}`,
     tracesSampleRate: 0.1,
     enableLogs: true,
-    integrations: [Sentry.consoleLoggingIntegration({ levels: ['log', 'warn', 'error'] })],
+    // 'log' excluded — the cron handlers log progress on every run and would
+    // otherwise ship thousands of routine lines a day as Sentry logs.
+    integrations: [Sentry.consoleLoggingIntegration({ levels: ['warn', 'error'] })],
   }),
   {
     async fetch(request, env, ctx) {
@@ -625,9 +635,12 @@ export default Sentry.withSentry(
             }
           },
           {
-            schedule: { crontab: '0 2 * * *' },
+            // Sentry's MonitorSchedule is { type, value } — a bare { crontab }
+            // is silently rejected at ingest, so the monitor is never created
+            // and every check-in is dropped. See docs/sentry.md.
+            schedule: { type: 'crontab', value: '0 2 * * *' },
             timezone: 'Etc/UTC',
-            checkinMargin: 5,
+            checkinMargin: 15,
             maxRuntime: 30,
           }
         );
@@ -635,161 +648,188 @@ export default Sentry.withSentry(
 
       // Badge evaluation at 2:30 AM UTC (after streaks are recalculated)
       if (event.cron === '30 2 * * *') {
-        try {
-          const { processBadgesForOrg, refreshWindowStats } = await import(
-            './utils/badgeEngine.js'
-          );
+        await Sentry.withMonitor(
+          'badge-evaluation',
+          async () => {
+            try {
+              const { processBadgesForOrg, refreshWindowStats } =
+                await import('./utils/badgeEngine.js');
 
-          // Get all active organizations + their resume cursor + watermark.
-          // last_badge_cursor is non-null when a previous run exhausted the
-          // CPU budget mid-org; we resume after that cursor.
-          // last_badge_watermark is the start of the last COMPLETED run for
-          // the org — only students with a session created after it get the
-          // full stats recalc (PERF-M2).
-          const orgs = await db
-            .prepare(
-              'SELECT id, last_badge_cursor, last_badge_watermark FROM organizations WHERE is_active = 1 ORDER BY id'
-            )
-            .bind()
-            .all();
-
-          let totalStudents = 0;
-          let totalNewBadges = 0;
-          let orgsProcessed = 0;
-          let orgsSkipped = 0;
-          // Scheduled Workers have a 30s CPU limit; bail before we breach it
-          // so the cleanup logic still runs. The deadline is shared across
-          // org iteration AND per-student inner-loop bailout — see
-          // processBadgesForOrg() which checks Date.now() > deadlineMs
-          // before each student.
-          const BUDGET_MS = 22_000;
-          const cronStart = Date.now();
-          const deadlineMs = cronStart + BUDGET_MS;
-
-          for (const org of orgs.results || []) {
-            if (Date.now() > deadlineMs) {
-              orgsSkipped = (orgs.results || []).length - orgsProcessed;
-              console.warn(
-                `[Cron] Badge budget exhausted after ${orgsProcessed} orgs; ${orgsSkipped} deferred to next run`
-              );
-              break;
-            }
-
-            const orgStart = Date.now();
-            const cursor = org.last_badge_cursor || null;
-            // Captured BEFORE processing in SQLite datetime format, so a
-            // session created mid-run lands after the next watermark and is
-            // re-picked next night rather than missed.
-            const runStart = new Date().toISOString().slice(0, 19).replace('T', ' ');
-            const watermark = org.last_badge_watermark || null;
-            const result = await processBadgesForOrg(db, org.id, cursor, deadlineMs, watermark);
-
-            totalStudents += result.processedCount;
-            totalNewBadges += result.newBadgeCount;
-
-            if (result.exhausted) {
-              // Persist cursor so next run resumes after this student — the
-              // watermark deliberately does NOT advance until the org
-              // completes a full pass.
-              await db
-                .prepare('UPDATE organizations SET last_badge_cursor = ? WHERE id = ?')
-                .bind(result.lastProcessedId, org.id)
-                .run();
-              console.warn(
-                `[Cron] Badge budget exhausted within org ${org.id} after ${result.processedCount} students; cursor saved at ${result.lastProcessedId}`
-              );
-              break;
-            } else {
-              orgsProcessed++;
-              // Org completed — clear any prior cursor and advance the
-              // watermark to this run's start.
-              await db
+              // Get all active organizations + their resume cursor + watermark.
+              // last_badge_cursor is non-null when a previous run exhausted the
+              // CPU budget mid-org; we resume after that cursor.
+              // last_badge_watermark is the start of the last COMPLETED run for
+              // the org — only students with a session created after it get the
+              // full stats recalc (PERF-M2).
+              const orgs = await db
                 .prepare(
-                  'UPDATE organizations SET last_badge_cursor = NULL, last_badge_watermark = ? WHERE id = ?'
+                  'SELECT id, last_badge_cursor, last_badge_watermark FROM organizations WHERE is_active = 1 ORDER BY id'
                 )
-                .bind(runStart, org.id)
-                .run();
+                .bind()
+                .all();
 
-              // Rolling window stats decay with time even for students with
-              // no new sessions — refresh them cheaply org-wide (they no
-              // longer get the full recalc above).
-              try {
-                const refreshed = await refreshWindowStats(db, org.id);
-                if (refreshed.statsUpdated > 0) {
+              let totalStudents = 0;
+              let totalNewBadges = 0;
+              let orgsProcessed = 0;
+              let orgsSkipped = 0;
+              // Scheduled Workers have a 30s CPU limit; bail before we breach it
+              // so the cleanup logic still runs. The deadline is shared across
+              // org iteration AND per-student inner-loop bailout — see
+              // processBadgesForOrg() which checks Date.now() > deadlineMs
+              // before each student.
+              const BUDGET_MS = 22_000;
+              const cronStart = Date.now();
+              const deadlineMs = cronStart + BUDGET_MS;
+
+              for (const org of orgs.results || []) {
+                if (Date.now() > deadlineMs) {
+                  orgsSkipped = (orgs.results || []).length - orgsProcessed;
+                  console.warn(
+                    `[Cron] Badge budget exhausted after ${orgsProcessed} orgs; ${orgsSkipped} deferred to next run`
+                  );
+                  break;
+                }
+
+                const orgStart = Date.now();
+                const cursor = org.last_badge_cursor || null;
+                // Captured BEFORE processing in SQLite datetime format, so a
+                // session created mid-run lands after the next watermark and is
+                // re-picked next night rather than missed.
+                const runStart = new Date().toISOString().slice(0, 19).replace('T', ' ');
+                const watermark = org.last_badge_watermark || null;
+                const result = await processBadgesForOrg(db, org.id, cursor, deadlineMs, watermark);
+
+                totalStudents += result.processedCount;
+                totalNewBadges += result.newBadgeCount;
+
+                if (result.exhausted) {
+                  // Persist cursor so next run resumes after this student — the
+                  // watermark deliberately does NOT advance until the org
+                  // completes a full pass.
+                  await db
+                    .prepare('UPDATE organizations SET last_badge_cursor = ? WHERE id = ?')
+                    .bind(result.lastProcessedId, org.id)
+                    .run();
+                  console.warn(
+                    `[Cron] Badge budget exhausted within org ${org.id} after ${result.processedCount} students; cursor saved at ${result.lastProcessedId}`
+                  );
+                  break;
+                } else {
+                  orgsProcessed++;
+                  // Org completed — clear any prior cursor and advance the
+                  // watermark to this run's start.
+                  await db
+                    .prepare(
+                      'UPDATE organizations SET last_badge_cursor = NULL, last_badge_watermark = ? WHERE id = ?'
+                    )
+                    .bind(runStart, org.id)
+                    .run();
+
+                  // Rolling window stats decay with time even for students with
+                  // no new sessions — refresh them cheaply org-wide (they no
+                  // longer get the full recalc above).
+                  try {
+                    const refreshed = await refreshWindowStats(db, org.id);
+                    if (refreshed.statsUpdated > 0) {
+                      console.log(
+                        `[Cron] Window stats refreshed for org ${org.id}: ${refreshed.statsUpdated}/${refreshed.studentsChecked} students`
+                      );
+                    }
+                  } catch (err) {
+                    console.error(
+                      `[Cron] Window-stat refresh failed for org ${org.id}:`,
+                      err.message
+                    );
+                  }
+
                   console.log(
-                    `[Cron] Window stats refreshed for org ${org.id}: ${refreshed.statsUpdated}/${refreshed.studentsChecked} students`
+                    `[Cron] Badge org ${org.id}: ${result.processedCount} students in ${Date.now() - orgStart}ms${cursor ? ` (resumed from cursor)` : ''}`
                   );
                 }
-              } catch (err) {
-                console.error(`[Cron] Window-stat refresh failed for org ${org.id}:`, err.message);
               }
 
               console.log(
-                `[Cron] Badge org ${org.id}: ${result.processedCount} students in ${Date.now() - orgStart}ms${cursor ? ` (resumed from cursor)` : ''}`
-              );
-            }
-          }
-
-          console.log(
-            `[Cron] Badge evaluation complete: ${orgsProcessed} orgs (${orgsSkipped} deferred), ${totalStudents} students, ${totalNewBadges} new badges, ${Date.now() - cronStart}ms`
-          );
-
-          // ── Class goals drift correction ──────────────────────────────────
-          try {
-            const { recalculateClassGoalProgress, resolveCurrentTerm } =
-              await import('./utils/classGoalsEngine.js');
-
-            let totalClassesProcessed = 0;
-
-            let goalsExhausted = false;
-            for (const org of orgs.results || []) {
-              if (Date.now() > deadlineMs) {
-                goalsExhausted = true;
-                break;
-              }
-
-              const classes = await db
-                .prepare('SELECT id FROM classes WHERE organization_id = ? AND is_active = 1')
-                .bind(org.id)
-                .all();
-
-              const termDatesResult = await db
-                .prepare(
-                  'SELECT term_name, start_date, end_date, academic_year FROM term_dates WHERE organization_id = ? ORDER BY start_date'
-                )
-                .bind(org.id)
-                .all();
-
-              const today = new Date().toISOString().split('T')[0];
-              const { term, startDate, endDate } = resolveCurrentTerm(
-                termDatesResult.results || [],
-                today
+                `[Cron] Badge evaluation complete: ${orgsProcessed} orgs (${orgsSkipped} deferred), ${totalStudents} students, ${totalNewBadges} new badges, ${Date.now() - cronStart}ms`
               );
 
-              for (const cls of classes.results || []) {
-                if (Date.now() > deadlineMs) {
-                  goalsExhausted = true;
-                  break;
-                }
-                try {
-                  await recalculateClassGoalProgress(db, cls.id, org.id, startDate, endDate, term);
-                  totalClassesProcessed++;
-                } catch (err) {
-                  console.error(`[Cron] Class goal recalc error for class ${cls.id}:`, err.message);
-                }
-              }
-              if (goalsExhausted) break;
-            }
+              // ── Class goals drift correction ──────────────────────────────────
+              try {
+                const { recalculateClassGoalProgress, resolveCurrentTerm } =
+                  await import('./utils/classGoalsEngine.js');
 
-            console.log(
-              `[Cron] Class goals recalculated: ${totalClassesProcessed} classes${goalsExhausted ? ' (budget exhausted)' : ''}`
-            );
-          } catch (error) {
-            console.error('[Cron] Class goals recalculation failed:', error.message);
+                let totalClassesProcessed = 0;
+
+                let goalsExhausted = false;
+                for (const org of orgs.results || []) {
+                  if (Date.now() > deadlineMs) {
+                    goalsExhausted = true;
+                    break;
+                  }
+
+                  const classes = await db
+                    .prepare('SELECT id FROM classes WHERE organization_id = ? AND is_active = 1')
+                    .bind(org.id)
+                    .all();
+
+                  const termDatesResult = await db
+                    .prepare(
+                      'SELECT term_name, start_date, end_date, academic_year FROM term_dates WHERE organization_id = ? ORDER BY start_date'
+                    )
+                    .bind(org.id)
+                    .all();
+
+                  const today = new Date().toISOString().split('T')[0];
+                  const { term, startDate, endDate } = resolveCurrentTerm(
+                    termDatesResult.results || [],
+                    today
+                  );
+
+                  for (const cls of classes.results || []) {
+                    if (Date.now() > deadlineMs) {
+                      goalsExhausted = true;
+                      break;
+                    }
+                    try {
+                      await recalculateClassGoalProgress(
+                        db,
+                        cls.id,
+                        org.id,
+                        startDate,
+                        endDate,
+                        term
+                      );
+                      totalClassesProcessed++;
+                    } catch (err) {
+                      console.error(
+                        `[Cron] Class goal recalc error for class ${cls.id}:`,
+                        err.message
+                      );
+                    }
+                  }
+                  if (goalsExhausted) break;
+                }
+
+                console.log(
+                  `[Cron] Class goals recalculated: ${totalClassesProcessed} classes${goalsExhausted ? ' (budget exhausted)' : ''}`
+                );
+              } catch (error) {
+                console.error('[Cron] Class goals recalculation failed:', error.message);
+              }
+            } catch (error) {
+              console.error('[Cron] Badge evaluation failed:', error.message);
+              // Rethrow so the cron monitor records a failure. Without this the
+              // catch swallowed the error and the monitor would check in "ok"
+              // on every broken run — a monitor that can never go red.
+              throw error;
+            }
+          },
+          {
+            schedule: { type: 'crontab', value: '30 2 * * *' },
+            timezone: 'Etc/UTC',
+            checkinMargin: 15,
+            maxRuntime: 30,
           }
-        } catch (error) {
-          console.error('[Cron] Badge evaluation failed:', error.message);
-        }
+        );
       }
 
       // Wonde sync at 3 AM UTC
@@ -838,9 +878,9 @@ export default Sentry.withSentry(
             }
           },
           {
-            schedule: { crontab: '0 3 * * *' },
+            schedule: { type: 'crontab', value: '0 3 * * *' },
             timezone: 'Etc/UTC',
-            checkinMargin: 5,
+            checkinMargin: 15,
             maxRuntime: 30,
           }
         );
@@ -892,6 +932,14 @@ export default Sentry.withSentry(
               }
             } catch (err) {
               console.error('[Cron] Background enrichment error:', err);
+              // No cron monitor on this one: it fires every minute and its
+              // normal state is "no job to do", so check-ins would be noise.
+              // Capturing the exception is what actually surfaces a broken
+              // enrichment run — previously it died silently in the logs.
+              Sentry.captureException(err, {
+                tags: { cron: 'metadata-enrichment' },
+                extra: { jobId: bgJob.id },
+              });
               try {
                 await db
                   .prepare(
@@ -899,8 +947,10 @@ export default Sentry.withSentry(
                   )
                   .bind(String(err?.message || 'Unknown error').slice(0, 500), bgJob.id)
                   .run();
-              } catch {
-                /* best effort */
+              } catch (markErr) {
+                // Best effort, but not silent — if we can't even record the
+                // failure the job row is left stuck 'running' forever.
+                console.error('[Cron] Failed to mark enrichment job failed:', markErr?.message);
               }
             }
 
@@ -915,15 +965,44 @@ export default Sentry.withSentry(
 
       // Demo environment reset — every hour on the hour
       if (event.cron === '0 * * * *') {
-        try {
-          await resetDemoData(env.READING_MANAGER_DB);
-          console.log('[Cron] Demo environment reset complete');
-        } catch (error) {
-          console.error('[Cron] Demo reset failed:', error.message);
-        }
+        await Sentry.withMonitor(
+          'demo-environment-reset',
+          async () => {
+            try {
+              await resetDemoData(env.READING_MANAGER_DB);
+              console.log('[Cron] Demo environment reset complete');
+            } catch (error) {
+              console.error('[Cron] Demo reset failed:', error.message);
+              // Rethrow so the monitor can go red — a stale demo environment
+              // is the first thing a prospective school sees.
+              throw error;
+            }
+          },
+          {
+            schedule: { type: 'crontab', value: '0 * * * *' },
+            timezone: 'Etc/UTC',
+            checkinMargin: 15,
+            maxRuntime: 15,
+          }
+        );
       }
 
       console.log(`[Cron] Scheduled task (${event.cron}) finished at ${new Date().toISOString()}`);
+
+      // Flush Sentry while the isolate is still alive.
+      //
+      // The SDK's own instrumentation registers `waitUntil(flushAndDispose())`,
+      // but waitUntil work is cancelled if the invocation hits its limits — and
+      // these handlers are long. Symptom: over 24h the fast `*/1` cron produced
+      // 1190 spans while the four heavy crons produced ZERO, despite D1 proving
+      // they ran. The terminal check-in enqueued at the end of a slow job was
+      // being dropped the same way, leaving monitors stuck 'in_progress' until
+      // Sentry timed them out. Awaiting here sends it before we return.
+      try {
+        await Sentry.flush(3000);
+      } catch (flushErr) {
+        console.error('[Cron] Sentry flush failed:', flushErr?.message);
+      }
     },
   }
 );
