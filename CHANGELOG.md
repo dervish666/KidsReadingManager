@@ -1,10 +1,25 @@
 # Changelog
 
+## [3.114.1] - 2026-07-29
+
+### Security
+
+- **The app's own source code is no longer downloadable from the site.** A build setting meant the original, unminified source was being published alongside the app, where anyone could fetch it. It is now stripped from every deploy automatically, whether or not the upload step runs. No school, pupil or account data was involved — this was application code only.
+
+### Added
+
+- **We now get told when an overnight job stops running.** Reading streaks, badges and the nightly school data sync all run while you sleep. Each now records that it finished, and an hourly check raises an alert if any of them hasn't completed in over a day — so a silent failure gets caught within hours instead of whenever someone notices stale data.
+
+### Fixed
+
+- **Error reports now identify themselves properly.** Reports arriving from the app were untagged, referred to scrambled code, and mixed development noise in with real problems. They now carry the release version, the school they came from and readable code locations, so a fault one school hits can be found and fixed rather than guessed at. They still deliberately never include names or email addresses.
+- **Job monitoring was silently switched off.** A formatting mistake in how the schedule was declared meant every monitor was quietly discarded on arrival. The jobs themselves ran fine — but nothing was watching them, and nothing said so. Now fixed and verified against the live dashboard.
+
 ## [3.114.0] - 2026-07-21
 
 ### Security
 
-- **Pupils can no longer sign in.** Tally Reading is a staff tool, but a pupil signing in through Wonde/MyLogin was given a read-only account that could see every class, student and teacher in their school. Only staff accounts (admin and employee) can now sign in; pupils — and any other account type — are turned away with a clear message before an account is ever created for them. Pupil *records* continue to sync from Wonde exactly as before; this only affects who can log in. Found by Wonde's integration testers.
+- **Pupils can no longer sign in.** Tally Reading is a staff tool, but a pupil signing in through Wonde/MyLogin was given a read-only account that could see every class, student and teacher in their school. Only staff accounts (admin and employee) can now sign in; pupils — and any other account type — are turned away with a clear message before an account is ever created for them. Pupil _records_ continue to sync from Wonde exactly as before; this only affects who can log in. Found by Wonde's integration testers.
 
 ### Added
 
@@ -14,7 +29,7 @@
 
 ### Fixed
 
-- **Sign-in errors no longer blame the wrong thing.** A school whose account had been deactivated was told it "hasn't been set up on Tally Reading yet" — indistinguishable from a school that had never been onboarded, and it sent people chasing setup that had already happened. Deactivated schools now say so. A deactivated *user* previously hit a database conflict and got a generic "unexpected error"; they now get a clear message pointing them at their school administrator. Logging back in still won't reactivate a deactivated account.
+- **Sign-in errors no longer blame the wrong thing.** A school whose account had been deactivated was told it "hasn't been set up on Tally Reading yet" — indistinguishable from a school that had never been onboarded, and it sent people chasing setup that had already happened. Deactivated schools now say so. A deactivated _user_ previously hit a database conflict and got a generic "unexpected error"; they now get a clear message pointing them at their school administrator. Logging back in still won't reactivate a deactivated account.
 
 ## [3.113.7] - 2026-07-10
 

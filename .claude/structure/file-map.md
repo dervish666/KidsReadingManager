@@ -98,6 +98,7 @@ src/utils/helpers.js - ID generation, reading status, student sorting, csvRow, s
 src/utils/calculateAge.js - Age calculation from date of birth
 src/utils/email.js - Password reset/welcome/signup/support emails (multi-provider)
 src/utils/streakCalculator.js - Reading streak calculation with grace period
+src/utils/cronWatchdog.js - Cron liveness: recordCronSuccess/checkCronFreshness over the cron_runs table (absence detection without a Sentry monitor per job)
 src/utils/studentErase.js - Canonical per-student erasure statement set (8 tables incl. ticker_events), shared by interactive Art-17 erase + 90-day retention cron
 src/utils/readingBandDefinitions.js - Reading band ladder (default 16 bands), per-org customisable names/colours/count (3–20), resolveBands, bandCountOf, band lookup
 src/utils/readingBandEngine.js - Pure reading-band maths: read counting, band index, academic-year start, display payload + transition

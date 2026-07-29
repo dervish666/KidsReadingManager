@@ -48,6 +48,7 @@ import { hardDeleteOrganization } from './services/orgPurge.js';
 import { studentEraseStatements, STUDENT_ERASE_STATEMENT_COUNT } from './utils/studentErase.js';
 import { D1_BATCH_LIMIT } from './utils/d1Batch.js';
 import { decryptSensitiveData, getEncryptionSecret } from './utils/crypto.js';
+import { recordCronSuccess, checkCronFreshness } from './utils/cronWatchdog.js';
 
 // Import middleware
 import { errorHandler, onError } from './middleware/errorHandler';
@@ -457,552 +458,520 @@ export default Sentry.withSentry(
      * This keeps database values accurate for reporting purposes
      */
     async scheduled(event, env, ctx) {
-      console.log(`[Cron] Scheduled task triggered (${event.cron}) at ${new Date().toISOString()}`);
-
-      // Only run if multi-tenant mode is enabled (D1 database required)
-      if (!env.JWT_SECRET || !env.READING_MANAGER_DB) {
-        console.log('[Cron] Skipping scheduled task - multi-tenant mode not enabled');
-        return;
-      }
-
-      const db = env.READING_MANAGER_DB;
-
-      // Streaks + GDPR at 2 AM UTC
-      if (event.cron === '0 2 * * *') {
-        await Sentry.withMonitor(
-          'streaks-and-gdpr-cleanup',
-          async () => {
-            try {
-              const results = await recalculateAllStreaks(db);
-
-              console.log(`[Cron] Streak recalculation complete:`, {
-                organizations: results.organizations,
-                studentsProcessed: results.total,
-                studentsUpdated: results.updated,
-                errors: results.errors.length,
-              });
-
-              if (results.errors.length > 0) {
-                console.error('[Cron] Streak recalculation errors:', results.errors.slice(0, 10));
-              }
-            } catch (error) {
-              console.error('[Cron] Streak recalculation failed:', error.message);
-              throw error;
-            }
-
-            // GDPR data retention cleanup jobs
-            try {
-              const expiredRefresh = await db
-                .prepare(
-                  `DELETE FROM refresh_tokens WHERE expires_at < datetime('now') OR revoked_at IS NOT NULL`
-                )
-                .run();
-              console.log(
-                `[Cron] Cleaned up ${expiredRefresh.meta?.changes || 0} expired/revoked refresh tokens`
-              );
-
-              const expiredReset = await db
-                .prepare(
-                  `DELETE FROM password_reset_tokens WHERE expires_at < datetime('now') OR used_at IS NOT NULL`
-                )
-                .run();
-              console.log(
-                `[Cron] Cleaned up ${expiredReset.meta?.changes || 0} expired/used password reset tokens`
-              );
-
-              const oldLogins = await db
-                .prepare(
-                  `DELETE FROM login_attempts WHERE created_at < datetime('now', '-30 days')`
-                )
-                .run();
-              console.log(
-                `[Cron] Cleaned up ${oldLogins.meta?.changes || 0} login attempts older than 30 days`
-              );
-
-              const oldTickerEvents = await db
-                .prepare(`DELETE FROM ticker_events WHERE created_at < datetime('now', '-2 days')`)
-                .run();
-              console.log(
-                `[Cron] Cleaned up ${oldTickerEvents.meta?.changes || 0} ticker events older than 2 days`
-              );
-
-              const anonAudit = await db
-                .prepare(
-                  `UPDATE audit_log SET ip_address = 'anonymised', user_agent = 'anonymised' WHERE created_at < datetime('now', '-90 days') AND ip_address != 'anonymised' AND ip_address IS NOT NULL`
-                )
-                .run();
-              console.log(
-                `[Cron] Anonymised ${anonAudit.meta?.changes || 0} audit log entries older than 90 days`
-              );
-
-              const oldAudit = await db
-                .prepare(`DELETE FROM audit_log WHERE created_at < datetime('now', '-730 days')`)
-                .run();
-              if (oldAudit.meta?.changes > 0) {
-                console.log(
-                  `[Cron] Deleted ${oldAudit.meta.changes} audit log entries older than 2 years`
-                );
-              }
-
-              const oldRateLimits = await db
-                .prepare(`DELETE FROM rate_limits WHERE created_at < datetime('now', '-1 hour')`)
-                .run();
-              console.log(
-                `[Cron] Cleaned up ${oldRateLimits.meta?.changes || 0} stale rate limit records`
-              );
-
-              const expiredStates = await db
-                .prepare(`DELETE FROM oauth_state WHERE created_at < datetime('now', '-5 minutes')`)
-                .run();
-              if (expiredStates.meta?.changes > 0) {
-                console.log(`[Cron] Cleaned up ${expiredStates.meta.changes} expired OAuth states`);
-              }
-            } catch (error) {
-              console.error('[Cron] GDPR data retention cleanup failed:', error.message);
-              throw error;
-            }
-
-            // Auto hard-delete soft-deleted records after 90-day retention period
-            try {
-              const staleStudents = await db
-                .prepare(
-                  `SELECT id FROM students WHERE is_active = 0 AND updated_at < datetime('now', '-90 days')`
-                )
-                .bind()
-                .all();
-
-              const studentIds = (staleStudents.results || []).map((s) => s.id);
-              if (studentIds.length > 0) {
-                // Same statement set as the interactive Article 17 erase —
-                // chunk sized so chunk × statements stays under D1's
-                // 100-statement batch limit.
-                const STUDENT_CHUNK = Math.floor(D1_BATCH_LIMIT / STUDENT_ERASE_STATEMENT_COUNT);
-                for (let i = 0; i < studentIds.length; i += STUDENT_CHUNK) {
-                  const chunk = studentIds.slice(i, i + STUDENT_CHUNK);
-                  const statements = chunk.flatMap((id) => studentEraseStatements(db, id));
-                  await db.batch(statements);
-                }
-                console.log(
-                  `[Cron] Hard-deleted ${studentIds.length} soft-deleted students past 90-day retention`
-                );
-              }
-
-              const staleUsers = await db
-                .prepare(
-                  `SELECT id FROM users WHERE is_active = 0 AND updated_at < datetime('now', '-90 days')`
-                )
-                .bind()
-                .all();
-
-              const userIds = (staleUsers.results || []).map((u) => u.id);
-              if (userIds.length > 0) {
-                const USER_CHUNK = 33;
-                for (let i = 0; i < userIds.length; i += USER_CHUNK) {
-                  const chunk = userIds.slice(i, i + USER_CHUNK);
-                  const statements = chunk.flatMap((id) => [
-                    db.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').bind(id),
-                    db.prepare('DELETE FROM password_reset_tokens WHERE user_id = ?').bind(id),
-                    db.prepare('DELETE FROM users WHERE id = ?').bind(id),
-                  ]);
-                  await db.batch(statements);
-                }
-                console.log(
-                  `[Cron] Hard-deleted ${userIds.length} soft-deleted users past 90-day retention`
-                );
-              }
-
-              // Cascade purge orgs past 90-day retention
-              const staleOrgs = await db
-                .prepare(
-                  `SELECT id FROM organizations WHERE is_active = 0 AND updated_at < datetime('now', '-90 days') AND legal_hold = 0 AND purged_at IS NULL`
-                )
-                .bind()
-                .all();
-
-              for (const org of staleOrgs.results || []) {
-                try {
-                  const result = await hardDeleteOrganization(db, org.id, env);
-                  console.log(
-                    `[Cron] Purged org ${org.id}: ${result.tablesProcessed} tables, ${result.errors.length} errors`
-                  );
-                } catch (error) {
-                  console.error(`[Cron] Failed to purge org ${org.id}:`, error.message);
-                }
-              }
-            } catch (error) {
-              console.error('[Cron] Retention auto-deletion failed:', error.message);
-              throw error;
-            }
-          },
-          {
-            // Sentry's MonitorSchedule is { type, value } — a bare { crontab }
-            // is silently rejected at ingest, so the monitor is never created
-            // and every check-in is dropped. See docs/sentry.md.
-            schedule: { type: 'crontab', value: '0 2 * * *' },
-            timezone: 'Etc/UTC',
-            checkinMargin: 15,
-            maxRuntime: 30,
-          }
-        );
-      }
-
-      // Badge evaluation at 2:30 AM UTC (after streaks are recalculated)
-      if (event.cron === '30 2 * * *') {
-        await Sentry.withMonitor(
-          'badge-evaluation',
-          async () => {
-            try {
-              const { processBadgesForOrg, refreshWindowStats } =
-                await import('./utils/badgeEngine.js');
-
-              // Get all active organizations + their resume cursor + watermark.
-              // last_badge_cursor is non-null when a previous run exhausted the
-              // CPU budget mid-org; we resume after that cursor.
-              // last_badge_watermark is the start of the last COMPLETED run for
-              // the org — only students with a session created after it get the
-              // full stats recalc (PERF-M2).
-              const orgs = await db
-                .prepare(
-                  'SELECT id, last_badge_cursor, last_badge_watermark FROM organizations WHERE is_active = 1 ORDER BY id'
-                )
-                .bind()
-                .all();
-
-              let totalStudents = 0;
-              let totalNewBadges = 0;
-              let orgsProcessed = 0;
-              let orgsSkipped = 0;
-              // Scheduled Workers have a 30s CPU limit; bail before we breach it
-              // so the cleanup logic still runs. The deadline is shared across
-              // org iteration AND per-student inner-loop bailout — see
-              // processBadgesForOrg() which checks Date.now() > deadlineMs
-              // before each student.
-              const BUDGET_MS = 22_000;
-              const cronStart = Date.now();
-              const deadlineMs = cronStart + BUDGET_MS;
-
-              for (const org of orgs.results || []) {
-                if (Date.now() > deadlineMs) {
-                  orgsSkipped = (orgs.results || []).length - orgsProcessed;
-                  console.warn(
-                    `[Cron] Badge budget exhausted after ${orgsProcessed} orgs; ${orgsSkipped} deferred to next run`
-                  );
-                  break;
-                }
-
-                const orgStart = Date.now();
-                const cursor = org.last_badge_cursor || null;
-                // Captured BEFORE processing in SQLite datetime format, so a
-                // session created mid-run lands after the next watermark and is
-                // re-picked next night rather than missed.
-                const runStart = new Date().toISOString().slice(0, 19).replace('T', ' ');
-                const watermark = org.last_badge_watermark || null;
-                const result = await processBadgesForOrg(db, org.id, cursor, deadlineMs, watermark);
-
-                totalStudents += result.processedCount;
-                totalNewBadges += result.newBadgeCount;
-
-                if (result.exhausted) {
-                  // Persist cursor so next run resumes after this student — the
-                  // watermark deliberately does NOT advance until the org
-                  // completes a full pass.
-                  await db
-                    .prepare('UPDATE organizations SET last_badge_cursor = ? WHERE id = ?')
-                    .bind(result.lastProcessedId, org.id)
-                    .run();
-                  console.warn(
-                    `[Cron] Badge budget exhausted within org ${org.id} after ${result.processedCount} students; cursor saved at ${result.lastProcessedId}`
-                  );
-                  break;
-                } else {
-                  orgsProcessed++;
-                  // Org completed — clear any prior cursor and advance the
-                  // watermark to this run's start.
-                  await db
-                    .prepare(
-                      'UPDATE organizations SET last_badge_cursor = NULL, last_badge_watermark = ? WHERE id = ?'
-                    )
-                    .bind(runStart, org.id)
-                    .run();
-
-                  // Rolling window stats decay with time even for students with
-                  // no new sessions — refresh them cheaply org-wide (they no
-                  // longer get the full recalc above).
-                  try {
-                    const refreshed = await refreshWindowStats(db, org.id);
-                    if (refreshed.statsUpdated > 0) {
-                      console.log(
-                        `[Cron] Window stats refreshed for org ${org.id}: ${refreshed.statsUpdated}/${refreshed.studentsChecked} students`
-                      );
-                    }
-                  } catch (err) {
-                    console.error(
-                      `[Cron] Window-stat refresh failed for org ${org.id}:`,
-                      err.message
-                    );
-                  }
-
-                  console.log(
-                    `[Cron] Badge org ${org.id}: ${result.processedCount} students in ${Date.now() - orgStart}ms${cursor ? ` (resumed from cursor)` : ''}`
-                  );
-                }
-              }
-
-              console.log(
-                `[Cron] Badge evaluation complete: ${orgsProcessed} orgs (${orgsSkipped} deferred), ${totalStudents} students, ${totalNewBadges} new badges, ${Date.now() - cronStart}ms`
-              );
-
-              // ── Class goals drift correction ──────────────────────────────────
-              try {
-                const { recalculateClassGoalProgress, resolveCurrentTerm } =
-                  await import('./utils/classGoalsEngine.js');
-
-                let totalClassesProcessed = 0;
-
-                let goalsExhausted = false;
-                for (const org of orgs.results || []) {
-                  if (Date.now() > deadlineMs) {
-                    goalsExhausted = true;
-                    break;
-                  }
-
-                  const classes = await db
-                    .prepare('SELECT id FROM classes WHERE organization_id = ? AND is_active = 1')
-                    .bind(org.id)
-                    .all();
-
-                  const termDatesResult = await db
-                    .prepare(
-                      'SELECT term_name, start_date, end_date, academic_year FROM term_dates WHERE organization_id = ? ORDER BY start_date'
-                    )
-                    .bind(org.id)
-                    .all();
-
-                  const today = new Date().toISOString().split('T')[0];
-                  const { term, startDate, endDate } = resolveCurrentTerm(
-                    termDatesResult.results || [],
-                    today
-                  );
-
-                  for (const cls of classes.results || []) {
-                    if (Date.now() > deadlineMs) {
-                      goalsExhausted = true;
-                      break;
-                    }
-                    try {
-                      await recalculateClassGoalProgress(
-                        db,
-                        cls.id,
-                        org.id,
-                        startDate,
-                        endDate,
-                        term
-                      );
-                      totalClassesProcessed++;
-                    } catch (err) {
-                      console.error(
-                        `[Cron] Class goal recalc error for class ${cls.id}:`,
-                        err.message
-                      );
-                    }
-                  }
-                  if (goalsExhausted) break;
-                }
-
-                console.log(
-                  `[Cron] Class goals recalculated: ${totalClassesProcessed} classes${goalsExhausted ? ' (budget exhausted)' : ''}`
-                );
-              } catch (error) {
-                console.error('[Cron] Class goals recalculation failed:', error.message);
-              }
-            } catch (error) {
-              console.error('[Cron] Badge evaluation failed:', error.message);
-              // Rethrow so the cron monitor records a failure. Without this the
-              // catch swallowed the error and the monitor would check in "ok"
-              // on every broken run — a monitor that can never go red.
-              throw error;
-            }
-          },
-          {
-            schedule: { type: 'crontab', value: '30 2 * * *' },
-            timezone: 'Etc/UTC',
-            checkinMargin: 15,
-            maxRuntime: 30,
-          }
-        );
-      }
-
-      // Wonde sync at 3 AM UTC
-      if (event.cron === '0 3 * * *') {
-        await Sentry.withMonitor(
-          'wonde-school-sync',
-          async () => {
-            const wondeOrgs = await db
-              .prepare(
-                'SELECT id, wonde_school_id, wonde_school_token, wonde_last_sync_at FROM organizations WHERE wonde_school_id IS NOT NULL AND wonde_school_token IS NOT NULL AND is_active = 1'
-              )
-              .bind()
-              .all();
-
-            const orgList = wondeOrgs.results || [];
-            const SYNC_CONCURRENCY = 5;
-            let failCount = 0;
-            for (let i = 0; i < orgList.length; i += SYNC_CONCURRENCY) {
-              const batch = orgList.slice(i, i + SYNC_CONCURRENCY);
-              const results = await Promise.allSettled(
-                batch.map(async (org) => {
-                  const schoolToken = await decryptSensitiveData(
-                    org.wonde_school_token,
-                    getEncryptionSecret(env)
-                  );
-                  await runFullSync(org.id, schoolToken, org.wonde_school_id, db, {
-                    updatedAfter: org.wonde_last_sync_at,
-                    kv: env.READING_MANAGER_KV,
-                  });
-                  return org.id;
-                })
-              );
-
-              for (const result of results) {
-                if (result.status === 'fulfilled') {
-                  console.log(`[Cron] Wonde sync complete for org ${result.value}`);
-                } else {
-                  failCount++;
-                  console.error(`[Cron] Wonde sync failed:`, result.reason?.message);
-                }
-              }
-            }
-
-            if (failCount > 0 && failCount === orgList.length) {
-              throw new Error(`All ${failCount} Wonde syncs failed`);
-            }
-          },
-          {
-            schedule: { type: 'crontab', value: '0 3 * * *' },
-            timezone: 'Etc/UTC',
-            checkinMargin: 15,
-            maxRuntime: 30,
-          }
-        );
-      }
-
-      // ── Background metadata enrichment (every minute) ──
-      if (event.cron === '*/1 * * * *') {
-        const bgJob = await db
-          .prepare(
-            "SELECT * FROM metadata_jobs WHERE background = 1 AND status IN ('pending', 'running') LIMIT 1"
-          )
-          .first();
-
-        if (bgJob) {
-          console.log(
-            `[Cron] Background enrichment: job ${bgJob.id}, ${bgJob.processed_books}/${bgJob.total_books} processed`
-          );
-
-          const config = await getConfigWithKeys(db, env.JWT_SECRET);
-          if (config) {
-            config.fetchCovers = bgJob.include_covers && config.fetchCovers;
-
-            // Loop processing batches until the 20s wall-clock cutoff kicks in
-            const startTime = Date.now();
-            let lastResult;
-            try {
-              while (Date.now() - startTime < 25000) {
-                // Re-read job state to get updated cursor
-                const currentJob = await db
-                  .prepare('SELECT * FROM metadata_jobs WHERE id = ?')
-                  .bind(bgJob.id)
-                  .first();
-
-                if (
-                  !currentJob ||
-                  currentJob.status === 'completed' ||
-                  currentJob.status === 'paused' ||
-                  currentJob.status === 'failed'
-                ) {
-                  break;
-                }
-
-                lastResult = await processJobBatch(db, currentJob, config, {
-                  r2Bucket: env.BOOK_COVERS,
-                  waitUntil: ctx.waitUntil.bind(ctx),
-                });
-
-                if (lastResult.done) break;
-              }
-            } catch (err) {
-              console.error('[Cron] Background enrichment error:', err);
-              // No cron monitor on this one: it fires every minute and its
-              // normal state is "no job to do", so check-ins would be noise.
-              // Capturing the exception is what actually surfaces a broken
-              // enrichment run — previously it died silently in the logs.
-              Sentry.captureException(err, {
-                tags: { cron: 'metadata-enrichment' },
-                extra: { jobId: bgJob.id },
-              });
-              try {
-                await db
-                  .prepare(
-                    "UPDATE metadata_jobs SET status = 'failed', error_message = ?, updated_at = datetime('now') WHERE id = ?"
-                  )
-                  .bind(String(err?.message || 'Unknown error').slice(0, 500), bgJob.id)
-                  .run();
-              } catch (markErr) {
-                // Best effort, but not silent — if we can't even record the
-                // failure the job row is left stuck 'running' forever.
-                console.error('[Cron] Failed to mark enrichment job failed:', markErr?.message);
-              }
-            }
-
-            if (lastResult) {
-              console.log(
-                `[Cron] Background enrichment: ${lastResult.processedBooks}/${bgJob.total_books} processed, ${lastResult.enrichedBooks} enriched, done=${lastResult.done}`
-              );
-            }
-          }
-        }
-      }
-
-      // Demo environment reset — every hour on the hour
-      if (event.cron === '0 * * * *') {
-        await Sentry.withMonitor(
-          'demo-environment-reset',
-          async () => {
-            try {
-              await resetDemoData(env.READING_MANAGER_DB);
-              console.log('[Cron] Demo environment reset complete');
-            } catch (error) {
-              console.error('[Cron] Demo reset failed:', error.message);
-              // Rethrow so the monitor can go red — a stale demo environment
-              // is the first thing a prospective school sees.
-              throw error;
-            }
-          },
-          {
-            schedule: { type: 'crontab', value: '0 * * * *' },
-            timezone: 'Etc/UTC',
-            checkinMargin: 15,
-            maxRuntime: 15,
-          }
-        );
-      }
-
-      console.log(`[Cron] Scheduled task (${event.cron}) finished at ${new Date().toISOString()}`);
-
-      // Flush Sentry while the isolate is still alive.
-      //
-      // The SDK's own instrumentation registers `waitUntil(flushAndDispose())`,
-      // but waitUntil work is cancelled if the invocation hits its limits — and
-      // these handlers are long. Symptom: over 24h the fast `*/1` cron produced
-      // 1190 spans while the four heavy crons produced ZERO, despite D1 proving
-      // they ran. The terminal check-in enqueued at the end of a slow job was
-      // being dropped the same way, leaving monitors stuck 'in_progress' until
-      // Sentry timed them out. Awaiting here sends it before we return.
+      // Everything is wrapped so the Sentry flush in the `finally` runs even
+      // when a job throws — the nightly crons rethrow on failure, and without
+      // this that exception could be lost with the cancelled waitUntil.
       try {
-        await Sentry.flush(3000);
-      } catch (flushErr) {
-        console.error('[Cron] Sentry flush failed:', flushErr?.message);
+        return await runScheduledTask(event, env, ctx);
+      } finally {
+        try {
+          await Sentry.flush(3000);
+        } catch (flushErr) {
+          console.error('[Cron] Sentry flush failed:', flushErr?.message);
+        }
       }
     },
   }
 );
+
+/**
+ * Cron body, extracted so the `scheduled` wrapper above can guarantee a flush.
+ */
+async function runScheduledTask(event, env, ctx) {
+  console.log(`[Cron] Scheduled task triggered (${event.cron}) at ${new Date().toISOString()}`);
+
+  // Only run if multi-tenant mode is enabled (D1 database required)
+  if (!env.JWT_SECRET || !env.READING_MANAGER_DB) {
+    console.log('[Cron] Skipping scheduled task - multi-tenant mode not enabled');
+    return;
+  }
+
+  const db = env.READING_MANAGER_DB;
+
+  // Streaks + GDPR at 2 AM UTC
+  if (event.cron === '0 2 * * *') {
+    // No Sentry cron monitor: the free plan allows exactly one and it's
+    // spent on demo-environment-reset. Absence is detected by the watchdog
+    // (src/utils/cronWatchdog.js) via the recordCronSuccess call below;
+    // failures still surface because the throws below propagate.
+    const jobStart = Date.now();
+    try {
+      const results = await recalculateAllStreaks(db);
+
+      console.log(`[Cron] Streak recalculation complete:`, {
+        organizations: results.organizations,
+        studentsProcessed: results.total,
+        studentsUpdated: results.updated,
+        errors: results.errors.length,
+      });
+
+      if (results.errors.length > 0) {
+        console.error('[Cron] Streak recalculation errors:', results.errors.slice(0, 10));
+      }
+    } catch (error) {
+      console.error('[Cron] Streak recalculation failed:', error.message);
+      throw error;
+    }
+
+    // GDPR data retention cleanup jobs
+    try {
+      const expiredRefresh = await db
+        .prepare(
+          `DELETE FROM refresh_tokens WHERE expires_at < datetime('now') OR revoked_at IS NOT NULL`
+        )
+        .run();
+      console.log(
+        `[Cron] Cleaned up ${expiredRefresh.meta?.changes || 0} expired/revoked refresh tokens`
+      );
+
+      const expiredReset = await db
+        .prepare(
+          `DELETE FROM password_reset_tokens WHERE expires_at < datetime('now') OR used_at IS NOT NULL`
+        )
+        .run();
+      console.log(
+        `[Cron] Cleaned up ${expiredReset.meta?.changes || 0} expired/used password reset tokens`
+      );
+
+      const oldLogins = await db
+        .prepare(`DELETE FROM login_attempts WHERE created_at < datetime('now', '-30 days')`)
+        .run();
+      console.log(
+        `[Cron] Cleaned up ${oldLogins.meta?.changes || 0} login attempts older than 30 days`
+      );
+
+      const oldTickerEvents = await db
+        .prepare(`DELETE FROM ticker_events WHERE created_at < datetime('now', '-2 days')`)
+        .run();
+      console.log(
+        `[Cron] Cleaned up ${oldTickerEvents.meta?.changes || 0} ticker events older than 2 days`
+      );
+
+      const anonAudit = await db
+        .prepare(
+          `UPDATE audit_log SET ip_address = 'anonymised', user_agent = 'anonymised' WHERE created_at < datetime('now', '-90 days') AND ip_address != 'anonymised' AND ip_address IS NOT NULL`
+        )
+        .run();
+      console.log(
+        `[Cron] Anonymised ${anonAudit.meta?.changes || 0} audit log entries older than 90 days`
+      );
+
+      const oldAudit = await db
+        .prepare(`DELETE FROM audit_log WHERE created_at < datetime('now', '-730 days')`)
+        .run();
+      if (oldAudit.meta?.changes > 0) {
+        console.log(`[Cron] Deleted ${oldAudit.meta.changes} audit log entries older than 2 years`);
+      }
+
+      const oldRateLimits = await db
+        .prepare(`DELETE FROM rate_limits WHERE created_at < datetime('now', '-1 hour')`)
+        .run();
+      console.log(`[Cron] Cleaned up ${oldRateLimits.meta?.changes || 0} stale rate limit records`);
+
+      const expiredStates = await db
+        .prepare(`DELETE FROM oauth_state WHERE created_at < datetime('now', '-5 minutes')`)
+        .run();
+      if (expiredStates.meta?.changes > 0) {
+        console.log(`[Cron] Cleaned up ${expiredStates.meta.changes} expired OAuth states`);
+      }
+    } catch (error) {
+      console.error('[Cron] GDPR data retention cleanup failed:', error.message);
+      throw error;
+    }
+
+    // Auto hard-delete soft-deleted records after 90-day retention period
+    try {
+      const staleStudents = await db
+        .prepare(
+          `SELECT id FROM students WHERE is_active = 0 AND updated_at < datetime('now', '-90 days')`
+        )
+        .bind()
+        .all();
+
+      const studentIds = (staleStudents.results || []).map((s) => s.id);
+      if (studentIds.length > 0) {
+        // Same statement set as the interactive Article 17 erase —
+        // chunk sized so chunk × statements stays under D1's
+        // 100-statement batch limit.
+        const STUDENT_CHUNK = Math.floor(D1_BATCH_LIMIT / STUDENT_ERASE_STATEMENT_COUNT);
+        for (let i = 0; i < studentIds.length; i += STUDENT_CHUNK) {
+          const chunk = studentIds.slice(i, i + STUDENT_CHUNK);
+          const statements = chunk.flatMap((id) => studentEraseStatements(db, id));
+          await db.batch(statements);
+        }
+        console.log(
+          `[Cron] Hard-deleted ${studentIds.length} soft-deleted students past 90-day retention`
+        );
+      }
+
+      const staleUsers = await db
+        .prepare(
+          `SELECT id FROM users WHERE is_active = 0 AND updated_at < datetime('now', '-90 days')`
+        )
+        .bind()
+        .all();
+
+      const userIds = (staleUsers.results || []).map((u) => u.id);
+      if (userIds.length > 0) {
+        const USER_CHUNK = 33;
+        for (let i = 0; i < userIds.length; i += USER_CHUNK) {
+          const chunk = userIds.slice(i, i + USER_CHUNK);
+          const statements = chunk.flatMap((id) => [
+            db.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').bind(id),
+            db.prepare('DELETE FROM password_reset_tokens WHERE user_id = ?').bind(id),
+            db.prepare('DELETE FROM users WHERE id = ?').bind(id),
+          ]);
+          await db.batch(statements);
+        }
+        console.log(
+          `[Cron] Hard-deleted ${userIds.length} soft-deleted users past 90-day retention`
+        );
+      }
+
+      // Cascade purge orgs past 90-day retention
+      const staleOrgs = await db
+        .prepare(
+          `SELECT id FROM organizations WHERE is_active = 0 AND updated_at < datetime('now', '-90 days') AND legal_hold = 0 AND purged_at IS NULL`
+        )
+        .bind()
+        .all();
+
+      for (const org of staleOrgs.results || []) {
+        try {
+          const result = await hardDeleteOrganization(db, org.id, env);
+          console.log(
+            `[Cron] Purged org ${org.id}: ${result.tablesProcessed} tables, ${result.errors.length} errors`
+          );
+        } catch (error) {
+          console.error(`[Cron] Failed to purge org ${org.id}:`, error.message);
+        }
+      }
+    } catch (error) {
+      console.error('[Cron] Retention auto-deletion failed:', error.message);
+      throw error;
+    }
+
+    await recordCronSuccess(db, 'streaks-and-gdpr-cleanup', Date.now() - jobStart);
+  }
+
+  // Badge evaluation at 2:30 AM UTC (after streaks are recalculated)
+  if (event.cron === '30 2 * * *') {
+    // Absence detected by the watchdog, not a Sentry monitor — see the note
+    // on the 02:00 job above.
+    const jobStart = Date.now();
+    try {
+      const { processBadgesForOrg, refreshWindowStats } = await import('./utils/badgeEngine.js');
+
+      // Get all active organizations + their resume cursor + watermark.
+      // last_badge_cursor is non-null when a previous run exhausted the
+      // CPU budget mid-org; we resume after that cursor.
+      // last_badge_watermark is the start of the last COMPLETED run for
+      // the org — only students with a session created after it get the
+      // full stats recalc (PERF-M2).
+      const orgs = await db
+        .prepare(
+          'SELECT id, last_badge_cursor, last_badge_watermark FROM organizations WHERE is_active = 1 ORDER BY id'
+        )
+        .bind()
+        .all();
+
+      let totalStudents = 0;
+      let totalNewBadges = 0;
+      let orgsProcessed = 0;
+      let orgsSkipped = 0;
+      // Scheduled Workers have a 30s CPU limit; bail before we breach it
+      // so the cleanup logic still runs. The deadline is shared across
+      // org iteration AND per-student inner-loop bailout — see
+      // processBadgesForOrg() which checks Date.now() > deadlineMs
+      // before each student.
+      const BUDGET_MS = 22_000;
+      const cronStart = Date.now();
+      const deadlineMs = cronStart + BUDGET_MS;
+
+      for (const org of orgs.results || []) {
+        if (Date.now() > deadlineMs) {
+          orgsSkipped = (orgs.results || []).length - orgsProcessed;
+          console.warn(
+            `[Cron] Badge budget exhausted after ${orgsProcessed} orgs; ${orgsSkipped} deferred to next run`
+          );
+          break;
+        }
+
+        const orgStart = Date.now();
+        const cursor = org.last_badge_cursor || null;
+        // Captured BEFORE processing in SQLite datetime format, so a
+        // session created mid-run lands after the next watermark and is
+        // re-picked next night rather than missed.
+        const runStart = new Date().toISOString().slice(0, 19).replace('T', ' ');
+        const watermark = org.last_badge_watermark || null;
+        const result = await processBadgesForOrg(db, org.id, cursor, deadlineMs, watermark);
+
+        totalStudents += result.processedCount;
+        totalNewBadges += result.newBadgeCount;
+
+        if (result.exhausted) {
+          // Persist cursor so next run resumes after this student — the
+          // watermark deliberately does NOT advance until the org
+          // completes a full pass.
+          await db
+            .prepare('UPDATE organizations SET last_badge_cursor = ? WHERE id = ?')
+            .bind(result.lastProcessedId, org.id)
+            .run();
+          console.warn(
+            `[Cron] Badge budget exhausted within org ${org.id} after ${result.processedCount} students; cursor saved at ${result.lastProcessedId}`
+          );
+          break;
+        } else {
+          orgsProcessed++;
+          // Org completed — clear any prior cursor and advance the
+          // watermark to this run's start.
+          await db
+            .prepare(
+              'UPDATE organizations SET last_badge_cursor = NULL, last_badge_watermark = ? WHERE id = ?'
+            )
+            .bind(runStart, org.id)
+            .run();
+
+          // Rolling window stats decay with time even for students with
+          // no new sessions — refresh them cheaply org-wide (they no
+          // longer get the full recalc above).
+          try {
+            const refreshed = await refreshWindowStats(db, org.id);
+            if (refreshed.statsUpdated > 0) {
+              console.log(
+                `[Cron] Window stats refreshed for org ${org.id}: ${refreshed.statsUpdated}/${refreshed.studentsChecked} students`
+              );
+            }
+          } catch (err) {
+            console.error(`[Cron] Window-stat refresh failed for org ${org.id}:`, err.message);
+          }
+
+          console.log(
+            `[Cron] Badge org ${org.id}: ${result.processedCount} students in ${Date.now() - orgStart}ms${cursor ? ` (resumed from cursor)` : ''}`
+          );
+        }
+      }
+
+      console.log(
+        `[Cron] Badge evaluation complete: ${orgsProcessed} orgs (${orgsSkipped} deferred), ${totalStudents} students, ${totalNewBadges} new badges, ${Date.now() - cronStart}ms`
+      );
+
+      // ── Class goals drift correction ──────────────────────────────────
+      try {
+        const { recalculateClassGoalProgress, resolveCurrentTerm } =
+          await import('./utils/classGoalsEngine.js');
+
+        let totalClassesProcessed = 0;
+
+        let goalsExhausted = false;
+        for (const org of orgs.results || []) {
+          if (Date.now() > deadlineMs) {
+            goalsExhausted = true;
+            break;
+          }
+
+          const classes = await db
+            .prepare('SELECT id FROM classes WHERE organization_id = ? AND is_active = 1')
+            .bind(org.id)
+            .all();
+
+          const termDatesResult = await db
+            .prepare(
+              'SELECT term_name, start_date, end_date, academic_year FROM term_dates WHERE organization_id = ? ORDER BY start_date'
+            )
+            .bind(org.id)
+            .all();
+
+          const today = new Date().toISOString().split('T')[0];
+          const { term, startDate, endDate } = resolveCurrentTerm(
+            termDatesResult.results || [],
+            today
+          );
+
+          for (const cls of classes.results || []) {
+            if (Date.now() > deadlineMs) {
+              goalsExhausted = true;
+              break;
+            }
+            try {
+              await recalculateClassGoalProgress(db, cls.id, org.id, startDate, endDate, term);
+              totalClassesProcessed++;
+            } catch (err) {
+              console.error(`[Cron] Class goal recalc error for class ${cls.id}:`, err.message);
+            }
+          }
+          if (goalsExhausted) break;
+        }
+
+        console.log(
+          `[Cron] Class goals recalculated: ${totalClassesProcessed} classes${goalsExhausted ? ' (budget exhausted)' : ''}`
+        );
+      } catch (error) {
+        console.error('[Cron] Class goals recalculation failed:', error.message);
+      }
+    } catch (error) {
+      console.error('[Cron] Badge evaluation failed:', error.message);
+      // Rethrow so the failure reaches Sentry. The scheduled handler's
+      // instrumentation captures anything that propagates; a catch that
+      // only logs would leave a broken run looking like a clean one.
+      throw error;
+    }
+
+    await recordCronSuccess(db, 'badge-evaluation', Date.now() - jobStart);
+  }
+
+  // Wonde sync at 3 AM UTC
+  if (event.cron === '0 3 * * *') {
+    // Absence detected by the watchdog, not a Sentry monitor — see the note
+    // on the 02:00 job above.
+    const jobStart = Date.now();
+    const wondeOrgs = await db
+      .prepare(
+        'SELECT id, wonde_school_id, wonde_school_token, wonde_last_sync_at FROM organizations WHERE wonde_school_id IS NOT NULL AND wonde_school_token IS NOT NULL AND is_active = 1'
+      )
+      .bind()
+      .all();
+
+    const orgList = wondeOrgs.results || [];
+    const SYNC_CONCURRENCY = 5;
+    let failCount = 0;
+    for (let i = 0; i < orgList.length; i += SYNC_CONCURRENCY) {
+      const batch = orgList.slice(i, i + SYNC_CONCURRENCY);
+      const results = await Promise.allSettled(
+        batch.map(async (org) => {
+          const schoolToken = await decryptSensitiveData(
+            org.wonde_school_token,
+            getEncryptionSecret(env)
+          );
+          await runFullSync(org.id, schoolToken, org.wonde_school_id, db, {
+            updatedAfter: org.wonde_last_sync_at,
+            kv: env.READING_MANAGER_KV,
+          });
+          return org.id;
+        })
+      );
+
+      for (const result of results) {
+        if (result.status === 'fulfilled') {
+          console.log(`[Cron] Wonde sync complete for org ${result.value}`);
+        } else {
+          failCount++;
+          console.error(`[Cron] Wonde sync failed:`, result.reason?.message);
+        }
+      }
+    }
+
+    if (failCount > 0 && failCount === orgList.length) {
+      throw new Error(`All ${failCount} Wonde syncs failed`);
+    }
+
+    await recordCronSuccess(db, 'wonde-school-sync', Date.now() - jobStart);
+  }
+
+  // ── Background metadata enrichment (every minute) ──
+  if (event.cron === '*/1 * * * *') {
+    const bgJob = await db
+      .prepare(
+        "SELECT * FROM metadata_jobs WHERE background = 1 AND status IN ('pending', 'running') LIMIT 1"
+      )
+      .first();
+
+    if (bgJob) {
+      console.log(
+        `[Cron] Background enrichment: job ${bgJob.id}, ${bgJob.processed_books}/${bgJob.total_books} processed`
+      );
+
+      const config = await getConfigWithKeys(db, env.JWT_SECRET);
+      if (config) {
+        config.fetchCovers = bgJob.include_covers && config.fetchCovers;
+
+        // Loop processing batches until the 20s wall-clock cutoff kicks in
+        const startTime = Date.now();
+        let lastResult;
+        try {
+          while (Date.now() - startTime < 25000) {
+            // Re-read job state to get updated cursor
+            const currentJob = await db
+              .prepare('SELECT * FROM metadata_jobs WHERE id = ?')
+              .bind(bgJob.id)
+              .first();
+
+            if (
+              !currentJob ||
+              currentJob.status === 'completed' ||
+              currentJob.status === 'paused' ||
+              currentJob.status === 'failed'
+            ) {
+              break;
+            }
+
+            lastResult = await processJobBatch(db, currentJob, config, {
+              r2Bucket: env.BOOK_COVERS,
+              waitUntil: ctx.waitUntil.bind(ctx),
+            });
+
+            if (lastResult.done) break;
+          }
+        } catch (err) {
+          console.error('[Cron] Background enrichment error:', err);
+          // No cron monitor on this one: it fires every minute and its
+          // normal state is "no job to do", so check-ins would be noise.
+          // Capturing the exception is what actually surfaces a broken
+          // enrichment run — previously it died silently in the logs.
+          Sentry.captureException(err, {
+            tags: { cron: 'metadata-enrichment' },
+            extra: { jobId: bgJob.id },
+          });
+          try {
+            await db
+              .prepare(
+                "UPDATE metadata_jobs SET status = 'failed', error_message = ?, updated_at = datetime('now') WHERE id = ?"
+              )
+              .bind(String(err?.message || 'Unknown error').slice(0, 500), bgJob.id)
+              .run();
+          } catch (markErr) {
+            // Best effort, but not silent — if we can't even record the
+            // failure the job row is left stuck 'running' forever.
+            console.error('[Cron] Failed to mark enrichment job failed:', markErr?.message);
+          }
+        }
+
+        if (lastResult) {
+          console.log(
+            `[Cron] Background enrichment: ${lastResult.processedBooks}/${bgJob.total_books} processed, ${lastResult.enrichedBooks} enriched, done=${lastResult.done}`
+          );
+        }
+      }
+    }
+  }
+
+  // Demo environment reset — every hour on the hour
+  if (event.cron === '0 * * * *') {
+    // Watchdog first, so a slow or failing demo reset can't stop the
+    // nightly jobs' absence detection from being reported.
+    await checkCronFreshness(db);
+
+    await Sentry.withMonitor(
+      'demo-environment-reset',
+      async () => {
+        try {
+          await resetDemoData(env.READING_MANAGER_DB);
+          console.log('[Cron] Demo environment reset complete');
+        } catch (error) {
+          console.error('[Cron] Demo reset failed:', error.message);
+          // Rethrow so the monitor can go red — a stale demo environment
+          // is the first thing a prospective school sees.
+          throw error;
+        }
+      },
+      {
+        schedule: { type: 'crontab', value: '0 * * * *' },
+        timezone: 'Etc/UTC',
+        checkinMargin: 15,
+        maxRuntime: 15,
+      }
+    );
+  }
+
+  console.log(`[Cron] Scheduled task (${event.cron}) finished at ${new Date().toISOString()}`);
+}

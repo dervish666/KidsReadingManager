@@ -2,10 +2,10 @@
 
 Error tracking and performance monitoring for both halves of the app.
 
-| Side     | SDK                  | Init                              | DSN source                     |
-| -------- | -------------------- | --------------------------------- | ------------------------------ |
-| Frontend | `@sentry/react`      | `src/instrument.js`               | Hardcoded (public by design)   |
-| Worker   | `@sentry/cloudflare` | `Sentry.withSentry` in `worker.js`| `env.SENTRY_DSN` (secret)      |
+| Side     | SDK                  | Init                               | DSN source                   |
+| -------- | -------------------- | ---------------------------------- | ---------------------------- |
+| Frontend | `@sentry/react`      | `src/instrument.js`                | Hardcoded (public by design) |
+| Worker   | `@sentry/cloudflare` | `Sentry.withSentry` in `worker.js` | `env.SENTRY_DSN` (secret)    |
 
 `src/instrument.js` is imported first in `src/index.js` — before React — so the
 SDK is installed before any other module can throw. Don't reorder those imports.
@@ -13,8 +13,8 @@ SDK is installed before any other module can throw. Don't reorder those imports.
 ## Source maps
 
 **Source maps must never be deployed.** rsbuild builds with `hidden-source-map`,
-which omits the `//# sourceMappingURL` comment but *still writes the `.map`
-files*. Since `wrangler.toml` deploys the whole `build/` directory, those maps
+which omits the `//# sourceMappingURL` comment but _still writes the `.map`
+files_. Since `wrangler.toml` deploys the whole `build/` directory, those maps
 were previously served publicly — the full unminified source was downloadable
 from `https://tallyreading.uk/static/js/*.js.map`, while Sentry had no maps at
 all and every stack trace was minified.
@@ -65,7 +65,7 @@ outage:
 - **Frontend** derives it from hostname at runtime (`detectEnvironment()` in
   `src/instrument.js`): `tallyreading.uk` → `production`, localhost →
   `development`, anything else → `preview`. Hostname rather than `NODE_ENV`
-  because the dev *deploy* is also a production-mode build.
+  because the dev _deploy_ is also a production-mode build.
 - **Worker** reads `env.ENVIRONMENT` from `[vars]` in `wrangler.toml`.
 
 ## User context
@@ -83,21 +83,90 @@ outgoing events as a backstop, but the right fix is not to send them. The school
 name is the useful triage dimension — it answers "one school or all of them?"
 without identifying a person.
 
-## Cron monitors
+## Cron monitoring — one Sentry monitor, plus a watchdog
 
-Four of the five cron triggers are wrapped in `Sentry.withMonitor`:
+**Sentry's free/dev plan includes exactly ONE cron monitor**, and the next tier
+is £89/mo. That isn't proportionate for this product, so coverage is split:
 
-| Cron          | Monitor slug              |
-| ------------- | ------------------------- |
-| `0 2 * * *`   | `streaks-and-gdpr-cleanup`|
-| `30 2 * * *`  | `badge-evaluation`        |
-| `0 3 * * *`   | `wonde-school-sync`       |
-| `0 * * * *`   | `demo-environment-reset`  |
+| Concern                            | Mechanism                                               |
+| ---------------------------------- | ------------------------------------------------------- |
+| Are crons running at all?          | The one Sentry monitor, on `demo-environment-reset`     |
+| Did a specific nightly job finish? | `src/utils/cronWatchdog.js` + the `cron_runs` table     |
+| Did a job fail?                    | Every cron rethrows; the handler captures the exception |
 
-`*/1 * * * *` (metadata enrichment) has **no** monitor by design — it fires
-1,440×/day and its normal state is "no job to do", so check-ins would be noise
-you'd learn to ignore. Its failures are surfaced with `Sentry.captureException`
-instead.
+The single slot is spent on `demo-environment-reset` because it runs **hourly** —
+if Cloudflare's scheduler dies you know within ~15 minutes. Spending it on a
+nightly job would buy one signal a day.
+
+`streaks-and-gdpr-cleanup`, `badge-evaluation` and `wonde-school-sync` have **no**
+`withMonitor`. Attempting it wastes nothing but noise: the upsert is rejected
+over quota, the monitor sits permanently "waiting for first check-in", and every
+nightly run adds a "Monitor not found" ingestion error.
+
+Instead each stamps `cron_runs` on success via `recordCronSuccess()`, and
+`checkCronFreshness()` runs at the top of the hourly cron, capturing a Sentry
+exception for anything older than 26 hours. The two halves cover each other: a
+watchdog can't report its own death (the hourly monitor catches that), and the
+monitor can't tell you the 3am sync stopped (the watchdog catches that).
+
+Thresholds are 26h rather than 24h because Cloudflare cron triggers drift — see
+below. `*/1 * * * *` (metadata enrichment) is monitored by neither: it fires
+1,440×/day, its normal state is "no job to do", and it's the job the watchdog
+runs alongside. Its failures use `Sentry.captureException` directly.
+
+**To make any of this reach you**, two issue alert rules do the notifying. Both
+are scoped to `production` and email issue owners, falling through to active
+members:
+
+| Rule                                                                                       | Fires when                         | Filter                                               | Rate limit |
+| ------------------------------------------------------------------------------------------ | ---------------------------------- | ---------------------------------------------------- | ---------- |
+| [Worker errors (Cloudflare)](https://scratch-it.sentry.io/monitors/alerts/727264/)         | New issue, or resolved → regressed | `sdk.name` **equals** `sentry.javascript.cloudflare` | 1h         |
+| [Cron watchdog: nightly job overdue](https://scratch-it.sentry.io/monitors/alerts/727344/) | Issue seen > 3 times in 1d         | tag `watchdog` **is set**                            | 12h        |
+
+The first exists because both halves of the app share one project, and `sdk.name`
+is the only thing separating them — the frontend reports `environment:
+production` too, so an environment filter alone would page you for every browser
+typo.
+
+The second exists because the first only fires on _new_ issues. A cron that
+stays dead goes quiet after day one, which is precisely the failure the watchdog
+was built to catch. Its `watchdog is set` filter deliberately has no value, so
+it covers `stale`, `missing` **and** `self-failure` — the watchdog breaking
+reports itself.
+
+**The `> 3 times in 1d` threshold is load-bearing.** `checkCronFreshness()` runs
+inside the hourly cron, so a stale job emits exactly **one event per hour** — any
+"more than N per hour" condition can never fire, however dead the job is. Three
+per day trips ~4h after a job goes missing and re-arms every 12h until it's
+fixed. If you change the watchdog's cadence, change this with it.
+
+Use the **event attribute** filter for `sdk.name` and the **tagged event** filter
+for `watchdog`. `sdk.name` is an event attribute, not a tag; a tag filter accepts
+the value happily and then matches nothing — the same silent-drop failure as the
+schedule shape above.
+
+### Creating alert rules needs a _user_ token
+
+`SENTRY_AUTH_TOKEN` (the `sntrys_` org token used for source maps) carries a
+fixed `org:ci` scope and cannot create alerts — the rules endpoint 403s. There
+is no scope picker on the organization token page. Alert writes need a **user**
+auth token (`sntryu_`, from Settings → Account → API → Auth Tokens) with
+`alerts:write` + `project:read`. Check what you have with `sentry-cli info`
+before assuming a 403 means the wrong org.
+
+Note every rule has two IDs: `POST /projects/…/rules/` returns a legacy ID, while
+the Automations UI and API read paths use a different workflow-engine ID
+(744136 → 727264 for Worker errors; 744209 → 727344 for the watchdog). Looking up
+the ID you just created will 404 — list the rules and match on name or
+`dateCreated` instead.
+
+### Why not just read each job's own output?
+
+There was no reliable completion marker for the 2am streaks+GDPR job. It updates
+streak fields and audit rows, but in a quiet period nothing changes, so
+`students.updated_at` can't distinguish "ran, nothing to do" from "never ran". A
+dedicated table records success explicitly, is uniform across jobs, and doesn't
+couple the watchdog to any job's internals.
 
 ### Long crons must flush explicitly
 
