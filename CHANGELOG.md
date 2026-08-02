@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.115.0] - 2026-08-02
+
+### Added
+
+- **A thirty-second animated guide on the front page.** Visitors can now watch how Tally Reading works instead of piecing it together from screenshots — the paperwork it replaces, logging a session in one tap, and a reader's garden filling out over a term. It is hand-painted in the app's own colours, subtitled so it makes sense with the sound off, and nothing loads until you press play.
+
+### Fixed
+
+- **A test that only passed for part of the year.** A check on which school year the app assumes by default was written against a fixed date, so it started failing on its own once the calendar moved past it — while the app itself was behaving correctly throughout. It now checks the changeover directly, including the days either side of it, so the school-year rollover can't drift unnoticed.
+
 ## [3.114.1] - 2026-07-29
 
 ### Security

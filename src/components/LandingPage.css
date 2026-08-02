@@ -486,6 +486,33 @@ html:has(.landing-page) {
   }
 }
 
+/* ---------- animated guide video ---------- */
+.landing-page .guide-video {
+  max-width: 880px;
+  margin: 0 auto 84px;
+}
+.landing-page .guide-video .shot-frame {
+  line-height: 0;
+}
+.landing-page .guide-video video {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: var(--cream);
+}
+.landing-page .guide-video figcaption {
+  margin-top: 18px;
+  text-align: center;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--fg2);
+}
+@media (max-width: 680px) {
+  .landing-page .guide-video {
+    margin-bottom: 56px;
+  }
+}
+
 /* ---------- product tour rows ---------- */
 .landing-page .tour {
   display: flex;

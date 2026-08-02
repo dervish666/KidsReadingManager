@@ -112,20 +112,41 @@ describe('GET /api/term-dates', () => {
     expect(mockDB._chain.bind).toHaveBeenCalledWith('org-1', '2025/26');
   });
 
-  it('defaults to current academic year when no year param', async () => {
-    const { app, mockDB } = createTestApp({
-      organizationId: 'org-1',
-      userId: 'user-1',
-      userRole: 'teacher',
-    });
+  // The academic year rolls over on 1 August (month index 7), so August's
+  // default is the UPCOMING year — that is what parent QR codes printed over
+  // the summer must be keyed to. Freeze the clock: asserting against the real
+  // "now" made this test pass only in the months it was written in.
+  it.each([
+    [
+      '2026-03-15T12:00:00Z',
+      '2025/26',
+      'mid-year (March) stays in the year that began last September',
+    ],
+    ['2026-07-31T12:00:00Z', '2025/26', 'the last day of July is still the old year'],
+    ['2026-08-01T12:00:00Z', '2026/27', 'the first day of August rolls over to the new year'],
+    ['2026-09-10T12:00:00Z', '2026/27', 'the autumn term is in the new year'],
+    ['2026-12-31T12:00:00Z', '2026/27', 'December stays in the year that began in August'],
+  ])(
+    'defaults to the current academic year with no year param — %s → %s (%s)',
+    async (now, expected) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(now));
+      try {
+        const { app } = createTestApp({
+          organizationId: 'org-1',
+          userId: 'user-1',
+          userRole: 'teacher',
+        });
 
-    const res = await makeRequest(app, 'GET', '/api/term-dates');
-    expect(res.status).toBe(200);
-    const data = await res.json();
-
-    // Current academic year: March 2026 is in the 2025/26 academic year
-    expect(data.academicYear).toBe('2025/26');
-  });
+        const res = await makeRequest(app, 'GET', '/api/term-dates');
+        expect(res.status).toBe(200);
+        const data = await res.json();
+        expect(data.academicYear).toBe(expected);
+      } finally {
+        vi.useRealTimers();
+      }
+    }
+  );
 });
 
 describe('PUT /api/term-dates', () => {

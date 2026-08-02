@@ -391,6 +391,27 @@ export default function LandingPage({ onSignIn }) {
               </p>
             </div>
 
+            <figure className="guide-video reveal" ref={addRevealRef}>
+              <div className="shot-frame">
+                <video
+                  controls
+                  preload="none"
+                  playsInline
+                  poster="/tally-guide-poster.webp"
+                  width="1280"
+                  height="720"
+                >
+                  <source src="/tally-guide.mp4" type="video/mp4" />
+                  Your browser can’t play this video.{' '}
+                  <a href="/tally-guide.mp4">Download it instead</a>.
+                </video>
+              </div>
+              <figcaption>
+                Thirty seconds on how it all fits together — subtitled, so it works with the sound
+                off.
+              </figcaption>
+            </figure>
+
             <div className="tour">
               {TOUR_ROWS.map((row, i) => (
                 <article
