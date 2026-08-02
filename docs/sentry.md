@@ -44,8 +44,54 @@ Create the token at **Sentry → Settings → Auth Tokens**. Put these in your
 shell profile — they're deploy-machine credentials, not app config, so they do
 **not** belong in `.env`, `.dev.vars` or `wrangler.toml`.
 
-Without them, `npm run go` still succeeds and still strips the maps; you just
-get minified traces for that release.
+**Profile, not an ad-hoc `export`.** v3.114.1 shipped once with no maps because
+the three vars had only ever been exported into a single terminal, and that
+shell was gone by deploy time. `npm run go` warns in yellow and deploys anyway —
+correct (a missing token must never publish source, and must never block a
+deploy) but easy to lose in 60 lines of build output. If you deploy from a fresh
+shell, check the warning.
+
+### Verifying a release actually shipped correctly
+
+Three checks, none of which can be inferred from the deploy output. Each one
+below has a trap that makes the naive version report the wrong answer.
+
+**1. Did the maps reach Sentry?**
+
+```bash
+curl -s -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" \
+  "https://sentry.io/api/0/projects/$SENTRY_ORG/$SENTRY_PROJECT/files/artifact-bundles/"
+```
+
+Look for a bundle whose `associations` contain `tally-reading@<version>`. The
+path is `files/artifact-bundles/` — bare `artifact-bundles/` **404s**. And
+`releases/<version>/files/` legitimately returns **0 files**: debug-ID uploads
+are not release-scoped, so an empty list there is not evidence of failure.
+
+**2. Do the deployed bundles carry debug IDs?** Debug IDs are what pair the
+uploaded maps to incoming stack frames, so a successful upload is worthless if
+the deployed JS wasn't injected.
+
+```bash
+curl -sL https://tallyreading.uk/static/js/index.<hash>.js | grep -c _sentryDebugIds
+```
+
+Expect a non-zero count. Injection is recursive, so spot-check an `async/` chunk
+too. Note that a redeploy may upload only **one** changed asset — Cloudflare's
+asset store is keyed by content hash, so already-injected bundles are deduped.
+A small upload count does **not** mean injection was partial.
+
+**3. Are the maps absent from the public site?**
+
+```bash
+curl -sL -D- -o /tmp/probe https://tallyreading.uk/static/js/index.<hash>.js.map
+```
+
+**A 200 here proves nothing.** Cloudflare's SPA fallback answers _any_ unmatched
+path with `index.html` and a 200 — `definitely-not-real.js.map` returns 200 too.
+Check `content-type: text/html` and grep the body for `"sources"`/`"mappings"`;
+absent means the strip worked. Checking only the status code reports a leak that
+isn't there, and would report a real leak identically.
 
 ## Releases
 
