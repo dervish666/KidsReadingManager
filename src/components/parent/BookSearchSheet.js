@@ -278,8 +278,8 @@ const BookSearchSheet = ({ open, apiBase, onSelect, onClose }) => {
                 color="text.secondary"
                 sx={{ textAlign: 'center', py: 4, px: 2 }}
               >
-                Search the school library by title or author, or scan the barcode on the back of
-                the book.
+                Search the school library by title or author, or scan the barcode on the back of the
+                book.
               </Typography>
             )}
 

@@ -94,10 +94,7 @@ export function classNameToYearGroup(className) {
   // not Reception registration codes — real reg codes observed in the wild
   // are "RF"/"RJM" (R + teacher initials), which must keep resolving.
   const R_CODE_SUBJECT_COLLISIONS = new Set(['RE', 'RS']);
-  if (
-    /^r$/i.test(orig) ||
-    (/^R[A-Z]{1,2}$/.test(orig) && !R_CODE_SUBJECT_COLLISIONS.has(orig))
-  ) {
+  if (/^r$/i.test(orig) || (/^R[A-Z]{1,2}$/.test(orig) && !R_CODE_SUBJECT_COLLISIONS.has(orig))) {
     return 'R';
   }
 

@@ -26,8 +26,8 @@ const BookIdeasTab = ({ firstName, bookIdeas, loading, onOpenDetail }) => (
       <Box sx={{ textAlign: 'center', py: 5, px: 2 }}>
         <Typography sx={{ fontSize: 44, mb: 1 }}>📚</Typography>
         <Typography variant="body2" color="text.secondary">
-          No book ideas just yet. As {firstName} reads more, suggestions will appear here for you
-          to explore together.
+          No book ideas just yet. As {firstName} reads more, suggestions will appear here for you to
+          explore together.
         </Typography>
       </Box>
     ) : (
@@ -43,11 +43,7 @@ const BookIdeasTab = ({ firstName, bookIdeas, loading, onOpenDetail }) => (
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
               {bookIdeas.ai.map((rec, i) => (
-                <RecCard
-                  key={`ai-${rec.title}-${i}`}
-                  rec={rec}
-                  onClick={() => onOpenDetail(rec)}
-                />
+                <RecCard key={`ai-${rec.title}-${i}`} rec={rec} onClick={() => onOpenDetail(rec)} />
               ))}
             </Box>
           </Box>

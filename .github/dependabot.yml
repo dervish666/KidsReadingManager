@@ -1,0 +1,38 @@
+version: 2
+
+# Alerts were already on, but with no version-update config nothing ever
+# opened a PR — five alerts (postcss, sharp, shell-quote, dompurify,
+# brace-expansion) sat open until someone went looking. This closes that loop.
+updates:
+  - package-ecosystem: npm
+    directory: '/'
+    schedule:
+      interval: weekly
+      day: monday
+      time: '07:00'
+      timezone: Europe/London
+    open-pull-requests-limit: 5
+    # Grouped so a quiet week is one PR, not eight. Majors are deliberately
+    # left ungrouped — they get their own PR and their own read of the
+    # changelog (see the wrangler/vite majors we've declined before).
+    groups:
+      dev-dependencies:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+      production-dependencies:
+        dependency-type: production
+        update-types:
+          - minor
+          - patch
+    commit-message:
+      prefix: 'chore(deps)'
+      prefix-development: 'chore(deps-dev)'
+
+  - package-ecosystem: github-actions
+    directory: '/'
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: 'chore(ci)'

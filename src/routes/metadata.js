@@ -1,6 +1,12 @@
 import { Hono } from 'hono';
 import { requireOwner, requireAdmin, auditLog } from '../middleware/tenant';
-import { badRequestError, notFoundError, forbiddenError, serverError, createError } from '../middleware/errorHandler';
+import {
+  badRequestError,
+  notFoundError,
+  forbiddenError,
+  serverError,
+  createError,
+} from '../middleware/errorHandler';
 import { encryptSensitiveData, decryptSensitiveData, getEncryptionSecret } from '../utils/crypto';
 import { requireDB } from '../utils/routeHelpers';
 import { processJobBatch } from '../services/metadataService';

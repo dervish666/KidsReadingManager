@@ -37,7 +37,12 @@ describe('refreshWindowStats', () => {
     const db = buildMockDb({
       dateRows: [],
       statsRows: [
-        { student_id: 'stu-1', days_read_this_week: 5, days_read_this_month: 12, weeks_with_4plus_days: 2 },
+        {
+          student_id: 'stu-1',
+          days_read_this_week: 5,
+          days_read_this_month: 12,
+          weeks_with_4plus_days: 2,
+        },
       ],
     });
 
@@ -57,8 +62,18 @@ describe('refreshWindowStats', () => {
       ],
       statsRows: [
         // stu-1 is stale (claims 0), stu-2 is already correct (0 reads, 0 stats)
-        { student_id: 'stu-1', days_read_this_week: 0, days_read_this_month: 0, weeks_with_4plus_days: 0 },
-        { student_id: 'stu-2', days_read_this_week: 0, days_read_this_month: 0, weeks_with_4plus_days: 0 },
+        {
+          student_id: 'stu-1',
+          days_read_this_week: 0,
+          days_read_this_month: 0,
+          weeks_with_4plus_days: 0,
+        },
+        {
+          student_id: 'stu-2',
+          days_read_this_week: 0,
+          days_read_this_month: 0,
+          weeks_with_4plus_days: 0,
+        },
       ],
     });
 

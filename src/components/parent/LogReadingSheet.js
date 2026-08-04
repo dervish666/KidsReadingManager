@@ -246,7 +246,10 @@ const LogReadingSheet = ({ open, apiBase, logBook, streak, onChooseBook, onClose
                       </Typography>
                     )}
                   </Box>
-                  <Typography variant="caption" sx={{ color: 'parent.accentHover', fontWeight: 600 }}>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: 'parent.accentHover', fontWeight: 600 }}
+                  >
                     Change
                   </Typography>
                 </>

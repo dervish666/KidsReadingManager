@@ -197,7 +197,10 @@ const StudentTimeline = ({ sessions, loading, studentId, onSessionChange }) => {
           }).catch(() => {
             // The session save already succeeded — only the preference write
             // failed, so say exactly that rather than swallowing it.
-            showSnackbar('Session saved, but the book preference didn’t save — try again', 'warning');
+            showSnackbar(
+              'Session saved, but the book preference didn’t save — try again',
+              'warning'
+            );
           });
         }
       }

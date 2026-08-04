@@ -15,8 +15,7 @@ const setUserAgent = (ua) => {
 // can fire it before the authed shell mounts), so each test imports a FRESH
 // module via resetModules — otherwise tests leak state into each other and
 // become order-dependent (audit cycle 16 quality sweep).
-const loadInstallAppNudge = async () =>
-  (await import('../../components/InstallAppNudge')).default;
+const loadInstallAppNudge = async () => (await import('../../components/InstallAppNudge')).default;
 
 describe('InstallAppNudge', () => {
   beforeEach(() => {

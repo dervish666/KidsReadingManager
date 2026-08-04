@@ -1,0 +1,20 @@
+#!/bin/sh
+# Prettier guard — CI's first gate is `npx prettier --check "src/**/*.js"`, and
+# when it fails nothing after it runs (lint, build, tests all skipped). That
+# went unnoticed for a month. Catch it here instead, on staged files only.
+#
+# Enabled by `npm install` via the "prepare" script (git config core.hooksPath
+# .githooks). Skip a one-off run with `git commit --no-verify`.
+
+staged=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^src/.*\.js$')
+
+[ -z "$staged" ] && exit 0
+
+# shellcheck disable=SC2086
+if ! npx --no-install prettier --check $staged; then
+  echo
+  echo "Prettier found unformatted files. Fix with:"
+  echo "  npx prettier --write $(echo $staged | tr '\n' ' ')"
+  echo "then re-stage. (Or commit with --no-verify to skip.)"
+  exit 1
+fi

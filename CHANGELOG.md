@@ -1,5 +1,20 @@
 # Changelog
 
+## [3.115.1] - 2026-08-04
+
+### Fixed
+
+- **The automated safety checks hadn't actually run for a month.** Every change to Tally Reading is meant to be checked automatically before it goes anywhere — code style, then error checking, then a build, then 2,493 tests. The first of those, a purely cosmetic formatting check, had been failing since 10 July over spacing and line breaks in eight files. Because it runs first, everything after it was skipped: for a month the tests were never executed, and the only signal was a red mark nobody read as "nothing was tested". Formatting is fixed, and all four stages pass again. Nothing had actually broken in the meantime — but nothing would have told us if it had.
+
+### Security
+
+- **Five published vulnerabilities in the build toolchain closed.** These were in tools used to build and test the app on a developer's machine, not in anything schools or families connect to — a source-map path traversal, an image-processing library, a shell-argument parser, an HTML sanitiser and a text expander. None had any route into pupil or school data, and the sanitiser one was in a code path this app never calls. Updated anyway, without dragging in the major version upgrades the automatic fix wanted.
+
+### Changed
+
+- **Dependency warnings now raise a pull request instead of waiting to be noticed.** Security alerts were switched on, but nothing was configured to act on them, so the five above sat unattended until someone went looking. They now arrive weekly, grouped, with major upgrades kept separate so they get read properly.
+- **Formatting can no longer break the build.** A pre-commit check now catches unformatted files locally, before they can turn the shared checks red and silently switch off the test suite for another month.
+
 ## [3.115.0] - 2026-08-02
 
 ### Added
