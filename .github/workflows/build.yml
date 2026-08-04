@@ -10,7 +10,46 @@ permissions:
   contents: read
 
 jobs:
+  # Static checks live in their own job, deliberately with NO `needs` relationship
+  # to `build`, so they run in parallel and a failure here cannot stop the tests
+  # from running. They used to be the first two steps of `build`: on 2026-07-10 a
+  # whitespace-only prettier failure went red and silently skipped lint, build and
+  # all 2,493 tests on every push to main for a month. A red X read as "a check
+  # failed" when it actually meant "nothing was checked". Cheap checks must never
+  # gate expensive ones.
+  #
+  # Single Node version on purpose — formatting and lint results can't differ
+  # between 22 and 24, so the matrix was running both twice for nothing.
+  checks:
+    name: Format and lint
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Use Node.js 22.x
+      uses: actions/setup-node@v6
+      with:
+        node-version: 22.x
+        cache: 'npm'
+
+    - name: Install dependencies
+      id: install
+      run: npm ci
+
+    - name: Check formatting
+      run: npx prettier --check "src/**/*.js"
+
+      # Same reasoning one level down: a formatting nit must not hide a real lint
+      # error, so this runs regardless of the step above. Both still fail the job.
+      # Gated on the install so a broken `npm ci` doesn't also report as a lint
+      # failure — that would be the same misleading-signal problem again.
+    - name: Lint
+      if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+      run: npm run lint
+
   build:
+    name: Build and test
     runs-on: ubuntu-latest
 
     strategy:
@@ -28,12 +67,6 @@ jobs:
 
     - name: Install dependencies
       run: npm ci
-
-    - name: Check formatting
-      run: npx prettier --check "src/**/*.js"
-
-    - name: Lint
-      run: npm run lint
 
     - name: Build
       run: npm run build
