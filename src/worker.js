@@ -204,17 +204,21 @@ app.use('/api/*', async (c, next) => {
   }
 });
 
-// Enable SQLite foreign key enforcement per request (D1 requires this per connection)
-app.use('/api/*', async (c, next) => {
-  if (c.env.READING_MANAGER_DB) {
-    try {
-      await c.env.READING_MANAGER_DB.prepare('PRAGMA foreign_keys = ON').run();
-    } catch (e) {
-      console.error('Failed to enable foreign keys:', e.message);
-    }
-  }
-  return next();
-});
+// NOTE: there used to be a middleware here running `PRAGMA foreign_keys = ON`
+// on every /api/* request, on the belief that D1 needed it per connection. It
+// was removed because it never did anything:
+//
+//   * D1 enforces foreign keys by default. `PRAGMA foreign_keys` returns 1 on
+//     both the local and production databases, and an INSERT violating
+//     reading_sessions.student_id is rejected with SQLITE_CONSTRAINT_FOREIGNKEY
+//     without any PRAGMA having been run first.
+//   * More fundamentally, D1 gives no connection affinity between separate
+//     prepared statements, so a PRAGMA issued as its own statement could not
+//     have applied to the queries that followed it even if it were needed.
+//
+// It cost one D1 round-trip on every authenticated API request. If you are
+// here because something looks like an FK problem, the fix is not to put this
+// back — see docs/gdpr/03-dpia.md.
 
 // Public parent routes use token-in-URL auth; teacher-facing parent routes need JWT
 function isPublicParentRoute(pathname) {
@@ -398,11 +402,15 @@ export default Sentry.withSentry(
     // `ENVIRONMENT` comes from [vars] in wrangler.toml ("production"); the dev
     // deploy overrides it. Without this, prod and dev errors share one stream.
     environment: env.ENVIRONMENT || 'development',
-    // APP_VERSION is injected at deploy time by `npm run deploy`
-    // (--var APP_VERSION:$npm_package_version), so it always tracks
-    // package.json without a second place to bump. Matches the frontend's
-    // release string so a single release links both sides.
-    release: `tally-reading@${env.APP_VERSION || 'dev'}`,
+    // Read from the BUNDLED package.json version (APP_VERSION const above), not
+    // from a deploy-time --var. It used to be `env.APP_VERSION || 'dev'`, which
+    // silently degraded to 'dev' whenever the Worker was published by anything
+    // other than `npm run deploy` — Cloudflare Workers Builds does a bare
+    // version_upload and carries no --var, so every production event since at
+    // least April 2026 was tagged tally-reading@dev while source maps uploaded
+    // under tally-reading@<version>. Nothing symbolicated. The bundled constant
+    // cannot be dropped by a deploy path. env still wins if explicitly set.
+    release: `tally-reading@${env.APP_VERSION || APP_VERSION}`,
     tracesSampleRate: 0.1,
     enableLogs: true,
     // 'log' excluded — the cron handlers log progress on every run and would
@@ -478,6 +486,13 @@ export default Sentry.withSentry(
  * Cron body, extracted so the `scheduled` wrapper above can guarantee a flush.
  */
 async function runScheduledTask(event, env, ctx) {
+  // Tag every cron event with the trigger that produced it. `withSentry` wraps
+  // the handler in withIsolationScope, so the SDK's own auto-capture inherits
+  // this — which matters because the only other cron tagging (the
+  // metadata-enrichment catch below) is unreachable when the probe query itself
+  // throws. Without this, a D1 error from a cron arrives untagged and
+  // indistinguishable from a request-path error.
+  Sentry.setTag('cron', event.cron);
   console.log(`[Cron] Scheduled task triggered (${event.cron}) at ${new Date().toISOString()}`);
 
   // Only run if multi-tenant mode is enabled (D1 database required)
@@ -758,7 +773,17 @@ async function runScheduledTask(event, env, ctx) {
 
       // ── Class goals drift correction ──────────────────────────────────
       try {
-        const { recalculateClassGoalProgress, resolveCurrentTerm } =
+        // resolveAcademicYear, NOT resolveCurrentTerm. This job silently did
+        // nothing at all between 2026-04-12 and 2026-08-12: it resolved a
+        // calendar term ("Q3 2026") while the only code that ever WRITES a
+        // class_goals row — src/routes/classes.js and the two session-triggered
+        // paths in classGoalsEngine.js — resolves an academic year ("2025/26").
+        // The nightly WHERE term = ? therefore matched zero rows for every
+        // class, and recalculateClassGoalProgress early-returned 868 times a
+        // night. Production confirms it: class_goals holds only '2025/26' and
+        // a few stale 'Q2 2026' rows. The `genres` and `badges` metrics have no
+        // other reconciler, so they had drifted for four months.
+        const { recalculateClassGoalProgress, resolveAcademicYear } =
           await import('./utils/classGoalsEngine.js');
 
         let totalClassesProcessed = 0;
@@ -770,11 +795,6 @@ async function runScheduledTask(event, env, ctx) {
             break;
           }
 
-          const classes = await db
-            .prepare('SELECT id FROM classes WHERE organization_id = ? AND is_active = 1')
-            .bind(org.id)
-            .all();
-
           const termDatesResult = await db
             .prepare(
               'SELECT term_name, start_date, end_date, academic_year FROM term_dates WHERE organization_id = ? ORDER BY start_date'
@@ -783,21 +803,42 @@ async function runScheduledTask(event, env, ctx) {
             .all();
 
           const today = new Date().toISOString().split('T')[0];
-          const { term, startDate, endDate } = resolveCurrentTerm(
+          const { term, startDate, endDate } = resolveAcademicYear(
             termDatesResult.results || [],
             today
           );
 
-          for (const cls of classes.results || []) {
+          // Drive off class_goals, not classes. Walking every active class meant
+          // one query per class per night to discover it had no goals — with the
+          // term bug fixed that would now be 868 real recalcs competing for the
+          // same 22s budget as badge evaluation.
+          const classes = await db
+            .prepare(
+              'SELECT DISTINCT class_id FROM class_goals WHERE organization_id = ? AND term = ?'
+            )
+            .bind(org.id, term)
+            .all();
+
+          for (const row of classes.results || []) {
             if (Date.now() > deadlineMs) {
               goalsExhausted = true;
               break;
             }
             try {
-              await recalculateClassGoalProgress(db, cls.id, org.id, startDate, endDate, term);
+              await recalculateClassGoalProgress(
+                db,
+                row.class_id,
+                org.id,
+                startDate,
+                endDate,
+                term
+              );
               totalClassesProcessed++;
             } catch (err) {
-              console.error(`[Cron] Class goal recalc error for class ${cls.id}:`, err.message);
+              console.error(
+                `[Cron] Class goal recalc error for class ${row.class_id}:`,
+                err.message
+              );
             }
           }
           if (goalsExhausted) break;
@@ -870,11 +911,41 @@ async function runScheduledTask(event, env, ctx) {
 
   // ── Background metadata enrichment (every minute) ──
   if (event.cron === '*/1 * * * *') {
-    const bgJob = await db
-      .prepare(
-        "SELECT * FROM metadata_jobs WHERE background = 1 AND status IN ('pending', 'running') LIMIT 1"
-      )
-      .first();
+    let bgJob;
+    try {
+      bgJob = await db
+        .prepare(
+          "SELECT * FROM metadata_jobs WHERE background = 1 AND status IN ('pending', 'running') LIMIT 1"
+        )
+        .first();
+    } catch (err) {
+      // This probe reads a handful of rows in well under a millisecond, so a
+      // failure here is never our query — it's D1 being unreachable. Because
+      // the cron fires 1,440 times a day it is the first thing to notice a
+      // platform wobble, and captureException made it the thing that paged for
+      // one: TALLY-READING-5 logged 58 consecutive per-minute failures on
+      // 2026-07-16, each carrying a distinct Cloudflare incident handle
+      // (`D1_ERROR: internal error; reference = …`).
+      //
+      // console.warn, not captureException: consoleLoggingIntegration ships
+      // this to Sentry *Logs*, so the evidence is searchable but doesn't open
+      // an Issue and doesn't trip the "Worker errors" alert rule. Sustained
+      // failure is not swallowed — the heartbeat below stops being recorded and
+      // the watchdog reports the absence (src/utils/cronWatchdog.js). That is
+      // the split this repo already uses: transient noise is a log, absence is
+      // an alert.
+      console.warn(`[Cron] Metadata enrichment probe failed (D1 unreachable): ${err?.message}`);
+      return;
+    }
+
+    // Liveness heartbeat. Gated to 4x/hour rather than 60x — the watchdog only
+    // needs to know the cron is alive, and this job's whole point is to be
+    // cheap. `event.scheduledTime` is the slot Cloudflare intended, not
+    // Date.now(): triggers on this account drift 8-9 minutes, which would make
+    // a wall-clock check miss the :00/:15/:30/:45 slots entirely.
+    if (new Date(event.scheduledTime).getUTCMinutes() % 15 === 0) {
+      await recordCronSuccess(db, 'metadata-enrichment');
+    }
 
     if (bgJob) {
       console.log(
@@ -945,8 +1016,19 @@ async function runScheduledTask(event, env, ctx) {
     }
   }
 
-  // Demo environment reset — every hour on the hour
-  if (event.cron === '0 * * * *') {
+  // Demo environment reset — hourly at 7 past.
+  //
+  // 7 past, not on the hour: at '0 * * * *' this collided head-on with the
+  // 02:00 and 03:00 nightly jobs, so the heaviest write job in the system ran
+  // concurrently with the two next-heaviest, twice a night, on one D1 primary.
+  //
+  // THIS STRING APPEARS IN THREE PLACES AND THEY MUST MATCH: wrangler.toml
+  // [triggers], the `event.cron` test below, and `schedule.value` in the
+  // withMonitor options. Sentry silently rejects a check-in whose schedule
+  // disagrees with the monitor's, and withMonitor reports no error when it
+  // does — the monitor just stops working, exactly as documented in
+  // docs/sentry.md.
+  if (event.cron === '7 * * * *') {
     // Watchdog first, so a slow or failing demo reset can't stop the
     // nightly jobs' absence detection from being reported.
     await checkCronFreshness(db);
@@ -955,7 +1037,9 @@ async function runScheduledTask(event, env, ctx) {
       'demo-environment-reset',
       async () => {
         try {
-          await resetDemoData(env.READING_MANAGER_DB);
+          // KV enables hourly change detection — see resetDemoData. Without it
+          // the reset is unconditional, which is what it used to be.
+          await resetDemoData(env.READING_MANAGER_DB, env.READING_MANAGER_KV);
           console.log('[Cron] Demo environment reset complete');
         } catch (error) {
           console.error('[Cron] Demo reset failed:', error.message);
@@ -965,7 +1049,7 @@ async function runScheduledTask(event, env, ctx) {
         }
       },
       {
-        schedule: { type: 'crontab', value: '0 * * * *' },
+        schedule: { type: 'crontab', value: '7 * * * *' },
         timezone: 'Etc/UTC',
         checkinMargin: 15,
         maxRuntime: 15,

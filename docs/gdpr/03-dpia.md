@@ -464,7 +464,7 @@ The following security and privacy controls are already implemented in the codeb
 | Resource ownership checks | `requireOrgOwnership()` middleware validates resource belongs to user's org | `tenant.js:requireOrgOwnership()` |
 | Table name whitelist | Dynamic table names in ownership checks validated against `ALLOWED_OWNERSHIP_TABLES` set | `tenant.js` |
 | API key encryption | School AI API keys encrypted with AES-GCM using HKDF-derived key from JWT secret | `crypto.js:encryptSensitiveData()` |
-| Foreign key enforcement | `PRAGMA foreign_keys = ON` set per-request for D1 | `worker.js` line 143 |
+| Foreign key enforcement | Enforced by D1 by default (`PRAGMA foreign_keys` = 1 on local and production); verified by a rejected violating INSERT | D1 platform default |
 
 #### Network and Transport Security
 

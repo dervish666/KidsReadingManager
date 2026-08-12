@@ -38,6 +38,14 @@ const WATCHED_JOBS = [
   { jobName: 'streaks-and-gdpr-cleanup', maxAgeHours: 26, schedule: '02:00 UTC daily' },
   { jobName: 'badge-evaluation', maxAgeHours: 26, schedule: '02:30 UTC daily' },
   { jobName: 'wonde-school-sync', maxAgeHours: 26, schedule: '03:00 UTC daily' },
+  // The every-minute enrichment poller. It heartbeats 4x/hour (on the :00/:15/
+  // :30/:45 slots), so 2h is ~8 missed beats — comfortably clear of the 8-9 min
+  // trigger drift, and short enough to be useful for a job whose whole purpose
+  // is responsiveness. This entry is load-bearing: the poller's D1 probe now
+  // logs transient failures instead of capturing them (see the `*/1` branch in
+  // src/worker.js), so absence detection is the ONLY thing that reports a
+  // sustained outage. Remove one without the other and a dead poller is silent.
+  { jobName: 'metadata-enrichment', maxAgeHours: 2, schedule: 'every minute (heartbeat 4x/hour)' },
 ];
 
 /**

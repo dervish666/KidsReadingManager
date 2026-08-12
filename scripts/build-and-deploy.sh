@@ -71,8 +71,12 @@ npx wrangler d1 migrations apply reading-manager-db --remote $ENV_FLAG
 # Step 6: Deploy to Cloudflare Workers
 echo -e "${YELLOW}Deploying to Cloudflare Workers ($ENVIRONMENT environment)...${NC}"
 echo -e "${YELLOW}This will deploy both the API and the frontend...${NC}"
-APP_VERSION="$(node -p "require('./package.json').version")"
-wrangler deploy $ENV_FLAG --var "APP_VERSION:${APP_VERSION}"
+# No --var APP_VERSION: the Worker reads the bundled package.json version
+# directly (src/worker.js). A deploy-time var only tracks the version when the
+# deploy goes through this script, and production has been published by
+# Cloudflare Workers Builds (a bare version_upload) — which is how every Sentry
+# event ended up tagged tally-reading@dev.
+wrangler deploy $ENV_FLAG
 
 # Step 4: Verify deployment
 if [ $? -eq 0 ]; then

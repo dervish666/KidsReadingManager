@@ -236,7 +236,7 @@ All API requests pass through the following middleware chain in order
 3. Security headers middleware -- Applies headers listed in Section 6
 4. `errorHandler()` -- Catches and sanitises errors
 5. Authentication middleware -- JWT or legacy, auto-detected
-6. Foreign key enforcement -- `PRAGMA foreign_keys = ON` per request
+6. Foreign key enforcement -- on by default in D1 (verified: `PRAGMA foreign_keys` returns 1, and a violating INSERT is rejected with SQLITE_CONSTRAINT_FOREIGNKEY)
 7. `tenantMiddleware()` -- Organisation scoping and validation
 8. Route-specific RBAC middleware -- `requireAdmin()`, `requireTeacher()`, etc.
 9. Route handler
@@ -334,7 +334,7 @@ preserved for accountability while personal data is removed.
 
 | Database | Security Properties |
 |---|---|
-| D1 (primary) | Managed SQLite; automatic backups; encryption at rest (Cloudflare-managed); foreign key constraints enforced per request (`PRAGMA foreign_keys = ON`, `src/worker.js`, lines 142-151) |
+| D1 (primary) | Managed SQLite; automatic backups; encryption at rest (Cloudflare-managed); foreign key constraints enforced by default at the platform level |
 | KV (legacy) | Cloudflare-managed encryption at rest; used for legacy storage and recommendation caching |
 | R2 (object storage) | Cloudflare-managed encryption at rest; used for book cover image caching only (no personal data) |
 

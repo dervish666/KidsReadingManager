@@ -65,9 +65,14 @@ enabled = true
 
 # Cron triggers for scheduled tasks
 # Every minute - Background metadata enrichment (exits immediately if no job)
-# Every hour (minute 0) - Demo environment data reset
+# Every hour at :07 - Demo environment data reset + cron liveness watchdog
 # 2:00 AM UTC - Recalculate all student streaks + GDPR cleanup
 # 2:30 AM UTC - Batch badge evaluation (after streaks are recalculated)
 # 3:00 AM UTC - Wonde daily delta sync
+#
+# The demo reset is at :07 rather than :00 so it stops colliding with the 02:00
+# and 03:00 nightly jobs. Changing it means changing THREE places together —
+# here, the `event.cron` test in src/worker.js, and `schedule.value` in that
+# job's Sentry withMonitor options. A mismatch kills the monitor silently.
 [triggers]
-crons = ["*/1 * * * *", "0 * * * *", "0 2 * * *", "30 2 * * *", "0 3 * * *"]
+crons = ["*/1 * * * *", "7 * * * *", "0 2 * * *", "30 2 * * *", "0 3 * * *"]

@@ -219,18 +219,30 @@ export async function recalculateClassGoalProgress(db, classId, orgId, startDate
 
   const now = new Date().toISOString();
 
-  // 5. Build UPDATE statements for each goal
-  const updateStatements = goals.map((goal) => {
+  // 5. Build UPDATE statements, but only for goals that actually moved.
+  //
+  // All three callers reach here: the nightly cron, the session-save hook, and
+  // the polled GET /api/classes/:id/goals. That last one meant every page load
+  // and every poll rewrote all six rows for the class with identical values.
+  // Skipping the no-ops keeps the reads exactly as they were and removes the
+  // writes, which is the half that serialises on the D1 primary.
+  const updateStatements = [];
+  for (const goal of goals) {
     const newCurrent = countsByMetric[goal.metric] ?? goal.current;
     // Set achieved_at only when newly crossing the threshold
     let newAchievedAt = goal.achieved_at;
     if (newCurrent >= goal.target && goal.achieved_at === null) {
       newAchievedAt = now;
     }
-    return db
-      .prepare(`UPDATE class_goals SET current = ?, achieved_at = ? WHERE id = ?`)
-      .bind(newCurrent, newAchievedAt, goal.id);
-  });
+    if (newCurrent === goal.current && newAchievedAt === goal.achieved_at) continue;
+    updateStatements.push(
+      db
+        .prepare(`UPDATE class_goals SET current = ?, achieved_at = ? WHERE id = ?`)
+        .bind(newCurrent, newAchievedAt, goal.id)
+    );
+  }
+
+  if (updateStatements.length === 0) return;
 
   // 6. Batch all updates
   assertBatchSize(updateStatements, 'classGoals recalculate');

@@ -1,5 +1,20 @@
 # Changelog
 
+## [3.116.0] - 2026-08-12
+
+### Fixed
+
+- **Alert emails about database errors that were never ours to fix.** Tally runs a small check every minute to see whether there is any book-information work waiting. When Cloudflare's database service has a wobble — which it did for 58 minutes straight on 16 July, and briefly on 9 and 10 August — that check is simply the first thing to notice, so it was sending an alert every single minute of the outage. The errors carry Cloudflare's own incident references and were never caused by anything in Tally: the check reads six rows in a fraction of a millisecond, against a database holding fewer than a thousand reading sessions. Short outages are now recorded quietly instead of raising an alarm, while a check that genuinely stops working still reports itself within a couple of hours. Nothing was ever wrong with anyone's data.
+- **Two class goal measures had been drifting since April.** Goals update as reading sessions are logged, and that always worked. But an overnight pass exists to re-check them from scratch, and it was looking up goals under a calendar quarter ("Q3 2026") while every goal is actually filed under a school year ("2025/26"), so it matched nothing and quietly did nothing at all for four months. Sessions, books and readers were unaffected — they are counted as they happen — but *genres explored* and *badges earned* rely on that nightly pass and had fallen behind. It now runs properly, and only looks at classes that actually have goals set.
+- **Error reports were labelled with the wrong version.** Every report from the server arrived tagged "dev" rather than the release it came from, which meant the tools that translate errors back into readable code locations had nothing to match against — so faults showed up as unreadable machine addresses. The version is now baked into the app itself rather than attached at the moment of publishing, where it was being lost whenever the deploy came from a different route.
+
+### Changed
+
+- **The demo school now only rebuilds itself when someone has actually used it.** It was being wiped and restored from scratch every hour, around the clock, whether or not a single person had opened it — roughly 67,000 record writes a day to put back data that was already identical. It now checks first and skips when nothing has changed, with a rebuild forced at least every six hours regardless. Visitors still get a clean demo; the database does a fraction of the work.
+- **The hourly demo rebuild moved seven minutes past the hour**, so it no longer runs at exactly the same moment as the overnight streak and school-sync jobs.
+- **Faster recovery when the database is briefly unavailable.** If part of the demo rebuild failed, it used to retry every single record one at a time — thousands of them, at precisely the moment the database was least able to cope. It now retries the failed portion a few times and stops if the problem is real, rather than making a bad moment worse.
+- **Some redundant database housekeeping removed.** Three duplicate indexes on the school library table, and a per-request setting that turned out to have no effect, have been taken out. Every page load does one less database round-trip, and library changes do less redundant bookkeeping. Query behaviour is unchanged — verified against the live database before removal.
+
 ## [3.115.1] - 2026-08-04
 
 ### Fixed

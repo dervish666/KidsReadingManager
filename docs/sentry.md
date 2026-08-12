@@ -98,10 +98,35 @@ isn't there, and would report a real leak identically.
 Both sides tag the same release string, `tally-reading@<package.json version>`:
 
 - Frontend: injected at build time by rsbuild `source.define`.
-- Worker: injected at deploy time via `wrangler deploy --var APP_VERSION:$npm_package_version`.
+- Worker: read from the **bundled** `package.json` (the `APP_VERSION` const in
+  `src/worker.js`).
 
-Because the deploy flag reads `package.json`, there is no second place to bump —
-`/ship` bumps the version and both sides follow.
+Both sides therefore read `package.json`, so there is no second place to bump —
+`/ship` bumps the version and both follow.
+
+### Why the Worker version is not a deploy flag
+
+It used to be: `wrangler deploy --var APP_VERSION:$npm_package_version`, read as
+`env.APP_VERSION || 'dev'`. That only works when the deploy goes through
+`npm run deploy`. Cloudflare Workers Builds publishes with a bare
+`version_upload` and carries no `--var`, so the live Worker had no `APP_VERSION`
+binding at all and every production event was tagged **`tally-reading@dev`**
+while source maps were uploaded under `tally-reading@<version>`. Nothing
+symbolicated — which is why traces from that period show bundled frames like
+`worker.js:84640` instead of real file:line. First seen in the wild on
+TALLY-READING-5 (2026-04) and still true on 2026-08-12.
+
+**`/api/health` does not verify this.** It returns the bundled
+`packageJson.version` and read `3.115.1` correctly right through deploys that
+dropped `APP_VERSION` *and* published source maps publicly. To actually check:
+
+```bash
+npx wrangler deployments list                 # get the live version id
+npx wrangler versions view <version-id>       # inspect real bindings
+curl -sI https://tallyreading.uk/static/js/index.*.js.map   # must be 404
+```
+
+and confirm new Sentry events carry `release:tally-reading@<version>`.
 
 ## Environments
 
@@ -179,6 +204,15 @@ stays dead goes quiet after day one, which is precisely the failure the watchdog
 was built to catch. Its `watchdog is set` filter deliberately has no value, so
 it covers `stale`, `missing` **and** `self-failure` — the watchdog breaking
 reports itself.
+
+**The "Worker errors" rule fires on regressions, which is how transient D1
+noise reaches you.** It triggers on a new issue *or* a resolved→regressed one,
+so an issue you Resolve will email again the next time Cloudflare hiccups.
+**Archive** long-running platform-noise issues rather than resolving them —
+TALLY-READING-A was emailed on 2026-08-09 purely because it regressed. And note
+this rule is why cron D1 errors became visible at all in July 2026: the errors
+dated back to April, the notification did not. See the D1-transients gotcha in
+CLAUDE.md for why those must be logged rather than captured.
 
 **The `> 3 times in 1d` threshold is load-bearing.** `checkCronFreshness()` runs
 inside the hourly cron, so a stale job emits exactly **one event per hour** — any

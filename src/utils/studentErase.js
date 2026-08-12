@@ -7,8 +7,10 @@
  * badges and stats behind.
  *
  * FK order: child rows first, then the student row. Deletes are explicit
- * rather than relying on FK CASCADE — D1 only enforces foreign keys when
- * PRAGMA foreign_keys = ON is set per-connection.
+ * rather than relying on FK CASCADE. Not because D1 fails to enforce foreign
+ * keys — it does, by default — but because an explicit statement list is
+ * auditable: an Article 17 erasure has to be able to SAY what it deleted, and
+ * a CASCADE leaves no such record.
  */
 export function studentEraseStatements(db, studentId) {
   return [

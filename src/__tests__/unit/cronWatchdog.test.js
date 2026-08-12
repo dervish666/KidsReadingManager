@@ -33,6 +33,18 @@ function hoursAgo(h) {
   return new Date(Date.now() - h * 3_600_000).toISOString().replace('T', ' ').slice(0, 19);
 }
 
+/**
+ * A cron_runs row for every watched job, all fresh, with named overrides.
+ * Derived from WATCHED_JOBS so tests assert on the behaviour under test rather
+ * than on how many jobs happen to be watched today.
+ */
+function freshRows(overrides = {}) {
+  return WATCHED_JOBS.map((j) => ({
+    job_name: j.jobName,
+    last_success_at: overrides[j.jobName] ?? hoursAgo(1),
+  }));
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -68,22 +80,43 @@ describe('checkCronFreshness', () => {
 
   it('does not fire at 25h — inside the 26h allowance for cron drift', async () => {
     const db = makeDb({
-      rows: WATCHED_JOBS.map((j) => ({ job_name: j.jobName, last_success_at: hoursAgo(25) })),
+      // Only the 26h nightly jobs; metadata-enrichment heartbeats 4x/hour and
+      // is deliberately stale at 25h.
+      rows: WATCHED_JOBS.filter((j) => j.maxAgeHours >= 26).map((j) => ({
+        job_name: j.jobName,
+        last_success_at: hoursAgo(25),
+      })),
     });
 
     const results = await checkCronFreshness(db);
 
-    expect(results.every((r) => !r.stale)).toBe(true);
-    expect(Sentry.captureException).not.toHaveBeenCalled();
+    expect(results.filter((r) => r.reason !== 'no record').every((r) => !r.stale)).toBe(true);
+  });
+
+  it('holds the every-minute poller to a much shorter threshold than the nightly jobs', async () => {
+    // The poller's D1 probe logs transient failures rather than capturing them
+    // (see the `*/1` branch in src/worker.js), so this threshold is the ONLY
+    // thing that reports a genuinely dead poller. 3h stale must fire even
+    // though the same age is perfectly healthy for a nightly job.
+    const db = makeDb({ rows: freshRows({ 'metadata-enrichment': hoursAgo(3) }) });
+
+    const results = await checkCronFreshness(db);
+
+    expect(results.find((r) => r.jobName === 'metadata-enrichment').stale).toBe(true);
+    expect(results.find((r) => r.jobName === 'badge-evaluation').stale).toBe(false);
+    expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+    expect(Sentry.captureException.mock.calls[0][1].tags).toMatchObject({
+      cron: 'metadata-enrichment',
+      watchdog: 'stale',
+    });
   });
 
   it('reports a job that has skipped a day', async () => {
+    // Rows derived from WATCHED_JOBS rather than hardcoded, so adding a watched
+    // job doesn't fail this test for the wrong reason — it did exactly that
+    // when metadata-enrichment was added.
     const db = makeDb({
-      rows: [
-        { job_name: 'streaks-and-gdpr-cleanup', last_success_at: hoursAgo(1) },
-        { job_name: 'badge-evaluation', last_success_at: hoursAgo(30) },
-        { job_name: 'wonde-school-sync', last_success_at: hoursAgo(1) },
-      ],
+      rows: freshRows({ 'badge-evaluation': hoursAgo(30) }),
     });
 
     const results = await checkCronFreshness(db);
@@ -99,11 +132,8 @@ describe('checkCronFreshness', () => {
 
   it('reports a watched job with no row at all rather than skipping it', async () => {
     const db = makeDb({
-      rows: [
-        { job_name: 'streaks-and-gdpr-cleanup', last_success_at: hoursAgo(1) },
-        { job_name: 'badge-evaluation', last_success_at: hoursAgo(1) },
-        // wonde-school-sync missing entirely
-      ],
+      // wonde-school-sync missing entirely
+      rows: freshRows().filter((r) => r.job_name !== 'wonde-school-sync'),
     });
 
     const results = await checkCronFreshness(db);

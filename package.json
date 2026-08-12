@@ -1,6 +1,6 @@
 {
   "name": "tally-reading",
-  "version": "3.115.1",
+  "version": "3.116.0",
   "description": "Cloudflare Workers implementation of Tally Reading API",
   "main": "src/index.js",
   "engines": {
@@ -14,7 +14,7 @@
     "start:dev": "concurrently -n worker,frontend -c blue,green \"npm run dev\" \"npm run start\"",
     "seed:local": "node scripts/seed-local.js",
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy --var APP_VERSION:$npm_package_version",
+    "deploy": "wrangler deploy",
     "migrate": "node scripts/migration.js",
     "build": "rsbuild build",
     "build:deploy": "./scripts/build-and-deploy.sh",

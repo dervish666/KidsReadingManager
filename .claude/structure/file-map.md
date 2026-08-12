@@ -83,7 +83,7 @@ src/services/aiService.js - AI recommendation generation (Anthropic/OpenAI/Googl
 src/services/kvService.js - KV storage operations (legacy)
 src/services/wondeSync.js - Wonde delta/full sync orchestration
 src/services/metadataService.js - Cascade engine (enrichBook, processBatch) for multi-provider metadata enrichment
-src/services/demoReset.js - Hourly demo environment reset (FK-safe delete + snapshot re-insert)
+src/services/demoReset.js - Hourly demo environment reset (FK-safe delete + snapshot re-insert); skips entirely when a KV-stored fingerprint shows the demo org is unchanged
 src/services/orgPurge.js - Cascade hard-delete all org data (26 tables FK-safe), anonymise org row
 src/services/providers/openLibraryProvider.js - OpenLibrary server-side adapter (no API key)
 src/services/providers/googleBooksProvider.js - Google Books server-side adapter (requires API key)
