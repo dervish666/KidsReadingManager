@@ -260,7 +260,13 @@ const Login = ({ onBackToLanding } = {}) => {
             variant="contained"
             size="large"
             onClick={() => {
-              window.location.href = '/api/auth/mylogin/login';
+              // `?school=<mylogin-slug>` skips MyLogin's national organisation
+              // picker and drops the teacher on their own school's login page,
+              // so a school can hand staff a link that just works.
+              const school = new URLSearchParams(window.location.search).get('school');
+              window.location.href = school
+                ? `/api/auth/mylogin/login?organisation=${encodeURIComponent(school)}`
+                : '/api/auth/mylogin/login';
             }}
             sx={{
               height: 52,

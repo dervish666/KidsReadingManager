@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.117.0] - 2026-08-12
+
+### Fixed
+
+- **Staff without an email address could not sign in with MyLogin.** MyLogin treats a member of staff's email as optional — teaching assistants and support staff frequently have none recorded in the school's management system — but Tally insisted on one, so those sign-ins failed with nothing more useful than "an unexpected error occurred". Staff with no address on file now get an account with a clearly marked placeholder that can never receive mail, and an existing member of staff whose address is temporarily missing from MyLogin keeps the one already on record instead of being locked out.
+- **Signing in with MyLogin failed for anyone who already had a Tally account.** If a teacher had been set up by hand with an email address and password, their first MyLogin sign-in collided with that account and stopped with the same unhelpful "unexpected error". Their existing account is now recognised and linked to their MyLogin identity, keeping everything already attached to it. Where the match is genuinely ambiguous — the address belongs to someone at a different school, or to a different MyLogin account — the sign-in is refused with an explanation of what to do, rather than a shrug.
+- **A member of staff who moves school can no longer land in the wrong one.** If someone's Tally account is registered to a different school than the one MyLogin signed them in for, they are now told so instead of being shown their previous school's classes and children.
+- **A sign-in that happened to be in progress at 2am is no longer interrupted.** Overnight housekeeping was clearing sign-in sessions slightly sooner than the sign-in itself would still accept them, so anyone caught in that narrow window was sent back to the start.
+
+### Added
+
+- **A school can now link straight to its own MyLogin sign-in page.** Adding `?school=<name>` to the Tally address takes staff directly to their school's login screen instead of MyLogin's national school picker, so nobody has to hunt for their school in a search box.
+
 ## [3.116.0] - 2026-08-12
 
 ### Fixed

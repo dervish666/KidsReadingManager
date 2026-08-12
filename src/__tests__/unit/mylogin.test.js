@@ -204,6 +204,29 @@ describe('MyLogin OAuth Routes', () => {
       expect(options).toEqual({ expirationTtl: 300 });
     });
 
+    it('passes an organisation hint through to MyLogin so the picker is skipped', async () => {
+      const res = await app.request(
+        '/api/auth/mylogin/login?organisation=cheddar-grove-primary-school',
+        { method: 'GET' },
+        env
+      );
+
+      const location = new URL(res.headers.get('Location'));
+      expect(location.searchParams.get('organisation')).toBe('cheddar-grove-primary-school');
+    });
+
+    it('drops a malformed organisation hint rather than forwarding it', async () => {
+      const res = await app.request(
+        `/api/auth/mylogin/login?organisation=${encodeURIComponent('../evil?x=1')}`,
+        { method: 'GET' },
+        env
+      );
+
+      const location = new URL(res.headers.get('Location'));
+      expect(location.origin + location.pathname).toBe('https://app.mylogin.com/oauth/authorize');
+      expect(location.searchParams.get('organisation')).toBeNull();
+    });
+
     it('uses a unique state parameter for CSRF protection', async () => {
       await app.request('/api/auth/mylogin/login', { method: 'GET' }, env);
 
@@ -263,6 +286,7 @@ describe('MyLogin OAuth Routes', () => {
         orgFound = true,
         orgActive = true,
         existingUser = null,
+        emailOwner = null,
         employeeClasses = [],
       } = options;
 
@@ -291,8 +315,17 @@ describe('MyLogin OAuth Routes', () => {
           };
         }
 
+        // Find user by email (the local-account link path)
+        if (sql.includes('SELECT') && sql.includes('users') && sql.includes('lower(email)')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              first: vi.fn().mockResolvedValue(emailOwner),
+            }),
+          };
+        }
+
         // Find user by mylogin_id
-        if (sql.includes('SELECT') && sql.includes('users') && sql.includes('mylogin_id')) {
+        if (sql.includes('SELECT') && sql.includes('users') && sql.includes('WHERE mylogin_id')) {
           return {
             bind: vi.fn().mockReturnValue({
               first: vi.fn().mockResolvedValue(existingUser),
@@ -747,6 +780,231 @@ describe('MyLogin OAuth Routes', () => {
         (call) => call[0].includes('UPDATE users') && call[0].includes('is_active')
       );
       expect(reactivate).toBeUndefined();
+    });
+
+    // -----------------------------------------------------------------------
+    // Local account already holding the address (users.email is UNIQUE globally)
+    // -----------------------------------------------------------------------
+    it('links a local account with the same email instead of colliding on INSERT', async () => {
+      setupFetchMock();
+      setupDbForCallback({
+        orgFound: true,
+        existingUser: null,
+        emailOwner: {
+          id: 'local-user-id',
+          organization_id: 'org-id-1',
+          role: 'teacher',
+          is_active: 1,
+          mylogin_id: null,
+        },
+      });
+      env.READING_MANAGER_KV.get.mockResolvedValue('1');
+
+      const res = await app.request(
+        '/api/auth/mylogin/callback?code=code&state=state',
+        { method: 'GET' },
+        env
+      );
+
+      expect(res.headers.get('Location')).toBe('/?auth=callback');
+
+      // Adopted the existing row rather than inserting a duplicate
+      const insert = env.READING_MANAGER_DB.prepare.mock.calls.find((call) =>
+        call[0].includes('INSERT INTO users')
+      );
+      expect(insert).toBeUndefined();
+
+      const update = env.READING_MANAGER_DB.prepare.mock.calls.find((call) =>
+        call[0].includes('UPDATE users SET')
+      );
+      expect(update).toBeDefined();
+      expect(update[0]).toContain('mylogin_id = ?');
+      expect(update[0]).toContain("auth_provider = 'mylogin'");
+    });
+
+    it('refuses when the email belongs to a user in another organisation', async () => {
+      setupFetchMock();
+      setupDbForCallback({
+        orgFound: true,
+        existingUser: null,
+        emailOwner: {
+          id: 'other-org-user',
+          organization_id: 'some-other-org',
+          role: 'admin',
+          is_active: 1,
+          mylogin_id: null,
+        },
+      });
+      env.READING_MANAGER_KV.get.mockResolvedValue('1');
+
+      const res = await app.request(
+        '/api/auth/mylogin/callback?code=code&state=state',
+        { method: 'GET' },
+        env
+      );
+
+      expect(res.headers.get('Location')).toBe('/?auth=error&reason=email_conflict');
+
+      // Must not re-home them into the MyLogin org, nor insert a second row
+      const writes = env.READING_MANAGER_DB.prepare.mock.calls.filter(
+        (call) => call[0].includes('UPDATE users SET') || call[0].includes('INSERT INTO users')
+      );
+      expect(writes).toHaveLength(0);
+    });
+
+    it('refuses when the email is already bound to a different MyLogin identity', async () => {
+      setupFetchMock();
+      setupDbForCallback({
+        orgFound: true,
+        existingUser: null,
+        emailOwner: {
+          id: 'sso-user',
+          organization_id: 'org-id-1',
+          role: 'teacher',
+          is_active: 1,
+          mylogin_id: 'ml-someone-else',
+        },
+      });
+      env.READING_MANAGER_KV.get.mockResolvedValue('1');
+
+      const res = await app.request(
+        '/api/auth/mylogin/callback?code=code&state=state',
+        { method: 'GET' },
+        env
+      );
+
+      expect(res.headers.get('Location')).toBe('/?auth=error&reason=email_conflict');
+    });
+
+    it('refuses a deactivated local account matched by email', async () => {
+      setupFetchMock();
+      setupDbForCallback({
+        orgFound: true,
+        existingUser: null,
+        emailOwner: {
+          id: 'local-user-id',
+          organization_id: 'org-id-1',
+          role: 'teacher',
+          is_active: 0,
+          mylogin_id: null,
+        },
+      });
+      env.READING_MANAGER_KV.get.mockResolvedValue('1');
+
+      const res = await app.request(
+        '/api/auth/mylogin/callback?code=code&state=state',
+        { method: 'GET' },
+        env
+      );
+
+      expect(res.headers.get('Location')).toBe('/?auth=error&reason=account_inactive');
+    });
+
+    it('refuses an SSO user whose row belongs to a different organisation', async () => {
+      setupFetchMock();
+      setupDbForCallback({
+        orgFound: true,
+        existingUser: {
+          id: 'moved-user',
+          organization_id: 'previous-school-org',
+          name: 'Jane Smith',
+          email: 'jane.smith@school.org',
+          role: 'teacher',
+          mylogin_id: 'ml-user-123',
+          is_active: 1,
+        },
+      });
+      env.READING_MANAGER_KV.get.mockResolvedValue('1');
+
+      const res = await app.request(
+        '/api/auth/mylogin/callback?code=code&state=state',
+        { method: 'GET' },
+        env
+      );
+
+      // Signing them in would scope the JWT to their previous school's children
+      expect(res.headers.get('Location')).toBe('/?auth=error&reason=school_mismatch');
+      expect(createRefreshToken).not.toHaveBeenCalled();
+    });
+
+    // -----------------------------------------------------------------------
+    // MyLogin sends no email (documented nullable; users.email is NOT NULL)
+    // -----------------------------------------------------------------------
+    it('inserts a reserved placeholder address when MyLogin sends no email', async () => {
+      setupFetchMock(makeUserProfile({ email: null }));
+      setupDbForCallback({ orgFound: true, existingUser: null });
+      env.READING_MANAGER_KV.get.mockResolvedValue('1');
+
+      let insertBind;
+      const originalPrepare = env.READING_MANAGER_DB.prepare.getMockImplementation();
+      env.READING_MANAGER_DB.prepare.mockImplementation((sql) => {
+        const stmt = originalPrepare(sql);
+        if (sql.includes('INSERT INTO users')) {
+          return {
+            bind: vi.fn().mockImplementation((...args) => {
+              insertBind = args;
+              return { run: vi.fn().mockResolvedValue({ success: true }) };
+            }),
+          };
+        }
+        return stmt;
+      });
+
+      const res = await app.request(
+        '/api/auth/mylogin/callback?code=code&state=state',
+        { method: 'GET' },
+        env
+      );
+
+      expect(res.headers.get('Location')).toBe('/?auth=callback');
+      // id, organization_id, name, email, ...
+      expect(insertBind[3]).toBe('mylogin-ml-user-123@no-email.invalid');
+    });
+
+    it('keeps the stored email when MyLogin omits it for an existing user', async () => {
+      setupFetchMock(makeUserProfile({ email: null }));
+      setupDbForCallback({
+        orgFound: true,
+        existingUser: {
+          id: 'existing-user-id',
+          organization_id: 'org-id-1',
+          name: 'Jane Smith',
+          email: 'jane.smith@school.org',
+          role: 'teacher',
+          mylogin_id: 'ml-user-123',
+          is_active: 1,
+        },
+      });
+      env.READING_MANAGER_KV.get.mockResolvedValue('1');
+
+      const res = await app.request(
+        '/api/auth/mylogin/callback?code=code&state=state',
+        { method: 'GET' },
+        env
+      );
+
+      expect(res.headers.get('Location')).toBe('/?auth=callback');
+
+      // COALESCE(?, email) with a null bind — a NOT NULL violation here would
+      // lock an existing user out entirely.
+      const update = env.READING_MANAGER_DB.prepare.mock.calls.find((call) =>
+        call[0].includes('UPDATE users SET')
+      );
+      expect(update[0]).toContain('email = COALESCE(?, email)');
+    });
+
+    it('does not look up an email owner when MyLogin sends no email', async () => {
+      setupFetchMock(makeUserProfile({ email: null }));
+      setupDbForCallback({ orgFound: true, existingUser: null });
+      env.READING_MANAGER_KV.get.mockResolvedValue('1');
+
+      await app.request('/api/auth/mylogin/callback?code=code&state=state', { method: 'GET' }, env);
+
+      // A null email must not match every other user with a null-ish address
+      const emailLookup = env.READING_MANAGER_DB.prepare.mock.calls.find((call) =>
+        call[0].includes('lower(email)')
+      );
+      expect(emailLookup).toBeUndefined();
     });
 
     // -----------------------------------------------------------------------

@@ -45,6 +45,36 @@ const STAFF_ROLE_BY_MYLOGIN_TYPE = {
   employee: 'teacher',
 };
 
+/**
+ * MyLogin organisation slugs/encoded IDs are `[A-Za-z0-9-]` — a slug like
+ * `cheddar-grove-primary-school` or an encoded ID like `A929572862`.
+ */
+const MYLOGIN_ORG_REF = /^[A-Za-z0-9-]{1,100}$/;
+
+/**
+ * Resolve the role to store for a user who already exists in Tally.
+ *
+ * Demotions and lateral moves follow the IdP; elevations are refused, so a
+ * change on MyLogin's side can never hand someone more access than an admin
+ * granted them here.
+ */
+function resolveRole(currentRole, idpRole, myloginId) {
+  const currentLevel = ROLE_HIERARCHY[currentRole] || 0;
+  const idpLevel = ROLE_HIERARCHY[idpRole] || 0;
+
+  if (idpLevel > currentLevel) {
+    console.warn(
+      `[MyLogin] Blocked role elevation for mylogin_id ${myloginId}: IdP wants ${idpRole} but user has ${currentRole}. Keeping existing role.`
+    );
+    return currentRole;
+  }
+
+  if (currentRole !== idpRole) {
+    console.log(`[MyLogin] Role changed for mylogin_id ${myloginId}: ${currentRole} → ${idpRole}`);
+  }
+  return idpRole;
+}
+
 // ---------------------------------------------------------------------------
 // GET /login
 // ---------------------------------------------------------------------------
@@ -68,6 +98,20 @@ myloginRouter.get('/login', async (c) => {
   authorizeUrl.searchParams.set('redirect_uri', c.env.MYLOGIN_REDIRECT_URI);
   authorizeUrl.searchParams.set('response_type', 'code');
   authorizeUrl.searchParams.set('state', state);
+
+  // Optional school hint. Without it MyLogin shows its national organisation
+  // picker and the teacher has to find their own school in a search box; with
+  // it they land straight on their school's login page. Passed through from
+  // `/?school=<slug>` on our side (see src/components/Login.js), so a school can
+  // bookmark a link that skips the picker entirely.
+  const orgRef = (c.req.query('organisation') || '').trim();
+  if (orgRef) {
+    if (MYLOGIN_ORG_REF.test(orgRef)) {
+      authorizeUrl.searchParams.set('organisation', orgRef);
+    } else {
+      console.warn('[MyLogin] Ignoring malformed organisation hint:', orgRef);
+    }
+  }
 
   return c.redirect(authorizeUrl.toString());
 });
@@ -183,7 +227,11 @@ myloginRouter.get('/callback', async (c) => {
     // -----------------------------------------------------------------------
     const myloginId = profile.id;
     const name = `${profile.first_name} ${profile.last_name}`.trim();
-    const email = profile.email;
+    // MyLogin documents `email` as nullable — support staff and TAs routinely
+    // have no address in the MIS. `users.email` is UNIQUE NOT NULL, so binding
+    // the null straight through failed the INSERT (and wiped the address on
+    // UPDATE), surfacing as a bare "unexpected error" at the login screen.
+    const email = profile.email?.trim() || null;
     const userType = profile.type;
     const wondeEmployeeId = profile.service_providers?.wonde?.service_provider_id || null;
     const wondeSchoolId = profile.organisation?.wonde_id || null;
@@ -257,45 +305,105 @@ myloginRouter.get('/callback', async (c) => {
       return c.redirect('/?auth=error&reason=account_inactive');
     }
 
-    if (existingUser) {
+    // The stored row is the tenant boundary: the JWT is scoped to its
+    // organization_id, not to the org MyLogin just authenticated for. If those
+    // ever disagree (a member of staff who moved school keeping their MyLogin
+    // identity), signing them in would hand them their previous school's
+    // children. Re-homing the row silently is worse, so refuse and say so.
+    if (existingUser && existingUser.organization_id !== org.id) {
+      console.error('[MyLogin] User is registered to a different organisation', {
+        myloginId,
+        userId: existingUser.id,
+        userOrgId: existingUser.organization_id,
+        myloginOrgId: org.id,
+      });
+      return c.redirect('/?auth=error&reason=school_mismatch');
+    }
+
+    // No row for this MyLogin identity yet — but the same person may already
+    // exist as a local email/password account (created by hand before SSO went
+    // live). `users.email` is UNIQUE *globally*, so falling straight through to
+    // the INSERT collided and surfaced as reason=internal. Adopt the row instead
+    // when it is unambiguously the same person in the same school; anything else
+    // is reported rather than guessed at.
+    let linkedUser = null;
+    if (!existingUser && email) {
+      // Case-insensitive: the UNIQUE index is case-sensitive, so a differently
+      // cased address would otherwise INSERT a second row for the same person.
+      const emailOwner = await db
+        .prepare(
+          'SELECT id, organization_id, role, is_active, mylogin_id FROM users WHERE lower(email) = lower(?)'
+        )
+        .bind(email)
+        .first();
+
+      if (emailOwner) {
+        if (emailOwner.mylogin_id) {
+          // Already bound to a different MyLogin identity — two people, one
+          // address, or a duplicate MyLogin account. Not ours to resolve.
+          console.error('[MyLogin] Email already linked to another MyLogin account', {
+            myloginId,
+            email,
+            existingMyloginId: emailOwner.mylogin_id,
+          });
+          return c.redirect('/?auth=error&reason=email_conflict');
+        }
+        if (emailOwner.organization_id !== org.id) {
+          // The manual/synced org split: the same teacher exists under a
+          // different school. Moving them would silently re-home their data.
+          console.error('[MyLogin] Email belongs to a user in a different organisation', {
+            myloginId,
+            email,
+            userOrgId: emailOwner.organization_id,
+            myloginOrgId: org.id,
+          });
+          return c.redirect('/?auth=error&reason=email_conflict');
+        }
+        if (!emailOwner.is_active) {
+          console.error('[MyLogin] Deactivated local user attempted SSO login', {
+            myloginId,
+            userId: emailOwner.id,
+          });
+          return c.redirect('/?auth=error&reason=account_inactive');
+        }
+        linkedUser = emailOwner;
+      }
+    }
+
+    const currentUser = existingUser || linkedUser;
+
+    if (currentUser) {
       // Update existing user — sync name and email from IdP.
       // Role: allow demotions and lateral moves, but never auto-elevate.
-      userId = existingUser.id;
-      const idpRole = role; // mapped from MyLogin profile type
-      const currentLevel = ROLE_HIERARCHY[existingUser.role] || 0;
-      const idpLevel = ROLE_HIERARCHY[idpRole] || 0;
-      let effectiveRole = existingUser.role;
+      userId = currentUser.id;
+      const effectiveRole = resolveRole(currentUser.role, role, myloginId);
 
-      if (idpLevel <= currentLevel) {
-        // Same or lower privilege — safe to sync from IdP
-        effectiveRole = idpRole;
-      } else {
-        // IdP wants to elevate — keep existing role and log warning
-        console.warn(
-          `[MyLogin] Blocked role elevation for mylogin_id ${myloginId}: IdP wants ${idpRole} but user has ${existingUser.role}. Keeping existing role.`
-        );
-      }
-
-      if (existingUser.role !== effectiveRole) {
+      if (linkedUser) {
         console.log(
-          `[MyLogin] Role changed for mylogin_id ${myloginId}: ${existingUser.role} → ${effectiveRole}`
+          `[MyLogin] Linked existing local account ${userId} to mylogin_id ${myloginId} by email`
         );
       }
-      // Refresh wonde_employee_id from the current profile (COALESCE keeps the
-      // stored value if MyLogin omits it on a later login). Users created before
-      // their Wonde linkage existed otherwise keep a stale/null id forever, which
+
+      // COALESCE on email as well as wonde_employee_id: MyLogin may omit either
+      // on a later login, and neither absence should overwrite what we hold (the
+      // NOT NULL email would fail the statement outright and lock the user out).
+      // Refreshing wonde_employee_id matters because users created before their
+      // Wonde linkage existed otherwise keep a stale/null id forever, which
       // breaks class auto-assignment and the nightly Wonde delta sync.
       await db
         .prepare(
-          `UPDATE users SET name = ?, email = ?, role = ?, wonde_employee_id = COALESCE(?, wonde_employee_id), last_login_at = datetime("now"), updated_at = datetime("now")
+          `UPDATE users SET name = ?, email = COALESCE(?, email), role = ?, mylogin_id = ?, auth_provider = 'mylogin', wonde_employee_id = COALESCE(?, wonde_employee_id), last_login_at = datetime("now"), updated_at = datetime("now")
          WHERE id = ?`
         )
-        .bind(name, email, effectiveRole, wondeEmployeeId, userId)
+        .bind(name, email, effectiveRole, String(myloginId), wondeEmployeeId, userId)
         .run();
     } else {
       // Create new user
       userId = generateId();
       const placeholderHash = crypto.randomUUID(); // placeholder password hash
+      // .invalid is reserved (RFC 2606) so a synthesised address can never be
+      // mistaken for a real one or bounce mail at anybody.
+      const emailForInsert = email || `mylogin-${myloginId}@no-email.invalid`;
 
       await db
         .prepare(
@@ -306,7 +414,7 @@ myloginRouter.get('/callback', async (c) => {
           userId,
           org.id,
           name,
-          email,
+          emailForInsert,
           String(myloginId),
           wondeEmployeeId,
           'mylogin',

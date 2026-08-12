@@ -583,8 +583,12 @@ async function runScheduledTask(event, env, ctx) {
         .run();
       console.log(`[Cron] Cleaned up ${oldRateLimits.meta?.changes || 0} stale rate limit records`);
 
+      // 10 minutes, matching the window the MyLogin callback will still accept a
+      // state in (src/routes/mylogin.js). At 5 it could delete a state that was
+      // still valid, bouncing a teacher who happened to be mid-login at 2am back
+      // through the whole OAuth flow.
       const expiredStates = await db
-        .prepare(`DELETE FROM oauth_state WHERE created_at < datetime('now', '-5 minutes')`)
+        .prepare(`DELETE FROM oauth_state WHERE created_at < datetime('now', '-10 minutes')`)
         .run();
       if (expiredStates.meta?.changes > 0) {
         console.log(`[Cron] Cleaned up ${expiredStates.meta.changes} expired OAuth states`);

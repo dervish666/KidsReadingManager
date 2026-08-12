@@ -162,6 +162,10 @@ export const AuthProvider = ({ children }) => {
             "Your school's Tally Reading account is currently inactive. Please ask your school administrator to get in touch with us.",
           account_inactive:
             'Your Tally Reading account has been deactivated. Please contact your school administrator.',
+          email_conflict:
+            'Your email address is already used by another Tally Reading account. Please ask your school administrator to get in touch with us so we can link them.',
+          school_mismatch:
+            'Your Tally Reading account is registered to a different school. Please ask your school administrator to get in touch with us.',
           staff_only:
             'Tally Reading is for school staff only, so you cannot sign in with a pupil account. If you are a member of staff, please ask your school administrator to check your MyLogin account type.',
           internal: 'An unexpected error occurred. Please try again.',
