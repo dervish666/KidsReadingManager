@@ -207,6 +207,39 @@ describe('recalculateClassGoalProgress', () => {
     ]);
   });
 
+  it('counts badges earned on the final day of the goal window', async () => {
+    // earned_at is a full ISO timestamp while endDate is a plain date, so
+    // `earned_at <= '2026-07-17'` was false for '2026-07-17T09:14:02Z' and every
+    // badge won on the last day of the academic year went uncounted.
+    let badgesSql = '';
+    const mockDb = {
+      prepare: vi.fn((sql) => {
+        if (sql.includes('student_badges')) badgesSql = sql;
+        return {
+          bind: vi.fn(() => ({
+            first: vi.fn(() => null),
+            all: vi.fn(() =>
+              sql.includes('class_goals')
+                ? {
+                    results: [
+                      { id: 'g1', metric: 'badges', target: 10, current: 0, achieved_at: null },
+                    ],
+                  }
+                : { results: [] }
+            ),
+            run: vi.fn(),
+          })),
+        };
+      }),
+      batch: vi.fn(),
+    };
+
+    await recalculateClassGoalProgress(mockDb, 'c1', 'org1', '2025-09-02', '2026-07-17', '2025/26');
+
+    expect(badgesSql).toContain("date(?4, '+1 day')");
+    expect(badgesSql).not.toContain('sb.earned_at <= ?4');
+  });
+
   it('writes nothing when every counter already matches — no-op recalcs must not touch D1', async () => {
     // GET /api/classes/:id/goals recalculates on every poll. Without this
     // guard each page load rewrote all six rows of a class with the values

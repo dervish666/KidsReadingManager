@@ -18,6 +18,7 @@ import {
   buildRefreshCookie,
   buildClearRefreshCookie,
   ROLE_HIERARCHY,
+  ROLES,
 } from '../utils/crypto.js';
 import { generateId } from '../utils/helpers.js';
 import { syncUserClassAssignments } from '../utils/classAssignments.js';
@@ -56,7 +57,18 @@ const MYLOGIN_ORG_REF = /^[A-Za-z0-9-]{1,100}$/;
  *
  * Demotions and lateral moves follow the IdP; elevations are refused, so a
  * change on MyLogin's side can never hand someone more access than an admin
- * granted them here.
+ * granted them here — and, symmetrically, it can never take away an elevated
+ * role Tally granted.
+ *
+ * That second half is why `admin` and `owner` are pinned. MyLogin's profile
+ * type only maps to admin or teacher (STAFF_ROLE_BY_MYLOGIN_TYPE), and most
+ * staff are `employee` → teacher. Without the pin, the first SSO login of a
+ * school whose Tally account was created by hand — self-signup makes the head
+ * an `owner` (src/routes/auth/register.js), and admins are created in
+ * src/routes/users.js — silently demoted them to teacher, losing user
+ * management, class management and billing. Re-elevating in Tally didn't stick
+ * either: the next login demoted them again. Demoting an admin is a decision
+ * for a Tally admin, in Tally.
  */
 function resolveRole(currentRole, idpRole, myloginId) {
   const currentLevel = ROLE_HIERARCHY[currentRole] || 0;
@@ -65,6 +77,13 @@ function resolveRole(currentRole, idpRole, myloginId) {
   if (idpLevel > currentLevel) {
     console.warn(
       `[MyLogin] Blocked role elevation for mylogin_id ${myloginId}: IdP wants ${idpRole} but user has ${currentRole}. Keeping existing role.`
+    );
+    return currentRole;
+  }
+
+  if (currentLevel >= ROLE_HIERARCHY[ROLES.ADMIN] && idpLevel < currentLevel) {
+    console.warn(
+      `[MyLogin] Blocked role demotion for mylogin_id ${myloginId}: IdP wants ${idpRole} but user is ${currentRole} in Tally. Change it in Tally if that is wrong.`
     );
     return currentRole;
   }
@@ -370,17 +389,70 @@ myloginRouter.get('/callback', async (c) => {
       }
     }
 
+    // Second key, for exactly the staff the email fix was written for: no
+    // address in the MIS means no email to match on, so the branch above cannot
+    // run and the INSERT creates a SECOND row for someone who already exists —
+    // split sessions, split audit trail, two entries in the school's user list,
+    // and a UNIQUE collision waiting for the day the MIS records their address.
+    // The Wonde employee id is the same person by construction (the nightly
+    // sync writes it, src/services/wondeSync.js) and is org-scoped, so match on
+    // it. Only ever an ADDITION to the email path: an unlinked, active row in
+    // this same organisation.
+    if (!existingUser && !linkedUser && wondeEmployeeId) {
+      const wondeOwner = await db
+        .prepare(
+          'SELECT id, organization_id, role, is_active, mylogin_id FROM users WHERE wonde_employee_id = ? AND organization_id = ? AND mylogin_id IS NULL AND is_active = 1'
+        )
+        .bind(String(wondeEmployeeId), org.id)
+        .first();
+
+      if (wondeOwner) {
+        console.log(
+          `[MyLogin] Matched existing account ${wondeOwner.id} by wonde_employee_id ${wondeEmployeeId} (no email on the MyLogin profile)`
+        );
+        linkedUser = wondeOwner;
+      }
+    }
+
+    // The adoption guard above only runs for a brand-new MyLogin identity. An
+    // identity we already know goes straight to the UPDATE, which binds a
+    // MyLogin-supplied address into a globally-UNIQUE NOT NULL column — so it
+    // can still collide, and the bare catch at the bottom of this handler turns
+    // that into the same unactionable `reason=internal` this whole change set
+    // out to remove. It is reachable by ordinary means: a member of staff with
+    // no address in the MIS gets the synthesised placeholder on first login
+    // (adoption is skipped because there is no email to match on), and the day
+    // the MIS gains their real address it is still held by their older local
+    // row. Check first and name the problem.
+    if (existingUser && email) {
+      const emailTaken = await db
+        .prepare('SELECT id FROM users WHERE lower(email) = lower(?) AND id != ?')
+        .bind(email, existingUser.id)
+        .first();
+
+      if (emailTaken) {
+        console.error('[MyLogin] Incoming email is already held by another account', {
+          myloginId,
+          email,
+          userId: existingUser.id,
+          conflictingUserId: emailTaken.id,
+        });
+        return c.redirect('/?auth=error&reason=email_conflict');
+      }
+    }
+
     const currentUser = existingUser || linkedUser;
 
     if (currentUser) {
       // Update existing user — sync name and email from IdP.
       // Role: allow demotions and lateral moves, but never auto-elevate.
       userId = currentUser.id;
+
       const effectiveRole = resolveRole(currentUser.role, role, myloginId);
 
       if (linkedUser) {
         console.log(
-          `[MyLogin] Linked existing local account ${userId} to mylogin_id ${myloginId} by email`
+          `[MyLogin] Linked existing local account ${userId} to mylogin_id ${myloginId} by email (role ${effectiveRole})`
         );
       }
 

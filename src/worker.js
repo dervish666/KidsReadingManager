@@ -956,7 +956,14 @@ async function runScheduledTask(event, env, ctx) {
         `[Cron] Background enrichment: job ${bgJob.id}, ${bgJob.processed_books}/${bgJob.total_books} processed`
       );
 
-      const config = await getConfigWithKeys(db, env.JWT_SECRET);
+      // getEncryptionSecret(env), not env.JWT_SECRET: the keys are written with
+      // whatever that returns (every other caller — books.js, covers.js,
+      // metadata.js — uses it), and it prefers ENCRYPTION_KEY when set. They
+      // agree today only because ENCRYPTION_KEY is unset in production and the
+      // helper falls back to JWT_SECRET; setting the dedicated key that the
+      // helper itself recommends would have left this one cron decrypting with
+      // the wrong secret and quietly enriching nothing.
+      const config = await getConfigWithKeys(db, getEncryptionSecret(env));
       if (config) {
         config.fetchCovers = bgJob.include_covers && config.fetchCovers;
 

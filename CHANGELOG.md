@@ -1,5 +1,23 @@
 # Changelog
 
+## [3.118.0] - 2026-08-13
+
+### Fixed
+
+- **The demo school had been quietly rebuilding itself incompletely for months.** The demo is restored from a snapshot taken in April, and that snapshot lists books and reading interests by reference to the main library. Seven of those books have since been removed from the library and seven interest categories retired, so those entries could no longer be restored — the demo has been running with 2,404 books instead of 2,411, and ten pupil reading preferences missing, since April. Nothing was wrong with anyone's real data; only the demo was affected. The restore now checks what is actually in the library first and quietly leaves out anything that has gone, so the demo stays whole as the library changes, and anything that comes back is restored automatically.
+- **A failed demo rebuild is no longer remembered as a good one.** The rebuild records what a clean demo looks like so it can skip the work when nobody has touched it. It was recording that even when part of the rebuild had failed, so a broken demo became the thing it compared against and the fault persisted for hours. It now only records a state it actually achieved.
+- **Reading goals could be saved against the wrong school year.** Saving a class's goal targets updated that goal in every year the class had ever had goals, and the page then counted the same goal more than once — so the class garden could jump a stage on save and drop back on refresh. Targets and progress are now read and written for the current school year only.
+- **Badges earned on the last day of the school year weren't counted** towards a class's badge goal.
+- **A member of staff who moves school, or already has an account, is handled properly.** Signing in with MyLogin now recognises staff by their school-management-system record as well as their email address, so someone with no email on file is linked to the account they already have instead of quietly getting a second one. And where two accounts genuinely hold the same address, the sign-in explains that rather than failing with "an unexpected error".
+- **MyLogin can no longer take away a role that Tally granted.** Most staff are recorded in MyLogin simply as employees, which maps to teacher — so the first single sign-on by a head or office manager whose Tally account was set up by hand demoted them to teacher, losing user management, class management and billing, and re-promoting them didn't stick. Roles at or above administrator now stay as Tally has them; changing them is a decision for a school administrator, in Tally.
+
+### Changed
+
+- **A demo rebuild no longer retries something that cannot succeed.** A rejected record was retried three times with pauses between before being handled individually — about two seconds wasted per batch, several times a rebuild, on a failure that was never going to clear. It now moves straight on.
+- **Rebuild logs now report what actually happened**, rather than the number of records it intended to write, with anything skipped or failed counted separately.
+- **Demo housekeeping now clears saved book recommendations.** The demo has AI suggestions enabled, and a single visitor asking for recommendations would have left a record that blocked the demo's pupil records from being cleared out from then on.
+- **The demo export script no longer discards the demo's own history.** It only exported reading sessions from the previous 90 days, and the demo's sessions are fixed January–April dates — so running it any time after mid-July would have produced a demo school with no reading in it at all.
+
 ## [3.117.0] - 2026-08-12
 
 ### Fixed

@@ -36,8 +36,14 @@ const TABLES = [
     where: `class_id IN (SELECT id FROM classes WHERE organization_id = '${DEMO_ORG_ID}')`,
   },
   {
+    // No date window. This used to carry `AND session_date > date('now', '-90
+    // days')`, which quietly turned the export into a demolition charge: the
+    // demo's sessions are fixed January–April dates, so re-exporting any time
+    // after mid-July would have written a snapshot with ZERO reading sessions
+    // and the next reset would have served an empty demo school. The demo org
+    // is small (a few hundred sessions) — take all of them.
     name: 'reading_sessions',
-    where: `student_id IN (SELECT id FROM students WHERE organization_id = '${DEMO_ORG_ID}') AND session_date > date('now', '-90 days')`,
+    where: `student_id IN (SELECT id FROM students WHERE organization_id = '${DEMO_ORG_ID}')`,
   },
   {
     name: 'student_preferences',

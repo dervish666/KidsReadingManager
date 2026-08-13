@@ -306,6 +306,44 @@ describe('PUT /:id/goals', () => {
     expect(updateSql).toContain('achieved_at');
   });
 
+  it('scopes both the update and the read-back to the current academic year', async () => {
+    // A class that also holds rows under a stale term key — real data: the
+    // nightly pass used to file goals under a calendar quarter, so Cheddar
+    // Grove Manual has 6 rows under '2025/26' and 6 under 'Q2 2026'. Untermed,
+    // the UPDATE rewrote both and the response counted 12 goals, inflating the
+    // garden stage on save.
+    const currentTermRows = DEFAULT_GOAL_ROWS;
+    const db = makeMockDb({
+      all: (sql, args) => {
+        if (!sql.includes('class_goals')) return { results: [] };
+        // Only answer with rows when the query actually asked for this term
+        return args.includes(TERM) ? { results: currentTermRows } : { results: [] };
+      },
+      first: () => null,
+      batch: (stmts) => Promise.resolve(stmts.map(() => ({ success: true }))),
+    });
+
+    const app = buildApp({ db });
+    const res = await app.request('/cls-1/goals', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ goals: [{ metric: 'sessions', target: 80 }] }),
+    });
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+
+    const prepareCalls = db.prepare.mock.calls.map(([sql]) => sql);
+    const updateSql = prepareCalls.find((s) => s.includes('UPDATE class_goals'));
+    expect(updateSql).toContain('term = ?');
+
+    const readBack = prepareCalls.filter(
+      (s) => s.includes('SELECT * FROM class_goals') && s.includes('term = ?')
+    );
+    expect(readBack.length).toBeGreaterThan(0);
+    expect(body.goals).toHaveLength(currentTermRows.length);
+  });
+
   it('returns 400 when goals is not an array', async () => {
     const db = makeMockDb({});
 

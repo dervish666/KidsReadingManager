@@ -148,6 +148,11 @@ export async function recalculateClassGoalProgress(db, classId, orgId, startDate
   // One round-trip instead of six. All session-derived counts share the same
   // class/org/date filter, and the badges count reuses the same class/org
   // scope. D1 runs each subquery independently but over one network hop.
+  //
+  // The badges bound is exclusive-next-day, not `<= endDate`: session_date is a
+  // plain 'YYYY-MM-DD' but student_badges.earned_at is a full ISO timestamp, so
+  // '2026-07-17T09:14:02Z' <= '2026-07-17' is false as a string comparison and
+  // every badge earned on the last day of the year was dropped.
   // Wrapped so a transient D1 failure doesn't take down the whole goals
   // endpoint — we keep the existing counters rather than overwriting them
   // with zeros. The next successful call reconciles.
@@ -194,7 +199,7 @@ export async function recalculateClassGoalProgress(db, classId, orgId, startDate
             FROM student_badges sb
             JOIN students s ON sb.student_id = s.id
             WHERE s.class_id = ?1 AND s.organization_id = ?2
-              AND sb.earned_at >= ?3 AND sb.earned_at <= ?4) AS badges`
+              AND sb.earned_at >= ?3 AND sb.earned_at < date(?4, '+1 day')) AS badges`
       )
       .bind(classId, orgId, startDate, endDate)
       .first();

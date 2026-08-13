@@ -287,6 +287,7 @@ describe('MyLogin OAuth Routes', () => {
         orgActive = true,
         existingUser = null,
         emailOwner = null,
+        wondeOwner = null,
         employeeClasses = [],
       } = options;
 
@@ -315,11 +316,26 @@ describe('MyLogin OAuth Routes', () => {
           };
         }
 
-        // Find user by email (the local-account link path)
+        // Find user by email. Serves BOTH the local-account link path (no
+        // existing SSO row) and the pre-UPDATE collision check (existing SSO
+        // row) — only one of the two ever runs for a given callback.
         if (sql.includes('SELECT') && sql.includes('users') && sql.includes('lower(email)')) {
           return {
             bind: vi.fn().mockReturnValue({
               first: vi.fn().mockResolvedValue(emailOwner),
+            }),
+          };
+        }
+
+        // Find user by wonde_employee_id (the no-email link path)
+        if (
+          sql.includes('SELECT') &&
+          sql.includes('users') &&
+          sql.includes('wonde_employee_id =')
+        ) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              first: vi.fn().mockResolvedValue(wondeOwner),
             }),
           };
         }
@@ -1005,6 +1021,102 @@ describe('MyLogin OAuth Routes', () => {
         call[0].includes('lower(email)')
       );
       expect(emailLookup).toBeUndefined();
+    });
+
+    it('links by wonde_employee_id when the profile has no email, rather than creating a second row', async () => {
+      setupFetchMock(makeUserProfile({ email: null }));
+      setupDbForCallback({
+        orgFound: true,
+        existingUser: null,
+        wondeOwner: {
+          id: 'local-user-9',
+          organization_id: 'org-id-1',
+          role: 'teacher',
+          is_active: 1,
+          mylogin_id: null,
+        },
+      });
+      env.READING_MANAGER_KV.get.mockResolvedValue('1');
+
+      const res = await app.request(
+        '/api/auth/mylogin/callback?code=code&state=state',
+        { method: 'GET' },
+        env
+      );
+
+      expect(res.headers.get('Location')).toBe('/?auth=callback');
+
+      const insert = env.READING_MANAGER_DB.prepare.mock.calls.find((call) =>
+        call[0].includes('INSERT INTO users')
+      );
+      expect(insert).toBeUndefined();
+
+      const update = env.READING_MANAGER_DB.prepare.mock.calls.find(
+        (call) => call[0].includes('UPDATE users') && call[0].includes('mylogin_id = ?')
+      );
+      expect(update).toBeDefined();
+    });
+
+    it('keeps an admin as admin when MyLogin maps them to teacher', async () => {
+      setupFetchMock(makeUserProfile({ type: 'employee' }));
+      setupDbForCallback({
+        orgFound: true,
+        existingUser: {
+          id: 'user-admin-1',
+          organization_id: 'org-id-1',
+          role: 'admin',
+          is_active: 1,
+          mylogin_id: 'ml-user-123',
+        },
+      });
+      env.READING_MANAGER_KV.get.mockResolvedValue('1');
+
+      const res = await app.request(
+        '/api/auth/mylogin/callback?code=code&state=state',
+        { method: 'GET' },
+        env
+      );
+
+      expect(res.headers.get('Location')).toBe('/?auth=callback');
+
+      // Third bind argument on the UPDATE is the role
+      const updateStatement = env.READING_MANAGER_DB.prepare.mock.results.find(
+        (r, i) =>
+          env.READING_MANAGER_DB.prepare.mock.calls[i][0].includes('UPDATE users') &&
+          env.READING_MANAGER_DB.prepare.mock.calls[i][0].includes('role = ?')
+      );
+      const roleBound = updateStatement.value.bind.mock.calls[0][2];
+      expect(roleBound).toBe('admin');
+    });
+
+    it('refuses with email_conflict when the incoming address belongs to another account', async () => {
+      setupFetchMock(makeUserProfile({ email: 'jane.smith@school.org' }));
+      setupDbForCallback({
+        orgFound: true,
+        existingUser: {
+          id: 'user-sso-1',
+          organization_id: 'org-id-1',
+          role: 'teacher',
+          is_active: 1,
+          mylogin_id: 'ml-user-123',
+        },
+        // The pre-UPDATE collision check finds the address on a different row
+        emailOwner: { id: 'other-user-2' },
+      });
+      env.READING_MANAGER_KV.get.mockResolvedValue('1');
+
+      const res = await app.request(
+        '/api/auth/mylogin/callback?code=code&state=state',
+        { method: 'GET' },
+        env
+      );
+
+      expect(res.headers.get('Location')).toBe('/?auth=error&reason=email_conflict');
+
+      const update = env.READING_MANAGER_DB.prepare.mock.calls.find((call) =>
+        call[0].includes('UPDATE users')
+      );
+      expect(update).toBeUndefined();
     });
 
     // -----------------------------------------------------------------------

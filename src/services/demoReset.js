@@ -68,6 +68,12 @@ const DELETE_TABLES = [
     table: 'class_goals',
     where: `class_id IN (SELECT id FROM classes WHERE organization_id = '${DEMO_ORG_ID}')`,
   },
+  // Written by GET /api/books/ai-suggestions, which a demo visitor can reach —
+  // the demo org has ai_addon_active = 1. The FK to students has no ON DELETE
+  // CASCADE (migrations/0068), so without this the students DELETE below fails
+  // the moment anybody asks the demo for a recommendation, and every later
+  // reset silently leaves the previous visitor's demo in place.
+  { table: 'student_recommendations', where: `organization_id = '${DEMO_ORG_ID}'` },
   { table: 'students', where: `organization_id = '${DEMO_ORG_ID}'` },
   { table: 'classes', where: `organization_id = '${DEMO_ORG_ID}'` },
   { table: 'org_book_selections', where: `organization_id = '${DEMO_ORG_ID}'` },
@@ -117,6 +123,77 @@ const INSERT_ORDER = [
 ];
 
 /**
+ * Snapshot columns pointing at GLOBAL tables the demo org does not own.
+ *
+ * `books` and `genres` are shared across every school. An owner deleting a
+ * book, an import dedup merging two, or a genre being retired all remove rows
+ * the snapshot still names, and the FK then fails on EVERY reset from then on —
+ * seven org_book_selections rows and ten student_preferences rows had been
+ * failing that way since the April export, unnoticed until the reset started
+ * reporting its fallbacks.
+ *
+ * Hand-pruning the generated snapshot fixes the rows that are missing today and
+ * nothing else. Instead the reset reads the current id set for each referenced
+ * table and skips snapshot rows whose target has gone. A row whose book is
+ * restored to the catalogue comes back on the next reset, with no snapshot edit.
+ */
+const EXTERNAL_REFS = {
+  reading_sessions: [{ column: 'book_id', table: 'books' }],
+  student_preferences: [{ column: 'genre_id', table: 'genres' }],
+  org_book_selections: [{ column: 'book_id', table: 'books' }],
+};
+
+/**
+ * Read the id set of every globally-owned table the snapshot references.
+ *
+ * Deliberately fail-open: a table we could not read is left OUT of the map, and
+ * the filter below then keeps every row referencing it. Failing closed would
+ * turn one unreadable query into a demo with an empty library — far worse than
+ * the FK errors this exists to prevent.
+ */
+async function loadReferencedIds(db, tables) {
+  const byTable = new Map();
+  for (const table of tables) {
+    try {
+      const rows = await db.prepare(`SELECT id FROM ${table}`).all();
+      byTable.set(table, new Set((rows.results || []).map((r) => r.id)));
+    } catch (error) {
+      console.warn(
+        `[DemoReset] Could not read ${table} ids, inserting snapshot rows unfiltered: ${error.message}`
+      );
+    }
+  }
+  return byTable;
+}
+
+/**
+ * Drop snapshot rows whose global FK target no longer exists.
+ *
+ * @returns {{rows: Array, skipped: number}}
+ */
+function filterLiveRefs(table, rows, idsByTable) {
+  const refs = EXTERNAL_REFS[table];
+  if (!refs) return { rows, skipped: 0 };
+
+  let skipped = 0;
+  const kept = rows.filter((row) =>
+    refs.every((ref) => {
+      const value = row[ref.column];
+      // A nullable FK holding NULL references nothing, and a table we failed to
+      // read is not evidence the row is dead — keep both.
+      if (value == null) return true;
+      const live = idsByTable.get(ref.table);
+      if (!live) return true;
+      if (live.has(value)) return true;
+      skipped++;
+      return false;
+    })
+  );
+
+  return { rows: kept, skipped };
+}
+
+/**
  * Build an INSERT statement for a single row.
  */
 function buildInsert(db, table, row) {
@@ -127,7 +204,20 @@ function buildInsert(db, table, row) {
 }
 
 /**
+ * A constraint violation is the database telling us the statement is wrong, not
+ * that it was busy. D1 surfaces it in the message rather than a typed code.
+ */
+function isConstraintError(error) {
+  return /SQLITE_CONSTRAINT|constraint failed/i.test(error?.message || '');
+}
+
+/**
  * Execute statements in batches of BATCH_LIMIT.
+ *
+ * @returns {Promise<number>} rows that failed even individually. The caller
+ *   reports the real inserted count from it — logging the intended count is how
+ *   `org_book_selections: 2411 rows inserted` came to be printed on a reset that
+ *   actually landed 2,404.
  */
 async function batchExec(db, statements, label) {
   let rowFallbackFailures = 0;
@@ -144,6 +234,11 @@ async function batchExec(db, statements, label) {
         break;
       } catch (error) {
         lastError = error;
+        // Retries are for transient D1 failures. A constraint violation is
+        // deterministic: the same statement will fail identically in 250ms, in
+        // 500ms and in 1s. Retrying one cost ~1.75s of the cron's budget per
+        // failing chunk and produced six identical failures a reset.
+        if (isConstraintError(error)) break;
         if (attempt < CHUNK_RETRIES) {
           await new Promise((resolve) => setTimeout(resolve, 250 * 2 ** attempt));
         }
@@ -181,6 +276,8 @@ async function batchExec(db, statements, label) {
       }
     }
   }
+
+  return rowFallbackFailures;
 }
 
 /**
@@ -274,6 +371,7 @@ export async function resetDemoData(db, kv = null) {
     [
       'reading_sessions',
       'student_preferences',
+      'student_recommendations',
       'parent_access_tokens',
       'class_assignments',
       'class_goals',
@@ -293,6 +391,10 @@ export async function resetDemoData(db, kv = null) {
     ['users'],
   ];
   const deleteByTable = Object.fromEntries(DELETE_TABLES.map((d) => [d.table, d.where]));
+
+  // Anything that went wrong badly enough that the resulting state is NOT a
+  // clean demo. Distinct from `skippedRows` below, which is expected drift.
+  let failures = 0;
 
   for (const group of DELETE_GROUPS) {
     const stmts = group
@@ -314,6 +416,11 @@ export async function resetDemoData(db, kv = null) {
         try {
           await db.prepare(`DELETE FROM ${t} WHERE ${deleteByTable[t]}`).run();
         } catch (error) {
+          // Counted, not just logged: rows that survive a failed DELETE are not
+          // overwritten by Phase 2 (buildInsert is INSERT OR IGNORE), so a
+          // visitor's edit persists. That state must not be fingerprinted as
+          // clean — see the fingerprint gate at the end of this function.
+          failures++;
           console.warn(`[DemoReset] delete ${t} skipped: ${error.message}`);
         }
       }
@@ -321,9 +428,28 @@ export async function resetDemoData(db, kv = null) {
   }
   console.log('[DemoReset] Deletes complete');
 
-  // Phase 2: Insert snapshot data in FK-safe order, batched per table
+  // Phase 2: Insert snapshot data in FK-safe order, batched per table.
+  //
+  // Read the referenced global id sets once for the whole reset rather than per
+  // table: `books` is named by both reading_sessions and org_book_selections.
+  const referencedTables = [
+    ...new Set(Object.values(EXTERNAL_REFS).flatMap((refs) => refs.map((r) => r.table))),
+  ];
+  const referencedIds = await loadReferencedIds(db, referencedTables);
+
+  let skippedRows = 0;
   for (const table of INSERT_ORDER) {
-    const rows = SNAPSHOT[table] || [];
+    const snapshotRows = SNAPSHOT[table] || [];
+    if (snapshotRows.length === 0) continue;
+
+    const { rows, skipped } = filterLiveRefs(table, snapshotRows, referencedIds);
+    if (skipped > 0) {
+      skippedRows += skipped;
+      const targets = EXTERNAL_REFS[table].map((r) => r.table).join('/');
+      console.warn(
+        `[DemoReset] ${table}: skipped ${skipped} of ${snapshotRows.length} snapshot rows — their ${targets} row is no longer in the catalogue`
+      );
+    }
     if (rows.length === 0) continue;
 
     const statements = rows.map((row) => buildInsert(db, table, row));
@@ -332,8 +458,18 @@ export async function resetDemoData(db, kv = null) {
     // MAX_ROW_FALLBACK_FAILURES. Anything it throws is a real failure and must
     // propagate so the Sentry monitor goes red — grinding 2,411 sequential
     // writes at a struggling primary is what made this worse, not better.
-    await batchExec(db, statements, table);
-    console.log(`[DemoReset] ${table}: ${rows.length} rows inserted`);
+    const rowFailures = await batchExec(db, statements, table);
+    failures += rowFailures;
+    console.log(
+      `[DemoReset] ${table}: ${rows.length - rowFailures} of ${snapshotRows.length} snapshot rows inserted` +
+        (skipped > 0 ? ` (${skipped} skipped)` : '') +
+        (rowFailures > 0 ? ` (${rowFailures} FAILED)` : '')
+    );
+  }
+  if (skippedRows > 0) {
+    console.warn(
+      `[DemoReset] ${skippedRows} snapshot rows reference catalogue entries that no longer exist. Re-export the snapshot to tidy it up: node scripts/export-demo-snapshot.js`
+    );
   }
 
   // Phase 3: Evaluate badges for all demo students with reading sessions.
@@ -351,14 +487,40 @@ export async function resetDemoData(db, kv = null) {
       `[DemoReset] Badges: ${res.newBadgeCount} awarded across ${res.processedCount} students`
     );
   } catch (error) {
+    // student_badges and student_reading_stats were deleted in Phase 1 and are
+    // not in SNAPSHOT, so a failure here leaves the demo with no badges at all.
+    failures++;
     console.warn(`[DemoReset] Badge evaluation skipped: ${error.message}`);
   }
 
   // Record the post-reset state so the next hour can tell "nobody touched it"
-  // from "someone did". Written last and only on success — a half-finished
-  // reset must not be remembered as the clean baseline, or the next run would
-  // skip and leave the demo broken.
-  if (kv) {
+  // from "someone did". Written last and ONLY when the reset actually produced
+  // a clean demo: the delete fallback, the row-by-row insert fallback and the
+  // badge pass all swallow their errors to keep going, and every one of them
+  // leaves a state computeFingerprint cannot see (it reads neither
+  // student_badges nor class_goals, and reads students/org_book_selections from
+  // whatever survived). Fingerprinting that state made it the new baseline, so
+  // the next hour skipped and the damage persisted to the 6-hour floor —
+  // whereas before the fingerprint existed at all, the next hourly reset healed
+  // it. Leaving the key untouched means the next run resets again, which is
+  // exactly the old self-healing behaviour.
+  //
+  // `skippedRows` deliberately does NOT block this. A snapshot row whose book
+  // has left the catalogue is stable, expected drift: it will be skipped
+  // identically next hour, so the demo IS clean and blocking here would just
+  // restore the hourly rebuild it took this whole change to remove.
+  if (failures > 0) {
+    console.warn(
+      `[DemoReset] ${failures} step(s) failed — not fingerprinting this state; the next run will reset again`
+    );
+    Sentry.captureMessage('Demo reset completed with failures — state not fingerprinted', {
+      level: 'warning',
+      tags: { cron: 'demo-environment-reset' },
+      extra: { failures, skippedRows },
+    });
+  }
+
+  if (kv && failures === 0) {
     try {
       const fingerprint = await computeFingerprint(db);
       await Promise.all([
@@ -372,6 +534,8 @@ export async function resetDemoData(db, kv = null) {
     }
   }
 
-  console.log('[DemoReset] Reset complete');
-  return { skipped: false };
+  console.log(
+    `[DemoReset] Reset complete (${failures} failure(s), ${skippedRows} row(s) skipped as stale)`
+  );
+  return { skipped: false, failures, skippedRows };
 }

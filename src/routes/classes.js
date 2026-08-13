@@ -561,6 +561,23 @@ classesRouter.put('/:id/goals', requireTeacher(), async (c) => {
     throw badRequestError('goals must be an array');
   }
 
+  // Resolve the academic year the same way GET does. Without it both statements
+  // below were term-blind: the UPDATE rewrote the target for EVERY term a class
+  // has goals in, and the SELECT returned them all, so `goalsCompleted` counted
+  // each metric once per term and the garden stage jumped on save (a class at
+  // Cheddar Grove Manual holds 6 rows under '2025/26' and 6 stale ones under
+  // 'Q2 2026' — a leftover from when the nightly pass resolved calendar
+  // quarters — which read back as 12 goals, 5 complete, i.e. bloom instead of
+  // sprout).
+  const termDatesResult = await db
+    .prepare(
+      'SELECT term_name, start_date, end_date, academic_year FROM term_dates WHERE organization_id = ? ORDER BY start_date'
+    )
+    .bind(organizationId)
+    .all();
+  const today = new Date().toISOString().split('T')[0];
+  const { term } = resolveAcademicYear(termDatesResult.results || [], today);
+
   const updates = [];
   for (const { metric, target } of goals) {
     if (
@@ -574,9 +591,9 @@ classesRouter.put('/:id/goals', requireTeacher(), async (c) => {
     updates.push(
       db
         .prepare(
-          `UPDATE class_goals SET target = ?, achieved_at = CASE WHEN ? > current THEN NULL ELSE achieved_at END WHERE class_id = ? AND metric = ? AND organization_id = ?`
+          `UPDATE class_goals SET target = ?, achieved_at = CASE WHEN ? > current THEN NULL ELSE achieved_at END WHERE class_id = ? AND metric = ? AND organization_id = ? AND term = ?`
         )
-        .bind(target, target, classId, metric, organizationId)
+        .bind(target, target, classId, metric, organizationId, term)
     );
   }
 
@@ -584,8 +601,8 @@ classesRouter.put('/:id/goals', requireTeacher(), async (c) => {
   await db.batch(updates);
 
   const goalsResult = await db
-    .prepare('SELECT * FROM class_goals WHERE class_id = ? AND organization_id = ?')
-    .bind(classId, organizationId)
+    .prepare('SELECT * FROM class_goals WHERE class_id = ? AND organization_id = ? AND term = ?')
+    .bind(classId, organizationId, term)
     .all();
 
   const updatedGoals = (goalsResult.results || []).map(rowToClassGoal);
