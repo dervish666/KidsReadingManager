@@ -24,6 +24,8 @@ vi.mock('../../utils/crypto.js', async (importOriginal) => {
 
 vi.mock('../../middleware/tenant.js', () => ({
   authRateLimit: () => async (_c, next) => next(),
+  rateLimit: () => async (_c, next) => next(),
+  SCHOOL_BURST_LIMIT: 120,
 }));
 
 vi.mock('../../utils/email.js', () => ({

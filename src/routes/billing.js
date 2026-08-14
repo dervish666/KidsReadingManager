@@ -100,9 +100,17 @@ billingRouter.post('/setup', requireAdmin(), async (c) => {
 
     const customer = await stripe.customers.create(customerData);
 
-    // 2. Count active students for per-pupil pricing
+    // 2. Count active students for per-pupil pricing.
+    //
+    // `AND is_active = 1` is load-bearing: students are soft-deleted, so
+    // without it a school pays £1/year for every leaver still on the row.
+    // Cheddar Grove Primary was 464 rows against 402 active pupils when this
+    // was found — a 15% overcharge, and the first thing a bursar reconciling
+    // against their census would query. Every other student query in the app
+    // filters this way (see idx_students_org_active, migration 0020); this
+    // count was the outlier, and its comment already claimed otherwise.
     const studentCountResult = await db
-      .prepare('SELECT COUNT(*) as count FROM students WHERE organization_id = ?')
+      .prepare('SELECT COUNT(*) as count FROM students WHERE organization_id = ? AND is_active = 1')
       .bind(organizationId)
       .first();
     const studentCount = Math.max(studentCountResult?.count || 1, 1);

@@ -12,6 +12,7 @@
  */
 
 import { Hono } from 'hono';
+import * as Sentry from '@sentry/cloudflare';
 import {
   createRefreshToken,
   hashToken,
@@ -22,9 +23,22 @@ import {
 } from '../utils/crypto.js';
 import { generateId } from '../utils/helpers.js';
 import { syncUserClassAssignments } from '../utils/classAssignments.js';
+import { rateLimit, SCHOOL_BURST_LIMIT } from '../middleware/tenant.js';
 import { parseCookies } from './auth.js';
 
 export const myloginRouter = new Hono();
+
+// This router mounts at /api/auth/mylogin, which sits underneath the
+// /api/auth mount — so it used to inherit authRouter's blanket
+// `use('*', authRateLimit())` and was silently capped at 10 SSO logins per
+// minute per IP. A staffroom shares one NAT'd IP, so the 11th teacher signing
+// in on an INSET morning got a raw 429 instead of a redirect to MyLogin.
+// authRouter now scopes its limiter to named paths, so these are set here
+// explicitly rather than inherited by accident. Neither endpoint accepts a
+// guessable credential: /login only mints CSRF state, and /callback is
+// protected by that state plus MyLogin's own code exchange.
+myloginRouter.use('/login', rateLimit(SCHOOL_BURST_LIMIT, 60000));
+myloginRouter.use('/callback', rateLimit(SCHOOL_BURST_LIMIT, 60000));
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -103,11 +117,23 @@ myloginRouter.get('/login', async (c) => {
   const state = crypto.randomUUID();
   const db = c.env.READING_MANAGER_DB;
 
-  // Store state in D1 (strongly consistent, unlike KV which is eventually consistent)
+  // Store state in D1 (strongly consistent, unlike KV which is eventually
+  // consistent). D1 wobbles are a fact of life here — see the transient-error
+  // note in CLAUDE.md — and an unhandled throw on this path is unusually ugly:
+  // the global error handler answers with JSON at an /api/ URL, so a teacher
+  // clicking "Sign in with MyLogin" gets a page of raw error object instead of
+  // a redirect. Fall back to the KV path that already exists for the no-D1
+  // case rather than failing the login.
+  let stateStored = false;
   if (db) {
-    await db.prepare('INSERT INTO oauth_state (state) VALUES (?)').bind(state).run();
-  } else {
-    // Fallback to KV if D1 not available
+    try {
+      await db.prepare('INSERT INTO oauth_state (state) VALUES (?)').bind(state).run();
+      stateStored = true;
+    } catch (err) {
+      console.warn('[MyLogin] D1 state write failed, falling back to KV:', err.message);
+    }
+  }
+  if (!stateStored) {
     await c.env.READING_MANAGER_KV.put(`oauth_state:${state}`, '1', { expirationTtl: 300 });
   }
 
@@ -494,6 +520,47 @@ myloginRouter.get('/callback', async (c) => {
           placeholderHash
         )
         .run();
+    }
+
+    // A school with no admin can record reading but cannot invite a TA, set
+    // year groups, or reach billing — and nothing on screen says so, which is
+    // how Wonde's own testers ended up inside a school of 965 pupils with no
+    // way to administer it.
+    //
+    // MyLogin maps only `admin` → admin and `employee` → teacher, and most
+    // staff are `employee`, so a school whose office account has not signed in
+    // yet sits at zero admins indefinitely. This deliberately reports rather
+    // than auto-promotes: handing out a role the school's own identity
+    // provider never asserted is a decision for a human, and `resolveRole`
+    // above exists precisely to stop MyLogin changing Tally roles.
+    //
+    // The message string is constant so Sentry groups every occurrence into one
+    // issue — the org lands in `extra`, not in the title — otherwise an INSET
+    // morning would raise thirty separate alerts for the same school.
+    try {
+      const admins = await db
+        .prepare(
+          `SELECT COUNT(*) AS count FROM users
+             WHERE organization_id = ? AND is_active = 1 AND role IN ('admin', 'owner')`
+        )
+        .bind(org.id)
+        .first();
+
+      if (!admins?.count) {
+        console.error(
+          `[MyLogin] Organisation "${org.name}" (${org.id}) has no active admin — ` +
+            `${name} just signed in as ${role}. Nobody at this school can manage ` +
+            `users, classes or billing until an admin is set.`
+        );
+        Sentry.captureMessage('MyLogin sign-in at an organisation with no admin', {
+          level: 'warning',
+          tags: { area: 'onboarding' },
+          extra: { organizationId: org.id, organizationName: org.name, signedInAs: role },
+        });
+      }
+    } catch (err) {
+      // Never let a diagnostic block a login.
+      console.warn('[MyLogin] Could not check whether the org has an admin:', err.message);
     }
 
     // Sync class assignments for teachers (runs for both new and existing users).

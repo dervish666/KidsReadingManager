@@ -511,6 +511,18 @@ export function authRateLimit() {
 }
 
 /**
+ * Per-minute ceiling for auth endpoints that a whole school hits at once from a
+ * single NAT'd IP — /auth/mode, /auth/refresh, and the MyLogin redirect pair.
+ *
+ * These accept no guessable credential, so the strict `authRateLimit()` budget
+ * bought nothing and cost the "everyone sign in now" morning: at 10/min the
+ * SSO button vanished, teachers were logged out mid-lesson, and SSO logins
+ * themselves 429'd. Sized for a primary staffroom signing in together with
+ * plenty of headroom, while still capping a runaway client or a scripted flood.
+ */
+export const SCHOOL_BURST_LIMIT = 120;
+
+/**
  * Rate limiting for cost-sensitive endpoints (AI suggestions, metadata enrichment, external proxies).
  * Prevents abuse of paid external APIs by authenticated users.
  *

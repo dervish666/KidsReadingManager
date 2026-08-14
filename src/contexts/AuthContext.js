@@ -18,6 +18,23 @@ const API_URL = '/api';
 const AUTH_STORAGE_KEY = 'krm_auth_token';
 const USER_STORAGE_KEY = 'krm_user';
 const AUTH_MODE_KEY = 'krm_auth_mode';
+// Last known answer from GET /auth/mode. `ssoEnabled` defaults to false, and a
+// non-ok response used to leave it there — so any blip on that one request hid
+// the "Sign in with MyLogin" button and offered SSO users a password they do
+// not have (their password_hash is a random UUID). Remembering the last good
+// value lets the login card degrade to "what worked last time" instead of to
+// "SSO does not exist". First-ever visit with a failing /mode still shows no
+// SSO button, exactly as before.
+const SSO_ENABLED_KEY = 'krm_sso_enabled';
+
+const readCachedSsoEnabled = () => {
+  try {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem(SSO_ENABLED_KEY) === 'true';
+  } catch {
+    return false;
+  }
+};
 
 // Custom hook to use the auth context
 export const useAuth = () => useContext(AuthContext);
@@ -48,7 +65,7 @@ export const AuthProvider = ({ children }) => {
   // Track if server auth mode has been detected
   const [serverAuthModeDetected, setServerAuthModeDetected] = useState(false);
   // Track if SSO (MyLogin) is enabled on the server
-  const [ssoEnabled, setSsoEnabled] = useState(false);
+  const [ssoEnabled, setSsoEnabled] = useState(readCachedSsoEnabled);
 
   // Multi-tenant auth state - initially null until detected from server
   const [authMode, setAuthMode] = useState(() => {
@@ -108,8 +125,17 @@ export const AuthProvider = ({ children }) => {
         if (response.ok) {
           const data = await response.json();
 
-          // Update SSO availability from server
-          setSsoEnabled(Boolean(data.ssoEnabled));
+          // Update SSO availability from server, and remember it so a later
+          // failed /mode call degrades to this answer rather than to "off".
+          const sso = Boolean(data.ssoEnabled);
+          setSsoEnabled(sso);
+          try {
+            if (typeof window !== 'undefined') {
+              window.localStorage.setItem(SSO_ENABLED_KEY, sso ? 'true' : 'false');
+            }
+          } catch {
+            // ignore
+          }
 
           // Update auth mode based on server response
           if (data.mode === 'multitenant') {
@@ -136,9 +162,17 @@ export const AuthProvider = ({ children }) => {
           }
           setServerAuthModeDetected(true);
         } else {
+          // Rate limited (a whole school shares one IP), or the server wobbled.
+          // Fall back to the last known answer rather than silently hiding SSO.
+          console.warn(
+            `[Auth] /auth/mode returned ${response.status}; using last known SSO setting`
+          );
+          setSsoEnabled(readCachedSsoEnabled());
           setServerAuthModeDetected(true);
         }
       } catch (err) {
+        console.warn('[Auth] /auth/mode unreachable; using last known SSO setting:', err.message);
+        setSsoEnabled(readCachedSsoEnabled());
         setServerAuthModeDetected(true);
       }
 

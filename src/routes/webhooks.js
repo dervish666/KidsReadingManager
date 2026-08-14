@@ -21,23 +21,76 @@ import {
 import { runFullSync } from '../services/wondeSync.js';
 import { generateUniqueSlug } from '../utils/helpers.js';
 import { fetchSchoolDetails } from '../utils/wondeApi.js';
+import { invalidateOrgStatus } from '../utils/orgStatusCache.js';
 
 const webhooksRouter = new Hono();
 
+/**
+ * Read `?secret=` out of the raw URL *without* form-decoding it.
+ *
+ * `URLSearchParams` follows application/x-www-form-urlencoded rules, which turn
+ * a literal `+` into a space. The Wonde secret is base64, so it contains `+`
+ * and `/` more often than not — reading it via `searchParams` silently mangles
+ * it and every delivery 401s with a secret that looks correct in both places.
+ * Percent-escapes are still honoured, so a sender that encodes properly works
+ * either way.
+ */
+function readQuerySecret(url) {
+  const start = url.indexOf('?');
+  if (start === -1) return '';
+  for (const pair of url.slice(start + 1).split('&')) {
+    const eq = pair.indexOf('=');
+    if (eq === -1 || pair.slice(0, eq) !== 'secret') continue;
+    const raw = pair.slice(eq + 1);
+    try {
+      return decodeURIComponent(raw);
+    } catch {
+      return raw;
+    }
+  }
+  return '';
+}
+
 webhooksRouter.post('/wonde', async (c) => {
-  // Verify webhook shared secret
-  // Configure WONDE_WEBHOOK_SECRET in Cloudflare and append ?secret=<value>
-  // to the webhook URL in the Wonde dashboard
+  // Verify the webhook shared secret. Set WONDE_WEBHOOK_SECRET in Cloudflare,
+  // then give Wonde the value by *either* route:
+  //
+  //   - `X-Webhook-Secret: <value>` request header (preferred — keeps the
+  //     secret out of URLs), or
+  //   - `?secret=<value>` appended to the webhook URL in the Wonde dashboard.
+  //
+  // Both are accepted deliberately. v3.35.1 moved this to header-only on the
+  // sound reasoning that query strings leak into logs, but nobody could change
+  // Wonde's side to match: their webhook dashboard exposes a URL field and
+  // event checkboxes, with nowhere to set a custom header. The comment here
+  // still described the query param for four months while the code required
+  // the header, so the two ends of the wire disagreed and every delivery would
+  // have 401'd. If Wonde ever adds header support, drop the query branch and
+  // rotate the secret.
   const webhookSecret = c.env.WONDE_WEBHOOK_SECRET;
   if (!webhookSecret) {
     console.error('[Webhook] WONDE_WEBHOOK_SECRET not configured — rejecting request');
     return c.json({ error: 'Webhook authentication not configured' }, 503);
   }
 
-  const providedSecret = c.req.header('X-Webhook-Secret') || '';
-  if (!providedSecret || !constantTimeStringEqual(providedSecret, webhookSecret)) {
-    console.warn('[Webhook] Invalid or missing webhook secret');
+  const headerSecret = c.req.header('X-Webhook-Secret') || '';
+  const querySecret = readQuerySecret(c.req.url);
+  const viaHeader = Boolean(headerSecret) && constantTimeStringEqual(headerSecret, webhookSecret);
+  const viaQuery =
+    !viaHeader && Boolean(querySecret) && constantTimeStringEqual(querySecret, webhookSecret);
+
+  if (!viaHeader && !viaQuery) {
+    console.warn(
+      `[Webhook] Invalid or missing webhook secret (header ${headerSecret ? 'present' : 'absent'}, query ${querySecret ? 'present' : 'absent'})`
+    );
     return c.json({ error: 'Unauthorized' }, 401);
+  }
+
+  if (viaQuery) {
+    // Not an error — it is the only mechanism Wonde's dashboard supports — but
+    // it means the secret is sitting in Cloudflare and intermediary request
+    // logs, so it should be treated as low-trust and rotated periodically.
+    console.warn('[Webhook] Authenticated via ?secret= query string; secret is exposed in logs');
   }
 
   const body = await c.req.json();
@@ -194,6 +247,16 @@ webhooksRouter.post('/wonde', async (c) => {
           )
           .bind(org.id)
           .run();
+
+        // Drop the cached subscription/status entry immediately. Without this
+        // the org keeps serving from cache for up to its TTL, so a school that
+        // has just revoked our access to their MIS carries on being readable
+        // for another minute.
+        try {
+          await invalidateOrgStatus(c.env, org.id);
+        } catch (err) {
+          console.warn('[Webhook] Could not invalidate cached org status:', err.message);
+        }
 
         const reason = body.revoke_reason || body.decline_reason || 'No reason provided';
         console.log(`[Webhook] Access ${body.payload_type}: ${body.school_name} - ${reason}`);

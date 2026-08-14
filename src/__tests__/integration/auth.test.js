@@ -30,6 +30,8 @@ vi.mock('../../utils/crypto.js', async (importOriginal) => {
 // Mock the tenant middleware to avoid rate_limits table issues
 vi.mock('../../middleware/tenant.js', () => ({
   authRateLimit: () => async (_c, next) => next(),
+  rateLimit: () => async (_c, next) => next(),
+  SCHOOL_BURST_LIMIT: 120,
 }));
 
 // Import after mocks

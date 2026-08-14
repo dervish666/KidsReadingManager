@@ -1,5 +1,21 @@
 # Changelog
 
+## [3.119.0] - 2026-08-14
+
+### Fixed
+
+- **Schools approving Tally through Wonde were never reaching us.** When a school approves the connection, Wonde notifies Tally so the school's account can be set up automatically. Those notifications carry a shared password in the web address, but Tally had been changed to expect it in a different part of the message and nothing was updated at Wonde's end — so every notification was turned away. Tally now accepts it either way, including passwords containing characters that a web address treats specially, which was a second way the same message could be rejected. No school had been affected yet, because the Wonde listing only went live this week.
+- **A busy staffroom could lose the "Sign in with MyLogin" button.** Every school shares one internet address, and Tally allowed only ten requests a minute from any one address across all sign-in traffic. On a morning when a whole staff signs in together that limit was reached almost immediately, and the sign-in page quietly dropped the single sign-on button — offering staff a password they don't have. Sign-in traffic now has room for a full staffroom, and if the check fails the page keeps offering the option that worked last time rather than hiding it.
+- **Teachers were being signed out mid-lesson.** The same ten-a-minute limit applied to the routine background check that keeps someone signed in, so once a handful of staff were working at the same time the rest were thrown back to the sign-in screen with "session expired". Fixed by the same change.
+- **Single sign-on itself was capped at ten teachers a minute.** The same limit unintentionally covered the MyLogin sign-in route, so the eleventh teacher signing in got an error page instead of being sent to MyLogin.
+- **Schools were charged for pupils who had left.** The per-pupil price counted every pupil record, including those marked as left, so a school billed after a Year 6 cohort moved on was paying for children who no longer attend. Only pupils still on roll are counted now.
+- **Clicking "Sign in with MyLogin" could show a page of raw error text** if the database hiccuped at that moment. It now falls back to a second route and signs the teacher in as normal.
+- **A school revoking access stayed readable for up to a minute** afterwards, because their status was still held in a short-lived cache. The cache is now cleared immediately.
+
+### Added
+
+- **Tally now raises an alert when a school has nobody who can administer it.** Schools arriving through Wonde get their staff from MyLogin, which records most people simply as employees — so a school can end up with teachers but no administrator, unable to invite a teaching assistant, set year groups or reach billing, with nothing on screen to explain why. A sign-in at a school in that state is now reported so it can be put right, rather than discovered by the school.
+
 ## [3.118.0] - 2026-08-13
 
 ### Fixed

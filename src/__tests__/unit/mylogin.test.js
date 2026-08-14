@@ -99,6 +99,27 @@ function createMockDb() {
 }
 
 /**
+ * Pull the CSRF state that /login bound to its `INSERT INTO oauth_state`.
+ *
+ * Every prepared statement shares one mock, so `bind` calls from different
+ * queries interleave on it. These assertions used to read
+ * `bind.mock.calls[0]`, which quietly meant "whatever the first query in the
+ * request happened to be" — and broke the moment rate-limiting middleware
+ * started running a query ahead of the handler. Matching the prepare call to
+ * its bind by index keeps the assertion pointed at the statement it names.
+ */
+function readStoredOauthState(env) {
+  const db = env.READING_MANAGER_DB;
+  const index = db.prepare.mock.calls.findIndex((call) =>
+    call[0].includes('INSERT INTO oauth_state')
+  );
+  expect(index).toBeGreaterThanOrEqual(0);
+  const bindCall = db._statement.bind.mock.calls[index];
+  expect(bindCall).toBeDefined();
+  return bindCall[0];
+}
+
+/**
  * Standard MyLogin user profile response
  */
 function makeUserProfile(overrides = {}) {
@@ -178,17 +199,15 @@ describe('MyLogin OAuth Routes', () => {
     });
 
     it('stores the state parameter in D1 for strong consistency', async () => {
-      await app.request('/api/auth/mylogin/login', { method: 'GET' }, env);
+      const res = await app.request('/api/auth/mylogin/login', { method: 'GET' }, env);
 
-      // Should have inserted state into D1 oauth_state table
-      const insertCall = env.READING_MANAGER_DB.prepare.mock.calls.find((call) =>
-        call[0].includes('INSERT INTO oauth_state')
-      );
-      expect(insertCall).toBeDefined();
-
-      // State should be a UUID
-      const state = env.READING_MANAGER_DB._statement.bind.mock.calls[0][0];
+      const state = readStoredOauthState(env);
       expect(state).toMatch(/^[0-9a-f]{8}-/);
+
+      // ...and it is the same state handed to MyLogin, which is the point of
+      // storing it: the callback compares the two.
+      const location = new URL(res.headers.get('Location'));
+      expect(location.searchParams.get('state')).toBe(state);
     });
 
     it('falls back to KV when D1 is not available', async () => {
@@ -229,16 +248,15 @@ describe('MyLogin OAuth Routes', () => {
 
     it('uses a unique state parameter for CSRF protection', async () => {
       await app.request('/api/auth/mylogin/login', { method: 'GET' }, env);
-
-      const state1 = env.READING_MANAGER_DB._statement.bind.mock.calls[0][0];
+      const state1 = readStoredOauthState(env);
 
       vi.clearAllMocks();
 
       await app.request('/api/auth/mylogin/login', { method: 'GET' }, env);
-
-      const state2 = env.READING_MANAGER_DB._statement.bind.mock.calls[0][0];
+      const state2 = readStoredOauthState(env);
 
       // State values should be different between requests (UUIDs)
+      expect(state1).toMatch(/^[0-9a-f]{8}-/);
       expect(state1).not.toBe(state2);
     });
   });

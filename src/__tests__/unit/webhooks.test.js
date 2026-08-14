@@ -54,13 +54,28 @@ function createApp() {
 // ---------------------------------------------------------------------------
 // Helper: send a POST request to the webhook endpoint
 // ---------------------------------------------------------------------------
-async function postWebhook(app, body, env, { secret = 'test-webhook-secret' } = {}) {
+// `via` selects how the shared secret is presented: the 'header' Wonde would
+// use if their dashboard supported custom headers, or the 'query' string it
+// actually offers. Both are accepted by the handler; see webhooks.js.
+async function postWebhook(
+  app,
+  body,
+  env,
+  { secret = 'test-webhook-secret', via = 'header' } = {}
+) {
   const headers = { 'Content-Type': 'application/json' };
+  let path = '/api/webhooks/wonde';
   if (secret) {
-    headers['X-Webhook-Secret'] = secret;
+    if (via === 'query') {
+      // Deliberately NOT encodeURIComponent'd — this mirrors a dashboard where
+      // the operator pastes the raw secret into the URL field.
+      path += `?secret=${secret}`;
+    } else {
+      headers['X-Webhook-Secret'] = secret;
+    }
   }
   return app.request(
-    '/api/webhooks/wonde',
+    path,
     {
       method: 'POST',
       headers,
@@ -423,7 +438,7 @@ describe('Wonde Webhook Handler', () => {
       expect(json.error).toMatch(/not configured/i);
     });
 
-    it('returns 401 when secret query parameter is missing', async () => {
+    it('returns 401 when the secret is missing entirely', async () => {
       const res = await postWebhook(
         app,
         {
@@ -441,7 +456,7 @@ describe('Wonde Webhook Handler', () => {
       expect(json.error).toMatch(/unauthorized/i);
     });
 
-    it('returns 401 when secret query parameter is wrong', async () => {
+    it('returns 401 when the X-Webhook-Secret header is wrong', async () => {
       const res = await postWebhook(
         app,
         {
@@ -470,6 +485,69 @@ describe('Wonde Webhook Handler', () => {
         },
         env,
         { secret: 'test-webhook-secret' }
+      );
+
+      expect(res.status).toBe(200);
+    });
+
+    // Wonde's webhook dashboard has a URL field and event checkboxes, and no
+    // way to set a custom request header — so ?secret= is the mechanism that
+    // actually gets used in production. These four cases exist because the
+    // header-only version of this handler would have 401'd every real delivery.
+    const migration = {
+      payload_type: 'schoolMigration',
+      school_name: 'Test',
+      migrate_from: 'a',
+      migrate_to: 'b',
+    };
+
+    it('accepts the secret in the ?secret= query string', async () => {
+      const res = await postWebhook(app, migration, env, {
+        secret: 'test-webhook-secret',
+        via: 'query',
+      });
+
+      expect(res.status).toBe(200);
+    });
+
+    it('returns 401 when the ?secret= query string is wrong', async () => {
+      const res = await postWebhook(app, migration, env, {
+        secret: 'wrong-secret',
+        via: 'query',
+      });
+
+      expect(res.status).toBe(401);
+    });
+
+    // Regression guard for the decoding trap: URLSearchParams follows
+    // form-encoding rules and turns a literal `+` into a space, so a base64
+    // secret read that way arrives mangled and never matches. Roughly half of
+    // all generated base64 secrets contain `+` or `/`.
+    it('accepts a base64 secret containing + and / from the query string', async () => {
+      const base64Secret = 'tEsT+fIxTuRe/nOtArEaLsEcReT0000=';
+      const res = await postWebhook(
+        app,
+        migration,
+        { ...env, WONDE_WEBHOOK_SECRET: base64Secret },
+        {
+          secret: base64Secret,
+          via: 'query',
+        }
+      );
+
+      expect(res.status).toBe(200);
+    });
+
+    it('accepts a percent-encoded secret from the query string', async () => {
+      const base64Secret = 'tEsT+fIxTuRe/nOtArEaLsEcReT0000=';
+      const res = await app.request(
+        `/api/webhooks/wonde?secret=${encodeURIComponent(base64Secret)}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(migration),
+        },
+        { ...env, WONDE_WEBHOOK_SECRET: base64Secret }
       );
 
       expect(res.status).toBe(200);
