@@ -58,7 +58,12 @@ const DataManagement = () => {
     try {
       const response = await fetchWithAuth('/api/wonde/sync', { method: 'POST' });
       const data = await response.json();
-      if (response.ok) {
+      // Branch on data.success, not response.ok. A sync that fails still
+      // answers 200 — the route sets `success: result.status === 'completed'`
+      // in the body — so trusting the HTTP status told an admin "completed
+      // successfully" after a revoked token had just failed the whole run, and
+      // the manual retry is exactly the moment they most need the truth.
+      if (response.ok && data.success) {
         setSyncResult(data);
         setSnackbar({
           open: true,
@@ -71,7 +76,12 @@ const DataManagement = () => {
         // Reload app data to reflect synced changes
         await reloadDataFromServer();
       } else {
-        setSnackbar({ open: true, message: data.error || 'Sync failed', severity: 'error' });
+        setSyncResult(data);
+        setSnackbar({
+          open: true,
+          message: data.errorMessage || data.error || 'Sync failed',
+          severity: 'error',
+        });
       }
     } catch (error) {
       setSnackbar({ open: true, message: `Sync error: ${error.message}`, severity: 'error' });

@@ -127,9 +127,13 @@ time, in accordance with UK GDPR Article 17 (right to erasure).
 
 ### 5.1 Optional feature
 
-AI-powered book recommendations are an optional feature. Schools must
-provide their own API key from a supported AI provider (Anthropic, OpenAI,
-or Google) to use this feature.
+AI-powered book recommendations are an optional feature, available two ways.
+A school may provide its own API key from a supported AI provider (Anthropic,
+OpenAI or Google), in which case the school holds the relationship with that
+provider directly. Or a school may subscribe to our paid AI add-on, in which
+case Tally makes the requests using Tally's own provider account and Tally
+holds that relationship. Either way the feature is off until the school turns
+it on.
 
 ### 5.2 Data sent to AI providers
 
@@ -233,8 +237,8 @@ excluded under applicable law.
 
 ### 10.1 Pricing
 
-The Service is offered on a monthly subscription basis. Current pricing is
-available on request. We offer a one-month free trial for new schools.
+The Service is offered on an annual subscription basis. Current pricing is
+available on request. We offer a 30-day free trial for new schools.
 
 ### 10.2 Changes to pricing
 

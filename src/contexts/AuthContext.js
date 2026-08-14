@@ -36,6 +36,23 @@ const readCachedSsoEnabled = () => {
   }
 };
 
+/**
+ * Strip the SSO callback params from the address bar while keeping
+ * `?school=<slug>`.
+ *
+ * That slug is what makes MyLogin skip its national school picker. Clearing the
+ * whole query string dropped it, so a teacher who hit any SSO error and pressed
+ * the button again was sent back to hunting for their school in a search box —
+ * at precisely the moment things had already gone wrong for them once.
+ */
+const clearAuthParamsFromUrl = () => {
+  const school = new URLSearchParams(window.location.search).get('school');
+  const next = school
+    ? `${window.location.pathname}?school=${encodeURIComponent(school)}`
+    : window.location.pathname;
+  window.history.replaceState({}, '', next);
+};
+
 // Custom hook to use the auth context
 export const useAuth = () => useContext(AuthContext);
 
@@ -183,13 +200,17 @@ export const AuthProvider = ({ children }) => {
 
       if (authParam === 'error') {
         // SSO failed — surface the reason to the user
-        window.history.replaceState({}, '', window.location.pathname);
+        clearAuthParamsFromUrl();
         const reasonMessages = {
           invalid_state: 'Login session expired. Please try again.',
           token_exchange_failed: 'Authentication failed. Please try again.',
           user_fetch_failed: 'Could not retrieve your account. Please try again.',
+          // The usual cause is MyLogin not returning a Wonde id for the
+          // organisation — i.e. the school isn't linked on our side, nothing
+          // the teacher or their school admin can fix. The old wording sent
+          // them to the one person guaranteed not to be able to help.
           no_school:
-            "Your account isn't linked to a school. Please contact your school administrator.",
+            "We couldn't tell which school your MyLogin account belongs to. Please ask your school to get in touch with us so we can link it.",
           school_not_found:
             "Your school hasn't been set up on Tally Reading yet. Please ask your school administrator to get in touch with us.",
           school_inactive:
@@ -207,7 +228,7 @@ export const AuthProvider = ({ children }) => {
         setApiError(reasonMessages[authReason] || `Login failed: ${authReason || 'unknown error'}`);
       } else if (authParam === 'callback') {
         // Remove query param from URL (clean up)
-        window.history.replaceState({}, '', window.location.pathname);
+        clearAuthParamsFromUrl();
         // Complete SSO login by exchanging the httpOnly refresh cookie for an access token.
         // Retry with backoff — the redirect sets the cookie, but the browser may not have
         // persisted it by the time this runs (observed on slow connections).

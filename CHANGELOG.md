@@ -1,5 +1,28 @@
 # Changelog
 
+## [3.120.0] - 2026-08-14
+
+### Security
+
+- **An old file left over from before the school system existed has been deleted.** It held the reading records of 64 children from a single early school, and it sat outside every routine that deletes or ages out data — so those records would have stayed indefinitely. It also held two AI provider keys in plain text. Nothing in the live service had read the file since the move to the current database, and it has now been removed. The keys it contained are being replaced.
+- **A parent logging home reading can no longer submit an unlimited amount of text** for the author of a book. The book title was already limited; the author field was not.
+
+### Fixed
+
+- **A school whose data sync stopped working could go unnoticed.** The nightly job read every sync as a success, even when it had failed, so a school with an expired connection would quietly stop receiving new starters and leavers while everything reported as normal. Failures are now recorded properly, and a school that has not synced successfully for three days raises an alert.
+- **The same was true of the sync button.** Pressing "sync now" reported "completed successfully" whether or not it had, which is the moment you most need to be told the truth. It now reports what actually happened, and shows the reason when it fails.
+- **A school's first data import failing left no trace.** When a school joins, their data is fetched in the background; if that failed the school simply appeared empty, and nobody at the school had the rights to try again. That failure is now reported so it can be put right.
+- **A momentary problem at the school data provider is no longer treated as permanent.** A brief outage while a school was joining looked identical to a genuinely invalid connection, and the school was dropped for good. Brief problems now ask the provider to try again; only a genuinely invalid connection is refused.
+- **The owner's "schools with errors" filter never found anything**, because it looked for a status the system never records.
+- **A link of the form tallyreading.uk/?school=your-school now opens the sign-in page** instead of the marketing page, and remembers the school if sign-in fails, so a second attempt still skips the national school picker.
+- **The sign-in error for an unrecognised school pointed at the wrong person.** It asked staff to contact their school administrator about something only we can fix.
+
+### Changed
+
+- **The free trial is now described as 30 days everywhere.** It was variously "a free term", "one month" and "30 days" across the website, help pages and terms, while the billing system has always granted 30 days. The terms also described the service as a monthly subscription; it is annual.
+- **Help pages no longer describe the parent portal as read-only.** Parents can tick off reading done at home and name the book — that is all they can change — and the wording now says so.
+- **The AI recommendation feature is described accurately in the terms, privacy policy and sub-processor register.** Those documents said schools must supply their own AI provider key, which describes only one of the two ways the feature can be used; where a school takes the paid AI add-on, Tally makes the requests and holds the provider relationship. An internal record also wrongly stated that children's names are sent to AI providers — they are not, and never have been.
+
 ## [3.119.0] - 2026-08-14
 
 ### Fixed

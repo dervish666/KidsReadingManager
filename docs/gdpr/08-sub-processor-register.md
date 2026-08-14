@@ -56,18 +56,20 @@ Cloudflare holds ISO 27001, SOC 2 Type II, and PCI DSS certifications.
 Cloudflare maintains its own sub-processor list at
 https://www.cloudflare.com/cloudflare-sub-processors/.
 
-### 3.2 Optional Sub-Processors (School-Controlled, BYOK)
+### 3.2 Optional Sub-Processors (AI recommendations)
 
 These sub-processors are only engaged when a school actively opts in by
-providing its own API key. The feature is disabled by default. Schools
-that enable these services enter into their own contractual relationship
-with the provider.
+opting in, in either of two ways. Under BYOK the school supplies its own
+API key and enters into its own contractual relationship with the provider.
+Under Tally's paid AI add-on, Tally makes the requests using its own provider
+account and the provider is a sub-processor to Tally. The feature is disabled
+by default and the data sent is identical either way.
 
 | Sub-processor | Purpose | Data Processed | Location | DPA Status | Transfer Mechanism |
 |---|---|---|---|---|---|
-| **Anthropic (Claude AI)** | AI-powered book recommendations (optional, BYOK) | Student reading profile: name*, reading level (AR min/max), genre preferences, likes/dislikes, list of books previously read (title, author, genre) | US | School's own DPA with Anthropic. Tally does not hold a direct contract with Anthropic -- the school's API key is used, making the school the contracting party. | School responsible as controller using their own API key. School must ensure its own international transfer compliance. |
-| **OpenAI (ChatGPT)** | AI-powered book recommendations (alternative provider, optional, BYOK) | Same data as Anthropic (above) | US | School's own DPA with OpenAI. Same BYOK model as Anthropic. | School responsible as controller using their own API key. |
-| **Google (Gemini)** | AI-powered book recommendations (alternative provider, optional, BYOK) | Same data as Anthropic (above) | US / Global | School's own DPA with Google. Same BYOK model as Anthropic. | School responsible as controller using their own API key. |
+| **Anthropic (Claude AI)** | AI-powered book recommendations (optional, BYOK) | Pseudonymised reading profile: reading level (AR min/max), coarse age band, genre preferences, likes/dislikes, list of books previously read (title, author). No student names or other directly identifying data are sent (enforced by toAISafeProfile in src/utils/studentProfile.js) | US | BYOK: the school's own DPA with Anthropic, the school being the contracting party. AI add-on: Tally's DPA with Anthropic, Anthropic acting as a sub-processor to Tally. | BYOK: school responsible as controller, and must ensure its own international transfer compliance. AI add-on: covered by Tally's transfer mechanism with the provider. |
+| **OpenAI (ChatGPT)** | AI-powered book recommendations (alternative provider, optional, BYOK) | Same data as Anthropic (above) | US | Same two-path model as Anthropic: the school's own DPA under BYOK, or Tally's DPA with OpenAI under the AI add-on. | BYOK: school responsible as controller. AI add-on: covered by Tally's transfer mechanism. |
+| **Google (Gemini)** | AI-powered book recommendations (alternative provider, optional, BYOK) | Same data as Anthropic (above) | US / Global | Same two-path model as Anthropic: the school's own DPA under BYOK, or Tally's DPA with Google under the AI add-on. | BYOK: school responsible as controller. AI add-on: covered by Tally's transfer mechanism. |
 
 **\* Data minimisation concern -- student names:**
 

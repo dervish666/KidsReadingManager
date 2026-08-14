@@ -598,8 +598,14 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
         )
         .bind(new Date().toISOString(), err.message, syncId)
         .run();
-    } catch {
-      // Best-effort sync log update
+    } catch (logErr) {
+      // Best-effort, but not silent: if this write is the thing that failed,
+      // the row stays 'running' forever and every reader — the owner's "has
+      // errors" filter, the admin sync panel — sees a sync still in progress
+      // rather than one that died.
+      console.warn(
+        `[WondeSync] Could not mark sync ${syncId} as failed (row stays 'running'): ${logErr.message}`
+      );
     }
 
     if (kv)

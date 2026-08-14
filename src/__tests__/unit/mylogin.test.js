@@ -743,6 +743,32 @@ describe('MyLogin OAuth Routes', () => {
       expect(res.headers.get('Location')).toBe('/?auth=error&reason=school_not_found');
     });
 
+    // MyLogin documents `organisation.wonde_id` as nullable — it is null for
+    // any organisation that isn't Wonde-connected — so this is a real profile
+    // shape, not a malformed one. It had no coverage at all.
+    it('redirects with no_school when the MyLogin profile carries no wonde_id', async () => {
+      setupFetchMock(
+        makeUserProfile({ organisation: { id: 42, name: 'A School', wonde_id: null } })
+      );
+      setupDbForCallback({ orgFound: false });
+      env.READING_MANAGER_KV.get.mockResolvedValue('1');
+
+      const res = await app.request(
+        '/api/auth/mylogin/callback?code=code&state=state',
+        { method: 'GET' },
+        env
+      );
+
+      expect(res.status).toBe(302);
+      expect(res.headers.get('Location')).toBe('/?auth=error&reason=no_school');
+
+      // Nothing is written for a profile we cannot attribute to a school.
+      const writes = env.READING_MANAGER_DB.prepare.mock.calls.filter(
+        (call) => call[0].includes('INSERT INTO users') || call[0].includes('UPDATE users')
+      );
+      expect(writes.length).toBe(0);
+    });
+
     it('redirects with school_inactive when the org exists but is deactivated', async () => {
       setupFetchMock();
       setupDbForCallback({ orgFound: true, orgActive: false });

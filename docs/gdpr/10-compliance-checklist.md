@@ -241,8 +241,8 @@ All cleanup jobs should be added to the existing scheduled handler in
 
 - [ ] **Create standard terms of service.** Separate from the DPA, these
       govern the commercial relationship (pricing, payment terms, liability,
-      termination). The current pricing is GBP 100/month per school with a
-      one-month free trial.
+      termination). The current pricing is GBP 1 per pupil per year (optional GBP 49/year AI add-on) with a
+      30-day free trial.
 
 - [ ] **Document the school onboarding process for GDPR compliance.**
       Create a step-by-step internal process document covering:

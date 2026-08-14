@@ -116,10 +116,14 @@ const PageFallback = () => (
 function AppContent() {
   const { isAuthenticated, userRole, subscriptionBlock } = useAuth();
   const [currentTab, setCurrentTab] = useState(0);
-  // Auto-show login page when returning from SSO (auth=callback or auth=error)
+  // Auto-show the login page when returning from SSO (auth=callback or
+  // auth=error), and also for `?school=<slug>` — the link a school hands its
+  // staff so MyLogin skips its national picker. Login.js reads that param, but
+  // without this the link opened the marketing page and the param was never
+  // seen: staff arrived at a sales pitch for a trial their school already has.
   const [showLogin, setShowLogin] = useState(() => {
     const params = new URLSearchParams(window.location.search);
-    return !!params.get('auth');
+    return !!(params.get('auth') || params.get('school'));
   });
 
   const ALL_TABS = useMemo(

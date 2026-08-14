@@ -64,7 +64,8 @@ export function enrichEarnedBadges(rows) {
  * the stored JSON is corrupt. Re-runs content moderation as defence-in-depth —
  * the text was filtered at write time, but a denylist update must never surface
  * stale unfiltered text to a child's parent. Only display fields are exposed
- * (no libraryBookId — the parent view is read-only).
+ * (no libraryBookId — the Book Ideas tab is display-only; the portal as a
+ * whole is not, since parents can log home reading via POST /:token/sessions).
  */
 export function shapeParentRecommendations(suggestionsJson, aiOptOut) {
   if (aiOptOut || !suggestionsJson) return [];
@@ -520,7 +521,11 @@ parentRouter.post('/:token/sessions', rateLimit(10, 60000, 'parent:sessions'), a
     }
   }
 
+  // Both free-text fields are capped. The title already was; the author was
+  // not, and it arrives on the same unauthenticated token endpoint from the
+  // same input — an uncapped column is a free write-amplification target.
   const bookTitleTruncated = bookTitleManual ? bookTitleManual.slice(0, 500) : null;
+  const bookAuthorTruncated = bookAuthorManual ? bookAuthorManual.slice(0, 500) : null;
   const sessionId = generateId();
 
   // Core writes — batched atomically
@@ -538,7 +543,7 @@ parentRouter.post('/:token/sessions', rateLimit(10, 60000, 'parent:sessions'), a
         sessionDate,
         bookId || null,
         bookTitleTruncated,
-        bookAuthorManual || null
+        bookAuthorTruncated
       ),
   ];
 

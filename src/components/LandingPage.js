@@ -508,8 +508,8 @@ export default function LandingPage({ onSignIn }) {
             <div className="shead reveal" ref={addRevealRef}>
               <h2>Simple, honest pricing</h2>
               <p>
-                £1 per pupil, per year. No surprises, no minimum spend, and a free term to try it
-                with one class.
+                £1 per pupil, per year. No surprises, no minimum spend, and a free 30-day trial to
+                try it with one class.
               </p>
             </div>
             <div className="pricing-cards">

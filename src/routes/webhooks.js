@@ -13,6 +13,7 @@
  */
 
 import { Hono } from 'hono';
+import * as Sentry from '@sentry/cloudflare';
 import {
   encryptSensitiveData,
   constantTimeStringEqual,
@@ -130,10 +131,29 @@ webhooksRouter.post('/wonde', async (c) => {
       try {
         schoolDetails = await fetchSchoolDetails(body.school_token, body.school_id);
       } catch (err) {
+        // Distinguish "this token will never work" from "Wonde was having a
+        // moment". Both used to return 400, so a transient outage during the
+        // one-shot approval silently dropped a school for good — and a genuinely
+        // dead token looked like an outage. Wonde re-delivers on a non-2xx
+        // (observed: 3 attempts per failed delivery), so a 503 buys a retry
+        // while a 400 correctly ends it.
+        const permanent = err.status === 401 || err.status === 403;
         console.warn(
-          `[Webhook] schoolApproved verification failed for school_id=${body.school_id}: ${err.message}`
+          `[Webhook] schoolApproved verification failed for school_id=${body.school_id} (${permanent ? 'permanent' : 'transient'}): ${err.message}`
         );
-        return c.json({ error: 'Could not verify school with Wonde' }, 400);
+
+        if (permanent) {
+          return c.json({ error: 'Could not verify school with Wonde' }, 400);
+        }
+
+        // Transient: report it, because an approval is a one-shot event and a
+        // school that silently never arrives is invisible to everyone.
+        Sentry.captureException(new Error('Wonde verification failed transiently at approval'), {
+          level: 'warning',
+          tags: { wonde: 'school-approved' },
+          extra: { wondeSchoolId: body.school_id, status: err.status, message: err.message },
+        });
+        return c.json({ error: 'Could not reach Wonde — please retry' }, 503);
       }
 
       if (!schoolDetails || schoolDetails.id !== body.school_id) {
@@ -215,9 +235,38 @@ webhooksRouter.post('/wonde', async (c) => {
         );
       }
 
-      // Trigger full sync in background
+      // Trigger full sync in background.
+      //
+      // This is the school's very first impression: if it fails, they sign in
+      // to an empty school and nothing on screen distinguishes "sync failed"
+      // from "not synced yet". Nobody there can retry either — POST
+      // /api/wonde/sync needs admin, and a freshly onboarded school may have
+      // none. So the failure is reported rather than left in the sync log for
+      // someone to find.
+      //
+      // captureException (not a console.warn) is right here where it would be
+      // wrong in a per-minute cron: this fires at most once per school
+      // onboarding, so it cannot become noise. No bespoke retry — the 3 AM
+      // nightly sync already is the retry.
       const syncPromise = runFullSync(orgId, body.school_token, body.school_id, db, {
         kv: c.env.READING_MANAGER_KV,
+      }).then((result) => {
+        if (result?.status === 'failed') {
+          console.error(
+            `[Webhook] Onboarding sync failed for ${schoolName} (${body.school_id}): ${result.errorMessage}`
+          );
+          Sentry.captureException(new Error('Wonde onboarding sync failed'), {
+            level: 'error',
+            tags: { wonde: 'onboarding-sync' },
+            extra: {
+              orgId,
+              schoolName,
+              wondeSchoolId: body.school_id,
+              errorMessage: result.errorMessage,
+            },
+          });
+        }
+        return result;
       });
       try {
         // executionCtx is a read-only getter that throws when unavailable

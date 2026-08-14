@@ -56,6 +56,12 @@ myloginRouter.use('/callback', rateLimit(SCHOOL_BURST_LIMIT, 60000));
  * a type added later) can't quietly inherit access to a whole school's data.
  */
 const STAFF_ROLE_BY_MYLOGIN_TYPE = {
+  // Null prototype so a MyLogin type of `constructor`, `toString` etc. can't
+  // resolve to an inherited Object.prototype member. It already failed closed
+  // — the inherited value is a Function, D1 rejects it as a bind parameter, and
+  // the login errors without writing a row — but "fails closed by crashing" is
+  // a worse guarantee than "isn't a key at all", and this costs one token.
+  __proto__: null,
   admin: 'admin',
   employee: 'teacher',
 };

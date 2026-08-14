@@ -640,9 +640,11 @@ const CATEGORIES = [
         body: (
           <P last>
             From a student's profile you can generate a QR code or link for their parents — scan it
-            and they get a read-only view of their child's reading: recent sessions, streak, and
-            badges. No account or password needed. Links last for the academic year, and you can
-            regenerate one at any time, which invalidates the old link.
+            and they can see their child's reading (recent sessions, streak and badges) and tick off
+            reading done at home, naming the book if they want to. That's all they can do: no
+            account, no password, and nothing else about the child is editable. Share the link with
+            the family only, since anyone holding it can log a home read. Links last for the
+            academic year, and you can regenerate one at any time, which invalidates the old link.
           </P>
         ),
       },
@@ -812,7 +814,7 @@ const FAQS = [
     q: 'Can we try it before committing?',
     a: (
       <P last>
-        Yes — UK primary schools get a free trial term, no card required. You can also explore the
+        Yes — UK primary schools get a free 30-day trial, no card required. You can also explore the
         instant demo from the home page to see Tally with realistic data before signing up.
       </P>
     ),
@@ -852,9 +854,9 @@ const FAQS = [
     q: 'Can parents see their child’s reading?',
     a: (
       <P last>
-        Yes. Teachers can share a QR code or link from any student's profile that gives parents a
-        read-only view of their child's sessions, streak and badges — no account needed, and the
-        link can be revoked at any time.
+        Yes. Teachers can share a QR code or link from any student's profile that lets parents see
+        their child's sessions, streak and badges, and tick off reading done at home — no account
+        needed. That is the only thing they can change, and the link can be revoked at any time.
       </P>
     ),
   },

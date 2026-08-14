@@ -100,7 +100,15 @@ export async function fetchSchoolDetails(token, schoolId) {
   );
 
   if (!response.ok) {
-    throw new Error(`Wonde API error: ${response.status} ${response.statusText}`);
+    // Carry the HTTP status on the error object. Callers need to tell a
+    // permanently bad token (401/403 — never going to succeed, don't ask the
+    // sender to retry) from a transient Wonde problem (5xx, 429, timeout —
+    // retry is exactly right), and matching on the message string to do it is
+    // fragile. A network or timeout failure throws before this line and so
+    // carries no status, which correctly reads as transient.
+    const err = new Error(`Wonde API error: ${response.status} ${response.statusText}`);
+    err.status = response.status;
+    throw err;
   }
 
   const json = await response.json();

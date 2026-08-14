@@ -185,8 +185,18 @@ describe('POST /api/webhooks/wonde - schoolApproved verification', () => {
     expect(updates.length).toBeGreaterThanOrEqual(1);
   });
 
+  // fetchSchoolDetails attaches the HTTP status to the error it throws, and
+  // the webhook branches on it: 401/403 is a permanently bad token (400, do
+  // not retry), anything else is transient (503, please re-deliver). Mocks
+  // must carry the status or they exercise the wrong branch.
+  const wondeError = (status, statusText) => {
+    const err = new Error(`Wonde API error: ${status} ${statusText}`);
+    err.status = status;
+    return err;
+  };
+
   it('returns 400 when fetchSchoolDetails throws (no existing org)', async () => {
-    fetchSchoolDetails.mockRejectedValue(new Error('401 Unauthorized'));
+    fetchSchoolDetails.mockRejectedValue(wondeError(401, 'Unauthorized'));
     const mockDB = createMockDB(() => null);
     const { app } = createTestApp(mockDB);
 
@@ -205,7 +215,7 @@ describe('POST /api/webhooks/wonde - schoolApproved verification', () => {
   });
 
   it('returns 400 when fetchSchoolDetails throws AND existing soft-deleted org exists (reactivation attack)', async () => {
-    fetchSchoolDetails.mockRejectedValue(new Error('401 Unauthorized'));
+    fetchSchoolDetails.mockRejectedValue(wondeError(401, 'Unauthorized'));
     const mockDB = createMockDB((sql) => {
       if (sql.includes('FROM organizations')) {
         return { id: 'org-1', is_active: 0 };
@@ -224,6 +234,49 @@ describe('POST /api/webhooks/wonde - schoolApproved verification', () => {
     expect(response.status).toBe(400);
     const updates = mockDB._runCalls.filter((c) => c.sql.includes('UPDATE organizations'));
     expect(updates.length).toBe(0);
+  });
+
+  // A one-shot approval landing during a Wonde wobble used to be indistinguish-
+  // able from a bad token: both returned 400, so the school was dropped for
+  // good with only a console.warn. 503 asks Wonde to re-deliver — and the
+  // no-write guarantee that protects the 400 path must hold here too.
+  it.each([
+    [500, 'Internal Server Error'],
+    [429, 'Too Many Requests'],
+  ])('returns 503 and writes nothing when Wonde fails transiently (%i)', async (status, text) => {
+    fetchSchoolDetails.mockRejectedValue(wondeError(status, text));
+    const mockDB = createMockDB(() => null);
+    const { app } = createTestApp(mockDB);
+
+    const response = await makeWebhook(app, 'test-secret', {
+      payload_type: 'schoolApproved',
+      school_id: 'wonde-school-123',
+      school_name: 'Test School',
+      school_token: 'good-token',
+    });
+
+    expect(response.status).toBe(503);
+    const writes = mockDB._runCalls.filter(
+      (c) => c.sql.includes('INSERT INTO organizations') || c.sql.includes('UPDATE organizations')
+    );
+    expect(writes.length).toBe(0);
+  });
+
+  // A network error or timeout throws before any HTTP status exists, so it
+  // carries none — that must read as transient, not as a bad token.
+  it('treats a status-less network error as transient', async () => {
+    fetchSchoolDetails.mockRejectedValue(new Error('Request timed out'));
+    const mockDB = createMockDB(() => null);
+    const { app } = createTestApp(mockDB);
+
+    const response = await makeWebhook(app, 'test-secret', {
+      payload_type: 'schoolApproved',
+      school_id: 'wonde-school-123',
+      school_name: 'Test School',
+      school_token: 'good-token',
+    });
+
+    expect(response.status).toBe(503);
   });
 
   it('returns 400 when fetchSchoolDetails returns mismatched school_id', async () => {

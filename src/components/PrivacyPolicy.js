@@ -632,7 +632,7 @@ const PrivacyPolicy = () => {
               ],
               [
                 <strong>Activation</strong>,
-                'Schools must actively opt in by providing their own API key (BYOK model). The feature is disabled by default.',
+                'Schools must actively opt in, either by providing their own API key or by subscribing to our paid AI add-on, in which case Tally makes the requests using its own provider account. The feature is disabled by default.',
               ],
               [
                 <strong>Data shared</strong>,
@@ -650,7 +650,7 @@ const PrivacyPolicy = () => {
               ],
               [
                 <strong>Safeguards</strong>,
-                'Each school controls whether to enable this feature and which provider to use. Schools provide their own API keys and are bound by their own agreements with the chosen AI provider.',
+                'Each school controls whether to enable this feature. A school using its own API key is bound by its own agreement with the chosen AI provider. A school on our paid AI add-on is served through Tally’s provider account, and that provider acts as a sub-processor to Tally — listed in our sub-processor register.',
               ],
             ]}
           />
@@ -795,7 +795,7 @@ const PrivacyPolicy = () => {
                 <span>
                   <strong>AI providers (US)</strong> — if enabled by the school
                 </span>,
-                "Schools that enable AI recommendations are responsible for ensuring that their use of the chosen AI provider complies with their own data transfer obligations. Tally facilitates the school's BYOK configuration but does not itself hold a contract with the AI provider on the school's behalf.",
+                "Where a school supplies its own API key, the school is responsible for ensuring its use of that provider complies with its own data transfer obligations, and Tally does not hold a contract with the provider on the school's behalf. Where a school uses our paid AI add-on, Tally holds that contract and the provider acts as a sub-processor to Tally.",
               ],
             ]}
           />
@@ -803,7 +803,9 @@ const PrivacyPolicy = () => {
           <BodyText>
             Cloudflare transfers are covered by the Cloudflare DPA v6.3 and EU-US Data Privacy
             Framework certification. AI provider transfers are the responsibility of the school as
-            controller (BYOK model — schools hold their own agreements with AI providers).
+            controller where the school supplies its own API key; where the school uses our paid AI
+            add-on, the provider is a Tally sub-processor and the transfer is covered by
+            Tally&rsquo;s agreement with that provider.
           </BodyText>
 
           <Divider sx={{ borderColor: 'rgba(139, 115, 85, 0.15)', mt: 3 }} />

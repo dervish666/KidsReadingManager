@@ -155,7 +155,11 @@ organizationRouter.get('/all', requireAdmin(), async (c) => {
         OR (o.wonde_school_id IS NOT NULL AND o.wonde_school_token IS NULL)
         OR EXISTS (
           SELECT 1 FROM wonde_sync_log wsl
-          WHERE wsl.organization_id = o.id AND wsl.status = 'error'
+          -- 'failed', not 'error': runFullSync only ever writes 'running',
+          -- 'completed' or 'failed' (wondeSync.js:561/596), so this clause
+          -- matched no row and a school whose latest sync failed never showed
+          -- up under the owner's "has errors" filter.
+          WHERE wsl.organization_id = o.id AND wsl.status = 'failed'
           AND wsl.started_at = (
             SELECT MAX(wsl2.started_at) FROM wonde_sync_log wsl2
             WHERE wsl2.organization_id = o.id

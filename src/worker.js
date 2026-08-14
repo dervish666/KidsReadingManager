@@ -888,22 +888,80 @@ async function runScheduledTask(event, env, ctx) {
             org.wonde_school_token,
             getEncryptionSecret(env)
           );
-          await runFullSync(org.id, schoolToken, org.wonde_school_id, db, {
+          // runFullSync RESOLVES on failure — it returns { status: 'failed',
+          // errorMessage } rather than throwing. Discarding that return value
+          // meant a revoked token or a Wonde outage arrived here as a fulfilled
+          // promise and was logged as "sync complete", so one school's roll
+          // could freeze indefinitely while the cron reported success and the
+          // `All N syncs failed` guard below stayed unreachable.
+          const result = await runFullSync(org.id, schoolToken, org.wonde_school_id, db, {
             updatedAfter: org.wonde_last_sync_at,
             kv: env.READING_MANAGER_KV,
           });
-          return org.id;
+          return { orgId: org.id, status: result?.status, errorMessage: result?.errorMessage };
         })
       );
 
       for (const result of results) {
-        if (result.status === 'fulfilled') {
-          console.log(`[Cron] Wonde sync complete for org ${result.value}`);
-        } else {
+        if (result.status === 'rejected') {
+          // Threw before or around the sync — e.g. token decryption failed.
           failCount++;
-          console.error(`[Cron] Wonde sync failed:`, result.reason?.message);
+          console.error('[Cron] Wonde sync threw:', result.reason?.message);
+          continue;
+        }
+
+        const { orgId, status, errorMessage } = result.value;
+        if (status === 'failed') {
+          failCount++;
+          console.error(`[Cron] Wonde sync failed for org ${orgId}: ${errorMessage}`);
+        } else if (status === 'skipped') {
+          // Another run holds the 10-minute KV lock. Neither success nor failure.
+          console.log(`[Cron] Wonde sync skipped for org ${orgId} (already running)`);
+        } else {
+          console.log(`[Cron] Wonde sync complete for org ${orgId}`);
         }
       }
+    }
+
+    // Sustained per-school failure alert.
+    //
+    // The existing cron watchdog only sees the *absence* of the whole job, and
+    // the throw below only fires when every school fails — so one school with a
+    // revoked token freezes silently: new starters never appear, leavers never
+    // deactivate, and the nightly job goes on reporting success. This closes
+    // that gap without paging on a wobble.
+    //
+    // `wonde_last_sync_at` is stamped only on the success path, so it is a
+    // trustworthy per-org watermark. 72h means three consecutive nightly
+    // failures — no D1 or network transient survives that, and it absorbs a run
+    // that was merely 'skipped' behind the 10-minute lock. Runs once a day,
+    // here rather than in cronWatchdog.js, because that file's model is one row
+    // per job name and this state already lives on `organizations`.
+    try {
+      const stale = await db
+        .prepare(
+          `SELECT id, name, wonde_last_sync_at FROM organizations
+             WHERE wonde_school_id IS NOT NULL AND wonde_school_token IS NOT NULL
+               AND is_active = 1
+               AND (wonde_last_sync_at IS NULL OR wonde_last_sync_at < datetime('now', '-72 hours'))`
+        )
+        .all();
+
+      for (const org of stale.results || []) {
+        console.error(
+          `[Cron] Wonde sync stale for "${org.name}" (${org.id}) — last success ${org.wonde_last_sync_at || 'never'}`
+        );
+        // Constant message, org identity in extra: Sentry groups every stale
+        // school into one issue rather than raising a separate one per school.
+        Sentry.captureException(new Error('Wonde sync stale for a school'), {
+          level: 'warning',
+          tags: { cron: 'wonde-school-sync', watchdog: 'org-stale' },
+          extra: { orgId: org.id, name: org.name, lastSyncAt: org.wonde_last_sync_at },
+        });
+      }
+    } catch (err) {
+      // A reporter must never fail the job it reports on.
+      console.warn('[Cron] Stale-sync check failed:', err.message);
     }
 
     if (failCount > 0 && failCount === orgList.length) {
