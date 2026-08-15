@@ -1,5 +1,21 @@
 # Changelog
 
+## [3.122.0] - 2026-08-15
+
+### Fixed
+
+- **The AI summary did not know it was the school holidays.** Asked on 15 August, it reported that reading had "stalled completely in the past two weeks", flagged all 47 pupils as needing attention, and suggested checking whether staff had stopped logging — 29 days after the summer term ended. Every number it quoted was right and the conclusion was nonsense. It is now told today's date and the school's own term dates, and how many school days actually fell in the past fortnight. When there have been none, it says plainly that the school is not in session and reads the whole-period figures instead of the empty fortnight.
+- **Two figures were doing most of the damage, and the summary now understands both.** The "this week" and "last week" counts are always the current week, whatever period you have selected — so a year-long view sits next to two zeroes during a break. And the "needs attention" flag counts days since a pupil last read, which means it flags the entire school after any holiday. Neither is a finding out of term time.
+
+### Added
+
+- **The summary now writes about your school by name**, and knows where today sits in your school year — in term, on a half-term break, or outside the year entirely. Schools that have not entered their term dates are told so, and the summary says openly that it cannot tell a holiday from a quiet week rather than guessing. Term dates are set under Settings.
+
+### Changed
+
+- **The privacy documents list the two new things sent**: the school's name, and today's date with the school's term dates. Both are needed for the summary to read the figures correctly, and neither is information about a pupil. Everything else is unchanged — still whole-school and whole-class totals only, still nothing about any individual child.
+- Existing summaries are regenerated rather than reused, so every school gets one written with the calendar in hand.
+
 ## [3.121.0] - 2026-08-15
 
 ### Added

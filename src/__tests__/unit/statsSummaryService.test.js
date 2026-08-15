@@ -8,6 +8,7 @@ import {
   generateStatsSummary,
   MIN_COHORT_SIZE,
 } from '../../services/statsSummaryService.js';
+import { buildCalendarContext } from '../../utils/schoolCalendar.js';
 
 /**
  * The sanitiser is the privacy boundary for this feature: whatever survives it
@@ -49,7 +50,11 @@ describe('sanitiseStatsPayload', () => {
     expect(safe.locationDistribution).toEqual({ home: 60, school: 150 });
     expect(safe.weeklyActivity).toEqual({ thisWeek: 40, lastWeek: 55 });
     expect(safe.statusDistribution).toEqual({ notRead: 4, needsAttention: 5, recentlyRead: 21 });
-    expect(safe.scope).toEqual({ classLabel: 'Year 4 Oak', periodLabel: 'Autumn 1' });
+    expect(safe.scope).toEqual({
+      schoolName: '',
+      classLabel: 'Year 4 Oak',
+      periodLabel: 'Autumn 1',
+    });
     expect(safe.mostReadBooks).toEqual([{ title: 'The Iron Man', count: 12 }]);
     expect(safe.bandDistribution).toHaveLength(2);
   });
@@ -218,6 +223,73 @@ describe('buildStatsSummaryPrompt', () => {
   it('instructs the model not to invent pupils', () => {
     expect(prompt).toMatch(/no pupil names/i);
     expect(prompt).toMatch(/Never invent a number/i);
+  });
+});
+
+describe('buildStatsSummaryPrompt — school calendar', () => {
+  const TERMS = [
+    {
+      academic_year: '2025/26',
+      term_name: 'Summer 2',
+      start_date: '2026-06-01',
+      end_date: '2026-07-17',
+    },
+  ];
+  const safe = sanitiseStatsPayload(FULL_PAYLOAD, { schoolName: 'Cheddar Grove Manual' });
+
+  // The regression this whole calendar feature exists for: on 15 Aug 2026 the
+  // summary called a 14-day gap "a hard stop" and told the head to chase staff,
+  // during the summer holidays.
+  it('tells the model in no uncertain terms not to panic during a holiday', () => {
+    const cal = buildCalendarContext(TERMS, '2026-08-15');
+    const prompt = buildStatsSummaryPrompt(safe, cal);
+    expect(prompt).toContain('Today is Saturday 15 August 2026');
+    expect(prompt).toContain('outside the school year');
+    expect(prompt).toContain('In the last 14 days: 0');
+    expect(prompt).toContain('NO school days at all in the last 14 days');
+    expect(prompt).toMatch(/do not call it a stall/i);
+    expect(prompt).toMatch(/needs-attention count/i);
+  });
+
+  it('drops the holiday warning during term time', () => {
+    const prompt = buildStatsSummaryPrompt(safe, buildCalendarContext(TERMS, '2026-06-17'));
+    expect(prompt).toContain('in term time');
+    expect(prompt).toContain('In the last 14 days: 10');
+    expect(prompt).not.toContain('NO school days at all');
+  });
+
+  it('flags a shortened fortnight without crying holiday', () => {
+    // Wed 22 July, term ended Fri 17 July. Last 14 days = 9–22 July, of which
+    // Thu 9 to Fri 17 were school days: 7, short of a normal fortnight's 10.
+    const prompt = buildStatsSummaryPrompt(safe, buildCalendarContext(TERMS, '2026-07-22'));
+    expect(prompt).toContain('Only 7 of the last 14 days were school days');
+    expect(prompt).not.toContain('NO school days at all');
+  });
+
+  it('admits it cannot tell when the school has no term dates', () => {
+    const prompt = buildStatsSummaryPrompt(safe, buildCalendarContext([], '2026-08-15'));
+    expect(prompt).toContain('has not entered its term dates');
+    expect(prompt).toMatch(/Do not assume either/i);
+    expect(prompt).not.toContain('School days (Monday-Friday within a term)');
+  });
+
+  it('names the school when the server supplies one, and stays quiet when it does not', () => {
+    const withName = buildStatsSummaryPrompt(safe, buildCalendarContext(TERMS, '2026-06-17'));
+    expect(withName).toContain('<user_input>Cheddar Grove Manual</user_input>');
+
+    const anon = buildStatsSummaryPrompt(sanitiseStatsPayload(FULL_PAYLOAD));
+    expect(anon).not.toContain('Write about it by name');
+  });
+
+  it('takes the school name only from the server, never the request body', () => {
+    const spoofed = sanitiseStatsPayload({ ...FULL_PAYLOAD, schoolName: 'Not This School' });
+    expect(spoofed.scope.schoolName).toBe('');
+    expect(buildStatsSummaryPrompt(spoofed)).not.toContain('Not This School');
+  });
+
+  it('still builds a prompt with no calendar at all', () => {
+    expect(() => buildStatsSummaryPrompt(safe)).not.toThrow();
+    expect(buildStatsSummaryPrompt(safe)).not.toContain('TODAY AND THE SCHOOL CALENDAR');
   });
 });
 

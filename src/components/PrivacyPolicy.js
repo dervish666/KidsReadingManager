@@ -652,10 +652,12 @@ const PrivacyPolicy = () => {
                 <strong>Statistics summaries</strong>,
                 <span>
                   A school leader may also ask for a written summary of the figures on the
-                  school&rsquo;s statistics page.{' '}
+                  school&rsquo;s statistics page. The school&rsquo;s name, today&rsquo;s date and
+                  its term dates are sent alongside the figures, so the summary can tell term time
+                  from a school holiday.{' '}
                   <strong>
-                    Only whole-school or whole-class totals are sent — no pupil names, identifiers
-                    or characteristics, and nothing about any individual pupil.
+                    Otherwise only whole-school or whole-class totals are sent — no pupil names,
+                    identifiers or characteristics, and nothing about any individual pupil.
                   </strong>
                 </span>,
               ],

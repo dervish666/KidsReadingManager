@@ -80,19 +80,21 @@ identifying personal data is shared with any AI sub-processor.
 
 **AI statistics summaries:** A school leader may ask for a written summary of
 the reading figures shown on the school's statistics page. Only whole-school or
-whole-class totals are sent. In full, that is: the class or period being viewed;
-the number of pupils and of reading sessions; how sessions split between home
-and school; this week's and last week's totals; sessions per day of the week;
-how many pupils fall into each reading status; how many pupils have no sessions;
-streak counts and lengths; how many pupils sit in each reading band; and the
-titles of the most-read, most-liked and least-liked books.
+whole-class totals are sent. In full, that is: the school's name; today's date
+and the school's term dates, so the summary can tell term time from a holiday;
+the class or period being viewed; the number of pupils and of reading sessions;
+how sessions split between home and school; this week's and last week's totals;
+sessions per day of the week; how many pupils fall into each reading status;
+how many pupils have no sessions; streak counts and lengths; how many pupils sit
+in each reading band; and the titles of the most-read, most-liked and
+least-liked books.
 
 No pupil names, pupil identifiers, dates of birth, or demographic
 characteristics are included, and no information about any individual pupil is
 sent. Summaries are refused outright for any view containing fewer than five
 pupils, so the totals always describe a group rather than a child. Because only
-aggregate counts leave the platform, this feature does not transmit personal
-data to the AI provider.
+the school's own name, its calendar and aggregate counts leave the platform,
+this feature does not transmit personal data to the AI provider.
 
 ### 3.3 Transactional Email
 
