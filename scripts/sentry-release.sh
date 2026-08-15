@@ -39,8 +39,16 @@ fi
 if [ -n "${SENTRY_AUTH_TOKEN:-}" ] && [ -n "${SENTRY_ORG:-}" ] && [ -n "${SENTRY_PROJECT:-}" ]; then
   echo -e "${YELLOW}→ Uploading source maps to Sentry for ${RELEASE}...${NC}"
 
-  # A Sentry hiccup must never block a production deploy, so the upload is
-  # best-effort — but it reports loudly rather than failing silently.
+  # Two independent jobs with two independent verdicts. They used to share one,
+  # and the shared verdict was a lie: `finalize`/`deploys` carried `|| true`,
+  # so both could print "error: Release not found" and the script would still
+  # report "✓ ... finalized". That went unnoticed from 3.115.0 (3 Aug) to
+  # 3.121.0 (15 Aug) — every release in that window has a null dateReleased and
+  # null lastDeploy in Sentry. A step that cannot fail out loud is a step that
+  # is not really being run.
+
+  # Job 1 — source maps. The important one: without these, traces are minified.
+  # A Sentry hiccup must never block a production deploy, so it is best-effort.
   upload_ok=true
   {
     # `inject` stamps matching debug IDs into the JS and its map. That is what
@@ -51,14 +59,34 @@ if [ -n "${SENTRY_AUTH_TOKEN:-}" ] && [ -n "${SENTRY_ORG:-}" ] && [ -n "${SENTRY
   } || upload_ok=false
 
   if [ "$upload_ok" = true ]; then
-    # Release + deploy marker: lets Sentry mark issues as "first seen in
-    # 3.114.0" and flag regressions against a specific deploy.
-    npx sentry-cli releases finalize "$RELEASE" || true
-    npx sentry-cli releases deploys "$RELEASE" new --env "${SENTRY_ENVIRONMENT:-production}" || true
-    echo -e "${GREEN}✓ Source maps uploaded and ${RELEASE} finalized.${NC}"
+    echo -e "${GREEN}✓ Source maps uploaded for ${RELEASE}.${NC}"
   else
     echo -e "${RED}✗ Source map upload FAILED for ${RELEASE}.${NC}" >&2
     echo -e "${RED}  Deploy continues, but traces for this release will be minified.${NC}" >&2
+  fi
+
+  # Job 2 — release object + deploy marker. Lets Sentry mark issues as "first
+  # seen in 3.121.0" and flag regressions against a specific deploy. Losing this
+  # costs regression tracking, not symbolication (debug IDs handle that), which
+  # is exactly why it could rot unnoticed for nineteen releases.
+  #
+  # `releases new` is the line that was missing. `sourcemaps upload --release`
+  # uploads a debug-ID-keyed artifact bundle and does NOT create the release
+  # object, so `finalize` had nothing to finalize. It is an upsert, so re-running
+  # a deploy is safe.
+  release_ok=true
+  {
+    npx sentry-cli releases new "$RELEASE" &&
+      npx sentry-cli releases finalize "$RELEASE" &&
+      npx sentry-cli releases deploys "$RELEASE" new --env "${SENTRY_ENVIRONMENT:-production}"
+  } || release_ok=false
+
+  if [ "$release_ok" = true ]; then
+    echo -e "${GREEN}✓ Release ${RELEASE} created, finalized and marked deployed.${NC}"
+  else
+    echo -e "${RED}✗ Release marker FAILED for ${RELEASE}.${NC}" >&2
+    echo -e "${RED}  Deploy continues and traces still symbolicate (debug IDs),${NC}" >&2
+    echo -e "${RED}  but this release gets no 'first seen in' or regression tracking.${NC}" >&2
   fi
 else
   echo -e "${YELLOW}⚠ SENTRY_AUTH_TOKEN / SENTRY_ORG / SENTRY_PROJECT not set —${NC}"
