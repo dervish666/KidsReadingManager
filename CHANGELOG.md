@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.120.2] - 2026-08-15
+
+### Changed
+
+- **A parent opening an out-of-date QR link was told "Invalid or expired access token".** That is the wording the system uses internally, on a page read by parents who have simply been handed a link that has since been replaced. It now says the link has expired and to ask their child's teacher for a new one — and a temporary problem at our end says so, rather than implying the link is at fault.
+
+### Added
+
+- **The parent QR portal now has browser tests**, covering the journey a parent actually takes: opening the link on a phone with no account, the layout fitting the screen, logging reading from home, the Book Ideas tab, and an old link being refused with a clear explanation. It was the only part of Tally used by people outside a school and the only part with no such test.
+
 ## [3.120.1] - 2026-08-15
 
 ### Fixed

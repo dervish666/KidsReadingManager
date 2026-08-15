@@ -64,8 +64,19 @@ const ParentPortal = () => {
     try {
       const res = await fetch(apiBase);
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || 'This link is invalid or has expired.');
+        // Deliberately NOT the server's error string. This page is read by
+        // parents, and the API answers a bad token with "Invalid or expired
+        // access token" — which reads as a fault they have done something to
+        // cause, in vocabulary they have no reason to know. It also leaks
+        // backend phrasing to a fully public page. The distinction that
+        // matters to them is "this link is dead, ask school" versus "try again
+        // in a minute".
+        const linkDead = res.status === 401 || res.status === 403 || res.status === 404;
+        throw new Error(
+          linkDead
+            ? 'This link is invalid or has expired. Please ask your child’s teacher for a new one.'
+            : 'We couldn’t load this page just now. Please try again in a moment.'
+        );
       }
       const json = await res.json();
       setData(json);
