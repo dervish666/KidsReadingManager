@@ -1,155 +1,147 @@
 {
-  "generatedAt": "2026-07-02",
-  "issue": "July 2026",
+  "generatedAt": "2026-08-15",
+  "issue": "August 2026",
   "title": "Reading News",
-  "intro": "As the summer term winds down, here's what's topping your reading logs — Horrible Histories back on stage, a new Michael Morpurgo memoir on the way, this year's Carnegie winners, and the Summer Reading Challenge under way.",
+  "intro": "A late-summer issue: the Summer Reading Challenge is in its final fortnight, this year's big prizes have been handed out, and there's a diary to fill before September.",
   "isPreview": false,
   "items": [
     {
-      "id": "worst-witch-fresh-look",
-      "headline": "The Worst Witch — 50 years on and still your most-read series",
+      "id": "worst-witch-series-runway",
+      "headline": "Your most-read author by a distance — and there's plenty more Mildred",
       "author": "Jill Murphy",
       "book": "A Bad Spell for the Worst Witch",
       "rank": 1,
       "kind": "spotlight",
-      "summary": "Mildred Hubble is comfortably your most-read character across Tally schools. Jill Murphy's series turned 50 in 2024 and the anniversary edition is in shops, with the much-loved CBBC television series to carry on with once the books are finished. A safe recommendation for any child who likes a little magic and mischief.",
-      "source": "Penguin",
-      "link": "https://www.penguin.co.uk/discover/childrens-articles/why-we-love-jill-murphy"
+      "summary": "The Worst Witch books are the most-read across our schools this year, with A Bad Spell for the Worst Witch alone logged 34 times. If you have a class hooked, there are eight titles in Penguin's series to work through, and the 50th anniversary clothbound edition of the first book makes a handsome start for a class set.",
+      "source": "Penguin Books",
+      "link": "https://www.penguin.co.uk/series/WOR/the-worst-witch"
     },
     {
-      "id": "brandon-ravens-hall",
-      "headline": "From A Box of Socks to a creepy mansion — Amanda Brandon's new chapter reader",
+      "id": "amanda-brandon-granny-mutton",
+      "headline": "Two more Granny Mutton stories for the children who loved A Box of Socks",
       "author": "Amanda Brandon",
-      "book": "A Box of Socks (Early Reader)",
+      "book": "A Box of Socks",
       "rank": 2,
       "kind": "release",
-      "summary": "Amanda Brandon — whose A Box of Socks is one of your most-read titles — has The Curse of Raven's Hall out now (Maverick, May 2026): a comic-strip-style illustrated chapter reader set in a spooky old mansion, pitched at ages 5–8. A natural next step for a child who's outgrown her early readers but still wants that warmth and humour.",
-      "source": "Amanda Brandon",
+      "summary": "A Box of Socks is our second most-read title, and it's the middle of a trio: A Scarf and a Half came first and A Knit and a Knot turns Granny Mutton and Little Lionel into detectives hunting missing wool. Brandon also has two new chapter books out this year, Starship Mystery and The Curse of Raven's Hall, for readers ready to move up from early readers.",
+      "source": "amandabrandon.co.uk",
       "link": "https://www.amandabrandon.co.uk/"
     },
     {
-      "id": "glover-nowhere-boy",
-      "headline": "The Nowhere Boy comes from a teacher who knows her readers",
-      "author": "Sandra Glover",
-      "book": "The Nowhere Boy",
-      "rank": 3,
-      "kind": "spotlight",
-      "summary": "Sandra Glover was a head of history before she turned to writing, and The Nowhere Boy — one of your most-read titles — was her very first novel, shortlisted for the Lancashire Children's Book of the Year. Its mix of everyday foster-family life and a mysterious boy who speaks straight into Mandy's mind is a gentle way into science fiction for confident readers.",
-      "source": "sandraglover.co.uk",
-      "link": "http://www.sandraglover.co.uk/about.htm"
-    },
-    {
-      "id": "biff-chip-on-screen",
-      "headline": "Biff, Chip and Kipper — a watch-alike for your earliest readers",
-      "author": "Roderick Hunt",
-      "book": "A Cat in the Tree",
-      "rank": 4,
-      "kind": "spotlight",
-      "summary": "The Oxford Reading Tree trio your beginner readers meet have their own screen outings — the CBeebies series Biff & Chip and the classic Magic Key animation — worth pointing families to for a little reading support at home.",
-      "source": "Wikipedia",
-      "link": "https://en.wikipedia.org/wiki/The_Magic_Key"
-    },
-    {
       "id": "morpurgo-down-burrow-lane",
-      "headline": "Michael Morpurgo's most personal book yet — fifty years on a Devon farm",
+      "headline": "Michael Morpurgo's memoir arrives next month — and every penny goes to Farms for City Children",
       "author": "Michael Morpurgo",
-      "book": "Running Wild",
+      "book": "In the Mouth of the Wolf",
       "rank": 8,
       "kind": "release",
-      "summary": "The author of Running Wild publishes Down Burrow Lane: Life and Love on the Farm on 17 September — a memoir of the fifty years he and his wife Clare spent on the Devon farm that inspired War Horse and Private Peaceful, and where they founded the Farms for City Children charity. One for the staffroom, and lovely background for a class already hooked on his animal stories.",
-      "source": "Waterstones",
-      "link": "https://www.waterstones.com/author/michael-morpurgo/28972"
+      "summary": "Down Burrow Lane: Life and Love on the Farm is published on 17 September by Hodder & Stoughton, fifty years after Michael and Clare Morpurgo moved their family to a Devon farm and started writing. It's a book for grown-ups rather than the class, but the charity behind it may interest you: Farms for City Children has given more than 100,000 children a week in the countryside, and Morpurgo is donating all the proceeds to it.",
+      "source": "Hodder & Stoughton",
+      "link": "https://www.ivybridgebookshop.com/products/9781399760089"
     },
     {
-      "id": "horrible-histories-on-stage",
-      "headline": "Horrible Histories on stage: Awful Egyptians & Terrible Tudors on tour",
-      "author": "Terry Deary",
-      "book": "The Awful Egyptians",
-      "rank": 12,
-      "kind": "news",
-      "summary": "The very titles your classes are reading are live on stage: Birmingham Stage Company's Awful Egyptians and Terrible Tudors are touring UK theatres through 2026, with dates running into late October — actors, songs and eye-popping 3D effects. This year marks 20 years of Horrible Histories on stage. A brilliant tie-in for a history topic.",
-      "source": "Birmingham Stage Company",
-      "link": "https://birminghamstage.com/shows/terrible-tudors-awful-egyptians/"
+      "id": "roman-mysteries-runway",
+      "headline": "Seventeen Roman Mysteries, and your readers are only ten in",
+      "author": "Caroline Lawrence",
+      "book": "The Enemies of Jupiter",
+      "rank": 9,
+      "kind": "spotlight",
+      "summary": "The Enemies of Jupiter is book ten of seventeen, so anyone gripped by it has a long way still to run. Lawrence describes it as \"Nancy Drew in Ancient Rome\" — her heroine Flavia Gemina is ten when the series starts — and ten of the seventeen were televised by the BBC. A useful bridge for primary readers who want history that moves like a thriller.",
+      "source": "carolinelawrence.com",
+      "link": "https://carolinelawrence.com/book-series/"
+    },
+    {
+      "id": "carnegie-illustration-2026-wiggling-words",
+      "headline": "A picture book about dyslexia takes this year's Carnegie Illustration Medal",
+      "author": "Kate Rolfe",
+      "book": null,
+      "rank": null,
+      "kind": "award",
+      "summary": "Wiggling Words (Two Hoots) won the Carnegie Medal for Illustration on 23 June. Rolfe draws her own dyslexia from the inside, using typography and colour to show both the struggle with words on a page and the creative thinking that came with it. One to have on the shelf for any child who has decided reading isn't for them.",
+      "source": "The Carnegies",
+      "link": "https://carnegies.co.uk/"
+    },
+    {
+      "id": "waterstones-prize-2026",
+      "headline": "Waterstones Children's Book Prize goes to a bedtime story about a blob",
+      "author": "Huw Aaron",
+      "book": null,
+      "rank": null,
+      "kind": "award",
+      "summary": "Sleep Tight, Disgusting Blob (Puffin) took both Best Illustrated Book and the overall prize — a cosy, rhyming spin on all things spooky. For slightly older readers, Evie and Maryam's Family Tree by Janeen Hyat (Guppy Books) won Best Book for Younger Readers.",
+      "source": "The Bookseller",
+      "link": "https://www.thebookseller.com/news/huw-aaron-wins-waterstones-childrens-book-prize-2026-with-instant-classic"
     }
   ],
   "events": [
     {
-      "id": "summer-reading-challenge-2026",
-      "date": "2026-07-04",
-      "name": "Summer Reading Challenge — Read to the Beat!",
+      "id": "summer-reading-challenge-2026-ends",
+      "date": "2026-08-31",
+      "name": "Summer Reading Challenge ends",
       "kind": "event",
-      "blurb": "The Reading Agency's free library challenge runs from 4 July in England and Wales (20 June in Scotland), this year pairing stories with songs alongside Universal Music, with illustrations by Harry Woodgate. A great nudge to keep children aged 4–11 reading over the holidays.",
+      "blurb": "This year's challenge is Read to the Beat, all about the link between stories and songs. It finishes on 31 August at most library services, so there's still time to nudge families to get their last books counted.",
       "link": "https://summerreadingchallenge.org.uk/"
-    },
-    {
-      "id": "beatrix-potter-160",
-      "date": "2026-07-28",
-      "name": "Beatrix Potter's 160th birthday",
-      "kind": "birthday",
-      "blurb": "The creator of Peter Rabbit was born on 28 July 1866 — a lovely prompt for a Potter display or a read-aloud of the little tales with your youngest classes.",
-      "link": "https://en.wikipedia.org/wiki/Beatrix_Potter"
     },
     {
       "id": "roald-dahl-day-2026",
       "date": "2026-09-13",
-      "name": "Roald Dahl Day",
+      "name": "Roald Dahl Day — his 110th birthday",
       "kind": "event",
-      "blurb": "Marked each year on Dahl's birthday, 13 September. Schools often celebrate with dressing-up, golden tickets and a chapter or two of the classics.",
-      "link": "https://www.roalddahl.com/"
+      "blurb": "Dahl was born on 13 September 1916, so this is the 110th. Worth noting it lands on a Sunday this year, so most schools will mark it on the Friday before or the Monday after.",
+      "link": null
     },
     {
       "id": "national-poetry-day-2026",
       "date": "2026-10-01",
-      "name": "National Poetry Day — 'Wonder'",
+      "name": "National Poetry Day",
       "kind": "event",
-      "blurb": "Thursday 1 October, this year on the theme of Wonder, with free classroom resources from the Forward Arts Foundation and trained poets going into schools. A perfect prompt for a class poem or a favourite verse read aloud.",
-      "link": "https://forwardartsfoundation.org/national-poetry-day/"
+      "blurb": "This year's theme is Wonder, with Michael Rosen and Hot Poets exploring climate and nature through poetry. Classroom resources go up on the National Literacy Trust site in the weeks beforehand.",
+      "link": "https://literacytrust.org.uk/resources/national-poetry-day-resources/"
     },
     {
-      "id": "michael-morpurgo-birthday",
+      "id": "morpurgo-birthday-2026",
       "date": "2026-10-05",
       "name": "Michael Morpurgo's birthday",
       "kind": "birthday",
-      "blurb": "One of your most-read authors was born on 5 October — pair it with Running Wild, or his new farm memoir Down Burrow Lane, out the month before.",
-      "link": "https://www.michaelmorpurgo.com/"
+      "blurb": "Born in 1943, and one of the most-read authors across our schools. A good excuse to put War Horse or Friend or Foe in front of a class that hasn't met him yet.",
+      "link": null
     },
     {
       "id": "world-book-day-2027",
       "date": "2027-03-04",
-      "name": "World Book Day",
+      "name": "World Book Day 2027",
       "kind": "event",
-      "blurb": "The next World Book Day falls on Thursday 4 March 2027. Worth pencilling in early for £1 book tokens, dressing-up and reading-for-pleasure activities.",
-      "link": "https://www.worldbookday.com/"
+      "blurb": "Always the first Thursday in March. A long way off, but it has a habit of arriving the week you meant to start planning it.",
+      "link": null
     }
   ],
   "general": [
     {
-      "id": "carnegie-medals-2026",
-      "label": "Book award",
-      "text": "The 2026 Carnegie Medals were announced in June: Kate Rolfe won the Illustration Medal for Wiggling Words, a picture book about what reading feels like with dyslexia, and Beth O'Brien won the Writing Medal for Wolf Siren.",
-      "source": "ReadingZone",
-      "link": "https://www.readingzone.com/news/winners-of-the-2026-carnegie-medals-announced/"
-    },
-    {
-      "id": "reading-enjoyment-nlt",
+      "id": "nlt-2026-enjoyment-up",
       "label": "Reading research",
-      "text": "Just 1 in 3 children aged 8–18 said they enjoyed reading in their free time in 2025 — a 20-year low — though the National Literacy Trust's 2026 report shows a small rise. Children who enjoy reading report better wellbeing and do better at school, which makes every reading session count.",
-      "source": "National Literacy Trust",
-      "link": "https://literacytrust.org.uk/research-services/research-reports/children-and-young-peoples-reading-in-2026/"
+      "text": "Children's reading enjoyment has risen for the first time in five years: 36.1% of 8 to 18-year-olds say they enjoy reading in their free time, up from 32.7% in 2025.",
+      "source": "National Literacy Trust, Annual Literacy Survey 2026",
+      "link": "https://literacytrust.org.uk/news/our-latest-research-shows-modest-rise-in-childrens-reading-engagement-but-levels-remain-low/"
     },
     {
-      "id": "research-oecd",
-      "label": "Reading research",
-      "text": "OECD analysis found that reading for pleasure is one of the biggest indicators of a child's future success — a stronger predictor than the family's wealth or background.",
-      "source": "OECD",
-      "link": null
-    },
-    {
-      "id": "didyouknow-words",
+      "id": "nlt-2026-daily-reading",
       "label": "Did you know?",
-      "text": "A child who reads for around 20 minutes a day meets roughly 1.8 million words a year — a big part of why regular readers pull ahead.",
-      "source": "Renaissance Learning",
-      "link": null
+      "text": "One in five children (20.3%) now read daily in their own time, up from 18.7% the year before — the first increase in daily reading since 2023.",
+      "source": "National Literacy Trust, Annual Literacy Survey 2026",
+      "link": "https://literacytrust.org.uk/news/our-latest-research-shows-modest-rise-in-childrens-reading-engagement-but-levels-remain-low/"
+    },
+    {
+      "id": "nlt-2026-primary-dip",
+      "label": "Worth knowing",
+      "text": "The picture is different at primary age: enjoyment among 5 to 8-year-olds slipped slightly, from 62.6% to 61.6%, with the fall driven by boys. Still high — but the one age group heading the wrong way.",
+      "source": "National Literacy Trust, Annual Literacy Survey 2026",
+      "link": "https://literacytrust.org.uk/news/our-latest-research-shows-modest-rise-in-childrens-reading-engagement-but-levels-remain-low/"
+    },
+    {
+      "id": "srchallenge-read-to-the-beat",
+      "label": "Reading news",
+      "text": "This summer's library challenge, Read to the Beat, was run with Universal Music UK and asked children to explore how stories and songs both spark imagination. Free to join at any public library.",
+      "source": "The Reading Agency",
+      "link": "https://readingagency.org.uk/get-reading/our-programmes-and-campaigns/summer-reading-challenge/"
     }
   ]
 }
