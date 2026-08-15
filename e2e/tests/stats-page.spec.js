@@ -14,21 +14,22 @@ test.describe('Stats Page', () => {
   });
 
   test('stats page renders with tab navigation', async ({ page }) => {
-    // Should show the stats tabs
+    // The five tabs actually rendered by stats/ReadingStats.js. Streaks used to
+    // be here and now lives on the Achievements page, so it is asserted there.
     await expect(page.getByRole('tab', { name: 'Overview' })).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByRole('tab', { name: 'Streaks' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Needs Attention' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Reading Frequency' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Reading Timeline' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Reading News' })).toBeVisible();
   });
 
   test('clicking tabs switches content', async ({ page }) => {
     await expect(page.getByRole('tab', { name: 'Overview' })).toBeVisible({ timeout: 10_000 });
 
-    // Click Streaks tab
-    await page.getByRole('tab', { name: 'Streaks' }).click();
+    // Click Reading Frequency tab
+    await page.getByRole('tab', { name: 'Reading Frequency' }).click();
 
-    // Should show streak-related content (or empty state)
+    // Should show frequency content (or empty state)
     await expect(page.locator('main')).toBeVisible();
 
     // Click Needs Attention tab

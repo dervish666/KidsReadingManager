@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.120.1] - 2026-08-15
+
+### Fixed
+
+- **There was no way to sign in from the landing page on a phone.** The header's "Sign in" button was hidden on screens narrower than 520 pixels — which is every phone held upright — and it is the only sign-in control the page has. Anyone arriving on tallyreading.uk from a phone saw a page that offered them a free trial but no way into an account they already had. The header now keeps "Sign in" on small screens and drops the duplicate "Start free trial" link instead, which the page repeats immediately below anyway.
+
+### Changed
+
+- **Ten browser tests were checking for buttons and tabs that no longer exist**, so they had been failing on every pull request regardless of whether anything was wrong. They now check the pages as they actually are — which is how the missing mobile sign-in button above came to light.
+
 ## [3.120.0] - 2026-08-14
 
 ### Security

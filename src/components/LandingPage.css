@@ -233,7 +233,13 @@ html:has(.landing-page) {
   }
 }
 @media (max-width: 520px) {
-  .landing-page .nav-cta .btn-ghost {
+  /* Below 520px there is room for one header button, and it must be Sign in.
+     This used to hide Sign in instead — and since that button is the ONLY
+     thing on the page wired to onSignIn, every phone in portrait (an iPhone
+     is 375–430 CSS px) showed a landing page with no way to sign in at all.
+     Hiding the trial link costs nothing: the hero repeats "Start free trial"
+     immediately below, and it is only an anchor to #start further down. */
+  .landing-page .nav-cta .btn-primary {
     display: none;
   }
 }

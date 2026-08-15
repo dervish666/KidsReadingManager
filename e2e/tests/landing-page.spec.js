@@ -9,15 +9,19 @@ test.describe('Landing Page', () => {
   });
 
   test('hero section renders with CTA buttons', async ({ page }) => {
-    await expect(page.getByRole('button', { name: /try the demo/i })).toBeVisible();
+    // Two hero CTAs plus the header sign-in. "Start free trial" appears twice
+    // (header and hero), so scope to the hero to keep the locator unambiguous.
+    const hero = page.locator('.hero-actions');
+    await expect(hero.getByRole('link', { name: /start free trial/i })).toBeVisible();
+    await expect(hero.getByRole('button', { name: /explore the live demo/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible();
-    await expect(page.getByRole('link', { name: /learn more/i })).toBeVisible();
   });
 
   test('navigation links are present', async ({ page }) => {
-    await expect(page.getByRole('link', { name: 'Features' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'See it' })).toBeVisible();
-    await expect(page.getByRole('link', { name: /stay updated/i })).toBeVisible();
+    const nav = page.getByRole('navigation', { name: 'Primary' });
+    await expect(nav.getByRole('link', { name: 'See it' })).toBeVisible();
+    await expect(nav.getByRole('link', { name: 'Features' })).toBeVisible();
+    await expect(nav.getByRole('link', { name: 'Pricing' })).toBeVisible();
   });
 
   test('features section scrolls into view', async ({ page }) => {
@@ -30,7 +34,7 @@ test.describe('Landing Page', () => {
 
   test('contact form renders with all fields', async ({ page }) => {
     // Scroll to contact section
-    await page.locator('#contact').scrollIntoViewIfNeeded();
+    await page.locator('#start').scrollIntoViewIfNeeded();
 
     await expect(page.locator('input[name="name"]')).toBeVisible();
     await expect(page.locator('input[name="email"]')).toBeVisible();
@@ -39,7 +43,7 @@ test.describe('Landing Page', () => {
   });
 
   test('contact form validates required fields', async ({ page }) => {
-    await page.locator('#contact').scrollIntoViewIfNeeded();
+    await page.locator('#start').scrollIntoViewIfNeeded();
 
     // Submit empty form — HTML5 validation should prevent submission
     const submitBtn = page.getByRole('button', { name: /send message/i });
@@ -59,7 +63,7 @@ test.describe('Landing Page', () => {
       }),
     );
 
-    await page.locator('#contact').scrollIntoViewIfNeeded();
+    await page.locator('#start').scrollIntoViewIfNeeded();
 
     await page.locator('input[name="name"]').fill('Test User');
     await page.locator('input[name="email"]').fill('test@example.com');
@@ -98,7 +102,7 @@ test.describe('Landing Page', () => {
       }),
     );
 
-    await page.getByRole('button', { name: /try the demo/i }).click();
+    await page.getByRole('button', { name: /explore the live demo/i }).click();
 
     // Button should show loading state
     await expect(page.getByText(/loading demo/i)).toBeVisible({ timeout: 3_000 }).catch(() => {
@@ -111,7 +115,7 @@ test.describe('Landing Page', () => {
     const footer = page.locator('footer');
     await footer.scrollIntoViewIfNeeded();
 
-    await expect(footer.getByRole('link', { name: /privacy policy/i })).toBeVisible({ timeout: 5_000 });
+    await expect(footer.getByRole('link', { name: 'Privacy' })).toBeVisible({ timeout: 5_000 });
     await expect(footer.getByRole('link', { name: 'Terms' })).toBeVisible();
     await expect(footer.getByRole('link', { name: 'Cookies' })).toBeVisible();
   });
@@ -120,9 +124,13 @@ test.describe('Landing Page', () => {
     await page.setViewportSize({ width: 375, height: 667 });
 
     // Hero CTA should still be visible
-    await expect(page.getByRole('button', { name: /try the demo/i })).toBeVisible();
+    await expect(
+      page.locator('.hero-actions').getByRole('link', { name: /start free trial/i })
+    ).toBeVisible();
 
-    // Mobile sign in button should be visible
+    // Sign in must survive to the narrowest phones: this button is the only
+    // thing on the landing page wired to onSignIn, so if it is hidden an
+    // existing user on a phone has no way in at all.
     await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible();
 
     // No horizontal overflow
