@@ -1,0 +1,148 @@
+# data/ structure detail
+module: tally-reading
+directory: src/data/
+description: Storage abstraction layer - provider factory with D1, KV, and JSON backends
+
+files:
+  index.js:
+    description: Provider factory; auto-detects D1 > STORAGE_TYPE env > KV > JSON
+    exports:
+      - name: createProvider
+        kind: function
+        params: [{name: env, type: object, default: null}]
+        returns: Promise<object>
+        description: Factory detecting storage backend and returning provider interface
+    imports:
+      - from: ./kvProvider
+        items: [default]
+      - from: ./d1Provider
+        items: [default]
+
+  d1Provider.js:
+    description: SQL-based storage using Cloudflare D1; optimized for 18,000+ books with FTS5
+    exports:
+      - name: getAllBooks
+        kind: function
+        params: [{name: env}]
+        returns: Promise<Array>
+        description: Retrieve all books (no org filter)
+      - name: getBooksByOrganization
+        kind: function
+        params: [{name: env}, {name: organizationId}]
+        returns: Promise<Array>
+        description: Books linked to org via org_book_selections JOIN
+      - name: getBookById
+        kind: function
+        params: [{name: env}, {name: id}]
+        returns: Promise<object|null>
+      - name: addBook
+        kind: function
+        params: [{name: env}, {name: book}]
+        returns: Promise<object>
+      - name: updateBook
+        kind: function
+        params: [{name: env}, {name: id}, {name: book}]
+        returns: Promise<object>
+      - name: deleteBook
+        kind: function
+        params: [{name: env}, {name: id}]
+        returns: Promise<object>
+      - name: addBooksBatch
+        kind: function
+        params: [{name: env}, {name: books}]
+        returns: Promise<Array>
+        description: Bulk insert with auto-chunking (max 100 per batch)
+      - name: updateBooksBatch
+        kind: function
+        params: [{name: env}, {name: updates}]
+        returns: Promise<Array>
+        description: Bulk update with auto-chunking
+      - name: searchBooks
+        kind: function
+        params: [{name: env}, {name: query}, {name: limit}]
+        returns: Promise<Array>
+        description: FTS5 full-text search with LIKE fallback
+      - name: getBooksPaginated
+        kind: function
+        params: [{name: env}, {name: page}, {name: pageSize}]
+        returns: "Promise<{books, total, page, pageSize, totalPages}>"
+      - name: getBookCount
+        kind: function
+        params: [{name: env}]
+        returns: Promise<number>
+      - name: getFilteredBooksForRecommendations
+        kind: function
+        params: [{name: env}, {name: options}]
+        returns: Promise<Array>
+        description: SQL pre-filter by reading level, genres, excluded books with randomization
+      - name: READING_LEVEL_MAP
+        kind: object
+        description: "Map reading level strings to numeric values {beginner:1..expert:6}"
+
+  kvProvider.js:
+    description: JSON blob storage using Cloudflare Workers KV (legacy fallback)
+    exports:
+      - name: getAllBooks
+        kind: function
+        params: [{name: env}]
+        returns: Promise<Array>
+      - name: getBookById
+        kind: function
+        params: [{name: env}, {name: id}]
+        returns: Promise<object|null>
+      - name: addBook
+        kind: function
+        params: [{name: env}, {name: book}]
+        returns: Promise<object>
+      - name: updateBook
+        kind: function
+        params: [{name: env}, {name: id}, {name: book}]
+        returns: Promise<object>
+      - name: deleteBook
+        kind: function
+        params: [{name: env}, {name: id}]
+        returns: Promise<object>
+      - name: addBooksBatch
+        kind: function
+        params: [{name: env}, {name: books}]
+        returns: Promise<Array>
+      - name: updateBooksBatch
+        kind: function
+        params: [{name: env}, {name: updates}]
+        returns: Promise<Array>
+      - name: addBookOptimized
+        kind: function
+        params: [{name: env}, {name: book}, {name: options}]
+        returns: Promise<object|Array>
+        description: Auto-detect single vs batch context
+
+  jsonProvider.js:
+    description: File-based JSON storage for local development (Node.js only)
+    exports:
+      - name: getAllBooks
+        kind: function
+        returns: Array
+      - name: getBookById
+        kind: function
+        params: [{name: id}]
+        returns: object|null
+      - name: addBook
+        kind: function
+        params: [{name: book}]
+        returns: object
+      - name: updateBook
+        kind: function
+        params: [{name: id}, {name: book}]
+        returns: object
+      - name: deleteBook
+        kind: function
+        params: [{name: id}]
+        returns: object
+      - name: addBooksBatch
+        kind: function
+        params: [{name: books}]
+        returns: Array
+      - name: updateBooksBatch
+        kind: function
+        params: [{name: updates}]
+        returns: Array
