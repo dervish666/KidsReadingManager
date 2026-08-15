@@ -649,6 +649,17 @@ const PrivacyPolicy = () => {
                 'Generating personalised book recommendations for the teacher to review',
               ],
               [
+                <strong>Statistics summaries</strong>,
+                <span>
+                  A school leader may also ask for a written summary of the figures on the
+                  school&rsquo;s statistics page.{' '}
+                  <strong>
+                    Only whole-school or whole-class totals are sent — no pupil names, identifiers
+                    or characteristics, and nothing about any individual pupil.
+                  </strong>
+                </span>,
+              ],
+              [
                 <strong>Safeguards</strong>,
                 'Each school controls whether to enable this feature. A school using its own API key is bound by its own agreement with the chosen AI provider. A school on our paid AI add-on is served through Tally’s provider account, and that provider acts as a sub-processor to Tally — listed in our sub-processor register.',
               ],

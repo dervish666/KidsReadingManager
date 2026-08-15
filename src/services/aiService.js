@@ -176,7 +176,13 @@ async function callGemini(
   model,
   baseUrl = 'https://generativelanguage.googleapis.com/v1beta',
   raw = false,
-  debug = null
+  debug = null,
+  // Gemini needs a nudge to stop wrapping JSON in prose, but the nudge has to
+  // name the shape the *caller* asked for. It said "array" unconditionally,
+  // which contradicted the stats-summary prompt's request for an object and
+  // reliably produced a reply the parser then had to degrade. Default stays
+  // 'array' so the recommendations contract is unchanged.
+  jsonShape = 'array'
 ) {
   // Null/undefined model bypasses default params; resolve explicitly.
   // Keep in step with getDefaultModel() in src/components/AISettings.js.
@@ -198,7 +204,7 @@ async function callGemini(
           {
             parts: [
               {
-                text: prompt + '\n\nIMPORTANT: Output ONLY valid JSON array.',
+                text: prompt + `\n\nIMPORTANT: Output ONLY valid JSON ${jsonShape}.`,
               },
             ],
           },
@@ -557,23 +563,47 @@ export async function generateBroadSuggestions(
     debug.prompt = prompt;
   }
 
-  let response;
+  const response = await callProviderRaw(prompt, { provider, apiKey, baseUrl, model }, debug);
+
+  return parseBroadSuggestionsResponse(response);
+}
+
+/**
+ * Send a prompt to whichever provider `config` names and return the raw text.
+ *
+ * The three adapters above are module-private on purpose — this is the single
+ * exported door to them, so a new AI feature reuses the existing timeout,
+ * JSON-mode and safety-block handling instead of writing its own fetch. Used by
+ * `generateBroadSuggestions` (above) and `services/statsSummaryService.js`.
+ *
+ * Does no parsing or validation: the caller owns the response contract.
+ *
+ * @param {string} prompt
+ * @param {{provider?: string, apiKey: string, baseUrl?: string, model?: string}} config
+ * @param {Object} [debug] - Optional capture object; receives model/rawResponse
+ * @param {'array'|'object'} [jsonShape='array'] - What the prompt asks for. Only
+ *   Gemini uses it (it needs an explicit trailing nudge); passing the wrong
+ *   shape makes it return the other one and the caller's parser fail.
+ * @returns {Promise<string>} Raw provider text
+ */
+export async function callProviderRaw(prompt, config, debug = null, jsonShape = 'array') {
+  const { provider = 'anthropic', apiKey, baseUrl, model } = config || {};
+
+  if (!apiKey) {
+    throw new Error('API key is required for AI suggestions');
+  }
+
   switch (provider) {
     case 'anthropic':
-      response = await callAnthropic(prompt, apiKey, model, baseUrl, true, debug);
-      break;
+      return callAnthropic(prompt, apiKey, model, baseUrl, true, debug);
     case 'openai':
-      response = await callOpenAI(prompt, apiKey, model, baseUrl, true, debug);
-      break;
+      return callOpenAI(prompt, apiKey, model, baseUrl, true, debug);
     case 'gemini':
     case 'google':
-      response = await callGemini(prompt, apiKey, model, baseUrl, true, debug);
-      break;
+      return callGemini(prompt, apiKey, model, baseUrl, true, debug, jsonShape);
     default:
       throw new Error(`Unsupported AI provider: ${provider}`);
   }
-
-  return parseBroadSuggestionsResponse(response);
 }
 
 /**
@@ -600,7 +630,9 @@ export async function generateBroadSuggestions(
 // client-visible debug panel — upstream auth errors echo masked key fragments
 // ("Incorrect API key provided: sk-proj-****…"), and the panel is shown to
 // any authenticated school user, not just the key's owner.
-const redactKeyMaterial = (text) =>
+// Exported because the same aggregate failure string is logged by
+// routes/students/aiSummary.js, and console.error reaches Sentry Logs.
+export const redactKeyMaterial = (text) =>
   String(text).replace(/\b(?:sk-|AIza)[A-Za-z0-9*_-]{4,}/g, '[redacted-key]');
 
 export async function generateBroadSuggestionsWithFailover(

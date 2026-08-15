@@ -50,7 +50,7 @@ Cloudflare holds ISO 27001, SOC 2 Type II, and PCI DSS certifications.
 Cloudflare maintains its own sub-processor list at
 https://www.cloudflare.com/cloudflare-sub-processors/.
 
-### 3.2 Optional Sub-Processors (AI recommendations)
+### 3.2 Optional Sub-Processors (AI features)
 
 These sub-processors are only engaged when a school actively opts in. The
 feature is disabled by default, and a school may enable it in either of two
@@ -69,14 +69,30 @@ below).
 
 | Sub-processor             | Purpose                                                                | Data Processed                                                                                                                                                                                                    | Location    | DPA Status                                                                                                                                                      | Transfer Mechanism                                                                                                      |
 | ------------------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| **Anthropic (Claude AI)** | AI-powered book recommendations (optional)                       | Pseudonymised reading profile: reading level (AR min/max), genre preferences, likes/dislikes, list of books previously read (title, author, genre). No student names or other directly identifying data are sent. | US          | BYOK: the school's own DPA with Anthropic, the school being the contracting party. AI add-on: Tally's DPA with Anthropic, Anthropic acting as a sub-processor to Tally. | BYOK: school responsible as controller, and must ensure its own international transfer compliance. AI add-on: covered by Tally's transfer mechanism with the provider. |
-| **OpenAI (ChatGPT)**      | AI-powered book recommendations (alternative provider, optional) | Same data as Anthropic (above)                                                                                                                                                                                    | US          | Same two-path model as Anthropic: the school's own DPA under BYOK, or Tally's DPA with OpenAI under the AI add-on.                                                                                                     | BYOK: school responsible as controller. AI add-on: covered by Tally's transfer mechanism.                                                               |
-| **Google (Gemini)**       | AI-powered book recommendations (alternative provider, optional) | Same data as Anthropic (above)                                                                                                                                                                                    | US / Global | Same two-path model as Anthropic: the school's own DPA under BYOK, or Tally's DPA with Google under the AI add-on.                                                                                                     | BYOK: school responsible as controller. AI add-on: covered by Tally's transfer mechanism.                                                               |
+| **Anthropic (Claude AI)** | AI-powered book recommendations, and AI summaries of aggregate reading statistics (both optional)                       | Pseudonymised reading profile: reading level (AR min/max), genre preferences, likes/dislikes, list of books previously read (title, author, genre). No student names or other directly identifying data are sent. | US          | BYOK: the school's own DPA with Anthropic, the school being the contracting party. AI add-on: Tally's DPA with Anthropic, Anthropic acting as a sub-processor to Tally. | BYOK: school responsible as controller, and must ensure its own international transfer compliance. AI add-on: covered by Tally's transfer mechanism with the provider. |
+| **OpenAI (ChatGPT)**      | As Anthropic above (alternative provider, optional) | Same data as Anthropic (above)                                                                                                                                                                                    | US          | Same two-path model as Anthropic: the school's own DPA under BYOK, or Tally's DPA with OpenAI under the AI add-on.                                                                                                     | BYOK: school responsible as controller. AI add-on: covered by Tally's transfer mechanism.                                                               |
+| **Google (Gemini)**       | As Anthropic above (alternative provider, optional) | Same data as Anthropic (above)                                                                                                                                                                                    | US / Global | Same two-path model as Anthropic: the school's own DPA under BYOK, or Tally's DPA with Google under the AI add-on.                                                                                                     | BYOK: school responsible as controller. AI add-on: covered by Tally's transfer mechanism.                                                               |
 
 **Data minimisation:** Student names are not included in AI recommendation
 prompts. Only pseudonymised reading-profile data (reading level, genre
 preferences, and book history) is sent to AI providers. No directly
 identifying personal data is shared with any AI sub-processor.
+
+**AI statistics summaries:** A school leader may ask for a written summary of
+the reading figures shown on the school's statistics page. Only whole-school or
+whole-class totals are sent. In full, that is: the class or period being viewed;
+the number of pupils and of reading sessions; how sessions split between home
+and school; this week's and last week's totals; sessions per day of the week;
+how many pupils fall into each reading status; how many pupils have no sessions;
+streak counts and lengths; how many pupils sit in each reading band; and the
+titles of the most-read, most-liked and least-liked books.
+
+No pupil names, pupil identifiers, dates of birth, or demographic
+characteristics are included, and no information about any individual pupil is
+sent. Summaries are refused outright for any view containing fewer than five
+pupils, so the totals always describe a group rather than a child. Because only
+aggregate counts leave the platform, this feature does not transmit personal
+data to the AI provider.
 
 ### 3.3 Transactional Email
 

@@ -28,6 +28,7 @@ src/routes/students.js - Core student CRUD (list, get, create, update, soft-dele
 src/routes/students/\_shared.js - Shared helpers: fetchStudentPreferences, saveStudentPreferences, getOrgStreakSettings (KV-cached), updateStudentStreak
 src/routes/students/sessions.js - GET /sessions, GET/POST /:id/sessions, POST /:id/sessions/bulk (multi-day batch, side-effects run once), DELETE/PUT /:id/sessions/:sessionId — creates use the shared runSessionSideEffects chain
 src/routes/students/stats.js - GET /stats — org rollup: counts, weekly activity, day-of-week, status distribution, streak leaderboard, most-liked books
+src/routes/students/aiSummary.js - POST /stats/ai-summary — admin/owner-only AI narrative of the Stats page figures; allow-listed aggregate payload, KV-cached on a hash of the figures themselves
 src/routes/students/streak.js - GET /:id/streak, POST /recalculate-streaks; exports cron-time recalculateAllStreaks bulk-recalculator
 src/routes/students/bulk.js - POST /bulk — CSV bulk import with name dedup and chunked batch insert
 src/routes/students/gdpr.js - DELETE /:id/erase (Article 17), PUT /:id/restrict (Article 18), PUT /:id/ai-opt-out, GET /:id/export (Article 15 SAR JSON/CSV)
@@ -80,6 +81,7 @@ src/data/demoSnapshot.js - Learnalot demo data snapshot (auto-generated, used by
 ## Services
 
 src/services/aiService.js - AI recommendation generation (Anthropic/OpenAI/Google)
+src/services/statsSummaryService.js - Stats AI summary: sanitiseStatsPayload (the privacy allow-list), prompt builder, forgiving JSON parser, provider failover
 src/services/kvService.js - KV storage operations (legacy)
 src/services/wondeSync.js - Wonde delta/full sync orchestration
 src/services/metadataService.js - Cascade engine (enrichBook, processBatch) for multi-provider metadata enrichment
@@ -133,6 +135,7 @@ src/utils/stripe.js - Stripe client factory, price ID helpers, AI add-on detecti
 src/utils/statsExport.js - PDF/CSV stats report generation (jsPDF)
 src/utils/orgStatusCache.js - KV cache for organization is_active + subscription_status (tenantMiddleware reads, Stripe webhook/org deactivate/purge invalidate)
 src/utils/coverPlaceholders.js - Shared SHA-256 hash set + helpers for rejecting upstream "image not available" cover placeholders (used by covers.js route + metadataService.js)
+src/utils/aiProviderResolver.js - Shared AI key resolution (BYOK -> add-on-licensed platform key -> env) and failover-chain building; used by book recommendations AND the Stats AI summary
 src/utils/aiCostCap.js - Per-tenant monthly AI cost cap enforcement (org_ai_usage table)
 src/utils/contentModeration.js - AI output content-moderation layer (age-appropriate filtering)
 src/utils/d1Batch.js - D1 batch operation guard (chunks statements to respect 100-statement limit)
@@ -286,6 +289,7 @@ src/components/parent/ParentQRButton.js - Single-student QR dialog with print, c
 ## Frontend Components - Stats
 
 src/components/stats/ReadingStats.js - Stats dashboard with metrics and charts
+src/components/stats/AiSummaryPanel.js - AI narrative panel on the Stats page (generates on mount, copy-to-clipboard, regenerate)
 src/components/stats/OverviewTab.js - Stats overview with summary cards and trend indicators
 src/components/stats/FrequencyTab.js - Reading frequency analysis tab
 src/components/stats/StreaksTab.js - Streak leaderboard and history tab

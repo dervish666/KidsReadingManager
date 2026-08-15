@@ -276,6 +276,10 @@ app.use('/api/*', async (c, next) => {
 // Cost-sensitive endpoint rate limiting (AI APIs, external proxies)
 // ============================================================================
 app.use('/api/books/ai-suggestions', costRateLimit(10)); // 10/min — calls Anthropic/OpenAI/Google
+// Stats AI summary. Lower than recommendations: it is a once-a-period read for
+// a head, not a per-pupil workflow, and its prompt is larger. Repeat clicks on
+// unchanged figures hit the KV cache and never reach a provider.
+app.use('/api/students/stats/ai-summary', costRateLimit(5));
 // The foreground poller drives this endpoint once per batch (a batch is already
 // capped at ~5 books / 20s server-side), so it legitimately fires several times
 // a minute. 60/min (~1/s) bounds abuse without throttling a normal run; the

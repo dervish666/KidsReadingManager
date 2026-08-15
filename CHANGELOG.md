@@ -1,6 +1,17 @@
 # Changelog
 
-## [3.120.2] - 2026-08-15
+## [3.121.0] - 2026-08-15
+
+### Added
+
+- **The statistics page can now write you a summary.** Heads and deputies get an "AI Summary" button that reads the figures already on screen and writes a short briefing: a headline, what is going well, what is worth a closer look, and a few practical next steps — with a copy button for pasting into a governors' report. It is meant to catch the things a glance at the tiles misses, like home reading sitting well below school reading, or a healthy average hiding a group of children with no sessions at all. The summary always describes the class and period currently selected, and it will say when a pattern is too small to read much into. It appears only for schools with an AI subscription or their own AI key, and only for admins and headteachers.
+- **Summaries are refused for any view with fewer than five pupils.** With one or two children on screen, "how many sessions were logged" stops being a statistic and becomes that child's reading record. Rather than send it, the summary declines and suggests widening the class filter.
+
+### Changed
+
+- **The privacy documents now describe the new summary.** Our published sub-processor register, data processing agreement and privacy policy previously said AI providers were used only for book recommendations. They now also cover statistics summaries, and set out exactly which figures are sent — whole-school and whole-class totals only. No child's name, identifier, date of birth or characteristics are included, and nothing about any individual child is sent.
+- **Every AI feature now decides which key to use in the same place.** Whether a school is using its own AI key or the paid add-on was previously worked out separately by each feature, which is how a school's own key quietly gets ignored by the next one added. There is now a single answer, shared by book recommendations and the new summary.
+- **Summaries are remembered until the figures change**, so opening the page again costs nothing, and there is a button to write a fresh one when you want a different take.
 
 ### Changed
 

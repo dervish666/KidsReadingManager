@@ -197,9 +197,9 @@ Under Article 28(2) UK GDPR, the following sub-processors are engaged:
 | Sub-Processor | Purpose | Data Processed | Location | Transfer Mechanism |
 |---|---|---|---|---|
 | Cloudflare, Inc. | Infrastructure: Workers (compute), D1 (database), KV (cache), R2 (object storage), CDN, Email Routing | All application data | D1 database in Western Europe (Germany); Workers and CDN edge nodes worldwide | Cloudflare DPA v6.3 (auto-applies), includes EU SCCs + UK IDTA. Cloudflare certified under EU-US Data Privacy Framework + UK Extension |
-| Anthropic | AI book recommendations (when selected by school) | Reading profile (no student names) | United States | [TODO: UK IDTA or equivalent] |
-| OpenAI | AI book recommendations (when selected by school) | Reading profile (no student names) | United States | [TODO: UK IDTA or equivalent] |
-| Google (Vertex AI / Gemini) | AI book recommendations (when selected by school) | Reading profile (no student names) | United States | [TODO: UK IDTA or equivalent] |
+| Anthropic | AI book recommendations, and AI summaries of aggregate reading statistics (when selected by school) | Reading profile (no student names); aggregate counts only for statistics summaries (no personal data) | United States | [TODO: UK IDTA or equivalent] |
+| OpenAI | As Anthropic above (when selected by school) | As Anthropic above | United States | [TODO: UK IDTA or equivalent] |
+| Google (Vertex AI / Gemini) | As Anthropic above (when selected by school) | As Anthropic above | United States | [TODO: UK IDTA or equivalent] |
 | OpenLibrary (Internet Archive) | Book metadata and cover image lookup | ISBN, title, author (non-personal) | United States | N/A -- no personal data |
 | Cloudflare Email Routing | Transactional email delivery | Email address, name | Cloudflare infrastructure | Covered under Cloudflare DPA |
 

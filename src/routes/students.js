@@ -45,6 +45,7 @@ import {
 } from './students/_shared.js';
 import { sessionsRouter } from './students/sessions.js';
 import { statsRouter } from './students/stats.js';
+import { aiSummaryRouter } from './students/aiSummary.js';
 import { streakRouter, recalculateAllStreaks } from './students/streak.js';
 import { bulkRouter } from './students/bulk.js';
 import { gdprRouter } from './students/gdpr.js';
@@ -57,6 +58,7 @@ const studentsRouter = new Hono();
 // about routing precedence.
 studentsRouter.route('/', sessionsRouter);
 studentsRouter.route('/', statsRouter);
+studentsRouter.route('/', aiSummaryRouter);
 studentsRouter.route('/', streakRouter);
 studentsRouter.route('/', bulkRouter);
 studentsRouter.route('/', gdprRouter);

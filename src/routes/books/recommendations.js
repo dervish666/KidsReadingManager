@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
 import { generateBroadSuggestionsWithFailover } from '../../services/aiService.js';
 import { notFoundError, badRequestError, serverError } from '../../middleware/errorHandler.js';
-import { decryptSensitiveData, getEncryptionSecret } from '../../utils/crypto.js';
+import { getEncryptionSecret } from '../../utils/crypto.js';
+import { resolveAiConfig, buildFailoverChain } from '../../utils/aiProviderResolver.js';
 import { buildStudentReadingProfile, toAISafeProfile } from '../../utils/studentProfile.js';
 import { yearGroupToAgeBand } from '../../utils/yearGroup.js';
 import { getCachedRecommendations, cacheRecommendations } from '../../utils/recommendationCache.js';
@@ -222,92 +223,15 @@ recommendationsRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
       provider: null, // set after we know which provider
     };
 
-    // Get AI configuration
-    const dbConfig = await db
-      .prepare(
-        `
-      SELECT provider, api_key_encrypted, model_preference, is_enabled
-      FROM org_ai_config WHERE organization_id = ?
-    `
-      )
-      .bind(organizationId)
-      .first();
-
-    let aiConfig;
-
-    if (dbConfig && dbConfig.is_enabled && dbConfig.api_key_encrypted) {
-      // Path 1: School has their own API key configured
-      try {
-        const decryptedApiKey = await decryptSensitiveData(dbConfig.api_key_encrypted, encSecret);
-        aiConfig = {
-          provider: dbConfig.provider || 'anthropic',
-          apiKey: decryptedApiKey,
-          model: dbConfig.model_preference,
-        };
-      } catch (decryptError) {
-        console.error('Failed to decrypt API key:', decryptError.message);
-        throw badRequestError('AI configuration error. Please check Settings.');
-      }
-    } else {
-      // Path 2: Check if org has the paid AI addon
-      const org = await db
-        .prepare('SELECT ai_addon_active FROM organizations WHERE id = ?')
-        .bind(organizationId)
-        .first();
-
-      if (!org?.ai_addon_active) {
-        throw Object.assign(
-          new Error('AI recommendations are not enabled for this organisation.'),
-          { status: 403 }
-        );
-      }
-
-      // Path 2a: Use owner's platform key
-      const platformKey = await db
-        .prepare(
-          'SELECT provider, api_key_encrypted, model_preference FROM platform_ai_keys WHERE is_active = 1'
-        )
-        .first();
-
-      if (platformKey?.api_key_encrypted) {
-        try {
-          const decryptedKey = await decryptSensitiveData(platformKey.api_key_encrypted, encSecret);
-          aiConfig = {
-            provider: platformKey.provider,
-            apiKey: decryptedKey,
-            model: platformKey.model_preference || null,
-          };
-        } catch (decryptError) {
-          console.error('Failed to decrypt platform API key:', decryptError.message);
-          throw badRequestError('Platform AI configuration error. Contact the administrator.');
-        }
-      } else {
-        // Path 2b: Tertiary fallback — env vars (transitional, remove after platform keys confirmed)
-        const envProvider = c.env.ANTHROPIC_API_KEY
-          ? 'anthropic'
-          : c.env.OPENAI_API_KEY
-            ? 'openai'
-            : c.env.GOOGLE_API_KEY
-              ? 'google'
-              : null;
-
-        if (!envProvider) {
-          throw badRequestError('AI not configured. Contact your administrator.');
-        }
-
-        const envKeyMap = {
-          anthropic: 'ANTHROPIC_API_KEY',
-          openai: 'OPENAI_API_KEY',
-          google: 'GOOGLE_API_KEY',
-        };
-
-        aiConfig = {
-          provider: envProvider,
-          apiKey: c.env[envKeyMap[envProvider]],
-          model: null,
-        };
-      }
-    }
+    // Get AI configuration. Precedence (BYOK → add-on-licensed platform key →
+    // env fallback) lives in utils/aiProviderResolver.js so the Stats AI
+    // summary resolves keys and entitlement identically.
+    const aiConfig = await resolveAiConfig({
+      db,
+      env: c.env,
+      organizationId,
+      notEntitledMessage: 'AI recommendations are not enabled for this organisation.',
+    });
 
     // Check cache (unless skipCache requested). Runs after provider
     // resolution so the read key hashes the same provider the write key
@@ -398,46 +322,10 @@ recommendationsRouter.get('/ai-suggestions', requireReadonly(), async (c) => {
     // + genres + reading-history is sufficient for book recommendations.
     const safeProfile = toAISafeProfile(profile);
 
-    // Build the failover chain. The primary `aiConfig` selected above stays
-    // first; other configured platform keys, then any env-key candidates,
-    // are appended as fallbacks. A transient outage on the primary (5xx /
-    // timeout / malformed response that fails schema validation) flows
-    // through to the next provider rather than 5xx-ing the user. Note:
-    // platform/env failover means a school-key failure can fall through to
-    // our platform spend — acceptable as a transient-outage handler, not a
-    // routing default.
-    const aiConfigs = [aiConfig];
-    try {
-      const platformKeyRows = await db
-        .prepare(
-          'SELECT provider, api_key_encrypted, model_preference FROM platform_ai_keys WHERE api_key_encrypted IS NOT NULL'
-        )
-        .all();
-      for (const row of platformKeyRows.results || []) {
-        if (aiConfigs.some((cfg) => cfg.provider === row.provider)) continue;
-        try {
-          const key = await decryptSensitiveData(row.api_key_encrypted, encSecret);
-          aiConfigs.push({ provider: row.provider, apiKey: key, model: row.model_preference });
-        } catch {
-          // Undecryptable fallback key — skip it, the primary still works.
-          // Warn so a rotated ENCRYPTION_KEY doesn't silently thin the chain.
-          console.warn(`[ai-failover] skipping undecryptable platform key for ${row.provider}`);
-        }
-      }
-    } catch (platformErr) {
-      console.error('Failed to load platform failover keys:', platformErr.message);
-    }
-    const failoverCandidates = [
-      { provider: 'anthropic', envKey: 'ANTHROPIC_API_KEY' },
-      { provider: 'openai', envKey: 'OPENAI_API_KEY' },
-      { provider: 'google', envKey: 'GOOGLE_API_KEY' },
-    ];
-    for (const { provider, envKey } of failoverCandidates) {
-      const envApiKey = c.env[envKey];
-      if (envApiKey && !aiConfigs.some((cfg) => cfg.provider === provider)) {
-        aiConfigs.push({ provider, apiKey: envApiKey, model: null });
-      }
-    }
+    // Build the failover chain — see utils/aiProviderResolver.js. The primary
+    // `aiConfig` stays first; other platform keys, then env keys, are appended
+    // so a transient outage flows through rather than 5xx-ing the user.
+    const aiConfigs = await buildFailoverChain({ db, env: c.env, primary: aiConfig });
 
     // Capture the exact prompt/response exchange for the collapsed debug
     // panel on the recommendations page. Contains no student PII — the

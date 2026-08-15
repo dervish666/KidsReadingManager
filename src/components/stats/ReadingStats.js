@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -15,6 +15,7 @@ import {
   Skeleton,
 } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import AssessmentIcon from '@mui/icons-material/Assessment';
@@ -25,16 +26,17 @@ import ReadingTimelineChart from './ReadingTimelineChart';
 import OverviewTab from './OverviewTab';
 import NeedsAttentionTab from './NeedsAttentionTab';
 import FrequencyTab from './FrequencyTab';
+import AiSummaryPanel from './AiSummaryPanel';
 import ReadingNewsPage from '../news/ReadingNewsPage';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
 import { generateStatsPDF } from '../../utils/statsExport';
 import { useUI } from '../../contexts/UIContext';
 import { useTour } from '../tour/useTour';
-import { READING_BAND_COUNT } from '../../utils/readingBandDefinitions';
+import { READING_BAND_COUNT, getBandByIndex } from '../../utils/readingBandDefinitions';
 
 const ReadingStats = () => {
-  const { fetchWithAuth, organization } = useAuth();
+  const { fetchWithAuth, organization, userRole } = useAuth();
   const { students, classes, settings } = useData();
   const { globalClassFilter, getReadingStatus } = useUI();
   // The header ticker can deep-link to the Reading News sub-tab (index 4):
@@ -119,30 +121,31 @@ const ReadingStats = () => {
     setCurrentTab(newValue);
   };
 
+  // Shared by the PDF export and the AI summary so the two can never disagree
+  // about which period the figures cover.
+  const periodLabel = useMemo(() => {
+    if (selectedTerm === 'all') return 'All Time';
+    if (selectedTerm === 'current_term') return 'Current Term';
+    if (selectedTerm === 'school_year') return 'School Year';
+    return termDates.find((t) => t.termOrder === selectedTerm)?.termName || 'Selected Period';
+  }, [selectedTerm, termDates]);
+
+  const selectedClassName = useMemo(() => {
+    if (!globalClassFilter || globalClassFilter === 'all') return null;
+    if (globalClassFilter === 'unassigned') return 'Unassigned pupils';
+    return classes.find((c) => c.id === globalClassFilter)?.name || null;
+  }, [globalClassFilter, classes]);
+
   const handleExport = async () => {
     if (!stats) return;
-
-    const periodLabel =
-      selectedTerm === 'all'
-        ? 'All Time'
-        : selectedTerm === 'current_term'
-          ? 'Current Term'
-          : selectedTerm === 'school_year'
-            ? 'School Year'
-            : termDates.find((t) => t.termOrder === selectedTerm)?.termName || 'Selected Period';
 
     const dateRange = termDateRange
       ? `${new Date(termDateRange.start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} — ${new Date(termDateRange.end).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
       : null;
 
-    const selectedClass =
-      globalClassFilter && globalClassFilter !== 'all'
-        ? classes.find((c) => c.id === globalClassFilter)
-        : null;
-
     await generateStatsPDF({
       schoolName: organization?.name || 'School',
-      className: selectedClass?.name || null,
+      className: selectedClassName,
       periodLabel,
       dateRange,
       stats,
@@ -193,6 +196,41 @@ const ReadingStats = () => {
       });
   }, [globalClassFilter, termDateRange, fetchWithAuth]);
 
+  // AI availability. Fetched here rather than read from a context because no
+  // context carries it — BookRecommendations.js does the same thing.
+  const [aiConfig, setAiConfig] = useState(null);
+  const isAdminOrOwner = userRole === 'admin' || userRole === 'owner';
+
+  useEffect(() => {
+    if (!isAdminOrOwner) return;
+    let cancelled = false;
+    fetchWithAuth('/api/settings/ai')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!cancelled) setAiConfig(data);
+      })
+      .catch(() => {
+        if (!cancelled) setAiConfig(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdminOrOwner, fetchWithAuth]);
+
+  // Mirrors the backend gate in utils/aiProviderResolver.js: a school's own key
+  // needs no add-on but must be enabled (`resolveAiConfig` Path 1 requires
+  // is_enabled), while the platform and env keys both need the add-on.
+  // Note this is NOT the expression BookRecommendations.js:416 uses — that one
+  // treats keySource 'platform' as entitled without checking the add-on, so it
+  // offers an "Ask AI" button that 403s.
+  const hasActiveAI =
+    aiConfig?.keySource === 'organization'
+      ? Boolean(aiConfig?.isEnabled)
+      : (aiConfig?.keySource === 'platform' || aiConfig?.keySource === 'environment') &&
+        Boolean(aiConfig?.aiAddonActive);
+
+  const [showAiSummary, setShowAiSummary] = useState(false);
+
   // Enrich topStreaks with student names from local data
   const enrichedTopStreaks = useMemo(() => {
     if (!stats?.topStreaks) return [];
@@ -213,6 +251,54 @@ const ReadingStats = () => {
     }
     return counts;
   }, [activeStudents, bandCount]);
+
+  // Assemble what the AI summary is allowed to see: the server's aggregate
+  // figures plus the two the browser derives (band spread, needs-attention
+  // count). Explicitly NOT `...stats` — that would forward `topStreaks`, which
+  // is an array of student ids, and would silently start forwarding any field
+  // added to /api/students/stats later. The server re-validates this against
+  // the same allow-list; this is the first of the two gates, not the only one.
+  const buildSummaryPayload = useCallback(
+    () => ({
+      classLabel: selectedClassName || 'All classes',
+      periodLabel,
+      totalStudents: stats?.totalStudents ?? 0,
+      totalSessions: stats?.totalSessions ?? 0,
+      averageSessionsPerStudent: stats?.averageSessionsPerStudent ?? 0,
+      studentsWithNoSessions: stats?.studentsWithNoSessions ?? 0,
+      needsAttentionCount: activeStudents.filter((s) => {
+        const status = getReadingStatus(s);
+        return status === 'never' || status === 'overdue' || status === 'attention';
+      }).length,
+      locationDistribution: stats?.locationDistribution,
+      todaySessions: stats?.todaySessions,
+      weeklyActivity: stats?.weeklyActivity,
+      readingByDay: stats?.readingByDay,
+      statusDistribution: stats?.statusDistribution,
+      studentsWithActiveStreak: stats?.studentsWithActiveStreak ?? 0,
+      longestCurrentStreak: stats?.longestCurrentStreak ?? 0,
+      longestEverStreak: stats?.longestEverStreak ?? 0,
+      averageStreak: stats?.averageStreak ?? 0,
+      bandDistribution: bandDistribution
+        .map((count, i) => ({
+          band: getBandByIndex(i, settings?.bands)?.name || `Band ${i}`,
+          count,
+        }))
+        .filter((b) => b.count > 0),
+      mostReadBooks: stats?.mostReadBooks,
+      mostLikedBooks: stats?.mostLikedBooks,
+      leastLikedBooks: stats?.leastLikedBooks,
+    }),
+    [
+      stats,
+      selectedClassName,
+      periodLabel,
+      bandDistribution,
+      settings?.bands,
+      activeStudents,
+      getReadingStatus,
+    ]
+  );
 
   // Get students sorted by session count (least to most)
   const getStudentsBySessionCount = () => {
@@ -307,6 +393,24 @@ const ReadingStats = () => {
               </Select>
             </FormControl>
           )}
+          {/* Leadership tool, and it spends the school's AI budget — admins
+              and owners only, and only when a key is actually usable. */}
+          {isAdminOrOwner && hasActiveAI && (
+            <Button
+              variant="outlined"
+              startIcon={<AutoAwesomeIcon />}
+              onClick={() => setShowAiSummary(true)}
+              disabled={statsLoading || !stats}
+              sx={{
+                borderRadius: 3,
+                fontWeight: 600,
+                borderWidth: 2,
+                '&:hover': { borderWidth: 2 },
+              }}
+            >
+              AI Summary
+            </Button>
+          )}
           <Button
             variant="outlined"
             startIcon={<DownloadIcon />}
@@ -322,6 +426,21 @@ const ReadingStats = () => {
           </Button>
         </Box>
       </Box>
+
+      {showAiSummary && (
+        <AiSummaryPanel
+          // Not a `key` remount. Remounting regenerated immediately on every
+          // filter change — which both spent a provider call per change and,
+          // worse, ran before the /api/students/stats refetch landed, so the
+          // narrative described the OLD figures under the NEW class name. The
+          // panel now marks itself stale and waits to be asked.
+          scopeKey={`${globalClassFilter}|${selectedTerm}`}
+          scopeLabel={`${selectedClassName || 'All classes'} · ${periodLabel}`}
+          statsLoading={statsLoading}
+          buildPayload={buildSummaryPayload}
+          onClose={() => setShowAiSummary(false)}
+        />
+      )}
 
       <Box>
         <Paper
