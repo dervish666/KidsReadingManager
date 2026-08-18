@@ -22,7 +22,6 @@ import { rowToOrganization } from '../utils/rowMappers.js';
 import { notFoundError, badRequestError } from '../middleware/errorHandler.js';
 import { invalidateOrgStatus } from '../utils/orgStatusCache.js';
 
-import { settingsRouter } from './organization/settings.js';
 import { complianceRouter } from './organization/compliance.js';
 
 export const organizationRouter = new Hono();
@@ -31,7 +30,6 @@ export const organizationRouter = new Hono();
 // `/:id` core handlers below. The trie router would resolve this either way,
 // but explicit ordering means a future maintainer doesn't have to reason
 // about routing precedence.
-organizationRouter.route('/', settingsRouter);
 organizationRouter.route('/', complianceRouter);
 
 /**

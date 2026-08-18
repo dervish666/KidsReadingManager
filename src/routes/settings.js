@@ -11,8 +11,12 @@
  * order carries no routing-precedence concerns; sub-routers are mounted in
  * the order their handlers appeared before the split.
  *
- * `upsertAiConfig` lives in `settings/ai.js` and is re-exported here so
- * organization/settings.js's existing dynamic import keeps working.
+ * `upsertAiConfig` lives in `settings/ai.js` and is re-exported here. Its
+ * original caller was organization/settings.js, a duplicate of org.js that
+ * silently dropped half the settings allow-list (bands, bandColors,
+ * readsPerBand, readingObservations, streakGracePeriodDays) and was reachable
+ * from nothing in the app; it has been removed. The re-export is kept because
+ * it is the natural public entry point for the settings surface.
  */
 
 import { Hono } from 'hono';

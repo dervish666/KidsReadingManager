@@ -7,8 +7,6 @@ import {
   requireAdmin,
   requireTeacher,
   requireReadonly,
-  requireOrgOwnership,
-  scopeToOrganization,
 } from '../../middleware/tenant.js';
 import { createAccessToken } from '../../utils/crypto.js';
 
@@ -363,129 +361,6 @@ describe('convenience role middleware', () => {
     await requireReadonly()(c, next);
 
     expect(next).toHaveBeenCalled();
-  });
-});
-
-describe('requireOrgOwnership', () => {
-  it('should proceed when no resource ID in params', async () => {
-    const c = createMockContext({
-      req: { url: 'http://localhost/api/test', param: vi.fn(() => null) },
-    });
-    c.get = vi.fn(() => 'org-123');
-    const next = vi.fn().mockResolvedValue('next');
-    const middleware = requireOrgOwnership('students');
-
-    await middleware(c, next);
-
-    expect(next).toHaveBeenCalled();
-  });
-
-  it('should proceed when no database available', async () => {
-    const c = createMockContext({
-      req: { url: 'http://localhost/api/test', param: vi.fn(() => 'resource-123') },
-      env: { READING_MANAGER_DB: null },
-    });
-    c.get = vi.fn(() => 'org-123');
-    const next = vi.fn().mockResolvedValue('next');
-    const middleware = requireOrgOwnership('students');
-
-    await middleware(c, next);
-
-    expect(next).toHaveBeenCalled();
-  });
-
-  it('should reject when resource not found', async () => {
-    const mockDb = {
-      prepare: vi.fn().mockReturnThis(),
-      bind: vi.fn().mockReturnThis(),
-      first: vi.fn().mockResolvedValue(null),
-    };
-
-    const c = createMockContext({
-      req: { url: 'http://localhost/api/test', param: vi.fn(() => 'resource-123') },
-      env: { READING_MANAGER_DB: mockDb },
-    });
-    c.get = vi.fn(() => 'org-123');
-    const next = vi.fn();
-    const middleware = requireOrgOwnership('students');
-
-    await middleware(c, next);
-
-    expect(c.json).toHaveBeenCalledWith({ error: 'Resource not found' }, 404);
-  });
-
-  it('should reject when resource belongs to different org', async () => {
-    const mockDb = {
-      prepare: vi.fn().mockReturnThis(),
-      bind: vi.fn().mockReturnThis(),
-      first: vi.fn().mockResolvedValue({ organization_id: 'other-org' }),
-    };
-
-    const c = createMockContext({
-      req: { url: 'http://localhost/api/test', param: vi.fn(() => 'resource-123') },
-      env: { READING_MANAGER_DB: mockDb },
-    });
-    c.get = vi.fn(() => 'org-123');
-    const next = vi.fn();
-    const middleware = requireOrgOwnership('students');
-
-    await middleware(c, next);
-
-    expect(c.json).toHaveBeenCalledWith(
-      { error: 'Forbidden - Resource belongs to another organization' },
-      403
-    );
-  });
-
-  it('should allow access when resource belongs to same org', async () => {
-    const mockDb = {
-      prepare: vi.fn().mockReturnThis(),
-      bind: vi.fn().mockReturnThis(),
-      first: vi.fn().mockResolvedValue({ organization_id: 'org-123' }),
-    };
-
-    const c = createMockContext({
-      req: { url: 'http://localhost/api/test', param: vi.fn(() => 'resource-123') },
-      env: { READING_MANAGER_DB: mockDb },
-    });
-    c.get = vi.fn(() => 'org-123');
-    const next = vi.fn().mockResolvedValue('next');
-    const middleware = requireOrgOwnership('students');
-
-    await middleware(c, next);
-
-    expect(next).toHaveBeenCalled();
-  });
-});
-
-describe('scopeToOrganization', () => {
-  it('should add WHERE clause to query without WHERE', () => {
-    const c = createMockContext();
-    c.get = vi.fn(() => 'org-123');
-
-    const result = scopeToOrganization(c, 'SELECT * FROM students', []);
-
-    expect(result.query).toBe('SELECT * FROM students WHERE organization_id = ?');
-    expect(result.params).toEqual(['org-123']);
-  });
-
-  it('should add AND clause to query with existing WHERE', () => {
-    const c = createMockContext();
-    c.get = vi.fn(() => 'org-123');
-
-    const result = scopeToOrganization(c, 'SELECT * FROM students WHERE active = true', ['param1']);
-
-    expect(result.query).toBe('SELECT * FROM students WHERE active = true AND organization_id = ?');
-    expect(result.params).toEqual(['param1', 'org-123']);
-  });
-
-  it('should handle case-insensitive WHERE detection', () => {
-    const c = createMockContext();
-    c.get = vi.fn(() => 'org-123');
-
-    const result = scopeToOrganization(c, 'SELECT * FROM students WHERE id = ?', ['id-1']);
-
-    expect(result.query).toContain('AND organization_id');
   });
 });
 

@@ -457,29 +457,28 @@ export default Sentry.withSentry(
         return response;
       }
 
-      // Serve static assets (SPA fallback handled by not_found_handling in wrangler.toml)
-      try {
-        const assetResponse = await env.ASSETS.fetch(request);
-        const response = new Response(assetResponse.body, assetResponse);
-        response.headers.set('X-Frame-Options', 'DENY');
-        response.headers.set('X-Content-Type-Options', 'nosniff');
-        response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-        response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-        response.headers.set(
-          'Content-Security-Policy',
-          "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://covers.openlibrary.org https://*.r2.dev; connect-src 'self' https://*.ingest.de.sentry.io; worker-src 'self' blob:; frame-ancestors 'none'"
-        );
-        const path = new URL(request.url).pathname;
-        if (/\.[a-f0-9]{8}\.(js|css)$/.test(path)) {
-          response.headers.set('Cache-Control', 'public, max-age=31536000, immutable');
-        } else if (path === '/' || path.endsWith('.html')) {
-          response.headers.set('Cache-Control', 'no-cache, must-revalidate, public');
-        }
-        return response;
-      } catch (e) {
-        console.error(`ASSETS fetch failed: ${e.message}`);
-        return new Response('Not Found', { status: 404 });
-      }
+      // Non-/api/* requests do not reach this Worker at all. wrangler.toml sets
+      // run_worker_first = ["/api/*"], so Cloudflare's asset server handles
+      // every other path directly, applies public/_headers, and does the SPA
+      // fallback via not_found_handling.
+      //
+      // There used to be an env.ASSETS.fetch() branch here that set its own
+      // security headers, CSP and Cache-Control. It was dead twice over: the
+      // [assets] block declares no `binding`, so env.ASSETS was undefined, and
+      // the requests never arrived anyway. That mattered because the code read
+      // as authoritative — its CSP had drifted to be strictly weaker than the
+      // one that actually ships (no object-src, base-uri, form-action,
+      // manifest-src or upgrade-insecure-requests, and a narrower Sentry
+      // connect-src), and its Cache-Control regex looked for an 8-character
+      // content hash where rsbuild emits 10, so it would not have matched a
+      // single bundle even if it had run. Anyone auditing the live policy by
+      // reading this file got the wrong answer.
+      //
+      // The security headers and cache policy for static assets live in
+      // public/_headers. If assets stop serving, look at [assets] and
+      // run_worker_first in wrangler.toml — not here.
+      console.warn(`Unexpected non-API request reached the Worker: ${url.pathname}`);
+      return new Response('Not Found', { status: 404 });
     },
 
     /**

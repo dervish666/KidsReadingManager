@@ -48,10 +48,6 @@ vi.mock('../../components/tour/useTour', () => ({
   }),
 }));
 
-vi.mock('../../components/tour/TourButton', () => ({
-  default: () => null,
-}));
-
 // Import after mocking
 import SessionForm from '../../components/sessions/SessionForm';
 import * as bookMetadataApi from '../../utils/bookMetadataApi';

@@ -28,10 +28,6 @@ vi.mock('../../components/tour/useTour', () => ({
   }),
 }));
 
-vi.mock('../../components/tour/TourButton', () => ({
-  default: () => null,
-}));
-
 // Mock the BookAutocomplete component
 vi.mock('../../components/sessions/BookAutocomplete', () => ({
   default: ({ value, onChange, label }) => (

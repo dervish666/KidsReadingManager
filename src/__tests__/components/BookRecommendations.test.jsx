@@ -26,10 +26,6 @@ vi.mock('../../components/tour/useTour', () => ({
   }),
 }));
 
-vi.mock('../../components/tour/TourButton', () => ({
-  default: () => null,
-}));
-
 // Mock the StudentEditForm component
 vi.mock('../../components/students/StudentEditForm', () => ({
   default: React.forwardRef(({ student, _onSave, _onCancel }, _ref) => (

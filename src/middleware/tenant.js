@@ -259,71 +259,6 @@ export const requireAdmin = () => requireRole(ROLES.ADMIN);
 export const requireTeacher = () => requireRole(ROLES.TEACHER);
 export const requireReadonly = () => requireRole(ROLES.READONLY);
 
-// Whitelist of valid table names for ownership checks
-// This prevents SQL injection via dynamic table names
-const ALLOWED_OWNERSHIP_TABLES = new Set([
-  'students',
-  'classes',
-  'reading_sessions',
-  'books',
-  'organization_book_selections',
-  'org_settings',
-  'org_ai_config',
-  'genres',
-  'users',
-]);
-
-/**
- * Resource ownership middleware
- * Ensures the requested resource belongs to the user's organization
- *
- * @param {string} tableName - Database table name (must be in whitelist)
- * @param {string} idParam - URL parameter name for resource ID (default: 'id')
- * @returns {Function} Hono middleware
- */
-export function requireOrgOwnership(tableName, idParam = 'id') {
-  // Validate table name at middleware creation time (not runtime)
-  if (!ALLOWED_OWNERSHIP_TABLES.has(tableName)) {
-    throw new Error(
-      `Invalid table name for ownership check: ${tableName}. Allowed tables: ${[...ALLOWED_OWNERSHIP_TABLES].join(', ')}`
-    );
-  }
-
-  return async (c, next) => {
-    const organizationId = c.get('organizationId');
-    const resourceId = c.req.param(idParam);
-
-    if (!resourceId) {
-      return next(); // No resource ID, let the route handler deal with it
-    }
-
-    const db = c.env.READING_MANAGER_DB;
-    if (!db) {
-      return next(); // No DB, skip check
-    }
-
-    try {
-      const resource = await db
-        .prepare(`SELECT organization_id FROM ${tableName} WHERE id = ?`)
-        .bind(resourceId)
-        .first();
-
-      if (!resource) {
-        return c.json({ error: 'Resource not found' }, 404);
-      }
-
-      if (resource.organization_id !== organizationId) {
-        return c.json({ error: 'Forbidden - Resource belongs to another organization' }, 403);
-      }
-    } catch (error) {
-      console.error(`Error checking ownership for ${tableName}:`, error);
-      return c.json({ error: 'Service temporarily unavailable' }, 503);
-    }
-
-    return next();
-  };
-}
-
 /**
  * Audit logging middleware
  * Logs sensitive operations to the audit_log table
@@ -531,26 +466,4 @@ export const SCHOOL_BURST_LIMIT = 120;
  */
 export function costRateLimit(maxRequests = 10) {
   return rateLimit(maxRequests, 60000);
-}
-
-/**
- * Helper to get organization-scoped query builder
- * Adds organization_id filter to queries
- *
- * @param {Object} c - Hono context
- * @param {string} baseQuery - Base SQL query
- * @param {Array} params - Query parameters
- * @returns {{query: string, params: Array}}
- */
-export function scopeToOrganization(c, baseQuery, params = []) {
-  const organizationId = c.get('organizationId');
-
-  // Check if query already has WHERE clause
-  const hasWhere = baseQuery.toLowerCase().includes('where');
-  const connector = hasWhere ? ' AND' : ' WHERE';
-
-  return {
-    query: `${baseQuery}${connector} organization_id = ?`,
-    params: [...params, organizationId],
-  };
 }
