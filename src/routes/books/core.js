@@ -1,0 +1,699 @@
+/**
+ * Core book CRUD: list, search, count, get, create, update, delete,
+ * clear-library and single-book enrichment.
+ *
+ * Split out of routes/books.js so that file is a pure aggregator, matching
+ * routes/auth.js and routes/settings.js. Recommendations, ISBN lookup, import
+ * and duplicate detection are siblings in this directory; mounting order lives
+ * in the parent.
+ */
+
+import { Hono } from 'hono';
+
+import { createProvider } from '../../data/index.js';
+import {
+  notFoundError,
+  badRequestError,
+  forbiddenError,
+  serverError,
+} from '../../middleware/errorHandler';
+import { getEncryptionSecret } from '../../utils/crypto.js';
+import { validateBook } from '../../utils/validation.js';
+import { rowToBook } from '../../utils/rowMappers.js';
+import {
+  requireReadonly,
+  requireTeacher,
+  requireAdmin,
+  auditLog,
+} from '../../middleware/tenant.js';
+import { getConfigWithKeys } from '../metadata.js';
+import { enrichBook } from '../../services/metadataService.js';
+
+export const coreRouter = new Hono();
+
+/**
+ * The org-scoped book read, in one place.
+ *
+ * Every org-scoped book query MUST select `obs.reading_level_override`
+ * alongside `b.*`: a school customises a shared book's reading level via that
+ * per-org column, and `rowToBook` (utils/rowMappers.js) prefers it over the
+ * global `books.reading_level` only when the query actually selected it. Omit
+ * it in one query and that school silently sees the global level in one screen
+ * and its own level in another.
+ *
+ * This SELECT + JOIN was hand-copied nine times in this file, which is exactly
+ * how that rule gets broken by someone adding a tenth. Callers append their own
+ * WHERE/ORDER/LIMIT — the filtering stays explicit and visible at each site,
+ * only the part carrying the override rule is shared.
+ *
+ * Note `obs.is_available` is NOT filtered here. It reads like a soft-delete
+ * flag but nothing ever writes 0 — removing a book from a school hard-deletes
+ * the org_book_selections row (see DELETE /:id) — so the column is vestigial
+ * and the existing filters on it are no-ops. Callers that already filter it
+ * still do, deliberately unchanged; do not add or remove one without checking
+ * whether the toggle has actually been built.
+ */
+const ORG_BOOK_SELECT = `SELECT b.*, obs.reading_level_override FROM books b
+      INNER JOIN org_book_selections obs ON b.id = obs.book_id`;
+
+/**
+ * GET /api/books
+ * Get all books (with optional pagination)
+ * Query params:
+ * - page: Page number (1-based, optional)
+ * - pageSize: Items per page (default 50, optional)
+ * - search: Search query for title/author (optional)
+ * - all: If 'true', return all books without pagination (for initial context load)
+ * - fields: If 'minimal', return only id/title/author (use with all=true for autocomplete)
+ *
+ * Requires authentication (at least readonly access)
+ */
+coreRouter.get('/', requireReadonly(), async (c) => {
+  const provider = await createProvider(c.env);
+  const organizationId = c.get('organizationId');
+  const db = c.env.READING_MANAGER_DB;
+  const { page, pageSize, search, all, fields, limit } = c.req.query();
+
+  // In multi-tenant mode, always scope to organization's books
+  if (organizationId && db) {
+    // Return minimal book list for autocomplete (avoids N+1 paginated fetches).
+    //
+    // Optional `limit` caps the response so the SPA doesn't pull megabytes
+    // of catalog on every reloadDataFromServer. We order by updated_at DESC
+    // so recently-touched books (the ones teachers are actively using) are
+    // always in the local cache; BookAutocomplete falls through to the
+    // external-provider search for anything further back.
+    if (all === 'true') {
+      const columns =
+        fields === 'minimal' ? 'b.id, b.title, b.author' : 'b.*, obs.reading_level_override';
+      const parsedLimit = limit ? Math.max(1, Math.min(10000, parseInt(limit, 10) || 0)) : null;
+      const limitClause = parsedLimit ? ` LIMIT ${parsedLimit}` : '';
+      const orderClause = parsedLimit ? 'b.updated_at DESC, b.title' : 'b.title';
+      const result = await db
+        .prepare(
+          `
+        SELECT ${columns} FROM books b
+        INNER JOIN org_book_selections obs ON b.id = obs.book_id
+        WHERE obs.organization_id = ? AND obs.is_available = 1
+        ORDER BY ${orderClause}${limitClause}
+      `
+        )
+        .bind(organizationId)
+        .all();
+      c.header('Cache-Control', 'private, max-age=60, must-revalidate');
+      c.header('Vary', 'X-Organization-Id');
+      if (fields === 'minimal') {
+        return c.json(
+          (result.results || []).map((r) => ({ id: r.id, title: r.title, author: r.author }))
+        );
+      }
+      return c.json((result.results || []).map(rowToBook));
+    }
+
+    // Search with org scoping using FTS5 for performance
+    if (search && search.trim()) {
+      const limit = pageSize ? parseInt(pageSize, 10) : 50;
+      const searchTerm = search.trim();
+      // Try FTS5 first (handles prefix matching and is much faster than LIKE on large tables)
+      // Escape FTS5 special characters and add prefix matching
+      const ftsQuery = searchTerm
+        .replace(/['"*()^]/g, '')
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((t) => `"${t}"*`)
+        .join(' ');
+      let result;
+      try {
+        result = await db
+          .prepare(
+            `
+          ${ORG_BOOK_SELECT}
+          INNER JOIN books_fts ON b.id = books_fts.id
+          WHERE obs.organization_id = ? AND books_fts MATCH ?
+          ORDER BY rank LIMIT ?
+        `
+          )
+          .bind(organizationId, ftsQuery, limit)
+          .all();
+      } catch {
+        // FTS5 may not be available or query may be invalid — fall back to LIKE
+        const likeQuery = `%${searchTerm}%`;
+        result = await db
+          .prepare(
+            `
+          ${ORG_BOOK_SELECT}
+          WHERE obs.organization_id = ? AND (b.title LIKE ? OR b.author LIKE ?)
+          ORDER BY b.title LIMIT ?
+        `
+          )
+          .bind(organizationId, likeQuery, likeQuery, limit)
+          .all();
+      }
+      c.header('Cache-Control', 'private, max-age=30, must-revalidate');
+      c.header('Vary', 'X-Organization-Id');
+      return c.json((result.results || []).map(rowToBook));
+    }
+
+    // Pagination with org scoping
+    if (page) {
+      const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+      const size = Math.min(Math.max(parseInt(pageSize, 10) || 50, 1), 100);
+      const offset = (pageNum - 1) * size;
+      const countResult = await db
+        .prepare(
+          'SELECT COUNT(*) as count FROM books b INNER JOIN org_book_selections obs ON b.id = obs.book_id WHERE obs.organization_id = ? AND obs.is_available = 1'
+        )
+        .bind(organizationId)
+        .first();
+      const total = countResult?.count || 0;
+      const result = await db
+        .prepare(
+          `
+        ${ORG_BOOK_SELECT}
+        WHERE obs.organization_id = ? AND obs.is_available = 1
+        ORDER BY b.title LIMIT ? OFFSET ?
+      `
+        )
+        .bind(organizationId, size, offset)
+        .all();
+      return c.json({
+        books: (result.results || []).map(rowToBook),
+        total,
+        page: pageNum,
+        pageSize: size,
+        totalPages: Math.ceil(total / size),
+      });
+    }
+
+    // Default: paginated org books (page 1 if not specified)
+    const defaultPageSize = 50;
+    const countResult = await db
+      .prepare(
+        'SELECT COUNT(*) as count FROM books b INNER JOIN org_book_selections obs ON b.id = obs.book_id WHERE obs.organization_id = ? AND obs.is_available = 1'
+      )
+      .bind(organizationId)
+      .first();
+    const total = countResult?.count || 0;
+    const result = await db
+      .prepare(
+        `
+      ${ORG_BOOK_SELECT}
+      WHERE obs.organization_id = ? AND obs.is_available = 1
+      ORDER BY b.title LIMIT ? OFFSET 0
+    `
+      )
+      .bind(organizationId, defaultPageSize)
+      .all();
+    return c.json({
+      books: (result.results || []).map(rowToBook),
+      total,
+      page: 1,
+      pageSize: defaultPageSize,
+      totalPages: Math.ceil(total / defaultPageSize),
+    });
+  }
+
+  // Legacy mode: no org scoping
+  if (search && search.trim()) {
+    const limit = pageSize ? parseInt(pageSize, 10) : 50;
+    const books = await provider.searchBooks(search.trim(), limit);
+    return c.json(books);
+  }
+  if (page) {
+    const pageNum = parseInt(page, 10) || 1;
+    const size = parseInt(pageSize, 10) || 50;
+    const result = await provider.getBooksPaginated(pageNum, size);
+    return c.json(result);
+  }
+  const books = await provider.getAllBooks();
+  return c.json(books);
+});
+
+/**
+ * GET /api/books/search
+ * Search books by title or author (full-text search with D1)
+ * Query params:
+ * - q: Search query (required)
+ * - limit: Maximum results (default 50)
+ *
+ * Requires authentication (at least readonly access)
+ */
+coreRouter.get('/search', requireReadonly(), async (c) => {
+  const { q, limit } = c.req.query();
+
+  if (!q || !q.trim()) {
+    throw badRequestError('Search query (q) is required');
+  }
+
+  const maxResults = Math.min(Math.max(limit ? parseInt(limit, 10) : 50, 1), 100);
+  const organizationId = c.get('organizationId');
+  const db = c.env.READING_MANAGER_DB;
+
+  // In multi-tenant mode, scope search to organization's books using FTS5
+  if (organizationId && db) {
+    const searchTerm = q.trim();
+    const ftsQuery = searchTerm
+      .replace(/['"*()^]/g, '')
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((t) => `"${t}"*`)
+      .join(' ');
+    let result;
+    try {
+      result = await db
+        .prepare(
+          `
+        ${ORG_BOOK_SELECT}
+        INNER JOIN books_fts ON b.id = books_fts.id
+        WHERE obs.organization_id = ? AND books_fts MATCH ?
+        ORDER BY rank LIMIT ?
+      `
+        )
+        .bind(organizationId, ftsQuery, maxResults)
+        .all();
+    } catch {
+      // FTS5 fallback to LIKE
+      const likeQuery = `%${searchTerm}%`;
+      result = await db
+        .prepare(
+          `
+        ${ORG_BOOK_SELECT}
+        WHERE obs.organization_id = ? AND (b.title LIKE ? OR b.author LIKE ?)
+        ORDER BY b.title LIMIT ?
+      `
+        )
+        .bind(organizationId, likeQuery, likeQuery, maxResults)
+        .all();
+    }
+    const books = (result.results || []).map(rowToBook);
+    return c.json({ query: q.trim(), count: books.length, books });
+  }
+
+  // Legacy mode
+  const provider = await createProvider(c.env);
+  const books = await provider.searchBooks(q.trim(), maxResults);
+  return c.json({ query: q.trim(), count: books.length, books });
+});
+
+/**
+ * GET /api/books/count
+ * Get total book count
+ *
+ * Requires authentication (at least readonly access)
+ */
+coreRouter.get('/count', requireReadonly(), async (c) => {
+  const organizationId = c.get('organizationId');
+  const db = c.env.READING_MANAGER_DB;
+  if (organizationId && db) {
+    const result = await db
+      .prepare(
+        'SELECT COUNT(*) as count FROM org_book_selections WHERE organization_id = ? AND is_available = 1'
+      )
+      .bind(organizationId)
+      .first();
+    return c.json({ count: result?.count || 0 });
+  }
+  const provider = await createProvider(c.env);
+  const count = await provider.getBookCount();
+  return c.json({ count });
+});
+
+/**
+ * POST /api/books
+ * Add a new book
+ *
+ * Requires authentication (at least teacher access)
+ */
+coreRouter.post('/', requireTeacher(), async (c) => {
+  // Demo accounts must not mutate the shared library (see PUT /:id below).
+  // INSERT is as permanent as UPDATE here: the row lands in the global `books`
+  // table that every linked school sees, and the hourly demo reset does not
+  // touch that table, so anything created here stays forever.
+  if (c.get('user')?.authProvider === 'demo') {
+    throw forbiddenError('Demo accounts cannot modify the shared book library');
+  }
+
+  const bookData = await c.req.json();
+
+  // Validate book data
+  const validation = validateBook(bookData);
+  if (!validation.isValid) {
+    throw badRequestError(validation.errors.join('; '));
+  }
+
+  const newBook = {
+    id: bookData.id || crypto.randomUUID(),
+    title: bookData.title,
+    author: bookData.author || null,
+    genreIds: bookData.genreIds || [],
+    readingLevel: bookData.readingLevel || null,
+    ageRange: bookData.ageRange || null,
+    description: bookData.description || null,
+    isbn: bookData.isbn || null,
+    pageCount: bookData.pageCount ?? null,
+    seriesName: bookData.seriesName || null,
+    seriesNumber: bookData.seriesNumber ?? null,
+    publicationYear: bookData.publicationYear ?? null,
+  };
+
+  const provider = await createProvider(c.env);
+  const savedBook = await provider.addBook(newBook);
+
+  // Link book to the current organization
+  const organizationId = c.get('organizationId');
+  if (organizationId) {
+    const db = c.env.READING_MANAGER_DB;
+    if (db) {
+      await db
+        .prepare(
+          'INSERT OR IGNORE INTO org_book_selections (id, organization_id, book_id, is_available) VALUES (?, ?, ?, 1)'
+        )
+        .bind(crypto.randomUUID(), organizationId, savedBook.id)
+        .run();
+    }
+  }
+
+  return c.json(savedBook, 201);
+});
+
+/**
+ * GET /api/books/:id
+ * Get a single book by ID (full details)
+ *
+ * Requires authentication (at least readonly access)
+ */
+coreRouter.get('/:id', requireReadonly(), async (c) => {
+  const { id } = c.req.param();
+  const organizationId = c.get('organizationId');
+  const db = c.env.READING_MANAGER_DB;
+
+  let book;
+  if (organizationId && db) {
+    const row = await db
+      .prepare(
+        `${ORG_BOOK_SELECT}
+       WHERE b.id = ? AND obs.organization_id = ?`
+      )
+      .bind(id, organizationId)
+      .first();
+    book = row ? rowToBook(row) : null;
+  } else {
+    const provider = await createProvider(c.env);
+    book = await provider.getBookById(id);
+  }
+
+  if (!book) {
+    throw notFoundError(`Book with ID ${id} not found`);
+  }
+
+  return c.json(book);
+});
+
+/**
+ * PUT /api/books/:id
+ * Update a book
+ *
+ * Requires authentication (at least teacher access)
+ */
+coreRouter.put('/:id', requireTeacher(), async (c) => {
+  // Demo accounts are public and credential-less but carry the teacher role.
+  // The books catalog is a SHARED global table, so an edit here would mutate a
+  // row every linked school sees — and the hourly demo reset never restores the
+  // `books` table. Block demo writes to the shared library entirely.
+  if (c.get('user')?.authProvider === 'demo') {
+    throw forbiddenError('Demo accounts cannot modify the shared book library');
+  }
+
+  const { id } = c.req.param();
+  const bookData = await c.req.json();
+  const organizationId = c.get('organizationId');
+  const db = c.env.READING_MANAGER_DB;
+
+  const userRole = c.get('userRole');
+
+  // Single query: check book exists and org ownership in one round-trip. Also
+  // read this org's reading-level override and the shared global level.
+  let existingBook;
+  let globalReadingLevel;
+  if (organizationId && db) {
+    const row = await db
+      .prepare(
+        `${ORG_BOOK_SELECT}
+       WHERE b.id = ? AND obs.organization_id = ?`
+      )
+      .bind(id, organizationId)
+      .first();
+    if (!row) {
+      throw notFoundError(`Book with ID ${id} not found`);
+    }
+    existingBook = rowToBook(row); // readingLevel reflects this org's override
+    globalReadingLevel = row.reading_level;
+
+    // `books` is a SHARED global catalog. Only the platform owner may edit the
+    // shared row; a tenant edit would corrupt that book for every other linked
+    // school (and a body-supplied id previously enabled cross-tenant writes).
+    // Non-owners can only set a reading level for THEIR OWN school, stored as a
+    // per-org override on org_book_selections.
+    if (userRole !== 'owner') {
+      const newLevel =
+        bookData.readingLevel !== undefined ? bookData.readingLevel : existingBook.readingLevel;
+
+      const SHARED_FIELDS = [
+        'title',
+        'author',
+        'genreIds',
+        'ageRange',
+        'description',
+        'isbn',
+        'pageCount',
+        'seriesName',
+        'seriesNumber',
+        'publicationYear',
+      ];
+      const norm = (v) => (v === '' || v === undefined ? null : v);
+      const changedShared = SHARED_FIELDS.some((f) => {
+        if (bookData[f] === undefined) return false;
+        if (Array.isArray(bookData[f]) || Array.isArray(existingBook[f])) {
+          return JSON.stringify(bookData[f] ?? []) !== JSON.stringify(existingBook[f] ?? []);
+        }
+        return norm(bookData[f]) !== norm(existingBook[f]);
+      });
+      if (changedShared) {
+        throw forbiddenError(
+          'Only the platform owner can edit shared book details. Your school can set its own reading level.'
+        );
+      }
+
+      const levelValidation = validateBook({ ...existingBook, readingLevel: newLevel });
+      if (!levelValidation.isValid) {
+        throw badRequestError(levelValidation.errors.join('; '));
+      }
+
+      // Store NULL when the override equals the global value so it stays sparse
+      // and a school can "reset to default" by clearing the level.
+      const override =
+        newLevel === null ||
+        newLevel === undefined ||
+        String(newLevel) === String(globalReadingLevel)
+          ? null
+          : newLevel;
+      await db
+        .prepare(
+          `UPDATE org_book_selections SET reading_level_override = ?, updated_at = datetime('now')
+           WHERE organization_id = ? AND book_id = ?`
+        )
+        .bind(override, organizationId, id)
+        .run();
+
+      return c.json({ ...existingBook, readingLevel: override ?? globalReadingLevel });
+    }
+  } else {
+    const provider = await createProvider(c.env);
+    existingBook = await provider.getBookById(id);
+    if (!existingBook) {
+      throw notFoundError(`Book with ID ${id} not found`);
+    }
+    globalReadingLevel = existingBook.readingLevel;
+  }
+
+  // Owner (or legacy mode): update the shared global catalog row. Base the
+  // reading level on the GLOBAL value (not any org override) so an owner editing
+  // while switched into a school doesn't bake that school's override into the
+  // shared record.
+  const updatedBook = {
+    ...existingBook,
+    title: bookData.title !== undefined ? bookData.title : existingBook.title,
+    author: bookData.author !== undefined ? bookData.author : existingBook.author,
+    genreIds: bookData.genreIds !== undefined ? bookData.genreIds : existingBook.genreIds,
+    readingLevel: bookData.readingLevel !== undefined ? bookData.readingLevel : globalReadingLevel,
+    ageRange: bookData.ageRange !== undefined ? bookData.ageRange : existingBook.ageRange,
+    description:
+      bookData.description !== undefined ? bookData.description : existingBook.description,
+    isbn: bookData.isbn !== undefined ? bookData.isbn : existingBook.isbn,
+    pageCount: bookData.pageCount !== undefined ? bookData.pageCount : existingBook.pageCount,
+    seriesName: bookData.seriesName !== undefined ? bookData.seriesName : existingBook.seriesName,
+    seriesNumber:
+      bookData.seriesNumber !== undefined ? bookData.seriesNumber : existingBook.seriesNumber,
+    publicationYear:
+      bookData.publicationYear !== undefined
+        ? bookData.publicationYear
+        : existingBook.publicationYear,
+    id, // Ensure ID doesn't change
+  };
+
+  // Validate the merged book data
+  const bookValidation = validateBook(updatedBook);
+  if (!bookValidation.isValid) {
+    throw badRequestError(bookValidation.errors.join('; '));
+  }
+
+  const provider = await createProvider(c.env);
+  const savedBook = await provider.updateBook(id, updatedBook);
+  return c.json(savedBook);
+});
+
+/**
+ * DELETE /api/books/clear-library
+ * Remove all books from the current organization's library and clean up orphaned global books.
+ *
+ * Requires authentication (at least admin access)
+ */
+coreRouter.delete('/clear-library', requireAdmin(), auditLog('clear', 'library'), async (c) => {
+  const organizationId = c.get('organizationId');
+  if (!organizationId || !c.env.READING_MANAGER_DB) {
+    throw badRequestError('Clear library is only available in multi-tenant mode');
+  }
+
+  const db = c.env.READING_MANAGER_DB;
+
+  // Count books linked to this org
+  const countResult = await db
+    .prepare('SELECT COUNT(*) as count FROM org_book_selections WHERE organization_id = ?')
+    .bind(organizationId)
+    .first();
+  const booksUnlinked = countResult?.count || 0;
+
+  if (booksUnlinked === 0) {
+    return c.json({ message: 'No books to clear', booksUnlinked: 0, orphansDeleted: 0 });
+  }
+
+  // Remove all org links and clean up orphaned books
+  await db.batch([
+    db.prepare('DELETE FROM org_book_selections WHERE organization_id = ?').bind(organizationId),
+    db.prepare(
+      'DELETE FROM books WHERE NOT EXISTS (SELECT 1 FROM org_book_selections WHERE org_book_selections.book_id = books.id)'
+    ),
+  ]);
+
+  return c.json({
+    message: `Cleared ${booksUnlinked} books from library`,
+    booksUnlinked,
+  });
+});
+
+/**
+ * POST /api/books/:id/enrich
+ * Enrich a single book using the metadata cascade engine.
+ */
+coreRouter.post('/:id/enrich', requireAdmin(), async (c) => {
+  const { id } = c.req.param();
+  const db = c.env.READING_MANAGER_DB;
+  if (!db) throw notFoundError('Book not found');
+
+  const organizationId = c.get('organizationId');
+  if (!organizationId) throw notFoundError('Book not found');
+
+  const book = await db
+    .prepare(
+      `${ORG_BOOK_SELECT}
+       WHERE b.id = ? AND obs.organization_id = ? AND obs.is_available = 1`
+    )
+    .bind(id, organizationId)
+    .first();
+  if (!book) throw notFoundError('Book not found');
+
+  const encSecret = getEncryptionSecret(c.env);
+  const config = await getConfigWithKeys(db, encSecret);
+  if (!config) throw serverError('Metadata configuration not found');
+  config.fetchCovers = Boolean(config.fetchCovers);
+
+  const { merged, log } = await enrichBook(
+    { id: book.id, title: book.title, author: book.author, isbn: book.isbn },
+    config
+  );
+
+  const fieldsEnriched = log.flatMap((entry) => entry.fields);
+
+  // Store cover in R2 if a coverUrl was found and the book has an ISBN
+  let coverStored = false;
+  const r2 = c.env.BOOK_COVERS;
+  if (merged.coverUrl && book.isbn && r2) {
+    try {
+      const res = await fetch(merged.coverUrl, {
+        headers: { 'User-Agent': 'TallyReading/1.0 (educational-app)' },
+      });
+      if (res.ok) {
+        const imageData = await res.arrayBuffer();
+        if (imageData.byteLength > 1000) {
+          await r2.put(`isbn/${book.isbn}-M.jpg`, imageData, {
+            httpMetadata: { contentType: res.headers.get('Content-Type') || 'image/jpeg' },
+          });
+          coverStored = true;
+        }
+      }
+    } catch {
+      /* non-critical */
+    }
+  }
+
+  return c.json({
+    description: merged.description || null,
+    genres: merged.genres || null,
+    coverStored,
+    fieldsEnriched,
+  });
+});
+
+/**
+ * DELETE /api/books/:id
+ * Delete a book
+ *
+ * Requires authentication (at least teacher access)
+ */
+coreRouter.delete('/:id', requireTeacher(), async (c) => {
+  // Demo accounts must not mutate the shared library (see PUT /:id above).
+  if (c.get('user')?.authProvider === 'demo') {
+    throw forbiddenError('Demo accounts cannot modify the shared book library');
+  }
+
+  const { id } = c.req.param();
+
+  // In multi-tenant mode, only remove the org's link to the book (not the global book)
+  const organizationId = c.get('organizationId');
+  if (organizationId && c.env.READING_MANAGER_DB) {
+    const db = c.env.READING_MANAGER_DB;
+    const orgLink = await db
+      .prepare('SELECT 1 FROM org_book_selections WHERE organization_id = ? AND book_id = ?')
+      .bind(organizationId, id)
+      .first();
+    if (!orgLink) {
+      throw notFoundError(`Book with ID ${id} not found`);
+    }
+    // Remove the org's link to the book rather than deleting the global book record
+    await db
+      .prepare('DELETE FROM org_book_selections WHERE organization_id = ? AND book_id = ?')
+      .bind(organizationId, id)
+      .run();
+    return c.json({ message: 'Book removed from organization successfully' });
+  }
+
+  // Legacy mode: delete the book directly
+  const provider = await createProvider(c.env);
+  const deletedBook = await provider.deleteBook(id);
+
+  if (!deletedBook) {
+    throw notFoundError(`Book with ID ${id} not found`);
+  }
+
+  return c.json({ message: 'Book deleted successfully' });
+});
