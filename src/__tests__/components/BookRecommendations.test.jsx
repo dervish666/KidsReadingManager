@@ -161,6 +161,7 @@ const createMockFetch = (responses = {}) => {
             responses.aiConfig || {
               hasApiKey: true,
               keySource: 'organization',
+              isEnabled: true,
               provider: 'anthropic',
               modelPreference: 'claude-3-sonnet',
               aiAddonActive: false,
@@ -362,6 +363,7 @@ describe('BookRecommendations Component', () => {
               Promise.resolve({
                 hasApiKey: true,
                 keySource: 'organization',
+                isEnabled: true,
                 provider: 'anthropic',
               }),
           });
@@ -460,6 +462,7 @@ describe('BookRecommendations Component', () => {
         aiConfig: {
           hasApiKey: true,
           keySource: 'organization',
+          isEnabled: true,
           provider: 'anthropic',
           modelPreference: 'claude-3-sonnet',
           aiAddonActive: false,
@@ -491,6 +494,48 @@ describe('BookRecommendations Component', () => {
 
       await waitFor(() => {
         expect(screen.getByText(/AI: Not configured/i)).toBeInTheDocument();
+      });
+    });
+
+    // Regression: this component used to treat keySource 'platform' as entitled
+    // without checking the add-on, so a school on Tally's key but WITHOUT the
+    // paid AI add-on saw a green "AI: Claude" chip and an enabled "Ask AI"
+    // button — which the server then 403'd. ReadingStats had the correct gate;
+    // both now share utils/aiEntitlement.js.
+    it('shows AI as unavailable on the platform key when the add-on is inactive', async () => {
+      const mockFetch = createMockFetch({
+        aiConfig: {
+          hasApiKey: true,
+          keySource: 'platform',
+          isEnabled: true,
+          provider: 'anthropic',
+          aiAddonActive: false,
+        },
+      });
+      const context = createMockContext({ fetchWithAuth: mockFetch });
+      render(<BookRecommendations />, { wrapper: createWrapper(context) });
+
+      await waitFor(() => {
+        expect(screen.getByText(/AI: Not configured/i)).toBeInTheDocument();
+      });
+      expect(screen.queryByText(/AI: Claude/i)).not.toBeInTheDocument();
+    });
+
+    it('shows AI as available on the platform key when the add-on is active', async () => {
+      const mockFetch = createMockFetch({
+        aiConfig: {
+          hasApiKey: true,
+          keySource: 'platform',
+          isEnabled: true,
+          provider: 'anthropic',
+          aiAddonActive: true,
+        },
+      });
+      const context = createMockContext({ fetchWithAuth: mockFetch });
+      render(<BookRecommendations />, { wrapper: createWrapper(context) });
+
+      await waitFor(() => {
+        expect(screen.getByText(/AI: Claude/i)).toBeInTheDocument();
       });
     });
   });
@@ -784,6 +829,7 @@ describe('BookRecommendations Component', () => {
               Promise.resolve({
                 hasApiKey: true,
                 keySource: 'organization',
+                isEnabled: true,
                 provider: 'anthropic',
               }),
           });
@@ -1196,6 +1242,7 @@ describe('BookRecommendations Component', () => {
               Promise.resolve({
                 hasApiKey: true,
                 keySource: 'organization',
+                isEnabled: true,
                 provider: 'anthropic',
               }),
           });
@@ -1236,6 +1283,7 @@ describe('BookRecommendations Component', () => {
               Promise.resolve({
                 hasApiKey: true,
                 keySource: 'organization',
+                isEnabled: true,
                 provider: 'anthropic',
               }),
           });
@@ -1289,6 +1337,7 @@ describe('BookRecommendations Component', () => {
               Promise.resolve({
                 hasApiKey: true,
                 keySource: 'organization',
+                isEnabled: true,
                 provider: 'anthropic',
               }),
           });
@@ -1332,6 +1381,7 @@ describe('BookRecommendations Component', () => {
               Promise.resolve({
                 hasApiKey: true,
                 keySource: 'organization',
+                isEnabled: true,
                 provider: 'anthropic',
               }),
           });
@@ -1372,6 +1422,7 @@ describe('BookRecommendations Component', () => {
               Promise.resolve({
                 hasApiKey: true,
                 keySource: 'organization',
+                isEnabled: true,
                 provider: 'anthropic',
               }),
           });
@@ -1422,6 +1473,7 @@ describe('BookRecommendations Component', () => {
               Promise.resolve({
                 hasApiKey: true,
                 keySource: 'organization',
+                isEnabled: true,
                 provider: 'anthropic',
               }),
           });
@@ -1458,6 +1510,7 @@ describe('BookRecommendations Component', () => {
               Promise.resolve({
                 hasApiKey: true,
                 keySource: 'organization',
+                isEnabled: true,
                 provider: 'anthropic',
               }),
           });
@@ -1570,7 +1623,7 @@ describe('BookRecommendations Component', () => {
   describe('AI Provider Display', () => {
     it('should display Claude as provider name for anthropic', async () => {
       const mockFetch = createMockFetch({
-        aiConfig: { hasApiKey: true, keySource: 'organization', provider: 'anthropic' },
+        aiConfig: { hasApiKey: true, keySource: 'organization', isEnabled: true, provider: 'anthropic' },
       });
       const context = createMockContext({ fetchWithAuth: mockFetch });
       render(<BookRecommendations />, { wrapper: createWrapper(context) });
@@ -1582,7 +1635,7 @@ describe('BookRecommendations Component', () => {
 
     it('should display GPT as provider name for openai', async () => {
       const mockFetch = createMockFetch({
-        aiConfig: { hasApiKey: true, keySource: 'organization', provider: 'openai' },
+        aiConfig: { hasApiKey: true, keySource: 'organization', isEnabled: true, provider: 'openai' },
       });
       const context = createMockContext({ fetchWithAuth: mockFetch });
       render(<BookRecommendations />, { wrapper: createWrapper(context) });
@@ -1594,7 +1647,7 @@ describe('BookRecommendations Component', () => {
 
     it('should display Gemini as provider name for google', async () => {
       const mockFetch = createMockFetch({
-        aiConfig: { hasApiKey: true, keySource: 'organization', provider: 'google' },
+        aiConfig: { hasApiKey: true, keySource: 'organization', isEnabled: true, provider: 'google' },
       });
       const context = createMockContext({ fetchWithAuth: mockFetch });
       render(<BookRecommendations />, { wrapper: createWrapper(context) });
@@ -1876,6 +1929,7 @@ describe('BookRecommendations Component', () => {
               Promise.resolve({
                 hasApiKey: true,
                 keySource: 'organization',
+                isEnabled: true,
                 provider: 'anthropic',
               }),
           });
@@ -1950,6 +2004,7 @@ describe('BookRecommendations Component', () => {
               Promise.resolve({
                 hasApiKey: true,
                 keySource: 'organization',
+                isEnabled: true,
                 provider: 'anthropic',
               }),
           });

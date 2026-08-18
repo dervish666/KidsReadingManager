@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -14,8 +14,6 @@ import {
   Grid,
   CircularProgress,
 } from '@mui/material';
-import DownloadIcon from '@mui/icons-material/Download';
-import UploadIcon from '@mui/icons-material/Upload';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import SyncIcon from '@mui/icons-material/Sync';
 import { useAuth } from '../contexts/AuthContext';
@@ -23,10 +21,8 @@ import { useData } from '../contexts/DataContext';
 
 const DataManagement = () => {
   const { fetchWithAuth, canManageUsers, user } = useAuth();
-  const { exportToJson, importFromJson, reloadDataFromServer, books } = useData();
-  const fileInputRef = useRef(null);
+  const { reloadDataFromServer, books } = useData();
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
-  const [confirmDialog, setConfirmDialog] = useState({ open: false, file: null });
   const [clearLibraryDialog, setClearLibraryDialog] = useState(false);
   const [clearingLibrary, setClearingLibrary] = useState(false);
   const [wondeStatus, setWondeStatus] = useState(null);
@@ -90,61 +86,8 @@ const DataManagement = () => {
     }
   };
 
-  const handleExport = () => {
-    exportToJson();
-    setSnackbar({
-      open: true,
-      message: 'Data exported successfully',
-      severity: 'success',
-    });
-  };
-
-  const handleImportClick = () => {
-    fileInputRef.current.click();
-  };
-
-  const handleFileChange = (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    // Reset the file input
-    event.target.value = null;
-
-    // Show confirmation dialog
-    setConfirmDialog({
-      open: true,
-      file,
-    });
-  };
-
-  const handleImportConfirm = () => {
-    const { file } = confirmDialog;
-
-    importFromJson(file)
-      .then((count) => {
-        setSnackbar({
-          open: true,
-          message: `Successfully imported data for ${count} students`,
-          severity: 'success',
-        });
-        setConfirmDialog({ open: false, file: null });
-      })
-      .catch((error) => {
-        setSnackbar({
-          open: true,
-          message: `Import failed: ${error.message}`,
-          severity: 'error',
-        });
-        setConfirmDialog({ open: false, file: null });
-      });
-  };
-
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
-  };
-
-  const handleCloseDialog = () => {
-    setConfirmDialog({ open: false, file: null });
   };
 
   // Handler for reloading data from server
@@ -210,36 +153,18 @@ const DataManagement = () => {
           </Typography>
         </Grid>
 
-        <Grid size={12}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="subtitle1" gutterBottom>
-              Data Backup & Restore
-            </Typography>
-            <Typography variant="body2" color="text.secondary" paragraph>
-              Export your data to a JSON file for backup purposes, or restore data from a previously
-              exported file. This includes all students, classes, books, genres, and reading
-              sessions.
-            </Typography>
+        {/*
+          The "Data Backup & Restore" panel that used to sit here has been
+          removed. It called GET/POST /api/data, and that whole router returns
+          403 whenever JWT_SECRET is set — i.e. always, in production. Export
+          also never awaited the promise, so it showed a green "Data exported
+          successfully" toast while the request failed.
 
-            <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
-              <Button variant="contained" startIcon={<DownloadIcon />} onClick={handleExport}>
-                Export Data
-              </Button>
-
-              <Button variant="contained" startIcon={<UploadIcon />} onClick={handleImportClick}>
-                Import Data
-              </Button>
-
-              <input
-                type="file"
-                accept=".json"
-                ref={fileInputRef}
-                style={{ display: 'none' }}
-                onChange={handleFileChange}
-              />
-            </Box>
-          </Paper>
-        </Grid>
+          Data portability is served by the endpoints that actually work:
+            GET /api/students/:id/export  (Article 15 SAR, admin, JSON or CSV)
+            GET /api/users/:id/export     (Article 15 SAR, owner)
+          plus the stats PDF export and the book-library CSV export.
+        */}
 
         <Grid size={12}>
           <Paper sx={{ p: 3 }}>
@@ -339,22 +264,6 @@ const DataManagement = () => {
             {snackbar.message}
           </Alert>
         </Snackbar>
-
-        <Dialog open={confirmDialog.open} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-          <DialogTitle>Confirm Import</DialogTitle>
-          <DialogContent>
-            <DialogContentText>
-              Importing this file will replace your current data. This action cannot be undone. Are
-              you sure you want to continue?
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseDialog}>Cancel</Button>
-            <Button onClick={handleImportConfirm} color="primary" variant="contained">
-              Import
-            </Button>
-          </DialogActions>
-        </Dialog>
 
         <Dialog
           open={clearLibraryDialog}

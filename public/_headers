@@ -5,3 +5,22 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
   Permissions-Policy: camera=(self), microphone=(), geolocation=()
+
+# Content-hashed build output — every file under /static/ carries a 10-char
+# content hash in its name (index.7e9d3c16d9.js), so the URL changes whenever
+# the bytes do and the response can be cached permanently.
+#
+# This lived in src/worker.js, in the static-asset branch that never runs:
+# wrangler.toml's [assets] block declares no `binding`, so env.ASSETS is
+# undefined and that whole branch is dead. Its regex also looked for an 8-char
+# hash, which would not have matched these filenames anyway. The result was
+# that immutable bundles were revalidated on every page load.
+/static/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# The SPA entry point must never be cached — it is what points at the hashed
+# bundles above, so a stale copy pins the whole app to an old release.
+/
+  Cache-Control: no-cache, must-revalidate
+/index.html
+  Cache-Control: no-cache, must-revalidate

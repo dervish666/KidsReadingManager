@@ -78,7 +78,25 @@ app.use('/api/*', async (c, next) => {
   const url = new URL(c.req.url);
   console.log(`  <-- ${method} ${url.pathname} ${c.res.status} ${ms}ms`);
 });
-app.use('/api/*', bodyLimit({ maxSize: 1024 * 1024 })); // 1MB max request body
+// 1MB max request body for everything except the routes that declare a larger
+// one of their own.
+//
+// Hono runs middleware in registration order, so this global limit used to win
+// outright: the 5MB override in routes/books/import.js registered later and was
+// never consulted. A school importing a real library CSV got a 413 rendered as
+// a generic "An error occurred" — during a first-week onboarding task, with no
+// hint that file size was the problem. The override was dead code for as long
+// as it had existed.
+//
+// Paths listed here MUST declare their own bodyLimit, or they inherit no limit
+// at all. Keep this list and the routers' own limits in sync.
+const LARGER_BODY_LIMIT_PATHS = ['/api/books/import/'];
+app.use('/api/*', async (c, next) => {
+  if (LARGER_BODY_LIMIT_PATHS.some((prefix) => c.req.path.startsWith(prefix))) {
+    return next();
+  }
+  return bodyLimit({ maxSize: 1024 * 1024 })(c, next);
+});
 
 // CORS configuration with explicit origin whitelist
 app.use(

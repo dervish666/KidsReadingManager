@@ -34,6 +34,7 @@ import { generateStatsPDF } from '../../utils/statsExport';
 import { useUI } from '../../contexts/UIContext';
 import { useTour } from '../tour/useTour';
 import { READING_BAND_COUNT, getBandByIndex } from '../../utils/readingBandDefinitions';
+import { hasActiveAI as isAiEntitled } from '../../utils/aiEntitlement';
 
 const ReadingStats = () => {
   const { fetchWithAuth, organization, userRole } = useAuth();
@@ -217,17 +218,10 @@ const ReadingStats = () => {
     };
   }, [isAdminOrOwner, fetchWithAuth]);
 
-  // Mirrors the backend gate in utils/aiProviderResolver.js: a school's own key
-  // needs no add-on but must be enabled (`resolveAiConfig` Path 1 requires
-  // is_enabled), while the platform and env keys both need the add-on.
-  // Note this is NOT the expression BookRecommendations.js:416 uses — that one
-  // treats keySource 'platform' as entitled without checking the add-on, so it
-  // offers an "Ask AI" button that 403s.
-  const hasActiveAI =
-    aiConfig?.keySource === 'organization'
-      ? Boolean(aiConfig?.isEnabled)
-      : (aiConfig?.keySource === 'platform' || aiConfig?.keySource === 'environment') &&
-        Boolean(aiConfig?.aiAddonActive);
+  // Shared with BookRecommendations via utils/aiEntitlement.js, which mirrors
+  // the backend gate in utils/aiProviderResolver.js. This file used to hold the
+  // only correct copy of the expression and a comment pointing at the wrong one.
+  const hasActiveAI = isAiEntitled(aiConfig);
 
   const [showAiSummary, setShowAiSummary] = useState(false);
 

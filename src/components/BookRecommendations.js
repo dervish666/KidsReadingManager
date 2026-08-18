@@ -47,6 +47,7 @@ import CodeIcon from '@mui/icons-material/Code';
 import StudentEditForm from './students/StudentEditForm';
 import BookCover from './BookCover';
 import { STATUS_TO_PALETTE } from '../utils/helpers';
+import { hasActiveAI as isAiEntitled } from '../utils/aiEntitlement';
 import { useTour } from './tour/useTour';
 
 const BookIllustration = () => (
@@ -412,11 +413,11 @@ const BookRecommendations = () => {
     }
   };
 
-  // Determine AI status
-  const hasActiveAI =
-    aiConfig?.keySource === 'organization' ||
-    aiConfig?.keySource === 'platform' ||
-    (aiConfig?.keySource === 'environment' && aiConfig?.aiAddonActive);
+  // Determine AI status — shared with ReadingStats via utils/aiEntitlement.js
+  // so the two cannot drift apart again. This copy used to treat keySource
+  // 'platform' as entitled without checking the add-on, offering an "Ask AI"
+  // button that 403'd for any school without it.
+  const hasActiveAI = isAiEntitled(aiConfig);
   const activeProvider = aiConfig?.provider;
 
   return (
