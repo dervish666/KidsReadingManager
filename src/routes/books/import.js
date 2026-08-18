@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { createProvider } from '../../data/index.js';
-import { badRequestError } from '../../middleware/errorHandler.js';
+import { badRequestError, forbiddenError } from '../../middleware/errorHandler.js';
 import { isExactMatch, isFuzzyMatch, isAuthorMatch } from '../../utils/stringMatching.js';
 import { requireTeacher, requireAdmin, auditLog } from '../../middleware/tenant.js';
 import { assertBatchSize, D1_BATCH_LIMIT } from '../../utils/d1Batch.js';
@@ -18,6 +18,12 @@ importRouter.use('/import/*', bodyLimit({ maxSize: 5 * 1024 * 1024 }));
  * Requires authentication (at least teacher access)
  */
 importRouter.post('/bulk', requireTeacher(), async (c) => {
+  // Demo accounts must not mutate the shared library (see POST /api/books).
+  // Bulk is the higher-volume version of the same hole.
+  if (c.get('user')?.authProvider === 'demo') {
+    throw forbiddenError('Demo accounts cannot modify the shared book library');
+  }
+
   const booksData = await c.req.json();
 
   // Validate input

@@ -107,3 +107,77 @@ describe('POST /api/contact', () => {
     expect(insertCall[0]).toContain('landing_page');
   });
 });
+
+// These pin the fix for a silent-failure bug: the DB catch used to
+// `return c.json({ success: true })`, which both hid the failure AND skipped
+// the notification email below it, discarding the enquiry entirely while
+// telling the sender it had been received.
+//
+// Scope note: a *total* D1 outage does not reach this handler at all —
+// '/api/contact' is in FAIL_CLOSED_PATHS, so rateLimit() 503s first. The window
+// these tests cover is the ticket INSERT failing while D1 is otherwise up
+// (constraint violation, schema drift, oversized row), which is exactly the
+// case that used to be swallowed.
+//
+// The DB mock therefore fails only the support_tickets INSERT, leaving the
+// rate limiter's own INSERT working.
+const createDbFailingTicketInsert = () => {
+  const rateLimitChain = {
+    bind: vi.fn().mockReturnThis(),
+    all: vi.fn().mockResolvedValue({ results: [], success: true }),
+    first: vi.fn().mockResolvedValue({ count: 0 }),
+    run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } }),
+  };
+  const ticketChain = {
+    bind: vi.fn().mockReturnThis(),
+    all: vi.fn().mockResolvedValue({ results: [], success: true }),
+    first: vi.fn().mockResolvedValue(null),
+    run: vi.fn().mockRejectedValue(new Error('D1_ERROR: constraint failed')),
+  };
+  return {
+    prepare: vi.fn((sql) =>
+      sql.includes('INSERT INTO support_tickets') ? ticketChain : rateLimitChain
+    ),
+  };
+};
+
+describe('POST /api/contact — delivery failures are not reported as success', () => {
+  it('still sends the notification email when the ticket insert fails', async () => {
+    const { sendSupportNotificationEmail } = await import('../../utils/email.js');
+    sendSupportNotificationEmail.mockClear();
+    sendSupportNotificationEmail.mockResolvedValueOnce(undefined);
+
+    const { app } = createTestApp(createDbFailingTicketInsert());
+
+    const response = await makeRequest(app, {
+      name: 'Jane Teacher',
+      email: 'jane@school.sch.uk',
+      message: 'Interested in Tally.',
+    });
+
+    // The email is the other delivery route — it must still be attempted.
+    expect(sendSupportNotificationEmail).toHaveBeenCalledTimes(1);
+    // One route landed, so this is a genuine success.
+    expect(response.status).toBe(200);
+    expect((await response.json()).success).toBe(true);
+  });
+
+  it('returns 503 when BOTH the ticket insert and the notification email fail', async () => {
+    const { sendSupportNotificationEmail } = await import('../../utils/email.js');
+    sendSupportNotificationEmail.mockClear();
+    sendSupportNotificationEmail.mockRejectedValueOnce(new Error('smtp down'));
+
+    const { app } = createTestApp(createDbFailingTicketInsert());
+
+    const response = await makeRequest(app, {
+      name: 'Jane Teacher',
+      email: 'jane@school.sch.uk',
+      message: 'Interested in Tally.',
+    });
+
+    expect(response.status).toBe(503);
+    const data = await response.json();
+    expect(data.success).toBeUndefined();
+    expect(data.error).toMatch(/could not submit/i);
+  });
+});

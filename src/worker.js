@@ -746,14 +746,40 @@ async function runScheduledTask(event, env, ctx) {
           break;
         } else {
           orgsProcessed++;
-          // Org completed — clear any prior cursor and advance the
-          // watermark to this run's start.
-          await db
-            .prepare(
-              'UPDATE organizations SET last_badge_cursor = NULL, last_badge_watermark = ? WHERE id = ?'
-            )
-            .bind(runStart, org.id)
-            .run();
+          // Org completed — clear any prior cursor and advance the watermark to
+          // this run's start.
+          //
+          // ...unless a student failed. The watermark decides which students the
+          // NEXT run bothers to look at, so advancing it over a student whose
+          // evaluation threw retires them permanently: the failure is logged, the
+          // run reports success, and their badges are never awarded until they
+          // happen to read again. Holding the watermark back re-examines the
+          // whole org tomorrow, which is cheap and idempotent (badge inserts are
+          // guarded by a unique constraint — migration 0069). The cursor is still
+          // cleared either way, because the org DID complete a full pass.
+          //
+          // Consequence to know about: a student who fails *persistently* keeps
+          // their org in full-rescan mode indefinitely, competing for the same
+          // 22s budget. That is deliberate — it makes a stuck student a nightly
+          // warning line instead of a silent omission, which is the trade this
+          // repo already makes elsewhere (transient noise is a log, sustained
+          // absence is an alert).
+          if (result.failedCount > 0) {
+            console.warn(
+              `[Cron] Badge org ${org.id}: ${result.failedCount} student(s) failed; holding watermark at ${org.last_badge_watermark || 'NULL'} so they are retried`
+            );
+            await db
+              .prepare('UPDATE organizations SET last_badge_cursor = NULL WHERE id = ?')
+              .bind(org.id)
+              .run();
+          } else {
+            await db
+              .prepare(
+                'UPDATE organizations SET last_badge_cursor = NULL, last_badge_watermark = ? WHERE id = ?'
+              )
+              .bind(runStart, org.id)
+              .run();
+          }
 
           // Rolling window stats decay with time even for students with
           // no new sessions — refresh them cheaply org-wide (they no

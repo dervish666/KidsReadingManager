@@ -32,27 +32,36 @@ contactRouter.post('/', async (c) => {
   }
 
   const db = c.env.READING_MANAGER_DB;
-  if (!db) {
-    return c.json({ success: true });
-  }
-
   const ticketId = crypto.randomUUID();
   const subject = 'Landing page enquiry';
 
-  try {
-    await db
-      .prepare(
-        `INSERT INTO support_tickets (id, organization_id, user_id, user_name, user_email, subject, message, page_url, status, source, created_at)
+  // An enquiry reaches a human two ways: the support_tickets row and the
+  // notification email. Either one alone is a delivered enquiry, so both are
+  // attempted independently and success is only reported if one landed.
+  //
+  // This used to `return c.json({ success: true })` inside the DB catch, which
+  // both swallowed the failure AND skipped the email below it — a prospective
+  // school saw a thank-you message while the enquiry was discarded entirely.
+  let stored = false;
+  let notified = false;
+
+  if (db) {
+    try {
+      await db
+        .prepare(
+          `INSERT INTO support_tickets (id, organization_id, user_id, user_name, user_email, subject, message, page_url, status, source, created_at)
          VALUES (?, NULL, NULL, ?, ?, ?, ?, '/', 'open', 'landing_page', datetime('now'))`
-      )
-      .bind(ticketId, name, email, subject, message)
-      .run();
-  } catch (error) {
-    console.error('Contact form DB error:', error.message);
-    return c.json({ success: true });
+        )
+        .bind(ticketId, name, email, subject, message)
+        .run();
+      stored = true;
+    } catch (error) {
+      console.error('Contact form DB error:', error.message);
+    }
+  } else {
+    console.error('Contact form: no READING_MANAGER_DB binding; relying on email only');
   }
 
-  // Send notification email (fire and forget)
   try {
     await sendSupportNotificationEmail(c.env, {
       ticketId,
@@ -63,8 +72,22 @@ contactRouter.post('/', async (c) => {
       subject,
       message,
     });
+    notified = true;
   } catch (error) {
     console.error('Contact notification email error:', error.message);
+  }
+
+  if (!stored && !notified) {
+    // Both delivery routes failed — say so rather than pretending. Sentry sees
+    // this via consoleLoggingIntegration on the two console.error calls above.
+    console.error(`Contact form: enquiry from ${email} could not be delivered by any route`);
+    return c.json(
+      {
+        error:
+          'Sorry — we could not submit your enquiry just now. Please try again in a moment, or email us directly.',
+      },
+      503
+    );
   }
 
   return c.json({ success: true });

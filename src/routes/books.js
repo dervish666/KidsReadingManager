@@ -320,6 +320,14 @@ booksRouter.get('/count', requireReadonly(), async (c) => {
  * Requires authentication (at least teacher access)
  */
 booksRouter.post('/', requireTeacher(), async (c) => {
+  // Demo accounts must not mutate the shared library (see PUT /:id below).
+  // INSERT is as permanent as UPDATE here: the row lands in the global `books`
+  // table that every linked school sees, and the hourly demo reset does not
+  // touch that table, so anything created here stays forever.
+  if (c.get('user')?.authProvider === 'demo') {
+    throw forbiddenError('Demo accounts cannot modify the shared book library');
+  }
+
   const bookData = await c.req.json();
 
   // Validate book data

@@ -613,6 +613,9 @@ export async function processBadgesForOrg(db, orgId, cursor, deadlineMs, waterma
   let processedCount = 0;
   let newBadgeCount = 0;
   let exhausted = false;
+  // Students whose evaluation threw. Reported to the caller so it can decline
+  // to advance the org's watermark — see the return below.
+  let failedCount = 0;
 
   const currentDate = new Date().toISOString().slice(0, 10);
 
@@ -731,9 +734,16 @@ export async function processBadgesForOrg(db, orgId, cursor, deadlineMs, waterma
       lastProcessedId = student.id;
       processedCount++;
     } catch (err) {
+      failedCount++;
       console.error(`[Cron] Badge evaluation error for student ${student.id}:`, err.message);
     }
   }
 
-  return { exhausted, lastProcessedId, processedCount, newBadgeCount };
+  // failedCount is load-bearing, not diagnostic. The caller advances
+  // organizations.last_badge_watermark once an org completes a pass, and the
+  // watermark is what decides which students get looked at next time. Without
+  // this count a student whose evaluation threw was silently stepped over: the
+  // run reported success, the watermark moved past them, and their badges were
+  // never awarded until they happened to read again.
+  return { exhausted, lastProcessedId, processedCount, newBadgeCount, failedCount };
 }

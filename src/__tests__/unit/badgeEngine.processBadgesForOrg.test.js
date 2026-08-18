@@ -177,6 +177,23 @@ describe('processBadgesForOrg', () => {
     // student doesn't increment processedCount or advance lastProcessedId
     expect(result.exhausted).toBe(false);
     expect(result.processedCount).toBeGreaterThanOrEqual(3);
+
+    // The failure must be REPORTED, not just logged. src/worker.js uses this
+    // to decide whether to advance organizations.last_badge_watermark; before
+    // it existed, a student whose evaluation threw was stepped over silently
+    // and never re-examined, because the watermark moved past them while the
+    // run reported success.
+    expect(result.failedCount).toBe(1);
+  });
+
+  it('reports failedCount = 0 when every student succeeds', async () => {
+    const db = buildMockDB(buildStudents(3));
+    const result = await processBadgesForOrg(db, 'org-1', null, Date.now() + 60_000);
+
+    // Guards the other direction: a non-zero default would stall the watermark
+    // permanently and force a full re-scan of every org every night.
+    expect(result.failedCount).toBe(0);
+    expect(result.processedCount).toBe(3);
   });
 
   it('records ticker events alongside badges awarded by the cron', async () => {

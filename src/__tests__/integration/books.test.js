@@ -1222,15 +1222,44 @@ describe('Books API Routes', () => {
 
   describe('Demo account restrictions', () => {
     // The demo user is a `teacher` (so it can record sessions to feel real),
-    // which means it can otherwise reach PUT/DELETE /:id. Because the books
-    // catalog is a SHARED global table, a demo edit would mutate rows other
-    // schools see — and the demo is public/credential-less. Demo accounts must
-    // not write to the shared library.
+    // which means it can otherwise reach POST /, POST /bulk and PUT/DELETE /:id.
+    // Because the books catalog is a SHARED global table, a demo write would
+    // mutate or add rows other schools see — and the demo is public and
+    // credential-less. Demo accounts must not write to the shared library.
+    //
+    // POST was originally left unguarded while PUT and DELETE were covered:
+    // INSERT is just as permanent here, because the hourly demo reset does not
+    // touch the global `books` table, so anything created stayed forever.
     const demoTeacher = () =>
       createUserContext({
         userRole: 'teacher',
         user: { sub: 'demo-user', org: 'org-456', role: 'teacher', authProvider: 'demo' },
       });
+
+    it('blocks POST /api/books from demo accounts without inserting into the shared catalog', async () => {
+      const { app, mockDB } = createTestApp(demoTeacher());
+
+      const response = await makeRequest(app, 'POST', '/api/books', {
+        title: 'Demo Spam',
+        author: 'Anon',
+      });
+
+      expect(response.status).toBe(403);
+      // Critical: nothing was inserted into the global books table.
+      expect(mockDB._chain.run).not.toHaveBeenCalled();
+    });
+
+    it('blocks POST /api/books/bulk from demo accounts without inserting', async () => {
+      const { app, mockDB } = createTestApp(demoTeacher());
+
+      const response = await makeRequest(app, 'POST', '/api/books/bulk', [
+        { title: 'Demo Spam 1', author: 'Anon' },
+        { title: 'Demo Spam 2', author: 'Anon' },
+      ]);
+
+      expect(response.status).toBe(403);
+      expect(mockDB._chain.run).not.toHaveBeenCalled();
+    });
 
     it('blocks PUT /api/books/:id from demo accounts without writing to the shared catalog', async () => {
       const { app, mockDB } = createTestApp(demoTeacher());
