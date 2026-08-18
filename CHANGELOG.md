@@ -1,5 +1,22 @@
 # Changelog
 
+## [3.123.0] - 2026-08-18
+
+### Fixed
+
+- **Enquiries from the website could vanish without trace.** If the database rejected the message, the contact form thanked the sender, created no ticket, and skipped the email that would have told us — so a school asking about Tally got a friendly confirmation and we never heard from them. The form now tries both routes independently and only claims success if one of them actually worked; if neither does, it says so and asks the sender to try again.
+- **"Ask AI" was offered to schools that could not use it.** On the book recommendations page, schools without the AI add-on saw a green "AI: Claude" badge and an enabled button that failed the moment it was pressed. The statistics page had this right; recommendations did not. Both now ask the same question in the same place, so they cannot drift apart again.
+- **Importing a real library could fail with nothing but "An error occurred".** Anything over about a megabyte — a few thousand books — was rejected before the import screen's own, larger limit was ever consulted. The larger limit now applies, and the smaller one still guards everything else.
+- **Some children could stop earning badges silently.** If the overnight badge run hit a problem with one child, it logged the problem, skipped them, and then recorded the night as a complete success — so that child was never looked at again until they next read. A failure now holds the run back so those children are picked up the following night.
+- **Demo visitors could add books to every school's library.** The demo is deliberately public and its changes are wiped hourly, but the shared book catalogue is not wiped, so anything added there stayed for good and was visible to every school. Demo accounts can no longer add books.
+- **"Export Data" reported success and produced nothing.** The button had not worked for some time and said otherwise. It has been removed. Exporting a pupil's record for a data request still works as before, from that pupil's page, and the library still exports to a spreadsheet.
+
+### Changed
+
+- **Pages load faster on repeat visits.** The parts of the app that never change between releases were being re-checked with the server on every single page load. They are now cached properly, so returning to Tally — or moving between pages — is quicker, particularly on classroom tablets and slower school connections.
+- **The old shared-password sign-in has been removed.** Every school signs in with an email address and password, or through MyLogin; the single-password login that predated school accounts is gone, along with a large amount of code that existed only to support it.
+- **Book search and cover lookups now say when they are struggling.** Both quietly fall back to a slower method when something is wrong, which is sensible but meant a real outage looked exactly like an ordinary empty result. They now leave a trace, so a problem can be spotted rather than waited out.
+
 ## [3.122.0] - 2026-08-15
 
 ### Fixed
