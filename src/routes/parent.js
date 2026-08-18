@@ -31,6 +31,7 @@ import { BADGE_DEFINITIONS } from '../utils/badgeDefinitions.js';
 import { classNameToYearGroup } from '../utils/yearGroup.js';
 import { filterContentSafe } from '../utils/contentModeration.js';
 import { computeLibraryRecommendations } from '../utils/libraryRecommendations.js';
+import { warnFtsFallback } from '../utils/ftsFallback.js';
 
 export const parentRouter = new Hono();
 
@@ -665,7 +666,8 @@ parentRouter.get('/:token/books', rateLimit(30, 60000, 'parent:books'), async (c
         .bind(organizationId, ftsQuery)
         .all();
       libraryResults = result.results || [];
-    } catch {
+    } catch (err) {
+      warnFtsFallback('parent:book-search', err);
       const likeQuery = `%${q}%`;
       const result = await db
         .prepare(

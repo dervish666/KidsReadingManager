@@ -77,6 +77,7 @@ The Recommendations section enables:
 
 
 ### Local Development
+
 ```bash
 # Clone the repository
 git clone https://github.com/dervish666/TallyReading.git
@@ -85,11 +86,32 @@ cd TallyReading
 # Install dependencies
 npm install
 
-# Start the development server
+# Create and seed the local D1 database — REQUIRED, once, before first run.
+# Without this there is no database and no account to sign in with.
+# It also writes .dev.vars with a JWT_SECRET, so there is nothing to configure
+# by hand. Safe to re-run: migrations are idempotent and the seed rows are
+# INSERT OR IGNORE.
+npm run seed:local
+
+# Start the worker (:8787) and the frontend (:3001) together
 npm run start:dev
 
-# Open http://localhost:3001 in your browser
+# Open http://localhost:3001 and sign in with:
+#   dev@tallyreading.uk / password
 ```
+
+That is the whole setup — no config files to write yourself.
+
+**Where local config lives:** `.dev.vars` is the only file the worker reads
+locally (Wrangler's convention); `npm run seed:local` creates it with a
+`JWT_SECRET`, which is what puts the app in normal multi-tenant auth mode. Add
+`WORKER_ADMIN_PASSWORD` there too if you want to exercise the legacy
+shared-password mode.
+
+`.env.example` documents every optional variable (AI providers, MyLogin SSO,
+Wonde, Sentry). None are needed to run locally, and note that a `.env` file is
+**not** read by the worker — only `.dev.vars` is. (`.env.e2e` is read by the
+Playwright config, and nothing else.)
 
 ## 💡 How It Works
 

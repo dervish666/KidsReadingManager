@@ -82,7 +82,16 @@ export async function fetchMetadata(book, apiKey) {
     }
 
     return result;
-  } catch {
+  } catch (err) {
+    // Log before degrading. `empty` is indistinguishable from a genuine
+    // "no metadata for this book", so without this line a provider outage,
+    // an expired key and a real miss all look identical — and enrichment
+    // records the miss permanently. warn (not captureException) because a
+    // single failure is routine; it is the RATE of these that means the
+    // provider is down. Reaches Sentry Logs via consoleLoggingIntegration.
+    console.warn(
+      `[metadata] provider 'googlebooks' failed, returning empty: ${err instanceof Error ? err.message : String(err)}`
+    );
     return empty;
   }
 }

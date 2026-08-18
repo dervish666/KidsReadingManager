@@ -24,6 +24,7 @@ src/routes/auth/register.js - POST /demo (role-capped demo JWT), GET /mode (auth
 src/routes/auth/session.js - POST /login (with lockout), POST /refresh (token rotation + reuse detection), POST /logout, GET /me
 src/routes/auth/password.js - POST /forgot-password, POST /reset-password, PUT /password (authenticated change)
 src/routes/mylogin.js - MyLogin OAuth2 SSO (login, callback, logout)
+src/routes/students/core.js - Core student CRUD (list, get, create, update, delete, current-book, feedback, bulk baseline-reads)
 src/routes/students.js - Core student CRUD (list, get, create, update, soft-delete) + current-book / feedback mutators; mounts students/_ sub-routers; re-exports recalculateAllStreaks for the cron
 src/routes/students/\_shared.js - Shared helpers: fetchStudentPreferences, saveStudentPreferences, getOrgStreakSettings (KV-cached), updateStudentStreak
 src/routes/students/sessions.js - GET /sessions, GET/POST /:id/sessions, POST /:id/sessions/bulk (multi-day batch, side-effects run once), DELETE/PUT /:id/sessions/:sessionId — creates use the shared runSessionSideEffects chain
@@ -32,7 +33,8 @@ src/routes/students/aiSummary.js - POST /stats/ai-summary — admin/owner-only A
 src/routes/students/streak.js - GET /:id/streak, POST /recalculate-streaks; exports cron-time recalculateAllStreaks bulk-recalculator
 src/routes/students/bulk.js - POST /bulk — CSV bulk import with name dedup and chunked batch insert
 src/routes/students/gdpr.js - DELETE /:id/erase (Article 17), PUT /:id/restrict (Article 18), PUT /:id/ai-opt-out, GET /:id/export (Article 15 SAR JSON/CSV)
-src/routes/books.js - Core book CRUD (list, search, count, get, create, update, delete, clear-library, enrich); mounts books/_ sub-routers
+src/routes/books.js - Books entry router; mounts books/ sub-routers only (33 lines)
+src/routes/books/core.js - Core book CRUD (list, search, count, get, create, update, delete, clear-library, enrich); owns ORG_BOOK_SELECT
 src/routes/books/recommendations.js - GET /library-search (DB-only scoring), GET /ai-suggestions (AI provider + cache + GDPR checks)
 src/routes/books/isbn.js - GET /isbn/:isbn (D1 → OpenLibrary fallback), POST /scan (link/preview/create), GET /search-external (OpenLibrary typeahead)
 src/routes/books/import.js - POST /bulk (dedup + batch insert), POST /import/preview (categorise matches), POST /import/confirm (batched D1 execute)
@@ -40,11 +42,12 @@ src/routes/books/duplicates.js - GET /duplicates (owner: ISBN + title/author dup
 src/routes/classes.js - GET/POST/PUT/DELETE class management, GET/PUT class goals
 src/routes/genres.js - GET/POST/PUT/DELETE genre management
 src/routes/covers.js - GET book covers; R2 cache + OpenLibrary → Google Books → Hardcover fallback (ISBN via /:type/:key, title+author via /search)
+src/routes/users/core.js - Core user CRUD + admin password reset
 src/routes/users.js - Core user CRUD (list, get, create, update, soft-delete) + password reset; mounts users/_ sub-routers
 src/routes/users/gdpr.js - DELETE /:id/erase (Article 17 hard delete), GET /:id/export (Article 15 SAR JSON/CSV)
 src/routes/users/classes.js - GET /:id/classes, PUT /:id/classes — class assignment management per user
+src/routes/organization/core.js - Core organization CRUD (current, owner list, stats, get/create/update/soft-delete)
 src/routes/organization.js - Core org CRUD (list, get, create, update, soft-delete) + stats; mounts organization/_ sub-routers
-src/routes/organization/settings.js - GET/PUT /settings, GET/PUT /ai-config — org settings and AI configuration
 src/routes/organization/compliance.js - GET /audit-log, GET/POST /dpa-consent, DELETE /:id/purge (Article 17 erasure)
 src/routes/settings.js - Settings entry router; mounts settings/_ sub-routers; re-exports upsertAiConfig for organization/settings.js
 src/routes/settings/\_shared.js - Shared helper: fetchProviderModels (provider models API → [{id, name}] list)
@@ -96,6 +99,8 @@ src/services/providers/bookInfoProvider.js - BookInfo/rreading-glasses adapter (
 
 src/utils/crypto.js - PBKDF2 hashing, JWT, AES-GCM encryption, role constants
 src/utils/validation.js - Input validation (students, books, sessions, passwords, ranges, genres, classes)
+src/utils/ftsFallback.js - warnFtsFallback(): one greppable log line per FTS5 -> LIKE degrade
+src/utils/aiEntitlement.js - hasActiveAI(): the single frontend AI entitlement gate, mirrors aiProviderResolver
 src/utils/helpers.js - ID generation, reading status, student sorting, csvRow, slug generation, fetchWithTimeout
 src/utils/calculateAge.js - Age calculation from date of birth
 src/utils/email.js - Password reset/welcome/signup/support emails (multi-provider)
@@ -205,7 +210,6 @@ src/components/schools/SchoolEditForm.js - School edit form with save/cancel
 
 src/components/books/BookManager.js - Book library with search, add, import, export
 src/components/books/BookImportWizard.js - CSV import with fuzzy matching
-src/components/books/AddBookModal.js - Add single book dialog
 src/components/books/BarcodeScanner.js - ISBN barcode scanner (html5-qrcode)
 src/components/books/ScanBookFlow.js - Scan-to-add workflow orchestrator
 src/components/books/BookEditDialog.js - Book editing dialog (title, author, ISBN, genre)
@@ -220,7 +224,6 @@ src/components/classes/ClassManager.js - Class CRUD with year groups
 
 src/components/tour/TourProvider.js - Tour context provider with lazy-loaded react-joyride
 src/components/tour/TourRunner.js - Extracted tour runner (step logic, callbacks, scroll)
-src/components/tour/TourButton.js - Floating compass replay button (fixed bottom-right)
 src/components/tour/TourTooltip.js - Glassmorphism custom tooltip for tour steps
 src/components/tour/tourSteps.js - Tour step definitions per page (targets, titles, content)
 src/components/tour/useTour.js - Hook for auto-start, ready guard, and button props
@@ -228,7 +231,6 @@ src/components/tour/useTour.js - Hook for auto-start, ready guard, and button pr
 ## Frontend Components - Students
 
 src/components/students/StudentList.js - Student listing with filters and sorting
-src/components/students/StudentCard.js - Student card with status and streak
 src/components/students/StudentDetailDrawer.js - Student detail side drawer (read/edit modes)
 src/components/students/StudentEditForm.js - Student edit form with save/cancel; previously-read books list with enjoyed/not thumb toggles feeding likes/dislikes
 src/components/students/StudentReadView.js - Read-only student detail cards
@@ -252,7 +254,6 @@ src/components/sessions/DateRangePanel.js - Date picker, date range preset, cust
 src/components/sessions/StudentBooksRead.js - Selected student's books-read history strip with covers (full view)
 src/components/sessions/QuickReadingView.js - Compact quick-entry reading view
 src/components/sessions/SessionForm.js - Reading session form
-src/components/sessions/QuickEntry.js - Fast session entry for priority students
 src/components/sessions/BookAutocomplete.js - Book search autocomplete
 src/components/sessions/AssessmentSelector.js - Assessment level radio group
 src/components/sessions/ReadingObservationToggles.js - Optional "how did they read today?" toggle chips (fluent/expressive/phonics), shared by session form + timeline edit

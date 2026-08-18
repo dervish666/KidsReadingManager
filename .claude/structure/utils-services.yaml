@@ -6,6 +6,31 @@ description: Utility functions and service layer
 files:
   # ---- UTILITIES ----
 
+  utils/aiEntitlement.js:
+    description: >
+      The single frontend AI entitlement gate. Mirrors resolveAiConfig() in
+      utils/aiProviderResolver.js — BYOK needs no add-on but must be enabled;
+      platform and env keys both require ai_addon_active. Extracted because the
+      expression was hand-written in two components and one copy was wrong.
+    exports:
+      - name: hasActiveAI
+        kind: function
+        params: [{name: aiConfig, type: object}]
+        returns: boolean
+        description: True when an AI action should be offered; fails closed on unknown keySource
+
+  utils/ftsFallback.js:
+    description: >
+      One greppable log line per FTS5 -> LIKE degrade. The fallback returns
+      plausible results, so a broken index is otherwise invisible — which is how
+      book search stayed broken for months. Alert on the rate, not on one line.
+    exports:
+      - name: warnFtsFallback
+        kind: function
+        params: [{name: site, type: string}, {name: error}]
+        returns: void
+        description: console.warn with a '[FTS5] fallback' prefix (reaches Sentry Logs)
+
   utils/helpers.js:
     description: General utility functions - ID generation, reading status, sorting
     exports:

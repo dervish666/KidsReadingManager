@@ -115,9 +115,16 @@ files:
         items: [sendPasswordResetEmail]
 
   books.js:
-    description: Core book CRUD (list, search, count, get, create, update, delete, clear-library, enrich); mounts books/* sub-routers
+    description: Books composition root — mounts books/* sub-routers only
     exports:
       - name: booksRouter
+        kind: object
+        description: Hono router composing the sub-routers in this resource's directory
+
+  books/core.js:
+    description: Core book CRUD (list, search, count, get, create, update, delete, clear-library, enrich); owns the shared ORG_BOOK_SELECT constant
+    exports:
+      - name: coreRouter
         kind: object
         description: Hono router for book endpoints
     endpoints:
@@ -358,9 +365,16 @@ files:
         items: [createAccessToken, createRefreshToken, createJWTPayload, hashToken]
 
   organization.js:
-    description: Organization entry router - core CRUD, stats; mounts organization/* sub-routers
+    description: Organization composition root — mounts organization/* sub-routers only
     exports:
       - name: organizationRouter
+        kind: object
+        description: Hono router composing the sub-routers in this resource's directory
+
+  organization/core.js:
+    description: Core organization CRUD (current, owner-wide list, stats, get/create/update/soft-delete)
+    exports:
+      - name: coreRouter
         kind: object
         description: Hono router for organization endpoints
     mounts:
@@ -389,24 +403,6 @@ files:
       - route: PUT /api/organization
         description: Update current org name
         requires: owner
-
-  organization/settings.js:
-    description: Organization settings and AI config sub-router
-    exports:
-      - name: settingsRouter
-        kind: object
-        description: Hono sub-router for settings and AI config endpoints
-    endpoints:
-      - route: GET /api/organization/settings
-        description: Get organization settings with defaults
-      - route: PUT /api/organization/settings
-        description: Update organization settings
-        requires: admin
-      - route: GET /api/organization/ai-config
-        description: Get AI config (key masked)
-      - route: PUT /api/organization/ai-config
-        description: Update AI config with encrypted key
-        requires: admin
 
   organization/compliance.js:
     description: Organization compliance sub-router - audit log, DPA consent, GDPR purge
@@ -556,9 +552,16 @@ files:
         items: [DEFAULT_READS_PER_BAND]
 
   students.js:
-    description: Student management - CRUD, preferences, bulk import
+    description: Students composition root — mounts students/* sub-routers; re-exports recalculateAllStreaks for the nightly cron in worker.js
     exports:
       - name: studentsRouter
+        kind: object
+        description: Hono router composing the sub-routers in this resource's directory
+
+  students/core.js:
+    description: Core student CRUD (list, get, create, update, delete, current-book, feedback, bulk baseline-reads)
+    exports:
+      - name: coreRouter
         kind: object
         description: Hono router for student endpoints
     endpoints:
@@ -591,9 +594,16 @@ files:
         requires: admin
 
   users.js:
-    description: User entry router - core CRUD, password reset; mounts users/ sub-routers
+    description: Users composition root — mounts users/* sub-routers only
     exports:
       - name: usersRouter
+        kind: object
+        description: Hono router composing the sub-routers in this resource's directory
+
+  users/core.js:
+    description: Core user CRUD (list, get, create, update, delete) plus admin password reset
+    exports:
+      - name: coreRouter
         kind: object
         description: Hono router for user endpoints
     mounts:

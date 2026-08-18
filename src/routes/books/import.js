@@ -5,6 +5,7 @@ import { badRequestError, forbiddenError } from '../../middleware/errorHandler.j
 import { isExactMatch, isFuzzyMatch, isAuthorMatch } from '../../utils/stringMatching.js';
 import { requireTeacher, requireAdmin, auditLog } from '../../middleware/tenant.js';
 import { assertBatchSize, D1_BATCH_LIMIT } from '../../utils/d1Batch.js';
+import { warnFtsFallback } from '../../utils/ftsFallback.js';
 
 const importRouter = new Hono();
 
@@ -105,9 +106,10 @@ importRouter.post('/bulk', requireTeacher(), async (c) => {
           .bind(phrases.join(' OR '), phrases.length * 10)
           .all();
         collectTitleMatches(ftsResult.results);
-      } catch {
+      } catch (err) {
         // Combined MATCH failed — retry per title so one bad token doesn't
         // cost the whole chunk its duplicate detection.
+        warnFtsFallback('books/import:preview-chunk', err);
         for (const phrase of phrases) {
           try {
             const ftsResult = await db
@@ -293,9 +295,10 @@ importRouter.post('/import/preview', requireAdmin(), async (c) => {
         .all();
       const rows = ftsResult.results || [];
       for (const { book } of withPhrases) ftsCandidates.set(book, rows);
-    } catch {
+    } catch (err) {
       // Combined MATCH failed — retry per title so one bad token doesn't
       // cost the whole chunk its duplicate detection.
+      warnFtsFallback('books/import:confirm-chunk', err);
       for (const { book, phrase } of withPhrases) {
         try {
           const ftsResult = await db.prepare(candidateSql).bind(`"${phrase}"`, 20).all();

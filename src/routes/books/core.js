@@ -28,6 +28,7 @@ import {
 } from '../../middleware/tenant.js';
 import { getConfigWithKeys } from '../metadata.js';
 import { enrichBook } from '../../services/metadataService.js';
+import { warnFtsFallback } from '../../utils/ftsFallback.js';
 
 export const coreRouter = new Hono();
 
@@ -135,8 +136,10 @@ coreRouter.get('/', requireReadonly(), async (c) => {
           )
           .bind(organizationId, ftsQuery, limit)
           .all();
-      } catch {
-        // FTS5 may not be available or query may be invalid — fall back to LIKE
+      } catch (err) {
+        // FTS5 may not be available or query may be invalid — fall back to LIKE.
+        // Logged: a silent fallback here is how search stayed broken for months.
+        warnFtsFallback('books/core:list-search', err);
         const likeQuery = `%${searchTerm}%`;
         result = await db
           .prepare(
@@ -271,8 +274,9 @@ coreRouter.get('/search', requireReadonly(), async (c) => {
         )
         .bind(organizationId, ftsQuery, maxResults)
         .all();
-    } catch {
+    } catch (err) {
       // FTS5 fallback to LIKE
+      warnFtsFallback('books/core:search', err);
       const likeQuery = `%${searchTerm}%`;
       result = await db
         .prepare(
