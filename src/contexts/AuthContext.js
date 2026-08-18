@@ -17,7 +17,6 @@ const AuthContext = createContext();
 const API_URL = '/api';
 const AUTH_STORAGE_KEY = 'krm_auth_token';
 const USER_STORAGE_KEY = 'krm_user';
-const AUTH_MODE_KEY = 'krm_auth_mode';
 // Last known answer from GET /auth/mode. `ssoEnabled` defaults to false, and a
 // non-ok response used to leave it there — so any blip on that one request hid
 // the "Sign in with MyLogin" button and offered SSO users a password they do
@@ -84,16 +83,6 @@ export const AuthProvider = ({ children }) => {
   // Track if SSO (MyLogin) is enabled on the server
   const [ssoEnabled, setSsoEnabled] = useState(readCachedSsoEnabled);
 
-  // Multi-tenant auth state - initially null until detected from server
-  const [authMode, setAuthMode] = useState(() => {
-    if (typeof window === 'undefined') return 'multitenant';
-    try {
-      return window.localStorage.getItem(AUTH_MODE_KEY) || 'multitenant';
-    } catch {
-      return 'multitenant';
-    }
-  });
-
   // Auth token (from localStorage if present)
   const [authToken, setAuthToken] = useState(() => {
     if (typeof window === 'undefined') return null;
@@ -154,29 +143,9 @@ export const AuthProvider = ({ children }) => {
             // ignore
           }
 
-          // Update auth mode based on server response
-          if (data.mode === 'multitenant') {
-            setAuthMode('multitenant');
-            try {
-              if (typeof window !== 'undefined') {
-                window.localStorage.setItem(AUTH_MODE_KEY, 'multitenant');
-              }
-            } catch {
-              // ignore
-            }
-          } else {
-            // If server is in legacy mode but we have multitenant tokens, clear them
-            if (authMode === 'multitenant' && !authToken) {
-              setAuthMode('legacy');
-              try {
-                if (typeof window !== 'undefined') {
-                  window.localStorage.setItem(AUTH_MODE_KEY, 'legacy');
-                }
-              } catch {
-                // ignore
-              }
-            }
-          }
+          // `data.mode` is no longer read: the legacy shared-password mode was
+          // removed and JWT is the only mode. The endpoint is still called for
+          // `ssoEnabled`, which decides whether the SSO button renders.
           setServerAuthModeDetected(true);
         } else {
           // Rate limited (a whole school shares one IP), or the server wobbled.
@@ -300,7 +269,6 @@ export const AuthProvider = ({ children }) => {
     };
 
     detectAuthMode();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run once on mount
 
   // Clear all auth state
@@ -311,14 +279,12 @@ export const AuthProvider = ({ children }) => {
         window.localStorage.removeItem(USER_STORAGE_KEY);
         window.localStorage.removeItem('bookCovers');
         window.sessionStorage.clear();
-        // Don't remove AUTH_MODE_KEY - preserve the server's detected auth mode
       }
     } catch {
       // ignore
     }
     setAuthToken(null);
     setUser(null);
-    // Don't reset authMode - preserve the server's detected auth mode
   }, []);
 
   // Token refresh function for multi-tenant mode
@@ -378,7 +344,7 @@ export const AuthProvider = ({ children }) => {
       let currentToken = authTokenRef.current;
 
       // In multi-tenant mode, check if token needs refresh
-      if (authMode === 'multitenant' && currentToken && isTokenExpired(currentToken)) {
+      if (currentToken && isTokenExpired(currentToken)) {
         const newToken = await refreshAccessToken();
         if (newToken) {
           currentToken = newToken;
@@ -410,7 +376,7 @@ export const AuthProvider = ({ children }) => {
 
       if (response.status === 401) {
         // In multi-tenant mode, try to refresh token once (skip for demo — no refresh token)
-        if (authMode === 'multitenant' && retryCount === 0) {
+        if (retryCount === 0) {
           if (user?.authProvider !== 'demo') {
             const newToken = await refreshAccessToken();
             if (newToken) {
@@ -443,61 +409,13 @@ export const AuthProvider = ({ children }) => {
 
       return response;
     },
-    [authMode, refreshAccessToken, clearAuthState, user]
+    [refreshAccessToken, clearAuthState, user]
   );
 
   // Inject fetchWithAuth into hardcoverApi so it uses the shared auth path
   useEffect(() => {
     setHardcoverFetch(fetchWithAuth);
   }, [fetchWithAuth]);
-
-  // Legacy login helper (shared password)
-  const login = useCallback(async (password) => {
-    setApiError(null);
-
-    try {
-      const response = await fetch(`${API_URL}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Invalid password');
-        }
-        throw new Error(`Login failed: ${response.status} ${response.statusText}`);
-      }
-
-      let data;
-      try {
-        data = await response.json();
-      } catch (err) {
-        throw new Error('Login failed: invalid JSON response');
-      }
-
-      const token = data && data.token;
-      if (!token) {
-        throw new Error('No token returned from server');
-      }
-
-      try {
-        if (typeof window !== 'undefined') {
-          window.localStorage.setItem(AUTH_STORAGE_KEY, token);
-          window.localStorage.setItem(AUTH_MODE_KEY, 'legacy');
-        }
-      } catch (_storageErr) {
-        // Storage error is non-critical
-      }
-
-      setAuthToken(token);
-      setAuthMode('legacy');
-      setApiError(null);
-    } catch (err) {
-      setApiError(err.message || 'Login failed');
-      throw err;
-    }
-  }, []);
 
   // Multi-tenant login with email/password
   const loginWithEmail = useCallback(async (email, password) => {
@@ -539,7 +457,6 @@ export const AuthProvider = ({ children }) => {
       try {
         if (typeof window !== 'undefined') {
           window.localStorage.setItem(AUTH_STORAGE_KEY, data.accessToken);
-          window.localStorage.setItem(AUTH_MODE_KEY, 'multitenant');
           if (userWithOrg) {
             window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userWithOrg));
           }
@@ -550,7 +467,6 @@ export const AuthProvider = ({ children }) => {
 
       setAuthToken(data.accessToken);
       setUser(userWithOrg);
-      setAuthMode('multitenant');
       setApiError(null);
 
       // Auto-select teacher's first assigned class on email/password login
@@ -592,7 +508,6 @@ export const AuthProvider = ({ children }) => {
     try {
       if (typeof window !== 'undefined') {
         window.localStorage.setItem(AUTH_STORAGE_KEY, data.accessToken);
-        window.localStorage.setItem(AUTH_MODE_KEY, 'multitenant');
         if (userWithOrg) {
           window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userWithOrg));
         }
@@ -603,7 +518,6 @@ export const AuthProvider = ({ children }) => {
 
     setAuthToken(data.accessToken);
     setUser(userWithOrg);
-    setAuthMode('multitenant');
     setApiError(null);
 
     if (data.user?.assignedClassIds?.length > 0) {
@@ -693,7 +607,7 @@ export const AuthProvider = ({ children }) => {
   const logout = useCallback(async () => {
     // Call logout endpoint to invalidate server-side session if applicable
     try {
-      if (authMode === 'multitenant') {
+      {
         const isMyLoginUser = user?.authProvider === 'mylogin';
 
         if (isMyLoginUser) {
@@ -724,15 +638,6 @@ export const AuthProvider = ({ children }) => {
             body: JSON.stringify({}),
           });
         }
-      } else if (authMode === 'legacy' && authToken) {
-        // Legacy mode: call logout endpoint for consistency
-        await fetch(`${API_URL}/logout`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${authToken}`,
-          },
-        });
       }
     } catch {
       // Ignore logout API errors - client-side logout always works
@@ -740,7 +645,7 @@ export const AuthProvider = ({ children }) => {
 
     clearAuthState();
     setApiError(null);
-  }, [authMode, authToken, clearAuthState, user]);
+  }, [authToken, clearAuthState, user]);
 
   // Switch to a different organization (owners only)
   // DataContext watches activeOrganizationId and reloads automatically
@@ -835,7 +740,6 @@ export const AuthProvider = ({ children }) => {
 
   // --- Derived auth state ---
   const isAuthenticated = !!authToken;
-  const isMultiTenantMode = authMode === 'multitenant';
 
   // User role for RBAC
   const userRole = user?.role || null;
@@ -875,14 +779,12 @@ export const AuthProvider = ({ children }) => {
     () => ({
       // Auth state
       authToken,
-      authMode,
       serverAuthModeDetected,
       ssoEnabled,
       user,
       apiError,
       setApiError,
       isAuthenticated,
-      isMultiTenantMode,
       userRole,
       organization,
       // Permission helpers
@@ -902,7 +804,6 @@ export const AuthProvider = ({ children }) => {
       fetchAvailableOrganizations,
       // Auth functions
       fetchWithAuth,
-      login,
       loginWithEmail,
       loginWithDemo,
       forgotPassword,
@@ -911,13 +812,11 @@ export const AuthProvider = ({ children }) => {
     }),
     [
       authToken,
-      authMode,
       serverAuthModeDetected,
       ssoEnabled,
       user,
       apiError,
       isAuthenticated,
-      isMultiTenantMode,
       userRole,
       organization,
       canManageUsers,
@@ -932,7 +831,6 @@ export const AuthProvider = ({ children }) => {
       switchingOrganization,
       fetchAvailableOrganizations,
       fetchWithAuth,
-      login,
       loginWithEmail,
       loginWithDemo,
       forgotPassword,

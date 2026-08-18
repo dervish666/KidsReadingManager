@@ -55,7 +55,6 @@ src/routes/settings/org.js - GET/POST / — org settings CRUD (allowlisted keys,
 src/routes/settings/ai.js - GET/POST /ai, GET/POST /ai/models — org AI config; exports shared upsertAiConfig
 src/routes/settings/platform-ai.js - GET/PUT /platform-ai, GET /platform-ai/models, DELETE /platform-ai/:provider — owner-only platform AI keys
 src/routes/signup.js - POST email newsletter signup (rate limited)
-src/routes/data.js - GET/POST legacy data export/import
 src/routes/hardcover.js - POST Hardcover GraphQL API proxy
 src/routes/webhooks.js - POST Wonde webhook handler (schoolApproved, accessRevoked)
 src/routes/wondeAdmin.js - POST/GET manual Wonde sync and status
@@ -72,7 +71,6 @@ src/routes/parent.js - Parent portal API: public token-auth view/session/book-se
 ## Middleware
 
 src/middleware/tenant.js - JWT auth, tenant isolation, role guards, audit logging, rate limiting
-src/middleware/auth.js - Legacy password auth, token creation (deprecated)
 src/middleware/errorHandler.js - Global error handler, error constructors
 
 ## Data Providers
@@ -85,7 +83,6 @@ src/data/demoSnapshot.js - Learnalot demo data snapshot (auto-generated, used by
 
 src/services/aiService.js - AI recommendation generation (Anthropic/OpenAI/Google)
 src/services/statsSummaryService.js - Stats AI summary: sanitiseStatsPayload (the privacy allow-list), prompt builder, forgiving JSON parser, provider failover
-src/services/kvService.js - KV storage operations (legacy)
 src/services/wondeSync.js - Wonde delta/full sync orchestration
 src/services/metadataService.js - Cascade engine (enrichBook, processBatch) for multi-provider metadata enrichment
 src/services/demoReset.js - Hourly demo environment reset (FK-safe delete + snapshot re-insert); skips entirely when a KV-stored fingerprint shows the demo org is unchanged, skips snapshot rows whose global books/genres row has been deleted, and withholds the fingerprint when a step actually failed

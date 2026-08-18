@@ -3,7 +3,6 @@
  *
  * getDB()              – returns D1 binding or null (for routes with KV fallback)
  * requireDB()          – returns D1 binding or throws (for routes that require D1)
- * isMultiTenantMode()  – true when JWT auth + org context are present
  * safeJsonParse()      – JSON.parse with fallback value on failure
  */
 
@@ -27,13 +26,6 @@ export const requireDB = (env) => {
     throw new Error('Database not available');
   }
   return env.READING_MANAGER_DB;
-};
-
-/**
- * Check if multi-tenant mode is enabled (JWT auth + organization context).
- */
-export const isMultiTenantMode = (c) => {
-  return Boolean(c.env.JWT_SECRET && c.get('organizationId'));
 };
 
 /**

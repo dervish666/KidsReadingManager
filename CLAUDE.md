@@ -150,7 +150,7 @@ Three auth modes coexist, auto-detected from environment variables (see the auth
 
 1. **MyLogin SSO** (`MYLOGIN_CLIENT_ID` configured): OAuth2 Authorization Code flow via MyLogin for school users. Primary auth for schools. Routes in `src/routes/mylogin.js`.
 2. **Email/Password** (`JWT_SECRET` configured): JWT auth with email/password for owner account and fallback.
-3. **Legacy Mode** (`WORKER_ADMIN_PASSWORD` only): Simple shared password, KV storage.
+A third mode — **legacy shared-password** (`WORKER_ADMIN_PASSWORD`, KV-backed) — was removed in 2026-08. Nothing used it, but every route carried an `isMultiTenantMode(c)` branch to serve it, and `services/kvService.js`, `middleware/auth.js`, `routes/data.js` and a whole second login form existed only for it. `JWT_SECRET` is now required and the Worker returns 500 without one. **KV itself is still used** — org-status cache, recommendations cache, Wonde sync lock, demo-reset fingerprint — just not as a data store.
 
 After MyLogin OAuth completes, the system issues a standard Tally JWT — the frontend auth flow works identically for SSO and email/password users. JWT payload includes `authProvider` field (`'mylogin'` or `'local'`).
 
@@ -348,7 +348,7 @@ Books data operations live in `d1Provider.js`, exposed via `createProvider(env)`
 
 After first checkout, run `npm run seed:local` once. It applies the migrations to a local D1 database, seeds a dev owner account (`dev@tallyreading.uk` / `password`), **and writes `.dev.vars` with a `JWT_SECRET`** — so there is nothing to configure by hand. It is safe to re-run (migrations are idempotent, seed rows are `INSERT OR IGNORE`).
 
-`.dev.vars` is the only file the worker reads locally — that is Wrangler's convention. Add `WORKER_ADMIN_PASSWORD` to it to exercise legacy shared-password mode.
+`.dev.vars` is the only file the worker reads locally — that is Wrangler's convention.
 
 **A `.env` file is read by nothing.** This section used to claim local dev "requires two files" with `.env` supplying `JWT_SECRET`; it does not. Verified 2026-08-18 by deleting `.env` and booting `wrangler dev`: `/api/health` returned `200 {"database":"connected"}`. The repo has no `dotenv` import outside `e2e/playwright.config.js`, which reads `.env.e2e` only. The committed `.env` also still sets `STORAGE_TYPE`, a leftover of the KV/JSON providers deleted in audit cycle 15.
 
@@ -368,9 +368,8 @@ The frontend dev server (port 3001) proxies `/api` requests to the worker (port 
 
 ### Environment Variables (Cloudflare)
 
-- `JWT_SECRET` - Enables multi-tenant JWT auth
+- `JWT_SECRET` - **Required.** JWT auth secret; the Worker returns 500 without it
 - `ENCRYPTION_KEY` - Optional separate key for AES-GCM encryption of sensitive data (Wonde tokens, API keys). Falls back to `JWT_SECRET` if not set. Recommended for defense-in-depth.
-- `WORKER_ADMIN_PASSWORD` - Legacy shared password auth
 - `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `GOOGLE_API_KEY` - AI recommendation providers
 - `ALLOWED_ORIGINS` - Comma-separated CORS whitelist
 - `EMAIL_FROM` - Email sender address

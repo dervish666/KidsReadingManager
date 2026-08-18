@@ -17,12 +17,7 @@ import { studentEraseStatements } from '../../utils/studentErase.js';
 import { forbiddenError } from '../../middleware/errorHandler.js';
 import { requireAdmin, auditLog } from '../../middleware/tenant.js';
 import { permissions } from '../../utils/crypto.js';
-import {
-  getDB,
-  isMultiTenantMode,
-  safeJsonParse,
-  requireStudent,
-} from '../../utils/routeHelpers.js';
+import { getDB, safeJsonParse, requireStudent } from '../../utils/routeHelpers.js';
 import {
   OBSERVATION_SLOTS,
   observationLabel,
@@ -33,10 +28,6 @@ const gdprRouter = new Hono();
 
 gdprRouter.delete('/:id/erase', requireAdmin(), auditLog('erase', 'student'), async (c) => {
   const { id } = c.req.param();
-
-  if (!isMultiTenantMode(c)) {
-    return c.json({ error: 'Erasure requires multi-tenant mode' }, 400);
-  }
 
   const body = await c.req.json().catch(() => ({}));
   if (!body.confirm) {
@@ -123,10 +114,6 @@ gdprRouter.delete('/:id/erase', requireAdmin(), auditLog('erase', 'student'), as
 });
 
 gdprRouter.put('/:id/restrict', requireAdmin(), auditLog('restrict', 'student'), async (c) => {
-  if (!isMultiTenantMode(c)) {
-    return c.json({ error: 'Restriction requires multi-tenant mode' }, 400);
-  }
-
   const { id } = c.req.param();
   const body = await c.req.json();
   const restricted = Boolean(body.restricted);
@@ -173,10 +160,6 @@ gdprRouter.put('/:id/restrict', requireAdmin(), auditLog('restrict', 'student'),
 });
 
 gdprRouter.put('/:id/ai-opt-out', async (c) => {
-  if (!isMultiTenantMode(c)) {
-    return c.json({ error: 'AI opt-out requires multi-tenant mode' }, 400);
-  }
-
   const { id } = c.req.param();
   const body = await c.req.json();
   const optOut = Boolean(body.optOut);
@@ -208,10 +191,6 @@ gdprRouter.put('/:id/ai-opt-out', async (c) => {
 });
 
 gdprRouter.get('/:id/export', requireAdmin(), async (c) => {
-  if (!isMultiTenantMode(c)) {
-    return c.json({ error: 'Export requires multi-tenant mode' }, 400);
-  }
-
   const { id } = c.req.param();
   const format = (c.req.query('format') || 'json').toLowerCase();
 

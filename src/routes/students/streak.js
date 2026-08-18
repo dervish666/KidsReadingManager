@@ -13,8 +13,7 @@ import { calculateStreak } from '../../utils/streakCalculator.js';
 import { notFoundError, forbiddenError } from '../../middleware/errorHandler.js';
 import { requireReadonly } from '../../middleware/tenant.js';
 import { permissions } from '../../utils/crypto.js';
-import { getDB, isMultiTenantMode } from '../../utils/routeHelpers.js';
-import { getStudentById as getStudentByIdKV } from '../../services/kvService.js';
+import { getDB } from '../../utils/routeHelpers.js';
 import { getOrgStreakSettings } from './_shared.js';
 import { D1_BATCH_LIMIT } from '../../utils/d1Batch.js';
 
@@ -23,57 +22,40 @@ const streakRouter = new Hono();
 streakRouter.get('/:id/streak', requireReadonly(), async (c) => {
   const { id } = c.req.param();
 
-  if (isMultiTenantMode(c)) {
-    const db = getDB(c.env);
-    const organizationId = c.get('organizationId');
+  const db = getDB(c.env);
+  const organizationId = c.get('organizationId');
 
-    const student = await db
-      .prepare(
-        `SELECT id, current_streak, longest_streak, streak_start_date
-         FROM students WHERE id = ? AND organization_id = ? AND is_active = 1`
-      )
-      .bind(id, organizationId)
-      .first();
+  const student = await db
+    .prepare(
+      `SELECT id, current_streak, longest_streak, streak_start_date
+       FROM students WHERE id = ? AND organization_id = ? AND is_active = 1`
+    )
+    .bind(id, organizationId)
+    .first();
 
-    if (!student) {
-      throw notFoundError('Student not found');
-    }
-
-    const lastSession = await db
-      .prepare(
-        `SELECT session_date FROM reading_sessions
-         WHERE student_id = ?
-         ORDER BY session_date DESC
-         LIMIT 1`
-      )
-      .bind(id)
-      .first();
-
-    return c.json({
-      currentStreak: student.current_streak || 0,
-      longestStreak: student.longest_streak || 0,
-      streakStartDate: student.streak_start_date || null,
-      lastReadDate: lastSession?.session_date || null,
-    });
-  }
-
-  const student = await getStudentByIdKV(c.env, id);
   if (!student) {
     throw notFoundError('Student not found');
   }
 
-  const streakData = calculateStreak(student.readingSessions || [], {
-    gracePeriodDays: 1,
-  });
+  const lastSession = await db
+    .prepare(
+      `SELECT session_date FROM reading_sessions
+       WHERE student_id = ?
+       ORDER BY session_date DESC
+       LIMIT 1`
+    )
+    .bind(id)
+    .first();
 
-  return c.json(streakData);
+  return c.json({
+    currentStreak: student.current_streak || 0,
+    longestStreak: student.longest_streak || 0,
+    streakStartDate: student.streak_start_date || null,
+    lastReadDate: lastSession?.session_date || null,
+  });
 });
 
 streakRouter.post('/recalculate-streaks', async (c) => {
-  if (!isMultiTenantMode(c)) {
-    return c.json({ error: 'This endpoint requires multi-tenant mode' }, 400);
-  }
-
   const db = getDB(c.env);
   const organizationId = c.get('organizationId');
 

@@ -2,18 +2,12 @@ import { Hono } from 'hono';
 import { generateId } from '../utils/helpers';
 
 // Import services (legacy KV mode)
-import {
-  getClasses as getClassesKV,
-  getClassById as getClassByIdKV,
-  saveClass as saveClassKV,
-  deleteClass as deleteClassKV,
-} from '../services/kvService';
 
 // Import utilities
 import { notFoundError, badRequestError, forbiddenError } from '../middleware/errorHandler';
 import { auditLog, requireReadonly, requireTeacher } from '../middleware/tenant';
 import { permissions } from '../utils/crypto';
-import { getDB, isMultiTenantMode } from '../utils/routeHelpers';
+import { getDB } from '../utils/routeHelpers';
 import { validateClass } from '../utils/validation';
 import { rowToClass, rowToStudent, rowToClassGoal } from '../utils/rowMappers';
 import {
@@ -36,65 +30,59 @@ const ALLOWED_CLASS_YEAR_GROUPS = new Set(CLASS_YEAR_GROUP_OPTIONS);
  */
 classesRouter.get('/', requireReadonly(), async (c) => {
   // Multi-tenant mode: use D1
-  if (isMultiTenantMode(c)) {
-    const db = getDB(c.env);
-    const organizationId = c.get('organizationId');
+  const db = getDB(c.env);
+  const organizationId = c.get('organizationId');
 
-    const result = await db
-      .prepare(
-        `
-      SELECT c.*, COUNT(s.id) as student_count
-      FROM classes c
-      LEFT JOIN students s ON s.class_id = c.id AND s.is_active = 1
-      WHERE c.organization_id = ? AND c.is_active = 1
-      GROUP BY c.id
-      ORDER BY c.name ASC
-    `
-      )
-      .bind(organizationId)
-      .all();
+  const result = await db
+    .prepare(
+      `
+    SELECT c.*, COUNT(s.id) as student_count
+    FROM classes c
+    LEFT JOIN students s ON s.class_id = c.id AND s.is_active = 1
+    WHERE c.organization_id = ? AND c.is_active = 1
+    GROUP BY c.id
+    ORDER BY c.name ASC
+  `
+    )
+    .bind(organizationId)
+    .all();
 
-    // Attach assigned teacher names per class. For Wonde-synced schools the
-    // teacher↔class link lives in wonde_employee_classes (employee_name is
-    // populated at sync for every employee, even before they first log in),
-    // keyed by wonde_class_id — the classes table's free-text teacher_name is
-    // only used by manual-mode orgs, so it stays empty under Wonde.
-    const teacherRows = await db
-      .prepare(
-        `
-      SELECT c.id AS class_id, wec.employee_name AS teacher_name
-      FROM classes c
-      JOIN wonde_employee_classes wec
-        ON wec.wonde_class_id = c.wonde_class_id
-       AND wec.organization_id = c.organization_id
-      WHERE c.organization_id = ? AND c.is_active = 1
-        AND wec.employee_name IS NOT NULL AND TRIM(wec.employee_name) != ''
-    `
-      )
-      .bind(organizationId)
-      .all();
+  // Attach assigned teacher names per class. For Wonde-synced schools the
+  // teacher↔class link lives in wonde_employee_classes (employee_name is
+  // populated at sync for every employee, even before they first log in),
+  // keyed by wonde_class_id — the classes table's free-text teacher_name is
+  // only used by manual-mode orgs, so it stays empty under Wonde.
+  const teacherRows = await db
+    .prepare(
+      `
+    SELECT c.id AS class_id, wec.employee_name AS teacher_name
+    FROM classes c
+    JOIN wonde_employee_classes wec
+      ON wec.wonde_class_id = c.wonde_class_id
+     AND wec.organization_id = c.organization_id
+    WHERE c.organization_id = ? AND c.is_active = 1
+      AND wec.employee_name IS NOT NULL AND TRIM(wec.employee_name) != ''
+  `
+    )
+    .bind(organizationId)
+    .all();
 
-    const teacherNamesByClass = {};
-    for (const row of teacherRows.results || []) {
-      if (!teacherNamesByClass[row.class_id]) {
-        teacherNamesByClass[row.class_id] = [];
-      }
-      teacherNamesByClass[row.class_id].push(row.teacher_name);
+  const teacherNamesByClass = {};
+  for (const row of teacherRows.results || []) {
+    if (!teacherNamesByClass[row.class_id]) {
+      teacherNamesByClass[row.class_id] = [];
     }
-
-    const classes = (result.results || []).map((row) => ({
-      ...rowToClass(row),
-      studentCount: row.student_count,
-      teacherNames: teacherNamesByClass[row.id]
-        ? [...new Set(teacherNamesByClass[row.id])].sort()
-        : [],
-    }));
-
-    return c.json(classes);
+    teacherNamesByClass[row.class_id].push(row.teacher_name);
   }
 
-  // Legacy mode: use KV
-  const classes = await getClassesKV(c.env);
+  const classes = (result.results || []).map((row) => ({
+    ...rowToClass(row),
+    studentCount: row.student_count,
+    teacherNames: teacherNamesByClass[row.id]
+      ? [...new Set(teacherNamesByClass[row.id])].sort()
+      : [],
+  }));
+
   return c.json(classes);
 });
 
@@ -106,60 +94,49 @@ classesRouter.get('/:id', requireReadonly(), async (c) => {
   const { id } = c.req.param();
 
   // Multi-tenant mode: use D1
-  if (isMultiTenantMode(c)) {
-    const db = getDB(c.env);
-    const organizationId = c.get('organizationId');
+  const db = getDB(c.env);
+  const organizationId = c.get('organizationId');
 
-    const cls = await db
-      .prepare(
-        `
-      SELECT c.*, 
-        (SELECT COUNT(*) FROM students s WHERE s.class_id = c.id AND s.is_active = 1) as student_count
-      FROM classes c
-      WHERE c.id = ? AND c.organization_id = ? AND c.is_active = 1
-    `
-      )
-      .bind(id, organizationId)
-      .first();
-
-    if (!cls) {
-      throw notFoundError(`Class with ID ${id} not found`);
-    }
-
-    // Assigned teacher names — see GET /api/classes. For Wonde orgs these come
-    // from wonde_employee_classes (keyed by wonde_class_id); manual orgs rely
-    // on the free-text teacher_name instead.
-    const teacherRows = await db
-      .prepare(
-        `
-      SELECT wec.employee_name AS teacher_name
-      FROM wonde_employee_classes wec
-      WHERE wec.organization_id = ? AND wec.wonde_class_id = ?
-        AND wec.employee_name IS NOT NULL AND TRIM(wec.employee_name) != ''
-    `
-      )
-      .bind(organizationId, cls.wonde_class_id)
-      .all();
-
-    const teacherNames = cls.wonde_class_id
-      ? [...new Set((teacherRows.results || []).map((r) => r.teacher_name))].sort()
-      : [];
-
-    return c.json({
-      ...rowToClass(cls),
-      studentCount: cls.student_count,
-      teacherNames,
-    });
-  }
-
-  // Legacy mode: use KV
-  const cls = await getClassByIdKV(c.env, id);
+  const cls = await db
+    .prepare(
+      `
+    SELECT c.*, 
+      (SELECT COUNT(*) FROM students s WHERE s.class_id = c.id AND s.is_active = 1) as student_count
+    FROM classes c
+    WHERE c.id = ? AND c.organization_id = ? AND c.is_active = 1
+  `
+    )
+    .bind(id, organizationId)
+    .first();
 
   if (!cls) {
     throw notFoundError(`Class with ID ${id} not found`);
   }
 
-  return c.json(cls);
+  // Assigned teacher names — see GET /api/classes. For Wonde orgs these come
+  // from wonde_employee_classes (keyed by wonde_class_id); manual orgs rely
+  // on the free-text teacher_name instead.
+  const teacherRows = await db
+    .prepare(
+      `
+    SELECT wec.employee_name AS teacher_name
+    FROM wonde_employee_classes wec
+    WHERE wec.organization_id = ? AND wec.wonde_class_id = ?
+      AND wec.employee_name IS NOT NULL AND TRIM(wec.employee_name) != ''
+  `
+    )
+    .bind(organizationId, cls.wonde_class_id)
+    .all();
+
+  const teacherNames = cls.wonde_class_id
+    ? [...new Set((teacherRows.results || []).map((r) => r.teacher_name))].sort()
+    : [];
+
+  return c.json({
+    ...rowToClass(cls),
+    studentCount: cls.student_count,
+    teacherNames,
+  });
 });
 
 /**
@@ -170,40 +147,35 @@ classesRouter.get('/:id/students', requireReadonly(), async (c) => {
   const { id } = c.req.param();
 
   // Multi-tenant mode: use D1
-  if (isMultiTenantMode(c)) {
-    const db = getDB(c.env);
-    const organizationId = c.get('organizationId');
+  const db = getDB(c.env);
+  const organizationId = c.get('organizationId');
 
-    // Verify class exists and belongs to organization
-    const cls = await db
-      .prepare(
-        `
-      SELECT id FROM classes WHERE id = ? AND organization_id = ? AND is_active = 1
-    `
-      )
-      .bind(id, organizationId)
-      .first();
+  // Verify class exists and belongs to organization
+  const cls = await db
+    .prepare(
+      `
+    SELECT id FROM classes WHERE id = ? AND organization_id = ? AND is_active = 1
+  `
+    )
+    .bind(id, organizationId)
+    .first();
 
-    if (!cls) {
-      throw notFoundError(`Class with ID ${id} not found`);
-    }
-
-    const result = await db
-      .prepare(
-        `
-      SELECT * FROM students WHERE class_id = ? AND organization_id = ? AND is_active = 1 ORDER BY name ASC
-    `
-      )
-      .bind(id, organizationId)
-      .all();
-
-    const students = (result.results || []).map(rowToStudent);
-
-    return c.json(students);
+  if (!cls) {
+    throw notFoundError(`Class with ID ${id} not found`);
   }
 
-  // Legacy mode: not directly supported, return empty
-  return c.json([]);
+  const result = await db
+    .prepare(
+      `
+    SELECT * FROM students WHERE class_id = ? AND organization_id = ? AND is_active = 1 ORDER BY name ASC
+  `
+    )
+    .bind(id, organizationId)
+    .all();
+
+  const students = (result.results || []).map(rowToStudent);
+
+  return c.json(students);
 });
 
 /**
@@ -220,66 +192,52 @@ classesRouter.post('/', auditLog('create', 'class'), async (c) => {
   }
 
   // Multi-tenant mode: use D1
-  if (isMultiTenantMode(c)) {
-    try {
-      const db = getDB(c.env);
-      const organizationId = c.get('organizationId');
-      const userId = c.get('userId');
+  try {
+    const db = getDB(c.env);
+    const organizationId = c.get('organizationId');
+    const userId = c.get('userId');
 
-      // Check permission
-      const userRole = c.get('userRole');
+    // Check permission
+    const userRole = c.get('userRole');
 
-      if (!permissions.canManageClasses(userRole)) {
-        throw forbiddenError();
-      }
-
-      const classId = generateId();
-
-      await db
-        .prepare(
-          `
-        INSERT INTO classes (id, organization_id, name, teacher_name, academic_year, created_by)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `
-        )
-        .bind(
-          classId,
-          organizationId,
-          body.name,
-          body.teacherName || null,
-          body.academicYear || new Date().getFullYear().toString(),
-          userId
-        )
-        .run();
-
-      // Fetch the created class
-      const cls = await db
-        .prepare(
-          `
-        SELECT * FROM classes WHERE id = ?
-      `
-        )
-        .bind(classId)
-        .first();
-
-      return c.json(rowToClass(cls), 201);
-    } catch (error) {
-      console.error('Error in POST /api/classes (multi-tenant):', error.message, error.stack);
-      throw error;
+    if (!permissions.canManageClasses(userRole)) {
+      throw forbiddenError();
     }
+
+    const classId = generateId();
+
+    await db
+      .prepare(
+        `
+      INSERT INTO classes (id, organization_id, name, teacher_name, academic_year, created_by)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `
+      )
+      .bind(
+        classId,
+        organizationId,
+        body.name,
+        body.teacherName || null,
+        body.academicYear || new Date().getFullYear().toString(),
+        userId
+      )
+      .run();
+
+    // Fetch the created class
+    const cls = await db
+      .prepare(
+        `
+      SELECT * FROM classes WHERE id = ?
+    `
+      )
+      .bind(classId)
+      .first();
+
+    return c.json(rowToClass(cls), 201);
+  } catch (error) {
+    console.error('Error in POST /api/classes (multi-tenant):', error.message, error.stack);
+    throw error;
   }
-
-  // Legacy mode: use KV
-  const newClass = {
-    id: body.id || generateId(),
-    name: body.name,
-    teacherName: body.teacherName || '',
-    createdAt: body.createdAt || new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-
-  const savedClass = await saveClassKV(c.env, newClass);
-  return c.json(savedClass, 201);
 });
 
 /**
@@ -297,81 +255,63 @@ classesRouter.put('/:id', auditLog('update', 'class'), async (c) => {
   }
 
   // Multi-tenant mode: use D1
-  if (isMultiTenantMode(c)) {
-    const db = getDB(c.env);
-    const organizationId = c.get('organizationId');
+  const db = getDB(c.env);
+  const organizationId = c.get('organizationId');
 
-    // Check permission
-    const userRole = c.get('userRole');
-    if (!permissions.canManageClasses(userRole)) {
-      throw forbiddenError();
-    }
-
-    // Check if class exists and belongs to organization
-    const existing = await db
-      .prepare(
-        `
-      SELECT id FROM classes WHERE id = ? AND organization_id = ? AND is_active = 1
-    `
-      )
-      .bind(id, organizationId)
-      .first();
-
-    if (!existing) {
-      throw notFoundError(`Class with ID ${id} not found`);
-    }
-
-    // Update class
-    await db
-      .prepare(
-        `
-      UPDATE classes SET
-        name = ?,
-        teacher_name = ?,
-        academic_year = ?,
-        disabled = ?,
-        updated_at = datetime("now")
-      WHERE id = ? AND organization_id = ?
-    `
-      )
-      .bind(
-        body.name,
-        body.teacherName || null,
-        body.academicYear || null,
-        body.disabled ? 1 : 0,
-        id,
-        organizationId
-      )
-      .run();
-
-    // Fetch updated class
-    const cls = await db
-      .prepare(
-        `
-      SELECT * FROM classes WHERE id = ?
-    `
-      )
-      .bind(id)
-      .first();
-
-    return c.json(rowToClass(cls));
+  // Check permission
+  const userRole = c.get('userRole');
+  if (!permissions.canManageClasses(userRole)) {
+    throw forbiddenError();
   }
 
-  // Legacy mode: use KV
-  const existingClass = await getClassByIdKV(c.env, id);
-  if (!existingClass) {
+  // Check if class exists and belongs to organization
+  const existing = await db
+    .prepare(
+      `
+    SELECT id FROM classes WHERE id = ? AND organization_id = ? AND is_active = 1
+  `
+    )
+    .bind(id, organizationId)
+    .first();
+
+  if (!existing) {
     throw notFoundError(`Class with ID ${id} not found`);
   }
 
-  const updatedClass = {
-    ...existingClass,
-    name: body.name,
-    teacherName: body.teacherName || existingClass.teacherName || '',
-    updatedAt: new Date().toISOString(),
-  };
+  // Update class
+  await db
+    .prepare(
+      `
+    UPDATE classes SET
+      name = ?,
+      teacher_name = ?,
+      academic_year = ?,
+      disabled = ?,
+      updated_at = datetime("now")
+    WHERE id = ? AND organization_id = ?
+  `
+    )
+    .bind(
+      body.name,
+      body.teacherName || null,
+      body.academicYear || null,
+      body.disabled ? 1 : 0,
+      id,
+      organizationId
+    )
+    .run();
 
-  const savedClass = await saveClassKV(c.env, updatedClass);
-  return c.json(savedClass);
+  // Fetch updated class
+  const cls = await db
+    .prepare(
+      `
+    SELECT * FROM classes WHERE id = ?
+  `
+    )
+    .bind(id)
+    .first();
+
+  return c.json(rowToClass(cls));
 });
 
 /**
@@ -385,10 +325,6 @@ classesRouter.put('/:id', auditLog('update', 'class'), async (c) => {
 classesRouter.put('/:id/year-group', auditLog('update', 'class'), async (c) => {
   const { id } = c.req.param();
   const body = await c.req.json();
-
-  if (!isMultiTenantMode(c)) {
-    throw badRequestError('Year group requires multi-tenant mode');
-  }
 
   const db = getDB(c.env);
   const organizationId = c.get('organizationId');
@@ -434,57 +370,46 @@ classesRouter.delete('/:id', auditLog('delete', 'class'), async (c) => {
   const { id } = c.req.param();
 
   // Multi-tenant mode: use D1 (soft delete)
-  if (isMultiTenantMode(c)) {
-    const db = getDB(c.env);
-    const organizationId = c.get('organizationId');
+  const db = getDB(c.env);
+  const organizationId = c.get('organizationId');
 
-    // Check permission
-    const userRole = c.get('userRole');
-    if (!permissions.canManageClasses(userRole)) {
-      throw forbiddenError();
-    }
-
-    // Check if class exists
-    const existing = await db
-      .prepare(
-        `
-      SELECT id FROM classes WHERE id = ? AND organization_id = ? AND is_active = 1
-    `
-      )
-      .bind(id, organizationId)
-      .first();
-
-    if (!existing) {
-      throw notFoundError(`Class with ID ${id} not found`);
-    }
-
-    // Soft delete - also unassign students from this class.
-    // Both updates are org-scoped as defense-in-depth even though the pre-check above
-    // already confirms the class belongs to the requesting org.
-    await db.batch([
-      db
-        .prepare(
-          `UPDATE classes SET is_active = 0, updated_at = datetime("now")
-           WHERE id = ? AND organization_id = ?`
-        )
-        .bind(id, organizationId),
-      db
-        .prepare(
-          `UPDATE students SET class_id = NULL, updated_at = datetime("now")
-           WHERE class_id = ? AND organization_id = ?`
-        )
-        .bind(id, organizationId),
-    ]);
-
-    return c.json({ message: 'Class deleted successfully' });
+  // Check permission
+  const userRole = c.get('userRole');
+  if (!permissions.canManageClasses(userRole)) {
+    throw forbiddenError();
   }
 
-  // Legacy mode: use KV
-  const success = await deleteClassKV(c.env, id);
+  // Check if class exists
+  const existing = await db
+    .prepare(
+      `
+    SELECT id FROM classes WHERE id = ? AND organization_id = ? AND is_active = 1
+  `
+    )
+    .bind(id, organizationId)
+    .first();
 
-  if (!success) {
+  if (!existing) {
     throw notFoundError(`Class with ID ${id} not found`);
   }
+
+  // Soft delete - also unassign students from this class.
+  // Both updates are org-scoped as defense-in-depth even though the pre-check above
+  // already confirms the class belongs to the requesting org.
+  await db.batch([
+    db
+      .prepare(
+        `UPDATE classes SET is_active = 0, updated_at = datetime("now")
+         WHERE id = ? AND organization_id = ?`
+      )
+      .bind(id, organizationId),
+    db
+      .prepare(
+        `UPDATE students SET class_id = NULL, updated_at = datetime("now")
+         WHERE class_id = ? AND organization_id = ?`
+      )
+      .bind(id, organizationId),
+  ]);
 
   return c.json({ message: 'Class deleted successfully' });
 });

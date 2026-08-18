@@ -210,28 +210,6 @@ describe('Settings API Routes', () => {
         expect(mockDB._chain.bind).toHaveBeenCalledWith('org-456');
       });
     });
-
-    describe('Legacy mode (no JWT_SECRET)', () => {
-      it('should fall back to KV storage when not in multi-tenant mode', async () => {
-        const mockKV = {
-          get: vi.fn().mockResolvedValue(JSON.stringify({ timezone: 'Europe/London' })),
-        };
-
-        const { app } = createTestApp({
-          userId: 'user-123',
-          userRole: ROLES.TEACHER,
-          kv: mockKV,
-          env: { JWT_SECRET: null },
-        });
-
-        const response = await makeRequest(app, 'GET', '/api/settings');
-        const _data = await response.json();
-
-        expect(response.status).toBe(200);
-        // In legacy mode, KV service is called
-        expect(mockKV.get).toHaveBeenCalled();
-      });
-    });
   });
 
   describe('POST /api/settings', () => {
@@ -747,52 +725,6 @@ describe('Settings API Routes', () => {
         expect(data.availableProviders.google).toBe(false);
       });
     });
-
-    describe('Legacy mode', () => {
-      it('should return AI config based on environment variables', async () => {
-        const { app } = createTestApp({
-          userId: 'user-123',
-          anthropicKey: 'sk-test',
-          env: { JWT_SECRET: null },
-        });
-
-        const response = await makeRequest(app, 'GET', '/api/settings/ai');
-        const data = await response.json();
-
-        expect(response.status).toBe(200);
-        expect(data.provider).toBe('anthropic');
-        expect(data.isEnabled).toBe(true);
-        expect(data.keySource).toBe('environment');
-      });
-
-      it('should detect openai as primary when only openai key exists', async () => {
-        const { app } = createTestApp({
-          userId: 'user-123',
-          openaiKey: 'sk-openai',
-          env: { JWT_SECRET: null },
-        });
-
-        const response = await makeRequest(app, 'GET', '/api/settings/ai');
-        const data = await response.json();
-
-        expect(response.status).toBe(200);
-        expect(data.provider).toBe('openai');
-      });
-
-      it('should detect google as primary when only google key exists', async () => {
-        const { app } = createTestApp({
-          userId: 'user-123',
-          googleKey: 'google-key',
-          env: { JWT_SECRET: null },
-        });
-
-        const response = await makeRequest(app, 'GET', '/api/settings/ai');
-        const data = await response.json();
-
-        expect(response.status).toBe(200);
-        expect(data.provider).toBe('google');
-      });
-    });
   });
 
   describe('POST /api/settings/ai', () => {
@@ -1031,47 +963,6 @@ describe('Settings API Routes', () => {
 
         expect(response.status).toBe(200);
         expect(encryptSensitiveData).toHaveBeenCalledWith('sk-test-key-12345', TEST_SECRET);
-      });
-
-      it('should fail when JWT_SECRET is not available for encryption', async () => {
-        // When JWT_SECRET is null and organizationId is set, isMultiTenantMode returns false
-        // because it checks Boolean(c.env.JWT_SECRET && c.get('organizationId'))
-        // So this test verifies that in legacy mode, API key setting is rejected
-        const { app, mockDB } = createTestApp({
-          userId: 'user-123',
-          organizationId: 'org-456',
-          userRole: ROLES.ADMIN,
-          env: { JWT_SECRET: null },
-        });
-
-        mockDB._chain.first.mockResolvedValue({ id: 'existing-config' });
-
-        const response = await makeRequest(app, 'POST', '/api/settings/ai', {
-          apiKey: 'sk-test-key',
-        });
-        const data = await response.json();
-
-        // In legacy mode, AI config cannot be updated
-        expect(response.status).toBe(400);
-        expect(data.error).toContain('AI configuration is managed via environment variables');
-      });
-    });
-
-    describe('Legacy mode', () => {
-      it('should reject AI config update in legacy mode', async () => {
-        const { app } = createTestApp({
-          userId: 'user-123',
-          userRole: ROLES.ADMIN,
-          env: { JWT_SECRET: null },
-        });
-
-        const response = await makeRequest(app, 'POST', '/api/settings/ai', {
-          provider: 'openai',
-        });
-        const data = await response.json();
-
-        expect(response.status).toBe(400);
-        expect(data.error).toContain('AI configuration is managed via environment variables');
       });
     });
   });

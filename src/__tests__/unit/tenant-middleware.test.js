@@ -45,7 +45,6 @@ describe('jwtAuthMiddleware', () => {
       '/api/auth/forgot-password',
       '/api/auth/reset-password',
       '/api/health',
-      '/api/login',
     ];
 
     publicPaths.forEach((path) => {

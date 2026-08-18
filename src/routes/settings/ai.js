@@ -18,7 +18,7 @@ import {
   getEncryptionSecret,
 } from '../../utils/crypto';
 
-import { getDB, isMultiTenantMode } from '../../utils/routeHelpers';
+import { getDB } from '../../utils/routeHelpers';
 
 import { fetchProviderModels } from './_shared.js';
 
@@ -37,92 +37,68 @@ aiSettingsRouter.get('/ai', async (c) => {
   };
 
   // Multi-tenant mode: use D1
-  if (isMultiTenantMode(c)) {
-    const db = getDB(c.env);
-    const organizationId = c.get('organizationId');
+  const db = getDB(c.env);
+  const organizationId = c.get('organizationId');
 
-    const config = await db
-      .prepare(
-        `
-      SELECT provider, model_preference, is_enabled, api_key_encrypted FROM org_ai_config WHERE organization_id = ?
-    `
-      )
-      .bind(organizationId)
-      .first();
+  const config = await db
+    .prepare(
+      `
+    SELECT provider, model_preference, is_enabled, api_key_encrypted FROM org_ai_config WHERE organization_id = ?
+  `
+    )
+    .bind(organizationId)
+    .first();
 
-    const org = await db
-      .prepare('SELECT ai_addon_active FROM organizations WHERE id = ?')
-      .bind(organizationId)
-      .first();
-    const aiAddonActive = Boolean(org?.ai_addon_active);
+  const org = await db
+    .prepare('SELECT ai_addon_active FROM organizations WHERE id = ?')
+    .bind(organizationId)
+    .first();
+  const aiAddonActive = Boolean(org?.ai_addon_active);
 
-    // Check platform-level keys (owner-managed fallback). All configured keys
-    // count as available — inactive ones still serve as failover candidates
-    // in the recommendations chain; only the active one is the primary.
-    const platformKeys = await db
-      .prepare(
-        'SELECT provider, is_active FROM platform_ai_keys WHERE api_key_encrypted IS NOT NULL'
-      )
-      .all();
-    const platformRows = platformKeys.results || [];
-    const hasPlatformKey = platformRows.some((r) => r.is_active);
-    const platformProvider = platformRows.find((r) => r.is_active)?.provider || null;
-    const platformConfigured = (p) => platformRows.some((r) => r.provider === p);
+  // Check platform-level keys (owner-managed fallback). All configured keys
+  // count as available — inactive ones still serve as failover candidates
+  // in the recommendations chain; only the active one is the primary.
+  const platformKeys = await db
+    .prepare('SELECT provider, is_active FROM platform_ai_keys WHERE api_key_encrypted IS NOT NULL')
+    .all();
+  const platformRows = platformKeys.results || [];
+  const hasPlatformKey = platformRows.some((r) => r.is_active);
+  const platformProvider = platformRows.find((r) => r.is_active)?.provider || null;
+  const platformConfigured = (p) => platformRows.some((r) => r.provider === p);
 
-    const hasOrgKey = Boolean(config?.api_key_encrypted);
-    // Use org provider if configured, otherwise fall back to platform provider
-    const activeProvider = config?.provider || platformProvider || 'anthropic';
-
-    return c.json({
-      provider: activeProvider,
-      modelPreference: config?.model_preference || null,
-      isEnabled: Boolean(config?.is_enabled) || (hasPlatformKey && aiAddonActive),
-      hasApiKey: hasOrgKey,
-      // Show which providers have keys configured (org-level, platform-level, or env-level)
-      availableProviders: {
-        anthropic:
-          (hasOrgKey && activeProvider === 'anthropic') ||
-          platformConfigured('anthropic') ||
-          envKeys.anthropic,
-        openai:
-          (hasOrgKey && activeProvider === 'openai') ||
-          platformConfigured('openai') ||
-          envKeys.openai,
-        google:
-          (hasOrgKey && activeProvider === 'google') ||
-          platformConfigured('google') ||
-          envKeys.google,
-      },
-      // Indicate the source of the active key
-      keySource: hasOrgKey
-        ? 'organization'
-        : hasPlatformKey
-          ? 'platform'
-          : envKeys[activeProvider]
-            ? 'environment'
-            : 'none',
-      aiAddonActive,
-    });
-  }
-
-  // Legacy mode: check environment variables
-  const hasAnyKey = envKeys.anthropic || envKeys.openai || envKeys.google;
-  const activeProvider = envKeys.anthropic
-    ? 'anthropic'
-    : envKeys.openai
-      ? 'openai'
-      : envKeys.google
-        ? 'google'
-        : 'anthropic';
+  const hasOrgKey = Boolean(config?.api_key_encrypted);
+  // Use org provider if configured, otherwise fall back to platform provider
+  const activeProvider = config?.provider || platformProvider || 'anthropic';
 
   return c.json({
     provider: activeProvider,
-    modelPreference: null,
-    isEnabled: hasAnyKey,
-    hasApiKey: envKeys[activeProvider],
-    availableProviders: envKeys,
-    keySource: hasAnyKey ? 'environment' : 'none',
-    aiAddonActive: true,
+    modelPreference: config?.model_preference || null,
+    isEnabled: Boolean(config?.is_enabled) || (hasPlatformKey && aiAddonActive),
+    hasApiKey: hasOrgKey,
+    // Show which providers have keys configured (org-level, platform-level, or env-level)
+    availableProviders: {
+      anthropic:
+        (hasOrgKey && activeProvider === 'anthropic') ||
+        platformConfigured('anthropic') ||
+        envKeys.anthropic,
+      openai:
+        (hasOrgKey && activeProvider === 'openai') ||
+        platformConfigured('openai') ||
+        envKeys.openai,
+      google:
+        (hasOrgKey && activeProvider === 'google') ||
+        platformConfigured('google') ||
+        envKeys.google,
+    },
+    // Indicate the source of the active key
+    keySource: hasOrgKey
+      ? 'organization'
+      : hasPlatformKey
+        ? 'platform'
+        : envKeys[activeProvider]
+          ? 'environment'
+          : 'none',
+    aiAddonActive,
   });
 });
 
@@ -135,16 +111,6 @@ aiSettingsRouter.get('/ai', async (c) => {
  */
 export async function upsertAiConfig(c) {
   const body = await c.req.json();
-
-  if (!isMultiTenantMode(c)) {
-    return c.json(
-      {
-        error: 'AI configuration is managed via environment variables in legacy mode',
-        message: 'Set ANTHROPIC_API_KEY in your environment',
-      },
-      400
-    );
-  }
 
   const db = getDB(c.env);
   const organizationId = c.get('organizationId');
@@ -327,10 +293,6 @@ aiSettingsRouter.post('/ai', requireAdmin(), auditLog('update', 'ai_settings'), 
  * still see a live model list instead of the static fallback.
  */
 aiSettingsRouter.get('/ai/models', requireAdmin(), async (c) => {
-  if (!isMultiTenantMode(c)) {
-    return c.json({ models: [] });
-  }
-
   const db = getDB(c.env);
   const organizationId = c.get('organizationId');
 

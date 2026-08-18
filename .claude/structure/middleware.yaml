@@ -4,32 +4,6 @@ directory: src/middleware/
 description: Authentication, authorization, error handling, and tenant isolation middleware
 
 files:
-  auth.js:
-    description: Legacy shared-secret authentication (12-hour token TTL)
-    exports:
-      - name: createAuthToken
-        kind: function
-        params: [{name: env, type: HonoEnv}]
-        returns: Promise<string>
-        description: Create signed token for successful login with 12-hour expiry
-      - name: validateAuthToken
-        kind: function
-        params: [{name: env, type: HonoEnv}, {name: token, type: string}]
-        returns: Promise<boolean>
-        description: Validate token using constant-time string comparison
-      - name: authMiddleware
-        kind: function
-        returns: Hono middleware
-        description: Protect /api/* with token auth, allows /api/login and /api/health
-      - name: handleLogin
-        kind: function
-        params: [{name: c, type: HonoContext}]
-        returns: Promise<Response>
-        description: Handle /api/login, validates password and issues token
-    imports:
-      - from: utils/crypto
-        items: [constantTimeStringEqual]
-
   errorHandler.js:
     description: Standardized error handling and response formatting
     exports:

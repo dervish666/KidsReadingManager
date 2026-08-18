@@ -20,14 +20,10 @@ import { getDateString } from '../../utils/streakCalculator.js';
 import { validateSessionInput } from '../../utils/validation.js';
 import { notFoundError, badRequestError } from '../../middleware/errorHandler.js';
 import { requireReadonly, requireTeacher, auditLog } from '../../middleware/tenant.js';
-import { getDB, isMultiTenantMode, requireStudent } from '../../utils/routeHelpers.js';
+import { getDB, requireStudent } from '../../utils/routeHelpers.js';
 import { recalculateStats, evaluateRealTime } from '../../utils/badgeEngine.js';
 import { classNameToYearGroup } from '../../utils/yearGroup.js';
 import { updateClassGoalOnSession } from '../../utils/classGoalsEngine.js';
-import {
-  getStudentById as getStudentByIdKV,
-  saveStudent as saveStudentKV,
-} from '../../services/kvService.js';
 import {
   getOrgStreakSettings,
   updateStudentStreak,
@@ -47,9 +43,6 @@ const readObservations = (row) =>
   Object.fromEntries(OBSERVATION_SLOTS.map((s) => [s.key, !!row[s.column]]));
 
 sessionsRouter.get('/sessions', requireReadonly(), async (c) => {
-  if (!isMultiTenantMode(c)) {
-    return c.json([]);
-  }
   const db = getDB(c.env);
   const organizationId = c.get('organizationId');
   const { classId, startDate, endDate } = c.req.query();
@@ -125,9 +118,6 @@ sessionsRouter.get('/sessions', requireReadonly(), async (c) => {
 sessionsRouter.get('/:id/sessions', requireReadonly(), async (c) => {
   const { id } = c.req.param();
 
-  if (!isMultiTenantMode(c)) {
-    return c.json([]);
-  }
   const db = getDB(c.env);
   const organizationId = c.get('organizationId');
 
@@ -187,207 +177,168 @@ sessionsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
   }
   Object.assign(body, sessionValidation.data);
 
-  if (isMultiTenantMode(c)) {
-    const db = getDB(c.env);
-    const organizationId = c.get('organizationId');
-    const userId = c.get('userId');
+  const db = getDB(c.env);
+  const organizationId = c.get('organizationId');
+  const userId = c.get('userId');
 
-    const { timezone } = await getOrgStreakSettings(db, organizationId, c.env || {});
-    const sessionDate = body.date || getDateString(new Date(), timezone);
+  const { timezone } = await getOrgStreakSettings(db, organizationId, c.env || {});
+  const sessionDate = body.date || getDateString(new Date(), timezone);
 
-    const student = await db
-      .prepare(
-        `SELECT s.id, s.processing_restricted,
-                COALESCE(s.year_group, c.year_group) AS year_group, c.name AS class_name
-         FROM students s
-         LEFT JOIN classes c ON c.id = s.class_id
-         WHERE s.id = ? AND s.organization_id = ? AND s.is_active = 1`
-      )
-      .bind(id, organizationId)
-      .first();
+  const student = await db
+    .prepare(
+      `SELECT s.id, s.processing_restricted,
+              COALESCE(s.year_group, c.year_group) AS year_group, c.name AS class_name
+       FROM students s
+       LEFT JOIN classes c ON c.id = s.class_id
+       WHERE s.id = ? AND s.organization_id = ? AND s.is_active = 1`
+    )
+    .bind(id, organizationId)
+    .first();
 
-    if (!student) {
-      throw notFoundError('Student not found');
-    }
-
-    // GDPR Article 18: blocked students cannot record new sessions
-    if (student.processing_restricted) {
-      return c.json(
-        {
-          error: 'Processing is restricted for this student. No new sessions can be recorded.',
-        },
-        403
-      );
-    }
-
-    if (body.bookId) {
-      const bookSelection = await db
-        .prepare(
-          'SELECT 1 FROM org_book_selections WHERE book_id = ? AND organization_id = ? AND is_available = 1'
-        )
-        .bind(body.bookId, organizationId)
-        .first();
-      if (!bookSelection) {
-        throw badRequestError("Book not found in this organization's library");
-      }
-    }
-
-    const sessionId = generateId();
-    const isMarkerSession =
-      body.notes && (body.notes.includes('[ABSENT]') || body.notes.includes('[NO_RECORD]'));
-
-    // Core writes batched atomically: the session row plus the two summary
-    // updates on the student. Either all commit or none do, which means
-    // the register and student card can't disagree about whether this
-    // session happened. Side-effects (streak/stats/badges/goals) run
-    // afterwards and are allowed to fail without rolling back the session
-    // — the nightly cron reconciles them.
-    const coreWrites = [
-      db
-        .prepare(
-          `INSERT INTO reading_sessions (
-               id, student_id, session_date, book_id, book_title_manual, book_author_manual,
-               pages_read, duration_minutes, assessment, notes, location, recorded_by, read_source,
-               read_fluent, read_expressive, read_phonics, read_custom1, read_custom2, read_custom3
-             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'teacher', ?, ?, ?, ?, ?, ?)`
-        )
-        .bind(
-          sessionId,
-          id,
-          sessionDate,
-          body.bookId || null,
-          body.bookTitle || null,
-          body.bookAuthor || null,
-          body.pagesRead ?? null,
-          body.duration ?? null,
-          body.assessment ?? null,
-          body.notes ?? null,
-          body.location || 'school',
-          userId,
-          body.readFluent ?? null,
-          body.readExpressive ?? null,
-          body.readPhonics ?? null,
-          body.readCustom1 ?? null,
-          body.readCustom2 ?? null,
-          body.readCustom3 ?? null
-        ),
-    ];
-
-    if (body.bookId) {
-      coreWrites.push(
-        db
-          .prepare(
-            `UPDATE students SET current_book_id = ?, updated_at = datetime("now")
-               WHERE id = ? AND organization_id = ?`
-          )
-          .bind(body.bookId, id, organizationId)
-      );
-    }
-
-    if (!isMarkerSession && (body.location || 'school') === 'school') {
-      coreWrites.push(
-        db
-          .prepare(
-            `UPDATE students SET last_read_date = MAX(COALESCE(last_read_date, ''), ?), updated_at = datetime("now")
-               WHERE id = ? AND organization_id = ?`
-          )
-          .bind(sessionDate, id, organizationId)
-      );
-    }
-
-    await db.batch(coreWrites);
-
-    // Side-effects: shared best-effort chain (see runSessionSideEffects in
-    // _shared.js — single source of truth with the parent portal).
-    const { completedGoals, bandUp, bandResult, newBadges } = await runSessionSideEffects(
-      db,
-      c.env,
-      {
-        studentId: id,
-        organizationId,
-        yearGroup: student.year_group || classNameToYearGroup(student.class_name),
-        isMarkerSession: Boolean(isMarkerSession),
-        timezone,
-        newSessions: [
-          {
-            id: sessionId,
-            date: sessionDate,
-            bookId: body.bookId || null,
-            isMarker: Boolean(isMarkerSession),
-          },
-        ],
-        logPrefix: 'sessions',
-        logContext: { sessionId },
-      }
-    );
-
-    const session = await db
-      .prepare(
-        `SELECT rs.*, b.title as book_title, b.author as book_author
-           FROM reading_sessions rs
-           LEFT JOIN books b ON rs.book_id = b.id
-           WHERE rs.id = ?`
-      )
-      .bind(sessionId)
-      .first();
-
-    return c.json(
-      {
-        id: session.id,
-        date: session.session_date,
-        bookTitle: session.book_title || session.book_title_manual,
-        bookAuthor: session.book_author || session.book_author_manual,
-        bookId: session.book_id,
-        pagesRead: session.pages_read,
-        duration: session.duration_minutes,
-        assessment: session.assessment,
-        notes: session.notes,
-        location: session.location || 'school',
-        recordedBy: session.recorded_by,
-        readSource: session.read_source || null,
-        ...readObservations(session),
-        newBadges,
-        completedGoals,
-        bandUp,
-        currentBand: bandResult?.currentBand,
-        bandReadsCount: bandResult?.readsCount,
-      },
-      201
-    );
-  }
-
-  // Legacy KV path
-  const student = await getStudentByIdKV(c.env, id);
   if (!student) {
     throw notFoundError('Student not found');
   }
 
-  const newSession = {
-    id: generateId(),
-    date: body.date || new Date().toLocaleDateString('en-CA'),
-    bookTitle: body.bookTitle,
-    bookAuthor: body.bookAuthor,
-    bookId: body.bookId,
-    pagesRead: body.pagesRead,
-    duration: body.duration,
-    assessment: body.assessment,
-    notes: body.notes,
-    location: body.location || 'school',
-    readFluent: body.readFluent ?? null,
-    readExpressive: body.readExpressive ?? null,
-    readPhonics: body.readPhonics ?? null,
-    readCustom1: body.readCustom1 ?? null,
-    readCustom2: body.readCustom2 ?? null,
-    readCustom3: body.readCustom3 ?? null,
-  };
+  // GDPR Article 18: blocked students cannot record new sessions
+  if (student.processing_restricted) {
+    return c.json(
+      {
+        error: 'Processing is restricted for this student. No new sessions can be recorded.',
+      },
+      403
+    );
+  }
 
-  student.readingSessions = student.readingSessions || [];
-  student.readingSessions.unshift(newSession);
-  student.lastReadDate = newSession.date;
+  if (body.bookId) {
+    const bookSelection = await db
+      .prepare(
+        'SELECT 1 FROM org_book_selections WHERE book_id = ? AND organization_id = ? AND is_available = 1'
+      )
+      .bind(body.bookId, organizationId)
+      .first();
+    if (!bookSelection) {
+      throw badRequestError("Book not found in this organization's library");
+    }
+  }
 
-  await saveStudentKV(c.env, student);
+  const sessionId = generateId();
+  const isMarkerSession =
+    body.notes && (body.notes.includes('[ABSENT]') || body.notes.includes('[NO_RECORD]'));
 
-  return c.json(newSession, 201);
+  // Core writes batched atomically: the session row plus the two summary
+  // updates on the student. Either all commit or none do, which means
+  // the register and student card can't disagree about whether this
+  // session happened. Side-effects (streak/stats/badges/goals) run
+  // afterwards and are allowed to fail without rolling back the session
+  // — the nightly cron reconciles them.
+  const coreWrites = [
+    db
+      .prepare(
+        `INSERT INTO reading_sessions (
+             id, student_id, session_date, book_id, book_title_manual, book_author_manual,
+             pages_read, duration_minutes, assessment, notes, location, recorded_by, read_source,
+             read_fluent, read_expressive, read_phonics, read_custom1, read_custom2, read_custom3
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'teacher', ?, ?, ?, ?, ?, ?)`
+      )
+      .bind(
+        sessionId,
+        id,
+        sessionDate,
+        body.bookId || null,
+        body.bookTitle || null,
+        body.bookAuthor || null,
+        body.pagesRead ?? null,
+        body.duration ?? null,
+        body.assessment ?? null,
+        body.notes ?? null,
+        body.location || 'school',
+        userId,
+        body.readFluent ?? null,
+        body.readExpressive ?? null,
+        body.readPhonics ?? null,
+        body.readCustom1 ?? null,
+        body.readCustom2 ?? null,
+        body.readCustom3 ?? null
+      ),
+  ];
+
+  if (body.bookId) {
+    coreWrites.push(
+      db
+        .prepare(
+          `UPDATE students SET current_book_id = ?, updated_at = datetime("now")
+             WHERE id = ? AND organization_id = ?`
+        )
+        .bind(body.bookId, id, organizationId)
+    );
+  }
+
+  if (!isMarkerSession && (body.location || 'school') === 'school') {
+    coreWrites.push(
+      db
+        .prepare(
+          `UPDATE students SET last_read_date = MAX(COALESCE(last_read_date, ''), ?), updated_at = datetime("now")
+             WHERE id = ? AND organization_id = ?`
+        )
+        .bind(sessionDate, id, organizationId)
+    );
+  }
+
+  await db.batch(coreWrites);
+
+  // Side-effects: shared best-effort chain (see runSessionSideEffects in
+  // _shared.js — single source of truth with the parent portal).
+  const { completedGoals, bandUp, bandResult, newBadges } = await runSessionSideEffects(db, c.env, {
+    studentId: id,
+    organizationId,
+    yearGroup: student.year_group || classNameToYearGroup(student.class_name),
+    isMarkerSession: Boolean(isMarkerSession),
+    timezone,
+    newSessions: [
+      {
+        id: sessionId,
+        date: sessionDate,
+        bookId: body.bookId || null,
+        isMarker: Boolean(isMarkerSession),
+      },
+    ],
+    logPrefix: 'sessions',
+    logContext: { sessionId },
+  });
+
+  const session = await db
+    .prepare(
+      `SELECT rs.*, b.title as book_title, b.author as book_author
+         FROM reading_sessions rs
+         LEFT JOIN books b ON rs.book_id = b.id
+         WHERE rs.id = ?`
+    )
+    .bind(sessionId)
+    .first();
+
+  return c.json(
+    {
+      id: session.id,
+      date: session.session_date,
+      bookTitle: session.book_title || session.book_title_manual,
+      bookAuthor: session.book_author || session.book_author_manual,
+      bookId: session.book_id,
+      pagesRead: session.pages_read,
+      duration: session.duration_minutes,
+      assessment: session.assessment,
+      notes: session.notes,
+      location: session.location || 'school',
+      recordedBy: session.recorded_by,
+      readSource: session.read_source || null,
+      ...readObservations(session),
+      newBadges,
+      completedGoals,
+      bandUp,
+      currentBand: bandResult?.currentBand,
+      bandReadsCount: bandResult?.readsCount,
+    },
+    201
+  );
 });
 
 // Maximum sessions per bulk create — covers a full month of register backfill.
@@ -428,223 +379,168 @@ sessionsRouter.post(
       return { ...raw, ...v.data };
     });
 
-    if (isMultiTenantMode(c)) {
-      const db = getDB(c.env);
-      const organizationId = c.get('organizationId');
-      const userId = c.get('userId');
+    const db = getDB(c.env);
+    const organizationId = c.get('organizationId');
+    const userId = c.get('userId');
 
-      const { timezone } = await getOrgStreakSettings(db, organizationId, c.env || {});
+    const { timezone } = await getOrgStreakSettings(db, organizationId, c.env || {});
 
-      const student = await db
-        .prepare(
-          `SELECT s.id, s.processing_restricted,
-                  COALESCE(s.year_group, c.year_group) AS year_group, c.name AS class_name
-           FROM students s
-           LEFT JOIN classes c ON c.id = s.class_id
-           WHERE s.id = ? AND s.organization_id = ? AND s.is_active = 1`
-        )
-        .bind(id, organizationId)
-        .first();
-      if (!student) {
-        throw notFoundError('Student not found');
-      }
-
-      // GDPR Article 18: blocked students cannot record new sessions
-      if (student.processing_restricted) {
-        return c.json(
-          {
-            error: 'Processing is restricted for this student. No new sessions can be recorded.',
-          },
-          403
-        );
-      }
-
-      // Verify all referenced library books in one query
-      const bookIds = [...new Set(validated.map((s) => s.bookId).filter(Boolean))];
-      if (bookIds.length > 0) {
-        const ph = bookIds.map(() => '?').join(',');
-        const found = await db
-          .prepare(
-            `SELECT book_id FROM org_book_selections WHERE organization_id = ? AND is_available = 1 AND book_id IN (${ph})`
-          )
-          .bind(organizationId, ...bookIds)
-          .all();
-        const foundSet = new Set((found.results || []).map((r) => r.book_id));
-        if (bookIds.some((b) => !foundSet.has(b))) {
-          throw badRequestError("Book not found in this organization's library");
-        }
-      }
-
-      const newSessions = validated.map((s) => ({
-        ...s,
-        sessionId: generateId(),
-        sessionDate: s.date || getDateString(new Date(), timezone),
-        isMarker: Boolean(
-          s.notes && (s.notes.includes('[ABSENT]') || s.notes.includes('[NO_RECORD]'))
-        ),
-      }));
-
-      // Core writes batched atomically: all session rows plus the student
-      // summary updates (same invariants as the single-session POST).
-      const coreWrites = newSessions.map((s) =>
-        db
-          .prepare(
-            `INSERT INTO reading_sessions (
-               id, student_id, session_date, book_id, book_title_manual, book_author_manual,
-               pages_read, duration_minutes, assessment, notes, location, recorded_by, read_source,
-               read_fluent, read_expressive, read_phonics, read_custom1, read_custom2, read_custom3
-             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'teacher', ?, ?, ?, ?, ?, ?)`
-          )
-          .bind(
-            s.sessionId,
-            id,
-            s.sessionDate,
-            s.bookId || null,
-            s.bookTitle || null,
-            s.bookAuthor || null,
-            s.pagesRead ?? null,
-            s.duration ?? null,
-            s.assessment ?? null,
-            s.notes ?? null,
-            s.location || 'school',
-            userId,
-            s.readFluent ?? null,
-            s.readExpressive ?? null,
-            s.readPhonics ?? null,
-            s.readCustom1 ?? null,
-            s.readCustom2 ?? null,
-            s.readCustom3 ?? null
-          )
-      );
-
-      // current_book_id: most recent batch item carrying a bookId
-      const withBook = newSessions
-        .filter((s) => s.bookId)
-        .sort((a, b) => (a.sessionDate < b.sessionDate ? 1 : -1));
-      if (withBook.length > 0) {
-        coreWrites.push(
-          db
-            .prepare(
-              `UPDATE students SET current_book_id = ?, updated_at = datetime("now")
-                 WHERE id = ? AND organization_id = ?`
-            )
-            .bind(withBook[0].bookId, id, organizationId)
-        );
-      }
-
-      // last_read_date: max school non-marker date in the batch (school-only,
-      // per v3.64.3 — home sessions never advance the teacher-facing date)
-      const schoolDates = newSessions
-        .filter((s) => !s.isMarker && (s.location || 'school') === 'school')
-        .map((s) => s.sessionDate)
-        .sort();
-      if (schoolDates.length > 0) {
-        coreWrites.push(
-          db
-            .prepare(
-              `UPDATE students SET last_read_date = MAX(COALESCE(last_read_date, ''), ?), updated_at = datetime("now")
-                 WHERE id = ? AND organization_id = ?`
-            )
-            .bind(schoolDates[schoolDates.length - 1], id, organizationId)
-        );
-      }
-
-      await db.batch(coreWrites);
-
-      // Side-effects ONCE for the whole batch (the entire point of this route)
-      const allMarkers = newSessions.every((s) => s.isMarker);
-      const sideEffects = await runSessionSideEffects(db, c.env, {
-        studentId: id,
-        organizationId,
-        yearGroup: student.year_group || classNameToYearGroup(student.class_name),
-        isMarkerSession: allMarkers,
-        timezone,
-        newSessions: newSessions.map((s) => ({
-          id: s.sessionId,
-          date: s.sessionDate,
-          bookId: s.bookId || null,
-          isMarker: s.isMarker,
-        })),
-        logPrefix: 'sessions/bulk',
-        logContext: { count: newSessions.length },
-      });
-
-      c.set('auditDetails', {
-        bulk: true,
-        count: newSessions.length,
-        dates: newSessions.map((s) => s.sessionDate),
-      });
-
-      return c.json(
-        {
-          created: newSessions.length,
-          sessions: newSessions.map((s) => ({
-            id: s.sessionId,
-            date: s.sessionDate,
-            bookId: s.bookId || null,
-            location: s.location || 'school',
-            notes: s.notes ?? null,
-          })),
-          newBadges: sideEffects.newBadges,
-          completedGoals: sideEffects.completedGoals,
-          bandUp: sideEffects.bandUp,
-          currentBand: sideEffects.bandResult?.currentBand,
-          bandReadsCount: sideEffects.bandResult?.readsCount,
-          streak: sideEffects.streakData ? { current: sideEffects.streakData.currentStreak } : null,
-        },
-        201
-      );
-    }
-
-    // Legacy KV path — append all sessions to the student JSON in one save
-    const student = await getStudentByIdKV(c.env, id);
+    const student = await db
+      .prepare(
+        `SELECT s.id, s.processing_restricted,
+                COALESCE(s.year_group, c.year_group) AS year_group, c.name AS class_name
+         FROM students s
+         LEFT JOIN classes c ON c.id = s.class_id
+         WHERE s.id = ? AND s.organization_id = ? AND s.is_active = 1`
+      )
+      .bind(id, organizationId)
+      .first();
     if (!student) {
       throw notFoundError('Student not found');
     }
 
-    student.readingSessions = student.readingSessions || [];
-    const created = validated.map((s) => {
-      const newSession = {
-        id: generateId(),
-        date: s.date || new Date().toLocaleDateString('en-CA'),
-        bookTitle: s.bookTitle,
-        bookAuthor: s.bookAuthor,
-        bookId: s.bookId,
-        pagesRead: s.pagesRead,
-        duration: s.duration,
-        assessment: s.assessment,
-        notes: s.notes,
-        location: s.location || 'school',
-        readFluent: s.readFluent ?? null,
-        readExpressive: s.readExpressive ?? null,
-        readPhonics: s.readPhonics ?? null,
-        readCustom1: s.readCustom1 ?? null,
-        readCustom2: s.readCustom2 ?? null,
-        readCustom3: s.readCustom3 ?? null,
-      };
-      student.readingSessions.unshift(newSession);
-      return newSession;
-    });
-
-    const nonMarkerDates = created
-      .filter(
-        (s) => !(s.notes && (s.notes.includes('[ABSENT]') || s.notes.includes('[NO_RECORD]')))
-      )
-      .map((s) => s.date)
-      .sort();
-    if (nonMarkerDates.length > 0) {
-      student.lastReadDate = nonMarkerDates[nonMarkerDates.length - 1];
+    // GDPR Article 18: blocked students cannot record new sessions
+    if (student.processing_restricted) {
+      return c.json(
+        {
+          error: 'Processing is restricted for this student. No new sessions can be recorded.',
+        },
+        403
+      );
     }
 
-    await saveStudentKV(c.env, student);
+    // Verify all referenced library books in one query
+    const bookIds = [...new Set(validated.map((s) => s.bookId).filter(Boolean))];
+    if (bookIds.length > 0) {
+      const ph = bookIds.map(() => '?').join(',');
+      const found = await db
+        .prepare(
+          `SELECT book_id FROM org_book_selections WHERE organization_id = ? AND is_available = 1 AND book_id IN (${ph})`
+        )
+        .bind(organizationId, ...bookIds)
+        .all();
+      const foundSet = new Set((found.results || []).map((r) => r.book_id));
+      if (bookIds.some((b) => !foundSet.has(b))) {
+        throw badRequestError("Book not found in this organization's library");
+      }
+    }
+
+    const newSessions = validated.map((s) => ({
+      ...s,
+      sessionId: generateId(),
+      sessionDate: s.date || getDateString(new Date(), timezone),
+      isMarker: Boolean(
+        s.notes && (s.notes.includes('[ABSENT]') || s.notes.includes('[NO_RECORD]'))
+      ),
+    }));
+
+    // Core writes batched atomically: all session rows plus the student
+    // summary updates (same invariants as the single-session POST).
+    const coreWrites = newSessions.map((s) =>
+      db
+        .prepare(
+          `INSERT INTO reading_sessions (
+             id, student_id, session_date, book_id, book_title_manual, book_author_manual,
+             pages_read, duration_minutes, assessment, notes, location, recorded_by, read_source,
+             read_fluent, read_expressive, read_phonics, read_custom1, read_custom2, read_custom3
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'teacher', ?, ?, ?, ?, ?, ?)`
+        )
+        .bind(
+          s.sessionId,
+          id,
+          s.sessionDate,
+          s.bookId || null,
+          s.bookTitle || null,
+          s.bookAuthor || null,
+          s.pagesRead ?? null,
+          s.duration ?? null,
+          s.assessment ?? null,
+          s.notes ?? null,
+          s.location || 'school',
+          userId,
+          s.readFluent ?? null,
+          s.readExpressive ?? null,
+          s.readPhonics ?? null,
+          s.readCustom1 ?? null,
+          s.readCustom2 ?? null,
+          s.readCustom3 ?? null
+        )
+    );
+
+    // current_book_id: most recent batch item carrying a bookId
+    const withBook = newSessions
+      .filter((s) => s.bookId)
+      .sort((a, b) => (a.sessionDate < b.sessionDate ? 1 : -1));
+    if (withBook.length > 0) {
+      coreWrites.push(
+        db
+          .prepare(
+            `UPDATE students SET current_book_id = ?, updated_at = datetime("now")
+               WHERE id = ? AND organization_id = ?`
+          )
+          .bind(withBook[0].bookId, id, organizationId)
+      );
+    }
+
+    // last_read_date: max school non-marker date in the batch (school-only,
+    // per v3.64.3 — home sessions never advance the teacher-facing date)
+    const schoolDates = newSessions
+      .filter((s) => !s.isMarker && (s.location || 'school') === 'school')
+      .map((s) => s.sessionDate)
+      .sort();
+    if (schoolDates.length > 0) {
+      coreWrites.push(
+        db
+          .prepare(
+            `UPDATE students SET last_read_date = MAX(COALESCE(last_read_date, ''), ?), updated_at = datetime("now")
+               WHERE id = ? AND organization_id = ?`
+          )
+          .bind(schoolDates[schoolDates.length - 1], id, organizationId)
+      );
+    }
+
+    await db.batch(coreWrites);
+
+    // Side-effects ONCE for the whole batch (the entire point of this route)
+    const allMarkers = newSessions.every((s) => s.isMarker);
+    const sideEffects = await runSessionSideEffects(db, c.env, {
+      studentId: id,
+      organizationId,
+      yearGroup: student.year_group || classNameToYearGroup(student.class_name),
+      isMarkerSession: allMarkers,
+      timezone,
+      newSessions: newSessions.map((s) => ({
+        id: s.sessionId,
+        date: s.sessionDate,
+        bookId: s.bookId || null,
+        isMarker: s.isMarker,
+      })),
+      logPrefix: 'sessions/bulk',
+      logContext: { count: newSessions.length },
+    });
+
+    c.set('auditDetails', {
+      bulk: true,
+      count: newSessions.length,
+      dates: newSessions.map((s) => s.sessionDate),
+    });
 
     return c.json(
       {
-        created: created.length,
-        sessions: created,
-        newBadges: [],
-        completedGoals: [],
-        bandUp: null,
+        created: newSessions.length,
+        sessions: newSessions.map((s) => ({
+          id: s.sessionId,
+          date: s.sessionDate,
+          bookId: s.bookId || null,
+          location: s.location || 'school',
+          notes: s.notes ?? null,
+        })),
+        newBadges: sideEffects.newBadges,
+        completedGoals: sideEffects.completedGoals,
+        bandUp: sideEffects.bandUp,
+        currentBand: sideEffects.bandResult?.currentBand,
+        bandReadsCount: sideEffects.bandResult?.readsCount,
+        streak: sideEffects.streakData ? { current: sideEffects.streakData.currentStreak } : null,
       },
       201
     );
@@ -658,64 +554,40 @@ sessionsRouter.delete(
   async (c) => {
     const { id, sessionId } = c.req.param();
 
-    if (isMultiTenantMode(c)) {
-      const db = getDB(c.env);
-      const organizationId = c.get('organizationId');
+    const db = getDB(c.env);
+    const organizationId = c.get('organizationId');
 
-      await requireStudent(db, id, organizationId);
+    await requireStudent(db, id, organizationId);
 
-      const session = await db
-        .prepare(`SELECT id FROM reading_sessions WHERE id = ? AND student_id = ?`)
-        .bind(sessionId, id)
-        .first();
+    const session = await db
+      .prepare(`SELECT id FROM reading_sessions WHERE id = ? AND student_id = ?`)
+      .bind(sessionId, id)
+      .first();
 
-      if (!session) {
-        throw notFoundError(`Session with ID ${sessionId} not found`);
-      }
-
-      await db.prepare(`DELETE FROM reading_sessions WHERE id = ?`).bind(sessionId).run();
-
-      // Streak / stats / class goals must reflect the deletion. Badges are
-      // not revoked on delete — earning a badge is a one-way transition.
-      await updateStudentStreak(db, id, organizationId, c.env);
-      await updateStudentBand(db, id, organizationId, c.env);
-      await recalculateStats(db, id, organizationId);
-      await updateClassGoalOnSession(db, id, organizationId);
-
-      // Recompute last_read_date from remaining school sessions only
-      await db
-        .prepare(
-          `UPDATE students SET last_read_date = (
-             SELECT MAX(session_date) FROM reading_sessions WHERE student_id = ?
-               AND (notes IS NULL OR (notes NOT LIKE '%[ABSENT]%' AND notes NOT LIKE '%[NO_RECORD]%'))
-               AND COALESCE(location, 'school') = 'school'
-           ), updated_at = datetime("now") WHERE id = ? AND organization_id = ?`
-        )
-        .bind(id, id, organizationId)
-        .run();
-
-      return c.json({ message: 'Session deleted successfully' });
-    }
-
-    const student = await getStudentByIdKV(c.env, id);
-    if (!student) {
-      throw notFoundError('Student not found');
-    }
-
-    const sessionIndex = student.readingSessions?.findIndex((s) => s.id === sessionId);
-    if (sessionIndex === -1 || sessionIndex === undefined) {
+    if (!session) {
       throw notFoundError(`Session with ID ${sessionId} not found`);
     }
 
-    student.readingSessions.splice(sessionIndex, 1);
+    await db.prepare(`DELETE FROM reading_sessions WHERE id = ?`).bind(sessionId).run();
 
-    if (student.readingSessions.length > 0) {
-      student.lastReadDate = student.readingSessions[0].date;
-    } else {
-      student.lastReadDate = null;
-    }
+    // Streak / stats / class goals must reflect the deletion. Badges are
+    // not revoked on delete — earning a badge is a one-way transition.
+    await updateStudentStreak(db, id, organizationId, c.env);
+    await updateStudentBand(db, id, organizationId, c.env);
+    await recalculateStats(db, id, organizationId);
+    await updateClassGoalOnSession(db, id, organizationId);
 
-    await saveStudentKV(c.env, student);
+    // Recompute last_read_date from remaining school sessions only
+    await db
+      .prepare(
+        `UPDATE students SET last_read_date = (
+           SELECT MAX(session_date) FROM reading_sessions WHERE student_id = ?
+             AND (notes IS NULL OR (notes NOT LIKE '%[ABSENT]%' AND notes NOT LIKE '%[NO_RECORD]%'))
+             AND COALESCE(location, 'school') = 'school'
+         ), updated_at = datetime("now") WHERE id = ? AND organization_id = ?`
+      )
+      .bind(id, id, organizationId)
+      .run();
 
     return c.json({ message: 'Session deleted successfully' });
   }
@@ -735,139 +607,117 @@ sessionsRouter.put(
     }
     Object.assign(body, sessionValidation.data);
 
-    if (isMultiTenantMode(c)) {
-      const db = getDB(c.env);
-      const organizationId = c.get('organizationId');
+    const db = getDB(c.env);
+    const organizationId = c.get('organizationId');
 
-      const { timezone } = await getOrgStreakSettings(db, organizationId, c.env || {});
+    const { timezone } = await getOrgStreakSettings(db, organizationId, c.env || {});
 
-      await requireStudent(db, id, organizationId);
+    await requireStudent(db, id, organizationId);
 
-      const existingSession = await db
-        .prepare(`SELECT id FROM reading_sessions WHERE id = ? AND student_id = ?`)
-        .bind(sessionId, id)
-        .first();
+    const existingSession = await db
+      .prepare(`SELECT id FROM reading_sessions WHERE id = ? AND student_id = ?`)
+      .bind(sessionId, id)
+      .first();
 
-      if (!existingSession) {
-        throw notFoundError(`Session with ID ${sessionId} not found`);
-      }
-
-      await db
-        .prepare(
-          `UPDATE reading_sessions SET
-             session_date = ?,
-             book_id = ?,
-             book_title_manual = ?,
-             book_author_manual = ?,
-             pages_read = ?,
-             duration_minutes = ?,
-             assessment = ?,
-             notes = ?,
-             location = ?,
-             read_fluent = ?,
-             read_expressive = ?,
-             read_phonics = ?,
-             read_custom1 = ?,
-             read_custom2 = ?,
-             read_custom3 = ?
-           WHERE id = ?`
-        )
-        .bind(
-          body.date || getDateString(new Date(), timezone),
-          body.bookId ?? null,
-          body.bookTitle ?? null,
-          body.bookAuthor ?? null,
-          body.pagesRead ?? null,
-          body.duration ?? null,
-          body.assessment ?? null,
-          body.notes ?? null,
-          body.location ?? 'school',
-          body.readFluent ?? null,
-          body.readExpressive ?? null,
-          body.readPhonics ?? null,
-          body.readCustom1 ?? null,
-          body.readCustom2 ?? null,
-          body.readCustom3 ?? null,
-          sessionId
-        )
-        .run();
-
-      await updateStudentStreak(db, id, organizationId, c.env);
-      await updateStudentBand(db, id, organizationId, c.env, { timezone });
-      await recalculateStats(db, id, organizationId);
-
-      const studentForBadges = await db
-        .prepare(
-          `SELECT COALESCE(s.year_group, c.year_group) AS year_group, c.name AS class_name
-           FROM students s LEFT JOIN classes c ON c.id = s.class_id
-           WHERE s.id = ?`
-        )
-        .bind(id)
-        .first();
-      const newBadges = await evaluateRealTime(
-        db,
-        id,
-        organizationId,
-        studentForBadges?.year_group || classNameToYearGroup(studentForBadges?.class_name)
-      );
-      const completedGoals = await updateClassGoalOnSession(db, id, organizationId);
-
-      await db
-        .prepare(
-          `UPDATE students SET last_read_date = (
-             SELECT MAX(session_date) FROM reading_sessions WHERE student_id = ?
-               AND (notes IS NULL OR (notes NOT LIKE '%[ABSENT]%' AND notes NOT LIKE '%[NO_RECORD]%'))
-               AND COALESCE(location, 'school') = 'school'
-           ), updated_at = datetime("now") WHERE id = ? AND organization_id = ?`
-        )
-        .bind(id, id, organizationId)
-        .run();
-
-      const session = await db
-        .prepare(
-          `SELECT rs.*, b.title as book_title, b.author as book_author
-           FROM reading_sessions rs
-           LEFT JOIN books b ON rs.book_id = b.id
-           WHERE rs.id = ?`
-        )
-        .bind(sessionId)
-        .first();
-
-      return c.json({
-        id: session.id,
-        date: session.session_date,
-        bookTitle: session.book_title || session.book_title_manual,
-        bookAuthor: session.book_author || session.book_author_manual,
-        bookId: session.book_id,
-        pagesRead: session.pages_read,
-        duration: session.duration_minutes,
-        assessment: session.assessment,
-        notes: session.notes,
-        ...readObservations(session),
-        newBadges,
-        completedGoals,
-      });
-    }
-
-    const student = await getStudentByIdKV(c.env, id);
-    if (!student) {
-      throw notFoundError('Student not found');
-    }
-
-    const sessionIndex = student.readingSessions.findIndex((s) => s.id === sessionId);
-    if (sessionIndex === -1) {
+    if (!existingSession) {
       throw notFoundError(`Session with ID ${sessionId} not found`);
     }
 
-    student.readingSessions[sessionIndex] = {
-      ...student.readingSessions[sessionIndex],
-      ...body,
-      id: sessionId,
-    };
+    await db
+      .prepare(
+        `UPDATE reading_sessions SET
+           session_date = ?,
+           book_id = ?,
+           book_title_manual = ?,
+           book_author_manual = ?,
+           pages_read = ?,
+           duration_minutes = ?,
+           assessment = ?,
+           notes = ?,
+           location = ?,
+           read_fluent = ?,
+           read_expressive = ?,
+           read_phonics = ?,
+           read_custom1 = ?,
+           read_custom2 = ?,
+           read_custom3 = ?
+         WHERE id = ?`
+      )
+      .bind(
+        body.date || getDateString(new Date(), timezone),
+        body.bookId ?? null,
+        body.bookTitle ?? null,
+        body.bookAuthor ?? null,
+        body.pagesRead ?? null,
+        body.duration ?? null,
+        body.assessment ?? null,
+        body.notes ?? null,
+        body.location ?? 'school',
+        body.readFluent ?? null,
+        body.readExpressive ?? null,
+        body.readPhonics ?? null,
+        body.readCustom1 ?? null,
+        body.readCustom2 ?? null,
+        body.readCustom3 ?? null,
+        sessionId
+      )
+      .run();
 
-    await saveStudentKV(c.env, student);
+    await updateStudentStreak(db, id, organizationId, c.env);
+    await updateStudentBand(db, id, organizationId, c.env, { timezone });
+    await recalculateStats(db, id, organizationId);
 
-    return c.json(student.readingSessions[sessionIndex]);
+    const studentForBadges = await db
+      .prepare(
+        `SELECT COALESCE(s.year_group, c.year_group) AS year_group, c.name AS class_name
+         FROM students s LEFT JOIN classes c ON c.id = s.class_id
+         WHERE s.id = ?`
+      )
+      .bind(id)
+      .first();
+    const newBadges = await evaluateRealTime(
+      db,
+      id,
+      organizationId,
+      studentForBadges?.year_group || classNameToYearGroup(studentForBadges?.class_name)
+    );
+    const completedGoals = await updateClassGoalOnSession(db, id, organizationId);
+
+    await db
+      .prepare(
+        `UPDATE students SET last_read_date = (
+           SELECT MAX(session_date) FROM reading_sessions WHERE student_id = ?
+             AND (notes IS NULL OR (notes NOT LIKE '%[ABSENT]%' AND notes NOT LIKE '%[NO_RECORD]%'))
+             AND COALESCE(location, 'school') = 'school'
+         ), updated_at = datetime("now") WHERE id = ? AND organization_id = ?`
+      )
+      .bind(id, id, organizationId)
+      .run();
+
+    const session = await db
+      .prepare(
+        `SELECT rs.*, b.title as book_title, b.author as book_author
+         FROM reading_sessions rs
+         LEFT JOIN books b ON rs.book_id = b.id
+         WHERE rs.id = ?`
+      )
+      .bind(sessionId)
+      .first();
+
+    return c.json({
+      id: session.id,
+      date: session.session_date,
+      bookTitle: session.book_title || session.book_title_manual,
+      bookAuthor: session.book_author || session.book_author_manual,
+      bookId: session.book_id,
+      pagesRead: session.pages_read,
+      duration: session.duration_minutes,
+      assessment: session.assessment,
+      notes: session.notes,
+      ...readObservations(session),
+      newBadges,
+      completedGoals,
+    });
   }
 );
 

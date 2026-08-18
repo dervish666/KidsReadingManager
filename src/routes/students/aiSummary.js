@@ -23,7 +23,7 @@
 
 import { Hono } from 'hono';
 import { requireAdmin } from '../../middleware/tenant.js';
-import { getDB, isMultiTenantMode } from '../../utils/routeHelpers.js';
+import { getDB } from '../../utils/routeHelpers.js';
 import { badRequestError } from '../../middleware/errorHandler.js';
 import { resolveAiConfig, buildFailoverChain } from '../../utils/aiProviderResolver.js';
 import { checkAIBudget, recordAICall, getMonthlyLimit } from '../../utils/aiCostCap.js';
@@ -150,10 +150,6 @@ async function writeCache(env, key, value) {
 }
 
 aiSummaryRouter.post('/stats/ai-summary', requireAdmin(), async (c) => {
-  if (!isMultiTenantMode(c)) {
-    throw badRequestError('Multi-tenant mode required for AI summaries');
-  }
-
   const db = getDB(c.env);
   const organizationId = c.get('organizationId');
   if (!organizationId || !db) {

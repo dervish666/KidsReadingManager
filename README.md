@@ -104,9 +104,7 @@ That is the whole setup — no config files to write yourself.
 
 **Where local config lives:** `.dev.vars` is the only file the worker reads
 locally (Wrangler's convention); `npm run seed:local` creates it with a
-`JWT_SECRET`, which is what puts the app in normal multi-tenant auth mode. Add
-`WORKER_ADMIN_PASSWORD` there too if you want to exercise the legacy
-shared-password mode.
+`JWT_SECRET`, which the Worker requires — it refuses to serve without one.
 
 `.env.example` documents every optional variable (AI providers, MyLogin SSO,
 Wonde, Sentry). None are needed to run locally, and note that a `.env` file is
@@ -146,7 +144,7 @@ The application features a clean, mobile-friendly interface with:
 - **Role-Based Access**: Owner, Admin, Teacher, and Readonly permission levels
 - **AI Integration**: Multi-provider support (Anthropic Claude, OpenAI, Google Gemini)
 - **D1 Database**: Cloudflare D1 SQL database for scalable data storage
-- **Data Persistence**: Secure cloud storage with import/export capabilities
+- **Data Portability**: CSV library import, per-pupil GDPR (Article 15) export in JSON or CSV, and PDF stats export
 - **Mobile-First**: Optimized for touch interfaces and mobile devices
 
 ## 📈 Use Cases

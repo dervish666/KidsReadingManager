@@ -12,14 +12,11 @@
 
 import { Hono } from 'hono';
 import { requireReadonly } from '../../middleware/tenant.js';
-import { getDB, isMultiTenantMode } from '../../utils/routeHelpers.js';
+import { getDB } from '../../utils/routeHelpers.js';
 
 const statsRouter = new Hono();
 
 statsRouter.get('/stats', requireReadonly(), async (c) => {
-  if (!isMultiTenantMode(c)) {
-    return c.json({});
-  }
   const db = getDB(c.env);
   const organizationId = c.get('organizationId');
   const { classId, startDate, endDate } = c.req.query();

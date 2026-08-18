@@ -299,18 +299,6 @@ files:
         public: true
         query_params: [title, author?]
 
-  data.js:
-    description: Legacy data export/import (single-tenant only)
-    exports:
-      - name: dataRouter
-        kind: object
-        description: Hono router for data endpoints
-    endpoints:
-      - route: GET /api/data
-        description: Export all application data
-      - route: POST /api/data
-        description: Import application data (replace)
-
   genres.js:
     description: Genre management - CRUD, predefined vs custom
     exports:

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React, { createContext, useContext } from 'react';
 
@@ -40,121 +40,6 @@ describe('Login Component', () => {
       render(<Login />, { wrapper: createWrapper(context) });
 
       expect(screen.getByText('Loading...')).toBeInTheDocument();
-    });
-  });
-
-  describe('Legacy Mode (Simple Password)', () => {
-    it('should render legacy password form when not in multi-tenant mode', () => {
-      const context = createMockContext({ isMultiTenantMode: false });
-
-      render(<Login />, { wrapper: createWrapper(context) });
-
-      expect(screen.getByLabelText('Password')).toBeInTheDocument();
-      expect(screen.queryByLabelText('Email')).not.toBeInTheDocument();
-      expect(screen.getByText('Enter the access password to continue.')).toBeInTheDocument();
-    });
-
-    it('should disable login button when password is empty', () => {
-      const context = createMockContext({ isMultiTenantMode: false });
-
-      render(<Login />, { wrapper: createWrapper(context) });
-
-      const loginButton = screen.getByRole('button', { name: /login/i });
-      expect(loginButton).toBeDisabled();
-    });
-
-    it('should enable login button when password is entered', async () => {
-      const context = createMockContext({ isMultiTenantMode: false });
-      const user = userEvent.setup();
-
-      render(<Login />, { wrapper: createWrapper(context) });
-
-      const passwordInput = screen.getByLabelText('Password');
-      await user.type(passwordInput, 'testpassword');
-
-      const loginButton = screen.getByRole('button', { name: /login/i });
-      expect(loginButton).not.toBeDisabled();
-    });
-
-    it('should call login function with password on submit', async () => {
-      const mockLogin = vi.fn().mockResolvedValue(undefined);
-      const context = createMockContext({
-        isMultiTenantMode: false,
-        login: mockLogin,
-      });
-      const user = userEvent.setup();
-
-      render(<Login />, { wrapper: createWrapper(context) });
-
-      const passwordInput = screen.getByLabelText('Password');
-      await user.type(passwordInput, 'testpassword');
-
-      const loginButton = screen.getByRole('button', { name: /login/i });
-      await user.click(loginButton);
-
-      expect(mockLogin).toHaveBeenCalledWith('testpassword');
-    });
-
-    it('should display error message on login failure', async () => {
-      const mockLogin = vi.fn().mockRejectedValue(new Error('Invalid password'));
-      const context = createMockContext({
-        isMultiTenantMode: false,
-        login: mockLogin,
-      });
-      const user = userEvent.setup();
-
-      render(<Login />, { wrapper: createWrapper(context) });
-
-      const passwordInput = screen.getByLabelText('Password');
-      await user.type(passwordInput, 'wrongpassword');
-
-      const loginButton = screen.getByRole('button', { name: /login/i });
-      await user.click(loginButton);
-
-      await waitFor(() => {
-        expect(screen.getByText('Invalid password')).toBeInTheDocument();
-      });
-    });
-
-    it('should show submitting state while logging in', async () => {
-      const mockLogin = vi
-        .fn()
-        .mockImplementation(() => new Promise((resolve) => setTimeout(resolve, 100)));
-      const context = createMockContext({
-        isMultiTenantMode: false,
-        login: mockLogin,
-      });
-      const user = userEvent.setup();
-
-      render(<Login />, { wrapper: createWrapper(context) });
-
-      const passwordInput = screen.getByLabelText('Password');
-      await user.type(passwordInput, 'testpassword');
-
-      const loginButton = screen.getByRole('button', { name: /login/i });
-      await user.click(loginButton);
-
-      expect(screen.getByText('Logging in...')).toBeInTheDocument();
-    });
-
-    it('should handle missing login function gracefully', async () => {
-      const context = createMockContext({
-        isMultiTenantMode: false,
-        login: undefined,
-      });
-      const user = userEvent.setup();
-
-      render(<Login />, { wrapper: createWrapper(context) });
-
-      const passwordInput = screen.getByLabelText('Password');
-      await user.type(passwordInput, 'testpassword');
-
-      const loginButton = screen.getByRole('button', { name: /login/i });
-      await user.click(loginButton);
-
-      await waitFor(() => {
-        expect(screen.getByText(/login function not available/i)).toBeInTheDocument();
-      });
     });
   });
 
@@ -259,25 +144,5 @@ describe('Login Component', () => {
       expect(screen.getByText('Tally Reading')).toBeInTheDocument();
     });
 
-    it('should clear password field on successful login', async () => {
-      const mockLogin = vi.fn().mockResolvedValue(undefined);
-      const context = createMockContext({
-        isMultiTenantMode: false,
-        login: mockLogin,
-      });
-      const user = userEvent.setup();
-
-      render(<Login />, { wrapper: createWrapper(context) });
-
-      const passwordInput = screen.getByLabelText('Password');
-      await user.type(passwordInput, 'testpassword');
-
-      const loginButton = screen.getByRole('button', { name: /login/i });
-      await user.click(loginButton);
-
-      await waitFor(() => {
-        expect(passwordInput).toHaveValue('');
-      });
-    });
   });
 });

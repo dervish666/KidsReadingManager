@@ -19,7 +19,6 @@ import { bodyLimit } from 'hono/body-limit';
 // Import route handlers
 import { studentsRouter, recalculateAllStreaks } from './routes/students';
 import { settingsRouter } from './routes/settings';
-import { dataRouter } from './routes/data';
 import { classesRouter } from './routes/classes';
 import { booksRouter } from './routes/books';
 import { genresRouter } from './routes/genres';
@@ -52,7 +51,6 @@ import { recordCronSuccess, checkCronFreshness } from './utils/cronWatchdog.js';
 
 // Import middleware
 import { errorHandler, onError } from './middleware/errorHandler';
-import { authMiddleware, handleLogin } from './middleware/auth';
 import {
   jwtAuthMiddleware,
   tenantMiddleware,
@@ -185,19 +183,21 @@ app.use('/api/*', errorHandler());
 // ============================================================================
 // Authentication Strategy
 // ============================================================================
-// The app supports two authentication modes:
-// 1. Legacy mode: Simple shared password (WORKER_ADMIN_PASSWORD)
-// 2. Multi-tenant mode: JWT with email/password (JWT_SECRET configured)
+// JWT with email/password, plus MyLogin SSO which issues a standard Tally JWT.
+// JWT_SECRET is REQUIRED — there is no fallback.
 //
-// When JWT_SECRET is configured, the new JWT auth is used.
-// When only WORKER_ADMIN_PASSWORD is configured, legacy auth is used.
-// This allows gradual migration to the new system.
+// A legacy shared-password mode (WORKER_ADMIN_PASSWORD) used to coexist,
+// backed by a KV data store, and every route carried an `isMultiTenantMode(c)`
+// branch to serve it. Nothing used it; it was removed in full (2026-08) along
+// with services/kvService.js, middleware/auth.js and the /api/data router.
+// KV itself is still very much in use — caching, org status, the demo-reset
+// fingerprint, the Wonde sync lock — just not as a data store.
 // ============================================================================
 
 // Environment validation — fail fast on missing critical config
 app.use('/api/*', async (c, next) => {
-  if (!c.env.JWT_SECRET && !c.env.WORKER_ADMIN_PASSWORD) {
-    return c.json({ error: 'Server misconfigured: no authentication method available' }, 500);
+  if (!c.env.JWT_SECRET) {
+    return c.json({ error: 'Server misconfigured: JWT_SECRET is required' }, 500);
   }
   if (c.env.MYLOGIN_CLIENT_ID && !c.env.MYLOGIN_CLIENT_SECRET) {
     return c.json(
@@ -210,17 +210,7 @@ app.use('/api/*', async (c, next) => {
   return next();
 });
 
-// Determine which auth middleware to use based on environment
-app.use('/api/*', async (c, next) => {
-  // Check if JWT_SECRET is configured (new multi-tenant mode)
-  if (c.env.JWT_SECRET) {
-    // Use new JWT authentication
-    return jwtAuthMiddleware()(c, next);
-  } else {
-    // Fall back to legacy shared password auth
-    return authMiddleware()(c, next);
-  }
-});
+app.use('/api/*', jwtAuthMiddleware());
 
 // NOTE: there used to be a middleware here running `PRAGMA foreign_keys = ON`
 // on every /api/* request, on the belief that D1 needed it per connection. It
@@ -263,7 +253,7 @@ app.use('/api/*', async (c, next) => {
   }
 
   // Only apply tenant middleware if JWT auth is enabled
-  if (c.env.JWT_SECRET && c.get('user')) {
+  if (c.get('user')) {
     return tenantMiddleware()(c, next);
   }
 
@@ -283,7 +273,7 @@ app.use('/api/*', async (c, next) => {
   }
 
   // Only apply if JWT auth is enabled and user is authenticated
-  if (c.env.JWT_SECRET && c.get('user')) {
+  if (c.get('user')) {
     return subscriptionGate()(c, next);
   }
 
@@ -321,7 +311,6 @@ app.route('/api/organization', organizationRouter);
 // Existing routes - all under /api path
 app.route('/api/students', studentsRouter);
 app.route('/api/settings', settingsRouter);
-app.route('/api/data', dataRouter);
 app.route('/api/classes', classesRouter);
 app.route('/api/books', booksRouter);
 app.route('/api/genres', genresRouter);
@@ -360,43 +349,6 @@ app.get('/api/health', async (c) => {
   }
 
   return c.json(health);
-});
-
-// Legacy login endpoint (for backward compatibility)
-// This will be deprecated once all clients migrate to /api/auth/login
-app.post('/api/login', async (c) => {
-  // If JWT_SECRET is configured, redirect to new auth
-  if (c.env.JWT_SECRET) {
-    return c.json(
-      {
-        error: 'Please use /api/auth/login for authentication',
-        redirect: '/api/auth/login',
-      },
-      400
-    );
-  }
-
-  // Otherwise use legacy login
-  return handleLogin(c);
-});
-
-// Legacy logout endpoint (for backward compatibility)
-// In legacy mode, logout just clears client-side token - no server-side action needed
-app.post('/api/logout', async (c) => {
-  // If JWT_SECRET is configured, redirect to new auth
-  if (c.env.JWT_SECRET) {
-    return c.json(
-      {
-        error: 'Please use /api/auth/logout for logout',
-        redirect: '/api/auth/logout',
-      },
-      400
-    );
-  }
-
-  // Legacy mode: No server-side session to invalidate
-  // Client just clears the token from localStorage
-  return c.json({ message: 'Logged out successfully' });
 });
 
 // Error handler

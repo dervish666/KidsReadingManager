@@ -113,15 +113,16 @@ registerRouter.post('/demo', async (c) => {
  * This endpoint is public and used by the frontend to determine which login UI to show
  */
 registerRouter.get('/mode', async (c) => {
-  // Multi-tenant mode requires both JWT_SECRET and D1 database.
-  // Only surface what the SPA actually consumes — the frontend reads `mode`
-  // to pick a login UI and `ssoEnabled` to show the SSO button. Exposing
-  // other infrastructure flags to an unauthenticated endpoint is a free
-  // reconnaissance signal for attackers.
-  const isMultiTenant = !!c.env.JWT_SECRET && !!c.env.READING_MANAGER_DB;
-
+  // Only surface what the SPA actually consumes — `ssoEnabled` decides whether
+  // the SSO button renders. Exposing other infrastructure flags to an
+  // unauthenticated endpoint is a free reconnaissance signal for attackers.
+  //
+  // `mode` used to be returned here ('multitenant' | 'legacy') so the frontend
+  // could pick a login UI. The legacy shared-password mode was removed in
+  // 2026-08 and JWT is the only mode, so the field would now be a constant.
+  // The path is kept (rather than renamed) because it is in PUBLIC_PATHS and
+  // is what the deployed SPA already calls.
   return c.json({
-    mode: isMultiTenant ? 'multitenant' : 'legacy',
     ssoEnabled: Boolean(c.env.MYLOGIN_CLIENT_ID),
   });
 });
