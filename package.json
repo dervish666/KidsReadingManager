@@ -38,7 +38,7 @@
     "@emotion/react": "^11.11.0",
     "@emotion/styled": "^11.11.0",
     "@mui/icons-material": "7.0.2",
-    "@mui/material": "7.0.2",
+    "@mui/material": "9.2.0",
     "@sentry/cloudflare": "^10.45.0",
     "@sentry/react": "^10.45.0",
     "hono": "^4.12.12",
