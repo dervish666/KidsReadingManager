@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.124.1] - 2026-08-23
+
+Nothing about how Tally works has changed. This is the marketing site, rewritten so it sounds like a person wrote it.
+
+### Changed
+
+- **The landing page copy has been rewritten.** It had picked up the habits of machine-written prose: thirteen dashes standing in for full stops, the same "no app, no login, no friction" trick six times over, and headings like "Everything you need, nothing you don't" that could sit on any product's website. The new copy says what the app actually does. The home reading section names the four buttons, the statistics section talks about spotting the child nobody has heard from in a fortnight, and the section about where Tally came from now says Bristol instead of saying "real" twice.
+
 ## [3.124.0] - 2026-08-23
 
 Nothing in this release changes what you see in Tally. It is all behind the scenes, and it is about the overnight jobs that award badges, keep streaks up to date and pull class lists from your school system.

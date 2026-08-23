@@ -47,7 +47,7 @@ const TOUR_ROWS = [
     tagClass: 'green',
     tagIcon: '📖',
     title: 'Record a session in seconds',
-    desc: 'Pick a student, scan or search for the book, assess how independently they read, and add a note. The whole thing takes less time than finding your pen used to.',
+    desc: 'Pick a student, scan or search for the book, rate how independently they read, and add a note. It takes less time than finding your pen used to.',
     points: [
       'Scan the ISBN barcode to add any book',
       'Assessment slider from Needing help to Independent',
@@ -61,7 +61,7 @@ const TOUR_ROWS = [
     tagClass: 'coral',
     tagIcon: '📋',
     title: 'Save 10 minutes per class, every day',
-    desc: "Diaries come in, you tap a few buttons, and the whole class is logged — who's read, how often, and what book they're on. Simple, fast, and you don't even have to find a pen.",
+    desc: 'Diaries come in, you tap down the column, and the class is logged. Four buttons per child: read, read more than once, absent, or nothing this time.',
     points: ['Whole-class register in one grid view', 'Backfill a whole week in one sitting'],
     img: screenshotRegister,
     alt: 'The Home Reading Register grid view',
@@ -71,11 +71,11 @@ const TOUR_ROWS = [
     tag: 'Parent portal',
     tagClass: 'green',
     tagIcon: '👨‍👩‍👧',
-    title: 'Home reading, connected',
-    desc: 'Print a sheet of QR codes, send them home, and parents scan to see their child’s progress and log reading — straight from their phone. No app to install, no password to remember.',
+    title: 'A QR code instead of a login',
+    desc: 'Print a sheet of QR codes and send them home. Parents scan one with a phone camera to see how their child is getting on, and to add the ten minutes they did last night. Nothing to install and no password for anyone to forget.',
     points: [
       'One QR code per child, printed and ready',
-      'Progress stays joined up between home and school',
+      'Reading logged at home lands in your class view',
     ],
     img: screenshotParent,
     alt: 'The parent reading portal opened from a QR code',
@@ -86,7 +86,7 @@ const TOUR_ROWS = [
     tagClass: 'amber',
     tagIcon: '✨',
     title: '“What should they read next?”',
-    desc: 'Suggestions that consider reading level, genre preferences, and what each child has enjoyed before — drawn from books you actually have on the shelf, with real covers and real reasons.',
+    desc: 'Matched on reading level, the genres they like and what they’ve finished before. Every suggestion is a book your school already owns, with the cover and a sentence saying why.',
     points: ["Matched from your school's own library", 'Optional AI suggestions for broader picks'],
     img: screenshotRecommendations,
     alt: 'Personalised book recommendations for a pupil',
@@ -96,8 +96,8 @@ const TOUR_ROWS = [
     tag: 'Reading stats',
     tagClass: 'sky',
     tagIcon: '📊',
-    title: 'See the bigger picture',
-    desc: 'Track reading patterns across your class with clear stats — sessions this week, streaks, home versus school reading, and who’s leading the way. All at a glance, for teachers and leadership alike.',
+    title: 'Spot the child who’s gone quiet',
+    desc: 'Sessions this week, reading streaks, home against school, and the children nobody has heard from in a fortnight. The same page works for a class teacher and for a head who wants the whole-school figure.',
     points: [
       'Active readers, reading days and trends',
       'A Needs Attention list, sorted by urgency',
@@ -111,32 +111,32 @@ const FEATURES = [
   {
     icon: '📱',
     title: 'Scan & go',
-    desc: 'Point your iPad at a barcode to instantly look up any book. No more typing titles or guessing authors — scan the ISBN and start.',
+    desc: 'Point the iPad at a barcode and the book looks itself up. Title, author, cover, reading level, the lot.',
   },
   {
     icon: '📝',
-    title: 'Notes that matter',
-    desc: "Record observations, track vocabulary, note enjoyment. Build a rich picture of each child's reading journey teachers can use.",
+    title: 'Notes worth keeping',
+    desc: "Jot down the word they stumbled on, the series they’ve got into, whether they wanted to carry on. Next year's teacher inherits the context, not just the dates.",
   },
   {
     icon: '🏅',
     title: 'Badges & goals',
-    desc: 'Children earn reading badges and grow a class garden as they read. Set goals and watch the whole class light up.',
+    desc: 'Children earn badges as they read, and the class garden grows with them. Set a class goal and they’ll ask you every morning how close it is.',
   },
   {
     icon: '📚',
     title: '2,400+ books',
-    desc: 'A shared library with covers, reading levels and genres. Search, filter, scan, or import your whole collection from a CSV.',
+    desc: 'A shared catalogue with covers, reading levels and genres. Search it, filter it, scan it, or import your own collection from a spreadsheet.',
   },
   {
     icon: '👨‍👩‍👧',
-    title: 'Parents in the loop',
-    desc: 'Print QR codes, send them home, and parents log reading from their phone — no app, no login, no friction.',
+    title: 'Parents included',
+    desc: 'A printed code in the reading diary is all a parent needs. They scan it, see the term so far, and add tonight’s reading.',
   },
   {
     icon: '🔒',
-    title: 'Safe & simple',
-    desc: 'GDPR-compliant, EU-hosted, and built around children’s data protection. No ads, no tracking, no nonsense.',
+    title: 'Safe with children’s data',
+    desc: 'EU-hosted and GDPR-compliant, designed around children’s data from the first line. One cookie, to keep you signed in. No ads and no trackers.',
   },
 ];
 
@@ -144,17 +144,17 @@ const STEPS = [
   {
     num: '1',
     title: 'Set up your school',
-    desc: 'Import your pupil list from a CSV, or connect via Wonde and your classes, students and teachers sync automatically from your MIS.',
+    desc: 'Upload a CSV of your pupils, or connect Wonde and let your classes, pupils and staff come straight from the MIS.',
   },
   {
     num: '2',
     title: 'Start reading',
-    desc: 'Pick a pupil, scan or search for the book, and record the session. Notes, ratings and vocabulary — all optional, all useful.',
+    desc: 'Pick a pupil, scan or search for the book, record how it went. Notes, ratings and vocabulary are all optional, and all worth having.',
   },
   {
     num: '3',
-    title: 'Watch them grow',
-    desc: 'Track reading patterns over time, get recommendations, and send QR codes home so parents can see progress and log reading too.',
+    title: 'Send it home',
+    desc: 'Watch the pattern build over a term, get suggestions for what each child reads next, and send QR codes home so parents can join in.',
   },
 ];
 
@@ -169,7 +169,7 @@ const CORE_FEATURES = [
 
 const AI_FEATURES = [
   'Unlimited AI book recommendations',
-  "Personalised to each child's reading journey",
+  'Picked for what each child has already read',
   'Choice of AI provider',
 ];
 
@@ -309,11 +309,11 @@ export default function LandingPage({ onSignIn }) {
                 <span className="dot" /> Free trial for UK primary schools
               </span>
               <h1>
-                Keep a <span className="hl">tally</span> of every reading moment
+                Keep a <span className="hl">tally</span> of what every child is reading
               </h1>
               <p className="hero-sub">
-                A simple, thoughtful app that helps teachers and reading volunteers track sessions,
-                discover books, and watch young readers grow — without the paperwork.
+                Reading records for primary schools, without the paperwork. Teachers and volunteers
+                log a session in seconds, find the next book, and see who hasn’t read this week.
               </p>
               <div className="hero-actions">
                 <a className="btn btn-primary btn-lg" href="#start">
@@ -362,7 +362,7 @@ export default function LandingPage({ onSignIn }) {
           <div className="wrap strip-inner">
             <div className="metric">
               <b>£1</b>
-              <span>per pupil, per year — no minimum spend</span>
+              <span>per pupil, per year, no minimum spend</span>
             </div>
             <span className="vr" />
             <div className="metric">
@@ -384,10 +384,10 @@ export default function LandingPage({ onSignIn }) {
               <span className="eyebrow">
                 <span className="dot" /> See it in action
               </span>
-              <h2>Real screens, real reading sessions</h2>
+              <h2>Screenshots, not mock-ups</h2>
               <p>
-                This is what it actually looks like when you sit down with a child and a book — on
-                the tablet that’s already in the classroom.
+                This is what it looks like when you sit down with a child and a book, on the tablet
+                that’s already in the classroom.
               </p>
             </div>
 
@@ -407,8 +407,7 @@ export default function LandingPage({ onSignIn }) {
                 </video>
               </div>
               <figcaption>
-                Thirty seconds on how it all fits together — subtitled, so it works with the sound
-                off.
+                Thirty seconds on how it fits together. Subtitled, so it works with the sound off.
               </figcaption>
             </figure>
 
@@ -449,13 +448,13 @@ export default function LandingPage({ onSignIn }) {
           <div className="wrap">
             <div className="shead reveal" ref={addRevealRef}>
               <h2>
-                Everything you need,
+                Enough to be useful,
                 <br />
-                nothing you don’t
+                small enough to learn in a morning
               </h2>
               <p>
-                Designed around how teachers and reading volunteers actually work — on tablets,
-                between sessions, one child at a time.
+                Built for the way reading happens in school: on a tablet, squeezed between other
+                things, one child at a time.
               </p>
             </div>
             <div className="fgrid">
@@ -475,8 +474,9 @@ export default function LandingPage({ onSignIn }) {
               <div>
                 <h4>Integrated with Wonde</h4>
                 <p>
-                  Connect your school MIS and your classes, students and teachers sync automatically
-                  — with single sign-on for all staff. No spreadsheets, no manual data entry.
+                  Connect your MIS and your classes, pupils and staff arrive on their own, then stay
+                  in step overnight. Staff sign in with the MyLogin details they already use, so
+                  there’s no second password and no spreadsheet to keep up to date.
                 </p>
               </div>
             </div>
@@ -487,7 +487,7 @@ export default function LandingPage({ onSignIn }) {
         <section className="section">
           <div className="wrap">
             <div className="shead reveal" ref={addRevealRef}>
-              <h2>Up and running in minutes</h2>
+              <h2>Three steps to the first session</h2>
               <p>No training needed. If you can use a tablet, you can use Tally.</p>
             </div>
             <div className="steps">
@@ -506,10 +506,10 @@ export default function LandingPage({ onSignIn }) {
         <section className="section tinted" id="pricing">
           <div className="wrap">
             <div className="shead reveal" ref={addRevealRef}>
-              <h2>Simple, honest pricing</h2>
+              <h2>£1 per pupil, per year</h2>
               <p>
-                £1 per pupil, per year. No surprises, no minimum spend, and a free 30-day trial to
-                try it with one class.
+                No minimum spend and no per-teacher licences. There’s a free 30-day trial, so you
+                can run it with one class before you commit the budget.
               </p>
             </div>
             <div className="pricing-cards">
@@ -519,7 +519,7 @@ export default function LandingPage({ onSignIn }) {
                   <span className="amt">£1</span>
                   <span className="per">/ pupil / year</span>
                 </div>
-                <p className="pnote">That’s it. No hidden fees.</p>
+                <p className="pnote">That’s the whole bill.</p>
                 <ul className="pfeatures">
                   {CORE_FEATURES.map((f, i) => (
                     <li key={i}>
@@ -537,7 +537,7 @@ export default function LandingPage({ onSignIn }) {
                   <span className="amt">+£49</span>
                   <span className="per">/ year</span>
                 </div>
-                <p className="pnote">Add to any plan, whole school.</p>
+                <p className="pnote">Whole school, on top of the £1.</p>
                 <ul className="pfeatures">
                   {AI_FEATURES.map((f, i) => (
                     <li key={i}>
@@ -557,11 +557,12 @@ export default function LandingPage({ onSignIn }) {
         <section className="section">
           <div className="wrap trust">
             <div className="reveal" ref={addRevealRef}>
-              <h2>Built with schools, for schools</h2>
+              <h2>Written between reading sessions</h2>
               <p>
-                Tally was born from real reading sessions at a real primary school. We know the iPad
-                is balanced on a tiny chair, the session is twenty minutes, and the child just wants
-                to read — not wait for software to load.
+                Tally started at a Bristol primary school, built by someone sitting in on the
+                reading sessions. That’s where the shape of it comes from: the iPad balanced on a
+                tiny chair, twenty minutes on the clock, and a child who wants to read rather than
+                watch a screen load.
               </p>
               <div className="trust-items">
                 <span className="trust-item">
@@ -577,7 +578,7 @@ export default function LandingPage({ onSignIn }) {
                   Wonde MIS integration
                 </span>
                 <span className="trust-item">
-                  <span className="ti">💬</span> Real human support
+                  <span className="ti">💬</span> Emails answered by a person
                 </span>
               </div>
             </div>
@@ -590,7 +591,8 @@ export default function LandingPage({ onSignIn }) {
             <div className="cta-box reveal" ref={addRevealRef}>
               <h2>Start your free trial</h2>
               <p>
-                Drop us a message and we’ll get your school set up — no commitment, no card details.
+                Send us a message and we’ll get your school set up. No commitment, and we won’t ask
+                for card details.
               </p>
               {!contactSubmitted ? (
                 <form className="cta-form" onSubmit={handleContact} noValidate>
@@ -693,8 +695,7 @@ export default function LandingPage({ onSignIn }) {
       {!cookieBannerDismissed && (
         <div className="cookie-banner" role="region" aria-label="Cookie notice">
           <p className="cookie-text">
-            We use one cookie to keep you securely signed in. No tracking, no analytics, no
-            third-party cookies.{' '}
+            We use one cookie, to keep you signed in. No analytics and no third-party cookies.{' '}
             <a href="/cookies" className="cookie-link">
               Cookie policy
             </a>
