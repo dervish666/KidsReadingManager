@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.124.0] - 2026-08-23
+
+Nothing in this release changes what you see in Tally. It is all behind the scenes, and it is about the overnight jobs that award badges, keep streaks up to date and pull class lists from your school system.
+
+### Fixed
+
+- **One brief database wobble could cost a whole night's badge processing.** On 21 August the badge run asked the database for its list of schools, the database took half a minute to answer and then gave up, and the job stopped there — before it had looked at a single school. It repaired itself the following night, because badges are only ever added and never removed, so nothing was lost. The overnight jobs now try again a few times before giving up, which is what the demo reset has always done and the nightly ones never did.
+- **A single missed job sent the same alert every hour for a day.** That one incident produced 22 warnings and three emails, each with a bigger number in the subject line, which reads like a problem getting worse rather than one job that missed one night. There is now one alert per outage, repeated once a day for as long as it lasts, and a successful run resets it so the next real problem is just as loud.
+
+### Changed
+
+- **The alarm now points at the cause rather than the symptom.** The database error that started all of this was muted, while its knock-on effect was the thing sending emails. That is the wrong way round, and it has been swapped.
+
 ## [3.123.0] - 2026-08-18
 
 ### Fixed

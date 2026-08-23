@@ -22,6 +22,8 @@
 
 import * as Sentry from '@sentry/cloudflare';
 
+import { retryD1 } from './d1Retry.js';
+
 /**
  * Jobs to watch, and how old a successful run may get before we care.
  *
@@ -57,23 +59,67 @@ const WATCHED_JOBS = [
  */
 export async function recordCronSuccess(db, jobName, durationMs = null) {
   try {
-    await db
-      .prepare(
-        `INSERT INTO cron_runs (job_name, last_success_at, last_duration_ms)
+    // `stale_alerted_at = NULL` re-arms the staleness alert. Recovery is the
+    // only thing that clears it, so the NEXT outage is loud again — without
+    // this, one alert would be all a job ever produced.
+    await retryD1(
+      () =>
+        db
+          .prepare(
+            `INSERT INTO cron_runs (job_name, last_success_at, last_duration_ms)
          VALUES (?, datetime('now'), ?)
          ON CONFLICT(job_name) DO UPDATE SET
            last_success_at = excluded.last_success_at,
-           last_duration_ms = excluded.last_duration_ms`
-      )
-      .bind(jobName, durationMs)
-      .run();
+           last_duration_ms = excluded.last_duration_ms,
+           stale_alerted_at = NULL`
+          )
+          .bind(jobName, durationMs)
+          .run(),
+      { label: `recordCronSuccess:${jobName}` }
+    );
   } catch (err) {
     console.error(`[CronWatchdog] Failed to record success for ${jobName}:`, err?.message);
   }
 }
 
 /**
+ * How long a job may stay stale before we alert about it a second time.
+ *
+ * The check runs hourly, so this used to mean one alert an hour for as long as
+ * the outage lasted: the single missed badge run on 2026-08-21 produced 22
+ * Sentry events and 3 emails, each titled with a different hour count, which
+ * reads as an escalating incident rather than one job that missed one night.
+ *
+ * Alerting is now edge-triggered — once per outage — and this is the safety
+ * valve on that. A cron that is dead for a fortnight should not go quiet after
+ * its first alert: silence and "fixed" look identical from the inbox. Daily is
+ * loud enough to keep a real outage visible and quiet enough to be ignorable
+ * when it is the August holidays and nothing is waiting to be processed.
+ */
+export const STALE_REALERT_HOURS = 24;
+
+/**
+ * Parse a SQLite `datetime('now')` string as UTC.
+ *
+ * D1 hands back 'YYYY-MM-DD HH:MM:SS' with no zone. The space needs replacing
+ * with 'T' and an explicit Z, or Date parses it as LOCAL time — which on a
+ * Worker is UTC anyway, but on a developer's machine in BST is an hour out and
+ * makes the staleness maths quietly wrong in tests.
+ *
+ * @returns {number|null} epoch ms, or null if absent/unparseable.
+ */
+function parseSqliteUtc(value) {
+  if (!value) return null;
+  const parsed = Date.parse(`${String(value).replace(' ', 'T')}Z`);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+/**
  * Report any watched job whose last success is older than its threshold.
+ *
+ * Alerting is EDGE-TRIGGERED: one Sentry event per outage, re-armed by the next
+ * successful run (`recordCronSuccess` clears `stale_alerted_at`), and repeated
+ * at most once every STALE_REALERT_HOURS while the outage continues.
  *
  * Returns a summary array so callers/tests can assert on it. Never throws — it
  * is a reporter, and must not break the job it runs alongside.
@@ -82,12 +128,16 @@ export async function checkCronFreshness(db) {
   const results = [];
 
   try {
-    const rows = await db.prepare('SELECT job_name, last_success_at FROM cron_runs').all();
-    const byName = new Map((rows.results || []).map((r) => [r.job_name, r.last_success_at]));
+    const rows = await retryD1(
+      () => db.prepare('SELECT job_name, last_success_at, stale_alerted_at FROM cron_runs').all(),
+      { label: 'checkCronFreshness' }
+    );
+    const byName = new Map((rows.results || []).map((r) => [r.job_name, r]));
     const now = Date.now();
 
     for (const job of WATCHED_JOBS) {
-      const lastSuccess = byName.get(job.jobName);
+      const row = byName.get(job.jobName);
+      const lastSuccess = row?.last_success_at;
 
       // A missing row means the job has never recorded a success. The migration
       // seeds all watched jobs, so this only happens if someone adds a job here
@@ -102,19 +152,36 @@ export async function checkCronFreshness(db) {
         continue;
       }
 
-      // D1 datetime('now') is 'YYYY-MM-DD HH:MM:SS' UTC; the space needs
-      // replacing with 'T' and an explicit Z or Date parses it as local time.
-      const parsed = Date.parse(`${String(lastSuccess).replace(' ', 'T')}Z`);
-      if (Number.isNaN(parsed)) {
+      const parsed = parseSqliteUtc(lastSuccess);
+      if (parsed === null) {
         console.error(`[CronWatchdog] Unparseable timestamp for ${job.jobName}: ${lastSuccess}`);
         continue;
       }
 
       const ageHours = (now - parsed) / 3_600_000;
       const stale = ageHours > job.maxAgeHours;
-      results.push({ jobName: job.jobName, stale, ageHours: Math.round(ageHours * 10) / 10 });
 
-      if (stale) {
+      // Already alerted about THIS outage? An unparseable or missing stamp
+      // counts as "not yet alerted" — erring towards one extra alert beats
+      // erring towards silence for a job nobody is watching by hand.
+      const alertedAt = parseSqliteUtc(row?.stale_alerted_at);
+      const alertDue = alertedAt === null || (now - alertedAt) / 3_600_000 >= STALE_REALERT_HOURS;
+      const alerted = stale && alertDue;
+
+      results.push({
+        jobName: job.jobName,
+        stale,
+        ageHours: Math.round(ageHours * 10) / 10,
+        alerted,
+      });
+
+      if (stale && !alertDue) {
+        console.warn(
+          `[CronWatchdog] ${job.jobName} still stale (${Math.round(ageHours)}h) — already alerted, next alert in ${Math.round(STALE_REALERT_HOURS - (now - alertedAt) / 3_600_000)}h`
+        );
+      }
+
+      if (alerted) {
         Sentry.captureException(
           new Error(
             `Cron has not completed in ${Math.round(ageHours)}h: ${job.jobName} (expected ${job.schedule})`
@@ -127,12 +194,37 @@ export async function checkCronFreshness(db) {
               ageHours: Math.round(ageHours * 10) / 10,
               maxAgeHours: job.maxAgeHours,
               expectedSchedule: job.schedule,
+              // Distinguishes the daily nag from the first alert. Without it a
+              // second email 24h later is indistinguishable from a new outage.
+              repeatAlert: alertedAt !== null,
+              previouslyAlertedAt: row?.stale_alerted_at ?? null,
             },
           }
         );
         console.error(
           `[CronWatchdog] ${job.jobName} last succeeded ${Math.round(ageHours)}h ago (max ${job.maxAgeHours}h)`
         );
+
+        // Stamp AFTER capturing, so a failed write costs one duplicate alert
+        // next hour rather than losing the alert entirely. Failure here degrades
+        // to the old hourly behaviour, which is noisy but never silent.
+        try {
+          await retryD1(
+            () =>
+              db
+                .prepare(
+                  `UPDATE cron_runs SET stale_alerted_at = datetime('now') WHERE job_name = ?`
+                )
+                .bind(job.jobName)
+                .run(),
+            { label: `staleAlertStamp:${job.jobName}` }
+          );
+        } catch (stampErr) {
+          console.error(
+            `[CronWatchdog] Failed to stamp stale alert for ${job.jobName}:`,
+            stampErr?.message
+          );
+        }
       }
     }
   } catch (err) {

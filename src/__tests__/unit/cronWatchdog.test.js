@@ -38,10 +38,11 @@ function hoursAgo(h) {
  * Derived from WATCHED_JOBS so tests assert on the behaviour under test rather
  * than on how many jobs happen to be watched today.
  */
-function freshRows(overrides = {}) {
+function freshRows(overrides = {}, alertStamps = {}) {
   return WATCHED_JOBS.map((j) => ({
     job_name: j.jobName,
     last_success_at: overrides[j.jobName] ?? hoursAgo(1),
+    stale_alerted_at: alertStamps[j.jobName] ?? null,
   }));
 }
 
@@ -168,5 +169,72 @@ describe('checkCronFreshness', () => {
     expect(results).toEqual([]);
     expect(Sentry.captureException).toHaveBeenCalledTimes(1);
     expect(Sentry.captureException.mock.calls[0][1].tags.watchdog).toBe('self-failure');
+  });
+});
+
+describe('checkCronFreshness alerting is edge-triggered', () => {
+  it('stamps the outage when it alerts, so the next hourly pass can stay quiet', async () => {
+    const db = makeDb({ rows: freshRows({ 'badge-evaluation': hoursAgo(30) }) });
+
+    await checkCronFreshness(db);
+
+    expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+    const stamp = db.calls.find((c) => c.sql.includes('stale_alerted_at = '));
+    expect(stamp).toBeDefined();
+    expect(stamp.args).toEqual(['badge-evaluation']);
+  });
+
+  it('stays silent on the next hourly pass of the SAME outage', async () => {
+    // The behaviour this whole change exists for: one missed badge run on
+    // 2026-08-21 produced 22 events and 3 emails, titled 27h through 48h, which
+    // reads as an escalating incident rather than one job that missed one night.
+    const db = makeDb({
+      rows: freshRows({ 'badge-evaluation': hoursAgo(30) }, { 'badge-evaluation': hoursAgo(1) }),
+    });
+
+    const results = await checkCronFreshness(db);
+
+    expect(Sentry.captureException).not.toHaveBeenCalled();
+    // Still REPORTED as stale — only the alert is suppressed, not the finding.
+    const badge = results.find((r) => r.jobName === 'badge-evaluation');
+    expect(badge.stale).toBe(true);
+    expect(badge.alerted).toBe(false);
+  });
+
+  it('re-alerts after a day so a permanently dead cron does not go quiet', async () => {
+    // Silence and "someone fixed it" look identical from an inbox.
+    const db = makeDb({
+      rows: freshRows({ 'badge-evaluation': hoursAgo(200) }, { 'badge-evaluation': hoursAgo(25) }),
+    });
+
+    const results = await checkCronFreshness(db);
+
+    expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+    expect(results.find((r) => r.jobName === 'badge-evaluation').alerted).toBe(true);
+  });
+
+  it('costs a duplicate alert, not a lost one, when the stamp write fails', async () => {
+    const db = makeDb({
+      rows: freshRows({ 'badge-evaluation': hoursAgo(30) }),
+      throwOn: 'UPDATE cron_runs',
+    });
+
+    const results = await checkCronFreshness(db);
+
+    // The alert fired first; only the bookkeeping failed, so next hour repeats
+    // it. Noisy beats silent.
+    expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+    expect(results.find((r) => r.jobName === 'badge-evaluation').alerted).toBe(true);
+  });
+});
+
+describe('recordCronSuccess re-arms the alert', () => {
+  it('clears stale_alerted_at so the NEXT outage is loud again', async () => {
+    // Without this, an edge-triggered alert would fire once in the lifetime of
+    // the job and never again.
+    const db = makeDb();
+    await recordCronSuccess(db, 'badge-evaluation', 14863);
+
+    expect(db.calls[0].sql).toContain('stale_alerted_at = NULL');
   });
 });

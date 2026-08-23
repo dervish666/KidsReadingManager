@@ -45,6 +45,25 @@ Nothing here is obsolete. If an entry stops being true, fix it in both places.
 **A D1 error from a cron is usually Cloudflare's, not yours**: `D1_ERROR: internal error; reference = <id>`, `Network connection lost` and `DB is overloaded. Requests queued for too long.` are platform-side. The `reference` is Cloudflare's own incident handle — quote it to support. This database is ~18.5 MB with 875 reading sessions; queries here do not overload a D1 primary. The every-minute cron used to `captureException` on a probe that reads 6 rows in 0.16 ms, which turned a 58-minute Cloudflare wobble on 2026-07-16 into 58 consecutive alert emails. **Never `captureException` a transient D1 failure from a high-frequency cron** — log it (`console.warn` reaches Sentry Logs via `consoleLoggingIntegration`) and let `src/utils/cronWatchdog.js` report the *absence* of successful runs instead. Transient noise is a log; sustained absence is an alert.
 
 
+## Cron staleness alerts are edge-triggered, not hourly
+
+<a id="cron-staleness-edge-trigger"></a>
+
+**2026-08-21.** At 02:31:24 UTC a Cloudflare D1 call threw `D1_ERROR: D1 DB storage operation exceeded timeout which caused object to be reset` on the badge cron's *first* statement — the `SELECT id, last_badge_cursor, last_badge_watermark FROM organizations` at the top of the `30 2 * * *` branch. The query hung for roughly 33 seconds before throwing; the whole job normally finishes in 7-15. It died before touching a single organisation, so no watermark moved and no cursor was set.
+
+Everything downstream then worked exactly as designed, which is the problem. The branch rethrows, so `recordCronSuccess` never ran; `cron_runs` kept the previous night's stamp; the 26-hour threshold tripped at 04:30; and `checkCronFreshness` — which runs inside the hourly `7 * * * *` cron — captured a Sentry exception on **every pass** until the next successful run. One missed job produced **22 events and 3 emails**, titled `27h`, `28h`, … `48h`. Each looked like a fresh, worsening incident. The job repaired itself at 02:30 the following night, because badge inserts are `INSERT OR IGNORE` behind a unique index and the watermark had never advanced. Nothing was lost. No school had logged a reading session since 16 July.
+
+Two things were wrong, and neither was the code that failed.
+
+**The alerting was level-triggered.** A watchdog that re-reports the same outage every hour is telling you the clock is running, not that anything new happened. `cron_runs.stale_alerted_at` (migration 0076) now records the outage we have already alerted about; `recordCronSuccess` clears it, so recovery re-arms the alert. While a job stays stale it re-alerts once every `STALE_REALERT_HOURS` (24) — deliberately not zero, because an alert that fires once and then goes quiet is indistinguishable from a problem someone fixed.
+
+**The retry cost was inverted.** The only D1 retry ladder in the codebase lived in `batchExec` in `src/services/demoReset.js` — the job whose next attempt is 60 minutes away. The three nightly jobs, whose next attempt is 24 hours away, had none. That ladder is now `retryD1()` in `src/utils/d1Retry.js` and the nightly crons use it.
+
+Be honest about what the retry buys, though: it would **not** have saved this particular run. The failure was a 33-second hang, and the badge job's own budget is 22 seconds, so a deadline-aware retry declines to start a second attempt. What it covers is the fast transient — `DB is overloaded. Requests queued for too long.`, six of which hit this project on 9-10 August and returned in about a second each. The noise fix is the edge-trigger; the retry is insurance against the cheaper failure.
+
+A third thing, worth remembering separately: the *cause* (`TALLY-READING-A`) was archived in Sentry and therefore silent, while the *symptom* (`TALLY-READING-H`, cron staleness) mailed three times. Muting a noisy platform error is right; muting it forever means the next incident is diagnosed from its shadow. It now carries an occurrence threshold (3 in 24h) rather than a permanent archive.
+
+
 ## APP_VERSION comes from the bundled package.json, not a deploy-time --var
 
 <a id="app-version-source"></a>

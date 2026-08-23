@@ -48,6 +48,7 @@ import { studentEraseStatements, STUDENT_ERASE_STATEMENT_COUNT } from './utils/s
 import { D1_BATCH_LIMIT } from './utils/d1Batch.js';
 import { decryptSensitiveData, getEncryptionSecret } from './utils/crypto.js';
 import { recordCronSuccess, checkCronFreshness } from './utils/cronWatchdog.js';
+import { retryD1 } from './utils/d1Retry.js';
 
 // Import middleware
 import { errorHandler, onError } from './middleware/errorHandler';
@@ -501,68 +502,78 @@ async function runScheduledTask(event, env, ctx) {
       throw error;
     }
 
-    // GDPR data retention cleanup jobs
+    // GDPR data retention cleanup jobs.
+    //
+    // Every statement below is a cheap, idempotent DELETE/UPDATE, and a
+    // transient D1 failure on any one of them used to abort the whole block for
+    // 24 hours. `cleanup` gives each one the bounded retry from
+    // src/utils/d1Retry.js — it still rethrows once the attempts are spent, so
+    // a real failure reaches Sentry exactly as before.
+    const cleanup = (sql, label) => retryD1(() => db.prepare(sql).run(), { label });
+
     try {
-      const expiredRefresh = await db
-        .prepare(
-          `DELETE FROM refresh_tokens WHERE expires_at < datetime('now') OR revoked_at IS NOT NULL`
-        )
-        .run();
+      const expiredRefresh = await cleanup(
+        `DELETE FROM refresh_tokens WHERE expires_at < datetime('now') OR revoked_at IS NOT NULL`,
+        'gdpr:refresh_tokens'
+      );
       console.log(
         `[Cron] Cleaned up ${expiredRefresh.meta?.changes || 0} expired/revoked refresh tokens`
       );
 
-      const expiredReset = await db
-        .prepare(
-          `DELETE FROM password_reset_tokens WHERE expires_at < datetime('now') OR used_at IS NOT NULL`
-        )
-        .run();
+      const expiredReset = await cleanup(
+        `DELETE FROM password_reset_tokens WHERE expires_at < datetime('now') OR used_at IS NOT NULL`,
+        'gdpr:password_reset_tokens'
+      );
       console.log(
         `[Cron] Cleaned up ${expiredReset.meta?.changes || 0} expired/used password reset tokens`
       );
 
-      const oldLogins = await db
-        .prepare(`DELETE FROM login_attempts WHERE created_at < datetime('now', '-30 days')`)
-        .run();
+      const oldLogins = await cleanup(
+        `DELETE FROM login_attempts WHERE created_at < datetime('now', '-30 days')`,
+        'gdpr:login_attempts'
+      );
       console.log(
         `[Cron] Cleaned up ${oldLogins.meta?.changes || 0} login attempts older than 30 days`
       );
 
-      const oldTickerEvents = await db
-        .prepare(`DELETE FROM ticker_events WHERE created_at < datetime('now', '-2 days')`)
-        .run();
+      const oldTickerEvents = await cleanup(
+        `DELETE FROM ticker_events WHERE created_at < datetime('now', '-2 days')`,
+        'gdpr:ticker_events'
+      );
       console.log(
         `[Cron] Cleaned up ${oldTickerEvents.meta?.changes || 0} ticker events older than 2 days`
       );
 
-      const anonAudit = await db
-        .prepare(
-          `UPDATE audit_log SET ip_address = 'anonymised', user_agent = 'anonymised' WHERE created_at < datetime('now', '-90 days') AND ip_address != 'anonymised' AND ip_address IS NOT NULL`
-        )
-        .run();
+      const anonAudit = await cleanup(
+        `UPDATE audit_log SET ip_address = 'anonymised', user_agent = 'anonymised' WHERE created_at < datetime('now', '-90 days') AND ip_address != 'anonymised' AND ip_address IS NOT NULL`,
+        'gdpr:audit_anonymise'
+      );
       console.log(
         `[Cron] Anonymised ${anonAudit.meta?.changes || 0} audit log entries older than 90 days`
       );
 
-      const oldAudit = await db
-        .prepare(`DELETE FROM audit_log WHERE created_at < datetime('now', '-730 days')`)
-        .run();
+      const oldAudit = await cleanup(
+        `DELETE FROM audit_log WHERE created_at < datetime('now', '-730 days')`,
+        'gdpr:audit_purge'
+      );
       if (oldAudit.meta?.changes > 0) {
         console.log(`[Cron] Deleted ${oldAudit.meta.changes} audit log entries older than 2 years`);
       }
 
-      const oldRateLimits = await db
-        .prepare(`DELETE FROM rate_limits WHERE created_at < datetime('now', '-1 hour')`)
-        .run();
+      const oldRateLimits = await cleanup(
+        `DELETE FROM rate_limits WHERE created_at < datetime('now', '-1 hour')`,
+        'gdpr:rate_limits'
+      );
       console.log(`[Cron] Cleaned up ${oldRateLimits.meta?.changes || 0} stale rate limit records`);
 
       // 10 minutes, matching the window the MyLogin callback will still accept a
       // state in (src/routes/mylogin.js). At 5 it could delete a state that was
       // still valid, bouncing a teacher who happened to be mid-login at 2am back
       // through the whole OAuth flow.
-      const expiredStates = await db
-        .prepare(`DELETE FROM oauth_state WHERE created_at < datetime('now', '-10 minutes')`)
-        .run();
+      const expiredStates = await cleanup(
+        `DELETE FROM oauth_state WHERE created_at < datetime('now', '-10 minutes')`,
+        'gdpr:oauth_state'
+      );
       if (expiredStates.meta?.changes > 0) {
         console.log(`[Cron] Cleaned up ${expiredStates.meta.changes} expired OAuth states`);
       }
@@ -573,12 +584,16 @@ async function runScheduledTask(event, env, ctx) {
 
     // Auto hard-delete soft-deleted records after 90-day retention period
     try {
-      const staleStudents = await db
-        .prepare(
-          `SELECT id FROM students WHERE is_active = 0 AND updated_at < datetime('now', '-90 days')`
-        )
-        .bind()
-        .all();
+      const staleStudents = await retryD1(
+        () =>
+          db
+            .prepare(
+              `SELECT id FROM students WHERE is_active = 0 AND updated_at < datetime('now', '-90 days')`
+            )
+            .bind()
+            .all(),
+        { label: 'retention:staleStudents' }
+      );
 
       const studentIds = (staleStudents.results || []).map((s) => s.id);
       if (studentIds.length > 0) {
@@ -589,19 +604,23 @@ async function runScheduledTask(event, env, ctx) {
         for (let i = 0; i < studentIds.length; i += STUDENT_CHUNK) {
           const chunk = studentIds.slice(i, i + STUDENT_CHUNK);
           const statements = chunk.flatMap((id) => studentEraseStatements(db, id));
-          await db.batch(statements);
+          await retryD1(() => db.batch(statements), { label: 'retention:eraseStudents' });
         }
         console.log(
           `[Cron] Hard-deleted ${studentIds.length} soft-deleted students past 90-day retention`
         );
       }
 
-      const staleUsers = await db
-        .prepare(
-          `SELECT id FROM users WHERE is_active = 0 AND updated_at < datetime('now', '-90 days')`
-        )
-        .bind()
-        .all();
+      const staleUsers = await retryD1(
+        () =>
+          db
+            .prepare(
+              `SELECT id FROM users WHERE is_active = 0 AND updated_at < datetime('now', '-90 days')`
+            )
+            .bind()
+            .all(),
+        { label: 'retention:staleUsers' }
+      );
 
       const userIds = (staleUsers.results || []).map((u) => u.id);
       if (userIds.length > 0) {
@@ -613,7 +632,7 @@ async function runScheduledTask(event, env, ctx) {
             db.prepare('DELETE FROM password_reset_tokens WHERE user_id = ?').bind(id),
             db.prepare('DELETE FROM users WHERE id = ?').bind(id),
           ]);
-          await db.batch(statements);
+          await retryD1(() => db.batch(statements), { label: 'retention:eraseUsers' });
         }
         console.log(
           `[Cron] Hard-deleted ${userIds.length} soft-deleted users past 90-day retention`
@@ -621,12 +640,16 @@ async function runScheduledTask(event, env, ctx) {
       }
 
       // Cascade purge orgs past 90-day retention
-      const staleOrgs = await db
-        .prepare(
-          `SELECT id FROM organizations WHERE is_active = 0 AND updated_at < datetime('now', '-90 days') AND legal_hold = 0 AND purged_at IS NULL`
-        )
-        .bind()
-        .all();
+      const staleOrgs = await retryD1(
+        () =>
+          db
+            .prepare(
+              `SELECT id FROM organizations WHERE is_active = 0 AND updated_at < datetime('now', '-90 days') AND legal_hold = 0 AND purged_at IS NULL`
+            )
+            .bind()
+            .all(),
+        { label: 'retention:staleOrgs' }
+      );
 
       for (const org of staleOrgs.results || []) {
         try {
@@ -654,31 +677,43 @@ async function runScheduledTask(event, env, ctx) {
     try {
       const { processBadgesForOrg, refreshWindowStats } = await import('./utils/badgeEngine.js');
 
+      // Scheduled Workers have a 30s CPU limit; bail before we breach it
+      // so the cleanup logic still runs. The deadline is shared across
+      // org iteration AND per-student inner-loop bailout — see
+      // processBadgesForOrg() which checks Date.now() > deadlineMs
+      // before each student.
+      //
+      // Computed BEFORE the orgs query, not after, so the query's retry can be
+      // held to the same budget: a D1 call that hangs for 33 seconds (as one did
+      // on 2026-08-21) must not be retried into a second and third hang.
+      const BUDGET_MS = 22_000;
+      const cronStart = Date.now();
+      const deadlineMs = cronStart + BUDGET_MS;
+
       // Get all active organizations + their resume cursor + watermark.
       // last_badge_cursor is non-null when a previous run exhausted the
       // CPU budget mid-org; we resume after that cursor.
       // last_badge_watermark is the start of the last COMPLETED run for
       // the org — only students with a session created after it get the
       // full stats recalc (PERF-M2).
-      const orgs = await db
-        .prepare(
-          'SELECT id, last_badge_cursor, last_badge_watermark FROM organizations WHERE is_active = 1 ORDER BY id'
-        )
-        .bind()
-        .all();
+      //
+      // This exact statement is where the 2026-08-21 run died: first D1 call of
+      // the job, so it processed nothing before aborting.
+      const orgs = await retryD1(
+        () =>
+          db
+            .prepare(
+              'SELECT id, last_badge_cursor, last_badge_watermark FROM organizations WHERE is_active = 1 ORDER BY id'
+            )
+            .bind()
+            .all(),
+        { label: 'badges:orgs', deadlineMs }
+      );
 
       let totalStudents = 0;
       let totalNewBadges = 0;
       let orgsProcessed = 0;
       let orgsSkipped = 0;
-      // Scheduled Workers have a 30s CPU limit; bail before we breach it
-      // so the cleanup logic still runs. The deadline is shared across
-      // org iteration AND per-student inner-loop bailout — see
-      // processBadgesForOrg() which checks Date.now() > deadlineMs
-      // before each student.
-      const BUDGET_MS = 22_000;
-      const cronStart = Date.now();
-      const deadlineMs = cronStart + BUDGET_MS;
 
       for (const org of orgs.results || []) {
         if (Date.now() > deadlineMs) {
@@ -705,10 +740,14 @@ async function runScheduledTask(event, env, ctx) {
           // Persist cursor so next run resumes after this student — the
           // watermark deliberately does NOT advance until the org
           // completes a full pass.
-          await db
-            .prepare('UPDATE organizations SET last_badge_cursor = ? WHERE id = ?')
-            .bind(result.lastProcessedId, org.id)
-            .run();
+          await retryD1(
+            () =>
+              db
+                .prepare('UPDATE organizations SET last_badge_cursor = ? WHERE id = ?')
+                .bind(result.lastProcessedId, org.id)
+                .run(),
+            { label: 'badges:saveCursor', deadlineMs }
+          );
           console.warn(
             `[Cron] Badge budget exhausted within org ${org.id} after ${result.processedCount} students; cursor saved at ${result.lastProcessedId}`
           );
@@ -737,17 +776,25 @@ async function runScheduledTask(event, env, ctx) {
             console.warn(
               `[Cron] Badge org ${org.id}: ${result.failedCount} student(s) failed; holding watermark at ${org.last_badge_watermark || 'NULL'} so they are retried`
             );
-            await db
-              .prepare('UPDATE organizations SET last_badge_cursor = NULL WHERE id = ?')
-              .bind(org.id)
-              .run();
+            await retryD1(
+              () =>
+                db
+                  .prepare('UPDATE organizations SET last_badge_cursor = NULL WHERE id = ?')
+                  .bind(org.id)
+                  .run(),
+              { label: 'badges:clearCursor', deadlineMs }
+            );
           } else {
-            await db
-              .prepare(
-                'UPDATE organizations SET last_badge_cursor = NULL, last_badge_watermark = ? WHERE id = ?'
-              )
-              .bind(runStart, org.id)
-              .run();
+            await retryD1(
+              () =>
+                db
+                  .prepare(
+                    'UPDATE organizations SET last_badge_cursor = NULL, last_badge_watermark = ? WHERE id = ?'
+                  )
+                  .bind(runStart, org.id)
+                  .run(),
+              { label: 'badges:advanceWatermark', deadlineMs }
+            );
           }
 
           // Rolling window stats decay with time even for students with
@@ -869,12 +916,18 @@ async function runScheduledTask(event, env, ctx) {
     // Absence detected by the watchdog, not a Sentry monitor — see the note
     // on the 02:00 job above.
     const jobStart = Date.now();
-    const wondeOrgs = await db
-      .prepare(
-        'SELECT id, wonde_school_id, wonde_school_token, wonde_last_sync_at FROM organizations WHERE wonde_school_id IS NOT NULL AND wonde_school_token IS NOT NULL AND is_active = 1'
-      )
-      .bind()
-      .all();
+    // Head query: if this throws the sync does nothing at all, and the next
+    // attempt is 24 hours away. Bounded retry, then it fails as before.
+    const wondeOrgs = await retryD1(
+      () =>
+        db
+          .prepare(
+            'SELECT id, wonde_school_id, wonde_school_token, wonde_last_sync_at FROM organizations WHERE wonde_school_id IS NOT NULL AND wonde_school_token IS NOT NULL AND is_active = 1'
+          )
+          .bind()
+          .all(),
+      { label: 'wondeSync:orgs' }
+    );
 
     const orgList = wondeOrgs.results || [];
     const SYNC_CONCURRENCY = 5;

@@ -8,15 +8,19 @@
 import * as Sentry from '@sentry/cloudflare';
 import { DEMO_ORG_ID, SNAPSHOT } from '../data/demoSnapshot.js';
 import { processBadgesForOrg } from '../utils/badgeEngine.js';
+import { retryD1, D1_RETRY_ATTEMPTS } from '../utils/d1Retry.js';
 
 const BATCH_LIMIT = 100;
 
-// Retries for a failing batch before giving up on it. The failure mode this
-// exists for is a transient D1 wobble, which is exactly when the old code was
-// at its worst: one failed batch dropped the WHOLE table into row-by-row mode,
-// turning 25 round-trips into 2,411 sequential primary writes at the precise
-// moment D1 was least able to serve them.
-const CHUNK_RETRIES = 2;
+// The retry ladder this file used to own now lives in src/utils/d1Retry.js, so
+// the nightly crons get it too — they are the jobs whose next attempt is 24
+// hours away, and they had none while this one, 60 minutes from its next run,
+// was the only protected job in the codebase.
+//
+// The failure mode it exists for is a transient D1 wobble, which is exactly when
+// the old code was at its worst: one failed batch dropped the WHOLE table into
+// row-by-row mode, turning 25 round-trips into 2,411 sequential primary writes
+// at the precise moment D1 was least able to serve them.
 
 // Give up entirely after this many individual row failures. A handful of bad
 // rows is worth working around; hundreds means the database is unhealthy or the
@@ -204,14 +208,6 @@ function buildInsert(db, table, row) {
 }
 
 /**
- * A constraint violation is the database telling us the statement is wrong, not
- * that it was busy. D1 surfaces it in the message rather than a typed code.
- */
-function isConstraintError(error) {
-  return /SQLITE_CONSTRAINT|constraint failed/i.test(error?.message || '');
-}
-
-/**
  * Execute statements in batches of BATCH_LIMIT.
  *
  * @returns {Promise<number>} rows that failed even individually. The caller
@@ -225,33 +221,24 @@ async function batchExec(db, statements, label) {
   for (let i = 0; i < statements.length; i += BATCH_LIMIT) {
     const chunk = statements.slice(i, i + BATCH_LIMIT);
 
-    let succeeded = false;
+    // retryD1 gives up immediately on a constraint violation rather than
+    // spending the ladder on it: that error is deterministic, the same statement
+    // fails identically in 250ms, 500ms and 1s, and retrying one cost ~1.75s of
+    // this cron's budget per failing chunk — six times a reset.
     let lastError;
-    for (let attempt = 0; attempt <= CHUNK_RETRIES; attempt++) {
-      try {
-        await db.batch(chunk);
-        succeeded = true;
-        break;
-      } catch (error) {
-        lastError = error;
-        // Retries are for transient D1 failures. A constraint violation is
-        // deterministic: the same statement will fail identically in 250ms, in
-        // 500ms and in 1s. Retrying one cost ~1.75s of the cron's budget per
-        // failing chunk and produced six identical failures a reset.
-        if (isConstraintError(error)) break;
-        if (attempt < CHUNK_RETRIES) {
-          await new Promise((resolve) => setTimeout(resolve, 250 * 2 ** attempt));
-        }
-      }
+    try {
+      await retryD1(() => db.batch(chunk), { label: `demoReset:${label}[${i}]` });
+      continue;
+    } catch (error) {
+      lastError = error;
     }
-    if (succeeded) continue;
 
     // Retries exhausted. Fall back row-by-row for THIS CHUNK ONLY — never the
     // whole table. Surfaced to Sentry rather than console alone: the previous
     // version logged this and nothing else, so when it mattered there was no
     // record either way of whether the amplifier had fired.
     console.error(
-      `[DemoReset] batch ${label} [${i}..${i + chunk.length}] failed after ${CHUNK_RETRIES + 1} attempts:`,
+      `[DemoReset] batch ${label} [${i}..${i + chunk.length}] failed after ${D1_RETRY_ATTEMPTS} attempts:`,
       lastError?.message
     );
     Sentry.captureMessage(`Demo reset batch fell back to row-by-row: ${label}`, {

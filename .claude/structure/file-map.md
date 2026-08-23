@@ -142,6 +142,7 @@ src/utils/aiProviderResolver.js - Shared AI key resolution (BYOK -> add-on-licen
 src/utils/aiCostCap.js - Per-tenant monthly AI cost cap enforcement (org_ai_usage table)
 src/utils/contentModeration.js - AI output content-moderation layer (age-appropriate filtering)
 src/utils/d1Batch.js - D1 batch operation guard (chunks statements to respect 100-statement limit)
+src/utils/d1Retry.js - Bounded retry for transient D1 failures (retryD1/isTransientD1Error); shared by the nightly crons, the watchdog and the demo reset
 src/utils/sentryFilter.js - Sentry PII scrubbing filter for error reporting
 
 ## Contexts & Hooks
